@@ -75,6 +75,19 @@ function UlashEkrani({ email, ism, onUlandi }) {
   const [sinf, setSinf] = useState("5");
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [oxshashlar, setOxshashlar] = useState([]);
+
+  useEffect(() => {
+    if (rejim !== "royxat" || ismInput.trim().length < 3) { setOxshashlar([]); return; }
+    const kechiktirish = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/ism_tekshir?ism=${encodeURIComponent(ismInput.trim())}`);
+        const data = await res.json();
+        setOxshashlar(data.oxshash || []);
+      } catch { /* jimgina o'tkazamiz - bu faqat ogohlantirish, ro'yxatdan o'tishni to'xtatmasin */ }
+    }, 500);
+    return () => clearTimeout(kechiktirish);
+  }, [ismInput, rejim]);
 
   const kodBilan = async () => {
     if (!kod.trim()) return;
@@ -168,8 +181,22 @@ function UlashEkrani({ email, ism, onUlandi }) {
 
       <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ismingiz</label>
       <input type="text" value={ismInput} onChange={(e) => setIsmInput(e.target.value)}
-        className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+        className="w-full px-4 py-3 rounded-xl border text-base mb-2"
         style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
+
+      {oxshashlar.length > 0 && (
+        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#FFF8E8", border: "1px solid #EEDFB0" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "#6B5B2E" }}>
+            Botda shunga o'xshash ism topildi:
+          </p>
+          {oxshashlar.map((o, i) => (
+            <p key={i} className="text-xs" style={{ color: "#8A7642" }}>• {o.full_name} ({o.role})</p>
+          ))}
+          <p className="text-xs mt-1.5" style={{ color: "#6B5B2E" }}>
+            Bu sizmi? Bo'lsa, ortga qaytib "Bot kodim bor" ni tanlang — aks holda ikkita akkaunt paydo bo'ladi.
+          </p>
+        </div>
+      )}
 
       <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Kimsiz?</label>
       <div className="grid grid-cols-3 gap-2 mb-4">
