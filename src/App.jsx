@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
@@ -323,7 +323,7 @@ function BilimTab({ data }) {
 // ═══════════════════════════════════════════════════════════
 // 4) TEST YECHISH
 // ═══════════════════════════════════════════════════════════
-function TestTab({ token }) {
+function TestTab({ token, sinf }) {
   const [holat, setHolat] = useState("mavzular"); // mavzular | savollar | natija
   const [fanlar, setFanlar] = useState([]);
   const [ochiqFan, setOchiqFan] = useState(null);
@@ -336,11 +336,12 @@ function TestTab({ token }) {
   const [xato, setXato] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/mavzular`)
+    const url = sinf ? `${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinf)}` : `${API_BASE}/api/mavzular`;
+    fetch(url)
       .then((r) => r.json())
       .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
-  }, []);
+  }, [sinf]);
 
   const mavzuTanla = async (fan, mavzu) => {
     setYuklanmoqda(true); setXato("");
@@ -356,8 +357,51 @@ function TestTab({ token }) {
     } finally { setYuklanmoqda(false); }
   };
 
-  const javobBer = (savolId, harf) => {
+  const [joriyNatija, setJoriyNatija] = useState(null); // {togrimi, togri_javob, tushuntirish} | null
+  const [qolganVaqt, setQolganVaqt] = useState(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (holat !== "savollar" || joriyNatija || !savollar[joriySavol]) return;
+
+    const s = savollar[joriySavol];
+    if (!s.time_limit) { setQolganVaqt(null); return; }
+    setQolganVaqt(s.time_limit);
+    timerRef.current = setInterval(() => {
+      setQolganVaqt((v) => {
+        if (v <= 1) {
+          clearInterval(timerRef.current);
+          javobBer(s.id, "");
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joriySavol, holat]);
+
+  const javobBer = async (savolId, harf) => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
+    try {
+      const res = await fetch(`${API_BASE}/api/test/javob_tekshir`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savol_id: savolId, tanlangan: harf }),
+      });
+      const data = await res.json();
+      setJoriyNatija(data);
+    } catch {
+      setJoriyNatija({ togrimi: false, togri_javob: "?", tushuntirish: "" });
+    }
+  };
+
+  const keyingiSavolga = () => {
+    setJoriyNatija(null);
+    if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
+    else yakunla();
   };
 
   const yakunla = async () => {
@@ -380,7 +424,7 @@ function TestTab({ token }) {
   };
 
   const qaytaBoshlash = () => {
-    setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null);
+    setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null); setJoriyNatija(null);
   };
 
   if (yuklanmoqda) {
@@ -407,39 +451,83 @@ function TestTab({ token }) {
     const s = savollar[joriySavol];
     const oxirgi = joriySavol === savollar.length - 1;
     const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+    const javobBerilgan = !!joriyNatija;
+
+    const variantRangi = (harf) => {
+      if (!javobBerilgan) {
+        return javoblar[s.id] === harf
+          ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
+          : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" };
+      }
+      if (harf === joriyNatija.togri_javob) return { borderColor: "#639922", backgroundColor: "#EAF3DE" };
+      if (harf === javoblar[s.id]) return { borderColor: "#E24B4A", backgroundColor: "#FCEBEB" };
+      return { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", opacity: 0.6 };
+    };
+
     return (
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
-          <p className="text-xs" style={{ color: "#8A8578" }}>{tanlanganMavzu.nomi}</p>
+          <div className="flex items-center gap-3">
+            {qolganVaqt !== null && !javobBerilgan && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: qolganVaqt <= 5 ? "#FCEBEB" : "#F1EFE8", color: qolganVaqt <= 5 ? "#A32D2D" : "#5A5648" }}>
+                ⏱ {qolganVaqt}s
+              </span>
+            )}
+            <p className="text-xs" style={{ color: "#8A8578" }}>{tanlanganMavzu.nomi}</p>
+          </div>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden mb-6" style={{ backgroundColor: "#EFEBE1" }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${((joriySavol + 1) / savollar.length) * 100}%`, backgroundColor: "#1B4B7A" }} />
         </div>
+
+        {s.rasm_id && (
+          <img src={`${API_BASE}/api/rasm/${s.rasm_id}`} alt=""
+            className="w-full rounded-xl mb-4 object-cover"
+            style={{ maxHeight: "220px", backgroundColor: "#EFEBE1" }}
+            onError={(e) => { e.target.style.display = "none"; }} />
+        )}
+
         <h2 className="text-lg font-semibold mb-5" style={{ color: "#2B2B2B" }}>{s.question}</h2>
-        <div className="space-y-2.5 mb-6">
+        <div className="space-y-2.5 mb-4">
           {variantlar.map(([harf, matn]) => (
-            <button key={harf} onClick={() => javobBer(s.id, harf)}
+            <button key={harf} onClick={() => !javobBerilgan && javobBer(s.id, harf)} disabled={javobBerilgan}
               className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
-              style={{
-                borderColor: javoblar[s.id] === harf ? "#1B4B7A" : "#E5E1D8",
-                backgroundColor: javoblar[s.id] === harf ? "#EAF1F7" : "#FFFFFF",
-              }}>
+              style={variantRangi(harf)}>
               <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                style={{ backgroundColor: javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8", color: javoblar[s.id] === harf ? "#FFFFFF" : "#5A5648" }}>
+                style={{
+                  backgroundColor: javobBerilgan
+                    ? (harf === joriyNatija.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
+                    : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
+                  color: (javobBerilgan && (harf === joriyNatija.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
+                    ? "#FFFFFF" : "#5A5648",
+                }}>
                 {harf}
               </span>
               <span className="text-sm" style={{ color: "#2B2B2B" }}>{matn}</span>
             </button>
           ))}
         </div>
-        <button
-          onClick={() => (oxirgi ? yakunla() : setJoriySavol(joriySavol + 1))}
-          disabled={!javoblar[s.id]}
-          className="w-full py-3.5 rounded-xl font-semibold text-white"
-          style={{ backgroundColor: "#1B4B7A", opacity: javoblar[s.id] ? 1 : 0.4 }}>
-          {oxirgi ? "Yakunlash" : "Keyingi"}
-        </button>
+
+        {javobBerilgan && (
+          <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>
+              {joriyNatija.togrimi ? "✓ To'g'ri!" : "✗ Noto'g'ri"}
+            </p>
+            {joriyNatija.tushuntirish && (
+              <p className="text-sm" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>{joriyNatija.tushuntirish}</p>
+            )}
+          </div>
+        )}
+
+        {javobBerilgan ? (
+          <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+            {oxirgi ? "Yakunlash" : "Keyingi savol"}
+          </button>
+        ) : (
+          <p className="text-center text-xs" style={{ color: "#B0AA98" }}>Javobni tanlang</p>
+        )}
       </div>
     );
   }
@@ -545,7 +633,7 @@ function Kabinet({ token }) {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
       {tab === "bilim" && <BilimTab data={bilimData} />}
-      {tab === "test" && <TestTab token={token} />}
+      {tab === "test" && <TestTab token={token} sinf={foydalanuvchi?.class} />}
       {tab === "xabar" && (
         <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}><p className="text-sm" style={{ color: "#8A8578" }}>Tez orada.</p></div></div>
