@@ -76,7 +76,7 @@ function UlashEkrani({ email, ism, onUlandi }) {
   const [sinf, setSinf] = useState("5");
   const [viloyat, setViloyat] = useState("");
   const [tuman, setTuman] = useState("");
-  const [tugilganYil, setTugilganYil] = useState("");
+  const [tugilganSana, setTugilganYil] = useState("");
   const [maktabRaqami, setMaktabRaqami] = useState("");
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
@@ -123,7 +123,7 @@ function UlashEkrani({ email, ism, onUlandi }) {
           sinf: rol === "oquvchi" ? sinf : undefined,
           region: viloyat || undefined,
           district: tuman || undefined,
-          tugilgan_yil: tugilganYil ? parseInt(tugilganYil, 10) : undefined,
+          tugilgan_sana: tugilganSana || undefined,
           maktab_raqami: rol === "oquvchi" && maktabRaqami ? maktabRaqami : undefined,
         }),
       });
@@ -264,15 +264,11 @@ function UlashEkrani({ email, ism, onUlandi }) {
         </>
       )}
 
-      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan yil</label>
-      <select value={tugilganYil} onChange={(e) => setTugilganYil(e.target.value)}
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
+      <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
+        min="1950-01-01" max={new Date().toISOString().split("T")[0]}
         className="w-full px-4 py-3 rounded-xl border text-base mb-4"
-        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-        <option value="">Tanlanmagan</option>
-        {Array.from({ length: 70 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-          <option key={y} value={y}>{y}</option>
-        ))}
-      </select>
+        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
 
       {xato && <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#B0553A" }}><WifiOff size={15} /> {xato}</div>}
 
@@ -855,7 +851,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
   const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
   const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
-  const [tugilganYil, setTugilganYil] = useState(foydalanuvchi?.tugilgan_yil ? String(foydalanuvchi.tugilgan_yil) : "");
+  const [tugilganSana, setTugilganYil] = useState(foydalanuvchi?.tugilgan_sana || "");
   const [maktabRaqami, setMaktabRaqami] = useState(foydalanuvchi?.maktab_raqami || "");
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
@@ -871,13 +867,13 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token, full_name: ism, region: viloyat, district: tuman,
-          tugilgan_yil: tugilganYil ? parseInt(tugilganYil, 10) : undefined,
+          tugilgan_sana: tugilganSana || undefined,
           maktab_raqami: maktabRaqami || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      onYangilandi({ ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman, tugilgan_yil: tugilganYil, maktab_raqami: maktabRaqami });
+      onYangilandi({ ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman, tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami });
       setMuvaffaqiyat(true);
       setTimeout(() => setMuvaffaqiyat(false), 2500);
     } catch (e) {
@@ -934,15 +930,11 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
           </>
         )}
 
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan yil</label>
-        <select value={tugilganYil} onChange={(e) => setTugilganYil(e.target.value)}
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
+        <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
+          min="1950-01-01" max={new Date().toISOString().split("T")[0]}
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
-          style={{ borderColor: "#E5E1D8" }}>
-          <option value="">Tanlanmagan</option>
-          {Array.from({ length: 70 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+          style={{ borderColor: "#E5E1D8" }} />
 
         {foydalanuvchi?.role === "oquvchi" && (
           <>
