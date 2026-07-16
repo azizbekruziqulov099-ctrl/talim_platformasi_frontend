@@ -360,7 +360,9 @@ function TestTab({ token, sinf }) {
 
   const [joriyNatija, setJoriyNatija] = useState(null); // {togrimi, togri_javob, tushuntirish} | null
   const [qolganVaqt, setQolganVaqt] = useState(null);
+  const [avtoQoldi, setAvtoQoldi] = useState(null);
   const timerRef = useRef(null);
+  const avtoRef = useRef(null);
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -400,10 +402,30 @@ function TestTab({ token, sinf }) {
   };
 
   const keyingiSavolga = () => {
+    if (avtoRef.current) clearInterval(avtoRef.current);
     setJoriyNatija(null);
     if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
     else yakunla();
   };
+
+  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 4 soniyadan keyin
+  // AVTOMATIK keyingi savolga o'tadi — foydalanuvchi tugma bosishi shart emas
+  useEffect(() => {
+    if (!joriyNatija) { setAvtoQoldi(null); return; }
+    setAvtoQoldi(4);
+    avtoRef.current = setInterval(() => {
+      setAvtoQoldi((v) => {
+        if (v <= 1) {
+          clearInterval(avtoRef.current);
+          keyingiSavolga();
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(avtoRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joriyNatija]);
 
   const yakunla = async () => {
     setYuklanmoqda(true);
@@ -524,7 +546,7 @@ function TestTab({ token, sinf }) {
 
         {javobBerilgan ? (
           <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-            {oxirgi ? "Yakunlash" : "Keyingi savol"}
+            {(oxirgi ? "Yakunlash" : "Keyingi savol")}{avtoQoldi ? ` (${avtoQoldi})` : ""}
           </button>
         ) : (
           <p className="text-center text-xs" style={{ color: "#B0AA98" }}>Javobni tanlang</p>
