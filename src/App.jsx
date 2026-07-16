@@ -633,7 +633,7 @@ function Kabinet({ token }) {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
       {tab === "bilim" && <BilimTab data={bilimData} />}
-      {tab === "test" && <TestTab token={token} sinf={foydalanuvchi?.class} />}
+      {tab === "test" && <TestTab token={token} sinf={foydalanuvchi?.is_admin ? null : foydalanuvchi?.class} />}
       {tab === "xabar" && (
         <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}><p className="text-sm" style={{ color: "#8A8578" }}>Tez orada.</p></div></div>
