@@ -327,6 +327,7 @@ function TestTab({ token, sinf }) {
   const [holat, setHolat] = useState("mavzular"); // mavzular | savollar | natija
   const [fanlar, setFanlar] = useState([]);
   const [ochiqFan, setOchiqFan] = useState(null);
+  const [ochiqSinf, setOchiqSinf] = useState(null); // "fanQisqa:sinf" formatida
   const [savollar, setSavollar] = useState([]);
   const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
   const [joriySavol, setJoriySavol] = useState(0);
@@ -545,15 +546,16 @@ function TestTab({ token, sinf }) {
         <div className="space-y-3">
           {fanlar.map((fan) => {
             const ochiq = ochiqFan === fan.qisqa;
+            const bittaSinf = fan.sinflar.length === 1;
             return (
               <div key={fan.qisqa} className="rounded-2xl overflow-hidden border bg-white" style={{ borderColor: "#E5E1D8" }}>
                 <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)} className="w-full flex items-center justify-between p-4">
                   <span className="font-semibold text-sm" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
                   {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}
                 </button>
-                {ochiq && (
+                {ochiq && bittaSinf && (
                   <div className="px-4 pb-4 space-y-2">
-                    {fan.mavzular.map((m) => (
+                    {fan.sinflar[0].mavzular.map((m) => (
                       <button key={m.topic_code} onClick={() => mavzuTanla(fan, m)}
                         className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl"
                         style={{ backgroundColor: "#F7F5F0" }}>
@@ -561,6 +563,34 @@ function TestTab({ token, sinf }) {
                         <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
                       </button>
                     ))}
+                  </div>
+                )}
+                {ochiq && !bittaSinf && (
+                  <div className="px-4 pb-4 space-y-2">
+                    {fan.sinflar.map((s) => {
+                      const sKaliti = `${fan.qisqa}:${s.sinf}`;
+                      const sOchiq = ochiqSinf === sKaliti;
+                      return (
+                        <div key={s.sinf} className="rounded-xl overflow-hidden" style={{ backgroundColor: "#F7F5F0" }}>
+                          <button onClick={() => setOchiqSinf(sOchiq ? null : sKaliti)}
+                            className="w-full flex items-center justify-between px-3.5 py-3">
+                            <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-sinf</span>
+                            {sOchiq ? <ChevronDown size={16} style={{ color: "#8A8578" }} /> : <ChevronRight size={16} style={{ color: "#8A8578" }} />}
+                          </button>
+                          {sOchiq && (
+                            <div className="px-3 pb-3 space-y-2">
+                              {s.mavzular.map((m) => (
+                                <button key={m.topic_code} onClick={() => mavzuTanla(fan, m)}
+                                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-white">
+                                  <span className="text-sm" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+                                  <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
