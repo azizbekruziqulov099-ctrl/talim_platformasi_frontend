@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
-  Loader2, WifiOff, KeyRound, UserPlus, PencilLine,
+  Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -655,16 +655,283 @@ function TestTab({ token, sinf }) {
   );
 }
 
-function PastkiMenyu({ faol, onTanlash }) {
+// ═══════════════════════════════════════════════════════════
+// 5) O'QITUVCHI — guruhlarim, baholash
+// ═══════════════════════════════════════════════════════════
+function OqituvchiTab({ token }) {
+  const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar
+  const [togaraklar, setTogaraklar] = useState([]);
+  const [tanlangan, setTanlangan] = useState(null);
+  const [azolar, setAzolar] = useState([]);
+  const [bahoQoyilayotgan, setBahoQoyilayotgan] = useState(null); // user_id | null
+  const [bahoQiymati, setBahoQiymati] = useState("");
+  const [izohQiymati, setIzohQiymati] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/togaraklar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setTogaraklar(d.togaraklar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token]);
+
+  const togarakOch = async (t) => {
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak/${t.id}/azolar?token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setAzolar(data.azolar || []);
+      setTanlangan(t);
+      setHolat("azolar");
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYuklanmoqda(false); }
+  };
+
+  const bahoBoshla = (azo) => {
+    setBahoQoyilayotgan(azo.user_id);
+    setBahoQiymati(azo.oxirgi_baho != null ? String(azo.oxirgi_baho) : "");
+    setIzohQiymati("");
+  };
+
+  const bahoSaqla = async (userId) => {
+    const baho = parseInt(bahoQiymati, 10);
+    if (isNaN(baho) || baho < 0 || baho > 100) {
+      setXato("Baho 0-100 oralig'ida bo'lishi kerak");
+      return;
+    }
+    setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/baho_qoy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: tanlangan.id, user_id: userId, baho, izoh: izohQiymati || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setAzolar((prev) => prev.map((a) => (a.user_id === userId ? { ...a, oxirgi_baho: baho } : a)));
+      setBahoQoyilayotgan(null);
+    } catch (e) {
+      setXato(e.message);
+    }
+  };
+
+  if (yuklanmoqda) {
+    return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  if (holat === "azolar") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
+          className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
+        {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {azolar.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Bu to'garakda hali a'zo yo'q.</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {azolar.map((a) => (
+              <div key={a.user_id} className="rounded-2xl bg-white border overflow-hidden" style={{ borderColor: "#E5E1D8" }}>
+                <button onClick={() => (bahoQoyilayotgan === a.user_id ? setBahoQoyilayotgan(null) : bahoBoshla(a))}
+                  className="w-full flex items-center justify-between px-4 py-3.5">
+                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{a.full_name}</span>
+                  <span className="text-sm font-semibold" style={{ color: a.oxirgi_baho != null ? "#2D8B8B" : "#B0AA98" }}>
+                    {a.oxirgi_baho != null ? `${a.oxirgi_baho}` : "Baholanmagan"}
+                  </span>
+                </button>
+                {bahoQoyilayotgan === a.user_id && (
+                  <div className="px-4 pb-4 pt-1 space-y-2.5">
+                    <input type="number" min="0" max="100" value={bahoQiymati}
+                      onChange={(e) => setBahoQiymati(e.target.value)}
+                      placeholder="Baho (0-100)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                      style={{ borderColor: "#E5E1D8" }} />
+                    <input type="text" value={izohQiymati} onChange={(e) => setIzohQiymati(e.target.value)}
+                      placeholder="Izoh (ixtiyoriy)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                      style={{ borderColor: "#E5E1D8" }} />
+                    <button onClick={() => bahoSaqla(a.user_id)}
+                      className="w-full py-2.5 rounded-xl font-semibold text-white text-sm"
+                      style={{ backgroundColor: "#1B4B7A" }}>
+                      Saqlash
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // holat === "togaraklar"
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Guruhlarim</h1>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {togaraklar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Sizga tegishli to'garak topilmadi.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {togaraklar.map((t) => (
+            <button key={t.id} onClick={() => togarakOch(t)}
+              className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-white border text-left"
+              style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{t.nomi}</p>
+                <p className="text-xs mt-0.5" style={{ color: "#8A8578" }}>{t.fan}</p>
+              </div>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                {t.azo_soni} o'quvchi
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6) PROFIL — tahrirlash va rol almashtirish
+// ═══════════════════════════════════════════════════════════
+function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
+  const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
+  const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
+  const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [muvaffaqiyat, setMuvaffaqiyat] = useState(false);
+  const [rolTanlov, setRolTanlov] = useState(null);
+  const [rolOzgartirilmoqda, setRolOzgartirilmoqda] = useState(false);
+
+  const profilSaqla = async () => {
+    setSaqlanmoqda(true); setXato(""); setMuvaffaqiyat(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/profil`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, full_name: ism, region: viloyat, district: tuman }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onYangilandi({ ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman });
+      setMuvaffaqiyat(true);
+      setTimeout(() => setMuvaffaqiyat(false), 2500);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  const rolTasdiqla = async () => {
+    setRolOzgartirilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_ozgartir`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yangi_rol: rolTanlov, tasdiqlayman: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onYangilandi({ ...foydalanuvchi, role: rolTanlov });
+      setRolTanlov(null);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setRolOzgartirilmoqda(false); }
+  };
+
+  const rolNomlari = { oquvchi: "O'quvchi", "ota-ona": "Ota-ona", oqituvchi: "O'qituvchi" };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Profil</h1>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ism</label>
+        <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+        <input type="text" value={viloyat} onChange={(e) => setViloyat(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+        <input type="text" value={tuman} onChange={(e) => setTuman(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
+          style={{ borderColor: "#E5E1D8" }} />
+
+        {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
+
+        <button onClick={profilSaqla} disabled={saqlanmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+          style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+          {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+        </button>
+      </div>
+
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-xs font-medium mb-2" style={{ color: "#5A5648" }}>Rolingiz</p>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.entries(rolNomlari).map(([v, l]) => (
+            <button key={v} onClick={() => v !== foydalanuvchi?.role && setRolTanlov(v)}
+              className="py-2.5 rounded-lg border text-xs font-medium"
+              style={{
+                borderColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#E5E1D8",
+                backgroundColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#FFFFFF",
+                color: foydalanuvchi?.role === v ? "#FFFFFF" : "#5A5648",
+              }}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {rolTanlov && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>Rolni o'zgartirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              Rolingiz "{rolNomlari[rolTanlov]}"ga o'zgaradi. Bu ko'rinadigan ma'lumot va imkoniyatlaringizga ta'sir qiladi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setRolTanlov(null)}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={rolTasdiqla} disabled={rolOzgartirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                {rolOzgartirilmoqda ? "..." : "Tasdiqlash"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PastkiMenyu({ faol, onTanlash, rol }) {
   const bandlar = [
     { kalit: "bilim", nom: "Bilim", ikon: BarChart3 },
     { kalit: "test", nom: "Test", ikon: PencilLine },
+    ...(rol === "oqituvchi" ? [{ kalit: "oqituvchi", nom: "Guruhlarim", ikon: Users }] : []),
     { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
     { kalit: "profil", nom: "Profil", ikon: User },
   ];
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 border-t" style={{ backgroundColor: "rgba(255,255,255,0.97)", borderColor: "#E5E1D8" }}>
-      <div className="max-w-md mx-auto grid grid-cols-4">
+      <div className="max-w-md mx-auto grid" style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(0, 1fr))` }}>
         {bandlar.map(({ kalit, nom, ikon: Ikon }) => {
           const aktiv = faol === kalit;
           return (
@@ -717,18 +984,13 @@ function Kabinet({ token }) {
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
       {tab === "bilim" && <BilimTab data={bilimData} />}
       {tab === "test" && <TestTab token={token} sinf={foydalanuvchi?.is_admin ? null : foydalanuvchi?.class} />}
+      {tab === "oqituvchi" && foydalanuvchi?.role === "oqituvchi" && <OqituvchiTab token={token} />}
       {tab === "xabar" && (
         <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}><p className="text-sm" style={{ color: "#8A8578" }}>Tez orada.</p></div></div>
       )}
-      {tab === "profil" && (
-        <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Profil</h1>
-          <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-xs" style={{ color: "#8A8578" }}>Ism</p><p className="text-sm font-medium mb-3" style={{ color: "#2B2B2B" }}>{foydalanuvchi?.full_name}</p>
-            <p className="text-xs" style={{ color: "#8A8578" }}>Rol</p><p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{foydalanuvchi?.role}</p>
-          </div></div>
-      )}
-      <PastkiMenyu faol={tab} onTanlash={setTab} />
+      {tab === "profil" && <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} />}
+      <PastkiMenyu faol={tab} onTanlash={setTab} rol={foydalanuvchi?.role} />
     </div>
   );
 }
