@@ -703,7 +703,7 @@ function TestTab({ token, sinf }) {
 // 5) O'QITUVCHI — guruhlarim, baholash
 // ═══════════════════════════════════════════════════════════
 function OqituvchiTab({ token }) {
-  const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar
+  const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
   const [tanlangan, setTanlangan] = useState(null);
   const [azolar, setAzolar] = useState([]);
@@ -712,6 +712,13 @@ function OqituvchiTab({ token }) {
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+
+  const [yangiNomi, setYangiNomi] = useState("");
+  const [yangiFan, setYangiFan] = useState("");
+  const [yangiParol, setYangiParol] = useState("");
+  const [yangiMaxTalaba, setYangiMaxTalaba] = useState("");
+  const [yangiOylikSumma, setYangiOylikSumma] = useState("");
+  const [yaratilmoqda, setYaratilmoqda] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/oqituvchi/togaraklar?token=${encodeURIComponent(token)}`)
@@ -762,8 +769,90 @@ function OqituvchiTab({ token }) {
     }
   };
 
+  const yaratishSaqla = async () => {
+    if (!yangiNomi.trim() || !yangiFan.trim()) {
+      setXato("To'garak nomi va fan kiritilishi shart");
+      return;
+    }
+    setYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: yangiNomi.trim(), fan: yangiFan.trim(),
+          parol: yangiParol || undefined,
+          max_talaba: yangiMaxTalaba ? parseInt(yangiMaxTalaba, 10) : undefined,
+          oylik_summa: yangiOylikSumma ? parseInt(yangiOylikSumma, 10) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setTogaraklar((prev) => [...prev, { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), max_talaba: yangiMaxTalaba || null, azo_soni: 0 }]);
+      setYangiNomi(""); setYangiFan(""); setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
+      setHolat("togaraklar");
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYaratilmoqda(false); }
+  };
+
   if (yuklanmoqda) {
     return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  if (holat === "yaratish") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setHolat("togaraklar")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>Yangi to'garak</h1>
+        <p className="text-sm mb-6" style={{ color: "#8A8578" }}>Bot va saytda bir xil ko'rinadi</p>
+
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>To'garak nomi</label>
+          <input type="text" value={yangiNomi} onChange={(e) => setYangiNomi(e.target.value)}
+            placeholder="masalan: Matematik to'garak"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
+          <input type="text" value={yangiFan} onChange={(e) => setYangiFan(e.target.value)}
+            placeholder="masalan: Matematika"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qo'shilish paroli (ixtiyoriy)</label>
+          <input type="text" value={yangiParol} onChange={(e) => setYangiParol(e.target.value)}
+            placeholder="o'quvchilar shu bilan qo'shiladi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maks. talaba</label>
+              <input type="number" min="1" value={yangiMaxTalaba} onChange={(e) => setYangiMaxTalaba(e.target.value)}
+                placeholder="25"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                style={{ borderColor: "#E5E1D8" }} />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik (so'm)</label>
+              <input type="number" min="0" value={yangiOylikSumma} onChange={(e) => setYangiOylikSumma(e.target.value)}
+                placeholder="50000"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                style={{ borderColor: "#E5E1D8" }} />
+            </div>
+          </div>
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+          <button onClick={yaratishSaqla} disabled={yaratilmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#1B4B7A", opacity: yaratilmoqda ? 0.7 : 1 }}>
+            {yaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "To'garak yaratish"}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (holat === "azolar") {
@@ -817,12 +906,22 @@ function OqituvchiTab({ token }) {
   // holat === "togaraklar"
   return (
     <div className="px-5 pt-6 pb-4">
-      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Guruhlarim</h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Guruhlarim</h1>
+        <button onClick={() => { setXato(""); setHolat("yaratish"); }}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white"
+          style={{ backgroundColor: "#C89B3C" }}>
+          + Yangi
+        </button>
+      </div>
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
-        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm" style={{ color: "#8A8578" }}>Sizga tegishli to'garak topilmadi.</p>
-        </div>
+        <button onClick={() => { setXato(""); setHolat("yaratish"); }}
+          className="w-full rounded-2xl p-8 text-center border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF" }}>
+          <p className="text-sm font-medium mb-1" style={{ color: "#5A5648" }}>Hali to'garagingiz yo'q</p>
+          <p className="text-xs" style={{ color: "#8A8578" }}>Bosib, birinchisini yarating</p>
+        </button>
       ) : (
         <div className="space-y-2.5">
           {togaraklar.map((t) => (
