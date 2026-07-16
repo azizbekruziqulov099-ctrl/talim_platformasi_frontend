@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
@@ -73,6 +74,10 @@ function UlashEkrani({ email, ism, onUlandi }) {
   const [ismInput, setIsmInput] = useState(ism || "");
   const [rol, setRol] = useState("oquvchi");
   const [sinf, setSinf] = useState("5");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [tugilganYil, setTugilganYil] = useState("");
+  const [maktabRaqami, setMaktabRaqami] = useState("");
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [oxshashlar, setOxshashlar] = useState([]);
@@ -113,7 +118,14 @@ function UlashEkrani({ email, ism, onUlandi }) {
       const res = await fetch(`${API_BASE}/auth/royxat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, ism: ismInput.trim(), rol, sinf: rol === "oquvchi" ? sinf : undefined }),
+        body: JSON.stringify({
+          email, ism: ismInput.trim(), rol,
+          sinf: rol === "oquvchi" ? sinf : undefined,
+          region: viloyat || undefined,
+          district: tuman || undefined,
+          tugilgan_yil: tugilganYil ? parseInt(tugilganYil, 10) : undefined,
+          maktab_raqami: rol === "oquvchi" && maktabRaqami ? maktabRaqami : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
@@ -223,8 +235,44 @@ function UlashEkrani({ email, ism, onUlandi }) {
               <option key={n} value={n}>{n}-sinf</option>
             ))}
           </select>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
+          <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
+            placeholder="masalan: 21"
+            className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+            style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
         </>
       )}
+
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+      <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+        className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+        <option value="">Tanlanmagan</option>
+        {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+      </select>
+
+      {viloyat && (
+        <>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+          <select value={tuman} onChange={(e) => setTuman(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+            style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+            <option value="">Tanlanmagan</option>
+            {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </>
+      )}
+
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan yil</label>
+      <select value={tugilganYil} onChange={(e) => setTugilganYil(e.target.value)}
+        className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+        <option value="">Tanlanmagan</option>
+        {Array.from({ length: 70 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
 
       {xato && <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#B0553A" }}><WifiOff size={15} /> {xato}</div>}
 
@@ -807,6 +855,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
   const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
   const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
+  const [tugilganYil, setTugilganYil] = useState(foydalanuvchi?.tugilgan_yil ? String(foydalanuvchi.tugilgan_yil) : "");
+  const [maktabRaqami, setMaktabRaqami] = useState(foydalanuvchi?.maktab_raqami || "");
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [muvaffaqiyat, setMuvaffaqiyat] = useState(false);
@@ -819,11 +869,15 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
       const res = await fetch(`${API_BASE}/api/profil`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, full_name: ism, region: viloyat, district: tuman }),
+        body: JSON.stringify({
+          token, full_name: ism, region: viloyat, district: tuman,
+          tugilgan_yil: tugilganYil ? parseInt(tugilganYil, 10) : undefined,
+          maktab_raqami: maktabRaqami || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      onYangilandi({ ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman });
+      onYangilandi({ ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman, tugilgan_yil: tugilganYil, maktab_raqami: maktabRaqami });
       setMuvaffaqiyat(true);
       setTimeout(() => setMuvaffaqiyat(false), 2500);
     } catch (e) {
@@ -861,14 +915,44 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
           style={{ borderColor: "#E5E1D8" }} />
 
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
-        <input type="text" value={viloyat} onChange={(e) => setViloyat(e.target.value)}
+        <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
-          style={{ borderColor: "#E5E1D8" }} />
+          style={{ borderColor: "#E5E1D8" }}>
+          <option value="">Tanlanmagan</option>
+          {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+        </select>
 
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
-        <input type="text" value={tuman} onChange={(e) => setTuman(e.target.value)}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
-          style={{ borderColor: "#E5E1D8" }} />
+        {viloyat && (
+          <>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+            <select value={tuman} onChange={(e) => setTuman(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+              style={{ borderColor: "#E5E1D8" }}>
+              <option value="">Tanlanmagan</option>
+              {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </>
+        )}
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan yil</label>
+        <select value={tugilganYil} onChange={(e) => setTugilganYil(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }}>
+          <option value="">Tanlanmagan</option>
+          {Array.from({ length: 70 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+
+        {foydalanuvchi?.role === "oquvchi" && (
+          <>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
+            <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
+              placeholder="masalan: 21"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
+              style={{ borderColor: "#E5E1D8" }} />
+          </>
+        )}
 
         {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
         {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
