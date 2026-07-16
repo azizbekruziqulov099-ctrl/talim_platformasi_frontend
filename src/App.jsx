@@ -324,7 +324,7 @@ function BilimTab({ data }) {
 // 4) TEST YECHISH
 // ═══════════════════════════════════════════════════════════
 function TestTab({ token, sinf }) {
-  const [holat, setHolat] = useState("mavzular"); // mavzular | savollar | natija
+  const [holat, setHolat] = useState("mavzular"); // mavzular | songi | savollar | natija
   const [fanlar, setFanlar] = useState([]);
   const [ochiqFan, setOchiqFan] = useState(null);
   const [ochiqSinf, setOchiqSinf] = useState(null); // "fanQisqa:sinf" formatida
@@ -344,14 +344,19 @@ function TestTab({ token, sinf }) {
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
   }, [sinf]);
 
-  const mavzuTanla = async (fan, mavzu) => {
+  // Mavzu bosilganda — darhol savol OLMAYMIZ, avval "nechta savol" so'raymiz
+  const mavzuBoslandi = (fan, mavzu) => {
+    setTanlanganMavzu({ ...mavzu, fanNomi: fan.nom });
+    setHolat("songi");
+  };
+
+  const savollarniYukla = async (soni) => {
     setYuklanmoqda(true); setXato("");
     try {
-      const res = await fetch(`${API_BASE}/api/test/${mavzu.topic_code}?soni=10`);
+      const res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?soni=${soni}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
-      setTanlanganMavzu({ ...mavzu, fanNomi: fan.nom });
       setJavoblar({}); setJoriySavol(0); setHolat("savollar");
     } catch (e) {
       setXato(e.message);
@@ -470,6 +475,32 @@ function TestTab({ token, sinf }) {
     );
   }
 
+  if (holat === "songi") {
+    const jami = tanlanganMavzu.savol_soni || 0;
+    const variantlar = [5, 10, 15].filter((n) => n < jami);
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
+        <p className="text-sm mb-6" style={{ color: "#8A8578" }}>Nechta savol yechasiz?</p>
+        <div className="space-y-2.5">
+          {variantlar.map((n) => (
+            <button key={n} onClick={() => savollarniYukla(n)}
+              className="w-full py-3.5 rounded-xl border font-medium text-center"
+              style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#2B2B2B" }}>
+              {n} ta savol
+            </button>
+          ))}
+          <button onClick={() => savollarniYukla(jami)}
+            className="w-full py-3.5 rounded-xl font-semibold text-white text-center"
+            style={{ backgroundColor: "#1B4B7A" }}>
+            Hammasi ({jami} ta)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (holat === "savollar") {
     const s = savollar[joriySavol];
     const oxirgi = joriySavol === savollar.length - 1;
@@ -578,7 +609,7 @@ function TestTab({ token, sinf }) {
                 {ochiq && bittaSinf && (
                   <div className="px-4 pb-4 space-y-2">
                     {fan.sinflar[0].mavzular.map((m) => (
-                      <button key={m.topic_code} onClick={() => mavzuTanla(fan, m)}
+                      <button key={m.topic_code} onClick={() => mavzuBoslandi(fan, m)}
                         className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl"
                         style={{ backgroundColor: "#F7F5F0" }}>
                         <span className="text-sm" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
@@ -602,7 +633,7 @@ function TestTab({ token, sinf }) {
                           {sOchiq && (
                             <div className="px-3 pb-3 space-y-2">
                               {s.mavzular.map((m) => (
-                                <button key={m.topic_code} onClick={() => mavzuTanla(fan, m)}
+                                <button key={m.topic_code} onClick={() => mavzuBoslandi(fan, m)}
                                   className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-white">
                                   <span className="text-sm" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
                                   <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
