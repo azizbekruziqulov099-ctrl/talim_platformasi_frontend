@@ -958,6 +958,40 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
   const [rolTanlov, setRolTanlov] = useState(null);
   const [rolOzgartirilmoqda, setRolOzgartirilmoqda] = useState(false);
 
+  const [togaraklarim, setTogaraklarim] = useState([]);
+  const [togaraklarYuklanmoqda, setTogaraklarYuklanmoqda] = useState(true);
+  const [qoshilishParol, setQoshilishParol] = useState("");
+  const [qoshilinmoqda, setQoshilinmoqda] = useState(false);
+  const [qoshilishXato, setQoshilishXato] = useState("");
+  const [qoshilishMuvaffaqiyat, setQoshilishMuvaffaqiyat] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/mening_togaraklarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setTogaraklarim(d.togaraklar || []); setTogaraklarYuklanmoqda(false); })
+      .catch(() => setTogaraklarYuklanmoqda(false));
+  }, [token]);
+
+  const togarakkaQoshil = async () => {
+    if (!qoshilishParol.trim()) return;
+    setQoshilinmoqda(true); setQoshilishXato(""); setQoshilishMuvaffaqiyat("");
+    try {
+      const res = await fetch(`${API_BASE}/api/togarakka_qoshil`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, parol: qoshilishParol.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setTogaraklarim((prev) => [...prev, { id: Date.now(), nomi: data.togarak_nomi, fan: "" }]);
+      setQoshilishMuvaffaqiyat(`"${data.togarak_nomi}" ga qo'shildingiz!`);
+      setQoshilishParol("");
+      setTimeout(() => setQoshilishMuvaffaqiyat(""), 3000);
+    } catch (e) {
+      setQoshilishXato(e.message);
+    } finally { setQoshilinmoqda(false); }
+  };
+
   const profilSaqla = async () => {
     setSaqlanmoqda(true); setXato(""); setMuvaffaqiyat(false);
     try {
@@ -1053,6 +1087,41 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
           style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
           {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
         </button>
+      </div>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-xs font-medium mb-3" style={{ color: "#5A5648" }}>Mening to'garaklarim</p>
+
+        {togaraklarYuklanmoqda ? (
+          <Loader2 size={18} className="animate-spin" style={{ color: "#1B4B7A" }} />
+        ) : togaraklarim.length === 0 ? (
+          <p className="text-sm mb-4" style={{ color: "#8A8578" }}>Hali hech qaysi to'garakka qo'shilmagansiz.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {togaraklarim.map((t) => (
+              <span key={t.id} className="text-xs px-3 py-1.5 rounded-full font-medium"
+                style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                {t.nomi}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Parol bilan qo'shilish</label>
+        <div className="flex gap-2">
+          <input type="text" value={qoshilishParol} onChange={(e) => setQoshilishParol(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && togarakkaQoshil()}
+            placeholder="to'garak paroli"
+            className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm"
+            style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={togarakkaQoshil} disabled={qoshilinmoqda}
+            className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm shrink-0"
+            style={{ backgroundColor: "#C89B3C", opacity: qoshilinmoqda ? 0.7 : 1 }}>
+            {qoshilinmoqda ? "..." : "Qo'shilish"}
+          </button>
+        </div>
+        {qoshilishXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{qoshilishXato}</p>}
+        {qoshilishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>✓ {qoshilishMuvaffaqiyat}</p>}
       </div>
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
