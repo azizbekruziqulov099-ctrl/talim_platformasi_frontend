@@ -1503,6 +1503,11 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
   const [muvaffaqiyat, setMuvaffaqiyat] = useState(false);
   const [rolTanlov, setRolTanlov] = useState(null);
   const [rolOzgartirilmoqda, setRolOzgartirilmoqda] = useState(false);
+  const [rolSurishNatija, setRolSurishNatija] = useState(null); // {holat, qolgan_bepul, admin_test} | "yuklanmoqda" | null
+  const [kodBosqichida, setKodBosqichida] = useState(false);
+  const [kodEmail, setKodEmail] = useState("");
+  const [kodQiymati, setKodQiymati] = useState("");
+  const [kodYuklanmoqda, setKodYuklanmoqda] = useState(false);
 
   const [togaraklarim, setTogaraklarim] = useState([]);
   const [togaraklarYuklanmoqda, setTogaraklarYuklanmoqda] = useState(true);
@@ -1567,6 +1572,33 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
     } finally { setSaqlanmoqda(false); }
   };
 
+  const rolModalniYop = () => {
+    setRolTanlov(null); setRolSurishNatija(null); setKodBosqichida(false);
+    setKodQiymati(""); setKodEmail(""); setXato("");
+  };
+
+  // Rol tugmasi bosilganda — darhol o'zgartirmaymiz, avval holatni so'raymiz
+  // (nechta bepul imkoniyat qolgani, yoki kod kerakligini bilish uchun).
+  const rolTanlandi = async (v) => {
+    if (v === foydalanuvchi?.role) return;
+    setRolTanlov(v);
+    setRolSurishNatija("yuklanmoqda");
+    setKodBosqichida(false); setKodQiymati(""); setKodEmail(""); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_ozgartir`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yangi_rol: v, tasdiqlayman: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setRolSurishNatija(data);
+      if (data.holat === "kod_kerak") setKodBosqichida(true);
+    } catch (e) {
+      setXato(e.message); setRolTanlov(null); setRolSurishNatija(null);
+    }
+  };
+
   const rolTasdiqla = async () => {
     setRolOzgartirilmoqda(true); setXato("");
     try {
@@ -1577,8 +1609,48 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      onYangilandi({ ...foydalanuvchi, role: rolTanlov });
-      setRolTanlov(null);
+      if (data.holat === "kod_kerak") {
+        setKodBosqichida(true);
+        await kodSora();
+      } else {
+        onYangilandi({ ...foydalanuvchi, role: rolTanlov });
+        rolModalniYop();
+      }
+    } catch (e) {
+      setXato(e.message);
+    } finally { setRolOzgartirilmoqda(false); }
+  };
+
+  const kodSora = async () => {
+    setKodYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_kod_yubor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yangi_rol: rolTanlov }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      if (data.holat === "smtp_sozlanmagan") setXato("Email yuborish hozircha sozlanmagan — administratorga murojaat qiling");
+      else setKodEmail(data.email);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setKodYuklanmoqda(false); }
+  };
+
+  const kodTasdiqla = async () => {
+    if (!kodQiymati.trim()) return;
+    setRolOzgartirilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_kod_tasdiqla`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, kod: kodQiymati.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onYangilandi({ ...foydalanuvchi, role: data.yangi_rol });
+      rolModalniYop();
     } catch (e) {
       setXato(e.message);
     } finally { setRolOzgartirilmoqda(false); }
@@ -1720,7 +1792,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
         <p className="text-xs font-medium mb-2" style={{ color: "#5A5648" }}>Rolingiz</p>
         <div className="grid grid-cols-3 gap-2">
           {Object.entries(rolNomlari).map(([v, l]) => (
-            <button key={v} onClick={() => v !== foydalanuvchi?.role && setRolTanlov(v)}
+            <button key={v} onClick={() => rolTanlandi(v)}
               className="py-2.5 rounded-lg border text-xs font-medium"
               style={{
                 borderColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#E5E1D8",
@@ -1736,20 +1808,69 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
       {rolTanlov && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
           <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
-            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>Rolni o'zgartirasizmi?</p>
-            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-              Rolingiz "{rolNomlari[rolTanlov]}"ga o'zgaradi. Bu ko'rinadigan ma'lumot va imkoniyatlaringizga ta'sir qiladi.
-            </p>
-            <div className="flex gap-2.5">
-              <button onClick={() => setRolTanlov(null)}
-                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                Bekor qilish
-              </button>
-              <button onClick={rolTasdiqla} disabled={rolOzgartirilmoqda}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-                {rolOzgartirilmoqda ? "..." : "Tasdiqlash"}
-              </button>
-            </div>
+            {rolSurishNatija === "yuklanmoqda" ? (
+              <div className="py-4 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : kodBosqichida ? (
+              <>
+                <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>📧 Tasdiqlash kodi kerak</p>
+                <p className="text-sm mb-4" style={{ color: "#5A5648" }}>
+                  Bepul rol almashtirish imkoniyatingiz tugagan. "{rolNomlari[rolTanlov]}"ga o'zgartirish uchun
+                  Gmail hisobingizga ({kodEmail || "..."}) yuborilgan 6 xonali kodni kiriting.
+                </p>
+                {kodYuklanmoqda ? (
+                  <div className="py-2 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+                ) : (
+                  <>
+                    <input type="text" value={kodQiymati} onChange={(e) => setKodQiymati(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="123456" maxLength={6}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-center text-lg tracking-widest mb-3"
+                      style={{ borderColor: "#E5E1D8" }} />
+                    <button onClick={kodSora} className="text-xs mb-4" style={{ color: "#1B4B7A" }}>Kodni qayta yuborish</button>
+                  </>
+                )}
+                {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+                <div className="flex gap-2.5">
+                  <button onClick={rolModalniYop}
+                    className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                    Bekor qilish
+                  </button>
+                  <button onClick={kodTasdiqla} disabled={rolOzgartirilmoqda || !kodQiymati.trim()}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                    style={{ backgroundColor: "#1B4B7A", opacity: (rolOzgartirilmoqda || !kodQiymati.trim()) ? 0.6 : 1 }}>
+                    {rolOzgartirilmoqda ? "..." : "Tasdiqlash"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⚠️ Rolni o'zgartirasizmi?</p>
+                <p className="text-sm mb-3" style={{ color: "#5A5648" }}>
+                  Rolingiz "{rolNomlari[rolTanlov]}"ga o'zgaradi. Bu ko'rinadigan ma'lumot va imkoniyatlaringizga
+                  butunlay ta'sir qiladi — masalan o'quvchi test/bilim ma'lumotlari, o'qituvchi guruhlari.
+                </p>
+                {rolSurishNatija?.admin_test ? (
+                  <p className="text-xs mb-5 font-medium" style={{ color: "#2D8B8B" }}>
+                    ✓ Admin sifatida cheklovsiz sinab ko'rishingiz mumkin.
+                  </p>
+                ) : (
+                  <p className="text-xs mb-5 font-semibold p-3 rounded-xl" style={{ color: "#8A5A1C", backgroundColor: "#FDF3E3" }}>
+                    DIQQAT: rolni FAQAT 2 marta bepul o'zgartirish mumkin. Sizda {rolSurishNatija?.qolgan_bepul ?? "?"} ta
+                    bepul imkoniyat qoldi. Shundan keyin har safar Gmail orqali tasdiqlash kodi va 30 kunlik kutish talab qilinadi.
+                  </p>
+                )}
+                {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+                <div className="flex gap-2.5">
+                  <button onClick={rolModalniYop}
+                    className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                    Bekor qilish
+                  </button>
+                  <button onClick={rolTasdiqla} disabled={rolOzgartirilmoqda}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                    {rolOzgartirilmoqda ? "..." : "Tasdiqlash"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
