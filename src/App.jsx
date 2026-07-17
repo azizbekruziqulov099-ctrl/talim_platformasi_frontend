@@ -448,6 +448,11 @@ function TestTab({ token, sinf: sinfXom }) {
   };
 
   const [qiyinlik, setQiyinlik] = useState(""); // "" = aralash | oson | o'rta | qiyin | murakkab
+  const [rasimli, setRasimli] = useState(null); // null=aralash | true=rasimli | false=rasimsiz
+  const [vaqtli, setVaqtli] = useState(null);
+  const [yozuvli, setYozuvli] = useState(null);
+  const [toGriSoni, setToGriSoni] = useState(0);
+  const [xatoSoni, setXatoSoni] = useState(0);
 
   const savollarniYukla = async (soni) => {
     setYuklanmoqda(true); setXato("");
@@ -457,17 +462,24 @@ function TestTab({ token, sinf: sinfXom }) {
         res = await fetch(`${API_BASE}/api/test_aralash`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar, soni, qiyinlik: qiyinlik || undefined }),
+          body: JSON.stringify({
+            topic_codes: tanlanganMavzu.kodlar, soni, qiyinlik: qiyinlik || undefined,
+            rasimli, vaqtli, yozuvli,
+          }),
         });
       } else {
         const qs = new URLSearchParams({ soni });
         if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+        if (rasimli !== null) qs.set("rasimli", rasimli);
+        if (vaqtli !== null) qs.set("vaqtli", vaqtli);
+        if (yozuvli !== null) qs.set("yozuvli", yozuvli);
         res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
       setJavoblar({}); setJoriySavol(0); setHolat("savollar");
+      setToGriSoni(0); setXatoSoni(0);
     } catch (e) {
       setXato(e.message);
     } finally { setYuklanmoqda(false); }
@@ -525,8 +537,10 @@ function TestTab({ token, sinf: sinfXom }) {
       });
       const data = await res.json();
       setJoriyNatija(data);
+      if (data.togrimi) setToGriSoni((v) => v + 1); else setXatoSoni((v) => v + 1);
     } catch {
       setJoriyNatija({ togrimi: false, togri_javob: "?", tushuntirish: "" });
+      setXatoSoni((v) => v + 1);
     }
   };
 
@@ -627,7 +641,7 @@ function TestTab({ token, sinf: sinfXom }) {
 
   if (holat === "songi") {
     const jami = tanlanganMavzu.savol_soni || 0;
-    const variantlar = [5, 10, 15].filter((n) => n < jami);
+    const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
@@ -650,6 +664,13 @@ function TestTab({ token, sinf: sinfXom }) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>⚙️ Qo'shimcha sozlamalar</p>
+          <UchXilTanlov nom="🖼️ Rasm" qiymat={rasimli} onOzgar={setRasimli} haNomi="Rasmli" yoqNomi="Rasmsiz" />
+          <UchXilTanlov nom="⏱️ Vaqt" qiymat={vaqtli} onOzgar={setVaqtli} haNomi="Vaqtli" yoqNomi="Vaqtsiz" />
+          <UchXilTanlov nom="✍️ Javob turi" qiymat={yozuvli} onOzgar={setYozuvli} haNomi="Yozuvli" yoqNomi="Tugmali" />
         </div>
 
         <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
@@ -694,7 +715,15 @@ function TestTab({ token, sinf: sinfXom }) {
     return (
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+              ✓ {toGriSoni}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+              ✗ {xatoSoni}
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             {qolganVaqt !== null && !javobBerilgan && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -881,6 +910,26 @@ function TestTab({ token, sinf: sinfXom }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
+  const variantlar = [[null, "Barchasi"], [true, haNomi], [false, yoqNomi]];
+  return (
+    <div className="flex items-center justify-between mb-3 last:mb-0">
+      <span className="text-xs font-medium" style={{ color: "#5A5648" }}>{nom}</span>
+      <div className="flex gap-1 p-0.5 rounded-full" style={{ backgroundColor: "#F7F5F0" }}>
+        {variantlar.map(([qiym, nomi]) => (
+          <button key={String(qiym)} type="button" onClick={() => onOzgar(qiym)}
+            className="px-2.5 py-1 rounded-full text-xs font-medium"
+            style={qiymat === qiym
+              ? { backgroundColor: "#1B4B7A", color: "#fff" }
+              : { backgroundColor: "transparent", color: "#5A5648" }}>
+            {nomi}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
