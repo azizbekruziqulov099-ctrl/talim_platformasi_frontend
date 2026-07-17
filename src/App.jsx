@@ -374,7 +374,12 @@ function BilimTab({ data }) {
 // ═══════════════════════════════════════════════════════════
 // 4) TEST YECHISH
 // ═══════════════════════════════════════════════════════════
-function TestTab({ token, sinf }) {
+function TestTab({ token, sinf: sinfXom }) {
+  // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
+  // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
+  // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
+  const sinf = sinfXom ? String(sinfXom).replace(/-sinf$/i, "").trim() : null;
+
   const [holat, setHolat] = useState("mavzular"); // mavzular | songi | savollar | natija
   const [fanlar, setFanlar] = useState([]);
   const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
