@@ -639,8 +639,35 @@ function TestTab({ token, sinf: sinfXom }) {
     );
   }
 
+  const [mosSoni, setMosSoni] = useState(null); // null = hali yuklanmoqda
+
+  useEffect(() => {
+    if (holat !== "songi" || !tanlanganMavzu) return;
+    let bekor = false;
+    setMosSoni(null);
+    const so_rov = tanlanganMavzu.aralash
+      ? fetch(`${API_BASE}/api/test_aralash/soni`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar, qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
+        })
+      : (() => {
+          const qs = new URLSearchParams();
+          if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+          if (rasimli !== null) qs.set("rasimli", rasimli);
+          if (vaqtli !== null) qs.set("vaqtli", vaqtli);
+          if (yozuvli !== null) qs.set("yozuvli", yozuvli);
+          return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
+        })();
+    so_rov
+      .then((r) => r.json())
+      .then((d) => { if (!bekor) setMosSoni(d.soni ?? 0); })
+      .catch(() => { if (!bekor) setMosSoni(0); });
+    return () => { bekor = true; };
+  }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli]);
+
   if (holat === "songi") {
-    const jami = tanlanganMavzu.savol_soni || 0;
+    const jami = mosSoni ?? 0;
     const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
     return (
       <div className="px-5 pt-6 pb-4">
@@ -674,21 +701,34 @@ function TestTab({ token, sinf: sinfXom }) {
         </div>
 
         <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🔢 Nechta savol yechasiz?</p>
-          <div className="grid grid-cols-3 gap-2 mb-2.5">
-            {variantlar.map((n) => (
-              <button key={n} onClick={() => savollarniYukla(n)}
-                className="py-3.5 rounded-xl border font-semibold text-center text-sm"
-                style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
-                {n} ta
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>
+            🔢 Nechta savol yechasiz?
+            {mosSoni === null && <Loader2 size={14} className="animate-spin" style={{ color: "#8A8578" }} />}
+          </p>
+          {mosSoni === null ? (
+            <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
+          ) : mosSoni === 0 ? (
+            <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
+              Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2 mb-2.5">
+                {variantlar.map((n) => (
+                  <button key={n} onClick={() => savollarniYukla(n)}
+                    className="py-3.5 rounded-xl border font-semibold text-center text-sm"
+                    style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
+                    {n} ta
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => savollarniYukla(jami)}
+                className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
+                style={{ backgroundColor: "#1B4B7A" }}>
+                🚀 Hammasi ({jami} ta)
               </button>
-            ))}
-          </div>
-          <button onClick={() => savollarniYukla(jami)}
-            className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
-            style={{ backgroundColor: "#1B4B7A" }}>
-            🚀 Hammasi ({jami} ta)
-          </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -875,6 +915,14 @@ function TestTab({ token, sinf: sinfXom }) {
         </button>
       </div>
       {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+      {aralashRejim && (
+        <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
+          <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
+            👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.
+          </p>
+          <span className="text-sm font-bold shrink-0 ml-2" style={{ color: "#1B4B7A" }}>{tanlanganKodlar.length}</span>
+        </div>
+      )}
       {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Bu sinfda hozircha test mavjud emas.</p>
@@ -935,17 +983,28 @@ function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
 }
 
 function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla }) {
-  const [korsatilgan, setKorsatilgan] = useState(10);
-  const korinadigan = fan.mavzular.slice(0, korsatilgan);
+  const [sahifa, setSahifa] = useState(0);
+  const JAMI_SAHIFA = Math.ceil(fan.mavzular.length / 10) || 1;
+  const korinadigan = fan.mavzular.slice(sahifa * 10, sahifa * 10 + 10);
+  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => m.topic_code === k.topic_code)).length;
+
   return (
     <div className="px-4 pb-4 space-y-2">
+      {aralashRejim && shuFandaTanlangan > 0 && (
+        <p className="text-xs font-semibold px-1 pb-1" style={{ color: "#1B4B7A" }}>
+          ✓ Bu fandan {shuFandaTanlangan} ta mavzu tanlandi
+        </p>
+      )}
       {korinadigan.map((m) => {
         const tanlanganmi = tanlanganKodlar.some((k) => k.topic_code === m.topic_code);
         return (
           <button key={m.topic_code}
             onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl"
-            style={{ backgroundColor: aralashRejim && tanlanganmi ? "#EAF1F7" : "#F7F5F0" }}>
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border-2"
+            style={{
+              backgroundColor: aralashRejim && tanlanganmi ? "#EAF1F7" : "#F7F5F0",
+              borderColor: aralashRejim && tanlanganmi ? "#1B4B7A" : "transparent",
+            }}>
             <span className="flex items-center gap-2.5">
               {aralashRejim && (
                 <span className="w-5 h-5 rounded flex items-center justify-center shrink-0"
@@ -959,12 +1018,20 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
           </button>
         );
       })}
-      {korsatilgan < fan.mavzular.length && (
-        <button onClick={() => setKorsatilgan(korsatilgan + 10)}
-          className="w-full py-2.5 rounded-xl text-xs font-medium text-center"
-          style={{ backgroundColor: "#FFFFFF", border: "1px dashed #C4BFAF", color: "#5A5648" }}>
-          Yana ko'rsat ({fan.mavzular.length - korsatilgan} ta qoldi)
-        </button>
+      {JAMI_SAHIFA > 1 && (
+        <div className="flex items-center justify-between pt-1">
+          <button onClick={() => setSahifa((s) => Math.max(0, s - 1))} disabled={sahifa === 0}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>
+            ← Oldingi
+          </button>
+          <span className="text-xs" style={{ color: "#8A8578" }}>{sahifa + 1} / {JAMI_SAHIFA}</span>
+          <button onClick={() => setSahifa((s) => Math.min(JAMI_SAHIFA - 1, s + 1))} disabled={sahifa >= JAMI_SAHIFA - 1}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= JAMI_SAHIFA - 1 ? "#C4BFAF" : "#5A5648" }}>
+            Keyingi →
+          </button>
+        </div>
       )}
     </div>
   );
