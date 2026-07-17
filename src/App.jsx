@@ -394,10 +394,14 @@ function TestTab({ token, sinf }) {
     setHolat("songi");
   };
 
+  const [qiyinlik, setQiyinlik] = useState(""); // "" = aralash | oson | o'rta | qiyin | murakkab
+
   const savollarniYukla = async (soni) => {
     setYuklanmoqda(true); setXato("");
     try {
-      const res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?soni=${soni}`);
+      const qs = new URLSearchParams({ soni });
+      if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+      const res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
@@ -405,6 +409,20 @@ function TestTab({ token, sinf }) {
     } catch (e) {
       setXato(e.message);
     } finally { setYuklanmoqda(false); }
+  };
+
+  const [yozibJavob, setYozibJavob] = useState("");
+  const [ovozOynayapti, setOvozOynayapti] = useState(false);
+  const ovozRef = useRef(null);
+
+  const ovozniOqi = (matn) => {
+    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
+    setOvozOynayapti(true);
+    const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(matn)}`);
+    ovozRef.current = audio;
+    audio.onended = () => setOvozOynayapti(false);
+    audio.onerror = () => setOvozOynayapti(false);
+    audio.play().catch(() => setOvozOynayapti(false));
   };
 
   const [joriyNatija, setJoriyNatija] = useState(null); // {togrimi, togri_javob, tushuntirish} | null
@@ -453,6 +471,7 @@ function TestTab({ token, sinf }) {
   const keyingiSavolga = () => {
     if (avtoRef.current) clearInterval(avtoRef.current);
     setJoriyNatija(null);
+    setYozibJavob("");
     if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
     else yakunla();
   };
@@ -526,7 +545,24 @@ function TestTab({ token, sinf }) {
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
-        <p className="text-sm mb-6" style={{ color: "#8A8578" }}>Nechta savol yechasiz?</p>
+
+        <p className="text-sm mb-2 mt-4" style={{ color: "#8A8578" }}>Qiyinlik darajasi</p>
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {[
+            ["", "Aralash"], ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"],
+            ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
+          ].map(([qiym, nom]) => (
+            <button key={qiym} onClick={() => setQiyinlik(qiym)}
+              className="px-3 py-2 rounded-lg text-xs font-medium"
+              style={qiyinlik === qiym
+                ? { backgroundColor: "#1B4B7A", color: "#fff" }
+                : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              {nom}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-sm mb-3" style={{ color: "#8A8578" }}>Nechta savol yechasiz?</p>
         <div className="space-y-2.5">
           {variantlar.map((n) => (
             <button key={n} onClick={() => savollarniYukla(n)}
@@ -548,6 +584,7 @@ function TestTab({ token, sinf }) {
   if (holat === "savollar") {
     const s = savollar[joriySavol];
     const oxirgi = joriySavol === savollar.length - 1;
+    const yozuvli = s.question_type === "write_answer";
     const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
     const javobBerilgan = !!joriyNatija;
 
@@ -587,31 +624,66 @@ function TestTab({ token, sinf }) {
             onError={(e) => { e.target.style.display = "none"; }} />
         )}
 
-        <h2 className="text-lg font-semibold mb-5" style={{ color: "#2B2B2B" }}>{s.question}</h2>
-        <div className="space-y-2.5 mb-4">
-          {variantlar.map(([harf, matn]) => (
-            <button key={harf} onClick={() => !javobBerilgan && javobBer(s.id, harf)} disabled={javobBerilgan}
-              className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
-              style={variantRangi(harf)}>
-              <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                style={{
-                  backgroundColor: javobBerilgan
-                    ? (harf === joriyNatija.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
-                    : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
-                  color: (javobBerilgan && (harf === joriyNatija.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
-                    ? "#FFFFFF" : "#5A5648",
-                }}>
-                {harf}
-              </span>
-              <span className="text-sm" style={{ color: "#2B2B2B" }}>{matn}</span>
-            </button>
-          ))}
-        </div>
+        <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
+          <span className="flex-1">{s.question}</span>
+          <button
+            onClick={() => ovozniOqi(yozuvli
+              ? s.question
+              : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+            disabled={ovozOynayapti}
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+            title="Ovoz chiqarib o'qish">
+            {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+          </button>
+        </h2>
+
+        {yozuvli ? (
+          <div className="mb-4">
+            <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : yozibJavob}
+              onChange={(e) => setYozibJavob(e.target.value)}
+              disabled={javobBerilgan}
+              onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && yozibJavob.trim()) javobBer(s.id, yozibJavob.trim()); }}
+              placeholder="Javobingizni yozing..."
+              className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
+              style={javobBerilgan
+                ? { borderColor: joriyNatija.togrimi ? "#639922" : "#E24B4A", backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }
+                : { borderColor: "#E5E1D8" }} />
+            {!javobBerilgan && (
+              <button onClick={() => yozibJavob.trim() && javobBer(s.id, yozibJavob.trim())}
+                disabled={!yozibJavob.trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+                style={{ backgroundColor: "#1B4B7A", opacity: yozibJavob.trim() ? 1 : 0.5 }}>
+                Javobni yuborish
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2.5 mb-4">
+            {variantlar.map(([harf, matn]) => (
+              <button key={harf} onClick={() => !javobBerilgan && javobBer(s.id, harf)} disabled={javobBerilgan}
+                className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
+                style={variantRangi(harf)}>
+                <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                  style={{
+                    backgroundColor: javobBerilgan
+                      ? (harf === joriyNatija.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
+                      : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
+                    color: (javobBerilgan && (harf === joriyNatija.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
+                      ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {harf}
+                </span>
+                <span className="text-sm" style={{ color: "#2B2B2B" }}>{matn}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {javobBerilgan && (
           <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
             <p className="text-sm font-semibold mb-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>
-              {joriyNatija.togrimi ? "✓ To'g'ri!" : "✗ Noto'g'ri"}
+              {joriyNatija.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`}
             </p>
             {joriyNatija.tushuntirish && (
               <p className="text-sm" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>{joriyNatija.tushuntirish}</p>
@@ -707,18 +779,77 @@ function TestTab({ token, sinf }) {
 // ═══════════════════════════════════════════════════════════
 function AdminTab({ token }) {
   const [bolim, setBolim] = useState("test"); // "test" | "topik"
-  const [topicCodes, setTopicCodes] = useState("");
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
+
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setBolim("test")}
+          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "test"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🧪 Test shablon
+        </button>
+        <button onClick={() => setBolim("topik")}
+          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "topik"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          📋 Topik shablon
+        </button>
+      </div>
+
+      {bolim === "test" && <TestShablonBolimi token={token} />}
+      {bolim === "topik" && <TopikShablonBolimi token={token} />}
+    </div>
+  );
+}
+
+const QIYINLIK_DARAJALARI = [
+  ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
+];
+
+function TestShablonBolimi({ token }) {
+  const [fanlar, setFanlar] = useState([]);
+  const [ochiqFan, setOchiqFan] = useState(null);
+  const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [topic_code, ...]
+  const [guruhlar, setGuruhlar] = useState(
+    QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 }))
+  );
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natija, setNatija] = useState(null);
-  const [importlanmoqda, setImportlanmoqda] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/mavzular`)
+      .then((r) => r.json())
+      .then((d) => setFanlar(d.fanlar || []))
+      .catch(() => setXato("Mavzularni yuklab bo'lmadi"));
+  }, []);
+
+  const kodniAlmashtir = (kod) => {
+    setTanlanganKodlar((prev) => prev.includes(kod) ? prev.filter((k) => k !== kod) : [...prev, kod]);
+  };
+
+  const guruhniYangila = (diff, maydon, qiymat) => {
+    setGuruhlar((prev) => prev.map((g) => g.diff === diff ? { ...g, [maydon]: qiymat } : g));
+  };
+
+  const jamiSon = guruhlar.reduce((sum, g) => sum + g.soni, 0);
 
   const shablonYukla = async () => {
-    if (!topicCodes.trim()) { setXato("Mavzu kodlarini kiriting"); return; }
+    if (tanlanganKodlar.length === 0) { setXato("Kamida bitta mavzu tanlang"); return; }
+    if (jamiSon === 0) { setXato("Kamida bitta qiyinlik darajasidan son tanlang"); return; }
     setYuklanmoqda(true); setXato("");
     try {
-      const url = `${API_BASE}/api/admin/shablon_yukla?topic_codes=${encodeURIComponent(topicCodes.trim())}&token=${encodeURIComponent(token)}`;
-      const res = await fetch(url);
+      const res = await fetch(`${API_BASE}/api/admin/shablon_yukla?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar }),
+      });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(d.detail || "Xato");
@@ -726,7 +857,7 @@ function AdminTab({ token }) {
       const blob = await res.blob();
       const dlUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = dlUrl; a.download = "shablon.xlsx";
+      a.href = dlUrl; a.download = "test_shablon.xlsx";
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(dlUrl);
     } catch (e) {
@@ -756,67 +887,112 @@ function AdminTab({ token }) {
   };
 
   return (
-    <div className="px-5 pt-6 pb-4">
-      <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
+    <>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+          1) Mavzu(lar)ni tanlang ({tanlanganKodlar.length} ta tanlandi)
+        </label>
+        <div className="space-y-1.5 max-h-56 overflow-y-auto mb-1">
+          {fanlar.map((fan) => {
+            const ochiq = ochiqFan === fan.qisqa;
+            return (
+              <div key={fan.qisqa} className="rounded-xl overflow-hidden" style={{ backgroundColor: "#F7F5F0" }}>
+                <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)}
+                  className="w-full flex items-center justify-between px-3 py-2.5">
+                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
+                  {ochiq ? <ChevronDown size={16} style={{ color: "#8A8578" }} /> : <ChevronRight size={16} style={{ color: "#8A8578" }} />}
+                </button>
+                {ochiq && (
+                  <div className="px-3 pb-2.5 space-y-1">
+                    {fan.sinflar.map((s) => (
+                      <div key={s.sinf}>
+                        <p className="text-xs font-medium py-1" style={{ color: "#8A8578" }}>{s.sinf}-sinf</p>
+                        {s.mavzular.map((m) => (
+                          <label key={m.topic_code} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-white mb-1 cursor-pointer">
+                            <input type="checkbox" checked={tanlanganKodlar.includes(m.topic_code)}
+                              onChange={() => kodniAlmashtir(m.topic_code)} />
+                            <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-      <div className="flex gap-2 mb-5">
-        <button onClick={() => setBolim("test")}
-          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "test"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          🧪 Test shablon
-        </button>
-        <button onClick={() => setBolim("topik")}
-          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "topik"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          📋 Topik shablon
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-3 block" style={{ color: "#5A5648" }}>
+          2) Har bir qiyinlik darajasi uchun son va turini tanlang
+        </label>
+        <div className="space-y-4">
+          {guruhlar.map((g) => {
+            const nom = QIYINLIK_DARAJALARI.find(([d]) => d === g.diff)[1];
+            return (
+              <div key={g.diff}>
+                <p className="text-sm font-medium mb-1.5" style={{ color: "#2B2B2B" }}>{nom}</p>
+                <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                  {[0, 5, 10, 15, 20].map((n) => (
+                    <button key={n} onClick={() => guruhniYangila(g.diff, "soni", n)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={g.soni === n
+                        ? { backgroundColor: "#1B4B7A", color: "#fff" }
+                        : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => guruhniYangila(g.diff, "turi", "single_choice")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={g.turi === "single_choice"
+                      ? { backgroundColor: "#2D8B8B", color: "#fff" }
+                      : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    🔘 Tugmali
+                  </button>
+                  <button onClick={() => guruhniYangila(g.diff, "turi", "write_answer")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={g.turi === "write_answer"
+                      ? { backgroundColor: "#2D8B8B", color: "#fff" }
+                      : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    ✍️ Yozuvli
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button onClick={shablonYukla} disabled={yuklanmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 mt-5"
+          style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
+          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : `📥 Shablon yuklab olish (jami: ${jamiSon} ta × ${tanlanganKodlar.length} mavzu)`}
         </button>
       </div>
 
-      {bolim === "test" && (
-        <>
-          <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
-              Mavzu kodlari (vergul bilan)
-            </label>
-            <input type="text" value={topicCodes} onChange={(e) => setTopicCodes(e.target.value)}
-              placeholder="masalan: 5-MAT-01,5-MAT-02"
-              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
-              style={{ borderColor: "#E5E1D8" }} />
-            <button onClick={shablonYukla} disabled={yuklanmoqda}
-              className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
-              style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
-              {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Shablon yuklab olish"}
-            </button>
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+          To'ldirilgan shablonni yuklash
+        </label>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
+
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {natija && (
+          <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+            <p>✅ Saqlandi: <b>{natija.saved}</b></p>
+            <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
+            <p>❌ Xato: <b>{natija.errors}</b></p>
           </div>
-
-          <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-            <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
-              To'ldirilgan shablonni yuklash
-            </label>
-            <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
-              style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
-              {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
-              <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
-            </label>
-
-            {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
-            {natija && (
-              <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
-                <p>✅ Saqlandi: <b>{natija.saved}</b></p>
-                <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
-                <p>❌ Xato: <b>{natija.errors}</b></p>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {bolim === "topik" && <TopikShablonBolimi token={token} />}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
