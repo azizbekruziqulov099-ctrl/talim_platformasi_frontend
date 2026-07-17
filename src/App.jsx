@@ -476,6 +476,32 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   const [rasimli, setRasimli] = useState(null); // null=aralash | true=rasimli | false=rasimsiz
   const [vaqtli, setVaqtli] = useState(null);
   const [yozuvli, setYozuvli] = useState(null);
+  const [mosSoni, setMosSoni] = useState(null); // null = hali yuklanmoqda
+
+  useEffect(() => {
+    if (holat !== "songi" || !tanlanganMavzu) return;
+    let bekor = false;
+    setMosSoni(null);
+    const so_rov = tanlanganMavzu.aralash
+      ? fetch(`${API_BASE}/api/test_aralash/soni`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar, qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
+        })
+      : (() => {
+          const qs = new URLSearchParams();
+          if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+          if (rasimli !== null) qs.set("rasimli", rasimli);
+          if (vaqtli !== null) qs.set("vaqtli", vaqtli);
+          if (yozuvli !== null) qs.set("yozuvli", yozuvli);
+          return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
+        })();
+    so_rov
+      .then((r) => r.json())
+      .then((d) => { if (!bekor) setMosSoni(d.soni ?? 0); })
+      .catch(() => { if (!bekor) setMosSoni(0); });
+    return () => { bekor = true; };
+  }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli]);
   const [toGriSoni, setToGriSoni] = useState(0);
   const [xatoSoni, setXatoSoni] = useState(0);
 
@@ -663,33 +689,6 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
       </div>
     );
   }
-
-  const [mosSoni, setMosSoni] = useState(null); // null = hali yuklanmoqda
-
-  useEffect(() => {
-    if (holat !== "songi" || !tanlanganMavzu) return;
-    let bekor = false;
-    setMosSoni(null);
-    const so_rov = tanlanganMavzu.aralash
-      ? fetch(`${API_BASE}/api/test_aralash/soni`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar, qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
-        })
-      : (() => {
-          const qs = new URLSearchParams();
-          if (qiyinlik) qs.set("qiyinlik", qiyinlik);
-          if (rasimli !== null) qs.set("rasimli", rasimli);
-          if (vaqtli !== null) qs.set("vaqtli", vaqtli);
-          if (yozuvli !== null) qs.set("yozuvli", yozuvli);
-          return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
-        })();
-    so_rov
-      .then((r) => r.json())
-      .then((d) => { if (!bekor) setMosSoni(d.soni ?? 0); })
-      .catch(() => { if (!bekor) setMosSoni(0); });
-    return () => { bekor = true; };
-  }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli]);
 
   if (holat === "songi") {
     const jami = mosSoni ?? 0;
