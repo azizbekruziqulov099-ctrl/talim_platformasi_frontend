@@ -9,6 +9,35 @@ import {
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
 
+function SavolRasmi({ rasmId }) {
+  const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
+  useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
+
+  if (holat === "xato") {
+    return (
+      <div className="w-full rounded-xl mb-4 flex flex-col items-center justify-center gap-1.5 py-8"
+        style={{ backgroundColor: "#F1EFE8", border: "1px dashed #C4BFAF" }}>
+        <span className="text-2xl">🖼️</span>
+        <span className="text-xs font-medium" style={{ color: "#8A8578" }}>Rasm topilmadi</span>
+      </div>
+    );
+  }
+  return (
+    <div className="relative mb-4">
+      {holat === "yuklanmoqda" && (
+        <div className="w-full rounded-xl flex items-center justify-center py-10" style={{ backgroundColor: "#F1EFE8" }}>
+          <Loader2 size={20} className="animate-spin" style={{ color: "#8A8578" }} />
+        </div>
+      )}
+      <img src={`${API_BASE}/api/rasm/${rasmId}`} alt=""
+        className="w-full rounded-xl object-cover"
+        style={{ maxHeight: "220px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
+        onLoad={() => setHolat("tayyor")}
+        onError={() => setHolat("xato")} />
+    </div>
+  );
+}
+
 function tegsizKorsat(matn) {
   // Ko'rsatishda [ru]so'z[/ru] kabi teglarni yashiradi (faqat ichidagi matnni qoldiradi) —
   // ovozga esa XOM matn (teg bilan) beriladi, shunda mos tilda o'qiladi.
@@ -802,12 +831,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           <div className="h-full rounded-full transition-all" style={{ width: `${((joriySavol + 1) / savollar.length) * 100}%`, backgroundColor: "#1B4B7A" }} />
         </div>
 
-        {s.rasm_id && (
-          <img src={`${API_BASE}/api/rasm/${s.rasm_id}`} alt=""
-            className="w-full rounded-xl mb-4 object-cover"
-            style={{ maxHeight: "220px", backgroundColor: "#EFEBE1" }}
-            onError={(e) => { e.target.style.display = "none"; }} />
-        )}
+        {s.rasm_id && <SavolRasmi rasmId={s.rasm_id} />}
 
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
