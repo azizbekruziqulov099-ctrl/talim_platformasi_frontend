@@ -374,7 +374,7 @@ function BilimTab({ data }) {
 // ═══════════════════════════════════════════════════════════
 // 4) TEST YECHISH
 // ═══════════════════════════════════════════════════════════
-function TestTab({ token, sinf: sinfXom }) {
+function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
   // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
@@ -393,12 +393,13 @@ function TestTab({ token, sinf: sinfXom }) {
   const [xato, setXato] = useState("");
 
   useEffect(() => {
-    const url = sinf ? `${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinf)}` : `${API_BASE}/api/mavzular`;
-    fetch(url)
+    const qs = new URLSearchParams({ turi });
+    if (sinf) qs.set("sinf", sinf);
+    fetch(`${API_BASE}/api/mavzular?${qs.toString()}`)
       .then((r) => r.json())
       .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
-  }, [sinf]);
+  }, [sinf, turi]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
@@ -1043,6 +1044,35 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
 // ═══════════════════════════════════════════════════════════
 // 7) ADMIN — Test shablon yuklab olish / import qilish
 // ═══════════════════════════════════════════════════════════
+function AdminTestlarTab({ token }) {
+  const [bolim, setBolim] = useState("oddiy"); // "oddiy" | "togarak"
+  return (
+    <div>
+      <div className="px-5 pt-6 pb-2">
+        <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Testlar</h1>
+        <div className="flex gap-2">
+          <button onClick={() => setBolim("oddiy")}
+            className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+            style={bolim === "oddiy"
+              ? { backgroundColor: "#1B4B7A", color: "#fff" }
+              : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+            🏫 Barcha sinf testlari
+          </button>
+          <button onClick={() => setBolim("togarak")}
+            className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+            style={bolim === "togarak"
+              ? { backgroundColor: "#1B4B7A", color: "#fff" }
+              : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+            🔀 To'garak testlari
+          </button>
+        </div>
+      </div>
+      {/* key= bilan bolim almashganda TestTab TO'LIQ qayta ishga tushadi — eski holat qolib ketmasin */}
+      <TestTab key={bolim} token={token} sinf={null} turi={bolim} />
+    </div>
+  );
+}
+
 function AdminTab({ token }) {
   const [bolim, setBolim] = useState("test"); // "test" | "topik"
 
@@ -1384,6 +1414,9 @@ function OqituvchiTab({ token }) {
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiFan, setYangiFan] = useState("");
+  const [yangiSinf, setYangiSinf] = useState("");         // "1".."11"
+  const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false); // true bo'lsa erkin matn (masalan "3-4")
+  const [yangiSinfMatni, setYangiSinfMatni] = useState("");
   const [yangiParol, setYangiParol] = useState("");
   const [yangiMaxTalaba, setYangiMaxTalaba] = useState("");
   const [yangiOylikSumma, setYangiOylikSumma] = useState("");
@@ -1443,13 +1476,18 @@ function OqituvchiTab({ token }) {
       setXato("To'garak nomi va fan kiritilishi shart");
       return;
     }
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni.trim() : yangiSinf;
+    if (!sinfQiymati) {
+      setXato("Sinfni tanlang (yoki to'garak guruhini kiriting)");
+      return;
+    }
     setYaratilmoqda(true); setXato("");
     try {
       const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yarat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, nomi: yangiNomi.trim(), fan: yangiFan.trim(),
+          token, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati,
           parol: yangiParol || undefined,
           max_talaba: yangiMaxTalaba ? parseInt(yangiMaxTalaba, 10) : undefined,
           oylik_summa: yangiOylikSumma ? parseInt(yangiOylikSumma, 10) : undefined,
@@ -1457,8 +1495,9 @@ function OqituvchiTab({ token }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      setTogaraklar((prev) => [...prev, { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), max_talaba: yangiMaxTalaba || null, azo_soni: 0 }]);
-      setYangiNomi(""); setYangiFan(""); setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
+      setTogaraklar((prev) => [...prev, { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati, max_talaba: yangiMaxTalaba || null, azo_soni: 0 }]);
+      setYangiNomi(""); setYangiFan(""); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
+      setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
       setHolat("togaraklar");
     } catch (e) {
       setXato(e.message);
@@ -1488,6 +1527,40 @@ function OqituvchiTab({ token }) {
             placeholder="masalan: Matematika"
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
             style={{ borderColor: "#E5E1D8" }} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+          {!yangiMaxsusSinf ? (
+            <>
+              <div className="grid grid-cols-6 gap-1.5 mb-2">
+                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                  <button key={n} type="button" onClick={() => setYangiSinf(n)}
+                    className="py-2.5 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
+                      color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinf(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                🔀 Bu — bir nechta sinf uchun aralash to'garak guruhi
+              </button>
+            </>
+          ) : (
+            <>
+              <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
+                placeholder="masalan: 3-4 (3 va 4-sinflar uchun birga)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2"
+                style={{ borderColor: "#E5E1D8" }} />
+              <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                ← Oddiy sinf tanlashga qaytish
+              </button>
+            </>
+          )}
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qo'shilish paroli (ixtiyoriy)</label>
           <input type="text" value={yangiParol} onChange={(e) => setYangiParol(e.target.value)}
@@ -2107,7 +2180,12 @@ function PastkiMenyu({ faol, onTanlash, rol }) {
   // bandlar ko'rinadi.
   const bandlar =
     rol === "admin"
-      ? [{ kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
+      ? [
+          { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
+          { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
+          { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
+          { kalit: "profil", nom: "Profil", ikon: User },
+        ]
       : rol === "oqituvchi"
       ? [{ kalit: "oqituvchi", nom: "Guruhlarim", ikon: Users }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
       : rol === "ota-ona"
@@ -2193,6 +2271,7 @@ function Kabinet({ token }) {
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
       {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab foydalanuvchi={foydalanuvchi} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} />}
