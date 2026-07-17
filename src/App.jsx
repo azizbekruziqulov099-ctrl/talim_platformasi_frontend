@@ -1623,7 +1623,7 @@ function OtaOnaTab({ foydalanuvchi }) {
 // ═══════════════════════════════════════════════════════════
 // 6) PROFIL — tahrirlash va rol almashtirish
 // ═══════════════════════════════════════════════════════════
-function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
+function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar }) {
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
   const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
   const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
@@ -1922,22 +1922,44 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
         {qoshilishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>✓ {qoshilishMuvaffaqiyat}</p>}
       </div>
 
-      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-xs font-medium mb-2" style={{ color: "#5A5648" }}>Rolingiz</p>
-        <div className="grid grid-cols-3 gap-2">
-          {Object.entries(rolNomlari).map(([v, l]) => (
-            <button key={v} onClick={() => rolTanlandi(v)}
-              className="py-2.5 rounded-lg border text-xs font-medium"
-              style={{
-                borderColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#E5E1D8",
-                backgroundColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#FFFFFF",
-                color: foydalanuvchi?.role === v ? "#FFFFFF" : "#5A5648",
-              }}>
-              {l}
-            </button>
-          ))}
+      {foydalanuvchi?.is_admin ? (
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>Ko'rinish rejimi (faqat siz uchun)</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+            Har rolni ALOHIDA-ALOHIDA sinab ko'rish uchun — bu haqiqiy rolingizni o'zgartirmaydi, faqat ko'rinishni almashtiradi.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[["admin", "🛠 Admin"], ["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
+              <button key={v} onClick={() => onKorinishOzgar(v)}
+                className="py-2.5 rounded-lg border text-xs font-medium"
+                style={{
+                  borderColor: adminKorinish === v ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: adminKorinish === v ? "#1B4B7A" : "#FFFFFF",
+                  color: adminKorinish === v ? "#FFFFFF" : "#5A5648",
+                }}>
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-medium mb-2" style={{ color: "#5A5648" }}>Rolingiz</p>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(rolNomlari).map(([v, l]) => (
+              <button key={v} onClick={() => rolTanlandi(v)}
+                className="py-2.5 rounded-lg border text-xs font-medium"
+                style={{
+                  borderColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#FFFFFF",
+                  color: foydalanuvchi?.role === v ? "#FFFFFF" : "#5A5648",
+                }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {rolTanlov && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
@@ -2012,20 +2034,23 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi }) {
   );
 }
 
-function PastkiMenyu({ faol, onTanlash, rol, isAdmin }) {
-  const bandlar = [
-    ...(rol === "oqituvchi"
-      ? [{ kalit: "oqituvchi", nom: "Guruhlarim", ikon: Users }]
+function PastkiMenyu({ faol, onTanlash, rol }) {
+  // DIQQAT: "admin" endi TO'LIQ ALOHIDA rejim — boshqa hech qanday rol
+  // tugmasi bilan ARALASHMAYDI. Har rejimda faqat O'SHA rolga tegishli
+  // bandlar ko'rinadi.
+  const bandlar =
+    rol === "admin"
+      ? [{ kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
+      : rol === "oqituvchi"
+      ? [{ kalit: "oqituvchi", nom: "Guruhlarim", ikon: Users }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
       : rol === "ota-ona"
-      ? [{ kalit: "farzand", nom: "Farzandim", ikon: Heart }]
+      ? [{ kalit: "farzand", nom: "Farzandim", ikon: Heart }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
       : [
           { kalit: "bilim", nom: "Bilim", ikon: BarChart3 },
           { kalit: "test", nom: "Test", ikon: PencilLine },
-        ]),
-    ...(isAdmin ? [{ kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet }] : []),
-    { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
-    { kalit: "profil", nom: "Profil", ikon: User },
-  ];
+          { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
+          { kalit: "profil", nom: "Profil", ikon: User },
+        ];
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 border-t" style={{ backgroundColor: "rgba(255,255,255,0.97)", borderColor: "#E5E1D8" }}>
       <div className="max-w-md mx-auto grid" style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(0, 1fr))` }}>
@@ -2049,6 +2074,11 @@ function Kabinet({ token }) {
   const [bilimData, setBilimData] = useState(null);
   const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
   const [xatoMatn, setXatoMatn] = useState("");
+  // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
+  // ko'rinadigan "ko'rinish rejimi". Shu orqali admin har rolni (o'quvchi/
+  // ota-ona/o'qituvchi/admin) BIR-BIRIGA ARALASHMASDAN, to'liq alohida
+  // sinab ko'radi.
+  const [adminKorinish, setAdminKorinish] = useState("admin");
 
   useEffect(() => {
     async function yukla() {
@@ -2058,17 +2088,15 @@ function Kabinet({ token }) {
         const u = await resU.json();
         setFoydalanuvchi(u);
 
-        // Faqat O'QUVCHI (yoki rol hali tanlanmagan) uchun o'zining bilim
-        // ma'lumotini yuklaymiz — o'qituvchi/ota-ona uchun bu ma'lumot mos emas.
-        if (!u.role || u.role === "oquvchi") {
-          const resB = await fetch(`${API_BASE}/api/bola/${u.user_id}/bilim`);
-          const b = await resB.json();
-          setBilimData(b);
-        }
+        const resB = await fetch(`${API_BASE}/api/bola/${u.user_id}/bilim`);
+        const b = await resB.json();
+        setBilimData(b);
 
         // Har rol o'ziga mos boshlang'ich sahifadan boshlaydi
-        if (u.role === "oqituvchi") setTab("oqituvchi");
-        else if (u.role === "ota-ona") setTab("farzand");
+        const korinish = u.is_admin ? "admin" : u.role;
+        if (korinish === "admin") setTab("admin");
+        else if (korinish === "oqituvchi") setTab("oqituvchi");
+        else if (korinish === "ota-ona") setTab("farzand");
         else setTab("bilim");
 
         setHolat("tayyor");
@@ -2087,19 +2115,32 @@ function Kabinet({ token }) {
     return <Qobiq><div className="text-center"><WifiOff size={28} className="mx-auto mb-3" style={{ color: "#B0553A" }} /><p className="text-sm" style={{ color: "#B0553A" }}>{xatoMatn}</p></div></Qobiq>;
   }
 
+  // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
+  const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
+
+  const korinishOzgardi = (yangi) => {
+    setAdminKorinish(yangi);
+    setTab(yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
+  };
+
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {tab === "bilim" && <BilimTab data={bilimData} />}
-      {tab === "test" && <TestTab token={token} sinf={foydalanuvchi?.is_admin ? null : foydalanuvchi?.class} />}
-      {tab === "oqituvchi" && foydalanuvchi?.role === "oqituvchi" && <OqituvchiTab token={token} />}
-      {tab === "farzand" && foydalanuvchi?.role === "ota-ona" && <OtaOnaTab foydalanuvchi={foydalanuvchi} />}
-      {tab === "admin" && foydalanuvchi?.is_admin && <AdminTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} />}
+      {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
+      {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab foydalanuvchi={foydalanuvchi} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
+        <TestTab token={token} sinf={foydalanuvchi?.is_admin ? null : foydalanuvchi?.class} />
+      )}
       {tab === "xabar" && (
         <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}><p className="text-sm" style={{ color: "#8A8578" }}>Tez orada.</p></div></div>
       )}
-      {tab === "profil" && <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} />}
-      <PastkiMenyu faol={tab} onTanlash={setTab} rol={foydalanuvchi?.role} isAdmin={foydalanuvchi?.is_admin} />
+      {tab === "profil" && (
+        <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
+          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} />
+      )}
+      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} />
     </div>
   );
 }
