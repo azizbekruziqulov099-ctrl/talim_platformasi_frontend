@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import katex from "katex";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
@@ -13,6 +14,29 @@ function tegsizKorsat(matn) {
   // ovozga esa XOM matn (teg bilan) beriladi, shunda mos tilda o'qiladi.
   if (!matn) return matn;
   return matn.replace(/\[\/?[a-zA-Z]+\]/g, "");
+}
+
+function Matn({ matn, latex }) {
+  // is_latex=true bo'lsa — $...$ ichidagi formulalarni KaTeX bilan chizadi,
+  // qolgan matnni oddiy tekst sifatida qoldiradi (matn va formula aralash bo'lishi mumkin).
+  const toza = tegsizKorsat(matn) || "";
+  if (!latex || !toza.includes("$")) return <>{toza}</>;
+  const qismlar = toza.split(/(\$[^$]+\$)/g);
+  return (
+    <>
+      {qismlar.map((q, i) => {
+        if (q.startsWith("$") && q.endsWith("$") && q.length > 1) {
+          try {
+            const html = katex.renderToString(q.slice(1, -1), { throwOnError: false, output: "html" });
+            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
+          } catch {
+            return <span key={i}>{q}</span>;
+          }
+        }
+        return <span key={i}>{q}</span>;
+      })}
+    </>
+  );
 }
 
 function darajaRang(foiz) {
@@ -787,7 +811,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
         )}
 
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
-          <span className="flex-1">{tegsizKorsat(s.question)}</span>
+          <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
           <button
             onClick={() => ovozniOqi(yozuvli
               ? s.question
@@ -836,7 +860,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
                   }}>
                   {harf}
                 </span>
-                <span className="text-sm" style={{ color: "#2B2B2B" }}>{tegsizKorsat(matn)}</span>
+                <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
               </button>
             ))}
           </div>
