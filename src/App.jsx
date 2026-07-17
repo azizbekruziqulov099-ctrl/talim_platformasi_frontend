@@ -706,6 +706,7 @@ function TestTab({ token, sinf }) {
 // 7) ADMIN — Test shablon yuklab olish / import qilish
 // ═══════════════════════════════════════════════════════════
 function AdminTab({ token }) {
+  const [bolim, setBolim] = useState("test"); // "test" | "topik"
   const [topicCodes, setTopicCodes] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState("");
@@ -756,16 +757,149 @@ function AdminTab({ token }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Test shablon</h1>
+      <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
 
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setBolim("test")}
+          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "test"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🧪 Test shablon
+        </button>
+        <button onClick={() => setBolim("topik")}
+          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "topik"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          📋 Topik shablon
+        </button>
+      </div>
+
+      {bolim === "test" && (
+        <>
+          <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+              Mavzu kodlari (vergul bilan)
+            </label>
+            <input type="text" value={topicCodes} onChange={(e) => setTopicCodes(e.target.value)}
+              placeholder="masalan: 5-MAT-01,5-MAT-02"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
+              style={{ borderColor: "#E5E1D8" }} />
+            <button onClick={shablonYukla} disabled={yuklanmoqda}
+              className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+              style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
+              {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Shablon yuklab olish"}
+            </button>
+          </div>
+
+          <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+              To'ldirilgan shablonni yuklash
+            </label>
+            <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+              style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+              {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+              <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+            </label>
+
+            {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+            {natija && (
+              <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+                <p>✅ Saqlandi: <b>{natija.saved}</b></p>
+                <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
+                <p>❌ Xato: <b>{natija.errors}</b></p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {bolim === "topik" && <TopikShablonBolimi token={token} />}
+    </div>
+  );
+}
+
+function TopikShablonBolimi({ token }) {
+  const [sinf, setSinf] = useState("");
+  const [fan, setFan] = useState("");
+  const [mavzular, setMavzular] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natija, setNatija] = useState(null);
+
+  const shablonYukla = async () => {
+    if (!sinf.trim() || !fan.trim() || !mavzular.trim()) {
+      setXato("Sinf, fan va mavzularni to'ldiring"); return;
+    }
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/topik_shablon?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), mavzular }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || "Xato");
+      }
+      const blob = await res.blob();
+      const dlUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl; a.download = `shablon_${sinf}sinf_${fan}.xlsx`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(dlUrl);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYuklanmoqda(false); }
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/topik_import?token=${encodeURIComponent(token)}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+        <input type="text" value={sinf} onChange={(e) => setSinf(e.target.value)}
+          placeholder="masalan: 1"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
+        <input type="text" value={fan} onChange={(e) => setFan(e.target.value)}
+          placeholder="masalan: Ingliz tili"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
+
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
-          Mavzu kodlari (vergul bilan)
+          Mavzular (har biri yangi qatorda: chorak / mavzu)
         </label>
-        <input type="text" value={topicCodes} onChange={(e) => setTopicCodes(e.target.value)}
-          placeholder="masalan: 5-MAT-01,5-MAT-02"
+        <textarea value={mavzular} onChange={(e) => setMavzular(e.target.value)}
+          placeholder={"1 / Colours\n1 / Numbers\n2 / Animals"}
+          rows={5}
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
           style={{ borderColor: "#E5E1D8" }} />
+
         <button onClick={shablonYukla} disabled={yuklanmoqda}
           className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
           style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
@@ -786,13 +920,12 @@ function AdminTab({ token }) {
         {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
         {natija && (
           <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
-            <p>✅ Saqlandi: <b>{natija.saved}</b></p>
-            <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
-            <p>❌ Xato: <b>{natija.errors}</b></p>
+            <p>➕ Qo'shildi: <b>{natija.added}</b></p>
+            <p>⏭ O'tkazildi: <b>{natija.skipped}</b></p>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
