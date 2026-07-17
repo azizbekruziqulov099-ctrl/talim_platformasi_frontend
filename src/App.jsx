@@ -424,14 +424,46 @@ function TestTab({ token, sinf: sinfXom }) {
     setHolat("songi");
   };
 
+  const [aralashRejim, setAralashRejim] = useState(false);
+  const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{topic_code, nomi, savol_soni}]
+
+  const aralashToggle = (m) => {
+    setTanlanganKodlar((prev) =>
+      prev.some((k) => k.topic_code === m.topic_code)
+        ? prev.filter((k) => k.topic_code !== m.topic_code)
+        : [...prev, m]
+    );
+  };
+
+  const aralashTestBoshlandi = () => {
+    if (tanlanganKodlar.length === 0) return;
+    setTanlanganMavzu({
+      aralash: true,
+      kodlar: tanlanganKodlar.map((k) => k.topic_code),
+      nomi: `Aralash test (${tanlanganKodlar.length} mavzu)`,
+      fanNomi: joriySinfMalumoti ? `${joriySinfMalumoti.sinf}-sinf` : "",
+      savol_soni: tanlanganKodlar.reduce((s, k) => s + (k.savol_soni || 0), 0),
+    });
+    setHolat("songi");
+  };
+
   const [qiyinlik, setQiyinlik] = useState(""); // "" = aralash | oson | o'rta | qiyin | murakkab
 
   const savollarniYukla = async (soni) => {
     setYuklanmoqda(true); setXato("");
     try {
-      const qs = new URLSearchParams({ soni });
-      if (qiyinlik) qs.set("qiyinlik", qiyinlik);
-      const res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
+      let res;
+      if (tanlanganMavzu.aralash) {
+        res = await fetch(`${API_BASE}/api/test_aralash`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar, soni, qiyinlik: qiyinlik || undefined }),
+        });
+      } else {
+        const qs = new URLSearchParams({ soni });
+        if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+        res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
@@ -534,7 +566,11 @@ function TestTab({ token, sinf: sinfXom }) {
       const res = await fetch(`${API_BASE}/api/test/natija`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, topic_code: tanlanganMavzu.topic_code, javoblar: ro_yxat }),
+        body: JSON.stringify(
+          tanlanganMavzu.aralash
+            ? { token, topic_codes: tanlanganMavzu.kodlar, javoblar: ro_yxat }
+            : { token, topic_code: tanlanganMavzu.topic_code, javoblar: ro_yxat }
+        ),
       });
       const data = await res.json();
       setNatija(data);
@@ -791,15 +827,24 @@ function TestTab({ token, sinf: sinfXom }) {
   // Sinf tanlangan (yoki o'quvchining o'z sinfi) — endi shu sinfning fanlari va mavzulari
   const sinfMalumoti = joriySinfMalumoti;
   return (
-    <div className="px-5 pt-6 pb-4">
+    <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
       {!sinf && (
         <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
           ← Sinflar
         </button>
       )}
-      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
-        {sinfMalumoti ? `${sinfMalumoti.sinf}-sinf testlari` : "Test yechish"}
-      </h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
+          {sinfMalumoti ? `${sinfMalumoti.sinf}-sinf testlari` : "Test yechish"}
+        </h1>
+        <button onClick={() => { setAralashRejim(!aralashRejim); setTanlanganKodlar([]); }}
+          className="text-xs font-semibold px-3 py-1.5 rounded-full"
+          style={aralashRejim
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+          {aralashRejim ? "✕ Aralash rejimi" : "🔀 Bir nechta mavzu"}
+        </button>
+      </div>
       {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
       {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
@@ -816,21 +861,61 @@ function TestTab({ token, sinf: sinfXom }) {
                   {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}
                 </button>
                 {ochiq && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {fan.mavzular.map((m) => (
-                      <button key={m.topic_code} onClick={() => mavzuBoslandi(fan, m)}
-                        className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl"
-                        style={{ backgroundColor: "#F7F5F0" }}>
-                        <span className="text-sm" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
-                        <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
-                      </button>
-                    ))}
-                  </div>
+                  <MavzuRoyxati fan={fan} aralashRejim={aralashRejim} tanlanganKodlar={tanlanganKodlar}
+                    onToggle={aralashToggle} onTanla={mavzuBoslandi} />
                 )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {aralashRejim && tanlanganKodlar.length > 0 && (
+        <div className="fixed bottom-16 inset-x-0 z-20 px-5 pb-3">
+          <div className="max-w-md mx-auto">
+            <button onClick={aralashTestBoshlandi}
+              className="w-full py-3.5 rounded-xl font-semibold text-white text-sm shadow-lg"
+              style={{ backgroundColor: "#1B4B7A" }}>
+              🚀 Aralash test boshlash ({tanlanganKodlar.length} mavzu tanlandi)
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla }) {
+  const [korsatilgan, setKorsatilgan] = useState(10);
+  const korinadigan = fan.mavzular.slice(0, korsatilgan);
+  return (
+    <div className="px-4 pb-4 space-y-2">
+      {korinadigan.map((m) => {
+        const tanlanganmi = tanlanganKodlar.some((k) => k.topic_code === m.topic_code);
+        return (
+          <button key={m.topic_code}
+            onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl"
+            style={{ backgroundColor: aralashRejim && tanlanganmi ? "#EAF1F7" : "#F7F5F0" }}>
+            <span className="flex items-center gap-2.5">
+              {aralashRejim && (
+                <span className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: tanlanganmi ? "#1B4B7A" : "#FFFFFF", border: `1.5px solid ${tanlanganmi ? "#1B4B7A" : "#C4BFAF"}` }}>
+                  {tanlanganmi && <span className="text-white text-xs">✓</span>}
+                </span>
+              )}
+              <span className="text-sm text-left" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+            </span>
+            <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
+          </button>
+        );
+      })}
+      {korsatilgan < fan.mavzular.length && (
+        <button onClick={() => setKorsatilgan(korsatilgan + 10)}
+          className="w-full py-2.5 rounded-xl text-xs font-medium text-center"
+          style={{ backgroundColor: "#FFFFFF", border: "1px dashed #C4BFAF", color: "#5A5648" }}>
+          Yana ko'rsat ({fan.mavzular.length - korsatilgan} ta qoldi)
+        </button>
       )}
     </div>
   );
