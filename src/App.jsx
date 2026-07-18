@@ -2141,7 +2141,7 @@ function OqituvchiTab({ token }) {
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
           {!yangiMaxsusSinf ? (
             <>
-              <div className="grid grid-cols-6 gap-1.5 mb-2">
+              <div className="grid grid-cols-6 gap-1.5 mb-3">
                 {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
                   <button key={n} type="button" onClick={() => setYangiSinf(n)}
                     className="py-2.5 rounded-lg border text-sm font-semibold text-center"
@@ -2155,8 +2155,13 @@ function OqituvchiTab({ token }) {
                 ))}
               </div>
               <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinf(""); }}
-                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
-                🔀 Bu — bir nechta sinf uchun aralash to'garak guruhi
+                className="w-full rounded-xl p-3.5 mb-3 flex items-center gap-3 text-left border-2 border-dashed"
+                style={{ borderColor: "#C4BFAF", backgroundColor: "#FAF9F6" }}>
+                <span className="text-xl shrink-0">📚</span>
+                <span>
+                  <span className="text-sm font-semibold block" style={{ color: "#2B2B2B" }}>Bu — oddiy sinf emas</span>
+                  <span className="text-xs" style={{ color: "#8A8578" }}>Abituriyent, aralash guruh (3-4) va h.k. — bosing</span>
+                </span>
               </button>
             </>
           ) : (
