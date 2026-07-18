@@ -9,6 +9,62 @@ import {
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
 
+// ═══════════════════════════════════════════════════════════
+// DIZAYN TIZIMI — rol/jins/fanga qarab shaxsiylashtirilgan rang
+// ═══════════════════════════════════════════════════════════
+
+// O'quvchi uchun — jinsiga qarab ILIQ, ZAMONAVIY palitra (ikkalasi ham
+// bir xil darajada "jiddiy"/chiroyli — biri ikkinchisidan kamroq
+// ko'rinmasin degan niyatda tanlangan).
+const QIZ_RANGI = "#A8527A";   // iliq to'q pushti-binafsha (mavj/berry)
+const OGIL_RANGI = "#2D6E8B";  // chuqur ko'k-firuza
+
+// Ota-ona uchun — issiq, "oilaviy" tuyg'u beruvchi neytral rang.
+const OTA_ONA_RANGI = "#6E8B4A"; // iliq zaytun-yashil
+
+// O'qituvchi uchun — o'zi o'qitadigan FANGA mos rang. Fan nomidan
+// barqaror (deterministik) rang hisoblanadi — shu sabab yangi fan
+// qo'shilsa ham, doim BIR XIL rangni oladi, qo'lda ro'yxat yuritish
+// shart emas.
+const FAN_RANGLAR_KENGAYTIRILGAN = [
+  "#C89B3C", "#2D8B8B", "#8B5FBF", "#B0553A", "#4A7C9E", "#7C9E4A",
+  "#A8527A", "#5C7F9E", "#9E7C4A", "#4A9E8C", "#9E4A6E", "#6E9E4A", "#2D6E8B",
+];
+function fanRangiOl(fanNomi) {
+  if (!fanNomi) return "#1B4B7A";
+  let hash = 0;
+  for (let i = 0; i < fanNomi.length; i++) hash = fanNomi.charCodeAt(i) + ((hash << 5) - hash);
+  return FAN_RANGLAR_KENGAYTIRILGAN[Math.abs(hash) % FAN_RANGLAR_KENGAYTIRILGAN.length];
+}
+
+// Rol + jins + (o'qituvchi bo'lsa) fanga qarab YAGONA "joriy rang"ni
+// hisoblaydi — Kabinet shundan foydalanib butun ilovaga shaxsiylashtirilgan
+// rang beradi (pastki menyu, Bilim boshi, Profil rasmi va h.k.).
+function joriyRangniHisobla(foydalanuvchi, korinishRoli) {
+  if (korinishRoli === "oquvchi") {
+    if (foydalanuvchi?.jins === "qiz") return QIZ_RANGI;
+    if (foydalanuvchi?.jins === "ogil") return OGIL_RANGI;
+    return "#1B4B7A";
+  }
+  if (korinishRoli === "oqituvchi") return fanRangiOl(foydalanuvchi?.oqituvchi_fani);
+  if (korinishRoli === "ota-ona") return OTA_ONA_RANGI;
+  return "#1B4B7A"; // admin va standart
+}
+
+// O'qituvchi profilida tanlash uchun — BARCHA maktab fanlari (mavjud
+// test-kontentdan qat'i nazar, chunki o'qituvchi o'zi qaysi fanni
+// o'qitishini tanlashi kerak, hali test yaratilmagan fan bo'lsa ham).
+const BARCHA_MAKTAB_FANLARI = [
+  "Matematika", "Algebra", "Geometriya", "Ona tili", "Adabiyot",
+  "Ingliz tili", "Rus tili", "Nemis tili", "Fransuz tili",
+  "Tarix", "O'zbekiston tarixi", "Jahon tarixi", "Geografiya",
+  "Biologiya", "Fizika", "Kimyo", "Informatika", "Chizmachilik",
+  "Tasviriy san'at", "Musiqa", "Jismoniy tarbiya", "Astronomiya",
+  "Huquq", "Iqtisodiyot asoslari", "Milliy g'oya va ma'naviyat asoslari",
+  "Texnologiya", "Ona Vatan", "Atrofimizdagi olam", "O'qish savodxonligi",
+];
+
+
 function SavolRasmi({ rasmId }) {
   const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
   useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
@@ -606,7 +662,8 @@ function FanBolimi({ fan, onBosildi }) {
   );
 }
 
-function BilimTab({ data, bolaId }) {
+function BilimTab({ data, bolaId, rang }) {
+  const heroRang = rang || "#1B4B7A";
   const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
   const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
   const [mengaTogaraklarim, setMenTogaraklarim] = useState([]);
@@ -622,7 +679,7 @@ function BilimTab({ data, bolaId }) {
 
   return (
     <div>
-      <div className="relative overflow-hidden px-5 pt-6 pb-8" style={{ backgroundColor: "#1B4B7A" }}>
+      <div className="relative overflow-hidden px-5 pt-6 pb-8" style={{ backgroundColor: heroRang }}>
         <div className="relative">
           <h1 className="mt-1 text-2xl font-bold text-white">{data.bola?.ism || "Sizning bilimingiz"}</h1>
           <div className="mt-6 flex items-end gap-4">
@@ -2262,7 +2319,7 @@ function OqituvchiTab({ token }) {
 // ═══════════════════════════════════════════════════════════
 // 5.5) OTA-ONA — farzand(lar)ning bilim darajasi
 // ═══════════════════════════════════════════════════════════
-function OtaOnaTab({ token, foydalanuvchi }) {
+function OtaOnaTab({ token, foydalanuvchi, rang }) {
   const [farzandlar, setFarzandlar] = useState([]);
   const [tanlanganBola, setTanlanganBola] = useState(null);
   const [bilimData, setBilimData] = useState(null);
@@ -2336,7 +2393,7 @@ function OtaOnaTab({ token, foydalanuvchi }) {
       ) : xato ? (
         <p className="px-5 text-sm" style={{ color: "#B0553A" }}>{xato}</p>
       ) : tanlanganBola ? (
-        <BilimTab data={bilimData} bolaId={tanlanganBola} />
+        <BilimTab data={bilimData} bolaId={tanlanganBola} rang={rang} />
       ) : null}
     </div>
   );
@@ -2345,7 +2402,8 @@ function OtaOnaTab({ token, foydalanuvchi }) {
 // ═══════════════════════════════════════════════════════════
 // 6) PROFIL — tahrirlash va rol almashtirish
 // ═══════════════════════════════════════════════════════════
-function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar }) {
+function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar, rang }) {
+  const profilRangi = rang || "#1B4B7A";
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
   const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
   const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
@@ -2354,6 +2412,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   const [maktabTuri, setMaktabTuri] = useState(foydalanuvchi?.maktab_turi_kaliti || "oddiy");
   const [sinf, setSinf] = useState(foydalanuvchi?.class ? String(foydalanuvchi.class).replace(/-sinf$/i, "") : "");
   const [sinfHarfi, setSinfHarfi] = useState(foydalanuvchi?.class_letter || "");
+  const [jins, setJins] = useState(foydalanuvchi?.jins || "");
+  const [oqituvchiFani, setOqituvchiFani] = useState(foydalanuvchi?.oqituvchi_fani || "");
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [muvaffaqiyat, setMuvaffaqiyat] = useState(false);
@@ -2469,6 +2529,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           maktab_turi: foydalanuvchi?.role === "oquvchi" ? maktabTuri : undefined,
           sinf: foydalanuvchi?.role === "oquvchi" && sinf ? sinf : undefined,
           sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi ? sinfHarfi : undefined,
+          jins: (foydalanuvchi?.role === "oquvchi" || foydalanuvchi?.role === "oqituvchi") && jins ? jins : undefined,
+          oqituvchi_fani: foydalanuvchi?.role === "oqituvchi" && oqituvchiFani ? oqituvchiFani : undefined,
         }),
       });
       const data = await res.json();
@@ -2477,6 +2539,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman,
         tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami,
         maktab_turi_kaliti: maktabTuri, class: sinf, class_letter: sinfHarfi,
+        jins, oqituvchi_fani: oqituvchiFani,
       });
       setMuvaffaqiyat(true);
       setTimeout(() => setMuvaffaqiyat(false), 2500);
@@ -2574,7 +2637,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   return (
     <div className="px-5 pt-6 pb-4">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0" style={{ backgroundColor: "#1B4B7A" }}>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0" style={{ backgroundColor: profilRangi }}>
           {(ism || "?").trim().slice(0, 1).toUpperCase()}
         </div>
         <div className="min-w-0">
@@ -2683,6 +2746,80 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
               </div>
             </div>
           </div>
+
+          <label className="text-xs font-medium mb-1.5 mt-3 block" style={{ color: "#5A5648" }}>Dizayn uchun (ixtiyoriy)</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button type="button" onClick={() => setJins(jins === "ogil" ? "" : "ogil")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "ogil" ? OGIL_RANGI : "#E5E1D8",
+                backgroundColor: jins === "ogil" ? OGIL_RANGI : "#FFFFFF",
+                color: jins === "ogil" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👦 O'g'il
+            </button>
+            <button type="button" onClick={() => setJins(jins === "qiz" ? "" : "qiz")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "qiz" ? QIZ_RANGI : "#E5E1D8",
+                backgroundColor: jins === "qiz" ? QIZ_RANGI : "#FFFFFF",
+                color: jins === "qiz" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👧 Qiz
+            </button>
+          </div>
+        </div>
+      )}
+
+      {foydalanuvchi?.role === "oqituvchi" && (
+        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>📚 O'qituvchi ma'lumotlari</p>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qaysi fanni o'qitasiz?</label>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {BARCHA_MAKTAB_FANLARI.map((f) => {
+              const bu_rang = fanRangiOl(f);
+              const tanlanganmi = oqituvchiFani === f;
+              return (
+                <button key={f} type="button" onClick={() => setOqituvchiFani(tanlanganmi ? "" : f)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border"
+                  style={{
+                    borderColor: tanlanganmi ? bu_rang : "#E5E1D8",
+                    backgroundColor: tanlanganmi ? bu_rang : "#FFFFFF",
+                    color: tanlanganmi ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {f}
+                </button>
+              );
+            })}
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Dizayn uchun (ixtiyoriy)</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button type="button" onClick={() => setJins(jins === "ogil" ? "" : "ogil")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "ogil" ? OGIL_RANGI : "#E5E1D8",
+                backgroundColor: jins === "ogil" ? OGIL_RANGI : "#FFFFFF",
+                color: jins === "ogil" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👨 Erkak
+            </button>
+            <button type="button" onClick={() => setJins(jins === "qiz" ? "" : "qiz")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "qiz" ? QIZ_RANGI : "#E5E1D8",
+                backgroundColor: jins === "qiz" ? QIZ_RANGI : "#FFFFFF",
+                color: jins === "qiz" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👩 Ayol
+            </button>
+          </div>
+          {oqituvchiFani && (
+            <p className="text-xs mt-3 text-center" style={{ color: "#8A8578" }}>
+              Profilingiz "{oqituvchiFani}" rangida bezatiladi.
+            </p>
+          )}
         </div>
       )}
 
@@ -2691,7 +2828,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
       <button onClick={profilSaqla} disabled={saqlanmoqda}
         className="w-full py-3 rounded-xl font-semibold text-white text-sm mb-4"
-        style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+        style={{ backgroundColor: profilRangi, opacity: saqlanmoqda ? 0.7 : 1 }}>
         {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
       </button>
 
@@ -2895,7 +3032,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   );
 }
 
-function PastkiMenyu({ faol, onTanlash, rol }) {
+function PastkiMenyu({ faol, onTanlash, rol, rang }) {
+  const aktivRang = rang || "#1B4B7A";
   // DIQQAT: "admin" endi TO'LIQ ALOHIDA rejim — boshqa hech qanday rol
   // tugmasi bilan ARALASHMAYDI. Har rejimda faqat O'SHA rolga tegishli
   // bandlar ko'rinadi.
@@ -2925,8 +3063,8 @@ function PastkiMenyu({ faol, onTanlash, rol }) {
           const aktiv = faol === kalit;
           return (
             <button key={kalit} onClick={() => onTanlash(kalit)} className="flex flex-col items-center gap-1 py-3 transition-colors">
-              <Ikon size={22} strokeWidth={aktiv ? 2.5 : 2} style={{ color: aktiv ? "#1B4B7A" : "#8A8578" }} />
-              <span className="text-xs" style={{ color: aktiv ? "#1B4B7A" : "#8A8578", fontWeight: aktiv ? 600 : 400 }}>{nom}</span>
+              <Ikon size={22} strokeWidth={aktiv ? 2.5 : 2} style={{ color: aktiv ? aktivRang : "#8A8578" }} />
+              <span className="text-xs" style={{ color: aktiv ? aktivRang : "#8A8578", fontWeight: aktiv ? 600 : 400 }}>{nom}</span>
             </button>
           );
         })}
@@ -2985,6 +3123,7 @@ function Kabinet({ token }) {
 
   // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
   const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
+  const joriyRang = joriyRangniHisobla(foydalanuvchi, korinishRoli);
 
   const korinishOzgardi = (yangi) => {
     setAdminKorinish(yangi);
@@ -2999,8 +3138,8 @@ function Kabinet({ token }) {
         <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
       )}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
-      {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} />}
-      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} />}
+      {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab token={token} sinf={foydalanuvchi?.class} />
       )}
@@ -3010,9 +3149,9 @@ function Kabinet({ token }) {
       )}
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
-          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} />
+          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
       )}
-      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} />
+      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} rang={joriyRang} />
     </div>
   );
 }
