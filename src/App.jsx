@@ -1964,24 +1964,30 @@ function OqituvchiTab({ token }) {
 // ═══════════════════════════════════════════════════════════
 // 5.5) OTA-ONA — farzand(lar)ning bilim darajasi
 // ═══════════════════════════════════════════════════════════
-function OtaOnaTab({ foydalanuvchi }) {
+function OtaOnaTab({ token, foydalanuvchi }) {
   const [farzandlar, setFarzandlar] = useState([]);
   const [tanlanganBola, setTanlanganBola] = useState(null);
   const [bilimData, setBilimData] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+  const [kodQiymati, setKodQiymati] = useState("");
+  const [qoshilmoqda, setQoshilmoqda] = useState(false);
+  const [qoshishXato, setQoshishXato] = useState("");
+  const [qoshishMuvaffaqiyat, setQoshishMuvaffaqiyat] = useState("");
 
-  useEffect(() => {
+  const farzandlarniYukla = () => {
     fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`)
       .then((r) => r.json())
       .then((d) => {
         const royxat = d.farzandlar || [];
         setFarzandlar(royxat);
-        if (royxat.length > 0) setTanlanganBola(royxat[0].user_id);
+        if (royxat.length > 0) setTanlanganBola((oldin) => oldin || royxat[0].user_id);
         else setYuklanmoqda(false);
       })
       .catch(() => { setXato("Farzandlar ro'yxatini yuklab bo'lmadi"); setYuklanmoqda(false); });
-  }, [foydalanuvchi.user_id]);
+  };
+
+  useEffect(farzandlarniYukla, [foydalanuvchi.user_id]);
 
   useEffect(() => {
     if (!tanlanganBola) return;
@@ -1992,46 +1998,97 @@ function OtaOnaTab({ foydalanuvchi }) {
       .catch(() => { setXato("Bilim ma'lumotini yuklab bo'lmadi"); setYuklanmoqda(false); });
   }, [tanlanganBola]);
 
+  const kodBilanQoshish = async () => {
+    if (!kodQiymati.trim()) return;
+    setQoshilmoqda(true); setQoshishXato(""); setQoshishMuvaffaqiyat("");
+    try {
+      const res = await fetch(`${API_BASE}/api/ota/farzand_boglash?token=${encodeURIComponent(token)}&kod=${encodeURIComponent(kodQiymati.trim())}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setQoshishMuvaffaqiyat(data.holat === "allaqachon_ulangan" ? "Bu farzand allaqachon ulangan" : `✓ ${data.farzand_ismi} ulandi`);
+      setKodQiymati("");
+      farzandlarniYukla();
+    } catch (e) {
+      setQoshishXato(e.message);
+    } finally { setQoshilmoqda(false); }
+  };
+
+  const farzandniUzish = async (bolaId) => {
+    try {
+      await fetch(`${API_BASE}/api/ota/farzand_uzish?token=${encodeURIComponent(token)}&farzand_id=${bolaId}`, { method: "DELETE" });
+      setFarzandlar((prev) => prev.filter((f) => f.user_id !== bolaId));
+      if (tanlanganBola === bolaId) setTanlanganBola(null);
+    } catch { /* jim */ }
+  };
+
+  const QoshishKartasi = (
+    <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+      <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>➕ Farzand qo'shish</p>
+      <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+        Farzandingiz o'z profilida "Ota-onani ulash" orqali oladigan 6 xonali kodni kiriting.
+      </p>
+      <div className="flex gap-2">
+        <input type="text" value={kodQiymati} onChange={(e) => setKodQiymati(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          placeholder="123456" maxLength={6}
+          className="flex-1 px-3.5 py-2.5 rounded-xl border text-center text-lg tracking-widest"
+          style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={kodBilanQoshish} disabled={qoshilmoqda || !kodQiymati.trim()}
+          className="px-5 rounded-xl font-semibold text-white text-sm"
+          style={{ backgroundColor: "#1B4B7A", opacity: (qoshilmoqda || !kodQiymati.trim()) ? 0.6 : 1 }}>
+          {qoshilmoqda ? "..." : "Qo'shish"}
+        </button>
+      </div>
+      {qoshishXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{qoshishXato}</p>}
+      {qoshishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>{qoshishMuvaffaqiyat}</p>}
+    </div>
+  );
+
   if (farzandlar.length === 0 && !yuklanmoqda) {
     return (
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Farzandim</h1>
-        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm" style={{ color: "#8A8578" }}>
-            Hozircha ulangan farzand yo'q. Farzandingizni botdagi kabinet orqali ulang.
-          </p>
-        </div>
+        {QoshishKartasi}
       </div>
     );
   }
 
   return (
     <div>
-      {farzandlar.length > 1 && (
-        <div className="px-5 pt-6 pb-2">
-          <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Farzandim</h1>
-          <div className="flex gap-2 flex-wrap">
+      <div className="px-5 pt-6 pb-2">
+        <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Farzandim</h1>
+        {QoshishKartasi}
+        {farzandlar.length > 0 && (
+          <div className="flex gap-2 flex-wrap mb-2">
             {farzandlar.map((f) => (
-              <button key={f.user_id} onClick={() => setTanlanganBola(f.user_id)}
-                className="px-4 py-2 rounded-full text-sm font-medium"
+              <div key={f.user_id} className="flex items-center gap-1.5 pl-4 pr-2 py-2 rounded-full"
                 style={tanlanganBola === f.user_id
-                  ? { backgroundColor: "#1B4B7A", color: "#fff" }
-                  : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-                {f.full_name}
-              </button>
+                  ? { backgroundColor: "#1B4B7A" }
+                  : { backgroundColor: "#F7F5F0" }}>
+                <button onClick={() => setTanlanganBola(f.user_id)}
+                  className="text-sm font-medium" style={{ color: tanlanganBola === f.user_id ? "#fff" : "#5A5648" }}>
+                  {f.full_name}
+                </button>
+                <button onClick={() => farzandniUzish(f.user_id)}
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                  style={{ color: tanlanganBola === f.user_id ? "#fff" : "#8A8578" }} title="Uzish">
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
       {yuklanmoqda ? (
         <div className="px-5 pt-10 text-center">
           <Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} />
         </div>
       ) : xato ? (
         <p className="px-5 text-sm" style={{ color: "#B0553A" }}>{xato}</p>
-      ) : (
+      ) : tanlanganBola ? (
         <BilimTab data={bilimData} bolaId={tanlanganBola} />
-      )}
+      ) : null}
     </div>
   );
 }
@@ -2058,6 +2115,22 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   const [kodEmail, setKodEmail] = useState("");
   const [kodQiymati, setKodQiymati] = useState("");
   const [kodYuklanmoqda, setKodYuklanmoqda] = useState(false);
+
+  const [otaKod, setOtaKod] = useState(null); // {kod, amal_qilish_daqiqasi} | null
+  const [otaKodOlinmoqda, setOtaKodOlinmoqda] = useState(false);
+  const [otaKodXato, setOtaKodXato] = useState("");
+
+  const otaKodOl = async () => {
+    setOtaKodOlinmoqda(true); setOtaKodXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/farzand/kod_yarat?token=${encodeURIComponent(token)}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setOtaKod(data);
+    } catch (e) {
+      setOtaKodXato(e.message);
+    } finally { setOtaKodOlinmoqda(false); }
+  };
 
   const [togaraklarim, setTogaraklarim] = useState([]);
   const [togaraklarYuklanmoqda, setTogaraklarYuklanmoqda] = useState(true);
@@ -2302,6 +2375,27 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
         </button>
       </div>
+
+      {foydalanuvchi?.role === "oquvchi" && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🔗 Ota-onani ulash</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+            Kod oling va uni ota-onangizga ayting — u shu kodni o'z profilida kiritib, sizning bilim ko'rsatkichlaringizni ko'ra oladi.
+          </p>
+          {otaKod ? (
+            <div className="rounded-xl p-4 text-center mb-2" style={{ backgroundColor: "#EAF1F7" }}>
+              <p className="text-3xl font-bold tracking-widest mb-1" style={{ color: "#1B4B7A" }}>{otaKod.kod}</p>
+              <p className="text-xs" style={{ color: "#5A5648" }}>{otaKod.amal_qilish_daqiqasi} daqiqa amal qiladi</p>
+            </div>
+          ) : null}
+          {otaKodXato && <p className="text-sm mb-2" style={{ color: "#B0553A" }}>{otaKodXato}</p>}
+          <button onClick={otaKodOl} disabled={otaKodOlinmoqda}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm"
+            style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: otaKodOlinmoqda ? 0.7 : 1 }}>
+            {otaKodOlinmoqda ? "..." : otaKod ? "🔄 Yangi kod olish" : "Kod olish"}
+          </button>
+        </div>
+      )}
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-medium mb-3" style={{ color: "#5A5648" }}>Mening to'garaklarim</p>
@@ -2549,7 +2643,7 @@ function Kabinet({ token }) {
       {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
-      {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab foydalanuvchi={foydalanuvchi} />}
+      {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab token={token} sinf={foydalanuvchi?.is_admin ? null : foydalanuvchi?.class} />
