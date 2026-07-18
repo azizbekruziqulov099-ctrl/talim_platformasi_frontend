@@ -1122,8 +1122,8 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           tanlanganMavzu.aralash
-            ? { token, topic_codes: tanlanganMavzu.kodlar, javoblar: ro_yxat }
-            : { token, topic_code: tanlanganMavzu.topic_code, javoblar: ro_yxat }
+            ? { token, topic_codes: tanlanganMavzu.kodlar, javoblar: ro_yxat, jami_savol_soni: savollar.length }
+            : { token, topic_code: tanlanganMavzu.topic_code, javoblar: ro_yxat, jami_savol_soni: savollar.length }
         ),
       });
       const data = await res.json();
