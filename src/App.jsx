@@ -793,7 +793,7 @@ function BilimTab({ data, bolaId, rang }) {
 // ═══════════════════════════════════════════════════════════
 // 4) TEST YECHISH
 // ═══════════════════════════════════════════════════════════
-function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
+function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
   // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
@@ -811,11 +811,18 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   const [ochiqFan, setOchiqFan] = useState(null);
   const [savollar, setSavollar] = useState([]);
   const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
-  const [joriySavol, setJoriySavol] = useState(0);
   const [javoblar, setJavoblar] = useState({});
   const [natija, setNatija] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+
+  // Kabinetga "test hozir davom etyapti" holatini bildiramiz — shu payt
+  // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi (test tugatilishi
+  // yoki to'xtatilishi kerak).
+  useEffect(() => {
+    if (onTestFaollik) onTestFaollik(holat === "savollar");
+    return () => { if (onTestFaollik) onTestFaollik(false); };
+  }, [holat, onTestFaollik]);
 
   useEffect(() => {
     setYuklanmoqda(true);
@@ -946,14 +953,14 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
-      setJavoblar({}); setJoriySavol(0); setHolat("savollar");
+      setJavoblar({}); setNatijalar({}); setYozibJavob({}); setHolat("savollar");
       setToGriSoni(0); setXatoSoni(0);
     } catch (e) {
       setXato(e.message);
     } finally { setYuklanmoqda(false); }
   };
 
-  const [yozibJavob, setYozibJavob] = useState("");
+  const [yozibJavob, setYozibJavob] = useState({}); // {savol_id: xom_matn} — bir nechta savol bir vaqtda ko'rinadi
   const [ovozOynayapti, setOvozOynayapti] = useState(false);
   const ovozRef = useRef(null);
 
@@ -967,35 +974,42 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
     audio.play().catch(() => setOvozOynayapti(false));
   };
 
-  const [joriyNatija, setJoriyNatija] = useState(null); // {togrimi, togri_javob, tushuntirish} | null
-  const [qolganVaqt, setQolganVaqt] = useState(null);
-  const [avtoQoldi, setAvtoQoldi] = useState(null);
-  const timerRef = useRef(null);
-  const avtoRef = useRef(null);
+  const [natijalar, setNatijalar] = useState({}); // {savol_id: {togrimi, togri_javob, tushuntirish}}
+  const [umumiyVaqt, setUmumiyVaqt] = useState(null); // butun test uchun UMUMIY qolgan soniya | null (vaqtsiz)
+  const [toxtatishModali, setToxtatishModali] = useState(false);
+  const umumiyTimerRef = useRef(null);
+  const savolReflari = useRef({}); // {index: DOM element} — raqam bosilganda shu savolga aylantirish uchun
+
+  // Savollar yuklangach — UMUMIY vaqtni hisoblaymiz (har bir savolning
+  // o'z vaqti bo'lsa, hammasini QO'SHIB, BITTA umumiy hisoblagich sifatida
+  // ishlatamiz — har savolga alohida vaqt emas).
+  useEffect(() => {
+    if (holat !== "savollar" || savollar.length === 0) return;
+    const jami = savollar.reduce((sum, s) => sum + (s.time_limit || 0), 0);
+    setUmumiyVaqt(jami > 0 ? jami : null);
+  }, [holat, savollar]);
+
+  const yakunlaRef = useRef(() => {});
 
   useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (holat !== "savollar" || joriyNatija || !savollar[joriySavol]) return;
-
-    const s = savollar[joriySavol];
-    if (!s.time_limit) { setQolganVaqt(null); return; }
-    setQolganVaqt(s.time_limit);
-    timerRef.current = setInterval(() => {
-      setQolganVaqt((v) => {
+    if (umumiyTimerRef.current) clearInterval(umumiyTimerRef.current);
+    if (holat !== "savollar" || umumiyVaqt === null) return;
+    umumiyTimerRef.current = setInterval(() => {
+      setUmumiyVaqt((v) => {
+        if (v === null) return null;
         if (v <= 1) {
-          clearInterval(timerRef.current);
-          javobBer(s.id, "");
+          clearInterval(umumiyTimerRef.current);
+          yakunlaRef.current();
           return 0;
         }
         return v - 1;
       });
     }, 1000);
-    return () => clearInterval(timerRef.current);
+    return () => clearInterval(umumiyTimerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [joriySavol, holat]);
+  }, [holat, umumiyVaqt === null]);
 
   const javobBer = async (savolId, harf) => {
-    if (timerRef.current) clearInterval(timerRef.current);
     setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
     try {
       const res = await fetch(`${API_BASE}/api/test/javob_tekshir`, {
@@ -1004,40 +1018,29 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
         body: JSON.stringify({ savol_id: savolId, tanlangan: harf }),
       });
       const data = await res.json();
-      setJoriyNatija(data);
+      setNatijalar((prev) => ({ ...prev, [savolId]: data }));
       if (data.togrimi) setToGriSoni((v) => v + 1); else setXatoSoni((v) => v + 1);
     } catch {
-      setJoriyNatija({ togrimi: false, togri_javob: "?", tushuntirish: "" });
+      setNatijalar((prev) => ({ ...prev, [savolId]: { togrimi: false, togri_javob: "?", tushuntirish: "" } }));
       setXatoSoni((v) => v + 1);
     }
   };
 
-  const keyingiSavolga = () => {
-    if (avtoRef.current) clearInterval(avtoRef.current);
-    setJoriyNatija(null);
-    setYozibJavob("");
-    if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
-    else yakunla();
+  // "O'tkazish" — javob berilmagan KEYINGI savolga sirg'alib o'tadi
+  // (savol o'tkazib yuborilgani hisoblanadi, javobsiz qoladi).
+  const savolniOtkazib = (joriyIndex) => {
+    const keyingiIndex = savollar.findIndex((s, i) => i > joriyIndex && javoblar[s.id] === undefined);
+    const nishon = keyingiIndex !== -1 ? keyingiIndex : savollar.findIndex((s) => javoblar[s.id] === undefined);
+    if (nishon !== -1 && savolReflari.current[nishon]) {
+      savolReflari.current[nishon].scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   };
 
-  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 4 soniyadan keyin
-  // AVTOMATIK keyingi savolga o'tadi — foydalanuvchi tugma bosishi shart emas
-  useEffect(() => {
-    if (!joriyNatija) { setAvtoQoldi(null); return; }
-    setAvtoQoldi(4);
-    avtoRef.current = setInterval(() => {
-      setAvtoQoldi((v) => {
-        if (v <= 1) {
-          clearInterval(avtoRef.current);
-          keyingiSavolga();
-          return 0;
-        }
-        return v - 1;
-      });
-    }, 1000);
-    return () => clearInterval(avtoRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [joriyNatija]);
+  const raqamgaOt = (index) => {
+    if (savolReflari.current[index]) {
+      savolReflari.current[index].scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
 
   const yakunla = async () => {
     setYuklanmoqda(true);
@@ -1062,8 +1065,19 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
     } finally { setYuklanmoqda(false); }
   };
 
+  // yakunlaRef'ni HAR renderda eng so'nggi yakunla'ga tenglashtiramiz —
+  // shu orqali yuqoridagi umumiy-vaqt hisoblagichi (bir marta o'rnatilgan
+  // setInterval ichidan) hech qachon ESKI (bo'sh) javoblar bilan yubormaydi.
+  useEffect(() => { yakunlaRef.current = yakunla; });
+
+  const toxtatish = () => {
+    setToxtatishModali(false);
+    yakunla();
+  };
+
   const qaytaBoshlash = () => {
-    setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null); setJoriyNatija(null);
+    setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null);
+    setNatijalar({}); setUmumiyVaqt(null); setYozibJavob({});
   };
 
   if (yuklanmoqda) {
@@ -1176,126 +1190,186 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   }
 
   if (holat === "savollar") {
-    const s = savollar[joriySavol];
-    const oxirgi = joriySavol === savollar.length - 1;
-    const yozuvli = s.question_type === "write_answer";
-    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
-    const javobBerilgan = !!joriyNatija;
-
-    const variantRangi = (harf) => {
-      if (!javobBerilgan) {
-        return javoblar[s.id] === harf
-          ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
-          : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" };
-      }
-      if (harf === joriyNatija.togri_javob) return { borderColor: "#639922", backgroundColor: "#EAF3DE" };
-      if (harf === javoblar[s.id]) return { borderColor: "#E24B4A", backgroundColor: "#FCEBEB" };
-      return { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", opacity: 0.6 };
-    };
+    const jamiJavoblangan = Object.keys(javoblar).length;
 
     return (
-      <div className="px-5 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
-              ✓ {toGriSoni}
-            </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
-              ✗ {xatoSoni}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {qolganVaqt !== null && !javobBerilgan && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: qolganVaqt <= 5 ? "#FCEBEB" : "#F1EFE8", color: qolganVaqt <= 5 ? "#A32D2D" : "#5A5648" }}>
-                ⏱ {qolganVaqt}s
+      <div className="pb-28">
+        {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
+        <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+                ✓ {toGriSoni}
               </span>
-            )}
-            <p className="text-xs" style={{ color: "#8A8578" }}>{tanlanganMavzu.nomi}</p>
-          </div>
-        </div>
-        <div className="h-1.5 rounded-full overflow-hidden mb-6" style={{ backgroundColor: "#EFEBE1" }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${((joriySavol + 1) / savollar.length) * 100}%`, backgroundColor: "#1B4B7A" }} />
-        </div>
-
-        {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
-          ? <SavolRasmi rasmId={s.rasm_id} />
-          : <SavolFormulasi ifoda={s.rasm_id} />)}
-
-        <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
-          <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-          <button
-            onClick={() => ovozniOqi(yozuvli
-              ? s.question
-              : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
-            disabled={ovozOynayapti}
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
-            title="Ovoz chiqarib o'qish">
-            {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
-          </button>
-        </h2>
-
-        {yozuvli ? (
-          <div className="mb-4">
-            <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : yozibJavob}
-              onChange={(e) => setYozibJavob(e.target.value)}
-              disabled={javobBerilgan}
-              onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && yozibJavob.trim()) javobBer(s.id, yozibJavob.trim()); }}
-              placeholder="Javobingizni yozing..."
-              className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
-              style={javobBerilgan
-                ? { borderColor: joriyNatija.togrimi ? "#639922" : "#E24B4A", backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }
-                : { borderColor: "#E5E1D8" }} />
-            {!javobBerilgan && (
-              <button onClick={() => yozibJavob.trim() && javobBer(s.id, yozibJavob.trim())}
-                disabled={!yozibJavob.trim()}
-                className="w-full py-3 rounded-xl font-semibold text-white text-sm"
-                style={{ backgroundColor: "#1B4B7A", opacity: yozibJavob.trim() ? 1 : 0.5 }}>
-                Javobni yuborish
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2.5 mb-4">
-            {variantlar.map(([harf, matn]) => (
-              <button key={harf} onClick={() => !javobBerilgan && javobBer(s.id, harf)} disabled={javobBerilgan}
-                className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
-                style={variantRangi(harf)}>
-                <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                  style={{
-                    backgroundColor: javobBerilgan
-                      ? (harf === joriyNatija.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
-                      : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
-                    color: (javobBerilgan && (harf === joriyNatija.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
-                      ? "#FFFFFF" : "#5A5648",
-                  }}>
-                  {harf}
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                ✗ {xatoSoni}
+              </span>
+              <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {umumiyVaqt !== null && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: umumiyVaqt <= 30 ? "#FCEBEB" : "#F1EFE8", color: umumiyVaqt <= 30 ? "#A32D2D" : "#5A5648" }}>
+                  ⏱ {Math.floor(umumiyVaqt / 60)}:{String(umumiyVaqt % 60).padStart(2, "0")}
                 </span>
-                <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
+              )}
+              <button onClick={() => setToxtatishModali(true)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
+                ⏹ To'xtatish
               </button>
-            ))}
+            </div>
           </div>
-        )}
-
-        {javobBerilgan && (
-          <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
-            <p className="text-sm font-semibold mb-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>
-              {joriyNatija.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`}
-            </p>
-            {joriyNatija.tushuntirish && (
-              <p className="text-sm" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>{joriyNatija.tushuntirish}</p>
-            )}
+          {/* Savol raqamlari qatori — bosilgan raqam o'sha savolga sirg'alib olib boradi */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
+            {savollar.map((s, i) => {
+              const nat = natijalar[s.id];
+              const holatRang = nat ? (nat.togrimi ? "#639922" : "#E24B4A") : javoblar[s.id] !== undefined ? "#C89B3C" : "#E5E1D8";
+              const fonRang = nat ? (nat.togrimi ? "#EAF3DE" : "#FCEBEB") : "#FFFFFF";
+              return (
+                <button key={s.id} onClick={() => raqamgaOt(i)}
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2"
+                  style={{ borderColor: holatRang, backgroundColor: fonRang, color: nat ? holatRang : "#5A5648" }}>
+                  {i + 1}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
 
-        {javobBerilgan ? (
-          <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-            {(oxirgi ? "Yakunlash" : "Keyingi savol")}{avtoQoldi ? ` (${avtoQoldi})` : ""}
-          </button>
-        ) : (
-          <p className="text-center text-xs" style={{ color: "#B0AA98" }}>Javobni tanlang</p>
+        <div className="px-5 pt-5 space-y-5">
+          {savollar.map((s, i) => {
+            const yozuvli = s.question_type === "write_answer";
+            const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+            const nat = natijalar[s.id];
+            const javobBerilgan = !!nat;
+
+            const variantRangi = (harf) => {
+              if (!javobBerilgan) {
+                return javoblar[s.id] === harf
+                  ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
+                  : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" };
+              }
+              if (harf === nat.togri_javob) return { borderColor: "#639922", backgroundColor: "#EAF3DE" };
+              if (harf === javoblar[s.id]) return { borderColor: "#E24B4A", backgroundColor: "#FCEBEB" };
+              return { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", opacity: 0.6 };
+            };
+
+            return (
+              <div key={s.id} ref={(el) => { savolReflari.current[i] = el; }}
+                className="rounded-2xl p-4 bg-white border" style={{ borderColor: javobBerilgan ? (nat.togrimi ? "#C9E4B0" : "#F3D3D3") : "#E5E1D8" }}>
+                <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}-savol</p>
+
+                {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
+                  ? <SavolRasmi rasmId={s.rasm_id} />
+                  : <SavolFormulasi ifoda={s.rasm_id} />)}
+
+                <h2 className="text-lg font-semibold mb-4 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
+                  <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
+                  <button
+                    onClick={() => ovozniOqi(yozuvli
+                      ? s.question
+                      : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+                    disabled={ovozOynayapti}
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+                    title="Ovoz chiqarib o'qish">
+                    {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+                  </button>
+                </h2>
+
+                {yozuvli ? (
+                  <div>
+                    <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : (yozibJavob[s.id] || "")}
+                      onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                      disabled={javobBerilgan}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobBer(s.id, yozibJavob[s.id].trim()); }}
+                      placeholder="Javobingizni yozing..."
+                      className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
+                      style={javobBerilgan
+                        ? { borderColor: nat.togrimi ? "#639922" : "#E24B4A", backgroundColor: nat.togrimi ? "#EAF3DE" : "#FCEBEB" }
+                        : { borderColor: "#E5E1D8" }} />
+                    {!javobBerilgan && (
+                      <button onClick={() => (yozibJavob[s.id] || "").trim() && javobBer(s.id, yozibJavob[s.id].trim())}
+                        disabled={!(yozibJavob[s.id] || "").trim()}
+                        className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+                        style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
+                        Javobni yuborish
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {variantlar.map(([harf, matn]) => (
+                      <button key={harf} onClick={() => !javobBerilgan && javobBer(s.id, harf)} disabled={javobBerilgan}
+                        className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
+                        style={variantRangi(harf)}>
+                        <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                          style={{
+                            backgroundColor: javobBerilgan
+                              ? (harf === nat.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
+                              : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
+                            color: (javobBerilgan && (harf === nat.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
+                              ? "#FFFFFF" : "#5A5648",
+                          }}>
+                          {harf}
+                        </span>
+                        <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {javobBerilgan && (
+                  <div className="rounded-xl p-4 mt-3" style={{ backgroundColor: nat.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
+                    <p className="text-sm font-semibold mb-1" style={{ color: nat.togrimi ? "#3B6D11" : "#A32D2D" }}>
+                      {nat.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${nat.togri_javob}`}
+                    </p>
+                    {nat.tushuntirish && (
+                      <p className="text-sm" style={{ color: nat.togrimi ? "#3B6D11" : "#A32D2D" }}>{nat.tushuntirish}</p>
+                    )}
+                  </div>
+                )}
+
+                {!javobBerilgan && (
+                  <button onClick={() => savolniOtkazib(i)} className="w-full text-center text-xs font-medium mt-3" style={{ color: "#8A8578" }}>
+                    O'tkazib yuborish →
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Yopishqoq pastki tugma — istalgan vaqtda yakunlash mumkin */}
+        <div className="fixed bottom-16 inset-x-0 z-20 px-5 pb-3">
+          <div className="max-w-md mx-auto">
+            <button onClick={yakunla}
+              className="w-full py-3.5 rounded-xl font-semibold text-white text-sm shadow-lg"
+              style={{ backgroundColor: "#1B4B7A" }}>
+              ✓ Yakunlash ({jamiJavoblangan}/{savollar.length} javob berildi)
+            </button>
+          </div>
+        </div>
+
+        {toxtatishModali && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+                Hozirgacha javob bergan {jamiJavoblangan} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setToxtatishModali(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  Davom etish
+                </button>
+                <button onClick={toxtatish}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
+                  Ha, to'xtatish
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -3094,7 +3168,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   );
 }
 
-function PastkiMenyu({ faol, onTanlash, rol, rang }) {
+function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan }) {
   const aktivRang = rang || "#1B4B7A";
   // DIQQAT: "admin" endi TO'LIQ ALOHIDA rejim — boshqa hech qanday rol
   // tugmasi bilan ARALASHMAYDI. Har rejimda faqat O'SHA rolga tegishli
@@ -3123,8 +3197,12 @@ function PastkiMenyu({ faol, onTanlash, rol, rang }) {
       <div className="max-w-md mx-auto grid" style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(0, 1fr))` }}>
         {bandlar.map(({ kalit, nom, ikon: Ikon }) => {
           const aktiv = faol === kalit;
+          const taqiqlangan = bloklangan && !aktiv;
           return (
-            <button key={kalit} onClick={() => onTanlash(kalit)} className="flex flex-col items-center gap-1 py-3 transition-colors">
+            <button key={kalit} onClick={() => !taqiqlangan && onTanlash(kalit)}
+              className="flex flex-col items-center gap-1 py-3 transition-colors"
+              style={{ opacity: taqiqlangan ? 0.35 : 1, cursor: taqiqlangan ? "not-allowed" : "pointer" }}
+              title={taqiqlangan ? "Avval testni yakunlang yoki to'xtating" : undefined}>
               <Ikon size={22} strokeWidth={aktiv ? 2.5 : 2} style={{ color: aktiv ? aktivRang : "#8A8578" }} />
               <span className="text-xs" style={{ color: aktiv ? aktivRang : "#8A8578", fontWeight: aktiv ? 600 : 400 }}>{nom}</span>
             </button>
@@ -3147,6 +3225,10 @@ function Kabinet({ token }) {
   // sinab ko'radi.
   const [adminKorinish, setAdminKorinish] = useState("admin");
   const [shablonOldindanTanlangan, setShablonOldindanTanlangan] = useState([]);
+  // Test yechish jarayonida (savollar ekranida) TRUE bo'ladi — shu payt
+  // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi, avval test
+  // "To'xtatish" yoki "Yakunlash" bilan yakunlanishi kerak.
+  const [testDavomida, setTestDavomida] = useState(false);
 
   useEffect(() => {
     async function yukla() {
@@ -3203,7 +3285,7 @@ function Kabinet({ token }) {
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
-        <TestTab token={token} sinf={foydalanuvchi?.class} />
+        <TestTab token={token} sinf={foydalanuvchi?.class} onTestFaollik={setTestDavomida} />
       )}
       {tab === "xabar" && (
         <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
@@ -3213,7 +3295,7 @@ function Kabinet({ token }) {
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
       )}
-      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} rang={joriyRang} />
+      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida} />
     </div>
   );
 }
