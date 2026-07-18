@@ -662,7 +662,12 @@ function BilimTab({ data, bolaId }) {
         </div>
       </div>
       <div className="px-5 -mt-3 pb-4 space-y-3">
-        {data.fanlar.length === 0 ? (
+        {data.sinf_sozlanmagan ? (
+          <div className="rounded-2xl p-6 text-center bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm font-medium mb-1" style={{ color: "#2B2B2B" }}>Sinf sozlanmagan</p>
+            <p className="text-xs" style={{ color: "#8A8578" }}>Profilda sinf tanlangach, shu sinfning fan/mavzulari shu yerda ko'rinadi.</p>
+          </div>
+        ) : data.fanlar.length === 0 ? (
           <div className="rounded-2xl p-6 text-center bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm" style={{ color: "#8A8578" }}>Hali birorta ham mavzu o'rganilmagan.</p>
           </div>
