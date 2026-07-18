@@ -771,6 +771,11 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
 
   const [holat, setHolat] = useState("mavzular"); // mavzular | songi | savollar | natija
   const [faolTuri, setFaolTuri] = useState(turi); // "oddiy" | "togarak" — ICHKI, "Boshqa sinflar" bosilsa almashadi
+  // O'quvchining profilida ALLAQACHON aniq (raqamli) sinfi bo'lsa ham, u
+  // o'ziga tegishli BO'LISHI MUMKIN bo'lgan to'garak/maxsus guruhlarni
+  // (masalan "Abituriyent" kabi harfli nomlangan) ko'rishi kerak — shu
+  // uchun bu "vaqtincha o'z sinfini chetlab o'tish" rejimi.
+  const [boshqaSinflarRejimi, setBoshqaSinflarRejimi] = useState(false);
   const [fanlar, setFanlar] = useState([]);
   const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
   const [ochiqFan, setOchiqFan] = useState(null);
@@ -785,12 +790,14 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   useEffect(() => {
     setYuklanmoqda(true);
     const qs = new URLSearchParams({ turi: faolTuri });
-    if (sinf) qs.set("sinf", sinf);
+    // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
+    // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
+    if (sinf && !boshqaSinflarRejimi) qs.set("sinf", sinf);
     fetch(`${API_BASE}/api/mavzular?${qs.toString()}`)
       .then((r) => r.json())
       .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
-  }, [sinf, faolTuri]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
@@ -802,7 +809,11 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
         bySinf[s.sinf].fanlar.push({ qisqa: fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
       });
     });
-    return Object.values(bySinf).sort((a, b) => parseInt(a.sinf, 10) - parseInt(b.sinf, 10));
+    return Object.values(bySinf).sort((a, b) => {
+      const raqamA = /^\d+$/.test(a.sinf), raqamB = /^\d+$/.test(b.sinf);
+      if (raqamA && raqamB) return parseInt(a.sinf, 10) - parseInt(b.sinf, 10);
+      return String(a.sinf).localeCompare(String(b.sinf));
+    });
   }, [fanlar]);
 
   // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
@@ -1260,12 +1271,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
 
   // holat === "mavzular"
   // Sinf ko'rsatilmasa (admin) va hali sinf tanlanmagan bo'lsa — avval sinflar ro'yxati.
-  if (!sinf && !tanlanganSinf) {
+  if ((!sinf || boshqaSinflarRejimi) && !tanlanganSinf) {
     return (
       <div className="px-5 pt-6 pb-4">
         {faolTuri === "togarak" && (
-          <button onClick={() => setFaolTuri("oddiy")} className="text-sm mb-4" style={{ color: "#8A8578" }}>
-            ← Oddiy sinflarga qaytish
+          <button onClick={() => { setFaolTuri("oddiy"); setBoshqaSinflarRejimi(false); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
+            {sinf ? "← O'z sinfimga qaytish" : "← Oddiy sinflarga qaytish"}
           </button>
         )}
         <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
@@ -1293,7 +1304,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
                 </button>
               );
             })}
-            {faolTuri === "oddiy" && (
+            {faolTuri === "oddiy" && !sinf && (
               <button onClick={() => setFaolTuri("togarak")}
                 className="rounded-2xl p-5 text-center bg-white border-2 border-dashed"
                 style={{ borderColor: "#C4BFAF" }}>
@@ -1312,14 +1323,14 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   const sinfMalumoti = joriySinfMalumoti;
   return (
     <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
-      {!sinf && (
+      {(!sinf || boshqaSinflarRejimi) && (
         <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
           ← Sinflar
         </button>
       )}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
-          {sinfMalumoti ? `${sinfMalumoti.sinf}-sinf testlari` : "Test yechish"}
+          {sinfMalumoti ? (faolTuri === "togarak" ? `${sinfMalumoti.sinf} testlari` : `${sinfMalumoti.sinf}-sinf testlari`) : "Test yechish"}
         </h1>
         <button onClick={() => { setAralashRejim(!aralashRejim); setTanlanganKodlar([]); }}
           className="text-xs font-semibold px-3 py-1.5 rounded-full"
@@ -1329,6 +1340,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           {aralashRejim ? "✕ Aralash rejimi" : "🔀 Bir nechta mavzu"}
         </button>
       </div>
+      {sinf && !boshqaSinflarRejimi && (
+        <button onClick={() => { setBoshqaSinflarRejimi(true); setFaolTuri("togarak"); setTanlanganSinf(null); }}
+          className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
+          📚 Boshqa (to'garak) guruhlarni ko'rish →
+        </button>
+      )}
       {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
       {aralashRejim && (
         <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
@@ -2146,9 +2163,7 @@ function OqituvchiTab({ token }) {
             <>
               {togarakSinflariYuklanmoqda ? (
                 <div className="py-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
-              ) : togarakSinflari.length === 0 ? (
-                <p className="text-xs mb-2" style={{ color: "#8A8578" }}>Hozircha mavjud to'garak guruhi topilmadi.</p>
-              ) : (
+              ) : togarakSinflari.length > 0 ? (
                 <div className="flex gap-1.5 flex-wrap mb-2">
                   {togarakSinflari.map((s) => (
                     <button key={s} type="button" onClick={() => setYangiSinfMatni(s)}
@@ -2162,7 +2177,14 @@ function OqituvchiTab({ token }) {
                     </button>
                   ))}
                 </div>
-              )}
+              ) : null}
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+                {togarakSinflari.length > 0 ? "yoki yangi guruh nomi kiriting" : "Guruh nomini kiriting"}
+              </label>
+              <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
+                placeholder="masalan: Abituriyent, 3-4, IDUM tayyorlov"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2"
+                style={{ borderColor: "#E5E1D8" }} />
               <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
                 className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
                 ← Oddiy sinf tanlashga qaytish
@@ -2175,11 +2197,9 @@ function OqituvchiTab({ token }) {
             <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval sinfni tanlang</p>
           ) : sinfFanlariYuklanmoqda ? (
             <div className="py-3 mb-2"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
-          ) : sinfFanlari.length === 0 ? (
-            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Bu sinfda hali fanlar mavjud emas.</p>
           ) : (
             <div className="flex gap-1.5 flex-wrap mb-3">
-              {sinfFanlari.map((f) => (
+              {(sinfFanlari.length > 0 ? sinfFanlari : BARCHA_MAKTAB_FANLARI).map((f) => (
                 <button key={f} type="button" onClick={() => setYangiFan(f)}
                   className="px-3 py-2 rounded-lg border text-sm font-medium"
                   style={{
@@ -2191,6 +2211,11 @@ function OqituvchiTab({ token }) {
                 </button>
               ))}
             </div>
+          )}
+          {sinfFanlari.length === 0 && (yangiMaxsusSinf ? yangiSinfMatni : yangiSinf) && !sinfFanlariYuklanmoqda && (
+            <p className="text-xs -mt-2 mb-3" style={{ color: "#8A8578" }}>
+              Bu guruh uchun hali mavzu/test yo'q — fan tanlansa, keyinroq shablon orqali test qo'shishingiz mumkin.
+            </p>
           )}
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qo'shilish paroli (ixtiyoriy)</label>
