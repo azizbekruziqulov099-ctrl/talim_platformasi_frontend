@@ -1599,6 +1599,8 @@ function AdminTab({ token, oldindanTanlangan }) {
   );
 }
 
+const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
+
 const QIYINLIK_DARAJALARI = [
   ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
 ];
@@ -2590,98 +2592,127 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Profil</h1>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0" style={{ backgroundColor: "#1B4B7A" }}>
+          {(ism || "?").trim().slice(0, 1).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold truncate" style={{ color: "#2B2B2B" }}>{ism || "Profil"}</h1>
+          <p className="text-xs" style={{ color: "#8A8578" }}>
+            {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || "Foydalanuvchi"}
+            {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
+          </p>
+        </div>
+      </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>👤 Shaxsiy ma'lumotlar</p>
+
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ism</label>
         <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
           style={{ borderColor: "#E5E1D8" }} />
 
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
-        <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
-          style={{ borderColor: "#E5E1D8" }}>
-          <option value="">Tanlanmagan</option>
-          {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
-        </select>
-
-        {viloyat && (
-          <>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
-            <select value={tuman} onChange={(e) => setTuman(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+        <div className="grid grid-cols-2 gap-2.5 mb-3">
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+            <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm"
               style={{ borderColor: "#E5E1D8" }}>
-              <option value="">Tanlanmagan</option>
+              <option value="">—</option>
+              {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+            <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm"
+              style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+              <option value="">—</option>
               {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-          </>
-        )}
+          </div>
+        </div>
 
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
         <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
           min="1950-01-01" max={new Date().toISOString().split("T")[0]}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
           style={{ borderColor: "#E5E1D8" }} />
-
-        {foydalanuvchi?.role === "oquvchi" && (
-          <>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
-            <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
-              placeholder="masalan: 21"
-              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
-              style={{ borderColor: "#E5E1D8" }} />
-
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab turi</label>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {[
-                ["oddiy", "🏫 Oddiy davlat"], ["xususiy", "🏢 Xususiy"],
-                ["ixtisoslashgan", "⭐ Ixtisoslashgan (IDUM)"], ["prezident", "🏆 Prezident maktabi"],
-              ].map(([kalit, nom]) => (
-                <button key={kalit} type="button" onClick={() => setMaktabTuri(kalit)}
-                  className="py-2.5 rounded-lg border text-xs font-medium text-center"
-                  style={{
-                    borderColor: maktabTuri === kalit ? "#1B4B7A" : "#E5E1D8",
-                    backgroundColor: maktabTuri === kalit ? "#1B4B7A" : "#FFFFFF",
-                    color: maktabTuri === kalit ? "#FFFFFF" : "#5A5648",
-                  }}>
-                  {nom}
-                </button>
-              ))}
-            </div>
-
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
-            <div className="grid grid-cols-6 gap-1.5 mb-3">
-              {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
-                <button key={n} type="button" onClick={() => setSinf(n)}
-                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
-                  style={{
-                    borderColor: sinf === n ? "#1B4B7A" : "#E5E1D8",
-                    backgroundColor: sinf === n ? "#1B4B7A" : "#FFFFFF",
-                    color: sinf === n ? "#FFFFFF" : "#5A5648",
-                  }}>
-                  {n}
-                </button>
-              ))}
-            </div>
-
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf harfi (ixtiyoriy)</label>
-            <input type="text" value={sinfHarfi} onChange={(e) => setSinfHarfi(e.target.value.slice(0, 1).toUpperCase())}
-              placeholder="masalan: A"
-              className="w-24 px-3.5 py-2.5 rounded-xl border text-sm mb-4 text-center"
-              style={{ borderColor: "#E5E1D8" }} />
-          </>
-        )}
-
-        {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
-        {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
-
-        <button onClick={profilSaqla} disabled={saqlanmoqda}
-          className="w-full py-3 rounded-xl font-semibold text-white text-sm"
-          style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
-          {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
-        </button>
       </div>
+
+      {foydalanuvchi?.role === "oquvchi" && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🏫 Maktab ma'lumotlari</p>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            {[
+              ["oddiy", "🏫 Oddiy"], ["xususiy", "🏢 Xususiy"],
+              ["ixtisoslashgan", "⭐ IDUM"], ["prezident", "🏆 Prezident"],
+            ].map(([kalit, nom]) => (
+              <button key={kalit} type="button" onClick={() => setMaktabTuri(kalit)}
+                className="py-2 rounded-lg border text-xs font-medium text-center"
+                style={{
+                  borderColor: maktabTuri === kalit ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: maktabTuri === kalit ? "#1B4B7A" : "#FFFFFF",
+                  color: maktabTuri === kalit ? "#FFFFFF" : "#5A5648",
+                }}>
+                {nom}
+              </button>
+            ))}
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
+          <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
+            placeholder="masalan: 21"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                  <button key={n} type="button" onClick={() => setSinf(n)}
+                    className="py-2 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: sinf === n ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: sinf === n ? "#1B4B7A" : "#FFFFFF",
+                      color: sinf === n ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf harfi</label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {SINF_HARFLARI.map((h) => (
+                  <button key={h} type="button" onClick={() => setSinfHarfi(sinfHarfi === h ? "" : h)}
+                    className="py-2 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: sinfHarfi === h ? "#C89B3C" : "#E5E1D8",
+                      backgroundColor: sinfHarfi === h ? "#C89B3C" : "#FFFFFF",
+                      color: sinfHarfi === h ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
+
+      <button onClick={profilSaqla} disabled={saqlanmoqda}
+        className="w-full py-3 rounded-xl font-semibold text-white text-sm mb-4"
+        style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+        {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+      </button>
 
       {foydalanuvchi?.role === "oquvchi" && (
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
