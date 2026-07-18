@@ -1015,6 +1015,9 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
     const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
     return (
       <div className="px-5 pt-6 pb-4">
+        <div className="rounded-xl p-3 mb-4 text-center" style={{ backgroundColor: "#E24B4A" }}>
+          <p className="text-sm font-bold text-white">🔴 KOD VERSIYASI BELGISI: TEST-2607-B 🔴</p>
+        </div>
         <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
