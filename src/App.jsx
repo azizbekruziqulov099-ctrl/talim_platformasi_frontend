@@ -65,6 +65,36 @@ const BARCHA_MAKTAB_FANLARI = [
 ];
 
 
+// Haqiqiy rasm kodi ("11-04-1-01-01-03-001-1" kabi — sinf-fan-chorak-bob-
+// bolim-mavzu-ketma_ket-rasm_raqami, 7-9 ta FAQAT-RAQAM bo'lak, tire bilan
+// ajratilgan) bilan LaTeX ifodani ("273\div 7+8", "4{,}(4)" kabi — harflar,
+// qavslar, matematik belgilar bor) ISHONCHLI ajratadi. Bu farqni bilish
+// MUHIM: image_url ba'zan haqiqiy rasm o'rniga ko'rsatiladigan matematik
+// ifodani saqlaydi (rasm chizib bo'lmaydigan holatlarda) — bunday holda
+// uni RASM DEB SO'RAMASDAN, KaTeX bilan FORMULA sifatida chizish kerak.
+function haqiqiyRasmKodimi(qiymat) {
+  if (!qiymat) return false;
+  return /^\d+(-\d+){5,9}$/.test(String(qiymat).trim());
+}
+
+function SavolFormulasi({ ifoda }) {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(ifoda, { throwOnError: false, output: "html", displayMode: true });
+    } catch {
+      return null;
+    }
+  }, [ifoda]);
+
+  if (!html) return null;
+  return (
+    <div className="w-full rounded-xl mb-4 flex items-center justify-center py-6 px-4"
+      style={{ backgroundColor: "#F1EFE8", border: "1px solid #E5E1D8" }}>
+      <span dangerouslySetInnerHTML={{ __html: html }} style={{ fontSize: "1.3rem", color: "#2B2B2B" }} />
+    </div>
+  );
+}
+
 function SavolRasmi({ rasmId }) {
   const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
   useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
@@ -1189,7 +1219,9 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           <div className="h-full rounded-full transition-all" style={{ width: `${((joriySavol + 1) / savollar.length) * 100}%`, backgroundColor: "#1B4B7A" }} />
         </div>
 
-        {s.rasm_id && <SavolRasmi rasmId={s.rasm_id} />}
+        {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
+          ? <SavolRasmi rasmId={s.rasm_id} />
+          : <SavolFormulasi ifoda={s.rasm_id} />)}
 
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
