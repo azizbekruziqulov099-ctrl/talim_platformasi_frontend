@@ -550,6 +550,19 @@ function BilimTab({ data, bolaId }) {
               </div>
             )}
           </div>
+
+          {data.jami_mavzu > 0 && (
+            <div className="mt-5">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-medium" style={{ color: "#B8CBDA" }}>🛤️ Umumiy ta'lim yo'li</p>
+                <p className="text-xs font-semibold text-white">{data.otilgan_mavzu} / {data.jami_mavzu} mavzu</p>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.round((data.otilgan_mavzu / data.jami_mavzu) * 100)}%`, backgroundColor: "#C89B3C" }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="px-5 -mt-3 pb-4 space-y-3">
@@ -2077,6 +2090,17 @@ function OtaOnaTab({ token, foydalanuvchi }) {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {farzandlar.length > 0 && (
+          <div className="rounded-xl px-4 py-3 mb-1 flex items-start gap-2.5" style={{ backgroundColor: "#EAF1F7" }}>
+            <span className="text-base shrink-0">💡</span>
+            <p className="text-xs" style={{ color: "#1B4B7A" }}>
+              Bu yerda farzandingizning <b>bilim darajasini</b>, har fan bo'yicha <b>ta'lim yo'lini</b> (qaysi
+              mavzular o'tilgan, qaysilari qolgan) va agar to'garakka a'zo bo'lsa — <b>to'garak yutuqlarini</b> ham
+              kuzatib borishingiz mumkin.
+            </p>
           </div>
         )}
       </div>
