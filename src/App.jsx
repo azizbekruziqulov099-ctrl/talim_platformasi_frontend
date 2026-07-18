@@ -753,19 +753,28 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
     ? sinflarRoyxati.find((s) => String(s.sinf) === String(sinf)) || sinflarRoyxati[0]
     : sinflarRoyxati.find((s) => String(s.sinf) === String(tanlanganSinf));
 
-  // Mavzu bosilganda — darhol savol OLMAYMIZ, avval "nechta savol" so'raymiz
+  // Mavzu bosilganda — darhol savol OLMAYMIZ, avval "nechta savol" so'raymiz.
+  // MUHIM: har mavzu ostida bir nechta KICHIK mavzu (topic_code) bo'lishi
+  // mumkin — shu sabab yagona mavzu tanlansa ham, "aralash" mexanizmi
+  // ishlatiladi, shunda barcha kichik mavzulardan random savol chiqadi.
   const mavzuBoslandi = (fan, mavzu) => {
-    setTanlanganMavzu({ ...mavzu, fanNomi: fan.nom });
+    setTanlanganMavzu({
+      aralash: true,
+      kodlar: mavzu.topic_codes,
+      nomi: mavzu.nomi,
+      fanNomi: fan.nom,
+      savol_soni: mavzu.savol_soni,
+    });
     setHolat("songi");
   };
 
   const [aralashRejim, setAralashRejim] = useState(false);
-  const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{topic_code, nomi, savol_soni}]
+  const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{nomi, topic_codes, savol_soni}]
 
   const aralashToggle = (m) => {
     setTanlanganKodlar((prev) =>
-      prev.some((k) => k.topic_code === m.topic_code)
-        ? prev.filter((k) => k.topic_code !== m.topic_code)
+      prev.some((k) => k.nomi === m.nomi)
+        ? prev.filter((k) => k.nomi !== m.nomi)
         : [...prev, m]
     );
   };
@@ -774,7 +783,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
     if (tanlanganKodlar.length === 0) return;
     setTanlanganMavzu({
       aralash: true,
-      kodlar: tanlanganKodlar.map((k) => k.topic_code),
+      kodlar: tanlanganKodlar.flatMap((k) => k.topic_codes),
       nomi: `Aralash test (${tanlanganKodlar.length} mavzu)`,
       fanNomi: joriySinfMalumoti ? `${joriySinfMalumoti.sinf}-sinf` : "",
       savol_soni: tanlanganKodlar.reduce((s, k) => s + (k.savol_soni || 0), 0),
@@ -1335,7 +1344,7 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
   const [sahifa, setSahifa] = useState(0);
   const JAMI_SAHIFA = Math.ceil(fan.mavzular.length / 10) || 1;
   const korinadigan = fan.mavzular.slice(sahifa * 10, sahifa * 10 + 10);
-  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => m.topic_code === k.topic_code)).length;
+  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => m.nomi === k.nomi)).length;
 
   return (
     <div className="px-4 pb-4 space-y-2">
@@ -1345,9 +1354,9 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
         </p>
       )}
       {korinadigan.map((m) => {
-        const tanlanganmi = tanlanganKodlar.some((k) => k.topic_code === m.topic_code);
+        const tanlanganmi = tanlanganKodlar.some((k) => k.nomi === m.nomi);
         return (
-          <button key={m.topic_code}
+          <button key={m.nomi}
             onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}
             className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border-2"
             style={{
@@ -1621,8 +1630,11 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
     }
   }, [oldindanTanlangan]);
 
-  const kodniAlmashtir = (kod) => {
-    setTanlanganKodlar((prev) => prev.includes(kod) ? prev.filter((k) => k !== kod) : [...prev, kod]);
+  const kodniAlmashtir = (kodlar) => {
+    setTanlanganKodlar((prev) => {
+      const barchasiBor = kodlar.every((k) => prev.includes(k));
+      return barchasiBor ? prev.filter((k) => !kodlar.includes(k)) : Array.from(new Set([...prev, ...kodlar]));
+    });
   };
 
   const guruhniYangila = (diff, maydon, qiymat) => {
@@ -1699,9 +1711,9 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
                       <div key={s.sinf}>
                         <p className="text-xs font-medium py-1" style={{ color: "#8A8578" }}>{s.sinf}-sinf</p>
                         {s.mavzular.map((m) => (
-                          <label key={m.topic_code} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-white mb-1 cursor-pointer">
-                            <input type="checkbox" checked={tanlanganKodlar.includes(m.topic_code)}
-                              onChange={() => kodniAlmashtir(m.topic_code)} />
+                          <label key={m.nomi} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-white mb-1 cursor-pointer">
+                            <input type="checkbox" checked={m.topic_codes.every((k) => tanlanganKodlar.includes(k))}
+                              onChange={() => kodniAlmashtir(m.topic_codes)} />
                             <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
                           </label>
                         ))}
