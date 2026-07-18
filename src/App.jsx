@@ -4,7 +4,7 @@ import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
-  Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart,
+  Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -1387,11 +1387,175 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
 // ═══════════════════════════════════════════════════════════
 // 7) ADMIN — Test shablon yuklab olish / import qilish
 // ═══════════════════════════════════════════════════════════
+function TopikMavzularTab({ token, onTestYarat }) {
+  const [holat, setHolat] = useState("sinf"); // sinf | fan | mavzular
+  const [sinflar, setSinflar] = useState({ oddiy: [], togarak: [] });
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [fanlar, setFanlar] = useState([]);
+  const [tanlanganFan, setTanlanganFan] = useState(null);
+  const [mavzular, setMavzular] = useState([]);
+  const [sahifa, setSahifa] = useState(0);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d); setYuklanmoqda(false); })
+      .catch(() => { setXato("Sinflarni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token]);
+
+  const sinfTanlandi = (sinf) => {
+    setTanlanganSinf(sinf);
+    setHolat("fan");
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  const fanTanlandi = (fan) => {
+    setTanlanganFan(fan);
+    setHolat("mavzular");
+    setSahifa(0);
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  if (holat === "sinf") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Topik mavzular</h1>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Kontent auditi — qaysi mavzuda test bor, qaysisida yo'q.</p>
+        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🏫 Oddiy sinflar</p>
+            <div className="grid grid-cols-6 gap-1.5 mb-5">
+              {sinflar.oddiy.map((s) => (
+                <button key={s} onClick={() => sinfTanlandi(s)}
+                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
+                  style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            {sinflar.togarak.length > 0 && (
+              <>
+                <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🔀 To'garak sinflari</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {sinflar.togarak.map((s) => (
+                    <button key={s} onClick={() => sinfTanlandi(s)}
+                      className="px-3 py-2 rounded-lg border text-sm font-medium"
+                      style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (holat === "fan") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setHolat("sinf")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflar</button>
+        <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>{tanlanganSinf}{/^\d+$/.test(tanlanganSinf) ? "-sinf" : ""} fanlari</h1>
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : fanlar.length === 0 ? (
+          <p className="text-sm" style={{ color: "#8A8578" }}>Bu sinfda hali fan mavjud emas.</p>
+        ) : (
+          <div className="space-y-2">
+            {fanlar.map((f) => (
+              <button key={f.nom} onClick={() => fanTanlandi(f.nom)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-white border text-left"
+                style={{ borderColor: "#E5E1D8" }}>
+                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                <span className="text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} yozuv →</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // holat === "mavzular"
+  const SAHIFA_HAJMI = 10;
+  const korinadigan = mavzular.slice(sahifa * SAHIFA_HAJMI, sahifa * SAHIFA_HAJMI + SAHIFA_HAJMI);
+  const jamiSahifa = Math.ceil(mavzular.length / SAHIFA_HAJMI) || 1;
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={() => setHolat("fan")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Fanlar</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganFan}</h1>
+      <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+        {mavzular.length} ta mavzu · {mavzular.filter((m) => m.test_bormi).length} tasida test bor
+      </p>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : (
+        <>
+          <div className="space-y-2.5 mb-3">
+            {korinadigan.map((m) => (
+              <div key={m.topic_code} className="rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <p className="text-sm font-medium flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                  {m.test_bormi ? (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>✅ Test bor</span>
+                  ) : (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>❌ Test yo'q</span>
+                  )}
+                </div>
+                <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+                  {m.chorak ? `${m.chorak}-chorak` : ""}{m.bob ? ` · ${m.bob}` : ""}{m.bolim ? ` · ${m.bolim}` : ""} · {m.kichik_soni} kichik mavzu
+                </p>
+                {!m.test_bormi && (
+                  <button onClick={() => onTestYarat(m.topic_code)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                    style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+                    🧪 Test shablon yaratish
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {jamiSahifa > 1 && (
+            <div className="flex items-center justify-between">
+              <button onClick={() => setSahifa((s) => Math.max(0, s - 1))} disabled={sahifa === 0}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>
+                ← Oldingi
+              </button>
+              <span className="text-xs" style={{ color: "#8A8578" }}>{sahifa + 1} / {jamiSahifa}</span>
+              <button onClick={() => setSahifa((s) => Math.min(jamiSahifa - 1, s + 1))} disabled={sahifa >= jamiSahifa - 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= jamiSahifa - 1 ? "#C4BFAF" : "#5A5648" }}>
+                Keyingi →
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function AdminTestlarTab({ token }) {
   return <TestTab token={token} sinf={null} />;
 }
 
-function AdminTab({ token }) {
+function AdminTab({ token, oldindanTanlangan }) {
   const [bolim, setBolim] = useState("test"); // "test" | "topik"
 
   return (
@@ -1415,7 +1579,7 @@ function AdminTab({ token }) {
         </button>
       </div>
 
-      {bolim === "test" && <TestShablonBolimi token={token} />}
+      {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
     </div>
   );
@@ -1425,10 +1589,10 @@ const QIYINLIK_DARAJALARI = [
   ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
 ];
 
-function TestShablonBolimi({ token }) {
+function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [fanlar, setFanlar] = useState([]);
   const [ochiqFan, setOchiqFan] = useState(null);
-  const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [topic_code, ...]
+  const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
   const [guruhlar, setGuruhlar] = useState(
     QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 }))
   );
@@ -1438,11 +1602,19 @@ function TestShablonBolimi({ token }) {
   const [natija, setNatija] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/mavzular`)
+    // faqat_testli=false: bu yerda ADMIN test SHABLON yaratadi — testi
+    // hali yo'q mavzular ham ko'rinishi va tanlanishi kerak.
+    fetch(`${API_BASE}/api/mavzular?faqat_testli=false`)
       .then((r) => r.json())
       .then((d) => setFanlar(d.fanlar || []))
       .catch(() => setXato("Mavzularni yuklab bo'lmadi"));
   }, []);
+
+  useEffect(() => {
+    if (oldindanTanlangan && oldindanTanlangan.length > 0) {
+      setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...oldindanTanlangan])));
+    }
+  }, [oldindanTanlangan]);
 
   const kodniAlmashtir = (kod) => {
     setTanlanganKodlar((prev) => prev.includes(kod) ? prev.filter((k) => k !== kod) : [...prev, kod]);
@@ -2671,6 +2843,7 @@ function PastkiMenyu({ faol, onTanlash, rol }) {
       ? [
           { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
           { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
+          { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
           { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
           { kalit: "profil", nom: "Profil", ikon: User },
         ]
@@ -2712,6 +2885,7 @@ function Kabinet({ token }) {
   // ota-ona/o'qituvchi/admin) BIR-BIRIGA ARALASHMASDAN, to'liq alohida
   // sinab ko'radi.
   const [adminKorinish, setAdminKorinish] = useState("admin");
+  const [shablonOldindanTanlangan, setShablonOldindanTanlangan] = useState([]);
 
   useEffect(() => {
     async function yukla() {
@@ -2758,8 +2932,11 @@ function Kabinet({ token }) {
 
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin_mavzular" && (
+        <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
+      )}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} />}
