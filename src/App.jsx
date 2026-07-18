@@ -344,18 +344,55 @@ function UlashEkrani({ email, ism, onUlandi }) {
 // ═══════════════════════════════════════════════════════════
 // 3) KABINET — token bilan kirilgach
 // ═══════════════════════════════════════════════════════════
-function MavzuKoshin({ mavzu }) {
+function MavzularYoliVizual({ mavzular, rang }) {
+  const [tanlangan, setTanlangan] = useState(null); // ochilgan tugma indeksi | null
+  const QADAM = 78, ENI = 260, AMPLITUDA = 78, YUQORI = 46, PASTKI = 46;
+  const asosiyRang = rang || "#1B4B7A";
+
+  const nuqtalar = mavzular.map((m, i) => ({
+    ...m, x: ENI / 2 + AMPLITUDA * Math.sin(i * 1.05), y: YUQORI + i * QADAM,
+  }));
+  const balandlik = YUQORI + Math.max(0, mavzular.length - 1) * QADAM + PASTKI;
+  const yoliChizigi = nuqtalar.map((n, i) => `${i === 0 ? "M" : "L"} ${n.x.toFixed(1)} ${n.y.toFixed(1)}`).join(" ");
+  const hammasiTugagan = mavzular.length > 0 && mavzular.every((m) => m.otilgan_kichik === m.jami_kichik);
+
   return (
-    <div className="relative aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: darajaRang(mavzu.foiz) }} title={`${mavzu.nom}: ${mavzu.foiz}%`}>
-      <span className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm drop-shadow">{mavzu.foiz}%</span>
+    <div className="relative mx-auto" style={{ width: ENI, height: balandlik + 60 }}>
+      <svg viewBox={`0 0 ${ENI} ${balandlik + 60}`} width={ENI} height={balandlik + 60} className="absolute inset-0">
+        <text x={ENI / 2} y="26" textAnchor="middle" fontSize="26">🏁</text>
+        <path d={yoliChizigi ? `M ${ENI / 2} 34 ${yoliChizigi.slice(2)}` : ""} fill="none" stroke="#E5E1D8" strokeWidth="6" strokeLinecap="round" strokeDasharray="1,14" />
+        <text x={ENI / 2} y={balandlik + 42} textAnchor="middle" fontSize="26" opacity={hammasiTugagan ? 1 : 0.35}>🏆</text>
+      </svg>
+      {nuqtalar.map((n, i) => {
+        const holat = n.otilgan_kichik === 0 ? "boshlanmagan" : n.otilgan_kichik < n.jami_kichik ? "jarayonda" : "tugagan";
+        const fonRang = holat === "tugagan" ? asosiyRang : holat === "jarayonda" ? "#C89B3C" : "#FFFFFF";
+        const chegara = holat === "boshlanmagan" ? "#C4BFAF" : fonRang;
+        const matnRang = holat === "boshlanmagan" ? "#8A8578" : "#FFFFFF";
+        return (
+          <div key={n.topic_code} className="absolute" style={{ left: n.x - 24, top: n.y - 24 }}>
+            <button onClick={() => setTanlangan(tanlangan === i ? null : i)}
+              className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-sm"
+              style={{ backgroundColor: fonRang, border: `3px solid ${chegara}`, color: matnRang }}>
+              {holat === "tugagan" ? "✓" : i + 1}
+            </button>
+            {tanlangan === i && (
+              <div className="absolute z-10 top-14 -left-16 w-40 rounded-xl p-2.5 text-center shadow-lg bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <p className="text-xs font-medium mb-0.5" style={{ color: "#2B2B2B" }}>{n.nomi}</p>
+                {n.score !== null && <p className="text-xs font-bold" style={{ color: asosiyRang }}>{n.score}%</p>}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function TalimYoli({ bolaId, fan, onYopish }) {
+function TalimYoli({ bolaId, fan, rang, onYopish }) {
   const [malumot, setMalumot] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("royxat"); // "royxat" | "yol"
 
   useEffect(() => {
     fetch(`${API_BASE}/api/bola/${bolaId}/yol?fan=${encodeURIComponent(fan)}`)
@@ -368,8 +405,15 @@ function TalimYoli({ bolaId, fan, onYopish }) {
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
       <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
         <button onClick={onYopish} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
-        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{fan}</h1>
-        <p className="text-sm mb-5" style={{ color: "#8A8578" }}>Ta'lim yo'li</p>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold shrink-0" style={{ backgroundColor: rang || "#1B4B7A" }}>
+            {fan.slice(0, 1)}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>{fan}</h1>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Ta'lim yo'li</p>
+          </div>
+        </div>
 
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -380,10 +424,10 @@ function TalimYoli({ bolaId, fan, onYopish }) {
             <div className="rounded-2xl p-5 bg-white border mb-5" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: "#5A5648" }}>Yo'lning bosib o'tilgan qismi</p>
-                <p className="text-sm font-bold" style={{ color: "#1B4B7A" }}>{malumot.otilgan_mavzu} / {malumot.jami_mavzu}</p>
+                <p className="text-sm font-bold" style={{ color: rang || "#1B4B7A" }}>{malumot.otilgan_mavzu} / {malumot.jami_mavzu}</p>
               </div>
               <div className="h-2.5 rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#EFEBE1" }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${malumot.yol_foizi}%`, backgroundColor: "#1B4B7A" }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${malumot.yol_foizi}%`, backgroundColor: rang || "#1B4B7A" }} />
               </div>
               <p className="text-xs mb-4" style={{ color: "#8A8578" }}>{malumot.yol_foizi}% yo'l bosib o'tilgan</p>
 
@@ -393,21 +437,53 @@ function TalimYoli({ bolaId, fan, onYopish }) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              {malumot.mavzular.map((m, i) => {
-                const otilgan = m.score !== null;
-                return (
-                  <div key={m.topic_code} className="rounded-xl p-3.5 flex items-center gap-3 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                      style={{ backgroundColor: otilgan ? "#EAF3DE" : "#F1EFE8", color: otilgan ? "#3B6D11" : "#8A8578" }}>
-                      {otilgan ? "✓" : i + 1}
-                    </span>
-                    <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
-                    {otilgan && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
-                  </div>
-                );
-              })}
+            {malumot.choraklar && malumot.choraklar.length > 0 && (
+              <div className="grid gap-2 mb-5" style={{ gridTemplateColumns: `repeat(${malumot.choraklar.length}, minmax(0, 1fr))` }}>
+                {malumot.choraklar.map((ch) => {
+                  const ikon = ch.foiz === 100 ? "✅" : ch.foiz > 0 ? "🟡" : "⚪";
+                  return (
+                    <div key={ch.chorak} className="rounded-xl p-3 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>{ch.chorak}-chorak</p>
+                      <p className="text-lg mb-0.5">{ikon}</p>
+                      <p className="text-xs font-bold" style={{ color: ch.foiz === 100 ? "#3B6D11" : ch.foiz > 0 ? "#8A5A1C" : "#8A8578" }}>{ch.foiz}%</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex gap-2 mb-5">
+              <button onClick={() => setKorinish("royxat")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "royxat" ? { backgroundColor: rang || "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                📋 Ro'yxat
+              </button>
+              <button onClick={() => setKorinish("yol")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "yol" ? { backgroundColor: rang || "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                🛤️ Yo'l
+              </button>
             </div>
+
+            {korinish === "yol" ? (
+              <div className="py-2 overflow-x-auto"><MavzularYoliVizual mavzular={malumot.mavzular} rang={rang} /></div>
+            ) : (
+              <div className="space-y-2">
+                {malumot.mavzular.map((m, i) => {
+                  const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
+                  const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
+                  const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
+                  const chegaraRang = holat === "tugagan" ? "#C9E4B0" : holat === "jarayonda" ? "#F5DFA3" : "#E5E1D8";
+                  return (
+                    <div key={m.topic_code} className="rounded-xl p-3.5 flex items-center gap-3 border" style={{ backgroundColor: fonRang, borderColor: chegaraRang }}>
+                      <span className="text-lg shrink-0">{ikon}</span>
+                      <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{i + 1}. {m.nomi}</span>
+                      {m.score !== null && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -419,6 +495,7 @@ function TogarakYoli({ bolaId, togarakId, onYopish }) {
   const [malumot, setMalumot] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("royxat"); // "royxat" | "yol"
 
   useEffect(() => {
     fetch(`${API_BASE}/api/bola/${bolaId}/togarak_yoli/${togarakId}`)
@@ -455,21 +532,53 @@ function TogarakYoli({ bolaId, togarakId, onYopish }) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              {malumot.mavzular.map((m, i) => {
-                const otilgan = m.score !== null;
-                return (
-                  <div key={m.topic_code} className="rounded-xl p-3.5 flex items-center gap-3 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                      style={{ backgroundColor: otilgan ? "#EAF3DE" : "#F1EFE8", color: otilgan ? "#3B6D11" : "#8A8578" }}>
-                      {otilgan ? "✓" : i + 1}
-                    </span>
-                    <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
-                    {otilgan && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
+            {malumot.choraklar && malumot.choraklar.length > 0 && (
+              <div className="grid gap-2 mb-5" style={{ gridTemplateColumns: `repeat(${malumot.choraklar.length}, minmax(0, 1fr))` }}>
+                {malumot.choraklar.map((ch) => {
+                  const ikon = ch.foiz === 100 ? "✅" : ch.foiz > 0 ? "🟡" : "⚪";
+                  return (
+                    <div key={ch.chorak} className="rounded-xl p-3 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>{ch.chorak}-chorak</p>
+                      <p className="text-lg mb-0.5">{ikon}</p>
+                      <p className="text-xs font-bold" style={{ color: ch.foiz === 100 ? "#3B6D11" : ch.foiz > 0 ? "#8A5A1C" : "#8A8578" }}>{ch.foiz}%</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex gap-2 mb-5">
+              <button onClick={() => setKorinish("royxat")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "royxat" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                📋 Ro'yxat
+              </button>
+              <button onClick={() => setKorinish("yol")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "yol" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                🛤️ Yo'l
+              </button>
+            </div>
+
+            {korinish === "yol" ? (
+              <div className="py-2 overflow-x-auto"><MavzularYoliVizual mavzular={malumot.mavzular} rang="#1B4B7A" /></div>
+            ) : (
+              <div className="space-y-2">
+                {malumot.mavzular.map((m, i) => {
+                  const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
+                  const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
+                  const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
+                  const chegaraRang = holat === "tugagan" ? "#C9E4B0" : holat === "jarayonda" ? "#F5DFA3" : "#E5E1D8";
+                  return (
+                  <div key={m.topic_code} className="rounded-xl p-3.5 flex items-center gap-3 border" style={{ backgroundColor: fonRang, borderColor: chegaraRang }}>
+                    <span className="text-lg shrink-0">{ikon}</span>
+                    <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{i + 1}. {m.nomi}</span>
+                    {m.score !== null && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
                   </div>
                 );
               })}
             </div>
+            )}
           </>
         )}
       </div>
@@ -477,41 +586,28 @@ function TogarakYoli({ bolaId, togarakId, onYopish }) {
   );
 }
 
-function FanBolimi({ fan, ochiq, onToggle, onYolKorish }) {
+function FanBolimi({ fan, onBosildi }) {
   return (
-    <div className="rounded-2xl overflow-hidden border transition-all duration-300" style={{ borderColor: ochiq ? fan.rang : "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-      <button onClick={onToggle} className="w-full flex items-center gap-4 p-5 text-left focus:outline-none">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0" style={{ backgroundColor: fan.rang }}>{fan.qisqa}</div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-semibold text-lg" style={{ color: "#2B2B2B" }}>{fan.nom}</h3>
-            <span className="text-2xl font-bold shrink-0" style={{ color: fan.rang }}>{fan.foiz}%</span>
-          </div>
-          <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "#EFEBE1" }}>
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${fan.foiz}%`, backgroundColor: fan.rang }} />
-          </div>
+    <button onClick={onBosildi}
+      className="w-full rounded-2xl border bg-white p-5 flex items-center gap-4 text-left transition-transform active:scale-[0.98]"
+      style={{ borderColor: "#E5E1D8" }}>
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0" style={{ backgroundColor: fan.rang }}>{fan.qisqa}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="font-semibold text-lg" style={{ color: "#2B2B2B" }}>{fan.nom}</h3>
+          <span className="text-2xl font-bold shrink-0" style={{ color: fan.rang }}>{fan.foiz}%</span>
         </div>
-        {ochiq ? <ChevronDown size={20} className="shrink-0" style={{ color: "#8A8578" }} /> : <ChevronRight size={20} className="shrink-0" style={{ color: "#8A8578" }} />}
-      </button>
-      {ochiq && (
-        <div className="px-5 pb-5">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 mb-3">
-            {fan.mavzular.map((m) => <MavzuKoshin key={m.nom} mavzu={m} />)}
-          </div>
-          <button onClick={() => onYolKorish(fan.nom)}
-            className="w-full py-2.5 rounded-xl text-sm font-medium text-center"
-            style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
-            🛤️ Ta'lim yo'lini ko'rish
-          </button>
+        <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "#EFEBE1" }}>
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${fan.foiz}%`, backgroundColor: fan.rang }} />
         </div>
-      )}
-    </div>
+      </div>
+      <ChevronRight size={20} className="shrink-0" style={{ color: "#8A8578" }} />
+    </button>
   );
 }
 
 function BilimTab({ data, bolaId }) {
-  const [ochiqFan, setOchiqFan] = useState(data.fanlar[0]?.nom || null);
-  const [yolFani, setYolFani] = useState(null); // ochilgan "ta'lim yo'li" fan nomi | null
+  const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
   const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
   const [mengaTogaraklarim, setMenTogaraklarim] = useState([]);
   const radarData = data.fanlar.map((f) => ({ fan: f.qisqa, foiz: f.foiz }));
@@ -572,9 +668,7 @@ function BilimTab({ data, bolaId }) {
           </div>
         ) : (
           data.fanlar.map((fan) => (
-            <FanBolimi key={fan.nom} fan={fan} ochiq={ochiqFan === fan.nom}
-              onToggle={() => setOchiqFan(ochiqFan === fan.nom ? null : fan.nom)}
-              onYolKorish={(nom) => setYolFani(nom)} />
+            <FanBolimi key={fan.nom} fan={fan} onBosildi={() => setYolFani({ fan: fan.nom, rang: fan.rang })} />
           ))
         )}
 
@@ -598,7 +692,7 @@ function BilimTab({ data, bolaId }) {
         )}
       </div>
 
-      {yolFani && bolaId && <TalimYoli bolaId={bolaId} fan={yolFani} onYopish={() => setYolFani(null)} />}
+      {yolFani && bolaId && <TalimYoli bolaId={bolaId} fan={yolFani.fan} rang={yolFani.rang} onYopish={() => setYolFani(null)} />}
       {togarakYoliId && bolaId && <TogarakYoli bolaId={bolaId} togarakId={togarakYoliId} onYopish={() => setTogarakYoliId(null)} />}
     </div>
   );
