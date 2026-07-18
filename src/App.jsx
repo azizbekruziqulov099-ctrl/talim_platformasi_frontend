@@ -2670,7 +2670,7 @@ function Kabinet({ token }) {
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
-        <TestTab token={token} sinf={foydalanuvchi?.is_admin ? null : foydalanuvchi?.class} />
+        <TestTab token={token} sinf={foydalanuvchi?.class} />
       )}
       {tab === "xabar" && (
         <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
