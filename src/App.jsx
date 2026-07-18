@@ -30,8 +30,8 @@ function SavolRasmi({ rasmId }) {
         </div>
       )}
       <img src={`${API_BASE}/api/rasm/${rasmId}`} alt=""
-        className="w-full rounded-xl object-cover"
-        style={{ maxHeight: "220px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
+        className="w-full rounded-xl object-contain"
+        style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
         onLoad={() => setHolat("tayyor")}
         onError={() => setHolat("xato")} />
     </div>
