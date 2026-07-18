@@ -805,7 +805,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
       ? fetch(`${API_BASE}/api/test_aralash/soni`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar, qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
+          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
         })
       : (() => {
           const qs = new URLSearchParams();
@@ -833,7 +833,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            topic_codes: tanlanganMavzu.kodlar, soni, qiyinlik: qiyinlik || undefined,
+            topic_codes: tanlanganMavzu.kodlar || [], soni, qiyinlik: qiyinlik || undefined,
             rasimli, vaqtli, yozuvli,
           }),
         });
@@ -1051,9 +1051,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           {mosSoni === null ? (
             <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
           ) : mosSoni === 0 ? (
-            <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
-              Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.
-            </p>
+            <div className="text-xs py-3 px-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
+              <p className="mb-1">Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.</p>
+              <p style={{ color: "#8A8578" }}>
+                (diagnostika: "{tanlanganMavzu.nomi}" — {(tanlanganMavzu.kodlar || []).length} ta mavzu kodi bo'yicha qidirildi)
+              </p>
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2 mb-2.5">
