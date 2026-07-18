@@ -953,7 +953,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
-      setJavoblar({}); setNatijalar({}); setYozibJavob({}); setHolat("savollar");
+      setJavoblar({}); setJoriySavol(0); setJoriyNatija(null); setYozibJavob({}); setHolat("savollar");
       setToGriSoni(0); setXatoSoni(0);
     } catch (e) {
       setXato(e.message);
@@ -974,26 +974,36 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
     audio.play().catch(() => setOvozOynayapti(false));
   };
 
-  const [natijalar, setNatijalar] = useState({}); // {savol_id: {togrimi, togri_javob, tushuntirish}}
-  const [umumiyVaqt, setUmumiyVaqt] = useState(null); // butun test uchun UMUMIY qolgan soniya | null (vaqtsiz)
+  const [testRejimi, setTestRejimi] = useState("bir_bir"); // "bir_bir" (mashq, darhol javob) | "hammasi" (imtihon, oxirida bilinadi)
+  const [umumiyVaqt, setUmumiyVaqt] = useState(null); // "hammasi" rejimi uchun — butun test uchun UMUMIY qolgan soniya | null (vaqtsiz)
   const [toxtatishModali, setToxtatishModali] = useState(false);
+  const [yakunlashTasdiqi, setYakunlashTasdiqi] = useState(false);
   const umumiyTimerRef = useRef(null);
   const savolReflari = useRef({}); // {index: DOM element} — raqam bosilganda shu savolga aylantirish uchun
 
+  // "bir_bir" (eski, mashq) rejimi uchun — bitta-bitta savol, darhol
+  // to'g'ri/noto'g'ri ko'rsatish, avtomatik keyingisiga o'tish.
+  const [joriySavol, setJoriySavol] = useState(0);
+  const [joriyNatija, setJoriyNatija] = useState(null); // {togrimi, togri_javob, tushuntirish} | null
+  const [qolganVaqt, setQolganVaqt] = useState(null);
+  const [avtoQoldi, setAvtoQoldi] = useState(null);
+  const timerRef = useRef(null);
+  const avtoRef = useRef(null);
+
   // Savollar yuklangach — UMUMIY vaqtni hisoblaymiz (har bir savolning
   // o'z vaqti bo'lsa, hammasini QO'SHIB, BITTA umumiy hisoblagich sifatida
-  // ishlatamiz — har savolga alohida vaqt emas).
+  // ishlatamiz — har savolga alohida vaqt emas). Faqat "hammasi" rejimida.
   useEffect(() => {
-    if (holat !== "savollar" || savollar.length === 0) return;
+    if (holat !== "savollar" || savollar.length === 0 || testRejimi !== "hammasi") return;
     const jami = savollar.reduce((sum, s) => sum + (s.time_limit || 0), 0);
     setUmumiyVaqt(jami > 0 ? jami : null);
-  }, [holat, savollar]);
+  }, [holat, savollar, testRejimi]);
 
   const yakunlaRef = useRef(() => {});
 
   useEffect(() => {
     if (umumiyTimerRef.current) clearInterval(umumiyTimerRef.current);
-    if (holat !== "savollar" || umumiyVaqt === null) return;
+    if (holat !== "savollar" || testRejimi !== "hammasi" || umumiyVaqt === null) return;
     umumiyTimerRef.current = setInterval(() => {
       setUmumiyVaqt((v) => {
         if (v === null) return null;
@@ -1007,9 +1017,33 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
     }, 1000);
     return () => clearInterval(umumiyTimerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [holat, umumiyVaqt === null]);
+  }, [holat, testRejimi, umumiyVaqt === null]);
 
-  const javobBer = async (savolId, harf) => {
+  // "bir_bir" rejimi uchun — har savolning O'Z vaqti (agar bo'lsa).
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (holat !== "savollar" || testRejimi !== "bir_bir" || joriyNatija || !savollar[joriySavol]) return;
+    const s = savollar[joriySavol];
+    if (!s.time_limit) { setQolganVaqt(null); return; }
+    setQolganVaqt(s.time_limit);
+    timerRef.current = setInterval(() => {
+      setQolganVaqt((v) => {
+        if (v <= 1) {
+          clearInterval(timerRef.current);
+          javobBerVaTekshir(s.id, "");
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joriySavol, holat, testRejimi]);
+
+  // "bir_bir" (eski, mashq) rejimi uchun — javobni DARHOL tekshiradi va
+  // to'g'ri/noto'g'rini shu zahoti ko'rsatadi.
+  const javobBerVaTekshir = async (savolId, harf) => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
     try {
       const res = await fetch(`${API_BASE}/api/test/javob_tekshir`, {
@@ -1018,13 +1052,48 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
         body: JSON.stringify({ savol_id: savolId, tanlangan: harf }),
       });
       const data = await res.json();
-      setNatijalar((prev) => ({ ...prev, [savolId]: data }));
+      setJoriyNatija(data);
       if (data.togrimi) setToGriSoni((v) => v + 1); else setXatoSoni((v) => v + 1);
     } catch {
-      setNatijalar((prev) => ({ ...prev, [savolId]: { togrimi: false, togri_javob: "?", tushuntirish: "" } }));
+      setJoriyNatija({ togrimi: false, togri_javob: "?", tushuntirish: "" });
       setXatoSoni((v) => v + 1);
     }
   };
+
+  // "hammasi" (yangi, imtihon) rejimi uchun — javobni FAQAT yozib qo'yadi,
+  // TEKSHIRMAYDI — to'g'ri/noto'g'ri faqat "Yakunlash"dan keyin, natija
+  // ekranida ma'lum bo'ladi (haqiqiy imtihon uslubi).
+  const javobYoz = (savolId, harf) => {
+    setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
+  };
+
+  const keyingiSavolga = () => {
+    if (avtoRef.current) clearInterval(avtoRef.current);
+    setJoriyNatija(null);
+    setYozibJavob({});
+    if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
+    else yakunla();
+  };
+
+  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 4 soniyadan keyin
+  // AVTOMATIK keyingi savolga o'tadi — foydalanuvchi tugma bosishi shart emas
+  // (faqat "bir_bir" rejimida ishlaydi).
+  useEffect(() => {
+    if (!joriyNatija) { setAvtoQoldi(null); return; }
+    setAvtoQoldi(4);
+    avtoRef.current = setInterval(() => {
+      setAvtoQoldi((v) => {
+        if (v <= 1) {
+          clearInterval(avtoRef.current);
+          keyingiSavolga();
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(avtoRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joriyNatija]);
 
   // "O'tkazish" — javob berilmagan KEYINGI savolga sirg'alib o'tadi
   // (savol o'tkazib yuborilgani hisoblanadi, javobsiz qoladi).
@@ -1077,7 +1146,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
   const qaytaBoshlash = () => {
     setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null);
-    setNatijalar({}); setUmumiyVaqt(null); setYozibJavob({});
+    setUmumiyVaqt(null); setYozibJavob({}); setJoriySavol(0); setJoriyNatija(null);
   };
 
   if (yuklanmoqda) {
@@ -1129,6 +1198,24 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
         <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
+
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🧭 Test uslubi</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button onClick={() => setTestRejimi("bir_bir")}
+              className="rounded-xl p-3.5 text-left border-2"
+              style={testRejimi === "bir_bir" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📖 Bittalab</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun</p>
+            </button>
+            <button onClick={() => setTestRejimi("hammasi")}
+              className="rounded-xl p-3.5 text-left border-2"
+              style={testRejimi === "hammasi" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📜 Hammasi birga</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>Natija faqat yakunlaganda ko'rinadi — imtihon uslubida</p>
+            </button>
+          </div>
+        </div>
 
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi</p>
@@ -1189,23 +1276,167 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
     );
   }
 
+  if (holat === "savollar" && testRejimi === "bir_bir") {
+    const s = savollar[joriySavol];
+    const oxirgi = joriySavol === savollar.length - 1;
+    const yozuvli = s.question_type === "write_answer";
+    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+    const javobBerilgan = !!joriyNatija;
+
+    const variantRangi = (harf) => {
+      if (!javobBerilgan) {
+        return javoblar[s.id] === harf
+          ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
+          : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" };
+      }
+      if (harf === joriyNatija.togri_javob) return { borderColor: "#639922", backgroundColor: "#EAF3DE" };
+      if (harf === javoblar[s.id]) return { borderColor: "#E24B4A", backgroundColor: "#FCEBEB" };
+      return { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", opacity: 0.6 };
+    };
+
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+              ✓ {toGriSoni}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+              ✗ {xatoSoni}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {qolganVaqt !== null && !javobBerilgan && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: qolganVaqt <= 5 ? "#FCEBEB" : "#F1EFE8", color: qolganVaqt <= 5 ? "#A32D2D" : "#5A5648" }}>
+                ⏱ {qolganVaqt}s
+              </span>
+            )}
+            <button onClick={() => setToxtatishModali(true)}
+              className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
+              ⏹
+            </button>
+          </div>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden mb-6" style={{ backgroundColor: "#EFEBE1" }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${((joriySavol + 1) / savollar.length) * 100}%`, backgroundColor: "#1B4B7A" }} />
+        </div>
+
+        {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
+          ? <SavolRasmi rasmId={s.rasm_id} />
+          : <SavolFormulasi ifoda={s.rasm_id} />)}
+
+        <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
+          <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
+          <button
+            onClick={() => ovozniOqi(yozuvli
+              ? s.question
+              : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+            disabled={ovozOynayapti}
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+            title="Ovoz chiqarib o'qish">
+            {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+          </button>
+        </h2>
+
+        {yozuvli ? (
+          <div className="mb-4">
+            <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : (yozibJavob[s.id] || "")}
+              onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
+              disabled={javobBerilgan}
+              onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobBerVaTekshir(s.id, yozibJavob[s.id].trim()); }}
+              placeholder="Javobingizni yozing..."
+              className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
+              style={javobBerilgan
+                ? { borderColor: joriyNatija.togrimi ? "#639922" : "#E24B4A", backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }
+                : { borderColor: "#E5E1D8" }} />
+            {!javobBerilgan && (
+              <button onClick={() => (yozibJavob[s.id] || "").trim() && javobBerVaTekshir(s.id, yozibJavob[s.id].trim())}
+                disabled={!(yozibJavob[s.id] || "").trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+                style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
+                Javobni yuborish
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2.5 mb-4">
+            {variantlar.map(([harf, matn]) => (
+              <button key={harf} onClick={() => !javobBerilgan && javobBerVaTekshir(s.id, harf)} disabled={javobBerilgan}
+                className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
+                style={variantRangi(harf)}>
+                <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                  style={{
+                    backgroundColor: javobBerilgan
+                      ? (harf === joriyNatija.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
+                      : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
+                    color: (javobBerilgan && (harf === joriyNatija.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
+                      ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {harf}
+                </span>
+                <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {javobBerilgan && (
+          <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>
+              {joriyNatija.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`}
+            </p>
+            {joriyNatija.tushuntirish && (
+              <p className="text-sm" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>{joriyNatija.tushuntirish}</p>
+            )}
+          </div>
+        )}
+
+        {javobBerilgan ? (
+          <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+            {(oxirgi ? "Yakunlash" : "Keyingi savol")}{avtoQoldi ? ` (${avtoQoldi})` : ""}
+          </button>
+        ) : (
+          <p className="text-center text-xs" style={{ color: "#B0AA98" }}>Javobni tanlang</p>
+        )}
+
+        {toxtatishModali && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+                Hozirgacha javob bergan {Object.keys(javoblar).length} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setToxtatishModali(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  Davom etish
+                </button>
+                <button onClick={toxtatish}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
+                  Ha, to'xtatish
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (holat === "savollar") {
+    // testRejimi === "hammasi" — hammasi bitta uzun sahifada, natija
+    // FAQAT yakunlaganda ma'lum bo'ladi (imtihon uslubi).
     const jamiJavoblangan = Object.keys(javoblar).length;
 
     return (
-      <div className="pb-28">
+      <div className="pb-24">
         {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
         <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
           <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
-                ✓ {toGriSoni}
-              </span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
-                ✗ {xatoSoni}
-              </span>
-              <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length}</span>
-            </div>
+            <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length} javob berildi</span>
             <div className="flex items-center gap-2">
               {umumiyVaqt !== null && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -1219,16 +1450,17 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
               </button>
             </div>
           </div>
-          {/* Savol raqamlari qatori — bosilgan raqam o'sha savolga sirg'alib olib boradi */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
+          {/* Savol raqamlari — endi bir qatorga sig'masa, PASTGA (yangi qatorga)
+              tushadi, gorizontal aylantirish shart emas, hammasi darhol ko'rinadi. */}
+          <div className="flex gap-1.5 flex-wrap">
             {savollar.map((s, i) => {
-              const nat = natijalar[s.id];
-              const holatRang = nat ? (nat.togrimi ? "#639922" : "#E24B4A") : javoblar[s.id] !== undefined ? "#C89B3C" : "#E5E1D8";
-              const fonRang = nat ? (nat.togrimi ? "#EAF3DE" : "#FCEBEB") : "#FFFFFF";
+              const javobBormi = javoblar[s.id] !== undefined;
               return (
                 <button key={s.id} onClick={() => raqamgaOt(i)}
-                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2"
-                  style={{ borderColor: holatRang, backgroundColor: fonRang, color: nat ? holatRang : "#5A5648" }}>
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2"
+                  style={javobBormi
+                    ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0", color: "#8A5A1C" }
+                    : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
                   {i + 1}
                 </button>
               );
@@ -1240,23 +1472,11 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
           {savollar.map((s, i) => {
             const yozuvli = s.question_type === "write_answer";
             const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
-            const nat = natijalar[s.id];
-            const javobBerilgan = !!nat;
-
-            const variantRangi = (harf) => {
-              if (!javobBerilgan) {
-                return javoblar[s.id] === harf
-                  ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
-                  : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" };
-              }
-              if (harf === nat.togri_javob) return { borderColor: "#639922", backgroundColor: "#EAF3DE" };
-              if (harf === javoblar[s.id]) return { borderColor: "#E24B4A", backgroundColor: "#FCEBEB" };
-              return { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", opacity: 0.6 };
-            };
+            const javobBerilgan = javoblar[s.id] !== undefined;
 
             return (
               <div key={s.id} ref={(el) => { savolReflari.current[i] = el; }}
-                className="rounded-2xl p-4 bg-white border" style={{ borderColor: javobBerilgan ? (nat.togrimi ? "#C9E4B0" : "#F3D3D3") : "#E5E1D8" }}>
+                className="rounded-2xl p-4 bg-white border" style={{ borderColor: javobBerilgan ? "#F5DFA3" : "#E5E1D8" }}>
                 <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}-savol</p>
 
                 {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
@@ -1279,54 +1499,40 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
                 {yozuvli ? (
                   <div>
-                    <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : (yozibJavob[s.id] || "")}
+                    <input type="text" value={javoblar[s.id] || (yozibJavob[s.id] || "")}
                       onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
                       disabled={javobBerilgan}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobBer(s.id, yozibJavob[s.id].trim()); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobYoz(s.id, yozibJavob[s.id].trim()); }}
                       placeholder="Javobingizni yozing..."
                       className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
-                      style={javobBerilgan
-                        ? { borderColor: nat.togrimi ? "#639922" : "#E24B4A", backgroundColor: nat.togrimi ? "#EAF3DE" : "#FCEBEB" }
-                        : { borderColor: "#E5E1D8" }} />
+                      style={javobBerilgan ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0" } : { borderColor: "#E5E1D8" }} />
                     {!javobBerilgan && (
-                      <button onClick={() => (yozibJavob[s.id] || "").trim() && javobBer(s.id, yozibJavob[s.id].trim())}
+                      <button onClick={() => (yozibJavob[s.id] || "").trim() && javobYoz(s.id, yozibJavob[s.id].trim())}
                         disabled={!(yozibJavob[s.id] || "").trim()}
                         className="w-full py-3 rounded-xl font-semibold text-white text-sm"
                         style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
-                        Javobni yuborish
+                        Javobni belgilash
                       </button>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-2.5">
                     {variantlar.map(([harf, matn]) => (
-                      <button key={harf} onClick={() => !javobBerilgan && javobBer(s.id, harf)} disabled={javobBerilgan}
+                      <button key={harf} onClick={() => javobYoz(s.id, harf)}
                         className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
-                        style={variantRangi(harf)}>
+                        style={javoblar[s.id] === harf
+                          ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0" }
+                          : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
                         <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                           style={{
-                            backgroundColor: javobBerilgan
-                              ? (harf === nat.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
-                              : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
-                            color: (javobBerilgan && (harf === nat.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
-                              ? "#FFFFFF" : "#5A5648",
+                            backgroundColor: javoblar[s.id] === harf ? "#C89B3C" : "#F1EFE8",
+                            color: javoblar[s.id] === harf ? "#FFFFFF" : "#5A5648",
                           }}>
                           {harf}
                         </span>
                         <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
                       </button>
                     ))}
-                  </div>
-                )}
-
-                {javobBerilgan && (
-                  <div className="rounded-xl p-4 mt-3" style={{ backgroundColor: nat.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
-                    <p className="text-sm font-semibold mb-1" style={{ color: nat.togrimi ? "#3B6D11" : "#A32D2D" }}>
-                      {nat.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${nat.togri_javob}`}
-                    </p>
-                    {nat.tushuntirish && (
-                      <p className="text-sm" style={{ color: nat.togrimi ? "#3B6D11" : "#A32D2D" }}>{nat.tushuntirish}</p>
-                    )}
                   </div>
                 )}
 
@@ -1340,15 +1546,14 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
           })}
         </div>
 
-        {/* Yopishqoq pastki tugma — istalgan vaqtda yakunlash mumkin */}
-        <div className="fixed bottom-16 inset-x-0 z-20 px-5 pb-3">
-          <div className="max-w-md mx-auto">
-            <button onClick={yakunla}
-              className="w-full py-3.5 rounded-xl font-semibold text-white text-sm shadow-lg"
-              style={{ backgroundColor: "#1B4B7A" }}>
-              ✓ Yakunlash ({jamiJavoblangan}/{savollar.length} javob berildi)
-            </button>
-          </div>
+        {/* Kichik, burchakdagi "Yakunlash" tugmasi — endi butun kenglikni
+            egallamaydi, va bosilganda tasdiqlash so'raladi. */}
+        <div className="fixed bottom-20 right-5 z-20">
+          <button onClick={() => setYakunlashTasdiqi(true)}
+            className="rounded-full px-5 py-3 font-semibold text-white text-sm shadow-lg flex items-center gap-1.5"
+            style={{ backgroundColor: "#1B4B7A" }}>
+            ✓ Yakunlash
+          </button>
         </div>
 
         {toxtatishModali && (
@@ -1366,6 +1571,28 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
                 <button onClick={toxtatish}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
                   Ha, to'xtatish
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {yakunlashTasdiqi && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>✓ Testni yakunlaysizmi?</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+                {jamiJavoblangan} / {savollar.length} savolga javob berdingiz.
+                {jamiJavoblangan < savollar.length ? " Qolganlari javobsiz hisoblanadi." : ""}
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setYakunlashTasdiqi(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  Davom etish
+                </button>
+                <button onClick={() => { setYakunlashTasdiqi(false); yakunla(); }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                  Ha, yakunlash
                 </button>
               </div>
             </div>
