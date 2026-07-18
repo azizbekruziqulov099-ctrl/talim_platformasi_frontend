@@ -796,13 +796,11 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
   const [vaqtli, setVaqtli] = useState(null);
   const [yozuvli, setYozuvli] = useState(null);
   const [mosSoni, setMosSoni] = useState(null); // null = hali yuklanmoqda
-  const [mosSoniDebug, setMosSoniDebug] = useState(null);
-  const [mosSoniXatoMatni, setMosSoniXatoMatni] = useState(null); // haqiqiy so'rov xatosi (masalan 500) bo'lsa
 
   useEffect(() => {
     if (holat !== "songi" || !tanlanganMavzu) return;
     let bekor = false;
-    setMosSoni(null); setMosSoniDebug(null); setMosSoniXatoMatni(null);
+    setMosSoni(null);
     const so_rov = tanlanganMavzu.aralash
       ? fetch(`${API_BASE}/api/test_aralash/soni`, {
           method: "POST",
@@ -818,19 +816,8 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
         })();
     so_rov
-      .then(async (r) => {
-        const matn = await r.text();
-        let d = {};
-        try { d = JSON.parse(matn); } catch { /* JSON emas */ }
-        if (bekor) return;
-        if (!r.ok) {
-          setMosSoniXatoMatni(`HTTP ${r.status}: ${matn.slice(0, 300)}`);
-          setMosSoni(0);
-          return;
-        }
-        setMosSoni(d.soni ?? 0);
-        setMosSoniDebug(d.debug || null);
-      })
+      .then((r) => r.json())
+      .then((d) => { if (!bekor) setMosSoni(d.soni ?? 0); })
       .catch((e) => { if (!bekor) { setMosSoniXatoMatni(`So'rov xatosi: ${e.message}`); setMosSoni(0); } });
     return () => { bekor = true; };
   }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli]);
@@ -1027,9 +1014,6 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
     const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
     return (
       <div className="px-5 pt-6 pb-4">
-        <div className="rounded-xl p-3 mb-4 text-center" style={{ backgroundColor: "#E24B4A" }}>
-          <p className="text-sm font-bold text-white">🔴 KOD VERSIYASI BELGISI: TEST-2607-B 🔴</p>
-        </div>
         <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
@@ -1067,19 +1051,9 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy" }) {
           {mosSoni === null ? (
             <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
           ) : mosSoni === 0 ? (
-            <div className="text-xs py-3 px-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
-              <p className="mb-1">Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.</p>
-              {mosSoniXatoMatni ? (
-                <p className="font-mono" style={{ color: "#A32D2D", wordBreak: "break-all" }}>
-                  ⚠️ SO'ROV XATOSI: {mosSoniXatoMatni}
-                </p>
-              ) : (
-                <p style={{ color: "#8A8578" }}>
-                  (diagnostika: "{tanlanganMavzu.nomi}" — {(tanlanganMavzu.kodlar || []).length} ta mavzu kodi bo'yicha qidirildi: {(tanlanganMavzu.kodlar || []).join(", ") || "(bo'sh)"}
-                  {mosSoniDebug && ` | har kod bo'yicha: ${Object.entries(mosSoniDebug).map(([k, v]) => `${k}=${v}`).join(", ")}`})
-                </p>
-              )}
-            </div>
+            <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
+              Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.
+            </p>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2 mb-2.5">
