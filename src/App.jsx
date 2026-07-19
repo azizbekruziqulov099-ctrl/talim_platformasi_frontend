@@ -5180,6 +5180,115 @@ function FanlarTahliliBolimi({ token, maktabId, onOrtga }) {
   );
 }
 
+function TogarakGuruhSozlamalari({ token, togarak, onOrtga, onOchirildi }) {
+  const [parolKorinmoqda, setParolKorinmoqda] = useState(false);
+  const [joriyParol, setJoriyParol] = useState(null);
+  const [parolYuklanmoqda, setParolYuklanmoqda] = useState(false);
+  const [yangiParol, setYangiParol] = useState("");
+  const [parolSaqlanmoqda, setParolSaqlanmoqda] = useState(false);
+  const [parolSaqlandi, setParolSaqlandi] = useState(false);
+
+  const [ochirishBosqichida, setOchirishBosqichida] = useState(false);
+  const [ochirishParoli, setOchirishParoli] = useState("");
+  const [ochirilmoqda, setOchirilmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const parolniKorsat = () => {
+    if (parolKorinmoqda) { setParolKorinmoqda(false); return; }
+    setParolYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/togarak_parolini_kor?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}`)
+      .then((r) => r.json())
+      .then((d) => { setJoriyParol(d.parol); setParolKorinmoqda(true); setParolYuklanmoqda(false); })
+      .catch(() => setParolYuklanmoqda(false));
+  };
+
+  const parolAlmashtir = async () => {
+    if (!yangiParol.trim()) return;
+    setParolSaqlanmoqda(true); setParolSaqlandi(false);
+    try {
+      await fetch(`${API_BASE}/api/oqituvchi/togarak_parol_almashtir`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarak.id, yangi_parol: yangiParol.trim() }),
+      });
+      setJoriyParol(yangiParol.trim()); setYangiParol(""); setParolSaqlandi(true);
+    } finally { setParolSaqlanmoqda(false); }
+  };
+
+  const guruhniOchir = async () => {
+    if (!ochirishParoli.trim()) { setXato("Parolni kiriting"); return; }
+    setOchirilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_ochir?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}&parol=${encodeURIComponent(ochirishParoli.trim())}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onOchirildi();
+    } catch (e) {
+      setXato(e.message);
+      setOchirilmoqda(false);
+    }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>⚙️ Guruh sozlamalari</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{togarak.nomi}</p>
+
+      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🔑 Qo'shilish paroli</p>
+        <button onClick={parolniKorsat} disabled={parolYuklanmoqda}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          {parolYuklanmoqda ? "Yuklanmoqda..." : parolKorinmoqda ? `Parol: ${joriyParol || "(belgilanmagan)"} — yashirish` : "Parolni ko'rsatish"}
+        </button>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Yangi parol belgilash</label>
+        <div className="flex gap-2">
+          <input type="text" value={yangiParol} onChange={(e) => setYangiParol(e.target.value)} placeholder="Yangi parol"
+            className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={parolAlmashtir} disabled={parolSaqlanmoqda || !yangiParol.trim()}
+            className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: parolSaqlanmoqda || !yangiParol.trim() ? 0.5 : 1 }}>
+            {parolSaqlanmoqda ? "..." : "Saqlash"}
+          </button>
+        </div>
+        {parolSaqlandi && <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>✅ Parol yangilandi</p>}
+      </div>
+
+      <div className="rounded-2xl p-4 border" style={{ backgroundColor: "#FCEBEB", borderColor: "#E8A0A0" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#A32D2D" }}>⚠️ Xavfli hudud</p>
+        <p className="text-xs mb-3" style={{ color: "#8A5A5A" }}>
+          Guruhni o'chirsangiz — barcha a'zolar, o'z mavzu/testlaringiz va to'lov tarixi butunlay o'chadi. Bu amalni ORQAGA QAYTARIB BO'LMAYDI.
+        </p>
+        {!ochirishBosqichida ? (
+          <button onClick={() => setOchirishBosqichida(true)}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm text-white" style={{ backgroundColor: "#A32D2D" }}>
+            🗑 Guruhni o'chirish
+          </button>
+        ) : (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "#A32D2D" }}>
+              Tasdiqlash uchun guruh parolini kiriting:
+            </p>
+            <input type="text" value={ochirishParoli} onChange={(e) => setOchirishParoli(e.target.value)} placeholder="Guruh paroli"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E8A0A0" }} />
+            {xato && <p className="text-xs mb-2" style={{ color: "#A32D2D" }}>{xato}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => { setOchirishBosqichida(false); setOchirishParoli(""); setXato(""); }}
+                className="flex-1 py-2.5 rounded-xl font-medium text-sm" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+                Bekor qilish
+              </button>
+              <button onClick={guruhniOchir} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "O'chirilmoqda..." : "Ha, butunlay o'chirish"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TogarakMavzularOzi({ token, togarakId, onOrtga }) {
   const [mavzular, setMavzular] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -5547,6 +5656,54 @@ function DavomatBelgilash({ token, sinfId, onOrtga }) {
         className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
         {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
       </button>
+    </div>
+  );
+}
+
+function KirishKodiFormasi({ token, onOrtga }) {
+  const [kirishKodi, setKirishKodi] = useState("");
+  const [kodYuborilmoqda, setKodYuborilmoqda] = useState(false);
+  const [kodXato, setKodXato] = useState("");
+  const [kodNatija, setKodNatija] = useState(null);
+
+  const kodBilanQoshil = async () => {
+    if (!kirishKodi.trim()) { setKodXato("Kodni kiriting"); return; }
+    setKodYuborilmoqda(true); setKodXato(""); setKodNatija(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil?token=${encodeURIComponent(token)}&kirish_kodi=${encodeURIComponent(kirishKodi.trim())}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setKodNatija(data);
+      setKirishKodi("");
+    } catch (e) {
+      setKodXato(e.message);
+    } finally { setKodYuborilmoqda(false); }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Profil</button>
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🔑 Kirish kodi</h1>
+      <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+        Maktab/markaz/bog'cha admini sizga bergan 6 belgili kodni kiriting — hisobingizga tegishli lavozim avtomatik qo'shiladi.
+      </p>
+      <div className="flex gap-2">
+        <input type="text" value={kirishKodi} onChange={(e) => setKirishKodi(e.target.value.toUpperCase())}
+          placeholder="masalan: A1B2C3" maxLength={6}
+          className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={kodBilanQoshil} disabled={kodYuborilmoqda}
+          className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: kodYuborilmoqda ? 0.7 : 1 }}>
+          {kodYuborilmoqda ? "..." : "Qo'shilish"}
+        </button>
+      </div>
+      {kodXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{kodXato}</p>}
+      {kodNatija && (
+        <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>
+          ✅ "{kodNatija.joy_nomi}" — {(LAVOZIM_NOMLARI[kodNatija.lavozim] || kodNatija.lavozim)} sifatida qo'shildingiz. Sahifani yangilang.
+        </p>
+      )}
     </div>
   );
 }
@@ -6564,28 +6721,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
-  const [korinish, setKorinish] = useState("togarak"); // "togarak" | "rasmiy" — to'garak guruhlarimi yoki rasmiy maktab sinfimi
-  const [kodFormOchiq, setKodFormOchiq] = useState(false);
-  const [kirishKodi, setKirishKodi] = useState("");
-  const [kodYuborilmoqda, setKodYuborilmoqda] = useState(false);
-  const [kodXato, setKodXato] = useState("");
-  const [kodNatija, setKodNatija] = useState(null); // {joy_nomi, lavozim} | null
-
-  const kodBilanQoshil = async () => {
-    if (!kirishKodi.trim()) { setKodXato("Kodni kiriting"); return; }
-    setKodYuborilmoqda(true); setKodXato(""); setKodNatija(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil?token=${encodeURIComponent(token)}&kirish_kodi=${encodeURIComponent(kirishKodi.trim())}`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
-      setKodNatija(data);
-      setKirishKodi("");
-    } catch (e) {
-      setKodXato(e.message);
-    } finally { setKodYuborilmoqda(false); }
-  };
+  const [korinish, setKorinish] = useState("togarak"); // "togarak" | to'garak guruhlarimi yoki maxsus ekranmi
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiFan, setYangiFan] = useState("");
@@ -6727,10 +6863,6 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       setXato(e.message);
     } finally { setYaratilmoqda(false); }
   };
-
-  if (korinish === "rasmiy") {
-    return <RasmiySinflarim token={token} onOrtga={() => setKorinish("togarak")} />;
-  }
 
   if (korinish === "markaz") {
     return <MarkazBoshqaruvi token={token} markazId={foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
@@ -6949,8 +7081,11 @@ function OqituvchiTab({ token, foydalanuvchi }) {
         <button onClick={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
           className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
-        <button onClick={() => setHolat("mavzular_ozi")} className="text-xs font-medium mb-5" style={{ color: "#1B4B7A" }}>
+        <button onClick={() => setHolat("mavzular_ozi")} className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           📚 O'z mavzu va testlarimni yaratish →
+        </button>
+        <button onClick={() => setHolat("sozlamalar")} className="block text-xs font-medium mb-5" style={{ color: "#1B4B7A" }}>
+          ⚙️ Guruh sozlamalari →
         </button>
         {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
         {azolar.length === 0 ? (
@@ -6998,6 +7133,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     return <TogarakMavzularOzi token={token} togarakId={tanlangan.id} onOrtga={() => setHolat("azolar")} />;
   }
 
+  if (holat === "sozlamalar") {
+    return <TogarakGuruhSozlamalari token={token} togarak={tanlangan} onOrtga={() => setHolat("azolar")} onOchirildi={() => window.location.reload()} />;
+  }
+
   // holat === "togaraklar"
   return (
     <div className="px-5 pt-6 pb-4">
@@ -7009,9 +7148,6 @@ function OqituvchiTab({ token, foydalanuvchi }) {
           + Yangi
         </button>
       </div>
-      <button onClick={() => setKorinish("rasmiy")} className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-        🏫 Rasmiy maktab sinfim bormi? →
-      </button>
       {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
         <button onClick={() => setKorinish("maktab_rahbariyat")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           🏫 Butun maktabni boshqarish →
@@ -7064,31 +7200,6 @@ function OqituvchiTab({ token, foydalanuvchi }) {
         <button onClick={() => setKorinish("universitet")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           🎓 Kurator bo'lgan guruhlarim →
         </button>
-      )}
-      <button onClick={() => setKodFormOchiq(!kodFormOchiq)} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-        🔑 Maktab/markazdan kirish kodim bor
-      </button>
-      {kodFormOchiq && (
-        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
-          <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
-            Maktab/markaz/bog'cha admini sizga bergan 6 belgili kodni kiriting — hisobingizga tegishli lavozim avtomatik qo'shiladi.
-          </p>
-          <div className="flex gap-2">
-            <input type="text" value={kirishKodi} onChange={(e) => setKirishKodi(e.target.value.toUpperCase())}
-              placeholder="masalan: A1B2C3" maxLength={6}
-              className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
-            <button onClick={kodBilanQoshil} disabled={kodYuborilmoqda}
-              className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: kodYuborilmoqda ? 0.7 : 1 }}>
-              {kodYuborilmoqda ? "..." : "Qo'shilish"}
-            </button>
-          </div>
-          {kodXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{kodXato}</p>}
-          {kodNatija && (
-            <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>
-              ✅ "{kodNatija.joy_nomi}" — {(LAVOZIM_NOMLARI[kodNatija.lavozim] || kodNatija.lavozim)} sifatida qo'shildingiz. Sahifani yangilang.
-            </p>
-          )}
-        </div>
       )}
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
@@ -7302,6 +7413,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   const [kodEmail, setKodEmail] = useState("");
   const [kodQiymati, setKodQiymati] = useState("");
   const [kodYuklanmoqda, setKodYuklanmoqda] = useState(false);
+  const [korinish, setKorinish] = useState("profil"); // "profil" | "rasmiy_sinf" | "kirish_kodi"
 
   const [otaKod, setOtaKod] = useState(null); // {kod, amal_qilish_daqiqasi} | null
   const [otaKodOlinmoqda, setOtaKodOlinmoqda] = useState(false);
@@ -7515,6 +7627,13 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
   const rolNomlari = { oquvchi: "O'quvchi", "ota-ona": "Ota-ona", oqituvchi: "O'qituvchi" };
 
+  if (korinish === "rasmiy_sinf") {
+    return <RasmiySinflarim token={token} onOrtga={() => setKorinish("profil")} />;
+  }
+  if (korinish === "kirish_kodi") {
+    return <KirishKodiFormasi token={token} onOrtga={() => setKorinish("profil")} />;
+  }
+
   return (
     <div className="px-5 pt-6 pb-4">
       <div className="flex items-center gap-3 mb-5">
@@ -7704,6 +7823,17 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
               Profilingiz "{oqituvchiFani}" rangida bezatiladi.
             </p>
           )}
+        </div>
+      )}
+
+      {foydalanuvchi?.role === "oqituvchi" && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <button onClick={() => setKorinish("rasmiy_sinf")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            🏫 Rasmiy maktab sinfim bormi? →
+          </button>
+          <button onClick={() => setKorinish("kirish_kodi")} className="block text-xs font-medium" style={{ color: "#1B4B7A" }}>
+            🔑 Maktab/markazdan kirish kodim bor →
+          </button>
         </div>
       )}
 
