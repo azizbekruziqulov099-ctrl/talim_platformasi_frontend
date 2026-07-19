@@ -2782,6 +2782,7 @@ function MaktablarBolimi({ token }) {
   const [direktor, setDirektor] = useState(null); // {user_id, full_name} | null
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
+  const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
 
   const maktablarniYukla = () => {
     setYuklanmoqda(true);
@@ -2814,6 +2815,10 @@ function MaktablarBolimi({ token }) {
     } finally { setSaqlanmoqda(false); }
   };
 
+  if (tanlanganMaktab) {
+    return <MaktabTafsiloti token={token} maktab={tanlanganMaktab} onOrtga={() => { setTanlanganMaktab(null); maktablarniYukla(); }} />;
+  }
+
   return (
     <div>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
@@ -2823,7 +2828,7 @@ function MaktablarBolimi({ token }) {
             {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
           </button>
         </div>
-        <p className="text-xs" style={{ color: "#8A8578" }}>1-bosqich — maktabni tizimga qo'shish. Xodimlar va sinflar keyingi bosqichlarda qo'shiladi.</p>
+        <p className="text-xs" style={{ color: "#8A8578" }}>1-bosqich tayyor. Endi ro'yxatdan maktabni tanlang — xodimlarni Excel orqali kiritasiz (2-bosqich).</p>
       </div>
 
       {formOchiq && (
@@ -2887,16 +2892,99 @@ function MaktablarBolimi({ token }) {
       ) : (
         <div className="space-y-2.5">
           {maktablar.map((m) => (
-            <div key={m.id} className="rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+            <button key={m.id} onClick={() => setTanlanganMaktab(m)}
+              className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <ChevronRight size={16} style={{ color: "#8A8578" }} />
+              </div>
               <p className="text-xs" style={{ color: "#8A8578" }}>
                 {[m.viloyat, m.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {m.smena_soni} smenali
               </p>
               <p className="text-xs mt-1" style={{ color: m.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
                 {m.direktor_ismi ? `👤 Direktor: ${m.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
               </p>
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaktabTafsiloti({ token, maktab, onOrtga }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natijalar, setNatijalar] = useState(null); // [{fish, lavozim, kirish_kodi, sinf_rahbarligi, sinf_paroli}] | null
+
+  const shablonYukla = () => {
+    window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatijalar(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/xodim_import?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatijalar(data.natijalar || []);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Maktablar</button>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.nomi}</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+        {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
+      </p>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>2-bosqich — Xodimlarni kiritish</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Shablonni yuklab, F.I.Sh / Lavozim / Sinf rahbarligini to'ldirib, qayta yuklang.
+          Har bir xodimga shaxsiy kirish kodi, sinf rahbari bo'lsa — sinf qo'shilish paroli ham avtomatik yaratiladi.
+        </p>
+        <button onClick={shablonYukla}
+          className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          📥 Shablonni yuklab olish
+        </button>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
+
+      {natijalar && (
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
+          <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
+            Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga (masalan Telegram orqali) yuboring — bu ekranga qayta qaytib bo'lmaydi!
+          </p>
+          <div className="space-y-2.5">
+            {natijalar.map((n, i) => (
+              <div key={i} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{n.fish}</p>
+                <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>{n.lavozim}{n.sinf_rahbarligi ? ` · ${n.sinf_rahbarligi} sinf rahbari` : ""}</p>
+                <p className="text-xs font-mono" style={{ color: "#1B4B7A" }}>🔑 Kirish kodi: <b>{n.kirish_kodi}</b></p>
+                {n.sinf_paroli && <p className="text-xs font-mono" style={{ color: "#8A5A1C" }}>🔐 Sinf paroli: <b>{n.sinf_paroli}</b></p>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
