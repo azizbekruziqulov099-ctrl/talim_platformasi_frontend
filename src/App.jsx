@@ -726,13 +726,17 @@ function FanBolimi({ fan, onBosildi }) {
   );
 }
 
-function BilimTab({ data, bolaId, rang }) {
+function BilimTab({ data, bolaId, rang, token }) {
   const heroRang = rang || "#1B4B7A";
   const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
   const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
   const [mengaTogaraklarim, setMenTogaraklarim] = useState([]);
   const [bugungiTavsiya, setBugungiTavsiya] = useState(null); // {tavsiyalar: [...]} | null (hali yuklanmagan)
   const [haftalik, setHaftalik] = useState(null); // {jami_mavzu, ortacha_ball, ...} | null (hali yuklanmagan)
+  const [mosSinf, setMosSinf] = useState(null); // {sinf_id, sinf_nomi, maktab_nomi, rahbar_ismi} | null
+  const [qoshilishParoli, setQoshilishParoli] = useState("");
+  const [qoshilinmoqda, setQoshilinmoqda] = useState(false);
+  const [qoshilishXato, setQoshilishXato] = useState("");
   const radarData = data.fanlar.map((f) => ({ fan: f.qisqa, foiz: f.foiz }));
 
   useEffect(() => {
@@ -758,6 +762,33 @@ function BilimTab({ data, bolaId, rang }) {
       .then((d) => setHaftalik(d))
       .catch(() => {});
   }, [bolaId]);
+
+  // FAQAT o'quvchining O'Z Bilim ekranida (token mavjud bo'lganda) —
+  // ota-ona farzandini ko'rayotganda BU banner ko'rinmaydi, chunki
+  // sinfga qo'shilishni faqat o'quvchining o'zi tasdiqlashi kerak.
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/api/oquvchi/mos_sinf?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMosSinf(d.topildi ? d : null))
+      .catch(() => {});
+  }, [token]);
+
+  const sinfgaQoshil = async () => {
+    if (!qoshilishParoli.trim()) { setQoshilishXato("Parolni kiriting"); return; }
+    setQoshilinmoqda(true); setQoshilishXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oquvchi/sinfga_qoshil?token=${encodeURIComponent(token)}&sinf_id=${mosSinf.sinf_id}&parol=${encodeURIComponent(qoshilishParoli.trim())}`, {
+        method: "POST",
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      setMosSinf(null);
+      setQoshilishParoli("");
+    } catch (e) {
+      setQoshilishXato(e.message);
+    } finally { setQoshilinmoqda(false); }
+  };
 
   const fanRangiTop = (fanNomi) => data.fanlar.find((f) => f.nom === fanNomi)?.rang || fanRangiOl(fanNomi);
 
@@ -803,6 +834,26 @@ function BilimTab({ data, bolaId, rang }) {
         </div>
       </div>
       <div className="px-5 -mt-3 pb-4 space-y-3">
+        {mosSinf && (
+          <div className="rounded-2xl p-4 border mb-1" style={{ backgroundColor: "#EAF1F7", borderColor: "#1B4B7A" }}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#1B4B7A" }}>🏫 Sinfingiz topildi!</p>
+            <p className="text-xs mb-3" style={{ color: "#5A5648" }}>
+              {mosSinf.maktab_nomi} — {mosSinf.sinf_nomi}{mosSinf.rahbar_ismi ? ` (rahbar: ${mosSinf.rahbar_ismi})` : ""} tomonidan tuzilgan.
+              Qo'shilish uchun sinf rahbaringizdan olgan 4 xonali parolni kiriting.
+            </p>
+            <div className="flex gap-2">
+              <input type="text" value={qoshilishParoli} onChange={(e) => setQoshilishParoli(e.target.value)}
+                placeholder="4 xonali parol" maxLength={4}
+                className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={sinfgaQoshil} disabled={qoshilinmoqda}
+                className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: qoshilinmoqda ? 0.7 : 1 }}>
+                {qoshilinmoqda ? "..." : "Qo'shilish"}
+              </button>
+            </div>
+            {qoshilishXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{qoshilishXato}</p>}
+          </div>
+        )}
+
         {bugungiTavsiya && bugungiTavsiya.tavsiyalar && bugungiTavsiya.tavsiyalar.length > 0 && (
           <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm font-bold mb-0.5 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>📅 Bugungi tavsiya</p>
@@ -2723,6 +2774,54 @@ function TushuntirishBolimi({ token }) {
   );
 }
 
+function MaktabQidiruvi({ tanlanganMaktab, onTanla }) {
+  const [nomi, setNomi] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
+
+  useEffect(() => {
+    if (nomi.trim().length < 2) { setNatijalar([]); return; }
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/maktab_qidir?nomi=${encodeURIComponent(nomi.trim())}`)
+        .then((r) => r.json())
+        .then((d) => { setNatijalar(d.natijalar || []); setQidirilmoqda(false); })
+        .catch(() => setQidirilmoqda(false));
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [nomi]);
+
+  if (tanlanganMaktab) {
+    return (
+      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3" style={{ borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+        <span className="text-sm font-medium" style={{ color: "#1B4B7A" }}>🏫 {tanlanganMaktab.nomi}</span>
+        <button onClick={() => onTanla(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕ O'zgartirish</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3">
+      <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+        placeholder="Maktabingiz nomini yozing (ro'yxatda bo'lsa, aniqroq bo'ladi)..."
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+        style={{ borderColor: "#E5E1D8" }} />
+      {qidirilmoqda && <p className="text-xs mt-1.5" style={{ color: "#8A8578" }}>Qidirilmoqda...</p>}
+      {natijalar.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {natijalar.map((m) => (
+            <button key={m.id} onClick={() => { onTanla(m); setNomi(""); setNatijalar([]); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+              <span className="text-sm" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+              <span className="text-xs" style={{ color: "#8A8578" }}>{[m.viloyat, m.tuman].filter(Boolean).join(", ")}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DirektorQidiruvi({ token, tanlanganDirektor, onTanla }) {
   const [ism, setIsm] = useState("");
   const [natijalar, setNatijalar] = useState([]);
@@ -3083,6 +3182,8 @@ function RasmiySinflarim({ token, onOrtga }) {
   const [tanlanganSinf, setTanlanganSinf] = useState(null);
   const [oquvchilar, setOquvchilar] = useState(null);
   const [oquvchilarYuklanmoqda, setOquvchilarYuklanmoqda] = useState(false);
+  const [azolar, setAzolar] = useState(null);
+  const [azolarYuklanmoqda, setAzolarYuklanmoqda] = useState(false);
   const joriyOy = new Date().toISOString().slice(0, 7); // "2026-07"
 
   useEffect(() => {
@@ -3092,8 +3193,22 @@ function RasmiySinflarim({ token, onOrtga }) {
       .catch(() => setYuklanmoqda(false));
   }, [token]);
 
+  const azolarniYukla = (sinfId) => {
+    setAzolarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/sinf_azolari?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`)
+      .then((r) => r.json())
+      .then((d) => { setAzolar(d.azolar || []); setAzolarYuklanmoqda(false); })
+      .catch(() => setAzolarYuklanmoqda(false));
+  };
+
+  const azoniChiqar = async (azolikId, sinfId) => {
+    await fetch(`${API_BASE}/api/oqituvchi/sinf_azosini_chiqar?token=${encodeURIComponent(token)}&azolik_id=${azolikId}`, { method: "DELETE" });
+    azolarniYukla(sinfId);
+  };
+
   const sinfOch = (s) => {
     setTanlanganSinf(s);
+    azolarniYukla(s.id);
     if (!s.pulli) return;
     setOquvchilarYuklanmoqda(true);
     fetch(`${API_BASE}/api/oqituvchi/sinf_tolovlari?token=${encodeURIComponent(token)}&sinf_id=${s.id}&oy=${joriyOy}`)
@@ -3152,6 +3267,25 @@ function RasmiySinflarim({ token, onOrtga }) {
               ))}
             </div>
           </>
+        )}
+
+        <p className="text-sm font-semibold mb-2.5 mt-5" style={{ color: "#2B2B2B" }}>👥 Sinf a'zolari</p>
+        {azolarYuklanmoqda ? (
+          <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : !azolar || azolar.length === 0 ? (
+          <p className="text-xs" style={{ color: "#8A8578" }}>Hali hech kim qo'shilmagan — o'quvchilar parolni kiritganda shu yerda ko'rinadi.</p>
+        ) : (
+          <div className="space-y-2">
+            {azolar.map((a) => (
+              <div key={a.azolik_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{a.full_name}</p>
+                <button onClick={() => azoniChiqar(a.azolik_id, tanlanganSinf.id)}
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>
+                  ✕ Chiqarish
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -3649,6 +3783,9 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
   const [tugilganSana, setTugilganYil] = useState(foydalanuvchi?.tugilgan_sana || "");
   const [maktabRaqami, setMaktabRaqami] = useState(foydalanuvchi?.maktab_raqami || "");
+  const [royxatdagiMaktab, setRoyxatdagiMaktab] = useState(
+    foydalanuvchi?.maktab_id && foydalanuvchi?.maktab_nomi ? { id: foydalanuvchi.maktab_id, nomi: foydalanuvchi.maktab_nomi } : null
+  );
   const [maktabTuri, setMaktabTuri] = useState(foydalanuvchi?.maktab_turi_kaliti || "oddiy");
   const [sinf, setSinf] = useState(foydalanuvchi?.class ? String(foydalanuvchi.class).replace(/-sinf$/i, "") : "");
   const [sinfHarfi, setSinfHarfi] = useState(foydalanuvchi?.class_letter || "");
@@ -3771,6 +3908,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi ? sinfHarfi : undefined,
           jins: (foydalanuvchi?.role === "oquvchi" || foydalanuvchi?.role === "oqituvchi") && jins ? jins : undefined,
           oqituvchi_fani: foydalanuvchi?.role === "oqituvchi" && oqituvchiFani ? oqituvchiFani : undefined,
+          maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : undefined,
         }),
       });
       const data = await res.json();
@@ -3780,6 +3918,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami,
         maktab_turi_kaliti: maktabTuri, class: sinf, class_letter: sinfHarfi,
         jins, oqituvchi_fani: oqituvchiFani,
+        maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : foydalanuvchi?.maktab_id,
+        maktab_nomi: royxatdagiMaktab ? royxatdagiMaktab.nomi : foydalanuvchi?.maktab_nomi,
       });
       setMuvaffaqiyat(true);
       setTimeout(() => setMuvaffaqiyat(false), 2500);
@@ -3945,6 +4085,9 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
               </button>
             ))}
           </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ro'yxatdagi maktab (bo'lsa — tanlang, aniqroq bo'ladi)</label>
+          <MaktabQidiruvi tanlanganMaktab={royxatdagiMaktab} onTanla={setRoyxatdagiMaktab} />
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
           <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
@@ -4434,7 +4577,7 @@ function Kabinet({ token }) {
       )}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
-      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} token={token} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab token={token} sinf={foydalanuvchi?.class} onTestFaollik={setTestDavomida} />
       )}
