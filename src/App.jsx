@@ -7206,6 +7206,9 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [togarakSinflariYuklanmoqda, setTogarakSinflariYuklanmoqda] = useState(false);
   const [sinfFanlari, setSinfFanlari] = useState([]); // tanlangan sinf uchun MAVJUD fanlar ro'yxati
   const [sinfFanlariYuklanmoqda, setSinfFanlariYuklanmoqda] = useState(false);
+  const [mavzuTanlovlari, setMavzuTanlovlari] = useState([]); // sinf+fanga mos mavzular: [{nomi, topic_codes, savol_soni}]
+  const [mavzuTanlovlariYuklanmoqda, setMavzuTanlovlariYuklanmoqda] = useState(false);
+  const [tanlanganMavzuNomlari, setTanlanganMavzuNomlari] = useState({}); // {nomi: true} — belgilanganlar
   const [yangiParol, setYangiParol] = useState("");
   const [yangiMaxTalaba, setYangiMaxTalaba] = useState("");
   const [yangiOylikSumma, setYangiOylikSumma] = useState("");
@@ -7241,6 +7244,29 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       .then((d) => setSinfFanlari((d.fanlar || []).map((f) => f.nom)))
       .finally(() => setSinfFanlariYuklanmoqda(false));
   }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf]);
+
+  // Fan HAM tanlangach — o'sha sinf+fanga tegishli mavzularni (test bor-yo'qligidan
+  // qat'iy nazar — chunki mavzuga keyinroq kontent/test qo'shiladi) yuklaymiz,
+  // BARCHASINI standart ravishda TANLANGAN deb belgilaymiz (avvalgi "avtomatik
+  // hammasi bog'lanadi" xatti-harakati bilan bir xil natija, lekin endi
+  // o'qituvchi xohlasa ayrimlarini o'chirib qo'yishi mumkin).
+  useEffect(() => {
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni : yangiSinf;
+    setMavzuTanlovlari([]);
+    setTanlanganMavzuNomlari({});
+    if (!sinfQiymati || !yangiFan) return;
+    setMavzuTanlovlariYuklanmoqda(true);
+    const turi = yangiMaxsusSinf ? "togarak" : "oddiy";
+    fetch(`${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinfQiymati)}&turi=${turi}&faqat_testli=false`)
+      .then((r) => r.json())
+      .then((d) => {
+        const fan = (d.fanlar || []).find((f) => f.nom === yangiFan);
+        const mavzular = fan?.sinflar?.[0]?.mavzular || [];
+        setMavzuTanlovlari(mavzular);
+        setTanlanganMavzuNomlari(Object.fromEntries(mavzular.map((m) => [m.nomi, true])));
+      })
+      .finally(() => setMavzuTanlovlariYuklanmoqda(false));
+  }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf, yangiFan]);
 
   useEffect(() => {
     if (uniGuruhIzlash.trim().length < 1) { setUniGuruhNatijalar([]); return; }
@@ -7319,6 +7345,9 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       setXato("Sinfni tanlang (yoki to'garak guruhini kiriting)");
       return;
     }
+    const tanlanganKodlar = mavzuTanlovlari
+      .filter((m) => tanlanganMavzuNomlari[m.nomi])
+      .flatMap((m) => m.topic_codes || []);
     setYaratilmoqda(true); setXato("");
     try {
       const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yarat`, {
@@ -7330,6 +7359,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
           max_talaba: yangiMaxTalaba ? parseInt(yangiMaxTalaba, 10) : undefined,
           oylik_summa: yangiOylikSumma ? parseInt(yangiOylikSumma, 10) : undefined,
           universitet_guruh_id: tanlanganUniGuruh ? tanlanganUniGuruh.id : undefined,
+          tanlangan_topic_codes: tanlanganKodlar,
         }),
       });
       const data = await res.json();
@@ -7337,7 +7367,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       const yangiTogarak = { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati, max_talaba: yangiMaxTalaba || null, azo_soni: 0 };
       setTogaraklar((prev) => [...prev, yangiTogarak]);
       setYangiNomi(""); setYangiFan(""); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
-      setTogarakSinflari([]); setSinfFanlari([]);
+      setTogarakSinflari([]); setSinfFanlari([]); setMavzuTanlovlari([]); setTanlanganMavzuNomlari({});
       setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
       setUniGuruhIzlash(""); setUniGuruhNatijalar([]); setTanlanganUniGuruh(null);
       setTanlangan(yangiTogarak);
@@ -7513,6 +7543,41 @@ function OqituvchiTab({ token, foydalanuvchi }) {
             <p className="text-xs -mt-2 mb-3" style={{ color: "#8A8578" }}>
               Bu guruh uchun hali mavzu/test yo'q — fan tanlansa, keyinroq shablon orqali test qo'shishingiz mumkin.
             </p>
+          )}
+
+          {yangiFan && (
+            <>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium block" style={{ color: "#5A5648" }}>
+                  Mavzular ({Object.values(tanlanganMavzuNomlari).filter(Boolean).length}/{mavzuTanlovlari.length} tanlandi)
+                </label>
+                {mavzuTanlovlari.length > 0 && (
+                  <button type="button"
+                    onClick={() => setTanlanganMavzuNomlari(Object.fromEntries(mavzuTanlovlari.map((m) => [m.nomi, !Object.values(tanlanganMavzuNomlari).every(Boolean)])))}
+                    className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
+                    {Object.values(tanlanganMavzuNomlari).every(Boolean) ? "Hech birini tanlamaslik" : "Barchasini tanlash"}
+                  </button>
+                )}
+              </div>
+              {mavzuTanlovlariYuklanmoqda ? (
+                <div className="py-3 mb-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+              ) : mavzuTanlovlari.length === 0 ? (
+                <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+                  Bu sinf/fan uchun milliy bazada mavzu topilmadi — keyinroq "To'garak mavzulari"dan o'zingiz qo'shishingiz mumkin.
+                </p>
+              ) : (
+                <div className="space-y-1.5 mb-3 max-h-56 overflow-y-auto rounded-xl p-2.5" style={{ backgroundColor: "#F7F5F0" }}>
+                  {mavzuTanlovlari.map((m) => (
+                    <label key={m.nomi} className="flex items-center gap-2.5 px-1.5 py-1 cursor-pointer">
+                      <input type="checkbox" checked={!!tanlanganMavzuNomlari[m.nomi]}
+                        onChange={(e) => setTanlanganMavzuNomlari((prev) => ({ ...prev, [m.nomi]: e.target.checked }))} />
+                      <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+                      {m.savol_soni > 0 && <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} savol</span>}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qo'shilish paroli (ixtiyoriy)</label>
