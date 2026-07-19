@@ -4109,6 +4109,163 @@ function RasmiySinflarim({ token, onOrtga }) {
   );
 }
 
+function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
+  const [malumot, setMalumot] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [azolar, setAzolar] = useState(null);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [ichkiYuklanmoqda, setIchkiYuklanmoqda] = useState(false);
+  const joriyOy = new Date().toISOString().slice(0, 7);
+
+  useEffect(() => {
+    if (!maktabId) { setYuklanmoqda(false); return; }
+    fetch(`${API_BASE}/api/maktab/dashboard?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { if (!d.detail) setMalumot(d); else setXato(d.detail); setYuklanmoqda(false); })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, maktabId]);
+
+  const sinfOch = (s) => {
+    setTanlanganSinf(s);
+    setIchkiYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/sinf_azolari?token=${encodeURIComponent(token)}&sinf_id=${s.id}`)
+      .then((r) => r.json())
+      .then((d) => setAzolar(d.azolar || []))
+      .catch(() => {});
+    if (malumot.pulli) {
+      fetch(`${API_BASE}/api/oqituvchi/sinf_tolovlari?token=${encodeURIComponent(token)}&sinf_id=${s.id}&oy=${joriyOy}`)
+        .then((r) => r.json())
+        .then((d) => { setOquvchilar(d.oquvchilar || []); setIchkiYuklanmoqda(false); })
+        .catch(() => setIchkiYuklanmoqda(false));
+    } else {
+      setIchkiYuklanmoqda(false);
+    }
+  };
+
+  const tolovBelgila = async (o) => {
+    await fetch(`${API_BASE}/api/oqituvchi/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, user_id: o.user_id, maktab_id: maktabId, oy: joriyOy, tolangan_summa: malumot.oylik_tolov }),
+    });
+    sinfOch(tanlanganSinf);
+  };
+
+  if (!maktabId) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday maktabga bog'lanmagansiz.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tanlanganSinf) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganSinf(null); setAzolar(null); setOquvchilar(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflar</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganSinf.sinf}-{tanlanganSinf.harf}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganSinf.rahbar_ismi || "Rahbar belgilanmagan"} · {tanlanganSinf.oquvchi_soni} o'quvchi</p>
+
+        {ichkiYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            {malumot.pulli && (
+              <>
+                <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>💳 {joriyOy} oyi to'lovlari</p>
+                <div className="space-y-2 mb-5">
+                  {(oquvchilar || []).map((o) => (
+                    <div key={o.user_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: o.qarzdor ? "#FCEBEB" : "#EAF3DE" }}>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+                        <p className="text-xs" style={{ color: o.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                          {o.qarzdor ? `⚠️ Qarzdor (${o.tolangan_summa.toLocaleString()} / ${o.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                        </p>
+                      </div>
+                      {o.qarzdor && (
+                        <button onClick={() => tolovBelgila(o)} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                          To'landi
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>👥 Sinf a'zolari</p>
+            <div className="space-y-2">
+              {(azolar || []).map((a) => (
+                <div key={a.azolik_id} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{a.full_name}</p>
+                </div>
+              ))}
+              {(azolar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hali hech kim qo'shilmagan.</p>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : xato ? (
+        <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>
+      ) : (
+        <>
+          <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🏫 {malumot.maktab_nomi}</h1>
+          <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Butun maktab — bir ekranda.</p>
+
+          {malumot.tolov_xulosasi && (
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#EAF1F7" }}>
+              <p className="text-sm font-bold mb-2" style={{ color: "#1B4B7A" }}>💳 {joriyOy} — umumiy to'lov holati</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{malumot.tolov_xulosasi.jami_oquvchi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>jami o'quvchi</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{malumot.tolov_xulosasi.tolagan}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>to'lagan</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#A32D2D" }}>{malumot.tolov_xulosasi.qarzdor}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>qarzdor</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>📚 Sinflar ({malumot.sinflar.length})</p>
+          <div className="space-y-2">
+            {malumot.sinflar.map((s) => (
+              <button key={s.id} onClick={() => sinfOch(s)}
+                className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>
+                    {s.rahbar_ismi || "Rahbar yo'q"} · {s.oquvchi_soni} o'quvchi
+                    {malumot.pulli ? ` · ${s.tolagan_soni}/${s.oquvchi_soni} to'lagan` : ""}
+                  </p>
+                </div>
+                <ChevronRight size={16} style={{ color: "#8A8578" }} />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
   const [guruhlar, setGuruhlar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -4718,6 +4875,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     return <MarkazBoshqaruvi token={token} markazId={foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
   }
 
+  if (korinish === "maktab_rahbariyat") {
+    return <MaktabBoshqaruvi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+  }
+
   if (korinish === "bogcha") {
     return <BogchaGuruhim token={token} onOrtga={() => setKorinish("togarak")} />;
   }
@@ -4955,6 +5116,11 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       <button onClick={() => setKorinish("rasmiy")} className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
         🏫 Rasmiy maktab sinfim bormi? →
       </button>
+      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
+        <button onClick={() => setKorinish("maktab_rahbariyat")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🏫 Butun maktabni boshqarish →
+        </button>
+      )}
       {(foydalanuvchi?.lavozim === "markaz_direktor" || foydalanuvchi?.lavozim === "administrator") && (
         <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           🎓 Markazimni boshqarish →
