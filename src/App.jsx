@@ -474,6 +474,50 @@ function MavzularYoliVizual({ mavzular, rang }) {
   );
 }
 
+function MavzuQatori({ m, i, sinf, fan, rang }) {
+  const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
+  const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
+  const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
+  const chegaraRang = holat === "tugagan" ? "#C9E4B0" : holat === "jarayonda" ? "#F5DFA3" : "#E5E1D8";
+
+  const [ochiq, setOchiq] = useState(false);
+  const [tushuntirish, setTushuntirish] = useState(null); // null=hali so'ralmagan, ""=topilmadi, matn=bor
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+
+  const bosildi = () => {
+    if (ochiq) { setOchiq(false); return; }
+    setOchiq(true);
+    if (tushuntirish !== null) return; // allaqachon yuklangan — qayta so'ramaymiz
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/mavzu_tushuntirish?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&mavzu=${encodeURIComponent(m.nomi)}`)
+      .then((r) => r.json())
+      .then((d) => { setTushuntirish(d.topildi ? d.tushuntirish : ""); setYuklanmoqda(false); })
+      .catch(() => { setTushuntirish(""); setYuklanmoqda(false); });
+  };
+
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: fonRang, borderColor: chegaraRang }}>
+      <button onClick={bosildi} className="w-full p-3.5 flex items-center gap-3 text-left">
+        <span className="text-lg shrink-0">{ikon}</span>
+        <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{i + 1}. {m.nomi}</span>
+        {m.score !== null && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
+        <span className="text-sm shrink-0">🤖</span>
+      </button>
+      {ochiq && (
+        <div className="px-3.5 pb-3.5">
+          {yuklanmoqda ? (
+            <div className="py-2"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+          ) : tushuntirish ? (
+            <p className="text-sm p-3 rounded-lg leading-relaxed" style={{ backgroundColor: "#FFFFFF", color: "#2B2B2B" }}>{tushuntirish}</p>
+          ) : (
+            <p className="text-xs" style={{ color: "#8A8578" }}>Bu mavzu uchun hali AI tushuntirishi tayyorlanmagan.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TalimYoli({ bolaId, fan, rang, onYopish }) {
   const [malumot, setMalumot] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -555,19 +599,9 @@ function TalimYoli({ bolaId, fan, rang, onYopish }) {
               <div className="py-2 overflow-x-auto"><MavzularYoliVizual mavzular={malumot.mavzular} rang={rang} /></div>
             ) : (
               <div className="space-y-2">
-                {malumot.mavzular.map((m, i) => {
-                  const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
-                  const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
-                  const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
-                  const chegaraRang = holat === "tugagan" ? "#C9E4B0" : holat === "jarayonda" ? "#F5DFA3" : "#E5E1D8";
-                  return (
-                    <div key={m.topic_code} className="rounded-xl p-3.5 flex items-center gap-3 border" style={{ backgroundColor: fonRang, borderColor: chegaraRang }}>
-                      <span className="text-lg shrink-0">{ikon}</span>
-                      <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{i + 1}. {m.nomi}</span>
-                      {m.score !== null && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
-                    </div>
-                  );
-                })}
+                {malumot.mavzular.map((m, i) => (
+                  <MavzuQatori key={m.topic_code} m={m} i={i} sinf={malumot.sinf} fan={fan} rang={rang} />
+                ))}
               </div>
             )}
           </>
@@ -697,6 +731,7 @@ function BilimTab({ data, bolaId, rang }) {
   const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
   const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
   const [mengaTogaraklarim, setMenTogaraklarim] = useState([]);
+  const [bugungiTavsiya, setBugungiTavsiya] = useState(null); // {tavsiyalar: [...]} | null (hali yuklanmagan)
   const radarData = data.fanlar.map((f) => ({ fan: f.qisqa, foiz: f.foiz }));
 
   useEffect(() => {
@@ -706,6 +741,16 @@ function BilimTab({ data, bolaId, rang }) {
       .then((d) => setMenTogaraklarim(d.togaraklar || []))
       .catch(() => {});
   }, [bolaId]);
+
+  useEffect(() => {
+    if (!bolaId) return;
+    fetch(`${API_BASE}/api/bola/${bolaId}/bugungi_tavsiya`)
+      .then((r) => r.json())
+      .then((d) => setBugungiTavsiya(d))
+      .catch(() => setBugungiTavsiya({ tavsiyalar: [] }));
+  }, [bolaId]);
+
+  const fanRangiTop = (fanNomi) => data.fanlar.find((f) => f.nom === fanNomi)?.rang || fanRangiOl(fanNomi);
 
   return (
     <div>
@@ -749,6 +794,31 @@ function BilimTab({ data, bolaId, rang }) {
         </div>
       </div>
       <div className="px-5 -mt-3 pb-4 space-y-3">
+        {bugungiTavsiya && bugungiTavsiya.tavsiyalar && bugungiTavsiya.tavsiyalar.length > 0 && (
+          <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm font-bold mb-0.5 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>📅 Bugungi tavsiya</p>
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Bu mavzular eslaringizdan chiqishi mumkin — takrorlab qo'ying.</p>
+            <div className="space-y-2">
+              {bugungiTavsiya.tavsiyalar.map((t, i) => {
+                const bRang = fanRangiTop(t.fan);
+                const daraja_ikon = t.daraja === "yuqori" ? "🔴" : "🟡";
+                return (
+                  <button key={i} onClick={() => setYolFani({ fan: t.fan, rang: bRang })}
+                    className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-left"
+                    style={{ backgroundColor: "#F7F5F0" }}>
+                    <span className="text-base shrink-0">{daraja_ikon}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="text-sm font-medium block truncate" style={{ color: "#2B2B2B" }}>{t.nomi}</span>
+                      <span className="text-xs" style={{ color: "#8A8578" }}>{t.fan} · {t.kunlar_otgan} kun oldin{t.oxirgi_ball !== null ? ` · ${t.oxirgi_ball}%` : ""}</span>
+                    </span>
+                    <ChevronRight size={16} className="shrink-0" style={{ color: "#8A8578" }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {data.sinf_sozlanmagan ? (
           <div className="rounded-2xl p-6 text-center bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm font-medium mb-1" style={{ color: "#2B2B2B" }}>Sinf sozlanmagan</p>
@@ -2230,10 +2300,18 @@ function AdminTab({ token, oldindanTanlangan }) {
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           📋 Topik shablon
         </button>
+        <button onClick={() => setBolim("tushuntirish")}
+          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "tushuntirish"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🤖 Tushuntirish
+        </button>
       </div>
 
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
+      {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
     </div>
   );
 }
@@ -2546,6 +2624,55 @@ function TopikShablonBolimi({ token }) {
         )}
       </div>
     </>
+  );
+}
+
+function TushuntirishBolimi({ token }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natija, setNatija] = useState(null);
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/tushuntirish_import?token=${encodeURIComponent(token)}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+      <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🤖 AI tushuntirishlarni yuklash</p>
+      <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+        Colab'da (yoki boshqa joyda) tayyorlangan Excel fayl — ustunlar: <b>Sinf, Fan, Mavzu, Tushuntirish</b>.
+        O'quvchi mavzuni ochganda shu tushuntirish ko'rsatiladi. Bir xil sinf+fan+mavzu qayta yuklansa — yangilanadi.
+      </p>
+      <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+        style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+        {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+        <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+      </label>
+      {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {natija && (
+        <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+          <p>✅ Saqlandi: <b>{natija.saqlandi}</b></p>
+          <p>❌ Xato: <b>{natija.xato}</b></p>
+        </div>
+      )}
+    </div>
   );
 }
 
