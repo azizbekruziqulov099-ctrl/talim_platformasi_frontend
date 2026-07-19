@@ -5486,6 +5486,22 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
     mavzularniYukla();
   };
 
+  const [barchasiniQoshishYuklanmoqda, setBarchasiniQoshishYuklanmoqda] = useState(false);
+  const barchasiniQoshish = async () => {
+    const yangilari = (qidiruvNatijalari || []).filter((m) => !mavzular.some((x) => x.topic_code === m.topic_code));
+    if (yangilari.length === 0) return;
+    setBarchasiniQoshishYuklanmoqda(true);
+    try {
+      await Promise.all(yangilari.map((m) =>
+        fetch(`${API_BASE}/api/oqituvchi/togarak_milliy_mavzu_biriktir`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, togarak_id: togarakId, topic_code: m.topic_code }),
+        })
+      ));
+      mavzularniYukla();
+    } finally { setBarchasiniQoshishYuklanmoqda(false); }
+  };
+
   const mavzuniOlibTashla = async (topicCode) => {
     await fetch(`${API_BASE}/api/oqituvchi/togarak_mavzu_biriktirmasini_ochir?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&topic_code=${encodeURIComponent(topicCode)}`, { method: "DELETE" });
     mavzularniYukla();
@@ -5544,6 +5560,8 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
     kontentlarniYukla(tanlanganMavzu.topic_code);
     mavzularniYukla();
   };
+
+  const [testHammasigaSoni, setTestHammasigaSoni] = useState("");
 
   const testKodBelgila = (topicCode, soni) => {
     setTestTanlanganKodlar((prev) => {
@@ -5724,6 +5742,19 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-semibold mb-1" style={{ color: "#2B2B2B" }}>Ko'p savolni bir martada Excel orqali qo'shish</p>
           <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Mavzu(lar)ni tanlab, har biriga necha savol kerakligini yozing.</p>
+          {mavzular.length > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <input type="number" min="0" value={testHammasigaSoni} onChange={(e) => setTestHammasigaSoni(e.target.value)}
+                placeholder="0" className="w-16 px-2 py-1.5 rounded-lg border text-xs text-center" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={() => {
+                  const soni = parseInt(testHammasigaSoni, 10) || 0;
+                  setTestTanlanganKodlar(Object.fromEntries(mavzular.map((m) => [m.topic_code, soni]).filter(([, s]) => s > 0)));
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+                Hammasiga qo'llash ({mavzular.length} ta)
+              </button>
+            </div>
+          )}
           <div className="space-y-2 mb-3 max-h-56 overflow-y-auto">
             {mavzular.map((m) => (
               <div key={m.topic_code} className="flex items-center gap-2 rounded-lg p-2" style={{ backgroundColor: "#F7F5F0" }}>
@@ -5758,6 +5789,14 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <input type="text" value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Mavzu nomi bo'yicha qidirish (bo'sh — o'z sinf/faningiz)"
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          {!qidirilmoqda && !qidiruvXato && (qidiruvNatijalari || []).some((m) => !mavzular.some((x) => x.topic_code === m.topic_code)) && (
+            <button onClick={barchasiniQoshish} disabled={barchasiniQoshishYuklanmoqda}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3 flex items-center justify-center gap-2"
+              style={{ backgroundColor: "#EAF3DE", color: "#3B6D11", opacity: barchasiniQoshishYuklanmoqda ? 0.7 : 1 }}>
+              {barchasiniQoshishYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> :
+                `✓✓ Barchasini qo'shish (${(qidiruvNatijalari || []).filter((m) => !mavzular.some((x) => x.topic_code === m.topic_code)).length} ta)`}
+            </button>
+          )}
           {qidirilmoqda ? (
             <div className="py-4 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
           ) : qidiruvXato ? (
