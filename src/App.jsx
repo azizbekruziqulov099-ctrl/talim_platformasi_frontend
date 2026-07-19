@@ -1824,6 +1824,17 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const [ochirilmoqda, setOchirilmoqda] = useState(false);
   const [rasmGaleriyasi, setRasmGaleriyasi] = useState(null); // {sarlavha, rasmlar: [id,...]} | null
   const [rasmlarYuklanmoqda, setRasmlarYuklanmoqda] = useState(false);
+  const [umumiyKorinish, setUmumiyKorinish] = useState(null); // {sinflar: [...]} | null (ochilganda yuklanadi)
+  const [umumiyYuklanmoqda, setUmumiyYuklanmoqda] = useState(false);
+
+  const umumiyKorinishniOch = () => {
+    setUmumiyKorinish({ sinflar: [] });
+    setUmumiyYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_umumiy_korinish?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setUmumiyKorinish(d); setUmumiyYuklanmoqda(false); })
+      .catch(() => { setXato("Umumiy ko'rinishni yuklab bo'lmadi"); setUmumiyYuklanmoqda(false); });
+  };
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
@@ -1856,6 +1867,23 @@ function TopikMavzularTab({ token, onTestYarat }) {
     setSahifa(0);
     setYuklanmoqda(true);
     fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  // "Umumiy ko'rinish" dan bevosita bosilganda — sinf VA fanni BIRDANIGA,
+  // aniq (state kutmasdan) tanlaydi — tanlanganSinf holati hali
+  // yangilanmagan bo'lishi mumkinligi sababli fanTanlandi(fan) yolg'iz
+  // yetarli emas.
+  const sinfVaFanTanlandi = (sinf, fan) => {
+    setUmumiyKorinish(null);
+    setTanlanganSinf(sinf);
+    setTanlanganFan(fan);
+    setHolat("mavzular");
+    setSahifa(0);
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -1902,7 +1930,14 @@ function TopikMavzularTab({ token, onTestYarat }) {
   if (holat === "sinf") {
     return (
       <div className="px-5 pt-6 pb-4">
-        <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Topik mavzular</h1>
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Topik mavzular</h1>
+          <button onClick={umumiyKorinishniOch}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            📊 Umumiy ko'rinish
+          </button>
+        </div>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Kontent auditi — qaysi mavzuda test bor, qaysisida yo'q.</p>
         {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
         {yuklanmoqda ? (
@@ -1934,6 +1969,50 @@ function TopikMavzularTab({ token, onTestYarat }) {
               </>
             )}
           </>
+        )}
+
+        {umumiyKorinish && (
+          <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
+            <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
+              <button onClick={() => setUmumiyKorinish(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Yopish</button>
+              <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Umumiy ko'rinish</h1>
+              <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Barcha sinf va fanlar — bir ekranda, alohida kirmasdan.</p>
+              {umumiyYuklanmoqda ? (
+                <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+              ) : umumiyKorinish.sinflar.length === 0 ? (
+                <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha ma'lumot yo'q.</p>
+              ) : (
+                <div className="space-y-5">
+                  {umumiyKorinish.sinflar.map((s) => (
+                    <div key={s.sinf}>
+                      <p className="text-sm font-bold mb-2.5" style={{ color: "#2B2B2B" }}>
+                        {/^\d+$/.test(s.sinf) ? `${s.sinf}-sinf` : s.sinf}
+                      </p>
+                      <div className="space-y-2">
+                        {s.fanlar.map((f) => {
+                          const foiz = f.jami_mavzu ? Math.round((f.testli_mavzu / f.jami_mavzu) * 100) : 0;
+                          const rang = fanRangiOl(f.nom);
+                          return (
+                            <button key={f.nom}
+                              onClick={() => sinfVaFanTanlandi(s.sinf, f.nom)}
+                              className="w-full rounded-xl p-3 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                                <span className="text-xs font-semibold shrink-0" style={{ color: rang }}>{f.testli_mavzu}/{f.jami_mavzu}</span>
+                              </div>
+                              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#EFEBE1" }}>
+                                <div className="h-full rounded-full" style={{ width: `${foiz}%`, backgroundColor: rang }} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     );
