@@ -2424,6 +2424,17 @@ function AdminTab({ token, oldindanTanlangan }) {
 
 const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
 
+const LAVOZIM_NOMLARI = {
+  direktor: "Direktor",
+  zam_direktor_uquv: "O'quv ishlari bo'yicha direktor o'rinbosari",
+  zam_direktor_tarbiya: "Ma'naviy-ma'rifiy ishlar bo'yicha direktor o'rinbosari",
+  psixolog: "Psixolog",
+  kotib: "Kotib",
+  fan_oqituvchisi: "Fan o'qituvchisi",
+  markaz_direktor: "Markaz direktori",
+  administrator: "Administrator",
+};
+
 const QIYINLIK_DARAJALARI = [
   ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
 ];
@@ -3658,6 +3669,27 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
   const [korinish, setKorinish] = useState("togarak"); // "togarak" | "rasmiy" — to'garak guruhlarimi yoki rasmiy maktab sinfimi
+  const [kodFormOchiq, setKodFormOchiq] = useState(false);
+  const [kirishKodi, setKirishKodi] = useState("");
+  const [kodYuborilmoqda, setKodYuborilmoqda] = useState(false);
+  const [kodXato, setKodXato] = useState("");
+  const [kodNatija, setKodNatija] = useState(null); // {joy_nomi, lavozim} | null
+
+  const kodBilanQoshil = async () => {
+    if (!kirishKodi.trim()) { setKodXato("Kodni kiriting"); return; }
+    setKodYuborilmoqda(true); setKodXato(""); setKodNatija(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil?token=${encodeURIComponent(token)}&kirish_kodi=${encodeURIComponent(kirishKodi.trim())}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setKodNatija(data);
+      setKirishKodi("");
+    } catch (e) {
+      setKodXato(e.message);
+    } finally { setKodYuborilmoqda(false); }
+  };
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiFan, setYangiFan] = useState("");
@@ -3993,9 +4025,34 @@ function OqituvchiTab({ token, foydalanuvchi }) {
         🏫 Rasmiy maktab sinfim bormi? →
       </button>
       {(foydalanuvchi?.lavozim === "markaz_direktor" || foydalanuvchi?.lavozim === "administrator") && (
-        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
+        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           🎓 Markazimni boshqarish →
         </button>
+      )}
+      <button onClick={() => setKodFormOchiq(!kodFormOchiq)} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+        🔑 Maktab/markazdan kirish kodim bor
+      </button>
+      {kodFormOchiq && (
+        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
+          <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+            Maktab/markaz admini sizga bergan 6 belgili kodni kiriting — hisobingizga tegishli lavozim avtomatik qo'shiladi.
+          </p>
+          <div className="flex gap-2">
+            <input type="text" value={kirishKodi} onChange={(e) => setKirishKodi(e.target.value.toUpperCase())}
+              placeholder="masalan: A1B2C3" maxLength={6}
+              className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+            <button onClick={kodBilanQoshil} disabled={kodYuborilmoqda}
+              className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: kodYuborilmoqda ? 0.7 : 1 }}>
+              {kodYuborilmoqda ? "..." : "Qo'shilish"}
+            </button>
+          </div>
+          {kodXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{kodXato}</p>}
+          {kodNatija && (
+            <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>
+              ✅ "{kodNatija.joy_nomi}" — {(LAVOZIM_NOMLARI[kodNatija.lavozim] || kodNatija.lavozim)} sifatida qo'shildingiz. Sahifani yangilang.
+            </p>
+          )}
+        </div>
       )}
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
