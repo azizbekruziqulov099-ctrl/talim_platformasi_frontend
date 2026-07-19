@@ -732,6 +732,7 @@ function BilimTab({ data, bolaId, rang }) {
   const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
   const [mengaTogaraklarim, setMenTogaraklarim] = useState([]);
   const [bugungiTavsiya, setBugungiTavsiya] = useState(null); // {tavsiyalar: [...]} | null (hali yuklanmagan)
+  const [haftalik, setHaftalik] = useState(null); // {jami_mavzu, ortacha_ball, ...} | null (hali yuklanmagan)
   const radarData = data.fanlar.map((f) => ({ fan: f.qisqa, foiz: f.foiz }));
 
   useEffect(() => {
@@ -748,6 +749,14 @@ function BilimTab({ data, bolaId, rang }) {
       .then((r) => r.json())
       .then((d) => setBugungiTavsiya(d))
       .catch(() => setBugungiTavsiya({ tavsiyalar: [] }));
+  }, [bolaId]);
+
+  useEffect(() => {
+    if (!bolaId) return;
+    fetch(`${API_BASE}/api/bola/${bolaId}/haftalik_xulosa`)
+      .then((r) => r.json())
+      .then((d) => setHaftalik(d))
+      .catch(() => {});
   }, [bolaId]);
 
   const fanRangiTop = (fanNomi) => data.fanlar.find((f) => f.nom === fanNomi)?.rang || fanRangiOl(fanNomi);
@@ -816,6 +825,36 @@ function BilimTab({ data, bolaId, rang }) {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {haftalik && (haftalik.jami_mavzu > 0 || haftalik.ketma_ket_kun > 0) && (
+          <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm font-bold mb-3 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>📊 Haftalik xulosa</p>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#FDF3E0" }}>
+                <p className="text-lg font-bold" style={{ color: "#8A5A1C" }}>{haftalik.ketma_ket_kun > 0 ? `🔥${haftalik.ketma_ket_kun}` : "—"}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>kun ketma-ket</p>
+              </div>
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#EAF1F7" }}>
+                <p className="text-lg font-bold" style={{ color: "#1B4B7A" }}>{haftalik.jami_mavzu}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>mavzu (hafta)</p>
+              </div>
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#EAF3DE" }}>
+                <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{haftalik.jami_mavzu > 0 ? `${haftalik.ortacha_ball}%` : "—"}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>o'rtacha ball</p>
+              </div>
+            </div>
+            {haftalik.yangi_mavzular_soni > 0 && (
+              <p className="text-xs mb-1.5" style={{ color: "#5A5648" }}>
+                ⭐ Bu hafta {haftalik.yangi_mavzular_soni} ta yangi mavzu: <b>{haftalik.yangi_mavzular.join(", ")}</b>
+              </p>
+            )}
+            {haftalik.zaif_mavzular.length > 0 && (
+              <p className="text-xs" style={{ color: "#5A5648" }}>
+                💪 Ko'proq e'tibor kerak: <b>{haftalik.zaif_mavzular.map((z) => `${z.nomi} (${z.ball}%)`).join(", ")}</b>
+              </p>
+            )}
           </div>
         )}
 
@@ -2279,39 +2318,47 @@ function AdminTestlarTab({ token }) {
 }
 
 function AdminTab({ token, oldindanTanlangan }) {
-  const [bolim, setBolim] = useState("test"); // "test" | "topik"
+  const [bolim, setBolim] = useState("test"); // "test" | "topik" | "tushuntirish" | "maktab"
 
   return (
     <div className="px-5 pt-6 pb-4">
       <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
 
-      <div className="flex gap-2 mb-5">
+      <div className="grid grid-cols-2 gap-2 mb-5">
         <button onClick={() => setBolim("test")}
-          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "test"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🧪 Test shablon
         </button>
         <button onClick={() => setBolim("topik")}
-          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "topik"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           📋 Topik shablon
         </button>
         <button onClick={() => setBolim("tushuntirish")}
-          className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "tushuntirish"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🤖 Tushuntirish
+        </button>
+        <button onClick={() => setBolim("maktab")}
+          className="py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "maktab"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🏫 Maktablar
         </button>
       </div>
 
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
       {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
+      {bolim === "maktab" && <MaktablarBolimi token={token} />}
     </div>
   );
 }
@@ -2670,6 +2717,186 @@ function TushuntirishBolimi({ token }) {
         <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
           <p>✅ Saqlandi: <b>{natija.saqlandi}</b></p>
           <p>❌ Xato: <b>{natija.xato}</b></p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DirektorQidiruvi({ token, tanlanganDirektor, onTanla }) {
+  const [ism, setIsm] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
+
+  useEffect(() => {
+    if (ism.trim().length < 2) { setNatijalar([]); return; }
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/admin/foydalanuvchi_qidir?token=${encodeURIComponent(token)}&ism=${encodeURIComponent(ism.trim())}`)
+        .then((r) => r.json())
+        .then((d) => { setNatijalar(d.natijalar || []); setQidirilmoqda(false); })
+        .catch(() => setQidirilmoqda(false));
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [ism, token]);
+
+  if (tanlanganDirektor) {
+    return (
+      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3" style={{ borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+        <span className="text-sm font-medium" style={{ color: "#1B4B7A" }}>👤 {tanlanganDirektor.full_name}</span>
+        <button onClick={() => onTanla(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕ O'zgartirish</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3">
+      <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+        placeholder="Direktor ismini yozing (ixtiyoriy)..."
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+        style={{ borderColor: "#E5E1D8" }} />
+      {qidirilmoqda && <p className="text-xs mt-1.5" style={{ color: "#8A8578" }}>Qidirilmoqda...</p>}
+      {natijalar.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {natijalar.map((n) => (
+            <button key={n.user_id} onClick={() => { onTanla(n); setIsm(""); setNatijalar([]); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+              <span className="text-sm" style={{ color: "#2B2B2B" }}>{n.full_name}</span>
+              <span className="text-xs" style={{ color: "#8A8578" }}>{n.role}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaktablarBolimi({ token }) {
+  const [maktablar, setMaktablar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [smenaSoni, setSmenaSoni] = useState(1);
+  const [direktor, setDirektor] = useState(null); // {user_id, full_name} | null
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const maktablarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/maktablar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMaktablar(d.maktablar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+
+  useEffect(maktablarniYukla, [token]);
+
+  const maktabSaqla = async () => {
+    if (!nomi.trim()) { setXato("Maktab nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/maktab_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined,
+          smena_soni: smenaSoni, direktor_user_id: direktor ? direktor.user_id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setViloyat(""); setTuman(""); setSmenaSoni(1); setDirektor(null); setFormOchiq(false);
+      maktablarniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🏫 Maktablar</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "#8A8578" }}>1-bosqich — maktabni tizimga qo'shish. Xodimlar va sinflar keyingi bosqichlarda qo'shiladi.</p>
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder="masalan: 21-maktab"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+              <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">—</option>
+                {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+              <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                <option value="">—</option>
+                {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Smena soni</label>
+          <div className="flex gap-2 mb-3">
+            {[1, 2].map((n) => (
+              <button key={n} onClick={() => setSmenaSoni(n)}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+                style={smenaSoni === n
+                  ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" }
+                  : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+                {n} smenali
+              </button>
+            ))}
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy — keyin ham belgilash mumkin)</label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={maktabSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+            style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Maktabni yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : maktablar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali maktab qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {maktablar.map((m) => (
+            <div key={m.id} className="rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>
+                {[m.viloyat, m.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {m.smena_soni} smenali
+              </p>
+              <p className="text-xs mt-1" style={{ color: m.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
+                {m.direktor_ismi ? `👤 Direktor: ${m.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </div>
