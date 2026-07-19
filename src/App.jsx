@@ -5436,6 +5436,12 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
 
+  const [testShablonOchiq, setTestShablonOchiq] = useState(false);
+  const [testTanlanganKodlar, setTestTanlanganKodlar] = useState({}); // {topic_code: soni}
+  const [testYuklanmoqda, setTestYuklanmoqda] = useState(false);
+  const [testImportlanmoqda, setTestImportlanmoqda] = useState(false);
+  const [testNatija, setTestNatija] = useState(null);
+
   const mavzularniYukla = () => {
     setYuklanmoqda(true);
     fetch(`${API_BASE}/api/oqituvchi/togarak_barcha_mavzular?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`)
@@ -5449,14 +5455,20 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
   };
   useEffect(mavzularniYukla, [token, togarakId]);
 
+  const [qidiruvXato, setQidiruvXato] = useState("");
+
   useEffect(() => {
     if (!qidiruvOchiq) return;
     setQidirilmoqda(true);
     const kechiktirish = setTimeout(() => {
       fetch(`${API_BASE}/api/oqituvchi/togarak_milliy_mavzular_qidir?token=${encodeURIComponent(token)}&togarak_id=${togarakId}${qidiruv.trim() ? `&qidiruv=${encodeURIComponent(qidiruv.trim())}` : ""}`)
-        .then((r) => r.json())
-        .then((d) => { setQidiruvNatijalari(d.mavzular || []); setQidirilmoqda(false); })
-        .catch(() => setQidirilmoqda(false));
+        .then(async (r) => {
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+          return d;
+        })
+        .then((d) => { setQidiruvNatijalari(d.mavzular || []); setQidiruvXato(""); setQidirilmoqda(false); })
+        .catch((e) => { setQidiruvXato(e.message || "Yuklab bo'lmadi"); setQidirilmoqda(false); });
     }, 350);
     return () => clearTimeout(kechiktirish);
   }, [qidiruv, qidiruvOchiq, token, togarakId]);
@@ -5526,6 +5538,51 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
     await fetch(`${API_BASE}/api/oqituvchi/togarak_kontent_ochir?token=${encodeURIComponent(token)}&biriktirma_id=${id}`, { method: "DELETE" });
     kontentlarniYukla(tanlanganMavzu.topic_code);
     mavzularniYukla();
+  };
+
+  const testKodBelgila = (topicCode, soni) => {
+    setTestTanlanganKodlar((prev) => {
+      const yangi = { ...prev };
+      if (soni <= 0) delete yangi[topicCode];
+      else yangi[topicCode] = soni;
+      return yangi;
+    });
+  };
+
+  const testShablonYukla = async () => {
+    const guruhlar = Object.entries(testTanlanganKodlar).map(([topic_code, soni]) => ({ topic_code, soni }));
+    if (guruhlar.length === 0) { setXato("Kamida bitta mavzudan son tanlang"); return; }
+    setTestYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_test_shablon`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, guruhlar }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || "Xato"); }
+      const blob = await res.blob();
+      const dlUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl; a.download = "togarak_test_shablon.xlsx";
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(dlUrl);
+    } catch (e) { setXato(e.message); } finally { setTestYuklanmoqda(false); }
+  };
+
+  const testFaylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setTestImportlanmoqda(true); setXato(""); setTestNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_test_import?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setTestNatija(data);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setTestImportlanmoqda(false); e.target.value = ""; }
   };
 
   const KONTENT_YORLIQ = { matn: "📝 Matn", latex: "🧮 LaTeX", rasm: "🖼 Rasm", pdf: "📄 PDF", word: "📃 Word", video: "🎬 Video" };
@@ -5602,14 +5659,54 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
   return (
     <div className="px-5 pt-6 pb-4">
       <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruh</button>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1 gap-2">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 To'garak mavzulari</h1>
-        <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); }}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
-          {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={() => { setTestShablonOchiq(!testShablonOchiq); setQidiruvOchiq(false); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+            {testShablonOchiq ? "✕ Yopish" : "🧪 Test shablon"}
+          </button>
+          <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setTestShablonOchiq(false); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
+          </button>
+        </div>
       </div>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Milliy bazadan mavzu tanlab, har biriga matn/LaTeX/rasm/PDF/Word/video biriktiring.</p>
+
+      {testShablonOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: "#2B2B2B" }}>Ko'p savolni bir martada Excel orqali qo'shish</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Mavzu(lar)ni tanlab, har biriga necha savol kerakligini yozing.</p>
+          <div className="space-y-2 mb-3 max-h-56 overflow-y-auto">
+            {mavzular.map((m) => (
+              <div key={m.topic_code} className="flex items-center gap-2 rounded-lg p-2" style={{ backgroundColor: "#F7F5F0" }}>
+                <span className="flex-1 text-xs truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</span>
+                <input type="number" min="0" value={testTanlanganKodlar[m.topic_code] || ""}
+                  onChange={(e) => testKodBelgila(m.topic_code, parseInt(e.target.value, 10) || 0)}
+                  placeholder="0" className="w-16 px-2 py-1 rounded-lg border text-xs text-center" style={{ borderColor: "#E5E1D8" }} />
+              </div>
+            ))}
+            {mavzular.length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Avval "+ Mavzu qo'shish" orqali mavzu qo'shing.</p>}
+          </div>
+          <button onClick={testShablonYukla} disabled={testYuklanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+            {testYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Shablon yuklab olish"}
+          </button>
+          <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+            style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+            {testImportlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+            <input type="file" accept=".xlsx" onChange={testFaylTanlandi} disabled={testImportlanmoqda} className="hidden" />
+          </label>
+          {testNatija && (
+            <p className="text-xs mt-3" style={{ color: "#3B6D11" }}>
+              ✅ {testNatija.saved} ta savol qo'shildi{testNatija.errors > 0 ? `, ${testNatija.errors} ta xato` : ""}
+            </p>
+          )}
+          {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        </div>
+      )}
 
       {qidiruvOchiq && (
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
@@ -5617,6 +5714,8 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
           {qidirilmoqda ? (
             <div className="py-4 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+          ) : qidiruvXato ? (
+            <p className="text-xs font-medium" style={{ color: "#A32D2D" }}>⚠️ {qidiruvXato}</p>
           ) : (
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {(qidiruvNatijalari || []).map((m) => {
@@ -5635,7 +5734,7 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
                   </div>
                 );
               })}
-              {(qidiruvNatijalari || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hech narsa topilmadi.</p>}
+              {(qidiruvNatijalari || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hech narsa topilmadi. Boshqa nom bilan qidirib ko'ring.</p>}
             </div>
           )}
         </div>
