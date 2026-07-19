@@ -5442,6 +5442,11 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
   const [testImportlanmoqda, setTestImportlanmoqda] = useState(false);
   const [testNatija, setTestNatija] = useState(null);
 
+  const [yangiMavzuOchiq, setYangiMavzuOchiq] = useState(false);
+  const [yangiMavzuNomi, setYangiMavzuNomi] = useState("");
+  const [yangiMavzuBob, setYangiMavzuBob] = useState("");
+  const [yangiMavzuYaratilmoqda, setYangiMavzuYaratilmoqda] = useState(false);
+
   const mavzularniYukla = () => {
     setYuklanmoqda(true);
     fetch(`${API_BASE}/api/oqituvchi/togarak_barcha_mavzular?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`)
@@ -5585,6 +5590,21 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
     } catch (e) { setXato(e.message); } finally { setTestImportlanmoqda(false); e.target.value = ""; }
   };
 
+  const yangiMavzuYarat = async () => {
+    if (!yangiMavzuNomi.trim()) { setXato("Mavzu nomini kiriting"); return; }
+    setYangiMavzuYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yangi_mavzu_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, nomi: yangiMavzuNomi.trim(), bob: yangiMavzuBob.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setYangiMavzuNomi(""); setYangiMavzuBob(""); setYangiMavzuOchiq(false);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setYangiMavzuYaratilmoqda(false); }
+  };
+
   const KONTENT_YORLIQ = { matn: "📝 Matn", latex: "🧮 LaTeX", rasm: "🖼 Rasm", pdf: "📄 PDF", word: "📃 Word", video: "🎬 Video" };
 
   if (tanlanganMavzu) {
@@ -5661,18 +5681,44 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
       <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruh</button>
       <div className="flex items-center justify-between mb-1 gap-2">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 To'garak mavzulari</h1>
-        <div className="flex gap-2 shrink-0">
-          <button onClick={() => { setTestShablonOchiq(!testShablonOchiq); setQidiruvOchiq(false); }}
+        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+          <button onClick={() => { setYangiMavzuOchiq(!yangiMavzuOchiq); setQidiruvOchiq(false); setTestShablonOchiq(false); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+            {yangiMavzuOchiq ? "✕ Yopish" : "✏️ Yangi mavzu"}
+          </button>
+          <button onClick={() => { setTestShablonOchiq(!testShablonOchiq); setQidiruvOchiq(false); setYangiMavzuOchiq(false); }}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
             {testShablonOchiq ? "✕ Yopish" : "🧪 Test shablon"}
           </button>
-          <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setTestShablonOchiq(false); }}
+          <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setTestShablonOchiq(false); setYangiMavzuOchiq(false); }}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
           </button>
         </div>
       </div>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Milliy bazadan mavzu tanlab, har biriga matn/LaTeX/rasm/PDF/Word/video biriktiring.</p>
+
+      {yangiMavzuOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: "#2B2B2B" }}>Yangi mavzu qo'shish</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+            Milliy bazada mos mavzu topilmasa (masalan yangi maxsus guruh uchun) — shu yerda nomini yozib, o'zingiz qo'shing. Kod avtomatik yaratiladi.
+          </p>
+          <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
+            placeholder="Bob nomi (ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
+            placeholder="Mavzu nomi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
+            {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Mavzu qo'shish"}
+          </button>
+          {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        </div>
+      )}
 
       {testShablonOchiq && (
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
@@ -5687,7 +5733,7 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
                   placeholder="0" className="w-16 px-2 py-1 rounded-lg border text-xs text-center" style={{ borderColor: "#E5E1D8" }} />
               </div>
             ))}
-            {mavzular.length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Avval "+ Mavzu qo'shish" orqali mavzu qo'shing.</p>}
+            {mavzular.length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Avval "+ Mavzu qo'shish" yoki "✏️ Yangi mavzu" orqali mavzu qo'shing.</p>}
           </div>
           <button onClick={testShablonYukla} disabled={testYuklanmoqda}
             className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
