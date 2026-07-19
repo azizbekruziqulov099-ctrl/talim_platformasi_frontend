@@ -3027,6 +3027,8 @@ function MaktablarBolimi({ token }) {
   const [tuman, setTuman] = useState("");
   const [smenaSoni, setSmenaSoni] = useState(1);
   const [direktor, setDirektor] = useState(null); // {user_id, full_name} | null
+  const [pulli, setPulli] = useState(false);
+  const [oylikTolov, setOylikTolov] = useState("");
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
@@ -3051,11 +3053,12 @@ function MaktablarBolimi({ token }) {
         body: JSON.stringify({
           token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined,
           smena_soni: smenaSoni, direktor_user_id: direktor ? direktor.user_id : undefined,
+          pulli, oylik_tolov: pulli && oylikTolov ? parseInt(oylikTolov, 10) : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      setNomi(""); setViloyat(""); setTuman(""); setSmenaSoni(1); setDirektor(null); setFormOchiq(false);
+      setNomi(""); setViloyat(""); setTuman(""); setSmenaSoni(1); setDirektor(null); setPulli(false); setOylikTolov(""); setFormOchiq(false);
       maktablarniYukla();
     } catch (e) {
       setXato(e.message);
@@ -3120,6 +3123,28 @@ function MaktablarBolimi({ token }) {
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy — keyin ham belgilash mumkin)</label>
           <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
+
+          <label className="text-xs font-medium mb-1.5 block mt-3" style={{ color: "#5A5648" }}>To'lov turi</label>
+          <div className="flex gap-2 mb-3">
+            <button onClick={() => setPulli(false)}
+              className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+              style={!pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+              Bepul (davlat)
+            </button>
+            <button onClick={() => setPulli(true)}
+              className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+              style={pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+              Pulli (xususiy)
+            </button>
+          </div>
+          {pulli && (
+            <>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm)</label>
+              <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+                placeholder="masalan: 500000"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            </>
+          )}
 
           {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
           <button onClick={maktabSaqla} disabled={saqlanmoqda}
@@ -3557,7 +3582,7 @@ function BogchalarBolimi({ token }) {
         body: JSON.stringify({
           token, nomi: nomi.trim(), turi, viloyat: viloyat || undefined, tuman: tuman || undefined,
           direktor_user_id: direktor ? direktor.user_id : undefined,
-          oylik_tolov: oylikTolov ? parseInt(oylikTolov, 10) : undefined,
+          oylik_tolov: turi === "xususiy" && oylikTolov ? parseInt(oylikTolov, 10) : undefined,
         }),
       });
       const data = await res.json();
@@ -3623,10 +3648,14 @@ function BogchalarBolimi({ token }) {
             </div>
           </div>
 
-          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm, ixtiyoriy)</label>
-          <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
-            placeholder="masalan: 800000"
-            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          {turi === "xususiy" && (
+            <>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm, ixtiyoriy)</label>
+              <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+                placeholder="masalan: 800000"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            </>
+          )}
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy)</label>
           <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
@@ -3674,6 +3703,20 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natijalar, setNatijalar] = useState(null);
+  const [turi, setTuri] = useState(bogcha.turi || "xususiy");
+  const [oylikTolov, setOylikTolov] = useState(bogcha.oylik_tolov ? String(bogcha.oylik_tolov) : "");
+  const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
+
+  const tolovSozlashniSaqla = async () => {
+    setTolovSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/bogcha_tolov_sozlash`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, bogcha_id: bogcha.id, turi, oylik_tolov: oylikTolov ? parseInt(oylikTolov, 10) : undefined }),
+      });
+    } finally { setTolovSaqlanmoqda(false); }
+  };
 
   const shablonYukla = () => {
     window.open(`${API_BASE}/api/admin/bogcha_xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
@@ -3707,6 +3750,30 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {bogcha.turi === "xususiy" ? "Xususiy" : "Davlat"} · {[bogcha.viloyat, bogcha.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}
       </p>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => setTuri("davlat")}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={turi === "davlat" ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Davlat
+          </button>
+          <button onClick={() => setTuri("xususiy")}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={turi === "xususiy" ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Xususiy
+          </button>
+        </div>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm) — bo'sh qoldirsangiz, bepul hisoblanadi</label>
+        <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+          placeholder="masalan: 800000"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={tolovSozlashniSaqla} disabled={tolovSaqlanmoqda}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: tolovSaqlanmoqda ? 0.7 : 1 }}>
+          {tolovSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+        </button>
+      </div>
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>Xodimlarni kiritish</p>
