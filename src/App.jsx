@@ -2418,6 +2418,13 @@ function AdminTab({ token, oldindanTanlangan }) {
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🧸 Bog'chalar
         </button>
+        <button onClick={() => setBolim("universitet")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "universitet"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🎓 Universitetlar
+        </button>
       </div>
 
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
@@ -2426,6 +2433,7 @@ function AdminTab({ token, oldindanTanlangan }) {
       {bolim === "maktab" && <MaktablarBolimi token={token} />}
       {bolim === "markaz" && <MarkazlarBolimi token={token} />}
       {bolim === "bogcha" && <BogchalarBolimi token={token} />}
+      {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
     </div>
   );
 }
@@ -3624,6 +3632,255 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UniversitetlarBolimi({ token }) {
+  const [holat, setHolat] = useState("universitet"); // universitet | fakultet | kafedra | guruh
+  const [universitetlar, setUniversitetlar] = useState([]);
+  const [fakultetlar, setFakultetlar] = useState([]);
+  const [kafedralar, setKafedralar] = useState([]);
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [tUniversitet, setTUniversitet] = useState(null);
+  const [tFakultet, setTFakultet] = useState(null);
+  const [tKafedra, setTKafedra] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [xato, setXato] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+
+  const [nomi, setNomi] = useState("");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [kurs, setKurs] = useState("");
+  const [yonalish, setYonalish] = useState("");
+  const [rahbar, setRahbar] = useState(null);
+
+  const formniTozala = () => { setNomi(""); setViloyat(""); setTuman(""); setKurs(""); setYonalish(""); setRahbar(null); setFormOchiq(false); setXato(""); };
+
+  const universitetlarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/universitetlar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json()).then((d) => { setUniversitetlar(d.universitetlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+  useEffect(universitetlarniYukla, [token]);
+
+  const fakultetlarniYukla = (universitetId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/fakultetlar?token=${encodeURIComponent(token)}&universitet_id=${universitetId}`)
+      .then((r) => r.json()).then((d) => { setFakultetlar(d.fakultetlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+  const kafedralarniYukla = (fakultetId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/kafedralar?token=${encodeURIComponent(token)}&fakultet_id=${fakultetId}`)
+      .then((r) => r.json()).then((d) => { setKafedralar(d.kafedralar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+  const guruhlarniYukla = (kafedraId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/universitet_guruhlari?token=${encodeURIComponent(token)}&kafedra_id=${kafedraId}`)
+      .then((r) => r.json()).then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+
+  const universitetOch = (u) => { setTUniversitet(u); setHolat("fakultet"); formniTozala(); fakultetlarniYukla(u.id); };
+  const fakultetOch = (f) => { setTFakultet(f); setHolat("kafedra"); formniTozala(); kafedralarniYukla(f.id); };
+  const kafedraOch = (k) => { setTKafedra(k); setHolat("guruh"); formniTozala(); guruhlarniYukla(k.id); };
+
+  const universitetSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/universitet_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined, rektor_user_id: rahbar ? rahbar.user_id : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); universitetlarniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const fakultetSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/fakultet_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, universitet_id: tUniversitet.id, nomi: nomi.trim(), dekan_user_id: rahbar ? rahbar.user_id : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); fakultetlarniYukla(tUniversitet.id);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const kafedraSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/kafedra_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, fakultet_id: tFakultet.id, nomi: nomi.trim(), mudir_user_id: rahbar ? rahbar.user_id : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); kafedralarniYukla(tFakultet.id);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const guruhSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/universitet_guruh_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, kafedra_id: tKafedra.id, nomi: nomi.trim(),
+          kurs: kurs ? parseInt(kurs, 10) : undefined, yonalish: yonalish || undefined,
+          rahbar_user_id: rahbar ? rahbar.user_id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); guruhlarniYukla(tKafedra.id);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const ortgaQaytish = () => {
+    if (holat === "guruh") { setHolat("kafedra"); formniTozala(); }
+    else if (holat === "kafedra") { setHolat("fakultet"); formniTozala(); }
+    else if (holat === "fakultet") { setHolat("universitet"); formniTozala(); universitetlarniYukla(); }
+  };
+
+  const sarlavhalar = { universitet: "🎓 Universitetlar", fakultet: `📚 ${tUniversitet?.nomi} — Fakultetlar`, kafedra: `🏛 ${tFakultet?.nomi} — Kafedralar`, guruh: `👥 ${tKafedra?.nomi} — Guruhlar` };
+  const royxat = holat === "universitet" ? universitetlar : holat === "fakultet" ? fakultetlar : holat === "kafedra" ? kafedralar : guruhlar;
+
+  return (
+    <div>
+      {holat !== "universitet" && (
+        <button onClick={ortgaQaytish} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      )}
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{sarlavhalar[holat]}</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi"}
+          </button>
+        </div>
+        {holat === "universitet" && <p className="text-xs" style={{ color: "#8A8578" }}>Rektor → Dekan → Kafedra mudiri → Guruh kuratori tuzilmasi.</p>}
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder={holat === "universitet" ? "masalan: Samarqand Davlat Universiteti" : holat === "fakultet" ? "masalan: Matematika fakulteti" : holat === "kafedra" ? "masalan: Algebra va geometriya kafedrasi" : "masalan: 201-guruh"}
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+
+          {holat === "universitet" && (
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+                <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                  <option value="">—</option>
+                  {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+                <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                  <option value="">—</option>
+                  {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {holat === "guruh" && (
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Kurs</label>
+                <select value={kurs} onChange={(e) => setKurs(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                  <option value="">—</option>
+                  {[1, 2, 3, 4, 5, 6].map((k) => <option key={k} value={k}>{k}-kurs</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Yo'nalish</label>
+                <input type="text" value={yonalish} onChange={(e) => setYonalish(e.target.value)}
+                  placeholder="masalan: Matematika"
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              </div>
+            </div>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+            {holat === "universitet" ? "Rektor (ixtiyoriy)" : holat === "fakultet" ? "Dekan (ixtiyoriy)" : holat === "kafedra" ? "Kafedra mudiri (ixtiyoriy)" : "Guruh kuratori (ixtiyoriy)"}
+          </label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={rahbar} onTanla={setRahbar} />
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={holat === "universitet" ? universitetSaqla : holat === "fakultet" ? fakultetSaqla : holat === "kafedra" ? kafedraSaqla : guruhSaqla}
+            disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : royxat.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {holat === "universitet" && universitetlar.map((u) => (
+            <button key={u.id} onClick={() => universitetOch(u)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{u.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{[u.viloyat, u.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {u.fakultet_soni} fakultet</p>
+                <p className="text-xs mt-1" style={{ color: u.rektor_ismi ? "#3B6D11" : "#B0553A" }}>{u.rektor_ismi ? `👤 Rektor: ${u.rektor_ismi}` : "⚠️ Rektor belgilanmagan"}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+          {holat === "fakultet" && fakultetlar.map((f) => (
+            <button key={f.id} onClick={() => fakultetOch(f)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{f.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{f.kafedra_soni} kafedra</p>
+                <p className="text-xs mt-1" style={{ color: f.dekan_ismi ? "#3B6D11" : "#B0553A" }}>{f.dekan_ismi ? `👤 Dekan: ${f.dekan_ismi}` : "⚠️ Dekan belgilanmagan"}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+          {holat === "kafedra" && kafedralar.map((k) => (
+            <button key={k.id} onClick={() => kafedraOch(k)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{k.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{k.guruh_soni} guruh</p>
+                <p className="text-xs mt-1" style={{ color: k.mudir_ismi ? "#3B6D11" : "#B0553A" }}>{k.mudir_ismi ? `👤 Mudir: ${k.mudir_ismi}` : "⚠️ Mudir belgilanmagan"}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+          {holat === "guruh" && guruhlar.map((g) => (
+            <div key={g.id} className="rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>
+                {g.kurs ? `${g.kurs}-kurs` : ""}{g.yonalish ? ` · ${g.yonalish}` : ""} · {g.talaba_soni} talaba
+              </p>
+              <p className="text-xs mt-1" style={{ color: g.rahbar_ismi ? "#3B6D11" : "#B0553A" }}>{g.rahbar_ismi ? `👤 Kurator: ${g.rahbar_ismi}` : "⚠️ Kurator belgilanmagan"}</p>
+              <p className="text-xs font-mono mt-1" style={{ color: "#8A5A1C" }}>🔐 Qo'shilish paroli: {g.qoshilish_paroli}</p>
+            </div>
+          ))}
         </div>
       )}
     </div>
