@@ -4764,17 +4764,70 @@ function OquvchiProfili({ token, userId, onOrtga }) {
   const [malumot, setMalumot] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+  const [sogliq, setSogliq] = useState(null);
+  const [sogliqTahrir, setSogliqTahrir] = useState(false);
+  const [allergiyalar, setAllergiyalar] = useState("");
+  const [qonGuruhi, setQonGuruhi] = useState("");
+  const [aloqaIsmi, setAloqaIsmi] = useState("");
+  const [aloqaTelefoni, setAloqaTelefoni] = useState("");
+  const [boshqaEslatma, setBoshqaEslatma] = useState("");
+  const [sogliqSaqlanmoqda, setSogliqSaqlanmoqda] = useState(false);
+  const [psixologYozuvlar, setPsixologYozuvlar] = useState(null);
+  const [yangiKuzatuv, setYangiKuzatuv] = useState("");
+  const [kuzatuvSaqlanmoqda, setKuzatuvSaqlanmoqda] = useState(false);
 
   useEffect(() => {
     setYuklanmoqda(true); setXato("");
     fetch(`${API_BASE}/api/oqituvchi/oquvchi_profili?token=${encodeURIComponent(token)}&user_id=${userId}`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.detail) setXato(d.detail); else setMalumot(d);
+        if (d.detail) { setXato(d.detail); setYuklanmoqda(false); return; }
+        setMalumot(d);
         setYuklanmoqda(false);
+        fetch(`${API_BASE}/api/bola/${userId}/favqulodda_malumot?token=${encodeURIComponent(token)}`)
+          .then((r) => r.json())
+          .then((sd) => {
+            setSogliq(sd);
+            setAllergiyalar(sd.allergiyalar || ""); setQonGuruhi(sd.qon_guruhi || "");
+            setAloqaIsmi(sd.aloqa_ismi || ""); setAloqaTelefoni(sd.aloqa_telefoni || ""); setBoshqaEslatma(sd.boshqa_eslatma || "");
+          })
+          .catch(() => {});
+        if (d.maktab_id) {
+          fetch(`${API_BASE}/api/maktab/psixolog_yozuvlari?token=${encodeURIComponent(token)}&bola_user_id=${userId}&maktab_id=${d.maktab_id}`)
+            .then((r) => r.json())
+            .then((pd) => setPsixologYozuvlar(pd.yozuvlar || []))
+            .catch(() => {});
+        }
       })
       .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
   }, [token, userId]);
+
+  const sogliqSaqla = async () => {
+    setSogliqSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/bola/favqulodda_malumot`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, bola_user_id: userId, allergiyalar: allergiyalar || undefined, qon_guruhi: qonGuruhi || undefined, aloqa_ismi: aloqaIsmi || undefined, aloqa_telefoni: aloqaTelefoni || undefined, boshqa_eslatma: boshqaEslatma || undefined }),
+      });
+      setSogliq({ allergiyalar, qon_guruhi: qonGuruhi, aloqa_ismi: aloqaIsmi, aloqa_telefoni: aloqaTelefoni, boshqa_eslatma: boshqaEslatma });
+      setSogliqTahrir(false);
+    } finally { setSogliqSaqlanmoqda(false); }
+  };
+
+  const kuzatuvQosh = async () => {
+    if (!yangiKuzatuv.trim() || !malumot?.maktab_id) return;
+    setKuzatuvSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/maktab/psixolog_yozuv_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, bola_user_id: userId, maktab_id: malumot.maktab_id, matn: yangiKuzatuv.trim() }),
+      });
+      setYangiKuzatuv("");
+      const r = await fetch(`${API_BASE}/api/maktab/psixolog_yozuvlari?token=${encodeURIComponent(token)}&bola_user_id=${userId}&maktab_id=${malumot.maktab_id}`);
+      const d = await r.json();
+      setPsixologYozuvlar(d.yozuvlar || []);
+    } finally { setKuzatuvSaqlanmoqda(false); }
+  };
 
   const foizRangi = (foiz) => (foiz >= 70 ? "#3B6D11" : foiz >= 40 ? "#8A5A1C" : "#A32D2D");
   const foizFoni = (foiz) => (foiz >= 70 ? "#EAF3DE" : foiz >= 40 ? "#FDF3E0" : "#FCEBEB");
@@ -4842,7 +4895,7 @@ function OquvchiProfili({ token, userId, onOrtga }) {
           </div>
 
           {malumot.pulli && (
-            <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
               <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov tarixi</p>
               {malumot.tolov_tarixi.length === 0 ? (
                 <p className="text-xs" style={{ color: "#8A8578" }}>Hali to'lov qilinmagan.</p>
@@ -4860,7 +4913,201 @@ function OquvchiProfili({ token, userId, onOrtga }) {
               )}
             </div>
           )}
+
+          <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>🚑 Favqulodda ma'lumot</p>
+              <button onClick={() => setSogliqTahrir(!sogliqTahrir)} className="text-xs font-semibold" style={{ color: "#1B4B7A" }}>
+                {sogliqTahrir ? "Bekor" : "✎ Tahrirlash"}
+              </button>
+            </div>
+            {sogliqTahrir ? (
+              <div>
+                <input type="text" value={allergiyalar} onChange={(e) => setAllergiyalar(e.target.value)} placeholder="Allergiyalar"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={qonGuruhi} onChange={(e) => setQonGuruhi(e.target.value)} placeholder="Qon guruhi (masalan A+)"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={aloqaIsmi} onChange={(e) => setAloqaIsmi(e.target.value)} placeholder="Favqulodda aloqa ismi"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={aloqaTelefoni} onChange={(e) => setAloqaTelefoni(e.target.value)} placeholder="Favqulodda aloqa telefoni"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={boshqaEslatma} onChange={(e) => setBoshqaEslatma(e.target.value)} placeholder="Boshqa muhim eslatma"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-3" style={{ borderColor: "#E5E1D8" }} />
+                <button onClick={sogliqSaqla} disabled={sogliqSaqlanmoqda} className="w-full py-2 rounded-lg font-semibold text-white text-xs" style={{ backgroundColor: "#1B4B7A" }}>
+                  {sogliqSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+                </button>
+              </div>
+            ) : !sogliq || (!sogliq.allergiyalar && !sogliq.qon_guruhi && !sogliq.aloqa_ismi) ? (
+              <p className="text-xs" style={{ color: "#8A8578" }}>Hali kiritilmagan.</p>
+            ) : (
+              <div className="space-y-1 text-xs" style={{ color: "#5A5648" }}>
+                {sogliq.allergiyalar && <p>🩹 Allergiya: {sogliq.allergiyalar}</p>}
+                {sogliq.qon_guruhi && <p>🩸 Qon guruhi: {sogliq.qon_guruhi}</p>}
+                {sogliq.aloqa_ismi && <p>📞 {sogliq.aloqa_ismi}{sogliq.aloqa_telefoni ? ` — ${sogliq.aloqa_telefoni}` : ""}</p>}
+                {sogliq.boshqa_eslatma && <p>ℹ️ {sogliq.boshqa_eslatma}</p>}
+              </div>
+            )}
+          </div>
+
+          {psixologYozuvlar !== null && (
+            <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-bold mb-1" style={{ color: "#2B2B2B" }}>🧠 Psixolog kuzatuvlari</p>
+              <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Faqat psixolog, sinf rahbari va rahbariyatga ko'rinadi.</p>
+              <div className="flex gap-2 mb-3">
+                <input type="text" value={yangiKuzatuv} onChange={(e) => setYangiKuzatuv(e.target.value)} placeholder="Yangi kuzatuv yozing..."
+                  className="flex-1 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#E5E1D8" }} />
+                <button onClick={kuzatuvQosh} disabled={kuzatuvSaqlanmoqda || !yangiKuzatuv.trim()} className="px-3 py-2 rounded-lg font-semibold text-white text-xs" style={{ backgroundColor: "#5A3D9E" }}>
+                  +
+                </button>
+              </div>
+              {psixologYozuvlar.length === 0 ? (
+                <p className="text-xs" style={{ color: "#8A8578" }}>Hali kuzatuv yozilmagan.</p>
+              ) : (
+                <div className="space-y-2">
+                  {psixologYozuvlar.map((k) => (
+                    <div key={k.id} className="rounded-lg p-2.5" style={{ backgroundColor: "#F3F0FF" }}>
+                      <p className="text-xs" style={{ color: "#2B2B2B" }}>{k.matn}</p>
+                      <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{k.yozgan_ismi} · {new Date(k.yaratilgan_at).toLocaleDateString("uz-UZ")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
+      )}
+    </div>
+  );
+}
+
+function XodimDavomatBelgilash({ token, maktabId, onOrtga }) {
+  const bugun = new Date().toISOString().slice(0, 10);
+  const [sana, setSana] = useState(bugun);
+  const [xodimlar, setXodimlar] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [saqlandi, setSaqlandi] = useState(false);
+
+  const HOLATLAR = [
+    { kalit: "keldi", belgi: "✅", rang: "#3B6D11", fon: "#EAF3DE" },
+    { kalit: "kelmadi", belgi: "❌", rang: "#A32D2D", fon: "#FCEBEB" },
+    { kalit: "kechikdi", belgi: "⏰", rang: "#8A5A1C", fon: "#FDF3E0" },
+    { kalit: "sababli", belgi: "📋", rang: "#5A5648", fon: "#F7F5F0" },
+  ];
+
+  const yukla = () => {
+    setYuklanmoqda(true); setSaqlandi(false);
+    fetch(`${API_BASE}/api/maktab/xodim_davomat_royxati?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sana=${sana}`)
+      .then((r) => r.json())
+      .then((d) => { setXodimlar((d.xodimlar || []).map((x) => ({ ...x, holat: x.holat || "keldi" }))); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(yukla, [sana, maktabId, token]);
+
+  const holatOzgartir = (userId, holat) => {
+    setXodimlar((prev) => prev.map((x) => (x.user_id === userId ? { ...x, holat } : x)));
+  };
+
+  const saqla = async () => {
+    setSaqlanmoqda(true); setSaqlandi(false);
+    try {
+      await fetch(`${API_BASE}/api/maktab/xodim_davomat_belgila`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, maktab_id: maktabId, sana,
+          yozuvlar: xodimlar.map((x) => ({ user_id: x.user_id, holat: x.holat })),
+        }),
+      });
+      setSaqlandi(true);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🧑‍🏫 Xodim davomati</h1>
+      <input type="date" value={sana} onChange={(e) => setSana(e.target.value)} max={bugun}
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4" style={{ borderColor: "#E5E1D8" }} />
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : (
+        <div className="space-y-2 mb-5">
+          {(xodimlar || []).map((x) => (
+            <div key={x.user_id} className="rounded-xl p-3 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-medium mb-0.5" style={{ color: "#2B2B2B" }}>{x.full_name}</p>
+              <p className="text-xs mb-2" style={{ color: "#8A8578" }}>{LAVOZIM_NOMLARI[x.lavozim] || x.lavozim}</p>
+              <div className="flex gap-1.5">
+                {HOLATLAR.map((h) => (
+                  <button key={h.kalit} onClick={() => holatOzgartir(x.user_id, h.kalit)}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                    style={x.holat === h.kalit ? { backgroundColor: h.rang, color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#8A8578" }}>
+                    {h.belgi}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {(xodimlar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Xodim topilmadi.</p>}
+        </div>
+      )}
+
+      {saqlandi && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✅ Saqlandi</p>}
+      <button onClick={saqla} disabled={saqlanmoqda || yuklanmoqda}
+        className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+        {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+      </button>
+    </div>
+  );
+}
+
+function FanlarTahliliBolimi({ token, maktabId, onOrtga }) {
+  const [fanlar, setFanlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/maktab/fanlar_tahlili?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token, maktabId]);
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Fanlar tahlili</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Butun maktab kesimida, har fandan necha o'quvchi qanday natijada.</p>
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : fanlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali test yechilmagan — tahlil uchun ma'lumot yo'q.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {fanlar.map((f) => {
+            const jami = f.yaxshi + f.ortacha + f.past;
+            return (
+              <div key={f.subject_name} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{f.subject_name}</p>
+                  <span className="text-xs font-bold" style={{ color: "#1B4B7A" }}>o'rtacha {f.umumiy_ortacha}%</span>
+                </div>
+                <div className="flex h-2.5 rounded-full overflow-hidden mb-2">
+                  {f.yaxshi > 0 && <div style={{ width: `${(f.yaxshi / jami) * 100}%`, backgroundColor: "#3B6D11" }} />}
+                  {f.ortacha > 0 && <div style={{ width: `${(f.ortacha / jami) * 100}%`, backgroundColor: "#C89B3C" }} />}
+                  {f.past > 0 && <div style={{ width: `${(f.past / jami) * 100}%`, backgroundColor: "#A32D2D" }} />}
+                </div>
+                <div className="flex gap-3 text-xs" style={{ color: "#8A8578" }}>
+                  <span>🟢 {f.yaxshi} yaxshi</span>
+                  <span>🟡 {f.ortacha} o'rtacha</span>
+                  <span>🔴 {f.past} past</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -5141,6 +5388,7 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
   const [davomatKorinishi, setDavomatKorinishi] = useState(false);
   const [tepaKorinish, setTepaKorinish] = useState("sinflar"); // "sinflar" | "oqituvchilar" | "reyting"
   const [tanlanganOquvchiId, setTanlanganOquvchiId] = useState(null);
+  const [xodimDavomatKorinishi, setXodimDavomatKorinishi] = useState(false);
   const joriyOy = new Date().toISOString().slice(0, 7);
 
   useEffect(() => {
@@ -5190,6 +5438,10 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
 
   if (tanlanganOquvchiId) {
     return <OquvchiProfili token={token} userId={tanlanganOquvchiId} onOrtga={() => setTanlanganOquvchiId(null)} />;
+  }
+
+  if (xodimDavomatKorinishi) {
+    return <XodimDavomatBelgilash token={token} maktabId={maktabId} onOrtga={() => setXodimDavomatKorinishi(false)} />;
   }
 
   if (tanlanganSinf && davomatKorinishi) {
@@ -5279,6 +5531,20 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
                   <p className="text-xs" style={{ color: "#8A8578" }}>sinf hali belgilamagan</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {malumot.xodim_bugungi_davomat && (
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#F3F0FF", border: "1px solid #D8CCF5" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold" style={{ color: "#5A3D9E" }}>🧑‍🏫 Bugungi xodim davomati</p>
+                <button onClick={() => setXodimDavomatKorinishi(true)} className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white" style={{ backgroundColor: "#5A3D9E" }}>
+                  Belgilash
+                </button>
+              </div>
+              <p className="text-sm" style={{ color: "#2B2B2B" }}>
+                {malumot.xodim_bugungi_davomat.keldi} / {malumot.xodim_bugungi_davomat.jami} xodim keldi
+              </p>
             </div>
           )}
 
@@ -5937,6 +6203,23 @@ function AiYordamchiBolimi({ token, onOrtga }) {
   );
 }
 
+function PsixologQidiruv({ token, maktabId, onOrtga }) {
+  const [tanlanganOquvchi, setTanlanganOquvchi] = useState(null);
+
+  if (tanlanganOquvchi) {
+    return <OquvchiProfili token={token} userId={tanlanganOquvchi.user_id} onOrtga={() => setTanlanganOquvchi(null)} />;
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🧠 Psixolog</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>O'quvchini qidirib, uning kuzatuv yozuvlarini ko'ring yoki yangi qo'shing.</p>
+      <MaktabOdamQidiruvi token={token} maktabId={maktabId} tanlanganOdam={null} onTanla={setTanlanganOquvchi} />
+    </div>
+  );
+}
+
 function OqituvchiTab({ token, foydalanuvchi }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
@@ -6141,6 +6424,14 @@ function OqituvchiTab({ token, foydalanuvchi }) {
 
   if (korinish === "ai_yordamchi") {
     return <AiYordamchiBolimi token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "fanlar_tahlili") {
+    return <FanlarTahliliBolimi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "psixolog") {
+    return <PsixologQidiruv token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "bogcha") {
@@ -6408,6 +6699,16 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       <button onClick={() => setKorinish("ai_yordamchi")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
         🤖 AI Yordamchi →
       </button>
+      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
+        <button onClick={() => setKorinish("fanlar_tahlili")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          📊 Fanlar tahlili →
+        </button>
+      )}
+      {foydalanuvchi?.lavozim === "psixolog" && (
+        <button onClick={() => setKorinish("psixolog")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🧠 Psixolog →
+        </button>
+      )}
       {(foydalanuvchi?.lavozim === "markaz_direktor" || foydalanuvchi?.lavozim === "administrator") && (
         <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           🎓 Markazimni boshqarish →
@@ -6486,7 +6787,15 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
   const [bilimData, setBilimData] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
-  const [korinish, setKorinish] = useState("bilim"); // "bilim" | "ai_yordamchi"
+  const [korinish, setKorinish] = useState("bilim"); // "bilim" | "ai_yordamchi" | "sogliq"
+  const [sogliq, setSogliq] = useState(null);
+  const [allergiyalar, setAllergiyalar] = useState("");
+  const [qonGuruhi, setQonGuruhi] = useState("");
+  const [aloqaIsmi, setAloqaIsmi] = useState("");
+  const [aloqaTelefoni, setAloqaTelefoni] = useState("");
+  const [boshqaEslatma, setBoshqaEslatma] = useState("");
+  const [sogliqSaqlanmoqda, setSogliqSaqlanmoqda] = useState(false);
+  const [sogliqSaqlandi, setSogliqSaqlandi] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`)
@@ -6507,7 +6816,29 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
       .then((r) => r.json())
       .then((d) => { setBilimData(d); setYuklanmoqda(false); })
       .catch(() => { setXato("Bilim ma'lumotini yuklab bo'lmadi"); setYuklanmoqda(false); });
-  }, [tanlanganBola]);
+    fetch(`${API_BASE}/api/bola/${tanlanganBola}/favqulodda_malumot?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setSogliq(d);
+        setAllergiyalar(d.allergiyalar || ""); setQonGuruhi(d.qon_guruhi || "");
+        setAloqaIsmi(d.aloqa_ismi || ""); setAloqaTelefoni(d.aloqa_telefoni || ""); setBoshqaEslatma(d.boshqa_eslatma || "");
+      })
+      .catch(() => {});
+  }, [tanlanganBola, token]);
+
+  const sogliqSaqla = async () => {
+    setSogliqSaqlanmoqda(true); setSogliqSaqlandi(false);
+    try {
+      await fetch(`${API_BASE}/api/bola/favqulodda_malumot`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, bola_user_id: tanlanganBola, allergiyalar: allergiyalar || undefined, qon_guruhi: qonGuruhi || undefined,
+          aloqa_ismi: aloqaIsmi || undefined, aloqa_telefoni: aloqaTelefoni || undefined, boshqa_eslatma: boshqaEslatma || undefined,
+        }),
+      });
+      setSogliqSaqlandi(true);
+    } finally { setSogliqSaqlanmoqda(false); }
+  };
 
   if (farzandlar.length === 0 && !yuklanmoqda) {
     return (
@@ -6540,11 +6871,15 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
         )}
 
         <button onClick={() => setKorinish(korinish === "ai_yordamchi" ? "bilim" : "ai_yordamchi")}
-          className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+          className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           {korinish === "ai_yordamchi" ? "← Bilim ma'lumotiga qaytish" : "🤖 AI Yordamchidan so'rash →"}
         </button>
+        <button onClick={() => setKorinish(korinish === "sogliq" ? "bilim" : "sogliq")}
+          className="block text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+          {korinish === "sogliq" ? "← Bilim ma'lumotiga qaytish" : "🚑 Favqulodda ma'lumot →"}
+        </button>
 
-        {korinish !== "ai_yordamchi" && (
+        {korinish !== "ai_yordamchi" && korinish !== "sogliq" && (
           <div className="rounded-xl px-4 py-3 mb-1 flex items-start gap-2.5" style={{ backgroundColor: "#EAF1F7" }}>
             <span className="text-base shrink-0">💡</span>
             <p className="text-xs" style={{ color: "#1B4B7A" }}>
@@ -6557,6 +6892,34 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
       </div>
       {korinish === "ai_yordamchi" ? (
         <AiYordamchiBolimi token={token} onOrtga={() => setKorinish("bilim")} />
+      ) : korinish === "sogliq" ? (
+        <div className="px-5 pb-4">
+          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+            Bu ma'lumot favqulodda holatda maktab xodimlariga tezkor ko'rinadi (sinf rahbari, rahbariyat).
+          </p>
+          <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Allergiyalar</label>
+            <input type="text" value={allergiyalar} onChange={(e) => setAllergiyalar(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Qon guruhi</label>
+            <input type="text" value={qonGuruhi} onChange={(e) => setQonGuruhi(e.target.value)} placeholder="masalan A+"
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Favqulodda aloqa ismi</label>
+            <input type="text" value={aloqaIsmi} onChange={(e) => setAloqaIsmi(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Favqulodda aloqa telefoni</label>
+            <input type="text" value={aloqaTelefoni} onChange={(e) => setAloqaTelefoni(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Boshqa muhim eslatma</label>
+            <input type="text" value={boshqaEslatma} onChange={(e) => setBoshqaEslatma(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            {sogliqSaqlandi && <p className="text-xs mb-2" style={{ color: "#3B6D11" }}>✅ Saqlandi</p>}
+            <button onClick={sogliqSaqla} disabled={sogliqSaqlanmoqda}
+              className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: sogliqSaqlanmoqda ? 0.7 : 1 }}>
+              {sogliqSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+            </button>
+          </div>
+        </div>
       ) : yuklanmoqda ? (
         <div className="px-5 pt-10 text-center">
           <Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} />
