@@ -1819,6 +1819,12 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
 
+  const [mavzuOchirishTasdiqi, setMavzuOchirishTasdiqi] = useState(null); // mavzu obyekti | null
+  const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(false);
+  const [ochirilmoqda, setOchirilmoqda] = useState(false);
+  const [rasmGaleriyasi, setRasmGaleriyasi] = useState(null); // {sarlavha, rasmlar: [id,...]} | null
+  const [rasmlarYuklanmoqda, setRasmlarYuklanmoqda] = useState(false);
+
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
@@ -1836,6 +1842,14 @@ function TopikMavzularTab({ token, onTestYarat }) {
       .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
   };
 
+  const mavzularniQaytaYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
   const fanTanlandi = (fan) => {
     setTanlanganFan(fan);
     setHolat("mavzular");
@@ -1845,6 +1859,44 @@ function TopikMavzularTab({ token, onTestYarat }) {
       .then((r) => r.json())
       .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  const mavzuTestlariniOchir = async (mavzu) => {
+    setOchirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/mavzu_testlarini_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
+        method: "DELETE",
+      });
+      setMavzuOchirishTasdiqi(null);
+      mavzularniQaytaYukla();
+    } catch {
+      setXato("O'chirib bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
+  const fanTestlariniOchir = async () => {
+    setOchirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/fan_testlarini_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
+        method: "DELETE",
+      });
+      setFanOchirishTasdiqi(false);
+      mavzularniQaytaYukla();
+    } catch {
+      setXato("O'chirib bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
+  const rasmlarniKor = async (mavzu) => {
+    setRasmlarYuklanmoqda(true);
+    setRasmGaleriyasi({ sarlavha: mavzu.nomi, rasmlar: [] });
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/mavzu_rasmlari?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`);
+      const data = await res.json();
+      setRasmGaleriyasi({ sarlavha: mavzu.nomi, rasmlar: data.rasmlar || [] });
+    } catch {
+      setXato("Rasmlarni yuklab bo'lmadi");
+    } finally { setRasmlarYuklanmoqda(false); }
   };
 
   if (holat === "sinf") {
@@ -1916,13 +1968,23 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const SAHIFA_HAJMI = 10;
   const korinadigan = mavzular.slice(sahifa * SAHIFA_HAJMI, sahifa * SAHIFA_HAJMI + SAHIFA_HAJMI);
   const jamiSahifa = Math.ceil(mavzular.length / SAHIFA_HAJMI) || 1;
+  const testliSoni = mavzular.filter((m) => m.test_bormi).length;
   return (
     <div className="px-5 pt-6 pb-4">
       <button onClick={() => setHolat("fan")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Fanlar</button>
-      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganFan}</h1>
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>{tanlanganFan}</h1>
+        {testliSoni > 0 && (
+          <button onClick={() => setFanOchirishTasdiqi(true)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+            🗑 Fandagi barcha testlarni o'chirish
+          </button>
+        )}
+      </div>
       <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-        {mavzular.length} ta mavzu · {mavzular.filter((m) => m.test_bormi).length} tasida test bor
+        {mavzular.length} ta mavzu · {testliSoni} tasida test bor
       </p>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
       ) : (
@@ -1941,13 +2003,26 @@ function TopikMavzularTab({ token, onTestYarat }) {
                 <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
                   {m.chorak ? `${m.chorak}-chorak` : ""}{m.bob ? ` · ${m.bob}` : ""}{m.bolim ? ` · ${m.bolim}` : ""} · {m.kichik_soni} kichik mavzu
                 </p>
-                {!m.test_bormi && (
-                  <button onClick={() => onTestYarat(m.topic_code)}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                    style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
-                    🧪 Test shablon yaratish
-                  </button>
-                )}
+                <div className="flex gap-2 flex-wrap">
+                  {!m.test_bormi ? (
+                    <button onClick={() => onTestYarat(m.topic_code)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                      style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+                      🧪 Test shablon yaratish
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => rasmlarniKor(m)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+                        🖼 Rasmlarni ko'rish
+                      </button>
+                      <button onClick={() => setMavzuOchirishTasdiqi(m)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                        🗑 Testlarni o'chirish
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -1967,6 +2042,84 @@ function TopikMavzularTab({ token, onTestYarat }) {
             </div>
           )}
         </>
+      )}
+
+      {mavzuOchirishTasdiqi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Testlarni o'chirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              "{mavzuOchirishTasdiqi.nomi}" mavzusining BARCHA testlari butunlay o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setMavzuOchirishTasdiqi(null)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={() => mavzuTestlariniOchir(mavzuOchirishTasdiqi)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "..." : "Ha, o'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fanOchirishTasdiqi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Butun fanni o'chirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              "{tanlanganFan}" fanidagi BARCHA mavzularning BARCHA testlari butunlay o'chiriladi ({testliSoni} ta mavzu). Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setFanOchirishTasdiqi(false)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={fanTestlariniOchir} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "..." : "Ha, hammasini o'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rasmGaleriyasi && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
+          <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
+            <button onClick={() => setRasmGaleriyasi(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Yopish</button>
+            <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>🖼 {rasmGaleriyasi.sarlavha}</h1>
+            <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+              {rasmlarYuklanmoqda ? "Yuklanmoqda..." : `${rasmGaleriyasi.rasmlar.length} ta rasm havolasi topildi`}
+            </p>
+            {rasmlarYuklanmoqda ? (
+              <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : rasmGaleriyasi.rasmlar.length === 0 ? (
+              <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <p className="text-sm" style={{ color: "#8A8578" }}>Bu mavzuning savollarida rasm havolasi yo'q.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {rasmGaleriyasi.rasmlar.map((rasmId) => (
+                  <div key={rasmId}>
+                    {haqiqiyRasmKodimi(rasmId) ? (
+                      <SavolRasmi rasmId={rasmId} />
+                    ) : (
+                      <div className="w-full rounded-xl mb-1 flex flex-col items-center justify-center gap-1 py-6"
+                        style={{ backgroundColor: "#F1EFE8", border: "1px dashed #C4BFAF" }}>
+                        <span className="text-lg">∑</span>
+                        <span className="text-xs font-medium text-center px-2" style={{ color: "#8A8578" }}>LaTeX ifoda (rasm emas)</span>
+                      </div>
+                    )}
+                    <p className="text-xs font-mono text-center" style={{ color: "#B0AA98", wordBreak: "break-all" }}>{rasmId}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
