@@ -194,7 +194,7 @@ function LoginEkrani() {
     <Qobiq>
       <div className="text-center mb-8">
         <Logotip />
-        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>SamTM Ta'lim</h1>
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>TA'LIM PLATFORMASI</h1>
         <p className="text-sm mt-1" style={{ color: "#8A8578" }}>Farzandingiz bilimini kuzating</p>
       </div>
       <button
@@ -5472,8 +5472,7 @@ function TogarakMavzularOzi({ token, togarakId, onOrtga }) {
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Excel shablonlar orqali — bir martada ko'p mavzu/savol qo'shing.</p>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>1-bosqich — Mavzular (Bob + Mavzu)</p>
-        <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Chorak/bo'lim yo'q — faqat bob va mavzu nomi.</p>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>1-bosqich — Mavzular (Bob + Mavzu)</p>
         <button onClick={mavzuShablonYukla} disabled={mavzuYuklanmoqda}
           className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
           style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
@@ -6722,6 +6721,8 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
   const [korinish, setKorinish] = useState("togarak"); // "togarak" | to'garak guruhlarimi yoki maxsus ekranmi
+  const [muassasalar, setMuassasalar] = useState([]);
+  const [aktivMuassasaIdx, setAktivMuassasaIdx] = useState(0);
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiFan, setYangiFan] = useState("");
@@ -6784,6 +6785,13 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       .then((r) => r.json())
       .then((d) => { setTogaraklar(d.togaraklar || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMuassasalar(d.muassasalar || []))
+      .catch(() => {});
   }, [token]);
 
   const togarakOch = async (t) => {
@@ -6864,28 +6872,48 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     } finally { setYaratilmoqda(false); }
   };
 
+  // Fetch hali qaytmagan bo'lsa ham, profildan (foydalanuvchi) darhol
+  // BITTA muassasa ko'rsatiladi — shu bilan ekran "yalang'och" ochilmaydi.
+  const samariMuassasalar = muassasalar.length > 0 ? muassasalar : (
+    foydalanuvchi?.maktab_id ? [{ turi: "maktab", muassasa_id: foydalanuvchi.maktab_id, muassasa_nomi: foydalanuvchi.maktab_nomi, lavozim: foydalanuvchi.lavozim }]
+    : foydalanuvchi?.markaz_id ? [{ turi: "markaz", muassasa_id: foydalanuvchi.markaz_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
+    : foydalanuvchi?.bogcha_id ? [{ turi: "bogcha", muassasa_id: foydalanuvchi.bogcha_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
+    : foydalanuvchi?.universitet_id ? [{ turi: "universitet", muassasa_id: foydalanuvchi.universitet_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
+    : []
+  );
+  const aktivMuassasa = samariMuassasalar[aktivMuassasaIdx] || samariMuassasalar[0] || null;
+  const MUASSASA_IKONKA = { maktab: "🏫", markaz: "🎓", bogcha: "🧸", universitet: "🎓" };
+  const MUASSASA_BOSHQARUVCHI_LAVOZIM = {
+    maktab: ["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"],
+    markaz: ["markaz_direktor", "administrator"],
+    bogcha: ["bogcha_direktor", "bogcha_zam"],
+    universitet: ["rektor", "prorektor"],
+  };
+
   if (korinish === "markaz") {
-    return <MarkazBoshqaruvi token={token} markazId={foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
+    return <MarkazBoshqaruvi token={token} markazId={aktivMuassasa?.turi === "markaz" ? aktivMuassasa.muassasa_id : foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
   }
 
+  const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
+
   if (korinish === "maktab_rahbariyat") {
-    return <MaktabBoshqaruvi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <MaktabBoshqaruvi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "kutubxona") {
-    return <KutubxonaBolimi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <KutubxonaBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "moliya") {
-    return <MoliyaBolimi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <MoliyaBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "hujjatlar") {
-    return <HujjatlarBolimi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <HujjatlarBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "rejalashtirish") {
-    return <RejalashtirishBolimi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <RejalashtirishBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "ai_yordamchi") {
@@ -6893,11 +6921,11 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   }
 
   if (korinish === "fanlar_tahlili") {
-    return <FanlarTahliliBolimi token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <FanlarTahliliBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "psixolog") {
-    return <PsixologQidiruv token={token} maktabId={foydalanuvchi?.maktab_id} onOrtga={() => setKorinish("togarak")} />;
+    return <PsixologQidiruv token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "bogcha") {
@@ -7148,59 +7176,64 @@ function OqituvchiTab({ token, foydalanuvchi }) {
           + Yangi
         </button>
       </div>
-      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
-        <button onClick={() => setKorinish("maktab_rahbariyat")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🏫 Butun maktabni boshqarish →
+
+      {samariMuassasalar.length > 1 && (
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          {samariMuassasalar.map((m, idx) => (
+            <button key={`${m.turi}-${m.muassasa_id}`} onClick={() => setAktivMuassasaIdx(idx)}
+              className="shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap"
+              style={idx === aktivMuassasaIdx ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              {MUASSASA_IKONKA[m.turi] || "📍"} {m.muassasa_nomi || (m.turi === "maktab" ? "Maktabim" : m.turi === "markaz" ? "Markazim" : m.turi === "bogcha" ? "Bog'cham" : "Institutim")}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {aktivMuassasa?.turi === "maktab" && (MUASSASA_BOSHQARUVCHI_LAVOZIM.maktab.includes(aktivMuassasa.lavozim)) && (
+        <>
+          <button onClick={() => setKorinish("maktab_rahbariyat")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            🏫 Butun maktabni boshqarish →
+          </button>
+          <button onClick={() => setKorinish("kutubxona")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            📖 Kutubxona →
+          </button>
+          <button onClick={() => setKorinish("moliya")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            💰 Moliya →
+          </button>
+          <button onClick={() => setKorinish("hujjatlar")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            🗂 Hujjatlar →
+          </button>
+          <button onClick={() => setKorinish("rejalashtirish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            📅 Rejalashtirish →
+          </button>
+          <button onClick={() => setKorinish("fanlar_tahlili")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            📊 Fanlar tahlili →
+          </button>
+        </>
+      )}
+      {aktivMuassasa?.turi === "maktab" && aktivMuassasa.lavozim === "psixolog" && (
+        <button onClick={() => setKorinish("psixolog")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🧠 Psixolog →
         </button>
       )}
-      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
-        <button onClick={() => setKorinish("kutubxona")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          📖 Kutubxona →
+      {aktivMuassasa?.turi === "markaz" && MUASSASA_BOSHQARUVCHI_LAVOZIM.markaz.includes(aktivMuassasa.lavozim) && (
+        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🎓 Markazimni boshqarish →
         </button>
       )}
-      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
-        <button onClick={() => setKorinish("moliya")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          💰 Moliya →
+      {aktivMuassasa?.turi === "bogcha" && aktivMuassasa.lavozim === "bogcha_opa" && (
+        <button onClick={() => setKorinish("bogcha")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🧸 Bog'cha guruhim →
         </button>
       )}
-      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
-        <button onClick={() => setKorinish("hujjatlar")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🗂 Hujjatlar →
-        </button>
-      )}
-      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
-        <button onClick={() => setKorinish("rejalashtirish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          📅 Rejalashtirish →
+      {aktivMuassasa?.turi === "universitet" && (
+        <button onClick={() => setKorinish("universitet")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🎓 Kurator bo'lgan guruhlarim →
         </button>
       )}
       <button onClick={() => setKorinish("ai_yordamchi")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
         🤖 AI Yordamchi →
       </button>
-      {["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(foydalanuvchi?.lavozim) && (
-        <button onClick={() => setKorinish("fanlar_tahlili")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          📊 Fanlar tahlili →
-        </button>
-      )}
-      {foydalanuvchi?.lavozim === "psixolog" && (
-        <button onClick={() => setKorinish("psixolog")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🧠 Psixolog →
-        </button>
-      )}
-      {(foydalanuvchi?.lavozim === "markaz_direktor" || foydalanuvchi?.lavozim === "administrator") && (
-        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🎓 Markazimni boshqarish →
-        </button>
-      )}
-      {foydalanuvchi?.lavozim === "bogcha_opa" && (
-        <button onClick={() => setKorinish("bogcha")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🧸 Bog'cha guruhim →
-        </button>
-      )}
-      {foydalanuvchi?.universitet_id && (
-        <button onClick={() => setKorinish("universitet")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🎓 Kurator bo'lgan guruhlarim →
-        </button>
-      )}
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
         <button onClick={() => { setXato(""); setHolat("yaratish"); }}
