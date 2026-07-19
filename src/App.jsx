@@ -4345,6 +4345,119 @@ function BogchaGuruhim({ token, onOrtga }) {
   );
 }
 
+function UniversitetGuruhimBilimi({ token, onOrtga }) {
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [tanlanganGuruh, setTanlanganGuruh] = useState(null);
+  const [bilim, setBilim] = useState(null);
+  const [bilimYuklanmoqda, setBilimYuklanmoqda] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/universitet/mening_guruhlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const guruhOch = (g) => {
+    setTanlanganGuruh(g);
+    setBilimYuklanmoqda(true);
+    fetch(`${API_BASE}/api/universitet/guruh_bilimi?token=${encodeURIComponent(token)}&guruh_id=${g.id}`)
+      .then((r) => r.json())
+      .then((d) => { setBilim(d); setBilimYuklanmoqda(false); })
+      .catch(() => setBilimYuklanmoqda(false));
+  };
+
+  const foizRangi = (foiz) => (foiz >= 70 ? "#3B6D11" : foiz >= 40 ? "#8A5A1C" : "#A32D2D");
+  const foizFoni = (foiz) => (foiz >= 70 ? "#EAF3DE" : foiz >= 40 ? "#FDF3E0" : "#FCEBEB");
+
+  if (tanlanganGuruh) {
+    // Kurslar (fan-birinchi) ma'lumotini talaba-birinchi ko'rinishga aylantiramiz —
+    // har bir talaba kartochkasida BARCHA fanlari bir joyda ko'rinishi uchun.
+    const talabaMap = {};
+    if (bilim) {
+      for (const k of bilim.kurslar) {
+        for (const t of k.talabalar) {
+          if (!talabaMap[t.user_id]) talabaMap[t.user_id] = { full_name: t.full_name, fanlar: [] };
+          talabaMap[t.user_id].fanlar.push({ fan: k.fan, foiz: t.otilgan_foiz, ball: t.ortacha_ball });
+        }
+      }
+    }
+    const talabalarRoyxati = Object.values(talabaMap);
+
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganGuruh(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 {tanlanganGuruh.nomi} — bilim ko'rsatkichi</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Silabus mavzulari bo'yicha, har fandan alohida — GPA emas, aniq bilim darajasi.</p>
+
+        {bilimYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : !bilim || bilim.kurslar.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm mb-1" style={{ color: "#2B2B2B" }}>Hali bu guruhga bog'langan fan yo'q.</p>
+            <p className="text-xs" style={{ color: "#8A8578" }}>Professor to'garak (kurs) yaratganda, shu guruhni tanlashi kerak.</p>
+          </div>
+        ) : talabalarRoyxati.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Hali hech bir talaba fanlarga qo'shilmagan.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {talabalarRoyxati.map((t, i) => {
+              const ortachaFoiz = Math.round(t.fanlar.reduce((s, f) => s + f.foiz, 0) / t.fanlar.length);
+              return (
+                <div key={i} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{t.full_name}</p>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: foizFoni(ortachaFoiz), color: foizRangi(ortachaFoiz) }}>
+                      Umumiy: {ortachaFoiz}%
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {t.fanlar.map((f, j) => (
+                      <span key={j} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: foizFoni(f.foiz), color: foizRangi(f.foiz) }}>
+                        {f.fan}: {f.foiz}%{f.ball !== null ? ` (o'rtacha ${f.ball} ball)` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🎓 Kurator bo'lgan guruhlarim</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : guruhlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Sizga hali guruh biriktirilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {guruhlar.map((g) => (
+            <button key={g.id} onClick={() => guruhOch(g)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{g.kurs ? `${g.kurs}-kurs` : ""}{g.yonalish ? ` · ${g.yonalish}` : ""} · {g.talaba_soni} talaba</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OqituvchiTab({ token, foydalanuvchi }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
@@ -4390,6 +4503,9 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [yangiParol, setYangiParol] = useState("");
   const [yangiMaxTalaba, setYangiMaxTalaba] = useState("");
   const [yangiOylikSumma, setYangiOylikSumma] = useState("");
+  const [uniGuruhIzlash, setUniGuruhIzlash] = useState("");
+  const [uniGuruhNatijalar, setUniGuruhNatijalar] = useState([]);
+  const [tanlanganUniGuruh, setTanlanganUniGuruh] = useState(null);
   const [yaratilmoqda, setYaratilmoqda] = useState(false);
 
   // "Aralash to'garak guruhi" yoqilganda — mavjud to'garak sinflari ro'yxatini yuklaymiz
@@ -4419,6 +4535,17 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       .then((d) => setSinfFanlari((d.fanlar || []).map((f) => f.nom)))
       .finally(() => setSinfFanlariYuklanmoqda(false));
   }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf]);
+
+  useEffect(() => {
+    if (uniGuruhIzlash.trim().length < 1) { setUniGuruhNatijalar([]); return; }
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/oqituvchi/universitet_guruh_qidir?token=${encodeURIComponent(token)}&nomi=${encodeURIComponent(uniGuruhIzlash.trim())}`)
+        .then((r) => r.json())
+        .then((d) => setUniGuruhNatijalar(d.natijalar || []))
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [uniGuruhIzlash, token]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/oqituvchi/togaraklar?token=${encodeURIComponent(token)}`)
@@ -4489,6 +4616,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
           parol: yangiParol || undefined,
           max_talaba: yangiMaxTalaba ? parseInt(yangiMaxTalaba, 10) : undefined,
           oylik_summa: yangiOylikSumma ? parseInt(yangiOylikSumma, 10) : undefined,
+          universitet_guruh_id: tanlanganUniGuruh ? tanlanganUniGuruh.id : undefined,
         }),
       });
       const data = await res.json();
@@ -4497,6 +4625,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       setYangiNomi(""); setYangiFan(""); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
       setTogarakSinflari([]); setSinfFanlari([]);
       setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
+      setUniGuruhIzlash(""); setUniGuruhNatijalar([]); setTanlanganUniGuruh(null);
       setHolat("togaraklar");
     } catch (e) {
       setXato(e.message);
@@ -4513,6 +4642,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
 
   if (korinish === "bogcha") {
     return <BogchaGuruhim token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "universitet") {
+    return <UniversitetGuruhimBilimi token={token} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (yuklanmoqda) {
@@ -4641,6 +4774,35 @@ function OqituvchiTab({ token, foydalanuvchi }) {
             </div>
           </div>
 
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+            Universitet guruhi (ixtiyoriy — agar bu kursni ma'lum guruh uchun o'qitsangiz)
+          </label>
+          {tanlanganUniGuruh ? (
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3" style={{ borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+              <span className="text-sm font-medium" style={{ color: "#1B4B7A" }}>
+                🎓 {tanlanganUniGuruh.nomi}{tanlanganUniGuruh.kurs ? ` · ${tanlanganUniGuruh.kurs}-kurs` : ""}
+              </span>
+              <button onClick={() => setTanlanganUniGuruh(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕</button>
+            </div>
+          ) : (
+            <div className="mb-3">
+              <input type="text" value={uniGuruhIzlash} onChange={(e) => setUniGuruhIzlash(e.target.value)}
+                placeholder="Guruh nomini yozing (masalan: 201-guruh)..."
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              {uniGuruhNatijalar.length > 0 && (
+                <div className="mt-1.5 space-y-1">
+                  {uniGuruhNatijalar.map((g) => (
+                    <button key={g.id} onClick={() => { setTanlanganUniGuruh(g); setUniGuruhIzlash(""); setUniGuruhNatijalar([]); }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+                      <span className="text-sm" style={{ color: "#2B2B2B" }}>{g.nomi}</span>
+                      <span className="text-xs" style={{ color: "#8A8578" }}>{g.kafedra_nomi}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
 
           <button onClick={yaratishSaqla} disabled={yaratilmoqda}
@@ -4723,6 +4885,11 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       {foydalanuvchi?.lavozim === "bogcha_opa" && (
         <button onClick={() => setKorinish("bogcha")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
           🧸 Bog'cha guruhim →
+        </button>
+      )}
+      {foydalanuvchi?.universitet_id && (
+        <button onClick={() => setKorinish("universitet")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🎓 Kurator bo'lgan guruhlarim →
         </button>
       )}
       <button onClick={() => setKodFormOchiq(!kodFormOchiq)} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
