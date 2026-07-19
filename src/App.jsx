@@ -7545,39 +7545,39 @@ function OqituvchiTab({ token, foydalanuvchi }) {
             </p>
           )}
 
-          {yangiFan && (
-            <>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium block" style={{ color: "#5A5648" }}>
-                  Mavzular ({Object.values(tanlanganMavzuNomlari).filter(Boolean).length}/{mavzuTanlovlari.length} tanlandi)
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-medium block" style={{ color: "#5A5648" }}>
+              Mavzular{yangiFan ? ` (${Object.values(tanlanganMavzuNomlari).filter(Boolean).length}/${mavzuTanlovlari.length} tanlandi)` : ""}
+            </label>
+            {yangiFan && mavzuTanlovlari.length > 0 && (
+              <button type="button"
+                onClick={() => setTanlanganMavzuNomlari(Object.fromEntries(mavzuTanlovlari.map((m) => [m.nomi, !Object.values(tanlanganMavzuNomlari).every(Boolean)])))}
+                className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
+                {Object.values(tanlanganMavzuNomlari).every(Boolean) ? "Hech birini tanlamaslik" : "Barchasini tanlash"}
+              </button>
+            )}
+          </div>
+          {!(yangiMaxsusSinf ? yangiSinfMatni : yangiSinf) ? (
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval sinfni tanlang</p>
+          ) : !yangiFan ? (
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval fanni tanlang</p>
+          ) : mavzuTanlovlariYuklanmoqda ? (
+            <div className="py-3 mb-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+          ) : mavzuTanlovlari.length === 0 ? (
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+              Bu sinf/fan uchun milliy bazada mavzu topilmadi — keyinroq "To'garak mavzulari"dan o'zingiz qo'shishingiz mumkin.
+            </p>
+          ) : (
+            <div className="space-y-1.5 mb-3 max-h-56 overflow-y-auto rounded-xl p-2.5" style={{ backgroundColor: "#F7F5F0" }}>
+              {mavzuTanlovlari.map((m) => (
+                <label key={m.nomi} className="flex items-center gap-2.5 px-1.5 py-1 cursor-pointer">
+                  <input type="checkbox" checked={!!tanlanganMavzuNomlari[m.nomi]}
+                    onChange={(e) => setTanlanganMavzuNomlari((prev) => ({ ...prev, [m.nomi]: e.target.checked }))} />
+                  <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+                  {m.savol_soni > 0 && <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} savol</span>}
                 </label>
-                {mavzuTanlovlari.length > 0 && (
-                  <button type="button"
-                    onClick={() => setTanlanganMavzuNomlari(Object.fromEntries(mavzuTanlovlari.map((m) => [m.nomi, !Object.values(tanlanganMavzuNomlari).every(Boolean)])))}
-                    className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
-                    {Object.values(tanlanganMavzuNomlari).every(Boolean) ? "Hech birini tanlamaslik" : "Barchasini tanlash"}
-                  </button>
-                )}
-              </div>
-              {mavzuTanlovlariYuklanmoqda ? (
-                <div className="py-3 mb-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
-              ) : mavzuTanlovlari.length === 0 ? (
-                <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
-                  Bu sinf/fan uchun milliy bazada mavzu topilmadi — keyinroq "To'garak mavzulari"dan o'zingiz qo'shishingiz mumkin.
-                </p>
-              ) : (
-                <div className="space-y-1.5 mb-3 max-h-56 overflow-y-auto rounded-xl p-2.5" style={{ backgroundColor: "#F7F5F0" }}>
-                  {mavzuTanlovlari.map((m) => (
-                    <label key={m.nomi} className="flex items-center gap-2.5 px-1.5 py-1 cursor-pointer">
-                      <input type="checkbox" checked={!!tanlanganMavzuNomlari[m.nomi]}
-                        onChange={(e) => setTanlanganMavzuNomlari((prev) => ({ ...prev, [m.nomi]: e.target.checked }))} />
-                      <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
-                      {m.savol_soni > 0 && <span className="text-xs" style={{ color: "#8A8578" }}>{m.savol_soni} savol</span>}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qo'shilish paroli (ixtiyoriy)</label>
