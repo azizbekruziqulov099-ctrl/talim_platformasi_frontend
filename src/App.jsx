@@ -2425,6 +2425,13 @@ function AdminTab({ token, oldindanTanlangan }) {
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🎓 Universitetlar
         </button>
+        <button onClick={() => setBolim("sinov")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "sinov"
+            ? { backgroundColor: "#C89B3C", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #F5DFA3" }}>
+          🧪 Sinov muhiti
+        </button>
       </div>
 
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
@@ -2434,6 +2441,7 @@ function AdminTab({ token, oldindanTanlangan }) {
       {bolim === "markaz" && <MarkazlarBolimi token={token} />}
       {bolim === "bogcha" && <BogchalarBolimi token={token} />}
       {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
+      {bolim === "sinov" && <SinovMuhitiBolimi token={token} />}
     </div>
   );
 }
@@ -2854,6 +2862,76 @@ function MaktabQidiruvi({ tanlanganMaktab, onTanla }) {
               <span className="text-xs" style={{ color: "#8A8578" }}>{[m.viloyat, m.tuman].filter(Boolean).join(", ")}</span>
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SinovMuhitiBolimi({ token }) {
+  const [yaratilmoqda, setYaratilmoqda] = useState(false);
+  const [natija, setNatija] = useState(null);
+  const [xato, setXato] = useState("");
+  const [kirilmoqdaId, setKirilmoqdaId] = useState(null);
+
+  const muhitYarat = async () => {
+    setYaratilmoqda(true); setXato(""); setNatija(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/sinov_muhit_yarat?token=${encodeURIComponent(token)}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYaratilmoqda(false); }
+  };
+
+  const shuHisobBilanKir = async (hisobUserId) => {
+    setKirilmoqdaId(hisobUserId);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/sifatida_kirish?token=${encodeURIComponent(token)}&user_id=${hisobUserId}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      window.open(`/kabinet?token=${encodeURIComponent(data.token)}`, "_blank");
+    } catch (e) {
+      setXato(e.message);
+    } finally { setKirilmoqdaId(null); }
+  };
+
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#F5DFA3", backgroundColor: "#FFFDF7" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🧪 Sinov muhiti</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Bitta bosishda — sinov maktabi, bog'chasi, markazi va universiteti, ularning direktori/o'qituvchisi/
+          opasi/professori va o'quvchilari — HAMMASI soxta, tayyor holda yaratiladi. Google orqali kirish shart
+          emas — har biriga "Bu sifatida kirish" bilan darhol kirasiz.
+        </p>
+        <button onClick={muhitYarat} disabled={yaratilmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#C89B3C", opacity: yaratilmoqda ? 0.7 : 1 }}>
+          {yaratilmoqda ? "Yaratilmoqda..." : "🧪 Yangi sinov muhitini yaratish"}
+        </button>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
+
+      {natija && (
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ Tayyor — {natija.hisoblar.length} ta sinov hisobi</p>
+          <p className="text-xs mb-4" style={{ color: "#8A5A1C" }}>{natija.izoh}</p>
+          <div className="space-y-2">
+            {natija.hisoblar.map((h) => (
+              <div key={h.user_id} className="rounded-xl p-3 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{h.full_name}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{h.izoh}</p>
+                </div>
+                <button onClick={() => shuHisobBilanKir(h.user_id)} disabled={kirilmoqdaId === h.user_id}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shrink-0" style={{ backgroundColor: "#1B4B7A", opacity: kirilmoqdaId === h.user_id ? 0.7 : 1 }}>
+                  {kirilmoqdaId === h.user_id ? "..." : "→ Shu sifatida kirish"}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
