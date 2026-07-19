@@ -7257,11 +7257,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     if (!sinfQiymati || !yangiFan) return;
     setMavzuTanlovlariYuklanmoqda(true);
     const turi = yangiMaxsusSinf ? "togarak" : "oddiy";
-    fetch(`${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinfQiymati)}&turi=${turi}&faqat_testli=false`)
+    fetch(`${API_BASE}/api/oqituvchi/togarak_yaratish_mavzulari?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(sinfQiymati)}&fan=${encodeURIComponent(yangiFan)}&turi=${turi}`)
       .then((r) => r.json())
       .then((d) => {
-        const fan = (d.fanlar || []).find((f) => f.nom === yangiFan);
-        const mavzular = fan?.sinflar?.[0]?.mavzular || [];
+        const mavzular = d.mavzular || [];
         setMavzuTanlovlari(mavzular);
         setTanlanganMavzuNomlari(Object.fromEntries(mavzular.map((m) => [m.nomi, true])));
       })
