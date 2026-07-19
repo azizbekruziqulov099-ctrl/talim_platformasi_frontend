@@ -2916,6 +2916,36 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natijalar, setNatijalar] = useState(null); // [{fish, lavozim, kirish_kodi, sinf_rahbarligi, sinf_paroli}] | null
+  const [sinflar, setSinflar] = useState([]);
+  const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
+  const [pulli, setPulli] = useState(maktab.pulli || false);
+  const [oylikTolov, setOylikTolov] = useState(maktab.oylik_tolov ? String(maktab.oylik_tolov) : "");
+  const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
+
+  const sinflarniYukla = () => {
+    setSinflarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/maktab_sinflari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d.sinflar || []); setSinflarYuklanmoqda(false); })
+      .catch(() => setSinflarYuklanmoqda(false));
+  };
+  useEffect(sinflarniYukla, [token, maktab.id]);
+
+  const parolniTashla = async (sinfId) => {
+    await fetch(`${API_BASE}/api/admin/sinf_parolini_tashla?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`, { method: "PUT" });
+    sinflarniYukla();
+  };
+
+  const tolovSozlashniSaqla = async () => {
+    setTolovSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/maktab_tolov_sozlash`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, maktab_id: maktab.id, pulli, oylik_tolov: pulli ? parseInt(oylikTolov, 10) || null : null }),
+      });
+    } finally { setTolovSaqlanmoqda(false); }
+  };
 
   const shablonYukla = () => {
     window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
@@ -2934,6 +2964,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setNatijalar(data.natijalar || []);
+      sinflarniYukla();
     } catch (e) {
       setXato(e.message);
     } finally {
@@ -2949,6 +2980,34 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
       </p>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => setPulli(false)}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={!pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Bepul (davlat)
+          </button>
+          <button onClick={() => setPulli(true)}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Pulli (xususiy)
+          </button>
+        </div>
+        {pulli && (
+          <>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm)</label>
+            <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+              placeholder="masalan: 500000"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          </>
+        )}
+        <button onClick={tolovSozlashniSaqla} disabled={tolovSaqlanmoqda}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: tolovSaqlanmoqda ? 0.7 : 1 }}>
+          {tolovSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+        </button>
+      </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>2-bosqich — Xodimlarni kiritish</p>
@@ -2970,7 +3029,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       </div>
 
       {natijalar && (
-        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
           <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
             Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga (masalan Telegram orqali) yuboring — bu ekranga qayta qaytib bo'lmaydi!
@@ -2987,6 +3046,142 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           </div>
         </div>
       )}
+
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Sinflar</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Xodim importi orqali "Sinf rahbarligi" to'ldirilganda avtomatik yaratilgan sinflar shu yerda ko'rinadi.
+        </p>
+        {sinflarYuklanmoqda ? (
+          <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : sinflar.length === 0 ? (
+          <p className="text-xs" style={{ color: "#8A8578" }}>Hali sinf yo'q — xodim importida "Sinf rahbarligi" ustunini to'ldirib yuklang.</p>
+        ) : (
+          <div className="space-y-2">
+            {sinflar.map((s) => (
+              <div key={s.id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"}</p>
+                  <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
+                </div>
+                <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+                  ↻ Parolni tashlash
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RasmiySinflarim({ token, onOrtga }) {
+  const [sinflar, setSinflar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [oquvchilarYuklanmoqda, setOquvchilarYuklanmoqda] = useState(false);
+  const joriyOy = new Date().toISOString().slice(0, 7); // "2026-07"
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/mening_sinflarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d.sinflar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const sinfOch = (s) => {
+    setTanlanganSinf(s);
+    if (!s.pulli) return;
+    setOquvchilarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/sinf_tolovlari?token=${encodeURIComponent(token)}&sinf_id=${s.id}&oy=${joriyOy}`)
+      .then((r) => r.json())
+      .then((d) => { setOquvchilar(d.oquvchilar || []); setOquvchilarYuklanmoqda(false); })
+      .catch(() => setOquvchilarYuklanmoqda(false));
+  };
+
+  const tolovBelgila = async (oquvchi) => {
+    await fetch(`${API_BASE}/api/oqituvchi/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token, user_id: oquvchi.user_id, maktab_id: tanlanganSinf.maktab_id || tanlanganSinf.id,
+        oy: joriyOy, tolangan_summa: tanlanganSinf.oylik_tolov,
+      }),
+    });
+    sinfOch(tanlanganSinf);
+  };
+
+  if (tanlanganSinf) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganSinf(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflarim</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganSinf.sinf}-{tanlanganSinf.harf}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganSinf.maktab_nomi} · {tanlanganSinf.oquvchi_soni} o'quvchi</p>
+
+        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#EAF1F7" }}>
+          <p className="text-xs" style={{ color: "#5A5648" }}>🔐 Qo'shilish paroli: <b>{tanlanganSinf.qoshilish_paroli}</b></p>
+        </div>
+
+        {!tanlanganSinf.pulli ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Bu maktab bepul — to'lov kuzatuvi kerak emas.</p>
+          </div>
+        ) : oquvchilarYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>💳 {joriyOy} oyi to'lovlari</p>
+            <div className="space-y-2">
+              {(oquvchilar || []).map((o) => (
+                <div key={o.user_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: o.qarzdor ? "#FCEBEB" : "#EAF3DE" }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+                    <p className="text-xs" style={{ color: o.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                      {o.qarzdor ? `⚠️ Qarzdor (${o.tolangan_summa.toLocaleString()} / ${o.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                    </p>
+                  </div>
+                  {o.qarzdor && (
+                    <button onClick={() => tolovBelgila(o)} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                      To'landi deb belgilash
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🏫 Rasmiy sinflarim</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : sinflar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm mb-1" style={{ color: "#2B2B2B" }}>Sizga hali rasmiy sinf biriktirilmagan</p>
+          <p className="text-xs" style={{ color: "#8A8578" }}>Maktabingiz direktori/administratori sizni sinf rahbari sifatida tayinlashi kerak.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {sinflar.map((s) => (
+            <button key={s.id} onClick={() => sinfOch(s)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{s.maktab_nomi} · {s.oquvchi_soni} o'quvchi{s.pulli ? " · 💳 pulli" : ""}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -3001,6 +3196,7 @@ function OqituvchiTab({ token }) {
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("togarak"); // "togarak" | "rasmiy" — to'garak guruhlarimi yoki rasmiy maktab sinfimi
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiFan, setYangiFan] = useState("");
@@ -3126,6 +3322,10 @@ function OqituvchiTab({ token }) {
       setXato(e.message);
     } finally { setYaratilmoqda(false); }
   };
+
+  if (korinish === "rasmiy") {
+    return <RasmiySinflarim token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
 
   if (yuklanmoqda) {
     return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
@@ -3316,7 +3516,7 @@ function OqituvchiTab({ token }) {
   // holat === "togaraklar"
   return (
     <div className="px-5 pt-6 pb-4">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Guruhlarim</h1>
         <button onClick={() => { setXato(""); setHolat("yaratish"); }}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white"
@@ -3324,6 +3524,9 @@ function OqituvchiTab({ token }) {
           + Yangi
         </button>
       </div>
+      <button onClick={() => setKorinish("rasmiy")} className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
+        🏫 Rasmiy maktab sinfim bormi? →
+      </button>
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
         <button onClick={() => { setXato(""); setHolat("yaratish"); }}
@@ -4114,6 +4317,53 @@ function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan }) {
   );
 }
 
+function XabarlarTab({ token }) {
+  const [bildirishnomalar, setBildirishnomalar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/bildirishnomalar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setBildirishnomalar(d.bildirishnomalar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const vaqtniKorsat = (izo) => {
+    const sana = new Date(izo);
+    const kunlar = Math.floor((Date.now() - sana.getTime()) / 86400000);
+    if (kunlar === 0) return "Bugun";
+    if (kunlar === 1) return "Kecha";
+    return `${kunlar} kun oldin`;
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : bildirishnomalar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha bildirishnoma yo'q.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {bildirishnomalar.map((b) => (
+            <div key={b.id} className="rounded-xl p-4 bg-white border" style={{ borderColor: b.oqildimi ? "#E5E1D8" : "#F5DFA3" }}>
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg shrink-0">{b.turi === "tolov" ? "💳" : "🔔"}</span>
+                <div className="flex-1">
+                  <p className="text-sm" style={{ color: "#2B2B2B" }}>{b.matn}</p>
+                  <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{vaqtniKorsat(b.yaratildi)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Kabinet({ token }) {
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
@@ -4188,10 +4438,7 @@ function Kabinet({ token }) {
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab token={token} sinf={foydalanuvchi?.class} onTestFaollik={setTestDavomida} />
       )}
-      {tab === "xabar" && (
-        <div className="px-5 pt-6"><h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
-          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}><p className="text-sm" style={{ color: "#8A8578" }}>Tez orada.</p></div></div>
-      )}
+      {tab === "xabar" && <XabarlarTab token={token} />}
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
