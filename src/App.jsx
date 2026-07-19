@@ -7090,6 +7090,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   };
 
   const yaratishSaqla = async () => {
+    if (mavzuTanlovlariYuklanmoqda) {
+      setXato("Mavzular hali yuklanmoqda — bir necha soniya kuting");
+      return;
+    }
     if (!yangiNomi.trim() || !yangiFan.trim()) {
       setXato("To'garak nomi va fan kiritilishi shart");
       return;
@@ -7391,10 +7395,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
 
           {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
 
-          <button onClick={yaratishSaqla} disabled={yaratilmoqda}
+          <button onClick={yaratishSaqla} disabled={yaratilmoqda || mavzuTanlovlariYuklanmoqda}
             className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#1B4B7A", opacity: yaratilmoqda ? 0.7 : 1 }}>
-            {yaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "To'garak yaratish"}
+            style={{ backgroundColor: "#1B4B7A", opacity: (yaratilmoqda || mavzuTanlovlariYuklanmoqda) ? 0.7 : 1 }}>
+            {yaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : mavzuTanlovlariYuklanmoqda ? "Mavzular yuklanmoqda..." : "To'garak yaratish"}
           </button>
         </div>
       </div>
