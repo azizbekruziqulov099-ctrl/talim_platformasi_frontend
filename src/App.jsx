@@ -7574,6 +7574,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
           ) : mavzuTanlovlari.length === 0 ? (
             <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
               Bu sinf/fan uchun milliy bazada mavzu topilmadi — keyinroq "To'garak mavzulari"dan o'zingiz qo'shishingiz mumkin.
+              <br /><span className="font-mono">[qidirilgan: sinf="{yangiMaxsusSinf ? yangiSinfMatni : yangiSinf}", fan="{yangiFan}", turi="{yangiMaxsusSinf ? "togarak" : "oddiy"}"]</span>
             </p>
           ) : (
             <div className="space-y-1.5 mb-3 max-h-56 overflow-y-auto rounded-xl p-2.5" style={{ backgroundColor: "#F7F5F0" }}>
