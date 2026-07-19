@@ -2369,7 +2369,7 @@ function AdminTestlarTab({ token }) {
 }
 
 function AdminTab({ token, oldindanTanlangan }) {
-  const [bolim, setBolim] = useState("test"); // "test" | "topik" | "tushuntirish" | "maktab"
+  const [bolim, setBolim] = useState("test"); // "test" | "topik" | "tushuntirish" | "maktab" | "markaz"
 
   return (
     <div className="px-5 pt-6 pb-4">
@@ -2404,12 +2404,20 @@ function AdminTab({ token, oldindanTanlangan }) {
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🏫 Maktablar
         </button>
+        <button onClick={() => setBolim("markaz")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "markaz"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🎓 O'quv markazlari
+        </button>
       </div>
 
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
       {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
       {bolim === "maktab" && <MaktablarBolimi token={token} />}
+      {bolim === "markaz" && <MarkazlarBolimi token={token} />}
     </div>
   );
 }
@@ -3176,6 +3184,206 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   );
 }
 
+function MarkazlarBolimi({ token }) {
+  const [markazlar, setMarkazlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [direktor, setDirektor] = useState(null);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [tanlanganMarkaz, setTanlanganMarkaz] = useState(null);
+
+  const markazlarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/markazlar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMarkazlar(d.markazlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(markazlarniYukla, [token]);
+
+  const markazSaqla = async () => {
+    if (!nomi.trim()) { setXato("Markaz nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/markaz_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined,
+          direktor_user_id: direktor ? direktor.user_id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setViloyat(""); setTuman(""); setDirektor(null); setFormOchiq(false);
+      markazlarniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  if (tanlanganMarkaz) {
+    return <MarkazTafsiloti token={token} markaz={tanlanganMarkaz} onOrtga={() => { setTanlanganMarkaz(null); markazlarniYukla(); }} />;
+  }
+
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🎓 O'quv markazlari</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi markaz"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "#8A8578" }}>Repetitorlik/o'quv markazlari uchun — guruhlar mavjud to'garak tizimi orqali ishlaydi.</p>
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Markaz nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder="masalan: Iqbol o'quv markazi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+              <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">—</option>
+                {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+              <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                <option value="">—</option>
+                {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy)</label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={markazSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+            style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Markazni yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : markazlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali markaz qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {markazlar.map((m) => (
+            <button key={m.id} onClick={() => setTanlanganMarkaz(m)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{[m.viloyat, m.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}</p>
+                <p className="text-xs mt-1" style={{ color: m.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
+                  {m.direktor_ismi ? `👤 Direktor: ${m.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
+                </p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarkazTafsiloti({ token, markaz, onOrtga }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natijalar, setNatijalar] = useState(null);
+
+  const shablonYukla = () => {
+    window.open(`${API_BASE}/api/admin/markaz_xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatijalar(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/markaz_xodim_import?token=${encodeURIComponent(token)}&markaz_id=${markaz.id}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatijalar(data.natijalar || []);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Markazlar</button>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{markaz.nomi}</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{[markaz.viloyat, markaz.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}</p>
+
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>Xodimlarni kiritish</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Shablonni yuklab, F.I.Sh / Lavozimni to'ldirib, qayta yuklang. "Fan o'qituvchisi" bo'lganlar keyin to'garak (guruh) yaratganda,
+          u avtomatik shu markazga bog'lanadi — alohida ulash shart emas.
+        </p>
+        <button onClick={shablonYukla}
+          className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          📥 Shablonni yuklab olish
+        </button>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
+
+      {natijalar && (
+        <div className="rounded-2xl p-5 bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
+          <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
+            Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga yuboring — bu ekranga qayta qaytib bo'lmaydi!
+          </p>
+          <div className="space-y-2.5">
+            {natijalar.map((n, i) => (
+              <div key={i} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{n.fish}</p>
+                <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>{n.lavozim}</p>
+                <p className="text-xs font-mono" style={{ color: "#1B4B7A" }}>🔑 Kirish kodi: <b>{n.kirish_kodi}</b></p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RasmiySinflarim({ token, onOrtga }) {
   const [sinflar, setSinflar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -3320,7 +3528,126 @@ function RasmiySinflarim({ token, onOrtga }) {
   );
 }
 
-function OqituvchiTab({ token }) {
+function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganGuruh, setTanlanganGuruh] = useState(null);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [oquvchilarYuklanmoqda, setOquvchilarYuklanmoqda] = useState(false);
+  const joriyOy = new Date().toISOString().slice(0, 7);
+
+  useEffect(() => {
+    if (!markazId) { setYuklanmoqda(false); return; }
+    fetch(`${API_BASE}/api/markaz/dashboard?token=${encodeURIComponent(token)}&markaz_id=${markazId}`)
+      .then((r) => r.json())
+      .then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, markazId]);
+
+  const guruhOch = (g) => {
+    setTanlanganGuruh(g);
+    if (!g.oylik_summa) return;
+    setOquvchilarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/markaz/guruh_tolovlari?token=${encodeURIComponent(token)}&togarak_id=${g.id}&oy=${joriyOy}`)
+      .then((r) => r.json())
+      .then((d) => { setOquvchilar(d.oquvchilar || []); setOquvchilarYuklanmoqda(false); })
+      .catch(() => setOquvchilarYuklanmoqda(false));
+  };
+
+  const tolovBelgila = async (o) => {
+    await fetch(`${API_BASE}/api/markaz/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, user_id: o.user_id, togarak_id: tanlanganGuruh.id, oy: joriyOy, tolangan_summa: tanlanganGuruh.oylik_summa }),
+    });
+    guruhOch(tanlanganGuruh);
+  };
+
+  if (!markazId) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday markazga bog'lanmagansiz.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tanlanganGuruh) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganGuruh(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlar</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganGuruh.nomi}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganGuruh.fan} · {tanlanganGuruh.oqituvchi_ismi} · {tanlanganGuruh.azo_soni} a'zo</p>
+
+        {!tanlanganGuruh.oylik_summa ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Bu guruh uchun oylik to'lov summasi belgilanmagan.</p>
+          </div>
+        ) : oquvchilarYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>💳 {joriyOy} oyi to'lovlari</p>
+            <div className="space-y-2">
+              {(oquvchilar || []).map((o) => (
+                <div key={o.user_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: o.qarzdor ? "#FCEBEB" : "#EAF3DE" }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+                    <p className="text-xs" style={{ color: o.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                      {o.qarzdor ? `⚠️ Qarzdor (${o.tolangan_summa.toLocaleString()} / ${o.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                    </p>
+                  </div>
+                  {o.qarzdor && (
+                    <button onClick={() => tolovBelgila(o)} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                      To'landi deb belgilash
+                    </button>
+                  )}
+                </div>
+              ))}
+              {(oquvchilar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Bu guruhda hali tasdiqlangan a'zo yo'q.</p>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🎓 Markaz boshqaruvi</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Markazingizga bog'langan barcha guruhlar — bitta ekranda.</p>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : guruhlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali markazga bog'langan guruh yo'q — fan o'qituvchilaringiz to'garak yaratganda, avtomatik shu yerga qo'shiladi.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {guruhlar.map((g) => (
+            <button key={g.id} onClick={() => guruhOch(g)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>
+                  {g.fan} · {g.oqituvchi_ismi || "O'qituvchi yo'q"} · {g.azo_soni} a'zo{g.oylik_summa ? ` · ${g.oylik_summa.toLocaleString()} so'm/oy` : ""}
+                </p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OqituvchiTab({ token, foydalanuvchi }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
   const [tanlangan, setTanlangan] = useState(null);
@@ -3459,6 +3786,10 @@ function OqituvchiTab({ token }) {
 
   if (korinish === "rasmiy") {
     return <RasmiySinflarim token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "markaz") {
+    return <MarkazBoshqaruvi token={token} markazId={foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (yuklanmoqda) {
@@ -3658,9 +3989,14 @@ function OqituvchiTab({ token }) {
           + Yangi
         </button>
       </div>
-      <button onClick={() => setKorinish("rasmiy")} className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
+      <button onClick={() => setKorinish("rasmiy")} className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
         🏫 Rasmiy maktab sinfim bormi? →
       </button>
+      {(foydalanuvchi?.lavozim === "markaz_direktor" || foydalanuvchi?.lavozim === "administrator") && (
+        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
+          🎓 Markazimni boshqarish →
+        </button>
+      )}
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
         <button onClick={() => { setXato(""); setHolat("yaratish"); }}
@@ -4575,7 +4911,7 @@ function Kabinet({ token }) {
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
       )}
-      {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} />}
+      {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} foydalanuvchi={foydalanuvchi} />}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} token={token} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
