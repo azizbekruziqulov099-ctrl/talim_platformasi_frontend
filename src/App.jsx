@@ -7208,6 +7208,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [sinfFanlariYuklanmoqda, setSinfFanlariYuklanmoqda] = useState(false);
   const [mavzuTanlovlari, setMavzuTanlovlari] = useState([]); // sinf+fanga mos mavzular: [{nomi, topic_codes, savol_soni}]
   const [mavzuTanlovlariYuklanmoqda, setMavzuTanlovlariYuklanmoqda] = useState(false);
+  const [mavzuTanlovXato, setMavzuTanlovXato] = useState("");
   const [tanlanganMavzuNomlari, setTanlanganMavzuNomlari] = useState({}); // {nomi: true} — belgilanganlar
   const [yangiParol, setYangiParol] = useState("");
   const [yangiMaxTalaba, setYangiMaxTalaba] = useState("");
@@ -7254,18 +7255,24 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni : yangiSinf;
     setMavzuTanlovlari([]);
     setTanlanganMavzuNomlari({});
+    setMavzuTanlovXato("");
     if (!sinfQiymati || !yangiFan) return;
     setMavzuTanlovlariYuklanmoqda(true);
     const turi = yangiMaxsusSinf ? "togarak" : "oddiy";
     fetch(`${API_BASE}/api/oqituvchi/togarak_yaratish_mavzulari?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(sinfQiymati)}&fan=${encodeURIComponent(yangiFan)}&turi=${turi}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+        return d;
+      })
       .then((d) => {
         const mavzular = d.mavzular || [];
         setMavzuTanlovlari(mavzular);
         setTanlanganMavzuNomlari(Object.fromEntries(mavzular.map((m) => [m.nomi, true])));
       })
+      .catch((e) => setMavzuTanlovXato(e.message || "Yuklab bo'lmadi — internet aloqasi yoki server bilan muammo"))
       .finally(() => setMavzuTanlovlariYuklanmoqda(false));
-  }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf, yangiFan]);
+  }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf, yangiFan, token]);
 
   useEffect(() => {
     if (uniGuruhIzlash.trim().length < 1) { setUniGuruhNatijalar([]); return; }
@@ -7562,6 +7569,8 @@ function OqituvchiTab({ token, foydalanuvchi }) {
             <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval fanni tanlang</p>
           ) : mavzuTanlovlariYuklanmoqda ? (
             <div className="py-3 mb-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+          ) : mavzuTanlovXato ? (
+            <p className="text-xs mb-3 font-medium" style={{ color: "#A32D2D" }}>⚠️ {mavzuTanlovXato}</p>
           ) : mavzuTanlovlari.length === 0 ? (
             <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
               Bu sinf/fan uchun milliy bazada mavzu topilmadi — keyinroq "To'garak mavzulari"dan o'zingiz qo'shishingiz mumkin.
