@@ -5180,6 +5180,235 @@ function FanlarTahliliBolimi({ token, maktabId, onOrtga }) {
   );
 }
 
+function TogarakMavzularOzi({ token, togarakId, onOrtga }) {
+  const [mavzular, setMavzular] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [reja, setReja] = useState("");
+  const [muhimMalumot, setMuhimMalumot] = useState("");
+  const [videoHavola, setVideoHavola] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
+  const [savollar, setSavollar] = useState(null);
+  const [savolFormOchiq, setSavolFormOchiq] = useState(false);
+  const [savolTuri, setSavolTuri] = useState("single_choice");
+  const [savolMatni, setSavolMatni] = useState("");
+  const [variantA, setVariantA] = useState("");
+  const [variantB, setVariantB] = useState("");
+  const [variantC, setVariantC] = useState("");
+  const [variantD, setVariantD] = useState("");
+  const [togriJavob, setTogriJavob] = useState("");
+  const [tushuntirish, setTushuntirish] = useState("");
+  const [savolSaqlanmoqda, setSavolSaqlanmoqda] = useState(false);
+
+  const mavzularniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/togarak_mavzulari_ozi?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(mavzularniYukla, [token, togarakId]);
+
+  const mavzuSaqla = async () => {
+    if (!nomi.trim()) { setXato("Mavzu nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_mavzu_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, nomi: nomi.trim(), reja: reja || undefined, muhim_malumot: muhimMalumot || undefined, video_havola: videoHavola || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setReja(""); setMuhimMalumot(""); setVideoHavola(""); setFormOchiq(false);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const mavzuOchir = async (topicCode) => {
+    await fetch(`${API_BASE}/api/oqituvchi/togarak_mavzu_ochir?token=${encodeURIComponent(token)}&topic_code=${encodeURIComponent(topicCode)}`, { method: "DELETE" });
+    mavzularniYukla();
+  };
+
+  const savollarniYukla = (topicCode) => {
+    fetch(`${API_BASE}/api/oqituvchi/togarak_mavzu_savollari?token=${encodeURIComponent(token)}&topic_code=${encodeURIComponent(topicCode)}`)
+      .then((r) => r.json())
+      .then((d) => setSavollar(d.savollar || []))
+      .catch(() => {});
+  };
+
+  const mavzuOch = (m) => { setTanlanganMavzu(m); savollarniYukla(m.topic_code); };
+
+  const savolniTozala = () => {
+    setSavolMatni(""); setVariantA(""); setVariantB(""); setVariantC(""); setVariantD(""); setTogriJavob(""); setTushuntirish(""); setSavolFormOchiq(false);
+  };
+
+  const savolSaqla = async () => {
+    if (!savolMatni.trim() || !togriJavob.trim()) { setXato("Savol va to'g'ri javobni kiriting"); return; }
+    setSavolSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_savol_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, topic_code: tanlanganMavzu.topic_code, savol: savolMatni.trim(), turi: savolTuri,
+          variant_a: savolTuri === "single_choice" ? variantA || undefined : undefined,
+          variant_b: savolTuri === "single_choice" ? variantB || undefined : undefined,
+          variant_c: savolTuri === "single_choice" ? variantC || undefined : undefined,
+          variant_d: savolTuri === "single_choice" ? variantD || undefined : undefined,
+          togri_javob: togriJavob.trim(), tushuntirish: tushuntirish || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      savolniTozala();
+      savollarniYukla(tanlanganMavzu.topic_code);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setSavolSaqlanmoqda(false); }
+  };
+
+  const savolOchir = async (id) => {
+    await fetch(`${API_BASE}/api/oqituvchi/togarak_savol_ochir?token=${encodeURIComponent(token)}&savol_id=${id}`, { method: "DELETE" });
+    savollarniYukla(tanlanganMavzu.topic_code);
+    mavzularniYukla();
+  };
+
+  if (tanlanganMavzu) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganMavzu(null); setSavollar(null); savolniTozala(); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Mavzular</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
+        {tanlanganMavzu.reja && <p className="text-xs mb-1" style={{ color: "#8A8578" }}>📝 {tanlanganMavzu.reja}</p>}
+        {tanlanganMavzu.video_havola && (
+          <a href={tanlanganMavzu.video_havola} target="_blank" rel="noreferrer" className="text-xs block mb-1" style={{ color: "#1B4B7A" }}>▶️ Video-dars</a>
+        )}
+        {tanlanganMavzu.muhim_malumot && (
+          <div className="rounded-xl p-3 mb-4 mt-2" style={{ backgroundColor: "#F7F5F0" }}>
+            <p className="text-xs whitespace-pre-line" style={{ color: "#5A5648" }}>{tanlanganMavzu.muhim_malumot}</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mb-2.5 mt-4">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>❓ Savollar ({(savollar || []).length})</p>
+          <button onClick={() => setSavolFormOchiq(!savolFormOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {savolFormOchiq ? "✕ Yopish" : "+ Savol"}
+          </button>
+        </div>
+
+        {savolFormOchiq && (
+          <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+            <div className="flex gap-2 mb-2.5">
+              <button onClick={() => setSavolTuri("single_choice")}
+                className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                style={savolTuri === "single_choice" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                Variantli
+              </button>
+              <button onClick={() => setSavolTuri("write_answer")}
+                className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                style={savolTuri === "write_answer" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                Yozma javob
+              </button>
+            </div>
+            <textarea value={savolMatni} onChange={(e) => setSavolMatni(e.target.value)} placeholder="Savol matni" rows={2}
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+            {savolTuri === "single_choice" ? (
+              <>
+                <input type="text" value={variantA} onChange={(e) => setVariantA(e.target.value)} placeholder="A variant"
+                  className="w-full px-3.5 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={variantB} onChange={(e) => setVariantB(e.target.value)} placeholder="B variant"
+                  className="w-full px-3.5 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={variantC} onChange={(e) => setVariantC(e.target.value)} placeholder="C variant (ixtiyoriy)"
+                  className="w-full px-3.5 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={variantD} onChange={(e) => setVariantD(e.target.value)} placeholder="D variant (ixtiyoriy)"
+                  className="w-full px-3.5 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>To'g'ri javob (aynan variant matni bilan bir xil yozing)</label>
+              </>
+            ) : (
+              <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>To'g'ri javob</label>
+            )}
+            <input type="text" value={togriJavob} onChange={(e) => setTogriJavob(e.target.value)} placeholder="To'g'ri javob"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+            <input type="text" value={tushuntirish} onChange={(e) => setTushuntirish(e.target.value)} placeholder="Tushuntirish (ixtiyoriy)"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+            <button onClick={savolSaqla} disabled={savolSaqlanmoqda}
+              className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: savolSaqlanmoqda ? 0.7 : 1 }}>
+              {savolSaqlanmoqda ? "Saqlanmoqda..." : "Qo'shish"}
+            </button>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {(savollar || []).map((s) => (
+            <div key={s.id} className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm" style={{ color: "#2B2B2B" }}>{s.question}</p>
+                <button onClick={() => savolOchir(s.id)} className="text-xs shrink-0" style={{ color: "#A32D2D" }}>✕</button>
+              </div>
+              <p className="text-xs mt-1" style={{ color: "#3B6D11" }}>✓ {s.correct_answer}</p>
+            </div>
+          ))}
+          {(savollar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hali savol qo'shilmagan.</p>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruh</button>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📚 O'z mavzularim</h1>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          {formOchiq ? "✕ Yopish" : "+ Yangi mavzu"}
+        </button>
+      </div>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Reja, muhim ma'lumot, video-dars va testlaringizni shu yerga qo'shasiz — o'quvchilaringiz test yechish orqali ko'radi.</p>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)} placeholder="Mavzu nomi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <textarea value={reja} onChange={(e) => setReja(e.target.value)} placeholder="Dars rejasi (ixtiyoriy)" rows={2}
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <textarea value={muhimMalumot} onChange={(e) => setMuhimMalumot(e.target.value)} placeholder="Muhim ma'lumot / mavzu matni (ixtiyoriy)" rows={4}
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <input type="text" value={videoHavola} onChange={(e) => setVideoHavola(e.target.value)} placeholder="Video-dars havolasi (YouTube, ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={mavzuSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : mavzular.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali mavzu yaratilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {mavzular.map((m) => (
+            <div key={m.topic_code} className="rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <button onClick={() => mavzuOch(m)} className="flex-1 text-left">
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>
+                  {m.savol_soni} savol{m.video_havola ? " · 🎬 video bor" : ""}
+                </p>
+              </button>
+              <button onClick={() => mavzuOchir(m.topic_code)} className="text-xs px-2 shrink-0" style={{ color: "#A32D2D" }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DavomatBelgilash({ token, sinfId, onOrtga }) {
   const bugun = new Date().toISOString().slice(0, 10);
   const [sana, setSana] = useState(bugun);
@@ -6681,7 +6910,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
           className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
-        <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
+        <button onClick={() => setHolat("mavzular_ozi")} className="text-xs font-medium mb-5" style={{ color: "#1B4B7A" }}>
+          📚 O'z mavzu va testlarimni yaratish →
+        </button>
         {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
         {azolar.length === 0 ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
@@ -6722,6 +6954,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
         )}
       </div>
     );
+  }
+
+  if (holat === "mavzular_ozi") {
+    return <TogarakMavzularOzi token={token} togarakId={tanlangan.id} onOrtga={() => setHolat("azolar")} />;
   }
 
   // holat === "togaraklar"
