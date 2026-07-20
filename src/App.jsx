@@ -7226,29 +7226,27 @@ function RejaDetali({ token, rejaId, onOrtga }) {
     return () => clearTimeout(kechiktirish);
   }, [qidiruv, qidiruvOchiq, token, rejaId]);
 
-  const mavzuQosh = async (topicCode) => {
-    await fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_qosh`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, reja_id: rejaId, topic_code: topicCode }),
-    });
-    yukla();
+  const [belgilanganKodlar, setBelgilanganKodlar] = useState({}); // {topic_code: true}
+  const kodBelgila = (topicCode) => {
+    setBelgilanganKodlar((prev) => ({ ...prev, [topicCode]: !prev[topicCode] }));
   };
 
-  const [barchasiniQoshishYuklanmoqda, setBarchasiniQoshishYuklanmoqda] = useState(false);
-  const barchasiniQoshish = async () => {
-    const yangilari = (qidiruvNatijalari || []).filter((m) => !qatorlar.some((q) => q.topic_code === m.topic_code));
-    if (yangilari.length === 0) return;
-    setBarchasiniQoshishYuklanmoqda(true);
+  const [tanlanganlarniQoshishYuklanmoqda, setTanlanganlarniQoshishYuklanmoqda] = useState(false);
+  const tanlanganlarniQoshish = async () => {
+    const kodlar = Object.keys(belgilanganKodlar).filter((k) => belgilanganKodlar[k]);
+    if (kodlar.length === 0) return;
+    setTanlanganlarniQoshishYuklanmoqda(true);
     try {
-      for (const m of yangilari) {
+      for (const kod of kodlar) {
         // eslint-disable-next-line no-await-in-loop
         await fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_qosh`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, reja_id: rejaId, topic_code: m.topic_code }),
+          body: JSON.stringify({ token, reja_id: rejaId, topic_code: kod }),
         });
       }
+      setBelgilanganKodlar({});
       yukla();
-    } finally { setBarchasiniQoshishYuklanmoqda(false); }
+    } finally { setTanlanganlarniQoshishYuklanmoqda(false); }
   };
 
   const yangiMavzuYarat = async () => {
@@ -7315,7 +7313,7 @@ function RejaDetali({ token, rejaId, onOrtga }) {
           className="flex-1 text-xs font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
           {yangiMavzuOchiq ? "✕ Yopish" : "✏️ Yangi mavzu"}
         </button>
-        <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setYangiMavzuOchiq(false); }}
+        <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setYangiMavzuOchiq(false); setBelgilanganKodlar({}); }}
           className="flex-1 text-xs font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
           {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
         </button>
@@ -7372,40 +7370,52 @@ function RejaDetali({ token, rejaId, onOrtga }) {
 
       {qidiruvOchiq && (
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <input type="text" value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Mavzu nomi bo'yicha qidirish (bo'sh — reja sinf/fani)"
+          <input type="text" value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setBelgilanganKodlar({}); }} placeholder="Mavzu nomi bo'yicha qidirish (bo'sh — reja sinf/fani)"
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-          {!qidirilmoqda && !qidiruvXato && (qidiruvNatijalari || []).some((m) => !qatorlar.some((q) => q.topic_code === m.topic_code)) && (
-            <button onClick={barchasiniQoshish} disabled={barchasiniQoshishYuklanmoqda}
-              className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3 flex items-center justify-center gap-2"
-              style={{ backgroundColor: "#EAF3DE", color: "#3B6D11", opacity: barchasiniQoshishYuklanmoqda ? 0.7 : 1 }}>
-              {barchasiniQoshishYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> :
-                `✓✓ Barchasini qo'shish (${(qidiruvNatijalari || []).filter((m) => !qatorlar.some((q) => q.topic_code === m.topic_code)).length} ta)`}
-            </button>
-          )}
           {qidirilmoqda ? (
             <div className="py-4 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
           ) : qidiruvXato ? (
             <p className="text-xs font-medium" style={{ color: "#A32D2D" }}>⚠️ {qidiruvXato}</p>
           ) : (
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {(qidiruvNatijalari || []).map((m) => {
-                const qoshilganmi = qatorlar.some((q) => q.topic_code === m.topic_code);
-                return (
-                  <div key={m.topic_code} className="flex items-center justify-between gap-2 rounded-lg p-2" style={{ backgroundColor: "#F7F5F0" }}>
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</p>
-                      <p className="text-xs truncate" style={{ color: "#8A8578" }}>{m.subject_name} · {m.grade}-sinf {m.bob_name ? `· ${m.bob_name}` : ""}</p>
-                    </div>
-                    <button onClick={() => mavzuQosh(m.topic_code)} disabled={qoshilganmi}
-                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
-                      style={qoshilganmi ? { backgroundColor: "#EAF3DE", color: "#3B6D11" } : { backgroundColor: "#1B4B7A", color: "#fff" }}>
-                      {qoshilganmi ? "✓ Qo'shilgan" : "+ Qo'shish"}
-                    </button>
-                  </div>
-                );
-              })}
+            <>
+              {(qidiruvNatijalari || []).some((m) => !qatorlar.some((q) => q.topic_code === m.topic_code)) && (
+                <button onClick={() => {
+                    const qoshilmaganlar = (qidiruvNatijalari || []).filter((m) => !qatorlar.some((q) => q.topic_code === m.topic_code));
+                    const hammasiBelgilangan = qoshilmaganlar.every((m) => belgilanganKodlar[m.topic_code]);
+                    setBelgilanganKodlar(Object.fromEntries(qoshilmaganlar.map((m) => [m.topic_code, !hammasiBelgilangan])));
+                  }}
+                  className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+                  {(qidiruvNatijalari || []).filter((m) => !qatorlar.some((q) => q.topic_code === m.topic_code)).every((m) => belgilanganKodlar[m.topic_code])
+                    ? "Hech birini belgilamaslik" : "Barchasini belgilash"}
+                </button>
+              )}
+              <div className="space-y-1.5 max-h-64 overflow-y-auto mb-3">
+                {(qidiruvNatijalari || []).map((m) => {
+                  const qoshilganmi = qatorlar.some((q) => q.topic_code === m.topic_code);
+                  return (
+                    <label key={m.topic_code} className="flex items-center gap-2.5 rounded-lg p-2 cursor-pointer"
+                      style={{ backgroundColor: "#F7F5F0", opacity: qoshilganmi ? 0.6 : 1 }}>
+                      <input type="checkbox" checked={qoshilganmi || !!belgilanganKodlar[m.topic_code]} disabled={qoshilganmi}
+                        onChange={() => kodBelgila(m.topic_code)} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</p>
+                        <p className="text-xs truncate" style={{ color: "#8A8578" }}>{m.subject_name} · {m.grade}-sinf {m.bob_name ? `· ${m.bob_name}` : ""}</p>
+                      </div>
+                      {qoshilganmi && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>✓ Qo'shilgan</span>}
+                    </label>
+                  );
+                })}
               {(qidiruvNatijalari || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hech narsa topilmadi.</p>}
-            </div>
+              </div>
+              {Object.values(belgilanganKodlar).some(Boolean) && (
+                <button onClick={tanlanganlarniQoshish} disabled={tanlanganlarniQoshishYuklanmoqda}
+                  className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "#1B4B7A", color: "#fff", opacity: tanlanganlarniQoshishYuklanmoqda ? 0.7 : 1 }}>
+                  {tanlanganlarniQoshishYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> :
+                    `+ Tanlanganlarni qo'shish (${Object.values(belgilanganKodlar).filter(Boolean).length} ta)`}
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
