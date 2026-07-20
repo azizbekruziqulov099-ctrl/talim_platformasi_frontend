@@ -1,8109 +1,9193 @@
-"""main.py — SamTM Ta'lim veb-sayt backend'i (v3).
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import katex from "katex";
+import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import {
+  ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
+  Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
+} from "lucide-react";
 
-Haqiqiy jadvallarga ulangan + Google orqali kirish (OAuth) qo'shildi.
-"""
-import os
-import re
-import io
-import math
-import secrets
-import string
-import httpx
-import psycopg2
-import psycopg2.extras
-from typing import Optional
-from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response
-from pydantic import BaseModel
+const API_BASE = "https://talimplatformasi-production.up.railway.app";
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-JWT_MAXFIY_KALIT = os.getenv("JWT_MAXFIY_KALIT", "")
-BAZA_URL = os.getenv("BAZA_URL", "https://talimplatformasi-production.up.railway.app")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://talimplatformasi-production.up.railway.app")
-REDIRECT_URI = f"{BAZA_URL}/auth/google/callback"
+// ═══════════════════════════════════════════════════════════
+// DIZAYN TIZIMI — rol/jins/fanga qarab shaxsiylashtirilgan rang
+// ═══════════════════════════════════════════════════════════
 
-app = FastAPI(title="SamTM Ta'lim API")
-app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["*"],
-)
+// O'quvchi uchun — jinsiga qarab ILIQ, ZAMONAVIY palitra (ikkalasi ham
+// bir xil darajada "jiddiy"/chiroyli — biri ikkinchisidan kamroq
+// ko'rinmasin degan niyatda tanlangan).
+const QIZ_RANGI = "#A8527A";   // iliq to'q pushti-binafsha (mavj/berry)
+const OGIL_RANGI = "#2D6E8B";  // chuqur ko'k-firuza
 
+// Ota-ona uchun — issiq, "oilaviy" tuyg'u beruvchi neytral rang.
+const OTA_ONA_RANGI = "#6E8B4A"; // iliq zaytun-yashil
 
-def _db():
-    return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-
-
-# Fan kodiga qarab dashboard rangi — yangi fan qo'shilsa shu ro'yxatga qo'shiladi
-FAN_RANG = {
-    "MAT": "#C89B3C", "TIL": "#2D8B8B", "ADB": "#8B5FBF",
-    "TAB": "#B0553A", "RUS": "#4A7C9E", "ENG": "#7C9E4A",
+// O'qituvchi uchun — o'zi o'qitadigan FANGA mos rang. Fan nomidan
+// barqaror (deterministik) rang hisoblanadi — shu sabab yangi fan
+// qo'shilsa ham, doim BIR XIL rangni oladi, qo'lda ro'yxat yuritish
+// shart emas.
+const FAN_RANGLAR_KENGAYTIRILGAN = [
+  "#C89B3C", "#2D8B8B", "#8B5FBF", "#B0553A", "#4A7C9E", "#7C9E4A",
+  "#A8527A", "#5C7F9E", "#9E7C4A", "#4A9E8C", "#9E4A6E", "#6E9E4A", "#2D6E8B",
+];
+function fanRangiOl(fanNomi) {
+  if (!fanNomi) return "#1B4B7A";
+  let hash = 0;
+  for (let i = 0; i < fanNomi.length; i++) hash = fanNomi.charCodeAt(i) + ((hash << 5) - hash);
+  return FAN_RANGLAR_KENGAYTIRILGAN[Math.abs(hash) % FAN_RANGLAR_KENGAYTIRILGAN.length];
 }
 
+// Rol + jins + (o'qituvchi bo'lsa) fanga qarab YAGONA "joriy rang"ni
+// hisoblaydi — Kabinet shundan foydalanib butun ilovaga shaxsiylashtirilgan
+// rang beradi (pastki menyu, Bilim boshi, Profil rasmi va h.k.).
+function joriyRangniHisobla(foydalanuvchi, korinishRoli) {
+  if (korinishRoli === "oquvchi") {
+    if (foydalanuvchi?.jins === "qiz") return QIZ_RANGI;
+    if (foydalanuvchi?.jins === "ogil") return OGIL_RANGI;
+    return "#1B4B7A";
+  }
+  if (korinishRoli === "oqituvchi") return fanRangiOl(foydalanuvchi?.oqituvchi_fani);
+  if (korinishRoli === "ota-ona") return OTA_ONA_RANGI;
+  return "#1B4B7A"; // admin va standart
+}
 
-@app.get("/")
-def salomat():
-    return {"holat": "ishlayapti"}
+// O'qituvchi profilida tanlash uchun — BARCHA maktab fanlari (mavjud
+// test-kontentdan qat'i nazar, chunki o'qituvchi o'zi qaysi fanni
+// o'qitishini tanlashi kerak, hali test yaratilmagan fan bo'lsa ham).
+const BARCHA_MAKTAB_FANLARI = [
+  "Matematika", "Algebra", "Geometriya", "Ona tili", "Adabiyot",
+  "Ingliz tili", "Rus tili", "Nemis tili", "Fransuz tili",
+  "Tarix", "O'zbekiston tarixi", "Jahon tarixi", "Geografiya",
+  "Biologiya", "Fizika", "Kimyo", "Informatika", "Chizmachilik",
+  "Tasviriy san'at", "Musiqa", "Jismoniy tarbiya", "Astronomiya",
+  "Huquq", "Iqtisodiyot asoslari", "Milliy g'oya va ma'naviyat asoslari",
+  "Texnologiya", "Ona Vatan", "Atrofimizdagi olam", "O'qish savodxonligi",
+];
 
 
-@app.get("/api/bola/{bola_id}/bilim")
-def bola_bilimi(bola_id: int, sinf: str = None):
-    """Bolaning fan-mavzu bo'yicha bilim darajasi — FAQAT bolaning O'ZI
-    sinfiga tegishli mavzular bo'yicha. sinf berilmasa, avtomatik bola
-    profilidagi class ustunidan olinadi. MUHIM: agar bola profilida
-    sinf umuman ko'rsatilmagan bo'lsa — BARCHA sinflarni ARALASH
-    ko'rsatish O'RNIGA bo'sh natija qaytariladi (aks holda 1-sinf
-    bolasiga Algebra kabi butunlay boshqa sinflarning fanlari chiqib
-    ketardi, chunki sinfsiz cheklov qo'yib bo'lmaydi)."""
-    try:
-        conn = _db()
-        cur = conn.cursor()
+// Haqiqiy rasm kodi ("11-04-1-01-01-03-001-1" kabi — sinf-fan-chorak-bob-
+// bolim-mavzu-ketma_ket-rasm_raqami, 7-9 ta FAQAT-RAQAM bo'lak, tire bilan
+// ajratilgan) bilan LaTeX ifodani ("273\div 7+8", "4{,}(4)" kabi — harflar,
+// qavslar, matematik belgilar bor) ISHONCHLI ajratadi. Bu farqni bilish
+// MUHIM: image_url ba'zan haqiqiy rasm o'rniga ko'rsatiladigan matematik
+// ifodani saqlaydi (rasm chizib bo'lmaydigan holatlarda) — bunday holda
+// uni RASM DEB SO'RAMASDAN, KaTeX bilan FORMULA sifatida chizish kerak.
+function haqiqiyRasmKodimi(qiymat) {
+  if (!qiymat) return false;
+  return /^\d+(-\d+){5,9}$/.test(String(qiymat).trim());
+}
 
-        cur.execute("SELECT full_name, class FROM users WHERE user_id=%s", (bola_id,))
-        bola = cur.fetchone()
-        if not bola:
-            raise HTTPException(status_code=404, detail="Bola topilmadi")
+function SavolFormulasi({ ifoda }) {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(ifoda, { throwOnError: false, output: "html", displayMode: true });
+    } catch {
+      return null;
+    }
+  }, [ifoda]);
 
-        if not sinf:
-            if not bola["class"]:
-                cur.close()
-                conn.close()
-                return {
-                    "bola": {"ism": bola["full_name"]}, "umumiy_foiz": 0, "fanlar": [],
-                    "jami_mavzu": 0, "otilgan_mavzu": 0, "sinf_sozlanmagan": True,
-                }
-            sinf = str(bola["class"]).replace("-sinf", "").strip()
+  if (!html) return null;
+  return (
+    <div className="w-full rounded-xl mb-4 flex items-center justify-center py-6 px-4"
+      style={{ backgroundColor: "#F1EFE8", border: "1px solid #E5E1D8" }}>
+      <span dangerouslySetInnerHTML={{ __html: html }} style={{ fontSize: "1.3rem", color: "#2B2B2B" }} />
+    </div>
+  );
+}
 
-        sinf_shart = "AND d.grade = %s" if sinf else ""
-        params = (bola_id, sinf) if sinf else (bola_id,)
+// LaTeX ifodani OVOZLI O'QISH uchun, tabiiy o'zbekcha gapga aylantiradi.
+// Eng ko'p uchraydigan naqshlarni (kasr, daraja, ildiz, asosiy amallar)
+// qamrab oladi — juda murakkab/ichma-ich formulalarda mukammal
+// bo'lmasligi mumkin, lekin odatiy o'quv formulalari uchun ishlaydi.
+function latexniOzbekchaOqishga(latex) {
+  let m = latex || "";
+  m = m.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, " $1 bo'lak $2 dan ");
+  m = m.replace(/\\sqrt\{([^{}]+)\}/g, " $1 dan kvadrat ildiz ");
+  m = m.replace(/([a-zA-Z0-9]+)\^\{([^{}]+)\}/g, " $1 ning $2 darajasi ");
+  m = m.replace(/([a-zA-Z0-9]+)\^([a-zA-Z0-9])/g, " $1 ning $2 darajasi ");
+  m = m.replace(/([a-zA-Z0-9]+)_\{([^{}]+)\}/g, " $1 indeks $2 ");
+  m = m.replace(/\\times|\\cdot/g, " ko'paytirish ");
+  m = m.replace(/\\div/g, " bo'lish ");
+  m = m.replace(/\\pi/g, " pi ");
+  m = m.replace(/\\pm/g, " plyus-minus ");
+  m = m.replace(/\\leq/g, " kichik yoki teng ");
+  m = m.replace(/\\geq/g, " katta yoki teng ");
+  m = m.replace(/\+/g, " qo'shish ");
+  m = m.replace(/(?<!\d)-(?!\d)/g, " minus ");
+  m = m.replace(/=/g, " teng ");
+  m = m.replace(/[{}\\$]/g, " ");
+  return m.replace(/\s+/g, " ").trim();
+}
 
-        cur.execute(f"""
-            SELECT d.subject_code, d.subject_name, d.topic_code,
-                   COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS mavzu_nomi,
-                   lt.score
-            FROM dts_tree d
-            LEFT JOIN learned_topics lt
-                ON lt.topic_code = d.topic_code AND lt.user_id = %s
-            WHERE 1=1 {sinf_shart}
-            ORDER BY d.subject_code, d.topic_code
-        """, params)
-        qatorlar = cur.fetchall()
-        cur.close()
-        conn.close()
+// Matnni SO'ZMA-SO'Z, joriy o'qilayotgan so'z BELGILANGAN holda
+// ko'rsatadi — Web Speech API'ning "boundary" hodisasi bilan bog'lanadi
+// (tashqi, pullik TTS xizmat SHART emas — brauzerning o'zi o'qiydi).
+function OqiladiganMatn({ matn, joriySozIndeksi }) {
+  const sozlar = useMemo(() => matn.split(/(\s+)/), [matn]);
+  return (
+    <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "#2B2B2B" }}>
+      {sozlar.map((soz, i) => (
+        <span key={i} style={i === joriySozIndeksi
+          ? { backgroundColor: "#FDE8B8", fontWeight: 700, borderRadius: 4, padding: "0 2px" }
+          : {}}>
+          {soz}
+        </span>
+      ))}
+    </p>
+  );
+}
 
-        fanlar = {}
-        for q in qatorlar:
-            kod = q["subject_code"] or "BOSHQA"
-            if kod not in fanlar:
-                fanlar[kod] = {
-                    "nom": q["subject_name"] or kod, "qisqa": kod,
-                    "rang": FAN_RANG.get(kod, "#8A8578"), "mavzular": [],
-                }
-            if q["score"] is not None:   # faqat o'rganilgan mavzular ko'rsatiladi
-                fanlar[kod]["mavzular"].append({
-                    "nom": q["mavzu_nomi"], "foiz": q["score"],
-                })
+function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, joriySozIndeksi, setJoriySozIndeksi }) {
+  const oqilyaptimi = oqilayotganId === kontentId;
 
-        # Hali birorta ham mavzu o'rganilmagan fanlarni chiqarmaymiz
-        natija_royxat = [f for f in fanlar.values() if f["mavzular"]]
-        for f in natija_royxat:
-            f["foiz"] = round(sum(m["foiz"] for m in f["mavzular"]) / len(f["mavzular"]))
+  const boshla = () => {
+    window.speechSynthesis.cancel();
+    const sozlar = matn.split(/(\s+)/);
+    let pozitsiya = 0;
+    const sozPozitsiyalari = sozlar.map((s) => { const p = pozitsiya; pozitsiya += s.length; return p; });
+    const utterance = new SpeechSynthesisUtterance(matn);
+    utterance.lang = "uz-UZ";
+    utterance.onboundary = (e) => {
+      if (e.name && e.name !== "word") return;
+      let idx = 0;
+      for (let i = 0; i < sozPozitsiyalari.length; i++) {
+        if (sozPozitsiyalari[i] <= e.charIndex) idx = i; else break;
+      }
+      setJoriySozIndeksi(idx);
+    };
+    utterance.onend = () => { setOqilayotganId(null); setJoriySozIndeksi(-1); };
+    setOqilayotganId(kontentId);
+    window.speechSynthesis.speak(utterance);
+  };
 
-        umumiy = round(sum(f["foiz"] for f in natija_royxat) / len(natija_royxat)) if natija_royxat else 0
-        jami_mavzu_soni = len({q["topic_code"] for q in qatorlar})
-        otilgan_mavzu_soni = len({q["topic_code"] for q in qatorlar if q["score"] is not None})
+  const toxtat = () => {
+    window.speechSynthesis.cancel();
+    setOqilayotganId(null);
+    setJoriySozIndeksi(-1);
+  };
 
-        return {
-            "bola": {"ism": bola["full_name"]}, "umumiy_foiz": umumiy, "fanlar": natija_royxat,
-            "jami_mavzu": jami_mavzu_soni, "otilgan_mavzu": otilgan_mavzu_soni,
+  return (
+    <button onClick={oqilyaptimi ? toxtat : boshla}
+      className="text-xs font-semibold mt-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+      {oqilyaptimi ? "⏸ To'xtatish" : "🔊 O'qib berish"}
+    </button>
+  );
+}
+
+function SavolRasmi({ rasmId }) {
+  const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
+  useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
+
+  if (holat === "xato") {
+    return (
+      <div className="w-full rounded-xl mb-4 flex flex-col items-center justify-center gap-1.5 py-8"
+        style={{ backgroundColor: "#F1EFE8", border: "1px dashed #C4BFAF" }}>
+        <span className="text-2xl">🖼️</span>
+        <span className="text-xs font-medium" style={{ color: "#8A8578" }}>Rasm topilmadi</span>
+      </div>
+    );
+  }
+  return (
+    <div className="relative mb-4">
+      {holat === "yuklanmoqda" && (
+        <div className="w-full rounded-xl flex items-center justify-center py-10" style={{ backgroundColor: "#F1EFE8" }}>
+          <Loader2 size={20} className="animate-spin" style={{ color: "#8A8578" }} />
+        </div>
+      )}
+      <img src={`${API_BASE}/api/rasm/${rasmId}`} alt=""
+        className="w-full rounded-xl object-contain"
+        style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
+        onLoad={() => setHolat("tayyor")}
+        onError={() => setHolat("xato")} />
+    </div>
+  );
+}
+
+function tegsizKorsat(matn) {
+  // Ko'rsatishda [ru]so'z[/ru] kabi teglarni yashiradi (faqat ichidagi matnni qoldiradi) —
+  // ovozga esa XOM matn (teg bilan) beriladi, shunda mos tilda o'qiladi.
+  if (!matn) return matn;
+  return matn.replace(/\[\/?[a-zA-Z]+\]/g, "");
+}
+
+function Matn({ matn, latex }) {
+  // is_latex=true bo'lsa — $...$ ichidagi formulalarni KaTeX bilan chizadi,
+  // qolgan matnni oddiy tekst sifatida qoldiradi (matn va formula aralash bo'lishi mumkin).
+  const toza = tegsizKorsat(matn) || "";
+  if (!latex || !toza.includes("$")) return <>{toza}</>;
+  const qismlar = toza.split(/(\$[^$]+\$)/g);
+  return (
+    <>
+      {qismlar.map((q, i) => {
+        if (q.startsWith("$") && q.endsWith("$") && q.length > 1) {
+          try {
+            const html = katex.renderToString(q.slice(1, -1), { throwOnError: false, output: "html" });
+            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
+          } catch {
+            return <span key={i}>{q}</span>;
+          }
         }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return <span key={i}>{q}</span>;
+      })}
+    </>
+  );
+}
 
+function darajaRang(foiz) {
+  if (foiz >= 85) return "#C89B3C";
+  if (foiz >= 65) return "#2D8B8B";
+  if (foiz >= 45) return "#B0553A";
+  return "#8A8578";
+}
+function darajaNom(foiz) {
+  if (foiz >= 85) return "Mukammal";
+  if (foiz >= 65) return "Yaxshi";
+  if (foiz >= 45) return "O'rtacha";
+  return "E'tibor kerak";
+}
 
-@app.get("/api/ota/{ota_id}/farzandlar")
-def ota_farzandlari(ota_id: int):
-    """Ota-onaning barcha ulangan farzandlari ro'yxati."""
-    try:
-        conn = _db()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT u.user_id, u.full_name FROM parent_child pc
-            JOIN users u ON u.user_id = pc.child_id
-            WHERE pc.parent_id = %s
-        """, (ota_id,))
-        r = cur.fetchall()
-        cur.close(); conn.close()
-        return {"farzandlar": r}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+function Logotip() {
+  return (
+    <div className="w-14 h-14 rounded-2xl mx-auto mb-4 grid grid-cols-2 grid-rows-2 gap-0.5 p-1.5" style={{ backgroundColor: "#1B4B7A" }}>
+      <div className="rounded-sm" style={{ backgroundColor: "#C89B3C" }} />
+      <div className="rounded-sm" style={{ backgroundColor: "#2D8B8B" }} />
+      <div className="rounded-sm" style={{ backgroundColor: "#2D8B8B" }} />
+      <div className="rounded-sm" style={{ backgroundColor: "#C89B3C" }} />
+    </div>
+  );
+}
 
+function Qobiq({ children }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ backgroundColor: "#F7F5F0" }}>
+      <div className="w-full max-w-sm">{children}</div>
+    </div>
+  );
+}
 
-# ═══════════════════════════════════════════════════════════
-# GOOGLE ORQALI KIRISH (OAuth)
-# ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// 1) KIRISH — Google tugmasi
+// ═══════════════════════════════════════════════════════════
+function LoginEkrani() {
+  return (
+    <Qobiq>
+      <div className="text-center mb-8">
+        <Logotip />
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>TA'LIM PLATFORMASI</h1>
+        <p className="text-sm mt-1" style={{ color: "#8A8578" }}>Farzandingiz bilimini kuzating</p>
+      </div>
+      <button
+        onClick={() => { window.location.href = `${API_BASE}/auth/google/login`; }}
+        className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+        style={{ backgroundColor: "#1B4B7A" }}
+      >
+        Google orqali kirish
+      </button>
+      <p className="text-xs text-center mt-4" style={{ color: "#B0AA98" }}>
+        Birinchi marta kirsangiz, keyingi ekranda tanlov beriladi
+      </p>
+    </Qobiq>
+  );
+}
 
-def _jwt_yarat(user_id: int) -> str:
-    """30 kun amal qiladigan sessiya tokeni yaratadi."""
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=30),
-    }
-    return jwt.encode(payload, JWT_MAXFIY_KALIT, algorithm="HS256")
+// ═══════════════════════════════════════════════════════════
+// 2) ULASH — Google email topildi, lekin bot hisobiga ULANMAGAN
+// ═══════════════════════════════════════════════════════════
+function UlashEkrani({ email, ism, onUlandi }) {
+  const [rejim, setRejim] = useState(null); // null | 'kod' | 'royxat'
+  const [kod, setKod] = useState("");
+  const [ismInput, setIsmInput] = useState(ism || "");
+  const [rol, setRol] = useState("oquvchi");
+  const [sinf, setSinf] = useState("5");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [tugilganSana, setTugilganYil] = useState("");
+  const [maktabRaqami, setMaktabRaqami] = useState("");
+  const [xato, setXato] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [oxshashlar, setOxshashlar] = useState([]);
 
+  useEffect(() => {
+    if (rejim !== "royxat" || ismInput.trim().length < 3) { setOxshashlar([]); return; }
+    const kechiktirish = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/ism_tekshir?ism=${encodeURIComponent(ismInput.trim())}`);
+        const data = await res.json();
+        setOxshashlar(data.oxshash || []);
+      } catch { /* jimgina o'tkazamiz - bu faqat ogohlantirish, ro'yxatdan o'tishni to'xtatmasin */ }
+    }, 500);
+    return () => clearTimeout(kechiktirish);
+  }, [ismInput, rejim]);
 
-def _jwt_tekshir(token: str) -> int:
-    """Tokenni tekshiradi, user_id qaytaradi. Noto'g'ri bo'lsa xato beradi."""
-    try:
-        payload = jwt.decode(token, JWT_MAXFIY_KALIT, algorithms=["HS256"])
-        return payload["user_id"]
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Sessiya eskirgan, qaytadan kiring")
+  const kodBilan = async () => {
+    if (!kod.trim()) return;
+    setXato(""); setYuklanmoqda(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/ulash`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, kod: kod.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onUlandi(data.token);
+    } catch (e) {
+      setXato(e.message === "Failed to fetch" ? "Serverga ulanib bo'lmadi" : e.message);
+    } finally { setYuklanmoqda(false); }
+  };
 
+  const royxatBilan = async () => {
+    if (!ismInput.trim()) return;
+    setXato(""); setYuklanmoqda(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/royxat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email, ism: ismInput.trim(), rol,
+          sinf: rol === "oquvchi" ? sinf : undefined,
+          region: viloyat || undefined,
+          district: tuman || undefined,
+          tugilgan_sana: tugilganSana || undefined,
+          maktab_raqami: rol === "oquvchi" && maktabRaqami ? maktabRaqami : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onUlandi(data.token);
+    } catch (e) {
+      setXato(e.message === "Failed to fetch" ? "Serverga ulanib bo'lmadi" : e.message);
+    } finally { setYuklanmoqda(false); }
+  };
 
-@app.get("/auth/google/login")
-def google_login():
-    """Foydalanuvchini Google'ning kirish sahifasiga yo'naltiradi."""
-    url = (
-        "https://accounts.google.com/o/oauth2/v2/auth"
-        f"?client_id={GOOGLE_CLIENT_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
-        "&response_type=code"
-        "&scope=openid%20email%20profile"
-        "&access_type=online"
-    )
-    return RedirectResponse(url)
+  if (rejim === null) {
+    return (
+      <Qobiq>
+        <div className="text-center mb-8">
+          <Logotip />
+          <h1 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>Xush kelibsiz!</h1>
+          <p className="text-sm mt-1" style={{ color: "#8A8578" }}>{email}</p>
+        </div>
+        <button onClick={() => setRejim("kod")}
+          className="w-full py-4 rounded-xl border flex items-center gap-3 mb-3 text-left"
+          style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+          <KeyRound size={20} style={{ color: "#1B4B7A" }} />
+          <div>
+            <p className="font-medium text-sm" style={{ color: "#2B2B2B" }}>Bot orqali ulash kodim bor</p>
+            <p className="text-xs" style={{ color: "#8A8578" }}>Botda "🔗 Saytga ulanish kodi" bosgan bo'lsangiz</p>
+          </div>
+        </button>
+        <button onClick={() => setRejim("royxat")}
+          className="w-full py-4 rounded-xl border flex items-center gap-3 text-left"
+          style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+          <UserPlus size={20} style={{ color: "#2D8B8B" }} />
+          <div>
+            <p className="font-medium text-sm" style={{ color: "#2B2B2B" }}>Yangi ro'yxatdan o'taman</p>
+            <p className="text-xs" style={{ color: "#8A8578" }}>Botdan foydalanmagan bo'lsangiz</p>
+          </div>
+        </button>
+      </Qobiq>
+    );
+  }
 
+  if (rejim === "kod") {
+    return (
+      <Qobiq>
+        <button onClick={() => setRejim(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Ulash kodini kiriting</h1>
+        <p className="text-sm mb-5" style={{ color: "#8A8578" }}>Botdagi "👤 Kabinet → 🔗 Saytga ulanish kodi"</p>
+        <input type="text" value={kod} onChange={(e) => setKod(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === "Enter" && kodBilan()}
+          placeholder="masalan: UU62JX"
+          className="w-full px-4 py-3 rounded-xl border text-base mb-3 tracking-widest text-center font-semibold"
+          style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
+        {xato && <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#B0553A" }}><WifiOff size={15} /> {xato}</div>}
+        <button onClick={kodBilan} disabled={yuklanmoqda}
+          className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
+          {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Ulash"}
+        </button>
+      </Qobiq>
+    );
+  }
 
-@app.get("/auth/google/callback")
-async def google_callback(code: str = None, error: str = None):
-    """Google qaytargandan keyin ishlaydi — email oladi, bog'langan-bog'lanmaganini
-    tekshiradi, mos ekranga yo'naltiradi."""
-    if error or not code:
-        return RedirectResponse(f"{FRONTEND_URL}/?xato=kirish_bekor")
+  return (
+    <Qobiq>
+      <button onClick={() => setRejim(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-lg font-bold mb-5" style={{ color: "#2B2B2B" }}>Ro'yxatdan o'tish</h1>
 
-    async with httpx.AsyncClient() as client:
-        token_resp = await client.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": REDIRECT_URI,
-            },
-        )
-        token_data = token_resp.json()
-        if "access_token" not in token_data:
-            return RedirectResponse(f"{FRONTEND_URL}/?xato=google_token")
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ismingiz</label>
+      <input type="text" value={ismInput} onChange={(e) => setIsmInput(e.target.value)}
+        className="w-full px-4 py-3 rounded-xl border text-base mb-2"
+        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
 
-        userinfo_resp = await client.get(
-            "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {token_data['access_token']}"},
-        )
-        userinfo = userinfo_resp.json()
+      {oxshashlar.length > 0 && (
+        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#FFF8E8", border: "1px solid #EEDFB0" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "#6B5B2E" }}>
+            Botda shunga o'xshash ism topildi:
+          </p>
+          {oxshashlar.map((o, i) => (
+            <p key={i} className="text-xs" style={{ color: "#8A7642" }}>• {o.full_name} ({o.role})</p>
+          ))}
+          <p className="text-xs mt-1.5" style={{ color: "#6B5B2E" }}>
+            Bu sizmi? Bo'lsa, ortga qaytib "Bot kodim bor" ni tanlang — aks holda ikkita akkaunt paydo bo'ladi.
+          </p>
+        </div>
+      )}
 
-    email = userinfo.get("email")
-    ism = userinfo.get("name", "")
-    if not email:
-        return RedirectResponse(f"{FRONTEND_URL}/?xato=email_topilmadi")
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Kimsiz?</label>
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {[["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
+          <button key={v} onClick={() => setRol(v)}
+            className="py-2.5 rounded-lg border text-xs font-medium"
+            style={{
+              borderColor: rol === v ? "#1B4B7A" : "#E5E1D8",
+              backgroundColor: rol === v ? "#1B4B7A" : "#FFFFFF",
+              color: rol === v ? "#FFFFFF" : "#5A5648",
+            }}>
+            {l}
+          </button>
+        ))}
+      </div>
 
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT user_id FROM google_hisob WHERE google_email=%s", (email,))
-    r = cur.fetchone()
-    cur.close()
-    conn.close()
+      {rol === "oquvchi" && (
+        <>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+          <select value={sinf} onChange={(e) => setSinf(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+            style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+            {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>{n}-sinf</option>
+            ))}
+          </select>
 
-    if r:
-        token = _jwt_yarat(r["user_id"])
-        return RedirectResponse(f"{FRONTEND_URL}/kabinet?token={token}")
-    else:
-        return RedirectResponse(f"{FRONTEND_URL}/ulash?email={email}&ism={ism}")
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
+          <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
+            placeholder="masalan: 21"
+            className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+            style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
+        </>
+      )}
 
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+      <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+        className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+        <option value="">Tanlanmagan</option>
+        {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+      </select>
 
-class UlashSorov(BaseModel):
-    email: str
-    kod: str
+      {viloyat && (
+        <>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+          <select value={tuman} onChange={(e) => setTuman(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+            style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+            <option value="">Tanlanmagan</option>
+            {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </>
+      )}
 
+      <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
+      <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
+        min="1950-01-01" max={new Date().toISOString().split("T")[0]}
+        className="w-full px-4 py-3 rounded-xl border text-base mb-4"
+        style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }} />
 
-class RoyxatSorov(BaseModel):
-    email: str
-    ism: str
-    rol: str          # 'oquvchi' | 'ota-ona' | 'oqituvchi'
-    sinf: Optional[str] = None  # faqat rol='oquvchi' bo'lsa
-    region: Optional[str] = None
-    district: Optional[str] = None
-    tugilgan_sana: Optional[str] = None
-    maktab_raqami: Optional[str] = None
+      {xato && <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#B0553A" }}><WifiOff size={15} /> {xato}</div>}
 
-RUXSAT_ETILGAN_ROLLAR = {"oquvchi", "ota-ona", "oqituvchi"}
+      <button onClick={royxatBilan} disabled={yuklanmoqda}
+        className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+        style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
+        {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Ro'yxatdan o'tish"}
+      </button>
+    </Qobiq>
+  );
+}
 
+// ═══════════════════════════════════════════════════════════
+// 3) KABINET — token bilan kirilgach
+// ═══════════════════════════════════════════════════════════
+function MavzularYoliVizual({ mavzular, rang }) {
+  const [tanlangan, setTanlangan] = useState(null); // ochilgan tugma indeksi | null
+  const QADAM = 78, ENI = 260, AMPLITUDA = 78, YUQORI = 46, PASTKI = 46;
+  const asosiyRang = rang || "#1B4B7A";
 
-@app.get("/auth/ism_tekshir")
-def ism_tekshir(ism: str):
-    """Botda shu ismga o'xshash foydalanuvchi bor-yo'qligini tekshiradi —
-    saytdan yangi ro'yxatdan o'tishda, odam bilmasdan ikkinchi
-    (dublikat) hisob ochib qo'ymasligi uchun ogohlantirish beriladi.
-    Faqat BOTDAN kelgan (musbat user_id) foydalanuvchilar orasidan
-    qidiradi — saytdan ro'yxatdan o'tganlar (manfiy ID) hisobga olinmaydi."""
-    birinchi_soz = ism.strip().split()[0] if ism.strip() else ""
-    if len(birinchi_soz) < 3:
-        return {"oxshash": []}
+  const nuqtalar = mavzular.map((m, i) => ({
+    ...m, x: ENI / 2 + AMPLITUDA * Math.sin(i * 1.05), y: YUQORI + i * QADAM,
+  }));
+  const balandlik = YUQORI + Math.max(0, mavzular.length - 1) * QADAM + PASTKI;
+  const yoliChizigi = nuqtalar.map((n, i) => `${i === 0 ? "M" : "L"} ${n.x.toFixed(1)} ${n.y.toFixed(1)}`).join(" ");
+  const hammasiTugagan = mavzular.length > 0 && mavzular.every((m) => m.otilgan_kichik === m.jami_kichik);
 
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT full_name, role FROM users
-        WHERE full_name ILIKE %s AND user_id > 0
-        LIMIT 3
-    """, (f"%{birinchi_soz}%",))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"oxshash": natija}
+  return (
+    <div className="relative mx-auto" style={{ width: ENI, height: balandlik + 60 }}>
+      <svg viewBox={`0 0 ${ENI} ${balandlik + 60}`} width={ENI} height={balandlik + 60} className="absolute inset-0">
+        <text x={ENI / 2} y="26" textAnchor="middle" fontSize="26">🏁</text>
+        <path d={yoliChizigi ? `M ${ENI / 2} 34 ${yoliChizigi.slice(2)}` : ""} fill="none" stroke="#E5E1D8" strokeWidth="6" strokeLinecap="round" strokeDasharray="1,14" />
+        <text x={ENI / 2} y={balandlik + 42} textAnchor="middle" fontSize="26" opacity={hammasiTugagan ? 1 : 0.35}>🏆</text>
+      </svg>
+      {nuqtalar.map((n, i) => {
+        const holat = n.otilgan_kichik === 0 ? "boshlanmagan" : n.otilgan_kichik < n.jami_kichik ? "jarayonda" : "tugagan";
+        const fonRang = holat === "tugagan" ? asosiyRang : holat === "jarayonda" ? "#C89B3C" : "#FFFFFF";
+        const chegara = holat === "boshlanmagan" ? "#C4BFAF" : fonRang;
+        const matnRang = holat === "boshlanmagan" ? "#8A8578" : "#FFFFFF";
+        return (
+          <div key={n.topic_code} className="absolute" style={{ left: n.x - 24, top: n.y - 24 }}>
+            <button onClick={() => setTanlangan(tanlangan === i ? null : i)}
+              className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shadow-sm"
+              style={{ backgroundColor: fonRang, border: `3px solid ${chegara}`, color: matnRang }}>
+              {holat === "tugagan" ? "✓" : i + 1}
+            </button>
+            {tanlangan === i && (
+              <div className="absolute z-10 top-14 -left-16 w-40 rounded-xl p-2.5 text-center shadow-lg bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <p className="text-xs font-medium mb-0.5" style={{ color: "#2B2B2B" }}>{n.nomi}</p>
+                {n.score !== null && <p className="text-xs font-bold" style={{ color: asosiyRang }}>{n.score}%</p>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
+function MavzuQatori({ m, i, sinf, fan, rang }) {
+  const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
+  const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
+  const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
+  const chegaraRang = holat === "tugagan" ? "#C9E4B0" : holat === "jarayonda" ? "#F5DFA3" : "#E5E1D8";
 
-@app.post("/auth/royxat")
-def yangi_royxat(sorov: RoyxatSorov):
-    """Botsiz, to'g'ridan saytdan YANGI foydalanuvchi yaratadi.
-    Telegram ID bilan TO'QNASHMASLIGI uchun MANFIY user_id beriladi
-    (haqiqiy Telegram ID doim musbat bo'ladi)."""
-    if sorov.rol not in RUXSAT_ETILGAN_ROLLAR:
-        raise HTTPException(status_code=400, detail=f"Noto'g'ri rol: {sorov.rol}")
-    if not sorov.ism.strip():
-        raise HTTPException(status_code=400, detail="Ism kiritilmagan")
+  const [ochiq, setOchiq] = useState(false);
+  const [tushuntirish, setTushuntirish] = useState(null); // null=hali so'ralmagan, ""=topilmadi, matn=bor
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
 
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS tugilgan_sana DATE")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_raqami TEXT")
+  const bosildi = () => {
+    if (ochiq) { setOchiq(false); return; }
+    setOchiq(true);
+    if (tushuntirish !== null) return; // allaqachon yuklangan — qayta so'ramaymiz
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/mavzu_tushuntirish?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&mavzu=${encodeURIComponent(m.nomi)}`)
+      .then((r) => r.json())
+      .then((d) => { setTushuntirish(d.topildi ? d.tushuntirish : ""); setYuklanmoqda(false); })
+      .catch(() => { setTushuntirish(""); setYuklanmoqda(false); });
+  };
 
-    cur.execute("SELECT user_id FROM google_hisob WHERE google_email=%s", (sorov.email,))
-    if cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Bu email allaqachon ulangan — kirish orqali davom eting")
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: fonRang, borderColor: chegaraRang }}>
+      <button onClick={bosildi} className="w-full p-3.5 flex items-center gap-3 text-left">
+        <span className="text-lg shrink-0">{ikon}</span>
+        <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{i + 1}. {m.nomi}</span>
+        {m.score !== null && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
+        <span className="text-sm shrink-0">🤖</span>
+      </button>
+      {ochiq && (
+        <div className="px-3.5 pb-3.5">
+          {yuklanmoqda ? (
+            <div className="py-2"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+          ) : tushuntirish ? (
+            <p className="text-sm p-3 rounded-lg leading-relaxed" style={{ backgroundColor: "#FFFFFF", color: "#2B2B2B" }}>{tushuntirish}</p>
+          ) : (
+            <p className="text-xs" style={{ color: "#8A8578" }}>Bu mavzu uchun hali AI tushuntirishi tayyorlanmagan.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-    cur.execute("SELECT MIN(user_id) AS eng_kichik FROM users WHERE user_id < 0")
-    r = cur.fetchone()
-    yangi_id = (r["eng_kichik"] - 1) if r and r["eng_kichik"] is not None else -1
+function TalimYoli({ bolaId, fan, rang, onYopish }) {
+  const [malumot, setMalumot] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("royxat"); // "royxat" | "yol"
 
-    cur.execute(
-        """INSERT INTO users(user_id, full_name, role, class, region, district, tugilgan_sana, maktab_raqami)
-           VALUES(%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (yangi_id, sorov.ism.strip(), sorov.rol, sorov.sinf if sorov.rol == "oquvchi" else None,
-         sorov.region, sorov.district, sorov.tugilgan_sana, sorov.maktab_raqami),
-    )
-    cur.execute(
-        "INSERT INTO google_hisob(google_email, user_id) VALUES(%s,%s)",
-        (sorov.email, yangi_id),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+  useEffect(() => {
+    fetch(`${API_BASE}/api/bola/${bolaId}/yol?fan=${encodeURIComponent(fan)}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.detail) throw new Error(d.detail); setMalumot(d); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [bolaId, fan]);
 
-    token = _jwt_yarat(yangi_id)
-    return {"token": token, "user_id": yangi_id, "holat": "royxatdan otdi"}
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
+      <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
+        <button onClick={onYopish} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold shrink-0" style={{ backgroundColor: rang || "#1B4B7A" }}>
+            {fan.slice(0, 1)}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>{fan}</h1>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Ta'lim yo'li</p>
+          </div>
+        </div>
 
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : xato ? (
+          <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>
+        ) : (
+          <>
+            <div className="rounded-2xl p-5 bg-white border mb-5" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium" style={{ color: "#5A5648" }}>Yo'lning bosib o'tilgan qismi</p>
+                <p className="text-sm font-bold" style={{ color: rang || "#1B4B7A" }}>{malumot.otilgan_mavzu} / {malumot.jami_mavzu}</p>
+              </div>
+              <div className="h-2.5 rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#EFEBE1" }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${malumot.yol_foizi}%`, backgroundColor: rang || "#1B4B7A" }} />
+              </div>
+              <p className="text-xs mb-4" style={{ color: "#8A8578" }}>{malumot.yol_foizi}% yo'l bosib o'tilgan</p>
 
-@app.post("/auth/ulash")
-def hisob_ulash(sorov: UlashSorov):
-    """Google hisobini bot user_id'siga kod orqali bog'laydi. Ikki xil
-    kod manbasini tekshiradi: botdagi veb_ulash_kod (15 daqiqa amal
-    qiladi) VA maktab xodimlari uchun xodim_kod (30 kun amal qiladi,
-    admin Excel orqali xodim import qilganda yaratiladi) — shu sabab
-    bitta "kod kiritish" ekrani ikkalasi uchun ham ishlaydi."""
-    email, kod = sorov.email, sorov.kod
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT user_id, ishlatildi,
-               (yaratildi > NOW() - INTERVAL '15 minutes') AS hali_yangi
-        FROM veb_ulash_kod WHERE kod=%s
-    """, (kod,))
-    r = cur.fetchone()
-    muddat_matni = "15 daqiqa"
-    jadval_nomi = "veb_ulash_kod"
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium" style={{ color: "#5A5648" }}>Bilimlar samaradorligi</p>
+                <p className="text-sm font-bold" style={{ color: "#C89B3C" }}>{malumot.samaradorlik_foizi}%</p>
+              </div>
+            </div>
 
-    if not r:
-        cur.execute("SELECT 1 FROM information_schema.tables WHERE table_name='xodim_kod'")
-        if cur.fetchone():
-            cur.execute("""
-                SELECT user_id, ishlatildi,
-                       (yaratildi > NOW() - INTERVAL '30 days') AS hali_yangi
-                FROM xodim_kod WHERE kod=%s
-            """, (kod,))
-            r = cur.fetchone()
-            muddat_matni = "30 kun"
-            jadval_nomi = "xodim_kod"
+            {malumot.choraklar && malumot.choraklar.length > 0 && (
+              <div className="grid gap-2 mb-5" style={{ gridTemplateColumns: `repeat(${malumot.choraklar.length}, minmax(0, 1fr))` }}>
+                {malumot.choraklar.map((ch) => {
+                  const ikon = ch.foiz === 100 ? "✅" : ch.foiz > 0 ? "🟡" : "⚪";
+                  return (
+                    <div key={ch.chorak} className="rounded-xl p-3 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>{ch.chorak}-chorak</p>
+                      <p className="text-lg mb-0.5">{ikon}</p>
+                      <p className="text-xs font-bold" style={{ color: ch.foiz === 100 ? "#3B6D11" : ch.foiz > 0 ? "#8A5A1C" : "#8A8578" }}>{ch.foiz}%</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod noto'g'ri")
-    if r["ishlatildi"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod allaqachon ishlatilgan")
-    if not r["hali_yangi"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail=f"Kod muddati tugagan ({muddat_matni}) — qaytadan so'rang")
+            <div className="flex gap-2 mb-5">
+              <button onClick={() => setKorinish("royxat")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "royxat" ? { backgroundColor: rang || "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                📋 Ro'yxat
+              </button>
+              <button onClick={() => setKorinish("yol")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "yol" ? { backgroundColor: rang || "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                🛤️ Yo'l
+              </button>
+            </div>
 
-    cur.execute("""
-        INSERT INTO google_hisob (google_email, user_id) VALUES (%s,%s)
-        ON CONFLICT (google_email) DO UPDATE SET user_id=EXCLUDED.user_id
-    """, (email, r["user_id"]))
-    cur.execute(f"UPDATE {jadval_nomi} SET ishlatildi=TRUE WHERE kod=%s", (kod,))
-    conn.commit()
-    cur.close()
-    conn.close()
+            {korinish === "yol" ? (
+              <div className="py-2 overflow-x-auto"><MavzularYoliVizual mavzular={malumot.mavzular} rang={rang} /></div>
+            ) : (
+              <div className="space-y-2">
+                {malumot.mavzular.map((m, i) => (
+                  <MavzuQatori key={m.topic_code} m={m} i={i} sinf={malumot.sinf} fan={fan} rang={rang} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
-    token = _jwt_yarat(r["user_id"])
-    return {"token": token, "holat": "ulandi"}
+function TogarakYoli({ bolaId, togarakId, onYopish }) {
+  const [malumot, setMalumot] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("royxat"); // "royxat" | "yol"
 
+  useEffect(() => {
+    fetch(`${API_BASE}/api/bola/${bolaId}/togarak_yoli/${togarakId}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.detail) throw new Error(d.detail); setMalumot(d); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [bolaId, togarakId]);
 
-@app.get("/auth/men")
-def joriy_foydalanuvchi(token: str):
-    """Token orqali 'bu kim' ekanini tasdiqlaydi — frontend sahifa yuklanganda
-    ishlatadi. Admin bo'lsa, is_admin=true qaytadi — frontend shunga qarab
-    sinf-cheklovini olib tashlaydi (admin barcha sinflarni ko'rishi kerak)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS tugilgan_sana DATE")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_raqami TEXT")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS jins TEXT")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS oqituvchi_fani TEXT")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS bogcha_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS universitet_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lavozim TEXT")
-    cur.execute(
-        "SELECT user_id, full_name, role, class, class_letter, school_type, "
-        "region, district, tugilgan_sana, maktab_raqami, jins, oqituvchi_fani, "
-        "maktab_id, markaz_id, bogcha_id, universitet_id, lavozim FROM users WHERE user_id=%s",
-        (user_id,),
-    )
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
+      <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
+        <button onClick={onYopish} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : xato ? (
+          <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>
+        ) : (
+          <>
+            <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🔀 {malumot.togarak_nomi}</h1>
+            <p className="text-sm mb-5" style={{ color: "#8A8578" }}>{malumot.fan} · To'garak yo'li</p>
 
-    if r["maktab_id"]:
-        _maktab_jadvali(cur)
-        cur.execute("SELECT nomi FROM maktablar WHERE id=%s", (r["maktab_id"],))
-        m = cur.fetchone()
-        r["maktab_nomi"] = m["nomi"] if m else None
-    else:
-        r["maktab_nomi"] = None
+            <div className="rounded-2xl p-5 bg-white border mb-5" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium" style={{ color: "#5A5648" }}>Yo'lning bosib o'tilgan qismi</p>
+                <p className="text-sm font-bold" style={{ color: "#1B4B7A" }}>{malumot.otilgan_mavzu} / {malumot.jami_mavzu}</p>
+              </div>
+              <div className="h-2.5 rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#EFEBE1" }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${malumot.yol_foizi}%`, backgroundColor: "#1B4B7A" }} />
+              </div>
+              <p className="text-xs mb-4" style={{ color: "#8A8578" }}>{malumot.yol_foizi}% yo'l bosib o'tilgan</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium" style={{ color: "#5A5648" }}>Bilimlar samaradorligi</p>
+                <p className="text-sm font-bold" style={{ color: "#C89B3C" }}>{malumot.samaradorlik_foizi}%</p>
+              </div>
+            </div>
 
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    r["is_admin"] = cur.fetchone() is not None
-    cur.close()
-    conn.close()
-    return r
+            {malumot.choraklar && malumot.choraklar.length > 0 && (
+              <div className="grid gap-2 mb-5" style={{ gridTemplateColumns: `repeat(${malumot.choraklar.length}, minmax(0, 1fr))` }}>
+                {malumot.choraklar.map((ch) => {
+                  const ikon = ch.foiz === 100 ? "✅" : ch.foiz > 0 ? "🟡" : "⚪";
+                  return (
+                    <div key={ch.chorak} className="rounded-xl p-3 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>{ch.chorak}-chorak</p>
+                      <p className="text-lg mb-0.5">{ikon}</p>
+                      <p className="text-xs font-bold" style={{ color: ch.foiz === 100 ? "#3B6D11" : ch.foiz > 0 ? "#8A5A1C" : "#8A8578" }}>{ch.foiz}%</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
+            <div className="flex gap-2 mb-5">
+              <button onClick={() => setKorinish("royxat")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "royxat" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                📋 Ro'yxat
+              </button>
+              <button onClick={() => setKorinish("yol")}
+                className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                style={korinish === "yol" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                🛤️ Yo'l
+              </button>
+            </div>
 
-@app.get("/api/auth/muassasalarim")
-def muassasalarim(token: str):
-    """Chaqiruvchi qanday muassasa(lar)ga tegishli ekanini — HAR
-    BIRINI ALOHIDA — ro'yxat qilib qaytaradi. Eski (yagona ustun) va
-    yangi (ko'p muassasali) manbalarni birlashtirib, takrorlarni olib
-    tashlaydi. Frontend shu ro'yxat asosida "Maktabim"/"Markazim"/
-    "Bog'cham"/"Institutim" kabi ALOHIDA bo'limlar(tab)ni chizadi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS bogcha_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS universitet_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lavozim TEXT")
-    cur.execute(
-        "SELECT maktab_id, markaz_id, bogcha_id, universitet_id, lavozim FROM users WHERE user_id=%s",
-        (user_id,),
-    )
-    u = cur.fetchone()
+            {korinish === "yol" ? (
+              <div className="py-2 overflow-x-auto"><MavzularYoliVizual mavzular={malumot.mavzular} rang="#1B4B7A" /></div>
+            ) : (
+              <div className="space-y-2">
+                {malumot.mavzular.map((m, i) => {
+                  const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
+                  const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
+                  const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
+                  const chegaraRang = holat === "tugagan" ? "#C9E4B0" : holat === "jarayonda" ? "#F5DFA3" : "#E5E1D8";
+                  return (
+                  <div key={m.topic_code} className="rounded-xl p-3.5 flex items-center gap-3 border" style={{ backgroundColor: fonRang, borderColor: chegaraRang }}>
+                    <span className="text-lg shrink-0">{ikon}</span>
+                    <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{i + 1}. {m.nomi}</span>
+                    {m.score !== null && <span className="text-xs font-semibold shrink-0" style={{ color: "#3B6D11" }}>{m.score}%</span>}
+                  </div>
+                );
+              })}
+            </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
-    topilganlar = {}  # (turi, muassasa_id) -> lavozim
-    if u:
-        for turi, mid in [("maktab", u["maktab_id"]), ("markaz", u["markaz_id"]), ("bogcha", u["bogcha_id"]), ("universitet", u["universitet_id"])]:
-            if mid and u["lavozim"]:
-                topilganlar[(turi, mid)] = u["lavozim"]
+function FanBolimi({ fan, onBosildi }) {
+  return (
+    <button onClick={onBosildi}
+      className="w-full rounded-2xl border bg-white p-5 flex items-center gap-4 text-left transition-transform active:scale-[0.98]"
+      style={{ borderColor: "#E5E1D8" }}>
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0" style={{ backgroundColor: fan.rang }}>{fan.qisqa}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="font-semibold text-lg" style={{ color: "#2B2B2B" }}>{fan.nom}</h3>
+          <span className="text-2xl font-bold shrink-0" style={{ color: fan.rang }}>{fan.foiz}%</span>
+        </div>
+        <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ backgroundColor: "#EFEBE1" }}>
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${fan.foiz}%`, backgroundColor: fan.rang }} />
+        </div>
+      </div>
+      <ChevronRight size={20} className="shrink-0" style={{ color: "#8A8578" }} />
+    </button>
+  );
+}
 
-    _muassasa_jadvali(cur)
-    cur.execute("SELECT muassasa_turi, muassasa_id, lavozim FROM foydalanuvchi_muassasalari WHERE user_id=%s", (user_id,))
-    for r in cur.fetchall():
-        topilganlar[(r["muassasa_turi"], r["muassasa_id"])] = r["lavozim"]
+function BilimTab({ data, bolaId, rang, token }) {
+  const heroRang = rang || "#1B4B7A";
+  const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
+  const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
+  const [mengaTogaraklarim, setMenTogaraklarim] = useState([]);
+  const [bugungiTavsiya, setBugungiTavsiya] = useState(null); // {tavsiyalar: [...]} | null (hali yuklanmagan)
+  const [haftalik, setHaftalik] = useState(null); // {jami_mavzu, ortacha_ball, ...} | null (hali yuklanmagan)
+  const [davomat, setDavomat] = useState(null); // {jami_kun, keldi, kelmadi, ketma_ket_kelmagan} | null
+  const [mosSinf, setMosSinf] = useState(null); // {sinf_id, sinf_nomi, maktab_nomi, rahbar_ismi} | null
+  const [qoshilishParoli, setQoshilishParoli] = useState("");
+  const [qoshilinmoqda, setQoshilinmoqda] = useState(false);
+  const [qoshilishXato, setQoshilishXato] = useState("");
+  const radarData = data.fanlar.map((f) => ({ fan: f.qisqa, foiz: f.foiz }));
 
-    jadval_nomi = {"maktab": "maktablar", "markaz": "oquv_markazlari", "bogcha": "bogchalar", "universitet": "universitetlar"}
-    natija = []
-    for (turi, muassasa_id), lavozim in topilganlar.items():
-        cur.execute(f"SELECT nomi FROM {jadval_nomi[turi]} WHERE id=%s", (muassasa_id,))
-        m = cur.fetchone()
-        natija.append({"turi": turi, "muassasa_id": muassasa_id, "muassasa_nomi": m["nomi"] if m else None, "lavozim": lavozim})
-    cur.close()
-    conn.close()
-    return {"muassasalar": natija}
+  useEffect(() => {
+    if (!bolaId) return;
+    fetch(`${API_BASE}/api/bola/${bolaId}/togaraklarim`)
+      .then((r) => r.json())
+      .then((d) => setMenTogaraklarim(d.togaraklar || []))
+      .catch(() => {});
+  }, [bolaId]);
 
+  useEffect(() => {
+    if (!bolaId) return;
+    fetch(`${API_BASE}/api/bola/${bolaId}/bugungi_tavsiya`)
+      .then((r) => r.json())
+      .then((d) => setBugungiTavsiya(d))
+      .catch(() => setBugungiTavsiya({ tavsiyalar: [] }));
+  }, [bolaId]);
 
-# ═══════════════════════════════════════════════════════════
-# TEST YECHISH (saytdan, botsiz)
-# ═══════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!bolaId) return;
+    fetch(`${API_BASE}/api/bola/${bolaId}/haftalik_xulosa`)
+      .then((r) => r.json())
+      .then((d) => setHaftalik(d))
+      .catch(() => {});
+  }, [bolaId]);
 
-@app.get("/api/mavzular")
-def mavzular_royxati(sinf: str = None, turi: str = "oddiy", faqat_testli: bool = True):
-    """Fan/mavzularni qaytaradi — Fan → Sinf → Mavzu tartibida.
+  useEffect(() => {
+    if (!bolaId || !token) return;
+    fetch(`${API_BASE}/api/bola/${bolaId}/davomat_xulosa?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setDavomat(d))
+      .catch(() => {});
+  }, [bolaId, token]);
 
-    MUHIM: bitta "mavzu" ostida bir nechta "kichik mavzu" bo'lishi mumkin
-    (har biri o'z topic_code'iga ega) — lekin o'quvchiga BITTA mavzu
-    IKKI MARTA (har kichik mavzu uchun alohida) ko'rinishi noto'g'ri va
-    chalkashtiruvchi edi. Shu sabab bu yerda MAVZU darajasida guruhlaymiz:
-    har mavzu — bitta yozuv, ichida esa BARCHA kichik mavzularning
-    topic_code'lari "topic_codes" ro'yxatida jamlanadi. Test yechilganda
-    shu ro'yxatdagi barcha kodlardan ARALASH (random) savol olinadi
-    (/api/test_aralash orqali) — shunday qilib bitta "mavzu" tanlansa,
-    uning barcha kichik mavzularidan birgalikda savol chiqadi.
+  // FAQAT o'quvchining O'Z Bilim ekranida (token mavjud bo'lganda) —
+  // ota-ona farzandini ko'rayotganda BU banner ko'rinmaydi, chunki
+  // sinfga qo'shilishni faqat o'quvchining o'zi tasdiqlashi kerak.
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/api/oquvchi/mos_sinf?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMosSinf(d.topildi ? d : null))
+      .catch(() => {});
+  }, [token]);
 
-    faqat_testli=True (standart, test yechish uchun) — faqat
-    generated_tests'da HAQIQATAN savoli bor kichik mavzularni hisobga
-    oladi (agar bir mavzuning faqat qismi testli bo'lsa, faqat o'sha
-    testli qismidan savol olinadi). faqat_testli=False (admin
-    kontent-yaratish oqimlari uchun) — testi hali yo'q mavzularni ham
-    ko'rsatadi va BARCHA kichik mavzu kodlarini beradi.
+  const sinfgaQoshil = async () => {
+    if (!qoshilishParoli.trim()) { setQoshilishXato("Parolni kiriting"); return; }
+    setQoshilinmoqda(true); setQoshilishXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oquvchi/sinfga_qoshil?token=${encodeURIComponent(token)}&sinf_id=${mosSinf.sinf_id}&parol=${encodeURIComponent(qoshilishParoli.trim())}`, {
+        method: "POST",
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      setMosSinf(null);
+      setQoshilishParoli("");
+    } catch (e) {
+      setQoshilishXato(e.message);
+    } finally { setQoshilinmoqda(false); }
+  };
 
-    grade ustuni ba'zan "3-4", "5-6" kabi ORALIQ ko'rinishida bo'ladi —
-    bular ODDIY maktab sinfi EMAS, balki TO'GARAKNING O'Z maxsus
-    guruhlari. turi="oddiy" (standart) — faqat sof raqamli sinflar
-    (1,2,...11). turi="togarak" — faqat ORALIQ (to'garak) guruhlari."""
-    if sinf:
-        sinf = sinf.replace("-sinf", "").strip()
+  const fanRangiTop = (fanNomi) => data.fanlar.find((f) => f.nom === fanNomi)?.rang || fanRangiOl(fanNomi);
 
-    togarak_mi = turi == "togarak"
-    grade_shart = "d.grade !~ '^[0-9]+$'" if togarak_mi else "d.grade ~ '^[0-9]+$'"
+  return (
+    <div>
+      <div className="relative overflow-hidden px-5 pt-6 pb-8" style={{ backgroundColor: heroRang }}>
+        <div className="relative">
+          <h1 className="mt-1 text-2xl font-bold text-white">{data.bola?.ism || "Sizning bilimingiz"}</h1>
+          <div className="mt-6 flex items-end gap-4">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold text-white">{data.umumiy_foiz}</span>
+                <span className="text-xl font-bold" style={{ color: "#C89B3C" }}>%</span>
+              </div>
+              <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "#B8CBDA" }}><TrendingUp size={12} /> {darajaNom(data.umumiy_foiz)}</p>
+            </div>
+            {data.fanlar.length > 0 && (
+              <div className="flex-1 h-24">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData} outerRadius="75%">
+                    <PolarGrid stroke="rgba(255,255,255,0.15)" />
+                    <PolarAngleAxis dataKey="fan" tick={{ fill: "#B8CBDA", fontSize: 10 }} />
+                    <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                    <Radar dataKey="foiz" stroke="#C89B3C" fill="#C89B3C" fillOpacity={0.35} strokeWidth={2} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
 
-    conn = _db()
-    cur = conn.cursor()
-    shart = grade_shart
-    params = []
-    if sinf:
-        shart += " AND d.grade = %s"
-        params.append(sinf)
-    cur.execute(f"""
-        SELECT d.subject_code, d.subject_name, d.grade,
-               COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi,
-               array_agg(DISTINCT d.topic_code ORDER BY d.topic_code) AS barcha_kodlar,
-               array_agg(DISTINCT d.topic_code ORDER BY d.topic_code)
-                   FILTER (WHERE d.topic_code IN (SELECT DISTINCT topic_code FROM generated_tests)) AS testli_kodlar,
-               COUNT(gt.id) AS savol_soni
-        FROM dts_tree d
-        LEFT JOIN generated_tests gt ON gt.topic_code = d.topic_code
-        WHERE {shart} AND d.is_deleted = FALSE
-        GROUP BY d.subject_code, d.subject_name, d.grade, COALESCE(d.mavzu_name, d.bolim_name, d.bob_name)
-        ORDER BY d.subject_code, d.grade, MIN(d.topic_code)
-    """, params)
-    qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
+          {data.jami_mavzu > 0 && (
+            <div className="mt-5">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs font-medium" style={{ color: "#B8CBDA" }}>🛤️ Umumiy ta'lim yo'li</p>
+                <p className="text-xs font-semibold text-white">{data.otilgan_mavzu} / {data.jami_mavzu} mavzu</p>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.round((data.otilgan_mavzu / data.jami_mavzu) * 100)}%`, backgroundColor: "#C89B3C" }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="px-5 -mt-3 pb-4 space-y-3">
+        {mosSinf && (
+          <div className="rounded-2xl p-4 border mb-1" style={{ backgroundColor: "#EAF1F7", borderColor: "#1B4B7A" }}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#1B4B7A" }}>🏫 Sinfingiz topildi!</p>
+            <p className="text-xs mb-3" style={{ color: "#5A5648" }}>
+              {mosSinf.maktab_nomi} — {mosSinf.sinf_nomi}{mosSinf.rahbar_ismi ? ` (rahbar: ${mosSinf.rahbar_ismi})` : ""} tomonidan tuzilgan.
+              Qo'shilish uchun sinf rahbaringizdan olgan 4 xonali parolni kiriting.
+            </p>
+            <div className="flex gap-2">
+              <input type="text" value={qoshilishParoli} onChange={(e) => setQoshilishParoli(e.target.value)}
+                placeholder="4 xonali parol" maxLength={4}
+                className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={sinfgaQoshil} disabled={qoshilinmoqda}
+                className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: qoshilinmoqda ? 0.7 : 1 }}>
+                {qoshilinmoqda ? "..." : "Qo'shilish"}
+              </button>
+            </div>
+            {qoshilishXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{qoshilishXato}</p>}
+          </div>
+        )}
 
-    fanlar = {}
-    for q in qatorlar:
-        kodlar = q["testli_kodlar"] if faqat_testli else q["barcha_kodlar"]
-        if faqat_testli and not kodlar:
-            continue  # bu mavzuning hech bir kichik qismida test yo'q — test yechish ro'yxatida ko'rsatmaymiz
+        {bugungiTavsiya && bugungiTavsiya.tavsiyalar && bugungiTavsiya.tavsiyalar.length > 0 && (
+          <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm font-bold mb-0.5 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>📅 Bugungi tavsiya</p>
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Bu mavzular eslaringizdan chiqishi mumkin — takrorlab qo'ying.</p>
+            <div className="space-y-2">
+              {bugungiTavsiya.tavsiyalar.map((t, i) => {
+                const bRang = fanRangiTop(t.fan);
+                const daraja_ikon = t.daraja === "yuqori" ? "🔴" : "🟡";
+                return (
+                  <button key={i} onClick={() => setYolFani({ fan: t.fan, rang: bRang })}
+                    className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-left"
+                    style={{ backgroundColor: "#F7F5F0" }}>
+                    <span className="text-base shrink-0">{daraja_ikon}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="text-sm font-medium block truncate" style={{ color: "#2B2B2B" }}>{t.nomi}</span>
+                      <span className="text-xs" style={{ color: "#8A8578" }}>{t.fan} · {t.kunlar_otgan} kun oldin{t.oxirgi_ball !== null ? ` · ${t.oxirgi_ball}%` : ""}</span>
+                    </span>
+                    <ChevronRight size={16} className="shrink-0" style={{ color: "#8A8578" }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-        fkod = q["subject_code"] or "BOSHQA"
-        if fkod not in fanlar:
-            fanlar[fkod] = {"nom": q["subject_name"] or fkod, "qisqa": fkod, "sinflar": {}}
+        {haftalik && (haftalik.jami_mavzu > 0 || haftalik.ketma_ket_kun > 0) && (
+          <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm font-bold mb-3 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>📊 Haftalik xulosa</p>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#FDF3E0" }}>
+                <p className="text-lg font-bold" style={{ color: "#8A5A1C" }}>{haftalik.ketma_ket_kun > 0 ? `🔥${haftalik.ketma_ket_kun}` : "—"}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>kun ketma-ket</p>
+              </div>
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#EAF1F7" }}>
+                <p className="text-lg font-bold" style={{ color: "#1B4B7A" }}>{haftalik.jami_mavzu}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>mavzu (hafta)</p>
+              </div>
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#EAF3DE" }}>
+                <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{haftalik.jami_mavzu > 0 ? `${haftalik.ortacha_ball}%` : "—"}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>o'rtacha ball</p>
+              </div>
+            </div>
+            {haftalik.yangi_mavzular_soni > 0 && (
+              <p className="text-xs mb-1.5" style={{ color: "#5A5648" }}>
+                ⭐ Bu hafta {haftalik.yangi_mavzular_soni} ta yangi mavzu: <b>{haftalik.yangi_mavzular.join(", ")}</b>
+              </p>
+            )}
+            {haftalik.zaif_mavzular.length > 0 && (
+              <p className="text-xs" style={{ color: "#5A5648" }}>
+                💪 Ko'proq e'tibor kerak: <b>{haftalik.zaif_mavzular.map((z) => `${z.nomi} (${z.ball}%)`).join(", ")}</b>
+              </p>
+            )}
+          </div>
+        )}
 
-        skod = q["grade"]
-        if skod not in fanlar[fkod]["sinflar"]:
-            fanlar[fkod]["sinflar"][skod] = {"sinf": skod, "mavzular": []}
-        fanlar[fkod]["sinflar"][skod]["mavzular"].append({
-            "topic_codes": kodlar, "nomi": q["nomi"], "savol_soni": q["savol_soni"],
+        {davomat && davomat.jami_kun > 0 && (
+          <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: davomat.ketma_ket_kelmagan >= 2 ? "#E8A0A0" : "#E5E1D8" }}>
+            <p className="text-sm font-bold mb-3 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>📋 Davomat (oxirgi 30 kun)</p>
+            {davomat.ketma_ket_kelmagan >= 2 && (
+              <p className="text-xs font-medium mb-3" style={{ color: "#A32D2D" }}>⚠️ {davomat.ketma_ket_kelmagan} kun ketma-ket kelmagan</p>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#EAF3DE" }}>
+                <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{davomat.keldi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>keldi</p>
+              </div>
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#FCEBEB" }}>
+                <p className="text-lg font-bold" style={{ color: "#A32D2D" }}>{davomat.kelmadi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>kelmadi</p>
+              </div>
+              <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#FDF3E0" }}>
+                <p className="text-lg font-bold" style={{ color: "#8A5A1C" }}>{davomat.kechikdi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>kechikdi</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {data.sinf_sozlanmagan ? (
+          <div className="rounded-2xl p-6 text-center bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm font-medium mb-1" style={{ color: "#2B2B2B" }}>Sinf sozlanmagan</p>
+            <p className="text-xs" style={{ color: "#8A8578" }}>Profilda sinf tanlangach, shu sinfning fan/mavzulari shu yerda ko'rinadi.</p>
+          </div>
+        ) : data.fanlar.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Hali birorta ham mavzu o'rganilmagan.</p>
+          </div>
+        ) : (
+          data.fanlar.map((fan) => (
+            <FanBolimi key={fan.nom} fan={fan} onBosildi={() => setYolFani({ fan: fan.nom, rang: fan.rang })} />
+          ))
+        )}
+
+        {mengaTogaraklarim.length > 0 && (
+          <div className="pt-2">
+            <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>🔀 To'garak yo'llarim</p>
+            <div className="space-y-2">
+              {mengaTogaraklarim.map((t) => (
+                <button key={t.id} onClick={() => setTogarakYoliId(t.id)}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-white border text-left"
+                  style={{ borderColor: "#E5E1D8" }}>
+                  <span>
+                    <span className="text-sm font-medium block" style={{ color: "#2B2B2B" }}>{t.nomi}</span>
+                    <span className="text-xs" style={{ color: "#8A8578" }}>{t.fan}{t.sinf ? ` · ${t.sinf}-sinf` : ""}</span>
+                  </span>
+                  <ChevronRight size={18} style={{ color: "#8A8578" }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {yolFani && bolaId && <TalimYoli bolaId={bolaId} fan={yolFani.fan} rang={yolFani.rang} onYopish={() => setYolFani(null)} />}
+      {togarakYoliId && bolaId && <TogarakYoli bolaId={bolaId} togarakId={togarakYoliId} onYopish={() => setTogarakYoliId(null)} />}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 4) TEST YECHISH
+// ═══════════════════════════════════════════════════════════
+function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
+  // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
+  // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
+  // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
+  const sinf = sinfXom ? String(sinfXom).replace(/-sinf$/i, "").trim() : null;
+
+  const [holat, setHolat] = useState("mavzular"); // mavzular | songi | savollar | natija
+  const [faolTuri, setFaolTuri] = useState(turi); // "oddiy" | "togarak" — ICHKI, "Boshqa sinflar" bosilsa almashadi
+  // O'quvchining profilida ALLAQACHON aniq (raqamli) sinfi bo'lsa ham, u
+  // o'ziga tegishli BO'LISHI MUMKIN bo'lgan to'garak/maxsus guruhlarni
+  // (masalan "Abituriyent" kabi harfli nomlangan) ko'rishi kerak — shu
+  // uchun bu "vaqtincha o'z sinfini chetlab o'tish" rejimi.
+  const [boshqaSinflarRejimi, setBoshqaSinflarRejimi] = useState(false);
+  const [fanlar, setFanlar] = useState([]);
+  const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
+  const [ochiqFan, setOchiqFan] = useState(null);
+  const [savollar, setSavollar] = useState([]);
+  const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
+  const [javoblar, setJavoblar] = useState({});
+  const [natija, setNatija] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+
+  // Kabinetga "test hozir davom etyapti" holatini bildiramiz — shu payt
+  // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi (test tugatilishi
+  // yoki to'xtatilishi kerak).
+  useEffect(() => {
+    if (onTestFaollik) onTestFaollik(holat === "savollar");
+    return () => { if (onTestFaollik) onTestFaollik(false); };
+  }, [holat, onTestFaollik]);
+
+  useEffect(() => {
+    setYuklanmoqda(true);
+    const qs = new URLSearchParams({ turi: faolTuri });
+    // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
+    // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
+    if (sinf && !boshqaSinflarRejimi) qs.set("sinf", sinf);
+    fetch(`${API_BASE}/api/mavzular?${qs.toString()}`)
+      .then((r) => r.json())
+      .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [sinf, faolTuri, boshqaSinflarRejimi]);
+
+  // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
+  // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
+  const sinflarRoyxati = useMemo(() => {
+    const bySinf = {};
+    fanlar.forEach((fan) => {
+      fan.sinflar.forEach((s) => {
+        if (!bySinf[s.sinf]) bySinf[s.sinf] = { sinf: s.sinf, fanlar: [] };
+        bySinf[s.sinf].fanlar.push({ qisqa: fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
+      });
+    });
+    return Object.values(bySinf).sort((a, b) => {
+      const raqamA = /^\d+$/.test(a.sinf), raqamB = /^\d+$/.test(b.sinf);
+      if (raqamA && raqamB) return parseInt(a.sinf, 10) - parseInt(b.sinf, 10);
+      return String(a.sinf).localeCompare(String(b.sinf));
+    });
+  }, [fanlar]);
+
+  // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
+  const joriySinfMalumoti = sinf
+    ? sinflarRoyxati.find((s) => String(s.sinf) === String(sinf)) || sinflarRoyxati[0]
+    : sinflarRoyxati.find((s) => String(s.sinf) === String(tanlanganSinf));
+
+  // Mavzu bosilganda — darhol savol OLMAYMIZ, avval "nechta savol" so'raymiz.
+  // MUHIM: har mavzu ostida bir nechta KICHIK mavzu (topic_code) bo'lishi
+  // mumkin — shu sabab yagona mavzu tanlansa ham, "aralash" mexanizmi
+  // ishlatiladi, shunda barcha kichik mavzulardan random savol chiqadi.
+  const mavzuBoslandi = (fan, mavzu) => {
+    setTanlanganMavzu({
+      aralash: true,
+      kodlar: mavzu.topic_codes,
+      nomi: mavzu.nomi,
+      fanNomi: fan.nom,
+      savol_soni: mavzu.savol_soni,
+    });
+    setHolat("songi");
+  };
+
+  const [aralashRejim, setAralashRejim] = useState(false);
+  const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{nomi, topic_codes, savol_soni}]
+
+  const aralashToggle = (m) => {
+    setTanlanganKodlar((prev) =>
+      prev.some((k) => k.nomi === m.nomi)
+        ? prev.filter((k) => k.nomi !== m.nomi)
+        : [...prev, m]
+    );
+  };
+
+  const aralashTestBoshlandi = () => {
+    if (tanlanganKodlar.length === 0) return;
+    setTanlanganMavzu({
+      aralash: true,
+      kodlar: tanlanganKodlar.flatMap((k) => k.topic_codes),
+      nomi: `Aralash test (${tanlanganKodlar.length} mavzu)`,
+      fanNomi: joriySinfMalumoti ? `${joriySinfMalumoti.sinf}-sinf` : "",
+      savol_soni: tanlanganKodlar.reduce((s, k) => s + (k.savol_soni || 0), 0),
+    });
+    setHolat("songi");
+  };
+
+  const [qiyinlik, setQiyinlik] = useState(""); // "" = aralash | oson | o'rta | qiyin | murakkab
+  const [rasimli, setRasimli] = useState(null); // null=aralash | true=rasimli | false=rasimsiz
+  const [vaqtli, setVaqtli] = useState(null);
+  const [yozuvli, setYozuvli] = useState(null);
+  const [mosSoni, setMosSoni] = useState(null); // null = hali yuklanmoqda
+
+  useEffect(() => {
+    if (holat !== "songi" || !tanlanganMavzu) return;
+    let bekor = false;
+    setMosSoni(null);
+    const so_rov = tanlanganMavzu.aralash
+      ? fetch(`${API_BASE}/api/test_aralash/soni`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
         })
-
-    natija = []
-    for f in fanlar.values():
-        if togarak_mi:
-            # "3-4", "5-6" kabi — matn bo'yicha saralaymiz (raqamga aylantirib bo'lmaydi)
-            f["sinflar"] = sorted(f["sinflar"].values(), key=lambda s: s["sinf"])
-        else:
-            # sinflarni SONLI tartibda saralaymiz (1,2,...,11 — "11" harflar bo'yicha "2"dan oldin kelib qolmasin)
-            f["sinflar"] = sorted(f["sinflar"].values(), key=lambda s: int(s["sinf"]))
-        natija.append(f)
-    return {"fanlar": natija}
-
-
-def _qoshimcha_test_shartlari(rasimli: bool, vaqtli: bool, yozuvli: bool):
-    """rasimli/vaqtli/yozuvli — None bo'lsa cheklanmaydi (aralash), True/False
-    bo'lsa mos savollar filtrlanadi. SQL parcha va parametrlarni qaytaradi."""
-    shartlar = []
-    params = []
-    if rasimli is True:
-        shartlar.append("COALESCE(NULLIF(image_file_id, ''), image_url, '') != ''")
-    elif rasimli is False:
-        shartlar.append("COALESCE(NULLIF(image_file_id, ''), image_url, '') = ''")
-    if vaqtli is True:
-        shartlar.append("COALESCE(time_limit, 0) > 0")
-    elif vaqtli is False:
-        shartlar.append("COALESCE(time_limit, 0) = 0")
-    if yozuvli is True:
-        shartlar.append("question_type = 'write_answer'")
-    elif yozuvli is False:
-        shartlar.append("question_type != 'write_answer'")
-    return ("".join(f" AND {s}" for s in shartlar), params)
-
-
-@app.get("/api/test/{topic_code}/soni")
-def test_savollari_soni(topic_code: str, qiyinlik: str = None, rasimli: bool = None, vaqtli: bool = None, yozuvli: bool = None):
-    """Tanlangan sozlamalar (qiyinlik/rasm/vaqt/javob turi) bo'yicha nechta
-    savol MAVJUDLIGINI qaytaradi — test boshlanishidan OLDIN frontend shu
-    yordamida haqiqiy sonni ko'rsatadi."""
-    conn = _db()
-    cur = conn.cursor()
-    shart = "topic_code = %s"
-    params = [topic_code]
-    if qiyinlik:
-        shart += " AND difficulty = %s"
-        params.append(qiyinlik)
-    qoshimcha, qoshimcha_params = _qoshimcha_test_shartlari(rasimli, vaqtli, yozuvli)
-    shart += qoshimcha
-    params += qoshimcha_params
-    cur.execute(f"SELECT COUNT(*) AS soni FROM generated_tests WHERE {shart}", params)
-    soni = cur.fetchone()["soni"]
-    cur.close()
-    conn.close()
-    return {"soni": soni}
-
-
-class AralashSoniSorovi(BaseModel):
-    topic_codes: list = []
-    qiyinlik: Optional[str] = None
-    rasimli: Optional[bool] = None
-    vaqtli: Optional[bool] = None
-    yozuvli: Optional[bool] = None
-
-
-@app.post("/api/test_aralash/soni")
-def aralash_savollari_soni(sorov: AralashSoniSorovi):
-    """Aralash (bir nechta mavzu) tanlanganda — sozlamalarga mos nechta
-    savol mavjudligini qaytaradi. topic_codes ichida bo'sh/noto'g'ri
-    qiymat bo'lsa ham (masalan null) 422 bermasdan, shunchaki e'tiborsiz
-    qoldiradi — frontendga har doim aniq javob (soni: N) qaytadi."""
-    kodlar = [str(k).strip() for k in sorov.topic_codes if k and str(k).strip()]
-    if not kodlar:
-        return {"soni": 0}
-    conn = _db()
-    cur = conn.cursor()
-    shart = "topic_code = ANY(%s)"
-    params = [kodlar]
-    if sorov.qiyinlik:
-        shart += " AND difficulty = %s"
-        params.append(sorov.qiyinlik)
-    qoshimcha, qoshimcha_params = _qoshimcha_test_shartlari(sorov.rasimli, sorov.vaqtli, sorov.yozuvli)
-    shart += qoshimcha
-    params += qoshimcha_params
-    cur.execute(f"SELECT COUNT(*) AS soni FROM generated_tests WHERE {shart}", params)
-    soni = cur.fetchone()["soni"]
-    cur.close()
-    conn.close()
-    return {"soni": soni}
-
-
-@app.get("/api/test/{topic_code}")
-def test_savollari(
-    topic_code: str, soni: int = 10, qiyinlik: str = None,
-    rasimli: bool = None, vaqtli: bool = None, yozuvli: bool = None,
-):
-    """Berilgan mavzu bo'yicha tasodifiy savollarni qaytaradi.
-    qiyinlik berilsa (oson/o'rta/qiyin/murakkab), faqat o'sha darajadagi
-    savollar tanlanadi — bo'lmasa (aralash) barcha darajalardan aralash.
-    rasimli/vaqtli/yozuvli — True/False bo'lsa mos savollargina tanlanadi,
-    berilmasa (None) hammasidan aralash."""
-    conn = _db()
-    cur = conn.cursor()
-    shart = "topic_code = %s"
-    params = [topic_code]
-    if qiyinlik:
-        shart += " AND difficulty = %s"
-        params.append(qiyinlik)
-    qoshimcha, qoshimcha_params = _qoshimcha_test_shartlari(rasimli, vaqtli, yozuvli)
-    shart += qoshimcha
-    params += qoshimcha_params
-    params.append(soni)
-    cur.execute(f"""
-        SELECT id, question, option_a, option_b, option_c, option_d,
-               question_type, is_latex, time_limit, difficulty,
-               COALESCE(NULLIF(image_file_id, ''), image_url) AS rasm_id
-        FROM generated_tests
-        WHERE {shart}
-        ORDER BY RANDOM()
-        LIMIT %s
-    """, params)
-    savollar = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    if not savollar:
-        raise HTTPException(status_code=404, detail="Bu mavzuda (tanlangan sozlamalar bo'yicha) savol topilmadi")
-
-    # DIQQAT: bu yerda [ru]/[en] teglarini ATAYLAB OLIB TASHLAMAYMIZ —
-    # frontend ularni ko'rsatishda yashiradi, lekin ovoz o'qishda AYNAN shu
-    # teglar orqali qaysi so'z qaysi tilda o'qilishini aniqlaydi. Faqat
-    # "10.0" -> "10" kabi raqam artefaktini tozalaymiz.
-    for s in savollar:
-        s["question"] = _raqam_artefaktini_tozala(s["question"])
-        for maydon in ("option_a", "option_b", "option_c", "option_d"):
-            s[maydon] = _raqam_artefaktini_tozala(s[maydon])
-
-    # correct_answer va explanation FRONTENDGA yubormaymiz — bular javob
-    # berilgandan KEYIN, /api/test/javob_tekshir orqali ochiladi
-    return {"topic_code": topic_code, "savollar": savollar}
-
-
-class AralashTestSorovi(BaseModel):
-    topic_codes: list = []
-    soni: int = 10
-    qiyinlik: Optional[str] = None
-    rasimli: Optional[bool] = None
-    vaqtli: Optional[bool] = None
-    yozuvli: Optional[bool] = None
-
-
-@app.post("/api/test_aralash")
-def aralash_test_savollari(sorov: AralashTestSorovi):
-    """Bir nechta TANLANGAN mavzudan aralashtirib savollar oladi —
-    o'quvchi bir nechta mavzuni bir vaqtda takrorlashi uchun."""
-    kodlar = [str(k).strip() for k in sorov.topic_codes if k and str(k).strip()]
-    if not kodlar:
-        raise HTTPException(status_code=400, detail="Kamida bitta mavzu tanlang")
-
-    conn = _db()
-    cur = conn.cursor()
-    shart = "topic_code = ANY(%s)"
-    params = [kodlar]
-    if sorov.qiyinlik:
-        shart += " AND difficulty = %s"
-        params.append(sorov.qiyinlik)
-    qoshimcha, qoshimcha_params = _qoshimcha_test_shartlari(sorov.rasimli, sorov.vaqtli, sorov.yozuvli)
-    shart += qoshimcha
-    params += qoshimcha_params
-    params.append(sorov.soni)
-    cur.execute(f"""
-        SELECT id, topic_code, question, option_a, option_b, option_c, option_d,
-               question_type, is_latex, time_limit, difficulty,
-               COALESCE(NULLIF(image_file_id, ''), image_url) AS rasm_id
-        FROM generated_tests
-        WHERE {shart}
-        ORDER BY RANDOM()
-        LIMIT %s
-    """, params)
-    savollar = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    if not savollar:
-        raise HTTPException(status_code=404, detail="Tanlangan mavzu/sozlamalarda savol topilmadi")
-
-    for s in savollar:
-        s["question"] = _raqam_artefaktini_tozala(s["question"])
-        for maydon in ("option_a", "option_b", "option_c", "option_d"):
-            s[maydon] = _raqam_artefaktini_tozala(s[maydon])
-
-    return {"topic_codes": kodlar, "savollar": savollar}
-
-
-class BittaJavob(BaseModel):
-    savol_id: int
-    tanlangan: str
-
-
-def _raqam_artefaktini_tozala(matn):
-    """"10.0" kabi butun sonlarni "10" ga soddalashtiradi — teglarga tegmaydi."""
-    if not matn:
-        return matn
-    tozalangan = matn.strip()
-    if re.fullmatch(r"-?\d+\.0+", tozalangan):
-        tozalangan = tozalangan.split(".")[0]
-    return tozalangan
-
-
-def _matnni_tozala(matn):
-    """[ru]...[/ru] kabi teglarni olib tashlaydi, va "10.0" kabi butun
-    sonlarni "10" ga soddalashtiradi — ham ko'rsatish, ham solishtirish
-    uchun ishlatiladi."""
-    if not matn:
-        return matn
-    tozalangan = re.sub(r"\[/?[a-zA-Z]+\]", "", matn).strip()
-    if re.fullmatch(r"-?\d+\.0+", tozalangan):
-        tozalangan = tozalangan.split(".")[0]
-    return tozalangan
-
-
-def _togri_harfni_top(option_a, option_b, option_c, option_d, correct_answer):
-    """correct_answer ustuni ba'zan harf (A/B/C/D), ba'zan variantning
-    TO'LIQ MATNI (masalan "20.0" yoki "[ru]родной язык[/ru]") ko'rinishida
-    saqlangan — ikkalasini ham qamrab olib, HAQIQIY to'g'ri harfni
-    aniqlaydi. Teglar va sonlar formatidagi farqlar e'tiborga olinmaydi."""
-    ca = _matnni_tozala((correct_answer or "").strip())
-    if ca.upper() in ("A", "B", "C", "D"):
-        return ca.upper()
-    variantlar = {"A": option_a, "B": option_b, "C": option_c, "D": option_d}
-    ca_kichik = ca.lower()
-    for harf, matn in variantlar.items():
-        if (_matnni_tozala(matn) or "").lower() == ca_kichik:
-            return harf
-    return None
-
-
-def _yozma_javob_togrimi(given: str, correct: str) -> bool:
-    """Yozuvli (write_answer) javoblarni tekshiradi — botdagi
-    check_text_answer/is_match bilan bir xil qoidalar."""
-    given = _matnni_tozala(given or "").strip().lower()
-    correct = _matnni_tozala(correct or "").strip().lower()
-    if given == correct:
-        return True
-    try:
-        return float(given) == float(correct)
-    except (ValueError, TypeError):
-        pass
-    if len(correct) <= 5:
-        return given == correct
-    if len(correct) > 10 and correct in given:
-        return True
-    return False
-
-
-@app.post("/api/test/javob_tekshir")
-def javob_tekshir(j: BittaJavob):
-    """Bitta savolga berilgan javobni DARHOL tekshiradi — to'g'ri javob
-    va tushuntirishni shu yerda ochadi (foydalanuvchi javob bergandan
-    keyin, savol ko'rsatilganda EMAS — aks holda oldindan ko'rinib qolardi).
-    Yozuvli (write_answer) savollarda harf emas, yozilgan matn solishtiriladi."""
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""SELECT option_a, option_b, option_c, option_d, correct_answer,
-                          explanation, question_type
-                   FROM generated_tests WHERE id=%s""", (j.savol_id,))
-    r = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not r:
-        raise HTTPException(status_code=404, detail="Savol topilmadi")
-
-    if r["question_type"] == "write_answer":
-        togri = _yozma_javob_togrimi(j.tanlangan, r["correct_answer"])
-        togri_javob = _matnni_tozala(r["correct_answer"])
-    else:
-        togri_javob = _togri_harfni_top(r["option_a"], r["option_b"], r["option_c"], r["option_d"], r["correct_answer"])
-        togri = (j.tanlangan or "").strip().upper() == togri_javob
-
-    return {"togrimi": togri, "togri_javob": togri_javob, "tushuntirish": _matnni_tozala(r["explanation"])}
-
-
-@app.get("/api/rasm/{file_id}")
-async def rasm_proxy(file_id: str):
-    """Telegram'da saqlangan rasmni saytda ko'rsatish uchun oraliq xizmat.
-
-    MUHIM: generated_tests.image_url ko'pincha haqiqiy Telegram file_id
-    EMAS — "1-02-1-01-01-01-001-1" kabi KOLLAJ KODI bo'ladi. Botning o'zi
-    ham bu kodni to'g'ridan-to'g'ri ishlatmaydi — avval "images" jadvalidan
-    (name→file_id) haqiqiy Telegram file_id'ni qidiradi (Talim.py'dagi
-    bilan AYNAN bir xil mantiq). Shu sabab bu yerda ham AVVAL images
-    jadvalidan qidiramiz, faqat topilmasa file_id'ning O'ZINI ishlatamiz."""
-    if not BOT_TOKEN:
-        raise HTTPException(status_code=500, detail="Bot tokeni sozlanmagan")
-    if file_id.startswith("http"):
-        # Ba'zi eski yozuvlarda image_url to'g'ridan URL bo'lishi mumkin
-        return RedirectResponse(file_id)
-
-    haqiqiy_file_id = file_id
-    try:
-        conn = _db()
-        cur = conn.cursor()
-        cur.execute("SELECT file_id FROM images WHERE name=%s LIMIT 1", (file_id,))
-        r = cur.fetchone()
-        cur.close()
-        conn.close()
-        if r and r["file_id"]:
-            haqiqiy_file_id = r["file_id"]
-    except Exception:
-        pass  # images jadvali bo'lmasa ham, file_id'ning o'zi bilan urinib ko'ramiz
-
-    async with httpx.AsyncClient() as client:
-        meta = await client.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getFile",
-                                 params={"file_id": haqiqiy_file_id})
-        meta_data = meta.json()
-        if not meta_data.get("ok"):
-            raise HTTPException(status_code=404, detail="Rasm topilmadi")
-        file_path = meta_data["result"]["file_path"]
-        img = await client.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}")
-        return Response(content=img.content, media_type="image/jpeg")
-
-
-EDGE_OVOZ = {
-    "qiz": "uz-UZ-MadinaNeural",
-    "ogil": "uz-UZ-SardorNeural",
-}
-_TIL_OVOZLARI = {
-    "en": {"qiz": "en-US-JennyNeural", "ogil": "en-US-GuyNeural"},
-    "ru": {"qiz": "ru-RU-SvetlanaNeural", "ogil": "ru-RU-DmitryNeural"},
-}
-
-# ── Ovoz uchun matnni tayyorlash — botdagi ovoz.py bilan bir xil qoidalar ──
-_BIRLIK = ["", "bir", "ikki", "uch", "to'rt", "besh", "olti", "yetti", "sakkiz", "to'qqiz"]
-_ONLIK = ["", "o'n", "yigirma", "o'ttiz", "qirq", "ellik", "oltmish", "yetmish", "sakson", "to'qson"]
-_TARTIB = {
-    "bir": "birinchi", "ikki": "ikkinchi", "uch": "uchinchi", "to'rt": "to'rtinchi",
-    "besh": "beshinchi", "olti": "oltinchi", "yetti": "yettinchi", "sakkiz": "sakkizinchi",
-    "to'qqiz": "to'qqizinchi", "o'n": "o'ninchi", "yigirma": "yigirmanchi", "o'ttiz": "o'ttizinchi",
-    "qirq": "qirqinchi", "ellik": "ellikinchi", "oltmish": "oltmishinchi", "yetmish": "yetmishinchi",
-    "sakson": "saksoninchi", "to'qson": "to'qsoninchi", "yuz": "yuzinchi", "ming": "minginchi",
-}
-
-
-def _son_soz(n: int) -> str:
-    if n == 0:
-        return "nol"
-    if n < 0:
-        return "minus " + _son_soz(-n)
-    q = []
-    if n >= 1000:
-        m = n // 1000
-        q.append("ming" if m == 1 else _son_soz(m) + " ming")
-        n %= 1000
-    if n >= 100:
-        y = n // 100
-        q.append("yuz" if y == 1 else _BIRLIK[y] + " yuz")
-        n %= 100
-    if n >= 10:
-        q.append(_ONLIK[n // 10])
-        n %= 10
-    if n > 0:
-        q.append(_BIRLIK[n])
-    return " ".join(x for x in q if x)
-
-
-_MATH_MAP = [
-    (r"\s*\+\s*", " qo'shuv "),
-    (r"(?<=\d)\s*-\s*(?=\d)", " ayirish "),
-    (r"\s*×\s*|\s*\*\s*", " ko'paytiruv "),
-    (r"\s*÷\s*", " bo'linadi "),
-    (r"\s*=\s*", " teng "),
-    (r"\s*>\s*", " katta "),
-    (r"\s*<\s*", " kichik "),
-    (r"\s*%\s*", " foiz "),
-    (r"\s*≈\s*", " taxminan "),
-]
-
-
-_APOSTROF_VARIANTLARI = "\u2018\u2019\u02BB\u02BC\u0060\u00B4\u2032"
-
-
-def _apostrofni_tuzat(matn: str) -> str:
-    """o'/g' dan keyingi turli tirnoq-apostrof belgilarini ('  '  ʻ  ʼ  `  ´)
-    bitta standart apostrofga keltiradi — aks holda ovoz ularni "o'"/"g'"
-    deb emas, oddiy "o"/"g" deb yoki umuman boshqacha o'qib yuboradi."""
-    return re.sub(rf"([oOgG])[{_APOSTROF_VARIANTLARI}']", r"\1'", matn)
-
-
-def _c_va_w_tuzat(matn: str) -> str:
-    """"c" harfini (agar "ch" qismi bo'lmasa) inglizcha qoidaga ko'ra
-    s/k tovushiga, "w" ni esa "v" ga almashtiradi — o'zbekcha ovoz "c"ni
-    "ch" deb, "w"ni esa noto'g'ri o'qib yuborishining oldini oladi."""
-    natija = []
-    n = len(matn)
-    i = 0
-    while i < n:
-        ch = matn[i]
-        if ch.lower() == "c" and (i + 1 >= n or matn[i + 1].lower() != "h"):
-            keyingi = matn[i + 1] if i + 1 < n else ""
-            alm = "s" if keyingi.lower() in ("e", "i", "y") else "k"
-            natija.append(alm.upper() if ch.isupper() else alm)
-        elif ch.lower() == "w":
-            natija.append("V" if ch.isupper() else "v")
-        else:
-            natija.append(ch)
-        i += 1
-    return "".join(natija)
-
-
-def _ovoz_uchun_tayyorla(matn: str) -> str:
-    """Xom matn -> ovoz aniq o'qiydigan matn — botdagi ovoz.py:tayyorla
-    bilan bir xil (matematik belgilar so'zga, sonlar so'zga, teglar tozalanadi)."""
-    m = _matnni_tozala(matn) or ""
-    m = _apostrofni_tuzat(m)
-    m = _c_va_w_tuzat(m)
-    m = re.sub(r"<[^>]+>", " ", m)
-    m = re.sub(r"[_`#]+", "", m)  # * ni bu yerda OLIB TASHLAMAYMIZ — pastda MATH_MAP "ko'paytiruv"ga o'giradi
-    m = re.sub(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]", " ", m)
-    m = re.sub(r"https?://\S+", " havola ", m)
-
-    # Kasrlar: 1/2 -> ikkidan bir (matematikadan oldin)
-    def _kasr(x):
-        a, b = int(x.group(1)), int(x.group(2))
-        return f" {_son_soz(b)}dan {_son_soz(a)} "
-    m = re.sub(r"\b(\d{1,3})\s*/\s*(\d{1,3})\b", _kasr, m)
-
-    for naqsh, alm in _MATH_MAP:
-        m = re.sub(naqsh, alm, m)
-
-    # 5-sinf -> beshinchi sinf
-    def _t(x):
-        n = int(x.group(1))
-        soz = _son_soz(n).split()
-        soz[-1] = _TARTIB.get(soz[-1], soz[-1] + "inchi")
-        return f"{' '.join(soz)} {x.group(2)}"
-    m = re.sub(r"\b(\d{1,4})-(sinf|mashq|dars|savol|misol|bob|bet|mavzu|qism)\b", _t, m, flags=re.I)
-
-    # 3,5 -> uch butun besh
-    def _b(x):
-        return f"{_son_soz(int(x.group(1)))} butun {_son_soz(int(x.group(2)))}"
-    m = re.sub(r"\b(\d+)[,.](\d+)\b", _b, m)
-
-    # Qolgan sonlar so'zga
-    def _o(x):
-        n = int(x.group(0))
-        return _son_soz(n) if n < 1000000 else x.group(0)
-    m = re.sub(r"\b\d{1,6}\b", _o, m)
-
-    # Tinish belgilarini pauzaga aylantirish
-    m = m.replace(":", ",").replace(";", ",")
-    m = re.sub(r"\s*[\(\[\{]\s*", ", ", m)
-    m = re.sub(r"\s*[\)\]\}]\s*", ", ", m)
-    m = re.sub(r'["«»„“”]', " ", m)
-    m = re.sub(r"\s*[–—/|]\s*", ", ", m)
-    m = re.sub(r"\s*[•▪●○*]\s*", ", ", m)
-    m = re.sub(r"[…]+", ".", m)
-    m = re.sub(r"\.{2,}", ".", m)
-    m = re.sub(r"(?<=\w)-(?=\w)", " ", m)
-    m = re.sub(r"(,\s*){2,}", ", ", m)
-    m = re.sub(r"\s+([.,!?])", r"\1", m)
-    m = re.sub(r",\s*([.!?])", r"\1", m)
-    m = re.sub(r"([.!?])\s*[.,]+", r"\1", m)
-    m = re.sub(r"([.!?])\s*([.!?])", r"\1", m)
-    m = re.sub(r"\s{2,}", " ", m).strip()
-    return m.strip(" ,.")
-
-
-_TIL_TEG_NAQSHI = re.compile(r"\[(en|ru)\](.*?)\[/\1\]", re.S | re.I)
-
-
-def _ovoz_qismlarga_bol(matn: str):
-    """Matnni [en]...[/en] / [ru]...[/ru] teglariga qarab bo'laklarga
-    ajratadi — har bo'lak (til, matn). til=None bo'lsa standart
-    o'zbekcha ovoz va matematik-son qoidalari bilan o'qiladi."""
-    qismlar = []
-    oxiri = 0
-    for m in _TIL_TEG_NAQSHI.finditer(matn):
-        oldingi = matn[oxiri:m.start()]
-        if oldingi.strip():
-            qismlar.append((None, oldingi))
-        til, ichi = m.group(1).lower(), m.group(2)
-        if ichi.strip():
-            qismlar.append((til, ichi))
-        oxiri = m.end()
-    qolgan = matn[oxiri:]
-    if qolgan.strip():
-        qismlar.append((None, qolgan))
-    return qismlar or [(None, matn)]
-
-
-@app.get("/api/ovoz")
-async def ovoz_oqish(matn: str, jins: str = "qiz"):
-    """Berilgan matnni ovozga aylantirib beradi (mp3). [en]/[ru] teglari
-    ichidagi qismlar o'sha tilning ovozida, qolgani o'zbekcha (matematik
-    belgilar/sonlar so'zga o'girilib) o'qiladi — botdagi ovoz_ikki_tilli
-    bilan bir xil mantiq, faqat ikkita til uchun kengaytirilgan."""
-    if not matn or not matn.strip():
-        raise HTTPException(status_code=400, detail="Matn berilmagan")
-    try:
-        import edge_tts
-    except ImportError:
-        raise HTTPException(status_code=500, detail="edge-tts o'rnatilmagan")
-
-    matn = matn[:1500]
-    buf = io.BytesIO()
-    ovoz_bormi = False
-    for til, bolak in _ovoz_qismlarga_bol(matn):
-        if til in _TIL_OVOZLARI:
-            voice = _TIL_OVOZLARI[til].get(jins, _TIL_OVOZLARI[til]["qiz"])
-            tayyor = re.sub(r"<[^>]+>", " ", bolak).strip()
-        else:
-            voice = EDGE_OVOZ.get(jins, EDGE_OVOZ["qiz"])
-            tayyor = _ovoz_uchun_tayyorla(bolak)
-        if not tayyor.strip():
-            continue
-        com = edge_tts.Communicate(tayyor, voice)
-        async for chunk in com.stream():
-            if chunk["type"] == "audio":
-                buf.write(chunk["data"])
-                ovoz_bormi = True
-
-    if not ovoz_bormi:
-        raise HTTPException(status_code=500, detail="Ovoz yaratilmadi")
-    buf.seek(0)
-    return Response(content=buf.getvalue(), media_type="audio/mpeg")
-
-
-class JavobItem(BaseModel):
-    savol_id: int
-    tanlangan: str
-
-
-class TestNatijaSorov(BaseModel):
-    token: str
-    topic_code: Optional[str] = None       # bitta mavzu bo'lsa
-    topic_codes: Optional[list] = None  # aralash (bir nechta mavzu) bo'lsa
-    javoblar: list[JavobItem]
-    # UMUMIY natija foizini TANLANGAN (masalan 10 ta) savol soniga nisbatan
-    # hisoblash uchun — javob berilmagan savollar ham hisobga olinishi kerak
-    # (aks holda 10 tadan 5 tasiga javob berib, hammasi to'g'ri bo'lsa, "100%"
-    # ko'rsatib qo'yardi, holbuki haqiqatda 50%). Berilmasa — eski xulq-atvorga
-    # (faqat javob berilganlar soniga nisbatan) qaytiladi.
-    jami_savol_soni: Optional[int] = None
-
-
-@app.post("/api/test/natija")
-def test_natijasini_saqla(sorov: TestNatijaSorov):
-    """Test yakunlanganda — har javobni backendda tekshiradi, foizni
-    hisoblaydi, learned_topics'ga yozadi (bot ishlatgan JADVALNING O'ZIGA —
-    shuning uchun dashboard darhol yangilanadi). Yozuvli (write_answer)
-    savollar ham to'g'ri tekshiriladi, va xato qilingan savollar ro'yxati
-    (sharh bilan) qaytariladi. Aralash (bir nechta mavzu) test bo'lsa, HAR
-    BIR mavzu o'ziga tegishli savollar asosida alohida baholanadi."""
-    user_id = _jwt_tekshir(sorov.token)
-
-    conn = _db()
-    cur = conn.cursor()
-
-    savol_idlar = [j.savol_id for j in sorov.javoblar]
-    cur.execute(
-        """SELECT id, topic_code, question, option_a, option_b, option_c, option_d,
-                  correct_answer, question_type, explanation
-           FROM generated_tests WHERE id = ANY(%s)""",
-        (savol_idlar,),
-    )
-    savollar_map = {r["id"]: r for r in cur.fetchall()}
-
-    togri_soni = 0
-    xatolar = []
-    natija_har_mavzu = {}  # topic_code -> {"togri": n, "jami": n}
-    for j in sorov.javoblar:
-        r = savollar_map.get(j.savol_id)
-        if not r:
-            continue
-        if r["question_type"] == "write_answer":
-            togri = _yozma_javob_togrimi(j.tanlangan, r["correct_answer"])
-            togri_javob = _matnni_tozala(r["correct_answer"])
-        else:
-            togri_harf = _togri_harfni_top(r["option_a"], r["option_b"], r["option_c"], r["option_d"], r["correct_answer"])
-            togri = (j.tanlangan or "").strip().upper() == togri_harf
-            togri_javob = togri_harf
-
-        tk = r["topic_code"]
-        natija_har_mavzu.setdefault(tk, {"togri": 0, "jami": 0})
-        natija_har_mavzu[tk]["jami"] += 1
-        if togri:
-            togri_soni += 1
-            natija_har_mavzu[tk]["togri"] += 1
-        else:
-            xatolar.append({
-                "savol_id": j.savol_id,
-                "savol": _matnni_tozala(r["question"]),
-                "sizning_javob": j.tanlangan or "(javob berilmadi)",
-                "togri_javob": togri_javob,
-                "tushuntirish": _matnni_tozala(r["explanation"]),
-            })
-
-    # UMUMIY foiz — agar frontend "jami_savol_soni" yuborsa (tanlangan
-    # savollar soni), o'shanga nisbatan hisoblanadi — javob berilmagan
-    # savollar ham "noto'g'ri" sifatida hisobga kiradi. FAQAT shu
-    # ko'rsatkichga (natija ekranidagi statistika) tegishli — pastdagi
-    # mavzu bo'yicha learned_topics hisobiga ASLO ta'sir qilmaydi.
-    jami = sorov.jami_savol_soni if sorov.jami_savol_soni else len(sorov.javoblar)
-    foiz = round((togri_soni / jami) * 100) if jami else 0
-
-    # Har bir mavzu (aralash bo'lsa — bir nechtasi) o'ziga tegishli
-    # savollar asosida alohida learned_topics'ga yoziladi.
-    # MUHIM: bu FAQAT haqiqatan JAVOB BERILGAN savollar asosida hisoblanadi
-    # (yuqoridagi tuzatish bunga tegmaydi) — o'quvchi o'zi urinib ko'rgan
-    # mavzular bo'yicha bilim darajasi shu tarzda avvalgidek qoladi.
-    for tk, hisob in natija_har_mavzu.items():
-        if not tk:
-            continue
-        mavzu_foizi = round((hisob["togri"] / hisob["jami"]) * 100) if hisob["jami"] else 0
-        cur.execute("""
-            INSERT INTO learned_topics(user_id, topic_code, score, repeat_count, learned_at, next_repeat)
-            VALUES(%s,%s,%s,1,NOW(),CURRENT_DATE + INTERVAL '7 days')
-            ON CONFLICT (user_id, topic_code) DO UPDATE SET
-                score = EXCLUDED.score,
-                repeat_count = learned_topics.repeat_count + 1,
-                learned_at = NOW(),
-                next_repeat = CURRENT_DATE + INTERVAL '7 days'
-        """, (user_id, tk, mavzu_foizi))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return {"togri": togri_soni, "jami": jami, "foiz": foiz, "xatolar": xatolar}
-
-
-# ═══════════════════════════════════════════════════════════
-# SAYTDAN BOTGA ULASH — teskari yo'nalish
-# (Saytda ro'yxatdan o'tgan, botni ham ishlatmoqchi bo'lganlar uchun)
-# ═══════════════════════════════════════════════════════════
-
-@app.post("/auth/sayt_kod_yarat")
-def sayt_kod_yarat(token: str):
-    """Saytda kirgan foydalanuvchi uchun BOTGA ulash kodi yaratadi.
-    Bot bu kodni ko'rib, shu web_user_id'dagi ma'lumotni haqiqiy
-    Telegram user_id'ga ko'chiradi."""
-    user_id = _jwt_tekshir(token)
-
-    kod = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS sayt_ulash_kod(
-        kod TEXT PRIMARY KEY, web_user_id BIGINT REFERENCES users(user_id),
-        yaratildi TIMESTAMP DEFAULT NOW(), ishlatildi BOOLEAN DEFAULT FALSE)""")
-    cur.execute("INSERT INTO sayt_ulash_kod(kod, web_user_id) VALUES(%s,%s)", (kod, user_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return {"kod": kod}
-
-
-# ═══════════════════════════════════════════════════════════
-# O'QITUVCHI — baholash
-# ═══════════════════════════════════════════════════════════
-
-@app.get("/api/oqituvchi/togaraklar")
-def oqituvchi_togaraklari(token: str):
-    """O'qituvchining o'ziga tegishli barcha to'garaklarini qaytaradi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, nomi, fan, max_talaba,
-               (SELECT COUNT(*) FROM togarak_azolar WHERE togarak_id=togaraklar.id AND aktiv=TRUE) AS azo_soni
-        FROM togaraklar
-        WHERE teacher_id=%s AND aktiv=TRUE
-        ORDER BY nomi
-    """, (user_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"togaraklar": natija}
-
-
-@app.get("/api/oqituvchi/togarak/{togarak_id}/azolar")
-def togarak_azolari(togarak_id: int, token: str):
-    """Berilgan to'garakdagi o'quvchilarni, ularning OXIRGI bahosi bilan
-    qaytaradi. Faqat shu to'garakning o'z o'qituvchisi ko'ra oladi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-
-    cur.execute("SELECT teacher_id FROM togaraklar WHERE id=%s", (togarak_id,))
-    r = cur.fetchone()
-    if not r or r["teacher_id"] != user_id:
-        cur.close()
-        conn.close()
-        raise HTTPException(status_code=403, detail="Bu to'garak sizga tegishli emas")
-
-    cur.execute("""
-        SELECT u.user_id, u.full_name,
-               (SELECT baho FROM togarak_baholar tb
-                WHERE tb.togarak_id=%s AND tb.user_id=u.user_id
-                ORDER BY tb.created_at DESC LIMIT 1) AS oxirgi_baho
-        FROM togarak_azolar ta
-        JOIN users u ON u.user_id = ta.user_id
-        WHERE ta.togarak_id=%s AND ta.aktiv=TRUE
-        ORDER BY u.full_name
-    """, (togarak_id, togarak_id))
-    azolar = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"azolar": azolar}
-
-
-class BahoSorov(BaseModel):
-    token: str
-    togarak_id: int
-    user_id: int
-    baho: int
-    izoh: Optional[str] = None
-
-
-@app.post("/api/oqituvchi/baho_qoy")
-def baho_qoy(sorov: BahoSorov):
-    """Bitta o'quvchiga baho qo'yadi. Faqat to'garakning o'z o'qituvchisi,
-    va faqat o'sha to'garak a'zosiga baho qo'ya oladi."""
-    teacher_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-
-    cur.execute("SELECT teacher_id FROM togaraklar WHERE id=%s", (sorov.togarak_id,))
-    r = cur.fetchone()
-    if not r or r["teacher_id"] != teacher_id:
-        cur.close()
-        conn.close()
-        raise HTTPException(status_code=403, detail="Bu to'garak sizga tegishli emas")
-
-    cur.execute(
-        "SELECT 1 FROM togarak_azolar WHERE togarak_id=%s AND user_id=%s AND aktiv=TRUE",
-        (sorov.togarak_id, sorov.user_id),
-    )
-    if not cur.fetchone():
-        cur.close()
-        conn.close()
-        raise HTTPException(status_code=400, detail="Bu o'quvchi shu to'garak a'zosi emas")
-
-    if not (0 <= sorov.baho <= 100):
-        cur.close()
-        conn.close()
-        raise HTTPException(status_code=400, detail="Baho 0-100 oralig'ida bo'lishi kerak")
-
-    cur.execute(
-        """INSERT INTO togarak_baholar(togarak_id, user_id, baho, izoh, teacher_id)
-           VALUES(%s,%s,%s,%s,%s)""",
-        (sorov.togarak_id, sorov.user_id, sorov.baho, sorov.izoh, teacher_id),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# OTA-ONA ↔ FARZAND — botdagi ota_ona.py bilan AYNAN BIR XIL jadval
-# (farzand_kod, parent_child) — shu sabab botda yaratilgan kodni
-# saytda kiritish ham, aksincha ham ishlaydi.
-# ═══════════════════════════════════════════════════════════
-
-FARZAND_KOD_MUDDATI = 15  # daqiqa
-
-
-def _ota_ona_jadvallari(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS farzand_kod(
-        kod TEXT PRIMARY KEY, child_id BIGINT NOT NULL, muddat TIMESTAMP NOT NULL
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS parent_child(
-        id SERIAL PRIMARY KEY, parent_id BIGINT NOT NULL, child_id BIGINT NOT NULL
-    )""")
-
-
-@app.post("/api/farzand/kod_yarat")
-def farzand_kod_yarat(token: str):
-    """O'quvchi (farzand) ota-onasini ulash uchun 6 xonali kod oladi —
-    botdagi bilan bir xil jadvalga yoziladi, 15 daqiqa amal qiladi."""
-    child_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _ota_ona_jadvallari(cur)
-    cur.execute("DELETE FROM farzand_kod WHERE child_id=%s OR muddat < NOW()", (child_id,))
-    kod = None
-    for _ in range(10):
-        taklif = "".join(secrets.choice(string.digits) for _ in range(6))
-        cur.execute("SELECT 1 FROM farzand_kod WHERE kod=%s", (taklif,))
-        if not cur.fetchone():
-            kod = taklif
-            break
-    if not kod:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=500, detail="Kod yaratib bo'lmadi, qayta urinib ko'ring")
-    cur.execute(
-        "INSERT INTO farzand_kod(kod, child_id, muddat) VALUES(%s,%s,%s)",
-        (kod, child_id, datetime.now() + timedelta(minutes=FARZAND_KOD_MUDDATI)),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"kod": kod, "amal_qilish_daqiqasi": FARZAND_KOD_MUDDATI}
-
-
-@app.post("/api/ota/farzand_boglash")
-def ota_farzand_boglash(token: str, kod: str):
-    """Ota-ona farzanddan olgan 6 xonali kodni kiritib, hisobni bog'laydi."""
-    parent_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _ota_ona_jadvallari(cur)
-    cur.execute("DELETE FROM farzand_kod WHERE muddat < NOW()")
-    cur.execute("SELECT child_id FROM farzand_kod WHERE kod=%s", (kod.strip(),))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod noto'g'ri yoki muddati o'tgan")
-    child_id = r["child_id"]
-    if child_id == parent_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="O'zingizni ulay olmaysiz")
-
-    cur.execute(
-        "INSERT INTO parent_child(parent_id, child_id) VALUES(%s,%s) ON CONFLICT DO NOTHING RETURNING id",
-        (parent_id, child_id),
-    )
-    yangi_boglanish = cur.fetchone() is not None
-    cur.execute("DELETE FROM farzand_kod WHERE kod=%s", (kod.strip(),))
-    cur.execute("SELECT full_name FROM users WHERE user_id=%s", (child_id,))
-    ism_row = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {
-        "holat": "ulandi" if yangi_boglanish else "allaqachon_ulangan",
-        "farzand_ismi": ism_row["full_name"] if ism_row else "",
+      : (() => {
+          const qs = new URLSearchParams();
+          if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+          if (rasimli !== null) qs.set("rasimli", rasimli);
+          if (vaqtli !== null) qs.set("vaqtli", vaqtli);
+          if (yozuvli !== null) qs.set("yozuvli", yozuvli);
+          return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
+        })();
+    so_rov
+      .then((r) => r.json())
+      .then((d) => { if (!bekor) setMosSoni(d.soni ?? 0); })
+      .catch((e) => { if (!bekor) { setMosSoniXatoMatni(`So'rov xatosi: ${e.message}`); setMosSoni(0); } });
+    return () => { bekor = true; };
+  }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli]);
+  const [toGriSoni, setToGriSoni] = useState(0);
+  const [xatoSoni, setXatoSoni] = useState(0);
+
+  const savollarniYukla = async (soni) => {
+    setYuklanmoqda(true); setXato("");
+    try {
+      let res;
+      if (tanlanganMavzu.aralash) {
+        res = await fetch(`${API_BASE}/api/test_aralash`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic_codes: tanlanganMavzu.kodlar || [], soni, qiyinlik: qiyinlik || undefined,
+            rasimli, vaqtli, yozuvli,
+          }),
+        });
+      } else {
+        const qs = new URLSearchParams({ soni });
+        if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+        if (rasimli !== null) qs.set("rasimli", rasimli);
+        if (vaqtli !== null) qs.set("vaqtli", vaqtli);
+        if (yozuvli !== null) qs.set("yozuvli", yozuvli);
+        res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setSavollar(data.savollar);
+      setJavoblar({}); setJoriySavol(0); setJoriyNatija(null); setYozibJavob({}); setHolat("savollar");
+      setToGriSoni(0); setXatoSoni(0);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYuklanmoqda(false); }
+  };
+
+  const [yozibJavob, setYozibJavob] = useState({}); // {savol_id: xom_matn} — bir nechta savol bir vaqtda ko'rinadi
+  const [ovozOynayapti, setOvozOynayapti] = useState(false);
+  const ovozRef = useRef(null);
+
+  const ovozniOqi = (matn) => {
+    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
+    setOvozOynayapti(true);
+    const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(matn)}`);
+    ovozRef.current = audio;
+    audio.onended = () => setOvozOynayapti(false);
+    audio.onerror = () => setOvozOynayapti(false);
+    audio.play().catch(() => setOvozOynayapti(false));
+  };
+
+  const [testRejimi, setTestRejimi] = useState("bir_bir"); // "bir_bir" (mashq, darhol javob) | "hammasi" (imtihon, oxirida bilinadi)
+  const [umumiyVaqt, setUmumiyVaqt] = useState(null); // "hammasi" rejimi uchun — butun test uchun UMUMIY qolgan soniya | null (vaqtsiz)
+  const [toxtatishModali, setToxtatishModali] = useState(false);
+  const [yakunlashTasdiqi, setYakunlashTasdiqi] = useState(false);
+  const umumiyTimerRef = useRef(null);
+  const savolReflari = useRef({}); // {index: DOM element} — raqam bosilganda shu savolga aylantirish uchun
+
+  // "bir_bir" (eski, mashq) rejimi uchun — bitta-bitta savol, darhol
+  // to'g'ri/noto'g'ri ko'rsatish, avtomatik keyingisiga o'tish.
+  const [joriySavol, setJoriySavol] = useState(0);
+  const [joriyNatija, setJoriyNatija] = useState(null); // {togrimi, togri_javob, tushuntirish} | null
+  const [qolganVaqt, setQolganVaqt] = useState(null);
+  const [avtoQoldi, setAvtoQoldi] = useState(null);
+  const timerRef = useRef(null);
+  const avtoRef = useRef(null);
+
+  // Savollar yuklangach — UMUMIY vaqtni hisoblaymiz (har bir savolning
+  // o'z vaqti bo'lsa, hammasini QO'SHIB, BITTA umumiy hisoblagich sifatida
+  // ishlatamiz — har savolga alohida vaqt emas). Faqat "hammasi" rejimida.
+  useEffect(() => {
+    if (holat !== "savollar" || savollar.length === 0 || testRejimi !== "hammasi") return;
+    const jami = savollar.reduce((sum, s) => sum + (s.time_limit || 0), 0);
+    setUmumiyVaqt(jami > 0 ? jami : null);
+  }, [holat, savollar, testRejimi]);
+
+  const yakunlaRef = useRef(() => {});
+
+  useEffect(() => {
+    if (umumiyTimerRef.current) clearInterval(umumiyTimerRef.current);
+    if (holat !== "savollar" || testRejimi !== "hammasi" || umumiyVaqt === null) return;
+    umumiyTimerRef.current = setInterval(() => {
+      setUmumiyVaqt((v) => {
+        if (v === null) return null;
+        if (v <= 1) {
+          clearInterval(umumiyTimerRef.current);
+          yakunlaRef.current();
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(umumiyTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holat, testRejimi, umumiyVaqt === null]);
+
+  // "bir_bir" rejimi uchun — har savolning O'Z vaqti (agar bo'lsa).
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (holat !== "savollar" || testRejimi !== "bir_bir" || joriyNatija || !savollar[joriySavol]) return;
+    const s = savollar[joriySavol];
+    if (!s.time_limit) { setQolganVaqt(null); return; }
+    setQolganVaqt(s.time_limit);
+    timerRef.current = setInterval(() => {
+      setQolganVaqt((v) => {
+        if (v <= 1) {
+          clearInterval(timerRef.current);
+          javobBerVaTekshir(s.id, "");
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joriySavol, holat, testRejimi]);
+
+  // "bir_bir" (eski, mashq) rejimi uchun — javobni DARHOL tekshiradi va
+  // to'g'ri/noto'g'rini shu zahoti ko'rsatadi.
+  const javobBerVaTekshir = async (savolId, harf) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
+    try {
+      const res = await fetch(`${API_BASE}/api/test/javob_tekshir`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savol_id: savolId, tanlangan: harf }),
+      });
+      const data = await res.json();
+      setJoriyNatija(data);
+      if (data.togrimi) setToGriSoni((v) => v + 1); else setXatoSoni((v) => v + 1);
+    } catch {
+      setJoriyNatija({ togrimi: false, togri_javob: "?", tushuntirish: "" });
+      setXatoSoni((v) => v + 1);
     }
-
-
-@app.delete("/api/ota/farzand_uzish")
-def ota_farzand_uzish(token: str, farzand_id: int):
-    """Ota-ona farzand bilan bog'lanishni uzadi."""
-    parent_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM parent_child WHERE parent_id=%s AND child_id=%s", (parent_id, farzand_id))
-    ochirildi = cur.rowcount > 0
-    conn.commit()
-    cur.close()
-    conn.close()
-    if not ochirildi:
-        raise HTTPException(status_code=404, detail="Bunday bog'lanish topilmadi")
-    return {"holat": "uzildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# PROFIL — tahrirlash va rol almashtirish
-# ═══════════════════════════════════════════════════════════
-
-class ProfilYangilash(BaseModel):
-    token: str
-    full_name: Optional[str] = None
-    region: Optional[str] = None
-    district: Optional[str] = None
-    tugilgan_sana: Optional[str] = None
-    maktab_raqami: Optional[str] = None
-    maktab_turi: Optional[str] = None   # oddiy | xususiy | ixtisoslashgan | prezident
-    sinf: Optional[str] = None          # 1..11
-    sinf_harfi: Optional[str] = None    # A, B, V ...
-    jins: Optional[str] = None          # ogil | qiz — dizayn uchun (o'quvchi va o'qituvchi)
-    oqituvchi_fani: Optional[str] = None  # o'qituvchining o'zi o'qitadigan fan — dizayn uchun
-    maktab_id: Optional[int] = None     # ro'yxatdagi (tizimga qo'shilgan) maktabga ANIQ bog'lanish
-
-
-MAKTAB_TURLARI = {
-    "oddiy": "🏫 Oddiy davlat maktabi",
-    "xususiy": "🏢 Xususiy",
-    "ixtisoslashgan": "⭐ Ixtisoslashgan (IDUM)",
-    "prezident": "🏆 Prezident maktabi",
-}
-
-
-@app.put("/api/profil")
-def profil_yangila(sorov: ProfilYangilash):
-    """Foydalanuvchi o'z profilini yangilaydi."""
-    user_id = _jwt_tekshir(sorov.token)
-    if sorov.full_name is not None and not sorov.full_name.strip():
-        raise HTTPException(status_code=400, detail="Ism bo'sh bo'lishi mumkin emas")
-    if sorov.maktab_turi is not None and sorov.maktab_turi not in MAKTAB_TURLARI:
-        raise HTTPException(status_code=400, detail="Noto'g'ri maktab turi")
-    if sorov.sinf is not None and sorov.sinf not in [str(i) for i in range(1, 12)]:
-        raise HTTPException(status_code=400, detail="Sinf 1 dan 11 gacha bo'lishi kerak")
-    if sorov.jins is not None and sorov.jins not in ("ogil", "qiz"):
-        raise HTTPException(status_code=400, detail="Noto'g'ri jins qiymati")
-
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS tugilgan_sana DATE")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_raqami TEXT")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS jins TEXT")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS oqituvchi_fani TEXT")
-
-    maydonlar = []
-    qiymatlar = []
-    if sorov.full_name is not None:
-        maydonlar.append("full_name=%s")
-        qiymatlar.append(sorov.full_name.strip())
-    if sorov.region is not None:
-        maydonlar.append("region=%s")
-        qiymatlar.append(sorov.region.strip())
-    if sorov.district is not None:
-        maydonlar.append("district=%s")
-        qiymatlar.append(sorov.district.strip())
-    if sorov.tugilgan_sana is not None:
-        maydonlar.append("tugilgan_sana=%s")
-        qiymatlar.append(sorov.tugilgan_sana)
-    if sorov.maktab_raqami is not None:
-        maydonlar.append("maktab_raqami=%s")
-        qiymatlar.append(sorov.maktab_raqami.strip())
-    if sorov.maktab_turi is not None:
-        maydonlar.append("school_type=%s")
-        qiymatlar.append(MAKTAB_TURLARI[sorov.maktab_turi])
-    if sorov.sinf is not None:
-        maydonlar.append("class=%s")
-        qiymatlar.append(sorov.sinf)
-    if sorov.sinf_harfi is not None:
-        maydonlar.append("class_letter=%s")
-        qiymatlar.append(sorov.sinf_harfi.strip().upper())
-    if sorov.jins is not None:
-        maydonlar.append("jins=%s")
-        qiymatlar.append(sorov.jins)
-    if sorov.oqituvchi_fani is not None:
-        maydonlar.append("oqituvchi_fani=%s")
-        qiymatlar.append(sorov.oqituvchi_fani.strip())
-    if sorov.maktab_id is not None:
-        _maktab_jadvali(cur)
-        cur.execute("SELECT 1 FROM maktablar WHERE id=%s", (sorov.maktab_id,))
-        if not cur.fetchone():
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail="Ko'rsatilgan maktab topilmadi")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_id INTEGER")
-        maydonlar.append("maktab_id=%s")
-        qiymatlar.append(sorov.maktab_id)
-
-    if not maydonlar:
-        cur.close()
-        conn.close()
-        return {"holat": "ozgarish_yoq"}
-
-    qiymatlar.append(user_id)
-    cur.execute(f"UPDATE users SET {', '.join(maydonlar)} WHERE user_id=%s", qiymatlar)
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-class RolOzgartirish(BaseModel):
-    token: str
-    yangi_rol: str
-    tasdiqlayman: bool = False
-
-
-RUXSAT_ETILGAN_ROLLAR2 = {"oquvchi", "ota-ona", "oqituvchi"}
-ROL_BEPUL_LIMIT = 2          # necha marta ERKIN (kod so'ramasdan) rol almashtirish mumkin
-ROL_KOD_AMAL_MUDDATI = 10    # daqiqa
-ROL_OYLIK_LIMIT_KUN = 30     # kod bilan almashtirilgach, keyingisi uchun necha kun kutish kerak
-
-
-def _rol_ustunlarini_tayyorla(cur):
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS rol_ozgarish_soni INTEGER DEFAULT 0")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS oxirgi_rol_ozgarish TIMESTAMP")
-    cur.execute("""CREATE TABLE IF NOT EXISTS rol_tasdiq_kod(
-        user_id BIGINT PRIMARY KEY REFERENCES users(user_id),
-        kod TEXT NOT NULL, yangi_rol TEXT NOT NULL, yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-def _email_yubor(qabul_qiluvchi: str, mavzu: str, matn: str) -> bool:
-    """SMTP orqali email yuboradi. SMTP_HOST/SMTP_USER/SMTP_PASSWORD Railway'da
-    o'rnatilgan bo'lishi kerak (masalan Gmail App Password) — aks holda False
-    qaytaradi va konsolga log yozadi."""
-    host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    port = int(os.getenv("SMTP_PORT", "587"))
-    user = os.getenv("SMTP_USER")
-    parol = os.getenv("SMTP_PASSWORD")
-    if not user or not parol:
-        print(f"[EMAIL YUBORILMADI — SMTP sozlanmagan] {qabul_qiluvchi}: {matn}")
-        return False
-    try:
-        import smtplib
-        from email.mime.text import MIMEText
-        msg = MIMEText(matn, "plain", "utf-8")
-        msg["Subject"] = mavzu
-        msg["From"] = user
-        msg["To"] = qabul_qiluvchi
-        with smtplib.SMTP(host, port, timeout=10) as s:
-            s.starttls()
-            s.login(user, parol)
-            s.sendmail(user, [qabul_qiluvchi], msg.as_string())
-        return True
-    except Exception as e:
-        print(f"[EMAIL XATO] {e}")
-        return False
-
-
-@app.put("/api/rol_ozgartir")
-def rol_ozgartir(sorov: RolOzgartirish):
-    """Foydalanuvchi rolini o'zgartiradi.
-    - Admin uchun — CHEKLOVSIZ (sinab ko'rish uchun).
-    - Oddiy foydalanuvchi uchun — hayotda 2 marta ERKIN (faqat tasdiq bilan),
-      3-martadan boshlab Gmail'ga yuborilgan kod bilan, va kod bilan
-      almashtirilgach keyingisi uchun 30 kun kutish kerak."""
-    user_id = _jwt_tekshir(sorov.token)
-    if sorov.yangi_rol not in RUXSAT_ETILGAN_ROLLAR2:
-        raise HTTPException(status_code=400, detail=f"Noto'g'ri rol: {sorov.yangi_rol}")
-
-    conn = _db()
-    cur = conn.cursor()
-    _rol_ustunlarini_tayyorla(cur)
-
-    cur.execute("SELECT role, rol_ozgarish_soni, oxirgi_rol_ozgarish FROM users WHERE user_id=%s", (user_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
-
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-
-    hozirgi_rol = r["role"]
-    if hozirgi_rol == sorov.yangi_rol:
-        cur.close(); conn.close()
-        return {"holat": "ozgarish_yoq"}
-
-    soni = r["rol_ozgarish_soni"] or 0
-
-    # ADMIN — cheklovsiz, sinab ko'rish uchun
-    if admin_mi:
-        if not sorov.tasdiqlayman:
-            cur.close(); conn.close()
-            return {"holat": "tasdiq_kerak", "hozirgi_rol": hozirgi_rol, "yangi_rol": sorov.yangi_rol, "admin_test": True}
-        cur.execute("UPDATE users SET role=%s WHERE user_id=%s", (sorov.yangi_rol, user_id))
-        conn.commit(); cur.close(); conn.close()
-        return {"holat": "saqlandi", "yangi_rol": sorov.yangi_rol}
-
-    # ODDIY FOYDALANUVCHI — hali bepul limitdan foydalanmagan
-    if soni < ROL_BEPUL_LIMIT:
-        if not sorov.tasdiqlayman:
-            cur.close(); conn.close()
-            return {
-                "holat": "tasdiq_kerak", "hozirgi_rol": hozirgi_rol, "yangi_rol": sorov.yangi_rol,
-                "qolgan_bepul": ROL_BEPUL_LIMIT - soni,
-            }
-        cur.execute(
-            "UPDATE users SET role=%s, rol_ozgarish_soni=rol_ozgarish_soni+1, oxirgi_rol_ozgarish=NOW() WHERE user_id=%s",
-            (sorov.yangi_rol, user_id),
-        )
-        conn.commit(); cur.close(); conn.close()
-        return {"holat": "saqlandi", "yangi_rol": sorov.yangi_rol, "qolgan_bepul": ROL_BEPUL_LIMIT - soni - 1}
-
-    # BEPUL LIMIT TUGAGAN — 30 kunlik muddat tekshiriladi
-    if r["oxirgi_rol_ozgarish"]:
-        keyingi = r["oxirgi_rol_ozgarish"] + timedelta(days=ROL_OYLIK_LIMIT_KUN)
-        if datetime.now() < keyingi:
-            cur.close(); conn.close()
-            raise HTTPException(
-                status_code=429,
-                detail=f"Rol almashtirish limiti tugagan. Keyingi imkoniyat: {keyingi.strftime('%d.%m.%Y')}",
-            )
-
-    cur.close(); conn.close()
-    return {"holat": "kod_kerak", "hozirgi_rol": hozirgi_rol, "yangi_rol": sorov.yangi_rol}
-
-
-class RolKodSorash(BaseModel):
-    token: str
-    yangi_rol: str
-
-
-@app.post("/api/rol_kod_yubor")
-def rol_kod_yubor(sorov: RolKodSorash):
-    """Bepul limit tugagan foydalanuvchi uchun — Gmail'ga tasdiqlash kodi yuboradi."""
-    user_id = _jwt_tekshir(sorov.token)
-    if sorov.yangi_rol not in RUXSAT_ETILGAN_ROLLAR2:
-        raise HTTPException(status_code=400, detail="Noto'g'ri rol")
-
-    conn = _db()
-    cur = conn.cursor()
-    _rol_ustunlarini_tayyorla(cur)
-    cur.execute("SELECT google_email FROM google_hisob WHERE user_id=%s LIMIT 1", (user_id,))
-    r = cur.fetchone()
-    if not r or not r["google_email"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Gmail hisobingiz ulanmagan — avval botdagi kabinet orqali ulang")
-
-    email = r["google_email"]
-    kod = "".join(secrets.choice(string.digits) for _ in range(6))
-    cur.execute("""
-        INSERT INTO rol_tasdiq_kod(user_id, kod, yangi_rol, yaratilgan_at)
-        VALUES(%s,%s,%s,NOW())
-        ON CONFLICT (user_id) DO UPDATE SET kod=EXCLUDED.kod, yangi_rol=EXCLUDED.yangi_rol, yaratilgan_at=NOW()
-    """, (user_id, kod, sorov.yangi_rol))
-    conn.commit()
-    cur.close(); conn.close()
-
-    yuborildi = _email_yubor(
-        email, "SamTM Ta'lim — rol o'zgartirish kodi",
-        f"Rolni \"{sorov.yangi_rol}\"ga o'zgartirish uchun tasdiqlash kodi: {kod}\n"
-        f"Kod {ROL_KOD_AMAL_MUDDATI} daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, e'tiborsiz qoldiring.",
-    )
-    yashirilgan = re.sub(r"(?<=.{2}).(?=[^@]*@)", "*", email)
-    return {"holat": "yuborildi" if yuborildi else "smtp_sozlanmagan", "email": yashirilgan}
-
-
-class RolKodTasdiqlash(BaseModel):
-    token: str
-    kod: str
-
-
-@app.post("/api/rol_kod_tasdiqla")
-def rol_kod_tasdiqla(sorov: RolKodTasdiqlash):
-    """Yuborilgan kodni tekshiradi va to'g'ri bo'lsa rolni o'zgartiradi."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _rol_ustunlarini_tayyorla(cur)
-    cur.execute("SELECT kod, yangi_rol, yaratilgan_at FROM rol_tasdiq_kod WHERE user_id=%s", (user_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Avval kod so'rang")
-    if datetime.now() - r["yaratilgan_at"] > timedelta(minutes=ROL_KOD_AMAL_MUDDATI):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod muddati tugagan — qaytadan so'rang")
-    if sorov.kod.strip() != r["kod"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod noto'g'ri")
-
-    cur.execute(
-        "UPDATE users SET role=%s, rol_ozgarish_soni=rol_ozgarish_soni+1, oxirgi_rol_ozgarish=NOW() WHERE user_id=%s",
-        (r["yangi_rol"], user_id),
-    )
-    cur.execute("DELETE FROM rol_tasdiq_kod WHERE user_id=%s", (user_id,))
-    conn.commit()
-    cur.close(); conn.close()
-    return {"holat": "saqlandi", "yangi_rol": r["yangi_rol"]}
-
-
-# ═══════════════════════════════════════════════════════════
-# O'QITUVCHI — yangi to'garak yaratish
-# ═══════════════════════════════════════════════════════════
-
-class TogarakYaratish(BaseModel):
-    token: str
-    nomi: str
-    fan: str
-    sinf: Optional[str] = None   # "1".."11" (oddiy) yoki "3-4" kabi (to'garak guruhi)
-    parol: Optional[str] = None
-    max_talaba: Optional[int] = None
-    oylik_summa: Optional[int] = None
-    universitet_guruh_id: Optional[int] = None  # professor shu fanini ANIQ universitet guruhi uchun o'qitsa
-    tanlangan_topic_codes: Optional[list[str]] = None  # o'qituvchi ANIQ tanlagan mavzular (berilmasa — mos kelgan BARCHASI avtomatik)
-    reja_id: Optional[int] = None  # tanlangan "topik mavzu rejasi" — berilsa, shu rejaning tartibli mavzulari ko'chiriladi (tanlangan_topic_codes'dan USTUN)
-
-
-@app.post("/api/oqituvchi/togarak_yarat")
-def togarak_yarat(sorov: TogarakYaratish):
-    """O'qituvchi yangi to'garak yaratadi — bot ishlatadigan AYNAN SHU
-    jadvalga (togaraklar) yoziladi, shuning uchun bot va sayt bir xil
-    ma'lumotni ko'radi. Fan+sinf tanlanganda — o'sha fan/sinfga tegishli
-    BARCHA mavzular avtomatik ravishda to'garakning "ta'lim yo'li"ga
-    bog'lanadi (togarak_mavzulari)."""
-    teacher_id = _jwt_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="To'garak nomi kiritilmagan")
-    if not sorov.fan.strip():
-        raise HTTPException(status_code=400, detail="Fan kiritilmagan")
-    if sorov.max_talaba is not None and sorov.max_talaba < 1:
-        raise HTTPException(status_code=400, detail="Maksimal talaba soni kamida 1 bo'lishi kerak")
-
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS sinf TEXT")
-    cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-    cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS universitet_guruh_id INTEGER")
-    cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS reja_id INTEGER")
-    cur.execute("""CREATE TABLE IF NOT EXISTS togarak_mavzulari(
-        togarak_id INTEGER REFERENCES togaraklar(id),
-        topic_code TEXT,
-        PRIMARY KEY (togarak_id, topic_code)
-    )""")
-    _reja_jadvallari(cur)
-    # Agar o'qituvchi biror o'quv markaziga tegishli bo'lsa (xodim
-    # importi orqali "Fan o'qituvchisi" sifatida qo'shilgan bo'lsa) —
-    # yaratayotgan guruhi AVTOMATIK shu markazga bog'lanadi, markaz
-    # direktori/administratori uni darhol "Markaz" boshqaruv panelida
-    # ko'radi — qo'lda bog'lash shart emas.
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-    cur.execute("SELECT markaz_id FROM users WHERE user_id=%s", (teacher_id,))
-    ur = cur.fetchone()
-    teacher_markaz_id = ur["markaz_id"] if ur else None
-
-    # Professor bu fanni ANIQ bitta universitet guruhi uchun o'qitayotgan
-    # bo'lsa — shu guruhga bog'laydi, guruh kuratori/dekani keyin BUTUN
-    # guruhning shu fandagi bilim darajasini ko'ra oladi.
-    universitet_guruh_id = None
-    if sorov.universitet_guruh_id is not None:
-        cur.execute("SELECT id FROM universitet_guruhlari WHERE id=%s", (sorov.universitet_guruh_id,))
-        if cur.fetchone():
-            universitet_guruh_id = sorov.universitet_guruh_id
-
-    sinf_qiymati = sorov.sinf.strip() if sorov.sinf else None
-    reja_id_qiymati = None
-    if sorov.reja_id is not None:
-        if not _reja_ozi_mi(cur, teacher_id, sorov.reja_id):
-            cur.close(); conn.close()
-            raise HTTPException(status_code=403, detail="Bu reja sizga tegishli emas")
-        reja_id_qiymati = sorov.reja_id
-    cur.execute("""
-        INSERT INTO togaraklar(nomi, fan, teacher_id, sinf, parol, max_talaba, oylik_summa, aktiv, markaz_id, universitet_guruh_id, reja_id)
-        VALUES(%s,%s,%s,%s,%s,%s,%s,TRUE,%s,%s,%s) RETURNING id
-    """, (sorov.nomi.strip(), sorov.fan.strip(), teacher_id, sinf_qiymati,
-          sorov.parol.strip() if sorov.parol else None,
-          sorov.max_talaba, sorov.oylik_summa, teacher_markaz_id, universitet_guruh_id, reja_id_qiymati))
-    yangi_id = cur.fetchone()["id"]
-
-    bogliq_mavzu_soni = 0
-    if reja_id_qiymati is not None:
-        # Reja tanlangan — uning TARTIBLI mavzularini shu to'garakka
-        # ko'chiramiz (tanlangan_topic_codes/avtomatik logikadan USTUN).
-        cur.execute("SELECT topic_code FROM topik_mavzu_reja_qatorlari WHERE reja_id=%s ORDER BY tartib_raqami", (reja_id_qiymati,))
-        mavzu_kodlari = [r["topic_code"] for r in cur.fetchall()]
-        for kod in mavzu_kodlari:
-            cur.execute(
-                "INSERT INTO togarak_mavzulari(togarak_id, topic_code) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-                (yangi_id, kod),
-            )
-        bogliq_mavzu_soni = len(mavzu_kodlari)
-    elif sorov.tanlangan_topic_codes is not None:
-        # O'qituvchi ANIQ mavzularni tanlagan — faqat SHU sinf/fanga
-        # HAQIQATAN tegishli kodlarni qabul qilamiz (xavfsizlik: boshqa
-        # sinf/fan kodini "surib qo'yish" mumkin emas).
-        tanlangan = [k.strip() for k in sorov.tanlangan_topic_codes if k.strip()]
-        if tanlangan and sinf_qiymati:
-            cur.execute("""
-                SELECT topic_code FROM dts_tree
-                WHERE grade=%s AND UPPER(subject_name)=UPPER(%s) AND is_deleted=FALSE AND topic_code = ANY(%s)
-            """, (sinf_qiymati, sorov.fan.strip(), tanlangan))
-            mavzu_kodlari = [r["topic_code"] for r in cur.fetchall()]
-            for kod in mavzu_kodlari:
-                cur.execute(
-                    "INSERT INTO togarak_mavzulari(togarak_id, topic_code) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-                    (yangi_id, kod),
-                )
-            bogliq_mavzu_soni = len(mavzu_kodlari)
-    elif sinf_qiymati:
-        cur.execute("""
-            SELECT topic_code FROM dts_tree
-            WHERE grade=%s AND UPPER(subject_name)=UPPER(%s) AND is_deleted=FALSE
-              AND topic_code IN (SELECT DISTINCT topic_code FROM generated_tests)
-        """, (sinf_qiymati, sorov.fan.strip()))
-        mavzu_kodlari = [r["topic_code"] for r in cur.fetchall()]
-        for kod in mavzu_kodlari:
-            cur.execute(
-                "INSERT INTO togarak_mavzulari(togarak_id, topic_code) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-                (yangi_id, kod),
-            )
-        bogliq_mavzu_soni = len(mavzu_kodlari)
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "togarak_id": yangi_id, "boglangan_mavzu_soni": bogliq_mavzu_soni}
-
-
-# ═══════════════════════════════════════════════════════════
-# TO'GARAK GURUH SOZLAMALARI — parolni ko'rish/almashtirish, va
-# XAVFSIZ o'chirish (parol so'ralib, faqat shundan keyin o'chadi).
-# ═══════════════════════════════════════════════════════════
-
-def _togarak_egasi_mi(cur, user_id, togarak_id):
-    cur.execute("SELECT teacher_id, markaz_id FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        return False
-    if t["teacher_id"] == user_id:
-        return True
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    return bool(t["markaz_id"] and _markaz_boshqaruvchi_mi(cur, user_id, t["markaz_id"]))
-
-
-@app.get("/api/oqituvchi/togarak_parolini_kor")
-def togarak_parolini_kor(token: str, togarak_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_egasi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    cur.execute("SELECT parol FROM togaraklar WHERE id=%s", (togarak_id,))
-    r = cur.fetchone()
-    cur.close()
-    conn.close()
-    return {"parol": r["parol"] if r else None}
-
-
-class TogarakParolAlmashtirish(BaseModel):
-    token: str
-    togarak_id: int
-    yangi_parol: str
-
-
-@app.put("/api/oqituvchi/togarak_parol_almashtir")
-def togarak_parol_almashtir(sorov: TogarakParolAlmashtirish):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_egasi_mi(cur, user_id, sorov.togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin o'zgartira oladi")
-    if not sorov.yangi_parol.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Yangi parolni kiriting")
-    cur.execute("UPDATE togaraklar SET parol=%s WHERE id=%s", (sorov.yangi_parol.strip(), sorov.togarak_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.delete("/api/oqituvchi/togarak_ochir")
-def togarak_ochir(token: str, togarak_id: int, parol: str):
-    """Butun guruhni O'CHIRADI — QAYTARIB BO'LMAYDI. Xavfsizlik
-    uchun guruhning JORIY parolini talab qiladi (frontend oldindan
-    ogohlantiradi). O'ZI yaratgan (milliy bazadan emas) mavzu/testlar
-    ham butunlay o'chadi — milliy bazadagi umumiy mavzularga
-    tegilmaydi (faqat BOG'LANISH o'chadi)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_egasi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin o'chira oladi")
-    cur.execute("SELECT parol FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    if (t["parol"] or "") != parol.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Parol noto'g'ri")
-
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("SELECT topic_code FROM togarak_mavzu_kontenti WHERE togarak_id=%s", (togarak_id,))
-    ozi_kodlari = [r["topic_code"] for r in cur.fetchall()]
-    if ozi_kodlari:
-        cur.execute("DELETE FROM generated_tests WHERE topic_code = ANY(%s)", (ozi_kodlari,))
-        cur.execute("UPDATE dts_tree SET is_deleted=TRUE WHERE topic_code = ANY(%s)", (ozi_kodlari,))
-        cur.execute("DELETE FROM togarak_mavzu_kontenti WHERE togarak_id=%s", (togarak_id,))
-    cur.execute("DELETE FROM togarak_mavzulari WHERE togarak_id=%s", (togarak_id,))
-    cur.execute("DELETE FROM togarak_azolar WHERE togarak_id=%s", (togarak_id,))
-    cur.execute("DELETE FROM tolovlar WHERE togarak_id=%s", (togarak_id,))
-    cur.execute("DELETE FROM togaraklar WHERE id=%s", (togarak_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# TO'GARAK O'ZI MAVZU/TEST YARATISH — o'qituvchi milliy bazadagi
-# tayyor mavzularga qo'shimcha, O'Z guruh uchun ORIGINAL mavzu+test+
-# video-dars yaratadi. MAVJUD infratuzilmani QAYTA ISHLATADI: har bir
-# yangi mavzu, sinov (SIN) topic_code bilan dts_tree'ga qo'shiladi —
-# shu bilan test yechish/Bilim/spaced-repetition kabi BUTUN mavjud
-# mexanizm avtomatik ishlab ketadi, hech narsa qaytadan yozilmaydi.
-#
-# TOPIC_CODE XAVFSIZLIGI: PostgreSQL SEQUENCE orqali — bu bazaning
-# o'zi kafolatlaydigan, ATOM (bo'linmas) hisoblagich. Necha million
-# mavzu yaratilmasin, ikkita so'rov bir vaqtda kelsa ham, ikkita
-# turli mavzu BIR XIL kodni HECH QACHON ololmaydi — bu PostgreSQL'ning
-# o'zi ta'minlaydigan kafolat, poyga holati (race condition) mumkin
-# emas. Kod formati oddiy: SIN0000001, SIN0000002, ... — to'garak
-# raqamiga BOG'LIQ EMAS, shu sabab har doim oddiy va bir xil uzunlikda.
-#
-# Ikki bosqichli ish jarayoni — ADMIN'ning "Topik shablon"/"Test
-# shablon" naqshiga mos, lekin SODDA (chorak/bo'lim/kichik mavzu
-# YO'Q — faqat Bob va Mavzu):
-#   1) Mavzu shablon: Bob|Mavzu Excel → to'ldirib yuklash
-#   2) Test shablon: tanlangan mavzu(lar) uchun savol Excel → to'ldirib yuklash
-# ═══════════════════════════════════════════════════════════
-
-def _togarak_mavzu_kontenti_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS togarak_mavzu_kontenti(
-        topic_code TEXT PRIMARY KEY,
-        togarak_id INTEGER REFERENCES togaraklar(id),
-        reja TEXT,
-        muhim_malumot TEXT,
-        video_havola TEXT,
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("CREATE SEQUENCE IF NOT EXISTS togarak_mavzu_kod_seq")
-
-
-def _keyingi_togarak_topic_code(cur):
-    """PostgreSQL SEQUENCE'dan KEYINGI, hech qachon takrorlanmaydigan
-    raqamni oladi — bazaning o'zi kafolatlaydi, poyga holati mumkin
-    emas, necha million bo'lsa ham oddiy va tez."""
-    cur.execute("SELECT nextval('togarak_mavzu_kod_seq') AS keyingi")
-    keyingi = cur.fetchone()["keyingi"]
-    return f"SIN{keyingi:07d}"
-
-
-def _reja_jadvallari(cur):
-    """O'qituvchi bir marta yaratib, bir nechta to'garak guruhida
-    QAYTA ISHLATA oladigan 'topik mavzu rejasi' (tartibli mavzular
-    ketma-ketligi) uchun jadvallar."""
-    cur.execute("""CREATE TABLE IF NOT EXISTS topik_mavzu_rejalari(
-        id SERIAL PRIMARY KEY,
-        nomi TEXT NOT NULL,
-        sinf TEXT NOT NULL,
-        fan TEXT NOT NULL,
-        yaratgan_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS topik_mavzu_reja_qatorlari(
-        id SERIAL PRIMARY KEY,
-        reja_id INTEGER REFERENCES topik_mavzu_rejalari(id) ON DELETE CASCADE,
-        topic_code TEXT NOT NULL,
-        tartib_raqami INTEGER NOT NULL,
-        UNIQUE(reja_id, tartib_raqami)
-    )""")
-
-
-def _reja_ozi_mi(cur, user_id, reja_id):
-    """True — agar user shu rejani yaratgan o'qituvchi yoki admin bo'lsa."""
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    cur.execute("SELECT 1 FROM topik_mavzu_rejalari WHERE id=%s AND yaratgan_user_id=%s", (reja_id, user_id))
-    return cur.fetchone() is not None
-
-
-def _togarak_ozi_mi(cur, user_id, togarak_id):
-    """True — agar user shu to'garakning o'qituvchisi, markaz
-    rahbariyati yoki admin bo'lsa."""
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    cur.execute("SELECT teacher_id, markaz_id FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        return False
-    if t["teacher_id"] == user_id:
-        return True
-    return bool(t["markaz_id"] and _markaz_boshqaruvchi_mi(cur, user_id, t["markaz_id"]))
-
-
-@app.get("/api/oqituvchi/togarak_mavzu_shablon")
-def togarak_mavzu_shablon(token: str, togarak_id: int):
-    """1-bosqich — Bob|Mavzu Excel shablonini yaratadi. Admin'ning
-    Topik shablonidan farqli: CHORAK, BO'LIM, KICHIK MAVZU yo'q —
-    faqat ikkita ustun, chunki to'garak dasturi milliy dasturdan
-    mustaqil, soddaroq tuzilishda."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    cur.execute("SELECT nomi, fan FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not t:
-        raise HTTPException(status_code=404, detail="To'garak topilmadi")
-
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
-    import io
-    from fastapi.responses import StreamingResponse
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "MAVZULAR"
-    for col, h in enumerate(["#", "Bob", "Mavzu"], 1):
-        cell = ws.cell(1, col, h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="70AD47")
-        cell.alignment = Alignment(horizontal="center")
-    namunalar = [(1, "1-bob. Kirish", "Tanishuv darsi"), (2, "1-bob. Kirish", "Asosiy tushunchalar"), (3, "2-bob. Amaliyot", "Birinchi mashqlar")]
-    for idx, bob, mavzu in namunalar:
-        ws.cell(idx + 1, 1, idx)
-        ws.cell(idx + 1, 2, bob)
-        ws.cell(idx + 1, 3, mavzu)
-    for col, width in zip(range(1, 4), [5, 30, 35]):
-        ws.column_dimensions[ws.cell(1, col).column_letter].width = width
-
-    ws2 = wb.create_sheet("IZOH")
-    ws2.cell(1, 1, "📋 TO'LDIRISH QO'LLANMASI").font = Font(bold=True, size=14)
-    ws2.cell(3, 1, f"To'garak: {t['nomi']} ({t['fan']})").font = Font(bold=True)
-    ws2.cell(5, 1, "Bob — mavzular guruhini nomlang, masalan '1-bob. Kirish'").font = Font(bold=True)
-    ws2.cell(6, 1, "Mavzu — har bir dars/mavzu nomi, alohida qatorda")
-    ws2.cell(7, 1, "Namuna qatorlarni o'chirib, o'zingiznikini yozing yoki davom ettiring")
-    ws2.column_dimensions['A'].width = 70
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=togarak_mavzu_shablon_{togarak_id}.xlsx"},
-    )
-
-
-@app.post("/api/oqituvchi/togarak_mavzu_import")
-async def togarak_mavzu_import(token: str, togarak_id: int, fayl: UploadFile = File(...)):
-    """1-bosqich (yuklash) — to'ldirilgan Bob|Mavzu shablonni o'qib,
-    har bir qator uchun (Mavzu bo'sh bo'lmasa) YANGI, hech qachon
-    takrorlanmaydigan topic_code yaratadi va to'garak ta'lim yo'liga
-    qo'shadi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin yuklay oladi")
-    cur.execute("SELECT sinf, fan FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="To'garak topilmadi")
-
-    import openpyxl
-    import io
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb["MAVZULAR"] if "MAVZULAR" in wb.sheetnames else wb.active
-
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("""CREATE TABLE IF NOT EXISTS togarak_mavzulari(
-        togarak_id INTEGER REFERENCES togaraklar(id),
-        topic_code TEXT,
-        PRIMARY KEY (togarak_id, topic_code)
-    )""")
-
-    qoshildi = 0
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if not row or len(row) < 3:
-            continue
-        bob, mavzu = row[1], row[2]
-        if not mavzu or not str(mavzu).strip():
-            continue
-        topic_code = _keyingi_togarak_topic_code(cur)
-        cur.execute("""
-            INSERT INTO dts_tree(topic_code, grade, subject_name, quarter, bob_name, bolim_name, mavzu_name, kichik_name, is_deleted)
-            VALUES(%s,%s,%s,'1',%s,'',%s,'',FALSE)
-        """, (topic_code, t["sinf"] or "", t["fan"] or "", str(bob).strip() if bob else "", str(mavzu).strip()))
-        cur.execute("""
-            INSERT INTO togarak_mavzu_kontenti(topic_code, togarak_id) VALUES(%s,%s)
-        """, (topic_code, togarak_id))
-        cur.execute(
-            "INSERT INTO togarak_mavzulari(togarak_id, topic_code) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-            (togarak_id, topic_code),
-        )
-        qoshildi += 1
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"qoshildi": qoshildi}
-
-
-@app.get("/api/oqituvchi/togarak_mavzulari_ozi")
-def togarak_mavzulari_ozi_royxati(token: str, togarak_id: int):
-    """O'qituvchi tomonidan yaratilgan (milliy bazadan emas) barcha
-    ORIGINAL mavzular — har biriga nechta savol borligi bilan."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("""
-        SELECT k.topic_code, d.bob_name, d.mavzu_name AS nomi, k.reja, k.muhim_malumot, k.video_havola,
-               (SELECT COUNT(*) FROM generated_tests WHERE topic_code=k.topic_code) AS savol_soni
-        FROM togarak_mavzu_kontenti k
-        LEFT JOIN dts_tree d ON d.topic_code = k.topic_code
-        WHERE k.togarak_id=%s ORDER BY k.yaratilgan_at
-    """, (togarak_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"mavzular": natija}
-
-
-class TogarakMavzuTahrirlash(BaseModel):
-    token: str
-    topic_code: str
-    reja: Optional[str] = None
-    muhim_malumot: Optional[str] = None
-    video_havola: Optional[str] = None
-
-
-@app.put("/api/oqituvchi/togarak_mavzu_tahrirlash")
-def togarak_mavzu_tahrirlash(sorov: TogarakMavzuTahrirlash):
-    """Excel orqali yaratilgan mavzuga KEYINROQ reja/muhim ma'lumot/
-    video havola qo'shish yoki yangilash uchun."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("SELECT togarak_id FROM togarak_mavzu_kontenti WHERE topic_code=%s", (sorov.topic_code,))
-    k = cur.fetchone()
-    if not k:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Mavzu topilmadi")
-    if not _togarak_ozi_mi(cur, user_id, k["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin tahrirlay oladi")
-    cur.execute("""
-        UPDATE togarak_mavzu_kontenti SET reja=%s, muhim_malumot=%s, video_havola=%s WHERE topic_code=%s
-    """, (sorov.reja, sorov.muhim_malumot, sorov.video_havola, sorov.topic_code))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.delete("/api/oqituvchi/togarak_mavzu_ochir")
-def togarak_mavzu_ochir(token: str, topic_code: str):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("SELECT togarak_id FROM togarak_mavzu_kontenti WHERE topic_code=%s", (topic_code,))
-    k = cur.fetchone()
-    if not k:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Mavzu topilmadi")
-    if not _togarak_ozi_mi(cur, user_id, k["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM generated_tests WHERE topic_code=%s", (topic_code,))
-    cur.execute("DELETE FROM togarak_mavzulari WHERE topic_code=%s", (topic_code,))
-    cur.execute("DELETE FROM togarak_mavzu_kontenti WHERE topic_code=%s", (topic_code,))
-    cur.execute("UPDATE dts_tree SET is_deleted=TRUE WHERE topic_code=%s", (topic_code,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-class TogarakTestShablonGuruh(BaseModel):
-    topic_code: str
-    soni: int
-
-
-class TogarakTestShablonSorov(BaseModel):
-    token: str
-    togarak_id: int
-    guruhlar: list[TogarakTestShablonGuruh]
-
-
-@app.post("/api/oqituvchi/togarak_test_shablon")
-def togarak_test_shablon(sorov: TogarakTestShablonSorov):
-    """2-bosqich — tanlangan mavzu(lar) uchun, har biriga necha savol
-    kerakligi bo'yicha, bo'sh savollar Excel shablonini yaratadi —
-    admin'ning TESTLAR varag'i bilan BIR XIL ustunlar, shu sabab
-    to'ldirilgach import qilinganda test yechish tizimi bilan to'liq
-    mos ishlaydi."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, sorov.togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    guruhlar = [g for g in sorov.guruhlar if g.soni > 0]
-    if not guruhlar:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kamida bitta mavzudan son tanlang")
-
-    _togarak_mavzu_kontenti_jadvali(cur)
-    kodlar = [g.topic_code for g in guruhlar]
-    cur.execute("SELECT topic_code FROM togarak_mavzu_kontenti WHERE togarak_id=%s AND topic_code = ANY(%s)", (sorov.togarak_id, kodlar))
-    ruxsat_etilgan = {r["topic_code"] for r in cur.fetchall()}
-    cur.execute("SELECT topic_code, mavzu_name FROM dts_tree WHERE topic_code = ANY(%s)", (kodlar,))
-    nomlar = {r["topic_code"]: r["mavzu_name"] for r in cur.fetchall()}
-    cur.close()
-    conn.close()
-
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
-    import io
-    from fastapi.responses import StreamingResponse
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "TESTLAR"
-    ustunlar = [
-        "topic_code", "difficulty", "situation", "question",
-        "option_a", "option_b", "option_c", "option_d",
-        "correct_answer", "explanation", "question_type", "is_latex",
-        "image_url", "audio_text", "language", "life_level", "age_group", "time_limit",
-    ]
-    for col, h in enumerate(ustunlar, 1):
-        cell = ws.cell(1, col, h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="4472C4")
-        cell.alignment = Alignment(horizontal="center")
-
-    row_num = 2
-    for g in guruhlar:
-        if g.topic_code not in ruxsat_etilgan:
-            continue  # boshqa to'garak yoki milliy mavzu kodi — o'tkazib yuboriladi
-        for _ in range(g.soni):
-            ws.cell(row_num, 1, g.topic_code)
-            ws.cell(row_num, 2, "o'rta")
-            ws.cell(row_num, 3, "oddiy")
-            ws.cell(row_num, 11, "single_choice")
-            ws.cell(row_num, 12, False)
-            ws.cell(row_num, 15, "uz")
-            ws.cell(row_num, 16, 1)
-            ws.cell(row_num, 18, 60)
-            row_num += 1
-
-    for col, width in zip(range(1, len(ustunlar) + 1), [22, 10, 10, 45, 18, 18, 18, 18, 15, 35, 15, 8, 22, 20, 8, 8, 8, 10]):
-        ws.column_dimensions[ws.cell(1, col).column_letter].width = width
-
-    ws2 = wb.create_sheet("IZOH")
-    ws2.cell(1, 1, "📋 TO'LDIRISH QO'LLANMASI").font = Font(bold=True, size=14)
-    for r, satr in enumerate([
-        "question — savol matni (majburiy)",
-        "option_a/b/c/d — variantlar (variantli savol uchun)",
-        "correct_answer — to'g'ri javob (majburiy)",
-        "question_type — 'single_choice' yoki 'write_answer'",
-        "topic_code va difficulty — o'zgartirmang",
-    ], 3):
-        ws2.cell(r, 1, satr)
-    mavzu_nomlari = [f"{k}: {nomlar.get(k, '')}" for k in ruxsat_etilgan]
-    ws2.cell(9, 1, "Ushbu shablondagi mavzular:").font = Font(bold=True)
-    for r, s in enumerate(mavzu_nomlari, 10):
-        ws2.cell(r, 1, s)
-    ws2.column_dimensions['A'].width = 70
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=togarak_test_shablon_{sorov.togarak_id}.xlsx"},
-    )
-
-
-@app.post("/api/oqituvchi/togarak_test_import")
-async def togarak_test_import(token: str, togarak_id: int, fayl: UploadFile = File(...)):
-    """2-bosqich (yuklash) — to'ldirilgan TESTLAR shablonni o'qib,
-    generated_tests'ga qo'shadi. XAVFSIZLIK: har bir qatordagi
-    topic_code ANIQ shu to'garakka tegishli ekani tekshiriladi —
-    boshqa to'garak yoki milliy mavzu kodiga yozish MUMKIN EMAS."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin yuklay oladi")
-
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("SELECT topic_code FROM togarak_mavzu_kontenti WHERE togarak_id=%s", (togarak_id,))
-    ozi_kodlari = {r["topic_code"] for r in cur.fetchall()}
-
-    import openpyxl
-    import io
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb["TESTLAR"] if "TESTLAR" in wb.sheetnames else wb.active
-    headers = [str(c.value).strip() if c.value else "" for c in ws[1]]
-    if "topic_code" not in headers:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Excel ustunlari mos emas — 'topic_code' topilmadi")
-
-    saved, boshqaga_tegishli, errors = 0, 0, 0
-    for row in ws.iter_rows(min_row=2):
-        d = {headers[i]: cell.value for i, cell in enumerate(row) if i < len(headers) and headers[i]}
-        tc = d.get("topic_code")
-        q = d.get("question")
-        if not tc or not q or str(tc).strip() == "" or str(q).strip() == "":
-            continue
-        tc_s = str(tc).strip()
-        if tc_s not in ozi_kodlari:
-            boshqaga_tegishli += 1
-            continue
-        try:
-            cur.execute("""
-                INSERT INTO generated_tests
-                (topic_code, difficulty, situation, question, option_a, option_b, option_c, option_d,
-                 correct_answer, explanation, question_type, is_latex, image_url, audio_text,
-                 language, life_level, age_group, time_limit)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                tc_s, d.get("difficulty") or "o'rta", d.get("situation") or "oddiy", str(q).strip(),
-                d.get("option_a"), d.get("option_b"), d.get("option_c"), d.get("option_d"),
-                d.get("correct_answer"), d.get("explanation"),
-                d.get("question_type") or "single_choice",
-                bool(d.get("is_latex")) if d.get("is_latex") not in (None, "") else False,
-                d.get("image_url"), d.get("audio_text"), d.get("language") or "uz",
-                d.get("life_level") or 1, d.get("age_group"), d.get("time_limit") or 60,
-            ))
-            conn.commit()
-            saved += 1
-        except Exception:
-            conn.rollback()
-            errors += 1
-
-    cur.close()
-    conn.close()
-    return {"saved": saved, "boshqaga_tegishli": boshqaga_tegishli, "errors": errors}
-
-
-@app.get("/api/oqituvchi/togarak_mavzu_savollari")
-def togarak_mavzu_savollari(token: str, topic_code: str):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("SELECT togarak_id FROM togarak_mavzu_kontenti WHERE topic_code=%s", (topic_code,))
-    k = cur.fetchone()
-    if not k:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Mavzu topilmadi")
-    if not _togarak_ozi_mi(cur, user_id, k["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        SELECT id, question, option_a, option_b, option_c, option_d, correct_answer, explanation, question_type
-        FROM generated_tests WHERE topic_code=%s ORDER BY id
-    """, (topic_code,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"savollar": natija}
-
-
-@app.delete("/api/oqituvchi/togarak_savol_ochir")
-def togarak_savol_ochir(token: str, savol_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("SELECT topic_code FROM generated_tests WHERE id=%s", (savol_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Savol topilmadi")
-    cur.execute("SELECT togarak_id FROM togarak_mavzu_kontenti WHERE topic_code=%s", (s["topic_code"],))
-    k = cur.fetchone()
-    if not k or not _togarak_ozi_mi(cur, user_id, k["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM generated_tests WHERE id=%s", (savol_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# TO'GARAK MAVZULARI — o'qituvchi MILLIY bazadan (yoki o'zi
-# yaratgan) mavzularni o'z to'garagiga TANLAB biriktiradi, va har
-# biriga MAZMUNLI kontent (matn/LaTeX/rasm/PDF/Word/video) yuklaydi.
-# O'quvchi (to'garak a'zosi) buni ALOHIDA "Mavzular" bo'limida
-# o'qiydi/ko'radi. Word matni o'qish uchun serverda AJRATIB olinadi
-# (frontend Web Speech API bilan ovozli o'qiydi — alohida to'lovli
-# TTS xizmat kerak emas).
-#
-# MUHIM CHEKLOV (halol aytilishi kerak): YouTube "obuna bo'lmasa
-# ko'rolmaydi" talabi — bu YouTube'ning O'ZINING API orqali, HAR BIR
-# talaba O'Z Google hisobi bilan maxsus ruxsat berishini talab
-# qiladi (oddiy havola qo'yish bilan ILOJI YO'Q). Buning uchun
-# alohida Google Cloud loyihasi + YouTube Data API kaliti kerak —
-# buni ALBATTA gaplashib, keyingi bosqichda alohida quramiz. Hozircha
-# video ko'rilish SONI (o'z platformamizda) to'liq ishlaydi.
-# ═══════════════════════════════════════════════════════════
-
-def _togarak_biriktirma_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS togarak_mavzu_biriktirma(
-        id SERIAL PRIMARY KEY,
-        togarak_id INTEGER NOT NULL REFERENCES togaraklar(id),
-        topic_code TEXT NOT NULL,
-        kontent_turi TEXT NOT NULL,
-        sarlavha TEXT,
-        matn TEXT,
-        fayl_malumot BYTEA,
-        fayl_nomi TEXT,
-        fayl_turi TEXT,
-        video_havola TEXT,
-        korilish_soni INTEGER DEFAULT 0,
-        yuklagan_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-# ═══════════════════════════════════════════════════════════
-# TOPIK MAVZU REJASI — o'qituvchi BIR MARTA yaratadigan, tartibli
-# mavzular ketma-ketligi ("dastur"), keyin BIR NECHTA turli
-# to'garak guruhida QAYTA ISHLATILADIGAN shablon.
-# ═══════════════════════════════════════════════════════════
-
-class RejaYarat(BaseModel):
-    token: str
-    nomi: str
-    sinf: str
-    fan: str
-
-
-class RejaMavzuQosh(BaseModel):
-    token: str
-    reja_id: int
-    topic_code: str
-
-
-class RejaYangiMavzuYarat(BaseModel):
-    token: str
-    reja_id: int
-    nomi: str
-    bob: Optional[str] = None
-
-
-class RejaQatorSurish(BaseModel):
-    token: str
-    reja_id: int
-    qator_id: int
-    yonalish: str  # "yuqori" | "pastga"
-
-
-@app.post("/api/oqituvchi/reja_yarat")
-def reja_yarat(sorov: RejaYarat):
-    """O'qituvchi yangi (hali bo'sh) topik mavzu rejasini yaratadi —
-    keyin unga mavzular qo'shiladi, va bu reja bir nechta to'garak
-    guruhida qayta ishlatilishi mumkin."""
-    user_id = _jwt_tekshir(sorov.token)
-    nomi = sorov.nomi.strip()
-    if not nomi:
-        raise HTTPException(status_code=400, detail="Reja nomini kiriting")
-    if not sorov.sinf.strip() or not sorov.fan.strip():
-        raise HTTPException(status_code=400, detail="Sinf va fan kiritilishi shart")
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    cur.execute(
-        "INSERT INTO topik_mavzu_rejalari(nomi, sinf, fan, yaratgan_user_id) VALUES(%s,%s,%s,%s) RETURNING id",
-        (nomi, sorov.sinf.strip(), sorov.fan.strip(), user_id),
-    )
-    reja_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"reja_id": reja_id}
-
-
-@app.get("/api/oqituvchi/rejalarim")
-def rejalarim(token: str, sinf: str = None, fan: str = None):
-    """O'qituvchining O'ZI yaratgan rejalari ro'yxati — to'garak
-    yaratish ekranida shu sinf/fanga mos rejalarni tanlash uchun."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    shart = "WHERE r.yaratgan_user_id=%s"
-    params = [user_id]
-    if sinf:
-        shart += " AND r.sinf=%s"
-        params.append(sinf)
-    if fan:
-        shart += " AND UPPER(r.fan)=UPPER(%s)"
-        params.append(fan)
-    cur.execute(f"""
-        SELECT r.id, r.nomi, r.sinf, r.fan,
-               (SELECT COUNT(*) FROM topik_mavzu_reja_qatorlari q WHERE q.reja_id=r.id) AS mavzu_soni
-        FROM topik_mavzu_rejalari r
-        {shart}
-        ORDER BY r.yaratilgan_at DESC
-    """, tuple(params))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"rejalar": natija}
-
-
-@app.get("/api/oqituvchi/reja_korish")
-def reja_korish(token: str, reja_id: int):
-    """Bitta rejaning to'liq, TARTIBLI mavzular ro'yxati."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin ko'ra oladi")
-    cur.execute("SELECT id, nomi, sinf, fan FROM topik_mavzu_rejalari WHERE id=%s", (reja_id,))
-    reja = cur.fetchone()
-    if not reja:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Reja topilmadi")
-    cur.execute("""
-        SELECT q.id AS qator_id, q.topic_code, q.tartib_raqami,
-               d.mavzu_name, d.kichik_name, d.bob_name, d.bolim_name
-        FROM topik_mavzu_reja_qatorlari q
-        JOIN dts_tree d ON d.topic_code = q.topic_code
-        WHERE q.reja_id=%s
-        ORDER BY q.tartib_raqami
-    """, (reja_id,))
-    qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"reja": reja, "qatorlar": qatorlar}
-
-
-@app.get("/api/oqituvchi/reja_mavzu_qidir")
-def reja_mavzu_qidir(token: str, reja_id: int, qidiruv: str = None):
-    """Rejaga qo'shish uchun milliy bazadan mavzu qidirish — reja
-    o'zining sinf/faniga mos (yoki qidiruv matni bo'lsa, boshqa
-    sinf/fanlar ham) mavzularni topib beradi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin qidira oladi")
-    cur.execute("SELECT sinf, fan FROM topik_mavzu_rejalari WHERE id=%s", (reja_id,))
-    r = cur.fetchone()
-    if qidiruv and qidiruv.strip():
-        cur.execute("""
-            SELECT MIN(topic_code) AS topic_code, grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            FROM dts_tree WHERE is_deleted=FALSE AND
-                 (mavzu_name ILIKE %s OR bolim_name ILIKE %s OR bob_name ILIKE %s OR kichik_name ILIKE %s)
-            GROUP BY grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            ORDER BY subject_name, grade LIMIT 50
-        """, tuple([f"%{qidiruv.strip()}%"] * 4))
-    else:
-        cur.execute("""
-            SELECT MIN(topic_code) AS topic_code, grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            FROM dts_tree WHERE is_deleted=FALSE AND grade=%s AND UPPER(subject_name)=UPPER(%s)
-            GROUP BY grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            ORDER BY topic_code LIMIT 200
-        """, (r["sinf"] if r else "", r["fan"] if r else ""))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"mavzular": natija}
-
-
-@app.post("/api/oqituvchi/reja_mavzu_qosh")
-def reja_mavzu_qosh(sorov: RejaMavzuQosh):
-    """Milliy bazadagi mavjud mavzuni rejaning OXIRIGA qo'shadi."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, sorov.reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin qo'sha oladi")
-    cur.execute("SELECT COALESCE(MAX(tartib_raqami),0)+1 AS keyingi FROM topik_mavzu_reja_qatorlari WHERE reja_id=%s", (sorov.reja_id,))
-    keyingi = cur.fetchone()["keyingi"]
-    cur.execute(
-        "INSERT INTO topik_mavzu_reja_qatorlari(reja_id, topic_code, tartib_raqami) VALUES(%s,%s,%s)",
-        (sorov.reja_id, sorov.topic_code, keyingi),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi"}
-
-
-@app.post("/api/oqituvchi/reja_yangi_mavzu_yarat")
-def reja_yangi_mavzu_yarat(sorov: RejaYangiMavzuYarat):
-    """O'qituvchi FAQAT nom yozib, milliy bazada yo'q mavzuni o'zi
-    yaratadi va rejaning OXIRIGA qo'shadi — kod avtomatik generatsiya
-    qilinadi."""
-    user_id = _jwt_tekshir(sorov.token)
-    nomi = sorov.nomi.strip()
-    if not nomi:
-        raise HTTPException(status_code=400, detail="Mavzu nomini kiriting")
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, sorov.reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin qo'sha oladi")
-    cur.execute("SELECT sinf, fan FROM topik_mavzu_rejalari WHERE id=%s", (sorov.reja_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Reja topilmadi")
-    _togarak_mavzu_kontenti_jadvali(cur)
-    topic_code = _keyingi_togarak_topic_code(cur)
-    bob = (sorov.bob or "").strip()
-    cur.execute("""
-        INSERT INTO dts_tree(topic_code, grade, subject_name, quarter, bob_name, bolim_name, mavzu_name, kichik_name, is_deleted)
-        VALUES(%s,%s,%s,'1',%s,'',%s,'',FALSE)
-    """, (topic_code, r["sinf"], r["fan"], bob, nomi))
-    cur.execute("SELECT COALESCE(MAX(tartib_raqami),0)+1 AS keyingi FROM topik_mavzu_reja_qatorlari WHERE reja_id=%s", (sorov.reja_id,))
-    keyingi = cur.fetchone()["keyingi"]
-    cur.execute(
-        "INSERT INTO topik_mavzu_reja_qatorlari(reja_id, topic_code, tartib_raqami) VALUES(%s,%s,%s)",
-        (sorov.reja_id, topic_code, keyingi),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"topic_code": topic_code, "nomi": nomi}
-
-
-@app.delete("/api/oqituvchi/reja_mavzu_ochir")
-def reja_mavzu_ochir(token: str, reja_id: int, qator_id: int):
-    """Rejadan bitta mavzuni olib tashlaydi, qolganlarini
-    bo'shliqsiz qayta tartiblaydi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin o'chira oladi")
-    cur.execute("DELETE FROM topik_mavzu_reja_qatorlari WHERE id=%s AND reja_id=%s", (qator_id, reja_id))
-    cur.execute("SELECT id FROM topik_mavzu_reja_qatorlari WHERE reja_id=%s ORDER BY tartib_raqami", (reja_id,))
-    qolganlar = cur.fetchall()
-    for i, q in enumerate(qolganlar, start=1):
-        cur.execute("UPDATE topik_mavzu_reja_qatorlari SET tartib_raqami=%s WHERE id=%s", (i, q["id"]))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-@app.put("/api/oqituvchi/reja_qator_surish")
-def reja_qator_surish(sorov: RejaQatorSurish):
-    """Bir mavzuni ketma-ketlikda BIR PILLAPOYA yuqoriga/pastga
-    suradi (qo'shni bilan o'rin almashtiradi)."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, sorov.reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin tartiblay oladi")
-    cur.execute("SELECT id, tartib_raqami FROM topik_mavzu_reja_qatorlari WHERE id=%s AND reja_id=%s", (sorov.qator_id, sorov.reja_id))
-    joriy = cur.fetchone()
-    if not joriy:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Qator topilmadi")
-    yangi_tartib = joriy["tartib_raqami"] + (1 if sorov.yonalish == "pastga" else -1)
-    cur.execute("SELECT id FROM topik_mavzu_reja_qatorlari WHERE reja_id=%s AND tartib_raqami=%s", (sorov.reja_id, yangi_tartib))
-    qoshni = cur.fetchone()
-    if qoshni:
-        cur.execute("UPDATE topik_mavzu_reja_qatorlari SET tartib_raqami=%s WHERE id=%s", (joriy["tartib_raqami"], qoshni["id"]))
-        cur.execute("UPDATE topik_mavzu_reja_qatorlari SET tartib_raqami=%s WHERE id=%s", (yangi_tartib, joriy["id"]))
-        conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "surildi"}
-
-
-@app.delete("/api/oqituvchi/reja_ochir")
-def reja_ochir(token: str, reja_id: int):
-    """Butun rejani o'chiradi (undan foydalangan to'garaklarning
-    o'zidagi mavzular tegilmaydi — ular allaqachon o'z nusxasiga
-    ega, faqat KELAJAKDA shu rejadan qayta foydalanish imkoni
-    yo'qoladi)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _reja_jadvallari(cur)
-    if not _reja_ozi_mi(cur, user_id, reja_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu rejani yaratgan o'qituvchi yoki admin o'chira oladi")
-    cur.execute("DELETE FROM topik_mavzu_rejalari WHERE id=%s", (reja_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-@app.get("/api/oqituvchi/togarak_yaratish_mavzulari")
-def togarak_yaratish_mavzulari(token: str, sinf: str, fan: str, turi: str = "oddiy"):
-    """To'garak YARATISH shaklidagi mavzu tanlash ro'yxati uchun —
-    ANIQ shu sinf+fan (nomi bo'yicha, subject_code'dan MUSTAQIL —
-    /api/mavzular'dagi subject_code-asosli guruhlash ba'zan bir xil
-    fan nomi turli kod ostida bo'linib qolishiga olib kelishi mumkin,
-    bu yerda shu muammo yo'q, admin "Umumiy ko'rinish"dagi bilan
-    AYNAN bir xil hisoblash mantig'i)."""
-    _jwt_tekshir(token)
-    togarak_mi = turi == "togarak"
-    grade_shart = "d.grade !~ '^[0-9]+$'" if togarak_mi else "d.grade ~ '^[0-9]+$'"
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute(f"""
-        SELECT COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi,
-               ARRAY[MIN(d.topic_code)] AS topic_codes,
-               COUNT(gt.id) AS savol_soni
-        FROM dts_tree d
-        LEFT JOIN generated_tests gt ON gt.topic_code = d.topic_code
-        WHERE {grade_shart} AND d.grade=%s AND UPPER(d.subject_name)=UPPER(%s) AND d.is_deleted=FALSE
-        GROUP BY COALESCE(d.mavzu_name, d.bolim_name, d.bob_name)
-        ORDER BY MIN(d.topic_code)
-    """, (sinf, fan))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"mavzular": natija}
-
-
-@app.get("/api/oqituvchi/togarak_milliy_mavzular_qidir")
-def togarak_milliy_mavzular_qidir(token: str, togarak_id: int, qidiruv: str = None):
-    """O'qituvchi o'z to'garagiga qo'shimcha mavzu qidirib topishi
-    uchun — MILLIY bazadan (dts_tree). Standart holatda to'garakning
-    O'Z sinfi/faniga mos mavzularni ko'rsatadi; qidiruv matni
-    berilsa, BOSHQA sinf/fanlarni ham (nomi bo'yicha) topib beradi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin qidira oladi")
-    cur.execute("SELECT sinf, fan FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    if qidiruv and qidiruv.strip():
-        cur.execute("""
-            SELECT MIN(topic_code) AS topic_code, grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            FROM dts_tree WHERE is_deleted=FALSE AND
-                 (mavzu_name ILIKE %s OR bolim_name ILIKE %s OR bob_name ILIKE %s OR kichik_name ILIKE %s)
-            GROUP BY grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            ORDER BY subject_name, grade LIMIT 50
-        """, tuple([f"%{qidiruv.strip()}%"] * 4))
-    else:
-        cur.execute("""
-            SELECT MIN(topic_code) AS topic_code, grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            FROM dts_tree WHERE is_deleted=FALSE AND grade=%s AND UPPER(subject_name)=UPPER(%s)
-            GROUP BY grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-            ORDER BY topic_code LIMIT 200
-        """, (t["sinf"] or "", t["fan"] or "" if t else ""))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"mavzular": natija}
-
-
-class TogarakMilliyMavzuBiriktir(BaseModel):
-    token: str
-    togarak_id: int
-    topic_code: str
-
-
-@app.post("/api/oqituvchi/togarak_milliy_mavzu_biriktir")
-def togarak_milliy_mavzu_biriktir(sorov: TogarakMilliyMavzuBiriktir):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, sorov.togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin biriktira oladi")
-    cur.execute("SELECT 1 FROM dts_tree WHERE topic_code=%s AND is_deleted=FALSE", (sorov.topic_code,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Mavzu topilmadi")
-    cur.execute("""CREATE TABLE IF NOT EXISTS togarak_mavzulari(
-        togarak_id INTEGER REFERENCES togaraklar(id),
-        topic_code TEXT,
-        PRIMARY KEY (togarak_id, topic_code)
-    )""")
-    cur.execute(
-        "INSERT INTO togarak_mavzulari(togarak_id, topic_code) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-        (sorov.togarak_id, sorov.topic_code),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "biriktirildi"}
-
-
-class TogarakYangiMavzuYarat(BaseModel):
-    token: str
-    togarak_id: int
-    nomi: str
-    bob: Optional[str] = None
-
-
-@app.post("/api/oqituvchi/togarak_yangi_mavzu_yarat")
-def togarak_yangi_mavzu_yarat(sorov: TogarakYangiMavzuYarat):
-    """O'qituvchi FAQAT mavzu nomini yozib, Excel/shablon SHART bo'lmasdan,
-    to'garagiga yangi (o'zi yaratgan) mavzu qo'shadi — kod avtomatik
-    generatsiya qilinadi (milliy bazada mos mavzu topilmagan hollar
-    uchun, masalan yangi maxsus guruhlar)."""
-    user_id = _jwt_tekshir(sorov.token)
-    nomi = sorov.nomi.strip()
-    if not nomi:
-        raise HTTPException(status_code=400, detail="Mavzu nomini kiriting")
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, sorov.togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin qo'sha oladi")
-    cur.execute("SELECT sinf, fan FROM togaraklar WHERE id=%s", (sorov.togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="To'garak topilmadi")
-    _togarak_mavzu_kontenti_jadvali(cur)
-    cur.execute("""CREATE TABLE IF NOT EXISTS togarak_mavzulari(
-        togarak_id INTEGER REFERENCES togaraklar(id),
-        topic_code TEXT,
-        PRIMARY KEY (togarak_id, topic_code)
-    )""")
-    topic_code = _keyingi_togarak_topic_code(cur)
-    bob = (sorov.bob or "").strip()
-    cur.execute("""
-        INSERT INTO dts_tree(topic_code, grade, subject_name, quarter, bob_name, bolim_name, mavzu_name, kichik_name, is_deleted)
-        VALUES(%s,%s,%s,'1',%s,'',%s,'',FALSE)
-    """, (topic_code, t["sinf"] or "", t["fan"] or "", bob, nomi))
-    cur.execute("INSERT INTO togarak_mavzu_kontenti(topic_code, togarak_id) VALUES(%s,%s)", (topic_code, sorov.togarak_id))
-    cur.execute(
-        "INSERT INTO togarak_mavzulari(togarak_id, topic_code) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-        (sorov.togarak_id, topic_code),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"topic_code": topic_code, "nomi": nomi}
-
-
-@app.get("/api/oqituvchi/togarak_barcha_mavzular")
-def togarak_barcha_mavzular(token: str, togarak_id: int):
-    """To'garakka biriktirilgan BARCHA mavzular (milliy + o'zi
-    yaratgan) — har biriga nechta kontent (matn/rasm/video...)
-    biriktirilganini ham qo'shib."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    _togarak_biriktirma_jadvali(cur)
-    _reja_jadvallari(cur)
-    cur.execute("""
-        WITH mk AS (
-            SELECT tm.topic_code, d.grade, d.subject_name, d.bob_name, d.bolim_name, d.mavzu_name, d.kichik_name,
-                   (SELECT COUNT(*) FROM togarak_mavzu_biriktirma b WHERE b.togarak_id=tm.togarak_id AND b.topic_code=d.topic_code) AS kontent_soni,
-                   q.tartib_raqami
-            FROM togarak_mavzulari tm
-            JOIN dts_tree d ON d.topic_code = tm.topic_code
-            LEFT JOIN topik_mavzu_reja_qatorlari q
-                   ON q.topic_code = tm.topic_code
-                  AND q.reja_id = (SELECT reja_id FROM togaraklar WHERE id=%s)
-            WHERE tm.togarak_id=%s AND d.is_deleted=FALSE
-        )
-        SELECT MIN(topic_code) AS topic_code, grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name,
-               SUM(kontent_soni) AS kontent_soni, MIN(tartib_raqami) AS tartib_raqami
-        FROM mk
-        GROUP BY grade, subject_name, bob_name, bolim_name, mavzu_name, kichik_name
-        ORDER BY (tartib_raqami IS NULL), tartib_raqami, bob_name, mavzu_name
-    """, (togarak_id, togarak_id))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"mavzular": natija}
-
-
-@app.delete("/api/oqituvchi/togarak_mavzu_biriktirmasini_ochir")
-def togarak_mavzu_biriktirmasini_ochir(token: str, togarak_id: int, topic_code: str):
-    """Mavzuni to'garak ta'lim yo'lidan chiqarib tashlaydi (milliy
-    mavzuning o'zi o'chmaydi, faqat BOG'LANISH va shu yerdagi
-    kontentlar o'chadi)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin o'chira oladi")
-    _togarak_biriktirma_jadvali(cur)
-    cur.execute("DELETE FROM togarak_mavzu_biriktirma WHERE togarak_id=%s AND topic_code=%s", (togarak_id, topic_code))
-    cur.execute("DELETE FROM togarak_mavzulari WHERE togarak_id=%s AND topic_code=%s", (togarak_id, topic_code))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-class TogarakMatnKontentQosh(BaseModel):
-    token: str
-    togarak_id: int
-    topic_code: str
-    kontent_turi: str  # 'matn' | 'latex' | 'video'
-    sarlavha: Optional[str] = None
-    matn: Optional[str] = None
-    video_havola: Optional[str] = None
-
-
-@app.post("/api/oqituvchi/togarak_matn_kontent_qosh")
-def togarak_matn_kontent_qosh(sorov: TogarakMatnKontentQosh):
-    """Matn, LaTeX formula, yoki video-havola qo'shadi (fayl EMAS)."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, sorov.togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin qo'sha oladi")
-    if sorov.kontent_turi not in ("matn", "latex", "video"):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Noto'g'ri kontent turi")
-    if sorov.kontent_turi == "video" and not (sorov.video_havola or "").strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Video havolasini kiriting")
-    if sorov.kontent_turi != "video" and not (sorov.matn or "").strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Matnni kiriting")
-    _togarak_biriktirma_jadvali(cur)
-    cur.execute("""
-        INSERT INTO togarak_mavzu_biriktirma(togarak_id, topic_code, kontent_turi, sarlavha, matn, video_havola, yuklagan_user_id)
-        VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (sorov.togarak_id, sorov.topic_code, sorov.kontent_turi, sorov.sarlavha,
-          sorov.matn.strip() if sorov.matn else None, sorov.video_havola.strip() if sorov.video_havola else None, user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "id": yangi_id}
-
-
-@app.post("/api/oqituvchi/togarak_fayl_kontent_qosh")
-async def togarak_fayl_kontent_qosh(token: str, togarak_id: int, topic_code: str, sarlavha: str = None, fayl: UploadFile = File(...)):
-    """Rasm, PDF, yoki Word (.docx) fayl yuklaydi. Word bo'lsa —
-    matni serverda AJRATIB olinadi (python-docx bilan), shu matn
-    keyin frontendda ovozli o'qish uchun ishlatiladi. Rasm/PDF uchun
-    matn ajratilmaydi (talabga ko'ra — faqat ko'rsatiladi, o'qilmaydi)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin yuklay oladi")
-
-    content = await fayl.read()
-    if len(content) > 10 * 1024 * 1024:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Fayl 10MB dan katta bo'lmasin")
-
-    nomi_lower = (fayl.filename or "").lower()
-    if nomi_lower.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
-        kontent_turi = "rasm"
-        ajratilgan_matn = None
-    elif nomi_lower.endswith(".pdf"):
-        kontent_turi = "pdf"
-        ajratilgan_matn = None
-    elif nomi_lower.endswith(".docx"):
-        kontent_turi = "word"
-        try:
-            import docx
-            import io as _io
-            hujjat = docx.Document(_io.BytesIO(content))
-            ajratilgan_matn = "\n".join(p.text for p in hujjat.paragraphs if p.text.strip())
-        except Exception:
-            ajratilgan_matn = None
-    else:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Faqat rasm, PDF yoki .docx (Word) fayl qabul qilinadi")
-
-    _togarak_biriktirma_jadvali(cur)
-    cur.execute("""
-        INSERT INTO togarak_mavzu_biriktirma(togarak_id, topic_code, kontent_turi, sarlavha, matn, fayl_malumot, fayl_nomi, fayl_turi, yuklagan_user_id)
-        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (togarak_id, topic_code, kontent_turi, sarlavha, ajratilgan_matn,
-          psycopg2.Binary(content), fayl.filename, fayl.content_type, user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "id": yangi_id, "kontent_turi": kontent_turi}
-
-
-def _togarak_kontent_royxati_uchun(cur, togarak_id, topic_code):
-    cur.execute("""
-        SELECT id, kontent_turi, sarlavha, matn, fayl_nomi, fayl_turi, video_havola, korilish_soni, yaratilgan_at
-        FROM togarak_mavzu_biriktirma WHERE togarak_id=%s AND topic_code=%s ORDER BY yaratilgan_at
-    """, (togarak_id, topic_code))
-    return cur.fetchall()
-
-
-@app.get("/api/oqituvchi/togarak_mavzu_kontentlari")
-def togarak_mavzu_kontentlari(token: str, togarak_id: int, topic_code: str):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_ozi_mi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin ko'ra oladi")
-    _togarak_biriktirma_jadvali(cur)
-    natija = _togarak_kontent_royxati_uchun(cur, togarak_id, topic_code)
-    cur.close()
-    conn.close()
-    return {"kontentlar": natija}
-
-
-@app.delete("/api/oqituvchi/togarak_kontent_ochir")
-def togarak_kontent_ochir(token: str, biriktirma_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_biriktirma_jadvali(cur)
-    cur.execute("SELECT togarak_id FROM togarak_mavzu_biriktirma WHERE id=%s", (biriktirma_id,))
-    b = cur.fetchone()
-    if not b:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Kontent topilmadi")
-    if not _togarak_ozi_mi(cur, user_id, b["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu to'garak o'qituvchisi, markaz rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM togarak_mavzu_biriktirma WHERE id=%s", (biriktirma_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-def _togarak_kontent_ruxsat_bormi(cur, user_id, togarak_id):
-    """O'qituvchi/rahbariyat, YOKI shu to'garakning TASDIQLANGAN
-    a'zosi (o'quvchi) bo'lsa — True."""
-    if _togarak_ozi_mi(cur, user_id, togarak_id):
-        return True
-    cur.execute("SELECT 1 FROM togarak_azolar WHERE togarak_id=%s AND user_id=%s AND aktiv=TRUE", (togarak_id, user_id))
-    return cur.fetchone() is not None
-
-
-@app.get("/api/oqituvchi/togarak_kontent_fayl")
-def togarak_kontent_fayl(token: str, biriktirma_id: int):
-    """Fayl (rasm/PDF/Word)ni striming qilib beradi — o'qituvchi VA
-    to'garak a'zosi (o'quvchi) ham ko'ra oladi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_biriktirma_jadvali(cur)
-    cur.execute("SELECT togarak_id, fayl_malumot, fayl_nomi, fayl_turi FROM togarak_mavzu_biriktirma WHERE id=%s", (biriktirma_id,))
-    b = cur.fetchone()
-    if not b or not b["fayl_malumot"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Fayl topilmadi")
-    if not _togarak_kontent_ruxsat_bormi(cur, user_id, b["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
-    from fastapi.responses import StreamingResponse
-    import io as _io
-    fayl_bytes = bytes(b["fayl_malumot"])
-    cur.close()
-    conn.close()
-    return StreamingResponse(
-        _io.BytesIO(fayl_bytes), media_type=b["fayl_turi"] or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{b["fayl_nomi"] or "fayl"}"'},
-    )
-
-
-@app.get("/api/togarak_azo/mavzularim")
-def togarak_azo_mavzularim(token: str, togarak_id: int):
-    """O'QUVCHI (to'garak a'zosi) uchun — shu to'garakka biriktirilgan
-    mavzular ro'yxati, kontent soni bilan."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_kontent_ruxsat_bormi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Siz bu to'garak a'zosi emassiz")
-    _togarak_biriktirma_jadvali(cur)
-    _reja_jadvallari(cur)
-    cur.execute("""
-        WITH mk AS (
-            SELECT tm.topic_code, d.bob_name, d.mavzu_name,
-                   (SELECT COUNT(*) FROM togarak_mavzu_biriktirma b WHERE b.togarak_id=tm.togarak_id AND b.topic_code=d.topic_code) AS kontent_soni,
-                   q.tartib_raqami
-            FROM togarak_mavzulari tm
-            JOIN dts_tree d ON d.topic_code = tm.topic_code
-            LEFT JOIN topik_mavzu_reja_qatorlari q
-                   ON q.topic_code = tm.topic_code
-                  AND q.reja_id = (SELECT reja_id FROM togaraklar WHERE id=%s)
-            WHERE tm.togarak_id=%s AND d.is_deleted=FALSE
-        )
-        SELECT MIN(topic_code) AS topic_code, bob_name, mavzu_name AS nomi, SUM(kontent_soni) AS kontent_soni,
-               MIN(tartib_raqami) AS tartib_raqami
-        FROM mk
-        GROUP BY bob_name, mavzu_name
-        ORDER BY (MIN(tartib_raqami) IS NULL), tartib_raqami, bob_name, mavzu_name
-    """, (togarak_id, togarak_id))
-    natija = [r for r in cur.fetchall() if r["kontent_soni"] > 0]
-    cur.close()
-    conn.close()
-    return {"mavzular": natija}
-
-
-@app.get("/api/togarak_azo/mavzu_kontentlari")
-def togarak_azo_mavzu_kontentlari(token: str, togarak_id: int, topic_code: str):
-    """O'QUVCHI uchun — bitta mavzuning kontentlari. Video ko'rilsa,
-    ko'rilish soni +1 qo'shiladi (frontend ekranga chiqarganda
-    chaqiradi — takroriy chaqirmasin)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _togarak_kontent_ruxsat_bormi(cur, user_id, togarak_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Siz bu to'garak a'zosi emassiz")
-    _togarak_biriktirma_jadvali(cur)
-    natija = _togarak_kontent_royxati_uchun(cur, togarak_id, topic_code)
-    cur.close()
-    conn.close()
-    return {"kontentlar": natija}
-
-
-@app.post("/api/togarak_azo/video_korildi")
-def togarak_azo_video_korildi(token: str, biriktirma_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _togarak_biriktirma_jadvali(cur)
-    cur.execute("SELECT togarak_id FROM togarak_mavzu_biriktirma WHERE id=%s", (biriktirma_id,))
-    b = cur.fetchone()
-    if not b or not _togarak_kontent_ruxsat_bormi(cur, user_id, b["togarak_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
-    cur.execute("UPDATE togarak_mavzu_biriktirma SET korilish_soni = korilish_soni + 1 WHERE id=%s", (biriktirma_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "hisoblandi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# TA'LIM YO'LI — o'quvchining fan bo'yicha ketma-ket mavzular ustidan
-# qanday bosib o'tayotgani (ota-ona/o'quvchi/o'qituvchi ko'radi)
-# ═══════════════════════════════════════════════════════════
-
-def _chorak_taqsimoti(mavzular: list) -> list:
-    """Mavzular ro'yxatini (har birida "chorak" maydoni bor) 1/2/3/4-chorak
-    bo'yicha guruhlab, har chorakning necha foizi bosib o'tilganini
-    hisoblaydi — chorak ma'lumoti yo'q mavzular hisobga olinmaydi."""
-    guruhlar = {}
-    for m in mavzular:
-        ch = (m.get("chorak") or "").strip()
-        if not ch:
-            continue
-        guruhlar.setdefault(ch, {"jami": 0, "otilgan": 0})
-        guruhlar[ch]["jami"] += 1
-        if m["score"] is not None:
-            guruhlar[ch]["otilgan"] += 1
-    natija = []
-    for ch in sorted(guruhlar.keys(), key=lambda x: (len(x), x)):
-        g = guruhlar[ch]
-        natija.append({
-            "chorak": ch, "jami_mavzu": g["jami"], "otilgan_mavzu": g["otilgan"],
-            "foiz": round((g["otilgan"] / g["jami"]) * 100) if g["jami"] else 0,
-        })
-    return natija
-
-
-# ═══════════════════════════════════════════════════════════
-# ESDAN CHIQISH XAVFI + BUGUNGI TAVSIYA — sof matematik formula,
-# HECH QANDAY AI ishlatilmaydi. Faqat mavjud learned_topics
-# ma'lumotidan (ball, oxirgi o'rganilgan sana, necha marta
-# takrorlangan) hisoblanadi — shu sabab BEPUL va har doim ANIQ
-# (bir xil kirish — doim bir xil natija).
-#
-# Mantiq: xotira "barqarorligi" har muvaffaqiyatli takrorda oshadi
-# (spaced-repetition tamoyili), past ball bilan o'rganilgan mavzu esa
-# tezroq "unutiladi" deb hisoblanadi.
-# ═══════════════════════════════════════════════════════════
-
-_ESDAN_CHIQISH_ASOSIY_INTERVAL = 10   # kun — birinchi marta o'rgangandan keyin "e'tibor zonasi"
-_ESDAN_CHIQISH_OSISH_KOEF = 2.3       # har takrorda xotira necha barobar "mustahkamlanadi"
-
-
-def _esdan_chiqish_foizi(ortacha_ball: float, kunlar_otgan: int, takror_soni: float) -> int:
-    """0-100 oralig'ida "unutish ehtimoli" — AI emas, sof formula."""
-    if kunlar_otgan <= 0:
-        return 0
-    barqarorlik = (
-        _ESDAN_CHIQISH_ASOSIY_INTERVAL
-        * (_ESDAN_CHIQISH_OSISH_KOEF ** max(0, (takror_soni or 1) - 1))
-        * max(0.5, (ortacha_ball or 0) / 100)
-    )
-    foiz = 100 * (1 - math.exp(-kunlar_otgan / barqarorlik))
-    return round(foiz)
-
-
-def _xavf_darajasi(foiz: int) -> str:
-    if foiz >= 60:
-        return "yuqori"
-    if foiz >= 30:
-        return "orta"
-    return "past"
-
-
-@app.get("/api/bola/{bola_id}/bugungi_tavsiya")
-def bugungi_tavsiya(bola_id: int, limit: int = 8):
-    """O'quvchining O'Z SINFI bo'yicha, avval o'rgangan mavzularini
-    "unutish xavfi"ga qarab SARALAB, bugun eng birinchi takrorlash
-    kerak bo'lganlarini qaytaradi. To'liq AI'siz, sof hisob-kitob."""
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT class FROM users WHERE user_id=%s", (bola_id,))
-    u = cur.fetchone()
-    if not u or not u["class"]:
-        cur.close(); conn.close()
-        return {"tavsiyalar": [], "sinf_sozlanmagan": True}
-    sinf = str(u["class"]).replace("-sinf", "").strip()
-
-    cur.execute("""
-        SELECT COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi, d.subject_name AS fan,
-               MAX(lt.learned_at) AS oxirgi_sana,
-               AVG(lt.score) AS ortacha_ball,
-               AVG(lt.repeat_count) AS ortacha_takror
-        FROM dts_tree d
-        JOIN learned_topics lt ON lt.topic_code = d.topic_code AND lt.user_id = %s
-        WHERE d.grade = %s AND d.is_deleted = FALSE
-        GROUP BY COALESCE(d.mavzu_name, d.bolim_name, d.bob_name), d.subject_name
-    """, (bola_id, sinf))
-    qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    bugun = datetime.now()
-    tavsiyalar = []
-    for r in qatorlar:
-        kunlar_otgan = (bugun - r["oxirgi_sana"]).days if r["oxirgi_sana"] else 0
-        foiz = _esdan_chiqish_foizi(r["ortacha_ball"], kunlar_otgan, r["ortacha_takror"])
-        tavsiyalar.append({
-            "nomi": r["nomi"], "fan": r["fan"], "kunlar_otgan": kunlar_otgan,
-            "oxirgi_ball": round(r["ortacha_ball"]) if r["ortacha_ball"] is not None else None,
-            "esdan_chiqish_foizi": foiz, "daraja": _xavf_darajasi(foiz),
-        })
-
-    tavsiyalar.sort(key=lambda t: t["esdan_chiqish_foizi"], reverse=True)
-    # Faqat haqiqatan e'tiborga loyiq (past emas) darajadagilarni ko'rsatamiz —
-    # "past" xavfli mavzularni bugun takrorlashga majburlash shart emas.
-    ehtiyoj_borlari = [t for t in tavsiyalar if t["daraja"] != "past"]
-    return {"tavsiyalar": ehtiyoj_borlari[:limit], "sinf_sozlanmagan": False}
-
-
-@app.get("/api/bola/{bola_id}/haftalik_xulosa")
-def haftalik_xulosa(bola_id: int):
-    """O'quvchi uchun oxirgi 7 kunlik xulosa — QAYSI mavzular ishlangan,
-    o'rtacha ball, nechta YANGI mavzu o'rgangan, qaysilari qiyinlik
-    qilgan, va nechta kun KETMA-KET mashq qilingan (streak). To'liq
-    mavjud learned_topics ma'lumotidan hisoblanadi — AI shart emas."""
-    conn = _db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi, d.subject_name AS fan,
-               MAX(lt.score) AS ball, MAX(lt.repeat_count) AS takror_soni
-        FROM learned_topics lt
-        JOIN dts_tree d ON d.topic_code = lt.topic_code
-        WHERE lt.user_id = %s AND lt.learned_at >= NOW() - INTERVAL '7 days'
-        GROUP BY COALESCE(d.mavzu_name, d.bolim_name, d.bob_name), d.subject_name
-    """, (bola_id,))
-    hafta_qatorlari = cur.fetchall()
-
-    # Streak (ketma-ket kunlar) — BUTUN tarixdan, faqat shu haftadan emas,
-    # chunki "necha kundan beri uzluksiz mashq qilyapsiz" savoli haftadan
-    # oshib ketishi mumkin.
-    cur.execute("""
-        SELECT DISTINCT learned_at::date AS kun FROM learned_topics
-        WHERE user_id=%s ORDER BY kun DESC
-    """, (bola_id,))
-    kunlar = [r["kun"] for r in cur.fetchall()]
-    cur.close()
-    conn.close()
-
-    ketma_ket = 0
-    if kunlar:
-        bugun = datetime.now().date()
-        # Bugun hali mashq qilinmagan bo'lsa ham, kechadan boshlab hisoblaymiz —
-        # aks holda kun tugamasdan streak "0" ko'rinib, foydalanuvchini
-        # asossiz xafa qilmasin.
-        joriy_kun = bugun if bugun in kunlar else bugun - timedelta(days=1)
-        while joriy_kun in kunlar:
-            ketma_ket += 1
-            joriy_kun -= timedelta(days=1)
-
-    jami_mavzu = len(hafta_qatorlari)
-    ortacha_ball = round(sum(r["ball"] for r in hafta_qatorlari) / jami_mavzu) if jami_mavzu else 0
-    yangi_mavzular = [r["nomi"] for r in hafta_qatorlari if (r["takror_soni"] or 1) == 1]
-    zaif_mavzular = sorted(
-        [{"nomi": r["nomi"], "ball": r["ball"]} for r in hafta_qatorlari if r["ball"] is not None and r["ball"] < 60],
-        key=lambda x: x["ball"],
-    )[:5]
-
-    # Fanlar bo'yicha o'rtacha — eng yaxshi natijali fanni topish uchun
-    fanlar_hisobi = {}
-    for r in hafta_qatorlari:
-        fanlar_hisobi.setdefault(r["fan"], []).append(r["ball"] or 0)
-    eng_yaxshi_fan = None
-    if fanlar_hisobi:
-        eng_yaxshi_fan = max(fanlar_hisobi, key=lambda f: sum(fanlar_hisobi[f]) / len(fanlar_hisobi[f]))
-
-    return {
-        "jami_mavzu": jami_mavzu, "ortacha_ball": ortacha_ball,
-        "yangi_mavzular_soni": len(yangi_mavzular), "yangi_mavzular": yangi_mavzular[:5],
-        "zaif_mavzular": zaif_mavzular, "eng_yaxshi_fan": eng_yaxshi_fan,
-        "ketma_ket_kun": ketma_ket,
+  };
+
+  // "hammasi" (yangi, imtihon) rejimi uchun — javobni FAQAT yozib qo'yadi,
+  // TEKSHIRMAYDI — to'g'ri/noto'g'ri faqat "Yakunlash"dan keyin, natija
+  // ekranida ma'lum bo'ladi (haqiqiy imtihon uslubi).
+  const javobYoz = (savolId, harf) => {
+    setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
+  };
+
+  const keyingiSavolga = () => {
+    if (avtoRef.current) clearInterval(avtoRef.current);
+    setJoriyNatija(null);
+    setYozibJavob({});
+    if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
+    else yakunla();
+  };
+
+  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 4 soniyadan keyin
+  // AVTOMATIK keyingi savolga o'tadi — foydalanuvchi tugma bosishi shart emas
+  // (faqat "bir_bir" rejimida ishlaydi).
+  useEffect(() => {
+    if (!joriyNatija) { setAvtoQoldi(null); return; }
+    setAvtoQoldi(4);
+    avtoRef.current = setInterval(() => {
+      setAvtoQoldi((v) => {
+        if (v <= 1) {
+          clearInterval(avtoRef.current);
+          keyingiSavolga();
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+    return () => clearInterval(avtoRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joriyNatija]);
+
+  // "O'tkazish" — javob berilmagan KEYINGI savolga sirg'alib o'tadi
+  // (savol o'tkazib yuborilgani hisoblanadi, javobsiz qoladi).
+  const savolniOtkazib = (joriyIndex) => {
+    const keyingiIndex = savollar.findIndex((s, i) => i > joriyIndex && javoblar[s.id] === undefined);
+    const nishon = keyingiIndex !== -1 ? keyingiIndex : savollar.findIndex((s) => javoblar[s.id] === undefined);
+    if (nishon !== -1 && savolReflari.current[nishon]) {
+      savolReflari.current[nishon].scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  };
 
-
-@app.get("/api/bola/{bola_id}/yol")
-def talim_yoli_oddiy(bola_id: int, fan: str):
-    """Oddiy (majburiy) o'quv dasturi bo'yicha — o'quvchining O'Z SINFI
-    (avtomatik aniqlanadi) va berilgan fan uchun BARCHA mavzularni
-    ketma-ket, har biriga o'quvchining natijasi (score, agar hali
-    yechmagan bo'lsa — yo'q) bilan qaytaradi."""
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT class FROM users WHERE user_id=%s", (bola_id,))
-    u = cur.fetchone()
-    if not u or not u["class"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="O'quvchining sinfi aniqlanmagan")
-    sinf = str(u["class"]).replace("-sinf", "").strip()
-
-    # MUHIM: bitta "mavzu" ostida bir nechta "kichik mavzu" bo'lishi mumkin
-    # (har biri o'z topic_code'iga ega) — lekin o'quvchiga YO'L sifatida
-    # kichik mavzular emas, faqat MAVZU darajasi ko'rsatilishi kerak.
-    # Shu sabab MAVZU nomi bo'yicha guruhlaymiz: bir nechta kichik mavzu —
-    # bitta yo'l bandi, ballari o'rtacha olinadi. Chorak (quarter) ham shu
-    # yerda olinadi — pastda chorak bo'yicha taqsimot hisoblanadi.
-    cur.execute("""
-        SELECT COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi,
-               MIN(d.topic_code) AS topic_code,
-               MIN(d.quarter) AS chorak,
-               COUNT(*) AS jami_kichik,
-               COUNT(lt.score) AS otilgan_kichik,
-               AVG(lt.score) AS ortacha_ball
-        FROM dts_tree d
-        LEFT JOIN learned_topics lt ON lt.topic_code = d.topic_code AND lt.user_id = %s
-        WHERE d.grade = %s AND UPPER(d.subject_name) = UPPER(%s) AND d.is_deleted = FALSE
-          AND d.topic_code IN (SELECT DISTINCT topic_code FROM generated_tests)
-        GROUP BY COALESCE(d.mavzu_name, d.bolim_name, d.bob_name)
-        ORDER BY MIN(d.topic_code)
-    """, (bola_id, sinf, fan))
-    xom_qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    mavzular = [{
-        "topic_code": r["topic_code"], "nomi": r["nomi"], "chorak": r["chorak"],
-        "score": round(r["ortacha_ball"]) if r["otilgan_kichik"] > 0 else None,
-        "otilgan_kichik": r["otilgan_kichik"], "jami_kichik": r["jami_kichik"],
-    } for r in xom_qatorlar]
-    choraklar = _chorak_taqsimoti(mavzular)
-
-    otilgan = sum(1 for m in mavzular if m["score"] is not None)
-    jami = len(mavzular)
-    ortacha = round(sum(m["score"] for m in mavzular if m["score"] is not None) / otilgan) if otilgan else 0
-    return {
-        "sinf": sinf, "jami_mavzu": jami, "otilgan_mavzu": otilgan,
-        "yol_foizi": round((otilgan / jami) * 100) if jami else 0,
-        "samaradorlik_foizi": ortacha,
-        "mavzular": mavzular, "choraklar": choraklar,
+  const raqamgaOt = (index) => {
+    if (savolReflari.current[index]) {
+      savolReflari.current[index].scrollIntoView({ behavior: "smooth", block: "center" });
     }
-
-
-@app.get("/api/bola/{bola_id}/togarak_yoli/{togarak_id}")
-def talim_yoli_togarak(bola_id: int, togarak_id: int):
-    """To'garakning O'ZIGA XOS ta'lim yo'li — faqat shu to'garakka
-    biriktirilgan mavzular (togarak_mavzulari) bo'yicha. Bu — o'quvchi
-    to'garakka QO'SHILGANDAGINA ko'rinadigan qo'shimcha statistika,
-    oddiy sinf statistikasiga ARALASHMAYDI."""
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT nomi, fan, sinf FROM togaraklar WHERE id=%s", (togarak_id,))
-    tg = cur.fetchone()
-    if not tg:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="To'garak topilmadi")
-
-    cur.execute("""
-        SELECT COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi,
-               MIN(d.topic_code) AS topic_code,
-               MIN(d.quarter) AS chorak,
-               COUNT(*) AS jami_kichik,
-               COUNT(lt.score) AS otilgan_kichik,
-               AVG(lt.score) AS ortacha_ball
-        FROM togarak_mavzulari tm
-        JOIN dts_tree d ON d.topic_code = tm.topic_code
-        LEFT JOIN learned_topics lt ON lt.topic_code = d.topic_code AND lt.user_id = %s
-        WHERE tm.togarak_id = %s
-        GROUP BY COALESCE(d.mavzu_name, d.bolim_name, d.bob_name)
-        ORDER BY MIN(d.topic_code)
-    """, (bola_id, togarak_id))
-    xom_qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    mavzular = [{
-        "topic_code": r["topic_code"], "nomi": r["nomi"], "chorak": r["chorak"],
-        "score": round(r["ortacha_ball"]) if r["otilgan_kichik"] > 0 else None,
-        "otilgan_kichik": r["otilgan_kichik"], "jami_kichik": r["jami_kichik"],
-    } for r in xom_qatorlar]
-    choraklar = _chorak_taqsimoti(mavzular)
-
-    otilgan = sum(1 for m in mavzular if m["score"] is not None)
-    jami = len(mavzular)
-    ortacha = round(sum(m["score"] for m in mavzular if m["score"] is not None) / otilgan) if otilgan else 0
-    return {
-        "togarak_nomi": tg["nomi"], "fan": tg["fan"], "sinf": tg["sinf"],
-        "jami_mavzu": jami, "otilgan_mavzu": otilgan,
-        "yol_foizi": round((otilgan / jami) * 100) if jami else 0,
-        "samaradorlik_foizi": ortacha,
-        "mavzular": mavzular, "choraklar": choraklar,
-    }
-
-
-@app.get("/api/bola/{bola_id}/togaraklarim")
-def bolaning_togaraklari(bola_id: int):
-    """O'quvchi a'zo bo'lgan barcha faol to'garaklar ro'yxati — 'ta'lim
-    yo'li' ekranida to'garak yo'lini alohida ko'rsatish uchun."""
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT t.id, t.nomi, t.fan, t.sinf
-        FROM togarak_azolar ta
-        JOIN togaraklar t ON t.id = ta.togarak_id
-        WHERE ta.user_id = %s AND ta.aktiv = TRUE AND t.aktiv = TRUE
-        ORDER BY t.nomi
-    """, (bola_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"togaraklar": natija}
-
-
-# ═══════════════════════════════════════════════════════════
-# TO'GARAKKA QO'SHILISH (parol orqali — barcha rollar uchun)
-# ═══════════════════════════════════════════════════════════
-
-class TogarakqaQoshilish(BaseModel):
-    token: str
-    parol: str
-
-
-@app.post("/api/togarakka_qoshil")
-def togarakka_qoshil(sorov: TogarakqaQoshilish):
-    """Foydalanuvchi (o'quvchi, ota-ona va h.k.) parol orqali to'garakka
-    qo'shiladi — bot orqali qo'shilgan bilan BIR XIL jadvalga yoziladi."""
-    user_id = _jwt_tekshir(sorov.token)
-    if not sorov.parol.strip():
-        raise HTTPException(status_code=400, detail="Parol kiritilmagan")
-
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, nomi, max_talaba FROM togaraklar WHERE parol=%s AND aktiv=TRUE", (sorov.parol.strip(),))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Bunday parolli to'garak topilmadi")
-
-    cur.execute(
-        "SELECT 1 FROM togarak_azolar WHERE togarak_id=%s AND user_id=%s AND aktiv=TRUE",
-        (t["id"], user_id),
-    )
-    if cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Siz allaqachon shu to'garak a'zosisiz")
-
-    if t["max_talaba"]:
-        cur.execute("SELECT COUNT(*) AS soni FROM togarak_azolar WHERE togarak_id=%s AND aktiv=TRUE", (t["id"],))
-        joriy = cur.fetchone()["soni"]
-        if joriy >= t["max_talaba"]:
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail="To'garak to'lgan")
-
-    cur.execute("INSERT INTO togarak_azolar(togarak_id, user_id, aktiv) VALUES(%s,%s,TRUE)", (t["id"], user_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "togarak_nomi": t["nomi"]}
-
-
-@app.get("/api/mening_togaraklarim")
-def mening_togaraklarim(token: str):
-    """Foydalanuvchi a'zo bo'lgan barcha to'garaklarni qaytaradi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT tg.id, tg.nomi, tg.fan
-        FROM togarak_azolar ta
-        JOIN togaraklar tg ON tg.id = ta.togarak_id
-        WHERE ta.user_id=%s AND ta.aktiv=TRUE
-    """, (user_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"togaraklar": natija}
-
-
-# ═══════════════════════════════════════════════════════════
-# ADMIN — Test shablon (Excel) yuklab olish va import qilish
-# Botdagi _generate_template / import_tests_excel mantig'iga mos
-# ═══════════════════════════════════════════════════════════
-
-def _admin_tekshir(token: str):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    natija = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not natija:
-        raise HTTPException(status_code=403, detail="Faqat admin uchun")
-    return user_id
-
-
-# ═══════════════════════════════════════════════════════════
-# MAKTAB TIZIMI — 1-BOSQICH: maktab yaratish
-# (2-bosqich: xodimlarni Excel orqali kiritish, 3-bosqich: sinflar,
-#  4-bosqich: o'quvchi qo'shilishi, 5-bosqich: sinf tahlili — keyinroq)
-# ═══════════════════════════════════════════════════════════
-
-def _maktab_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS maktablar(
-        id SERIAL PRIMARY KEY,
-        nomi TEXT NOT NULL,
-        viloyat TEXT, tuman TEXT,
-        smena_soni INTEGER NOT NULL DEFAULT 1,
-        direktor_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-class MaktabYaratish(BaseModel):
-    token: str
-    nomi: str
-    viloyat: Optional[str] = None
-    tuman: Optional[str] = None
-    smena_soni: int = 1
-    direktor_user_id: Optional[int] = None
-    pulli: bool = False
-    oylik_tolov: Optional[int] = None
-
-
-@app.post("/api/admin/maktab_yarat")
-def maktab_yarat(sorov: MaktabYaratish):
-    """1-bosqich: yangi maktabni tizimga qo'shadi. Direktor keyinroq ham
-    (xodimlar Excel orqali import qilinganda) belgilanishi mumkin —
-    shu sabab bu yerda ixtiyoriy. To'lov sozlamasi ham shu yerda
-    darhol belgilanadi (keyinroq "To'lov sozlamalari"dan o'zgartirsa
-    ham bo'ladi)."""
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Maktab nomi kiritilmagan")
-    if sorov.smena_soni not in (1, 2):
-        raise HTTPException(status_code=400, detail="Smena soni 1 yoki 2 bo'lishi kerak")
-
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_jadvali(cur)
-    if sorov.direktor_user_id is not None:
-        cur.execute("SELECT 1 FROM users WHERE user_id=%s", (sorov.direktor_user_id,))
-        if not cur.fetchone():
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail="Ko'rsatilgan direktor foydalanuvchisi topilmadi")
-    cur.execute("""
-        INSERT INTO maktablar(nomi, viloyat, tuman, smena_soni, direktor_user_id, pulli, oylik_tolov)
-        VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (sorov.nomi.strip(), sorov.viloyat, sorov.tuman, sorov.smena_soni, sorov.direktor_user_id,
-          sorov.pulli, sorov.oylik_tolov if sorov.pulli else None))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "maktab_id": yangi_id}
-
-
-@app.get("/api/admin/maktablar")
-def maktablar_royxati(token: str):
-    """Barcha maktablar ro'yxati — direktor ismi bilan birga."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_jadvali(cur)
-    cur.execute("""
-        SELECT m.id, m.nomi, m.viloyat, m.tuman, m.smena_soni, m.direktor_user_id,
-               u.full_name AS direktor_ismi
-        FROM maktablar m
-        LEFT JOIN users u ON u.user_id = m.direktor_user_id
-        ORDER BY m.nomi
-    """)
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"maktablar": natija}
-
-
-@app.put("/api/admin/maktab_direktor")
-def maktab_direktor_belgila(token: str, maktab_id: int, direktor_user_id: int):
-    """Mavjud maktabga direktorni keyinroq belgilash/almashtirish uchun."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_jadvali(cur)
-    cur.execute("SELECT 1 FROM users WHERE user_id=%s", (direktor_user_id,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Foydalanuvchi topilmadi")
-    cur.execute("UPDATE maktablar SET direktor_user_id=%s WHERE id=%s", (direktor_user_id, maktab_id))
-    ozgardi = cur.rowcount > 0
-    conn.commit()
-    cur.close()
-    conn.close()
-    if not ozgardi:
-        raise HTTPException(status_code=404, detail="Maktab topilmadi")
-    return {"holat": "saqlandi"}
-
-
-@app.get("/api/admin/foydalanuvchi_qidir")
-def admin_foydalanuvchi_qidir(token: str, ism: str):
-    """Admin uchun — ism bo'yicha foydalanuvchi qidiradi (masalan
-    direktor sifatida tayinlash uchun kerakli odamni topish)."""
-    _admin_tekshir(token)
-    if len(ism.strip()) < 2:
-        return {"natijalar": []}
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT user_id, full_name, role FROM users
-        WHERE full_name ILIKE %s
-        ORDER BY full_name LIMIT 10
-    """, (f"%{ism.strip()}%",))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"natijalar": natija}
-
-
-# ═══════════════════════════════════════════════════════════
-# MAKTAB TIZIMI — 2-BOSQICH: xodimlarni Excel orqali kiritish
-# Har bir xodim uchun avtomatik KIRISH KODI (mavjud veb_ulash_kod
-# mexanizmiga o'xshash, lekin uzoqroq — 30 kun — amal qiladigan)
-# yaratiladi. Agar "Sinf rahbarligi" to'ldirilgan bo'lsa — o'sha
-# sinf (maktab_sinflari) ham shu bilan birga yaratiladi/yangilanadi,
-# 4 xonali qo'shilish paroli bilan.
-# ═══════════════════════════════════════════════════════════
-
-LAVOZIMLAR = {
-    "direktor": "Direktor",
-    "zam_direktor_uquv": "O'quv ishlari bo'yicha direktor o'rinbosari",
-    "zam_direktor_tarbiya": "Ma'naviy-ma'rifiy ishlar bo'yicha direktor o'rinbosari",
-    "psixolog": "Psixolog",
-    "kotib": "Kotib",
-    "fan_oqituvchisi": "Fan o'qituvchisi",
-}
-_LAVOZIM_MATNDAN = {v.lower(): k for k, v in LAVOZIMLAR.items()}
-
-
-def _xodim_kod_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS xodim_kod(
-        kod TEXT PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(user_id),
-        yaratildi TIMESTAMP DEFAULT NOW(), ishlatildi BOOLEAN DEFAULT FALSE
-    )""")
-
-
-def _maktab_sinflari_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS maktab_sinflari(
-        id SERIAL PRIMARY KEY,
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        sinf TEXT NOT NULL, harf TEXT NOT NULL,
-        rahbar_user_id BIGINT REFERENCES users(user_id),
-        qoshilish_paroli TEXT,
-        yaratilgan_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(maktab_id, sinf, harf)
-    )""")
-
-
-@app.get("/api/admin/xodim_shablon")
-def xodim_shablon(token: str):
-    """Xodimlarni import qilish uchun Excel shablonini beradi —
-    F.I.Sh, Lavozim, Sinf rahbarligi ustunlari bilan."""
-    _admin_tekshir(token)
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
-    import io
-    from fastapi.responses import StreamingResponse
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "XODIMLAR"
-    ustunlar = ["F.I.Sh", "Lavozim", "Sinf rahbarligi (ixtiyoriy)"]
-    for col, h in enumerate(ustunlar, 1):
-        c = ws.cell(1, col, h)
-        c.font = Font(bold=True, color="FFFFFF")
-        c.fill = PatternFill("solid", fgColor="1B4B7A")
-
-    namunalar = [
-        ("Aliyev Vali Aliyevich", "Direktor", ""),
-        ("Karimova Nilufar Rustamovna", "O'quv ishlari bo'yicha direktor o'rinbosari", ""),
-        ("Yusupov Sardor Bahtiyorovich", "Fan o'qituvchisi", "5-A"),
-        ("Nazarova Feruza Odilovna", "Fan o'qituvchisi", ""),
-    ]
-    for r in namunalar:
-        ws.append(r)
-    for col, w in zip("ABC", [30, 45, 25]):
-        ws.column_dimensions[col].width = w
-
-    ws2 = wb.create_sheet("IZOH")
-    ws2.cell(1, 1, "Lavozim ustuniga faqat shu variantlardan birini yozing:").font = Font(bold=True)
-    for i, nom in enumerate(LAVOZIMLAR.values(), 2):
-        ws2.cell(i, 1, f"• {nom}")
-    ws2.cell(len(LAVOZIMLAR) + 3, 1,
-             "Sinf rahbarligi — faqat shu odam biror sinfga rahbar bo'lsa to'ldiring (masalan: 5-A). Bo'sh qoldirsa ham bo'ladi.")
-    ws2.column_dimensions["A"].width = 70
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=xodimlar_shablon.xlsx"},
-    )
-
-
-@app.post("/api/admin/xodim_import")
-async def xodim_import(token: str, maktab_id: int, fayl: UploadFile = File(...)):
-    """To'ldirilgan xodimlar shablonini import qiladi — har biriga
-    hisob va 30 kun amal qiladigan KIRISH KODI yaratadi. "Sinf
-    rahbarligi" to'ldirilgan bo'lsa, o'sha sinfni ham (yangi 4 xonali
-    qo'shilish paroli bilan) yaratadi/yangilaydi."""
-    _admin_tekshir(token)
-    import openpyxl
-    import io
-
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_jadvali(cur)
-    cur.execute("SELECT id FROM maktablar WHERE id=%s", (maktab_id,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Maktab topilmadi")
-
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb["XODIMLAR"] if "XODIMLAR" in wb.sheetnames else wb.active
-
-    _xodim_kod_jadvali(cur)
-    _maktab_sinflari_jadvali(cur)
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lavozim TEXT")
-
-    natijalar = []
-    xato_soni = 0
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if not row or not row[0] or not str(row[0]).strip():
-            continue
-        fish = str(row[0]).strip()
-        lavozim_matni = str(row[1]).strip() if len(row) > 1 and row[1] else "Fan o'qituvchisi"
-        sinf_rahbarligi = str(row[2]).strip() if len(row) > 2 and row[2] else ""
-        lavozim_kaliti = _LAVOZIM_MATNDAN.get(lavozim_matni.lower(), "fan_oqituvchisi")
-
-        try:
-            cur.execute("SELECT MIN(user_id) AS eng_kichik FROM users WHERE user_id < 0")
-            r = cur.fetchone()
-            yangi_id = (r["eng_kichik"] - 1) if r and r["eng_kichik"] is not None else -1
-
-            cur.execute("""
-                INSERT INTO users(user_id, full_name, role, maktab_id, lavozim)
-                VALUES(%s,%s,'oqituvchi',%s,%s)
-            """, (yangi_id, fish, maktab_id, lavozim_kaliti))
-
-            if lavozim_kaliti == "direktor":
-                cur.execute("UPDATE maktablar SET direktor_user_id=%s WHERE id=%s", (yangi_id, maktab_id))
-
-            kirish_kodi = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-            cur.execute(
-                "INSERT INTO xodim_kod(kod, user_id) VALUES(%s,%s)",
-                (kirish_kodi, yangi_id),
-            )
-
-            sinf_paroli = None
-            if sinf_rahbarligi and "-" in sinf_rahbarligi:
-                sinf_qismi, harf_qismi = sinf_rahbarligi.split("-", 1)
-                sinf_paroli = "".join(secrets.choice(string.digits) for _ in range(4))
-                cur.execute("""
-                    INSERT INTO maktab_sinflari(maktab_id, sinf, harf, rahbar_user_id, qoshilish_paroli)
-                    VALUES(%s,%s,%s,%s,%s)
-                    ON CONFLICT (maktab_id, sinf, harf) DO UPDATE SET
-                        rahbar_user_id = EXCLUDED.rahbar_user_id,
-                        qoshilish_paroli = EXCLUDED.qoshilish_paroli
-                """, (maktab_id, sinf_qismi.strip(), harf_qismi.strip().upper(), yangi_id, sinf_paroli))
-
-            conn.commit()
-            natijalar.append({
-                "fish": fish, "lavozim": LAVOZIMLAR.get(lavozim_kaliti, lavozim_matni),
-                "kirish_kodi": kirish_kodi, "sinf_rahbarligi": sinf_rahbarligi or None,
-                "sinf_paroli": sinf_paroli,
-            })
-        except Exception:
-            conn.rollback()
-            xato_soni += 1
-
-    cur.close()
-    conn.close()
-    return {"natijalar": natijalar, "xato_soni": xato_soni}
-
-
-# ═══════════════════════════════════════════════════════════
-# MAKTAB TIZIMI — 3-BOSQICH: sinflarni ko'rish/boshqarish
-# (Excel import paytida "sinf rahbarligi" orqali avtomatik yaratilgan
-#  sinflarni ko'rish, qo'lda yangi sinf qo'shish, parolni qayta tashlash)
-# ═══════════════════════════════════════════════════════════
-
-@app.get("/api/admin/maktab_sinflari")
-def maktab_sinflari_royxati(token: str, maktab_id: int):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_sinflari_jadvali(cur)
-    cur.execute("""
-        SELECT s.id, s.sinf, s.harf, s.qoshilish_paroli, u.full_name AS rahbar_ismi
-        FROM maktab_sinflari s
-        LEFT JOIN users u ON u.user_id = s.rahbar_user_id
-        WHERE s.maktab_id=%s
-        ORDER BY s.sinf::int, s.harf
-    """, (maktab_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"sinflar": natija}
-
-
-class SinfYaratish(BaseModel):
-    token: str
-    maktab_id: int
-    sinf: str
-    harf: str
-    rahbar_user_id: Optional[int] = None
-
-
-@app.post("/api/admin/maktab_sinf_yarat")
-def maktab_sinf_yarat(sorov: SinfYaratish):
-    """Qo'lda, Excel'siz ham bitta sinf qo'shish imkoni — masalan
-    keyinroq yangi sinf ochilganda qayta Excel import shart emas."""
-    _admin_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_sinflari_jadvali(cur)
-    paroli = "".join(secrets.choice(string.digits) for _ in range(4))
-    cur.execute("""
-        INSERT INTO maktab_sinflari(maktab_id, sinf, harf, rahbar_user_id, qoshilish_paroli)
-        VALUES(%s,%s,%s,%s,%s)
-        ON CONFLICT (maktab_id, sinf, harf) DO UPDATE SET
-            rahbar_user_id = COALESCE(EXCLUDED.rahbar_user_id, maktab_sinflari.rahbar_user_id)
-        RETURNING id, qoshilish_paroli
-    """, (sorov.maktab_id, sorov.sinf.strip(), sorov.harf.strip().upper(), sorov.rahbar_user_id, paroli))
-    natija = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "sinf_id": natija["id"], "qoshilish_paroli": natija["qoshilish_paroli"]}
-
-
-@app.put("/api/admin/sinf_parolini_tashla")
-def sinf_parolini_tashla(token: str, sinf_id: int):
-    """Sinf rahbari yoki admin — qo'shilish parolini qayta yaratadi
-    (masalan parol tarqalib ketgan bo'lsa)."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    yangi_parol = "".join(secrets.choice(string.digits) for _ in range(4))
-    cur.execute("UPDATE maktab_sinflari SET qoshilish_paroli=%s WHERE id=%s", (yangi_parol, sinf_id))
-    ozgardi = cur.rowcount > 0
-    conn.commit()
-    cur.close()
-    conn.close()
-    if not ozgardi:
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    return {"holat": "yangilandi", "qoshilish_paroli": yangi_parol}
-
-
-# ═══════════════════════════════════════════════════════════
-# PULLI MAKTAB — TO'LOV TIZIMI
-# Bu — HISOB-KITOB/YOZUV tizimi (naqd yoki tashqi o'tkazma orqali
-# to'langan to'lovni QAYD ETISH), TO'LOV SHLYUZI (Payme/Click orqali
-# ONLAYN to'lov qabul qilish) EMAS — bu ALOHIDA, ancha katta ish, agar
-# kerak bo'lsa keyinroq alohida gaplashamiz.
-#
-# Bildirishnoma — botga emas, saytdagi "Xabarlar" bo'limiga (hozircha
-# "Tez orada" bo'sh turgan joy) yoziladi — ota-ona kirganda ko'radi.
-# ═══════════════════════════════════════════════════════════
-
-def _tolov_jadvallari(cur):
-    cur.execute("ALTER TABLE maktablar ADD COLUMN IF NOT EXISTS pulli BOOLEAN DEFAULT FALSE")
-    cur.execute("ALTER TABLE maktablar ADD COLUMN IF NOT EXISTS oylik_tolov INTEGER")
-    cur.execute("""CREATE TABLE IF NOT EXISTS tolovlar(
-        id SERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        maktab_id INTEGER REFERENCES maktablar(id),
-        oy TEXT NOT NULL,
-        summa_kerak INTEGER NOT NULL,
-        tolangan_summa INTEGER NOT NULL DEFAULT 0,
-        tolov_sanasi DATE,
-        qayd_etildi_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(user_id, maktab_id, oy)
-    )""")
-    # MUHIM: markaz/to'garak to'lovlari uchun ham ishlatiladi — maktab_id
-    # bo'sh (NULL) qoldirilib, togarak_id to'ldiriladi. NULL != NULL
-    # bo'lgani uchun standart SQL semantikasida bu ikkala UNIQUE cheklov
-    # bir-biriga XALAQIT bermaydi (mustaqil ishlaydi).
-    cur.execute("ALTER TABLE tolovlar ADD COLUMN IF NOT EXISTS togarak_id INTEGER REFERENCES togaraklar(id)")
-    cur.execute("ALTER TABLE tolovlar ALTER COLUMN maktab_id DROP NOT NULL")
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS tolovlar_togarak_unique ON tolovlar(user_id, togarak_id, oy)")
-    cur.execute("""CREATE TABLE IF NOT EXISTS bildirishnomalar(
-        id SERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        matn TEXT NOT NULL,
-        turi TEXT DEFAULT 'umumiy',
-        oqildimi BOOLEAN DEFAULT FALSE,
-        yaratildi TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-class MaktabTolovSozlash(BaseModel):
-    token: str
-    maktab_id: int
-    pulli: bool
-    oylik_tolov: Optional[int] = None
-
-
-@app.put("/api/admin/maktab_tolov_sozlash")
-def maktab_tolov_sozlash(sorov: MaktabTolovSozlash):
-    _admin_tekshir(sorov.token)
-    if sorov.pulli and not sorov.oylik_tolov:
-        raise HTTPException(status_code=400, detail="Pulli maktab uchun oylik to'lov summasini kiriting")
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-    cur.execute(
-        "UPDATE maktablar SET pulli=%s, oylik_tolov=%s WHERE id=%s",
-        (sorov.pulli, sorov.oylik_tolov if sorov.pulli else None, sorov.maktab_id),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.get("/api/oqituvchi/mening_sinflarim")
-def mening_rasmiy_sinflarim(token: str):
-    """O'qituvchi RAHBAR bo'lgan rasmiy maktab sinflari — to'garakdan
-    farqli, bu yerga o'quvchi PAROL bilan TASDIQLAB qo'shiladi (4-bosqich),
-    shu sabab o'quvchi soni ham faqat TASDIQLANGAN a'zolarni hisoblaydi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_sinflari_jadvali(cur)
-    _tolov_jadvallari(cur)
-    _sinf_azolari_jadvali(cur)
-    cur.execute("""
-        SELECT s.id, s.sinf, s.harf, s.qoshilish_paroli, m.id AS maktab_id, m.nomi AS maktab_nomi, m.pulli, m.oylik_tolov,
-               (SELECT COUNT(*) FROM maktab_sinf_azolari a WHERE a.sinf_id=s.id) AS oquvchi_soni
-        FROM maktab_sinflari s
-        JOIN maktablar m ON m.id = s.maktab_id
-        WHERE s.rahbar_user_id=%s
-        ORDER BY s.sinf::int, s.harf
-    """, (user_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"sinflar": natija}
-
-
-
-def sinf_tolovlari(token: str, sinf_id: int, oy: str):
-    """Sinf rahbari (yoki admin) uchun — shu oy uchun sinfga TASDIQLAB
-    qo'shilgan (4-bosqich) har bir o'quvchining to'lov holatini
-    ko'rsatadi. `oy` format: "2026-07"."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-    _sinf_azolari_jadvali(cur)
-    cur.execute("SELECT maktab_id, sinf, harf, rahbar_user_id FROM maktab_sinflari WHERE id=%s", (sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    ruxsat = s["rahbar_user_id"] == user_id or _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu sinf rahbari, maktab rahbariyati yoki admin ko'ra oladi")
-
-    cur.execute("SELECT oylik_tolov FROM maktablar WHERE id=%s", (s["maktab_id"],))
-    maktab = cur.fetchone()
-    kerakli_summa = (maktab["oylik_tolov"] if maktab else None) or 0
-
-    cur.execute("""
-        SELECT u.user_id, u.full_name FROM maktab_sinf_azolari a
-        JOIN users u ON u.user_id = a.user_id
-        WHERE a.sinf_id=%s
-        ORDER BY u.full_name
-    """, (sinf_id,))
-    oquvchilar = cur.fetchall()
-
-    cur.execute("SELECT user_id, tolangan_summa, tolov_sanasi FROM tolovlar WHERE maktab_id=%s AND oy=%s", (s["maktab_id"], oy))
-    tolovlar_map = {r["user_id"]: r for r in cur.fetchall()}
-    cur.close()
-    conn.close()
-
-    natija = []
-    for o in oquvchilar:
-        t = tolovlar_map.get(o["user_id"])
-        tolangan = t["tolangan_summa"] if t else 0
-        natija.append({
-            "user_id": o["user_id"], "full_name": o["full_name"],
-            "kerakli_summa": kerakli_summa, "tolangan_summa": tolangan,
-            "qarzdor": tolangan < kerakli_summa,
-            "tolov_sanasi": t["tolov_sanasi"].isoformat() if t and t["tolov_sanasi"] else None,
-        })
-    return {"oquvchilar": natija, "kerakli_summa": kerakli_summa}
-
-
-class TolovBelgilash(BaseModel):
-    token: str
-    user_id: int
-    maktab_id: int
-    oy: str
-    tolangan_summa: int
-
-
-@app.post("/api/oqituvchi/tolov_belgila")
-def tolov_belgila(sorov: TolovBelgilash):
-    """Sinf rahbari — o'quvchi naqd/o'tkazma orqali to'laganda, shu
-    yerda QAYD ETADI. To'landi deb belgilangach, ota-onaga saytdagi
-    Xabarlar bo'limiga bildirishnoma yoziladi."""
-    murojaatchi_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-    _sinf_azolari_jadvali(cur)
-
-    # XAVFSIZLIK: faqat admin, shu maktab rahbariyati (direktor/
-    # o'rinbosarlar), yoki aynan shu o'quvchi a'zo bo'lgan sinfning
-    # rahbari to'lov belgilashi mumkin — boshqa hech kim emas.
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (murojaatchi_id,))
-    ruxsat = cur.fetchone() is not None
-    if not ruxsat:
-        cur.execute(
-            "SELECT 1 FROM users WHERE user_id=%s AND maktab_id=%s AND lavozim IN ('direktor','zam_direktor_uquv','zam_direktor_tarbiya')",
-            (murojaatchi_id, sorov.maktab_id),
-        )
-        ruxsat = cur.fetchone() is not None
-    if not ruxsat:
-        cur.execute("""
-            SELECT 1 FROM maktab_sinf_azolari a
-            JOIN maktab_sinflari s ON s.id = a.sinf_id
-            WHERE a.user_id=%s AND s.maktab_id=%s AND s.rahbar_user_id=%s
-        """, (sorov.user_id, sorov.maktab_id, murojaatchi_id))
-        ruxsat = cur.fetchone() is not None
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu o'quvchining sinf rahbari, maktab rahbariyati yoki admin to'lov belgilay oladi")
-
-    cur.execute("""
-        INSERT INTO tolovlar(user_id, maktab_id, oy, summa_kerak, tolangan_summa, tolov_sanasi)
-        VALUES(%s,%s,%s,%s,%s, CURRENT_DATE)
-        ON CONFLICT (user_id, maktab_id, oy) DO UPDATE SET
-            tolangan_summa = EXCLUDED.tolangan_summa, tolov_sanasi = CURRENT_DATE
-        RETURNING summa_kerak
-    """, (sorov.user_id, sorov.maktab_id, sorov.oy, sorov.tolangan_summa, sorov.tolangan_summa))
-    conn.commit()
-
-    # Ota-onaga bildirishnoma — parent_child jadvali orqali (mavjud,
-    # ota-ona↔farzand bog'lash uchun ishlatiladigan) shu o'quvchining
-    # ota-onasini topamiz.
-    cur.execute("SELECT full_name FROM users WHERE user_id=%s", (sorov.user_id,))
-    oquvchi = cur.fetchone()
-    cur.execute("SELECT parent_id FROM parent_child WHERE child_id=%s", (sorov.user_id,))
-    ota_onalar = cur.fetchall()
-    for oo in ota_onalar:
-        cur.execute(
-            "INSERT INTO bildirishnomalar(user_id, matn, turi) VALUES(%s,%s,'tolov')",
-            (oo["parent_id"], f"{oquvchi['full_name']} uchun {sorov.oy} oyi to'lovi qabul qilindi: {sorov.tolangan_summa:,} so'm".replace(",", " ")),
-        )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.get("/api/bildirishnomalar")
-def bildirishnomalarim(token: str):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-    cur.execute("""
-        SELECT id, matn, turi, oqildimi, yaratildi FROM bildirishnomalar
-        WHERE user_id=%s ORDER BY yaratildi DESC LIMIT 50
-    """, (user_id,))
-    natija = cur.fetchall()
-    cur.execute("UPDATE bildirishnomalar SET oqildimi=TRUE WHERE user_id=%s AND oqildimi=FALSE", (user_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"bildirishnomalar": natija}
-
-
-# ═══════════════════════════════════════════════════════════
-# MAKTAB TIZIMI — 4-BOSQICH: o'quvchi qo'shilishi
-#
-# MUHIM: o'quvchining ESKI "maktab_raqami" (erkin matn) MOSLASH uchun
-# ISHONCHSIZ — shu sabab bu bosqich YANGI "maktab_id" (ro'yxatdagi
-# maktabga aniq bog'lanish) ustiga quriladi. Eski matn maydoni ham
-# qoladi (ro'yxatda yo'q maktablar uchun), lekin AVTOMATIK SINF
-# TOPISH faqat maktab_id orqali ishlaydi — bu ANIQ, matn solishtirish
-# EMAS.
-#
-# Qo'shilish — profil mosligi + 4 xonali parol (ikkalasi ham kerak),
-# rahbar esa xato qo'shilgan a'zoni istalgan vaqt CHIQARIB yuborishi
-# mumkin.
-# ═══════════════════════════════════════════════════════════
-
-def _sinf_azolari_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS maktab_sinf_azolari(
-        id SERIAL PRIMARY KEY,
-        sinf_id INTEGER NOT NULL REFERENCES maktab_sinflari(id),
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        qoshilgan_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(sinf_id, user_id)
-    )""")
-
-
-@app.get("/api/maktab_qidir")
-def maktab_qidir(nomi: str):
-    """HAMMA uchun ochiq (admin shart emas) — o'quvchi profilida
-    ro'yxatdagi maktabini nomi bo'yicha qidirib tanlashi uchun."""
-    if len(nomi.strip()) < 2:
-        return {"natijalar": []}
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_jadvali(cur)
-    cur.execute("""
-        SELECT id, nomi, viloyat, tuman FROM maktablar
-        WHERE nomi ILIKE %s ORDER BY nomi LIMIT 10
-    """, (f"%{nomi.strip()}%",))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"natijalar": natija}
-
-
-@app.get("/api/oquvchi/mos_sinf")
-def oquvchi_mos_sinf(token: str):
-    """O'quvchining PROFILIDAGI (maktab_id + class + class_letter)
-    ma'lumoti biror rasmiy sinfga MOS kelsa — va u hali A'ZO
-    bo'lmagan bo'lsa — o'sha sinf haqida ma'lumot qaytaradi (parol
-    BERMAYDI, faqat "shunday sinf bor" deb bildiradi)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_sinflari_jadvali(cur)
-    _sinf_azolari_jadvali(cur)
-    cur.execute("SELECT maktab_id, class, class_letter FROM users WHERE user_id=%s", (user_id,))
-    u = cur.fetchone()
-    if not u or not u["maktab_id"] or not u["class"] or not u["class_letter"]:
-        cur.close(); conn.close()
-        return {"topildi": False}
-
-    cur.execute("""
-        SELECT s.id, s.sinf, s.harf, m.nomi AS maktab_nomi, ur.full_name AS rahbar_ismi
-        FROM maktab_sinflari s
-        JOIN maktablar m ON m.id = s.maktab_id
-        LEFT JOIN users ur ON ur.user_id = s.rahbar_user_id
-        WHERE s.maktab_id=%s AND s.sinf=%s AND s.harf=%s
-    """, (u["maktab_id"], u["class"], u["class_letter"]))
-    sinf = cur.fetchone()
-    if not sinf:
-        cur.close(); conn.close()
-        return {"topildi": False}
-
-    cur.execute("SELECT 1 FROM maktab_sinf_azolari WHERE sinf_id=%s AND user_id=%s", (sinf["id"], user_id))
-    azo_mi = cur.fetchone() is not None
-    cur.close()
-    conn.close()
-    if azo_mi:
-        return {"topildi": False}  # allaqachon qo'shilgan — qayta so'ramaymiz
-    return {
-        "topildi": True, "sinf_id": sinf["id"], "sinf_nomi": f"{sinf['sinf']}-{sinf['harf']}",
-        "maktab_nomi": sinf["maktab_nomi"], "rahbar_ismi": sinf["rahbar_ismi"],
-    }
-
-
-@app.post("/api/oquvchi/sinfga_qoshil")
-def oquvchi_sinfga_qoshil(token: str, sinf_id: int, parol: str):
-    """O'quvchi 4 xonali parolni kiritib, rasmiy sinfga QO'SHILADI
-    (tasdiqlaydi). Profil mosligi YETARLI EMAS — parol ham to'g'ri
-    bo'lishi kerak, shu orqali tasodifiy/xato qo'shilish oldi olinadi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _sinf_azolari_jadvali(cur)
-    cur.execute("SELECT qoshilish_paroli FROM maktab_sinflari WHERE id=%s", (sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    if s["qoshilish_paroli"] != parol.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Parol noto'g'ri")
-    cur.execute(
-        "INSERT INTO maktab_sinf_azolari(sinf_id, user_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-        (sinf_id, user_id),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi"}
-
-
-@app.get("/api/oqituvchi/sinf_azolari")
-def sinf_azolari_royxati(token: str, sinf_id: int):
-    """Rahbar (yoki admin) — sinfga TASDIQLAB qo'shilgan o'quvchilar
-    ro'yxati. Xato qo'shilganlarni shu yerdan chiqarish mumkin."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _sinf_azolari_jadvali(cur)
-    cur.execute("SELECT maktab_id, rahbar_user_id FROM maktab_sinflari WHERE id=%s", (sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    ruxsat = s["rahbar_user_id"] == user_id or _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu sinf rahbari, maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        SELECT a.id AS azolik_id, u.user_id, u.full_name, a.qoshilgan_at
-        FROM maktab_sinf_azolari a JOIN users u ON u.user_id = a.user_id
-        WHERE a.sinf_id=%s ORDER BY u.full_name
-    """, (sinf_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"azolar": natija}
-
-
-@app.delete("/api/oqituvchi/sinf_azosini_chiqar")
-def sinf_azosini_chiqar(token: str, azolik_id: int):
-    """Rahbar — xato qo'shilgan (masalan boshqa sinf o'quvchisi
-    tasodifan mos kelib qolgan) a'zoni sinfdan chiqaradi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _sinf_azolari_jadvali(cur)
-    cur.execute("""
-        SELECT s.maktab_id, s.rahbar_user_id FROM maktab_sinf_azolari a
-        JOIN maktab_sinflari s ON s.id = a.sinf_id WHERE a.id=%s
-    """, (azolik_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="A'zolik topilmadi")
-    ruxsat = r["rahbar_user_id"] == user_id or _maktab_boshqaruvchi_mi(cur, user_id, r["maktab_id"])
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu sinf rahbari, maktab rahbariyati yoki admin chiqara oladi")
-    cur.execute("DELETE FROM maktab_sinf_azolari WHERE id=%s", (azolik_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "chiqarildi"}
-
-
-def _muassasa_jadvali(cur):
-    """"Bir kishi — ko'p muassasa" jadvali. Eski (yagona ustun:
-    users.maktab_id/markaz_id/bogcha_id/universitet_id + lavozim)
-    tizim BUZILMAYDI — bu FAQAT unga QO'SHIMCHA, ikkinchi/uchinchi
-    muassasani yozish uchun."""
-    cur.execute("""CREATE TABLE IF NOT EXISTS foydalanuvchi_muassasalari(
-        id SERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        muassasa_turi TEXT NOT NULL,
-        muassasa_id INTEGER NOT NULL,
-        lavozim TEXT NOT NULL,
-        qoshilgan_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(user_id, muassasa_turi, muassasa_id)
-    )""")
-
-
-def _muassasadagi_lavozim(cur, user_id, turi, muassasa_id):
-    """Foydalanuvchining shu ANIQ muassasadagi lavozimini topadi —
-    ESKI (yagona ustun) va YANGI (ko'p muassasali jadval) ikkalasidan
-    ham qidiradi, orqaga moslik uchun. Topilmasa — None."""
-    ustun = {"maktab": "maktab_id", "markaz": "markaz_id", "bogcha": "bogcha_id", "universitet": "universitet_id"}[turi]
-    cur.execute(f"SELECT lavozim FROM users WHERE user_id=%s AND {ustun}=%s", (user_id, muassasa_id))
-    r = cur.fetchone()
-    if r and r["lavozim"]:
-        return r["lavozim"]
-    _muassasa_jadvali(cur)
-    cur.execute(
-        "SELECT lavozim FROM foydalanuvchi_muassasalari WHERE user_id=%s AND muassasa_turi=%s AND muassasa_id=%s",
-        (user_id, turi, muassasa_id),
-    )
-    r2 = cur.fetchone()
-    return r2["lavozim"] if r2 else None
-
-
-def _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-    """True — agar user shu maktabning direktori/o'rinbosari (yoki
-    umumiy admin) bo'lsa."""
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    lavozim = _muassasadagi_lavozim(cur, user_id, "maktab", maktab_id)
-    return lavozim in ("direktor", "zam_direktor_uquv", "zam_direktor_tarbiya")
-
-
-@app.get("/api/maktab/dashboard")
-def maktab_dashboard(token: str, maktab_id: int):
-    """Direktor/o'rinbosarlar uchun — BUTUN maktab bitta ekranda:
-    barcha sinflar, har birining o'quvchi soni va rahbari, va (agar
-    maktab pulli bo'lsa) har bir sinf hamda umumiy maktab bo'yicha
-    shu oy to'lov holati (nechtasi to'lagan, nechtasi qarzdor)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _maktab_jadvali(cur); _maktab_sinflari_jadvali(cur); _sinf_azolari_jadvali(cur); _tolov_jadvallari(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati (direktor/o'rinbosar) yoki admin ko'ra oladi")
-
-    cur.execute("SELECT nomi, pulli, oylik_tolov FROM maktablar WHERE id=%s", (maktab_id,))
-    maktab = cur.fetchone()
-    if not maktab:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Maktab topilmadi")
-
-    joriy_oy = datetime.now().strftime("%Y-%m")
-    oylik_tolov = maktab["oylik_tolov"] or 0
-    _davomat_jadvali(cur)
-    cur.execute("""
-        SELECT s.id, s.sinf, s.harf, u.full_name AS rahbar_ismi,
-               COUNT(DISTINCT a.user_id) AS oquvchi_soni,
-               COUNT(DISTINCT t.user_id) FILTER (WHERE t.tolangan_summa >= %s) AS tolagan_soni,
-               COUNT(DISTINCT d.user_id) FILTER (WHERE d.holat = 'keldi') AS bugun_kelgan_soni,
-               COUNT(DISTINCT d.user_id) AS bugun_belgilangan_soni,
-               (SELECT COUNT(DISTINCT d7.sana) FROM davomat d7
-                WHERE d7.sinf_id=s.id AND d7.sana >= CURRENT_DATE - INTERVAL '7 days') AS davomat_kun_7
-        FROM maktab_sinflari s
-        LEFT JOIN users u ON u.user_id = s.rahbar_user_id
-        LEFT JOIN maktab_sinf_azolari a ON a.sinf_id = s.id
-        LEFT JOIN tolovlar t ON t.user_id = a.user_id AND t.maktab_id = s.maktab_id AND t.oy = %s
-        LEFT JOIN davomat d ON d.sinf_id = s.id AND d.user_id = a.user_id AND d.sana = CURRENT_DATE
-        WHERE s.maktab_id=%s
-        GROUP BY s.id, s.sinf, s.harf, u.full_name
-        ORDER BY s.sinf::int, s.harf
-    """, (oylik_tolov, joriy_oy, maktab_id))
-    sinflar = cur.fetchall()
-
-    # Har bir sinfning O'RTACHA bilim ko'rsatkichi (learned_topics.score
-    # o'rtachasi) — sinflarni SOLISHTIRISH/REYTING uchun yetarli, aniq
-    # % (butun dastur bo'yicha) emas, lekin "qaysi sinf yaxshi/yomon"
-    # savoliga tez va ishonchli javob beradi.
-    cur.execute("""
-        SELECT a.sinf_id, ROUND(AVG(lt.score)) AS ortacha_bilim, COUNT(DISTINCT a.user_id) FILTER (WHERE lt.user_id IS NOT NULL) AS faol_oquvchi
-        FROM maktab_sinf_azolari a
-        JOIN maktab_sinflari s2 ON s2.id = a.sinf_id
-        LEFT JOIN learned_topics lt ON lt.user_id = a.user_id
-        WHERE s2.maktab_id=%s
-        GROUP BY a.sinf_id
-    """, (maktab_id,))
-    bilim_map = {r["sinf_id"]: r for r in cur.fetchall()}
-    for s in sinflar:
-        b = bilim_map.get(s["id"])
-        s["ortacha_bilim"] = b["ortacha_bilim"] if b and b["ortacha_bilim"] is not None else None
-
-    # "Muammoli o'quvchilar" — so'nggi 7 kunda 2+ marta kelmagan.
-    # Oddiy, TEZ hisoblanadigan signal — direktor uchun ANIQ ism-familiya
-    # bilan ro'yxat, "keyin qarasam bo'ladi" emas, hoziroq ko'rinadigan.
-    cur.execute("""
-        SELECT u.user_id, u.full_name, s.sinf, s.harf,
-               COUNT(*) FILTER (WHERE d.holat='kelmadi') AS songi_hafta_kelmagan
-        FROM maktab_sinf_azolari a
-        JOIN users u ON u.user_id = a.user_id
-        JOIN maktab_sinflari s ON s.id = a.sinf_id
-        LEFT JOIN davomat d ON d.user_id = a.user_id AND d.sana >= CURRENT_DATE - INTERVAL '7 days'
-        WHERE s.maktab_id=%s
-        GROUP BY u.user_id, u.full_name, s.sinf, s.harf
-        HAVING COUNT(*) FILTER (WHERE d.holat='kelmadi') >= 2
-        ORDER BY songi_hafta_kelmagan DESC
-        LIMIT 20
-    """, (maktab_id,))
-    muammoli_oquvchilar = cur.fetchall()
-
-    _xodim_davomati_jadvali(cur)
-    cur.execute("""
-        SELECT COUNT(*) AS jami,
-               COUNT(*) FILTER (WHERE x.holat='keldi') AS keldi
-        FROM users u LEFT JOIN xodim_davomati x ON x.user_id=u.user_id AND x.maktab_id=%s AND x.sana=CURRENT_DATE
-        WHERE u.maktab_id=%s AND u.lavozim IS NOT NULL
-    """, (maktab_id, maktab_id))
-    xodim_bugun = cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    jami_oquvchi = sum(s["oquvchi_soni"] for s in sinflar)
-    jami_tolagan = sum(s["tolagan_soni"] for s in sinflar)
-    jami_bugun_kelgan = sum(s["bugun_kelgan_soni"] for s in sinflar)
-    jami_bugun_belgilangan = sum(s["bugun_belgilangan_soni"] for s in sinflar)
-    sinflar_belgilamagan = sum(1 for s in sinflar if s["oquvchi_soni"] > 0 and s["bugun_belgilangan_soni"] == 0)
-
-    baholangan_sinflar = [s for s in sinflar if s["ortacha_bilim"] is not None]
-    saralangan = sorted(baholangan_sinflar, key=lambda s: s["ortacha_bilim"], reverse=True)
-    eng_yaxshi_sinf = saralangan[0] if saralangan else None
-    etibor_kerak_sinf = saralangan[-1] if len(saralangan) > 1 else None
-
-    return {
-        "maktab_nomi": maktab["nomi"], "pulli": maktab["pulli"], "oylik_tolov": maktab["oylik_tolov"],
-        "sinflar": sinflar,
-        "tolov_xulosasi": (
-            {"jami_oquvchi": jami_oquvchi, "tolagan": jami_tolagan, "qarzdor": jami_oquvchi - jami_tolagan}
-            if maktab["pulli"] else None
+  };
+
+  const yakunla = async () => {
+    setYuklanmoqda(true);
+    const ro_yxat = Object.entries(javoblar).map(([id, tanlangan]) => ({
+      savol_id: parseInt(id, 10), tanlangan,
+    }));
+    try {
+      const res = await fetch(`${API_BASE}/api/test/natija`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          tanlanganMavzu.aralash
+            ? { token, topic_codes: tanlanganMavzu.kodlar, javoblar: ro_yxat, jami_savol_soni: savollar.length }
+            : { token, topic_code: tanlanganMavzu.topic_code, javoblar: ro_yxat, jami_savol_soni: savollar.length }
         ),
-        "bugungi_davomat": {
-            "jami_oquvchi": jami_oquvchi, "kelgan": jami_bugun_kelgan,
-            "belgilangan": jami_bugun_belgilangan, "sinflar_belgilamagan": sinflar_belgilamagan,
-        },
-        "xodim_bugungi_davomat": {"jami": xodim_bugun["jami"], "keldi": xodim_bugun["keldi"]},
-        "reyting": {
-            "eng_yaxshi_sinf": (
-                {"sinf": eng_yaxshi_sinf["sinf"], "harf": eng_yaxshi_sinf["harf"], "ortacha_bilim": eng_yaxshi_sinf["ortacha_bilim"]}
-                if eng_yaxshi_sinf else None
-            ),
-            "etibor_kerak_sinf": (
-                {"sinf": etibor_kerak_sinf["sinf"], "harf": etibor_kerak_sinf["harf"], "ortacha_bilim": etibor_kerak_sinf["ortacha_bilim"]}
-                if etibor_kerak_sinf else None
-            ),
-        },
-        "muammoli_oquvchilar": muammoli_oquvchilar,
+      });
+      const data = await res.json();
+      setNatija(data);
+      setHolat("natija");
+    } catch (e) {
+      setXato("Natijani yuborib bo'lmadi");
+    } finally { setYuklanmoqda(false); }
+  };
+
+  // yakunlaRef'ni HAR renderda eng so'nggi yakunla'ga tenglashtiramiz —
+  // shu orqali yuqoridagi umumiy-vaqt hisoblagichi (bir marta o'rnatilgan
+  // setInterval ichidan) hech qachon ESKI (bo'sh) javoblar bilan yubormaydi.
+  useEffect(() => { yakunlaRef.current = yakunla; });
+
+  const toxtatish = () => {
+    setToxtatishModali(false);
+    yakunla();
+  };
+
+  const qaytaBoshlash = () => {
+    setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null);
+    setUmumiyVaqt(null); setYozibJavob({}); setJoriySavol(0); setJoriyNatija(null);
+  };
+
+  if (yuklanmoqda) {
+    return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  if (holat === "natija") {
+    const rangi = natija.foiz >= 85 ? "#C89B3C" : natija.foiz >= 65 ? "#2D8B8B" : natija.foiz >= 45 ? "#B0553A" : "#8A8578";
+    return (
+      <div className="px-5 pt-10 pb-6">
+        <div className="text-center">
+          <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${rangi}1A` }}>
+            <span className="text-2xl font-bold" style={{ color: rangi }}>{natija.foiz}%</span>
+          </div>
+          <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
+          <p className="text-sm mb-6" style={{ color: "#8A8578" }}>{natija.togri} / {natija.jami} to'g'ri</p>
+        </div>
+
+        {natija.xatolar && natija.xatolar.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>
+              ❌ Xato javoblar ({natija.xatolar.length} ta)
+            </p>
+            <div className="space-y-3">
+              {natija.xatolar.map((x) => (
+                <div key={x.savol_id} className="rounded-xl p-4 border" style={{ borderColor: "#F3D3D3", backgroundColor: "#FCEBEB" }}>
+                  <p className="text-sm font-medium mb-2" style={{ color: "#2B2B2B" }}>{x.savol}</p>
+                  <p className="text-xs mb-1" style={{ color: "#A32D2D" }}>Sizning javobingiz: <b>{x.sizning_javob}</b></p>
+                  <p className="text-xs" style={{ color: "#3B6D11" }}>To'g'ri javob: <b>{x.togri_javob}</b></p>
+                  {x.tushuntirish && <p className="text-xs mt-1.5" style={{ color: "#5A5648" }}>{x.tushuntirish}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button onClick={qaytaBoshlash} className="w-full py-3.5 rounded-xl font-semibold text-white text-center" style={{ backgroundColor: "#1B4B7A" }}>
+          Boshqa mavzu
+        </button>
+      </div>
+    );
+  }
+
+  if (holat === "songi") {
+    const jami = mosSoni ?? 0;
+    const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setHolat("mavzular")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
+
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🧭 Test uslubi</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button onClick={() => setTestRejimi("bir_bir")}
+              className="rounded-xl p-3.5 text-left border-2"
+              style={testRejimi === "bir_bir" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📖 Bittalab</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun</p>
+            </button>
+            <button onClick={() => setTestRejimi("hammasi")}
+              className="rounded-xl p-3.5 text-left border-2"
+              style={testRejimi === "hammasi" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📜 Hammasi birga</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>Natija faqat yakunlaganda ko'rinadi — imtihon uslubida</p>
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi</p>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              ["", "🎲 Aralash"], ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"],
+              ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
+            ].map(([qiym, nom]) => (
+              <button key={qiym} onClick={() => setQiyinlik(qiym)}
+                className="px-3.5 py-2 rounded-full text-xs font-semibold transition-colors"
+                style={qiyinlik === qiym
+                  ? { backgroundColor: "#1B4B7A", color: "#fff" }
+                  : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                {nom}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>⚙️ Qo'shimcha sozlamalar</p>
+          <UchXilTanlov nom="🖼️ Rasm" qiymat={rasimli} onOzgar={setRasimli} haNomi="Rasmli" yoqNomi="Rasmsiz" />
+          <UchXilTanlov nom="⏱️ Vaqt" qiymat={vaqtli} onOzgar={setVaqtli} haNomi="Vaqtli" yoqNomi="Vaqtsiz" />
+          <UchXilTanlov nom="✍️ Javob turi" qiymat={yozuvli} onOzgar={setYozuvli} haNomi="Yozuvli" yoqNomi="Tugmali" />
+        </div>
+
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>
+            🔢 Nechta savol yechasiz?
+            {mosSoni === null && <Loader2 size={14} className="animate-spin" style={{ color: "#8A8578" }} />}
+          </p>
+          {mosSoni === null ? (
+            <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
+          ) : mosSoni === 0 ? (
+            <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
+              Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2 mb-2.5">
+                {variantlar.map((n) => (
+                  <button key={n} onClick={() => savollarniYukla(n)}
+                    className="py-3.5 rounded-xl border font-semibold text-center text-sm"
+                    style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
+                    {n} ta
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => savollarniYukla(jami)}
+                className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
+                style={{ backgroundColor: "#1B4B7A" }}>
+                🚀 Hammasi ({jami} ta)
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (holat === "savollar" && testRejimi === "bir_bir") {
+    const s = savollar[joriySavol];
+    const oxirgi = joriySavol === savollar.length - 1;
+    const yozuvli = s.question_type === "write_answer";
+    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+    const javobBerilgan = !!joriyNatija;
+
+    const variantRangi = (harf) => {
+      if (!javobBerilgan) {
+        return javoblar[s.id] === harf
+          ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
+          : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" };
+      }
+      if (harf === joriyNatija.togri_javob) return { borderColor: "#639922", backgroundColor: "#EAF3DE" };
+      if (harf === javoblar[s.id]) return { borderColor: "#E24B4A", backgroundColor: "#FCEBEB" };
+      return { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", opacity: 0.6 };
+    };
+
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+              ✓ {toGriSoni}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+              ✗ {xatoSoni}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {qolganVaqt !== null && !javobBerilgan && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: qolganVaqt <= 5 ? "#FCEBEB" : "#F1EFE8", color: qolganVaqt <= 5 ? "#A32D2D" : "#5A5648" }}>
+                ⏱ {qolganVaqt}s
+              </span>
+            )}
+            <button onClick={() => setToxtatishModali(true)}
+              className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
+              ⏹
+            </button>
+          </div>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden mb-6" style={{ backgroundColor: "#EFEBE1" }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${((joriySavol + 1) / savollar.length) * 100}%`, backgroundColor: "#1B4B7A" }} />
+        </div>
+
+        {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
+          ? <SavolRasmi rasmId={s.rasm_id} />
+          : <SavolFormulasi ifoda={s.rasm_id} />)}
+
+        <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
+          <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
+          <button
+            onClick={() => ovozniOqi(yozuvli
+              ? s.question
+              : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+            disabled={ovozOynayapti}
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+            title="Ovoz chiqarib o'qish">
+            {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+          </button>
+        </h2>
+
+        {yozuvli ? (
+          <div className="mb-4">
+            <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : (yozibJavob[s.id] || "")}
+              onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
+              disabled={javobBerilgan}
+              onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobBerVaTekshir(s.id, yozibJavob[s.id].trim()); }}
+              placeholder="Javobingizni yozing..."
+              className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
+              style={javobBerilgan
+                ? { borderColor: joriyNatija.togrimi ? "#639922" : "#E24B4A", backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }
+                : { borderColor: "#E5E1D8" }} />
+            {!javobBerilgan && (
+              <button onClick={() => (yozibJavob[s.id] || "").trim() && javobBerVaTekshir(s.id, yozibJavob[s.id].trim())}
+                disabled={!(yozibJavob[s.id] || "").trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+                style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
+                Javobni yuborish
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2.5 mb-4">
+            {variantlar.map(([harf, matn]) => (
+              <button key={harf} onClick={() => !javobBerilgan && javobBerVaTekshir(s.id, harf)} disabled={javobBerilgan}
+                className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
+                style={variantRangi(harf)}>
+                <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                  style={{
+                    backgroundColor: javobBerilgan
+                      ? (harf === joriyNatija.togri_javob ? "#639922" : harf === javoblar[s.id] ? "#E24B4A" : "#F1EFE8")
+                      : (javoblar[s.id] === harf ? "#1B4B7A" : "#F1EFE8"),
+                    color: (javobBerilgan && (harf === joriyNatija.togri_javob || harf === javoblar[s.id])) || (!javobBerilgan && javoblar[s.id] === harf)
+                      ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {harf}
+                </span>
+                <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {javobBerilgan && (
+          <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>
+              {joriyNatija.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`}
+            </p>
+            {joriyNatija.tushuntirish && (
+              <p className="text-sm" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>{joriyNatija.tushuntirish}</p>
+            )}
+          </div>
+        )}
+
+        {javobBerilgan ? (
+          <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+            {(oxirgi ? "Yakunlash" : "Keyingi savol")}{avtoQoldi ? ` (${avtoQoldi})` : ""}
+          </button>
+        ) : (
+          <p className="text-center text-xs" style={{ color: "#B0AA98" }}>Javobni tanlang</p>
+        )}
+
+        {toxtatishModali && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+                Hozirgacha javob bergan {Object.keys(javoblar).length} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setToxtatishModali(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  Davom etish
+                </button>
+                <button onClick={toxtatish}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
+                  Ha, to'xtatish
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (holat === "savollar") {
+    // testRejimi === "hammasi" — hammasi bitta uzun sahifada, natija
+    // FAQAT yakunlaganda ma'lum bo'ladi (imtihon uslubi).
+    const jamiJavoblangan = Object.keys(javoblar).length;
+
+    return (
+      <div className="pb-24">
+        {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
+        <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length} javob berildi</span>
+            <div className="flex items-center gap-2">
+              {umumiyVaqt !== null && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: umumiyVaqt <= 30 ? "#FCEBEB" : "#F1EFE8", color: umumiyVaqt <= 30 ? "#A32D2D" : "#5A5648" }}>
+                  ⏱ {Math.floor(umumiyVaqt / 60)}:{String(umumiyVaqt % 60).padStart(2, "0")}
+                </span>
+              )}
+              <button onClick={() => setToxtatishModali(true)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
+                ⏹ To'xtatish
+              </button>
+            </div>
+          </div>
+          {/* Savol raqamlari — endi bir qatorga sig'masa, PASTGA (yangi qatorga)
+              tushadi, gorizontal aylantirish shart emas, hammasi darhol ko'rinadi. */}
+          <div className="flex gap-1.5 flex-wrap">
+            {savollar.map((s, i) => {
+              const javobBormi = javoblar[s.id] !== undefined;
+              return (
+                <button key={s.id} onClick={() => raqamgaOt(i)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2"
+                  style={javobBormi
+                    ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0", color: "#8A5A1C" }
+                    : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                  {i + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="px-5 pt-5 space-y-5">
+          {savollar.map((s, i) => {
+            const yozuvli = s.question_type === "write_answer";
+            const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+            const javobBerilgan = javoblar[s.id] !== undefined;
+
+            return (
+              <div key={s.id} ref={(el) => { savolReflari.current[i] = el; }}
+                className="rounded-2xl p-4 bg-white border" style={{ borderColor: javobBerilgan ? "#F5DFA3" : "#E5E1D8" }}>
+                <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}-savol</p>
+
+                {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
+                  ? <SavolRasmi rasmId={s.rasm_id} />
+                  : <SavolFormulasi ifoda={s.rasm_id} />)}
+
+                <h2 className="text-lg font-semibold mb-4 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
+                  <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
+                  <button
+                    onClick={() => ovozniOqi(yozuvli
+                      ? s.question
+                      : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+                    disabled={ovozOynayapti}
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+                    title="Ovoz chiqarib o'qish">
+                    {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+                  </button>
+                </h2>
+
+                {yozuvli ? (
+                  <div>
+                    <input type="text" value={javoblar[s.id] || (yozibJavob[s.id] || "")}
+                      onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                      disabled={javobBerilgan}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobYoz(s.id, yozibJavob[s.id].trim()); }}
+                      placeholder="Javobingizni yozing..."
+                      className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
+                      style={javobBerilgan ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0" } : { borderColor: "#E5E1D8" }} />
+                    {!javobBerilgan && (
+                      <button onClick={() => (yozibJavob[s.id] || "").trim() && javobYoz(s.id, yozibJavob[s.id].trim())}
+                        disabled={!(yozibJavob[s.id] || "").trim()}
+                        className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+                        style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
+                        Javobni belgilash
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {variantlar.map(([harf, matn]) => (
+                      <button key={harf} onClick={() => javobYoz(s.id, harf)}
+                        className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
+                        style={javoblar[s.id] === harf
+                          ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0" }
+                          : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+                        <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                          style={{
+                            backgroundColor: javoblar[s.id] === harf ? "#C89B3C" : "#F1EFE8",
+                            color: javoblar[s.id] === harf ? "#FFFFFF" : "#5A5648",
+                          }}>
+                          {harf}
+                        </span>
+                        <span className="text-sm" style={{ color: "#2B2B2B" }}><Matn matn={matn} latex={s.is_latex} /></span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!javobBerilgan && (
+                  <button onClick={() => savolniOtkazib(i)} className="w-full text-center text-xs font-medium mt-3" style={{ color: "#8A8578" }}>
+                    O'tkazib yuborish →
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Kichik, burchakdagi "Yakunlash" tugmasi — endi butun kenglikni
+            egallamaydi, va bosilganda tasdiqlash so'raladi. */}
+        <div className="fixed bottom-20 right-5 z-20">
+          <button onClick={() => setYakunlashTasdiqi(true)}
+            className="rounded-full px-5 py-3 font-semibold text-white text-sm shadow-lg flex items-center gap-1.5"
+            style={{ backgroundColor: "#1B4B7A" }}>
+            ✓ Yakunlash
+          </button>
+        </div>
+
+        {toxtatishModali && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+                Hozirgacha javob bergan {jamiJavoblangan} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setToxtatishModali(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  Davom etish
+                </button>
+                <button onClick={toxtatish}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
+                  Ha, to'xtatish
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {yakunlashTasdiqi && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>✓ Testni yakunlaysizmi?</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+                {jamiJavoblangan} / {savollar.length} savolga javob berdingiz.
+                {jamiJavoblangan < savollar.length ? " Qolganlari javobsiz hisoblanadi." : ""}
+              </p>
+              <div className="flex gap-2.5">
+                <button onClick={() => setYakunlashTasdiqi(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  Davom etish
+                </button>
+                <button onClick={() => { setYakunlashTasdiqi(false); yakunla(); }}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                  Ha, yakunlash
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // holat === "mavzular"
+  // Sinf ko'rsatilmasa (admin) va hali sinf tanlanmagan bo'lsa — avval sinflar ro'yxati.
+  if ((!sinf || boshqaSinflarRejimi) && !tanlanganSinf) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        {faolTuri === "togarak" && (
+          <button onClick={() => { setFaolTuri("oddiy"); setBoshqaSinflarRejimi(false); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
+            {sinf ? "← O'z sinfimga qaytish" : "← Oddiy sinflarga qaytish"}
+          </button>
+        )}
+        <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
+          {faolTuri === "togarak" ? "Boshqa sinflar (to'garak)" : "Test yechish"}
+        </h1>
+        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : sinflarRoyxati.length === 0 && faolTuri === "togarak" ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha to'garak sinflari mavjud emas.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {sinflarRoyxati.map((s) => {
+              const jamiMavzu = s.fanlar.reduce((sum, f) => sum + f.mavzular.length, 0);
+              return (
+                <button key={s.sinf} onClick={() => setTanlanganSinf(s.sinf)}
+                  className="rounded-2xl p-5 text-center bg-white border"
+                  style={{ borderColor: "#E5E1D8" }}>
+                  <p className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>
+                    {faolTuri === "togarak" ? s.sinf : `${s.sinf}-sinf`}
+                  </p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.fanlar.length} fan · {jamiMavzu} mavzu</p>
+                </button>
+              );
+            })}
+            {faolTuri === "oddiy" && !sinf && (
+              <button onClick={() => setFaolTuri("togarak")}
+                className="rounded-2xl p-5 text-center bg-white border-2 border-dashed"
+                style={{ borderColor: "#C4BFAF" }}>
+                <p className="text-xl mb-1">📚</p>
+                <p className="text-sm font-semibold" style={{ color: "#5A5648" }}>Boshqa sinflar</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>to'garak guruhlari</p>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Sinf tanlangan (yoki o'quvchining o'z sinfi) — endi shu sinfning fanlari va mavzulari
+  const sinfMalumoti = joriySinfMalumoti;
+  return (
+    <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
+      {(!sinf || boshqaSinflarRejimi) && (
+        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
+          ← Sinflar
+        </button>
+      )}
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
+          {sinfMalumoti ? (faolTuri === "togarak" ? `${sinfMalumoti.sinf} testlari` : `${sinfMalumoti.sinf}-sinf testlari`) : "Test yechish"}
+        </h1>
+        <button onClick={() => { setAralashRejim(!aralashRejim); setTanlanganKodlar([]); }}
+          className="text-xs font-semibold px-3 py-1.5 rounded-full"
+          style={aralashRejim
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+          {aralashRejim ? "✕ Aralash rejimi" : "🔀 Bir nechta mavzu"}
+        </button>
+      </div>
+      {sinf && !boshqaSinflarRejimi && (
+        <button onClick={() => { setBoshqaSinflarRejimi(true); setFaolTuri("togarak"); setTanlanganSinf(null); }}
+          className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
+          📚 Boshqa (to'garak) guruhlarni ko'rish →
+        </button>
+      )}
+      {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+      {aralashRejim && (
+        <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
+          <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
+            👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.
+          </p>
+          <span className="text-sm font-bold shrink-0 ml-2" style={{ color: "#1B4B7A" }}>{tanlanganKodlar.length}</span>
+        </div>
+      )}
+      {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Bu sinfda hozircha test mavjud emas.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sinfMalumoti.fanlar.map((fan) => {
+            const ochiq = ochiqFan === fan.qisqa;
+            return (
+              <div key={fan.qisqa} className="rounded-2xl overflow-hidden border bg-white" style={{ borderColor: "#E5E1D8" }}>
+                <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)} className="w-full flex items-center justify-between p-4">
+                  <span className="font-semibold text-sm" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
+                  {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}
+                </button>
+                {ochiq && (
+                  <MavzuRoyxati fan={fan} aralashRejim={aralashRejim} tanlanganKodlar={tanlanganKodlar}
+                    onToggle={aralashToggle} onTanla={mavzuBoslandi} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {aralashRejim && tanlanganKodlar.length > 0 && (
+        <div className="fixed bottom-16 inset-x-0 z-20 px-5 pb-3">
+          <div className="max-w-md mx-auto">
+            <button onClick={aralashTestBoshlandi}
+              className="w-full py-3.5 rounded-xl font-semibold text-white text-sm shadow-lg"
+              style={{ backgroundColor: "#1B4B7A" }}>
+              🚀 Aralash test boshlash ({tanlanganKodlar.length} mavzu tanlandi)
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
+  const variantlar = [[null, "Barchasi"], [true, haNomi], [false, yoqNomi]];
+  return (
+    <div className="flex items-center justify-between mb-3 last:mb-0">
+      <span className="text-xs font-medium" style={{ color: "#5A5648" }}>{nom}</span>
+      <div className="flex gap-1 p-0.5 rounded-full" style={{ backgroundColor: "#F7F5F0" }}>
+        {variantlar.map(([qiym, nomi]) => (
+          <button key={String(qiym)} type="button" onClick={() => onOzgar(qiym)}
+            className="px-2.5 py-1 rounded-full text-xs font-medium"
+            style={qiymat === qiym
+              ? { backgroundColor: "#1B4B7A", color: "#fff" }
+              : { backgroundColor: "transparent", color: "#5A5648" }}>
+            {nomi}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla }) {
+  const [sahifa, setSahifa] = useState(0);
+  const JAMI_SAHIFA = Math.ceil(fan.mavzular.length / 10) || 1;
+  const korinadigan = fan.mavzular.slice(sahifa * 10, sahifa * 10 + 10);
+  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => m.nomi === k.nomi)).length;
+
+  return (
+    <div className="px-4 pb-4 space-y-2">
+      {aralashRejim && shuFandaTanlangan > 0 && (
+        <p className="text-xs font-semibold px-1 pb-1" style={{ color: "#1B4B7A" }}>
+          ✓ Bu fandan {shuFandaTanlangan} ta mavzu tanlandi
+        </p>
+      )}
+      {korinadigan.map((m) => {
+        const tanlanganmi = tanlanganKodlar.some((k) => k.nomi === m.nomi);
+        return (
+          <button key={m.nomi}
+            onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border-2"
+            style={{
+              backgroundColor: aralashRejim && tanlanganmi ? "#EAF1F7" : "#F7F5F0",
+              borderColor: aralashRejim && tanlanganmi ? "#1B4B7A" : "transparent",
+            }}>
+            <span className="flex items-center gap-2.5">
+              {aralashRejim && (
+                <span className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: tanlanganmi ? "#1B4B7A" : "#FFFFFF", border: `1.5px solid ${tanlanganmi ? "#1B4B7A" : "#C4BFAF"}` }}>
+                  {tanlanganmi && <span className="text-white text-xs">✓</span>}
+                </span>
+              )}
+              <span className="text-sm text-left" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+            </span>
+            <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
+          </button>
+        );
+      })}
+      {JAMI_SAHIFA > 1 && (
+        <div className="flex items-center justify-between pt-1">
+          <button onClick={() => setSahifa((s) => Math.max(0, s - 1))} disabled={sahifa === 0}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>
+            ← Oldingi
+          </button>
+          <span className="text-xs" style={{ color: "#8A8578" }}>{sahifa + 1} / {JAMI_SAHIFA}</span>
+          <button onClick={() => setSahifa((s) => Math.min(JAMI_SAHIFA - 1, s + 1))} disabled={sahifa >= JAMI_SAHIFA - 1}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= JAMI_SAHIFA - 1 ? "#C4BFAF" : "#5A5648" }}>
+            Keyingi →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5) O'QITUVCHI — guruhlarim, baholash
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// 7) ADMIN — Test shablon yuklab olish / import qilish
+// ═══════════════════════════════════════════════════════════
+function TopikMavzularTab({ token, onTestYarat }) {
+  const [holat, setHolat] = useState("sinf"); // sinf | fan | mavzular
+  const [sinflar, setSinflar] = useState({ oddiy: [], togarak: [] });
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [fanlar, setFanlar] = useState([]);
+  const [tanlanganFan, setTanlanganFan] = useState(null);
+  const [mavzular, setMavzular] = useState([]);
+  const [sahifa, setSahifa] = useState(0);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+
+  const [mavzuOchirishTasdiqi, setMavzuOchirishTasdiqi] = useState(null); // mavzu obyekti | null
+  const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(false);
+  const [ochirilmoqda, setOchirilmoqda] = useState(false);
+  const [rasmGaleriyasi, setRasmGaleriyasi] = useState(null); // {sarlavha, rasmlar: [id,...]} | null
+  const [rasmlarYuklanmoqda, setRasmlarYuklanmoqda] = useState(false);
+  const [umumiyKorinish, setUmumiyKorinish] = useState(null); // {sinflar: [...]} | null (ochilganda yuklanadi)
+  const [umumiyYuklanmoqda, setUmumiyYuklanmoqda] = useState(false);
+
+  const umumiyKorinishniOch = () => {
+    setUmumiyKorinish({ sinflar: [] });
+    setUmumiyYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_umumiy_korinish?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setUmumiyKorinish(d); setUmumiyYuklanmoqda(false); })
+      .catch(() => { setXato("Umumiy ko'rinishni yuklab bo'lmadi"); setUmumiyYuklanmoqda(false); });
+  };
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d); setYuklanmoqda(false); })
+      .catch(() => { setXato("Sinflarni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token]);
+
+  const sinfTanlandi = (sinf) => {
+    setTanlanganSinf(sinf);
+    setHolat("fan");
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  const mavzularniQaytaYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  const fanTanlandi = (fan) => {
+    setTanlanganFan(fan);
+    setHolat("mavzular");
+    setSahifa(0);
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  // "Umumiy ko'rinish" dan bevosita bosilganda — sinf VA fanni BIRDANIGA,
+  // aniq (state kutmasdan) tanlaydi — tanlanganSinf holati hali
+  // yangilanmagan bo'lishi mumkinligi sababli fanTanlandi(fan) yolg'iz
+  // yetarli emas.
+  const sinfVaFanTanlandi = (sinf, fan) => {
+    setUmumiyKorinish(null);
+    setTanlanganSinf(sinf);
+    setTanlanganFan(fan);
+    setHolat("mavzular");
+    setSahifa(0);
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  const mavzuTestlariniOchir = async (mavzu) => {
+    setOchirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/mavzu_testlarini_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
+        method: "DELETE",
+      });
+      setMavzuOchirishTasdiqi(null);
+      mavzularniQaytaYukla();
+    } catch {
+      setXato("O'chirib bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
+  const fanTestlariniOchir = async () => {
+    setOchirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/fan_testlarini_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
+        method: "DELETE",
+      });
+      setFanOchirishTasdiqi(false);
+      mavzularniQaytaYukla();
+    } catch {
+      setXato("O'chirib bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
+  const rasmlarniKor = async (mavzu) => {
+    setRasmlarYuklanmoqda(true);
+    setRasmGaleriyasi({ sarlavha: mavzu.nomi, rasmlar: [] });
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/mavzu_rasmlari?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`);
+      const data = await res.json();
+      setRasmGaleriyasi({ sarlavha: mavzu.nomi, rasmlar: data.rasmlar || [] });
+    } catch {
+      setXato("Rasmlarni yuklab bo'lmadi");
+    } finally { setRasmlarYuklanmoqda(false); }
+  };
+
+  if (holat === "sinf") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Topik mavzular</h1>
+          <button onClick={umumiyKorinishniOch}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            📊 Umumiy ko'rinish
+          </button>
+        </div>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Kontent auditi — qaysi mavzuda test bor, qaysisida yo'q.</p>
+        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🏫 Oddiy sinflar</p>
+            <div className="grid grid-cols-6 gap-1.5 mb-5">
+              {sinflar.oddiy.map((s) => (
+                <button key={s} onClick={() => sinfTanlandi(s)}
+                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
+                  style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            {sinflar.togarak.length > 0 && (
+              <>
+                <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🔀 To'garak sinflari</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {sinflar.togarak.map((s) => (
+                    <button key={s} onClick={() => sinfTanlandi(s)}
+                      className="px-3 py-2 rounded-lg border text-sm font-medium"
+                      style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {umumiyKorinish && (
+          <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
+            <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
+              <button onClick={() => setUmumiyKorinish(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Yopish</button>
+              <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Umumiy ko'rinish</h1>
+              <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Barcha sinf va fanlar — bir ekranda, alohida kirmasdan.</p>
+              {umumiyYuklanmoqda ? (
+                <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+              ) : umumiyKorinish.sinflar.length === 0 ? (
+                <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha ma'lumot yo'q.</p>
+              ) : (
+                <div className="space-y-5">
+                  {umumiyKorinish.sinflar.map((s) => (
+                    <div key={s.sinf}>
+                      <p className="text-sm font-bold mb-2.5" style={{ color: "#2B2B2B" }}>
+                        {/^\d+$/.test(s.sinf) ? `${s.sinf}-sinf` : s.sinf}
+                      </p>
+                      <div className="space-y-2">
+                        {s.fanlar.map((f) => {
+                          const foiz = f.jami_mavzu ? Math.round((f.testli_mavzu / f.jami_mavzu) * 100) : 0;
+                          const rang = fanRangiOl(f.nom);
+                          return (
+                            <button key={f.nom}
+                              onClick={() => sinfVaFanTanlandi(s.sinf, f.nom)}
+                              className="w-full rounded-xl p-3 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                                <span className="text-xs font-semibold shrink-0" style={{ color: rang }}>{f.testli_mavzu}/{f.jami_mavzu}</span>
+                              </div>
+                              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#EFEBE1" }}>
+                                <div className="h-full rounded-full" style={{ width: `${foiz}%`, backgroundColor: rang }} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (holat === "fan") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setHolat("sinf")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflar</button>
+        <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>{tanlanganSinf}{/^\d+$/.test(tanlanganSinf) ? "-sinf" : ""} fanlari</h1>
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : fanlar.length === 0 ? (
+          <p className="text-sm" style={{ color: "#8A8578" }}>Bu sinfda hali fan mavjud emas.</p>
+        ) : (
+          <div className="space-y-2">
+            {fanlar.map((f) => (
+              <button key={f.nom} onClick={() => fanTanlandi(f.nom)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-white border text-left"
+                style={{ borderColor: "#E5E1D8" }}>
+                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                <span className="text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} yozuv →</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // holat === "mavzular"
+  const SAHIFA_HAJMI = 10;
+  const korinadigan = mavzular.slice(sahifa * SAHIFA_HAJMI, sahifa * SAHIFA_HAJMI + SAHIFA_HAJMI);
+  const jamiSahifa = Math.ceil(mavzular.length / SAHIFA_HAJMI) || 1;
+  const testliSoni = mavzular.filter((m) => m.test_bormi).length;
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={() => setHolat("fan")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Fanlar</button>
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>{tanlanganFan}</h1>
+        {testliSoni > 0 && (
+          <button onClick={() => setFanOchirishTasdiqi(true)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+            🗑 Fandagi barcha testlarni o'chirish
+          </button>
+        )}
+      </div>
+      <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+        {mavzular.length} ta mavzu · {testliSoni} tasida test bor
+      </p>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : (
+        <>
+          <div className="space-y-2.5 mb-3">
+            {korinadigan.map((m) => (
+              <div key={m.topic_code} className="rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <p className="text-sm font-medium flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                  {m.test_bormi ? (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>✅ Test bor</span>
+                  ) : (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>❌ Test yo'q</span>
+                  )}
+                </div>
+                <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+                  {m.chorak ? `${m.chorak}-chorak` : ""}{m.bob ? ` · ${m.bob}` : ""}{m.bolim ? ` · ${m.bolim}` : ""} · {m.kichik_soni} kichik mavzu
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {!m.test_bormi ? (
+                    <button onClick={() => onTestYarat(m.topic_code)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                      style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+                      🧪 Test shablon yaratish
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => rasmlarniKor(m)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+                        🖼 Rasmlarni ko'rish
+                      </button>
+                      <button onClick={() => setMavzuOchirishTasdiqi(m)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                        🗑 Testlarni o'chirish
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {jamiSahifa > 1 && (
+            <div className="flex items-center justify-between">
+              <button onClick={() => setSahifa((s) => Math.max(0, s - 1))} disabled={sahifa === 0}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>
+                ← Oldingi
+              </button>
+              <span className="text-xs" style={{ color: "#8A8578" }}>{sahifa + 1} / {jamiSahifa}</span>
+              <button onClick={() => setSahifa((s) => Math.min(jamiSahifa - 1, s + 1))} disabled={sahifa >= jamiSahifa - 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= jamiSahifa - 1 ? "#C4BFAF" : "#5A5648" }}>
+                Keyingi →
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {mavzuOchirishTasdiqi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Testlarni o'chirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              "{mavzuOchirishTasdiqi.nomi}" mavzusining BARCHA testlari butunlay o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setMavzuOchirishTasdiqi(null)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={() => mavzuTestlariniOchir(mavzuOchirishTasdiqi)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "..." : "Ha, o'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fanOchirishTasdiqi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Butun fanni o'chirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              "{tanlanganFan}" fanidagi BARCHA mavzularning BARCHA testlari butunlay o'chiriladi ({testliSoni} ta mavzu). Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setFanOchirishTasdiqi(false)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={fanTestlariniOchir} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "..." : "Ha, hammasini o'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rasmGaleriyasi && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
+          <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
+            <button onClick={() => setRasmGaleriyasi(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Yopish</button>
+            <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>🖼 {rasmGaleriyasi.sarlavha}</h1>
+            <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+              {rasmlarYuklanmoqda ? "Yuklanmoqda..." : `${rasmGaleriyasi.rasmlar.length} ta rasm havolasi topildi`}
+            </p>
+            {rasmlarYuklanmoqda ? (
+              <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : rasmGaleriyasi.rasmlar.length === 0 ? (
+              <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <p className="text-sm" style={{ color: "#8A8578" }}>Bu mavzuning savollarida rasm havolasi yo'q.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {rasmGaleriyasi.rasmlar.map((rasmId) => (
+                  <div key={rasmId}>
+                    {haqiqiyRasmKodimi(rasmId) ? (
+                      <SavolRasmi rasmId={rasmId} />
+                    ) : (
+                      <div className="w-full rounded-xl mb-1 flex flex-col items-center justify-center gap-1 py-6"
+                        style={{ backgroundColor: "#F1EFE8", border: "1px dashed #C4BFAF" }}>
+                        <span className="text-lg">∑</span>
+                        <span className="text-xs font-medium text-center px-2" style={{ color: "#8A8578" }}>LaTeX ifoda (rasm emas)</span>
+                      </div>
+                    )}
+                    <p className="text-xs font-mono text-center" style={{ color: "#B0AA98", wordBreak: "break-all" }}>{rasmId}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminTestlarTab({ token }) {
+  return <TestTab token={token} sinf={null} />;
+}
+
+function AdminTab({ token, oldindanTanlangan }) {
+  const [bolim, setBolim] = useState("test"); // "test" | "topik" | "tushuntirish" | "maktab" | "markaz"
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
+
+      <div className="grid grid-cols-2 gap-2 mb-5">
+        <button onClick={() => setBolim("test")}
+          className="py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "test"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🧪 Test shablon
+        </button>
+        <button onClick={() => setBolim("topik")}
+          className="py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "topik"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          📋 Topik shablon
+        </button>
+        <button onClick={() => setBolim("tushuntirish")}
+          className="py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "tushuntirish"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🤖 Tushuntirish
+        </button>
+        <button onClick={() => setBolim("maktab")}
+          className="py-2.5 rounded-xl font-semibold text-sm"
+          style={bolim === "maktab"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🏫 Maktablar
+        </button>
+        <button onClick={() => setBolim("markaz")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "markaz"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🎓 O'quv markazlari
+        </button>
+        <button onClick={() => setBolim("bogcha")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "bogcha"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🧸 Bog'chalar
+        </button>
+        <button onClick={() => setBolim("universitet")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "universitet"
+            ? { backgroundColor: "#1B4B7A", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+          🎓 Universitetlar
+        </button>
+        <button onClick={() => setBolim("sinov")}
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          style={bolim === "sinov"
+            ? { backgroundColor: "#C89B3C", color: "#fff" }
+            : { backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #F5DFA3" }}>
+          🧪 Sinov muhiti
+        </button>
+      </div>
+
+      {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
+      {bolim === "topik" && <TopikShablonBolimi token={token} />}
+      {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
+      {bolim === "maktab" && <MaktablarBolimi token={token} />}
+      {bolim === "markaz" && <MarkazlarBolimi token={token} />}
+      {bolim === "bogcha" && <BogchalarBolimi token={token} />}
+      {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
+      {bolim === "sinov" && <SinovMuhitiBolimi token={token} />}
+    </div>
+  );
+}
+
+const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
+
+const LAVOZIM_NOMLARI = {
+  direktor: "Direktor",
+  zam_direktor_uquv: "O'quv ishlari bo'yicha direktor o'rinbosari",
+  zam_direktor_tarbiya: "Ma'naviy-ma'rifiy ishlar bo'yicha direktor o'rinbosari",
+  psixolog: "Psixolog",
+  kotib: "Kotib",
+  fan_oqituvchisi: "Fan o'qituvchisi",
+  markaz_direktor: "Markaz direktori",
+  administrator: "Administrator",
+  bogcha_direktor: "Bog'cha direktori",
+  bogcha_zam: "Bog'cha zam direktori",
+  bogcha_opa: "Bog'cha opasi (tarbiyachi)",
+};
+
+const QIYINLIK_DARAJALARI = [
+  ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
+];
+
+function TestShablonBolimi({ token, oldindanTanlangan }) {
+  const [fanlar, setFanlar] = useState([]);
+  const [ochiqFan, setOchiqFan] = useState(null);
+  const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
+  const [guruhlar, setGuruhlar] = useState(
+    QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 }))
+  );
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natija, setNatija] = useState(null);
+
+  useEffect(() => {
+    // faqat_testli=false: bu yerda ADMIN test SHABLON yaratadi — testi
+    // hali yo'q mavzular ham ko'rinishi va tanlanishi kerak.
+    fetch(`${API_BASE}/api/mavzular?faqat_testli=false`)
+      .then((r) => r.json())
+      .then((d) => setFanlar(d.fanlar || []))
+      .catch(() => setXato("Mavzularni yuklab bo'lmadi"));
+  }, []);
+
+  useEffect(() => {
+    if (oldindanTanlangan && oldindanTanlangan.length > 0) {
+      setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...oldindanTanlangan])));
     }
+  }, [oldindanTanlangan]);
 
+  const kodniAlmashtir = (kodlar) => {
+    setTanlanganKodlar((prev) => {
+      const barchasiBor = kodlar.every((k) => prev.includes(k));
+      return barchasiBor ? prev.filter((k) => !kodlar.includes(k)) : Array.from(new Set([...prev, ...kodlar]));
+    });
+  };
 
-# ═══════════════════════════════════════════════════════════
-# DAVOMAT (kunlik yo'qlama) — "School OS" ko'rinishining birinchi
-# poydevor bloki. Ko'p boshqa modul (direktor dashboard, avtomatik
-# ogohlantirish, o'qituvchi/sinf nazorati) MANA SHUNGA tayanadi, shu
-# sabab ANIQ shu jadvaldan boshlaymiz — keyingi modullar shu ustiga
-# quriladi, qaytadan yozilmaydi.
-# ═══════════════════════════════════════════════════════════
+  const guruhniYangila = (diff, maydon, qiymat) => {
+    setGuruhlar((prev) => prev.map((g) => g.diff === diff ? { ...g, [maydon]: qiymat } : g));
+  };
 
-def _davomat_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS davomat(
-        id SERIAL PRIMARY KEY,
-        sinf_id INTEGER NOT NULL REFERENCES maktab_sinflari(id),
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        sana DATE NOT NULL,
-        holat TEXT NOT NULL,
-        izoh TEXT,
-        belgilagan_user_id BIGINT REFERENCES users(user_id),
-        belgilangan_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(sinf_id, user_id, sana)
-    )""")
+  const jamiSon = guruhlar.reduce((sum, g) => sum + g.soni, 0);
 
+  const shablonYukla = async () => {
+    if (tanlanganKodlar.length === 0) { setXato("Kamida bitta mavzu tanlang"); return; }
+    if (jamiSon === 0) { setXato("Kamida bitta qiyinlik darajasidan son tanlang"); return; }
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/shablon_yukla?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || "Xato");
+      }
+      const blob = await res.blob();
+      const dlUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl; a.download = "test_shablon.xlsx";
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(dlUrl);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYuklanmoqda(false); }
+  };
 
-class DavomatYozuvi(BaseModel):
-    user_id: int
-    holat: str  # keldi | kelmadi | kechikdi | sababli
-    izoh: Optional[str] = None
-
-
-class DavomatBelgilash(BaseModel):
-    token: str
-    sinf_id: int
-    sana: str  # "2026-07-19"
-    yozuvlar: list[DavomatYozuvi]
-
-
-DAVOMAT_HOLATLARI = {"keldi", "kelmadi", "kechikdi", "sababli"}
-
-
-@app.post("/api/oqituvchi/davomat_belgila")
-def davomat_belgila(sorov: DavomatBelgilash):
-    """Sinf rahbari (yoki maktab rahbariyati) — BUTUN sinf uchun,
-    BIR KUNLIK davomatni bitta so'rovda belgilaydi. Qayta yuborilsa —
-    o'sha kunning yozuvlari YANGILANADI (eski holat ustidan yoziladi).
-    "kelmadi" deb belgilangan har bir o'quvchining ota-onasiga
-    avtomatik bildirishnoma yuboriladi."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _davomat_jadvali(cur)
-    cur.execute("SELECT maktab_id, rahbar_user_id, sinf, harf FROM maktab_sinflari WHERE id=%s", (sorov.sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    ruxsat = s["rahbar_user_id"] == user_id or _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu sinf rahbari, maktab rahbariyati yoki admin belgilay oladi")
-
-    kelmagan_oquvchilar = []
-    for y in sorov.yozuvlar:
-        if y.holat not in DAVOMAT_HOLATLARI:
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail=f"Noto'g'ri holat: {y.holat}")
-        cur.execute("""
-            INSERT INTO davomat(sinf_id, user_id, sana, holat, izoh, belgilagan_user_id)
-            VALUES(%s,%s,%s,%s,%s,%s)
-            ON CONFLICT (sinf_id, user_id, sana) DO UPDATE SET
-                holat = EXCLUDED.holat, izoh = EXCLUDED.izoh,
-                belgilagan_user_id = EXCLUDED.belgilagan_user_id, belgilangan_at = NOW()
-        """, (sorov.sinf_id, y.user_id, sorov.sana, y.holat, y.izoh, user_id))
-        if y.holat == "kelmadi":
-            kelmagan_oquvchilar.append(y.user_id)
-    conn.commit()
-
-    if kelmagan_oquvchilar:
-        cur.execute("SELECT user_id, full_name FROM users WHERE user_id = ANY(%s)", (kelmagan_oquvchilar,))
-        ismlar = {r["user_id"]: r["full_name"] for r in cur.fetchall()}
-        for bola_id in kelmagan_oquvchilar:
-            cur.execute("SELECT parent_id FROM parent_child WHERE child_id=%s", (bola_id,))
-            for oo in cur.fetchall():
-                cur.execute(
-                    "INSERT INTO bildirishnomalar(user_id, matn, turi) VALUES(%s,%s,'davomat')",
-                    (oo["parent_id"], f"{ismlar.get(bola_id, 'Farzandingiz')} bugun ({sorov.sana}) {s['sinf']}-{s['harf']} sinfga kelmadi."),
-                )
-        conn.commit()
-
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi", "kelmagan_soni": len(kelmagan_oquvchilar)}
-
-
-@app.get("/api/oqituvchi/davomat_royxati")
-def davomat_royxati(token: str, sinf_id: int, sana: str):
-    """Bir kunlik davomatni ko'rish/tahrirlash uchun — sinf a'zolari
-    RO'YXATI, har biriga o'sha kungi (agar bor bo'lsa) holat bilan
-    birga."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _davomat_jadvali(cur); _sinf_azolari_jadvali(cur)
-    cur.execute("SELECT maktab_id, rahbar_user_id FROM maktab_sinflari WHERE id=%s", (sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    ruxsat = s["rahbar_user_id"] == user_id or _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu sinf rahbari, maktab rahbariyati yoki admin ko'ra oladi")
-
-    cur.execute("""
-        SELECT u.user_id, u.full_name, d.holat, d.izoh
-        FROM maktab_sinf_azolari a
-        JOIN users u ON u.user_id = a.user_id
-        LEFT JOIN davomat d ON d.sinf_id = a.sinf_id AND d.user_id = a.user_id AND d.sana = %s
-        WHERE a.sinf_id=%s ORDER BY u.full_name
-    """, (sana, sinf_id))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"oquvchilar": natija}
-
-
-@app.get("/api/bola/{bola_id}/davomat_xulosa")
-def bola_davomat_xulosa(bola_id: int, token: str):
-    """O'quvchi/ota-ona uchun — oxirgi 30 kunlik davomat xulosasi:
-    necha kun keldi/kelmadi/kechikdi, va KETMA-KET necha kun
-    kelmagani (ogohlantirish uchun muhim ko'rsatkich)."""
-    _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _davomat_jadvali(cur)
-    cur.execute("""
-        SELECT sana, holat FROM davomat
-        WHERE user_id=%s AND sana >= CURRENT_DATE - INTERVAL '30 days'
-        ORDER BY sana DESC
-    """, (bola_id,))
-    yozuvlar = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    keldi = sum(1 for y in yozuvlar if y["holat"] == "keldi")
-    kelmadi = sum(1 for y in yozuvlar if y["holat"] == "kelmadi")
-    kechikdi = sum(1 for y in yozuvlar if y["holat"] == "kechikdi")
-    sababli = sum(1 for y in yozuvlar if y["holat"] == "sababli")
-    ketma_ket_yoq = 0
-    for y in yozuvlar:  # eng yangisidan boshlab — birinchi "keldi"gacha sanaydi
-        if y["holat"] == "kelmadi":
-            ketma_ket_yoq += 1
-        else:
-            break
-    return {
-        "jami_kun": len(yozuvlar), "keldi": keldi, "kelmadi": kelmadi,
-        "kechikdi": kechikdi, "sababli": sababli, "ketma_ket_kelmagan": ketma_ket_yoq,
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/shablon_import?token=${encodeURIComponent(token)}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
     }
+  };
 
+  return (
+    <>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+          1) Mavzu(lar)ni tanlang ({tanlanganKodlar.length} ta tanlandi)
+        </label>
+        <div className="space-y-1.5 max-h-56 overflow-y-auto mb-1">
+          {fanlar.map((fan) => {
+            const ochiq = ochiqFan === fan.qisqa;
+            return (
+              <div key={fan.qisqa} className="rounded-xl overflow-hidden" style={{ backgroundColor: "#F7F5F0" }}>
+                <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)}
+                  className="w-full flex items-center justify-between px-3 py-2.5">
+                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
+                  {ochiq ? <ChevronDown size={16} style={{ color: "#8A8578" }} /> : <ChevronRight size={16} style={{ color: "#8A8578" }} />}
+                </button>
+                {ochiq && (
+                  <div className="px-3 pb-2.5 space-y-1">
+                    {fan.sinflar.map((s) => (
+                      <div key={s.sinf}>
+                        <p className="text-xs font-medium py-1" style={{ color: "#8A8578" }}>{s.sinf}-sinf</p>
+                        {s.mavzular.map((m) => (
+                          <label key={m.nomi} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-white mb-1 cursor-pointer">
+                            <input type="checkbox" checked={m.topic_codes.every((k) => tanlanganKodlar.includes(k))}
+                              onChange={() => kodniAlmashtir(m.topic_codes)} />
+                            <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-@app.get("/api/oqituvchi/oquvchi_profili")
-def oquvchi_profili(token: str, user_id: int):
-    """Bitta o'quvchi haqida — BILIM + DAVOMAT + TO'LOV — bitta
-    ekranda. Mavjud bola_bilimi va bola_davomat_xulosa funksiyalarini
-    to'g'ridan-to'g'ri QAYTA ISHLATADI (qaytadan yozilmagan). Faqat
-    shu o'quvchining sinf rahbari, maktab rahbariyati yoki admin
-    ko'ra oladi."""
-    caller_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _sinf_azolari_jadvali(cur); _tolov_jadvallari(cur)
-    cur.execute("""
-        SELECT u.full_name, u.class, u.class_letter, u.maktab_id,
-               s.rahbar_user_id, mk.nomi AS maktab_nomi, mk.pulli, mk.oylik_tolov
-        FROM users u
-        LEFT JOIN maktab_sinf_azolari a ON a.user_id = u.user_id
-        LEFT JOIN maktab_sinflari s ON s.id = a.sinf_id
-        LEFT JOIN maktablar mk ON mk.id = s.maktab_id
-        WHERE u.user_id=%s
-        ORDER BY a.qoshilgan_at DESC LIMIT 1
-    """, (user_id,))
-    o = cur.fetchone()
-    if not o:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="O'quvchi topilmadi")
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-3 block" style={{ color: "#5A5648" }}>
+          2) Har bir qiyinlik darajasi uchun son va turini tanlang
+        </label>
+        <div className="space-y-4">
+          {guruhlar.map((g) => {
+            const nom = QIYINLIK_DARAJALARI.find(([d]) => d === g.diff)[1];
+            return (
+              <div key={g.diff}>
+                <p className="text-sm font-medium mb-1.5" style={{ color: "#2B2B2B" }}>{nom}</p>
+                <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                  {[0, 5, 10, 15, 20].map((n) => (
+                    <button key={n} onClick={() => guruhniYangila(g.diff, "soni", n)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={g.soni === n
+                        ? { backgroundColor: "#1B4B7A", color: "#fff" }
+                        : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => guruhniYangila(g.diff, "turi", "single_choice")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={g.turi === "single_choice"
+                      ? { backgroundColor: "#2D8B8B", color: "#fff" }
+                      : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    🔘 Tugmali
+                  </button>
+                  <button onClick={() => guruhniYangila(g.diff, "turi", "write_answer")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={g.turi === "write_answer"
+                      ? { backgroundColor: "#2D8B8B", color: "#fff" }
+                      : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    ✍️ Yozuvli
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-    ruxsat = (o["rahbar_user_id"] == caller_id) or (o["maktab_id"] and _maktab_boshqaruvchi_mi(cur, caller_id, o["maktab_id"]))
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu o'quvchining sinf rahbari yoki maktab rahbariyati ko'ra oladi")
+        <button onClick={shablonYukla} disabled={yuklanmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 mt-5"
+          style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
+          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : `📥 Shablon yuklab olish (jami: ${jamiSon} ta × ${tanlanganKodlar.length} mavzu)`}
+        </button>
+      </div>
 
-    tolov_tarixi = []
-    if o["pulli"] and o["maktab_id"]:
-        cur.execute("""
-            SELECT oy, tolangan_summa, tolov_sanasi FROM tolovlar
-            WHERE user_id=%s AND maktab_id=%s ORDER BY oy DESC LIMIT 3
-        """, (user_id, o["maktab_id"]))
-        tolov_tarixi = cur.fetchall()
-    cur.close()
-    conn.close()
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+          To'ldirilgan shablonni yuklash
+        </label>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
 
-    bilim = bola_bilimi(bola_id=user_id, sinf=None)
-    davomat = bola_davomat_xulosa(bola_id=user_id, token=token)
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {natija && (
+          <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+            <p>✅ Saqlandi: <b>{natija.saved}</b></p>
+            <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
+            <p>❌ Xato: <b>{natija.errors}</b></p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
-    return {
-        "full_name": o["full_name"], "sinf": o["class"], "harf": o["class_letter"],
-        "maktab_nomi": o["maktab_nomi"], "maktab_id": o["maktab_id"], "pulli": o["pulli"], "oylik_tolov": o["oylik_tolov"],
-        "bilim": bilim, "davomat": davomat, "tolov_tarixi": tolov_tarixi,
+function TopikShablonBolimi({ token }) {
+  const [sinf, setSinf] = useState("");
+  const [fan, setFan] = useState("");
+  const [mavzular, setMavzular] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natija, setNatija] = useState(null);
+
+  const shablonYukla = async () => {
+    if (!sinf.trim() || !fan.trim() || !mavzular.trim()) {
+      setXato("Sinf, fan va mavzularni to'ldiring"); return;
     }
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/topik_shablon?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), mavzular }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail || "Xato");
+      }
+      const blob = await res.blob();
+      const dlUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl; a.download = `shablon_${sinf}sinf_${fan}.xlsx`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(dlUrl);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYuklanmoqda(false); }
+  };
 
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/topik_import?token=${encodeURIComponent(token)}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
 
-# ═══════════════════════════════════════════════════════════
-# KUTUBXONA — "School OS"ning mustaqil moduli. Boshqalarga bog'liq
-# emas (davomat/bilim ustiga qurilmagan), shu sabab XATOSIZ, sodda
-# boshlash uchun qulay. Fizik kitoblar (nusxa soni + band/bo'sh) va
-# elektron kitoblar (havola) ikkalasini ham qo'llab-quvvatlaydi.
-# ═══════════════════════════════════════════════════════════
+  return (
+    <>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+        <input type="text" value={sinf} onChange={(e) => setSinf(e.target.value)}
+          placeholder="masalan: 1"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
 
-def _kutubxona_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS kutubxona_kitoblar(
-        id SERIAL PRIMARY KEY,
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        nomi TEXT NOT NULL, muallif TEXT, janr TEXT,
-        nusxa_soni INTEGER NOT NULL DEFAULT 1,
-        elektron_havola TEXT,
-        qoshilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS kutubxona_ijara(
-        id SERIAL PRIMARY KEY,
-        kitob_id INTEGER NOT NULL REFERENCES kutubxona_kitoblar(id),
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        olingan_sana DATE NOT NULL DEFAULT CURRENT_DATE,
-        qaytarish_muddati DATE,
-        qaytarilgan_sana DATE
-    )""")
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
+        <input type="text" value={fan} onChange={(e) => setFan(e.target.value)}
+          placeholder="masalan: Ingliz tili"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
 
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+          Mavzular (har biri yangi qatorda: chorak / mavzu)
+        </label>
+        <textarea value={mavzular} onChange={(e) => setMavzular(e.target.value)}
+          placeholder={"1 / Colours\n1 / Numbers\n2 / Animals"}
+          rows={5}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
+          style={{ borderColor: "#E5E1D8" }} />
 
-class KitobQoshish(BaseModel):
-    token: str
-    maktab_id: int
-    nomi: str
-    muallif: Optional[str] = None
-    janr: Optional[str] = None
-    nusxa_soni: int = 1
-    elektron_havola: Optional[str] = None
+        <button onClick={shablonYukla} disabled={yuklanmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
+          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Shablon yuklab olish"}
+        </button>
+      </div>
 
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+          To'ldirilgan shablonni yuklash
+        </label>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
 
-@app.post("/api/maktab/kitob_qosh")
-def kitob_qosh(sorov: KitobQoshish):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _kutubxona_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, sorov.maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin kitob qo'sha oladi")
-    if not sorov.nomi.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kitob nomini kiriting")
-    cur.execute("""
-        INSERT INTO kutubxona_kitoblar(maktab_id, nomi, muallif, janr, nusxa_soni, elektron_havola)
-        VALUES(%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (sorov.maktab_id, sorov.nomi.strip(), sorov.muallif, sorov.janr, max(1, sorov.nusxa_soni), sorov.elektron_havola))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "kitob_id": yangi_id}
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {natija && (
+          <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+            <p>➕ Qo'shildi: <b>{natija.added}</b></p>
+            <p>⏭ O'tkazildi: <b>{natija.skipped}</b></p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
+function TushuntirishBolimi({ token }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natija, setNatija] = useState(null);
 
-@app.get("/api/maktab/kutubxona")
-def kutubxona_royxati(token: str, maktab_id: int):
-    """Maktab rahbariyati uchun — barcha kitoblar, har birining
-    nechta nusxasi BAND (hozir kimdadir) ekani bilan birga."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _kutubxona_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        SELECT k.id, k.nomi, k.muallif, k.janr, k.nusxa_soni, k.elektron_havola,
-               COUNT(i.id) FILTER (WHERE i.qaytarilgan_sana IS NULL) AS band_soni
-        FROM kutubxona_kitoblar k
-        LEFT JOIN kutubxona_ijara i ON i.kitob_id = k.id
-        WHERE k.maktab_id=%s
-        GROUP BY k.id
-        ORDER BY k.nomi
-    """, (maktab_id,))
-    kitoblar = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"kitoblar": kitoblar}
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/tushuntirish_import?token=${encodeURIComponent(token)}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
 
+  return (
+    <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+      <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🤖 AI tushuntirishlarni yuklash</p>
+      <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+        Colab'da (yoki boshqa joyda) tayyorlangan Excel fayl — ustunlar: <b>Sinf, Fan, Mavzu, Tushuntirish</b>.
+        O'quvchi mavzuni ochganda shu tushuntirish ko'rsatiladi. Bir xil sinf+fan+mavzu qayta yuklansa — yangilanadi.
+      </p>
+      <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+        style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+        {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+        <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+      </label>
+      {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {natija && (
+        <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+          <p>✅ Saqlandi: <b>{natija.saqlandi}</b></p>
+          <p>❌ Xato: <b>{natija.xato}</b></p>
+        </div>
+      )}
+    </div>
+  );
+}
 
-class KitobBerish(BaseModel):
-    token: str
-    kitob_id: int
-    user_id: int
-    qaytarish_muddati: Optional[str] = None  # "2026-08-01"
+function MaktabQidiruvi({ tanlanganMaktab, onTanla }) {
+  const [nomi, setNomi] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
 
+  useEffect(() => {
+    if (nomi.trim().length < 2) { setNatijalar([]); return; }
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/maktab_qidir?nomi=${encodeURIComponent(nomi.trim())}`)
+        .then((r) => r.json())
+        .then((d) => { setNatijalar(d.natijalar || []); setQidirilmoqda(false); })
+        .catch(() => setQidirilmoqda(false));
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [nomi]);
 
-@app.post("/api/maktab/kitob_berish")
-def kitob_berish(sorov: KitobBerish):
-    """Kitobni bir o'quvchi/xodimga BERADI. Nusxalarning barchasi
-    band bo'lsa, xato qaytaradi (bo'sh nusxa yo'qligi uchun)."""
-    user_id_qiluvchi = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _kutubxona_jadvali(cur)
-    cur.execute("SELECT maktab_id, nusxa_soni FROM kutubxona_kitoblar WHERE id=%s", (sorov.kitob_id,))
-    k = cur.fetchone()
-    if not k:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Kitob topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id_qiluvchi, k["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin kitob bera oladi")
-    cur.execute("SELECT COUNT(*) AS soni FROM kutubxona_ijara WHERE kitob_id=%s AND qaytarilgan_sana IS NULL", (sorov.kitob_id,))
-    band = cur.fetchone()["soni"]
-    if band >= k["nusxa_soni"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Bo'sh nusxa yo'q — barcha nusxalar band")
-    cur.execute("""
-        INSERT INTO kutubxona_ijara(kitob_id, user_id, qaytarish_muddati)
-        VALUES(%s,%s,%s)
-    """, (sorov.kitob_id, sorov.user_id, sorov.qaytarish_muddati))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "berildi"}
+  if (tanlanganMaktab) {
+    return (
+      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3" style={{ borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+        <span className="text-sm font-medium" style={{ color: "#1B4B7A" }}>🏫 {tanlanganMaktab.nomi}</span>
+        <button onClick={() => onTanla(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕ O'zgartirish</button>
+      </div>
+    );
+  }
 
+  return (
+    <div className="mb-3">
+      <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+        placeholder="Maktabingiz nomini yozing (ro'yxatda bo'lsa, aniqroq bo'ladi)..."
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+        style={{ borderColor: "#E5E1D8" }} />
+      {qidirilmoqda && <p className="text-xs mt-1.5" style={{ color: "#8A8578" }}>Qidirilmoqda...</p>}
+      {natijalar.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {natijalar.map((m) => (
+            <button key={m.id} onClick={() => { onTanla(m); setNomi(""); setNatijalar([]); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+              <span className="text-sm" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+              <span className="text-xs" style={{ color: "#8A8578" }}>{[m.viloyat, m.tuman].filter(Boolean).join(", ")}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-@app.post("/api/maktab/kitob_qaytarish")
-def kitob_qaytarish(token: str, ijara_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _kutubxona_jadvali(cur)
-    cur.execute("""
-        SELECT k.maktab_id FROM kutubxona_ijara i JOIN kutubxona_kitoblar k ON k.id = i.kitob_id
-        WHERE i.id=%s
-    """, (ijara_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Ijara topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, r["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin belgilay oladi")
-    cur.execute("UPDATE kutubxona_ijara SET qaytarilgan_sana=CURRENT_DATE WHERE id=%s", (ijara_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qaytarildi"}
+function SinovMuhitiBolimi({ token }) {
+  const [yaratilmoqda, setYaratilmoqda] = useState(false);
+  const [natija, setNatija] = useState(null);
+  const [xato, setXato] = useState("");
+  const [kirilmoqdaId, setKirilmoqdaId] = useState(null);
 
+  const muhitYarat = async () => {
+    setYaratilmoqda(true); setXato(""); setNatija(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/sinov_muhit_yarat?token=${encodeURIComponent(token)}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatija(data);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYaratilmoqda(false); }
+  };
 
-@app.get("/api/maktab/kitob_tarixi")
-def kitob_tarixi(token: str, kitob_id: int):
-    """Bitta kitobning KIMLARDA bo'lgani/hozir kimda ekanligi tarixi."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _kutubxona_jadvali(cur)
-    cur.execute("SELECT maktab_id FROM kutubxona_kitoblar WHERE id=%s", (kitob_id,))
-    k = cur.fetchone()
-    if not k:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Kitob topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, k["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        SELECT i.id AS ijara_id, u.full_name, i.olingan_sana, i.qaytarish_muddati, i.qaytarilgan_sana
-        FROM kutubxona_ijara i JOIN users u ON u.user_id = i.user_id
-        WHERE i.kitob_id=%s ORDER BY i.olingan_sana DESC
-    """, (kitob_id,))
-    tarix = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"tarix": tarix}
+  const shuHisobBilanKir = async (hisobUserId) => {
+    setKirilmoqdaId(hisobUserId);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/sifatida_kirish?token=${encodeURIComponent(token)}&user_id=${hisobUserId}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      window.open(`/kabinet?token=${encodeURIComponent(data.token)}`, "_blank");
+    } catch (e) {
+      setXato(e.message);
+    } finally { setKirilmoqdaId(null); }
+  };
 
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#F5DFA3", backgroundColor: "#FFFDF7" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🧪 Sinov muhiti</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Bitta bosishda — sinov maktabi, bog'chasi, markazi va universiteti, ularning direktori/o'qituvchisi/
+          opasi/professori va o'quvchilari — HAMMASI soxta, tayyor holda yaratiladi. Google orqali kirish shart
+          emas — har biriga "Bu sifatida kirish" bilan darhol kirasiz.
+        </p>
+        <button onClick={muhitYarat} disabled={yaratilmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#C89B3C", opacity: yaratilmoqda ? 0.7 : 1 }}>
+          {yaratilmoqda ? "Yaratilmoqda..." : "🧪 Yangi sinov muhitini yaratish"}
+        </button>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
 
-@app.get("/api/maktab/odam_qidir")
-def maktab_odam_qidir(token: str, maktab_id: int, ism: str):
-    """Maktab rahbariyati uchun — o'sha maktabga tegishli (xodim
-    yoki tasdiqlangan o'quvchi) odamni ism bo'yicha qidiradi.
-    Masalan kitob berish uchun kimga berilayotganini topish."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin qidira oladi")
-    if len(ism.strip()) < 2:
-        cur.close(); conn.close()
-        return {"natijalar": []}
-    cur.execute("""
-        SELECT DISTINCT u.user_id, u.full_name FROM users u
-        WHERE u.full_name ILIKE %s AND (
-            u.maktab_id = %s
-            OR EXISTS (
-                SELECT 1 FROM maktab_sinf_azolari a JOIN maktab_sinflari s ON s.id = a.sinf_id
-                WHERE a.user_id = u.user_id AND s.maktab_id = %s
-            )
-        )
-        ORDER BY u.full_name LIMIT 10
-    """, (f"%{ism.strip()}%", maktab_id, maktab_id))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"natijalar": natija}
+      {natija && (
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ Tayyor — {natija.hisoblar.length} ta sinov hisobi</p>
+          <p className="text-xs mb-4" style={{ color: "#8A5A1C" }}>{natija.izoh}</p>
+          <div className="space-y-2">
+            {natija.hisoblar.map((h) => (
+              <div key={h.user_id} className="rounded-xl p-3 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{h.full_name}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{h.izoh}</p>
+                </div>
+                <button onClick={() => shuHisobBilanKir(h.user_id)} disabled={kirilmoqdaId === h.user_id}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shrink-0" style={{ backgroundColor: "#1B4B7A", opacity: kirilmoqdaId === h.user_id ? 0.7 : 1 }}>
+                  {kirilmoqdaId === h.user_id ? "..." : "→ Shu sifatida kirish"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
+function DirektorQidiruvi({ token, tanlanganDirektor, onTanla }) {
+  const [ism, setIsm] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
 
-# ═══════════════════════════════════════════════════════════
-# MOLIYA — maktab byudjeti. O'quvchi to'lovlari (tolovlar jadvali,
-# ALLAQACHON mavjud) BILAN BIRGA ko'rsatiladi — "kirim" alohida ikki
-# xil manbadan (o'quvchi kontrakti + boshqa: homiylik/grant) yig'iladi,
-# "chiqim" esa moliya_amallar orqali qo'lda kiritiladi.
-# ═══════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (ism.trim().length < 2) { setNatijalar([]); return; }
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/admin/foydalanuvchi_qidir?token=${encodeURIComponent(token)}&ism=${encodeURIComponent(ism.trim())}`)
+        .then((r) => r.json())
+        .then((d) => { setNatijalar(d.natijalar || []); setQidirilmoqda(false); })
+        .catch(() => setQidirilmoqda(false));
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [ism, token]);
 
-def _moliya_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS moliya_amallar(
-        id SERIAL PRIMARY KEY,
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        turi TEXT NOT NULL,
-        kategoriya TEXT,
-        summa INTEGER NOT NULL,
-        izoh TEXT,
-        sana DATE NOT NULL DEFAULT CURRENT_DATE,
-        kiritgan_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
+  if (tanlanganDirektor) {
+    return (
+      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3" style={{ borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+        <span className="text-sm font-medium" style={{ color: "#1B4B7A" }}>👤 {tanlanganDirektor.full_name}</span>
+        <button onClick={() => onTanla(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕ O'zgartirish</button>
+      </div>
+    );
+  }
 
+  return (
+    <div className="mb-3">
+      <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+        placeholder="Direktor ismini yozing (ixtiyoriy)..."
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+        style={{ borderColor: "#E5E1D8" }} />
+      {qidirilmoqda && <p className="text-xs mt-1.5" style={{ color: "#8A8578" }}>Qidirilmoqda...</p>}
+      {natijalar.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {natijalar.map((n) => (
+            <button key={n.user_id} onClick={() => { onTanla(n); setIsm(""); setNatijalar([]); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+              <span className="text-sm" style={{ color: "#2B2B2B" }}>{n.full_name}</span>
+              <span className="text-xs" style={{ color: "#8A8578" }}>{n.role}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-MOLIYA_TURLARI = {"kirim", "chiqim"}
-MOLIYA_KATEGORIYALARI = {
-    "kirim": ["Homiylik", "Grant", "Boshqa kirim"],
-    "chiqim": ["Ish haqi", "Jihoz/inventar", "Ta'mirlash", "Kommunal", "O'quv materiallari", "Boshqa chiqim"],
+function MaktablarBolimi({ token }) {
+  const [maktablar, setMaktablar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [smenaSoni, setSmenaSoni] = useState(1);
+  const [direktor, setDirektor] = useState(null); // {user_id, full_name} | null
+  const [pulli, setPulli] = useState(false);
+  const [oylikTolov, setOylikTolov] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
+
+  const maktablarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/maktablar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMaktablar(d.maktablar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+
+  useEffect(maktablarniYukla, [token]);
+
+  const maktabSaqla = async () => {
+    if (!nomi.trim()) { setXato("Maktab nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/maktab_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined,
+          smena_soni: smenaSoni, direktor_user_id: direktor ? direktor.user_id : undefined,
+          pulli, oylik_tolov: pulli && oylikTolov ? parseInt(oylikTolov, 10) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setViloyat(""); setTuman(""); setSmenaSoni(1); setDirektor(null); setPulli(false); setOylikTolov(""); setFormOchiq(false);
+      maktablarniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  if (tanlanganMaktab) {
+    return <MaktabTafsiloti token={token} maktab={tanlanganMaktab} onOrtga={() => { setTanlanganMaktab(null); maktablarniYukla(); }} />;
+  }
+
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🏫 Maktablar</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "#8A8578" }}>1-bosqich tayyor. Endi ro'yxatdan maktabni tanlang — xodimlarni Excel orqali kiritasiz (2-bosqich).</p>
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder="masalan: 21-maktab"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+              <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">—</option>
+                {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+              <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                <option value="">—</option>
+                {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Smena soni</label>
+          <div className="flex gap-2 mb-3">
+            {[1, 2].map((n) => (
+              <button key={n} onClick={() => setSmenaSoni(n)}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+                style={smenaSoni === n
+                  ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" }
+                  : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+                {n} smenali
+              </button>
+            ))}
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy — keyin ham belgilash mumkin)</label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
+
+          <label className="text-xs font-medium mb-1.5 block mt-3" style={{ color: "#5A5648" }}>To'lov turi</label>
+          <div className="flex gap-2 mb-3">
+            <button onClick={() => setPulli(false)}
+              className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+              style={!pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+              Bepul (davlat)
+            </button>
+            <button onClick={() => setPulli(true)}
+              className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+              style={pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+              Pulli (xususiy)
+            </button>
+          </div>
+          {pulli && (
+            <>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm)</label>
+              <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+                placeholder="masalan: 500000"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            </>
+          )}
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={maktabSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+            style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Maktabni yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : maktablar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali maktab qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {maktablar.map((m) => (
+            <button key={m.id} onClick={() => setTanlanganMaktab(m)}
+              className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <ChevronRight size={16} style={{ color: "#8A8578" }} />
+              </div>
+              <p className="text-xs" style={{ color: "#8A8578" }}>
+                {[m.viloyat, m.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {m.smena_soni} smenali
+              </p>
+              <p className="text-xs mt-1" style={{ color: m.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
+                {m.direktor_ismi ? `👤 Direktor: ${m.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaktabTafsiloti({ token, maktab, onOrtga }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natijalar, setNatijalar] = useState(null); // [{fish, lavozim, kirish_kodi, sinf_rahbarligi, sinf_paroli}] | null
+  const [sinflar, setSinflar] = useState([]);
+  const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
+  const [pulli, setPulli] = useState(maktab.pulli || false);
+  const [oylikTolov, setOylikTolov] = useState(maktab.oylik_tolov ? String(maktab.oylik_tolov) : "");
+  const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
+
+  const sinflarniYukla = () => {
+    setSinflarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/maktab_sinflari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d.sinflar || []); setSinflarYuklanmoqda(false); })
+      .catch(() => setSinflarYuklanmoqda(false));
+  };
+  useEffect(sinflarniYukla, [token, maktab.id]);
+
+  const parolniTashla = async (sinfId) => {
+    await fetch(`${API_BASE}/api/admin/sinf_parolini_tashla?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`, { method: "PUT" });
+    sinflarniYukla();
+  };
+
+  const tolovSozlashniSaqla = async () => {
+    setTolovSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/maktab_tolov_sozlash`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, maktab_id: maktab.id, pulli, oylik_tolov: pulli ? parseInt(oylikTolov, 10) || null : null }),
+      });
+    } finally { setTolovSaqlanmoqda(false); }
+  };
+
+  const shablonYukla = () => {
+    window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatijalar(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/xodim_import?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatijalar(data.natijalar || []);
+      sinflarniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Maktablar</button>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.nomi}</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+        {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
+      </p>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => setPulli(false)}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={!pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Bepul (davlat)
+          </button>
+          <button onClick={() => setPulli(true)}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Pulli (xususiy)
+          </button>
+        </div>
+        {pulli && (
+          <>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm)</label>
+            <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+              placeholder="masalan: 500000"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          </>
+        )}
+        <button onClick={tolovSozlashniSaqla} disabled={tolovSaqlanmoqda}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: tolovSaqlanmoqda ? 0.7 : 1 }}>
+          {tolovSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+        </button>
+      </div>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>2-bosqich — Xodimlarni kiritish</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Shablonni yuklab, F.I.Sh / Lavozim / Sinf rahbarligini to'ldirib, qayta yuklang.
+          Har bir xodimga shaxsiy kirish kodi, sinf rahbari bo'lsa — sinf qo'shilish paroli ham avtomatik yaratiladi.
+        </p>
+        <button onClick={shablonYukla}
+          className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          📥 Shablonni yuklab olish
+        </button>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
+
+      {natijalar && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
+          <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
+            Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga (masalan Telegram orqali) yuboring — bu ekranga qayta qaytib bo'lmaydi!
+          </p>
+          <div className="space-y-2.5">
+            {natijalar.map((n, i) => (
+              <div key={i} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{n.fish}</p>
+                <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>{n.lavozim}{n.sinf_rahbarligi ? ` · ${n.sinf_rahbarligi} sinf rahbari` : ""}</p>
+                <p className="text-xs font-mono" style={{ color: "#1B4B7A" }}>🔑 Kirish kodi: <b>{n.kirish_kodi}</b></p>
+                {n.sinf_paroli && <p className="text-xs font-mono" style={{ color: "#8A5A1C" }}>🔐 Sinf paroli: <b>{n.sinf_paroli}</b></p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Sinflar</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Xodim importi orqali "Sinf rahbarligi" to'ldirilganda avtomatik yaratilgan sinflar shu yerda ko'rinadi.
+        </p>
+        {sinflarYuklanmoqda ? (
+          <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : sinflar.length === 0 ? (
+          <p className="text-xs" style={{ color: "#8A8578" }}>Hali sinf yo'q — xodim importida "Sinf rahbarligi" ustunini to'ldirib yuklang.</p>
+        ) : (
+          <div className="space-y-2">
+            {sinflar.map((s) => (
+              <div key={s.id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"}</p>
+                  <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
+                </div>
+                <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+                  ↻ Parolni tashlash
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MarkazlarBolimi({ token }) {
+  const [markazlar, setMarkazlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [direktor, setDirektor] = useState(null);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [tanlanganMarkaz, setTanlanganMarkaz] = useState(null);
+
+  const markazlarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/markazlar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setMarkazlar(d.markazlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(markazlarniYukla, [token]);
+
+  const markazSaqla = async () => {
+    if (!nomi.trim()) { setXato("Markaz nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/markaz_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined,
+          direktor_user_id: direktor ? direktor.user_id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setViloyat(""); setTuman(""); setDirektor(null); setFormOchiq(false);
+      markazlarniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  if (tanlanganMarkaz) {
+    return <MarkazTafsiloti token={token} markaz={tanlanganMarkaz} onOrtga={() => { setTanlanganMarkaz(null); markazlarniYukla(); }} />;
+  }
+
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🎓 O'quv markazlari</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi markaz"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "#8A8578" }}>Repetitorlik/o'quv markazlari uchun — guruhlar mavjud to'garak tizimi orqali ishlaydi.</p>
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Markaz nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder="masalan: Iqbol o'quv markazi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+              <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">—</option>
+                {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+              <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                <option value="">—</option>
+                {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy)</label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={markazSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+            style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Markazni yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : markazlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali markaz qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {markazlar.map((m) => (
+            <button key={m.id} onClick={() => setTanlanganMarkaz(m)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{[m.viloyat, m.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}</p>
+                <p className="text-xs mt-1" style={{ color: m.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
+                  {m.direktor_ismi ? `👤 Direktor: ${m.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
+                </p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarkazTafsiloti({ token, markaz, onOrtga }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natijalar, setNatijalar] = useState(null);
+
+  const shablonYukla = () => {
+    window.open(`${API_BASE}/api/admin/markaz_xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatijalar(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/markaz_xodim_import?token=${encodeURIComponent(token)}&markaz_id=${markaz.id}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatijalar(data.natijalar || []);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Markazlar</button>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{markaz.nomi}</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{[markaz.viloyat, markaz.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}</p>
+
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>Xodimlarni kiritish</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Shablonni yuklab, F.I.Sh / Lavozimni to'ldirib, qayta yuklang. "Fan o'qituvchisi" bo'lganlar keyin to'garak (guruh) yaratganda,
+          u avtomatik shu markazga bog'lanadi — alohida ulash shart emas.
+        </p>
+        <button onClick={shablonYukla}
+          className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          📥 Shablonni yuklab olish
+        </button>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
+
+      {natijalar && (
+        <div className="rounded-2xl p-5 bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
+          <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
+            Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga yuboring — bu ekranga qayta qaytib bo'lmaydi!
+          </p>
+          <div className="space-y-2.5">
+            {natijalar.map((n, i) => (
+              <div key={i} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{n.fish}</p>
+                <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>{n.lavozim}</p>
+                <p className="text-xs font-mono" style={{ color: "#1B4B7A" }}>🔑 Kirish kodi: <b>{n.kirish_kodi}</b></p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BogchalarBolimi({ token }) {
+  const [bogchalar, setBogchalar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [turi, setTuri] = useState("xususiy");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [oylikTolov, setOylikTolov] = useState("");
+  const [direktor, setDirektor] = useState(null);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [tanlanganBogcha, setTanlanganBogcha] = useState(null);
+
+  const bogchalarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/bogchalar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setBogchalar(d.bogchalar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(bogchalarniYukla, [token]);
+
+  const bogchaSaqla = async () => {
+    if (!nomi.trim()) { setXato("Bog'cha nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/bogcha_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: nomi.trim(), turi, viloyat: viloyat || undefined, tuman: tuman || undefined,
+          direktor_user_id: direktor ? direktor.user_id : undefined,
+          oylik_tolov: turi === "xususiy" && oylikTolov ? parseInt(oylikTolov, 10) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setTuri("xususiy"); setViloyat(""); setTuman(""); setOylikTolov(""); setDirektor(null); setFormOchiq(false);
+      bogchalarniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  if (tanlanganBogcha) {
+    return <BogchaTafsiloti token={token} bogcha={tanlanganBogcha} onOrtga={() => { setTanlanganBogcha(null); bogchalarniYukla(); }} />;
+  }
+
+  return (
+    <div>
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🧸 Bog'chalar</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi bog'cha"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "#8A8578" }}>Xususiy/davlat bog'chalar — direktor, zam, opalar va guruhlar bilan.</p>
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Bog'cha nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder="masalan: Quyoshcha bog'chasi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Turi</label>
+          <div className="flex gap-2 mb-3">
+            {Object.entries({ xususiy: "Xususiy", davlat: "Davlat" }).map(([k, v]) => (
+              <button key={k} onClick={() => setTuri(k)}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+                style={turi === k ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+                {v}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+              <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">—</option>
+                {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+              <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                <option value="">—</option>
+                {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {turi === "xususiy" && (
+            <>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm, ixtiyoriy)</label>
+              <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+                placeholder="masalan: 800000"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            </>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy)</label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={bogchaSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm"
+            style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Bog'chani yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : bogchalar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali bog'cha qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {bogchalar.map((b) => (
+            <button key={b.id} onClick={() => setTanlanganBogcha(b)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{b.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>
+                  {b.turi === "xususiy" ? "Xususiy" : "Davlat"} · {[b.viloyat, b.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}
+                  {b.oylik_tolov ? ` · ${b.oylik_tolov.toLocaleString()} so'm/oy` : ""}
+                </p>
+                <p className="text-xs mt-1" style={{ color: b.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
+                  {b.direktor_ismi ? `👤 Direktor: ${b.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
+                </p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BogchaTafsiloti({ token, bogcha, onOrtga }) {
+  const [importlanmoqda, setImportlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [natijalar, setNatijalar] = useState(null);
+  const [turi, setTuri] = useState(bogcha.turi || "xususiy");
+  const [oylikTolov, setOylikTolov] = useState(bogcha.oylik_tolov ? String(bogcha.oylik_tolov) : "");
+  const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
+
+  const tolovSozlashniSaqla = async () => {
+    setTolovSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/bogcha_tolov_sozlash`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, bogcha_id: bogcha.id, turi, oylik_tolov: oylikTolov ? parseInt(oylikTolov, 10) : undefined }),
+      });
+    } finally { setTolovSaqlanmoqda(false); }
+  };
+
+  const shablonYukla = () => {
+    window.open(`${API_BASE}/api/admin/bogcha_xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setImportlanmoqda(true); setXato(""); setNatijalar(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/admin/bogcha_xodim_import?token=${encodeURIComponent(token)}&bogcha_id=${bogcha.id}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNatijalar(data.natijalar || []);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setImportlanmoqda(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Bog'chalar</button>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{bogcha.nomi}</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+        {bogcha.turi === "xususiy" ? "Xususiy" : "Davlat"} · {[bogcha.viloyat, bogcha.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}
+      </p>
+
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => setTuri("davlat")}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={turi === "davlat" ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Davlat
+          </button>
+          <button onClick={() => setTuri("xususiy")}
+            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+            style={turi === "xususiy" ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            Xususiy
+          </button>
+        </div>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm) — bo'sh qoldirsangiz, bepul hisoblanadi</label>
+        <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
+          placeholder="masalan: 800000"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={tolovSozlashniSaqla} disabled={tolovSaqlanmoqda}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: tolovSaqlanmoqda ? 0.7 : 1 }}>
+          {tolovSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+        </button>
+      </div>
+
+      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>Xodimlarni kiritish</p>
+        <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+          Shablonni yuklab, F.I.Sh / Lavozim / Guruh rahbarligini to'ldirib, qayta yuklang.
+          "Bog'cha opasi" bo'lganlar uchun guruh nomini yozsangiz, o'sha guruh avtomatik yaratiladi.
+        </p>
+        <button onClick={shablonYukla}
+          className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          📥 Shablonni yuklab olish
+        </button>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      </div>
+
+      {natijalar && (
+        <div className="rounded-2xl p-5 bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
+          <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
+            Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga yuboring — bu ekranga qayta qaytib bo'lmaydi!
+          </p>
+          <div className="space-y-2.5">
+            {natijalar.map((n, i) => (
+              <div key={i} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{n.fish}</p>
+                <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>{n.lavozim}{n.guruh_nomi ? ` · ${n.guruh_nomi}` : ""}</p>
+                <p className="text-xs font-mono" style={{ color: "#1B4B7A" }}>🔑 Kirish kodi: <b>{n.kirish_kodi}</b></p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UniversitetlarBolimi({ token }) {
+  const [holat, setHolat] = useState("universitet"); // universitet | fakultet | kafedra | guruh
+  const [universitetlar, setUniversitetlar] = useState([]);
+  const [fakultetlar, setFakultetlar] = useState([]);
+  const [kafedralar, setKafedralar] = useState([]);
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [tUniversitet, setTUniversitet] = useState(null);
+  const [tFakultet, setTFakultet] = useState(null);
+  const [tKafedra, setTKafedra] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [xato, setXato] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+
+  const [nomi, setNomi] = useState("");
+  const [viloyat, setViloyat] = useState("");
+  const [tuman, setTuman] = useState("");
+  const [kurs, setKurs] = useState("");
+  const [yonalish, setYonalish] = useState("");
+  const [rahbar, setRahbar] = useState(null);
+
+  const formniTozala = () => { setNomi(""); setViloyat(""); setTuman(""); setKurs(""); setYonalish(""); setRahbar(null); setFormOchiq(false); setXato(""); };
+
+  const universitetlarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/universitetlar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json()).then((d) => { setUniversitetlar(d.universitetlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+  useEffect(universitetlarniYukla, [token]);
+
+  const fakultetlarniYukla = (universitetId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/fakultetlar?token=${encodeURIComponent(token)}&universitet_id=${universitetId}`)
+      .then((r) => r.json()).then((d) => { setFakultetlar(d.fakultetlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+  const kafedralarniYukla = (fakultetId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/kafedralar?token=${encodeURIComponent(token)}&fakultet_id=${fakultetId}`)
+      .then((r) => r.json()).then((d) => { setKafedralar(d.kafedralar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+  const guruhlarniYukla = (kafedraId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/universitet_guruhlari?token=${encodeURIComponent(token)}&kafedra_id=${kafedraId}`)
+      .then((r) => r.json()).then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+  };
+
+  const universitetOch = (u) => { setTUniversitet(u); setHolat("fakultet"); formniTozala(); fakultetlarniYukla(u.id); };
+  const fakultetOch = (f) => { setTFakultet(f); setHolat("kafedra"); formniTozala(); kafedralarniYukla(f.id); };
+  const kafedraOch = (k) => { setTKafedra(k); setHolat("guruh"); formniTozala(); guruhlarniYukla(k.id); };
+
+  const universitetSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/universitet_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined, rektor_user_id: rahbar ? rahbar.user_id : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); universitetlarniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const fakultetSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/fakultet_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, universitet_id: tUniversitet.id, nomi: nomi.trim(), dekan_user_id: rahbar ? rahbar.user_id : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); fakultetlarniYukla(tUniversitet.id);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const kafedraSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/kafedra_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, fakultet_id: tFakultet.id, nomi: nomi.trim(), mudir_user_id: rahbar ? rahbar.user_id : undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); kafedralarniYukla(tFakultet.id);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const guruhSaqla = async () => {
+    if (!nomi.trim()) { setXato("Nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/universitet_guruh_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, kafedra_id: tKafedra.id, nomi: nomi.trim(),
+          kurs: kurs ? parseInt(kurs, 10) : undefined, yonalish: yonalish || undefined,
+          rahbar_user_id: rahbar ? rahbar.user_id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formniTozala(); guruhlarniYukla(tKafedra.id);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const ortgaQaytish = () => {
+    if (holat === "guruh") { setHolat("kafedra"); formniTozala(); }
+    else if (holat === "kafedra") { setHolat("fakultet"); formniTozala(); }
+    else if (holat === "fakultet") { setHolat("universitet"); formniTozala(); universitetlarniYukla(); }
+  };
+
+  const sarlavhalar = { universitet: "🎓 Universitetlar", fakultet: `📚 ${tUniversitet?.nomi} — Fakultetlar`, kafedra: `🏛 ${tFakultet?.nomi} — Kafedralar`, guruh: `👥 ${tKafedra?.nomi} — Guruhlar` };
+  const royxat = holat === "universitet" ? universitetlar : holat === "fakultet" ? fakultetlar : holat === "kafedra" ? kafedralar : guruhlar;
+
+  return (
+    <div>
+      {holat !== "universitet" && (
+        <button onClick={ortgaQaytish} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      )}
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{sarlavhalar[holat]}</p>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {formOchiq ? "✕ Yopish" : "+ Yangi"}
+          </button>
+        </div>
+        {holat === "universitet" && <p className="text-xs" style={{ color: "#8A8578" }}>Rektor → Dekan → Kafedra mudiri → Guruh kuratori tuzilmasi.</p>}
+      </div>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Nomi</label>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
+            placeholder={holat === "universitet" ? "masalan: Samarqand Davlat Universiteti" : holat === "fakultet" ? "masalan: Matematika fakulteti" : holat === "kafedra" ? "masalan: Algebra va geometriya kafedrasi" : "masalan: 201-guruh"}
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+
+          {holat === "universitet" && (
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+                <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                  <option value="">—</option>
+                  {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+                <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+                  <option value="">—</option>
+                  {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {holat === "guruh" && (
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Kurs</label>
+                <select value={kurs} onChange={(e) => setKurs(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                  <option value="">—</option>
+                  {[1, 2, 3, 4, 5, 6].map((k) => <option key={k} value={k}>{k}-kurs</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Yo'nalish</label>
+                <input type="text" value={yonalish} onChange={(e) => setYonalish(e.target.value)}
+                  placeholder="masalan: Matematika"
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              </div>
+            </div>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+            {holat === "universitet" ? "Rektor (ixtiyoriy)" : holat === "fakultet" ? "Dekan (ixtiyoriy)" : holat === "kafedra" ? "Kafedra mudiri (ixtiyoriy)" : "Guruh kuratori (ixtiyoriy)"}
+          </label>
+          <DirektorQidiruvi token={token} tanlanganDirektor={rahbar} onTanla={setRahbar} />
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={holat === "universitet" ? universitetSaqla : holat === "fakultet" ? fakultetSaqla : holat === "kafedra" ? kafedraSaqla : guruhSaqla}
+            disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Yaratish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : royxat.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {holat === "universitet" && universitetlar.map((u) => (
+            <button key={u.id} onClick={() => universitetOch(u)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{u.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{[u.viloyat, u.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {u.fakultet_soni} fakultet</p>
+                <p className="text-xs mt-1" style={{ color: u.rektor_ismi ? "#3B6D11" : "#B0553A" }}>{u.rektor_ismi ? `👤 Rektor: ${u.rektor_ismi}` : "⚠️ Rektor belgilanmagan"}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+          {holat === "fakultet" && fakultetlar.map((f) => (
+            <button key={f.id} onClick={() => fakultetOch(f)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{f.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{f.kafedra_soni} kafedra</p>
+                <p className="text-xs mt-1" style={{ color: f.dekan_ismi ? "#3B6D11" : "#B0553A" }}>{f.dekan_ismi ? `👤 Dekan: ${f.dekan_ismi}` : "⚠️ Dekan belgilanmagan"}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+          {holat === "kafedra" && kafedralar.map((k) => (
+            <button key={k.id} onClick={() => kafedraOch(k)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{k.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{k.guruh_soni} guruh</p>
+                <p className="text-xs mt-1" style={{ color: k.mudir_ismi ? "#3B6D11" : "#B0553A" }}>{k.mudir_ismi ? `👤 Mudir: ${k.mudir_ismi}` : "⚠️ Mudir belgilanmagan"}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+          {holat === "guruh" && guruhlar.map((g) => (
+            <div key={g.id} className="rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>
+                {g.kurs ? `${g.kurs}-kurs` : ""}{g.yonalish ? ` · ${g.yonalish}` : ""} · {g.talaba_soni} talaba
+              </p>
+              <p className="text-xs mt-1" style={{ color: g.rahbar_ismi ? "#3B6D11" : "#B0553A" }}>{g.rahbar_ismi ? `👤 Kurator: ${g.rahbar_ismi}` : "⚠️ Kurator belgilanmagan"}</p>
+              <p className="text-xs font-mono mt-1" style={{ color: "#8A5A1C" }}>🔐 Qo'shilish paroli: {g.qoshilish_paroli}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaktabOdamQidiruvi({ token, maktabId, tanlanganOdam, onTanla }) {
+  const [ism, setIsm] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+
+  useEffect(() => {
+    if (ism.trim().length < 2) { setNatijalar([]); return; }
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/maktab/odam_qidir?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&ism=${encodeURIComponent(ism.trim())}`)
+        .then((r) => r.json())
+        .then((d) => setNatijalar(d.natijalar || []))
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [ism, token, maktabId]);
+
+  if (tanlanganOdam) {
+    return (
+      <div className="flex items-center justify-between px-3 py-2 rounded-lg mb-2" style={{ backgroundColor: "#EAF1F7" }}>
+        <span className="text-xs font-medium" style={{ color: "#1B4B7A" }}>👤 {tanlanganOdam.full_name}</span>
+        <button onClick={() => onTanla(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-2">
+      <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+        placeholder="Ism bo'yicha qidiring..."
+        className="w-full px-3.5 py-2 rounded-lg border text-xs" style={{ borderColor: "#E5E1D8" }} />
+      {natijalar.length > 0 && (
+        <div className="mt-1 space-y-1">
+          {natijalar.map((o) => (
+            <button key={o.user_id} onClick={() => { onTanla(o); setIsm(""); setNatijalar([]); }}
+              className="w-full flex items-center px-3 py-1.5 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+              <span className="text-xs" style={{ color: "#2B2B2B" }}>{o.full_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const HAFTA_KUNLARI_RO = [
+  { raqam: 1, nomi: "Dushanba" }, { raqam: 2, nomi: "Seshanba" }, { raqam: 3, nomi: "Chorshanba" },
+  { raqam: 4, nomi: "Payshanba" }, { raqam: 5, nomi: "Juma" }, { raqam: 6, nomi: "Shanba" },
+];
+const TADBIR_TURLARI_RO = { tadbir: "🎉 Tadbir", majlis: "👥 Majlis", tatil: "🏖 Ta'til" };
+
+function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
+  const [tepaKorinish, setTepaKorinish] = useState("taqvim"); // "taqvim" | "jadval"
+
+  const [tadbirlar, setTadbirlar] = useState([]);
+  const [tadbirYuklanmoqda, setTadbirYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [turi, setTuri] = useState("tadbir");
+  const [sarlavha, setSarlavha] = useState("");
+  const [tavsif, setTavsif] = useState("");
+  const [boshlanishSana, setBoshlanishSana] = useState("");
+  const [tugashSana, setTugashSana] = useState("");
+  const [vaqt, setVaqt] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const [sinflar, setSinflar] = useState([]);
+  const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [jadval, setJadval] = useState(null);
+  const [jadvalYuklanmoqda, setJadvalYuklanmoqda] = useState(false);
+  const [tahrirlanayotganSlot, setTahrirlanayotganSlot] = useState(null);
+  const [slotFan, setSlotFan] = useState("");
+  const [slotXona, setSlotXona] = useState("");
+
+  const tadbirlarniYukla = () => {
+    setTadbirYuklanmoqda(true);
+    fetch(`${API_BASE}/api/maktab/tadbirlar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { setTadbirlar(d.tadbirlar || []); setTadbirYuklanmoqda(false); })
+      .catch(() => setTadbirYuklanmoqda(false));
+  };
+  useEffect(tadbirlarniYukla, [token, maktabId]);
+
+  useEffect(() => {
+    setSinflarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/maktab/dashboard?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d.sinflar || []); setSinflarYuklanmoqda(false); })
+      .catch(() => setSinflarYuklanmoqda(false));
+  }, [token, maktabId]);
+
+  const tadbirSaqla = async () => {
+    if (!sarlavha.trim()) { setXato("Sarlavhani kiriting"); return; }
+    if (!boshlanishSana) { setXato("Sanani tanlang"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/tadbir_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, maktab_id: maktabId, turi, sarlavha: sarlavha.trim(), tavsif: tavsif || undefined,
+          boshlanish_sana: boshlanishSana, tugash_sana: tugashSana || undefined, vaqt: vaqt || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setSarlavha(""); setTavsif(""); setBoshlanishSana(""); setTugashSana(""); setVaqt(""); setFormOchiq(false);
+      tadbirlarniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const tadbirOchir = async (id) => {
+    await fetch(`${API_BASE}/api/maktab/tadbir_ochir?token=${encodeURIComponent(token)}&tadbir_id=${id}`, { method: "DELETE" });
+    tadbirlarniYukla();
+  };
+
+  const sinfOch = (s) => {
+    setTanlanganSinf(s);
+    setJadvalYuklanmoqda(true);
+    fetch(`${API_BASE}/api/maktab/dars_jadvali?token=${encodeURIComponent(token)}&sinf_id=${s.id}`)
+      .then((r) => r.json())
+      .then((d) => { setJadval(d); setJadvalYuklanmoqda(false); })
+      .catch(() => setJadvalYuklanmoqda(false));
+  };
+
+  const slotniOch = (kun, darsRaqami, mavjudSlot) => {
+    setTahrirlanayotganSlot({ kun, dars_raqami: darsRaqami });
+    setSlotFan(mavjudSlot ? mavjudSlot.fan : "");
+    setSlotXona(mavjudSlot ? mavjudSlot.xona || "" : "");
+  };
+
+  const slotSaqla = async () => {
+    if (!slotFan.trim()) return;
+    await fetch(`${API_BASE}/api/maktab/dars_jadvali_belgila`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token, sinf_id: tanlanganSinf.id, kun: tahrirlanayotganSlot.kun,
+        dars_raqami: tahrirlanayotganSlot.dars_raqami, fan: slotFan.trim(), xona: slotXona || undefined,
+      }),
+    });
+    setTahrirlanayotganSlot(null);
+    sinfOch(tanlanganSinf);
+  };
+
+  const slotOchir = async () => {
+    await fetch(`${API_BASE}/api/maktab/dars_jadvali_ochir?token=${encodeURIComponent(token)}&sinf_id=${tanlanganSinf.id}&kun=${tahrirlanayotganSlot.kun}&dars_raqami=${tahrirlanayotganSlot.dars_raqami}`, { method: "DELETE" });
+    setTahrirlanayotganSlot(null);
+    sinfOch(tanlanganSinf);
+  };
+
+  if (tanlanganSinf) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganSinf(null); setJadval(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflar</button>
+        <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🗓 {tanlanganSinf.sinf}-{tanlanganSinf.harf} jadvali</h1>
+
+        {tahrirlanayotganSlot && (
+          <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#1B4B7A" }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#1B4B7A" }}>
+              {HAFTA_KUNLARI_RO.find((k) => k.raqam === tahrirlanayotganSlot.kun)?.nomi} · {tahrirlanayotganSlot.dars_raqami}-dars
+            </p>
+            <input type="text" value={slotFan} onChange={(e) => setSlotFan(e.target.value)} placeholder="Fan nomi"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+            <input type="text" value={slotXona} onChange={(e) => setSlotXona(e.target.value)} placeholder="Xona (ixtiyoriy)"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <div className="flex gap-2">
+              <button onClick={slotSaqla} className="flex-1 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A" }}>Saqlash</button>
+              <button onClick={slotOchir} className="px-4 py-2.5 rounded-xl font-medium text-sm" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>Tozalash</button>
+              <button onClick={() => setTahrirlanayotganSlot(null)} className="px-4 py-2.5 rounded-xl font-medium text-sm" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>Bekor</button>
+            </div>
+          </div>
+        )}
+
+        {jadvalYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <div className="space-y-4">
+            {HAFTA_KUNLARI_RO.map((kun) => (
+              <div key={kun.raqam}>
+                <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>{kun.nomi}</p>
+                <div className="space-y-1.5">
+                  {[1, 2, 3, 4, 5, 6, 7].map((darsRaqami) => {
+                    const slot = (jadval?.slotlar || []).find((s) => s.kun === kun.raqam && s.dars_raqami === darsRaqami);
+                    return (
+                      <button key={darsRaqami} onClick={() => slotniOch(kun.raqam, darsRaqami, slot)}
+                        className="w-full text-left rounded-lg px-3 py-2 flex items-center gap-2"
+                        style={{ backgroundColor: slot ? "#EAF1F7" : "#F7F5F0" }}>
+                        <span className="text-xs font-bold w-4 shrink-0" style={{ color: "#8A8578" }}>{darsRaqami}</span>
+                        <span className="text-xs" style={{ color: slot ? "#1B4B7A" : "#8A8578" }}>
+                          {slot ? `${slot.fan}${slot.xona ? ` · ${slot.xona}` : ""}` : "— bo'sh —"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>📅 Rejalashtirish</h1>
+
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setTepaKorinish("taqvim")}
+          className="flex-1 py-2 rounded-lg text-xs font-semibold"
+          style={tepaKorinish === "taqvim" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+          📅 Taqvim
+        </button>
+        <button onClick={() => setTepaKorinish("jadval")}
+          className="flex-1 py-2 rounded-lg text-xs font-semibold"
+          style={tepaKorinish === "jadval" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+          🗓 Dars jadvali
+        </button>
+      </div>
+
+      {tepaKorinish === "taqvim" ? (
+        <>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>Kelayotgan tadbirlar</p>
+            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+              {formOchiq ? "✕ Yopish" : "+ Yangi"}
+            </button>
+          </div>
+
+          {formOchiq && (
+            <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex gap-1.5 mb-2.5">
+                {Object.entries(TADBIR_TURLARI_RO).map(([k, v]) => (
+                  <button key={k} onClick={() => setTuri(k)}
+                    className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                    style={turi === k ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <input type="text" value={sarlavha} onChange={(e) => setSarlavha(e.target.value)} placeholder="Sarlavha"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+              <input type="text" value={tavsif} onChange={(e) => setTavsif(e.target.value)} placeholder="Tavsif (ixtiyoriy)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+              <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Boshlanish sanasi</label>
+                  <input type="date" value={boshlanishSana} onChange={(e) => setBoshlanishSana(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Tugash sanasi (ixtiyoriy)</label>
+                  <input type="date" value={tugashSana} onChange={(e) => setTugashSana(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+                </div>
+              </div>
+              {turi !== "tatil" && (
+                <input type="text" value={vaqt} onChange={(e) => setVaqt(e.target.value)} placeholder="Vaqt (masalan 14:00, ixtiyoriy)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+              )}
+              {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+              <button onClick={tadbirSaqla} disabled={saqlanmoqda}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+                {saqlanmoqda ? "Saqlanmoqda..." : "Qo'shish"}
+              </button>
+            </div>
+          )}
+
+          {tadbirYuklanmoqda ? (
+            <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+          ) : tadbirlar.length === 0 ? (
+            <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm" style={{ color: "#8A8578" }}>Kelayotgan tadbir yo'q.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {tadbirlar.map((t) => (
+                <div key={t.id} className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{TADBIR_TURLARI_RO[t.turi]} · {t.sarlavha}</p>
+                    <button onClick={() => tadbirOchir(t.id)} className="text-xs" style={{ color: "#A32D2D" }}>✕</button>
+                  </div>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>
+                    {t.boshlanish_sana}{t.tugash_sana ? ` — ${t.tugash_sana}` : ""}{t.vaqt ? ` · ${t.vaqt}` : ""}
+                  </p>
+                  {t.tavsif && <p className="text-xs mt-1" style={{ color: "#5A5648" }}>{t.tavsif}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>Sinfni tanlang</p>
+          {sinflarYuklanmoqda ? (
+            <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+          ) : (
+            <div className="space-y-2">
+              {sinflar.map((s) => (
+                <button key={s.id} onClick={() => sinfOch(s)}
+                  className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                  <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                  <ChevronRight size={16} style={{ color: "#8A8578" }} />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function HujjatlarBolimi({ token, maktabId, onOrtga }) {
+  const [hujjatlar, setHujjatlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [turi, setTuri] = useState("buyruq");
+  const [izoh, setIzoh] = useState("");
+  const [tanlanganFayl, setTanlanganFayl] = useState(null);
+  const [yuklanyapti, setYuklanyapti] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const TURLAR = {
+    buyruq: "📋 Buyruq", hisobot: "📊 Hisobot", sertifikat: "🏅 Sertifikat",
+    xodim_hujjati: "👤 Xodim hujjati", oquvchi_hujjati: "🎓 O'quvchi hujjati", boshqa: "📁 Boshqa",
+  };
+
+  const yukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/maktab/hujjatlar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { setHujjatlar(d.hujjatlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(yukla, [token, maktabId]);
+
+  const hujjatYukla = async () => {
+    if (!nomi.trim()) { setXato("Hujjat nomini kiriting"); return; }
+    if (!tanlanganFayl) { setXato("Faylni tanlang"); return; }
+    setYuklanyapti(true); setXato("");
+    try {
+      const formData = new FormData();
+      formData.append("fayl", tanlanganFayl);
+      const params = new URLSearchParams({ token, maktab_id: maktabId, nomi: nomi.trim(), turi, izoh: izoh || "" });
+      const res = await fetch(`${API_BASE}/api/maktab/hujjat_yukla?${params.toString()}`, { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setIzoh(""); setTanlanganFayl(null); setFormOchiq(false);
+      yukla();
+    } catch (e) { setXato(e.message); } finally { setYuklanyapti(false); }
+  };
+
+  const hujjatniYukleboLish = (h) => {
+    window.open(`${API_BASE}/api/maktab/hujjat_yukleb_olish?token=${encodeURIComponent(token)}&hujjat_id=${h.id}`, "_blank");
+  };
+
+  const hujjatOchir = async (id) => {
+    await fetch(`${API_BASE}/api/maktab/hujjat_ochir?token=${encodeURIComponent(token)}&hujjat_id=${id}`, { method: "DELETE" });
+    yukla();
+  };
+
+  const hajmFormat = (baytlar) => {
+    if (!baytlar) return "";
+    if (baytlar < 1024 * 1024) return `${Math.round(baytlar / 1024)} KB`;
+    return `${(baytlar / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>🗂 Hujjatlar</h1>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          {formOchiq ? "✕ Yopish" : "+ Yuklash"}
+        </button>
+      </div>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{hujjatlar.length} ta hujjat.</p>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)} placeholder="Hujjat nomi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <select value={turi} onChange={(e) => setTuri(e.target.value)}
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }}>
+            {Object.entries(TURLAR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <input type="text" value={izoh} onChange={(e) => setIzoh(e.target.value)} placeholder="Izoh (ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          <label className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed mb-3"
+            style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+            {tanlanganFayl ? `📎 ${tanlanganFayl.name}` : "📤 Fayl tanlash (10 MB gacha)"}
+            <input type="file" onChange={(e) => setTanlanganFayl(e.target.files[0] || null)} className="hidden" />
+          </label>
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={hujjatYukla} disabled={yuklanyapti}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: yuklanyapti ? 0.7 : 1 }}>
+            {yuklanyapti ? "Yuklanmoqda..." : "Yuklash"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : hujjatlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali hujjat yuklanmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {hujjatlar.map((h) => (
+            <div key={h.id} className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{TURLAR[h.turi] || h.turi} · {h.nomi}</p>
+              </div>
+              <p className="text-xs mb-2.5" style={{ color: "#8A8578" }}>
+                {h.fayl_nomi} · {hajmFormat(h.fayl_hajmi)} · {h.yuklagan_ismi || "?"}{h.izoh ? ` · ${h.izoh}` : ""}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => hujjatniYukleboLish(h)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                  ⬇ Yuklab olish
+                </button>
+                <button onClick={() => hujjatOchir(h.id)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoliyaBolimi({ token, maktabId, onOrtga }) {
+  const [oy, setOy] = useState(new Date().toISOString().slice(0, 7));
+  const [malumot, setMalumot] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [turi, setTuri] = useState("chiqim");
+  const [kategoriya, setKategoriya] = useState("");
+  const [summa, setSumma] = useState("");
+  const [izoh, setIzoh] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const KATEGORIYALAR = {
+    kirim: ["Homiylik", "Grant", "Boshqa kirim"],
+    chiqim: ["Ish haqi", "Jihoz/inventar", "Ta'mirlash", "Kommunal", "O'quv materiallari", "Boshqa chiqim"],
+  };
+
+  const yukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/maktab/moliya?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&oy=${oy}`)
+      .then((r) => r.json())
+      .then((d) => { setMalumot(d); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(yukla, [token, maktabId, oy]);
+
+  const yozuvSaqla = async () => {
+    if (!kategoriya) { setXato("Kategoriyani tanlang"); return; }
+    if (!summa || parseInt(summa, 10) <= 0) { setXato("Summani kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/moliya_yozuv_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, maktab_id: maktabId, turi, kategoriya, summa: parseInt(summa, 10), izoh: izoh || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setKategoriya(""); setSumma(""); setIzoh(""); setFormOchiq(false);
+      yukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const yozuvOchir = async (id) => {
+    await fetch(`${API_BASE}/api/maktab/moliya_yozuv_ochir?token=${encodeURIComponent(token)}&yozuv_id=${id}`, { method: "DELETE" });
+    yukla();
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>💰 Moliya</h1>
+        <input type="month" value={oy} onChange={(e) => setOy(e.target.value)}
+          className="px-3 py-1.5 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
+      </div>
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : (
+        <>
+          <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: malumot.balans >= 0 ? "#EAF3DE" : "#FCEBEB" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: malumot.balans >= 0 ? "#3B6D11" : "#A32D2D" }}>Oylik balans</p>
+            <p className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>{malumot.balans.toLocaleString()} so'm</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-4">
+            <div className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-xs mb-1" style={{ color: "#8A8578" }}>Jami kirim</p>
+              <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{malumot.jami_kirim.toLocaleString()}</p>
+              <p className="text-xs mt-1" style={{ color: "#8A8578" }}>
+                O'quvchi: {malumot.oquvchi_kirim.toLocaleString()} · Boshqa: {malumot.boshqa_kirim.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-xs mb-1" style={{ color: "#8A8578" }}>Chiqim</p>
+              <p className="text-lg font-bold" style={{ color: "#A32D2D" }}>{malumot.chiqim.toLocaleString()}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>📝 Qo'lda kiritilgan yozuvlar</p>
+            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+              {formOchiq ? "✕ Yopish" : "+ Yozuv"}
+            </button>
+          </div>
+
+          {formOchiq && (
+            <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex gap-2 mb-2.5">
+                <button onClick={() => { setTuri("kirim"); setKategoriya(""); }}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                  style={turi === "kirim" ? { backgroundColor: "#3B6D11", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                  ➕ Kirim
+                </button>
+                <button onClick={() => { setTuri("chiqim"); setKategoriya(""); }}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                  style={turi === "chiqim" ? { backgroundColor: "#A32D2D", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                  ➖ Chiqim
+                </button>
+              </div>
+              <select value={kategoriya} onChange={(e) => setKategoriya(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">Kategoriyani tanlang</option>
+                {KATEGORIYALAR[turi].map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <input type="number" min="1" value={summa} onChange={(e) => setSumma(e.target.value)} placeholder="Summa (so'm)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+              <input type="text" value={izoh} onChange={(e) => setIzoh(e.target.value)} placeholder="Izoh (ixtiyoriy)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+              {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+              <button onClick={yozuvSaqla} disabled={saqlanmoqda}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+                {saqlanmoqda ? "Saqlanmoqda..." : "Qo'shish"}
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {malumot.yozuvlar.map((y) => (
+              <div key={y.id} className="rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{y.kategoriya}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{y.sana}{y.izoh ? ` · ${y.izoh}` : ""}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold" style={{ color: y.turi === "kirim" ? "#3B6D11" : "#A32D2D" }}>
+                    {y.turi === "kirim" ? "+" : "-"}{y.summa.toLocaleString()}
+                  </span>
+                  <button onClick={() => yozuvOchir(y.id)} className="text-xs" style={{ color: "#A32D2D" }}>✕</button>
+                </div>
+              </div>
+            ))}
+            {malumot.yozuvlar.length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Bu oy uchun qo'lda kiritilgan yozuv yo'q.</p>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function KutubxonaBolimi({ token, maktabId, onOrtga }) {
+  const [kitoblar, setKitoblar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [nomi, setNomi] = useState("");
+  const [muallif, setMuallif] = useState("");
+  const [janr, setJanr] = useState("");
+  const [nusxaSoni, setNusxaSoni] = useState("1");
+  const [elektronHavola, setElektronHavola] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [tanlanganKitob, setTanlanganKitob] = useState(null);
+  const [tarix, setTarix] = useState(null);
+  const [berishOchiq, setBerishOchiq] = useState(false);
+  const [tanlanganOdam, setTanlanganOdam] = useState(null);
+
+  const kitoblarniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/maktab/kutubxona?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { setKitoblar(d.kitoblar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(kitoblarniYukla, [token, maktabId]);
+
+  const kitobSaqla = async () => {
+    if (!nomi.trim()) { setXato("Kitob nomini kiriting"); return; }
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/kitob_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, maktab_id: maktabId, nomi: nomi.trim(), muallif: muallif || undefined,
+          janr: janr || undefined, nusxa_soni: parseInt(nusxaSoni, 10) || 1, elektron_havola: elektronHavola || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setNomi(""); setMuallif(""); setJanr(""); setNusxaSoni("1"); setElektronHavola(""); setFormOchiq(false);
+      kitoblarniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const tarixniYukla = (kitobId) => {
+    fetch(`${API_BASE}/api/maktab/kitob_tarixi?token=${encodeURIComponent(token)}&kitob_id=${kitobId}`)
+      .then((r) => r.json())
+      .then((d) => setTarix(d.tarix || []))
+      .catch(() => {});
+  };
+
+  const kitobOch = (k) => { setTanlanganKitob(k); tarixniYukla(k.id); };
+
+  const kitobBer = async () => {
+    if (!tanlanganOdam) return;
+    setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/kitob_berish`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, kitob_id: tanlanganKitob.id, user_id: tanlanganOdam.user_id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setBerishOchiq(false); setTanlanganOdam(null);
+      tarixniYukla(tanlanganKitob.id); kitoblarniYukla();
+    } catch (e) { setXato(e.message); }
+  };
+
+  const kitobniQaytar = async (ijaraId) => {
+    await fetch(`${API_BASE}/api/maktab/kitob_qaytarish?token=${encodeURIComponent(token)}&ijara_id=${ijaraId}`, { method: "POST" });
+    tarixniYukla(tanlanganKitob.id); kitoblarniYukla();
+  };
+
+  if (tanlanganKitob) {
+    const bosh = tanlanganKitob.nusxa_soni - tanlanganKitob.band_soni;
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganKitob(null); setTarix(null); setBerishOchiq(false); setTanlanganOdam(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Kutubxona</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganKitob.nomi}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+          {tanlanganKitob.muallif || "Muallif noma'lum"}{tanlanganKitob.janr ? ` · ${tanlanganKitob.janr}` : ""} · {bosh}/{tanlanganKitob.nusxa_soni} nusxa bo'sh
+        </p>
+        {tanlanganKitob.elektron_havola && (
+          <a href={tanlanganKitob.elektron_havola} target="_blank" rel="noreferrer" className="block text-xs mb-4" style={{ color: "#1B4B7A" }}>🔗 Elektron nusxa havolasi</a>
+        )}
+
+        {bosh > 0 && (
+          <>
+            <button onClick={() => setBerishOchiq(!berishOchiq)}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+              📤 Kitob berish
+            </button>
+            {berishOchiq && (
+              <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
+                <MaktabOdamQidiruvi token={token} maktabId={maktabId} tanlanganOdam={tanlanganOdam} onTanla={setTanlanganOdam} />
+                <button onClick={kitobBer} disabled={!tanlanganOdam}
+                  className="w-full py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: tanlanganOdam ? 1 : 0.5 }}>
+                  Berish
+                </button>
+                {xato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{xato}</p>}
+              </div>
+            )}
+          </>
+        )}
+
+        <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>📖 Tarix</p>
+        <div className="space-y-2">
+          {(tarix || []).map((t) => (
+            <div key={t.ijara_id} className="rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{t.full_name}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>
+                  {t.olingan_sana} dan {t.qaytarilgan_sana ? ` — qaytardi: ${t.qaytarilgan_sana}` : " — hali qaytarmagan"}
+                </p>
+              </div>
+              {!t.qaytarilgan_sana && (
+                <button onClick={() => kitobniQaytar(t.ijara_id)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white shrink-0" style={{ backgroundColor: "#3B6D11" }}>
+                  Qaytardi
+                </button>
+              )}
+            </div>
+          ))}
+          {(tarix || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hali hech kim olmagan.</p>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 Kutubxona</h1>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          {formOchiq ? "✕ Yopish" : "+ Yangi kitob"}
+        </button>
+      </div>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{kitoblar.length} ta kitob.</p>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)} placeholder="Kitob nomi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <input type="text" value={muallif} onChange={(e) => setMuallif(e.target.value)} placeholder="Muallif (ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+            <input type="text" value={janr} onChange={(e) => setJanr(e.target.value)} placeholder="Janr"
+              className="px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+            <input type="number" min="1" value={nusxaSoni} onChange={(e) => setNusxaSoni(e.target.value)} placeholder="Nusxa soni"
+              className="px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          </div>
+          <input type="text" value={elektronHavola} onChange={(e) => setElektronHavola(e.target.value)} placeholder="Elektron nusxa havolasi (ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={kitobSaqla} disabled={saqlanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+            {saqlanmoqda ? "Saqlanmoqda..." : "Qo'shish"}
+          </button>
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : kitoblar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali kitob qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {kitoblar.map((k) => {
+            const bosh = k.nusxa_soni - k.band_soni;
+            return (
+              <button key={k.id} onClick={() => kitobOch(k)}
+                className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{k.nomi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{k.muallif || "Muallif noma'lum"}</p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ml-2" style={{ backgroundColor: bosh > 0 ? "#EAF3DE" : "#FCEBEB", color: bosh > 0 ? "#3B6D11" : "#A32D2D" }}>
+                  {bosh}/{k.nusxa_soni} bo'sh
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OquvchiProfili({ token, userId, onOrtga }) {
+  const [malumot, setMalumot] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [sogliq, setSogliq] = useState(null);
+  const [sogliqTahrir, setSogliqTahrir] = useState(false);
+  const [allergiyalar, setAllergiyalar] = useState("");
+  const [qonGuruhi, setQonGuruhi] = useState("");
+  const [aloqaIsmi, setAloqaIsmi] = useState("");
+  const [aloqaTelefoni, setAloqaTelefoni] = useState("");
+  const [boshqaEslatma, setBoshqaEslatma] = useState("");
+  const [sogliqSaqlanmoqda, setSogliqSaqlanmoqda] = useState(false);
+  const [psixologYozuvlar, setPsixologYozuvlar] = useState(null);
+  const [yangiKuzatuv, setYangiKuzatuv] = useState("");
+  const [kuzatuvSaqlanmoqda, setKuzatuvSaqlanmoqda] = useState(false);
+
+  useEffect(() => {
+    setYuklanmoqda(true); setXato("");
+    fetch(`${API_BASE}/api/oqituvchi/oquvchi_profili?token=${encodeURIComponent(token)}&user_id=${userId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.detail) { setXato(d.detail); setYuklanmoqda(false); return; }
+        setMalumot(d);
+        setYuklanmoqda(false);
+        fetch(`${API_BASE}/api/bola/${userId}/favqulodda_malumot?token=${encodeURIComponent(token)}`)
+          .then((r) => r.json())
+          .then((sd) => {
+            setSogliq(sd);
+            setAllergiyalar(sd.allergiyalar || ""); setQonGuruhi(sd.qon_guruhi || "");
+            setAloqaIsmi(sd.aloqa_ismi || ""); setAloqaTelefoni(sd.aloqa_telefoni || ""); setBoshqaEslatma(sd.boshqa_eslatma || "");
+          })
+          .catch(() => {});
+        if (d.maktab_id) {
+          fetch(`${API_BASE}/api/maktab/psixolog_yozuvlari?token=${encodeURIComponent(token)}&bola_user_id=${userId}&maktab_id=${d.maktab_id}`)
+            .then((r) => r.json())
+            .then((pd) => setPsixologYozuvlar(pd.yozuvlar || []))
+            .catch(() => {});
+        }
+      })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, userId]);
+
+  const sogliqSaqla = async () => {
+    setSogliqSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/bola/favqulodda_malumot`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, bola_user_id: userId, allergiyalar: allergiyalar || undefined, qon_guruhi: qonGuruhi || undefined, aloqa_ismi: aloqaIsmi || undefined, aloqa_telefoni: aloqaTelefoni || undefined, boshqa_eslatma: boshqaEslatma || undefined }),
+      });
+      setSogliq({ allergiyalar, qon_guruhi: qonGuruhi, aloqa_ismi: aloqaIsmi, aloqa_telefoni: aloqaTelefoni, boshqa_eslatma: boshqaEslatma });
+      setSogliqTahrir(false);
+    } finally { setSogliqSaqlanmoqda(false); }
+  };
+
+  const kuzatuvQosh = async () => {
+    if (!yangiKuzatuv.trim() || !malumot?.maktab_id) return;
+    setKuzatuvSaqlanmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/maktab/psixolog_yozuv_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, bola_user_id: userId, maktab_id: malumot.maktab_id, matn: yangiKuzatuv.trim() }),
+      });
+      setYangiKuzatuv("");
+      const r = await fetch(`${API_BASE}/api/maktab/psixolog_yozuvlari?token=${encodeURIComponent(token)}&bola_user_id=${userId}&maktab_id=${malumot.maktab_id}`);
+      const d = await r.json();
+      setPsixologYozuvlar(d.yozuvlar || []);
+    } finally { setKuzatuvSaqlanmoqda(false); }
+  };
+
+  const foizRangi = (foiz) => (foiz >= 70 ? "#3B6D11" : foiz >= 40 ? "#8A5A1C" : "#A32D2D");
+  const foizFoni = (foiz) => (foiz >= 70 ? "#EAF3DE" : foiz >= 40 ? "#FDF3E0" : "#FCEBEB");
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : xato ? (
+        <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>
+      ) : (
+        <>
+          <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{malumot.full_name}</h1>
+          <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+            {malumot.sinf ? `${malumot.sinf}-${malumot.harf} sinf` : ""}{malumot.maktab_nomi ? ` · ${malumot.maktab_nomi}` : ""}
+          </p>
+
+          <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>📚 Bilim</p>
+              {malumot.bilim.fanlar.length > 0 && (
+                <span className="text-sm font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: foizFoni(malumot.bilim.umumiy_foiz), color: foizRangi(malumot.bilim.umumiy_foiz) }}>
+                  Umumiy: {malumot.bilim.umumiy_foiz}%
+                </span>
+              )}
+            </div>
+            {malumot.bilim.fanlar.length === 0 ? (
+              <p className="text-xs" style={{ color: "#8A8578" }}>Hali birorta test yechilmagan.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {malumot.bilim.fanlar.map((f) => (
+                  <div key={f.qisqa} className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: "#5A5648" }}>{f.nom}</span>
+                    <span className="text-xs font-semibold" style={{ color: foizRangi(f.foiz) }}>{f.foiz}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: malumot.davomat.ketma_ket_kelmagan >= 2 ? "#E8A0A0" : "#E5E1D8" }}>
+            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>📋 Davomat (30 kun)</p>
+            {malumot.davomat.ketma_ket_kelmagan >= 2 && (
+              <p className="text-xs font-medium mb-3" style={{ color: "#A32D2D" }}>⚠️ {malumot.davomat.ketma_ket_kelmagan} kun ketma-ket kelmagan</p>
+            )}
+            {malumot.davomat.jami_kun === 0 ? (
+              <p className="text-xs" style={{ color: "#8A8578" }}>Hali davomat belgilanmagan.</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#EAF3DE" }}>
+                  <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{malumot.davomat.keldi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>keldi</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#FCEBEB" }}>
+                  <p className="text-lg font-bold" style={{ color: "#A32D2D" }}>{malumot.davomat.kelmadi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>kelmadi</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center" style={{ backgroundColor: "#FDF3E0" }}>
+                  <p className="text-lg font-bold" style={{ color: "#8A5A1C" }}>{malumot.davomat.kechikdi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>kechikdi</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {malumot.pulli && (
+            <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov tarixi</p>
+              {malumot.tolov_tarixi.length === 0 ? (
+                <p className="text-xs" style={{ color: "#8A8578" }}>Hali to'lov qilinmagan.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {malumot.tolov_tarixi.map((t) => (
+                    <div key={t.oy} className="flex items-center justify-between">
+                      <span className="text-xs" style={{ color: "#5A5648" }}>{t.oy}</span>
+                      <span className="text-xs font-semibold" style={{ color: t.tolangan_summa >= malumot.oylik_tolov ? "#3B6D11" : "#A32D2D" }}>
+                        {t.tolangan_summa.toLocaleString()} so'm
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>🚑 Favqulodda ma'lumot</p>
+              <button onClick={() => setSogliqTahrir(!sogliqTahrir)} className="text-xs font-semibold" style={{ color: "#1B4B7A" }}>
+                {sogliqTahrir ? "Bekor" : "✎ Tahrirlash"}
+              </button>
+            </div>
+            {sogliqTahrir ? (
+              <div>
+                <input type="text" value={allergiyalar} onChange={(e) => setAllergiyalar(e.target.value)} placeholder="Allergiyalar"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={qonGuruhi} onChange={(e) => setQonGuruhi(e.target.value)} placeholder="Qon guruhi (masalan A+)"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={aloqaIsmi} onChange={(e) => setAloqaIsmi(e.target.value)} placeholder="Favqulodda aloqa ismi"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={aloqaTelefoni} onChange={(e) => setAloqaTelefoni(e.target.value)} placeholder="Favqulodda aloqa telefoni"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <input type="text" value={boshqaEslatma} onChange={(e) => setBoshqaEslatma(e.target.value)} placeholder="Boshqa muhim eslatma"
+                  className="w-full px-3 py-2 rounded-lg border text-xs mb-3" style={{ borderColor: "#E5E1D8" }} />
+                <button onClick={sogliqSaqla} disabled={sogliqSaqlanmoqda} className="w-full py-2 rounded-lg font-semibold text-white text-xs" style={{ backgroundColor: "#1B4B7A" }}>
+                  {sogliqSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+                </button>
+              </div>
+            ) : !sogliq || (!sogliq.allergiyalar && !sogliq.qon_guruhi && !sogliq.aloqa_ismi) ? (
+              <p className="text-xs" style={{ color: "#8A8578" }}>Hali kiritilmagan.</p>
+            ) : (
+              <div className="space-y-1 text-xs" style={{ color: "#5A5648" }}>
+                {sogliq.allergiyalar && <p>🩹 Allergiya: {sogliq.allergiyalar}</p>}
+                {sogliq.qon_guruhi && <p>🩸 Qon guruhi: {sogliq.qon_guruhi}</p>}
+                {sogliq.aloqa_ismi && <p>📞 {sogliq.aloqa_ismi}{sogliq.aloqa_telefoni ? ` — ${sogliq.aloqa_telefoni}` : ""}</p>}
+                {sogliq.boshqa_eslatma && <p>ℹ️ {sogliq.boshqa_eslatma}</p>}
+              </div>
+            )}
+          </div>
+
+          {psixologYozuvlar !== null && (
+            <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-bold mb-1" style={{ color: "#2B2B2B" }}>🧠 Psixolog kuzatuvlari</p>
+              <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Faqat psixolog, sinf rahbari va rahbariyatga ko'rinadi.</p>
+              <div className="flex gap-2 mb-3">
+                <input type="text" value={yangiKuzatuv} onChange={(e) => setYangiKuzatuv(e.target.value)} placeholder="Yangi kuzatuv yozing..."
+                  className="flex-1 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#E5E1D8" }} />
+                <button onClick={kuzatuvQosh} disabled={kuzatuvSaqlanmoqda || !yangiKuzatuv.trim()} className="px-3 py-2 rounded-lg font-semibold text-white text-xs" style={{ backgroundColor: "#5A3D9E" }}>
+                  +
+                </button>
+              </div>
+              {psixologYozuvlar.length === 0 ? (
+                <p className="text-xs" style={{ color: "#8A8578" }}>Hali kuzatuv yozilmagan.</p>
+              ) : (
+                <div className="space-y-2">
+                  {psixologYozuvlar.map((k) => (
+                    <div key={k.id} className="rounded-lg p-2.5" style={{ backgroundColor: "#F3F0FF" }}>
+                      <p className="text-xs" style={{ color: "#2B2B2B" }}>{k.matn}</p>
+                      <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{k.yozgan_ismi} · {new Date(k.yaratilgan_at).toLocaleDateString("uz-UZ")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function XodimDavomatBelgilash({ token, maktabId, onOrtga }) {
+  const bugun = new Date().toISOString().slice(0, 10);
+  const [sana, setSana] = useState(bugun);
+  const [xodimlar, setXodimlar] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [saqlandi, setSaqlandi] = useState(false);
+
+  const HOLATLAR = [
+    { kalit: "keldi", belgi: "✅", rang: "#3B6D11", fon: "#EAF3DE" },
+    { kalit: "kelmadi", belgi: "❌", rang: "#A32D2D", fon: "#FCEBEB" },
+    { kalit: "kechikdi", belgi: "⏰", rang: "#8A5A1C", fon: "#FDF3E0" },
+    { kalit: "sababli", belgi: "📋", rang: "#5A5648", fon: "#F7F5F0" },
+  ];
+
+  const yukla = () => {
+    setYuklanmoqda(true); setSaqlandi(false);
+    fetch(`${API_BASE}/api/maktab/xodim_davomat_royxati?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sana=${sana}`)
+      .then((r) => r.json())
+      .then((d) => { setXodimlar((d.xodimlar || []).map((x) => ({ ...x, holat: x.holat || "keldi" }))); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(yukla, [sana, maktabId, token]);
+
+  const holatOzgartir = (userId, holat) => {
+    setXodimlar((prev) => prev.map((x) => (x.user_id === userId ? { ...x, holat } : x)));
+  };
+
+  const saqla = async () => {
+    setSaqlanmoqda(true); setSaqlandi(false);
+    try {
+      await fetch(`${API_BASE}/api/maktab/xodim_davomat_belgila`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, maktab_id: maktabId, sana,
+          yozuvlar: xodimlar.map((x) => ({ user_id: x.user_id, holat: x.holat })),
+        }),
+      });
+      setSaqlandi(true);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🧑‍🏫 Xodim davomati</h1>
+      <input type="date" value={sana} onChange={(e) => setSana(e.target.value)} max={bugun}
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4" style={{ borderColor: "#E5E1D8" }} />
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : (
+        <div className="space-y-2 mb-5">
+          {(xodimlar || []).map((x) => (
+            <div key={x.user_id} className="rounded-xl p-3 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-medium mb-0.5" style={{ color: "#2B2B2B" }}>{x.full_name}</p>
+              <p className="text-xs mb-2" style={{ color: "#8A8578" }}>{LAVOZIM_NOMLARI[x.lavozim] || x.lavozim}</p>
+              <div className="flex gap-1.5">
+                {HOLATLAR.map((h) => (
+                  <button key={h.kalit} onClick={() => holatOzgartir(x.user_id, h.kalit)}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                    style={x.holat === h.kalit ? { backgroundColor: h.rang, color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#8A8578" }}>
+                    {h.belgi}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {(xodimlar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Xodim topilmadi.</p>}
+        </div>
+      )}
+
+      {saqlandi && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✅ Saqlandi</p>}
+      <button onClick={saqla} disabled={saqlanmoqda || yuklanmoqda}
+        className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+        {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+      </button>
+    </div>
+  );
+}
+
+function FanlarTahliliBolimi({ token, maktabId, onOrtga }) {
+  const [fanlar, setFanlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/maktab/fanlar_tahlili?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token, maktabId]);
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Fanlar tahlili</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Butun maktab kesimida, har fandan necha o'quvchi qanday natijada.</p>
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : fanlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali test yechilmagan — tahlil uchun ma'lumot yo'q.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {fanlar.map((f) => {
+            const jami = f.yaxshi + f.ortacha + f.past;
+            return (
+              <div key={f.subject_name} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{f.subject_name}</p>
+                  <span className="text-xs font-bold" style={{ color: "#1B4B7A" }}>o'rtacha {f.umumiy_ortacha}%</span>
+                </div>
+                <div className="flex h-2.5 rounded-full overflow-hidden mb-2">
+                  {f.yaxshi > 0 && <div style={{ width: `${(f.yaxshi / jami) * 100}%`, backgroundColor: "#3B6D11" }} />}
+                  {f.ortacha > 0 && <div style={{ width: `${(f.ortacha / jami) * 100}%`, backgroundColor: "#C89B3C" }} />}
+                  {f.past > 0 && <div style={{ width: `${(f.past / jami) * 100}%`, backgroundColor: "#A32D2D" }} />}
+                </div>
+                <div className="flex gap-3 text-xs" style={{ color: "#8A8578" }}>
+                  <span>🟢 {f.yaxshi} yaxshi</span>
+                  <span>🟡 {f.ortacha} o'rtacha</span>
+                  <span>🔴 {f.past} past</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TogarakAzoMavzulari({ token, togarak, onOrtga }) {
+  const [mavzular, setMavzular] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
+  const [kontentlar, setKontentlar] = useState(null);
+  const [oqilayotganId, setOqilayotganId] = useState(null);
+  const [joriySozIndeksi, setJoriySozIndeksi] = useState(-1);
+  const korilganVideolar = useRef(new Set());
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/togarak_azo/mavzularim?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+        return d;
+      })
+      .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, togarak.id]);
+
+  const mavzuOch = (m) => {
+    setTanlanganMavzu(m); setKontentlar(null);
+    fetch(`${API_BASE}/api/togarak_azo/mavzu_kontentlari?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}&topic_code=${encodeURIComponent(m.topic_code)}`)
+      .then((r) => r.json())
+      .then((d) => setKontentlar(d.kontentlar || []))
+      .catch(() => setKontentlar([]));
+  };
+
+  const videoKorildi = (biriktirmaId) => {
+    if (korilganVideolar.current.has(biriktirmaId)) return;
+    korilganVideolar.current.add(biriktirmaId);
+    fetch(`${API_BASE}/api/togarak_azo/video_korildi?token=${encodeURIComponent(token)}&biriktirma_id=${biriktirmaId}`, { method: "POST" }).catch(() => {});
+  };
+
+  const youtubeIdOl = (url) => {
+    const m = (url || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{11})/);
+    return m ? m[1] : null;
+  };
+
+  if (tanlanganMavzu) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); window.speechSynthesis.cancel(); setOqilayotganId(null); }}
+          className="text-sm mb-4" style={{ color: "#8A8578" }}>← Mavzular</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
+        {tanlanganMavzu.bob_name && <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.bob_name}</p>}
+
+        {kontentlar === null ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : kontentlar.length === 0 ? (
+          <p className="text-sm" style={{ color: "#8A8578" }}>Bu mavzuga hali kontent qo'shilmagan.</p>
+        ) : (
+          <div className="space-y-4">
+            {kontentlar.map((k) => (
+              <div key={k.id} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                {k.sarlavha && <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>{k.sarlavha}</p>}
+
+                {k.kontent_turi === "matn" && (
+                  <>
+                    <OqiladiganMatn matn={k.matn} joriySozIndeksi={oqilayotganId === k.id ? joriySozIndeksi : -1} />
+                    <OvozliOqishTugmasi matn={k.matn} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
+                      joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                  </>
+                )}
+
+                {k.kontent_turi === "latex" && (
+                  <>
+                    <SavolFormulasi ifoda={k.matn} />
+                    <OvozliOqishTugmasi matn={latexniOzbekchaOqishga(k.matn)} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
+                      joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                  </>
+                )}
+
+                {k.kontent_turi === "rasm" && (
+                  <img src={`${API_BASE}/api/oqituvchi/togarak_kontent_fayl?biriktirma_id=${k.id}&token=${encodeURIComponent(token)}`}
+                    alt={k.sarlavha || "rasm"} className="w-full rounded-xl" />
+                )}
+
+                {k.kontent_turi === "pdf" && (
+                  <a href={`${API_BASE}/api/oqituvchi/togarak_kontent_fayl?biriktirma_id=${k.id}&token=${encodeURIComponent(token)}`}
+                    target="_blank" rel="noreferrer"
+                    className="block text-center text-xs font-semibold py-2.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                    📄 PDF'ni ochish
+                  </a>
+                )}
+
+                {k.kontent_turi === "word" && (
+                  <>
+                    {k.matn ? (
+                      <>
+                        <OqiladiganMatn matn={k.matn} joriySozIndeksi={oqilayotganId === k.id ? joriySozIndeksi : -1} />
+                        <OvozliOqishTugmasi matn={k.matn} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
+                          joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                      </>
+                    ) : (
+                      <a href={`${API_BASE}/api/oqituvchi/togarak_kontent_fayl?biriktirma_id=${k.id}&token=${encodeURIComponent(token)}`}
+                        target="_blank" rel="noreferrer"
+                        className="block text-center text-xs font-semibold py-2.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                        📝 Word faylni ochish
+                      </a>
+                    )}
+                  </>
+                )}
+
+                {k.kontent_turi === "video" && (
+                  <div>
+                    {youtubeIdOl(k.video_havola) ? (
+                      <div className="rounded-xl overflow-hidden mb-2" style={{ aspectRatio: "16/9" }}>
+                        <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${youtubeIdOl(k.video_havola)}`}
+                          title={k.sarlavha || "video"} allowFullScreen onLoad={() => videoKorildi(k.id)} />
+                      </div>
+                    ) : (
+                      <a href={k.video_havola} target="_blank" rel="noreferrer" onClick={() => videoKorildi(k.id)}
+                        className="block text-center text-xs font-semibold py-2.5 rounded-lg mb-2" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                        ▶️ Videoni ochish
+                      </a>
+                    )}
+                    <p className="text-xs" style={{ color: "#8A8578" }}>👁 {k.korilish_soni} marta ko'rilgan</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Profil</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📚 Mavzular</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{togarak.nomi}</p>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : xato ? (
+        <p className="text-sm font-medium" style={{ color: "#A32D2D" }}>⚠️ {xato}</p>
+      ) : mavzular.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali mavzu qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {mavzular.map((m) => (
+            <button key={m.topic_code} onClick={() => mavzuOch(m)}
+              className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                {m.bob_name && <p className="text-xs" style={{ color: "#8A8578" }}>{m.bob_name}</p>}
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
+  const [mavzular, setMavzular] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [qidiruvOchiq, setQidiruvOchiq] = useState(false);
+  const [qidiruv, setQidiruv] = useState("");
+  const [qidiruvNatijalari, setQidiruvNatijalari] = useState(null);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
+
+  const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
+  const [kontentlar, setKontentlar] = useState(null);
+  const [kontentTuriFormasi, setKontentTuriFormasi] = useState(null); // "matn" | "latex" | "video" | "fayl" | null
+  const [sarlavha, setSarlavha] = useState("");
+  const [matn, setMatn] = useState("");
+  const [videoHavola, setVideoHavola] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const [testShablonOchiq, setTestShablonOchiq] = useState(false);
+  const [testTanlanganKodlar, setTestTanlanganKodlar] = useState({}); // {topic_code: soni}
+  const [testYuklanmoqda, setTestYuklanmoqda] = useState(false);
+  const [testImportlanmoqda, setTestImportlanmoqda] = useState(false);
+  const [testNatija, setTestNatija] = useState(null);
+
+  const [yangiMavzuOchiq, setYangiMavzuOchiq] = useState(false);
+  const [yangiMavzuNomi, setYangiMavzuNomi] = useState("");
+  const [yangiMavzuBob, setYangiMavzuBob] = useState("");
+  const [yangiMavzuYaratilmoqda, setYangiMavzuYaratilmoqda] = useState(false);
+
+  const mavzularniYukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/togarak_barcha_mavzular?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+        return d;
+      })
+      .then((d) => { setMavzular(d.mavzular || []); setXato(""); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+  useEffect(mavzularniYukla, [token, togarakId]);
+
+  const [qidiruvXato, setQidiruvXato] = useState("");
+
+  useEffect(() => {
+    if (!qidiruvOchiq) return;
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/oqituvchi/togarak_milliy_mavzular_qidir?token=${encodeURIComponent(token)}&togarak_id=${togarakId}${qidiruv.trim() ? `&qidiruv=${encodeURIComponent(qidiruv.trim())}` : ""}`)
+        .then(async (r) => {
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+          return d;
+        })
+        .then((d) => { setQidiruvNatijalari(d.mavzular || []); setQidiruvXato(""); setQidirilmoqda(false); })
+        .catch((e) => { setQidiruvXato(e.message || "Yuklab bo'lmadi"); setQidirilmoqda(false); });
+    }, 350);
+    return () => clearTimeout(kechiktirish);
+  }, [qidiruv, qidiruvOchiq, token, togarakId]);
+
+  const mavzuBiriktir = async (topicCode) => {
+    await fetch(`${API_BASE}/api/oqituvchi/togarak_milliy_mavzu_biriktir`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, togarak_id: togarakId, topic_code: topicCode }),
+    });
+    mavzularniYukla();
+  };
+
+  const [barchasiniQoshishYuklanmoqda, setBarchasiniQoshishYuklanmoqda] = useState(false);
+  const barchasiniQoshish = async () => {
+    const yangilari = (qidiruvNatijalari || []).filter((m) => !mavzular.some((x) => x.topic_code === m.topic_code));
+    if (yangilari.length === 0) return;
+    setBarchasiniQoshishYuklanmoqda(true);
+    try {
+      await Promise.all(yangilari.map((m) =>
+        fetch(`${API_BASE}/api/oqituvchi/togarak_milliy_mavzu_biriktir`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, togarak_id: togarakId, topic_code: m.topic_code }),
+        })
+      ));
+      mavzularniYukla();
+    } finally { setBarchasiniQoshishYuklanmoqda(false); }
+  };
+
+  const mavzuniOlibTashla = async (topicCode) => {
+    await fetch(`${API_BASE}/api/oqituvchi/togarak_mavzu_biriktirmasini_ochir?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&topic_code=${encodeURIComponent(topicCode)}`, { method: "DELETE" });
+    mavzularniYukla();
+    if (tanlanganMavzu?.topic_code === topicCode) setTanlanganMavzu(null);
+  };
+
+  const kontentlarniYukla = (topicCode) => {
+    fetch(`${API_BASE}/api/oqituvchi/togarak_mavzu_kontentlari?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&topic_code=${encodeURIComponent(topicCode)}`)
+      .then((r) => r.json())
+      .then((d) => setKontentlar(d.kontentlar || []))
+      .catch(() => setKontentlar([]));
+  };
+
+  const mavzuOch = (m) => { setTanlanganMavzu(m); setKontentlar(null); kontentlarniYukla(m.topic_code); };
+
+  const formaniTozala = () => { setSarlavha(""); setMatn(""); setVideoHavola(""); setKontentTuriFormasi(null); setXato(""); };
+
+  const matnKontentSaqla = async () => {
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_matn_kontent_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, togarak_id: togarakId, topic_code: tanlanganMavzu.topic_code, kontent_turi: kontentTuriFormasi,
+          sarlavha: sarlavha || undefined, matn: kontentTuriFormasi !== "video" ? matn : undefined,
+          video_havola: kontentTuriFormasi === "video" ? videoHavola : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formaniTozala();
+      kontentlarniYukla(tanlanganMavzu.topic_code);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); }
+  };
+
+  const faylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setSaqlanmoqda(true); setXato("");
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const q = new URLSearchParams({ token, togarak_id: togarakId, topic_code: tanlanganMavzu.topic_code, sarlavha: sarlavha || "" });
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_fayl_kontent_qosh?${q.toString()}`, { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      formaniTozala();
+      kontentlarniYukla(tanlanganMavzu.topic_code);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(false); e.target.value = ""; }
+  };
+
+  const kontentOchir = async (id) => {
+    await fetch(`${API_BASE}/api/oqituvchi/togarak_kontent_ochir?token=${encodeURIComponent(token)}&biriktirma_id=${id}`, { method: "DELETE" });
+    kontentlarniYukla(tanlanganMavzu.topic_code);
+    mavzularniYukla();
+  };
+
+  const [testHammasigaSoni, setTestHammasigaSoni] = useState("");
+
+  const testKodBelgila = (topicCode, soni) => {
+    setTestTanlanganKodlar((prev) => {
+      const yangi = { ...prev };
+      if (soni <= 0) delete yangi[topicCode];
+      else yangi[topicCode] = soni;
+      return yangi;
+    });
+  };
+
+  const testShablonYukla = async () => {
+    const guruhlar = Object.entries(testTanlanganKodlar).map(([topic_code, soni]) => ({ topic_code, soni }));
+    if (guruhlar.length === 0) { setXato("Kamida bitta mavzudan son tanlang"); return; }
+    setTestYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_test_shablon`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, guruhlar }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || "Xato"); }
+      const blob = await res.blob();
+      const dlUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl; a.download = "togarak_test_shablon.xlsx";
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(dlUrl);
+    } catch (e) { setXato(e.message); } finally { setTestYuklanmoqda(false); }
+  };
+
+  const testFaylTanlandi = async (e) => {
+    const fayl = e.target.files[0];
+    if (!fayl) return;
+    setTestImportlanmoqda(true); setXato(""); setTestNatija(null);
+    try {
+      const formData = new FormData();
+      formData.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_test_import?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`, {
+        method: "POST", body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setTestNatija(data);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setTestImportlanmoqda(false); e.target.value = ""; }
+  };
+
+  const yangiMavzuYarat = async () => {
+    if (!yangiMavzuNomi.trim()) { setXato("Mavzu nomini kiriting"); return; }
+    setYangiMavzuYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yangi_mavzu_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, nomi: yangiMavzuNomi.trim(), bob: yangiMavzuBob.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setYangiMavzuNomi(""); setYangiMavzuBob(""); setYangiMavzuOchiq(false);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setYangiMavzuYaratilmoqda(false); }
+  };
+
+  const KONTENT_YORLIQ = { matn: "📝 Matn", latex: "🧮 LaTeX", rasm: "🖼 Rasm", pdf: "📄 PDF", word: "📃 Word", video: "🎬 Video" };
+
+  if (tanlanganMavzu) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); formaniTozala(); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Mavzular</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.mavzu_name || tanlanganMavzu.nomi}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{[tanlanganMavzu.bob_name, tanlanganMavzu.bolim_name].filter(Boolean).join(" · ")}</p>
+
+        <div className="flex gap-2 flex-wrap mb-4">
+          {[["matn", "📝 Matn"], ["latex", "🧮 LaTeX"], ["video", "🎬 Video"]].map(([turi, yorliq]) => (
+            <button key={turi} onClick={() => { formaniTozala(); setKontentTuriFormasi(turi); }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+              style={kontentTuriFormasi === turi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              + {yorliq}
+            </button>
+          ))}
+          <label className="text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+            + 🖼📄📃 Fayl
+            <input type="file" accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.docx" onChange={faylTanlandi} className="hidden" />
+          </label>
+        </div>
+
+        {(kontentTuriFormasi === "matn" || kontentTuriFormasi === "latex" || kontentTuriFormasi === "video") && (
+          <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+            <input type="text" value={sarlavha} onChange={(e) => setSarlavha(e.target.value)} placeholder="Sarlavha (ixtiyoriy)"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+            {kontentTuriFormasi === "video" ? (
+              <input type="text" value={videoHavola} onChange={(e) => setVideoHavola(e.target.value)} placeholder="Video havolasi (YouTube yoki boshqa)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+            ) : (
+              <>
+                <textarea value={matn} onChange={(e) => setMatn(e.target.value)}
+                  placeholder={kontentTuriFormasi === "latex" ? "LaTeX formula, masalan: \\frac{1}{2}" : "Matn"} rows={5}
+                  className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5 font-mono" style={{ borderColor: "#E5E1D8" }} />
+                {kontentTuriFormasi === "latex" && matn.trim() && <SavolFormulasi ifoda={matn} />}
+              </>
+            )}
+            {xato && <p className="text-sm mb-2.5" style={{ color: "#B0553A" }}>{xato}</p>}
+            <button onClick={matnKontentSaqla} disabled={saqlanmoqda}
+              className="w-full py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+              {saqlanmoqda ? "Saqlanmoqda..." : "Qo'shish"}
+            </button>
+          </div>
+        )}
+        {saqlanmoqda && !kontentTuriFormasi && <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Fayl yuklanmoqda...</p>}
+        {xato && !kontentTuriFormasi && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+        <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>Qo'shilgan kontentlar ({(kontentlar || []).length})</p>
+        {kontentlar === null ? (
+          <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <div className="space-y-2">
+            {kontentlar.map((k) => (
+              <div key={k.id} className="rounded-xl p-3 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold" style={{ color: "#2B2B2B" }}>{KONTENT_YORLIQ[k.kontent_turi]} {k.sarlavha ? `— ${k.sarlavha}` : ""}</p>
+                  <p className="text-xs truncate" style={{ color: "#8A8578" }}>
+                    {k.kontent_turi === "video" ? `👁 ${k.korilish_soni} ko'rilgan` : (k.matn || k.fayl_nomi || "").slice(0, 60)}
+                  </p>
+                </div>
+                <button onClick={() => kontentOchir(k.id)} className="text-xs px-2 shrink-0" style={{ color: "#A32D2D" }}>✕</button>
+              </div>
+            ))}
+            {kontentlar.length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hali kontent qo'shilmagan.</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruh</button>
+      <div className="flex items-center justify-between mb-1 gap-2">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 To'garak mavzulari</h1>
+        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+          <button onClick={() => { setYangiMavzuOchiq(!yangiMavzuOchiq); setQidiruvOchiq(false); setTestShablonOchiq(false); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+            {yangiMavzuOchiq ? "✕ Yopish" : "✏️ Yangi mavzu"}
+          </button>
+          <button onClick={() => { setTestShablonOchiq(!testShablonOchiq); setQidiruvOchiq(false); setYangiMavzuOchiq(false); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+            {testShablonOchiq ? "✕ Yopish" : "🧪 Test shablon"}
+          </button>
+          <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setTestShablonOchiq(false); setYangiMavzuOchiq(false); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Milliy bazadan mavzu tanlab, har biriga matn/LaTeX/rasm/PDF/Word/video biriktiring.</p>
+
+      {yangiMavzuOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: "#2B2B2B" }}>Yangi mavzu qo'shish</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+            Milliy bazada mos mavzu topilmasa (masalan yangi maxsus guruh uchun) — shu yerda nomini yozib, o'zingiz qo'shing. Kod avtomatik yaratiladi.
+          </p>
+          <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
+            placeholder="Bob nomi (ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
+            placeholder="Mavzu nomi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
+            {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Mavzu qo'shish"}
+          </button>
+          {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        </div>
+      )}
+
+      {testShablonOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: "#2B2B2B" }}>Ko'p savolni bir martada Excel orqali qo'shish</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Mavzu(lar)ni tanlab, har biriga necha savol kerakligini yozing.</p>
+          {mavzular.length > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <input type="number" min="0" value={testHammasigaSoni} onChange={(e) => setTestHammasigaSoni(e.target.value)}
+                placeholder="0" className="w-16 px-2 py-1.5 rounded-lg border text-xs text-center" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={() => {
+                  const soni = parseInt(testHammasigaSoni, 10) || 0;
+                  setTestTanlanganKodlar(Object.fromEntries(mavzular.map((m) => [m.topic_code, soni]).filter(([, s]) => s > 0)));
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+                Hammasiga qo'llash ({mavzular.length} ta)
+              </button>
+            </div>
+          )}
+          <div className="space-y-2 mb-3 max-h-56 overflow-y-auto">
+            {mavzular.map((m) => (
+              <div key={m.topic_code} className="flex items-center gap-2 rounded-lg p-2" style={{ backgroundColor: "#F7F5F0" }}>
+                <span className="flex-1 text-xs truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</span>
+                <input type="number" min="0" value={testTanlanganKodlar[m.topic_code] || ""}
+                  onChange={(e) => testKodBelgila(m.topic_code, parseInt(e.target.value, 10) || 0)}
+                  placeholder="0" className="w-16 px-2 py-1 rounded-lg border text-xs text-center" style={{ borderColor: "#E5E1D8" }} />
+              </div>
+            ))}
+            {mavzular.length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Avval "+ Mavzu qo'shish" yoki "✏️ Yangi mavzu" orqali mavzu qo'shing.</p>}
+          </div>
+          <button onClick={testShablonYukla} disabled={testYuklanmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+            {testYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Shablon yuklab olish"}
+          </button>
+          <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+            style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+            {testImportlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
+            <input type="file" accept=".xlsx" onChange={testFaylTanlandi} disabled={testImportlanmoqda} className="hidden" />
+          </label>
+          {testNatija && (
+            <p className="text-xs mt-3" style={{ color: "#3B6D11" }}>
+              ✅ {testNatija.saved} ta savol qo'shildi{testNatija.errors > 0 ? `, ${testNatija.errors} ta xato` : ""}
+            </p>
+          )}
+          {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        </div>
+      )}
+
+      {qidiruvOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <input type="text" value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Mavzu nomi bo'yicha qidirish (bo'sh — o'z sinf/faningiz)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          {!qidirilmoqda && !qidiruvXato && (qidiruvNatijalari || []).some((m) => !mavzular.some((x) => x.topic_code === m.topic_code)) && (
+            <button onClick={barchasiniQoshish} disabled={barchasiniQoshishYuklanmoqda}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3 flex items-center justify-center gap-2"
+              style={{ backgroundColor: "#EAF3DE", color: "#3B6D11", opacity: barchasiniQoshishYuklanmoqda ? 0.7 : 1 }}>
+              {barchasiniQoshishYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> :
+                `✓✓ Barchasini qo'shish (${(qidiruvNatijalari || []).filter((m) => !mavzular.some((x) => x.topic_code === m.topic_code)).length} ta)`}
+            </button>
+          )}
+          {qidirilmoqda ? (
+            <div className="py-4 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+          ) : qidiruvXato ? (
+            <p className="text-xs font-medium" style={{ color: "#A32D2D" }}>⚠️ {qidiruvXato}</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {(qidiruvNatijalari || []).map((m) => {
+                const biriktirilganmi = mavzular.some((x) => x.topic_code === m.topic_code);
+                return (
+                  <div key={m.topic_code} className="flex items-center justify-between gap-2 rounded-lg p-2" style={{ backgroundColor: "#F7F5F0" }}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</p>
+                      <p className="text-xs truncate" style={{ color: "#8A8578" }}>{m.subject_name} · {m.grade}-sinf {m.bob_name ? `· ${m.bob_name}` : ""}</p>
+                    </div>
+                    <button onClick={() => mavzuBiriktir(m.topic_code)} disabled={biriktirilganmi}
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
+                      style={biriktirilganmi ? { backgroundColor: "#EAF3DE", color: "#3B6D11" } : { backgroundColor: "#1B4B7A", color: "#fff" }}>
+                      {biriktirilganmi ? "✓ Qo'shilgan" : "+ Qo'shish"}
+                    </button>
+                  </div>
+                );
+              })}
+              {(qidiruvNatijalari || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hech narsa topilmadi. Boshqa nom bilan qidirib ko'ring.</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : xato ? (
+        <p className="text-sm mb-3 font-medium" style={{ color: "#A32D2D" }}>⚠️ {xato}</p>
+      ) : mavzular.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali mavzu qo'shilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {mavzular.map((m) => (
+            <div key={m.topic_code} className="rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <button onClick={() => mavzuOch(m)} className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</p>
+                <p className="text-xs truncate" style={{ color: "#8A8578" }}>{[m.bob_name, m.bolim_name].filter(Boolean).join(" · ")} · {m.kontent_soni} kontent</p>
+              </button>
+              <button onClick={() => mavzuniOlibTashla(m.topic_code)} className="text-xs px-2 shrink-0" style={{ color: "#A32D2D" }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TogarakGuruhSozlamalari({ token, togarak, onOrtga, onOchirildi }) {
+  const [parolKorinmoqda, setParolKorinmoqda] = useState(false);
+  const [joriyParol, setJoriyParol] = useState(null);
+  const [parolYuklanmoqda, setParolYuklanmoqda] = useState(false);
+  const [yangiParol, setYangiParol] = useState("");
+  const [parolSaqlanmoqda, setParolSaqlanmoqda] = useState(false);
+  const [parolSaqlandi, setParolSaqlandi] = useState(false);
+
+  const [ochirishBosqichida, setOchirishBosqichida] = useState(false);
+  const [ochirishParoli, setOchirishParoli] = useState("");
+  const [ochirilmoqda, setOchirilmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  const parolniKorsat = () => {
+    if (parolKorinmoqda) { setParolKorinmoqda(false); return; }
+    setParolYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/togarak_parolini_kor?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}`)
+      .then((r) => r.json())
+      .then((d) => { setJoriyParol(d.parol); setParolKorinmoqda(true); setParolYuklanmoqda(false); })
+      .catch(() => setParolYuklanmoqda(false));
+  };
+
+  const parolAlmashtir = async () => {
+    if (!yangiParol.trim()) return;
+    setParolSaqlanmoqda(true); setParolSaqlandi(false);
+    try {
+      await fetch(`${API_BASE}/api/oqituvchi/togarak_parol_almashtir`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarak.id, yangi_parol: yangiParol.trim() }),
+      });
+      setJoriyParol(yangiParol.trim()); setYangiParol(""); setParolSaqlandi(true);
+    } finally { setParolSaqlanmoqda(false); }
+  };
+
+  const guruhniOchir = async () => {
+    if (!ochirishParoli.trim()) { setXato("Parolni kiriting"); return; }
+    setOchirilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_ochir?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}&parol=${encodeURIComponent(ochirishParoli.trim())}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onOchirildi();
+    } catch (e) {
+      setXato(e.message);
+      setOchirilmoqda(false);
+    }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>⚙️ Guruh sozlamalari</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{togarak.nomi}</p>
+
+      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🔑 Qo'shilish paroli</p>
+        <button onClick={parolniKorsat} disabled={parolYuklanmoqda}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          {parolYuklanmoqda ? "Yuklanmoqda..." : parolKorinmoqda ? `Parol: ${joriyParol || "(belgilanmagan)"} — yashirish` : "Parolni ko'rsatish"}
+        </button>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Yangi parol belgilash</label>
+        <div className="flex gap-2">
+          <input type="text" value={yangiParol} onChange={(e) => setYangiParol(e.target.value)} placeholder="Yangi parol"
+            className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={parolAlmashtir} disabled={parolSaqlanmoqda || !yangiParol.trim()}
+            className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: parolSaqlanmoqda || !yangiParol.trim() ? 0.5 : 1 }}>
+            {parolSaqlanmoqda ? "..." : "Saqlash"}
+          </button>
+        </div>
+        {parolSaqlandi && <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>✅ Parol yangilandi</p>}
+      </div>
+
+      <div className="rounded-2xl p-4 border" style={{ backgroundColor: "#FCEBEB", borderColor: "#E8A0A0" }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#A32D2D" }}>⚠️ Xavfli hudud</p>
+        <p className="text-xs mb-3" style={{ color: "#8A5A5A" }}>
+          Guruhni o'chirsangiz — barcha a'zolar, o'z mavzu/testlaringiz va to'lov tarixi butunlay o'chadi. Bu amalni ORQAGA QAYTARIB BO'LMAYDI.
+        </p>
+        {!ochirishBosqichida ? (
+          <button onClick={() => setOchirishBosqichida(true)}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm text-white" style={{ backgroundColor: "#A32D2D" }}>
+            🗑 Guruhni o'chirish
+          </button>
+        ) : (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "#A32D2D" }}>
+              Tasdiqlash uchun guruh parolini kiriting:
+            </p>
+            <input type="text" value={ochirishParoli} onChange={(e) => setOchirishParoli(e.target.value)} placeholder="Guruh paroli"
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E8A0A0" }} />
+            {xato && <p className="text-xs mb-2" style={{ color: "#A32D2D" }}>{xato}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => { setOchirishBosqichida(false); setOchirishParoli(""); setXato(""); }}
+                className="flex-1 py-2.5 rounded-xl font-medium text-sm" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+                Bekor qilish
+              </button>
+              <button onClick={guruhniOchir} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "O'chirilmoqda..." : "Ha, butunlay o'chirish"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 
-class MoliyaYozuvi(BaseModel):
-    token: str
-    maktab_id: int
-    turi: str
-    kategoriya: str
-    summa: int
-    izoh: Optional[str] = None
-    sana: Optional[str] = None
+function DavomatBelgilash({ token, sinfId, onOrtga }) {
+  const bugun = new Date().toISOString().slice(0, 10);
+  const [sana, setSana] = useState(bugun);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [saqlandi, setSaqlandi] = useState(false);
 
+  const HOLATLAR = [
+    { kalit: "keldi", belgi: "✅", nomi: "Keldi", rang: "#3B6D11", fon: "#EAF3DE" },
+    { kalit: "kelmadi", belgi: "❌", nomi: "Kelmadi", rang: "#A32D2D", fon: "#FCEBEB" },
+    { kalit: "kechikdi", belgi: "⏰", nomi: "Kechikdi", rang: "#8A5A1C", fon: "#FDF3E0" },
+    { kalit: "sababli", belgi: "📋", nomi: "Sababli", rang: "#5A5648", fon: "#F7F5F0" },
+  ];
 
-@app.post("/api/maktab/moliya_yozuv_qosh")
-def moliya_yozuv_qosh(sorov: MoliyaYozuvi):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _moliya_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, sorov.maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin moliyaviy yozuv kirita oladi")
-    if sorov.turi not in MOLIYA_TURLARI:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Noto'g'ri tur")
-    if sorov.summa <= 0:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Summa musbat bo'lishi kerak")
-    cur.execute("""
-        INSERT INTO moliya_amallar(maktab_id, turi, kategoriya, summa, izoh, sana, kiritgan_user_id)
-        VALUES(%s,%s,%s,%s,%s,COALESCE(%s, CURRENT_DATE),%s) RETURNING id
-    """, (sorov.maktab_id, sorov.turi, sorov.kategoriya, sorov.summa, sorov.izoh, sorov.sana, user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "id": yangi_id}
+  const yukla = () => {
+    setYuklanmoqda(true); setSaqlandi(false);
+    fetch(`${API_BASE}/api/oqituvchi/davomat_royxati?token=${encodeURIComponent(token)}&sinf_id=${sinfId}&sana=${sana}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setOquvchilar((d.oquvchilar || []).map((o) => ({ ...o, holat: o.holat || "keldi" })));
+        setYuklanmoqda(false);
+      })
+      .catch(() => setYuklanmoqda(false));
+  };
+  useEffect(yukla, [sana, sinfId, token]);
 
+  const holatOzgartir = (userId, holat) => {
+    setOquvchilar((prev) => prev.map((o) => (o.user_id === userId ? { ...o, holat } : o)));
+  };
 
-@app.get("/api/maktab/moliya")
-def moliya_royxati(token: str, maktab_id: int, oy: str):
-    """Direktor uchun — BUTUN oylik byudjet: o'quvchilar kontrakt
-    to'lovi (mavjud tolovlar jadvalidan AVTOMATIK), + qo'lda kiritilgan
-    boshqa kirim/chiqim yozuvlari, + umumiy balans."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _moliya_jadvali(cur); _tolov_jadvallari(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin ko'ra oladi")
+  const barchasiniBelgila = (holat) => {
+    setOquvchilar((prev) => prev.map((o) => ({ ...o, holat })));
+  };
 
-    cur.execute("""
-        SELECT COALESCE(SUM(t.tolangan_summa), 0) AS jami
-        FROM tolovlar t WHERE t.maktab_id=%s AND t.oy=%s
-    """, (maktab_id, oy))
-    oquvchi_kirim = cur.fetchone()["jami"]
+  const saqla = async () => {
+    setSaqlanmoqda(true); setXato(""); setSaqlandi(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/davomat_belgila`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, sinf_id: sinfId, sana,
+          yozuvlar: oquvchilar.map((o) => ({ user_id: o.user_id, holat: o.holat })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setSaqlandi(true);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
 
-    cur.execute("""
-        SELECT id, turi, kategoriya, summa, izoh, sana FROM moliya_amallar
-        WHERE maktab_id=%s AND TO_CHAR(sana, 'YYYY-MM')=%s
-        ORDER BY sana DESC, id DESC
-    """, (maktab_id, oy))
-    yozuvlar = cur.fetchall()
-    cur.close()
-    conn.close()
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>📋 Davomat</h1>
 
-    boshqa_kirim = sum(y["summa"] for y in yozuvlar if y["turi"] == "kirim")
-    chiqim = sum(y["summa"] for y in yozuvlar if y["turi"] == "chiqim")
-    jami_kirim = oquvchi_kirim + boshqa_kirim
-    return {
-        "oy": oy, "oquvchi_kirim": oquvchi_kirim, "boshqa_kirim": boshqa_kirim,
-        "jami_kirim": jami_kirim, "chiqim": chiqim, "balans": jami_kirim - chiqim,
-        "yozuvlar": yozuvlar,
+      <input type="date" value={sana} onChange={(e) => setSana(e.target.value)} max={bugun}
+        className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+
+      <div className="flex gap-1.5 mb-4">
+        {HOLATLAR.map((h) => (
+          <button key={h.kalit} onClick={() => barchasiniBelgila(h.kalit)}
+            className="flex-1 py-2 rounded-lg text-xs font-medium" style={{ backgroundColor: h.fon, color: h.rang }}>
+            Hammasi {h.belgi}
+          </button>
+        ))}
+      </div>
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : (
+        <div className="space-y-2 mb-5">
+          {(oquvchilar || []).map((o) => (
+            <div key={o.user_id} className="rounded-xl p-3 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-medium mb-2" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+              <div className="flex gap-1.5">
+                {HOLATLAR.map((h) => (
+                  <button key={h.kalit} onClick={() => holatOzgartir(o.user_id, h.kalit)}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                    style={o.holat === h.kalit ? { backgroundColor: h.rang, color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#8A8578" }}>
+                    {h.belgi}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {(oquvchilar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Sinfda o'quvchi yo'q.</p>}
+        </div>
+      )}
+
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {saqlandi && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✅ Saqlandi</p>}
+      <button onClick={saqla} disabled={saqlanmoqda || yuklanmoqda}
+        className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
+        {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+      </button>
+    </div>
+  );
+}
+
+function KirishKodiFormasi({ token, onOrtga }) {
+  const [kirishKodi, setKirishKodi] = useState("");
+  const [kodYuborilmoqda, setKodYuborilmoqda] = useState(false);
+  const [kodXato, setKodXato] = useState("");
+  const [kodNatija, setKodNatija] = useState(null);
+
+  const kodBilanQoshil = async () => {
+    if (!kirishKodi.trim()) { setKodXato("Kodni kiriting"); return; }
+    setKodYuborilmoqda(true); setKodXato(""); setKodNatija(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil?token=${encodeURIComponent(token)}&kirish_kodi=${encodeURIComponent(kirishKodi.trim())}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setKodNatija(data);
+      setKirishKodi("");
+    } catch (e) {
+      setKodXato(e.message);
+    } finally { setKodYuborilmoqda(false); }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Profil</button>
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🔑 Kirish kodi</h1>
+      <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+        Maktab/markaz/bog'cha admini sizga bergan 6 belgili kodni kiriting — hisobingizga tegishli lavozim avtomatik qo'shiladi.
+      </p>
+      <div className="flex gap-2">
+        <input type="text" value={kirishKodi} onChange={(e) => setKirishKodi(e.target.value.toUpperCase())}
+          placeholder="masalan: A1B2C3" maxLength={6}
+          className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={kodBilanQoshil} disabled={kodYuborilmoqda}
+          className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: kodYuborilmoqda ? 0.7 : 1 }}>
+          {kodYuborilmoqda ? "..." : "Qo'shilish"}
+        </button>
+      </div>
+      {kodXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{kodXato}</p>}
+      {kodNatija && (
+        <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>
+          ✅ "{kodNatija.joy_nomi}" — {(LAVOZIM_NOMLARI[kodNatija.lavozim] || kodNatija.lavozim)} sifatida qo'shildingiz. Sahifani yangilang.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function RasmiySinflarim({ token, onOrtga }) {
+  const [sinflar, setSinflar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [oquvchilarYuklanmoqda, setOquvchilarYuklanmoqda] = useState(false);
+  const [azolar, setAzolar] = useState(null);
+  const [azolarYuklanmoqda, setAzolarYuklanmoqda] = useState(false);
+  const [davomatKorinishi, setDavomatKorinishi] = useState(false);
+  const [tanlanganOquvchiId, setTanlanganOquvchiId] = useState(null);
+  const joriyOy = new Date().toISOString().slice(0, 7); // "2026-07"
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/mening_sinflarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setSinflar(d.sinflar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const azolarniYukla = (sinfId) => {
+    setAzolarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/sinf_azolari?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`)
+      .then((r) => r.json())
+      .then((d) => { setAzolar(d.azolar || []); setAzolarYuklanmoqda(false); })
+      .catch(() => setAzolarYuklanmoqda(false));
+  };
+
+  const azoniChiqar = async (azolikId, sinfId) => {
+    await fetch(`${API_BASE}/api/oqituvchi/sinf_azosini_chiqar?token=${encodeURIComponent(token)}&azolik_id=${azolikId}`, { method: "DELETE" });
+    azolarniYukla(sinfId);
+  };
+
+  const sinfOch = (s) => {
+    setTanlanganSinf(s);
+    azolarniYukla(s.id);
+    if (!s.pulli) return;
+    setOquvchilarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/sinf_tolovlari?token=${encodeURIComponent(token)}&sinf_id=${s.id}&oy=${joriyOy}`)
+      .then((r) => r.json())
+      .then((d) => { setOquvchilar(d.oquvchilar || []); setOquvchilarYuklanmoqda(false); })
+      .catch(() => setOquvchilarYuklanmoqda(false));
+  };
+
+  const tolovBelgila = async (oquvchi) => {
+    await fetch(`${API_BASE}/api/oqituvchi/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token, user_id: oquvchi.user_id, maktab_id: tanlanganSinf.maktab_id || tanlanganSinf.id,
+        oy: joriyOy, tolangan_summa: tanlanganSinf.oylik_tolov,
+      }),
+    });
+    sinfOch(tanlanganSinf);
+  };
+
+  if (tanlanganOquvchiId) {
+    return <OquvchiProfili token={token} userId={tanlanganOquvchiId} onOrtga={() => setTanlanganOquvchiId(null)} />;
+  }
+
+  if (tanlanganSinf && davomatKorinishi) {
+    return <DavomatBelgilash token={token} sinfId={tanlanganSinf.id} onOrtga={() => setDavomatKorinishi(false)} />;
+  }
+
+  if (tanlanganSinf) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganSinf(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflarim</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganSinf.sinf}-{tanlanganSinf.harf}</h1>
+        <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{tanlanganSinf.maktab_nomi} · {tanlanganSinf.oquvchi_soni} o'quvchi</p>
+        <button onClick={() => setDavomatKorinishi(true)}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          📋 Davomat belgilash
+        </button>
+
+        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#EAF1F7" }}>
+          <p className="text-xs" style={{ color: "#5A5648" }}>🔐 Qo'shilish paroli: <b>{tanlanganSinf.qoshilish_paroli}</b></p>
+        </div>
+
+        {!tanlanganSinf.pulli ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Bu maktab bepul — to'lov kuzatuvi kerak emas.</p>
+          </div>
+        ) : oquvchilarYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>💳 {joriyOy} oyi to'lovlari</p>
+            <div className="space-y-2">
+              {(oquvchilar || []).map((o) => (
+                <div key={o.user_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: o.qarzdor ? "#FCEBEB" : "#EAF3DE" }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+                    <p className="text-xs" style={{ color: o.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                      {o.qarzdor ? `⚠️ Qarzdor (${o.tolangan_summa.toLocaleString()} / ${o.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                    </p>
+                  </div>
+                  {o.qarzdor && (
+                    <button onClick={() => tolovBelgila(o)} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                      To'landi deb belgilash
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <p className="text-sm font-semibold mb-2.5 mt-5" style={{ color: "#2B2B2B" }}>👥 Sinf a'zolari</p>
+        {azolarYuklanmoqda ? (
+          <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : !azolar || azolar.length === 0 ? (
+          <p className="text-xs" style={{ color: "#8A8578" }}>Hali hech kim qo'shilmagan — o'quvchilar parolni kiritganda shu yerda ko'rinadi.</p>
+        ) : (
+          <div className="space-y-2">
+            {azolar.map((a) => (
+              <div key={a.azolik_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                <button onClick={() => setTanlanganOquvchiId(a.user_id)} className="text-sm font-medium text-left" style={{ color: "#2B2B2B" }}>
+                  {a.full_name}
+                </button>
+                <button onClick={() => azoniChiqar(a.azolik_id, tanlanganSinf.id)}
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-lg shrink-0 ml-2" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>
+                  ✕ Chiqarish
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🏫 Rasmiy sinflarim</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : sinflar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm mb-1" style={{ color: "#2B2B2B" }}>Sizga hali rasmiy sinf biriktirilmagan</p>
+          <p className="text-xs" style={{ color: "#8A8578" }}>Maktabingiz direktori/administratori sizni sinf rahbari sifatida tayinlashi kerak.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {sinflar.map((s) => (
+            <button key={s.id} onClick={() => sinfOch(s)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{s.maktab_nomi} · {s.oquvchi_soni} o'quvchi{s.pulli ? " · 💳 pulli" : ""}</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
+  const [malumot, setMalumot] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganSinf, setTanlanganSinf] = useState(null);
+  const [azolar, setAzolar] = useState(null);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [ichkiYuklanmoqda, setIchkiYuklanmoqda] = useState(false);
+  const [davomatKorinishi, setDavomatKorinishi] = useState(false);
+  const [tepaKorinish, setTepaKorinish] = useState("sinflar"); // "sinflar" | "oqituvchilar" | "reyting"
+  const [tanlanganOquvchiId, setTanlanganOquvchiId] = useState(null);
+  const [xodimDavomatKorinishi, setXodimDavomatKorinishi] = useState(false);
+  const joriyOy = new Date().toISOString().slice(0, 7);
+
+  useEffect(() => {
+    if (!maktabId) { setYuklanmoqda(false); return; }
+    fetch(`${API_BASE}/api/maktab/dashboard?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then((r) => r.json())
+      .then((d) => { if (!d.detail) setMalumot(d); else setXato(d.detail); setYuklanmoqda(false); })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, maktabId]);
+
+  const sinfOch = (s) => {
+    setTanlanganSinf(s);
+    setIchkiYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/sinf_azolari?token=${encodeURIComponent(token)}&sinf_id=${s.id}`)
+      .then((r) => r.json())
+      .then((d) => setAzolar(d.azolar || []))
+      .catch(() => {});
+    if (malumot.pulli) {
+      fetch(`${API_BASE}/api/oqituvchi/sinf_tolovlari?token=${encodeURIComponent(token)}&sinf_id=${s.id}&oy=${joriyOy}`)
+        .then((r) => r.json())
+        .then((d) => { setOquvchilar(d.oquvchilar || []); setIchkiYuklanmoqda(false); })
+        .catch(() => setIchkiYuklanmoqda(false));
+    } else {
+      setIchkiYuklanmoqda(false);
     }
-
-
-@app.delete("/api/maktab/moliya_yozuv_ochir")
-def moliya_yozuv_ochir(token: str, yozuv_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _moliya_jadvali(cur)
-    cur.execute("SELECT maktab_id FROM moliya_amallar WHERE id=%s", (yozuv_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Yozuv topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, r["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM moliya_amallar WHERE id=%s", (yozuv_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# HUJJATLAR — buyruqlar, hisobotlar, sertifikatlar. Fayl BAZANING
-# O'ZIDA (BYTEA) saqlanadi — Railway'ning diskka yozilgan fayllarni
-# HAR QAYTA ISHGA TUSHISHDA o'chirib yuborishi sababli, diskka
-# yozish ISHONCHSIZ. Kichik-o'rta hajmdagi hujjatlar (buyruq, sertifikat)
-# uchun bu yetarli — 10 MB chegarasi bilan.
-# ═══════════════════════════════════════════════════════════
-
-HUJJAT_HAJM_CHEGARASI = 10 * 1024 * 1024  # 10 MB
-HUJJAT_TURLARI = {"buyruq", "hisobot", "sertifikat", "xodim_hujjati", "oquvchi_hujjati", "boshqa"}
-
-
-def _hujjatlar_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS hujjatlar(
-        id SERIAL PRIMARY KEY,
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        nomi TEXT NOT NULL, turi TEXT NOT NULL,
-        fayl_nomi TEXT, fayl_turi TEXT, fayl_hajmi INTEGER,
-        fayl_malumot BYTEA,
-        izoh TEXT,
-        yuklagan_user_id BIGINT REFERENCES users(user_id),
-        yuklangan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-@app.post("/api/maktab/hujjat_yukla")
-async def hujjat_yukla(token: str, maktab_id: int, nomi: str, turi: str, izoh: str = "", fayl: UploadFile = File(...)):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _hujjatlar_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin hujjat yuklay oladi")
-    if turi not in HUJJAT_TURLARI:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Noto'g'ri hujjat turi")
-    if not nomi.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Hujjat nomini kiriting")
-
-    tarkib = await fayl.read()
-    if len(tarkib) > HUJJAT_HAJM_CHEGARASI:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Fayl hajmi 10 MB dan katta bo'lmasligi kerak")
-
-    cur.execute("""
-        INSERT INTO hujjatlar(maktab_id, nomi, turi, fayl_nomi, fayl_turi, fayl_hajmi, fayl_malumot, izoh, yuklagan_user_id)
-        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (maktab_id, nomi.strip(), turi, fayl.filename, fayl.content_type, len(tarkib),
-          psycopg2.Binary(tarkib), izoh or None, user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yuklandi", "hujjat_id": yangi_id}
-
-
-@app.get("/api/maktab/hujjatlar")
-def hujjatlar_royxati(token: str, maktab_id: int):
-    """Fayl MA'LUMOTI o'zi QAYTARILMAYDI (tez yuklanishi uchun) —
-    faqat metama'lumot. Fayl o'zi /hujjat_yukleb_olish orqali."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _hujjatlar_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        SELECT h.id, h.nomi, h.turi, h.fayl_nomi, h.fayl_hajmi, h.izoh, h.yuklangan_at, u.full_name AS yuklagan_ismi
-        FROM hujjatlar h LEFT JOIN users u ON u.user_id = h.yuklagan_user_id
-        WHERE h.maktab_id=%s ORDER BY h.yuklangan_at DESC
-    """, (maktab_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"hujjatlar": natija}
-
-
-@app.get("/api/maktab/hujjat_yukleb_olish")
-def hujjat_yukleb_olish(token: str, hujjat_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _hujjatlar_jadvali(cur)
-    cur.execute("SELECT maktab_id, fayl_nomi, fayl_turi, fayl_malumot FROM hujjatlar WHERE id=%s", (hujjat_id,))
-    h = cur.fetchone()
-    if not h:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Hujjat topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, h["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin yuklab ola oladi")
-    cur.close()
-    conn.close()
-    return Response(
-        content=bytes(h["fayl_malumot"]),
-        media_type=h["fayl_turi"] or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{h["fayl_nomi"] or "hujjat"}"'},
-    )
-
-
-@app.delete("/api/maktab/hujjat_ochir")
-def hujjat_ochir(token: str, hujjat_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _hujjatlar_jadvali(cur)
-    cur.execute("SELECT maktab_id FROM hujjatlar WHERE id=%s", (hujjat_id,))
-    h = cur.fetchone()
-    if not h:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Hujjat topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, h["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM hujjatlar WHERE id=%s", (hujjat_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# REJALASHTIRISH — dars jadvali (haftalik, sinf bo'yicha) va
-# tadbirlar/majlislar/ta'til (umumiy taqvim). SODDALASHTIRILGAN:
-# xona BANDLIGI to'qnashuvini avtomatik tekshirmaydi (bu alohida,
-# ancha katta funksiya) — xona shunchaki KO'RSATISH uchun matn.
-# ═══════════════════════════════════════════════════════════
-
-HAFTA_KUNLARI = {1: "Dushanba", 2: "Seshanba", 3: "Chorshanba", 4: "Payshanba", 5: "Juma", 6: "Shanba"}
-TADBIR_TURLARI = {"tadbir", "majlis", "tatil"}
-
-
-def _rejalashtirish_jadvallari(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS dars_jadvali(
-        id SERIAL PRIMARY KEY,
-        sinf_id INTEGER NOT NULL REFERENCES maktab_sinflari(id),
-        kun INTEGER NOT NULL,
-        dars_raqami INTEGER NOT NULL,
-        fan TEXT NOT NULL,
-        xona TEXT,
-        UNIQUE(sinf_id, kun, dars_raqami)
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS tadbirlar(
-        id SERIAL PRIMARY KEY,
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        turi TEXT NOT NULL,
-        sarlavha TEXT NOT NULL,
-        tavsif TEXT,
-        boshlanish_sana DATE NOT NULL,
-        tugash_sana DATE,
-        vaqt TEXT,
-        yaratgan_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-class DarsJadvaliSlot(BaseModel):
-    token: str
-    sinf_id: int
-    kun: int
-    dars_raqami: int
-    fan: str
-    xona: Optional[str] = None
-
-
-@app.put("/api/maktab/dars_jadvali_belgila")
-def dars_jadvali_belgila(sorov: DarsJadvaliSlot):
-    """Direktor/o'rinbosar — sinfning haftalik jadvaliga BIR soatlik
-    darsni belgilaydi (yoki mavjudini yangilaydi)."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _rejalashtirish_jadvallari(cur)
-    cur.execute("SELECT maktab_id FROM maktab_sinflari WHERE id=%s", (sorov.sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin jadval belgilay oladi")
-    if sorov.kun not in HAFTA_KUNLARI:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kun 1 (Dushanba) dan 6 (Shanba) gacha bo'lishi kerak")
-    if not sorov.fan.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Fan nomini kiriting")
-    cur.execute("""
-        INSERT INTO dars_jadvali(sinf_id, kun, dars_raqami, fan, xona)
-        VALUES(%s,%s,%s,%s,%s)
-        ON CONFLICT (sinf_id, kun, dars_raqami) DO UPDATE SET fan=EXCLUDED.fan, xona=EXCLUDED.xona
-    """, (sorov.sinf_id, sorov.kun, sorov.dars_raqami, sorov.fan.strip(), sorov.xona))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.delete("/api/maktab/dars_jadvali_ochir")
-def dars_jadvali_ochir(token: str, sinf_id: int, kun: int, dars_raqami: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _rejalashtirish_jadvallari(cur)
-    cur.execute("SELECT maktab_id FROM maktab_sinflari WHERE id=%s", (sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM dars_jadvali WHERE sinf_id=%s AND kun=%s AND dars_raqami=%s", (sinf_id, kun, dars_raqami))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-@app.get("/api/maktab/dars_jadvali")
-def dars_jadvali_royxati(token: str, sinf_id: int):
-    """Sinf rahbari yoki maktab rahbariyati — bitta sinfning to'liq
-    haftalik jadvali."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _rejalashtirish_jadvallari(cur)
-    cur.execute("SELECT maktab_id, rahbar_user_id, sinf, harf FROM maktab_sinflari WHERE id=%s", (sinf_id,))
-    s = cur.fetchone()
-    if not s:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Sinf topilmadi")
-    ruxsat = s["rahbar_user_id"] == user_id or _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu sinf rahbari, maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("SELECT kun, dars_raqami, fan, xona FROM dars_jadvali WHERE sinf_id=%s ORDER BY kun, dars_raqami", (sinf_id,))
-    slotlar = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"sinf": s["sinf"], "harf": s["harf"], "slotlar": slotlar}
-
-
-class TadbirYaratish(BaseModel):
-    token: str
-    maktab_id: int
-    turi: str
-    sarlavha: str
-    tavsif: Optional[str] = None
-    boshlanish_sana: str
-    tugash_sana: Optional[str] = None
-    vaqt: Optional[str] = None
-
-
-@app.post("/api/maktab/tadbir_qosh")
-def tadbir_qosh(sorov: TadbirYaratish):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _rejalashtirish_jadvallari(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, sorov.maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin tadbir qo'sha oladi")
-    if sorov.turi not in TADBIR_TURLARI:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Noto'g'ri tur")
-    if not sorov.sarlavha.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Sarlavhani kiriting")
-    cur.execute("""
-        INSERT INTO tadbirlar(maktab_id, turi, sarlavha, tavsif, boshlanish_sana, tugash_sana, vaqt, yaratgan_user_id)
-        VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (sorov.maktab_id, sorov.turi, sorov.sarlavha.strip(), sorov.tavsif, sorov.boshlanish_sana, sorov.tugash_sana, sorov.vaqt, user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "id": yangi_id}
-
-
-@app.get("/api/maktab/tadbirlar")
-def tadbirlar_royxati(token: str, maktab_id: int, faqat_kelayotgan: bool = True):
-    """Maktab jamoasi uchun — barcha tadbir/majlis/ta'til ro'yxati.
-    RUXSAT KENGROQ: shu maktabga tegishli istalgan xodim/o'quvchi
-    ko'ra oladi (faqat rahbariyat emas) — chunki taqvim hammaga
-    kerak."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _rejalashtirish_jadvallari(cur)
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi:
-        cur.execute("""
-            SELECT 1 FROM users u WHERE u.user_id=%s AND (
-                u.maktab_id=%s OR EXISTS (
-                    SELECT 1 FROM maktab_sinf_azolari a JOIN maktab_sinflari s ON s.id=a.sinf_id
-                    WHERE a.user_id=u.user_id AND s.maktab_id=%s
-                )
-            )
-        """, (user_id, maktab_id, maktab_id))
-        if not cur.fetchone():
-            cur.close(); conn.close()
-            raise HTTPException(status_code=403, detail="Faqat shu maktabga tegishli hisoblar ko'ra oladi")
-    sql = "SELECT id, turi, sarlavha, tavsif, boshlanish_sana, tugash_sana, vaqt FROM tadbirlar WHERE maktab_id=%s"
-    params = [maktab_id]
-    if faqat_kelayotgan:
-        sql += " AND COALESCE(tugash_sana, boshlanish_sana) >= CURRENT_DATE"
-    sql += " ORDER BY boshlanish_sana"
-    cur.execute(sql, params)
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"tadbirlar": natija}
-
-
-@app.delete("/api/maktab/tadbir_ochir")
-def tadbir_ochir(token: str, tadbir_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _rejalashtirish_jadvallari(cur)
-    cur.execute("SELECT maktab_id FROM tadbirlar WHERE id=%s", (tadbir_id,))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Tadbir topilmadi")
-    if not _maktab_boshqaruvchi_mi(cur, user_id, t["maktab_id"]):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin o'chira oladi")
-    cur.execute("DELETE FROM tadbirlar WHERE id=%s", (tadbir_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# AI YORDAMCHI — rolga qarab TEZKOR javob. XAVFSIZLIK PRINSIPI:
-# LLM'ga faqat OLDIN, rolga qarab RUXSAT ETILGAN ma'lumot beriladi
-# (kontekst) — LLM hech qachon o'zi bazaga so'rov yubormaydi, shu
-# sabab "ruxsatsiz ma'lumotni oshkor qilish" xavfi yo'q: eng yomon
-# holatda LLM noto'g'ri xulosa chiqaradi, lekin RUXSAT ETILMAGAN
-# ma'lumotni hech qachon ko'rmaydi.
-# ═══════════════════════════════════════════════════════════
-
-GROQ_API_KALIT = os.getenv("GROQ_API_KEY", "")
-
-
-def _ai_kontekst_yigish(cur, user_id):
-    """Chaqiruvchining ROLIGA qarab — FAQAT unga tegishli ma'lumotni
-    matn ko'rinishida yig'adi. Direktor/o'rinbosar → butun maktab.
-    Sinf rahbari → o'z sinfi. Ota-ona → o'z farzandlari."""
-    cur.execute("SELECT full_name, lavozim, maktab_id FROM users WHERE user_id=%s", (user_id,))
-    kishi = cur.fetchone()
-    if not kishi:
-        return "Foydalanuvchi topilmadi.", "boshqa"
-
-    # 1) Maktab rahbariyati — BUTUN maktab
-    if kishi["maktab_id"] and _maktab_boshqaruvchi_mi(cur, user_id, kishi["maktab_id"]):
-        cur.execute("SELECT nomi, pulli, oylik_tolov FROM maktablar WHERE id=%s", (kishi["maktab_id"],))
-        mk = cur.fetchone()
-        joriy_oy = datetime.now().strftime("%Y-%m")
-        cur.execute("""
-            SELECT s.sinf, s.harf, u.full_name AS rahbar_ismi,
-                   COUNT(DISTINCT a.user_id) AS oquvchi_soni,
-                   ROUND(AVG(lt.score)) AS bilim,
-                   COUNT(DISTINCT d.user_id) FILTER (WHERE d.holat='keldi') AS bugun_kelgan,
-                   COUNT(DISTINCT t.user_id) FILTER (WHERE t.tolangan_summa >= %s) AS tolagan
-            FROM maktab_sinflari s
-            LEFT JOIN users u ON u.user_id = s.rahbar_user_id
-            LEFT JOIN maktab_sinf_azolari a ON a.sinf_id = s.id
-            LEFT JOIN learned_topics lt ON lt.user_id = a.user_id
-            LEFT JOIN davomat d ON d.sinf_id = s.id AND d.user_id = a.user_id AND d.sana = CURRENT_DATE
-            LEFT JOIN tolovlar t ON t.user_id = a.user_id AND t.maktab_id = s.maktab_id AND t.oy = %s
-            WHERE s.maktab_id=%s
-            GROUP BY s.id, s.sinf, s.harf, u.full_name
-            ORDER BY s.sinf::int, s.harf
-        """, (mk["oylik_tolov"] or 0, joriy_oy, kishi["maktab_id"]))
-        sinflar = cur.fetchall()
-        satrlar = [f"Maktab: {mk['nomi']} ({'pulli' if mk['pulli'] else 'bepul'})"]
-        for s in sinflar:
-            satr = f"- {s['sinf']}-{s['harf']}: rahbar {s['rahbar_ismi'] or 'yo\u02bbq'}, {s['oquvchi_soni']} o'quvchi"
-            if s["bilim"] is not None:
-                satr += f", bilim {s['bilim']}%"
-            satr += f", bugun {s['bugun_kelgan']}/{s['oquvchi_soni']} keldi"
-            if mk["pulli"]:
-                satr += f", to'lov {s['tolagan']}/{s['oquvchi_soni']}"
-            satrlar.append(satr)
-        cur.execute("""
-            SELECT u.full_name, s.sinf, s.harf, COUNT(*) FILTER (WHERE d.holat='kelmadi') AS son
-            FROM maktab_sinf_azolari a JOIN users u ON u.user_id=a.user_id
-            JOIN maktab_sinflari s ON s.id=a.sinf_id
-            LEFT JOIN davomat d ON d.user_id=a.user_id AND d.sana >= CURRENT_DATE - INTERVAL '7 days'
-            WHERE s.maktab_id=%s GROUP BY u.user_id, u.full_name, s.sinf, s.harf
-            HAVING COUNT(*) FILTER (WHERE d.holat='kelmadi') >= 2
-        """, (kishi["maktab_id"],))
-        muammoli = cur.fetchall()
-        if muammoli:
-            satrlar.append("Muammoli o'quvchilar (oxirgi 7 kunda 2+ marta kelmagan):")
-            for m in muammoli:
-                satrlar.append(f"- {m['full_name']} ({m['sinf']}-{m['harf']}): {m['son']} kun kelmagan")
-        return "\n".join(satrlar), "rahbariyat"
-
-    # 2) Sinf rahbari — O'Z sinfi
-    cur.execute("SELECT id, sinf, harf FROM maktab_sinflari WHERE rahbar_user_id=%s", (user_id,))
-    sinf = cur.fetchone()
-    if sinf:
-        cur.execute("""
-            SELECT u.user_id, u.full_name, ROUND(AVG(lt.score)) AS bilim
-            FROM maktab_sinf_azolari a JOIN users u ON u.user_id=a.user_id
-            LEFT JOIN learned_topics lt ON lt.user_id=a.user_id
-            WHERE a.sinf_id=%s GROUP BY u.user_id, u.full_name ORDER BY u.full_name
-        """, (sinf["id"],))
-        oquvchilar = cur.fetchall()
-        satrlar = [f"Sinf: {sinf['sinf']}-{sinf['harf']}"]
-        for o in oquvchilar:
-            cur.execute("""
-                SELECT COUNT(*) FILTER (WHERE holat='keldi') AS keldi, COUNT(*) FILTER (WHERE holat='kelmadi') AS kelmadi
-                FROM davomat WHERE user_id=%s AND sana >= CURRENT_DATE - INTERVAL '30 days'
-            """, (o["user_id"],))
-            dv = cur.fetchone()
-            satr = f"- {o['full_name']}: bilim {o['bilim'] if o['bilim'] is not None else 'ma\u02bblumot yo\u02bbq'}%, oxirgi 30 kunda {dv['keldi']} keldi, {dv['kelmadi']} kelmadi"
-            satrlar.append(satr)
-        return "\n".join(satrlar), "sinf_rahbari"
-
-    # 3) Ota-ona — O'Z farzandlari
-    cur.execute("SELECT child_id FROM parent_child WHERE parent_id=%s", (user_id,))
-    farzandlar = cur.fetchall()
-    if farzandlar:
-        satrlar = []
-        for f in farzandlar:
-            bilim = bola_bilimi(bola_id=f["child_id"], sinf=None)
-            cur.execute("""
-                SELECT COUNT(*) FILTER (WHERE holat='keldi') AS keldi, COUNT(*) FILTER (WHERE holat='kelmadi') AS kelmadi
-                FROM davomat WHERE user_id=%s AND sana >= CURRENT_DATE - INTERVAL '30 days'
-            """, (f["child_id"],))
-            dv = cur.fetchone()
-            satrlar.append(f"Farzand: {bilim['bola']['ism']}, umumiy bilim {bilim['umumiy_foiz']}%, oxirgi 30 kunda {dv['keldi']} keldi, {dv['kelmadi']} kelmadi")
-            for fan in bilim["fanlar"]:
-                satrlar.append(f"  {fan['nom']}: {fan['foiz']}%")
-        return "\n".join(satrlar), "ota_ona"
-
-    return f"{kishi['full_name']} uchun ma'lumot topilmadi.", "boshqa"
-
-
-class AiSorash(BaseModel):
-    token: str
-    savol: str
-
-
-@app.post("/api/ai/sorash")
-def ai_sorash(sorov: AiSorash):
-    if not GROQ_API_KALIT:
-        raise HTTPException(status_code=503, detail="AI yordamchi hali sozlanmagan — GROQ_API_KEY kerak")
-    user_id = _jwt_tekshir(sorov.token)
-    if not sorov.savol.strip():
-        raise HTTPException(status_code=400, detail="Savolni kiriting")
-    conn = _db()
-    cur = conn.cursor()
-    _davomat_jadvali(cur)
-    kontekst, rol = _ai_kontekst_yigish(cur, user_id)
-    cur.close()
-    conn.close()
-
-    tizim_promt = (
-        "Sen — SamTM Ta'lim platformasidagi maktab uchun AI yordamchisan. "
-        "Faqat quyida berilgan MA'LUMOTLAR asosida, o'zbek tilida, QISQA va ANIQ javob ber. "
-        "Agar so'ralgan narsa berilgan ma'lumotda yo'q bo'lsa, aniq shunday deb ayt — hech narsani o'ylab topma. "
-        "Ma'lumotda YO'Q narsani hech qachon taxmin qilib javob berma.\n\nMA'LUMOTLAR:\n" + kontekst
-    )
-    try:
-        with httpx.Client(timeout=20) as client:
-            javob = client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KALIT}", "Content-Type": "application/json"},
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [
-                        {"role": "system", "content": tizim_promt},
-                        {"role": "user", "content": sorov.savol.strip()},
-                    ],
-                    "temperature": 0.3,
-                    "max_tokens": 500,
-                },
-            )
-        javob.raise_for_status()
-        matn = javob.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AI javob berolmadi: {e}")
-
-    return {"javob": matn, "rol": rol}
-
-
-# ═══════════════════════════════════════════════════════════
-# XODIM DAVOMATI — o'quvchi davomatidan ALOHIDA (xodim sinfga
-# bog'lanmagan, butun maktabga tegishli). Bir xil "davomat" jadval
-# NAQSHINI takrorlaydi, lekin sinf_id o'rniga maktab_id ishlatadi.
-# ═══════════════════════════════════════════════════════════
-
-def _xodim_davomati_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS xodim_davomati(
-        id SERIAL PRIMARY KEY,
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        user_id BIGINT NOT NULL REFERENCES users(user_id),
-        sana DATE NOT NULL,
-        holat TEXT NOT NULL,
-        izoh TEXT,
-        belgilagan_user_id BIGINT REFERENCES users(user_id),
-        belgilangan_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(maktab_id, user_id, sana)
-    )""")
-
-
-class XodimDavomatYozuvi(BaseModel):
-    user_id: int
-    holat: str
-
-
-class XodimDavomatBelgilash(BaseModel):
-    token: str
-    maktab_id: int
-    sana: str
-    yozuvlar: list[XodimDavomatYozuvi]
-
-
-@app.post("/api/maktab/xodim_davomat_belgila")
-def xodim_davomat_belgila(sorov: XodimDavomatBelgilash):
-    user_id_qiluvchi = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _xodim_davomati_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id_qiluvchi, sorov.maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin belgilay oladi")
-    for y in sorov.yozuvlar:
-        if y.holat not in DAVOMAT_HOLATLARI:
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail=f"Noto'g'ri holat: {y.holat}")
-        cur.execute("""
-            INSERT INTO xodim_davomati(maktab_id, user_id, sana, holat, belgilagan_user_id)
-            VALUES(%s,%s,%s,%s,%s)
-            ON CONFLICT (maktab_id, user_id, sana) DO UPDATE SET
-                holat=EXCLUDED.holat, belgilagan_user_id=EXCLUDED.belgilagan_user_id, belgilangan_at=NOW()
-        """, (sorov.maktab_id, y.user_id, sorov.sana, y.holat, user_id_qiluvchi))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.get("/api/maktab/xodim_davomat_royxati")
-def xodim_davomat_royxati(token: str, maktab_id: int, sana: str):
-    """Direktor uchun — shu kungi barcha xodimlar (direktor,
-    o'rinbosarlar, sinf rahbarlari) ro'yxati, holati bilan birga."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _xodim_davomati_jadvali(cur)
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        SELECT u.user_id, u.full_name, u.lavozim, x.holat
-        FROM users u
-        LEFT JOIN xodim_davomati x ON x.user_id = u.user_id AND x.maktab_id=%s AND x.sana=%s
-        WHERE u.maktab_id=%s AND u.lavozim IS NOT NULL
-        ORDER BY u.full_name
-    """, (maktab_id, sana, maktab_id))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"xodimlar": natija}
-
-
-@app.get("/api/maktab/fanlar_tahlili")
-def fanlar_tahlili(token: str, maktab_id: int):
-    """Direktor uchun — BUTUN maktab kesimida, har bir fan bo'yicha
-    nechta o'quvchi yaxshi (70%+), o'rtacha (40-69%), past (<40%)
-    natija ko'rsatayotgani."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    if not _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat maktab rahbariyati yoki admin ko'ra oladi")
-    cur.execute("""
-        WITH oquvchi_fan_ball AS (
-            SELECT a.user_id, d.subject_name, AVG(lt.score) AS ball
-            FROM maktab_sinf_azolari a
-            JOIN maktab_sinflari s ON s.id = a.sinf_id
-            JOIN users u ON u.user_id = a.user_id
-            JOIN dts_tree d ON d.grade = u.class
-            JOIN learned_topics lt ON lt.topic_code = d.topic_code AND lt.user_id = a.user_id
-            WHERE s.maktab_id = %s
-            GROUP BY a.user_id, d.subject_name
-        )
-        SELECT subject_name,
-               COUNT(*) FILTER (WHERE ball >= 70) AS yaxshi,
-               COUNT(*) FILTER (WHERE ball >= 40 AND ball < 70) AS ortacha,
-               COUNT(*) FILTER (WHERE ball < 40) AS past,
-               ROUND(AVG(ball)) AS umumiy_ortacha
-        FROM oquvchi_fan_ball
-        GROUP BY subject_name
-        ORDER BY subject_name
-    """, (maktab_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"fanlar": natija}
-
-
-# ═══════════════════════════════════════════════════════════
-# SOG'LIQ — FAQAT favqulodda ma'lumot (allergiya, qon guruhi,
-# favqulodda aloqa). TO'LIQ tibbiy karta EMAS — bu qasddan tor
-# doirada, chunki batafsil tibbiy tarix juda nozik.
-#
-# KIM TO'LDIRADI: ota-ona (o'z farzandi uchun) — bu ularning bergan
-# ma'lumoti, maktab "tashxis qo'ymaydi". KIM KO'RADI: maktab
-# rahbariyati + shu bolaning sinf rahbari — favqulodda holatda
-# tezkor kerak bo'lgani uchun keng (lekin cheklangan) ko'rinadi.
-# ═══════════════════════════════════════════════════════════
-
-def _sogliq_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS favqulodda_malumot(
-        bola_user_id BIGINT PRIMARY KEY REFERENCES users(user_id),
-        allergiyalar TEXT,
-        qon_guruhi TEXT,
-        aloqa_ismi TEXT,
-        aloqa_telefoni TEXT,
-        boshqa_eslatma TEXT,
-        yangilagan_user_id BIGINT REFERENCES users(user_id),
-        yangilangan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-def _sogliq_royxatga_ruxsat_bormi(cur, user_id, bola_user_id):
-    """True — agar user shu bolaning ota-onasi, sinf rahbari, maktab
-    rahbariyati yoki admin bo'lsa."""
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    cur.execute("SELECT 1 FROM parent_child WHERE parent_id=%s AND child_id=%s", (user_id, bola_user_id))
-    if cur.fetchone():
-        return True
-    cur.execute("""
-        SELECT s.maktab_id, s.rahbar_user_id FROM maktab_sinf_azolari a
-        JOIN maktab_sinflari s ON s.id=a.sinf_id WHERE a.user_id=%s
-    """, (bola_user_id,))
-    s = cur.fetchone()
-    if not s:
-        return False
-    if s["rahbar_user_id"] == user_id:
-        return True
-    return _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-
-
-class FavqulodaMalumot(BaseModel):
-    token: str
-    bola_user_id: int
-    allergiyalar: Optional[str] = None
-    qon_guruhi: Optional[str] = None
-    aloqa_ismi: Optional[str] = None
-    aloqa_telefoni: Optional[str] = None
-    boshqa_eslatma: Optional[str] = None
-
-
-@app.put("/api/bola/favqulodda_malumot")
-def favqulodda_malumot_saqla(sorov: FavqulodaMalumot):
-    """Faqat ota-ona (o'z farzandi uchun) yoki maktab rahbariyati
-    to'ldira/yangilay oladi."""
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _sogliq_jadvali(cur)
-    cur.execute("SELECT 1 FROM parent_child WHERE parent_id=%s AND child_id=%s", (user_id, sorov.bola_user_id))
-    ota_ona_mi = cur.fetchone() is not None
-    if not ota_ona_mi:
-        cur.execute("""
-            SELECT s.maktab_id FROM maktab_sinf_azolari a JOIN maktab_sinflari s ON s.id=a.sinf_id
-            WHERE a.user_id=%s
-        """, (sorov.bola_user_id,))
-        s = cur.fetchone()
-        ruxsat = s and _maktab_boshqaruvchi_mi(cur, user_id, s["maktab_id"])
-        if not ruxsat:
-            cur.close(); conn.close()
-            raise HTTPException(status_code=403, detail="Faqat ota-ona yoki maktab rahbariyati to'ldira oladi")
-    cur.execute("""
-        INSERT INTO favqulodda_malumot(bola_user_id, allergiyalar, qon_guruhi, aloqa_ismi, aloqa_telefoni, boshqa_eslatma, yangilagan_user_id)
-        VALUES(%s,%s,%s,%s,%s,%s,%s)
-        ON CONFLICT (bola_user_id) DO UPDATE SET
-            allergiyalar=EXCLUDED.allergiyalar, qon_guruhi=EXCLUDED.qon_guruhi,
-            aloqa_ismi=EXCLUDED.aloqa_ismi, aloqa_telefoni=EXCLUDED.aloqa_telefoni,
-            boshqa_eslatma=EXCLUDED.boshqa_eslatma, yangilagan_user_id=EXCLUDED.yangilagan_user_id,
-            yangilangan_at=NOW()
-    """, (sorov.bola_user_id, sorov.allergiyalar, sorov.qon_guruhi, sorov.aloqa_ismi, sorov.aloqa_telefoni, sorov.boshqa_eslatma, user_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.get("/api/bola/{bola_id}/favqulodda_malumot")
-def favqulodda_malumot_korish(bola_id: int, token: str):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _sogliq_jadvali(cur)
-    if not _sogliq_royxatga_ruxsat_bormi(cur, user_id, bola_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat ota-ona, sinf rahbari yoki maktab rahbariyati ko'ra oladi")
-    cur.execute("""
-        SELECT allergiyalar, qon_guruhi, aloqa_ismi, aloqa_telefoni, boshqa_eslatma, yangilangan_at
-        FROM favqulodda_malumot WHERE bola_user_id=%s
-    """, (bola_id,))
-    r = cur.fetchone()
-    cur.close()
-    conn.close()
-    return r or {"allergiyalar": None, "qon_guruhi": None, "aloqa_ismi": None, "aloqa_telefoni": None, "boshqa_eslatma": None, "yangilangan_at": None}
-
-
-# ═══════════════════════════════════════════════════════════
-# PSIXOLOG — kuzatuv yozuvlari. XAVFSIZLIK: (1) faqat psixolog/
-# direktor/o'rinbosar/shu bolaning sinf rahbari ko'radi — boshqa
-# hech kim, hatto boshqa o'qituvchi ham emas; (2) BU MA'LUMOT AI
-# Yordamchi konteksiga HECH QACHON qo'shilmaydi (_ai_kontekst_yigish
-# funksiyasida ishlatilmaydi) — uchinchi tomon (Groq) API'ga bunday
-# nozik yozuv hech qachon yuborilmaydi; (3) faqat YOZGAN kishi yoki
-# admin o'chira oladi.
-# ═══════════════════════════════════════════════════════════
-
-def _psixolog_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS psixolog_kuzatuvlari(
-        id SERIAL PRIMARY KEY,
-        bola_user_id BIGINT NOT NULL REFERENCES users(user_id),
-        maktab_id INTEGER NOT NULL REFERENCES maktablar(id),
-        matn TEXT NOT NULL,
-        yozgan_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-
-
-def _psixolog_royxatga_ruxsat_bormi(cur, user_id, bola_user_id, maktab_id):
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    cur.execute("SELECT lavozim FROM users WHERE user_id=%s AND maktab_id=%s", (user_id, maktab_id))
-    r = cur.fetchone()
-    if r and r["lavozim"] == "psixolog":
-        return True
-    if _maktab_boshqaruvchi_mi(cur, user_id, maktab_id):
-        return True
-    cur.execute("""
-        SELECT 1 FROM maktab_sinf_azolari a JOIN maktab_sinflari s ON s.id=a.sinf_id
-        WHERE a.user_id=%s AND s.maktab_id=%s AND s.rahbar_user_id=%s
-    """, (bola_user_id, maktab_id, user_id))
-    return cur.fetchone() is not None
-
-
-class PsixologYozuv(BaseModel):
-    token: str
-    bola_user_id: int
-    maktab_id: int
-    matn: str
-
-
-@app.post("/api/maktab/psixolog_yozuv_qosh")
-def psixolog_yozuv_qosh(sorov: PsixologYozuv):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _psixolog_jadvali(cur)
-    if not _psixolog_royxatga_ruxsat_bormi(cur, user_id, sorov.bola_user_id, sorov.maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat psixolog, sinf rahbari yoki maktab rahbariyati yoza oladi")
-    if not sorov.matn.strip():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Matnni kiriting")
-    cur.execute("""
-        INSERT INTO psixolog_kuzatuvlari(bola_user_id, maktab_id, matn, yozgan_user_id)
-        VALUES(%s,%s,%s,%s) RETURNING id
-    """, (sorov.bola_user_id, sorov.maktab_id, sorov.matn.strip(), user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "id": yangi_id}
-
-
-@app.get("/api/maktab/psixolog_yozuvlari")
-def psixolog_yozuvlari_royxati(token: str, bola_user_id: int, maktab_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _psixolog_jadvali(cur)
-    if not _psixolog_royxatga_ruxsat_bormi(cur, user_id, bola_user_id, maktab_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat psixolog, sinf rahbari yoki maktab rahbariyati ko'ra oladi")
-    cur.execute("""
-        SELECT k.id, k.matn, k.yaratilgan_at, u.full_name AS yozgan_ismi
-        FROM psixolog_kuzatuvlari k LEFT JOIN users u ON u.user_id = k.yozgan_user_id
-        WHERE k.bola_user_id=%s AND k.maktab_id=%s ORDER BY k.yaratilgan_at DESC
-    """, (bola_user_id, maktab_id))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"yozuvlar": natija}
-
-
-@app.delete("/api/maktab/psixolog_yozuv_ochir")
-def psixolog_yozuv_ochir(token: str, yozuv_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _psixolog_jadvali(cur)
-    cur.execute("SELECT yozgan_user_id, maktab_id FROM psixolog_kuzatuvlari WHERE id=%s", (yozuv_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Yozuv topilmadi")
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi and r["yozgan_user_id"] != user_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat yozgan kishi yoki admin o'chira oladi")
-    cur.execute("DELETE FROM psixolog_kuzatuvlari WHERE id=%s", (yozuv_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# O'QUV MARKAZI TIZIMI — maktabdan farqli, MAVJUD to'garak (guruh)
-# infratuzilmasi USTIGA quriladi (togaraklar, togarak_azolar) —
-# takrorlanish emas, ANIQ QAYTA ISHLATISH: markazning har bir
-# "guruhi" — oddiy to'garak, faqat endi markaz_id bilan bog'langan.
-#
-# Rollar: markaz_direktor, administrator (ikkalasi ham markazning
-# BARCHA guruhlarini ko'radi/boshqaradi), fan_oqituvchisi (faqat
-# o'z guruhlarini).
-# ═══════════════════════════════════════════════════════════
-
-MARKAZ_LAVOZIMLARI = {
-    "markaz_direktor": "Markaz direktori",
-    "administrator": "Administrator",
-    "fan_oqituvchisi": "Fan o'qituvchisi",
+  };
+
+  const tolovBelgila = async (o) => {
+    await fetch(`${API_BASE}/api/oqituvchi/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, user_id: o.user_id, maktab_id: maktabId, oy: joriyOy, tolangan_summa: malumot.oylik_tolov }),
+    });
+    sinfOch(tanlanganSinf);
+  };
+
+  if (!maktabId) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday maktabga bog'lanmagansiz.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tanlanganOquvchiId) {
+    return <OquvchiProfili token={token} userId={tanlanganOquvchiId} onOrtga={() => setTanlanganOquvchiId(null)} />;
+  }
+
+  if (xodimDavomatKorinishi) {
+    return <XodimDavomatBelgilash token={token} maktabId={maktabId} onOrtga={() => setXodimDavomatKorinishi(false)} />;
+  }
+
+  if (tanlanganSinf && davomatKorinishi) {
+    return <DavomatBelgilash token={token} sinfId={tanlanganSinf.id} onOrtga={() => setDavomatKorinishi(false)} />;
+  }
+
+  if (tanlanganSinf) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setTanlanganSinf(null); setAzolar(null); setOquvchilar(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Sinflar</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganSinf.sinf}-{tanlanganSinf.harf}</h1>
+        <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{tanlanganSinf.rahbar_ismi || "Rahbar belgilanmagan"} · {tanlanganSinf.oquvchi_soni} o'quvchi</p>
+        <button onClick={() => setDavomatKorinishi(true)}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm mb-5" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          📋 Davomat belgilash
+        </button>
+
+        {ichkiYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            {malumot.pulli && (
+              <>
+                <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>💳 {joriyOy} oyi to'lovlari</p>
+                <div className="space-y-2 mb-5">
+                  {(oquvchilar || []).map((o) => (
+                    <div key={o.user_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: o.qarzdor ? "#FCEBEB" : "#EAF3DE" }}>
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+                        <p className="text-xs" style={{ color: o.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                          {o.qarzdor ? `⚠️ Qarzdor (${o.tolangan_summa.toLocaleString()} / ${o.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                        </p>
+                      </div>
+                      {o.qarzdor && (
+                        <button onClick={() => tolovBelgila(o)} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                          To'landi
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>👥 Sinf a'zolari</p>
+            <div className="space-y-2">
+              {(azolar || []).map((a) => (
+                <button key={a.azolik_id} onClick={() => setTanlanganOquvchiId(a.user_id)}
+                  className="w-full text-left rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
+                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{a.full_name}</p>
+                  <ChevronRight size={16} style={{ color: "#8A8578" }} />
+                </button>
+              ))}
+              {(azolar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hali hech kim qo'shilmagan.</p>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : xato ? (
+        <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>
+      ) : (
+        <>
+          <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🏫 {malumot.maktab_nomi}</h1>
+          <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Butun maktab — bir ekranda.</p>
+
+          {malumot.bugungi_davomat && (
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#FFFDF7", border: "1px solid #F5DFA3" }}>
+              <p className="text-sm font-bold mb-2" style={{ color: "#8A5A1C" }}>📋 Bugungi davomat</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{malumot.bugungi_davomat.jami_oquvchi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>jami o'quvchi</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{malumot.bugungi_davomat.kelgan}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>keldi</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#A32D2D" }}>{malumot.bugungi_davomat.sinflar_belgilamagan}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>sinf hali belgilamagan</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {malumot.xodim_bugungi_davomat && (
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#F3F0FF", border: "1px solid #D8CCF5" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold" style={{ color: "#5A3D9E" }}>🧑‍🏫 Bugungi xodim davomati</p>
+                <button onClick={() => setXodimDavomatKorinishi(true)} className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white" style={{ backgroundColor: "#5A3D9E" }}>
+                  Belgilash
+                </button>
+              </div>
+              <p className="text-sm" style={{ color: "#2B2B2B" }}>
+                {malumot.xodim_bugungi_davomat.keldi} / {malumot.xodim_bugungi_davomat.jami} xodim keldi
+              </p>
+            </div>
+          )}
+
+          {malumot.tolov_xulosasi && (
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#EAF1F7" }}>
+              <p className="text-sm font-bold mb-2" style={{ color: "#1B4B7A" }}>💳 {joriyOy} — umumiy to'lov holati</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{malumot.tolov_xulosasi.jami_oquvchi}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>jami o'quvchi</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#3B6D11" }}>{malumot.tolov_xulosasi.tolagan}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>to'lagan</p>
+                </div>
+                <div className="rounded-xl p-2.5 text-center bg-white">
+                  <p className="text-lg font-bold" style={{ color: "#A32D2D" }}>{malumot.tolov_xulosasi.qarzdor}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>qarzdor</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(malumot.reyting?.eng_yaxshi_sinf || malumot.reyting?.etibor_kerak_sinf) && (
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
+              {malumot.reyting.eng_yaxshi_sinf && (
+                <div className="rounded-2xl p-3.5" style={{ backgroundColor: "#EAF3DE" }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#3B6D11" }}>🏆 Eng yaxshi sinf</p>
+                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{malumot.reyting.eng_yaxshi_sinf.sinf}-{malumot.reyting.eng_yaxshi_sinf.harf}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{malumot.reyting.eng_yaxshi_sinf.ortacha_bilim}% bilim</p>
+                </div>
+              )}
+              {malumot.reyting.etibor_kerak_sinf && (
+                <div className="rounded-2xl p-3.5" style={{ backgroundColor: "#FDF3E0" }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#8A5A1C" }}>💪 E'tibor kerak</p>
+                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{malumot.reyting.etibor_kerak_sinf.sinf}-{malumot.reyting.etibor_kerak_sinf.harf}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{malumot.reyting.etibor_kerak_sinf.ortacha_bilim}% bilim</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {malumot.muammoli_oquvchilar && malumot.muammoli_oquvchilar.length > 0 && (
+            <div className="rounded-2xl p-4 mb-4 border" style={{ backgroundColor: "#FCEBEB", borderColor: "#E8A0A0" }}>
+              <p className="text-sm font-bold mb-1" style={{ color: "#A32D2D" }}>⚠️ Muammoli o'quvchilar</p>
+              <p className="text-xs mb-3" style={{ color: "#8A5A5A" }}>Oxirgi 7 kunda 2+ marta kelmagan</p>
+              <div className="space-y-1.5">
+                {malumot.muammoli_oquvchilar.map((o) => (
+                  <button key={o.user_id} onClick={() => setTanlanganOquvchiId(o.user_id)}
+                    className="w-full flex items-center justify-between bg-white rounded-lg px-3 py-2">
+                    <span className="text-sm" style={{ color: "#2B2B2B" }}>{o.full_name}</span>
+                    <span className="text-xs" style={{ color: "#8A8578" }}>{o.sinf}-{o.harf} · {o.songi_hafta_kelmagan} kun</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 mb-2.5">
+            <button onClick={() => setTepaKorinish("sinflar")}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={tepaKorinish === "sinflar" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              📚 Sinflar
+            </button>
+            <button onClick={() => setTepaKorinish("oqituvchilar")}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={tepaKorinish === "oqituvchilar" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              👩‍🏫 O'qituvchilar
+            </button>
+            <button onClick={() => setTepaKorinish("reyting")}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={tepaKorinish === "reyting" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🏆 Reyting
+            </button>
+          </div>
+
+          {tepaKorinish === "reyting" && (
+            <>
+              <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>🏆 Sinflar reytingi (bilim bo'yicha)</p>
+              <div className="space-y-2">
+                {[...malumot.sinflar].filter((s) => s.ortacha_bilim !== null).sort((a, b) => b.ortacha_bilim - a.ortacha_bilim).map((s, i) => (
+                  <button key={s.id} onClick={() => sinfOch(s)}
+                    className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center gap-3" style={{ borderColor: "#E5E1D8" }}>
+                    <span className="text-sm font-bold w-6 text-center shrink-0" style={{ color: i === 0 ? "#C89B3C" : "#8A8578" }}>
+                      {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                      <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar yo'q"} · {s.oquvchi_soni} o'quvchi</p>
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: "#1B4B7A" }}>{s.ortacha_bilim}%</span>
+                  </button>
+                ))}
+                {malumot.sinflar.filter((s) => s.ortacha_bilim !== null).length === 0 && (
+                  <p className="text-xs" style={{ color: "#8A8578" }}>Hali hech bir sinfda test yechilmagan — reyting uchun ma'lumot yo'q.</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {tepaKorinish === "sinflar" ? (
+            <>
+              <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>📚 Sinflar ({malumot.sinflar.length})</p>
+              <div className="space-y-2">
+                {malumot.sinflar.map((s) => (
+                  <button key={s.id} onClick={() => sinfOch(s)}
+                    className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                      <p className="text-xs" style={{ color: "#8A8578" }}>
+                        {s.rahbar_ismi || "Rahbar yo'q"} · {s.oquvchi_soni} o'quvchi
+                        {malumot.pulli ? ` · ${s.tolagan_soni}/${s.oquvchi_soni} to'lagan` : ""}
+                        {s.ortacha_bilim !== null ? ` · ${s.ortacha_bilim}% bilim` : ""}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} style={{ color: "#8A8578" }} />
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>👩‍🏫 Sinf rahbarlari ({malumot.sinflar.filter((s) => s.rahbar_ismi).length})</p>
+              <p className="text-xs mb-2.5" style={{ color: "#8A8578" }}>
+                Davomatni oxirgi 7 kunda necha kun belgilagani — intizom ko'rsatkichi sifatida.
+              </p>
+              <div className="space-y-2">
+                {[...malumot.sinflar].filter((s) => s.rahbar_ismi).sort((a, b) => b.davomat_kun_7 - a.davomat_kun_7).map((s) => {
+                  const rang = s.davomat_kun_7 >= 5 ? "#3B6D11" : s.davomat_kun_7 >= 3 ? "#8A5A1C" : "#A32D2D";
+                  const fon = s.davomat_kun_7 >= 5 ? "#EAF3DE" : s.davomat_kun_7 >= 3 ? "#FDF3E0" : "#FCEBEB";
+                  return (
+                    <button key={s.id} onClick={() => sinfOch(s)}
+                      className="w-full text-left rounded-xl p-3.5 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{s.rahbar_ismi}</p>
+                        <p className="text-xs" style={{ color: "#8A8578" }}>
+                          {s.sinf}-{s.harf} sinf rahbari · {s.oquvchi_soni} o'quvchi
+                          {s.ortacha_bilim !== null ? ` · ${s.ortacha_bilim}% bilim` : ""}
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ml-2" style={{ backgroundColor: fon, color: rang }}>
+                        {s.davomat_kun_7}/7 kun
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
-_MARKAZ_LAVOZIM_MATNDAN = {v.lower(): k for k, v in MARKAZ_LAVOZIMLARI.items()}
 
+function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganGuruh, setTanlanganGuruh] = useState(null);
+  const [oquvchilar, setOquvchilar] = useState(null);
+  const [oquvchilarYuklanmoqda, setOquvchilarYuklanmoqda] = useState(false);
+  const joriyOy = new Date().toISOString().slice(0, 7);
 
-def _markaz_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS oquv_markazlari(
-        id SERIAL PRIMARY KEY,
-        nomi TEXT NOT NULL,
-        viloyat TEXT, tuman TEXT,
-        direktor_user_id BIGINT REFERENCES users(user_id),
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
+  useEffect(() => {
+    if (!markazId) { setYuklanmoqda(false); return; }
+    fetch(`${API_BASE}/api/markaz/dashboard?token=${encodeURIComponent(token)}&markaz_id=${markazId}`)
+      .then((r) => r.json())
+      .then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, markazId]);
 
+  const guruhOch = (g) => {
+    setTanlanganGuruh(g);
+    if (!g.oylik_summa) return;
+    setOquvchilarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/markaz/guruh_tolovlari?token=${encodeURIComponent(token)}&togarak_id=${g.id}&oy=${joriyOy}`)
+      .then((r) => r.json())
+      .then((d) => { setOquvchilar(d.oquvchilar || []); setOquvchilarYuklanmoqda(false); })
+      .catch(() => setOquvchilarYuklanmoqda(false));
+  };
 
-def _markaz_boshqaruvchi_mi(cur, user_id, markaz_id):
-    """True — agar user shu markazning direktori/administratori
-    (yoki umumiy admin) bo'lsa."""
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    lavozim = _muassasadagi_lavozim(cur, user_id, "markaz", markaz_id)
-    return lavozim in ("markaz_direktor", "administrator")
+  const tolovBelgila = async (o) => {
+    await fetch(`${API_BASE}/api/markaz/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, user_id: o.user_id, togarak_id: tanlanganGuruh.id, oy: joriyOy, tolangan_summa: tanlanganGuruh.oylik_summa }),
+    });
+    guruhOch(tanlanganGuruh);
+  };
 
+  if (!markazId) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday markazga bog'lanmagansiz.</p>
+        </div>
+      </div>
+    );
+  }
 
-class MarkazYaratish(BaseModel):
-    token: str
-    nomi: str
-    viloyat: Optional[str] = None
-    tuman: Optional[str] = None
-    direktor_user_id: Optional[int] = None
+  if (tanlanganGuruh) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganGuruh(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlar</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganGuruh.nomi}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganGuruh.fan} · {tanlanganGuruh.oqituvchi_ismi} · {tanlanganGuruh.azo_soni} a'zo</p>
 
+        {!tanlanganGuruh.oylik_summa ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Bu guruh uchun oylik to'lov summasi belgilanmagan.</p>
+          </div>
+        ) : oquvchilarYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : (
+          <>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>💳 {joriyOy} oyi to'lovlari</p>
+            <div className="space-y-2">
+              {(oquvchilar || []).map((o) => (
+                <div key={o.user_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: o.qarzdor ? "#FCEBEB" : "#EAF3DE" }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{o.full_name}</p>
+                    <p className="text-xs" style={{ color: o.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                      {o.qarzdor ? `⚠️ Qarzdor (${o.tolangan_summa.toLocaleString()} / ${o.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                    </p>
+                  </div>
+                  {o.qarzdor && (
+                    <button onClick={() => tolovBelgila(o)} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                      To'landi deb belgilash
+                    </button>
+                  )}
+                </div>
+              ))}
+              {(oquvchilar || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Bu guruhda hali tasdiqlangan a'zo yo'q.</p>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
-@app.post("/api/admin/markaz_yarat")
-def markaz_yarat(sorov: MarkazYaratish):
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Markaz nomi kiritilmagan")
-    conn = _db()
-    cur = conn.cursor()
-    _markaz_jadvali(cur)
-    if sorov.direktor_user_id is not None:
-        cur.execute("SELECT 1 FROM users WHERE user_id=%s", (sorov.direktor_user_id,))
-        if not cur.fetchone():
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail="Ko'rsatilgan direktor foydalanuvchisi topilmadi")
-    cur.execute("""
-        INSERT INTO oquv_markazlari(nomi, viloyat, tuman, direktor_user_id)
-        VALUES(%s,%s,%s,%s) RETURNING id
-    """, (sorov.nomi.strip(), sorov.viloyat, sorov.tuman, sorov.direktor_user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "markaz_id": yangi_id}
-
-
-@app.get("/api/admin/markazlar")
-def markazlar_royxati(token: str):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _markaz_jadvali(cur)
-    cur.execute("""
-        SELECT m.id, m.nomi, m.viloyat, m.tuman, m.direktor_user_id, u.full_name AS direktor_ismi
-        FROM oquv_markazlari m
-        LEFT JOIN users u ON u.user_id = m.direktor_user_id
-        ORDER BY m.nomi
-    """)
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"markazlar": natija}
-
-
-@app.get("/api/admin/markaz_xodim_shablon")
-def markaz_xodim_shablon(token: str):
-    _admin_tekshir(token)
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill
-    import io
-    from fastapi.responses import StreamingResponse
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "XODIMLAR"
-    for col, h in enumerate(["F.I.Sh", "Lavozim"], 1):
-        c = ws.cell(1, col, h)
-        c.font = Font(bold=True, color="FFFFFF")
-        c.fill = PatternFill("solid", fgColor="1B4B7A")
-    for r in [("Rasulov Jasur Anvarovich", "Markaz direktori"),
-              ("Toshmatova Malika Sobirovna", "Administrator"),
-              ("Ergashev Ulug'bek Ilhomovich", "Fan o'qituvchisi")]:
-        ws.append(r)
-    ws.column_dimensions["A"].width = 30
-    ws.column_dimensions["B"].width = 25
-
-    ws2 = wb.create_sheet("IZOH")
-    ws2.cell(1, 1, "Lavozim ustuniga faqat shu variantlardan birini yozing:").font = Font(bold=True)
-    for i, nom in enumerate(MARKAZ_LAVOZIMLARI.values(), 2):
-        ws2.cell(i, 1, f"• {nom}")
-    ws2.column_dimensions["A"].width = 60
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=markaz_xodimlar_shablon.xlsx"},
-    )
-
-
-@app.post("/api/admin/markaz_xodim_import")
-async def markaz_xodim_import(token: str, markaz_id: int, fayl: UploadFile = File(...)):
-    """Xuddi maktab xodim importi kabi — har biriga hisob va 30 kunlik
-    kirish kodi yaratadi. "Fan o'qituvchisi" bo'lganlar keyinchalik
-    to'garak (guruh) yaratganda, u AVTOMATIK shu markazga bog'lanadi."""
-    _admin_tekshir(token)
-    import openpyxl
-    import io
-
-    conn = _db()
-    cur = conn.cursor()
-    _markaz_jadvali(cur)
-    cur.execute("SELECT id FROM oquv_markazlari WHERE id=%s", (markaz_id,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Markaz topilmadi")
-
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb["XODIMLAR"] if "XODIMLAR" in wb.sheetnames else wb.active
-
-    _xodim_kod_jadvali(cur)
-    natijalar = []
-    xato_soni = 0
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if not row or not row[0] or not str(row[0]).strip():
-            continue
-        fish = str(row[0]).strip()
-        lavozim_matni = str(row[1]).strip() if len(row) > 1 and row[1] else "Fan o'qituvchisi"
-        lavozim_kaliti = _MARKAZ_LAVOZIM_MATNDAN.get(lavozim_matni.lower(), "fan_oqituvchisi")
-
-        try:
-            cur.execute("SELECT MIN(user_id) AS eng_kichik FROM users WHERE user_id < 0")
-            r = cur.fetchone()
-            yangi_id = (r["eng_kichik"] - 1) if r and r["eng_kichik"] is not None else -1
-
-            cur.execute("""
-                INSERT INTO users(user_id, full_name, role, markaz_id, lavozim)
-                VALUES(%s,%s,'oqituvchi',%s,%s)
-            """, (yangi_id, fish, markaz_id, lavozim_kaliti))
-
-            if lavozim_kaliti == "markaz_direktor":
-                cur.execute("UPDATE oquv_markazlari SET direktor_user_id=%s WHERE id=%s", (yangi_id, markaz_id))
-
-            kirish_kodi = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-            cur.execute("INSERT INTO xodim_kod(kod, user_id) VALUES(%s,%s)", (kirish_kodi, yangi_id))
-
-            conn.commit()
-            natijalar.append({
-                "fish": fish, "lavozim": MARKAZ_LAVOZIMLARI.get(lavozim_kaliti, lavozim_matni),
-                "kirish_kodi": kirish_kodi,
-            })
-        except Exception:
-            conn.rollback()
-            xato_soni += 1
-
-    cur.close()
-    conn.close()
-    return {"natijalar": natijalar, "xato_soni": xato_soni}
-
-
-@app.get("/api/markaz/dashboard")
-def markaz_dashboard(token: str, markaz_id: int):
-    """Markaz direktori/administratori uchun — MARKAZGA BOG'LANGAN
-    BARCHA guruhlarni (to'garaklarni) bitta ekranda ko'rsatadi —
-    a'zo soni, oylik summa, o'qituvchi. Aniq boshqarish uchun."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _markaz_jadvali(cur)
-    if not _markaz_boshqaruvchi_mi(cur, user_id, markaz_id):
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat markaz direktori/administratori ko'ra oladi")
-
-    cur.execute("""
-        SELECT t.id, t.nomi, t.fan, t.sinf, t.oylik_summa, t.parol, u.full_name AS oqituvchi_ismi,
-               (SELECT COUNT(*) FROM togarak_azolar WHERE togarak_id=t.id AND aktiv=TRUE) AS azo_soni
-        FROM togaraklar t
-        LEFT JOIN users u ON u.user_id = t.teacher_id
-        WHERE t.markaz_id=%s AND t.aktiv=TRUE
-        ORDER BY t.nomi
-    """, (markaz_id,))
-    guruhlar = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"guruhlar": guruhlar}
-
-
-@app.get("/api/markaz/guruh_tolovlari")
-def markaz_guruh_tolovlari(token: str, togarak_id: int, oy: str):
-    """Bitta guruh (to'garak) uchun — shu oy to'lov holati, faqat
-    TASDIQLANGAN (togarak_azolar, aktiv) a'zolar bo'yicha."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-    cur.execute("SELECT teacher_id, markaz_id, oylik_summa FROM togaraklar WHERE id=%s", (togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    ruxsat = t["teacher_id"] == user_id or (t["markaz_id"] and _markaz_boshqaruvchi_mi(cur, user_id, t["markaz_id"]))
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh o'qituvchisi yoki markaz rahbariyati ko'ra oladi")
-
-    kerakli_summa = t["oylik_summa"] or 0
-    cur.execute("""
-        SELECT u.user_id, u.full_name FROM togarak_azolar ta
-        JOIN users u ON u.user_id = ta.user_id
-        WHERE ta.togarak_id=%s AND ta.aktiv=TRUE
-        ORDER BY u.full_name
-    """, (togarak_id,))
-    azolar = cur.fetchall()
-    cur.execute("SELECT user_id, tolangan_summa, tolov_sanasi FROM tolovlar WHERE togarak_id=%s AND oy=%s", (togarak_id, oy))
-    tolovlar_map = {r["user_id"]: r for r in cur.fetchall()}
-    cur.close()
-    conn.close()
-
-    natija = []
-    for a in azolar:
-        tt = tolovlar_map.get(a["user_id"])
-        tolangan = tt["tolangan_summa"] if tt else 0
-        natija.append({
-            "user_id": a["user_id"], "full_name": a["full_name"],
-            "kerakli_summa": kerakli_summa, "tolangan_summa": tolangan,
-            "qarzdor": tolangan < kerakli_summa,
-        })
-    return {"oquvchilar": natija, "kerakli_summa": kerakli_summa}
-
-
-class MarkazTolovBelgilash(BaseModel):
-    token: str
-    user_id: int
-    togarak_id: int
-    oy: str
-    tolangan_summa: int
-
-
-@app.post("/api/markaz/tolov_belgila")
-def markaz_tolov_belgila(sorov: MarkazTolovBelgilash):
-    user_id_qiluvchi = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-
-    # XAVFSIZLIK: faqat shu guruh (to'garak) o'qituvchisi, markaz
-    # rahbariyati, yoki admin to'lov belgilay oladi.
-    cur.execute("SELECT teacher_id, markaz_id FROM togaraklar WHERE id=%s", (sorov.togarak_id,))
-    t = cur.fetchone()
-    if not t:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    ruxsat = t["teacher_id"] == user_id_qiluvchi or (t["markaz_id"] and _markaz_boshqaruvchi_mi(cur, user_id_qiluvchi, t["markaz_id"]))
-    if not ruxsat:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh o'qituvchisi yoki markaz rahbariyati to'lov belgilay oladi")
-
-    cur.execute("""
-        INSERT INTO tolovlar(user_id, togarak_id, oy, summa_kerak, tolangan_summa, tolov_sanasi)
-        VALUES(%s,%s,%s,%s,%s, CURRENT_DATE)
-        ON CONFLICT (user_id, togarak_id, oy) DO UPDATE SET
-            tolangan_summa = EXCLUDED.tolangan_summa, tolov_sanasi = CURRENT_DATE
-    """, (sorov.user_id, sorov.togarak_id, sorov.oy, sorov.tolangan_summa, sorov.tolangan_summa))
-    conn.commit()
-
-    cur.execute("SELECT full_name FROM users WHERE user_id=%s", (sorov.user_id,))
-    oquvchi = cur.fetchone()
-    cur.execute("SELECT parent_id FROM parent_child WHERE child_id=%s", (sorov.user_id,))
-    for oo in cur.fetchall():
-        cur.execute(
-            "INSERT INTO bildirishnomalar(user_id, matn, turi) VALUES(%s,%s,'tolov')",
-            (oo["parent_id"], f"{oquvchi['full_name']} uchun {sorov.oy} oyi to'lovi qabul qilindi: {sorov.tolangan_summa:,} so'm".replace(",", " ")),
-        )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# ALLAQACHON HISOBI BOR o'qituvchi — Excel import'da yaratilgan
-# SHAXSIY kirish_kodi orqali, YANGI hisob ochmasdan, o'ZINING mavjud
-# hisobiga maktab/markaz+lavozimni OLIB OLADI. Bu kirish_kodi bilan
-# BOG'LIQ PLACEHOLDER hisobning maktab_id/markaz_id/lavozim'i qanday
-# BO'LSA — ANIQ O'SHANI oladi (o'zi tanlab olmaydi, shu sabab
-# xavfsiz — faqat Excel'da unga MO'LJALLANGAN lavozim beriladi).
-# ═══════════════════════════════════════════════════════════
-
-@app.post("/api/oqituvchi/kirish_kodi_orqali_qoshil")
-def kirish_kodi_orqali_qoshil(token: str, kirish_kodi: str):
-    """token — chaqiruvchining O'Z (allaqachon mavjud) hisobi.
-    kirish_kodi — Excel import paytida SHU KISHI uchun mo'ljallab
-    yaratilgan kod (xodim_kod jadvali). Kod to'g'ri bo'lsa —
-    chaqiruvchining hisobiga shu muassasa+lavozim QO'SHILADI (agar
-    bu uning BIRINCHI muassasasi bo'lsa — eski, yagona ustunlarga
-    ham yoziladi, orqaga moslik uchun; ikkinchi/uchinchi muassasa
-    bo'lsa — faqat YANGI, ko'p-muassasali jadvalga qo'shiladi, birinchisi
-    O'CHIRILMAYDI). Kod "ishlatildi" deb belgilanadi (qayta ishlatib
-    bo'lmaydi)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _xodim_kod_jadvali(cur)
-    cur.execute("""
-        SELECT xk.user_id AS placeholder_id, xk.ishlatildi,
-               (xk.yaratildi > NOW() - INTERVAL '30 days') AS hali_yangi
-        FROM xodim_kod xk WHERE xk.kod=%s
-    """, (kirish_kodi.strip(),))
-    kod = cur.fetchone()
-    if not kod:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod noto'g'ri")
-    if kod["ishlatildi"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod allaqachon ishlatilgan")
-    if not kod["hali_yangi"]:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Kod muddati tugagan (30 kun) — admindan yangisini so'rang")
-
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS bogcha_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS universitet_id INTEGER")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lavozim TEXT")
-    cur.execute(
-        "SELECT maktab_id, markaz_id, bogcha_id, universitet_id, lavozim FROM users WHERE user_id=%s",
-        (kod["placeholder_id"],),
-    )
-    p = cur.fetchone()
-    turlar = [("maktab", p["maktab_id"]), ("markaz", p["markaz_id"]), ("bogcha", p["bogcha_id"]), ("universitet", p["universitet_id"])]
-    turlar = [(t, mid) for t, mid in turlar if mid]
-    if not p or not turlar:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Bu kodga tegishli muassasa topilmadi")
-    turi, muassasa_id = turlar[0]  # amalda har doim aynan bittasi to'ldirilgan bo'ladi
-
-    # Chaqiruvchining hozirgi (eski, yagona ustun) muassasalari bo'shmi?
-    cur.execute("SELECT maktab_id, markaz_id, bogcha_id, universitet_id FROM users WHERE user_id=%s", (user_id,))
-    joriy = cur.fetchone()
-    birinchi_muassasa_mi = joriy and not any([joriy["maktab_id"], joriy["markaz_id"], joriy["bogcha_id"], joriy["universitet_id"]])
-
-    if birinchi_muassasa_mi:
-        cur.execute(
-            "UPDATE users SET maktab_id=%s, markaz_id=%s, bogcha_id=%s, universitet_id=%s, lavozim=%s WHERE user_id=%s",
-            (p["maktab_id"], p["markaz_id"], p["bogcha_id"], p["universitet_id"], p["lavozim"], user_id),
-        )
-
-    _muassasa_jadvali(cur)
-    cur.execute("""
-        INSERT INTO foydalanuvchi_muassasalari(user_id, muassasa_turi, muassasa_id, lavozim)
-        VALUES(%s,%s,%s,%s) ON CONFLICT (user_id, muassasa_turi, muassasa_id) DO UPDATE SET lavozim=EXCLUDED.lavozim
-    """, (user_id, turi, muassasa_id, p["lavozim"]))
-
-    if p["maktab_id"] and p["lavozim"] == "direktor":
-        cur.execute("UPDATE maktablar SET direktor_user_id=%s WHERE id=%s", (user_id, p["maktab_id"]))
-    if p["markaz_id"] and p["lavozim"] == "markaz_direktor":
-        cur.execute("UPDATE oquv_markazlari SET direktor_user_id=%s WHERE id=%s", (user_id, p["markaz_id"]))
-    if p["bogcha_id"] and p["lavozim"] == "bogcha_direktor":
-        cur.execute("UPDATE bogchalar SET direktor_user_id=%s WHERE id=%s", (user_id, p["bogcha_id"]))
-    if p["universitet_id"] and p["lavozim"] == "rektor":
-        cur.execute("UPDATE universitetlar SET rektor_user_id=%s WHERE id=%s", (user_id, p["universitet_id"]))
-    cur.execute("UPDATE xodim_kod SET ishlatildi=TRUE WHERE kod=%s", (kirish_kodi.strip(),))
-    conn.commit()
-
-    jadval_nomi = {"maktab": "maktablar", "markaz": "oquv_markazlari", "bogcha": "bogchalar", "universitet": "universitetlar"}[turi]
-    cur.execute(f"SELECT nomi FROM {jadval_nomi} WHERE id=%s", (muassasa_id,))
-    m = cur.fetchone()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "lavozim": p["lavozim"], "joy_nomi": m["nomi"] if m else None, "muassasa_turi": turi}
-
-
-# ═══════════════════════════════════════════════════════════
-# BOG'CHA TIZIMI — maktab/markazga o'xshash, lekin FARQI: bolalar
-# (bog'cha yoshidagilar) hisobga EGA BO'LMAYDI — shu sabab GURUHGA
-# QO'SHILISH parol bilan EMAS, OPA tomonidan TO'G'RIDAN-TO'G'RI ism
-# kiritib qo'shiladi. Bola uchun baribir "placeholder" hisob
-# yaratamiz (manfiy user_id, hech qachon login qilmaydi) — shu orqali
-# to'lov va ota-onaga bildirishnoma tizimlarini QAYTA ISHLATAMIZ,
-# noldan qurmaymiz.
-# ═══════════════════════════════════════════════════════════
-
-BOGCHA_LAVOZIMLARI = {
-    "bogcha_direktor": "Bog'cha direktori",
-    "bogcha_zam": "Bog'cha zam direktori",
-    "bogcha_opa": "Bog'cha opasi (tarbiyachi)",
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🎓 Markaz boshqaruvi</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Markazingizga bog'langan barcha guruhlar — bitta ekranda.</p>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : guruhlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali markazga bog'langan guruh yo'q — fan o'qituvchilaringiz to'garak yaratganda, avtomatik shu yerga qo'shiladi.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {guruhlar.map((g) => (
+            <button key={g.id} onClick={() => guruhOch(g)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>
+                  {g.fan} · {g.oqituvchi_ismi || "O'qituvchi yo'q"} · {g.azo_soni} a'zo{g.oylik_summa ? ` · ${g.oylik_summa.toLocaleString()} so'm/oy` : ""}
+                </p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
-_BOGCHA_LAVOZIM_MATNDAN = {v.lower(): k for k, v in BOGCHA_LAVOZIMLARI.items()}
-BOGCHA_TURLARI = {"xususiy": "Xususiy", "davlat": "Davlat"}
 
+function OtaOnaQidiruvi({ token, tanlanganOtaOna, onTanla }) {
+  const [ism, setIsm] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
 
-def _bogcha_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS bogchalar(
-        id SERIAL PRIMARY KEY,
-        nomi TEXT NOT NULL,
-        turi TEXT NOT NULL DEFAULT 'xususiy',
-        viloyat TEXT, tuman TEXT,
-        direktor_user_id BIGINT REFERENCES users(user_id),
-        oylik_tolov INTEGER,
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS bogcha_guruhlari(
-        id SERIAL PRIMARY KEY,
-        bogcha_id INTEGER NOT NULL REFERENCES bogchalar(id),
-        nomi TEXT NOT NULL,
-        opa_user_id BIGINT REFERENCES users(user_id),
-        qoshilish_paroli TEXT,
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS bogcha_guruh_bolalari(
-        id SERIAL PRIMARY KEY,
-        guruh_id INTEGER NOT NULL REFERENCES bogcha_guruhlari(id),
-        bola_user_id BIGINT NOT NULL REFERENCES users(user_id),
-        qoshilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS bogcha_id INTEGER")
+  useEffect(() => {
+    if (ism.trim().length < 2) { setNatijalar([]); return; }
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/opa/ota_ona_qidir?token=${encodeURIComponent(token)}&ism=${encodeURIComponent(ism.trim())}`)
+        .then((r) => r.json())
+        .then((d) => { setNatijalar(d.natijalar || []); setQidirilmoqda(false); })
+        .catch(() => setQidirilmoqda(false));
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [ism, token]);
 
+  if (tanlanganOtaOna) {
+    return (
+      <div className="flex items-center justify-between px-3 py-2 rounded-lg mb-2" style={{ backgroundColor: "#EAF1F7" }}>
+        <span className="text-xs font-medium" style={{ color: "#1B4B7A" }}>👤 {tanlanganOtaOna.full_name}</span>
+        <button onClick={() => onTanla(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕</button>
+      </div>
+    );
+  }
 
-def _bogcha_boshqaruvchi_mi(cur, user_id, bogcha_id):
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    lavozim = _muassasadagi_lavozim(cur, user_id, "bogcha", bogcha_id)
-    return lavozim in ("bogcha_direktor", "bogcha_zam")
-
-
-class BogchaYaratish(BaseModel):
-    token: str
-    nomi: str
-    turi: str = "xususiy"
-    viloyat: Optional[str] = None
-    tuman: Optional[str] = None
-    direktor_user_id: Optional[int] = None
-    oylik_tolov: Optional[int] = None
-
-
-@app.post("/api/admin/bogcha_yarat")
-def bogcha_yarat(sorov: BogchaYaratish):
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Bog'cha nomi kiritilmagan")
-    if sorov.turi not in BOGCHA_TURLARI:
-        raise HTTPException(status_code=400, detail="Noto'g'ri bog'cha turi")
-    conn = _db()
-    cur = conn.cursor()
-    _bogcha_jadvali(cur)
-    if sorov.direktor_user_id is not None:
-        cur.execute("SELECT 1 FROM users WHERE user_id=%s", (sorov.direktor_user_id,))
-        if not cur.fetchone():
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail="Ko'rsatilgan direktor foydalanuvchisi topilmadi")
-    cur.execute("""
-        INSERT INTO bogchalar(nomi, turi, viloyat, tuman, direktor_user_id, oylik_tolov)
-        VALUES(%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (sorov.nomi.strip(), sorov.turi, sorov.viloyat, sorov.tuman, sorov.direktor_user_id, sorov.oylik_tolov))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "bogcha_id": yangi_id}
-
-
-@app.get("/api/admin/bogchalar")
-def bogchalar_royxati(token: str):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _bogcha_jadvali(cur)
-    cur.execute("""
-        SELECT b.id, b.nomi, b.turi, b.viloyat, b.tuman, b.direktor_user_id, b.oylik_tolov,
-               u.full_name AS direktor_ismi
-        FROM bogchalar b
-        LEFT JOIN users u ON u.user_id = b.direktor_user_id
-        ORDER BY b.nomi
-    """)
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"bogchalar": natija}
-
-
-class BogchaTolovSozlash(BaseModel):
-    token: str
-    bogcha_id: int
-    turi: Optional[str] = None
-    oylik_tolov: Optional[int] = None
-
-
-@app.put("/api/admin/bogcha_tolov_sozlash")
-def bogcha_tolov_sozlash(sorov: BogchaTolovSozlash):
-    """Bog'cha yaratilgandan KEYIN ham to'lov turi/summasini
-    o'zgartirish uchun — maktabdagi 'To'lov sozlamalari' bilan bir
-    xil naqsh. 'Davlat' bog'cha ham, agar kerak bo'lsa, keyinroq
-    to'lov belgilashi mumkin."""
-    _admin_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT id FROM bogchalar WHERE id=%s", (sorov.bogcha_id,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Bog'cha topilmadi")
-    if sorov.turi is not None and sorov.turi not in BOGCHA_TURLARI:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Noto'g'ri bog'cha turi")
-    maydonlar, qiymatlar = [], []
-    if sorov.turi is not None:
-        maydonlar.append("turi=%s"); qiymatlar.append(sorov.turi)
-    maydonlar.append("oylik_tolov=%s"); qiymatlar.append(sorov.oylik_tolov)
-    qiymatlar.append(sorov.bogcha_id)
-    cur.execute(f"UPDATE bogchalar SET {', '.join(maydonlar)} WHERE id=%s", qiymatlar)
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-@app.get("/api/admin/bogcha_xodim_shablon")
-def bogcha_xodim_shablon(token: str):
-    _admin_tekshir(token)
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill
-    import io
-    from fastapi.responses import StreamingResponse
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "XODIMLAR"
-    for col, h in enumerate(["F.I.Sh", "Lavozim", "Guruh rahbarligi (ixtiyoriy)"], 1):
-        c = ws.cell(1, col, h)
-        c.font = Font(bold=True, color="FFFFFF")
-        c.fill = PatternFill("solid", fgColor="1B4B7A")
-    for r in [("Xolmatova Gulnora Rahimovna", "Bog'cha direktori", ""),
-              ("Sodiqova Dilfuza Nematovna", "Bog'cha zam direktori", ""),
-              ("Yusupova Shahnoza Karimovna", "Bog'cha opasi (tarbiyachi)", "Quyoshcha guruhi"),
-              ("Rahimova Zulfiya To'raevna", "Bog'cha opasi (tarbiyachi)", "Kichkintoylar guruhi")]:
-        ws.append(r)
-    ws.column_dimensions["A"].width = 32
-    ws.column_dimensions["B"].width = 30
-    ws.column_dimensions["C"].width = 28
-
-    ws2 = wb.create_sheet("IZOH")
-    ws2.cell(1, 1, "Lavozim ustuniga faqat shu variantlardan birini yozing:").font = Font(bold=True)
-    for i, nom in enumerate(BOGCHA_LAVOZIMLARI.values(), 2):
-        ws2.cell(i, 1, f"• {nom}")
-    ws2.cell(len(BOGCHA_LAVOZIMLARI) + 3, 1,
-             "Guruh rahbarligi — faqat 'Bog'cha opasi' bo'lgan xodim uchun to'ldiring (masalan: Quyoshcha guruhi). Har xil nom — har xil guruh.")
-    ws2.column_dimensions["A"].width = 70
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=bogcha_xodimlar_shablon.xlsx"},
-    )
-
-
-@app.post("/api/admin/bogcha_xodim_import")
-async def bogcha_xodim_import(token: str, bogcha_id: int, fayl: UploadFile = File(...)):
-    """Xuddi maktab/markaz xodim importi kabi. "Guruh rahbarligi"
-    to'ldirilgan bo'lsa (faqat bog'cha opalari uchun mazmunli) — o'sha
-    nomdagi guruh yaratiladi/yangilanadi, 4 xonali (odatda ota-onaga
-    emas, guruh ICHKI hisoboti uchun) parol biriktiriladi."""
-    _admin_tekshir(token)
-    import openpyxl
-    import io
-
-    conn = _db()
-    cur = conn.cursor()
-    _bogcha_jadvali(cur)
-    cur.execute("SELECT id FROM bogchalar WHERE id=%s", (bogcha_id,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Bog'cha topilmadi")
-
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb["XODIMLAR"] if "XODIMLAR" in wb.sheetnames else wb.active
-
-    _xodim_kod_jadvali(cur)
-    natijalar = []
-    xato_soni = 0
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if not row or not row[0] or not str(row[0]).strip():
-            continue
-        fish = str(row[0]).strip()
-        lavozim_matni = str(row[1]).strip() if len(row) > 1 and row[1] else "Bog'cha opasi (tarbiyachi)"
-        guruh_nomi = str(row[2]).strip() if len(row) > 2 and row[2] else ""
-        lavozim_kaliti = _BOGCHA_LAVOZIM_MATNDAN.get(lavozim_matni.lower(), "bogcha_opa")
-
-        try:
-            cur.execute("SELECT MIN(user_id) AS eng_kichik FROM users WHERE user_id < 0")
-            r = cur.fetchone()
-            yangi_id = (r["eng_kichik"] - 1) if r and r["eng_kichik"] is not None else -1
-
-            cur.execute("""
-                INSERT INTO users(user_id, full_name, role, bogcha_id, lavozim)
-                VALUES(%s,%s,'oqituvchi',%s,%s)
-            """, (yangi_id, fish, bogcha_id, lavozim_kaliti))
-
-            if lavozim_kaliti == "bogcha_direktor":
-                cur.execute("UPDATE bogchalar SET direktor_user_id=%s WHERE id=%s", (yangi_id, bogcha_id))
-
-            kirish_kodi = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-            cur.execute("INSERT INTO xodim_kod(kod, user_id) VALUES(%s,%s)", (kirish_kodi, yangi_id))
-
-            guruh_paroli = None
-            if guruh_nomi and lavozim_kaliti == "bogcha_opa":
-                guruh_paroli = "".join(secrets.choice(string.digits) for _ in range(4))
-                cur.execute("""
-                    INSERT INTO bogcha_guruhlari(bogcha_id, nomi, opa_user_id, qoshilish_paroli)
-                    VALUES(%s,%s,%s,%s) RETURNING id
-                """, (bogcha_id, guruh_nomi, yangi_id, guruh_paroli))
-
-            conn.commit()
-            natijalar.append({
-                "fish": fish, "lavozim": BOGCHA_LAVOZIMLARI.get(lavozim_kaliti, lavozim_matni),
-                "kirish_kodi": kirish_kodi, "guruh_nomi": guruh_nomi or None,
-            })
-        except Exception:
-            conn.rollback()
-            xato_soni += 1
-
-    cur.close()
-    conn.close()
-    return {"natijalar": natijalar, "xato_soni": xato_soni}
-
-
-@app.get("/api/opa/mening_guruhlarim")
-def opa_mening_guruhlarim(token: str):
-    """Bog'cha opasi RAHBAR bo'lgan guruhlari — har birida nechta
-    bola borligi bilan."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _bogcha_jadvali(cur)
-    cur.execute("""
-        SELECT g.id, g.nomi, g.qoshilish_paroli, b.id AS bogcha_id, b.nomi AS bogcha_nomi, b.oylik_tolov,
-               (SELECT COUNT(*) FROM bogcha_guruh_bolalari WHERE guruh_id=g.id) AS bola_soni
-        FROM bogcha_guruhlari g
-        JOIN bogchalar b ON b.id = g.bogcha_id
-        WHERE g.opa_user_id=%s
-        ORDER BY g.nomi
-    """, (user_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"guruhlar": natija}
-
-
-class BolaQoshish(BaseModel):
-    token: str
-    guruh_id: int
-    bola_ismi: str
-    ota_ona_user_id: Optional[int] = None  # mavjud ota-ona hisobiga bog'lash uchun (ixtiyoriy)
-
-
-@app.get("/api/opa/ota_ona_qidir")
-def opa_ota_ona_qidir(token: str, ism: str):
-    """Opa (yoki har qanday tizimga kirgan xodim) uchun — bola
-    qo'shayotganda uning ota-onasini ISM bo'yicha qidirib topish va
-    bog'lash uchun. Faqat role='ota-ona' hisoblar orasidan qidiradi."""
-    _jwt_tekshir(token)
-    if len(ism.strip()) < 2:
-        return {"natijalar": []}
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT user_id, full_name FROM users
-        WHERE role='ota-ona' AND full_name ILIKE %s
-        ORDER BY full_name LIMIT 10
-    """, (f"%{ism.strip()}%",))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"natijalar": natija}
-
-
-@app.get("/api/oqituvchi/universitet_guruh_qidir")
-def oqituvchi_universitet_guruh_qidir(token: str, nomi: str):
-    """Professor to'garak (kurs) yaratayotganda — bu kursni qaysi
-    universitet guruhi uchun o'qitayotganini nomi bo'yicha qidirib
-    topishi uchun."""
-    _jwt_tekshir(token)
-    if len(nomi.strip()) < 1:
-        return {"natijalar": []}
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        SELECT g.id, g.nomi, g.kurs, g.yonalish, k.nomi AS kafedra_nomi
-        FROM universitet_guruhlari g LEFT JOIN kafedralar k ON k.id = g.kafedra_id
-        WHERE g.nomi ILIKE %s ORDER BY g.nomi LIMIT 10
-    """, (f"%{nomi.strip()}%",))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"natijalar": natija}
-
-
-
-@app.post("/api/opa/bola_qoshish")
-def opa_bola_qoshish(sorov: BolaQoshish):
-    """Opa bolani ISMI bilan TO'G'RIDAN-TO'G'RI guruhga qo'shadi —
-    bola hisobga ega bo'lmagani uchun, ichki "placeholder" hisob
-    yaratiladi (bu hisob hech qachon login qilmaydi, faqat to'lov/
-    bildirishnoma tizimlarini qayta ishlatish uchun kerak)."""
-    user_id = _jwt_tekshir(sorov.token)
-    if not sorov.bola_ismi.strip():
-        raise HTTPException(status_code=400, detail="Bola ismini kiriting")
-    conn = _db()
-    cur = conn.cursor()
-    _bogcha_jadvali(cur)
-    cur.execute("SELECT opa_user_id FROM bogcha_guruhlari WHERE id=%s", (sorov.guruh_id,))
-    g = cur.fetchone()
-    if not g:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi and g["opa_user_id"] != user_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh opasi yoki admin qo'sha oladi")
-
-    cur.execute("SELECT MIN(user_id) AS eng_kichik FROM users WHERE user_id < 0")
-    r = cur.fetchone()
-    yangi_id = (r["eng_kichik"] - 1) if r and r["eng_kichik"] is not None else -1
-    cur.execute("INSERT INTO users(user_id, full_name, role) VALUES(%s,%s,'oquvchi')", (yangi_id, sorov.bola_ismi.strip()))
-    cur.execute("INSERT INTO bogcha_guruh_bolalari(guruh_id, bola_user_id) VALUES(%s,%s)", (sorov.guruh_id, yangi_id))
-    if sorov.ota_ona_user_id is not None:
-        cur.execute("SELECT 1 FROM users WHERE user_id=%s", (sorov.ota_ona_user_id,))
-        if cur.fetchone():
-            cur.execute(
-                "INSERT INTO parent_child(parent_id, child_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-                (sorov.ota_ona_user_id, yangi_id),
-            )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "bola_id": yangi_id}
-
-
-@app.get("/api/opa/guruh_bolalari")
-def opa_guruh_bolalari(token: str, guruh_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _bogcha_jadvali(cur)
-    cur.execute("SELECT opa_user_id, bogcha_id FROM bogcha_guruhlari WHERE id=%s", (guruh_id,))
-    g = cur.fetchone()
-    if not g:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi and g["opa_user_id"] != user_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh opasi yoki admin ko'ra oladi")
-
-    cur.execute("SELECT oylik_tolov FROM bogchalar WHERE id=%s", (g["bogcha_id"],))
-    b = cur.fetchone()
-    kerakli_summa = (b["oylik_tolov"] if b else None) or 0
-
-    cur.execute("""
-        SELECT gb.id AS roster_id, u.user_id, u.full_name
-        FROM bogcha_guruh_bolalari gb JOIN users u ON u.user_id = gb.bola_user_id
-        WHERE gb.guruh_id=%s ORDER BY u.full_name
-    """, (guruh_id,))
-    bolalar = cur.fetchall()
-
-    joriy_oy = datetime.now().strftime("%Y-%m")
-    cur.execute("ALTER TABLE tolovlar ADD COLUMN IF NOT EXISTS bogcha_guruh_id INTEGER REFERENCES bogcha_guruhlari(id)")
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS tolovlar_bogcha_unique ON tolovlar(user_id, bogcha_guruh_id, oy)")
-    cur.execute("SELECT user_id, tolangan_summa FROM tolovlar WHERE bogcha_guruh_id=%s AND oy=%s", (guruh_id, joriy_oy))
-    tolovlar_map = {r["user_id"]: r["tolangan_summa"] for r in cur.fetchall()}
-    cur.close()
-    conn.close()
-
-    natija = []
-    for bl in bolalar:
-        tolangan = tolovlar_map.get(bl["user_id"], 0)
-        natija.append({
-            "roster_id": bl["roster_id"], "user_id": bl["user_id"], "full_name": bl["full_name"],
-            "kerakli_summa": kerakli_summa, "tolangan_summa": tolangan, "qarzdor": tolangan < kerakli_summa,
-        })
-    return {"bolalar": natija, "kerakli_summa": kerakli_summa, "oy": joriy_oy}
-
-
-@app.delete("/api/opa/bolani_chiqar")
-def opa_bolani_chiqar(token: str, roster_id: int):
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT g.opa_user_id FROM bogcha_guruh_bolalari gb
-        JOIN bogcha_guruhlari g ON g.id = gb.guruh_id WHERE gb.id=%s
-    """, (roster_id,))
-    r = cur.fetchone()
-    if not r:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Topilmadi")
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi and r["opa_user_id"] != user_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh opasi yoki admin chiqara oladi")
-    cur.execute("DELETE FROM bogcha_guruh_bolalari WHERE id=%s", (roster_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "chiqarildi"}
-
-
-class BogchaTolovBelgilash(BaseModel):
-    token: str
-    bola_user_id: int
-    guruh_id: int
-    oy: str
-    tolangan_summa: int
-
-
-@app.post("/api/opa/tolov_belgila")
-def opa_tolov_belgila(sorov: BogchaTolovBelgilash):
-    user_id = _jwt_tekshir(sorov.token)
-    conn = _db()
-    cur = conn.cursor()
-    _tolov_jadvallari(cur)
-    cur.execute("ALTER TABLE tolovlar ADD COLUMN IF NOT EXISTS bogcha_guruh_id INTEGER REFERENCES bogcha_guruhlari(id)")
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS tolovlar_bogcha_unique ON tolovlar(user_id, bogcha_guruh_id, oy)")
-
-    # XAVFSIZLIK: faqat shu guruh opasi yoki admin to'lov belgilay oladi.
-    cur.execute("SELECT opa_user_id FROM bogcha_guruhlari WHERE id=%s", (sorov.guruh_id,))
-    g = cur.fetchone()
-    if not g:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi and g["opa_user_id"] != user_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh opasi yoki admin to'lov belgilay oladi")
-
-    cur.execute("""
-        INSERT INTO tolovlar(user_id, bogcha_guruh_id, oy, summa_kerak, tolangan_summa, tolov_sanasi)
-        VALUES(%s,%s,%s,%s,%s, CURRENT_DATE)
-        ON CONFLICT (user_id, bogcha_guruh_id, oy) DO UPDATE SET
-            tolangan_summa = EXCLUDED.tolangan_summa, tolov_sanasi = CURRENT_DATE
-    """, (sorov.bola_user_id, sorov.guruh_id, sorov.oy, sorov.tolangan_summa, sorov.tolangan_summa))
-    conn.commit()
-
-    cur.execute("SELECT full_name FROM users WHERE user_id=%s", (sorov.bola_user_id,))
-    bola = cur.fetchone()
-    cur.execute("SELECT parent_id FROM parent_child WHERE child_id=%s", (sorov.bola_user_id,))
-    for oo in cur.fetchall():
-        cur.execute(
-            "INSERT INTO bildirishnomalar(user_id, matn, turi) VALUES(%s,%s,'tolov')",
-            (oo["parent_id"], f"{bola['full_name']} uchun {sorov.oy} oyi bog'cha to'lovi qabul qilindi: {sorov.tolangan_summa:,} so'm".replace(",", " ")),
-        )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "saqlandi"}
-
-
-# ═══════════════════════════════════════════════════════════
-# OLIY TA'LIM TIZIMI — 4 QAVATLI TUZILMA:
-#   Universitet → Fakultet → Kafedra → Guruh (talabalar)
-#
-# Maktabdan farqi: chuqurroq ierarxiya. Har qavat o'zining rahbarini
-# (rektor/dekan/kafedra mudiri/guruh kuratori) belgilashi mumkin.
-# Talaba guruhga sinf kabi PAROL bilan qo'shiladi (avtomatik profil
-# mosligisiz — chunki talaba profilida fakultet/kafedra maydonlari
-# hozircha yo'q, sodda parol-orqali-qo'shilish yetarli).
-# ═══════════════════════════════════════════════════════════
-
-UNIVERSITET_LAVOZIMLARI = {
-    "rektor": "Rektor",
-    "prorektor": "Prorektor",
-    "dekan": "Dekan",
-    "kafedra_mudiri": "Kafedra mudiri",
-    "professor_oqituvchi": "Professor-o'qituvchi",
+  return (
+    <div className="mb-2">
+      <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+        placeholder="Ota-onasini qidiring (ixtiyoriy)..."
+        className="w-full px-3.5 py-2 rounded-lg border text-xs"
+        style={{ borderColor: "#E5E1D8" }} />
+      {qidirilmoqda && <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Qidirilmoqda...</p>}
+      {natijalar.length > 0 && (
+        <div className="mt-1 space-y-1">
+          {natijalar.map((o) => (
+            <button key={o.user_id} onClick={() => { onTanla(o); setIsm(""); setNatijalar([]); }}
+              className="w-full flex items-center px-3 py-1.5 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+              <span className="text-xs" style={{ color: "#2B2B2B" }}>{o.full_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
-_UNIVERSITET_LAVOZIM_MATNDAN = {v.lower(): k for k, v in UNIVERSITET_LAVOZIMLARI.items()}
 
-
-def _universitet_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS universitetlar(
-        id SERIAL PRIMARY KEY, nomi TEXT NOT NULL, viloyat TEXT, tuman TEXT,
-        rektor_user_id BIGINT REFERENCES users(user_id), yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS fakultetlar(
-        id SERIAL PRIMARY KEY, universitet_id INTEGER NOT NULL REFERENCES universitetlar(id),
-        nomi TEXT NOT NULL, dekan_user_id BIGINT REFERENCES users(user_id), yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS kafedralar(
-        id SERIAL PRIMARY KEY, fakultet_id INTEGER NOT NULL REFERENCES fakultetlar(id),
-        nomi TEXT NOT NULL, mudir_user_id BIGINT REFERENCES users(user_id), yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS universitet_guruhlari(
-        id SERIAL PRIMARY KEY, kafedra_id INTEGER NOT NULL REFERENCES kafedralar(id),
-        nomi TEXT NOT NULL, kurs INTEGER, yonalish TEXT,
-        rahbar_user_id BIGINT REFERENCES users(user_id), qoshilish_paroli TEXT,
-        yaratilgan_at TIMESTAMP DEFAULT NOW()
-    )""")
-    cur.execute("""CREATE TABLE IF NOT EXISTS universitet_guruh_azolari(
-        id SERIAL PRIMARY KEY, guruh_id INTEGER NOT NULL REFERENCES universitet_guruhlari(id),
-        user_id BIGINT NOT NULL REFERENCES users(user_id), qoshilgan_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(guruh_id, user_id)
-    )""")
-    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS universitet_id INTEGER")
-
-
-def _universitet_boshqaruvchi_mi(cur, user_id, universitet_id):
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    if cur.fetchone():
-        return True
-    lavozim = _muassasadagi_lavozim(cur, user_id, "universitet", universitet_id)
-    return lavozim in ("rektor", "prorektor")
-
-
-class UniversitetYaratish(BaseModel):
-    token: str
-    nomi: str
-    viloyat: Optional[str] = None
-    tuman: Optional[str] = None
-    rektor_user_id: Optional[int] = None
-
-
-@app.post("/api/admin/universitet_yarat")
-def universitet_yarat(sorov: UniversitetYaratish):
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Universitet nomi kiritilmagan")
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    if sorov.rektor_user_id is not None:
-        cur.execute("SELECT 1 FROM users WHERE user_id=%s", (sorov.rektor_user_id,))
-        if not cur.fetchone():
-            cur.close(); conn.close()
-            raise HTTPException(status_code=400, detail="Ko'rsatilgan rektor foydalanuvchisi topilmadi")
-    cur.execute("""
-        INSERT INTO universitetlar(nomi, viloyat, tuman, rektor_user_id)
-        VALUES(%s,%s,%s,%s) RETURNING id
-    """, (sorov.nomi.strip(), sorov.viloyat, sorov.tuman, sorov.rektor_user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "universitet_id": yangi_id}
-
-
-@app.get("/api/admin/universitetlar")
-def universitetlar_royxati(token: str):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        SELECT u.id, u.nomi, u.viloyat, u.tuman, u.rektor_user_id, us.full_name AS rektor_ismi,
-               (SELECT COUNT(*) FROM fakultetlar WHERE universitet_id=u.id) AS fakultet_soni
-        FROM universitetlar u LEFT JOIN users us ON us.user_id = u.rektor_user_id
-        ORDER BY u.nomi
-    """)
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"universitetlar": natija}
-
-
-class FakultetYaratish(BaseModel):
-    token: str
-    universitet_id: int
-    nomi: str
-    dekan_user_id: Optional[int] = None
-
-
-@app.post("/api/admin/fakultet_yarat")
-def fakultet_yarat(sorov: FakultetYaratish):
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Fakultet nomi kiritilmagan")
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        INSERT INTO fakultetlar(universitet_id, nomi, dekan_user_id)
-        VALUES(%s,%s,%s) RETURNING id
-    """, (sorov.universitet_id, sorov.nomi.strip(), sorov.dekan_user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "fakultet_id": yangi_id}
-
-
-@app.get("/api/admin/fakultetlar")
-def fakultetlar_royxati(token: str, universitet_id: int):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        SELECT f.id, f.nomi, f.dekan_user_id, u.full_name AS dekan_ismi,
-               (SELECT COUNT(*) FROM kafedralar WHERE fakultet_id=f.id) AS kafedra_soni
-        FROM fakultetlar f LEFT JOIN users u ON u.user_id = f.dekan_user_id
-        WHERE f.universitet_id=%s ORDER BY f.nomi
-    """, (universitet_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"fakultetlar": natija}
-
-
-class KafedraYaratish(BaseModel):
-    token: str
-    fakultet_id: int
-    nomi: str
-    mudir_user_id: Optional[int] = None
-
-
-@app.post("/api/admin/kafedra_yarat")
-def kafedra_yarat(sorov: KafedraYaratish):
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Kafedra nomi kiritilmagan")
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        INSERT INTO kafedralar(fakultet_id, nomi, mudir_user_id)
-        VALUES(%s,%s,%s) RETURNING id
-    """, (sorov.fakultet_id, sorov.nomi.strip(), sorov.mudir_user_id))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "kafedra_id": yangi_id}
-
-
-@app.get("/api/admin/kafedralar")
-def kafedralar_royxati(token: str, fakultet_id: int):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        SELECT k.id, k.nomi, k.mudir_user_id, u.full_name AS mudir_ismi,
-               (SELECT COUNT(*) FROM universitet_guruhlari WHERE kafedra_id=k.id) AS guruh_soni
-        FROM kafedralar k LEFT JOIN users u ON u.user_id = k.mudir_user_id
-        WHERE k.fakultet_id=%s ORDER BY k.nomi
-    """, (fakultet_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"kafedralar": natija}
-
-
-class UniversitetGuruhYaratish(BaseModel):
-    token: str
-    kafedra_id: int
-    nomi: str
-    kurs: Optional[int] = None
-    yonalish: Optional[str] = None
-    rahbar_user_id: Optional[int] = None
-
-
-@app.post("/api/admin/universitet_guruh_yarat")
-def universitet_guruh_yarat(sorov: UniversitetGuruhYaratish):
-    _admin_tekshir(sorov.token)
-    if not sorov.nomi.strip():
-        raise HTTPException(status_code=400, detail="Guruh nomi kiritilmagan")
-    if sorov.kurs is not None and sorov.kurs not in range(1, 7):
-        raise HTTPException(status_code=400, detail="Kurs 1 dan 6 gacha bo'lishi kerak")
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    paroli = "".join(secrets.choice(string.digits) for _ in range(4))
-    cur.execute("""
-        INSERT INTO universitet_guruhlari(kafedra_id, nomi, kurs, yonalish, rahbar_user_id, qoshilish_paroli)
-        VALUES(%s,%s,%s,%s,%s,%s) RETURNING id
-    """, (sorov.kafedra_id, sorov.nomi.strip(), sorov.kurs, sorov.yonalish, sorov.rahbar_user_id, paroli))
-    yangi_id = cur.fetchone()["id"]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "yaratildi", "guruh_id": yangi_id, "qoshilish_paroli": paroli}
-
-
-@app.get("/api/admin/universitet_guruhlari")
-def universitet_guruhlari_royxati(token: str, kafedra_id: int):
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        SELECT g.id, g.nomi, g.kurs, g.yonalish, g.qoshilish_paroli, g.rahbar_user_id, u.full_name AS rahbar_ismi,
-               (SELECT COUNT(*) FROM universitet_guruh_azolari WHERE guruh_id=g.id) AS talaba_soni
-        FROM universitet_guruhlari g LEFT JOIN users u ON u.user_id = g.rahbar_user_id
-        WHERE g.kafedra_id=%s ORDER BY g.kurs NULLS LAST, g.nomi
-    """, (kafedra_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"guruhlar": natija}
-
-
-@app.post("/api/talaba/guruhga_qoshil")
-def talaba_guruhga_qoshil(token: str, parol: str):
-    """Talaba universitet guruhiga FAQAT 4 xonali parol bilan
-    qo'shiladi — guruh ID'sini bilishi shart emas (to'garakka
-    qo'shilish bilan bir xil uslub)."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("SELECT id, nomi FROM universitet_guruhlari WHERE qoshilish_paroli=%s", (parol.strip(),))
-    g = cur.fetchone()
-    if not g:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=400, detail="Parol noto'g'ri")
-    cur.execute(
-        "INSERT INTO universitet_guruh_azolari(guruh_id, user_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-        (g["id"], user_id),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "qoshildi", "guruh_nomi": g["nomi"]}
-
-
-@app.get("/api/universitet/mening_guruhlarim")
-def universitet_mening_guruhlarim(token: str):
-    """Kurator RAHBAR bo'lgan universitet guruhlari ro'yxati."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("""
-        SELECT g.id, g.nomi, g.kurs, g.yonalish,
-               (SELECT COUNT(*) FROM universitet_guruh_azolari WHERE guruh_id=g.id) AS talaba_soni
-        FROM universitet_guruhlari g WHERE g.rahbar_user_id=%s ORDER BY g.nomi
-    """, (user_id,))
-    natija = cur.fetchall()
-    cur.close()
-    conn.close()
-    return {"guruhlar": natija}
-
-
-@app.get("/api/universitet/guruh_bilimi")
-def universitet_guruh_bilimi(token: str, guruh_id: int):
-    """Guruh kuratori/dekan/rektor uchun — ENG MUHIM ko'rsatkich:
-    guruhga bog'langan HAR BIR fan (professor kursi) bo'yicha, HAR BIR
-    talabaning silabusdagi mavzularni qanchalik bilishi — mavjud
-    "Bilim" mexanizmi (learned_topics) orqali, GPA emas, aniq va
-    tushunarli % ko'rinishida."""
-    user_id = _jwt_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    _universitet_jadvali(cur)
-    cur.execute("SELECT rahbar_user_id, nomi FROM universitet_guruhlari WHERE id=%s", (guruh_id,))
-    g = cur.fetchone()
-    if not g:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Guruh topilmadi")
-    cur.execute("SELECT 1 FROM admin_akkaunt WHERE uid=%s", (user_id,))
-    admin_mi = cur.fetchone() is not None
-    if not admin_mi and g["rahbar_user_id"] != user_id:
-        cur.close(); conn.close()
-        raise HTTPException(status_code=403, detail="Faqat shu guruh kuratori yoki admin ko'ra oladi")
-
-    # Guruhga bog'langan barcha fanlar (professor kurslari)
-    cur.execute("""
-        SELECT t.id AS togarak_id, t.nomi AS kurs_nomi, t.fan, u.full_name AS professor_ismi
-        FROM togaraklar t LEFT JOIN users u ON u.user_id = t.teacher_id
-        WHERE t.universitet_guruh_id=%s AND t.aktiv=TRUE
-        ORDER BY t.fan
-    """, (guruh_id,))
-    kurslar = cur.fetchall()
-
-    # Guruhdagi barcha talabalar
-    cur.execute("""
-        SELECT u.user_id, u.full_name FROM universitet_guruh_azolari ga
-        JOIN users u ON u.user_id = ga.user_id WHERE ga.guruh_id=%s ORDER BY u.full_name
-    """, (guruh_id,))
-    talabalar = cur.fetchall()
-
-    natija_kurslar = []
-    for k in kurslar:
-        cur.execute("""
-            SELECT ta.user_id,
-                   COUNT(DISTINCT tm.topic_code) AS jami_mavzu,
-                   COUNT(DISTINCT lt.topic_code) AS ishlangan_mavzu,
-                   AVG(lt.score) AS ortacha_ball
-            FROM togarak_azolar ta
-            JOIN togarak_mavzulari tm ON tm.togarak_id = ta.togarak_id
-            LEFT JOIN learned_topics lt ON lt.topic_code = tm.topic_code AND lt.user_id = ta.user_id
-            WHERE ta.togarak_id=%s AND ta.aktiv=TRUE
-            GROUP BY ta.user_id
-        """, (k["togarak_id"],))
-        talaba_natijalari = {r["user_id"]: r for r in cur.fetchall()}
-
-        talabalar_royxati = []
-        for t in talabalar:
-            r = talaba_natijalari.get(t["user_id"])
-            if r and r["jami_mavzu"]:
-                foiz = round((r["ishlangan_mavzu"] or 0) / r["jami_mavzu"] * 100)
-                ball = round(r["ortacha_ball"]) if r["ortacha_ball"] is not None else None
-            else:
-                foiz, ball = 0, None
-            talabalar_royxati.append({
-                "user_id": t["user_id"], "full_name": t["full_name"],
-                "otilgan_foiz": foiz, "ortacha_ball": ball,
-            })
-        natija_kurslar.append({
-            "togarak_id": k["togarak_id"], "kurs_nomi": k["kurs_nomi"], "fan": k["fan"],
-            "professor_ismi": k["professor_ismi"], "talabalar": talabalar_royxati,
-        })
-
-    cur.close()
-    conn.close()
-    return {"guruh_nomi": g["nomi"], "talaba_soni": len(talabalar), "kurslar": natija_kurslar}
-
-
-# ═══════════════════════════════════════════════════════════
-# SINOV MUHITI — bir bosishda 4 tizimning HAMMASINI (maktab, bog'cha,
-# markaz, universitet) soxta odamlar bilan to'liq yaratadi, VA admin
-# ularning HAR BIRI sifatida (Google login'siz) darhol kira oladi —
-# faqat SINOV/TEST maqsadida, faqat admin ishlatishi mumkin.
-#
-# XAVFSIZLIK: "sifatida kirish" tokeni ODDIY tokendan farqli —
-# atigi 2 SOAT amal qiladi (30 kun emas), shu orqali xavf chegaralanadi.
-# ═══════════════════════════════════════════════════════════
-
-def _sinov_jwt_yarat(user_id: int) -> str:
-    """Admin uchun — 'sifatida kirish' tokeni. Uzoq muddatli, chuqur
-    sinov (darslar qo'yish, baholash, kontent yuklash) uchun oddiy
-    foydalanuvchi seansi bilan BIR XIL — 30 kun amal qiladi."""
-    payload = {"user_id": user_id, "exp": datetime.now(timezone.utc) + timedelta(days=30)}
-    return jwt.encode(payload, JWT_MAXFIY_KALIT, algorithm="HS256")
-
-
-def _keyingi_manfiy_id(cur):
-    """Joriy eng kichik (manfiy) user_id'dan BOSHLAB pastga hisoblash
-    uchun boshlang'ich nuqta."""
-    cur.execute("SELECT MIN(user_id) AS eng_kichik FROM users WHERE user_id < 0")
-    r = cur.fetchone()
-    return (r["eng_kichik"] - 1) if r and r["eng_kichik"] is not None else -1
-
-
-@app.post("/api/admin/sinov_muhit_yarat")
-def sinov_muhit_yarat(token: str):
-    """HAQIQIY HAJMDAGI sinov muhiti — universitet (~1000 talaba, 6
-    fakultet, 12 kafedra, 36 guruh), maktab (~550 o'quvchi, 1-11 sinf
-    x A/B, pulli), markaz (~150 talaba, 5 guruh), bog'cha (~75 bola +
-    75 ota-ona, 3 guruh). Talaba/o'quvchi/bola darajasida HAMMASI
-    OMMAVIY (bulk) kiritiladi — minglab alohida so'rov EMAS, shu
-    sabab tez va ishonchli ishlaydi."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    try:
-        _maktab_jadvali(cur); _maktab_sinflari_jadvali(cur); _sinf_azolari_jadvali(cur)
-        _markaz_jadvali(cur); _bogcha_jadvali(cur); _universitet_jadvali(cur)
-        _tolov_jadvallari(cur)
-        cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS sinf TEXT")
-        cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-        cur.execute("ALTER TABLE togaraklar ADD COLUMN IF NOT EXISTS universitet_guruh_id INTEGER")
-        cur.execute("""CREATE TABLE IF NOT EXISTS togarak_azolar(
-            id SERIAL PRIMARY KEY, togarak_id INTEGER REFERENCES togaraklar(id),
-            user_id BIGINT REFERENCES users(user_id), aktiv BOOLEAN DEFAULT TRUE, qoshilgan_at TIMESTAMP DEFAULT NOW()
-        )""")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS maktab_id INTEGER")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS markaz_id INTEGER")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS bogcha_id INTEGER")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS universitet_id INTEGER")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lavozim TEXT")
-
-        belgi = datetime.now().strftime("%H%M%S")
-        keyingi_id = [_keyingi_manfiy_id(cur)]
-
-        def yid():
-            v = keyingi_id[0]
-            keyingi_id[0] -= 1
-            return v
-
-        def parol4():
-            return "".join(secrets.choice(string.digits) for _ in range(4))
-
-        hisoblar = []   # "sifatida kirish" ro'yxati — rahbariyat + har birdan namuna
-        sonlar = {}     # ommaviy yaratilgan talaba/o'quvchi/bola sonlari
-
-        def rahbar_qosh(ism, lavozim_kaliti, izoh):
-            uid = yid()
-            cur.execute("INSERT INTO users(user_id, full_name, role, lavozim) VALUES(%s,%s,'oqituvchi',%s)", (uid, ism, lavozim_kaliti))
-            hisoblar.append({"user_id": uid, "full_name": ism, "izoh": izoh})
-            return uid
-
-        # ═══════════════ 1) MAKTAB — ~550 o'quvchi, 1-11 sinf x A/B (22 sinf), pulli ═══════════════
-        maktab_direktor = rahbar_qosh(f"Sinov Direktor {belgi}", "direktor", "Maktab direktori")
-        cur.execute("""
-            INSERT INTO maktablar(nomi, viloyat, tuman, smena_soni, direktor_user_id, pulli, oylik_tolov)
-            VALUES(%s,%s,%s,1,%s,TRUE,500000) RETURNING id
-        """, (f"Sinov Maktabi {belgi}", "Samarqand", "Samarqand shahri", maktab_direktor))
-        maktab_id = cur.fetchone()["id"]
-        cur.execute("UPDATE users SET maktab_id=%s WHERE user_id=%s", (maktab_id, maktab_direktor))
-
-        JAMI_OQUVCHI = 550
-        SINFLAR = [(str(s), h) for s in range(1, 12) for h in ("A", "B")]
-        har_sinfga = JAMI_OQUVCHI // len(SINFLAR)
-        joriy_oy = datetime.now().strftime("%Y-%m")
-        bugun = datetime.now().date()
-
-        maktab_talaba_q, sinf_azo_q, tolov_q = [], [], []
-        for sinf, harf in SINFLAR:
-            rahbar = rahbar_qosh(f"Sinov Ustoz {sinf}-{harf} {belgi}", "fan_oqituvchisi", f"{sinf}-{harf} sinf rahbari")
-            cur.execute("UPDATE users SET maktab_id=%s WHERE user_id=%s", (maktab_id, rahbar))
-            cur.execute("""
-                INSERT INTO maktab_sinflari(maktab_id, sinf, harf, rahbar_user_id, qoshilish_paroli)
-                VALUES(%s,%s,%s,%s,%s) RETURNING id
-            """, (maktab_id, sinf, harf, rahbar, parol4()))
-            sinf_id = cur.fetchone()["id"]
-            for i in range(har_sinfga):
-                uid = yid()
-                maktab_talaba_q.append((uid, f"O'quvchi {sinf}-{harf}-{i+1} {belgi}", "oquvchi", maktab_id, sinf, harf))
-                sinf_azo_q.append((sinf_id, uid))
-                if i % 2 == 0:  # yarmi to'lagan, yarmi qarzdor — ikkalasini sinash uchun
-                    tolov_q.append((uid, maktab_id, joriy_oy, 500000, 500000, bugun))
-
-        psycopg2.extras.execute_values(cur, "INSERT INTO users(user_id, full_name, role, maktab_id, class, class_letter) VALUES %s", maktab_talaba_q)
-        psycopg2.extras.execute_values(cur, "INSERT INTO maktab_sinf_azolari(sinf_id, user_id) VALUES %s", sinf_azo_q)
-        if tolov_q:
-            psycopg2.extras.execute_values(cur, "INSERT INTO tolovlar(user_id, maktab_id, oy, summa_kerak, tolangan_summa, tolov_sanasi) VALUES %s", tolov_q)
-        sonlar["maktab_oquvchi"] = len(maktab_talaba_q)
-        if maktab_talaba_q:
-            n = maktab_talaba_q[0]
-            hisoblar.append({"user_id": n[0], "full_name": n[1], "izoh": f"Namuna o'quvchi ({n[4]}-{n[5]})"})
-
-        # ═══════════════ 2) BOG'CHA — ~75 bola + 75 ota-ona, 3 guruh ═══════════════
-        bogcha_direktor = rahbar_qosh(f"Sinov BDirektor {belgi}", "bogcha_direktor", "Bog'cha direktori")
-        cur.execute("""
-            INSERT INTO bogchalar(nomi, turi, viloyat, tuman, direktor_user_id, oylik_tolov)
-            VALUES(%s,'xususiy',%s,%s,%s,800000) RETURNING id
-        """, (f"Sinov Bog'chasi {belgi}", "Samarqand", "Samarqand shahri", bogcha_direktor))
-        bogcha_id = cur.fetchone()["id"]
-        cur.execute("UPDATE users SET bogcha_id=%s WHERE user_id=%s", (bogcha_id, bogcha_direktor))
-
-        BOGCHA_GURUHLAR = ["Kichkintoylar", "Quyoshcha", "Yulduzcha"]
-        JAMI_BOLA = 75
-        har_bguruhga = JAMI_BOLA // len(BOGCHA_GURUHLAR)
-
-        bola_q, otaona_q, roster_q, parent_child_q = [], [], [], []
-        for gi, guruh_nomi in enumerate(BOGCHA_GURUHLAR):
-            opa = rahbar_qosh(f"Sinov Opa{gi+1} {belgi}", "bogcha_opa", f"{guruh_nomi} guruhi tarbiyachisi")
-            cur.execute("UPDATE users SET bogcha_id=%s WHERE user_id=%s", (bogcha_id, opa))
-            cur.execute("""
-                INSERT INTO bogcha_guruhlari(bogcha_id, nomi, opa_user_id, qoshilish_paroli)
-                VALUES(%s,%s,%s,%s) RETURNING id
-            """, (bogcha_id, f"{guruh_nomi} guruhi", opa, parol4()))
-            guruh_id = cur.fetchone()["id"]
-            for i in range(har_bguruhga):
-                bola_id, ota_id = yid(), yid()
-                bola_q.append((bola_id, f"Bola {guruh_nomi}-{i+1} {belgi}", "oquvchi"))
-                otaona_q.append((ota_id, f"OtaOna {guruh_nomi}-{i+1} {belgi}", "ota-ona"))
-                roster_q.append((guruh_id, bola_id))
-                parent_child_q.append((ota_id, bola_id))
-
-        psycopg2.extras.execute_values(cur, "INSERT INTO users(user_id, full_name, role) VALUES %s", bola_q + otaona_q)
-        psycopg2.extras.execute_values(cur, "INSERT INTO bogcha_guruh_bolalari(guruh_id, bola_user_id) VALUES %s", roster_q)
-        psycopg2.extras.execute_values(cur, "INSERT INTO parent_child(parent_id, child_id) VALUES %s", parent_child_q)
-        sonlar["bogcha_bola"] = len(bola_q)
-        sonlar["bogcha_otaona"] = len(otaona_q)
-        if bola_q:
-            hisoblar.append({"user_id": otaona_q[0][0], "full_name": otaona_q[0][1], "izoh": f"Namuna ota-ona (farzandi: {bola_q[0][1]})"})
-
-        # ═══════════════ 3) MARKAZ — ~150 talaba, 5 guruh ═══════════════
-        markaz_direktor = rahbar_qosh(f"Sinov MDirektor {belgi}", "markaz_direktor", "Markaz direktori")
-        cur.execute("""
-            INSERT INTO oquv_markazlari(nomi, viloyat, tuman, direktor_user_id)
-            VALUES(%s,%s,%s,%s) RETURNING id
-        """, (f"Sinov Markazi {belgi}", "Samarqand", "Samarqand shahri", markaz_direktor))
-        markaz_id = cur.fetchone()["id"]
-        cur.execute("UPDATE users SET markaz_id=%s WHERE user_id=%s", (markaz_id, markaz_direktor))
-        markaz_administrator = rahbar_qosh(f"Sinov MAdministrator {belgi}", "administrator", "Markaz administratori")
-        cur.execute("UPDATE users SET markaz_id=%s WHERE user_id=%s", (markaz_id, markaz_administrator))
-
-        JAMI_MTALABA, MARKAZ_GURUH_SONI = 150, 5
-        har_mguruhga = JAMI_MTALABA // MARKAZ_GURUH_SONI
-
-        markaz_talaba_q, markaz_azo_q = [], []
-        for gi in range(MARKAZ_GURUH_SONI):
-            oq = rahbar_qosh(f"Sinov MOqituvchi{gi+1} {belgi}", "fan_oqituvchisi", f"Markaz {gi+1}-guruh o'qituvchisi")
-            cur.execute("UPDATE users SET markaz_id=%s WHERE user_id=%s", (markaz_id, oq))
-            cur.execute("""
-                INSERT INTO togaraklar(nomi, fan, teacher_id, sinf, parol, max_talaba, oylik_summa, aktiv, markaz_id)
-                VALUES(%s,'Matematika',%s,'5',%s,60,300000,TRUE,%s) RETURNING id
-            """, (f"Sinov Guruh-{gi+1} {belgi}", oq, parol4(), markaz_id))
-            togarak_id = cur.fetchone()["id"]
-            for i in range(har_mguruhga):
-                uid = yid()
-                markaz_talaba_q.append((uid, f"MTalaba {gi+1}-{i+1} {belgi}", "oquvchi"))
-                markaz_azo_q.append((togarak_id, uid, True))
-
-        psycopg2.extras.execute_values(cur, "INSERT INTO users(user_id, full_name, role) VALUES %s", markaz_talaba_q)
-        psycopg2.extras.execute_values(cur, "INSERT INTO togarak_azolar(togarak_id, user_id, aktiv) VALUES %s", markaz_azo_q)
-        sonlar["markaz_talaba"] = len(markaz_talaba_q)
-        if markaz_talaba_q:
-            hisoblar.append({"user_id": markaz_talaba_q[0][0], "full_name": markaz_talaba_q[0][1], "izoh": "Namuna markaz talabasi"})
-
-        # ═══════════════ 4) UNIVERSITET — ~1000 talaba, 6 fakultet x 2 kafedra x 3 guruh (36 guruh) ═══════════════
-        rektor = rahbar_qosh(f"Sinov Rektor {belgi}", "rektor", "Rektor")
-        cur.execute("""
-            INSERT INTO universitetlar(nomi, viloyat, tuman, rektor_user_id)
-            VALUES(%s,%s,%s,%s) RETURNING id
-        """, (f"Sinov Universiteti {belgi}", "Samarqand", "Samarqand shahri", rektor))
-        universitet_id = cur.fetchone()["id"]
-        cur.execute("UPDATE users SET universitet_id=%s WHERE user_id=%s", (universitet_id, rektor))
-        prorektor = rahbar_qosh(f"Sinov Prorektor {belgi}", "prorektor", "Prorektor")
-        cur.execute("UPDATE users SET universitet_id=%s WHERE user_id=%s", (universitet_id, prorektor))
-
-        JAMI_TALABA, FAKULTET_SONI, KAFEDRA_PER_FAKULTET, GURUH_PER_KAFEDRA = 1000, 6, 2, 3
-        jami_guruh = FAKULTET_SONI * KAFEDRA_PER_FAKULTET * GURUH_PER_KAFEDRA
-        har_guruhga = JAMI_TALABA // jami_guruh
-
-        uni_talaba_q, uni_azo_q, uni_togarak_azo_q = [], [], []
-        for fi in range(1, FAKULTET_SONI + 1):
-            dekan = rahbar_qosh(f"Sinov Dekan-{fi} {belgi}", "dekan", f"{fi}-fakultet dekani")
-            cur.execute("INSERT INTO fakultetlar(universitet_id, nomi, dekan_user_id) VALUES(%s,%s,%s) RETURNING id",
-                        (universitet_id, f"Sinov Fakultet-{fi} {belgi}", dekan))
-            fakultet_id = cur.fetchone()["id"]
-            for ki in range(1, KAFEDRA_PER_FAKULTET + 1):
-                mudir = rahbar_qosh(f"Sinov Mudir-{fi}.{ki} {belgi}", "kafedra_mudiri", f"{fi}.{ki}-kafedra mudiri")
-                cur.execute("INSERT INTO kafedralar(fakultet_id, nomi, mudir_user_id) VALUES(%s,%s,%s) RETURNING id",
-                            (fakultet_id, f"Sinov Kafedra-{fi}.{ki} {belgi}", mudir))
-                kafedra_id = cur.fetchone()["id"]
-                for gi in range(1, GURUH_PER_KAFEDRA + 1):
-                    professor = rahbar_qosh(f"Sinov Professor-{fi}.{ki}.{gi} {belgi}", "professor_oqituvchi", f"{fi}.{ki}.{gi}-guruh kuratori")
-                    cur.execute("UPDATE users SET universitet_id=%s WHERE user_id=%s", (universitet_id, professor))
-                    cur.execute("""
-                        INSERT INTO universitet_guruhlari(kafedra_id, nomi, kurs, yonalish, rahbar_user_id, qoshilish_paroli)
-                        VALUES(%s,%s,%s,'Matematika',%s,%s) RETURNING id
-                    """, (kafedra_id, f"{fi}{ki}{gi}-guruh", ((gi - 1) % 4) + 1, professor, parol4()))
-                    uni_guruh_id = cur.fetchone()["id"]
-                    cur.execute("""
-                        INSERT INTO togaraklar(nomi, fan, teacher_id, sinf, parol, aktiv, universitet_guruh_id)
-                        VALUES(%s,'Matematik tahlil',%s,%s,%s,TRUE,%s) RETURNING id
-                    """, (f"Sinov Kurs-{fi}.{ki}.{gi} {belgi}", professor, f"{fi}{ki}{gi}-guruh", parol4(), uni_guruh_id))
-                    uni_togarak_id = cur.fetchone()["id"]
-                    for i in range(har_guruhga):
-                        uid = yid()
-                        uni_talaba_q.append((uid, f"Talaba {fi}.{ki}.{gi}-{i+1} {belgi}", "oquvchi"))
-                        uni_azo_q.append((uni_guruh_id, uid))
-                        uni_togarak_azo_q.append((uni_togarak_id, uid, True))
-
-        psycopg2.extras.execute_values(cur, "INSERT INTO users(user_id, full_name, role) VALUES %s", uni_talaba_q)
-        psycopg2.extras.execute_values(cur, "INSERT INTO universitet_guruh_azolari(guruh_id, user_id) VALUES %s", uni_azo_q)
-        psycopg2.extras.execute_values(cur, "INSERT INTO togarak_azolar(togarak_id, user_id, aktiv) VALUES %s", uni_togarak_azo_q)
-        sonlar["universitet_talaba"] = len(uni_talaba_q)
-        if uni_talaba_q:
-            hisoblar.append({"user_id": uni_talaba_q[0][0], "full_name": uni_talaba_q[0][1], "izoh": "Namuna talaba"})
-
-        # ═══════════════ KO'P MUASSASALI O'QITUVCHILAR (2/3/4 joy) ═══════════════
-        # "Bir kishi — ko'p muassasa" UI'ni sinash uchun — har biri turli
-        # muassasada turli lavozimda.
-        _muassasa_jadvali(cur)
-
-        def kop_muassasa_qosh(ism, royxat):
-            """royxat: [(turi, muassasa_id, lavozim), ...]"""
-            uid = yid()
-            cur.execute("INSERT INTO users(user_id, full_name, role) VALUES(%s,%s,'oqituvchi')", (uid, ism))
-            for turi, mid, lavozim in royxat:
-                cur.execute(
-                    "INSERT INTO foydalanuvchi_muassasalari(user_id, muassasa_turi, muassasa_id, lavozim) VALUES(%s,%s,%s,%s)",
-                    (uid, turi, mid, lavozim),
-                )
-            ustun = {"maktab": "maktab_id", "markaz": "markaz_id", "bogcha": "bogcha_id", "universitet": "universitet_id"}[royxat[0][0]]
-            cur.execute(f"UPDATE users SET {ustun}=%s, lavozim=%s WHERE user_id=%s", (royxat[0][1], royxat[0][2], uid))
-            hisoblar.append({"user_id": uid, "full_name": ism, "izoh": f"{len(royxat)} ta joyda ishlaydi"})
-
-        kop_muassasa_qosh(f"Sinov 2joy {belgi}", [
-            ("maktab", maktab_id, "fan_oqituvchisi"),
-            ("markaz", markaz_id, "fan_oqituvchisi"),
-        ])
-        kop_muassasa_qosh(f"Sinov 3joy {belgi}", [
-            ("maktab", maktab_id, "zam_direktor_uquv"),
-            ("markaz", markaz_id, "administrator"),
-            ("bogcha", bogcha_id, "bogcha_zam"),
-        ])
-        kop_muassasa_qosh(f"Sinov 4joy {belgi}", [
-            ("maktab", maktab_id, "fan_oqituvchisi"),
-            ("markaz", markaz_id, "fan_oqituvchisi"),
-            ("bogcha", bogcha_id, "bogcha_opa"),
-            ("universitet", universitet_id, "professor_oqituvchi"),
-        ])
-
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        cur.close()
-        conn.close()
-        raise HTTPException(status_code=500, detail=f"Sinov muhitini yaratishda xato: {e}")
-
-    cur.close()
-    conn.close()
-    return {
-        "hisoblar": hisoblar,
-        "sonlar": sonlar,
-        "izoh": (
-            f"Jami: {len(hisoblar)} ta rahbariyat/namuna hisob (pastda), "
-            f"+ {sonlar.get('maktab_oquvchi',0)} maktab o'quvchisi, "
-            f"{sonlar.get('bogcha_bola',0)} bog'cha bolasi (+{sonlar.get('bogcha_otaona',0)} ota-ona), "
-            f"{sonlar.get('markaz_talaba',0)} markaz talabasi, "
-            f"{sonlar.get('universitet_talaba',0)} universitet talabasi ommaviy yaratildi. "
-            "Talaba/o'quvchi hisoblariga alohida kirish kerak bo'lsa — ID raqamini so'rang, alohida token beraman."
-        ),
+function BogchaGuruhim({ token, onOrtga }) {
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [tanlanganGuruh, setTanlanganGuruh] = useState(null);
+  const [bolalar, setBolalar] = useState(null);
+  const [bolalarYuklanmoqda, setBolalarYuklanmoqda] = useState(false);
+  const [yangiBolaIsmi, setYangiBolaIsmi] = useState("");
+  const [tanlanganOtaOna, setTanlanganOtaOna] = useState(null);
+  const [qoshilmoqda, setQoshilmoqda] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/opa/mening_guruhlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const bolalarniYukla = (guruhId) => {
+    setBolalarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/opa/guruh_bolalari?token=${encodeURIComponent(token)}&guruh_id=${guruhId}`)
+      .then((r) => r.json())
+      .then((d) => { setBolalar(d.bolalar || []); setBolalarYuklanmoqda(false); })
+      .catch(() => setBolalarYuklanmoqda(false));
+  };
+
+  const guruhOch = (g) => { setTanlanganGuruh(g); bolalarniYukla(g.id); };
+
+  const bolaQosh = async () => {
+    if (!yangiBolaIsmi.trim()) return;
+    setQoshilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/opa/bola_qoshish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, guruh_id: tanlanganGuruh.id, bola_ismi: yangiBolaIsmi.trim(),
+          ota_ona_user_id: tanlanganOtaOna ? tanlanganOtaOna.user_id : undefined,
+        }),
+      });
+      setYangiBolaIsmi(""); setTanlanganOtaOna(null);
+      bolalarniYukla(tanlanganGuruh.id);
+    } finally { setQoshilmoqda(false); }
+  };
+
+  const bolaniChiqar = async (rosterId) => {
+    await fetch(`${API_BASE}/api/opa/bolani_chiqar?token=${encodeURIComponent(token)}&roster_id=${rosterId}`, { method: "DELETE" });
+    bolalarniYukla(tanlanganGuruh.id);
+  };
+
+  const tolovBelgila = async (bola) => {
+    const oy = new Date().toISOString().slice(0, 7);
+    await fetch(`${API_BASE}/api/opa/tolov_belgila`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, bola_user_id: bola.user_id, guruh_id: tanlanganGuruh.id, oy, tolangan_summa: tanlanganGuruh.oylik_tolov }),
+    });
+    bolalarniYukla(tanlanganGuruh.id);
+  };
+
+  if (tanlanganGuruh) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganGuruh(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganGuruh.nomi}</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganGuruh.bogcha_nomi}</p>
+
+        <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Yangi bola qo'shish</label>
+          <OtaOnaQidiruvi token={token} tanlanganOtaOna={tanlanganOtaOna} onTanla={setTanlanganOtaOna} />
+          <div className="flex gap-2">
+            <input type="text" value={yangiBolaIsmi} onChange={(e) => setYangiBolaIsmi(e.target.value)}
+              placeholder="Bolaning ismi va familiyasi"
+              className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+            <button onClick={bolaQosh} disabled={qoshilmoqda}
+              className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: qoshilmoqda ? 0.7 : 1 }}>
+              {qoshilmoqda ? "..." : "+ Qo'shish"}
+            </button>
+          </div>
+        </div>
+
+        {bolalarYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : !bolalar || bolalar.length === 0 ? (
+          <p className="text-xs" style={{ color: "#8A8578" }}>Hali guruhda bola yo'q.</p>
+        ) : (
+          <>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>
+              {tanlanganGuruh.oylik_tolov ? `💳 Bu oy to'lovlari` : "👶 Guruh ro'yxati"}
+            </p>
+            <div className="space-y-2">
+              {bolalar.map((b) => (
+                <div key={b.roster_id} className="rounded-xl p-3.5 flex items-center justify-between"
+                  style={{ backgroundColor: tanlanganGuruh.oylik_tolov ? (b.qarzdor ? "#FCEBEB" : "#EAF3DE") : "#F7F5F0" }}>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{b.full_name}</p>
+                    {tanlanganGuruh.oylik_tolov > 0 && (
+                      <p className="text-xs" style={{ color: b.qarzdor ? "#A32D2D" : "#3B6D11" }}>
+                        {b.qarzdor ? `⚠️ Qarzdor (${b.tolangan_summa.toLocaleString()} / ${b.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {tanlanganGuruh.oylik_tolov > 0 && b.qarzdor && (
+                      <button onClick={() => tolovBelgila(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                        To'landi
+                      </button>
+                    )}
+                    <button onClick={() => bolaniChiqar(b.roster_id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🧸 Bog'cha guruhim</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : guruhlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Sizga hali guruh biriktirilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {guruhlar.map((g) => (
+            <button key={g.id} onClick={() => guruhOch(g)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{g.bogcha_nomi} · {g.bola_soni} bola</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UniversitetGuruhimBilimi({ token, onOrtga }) {
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [tanlanganGuruh, setTanlanganGuruh] = useState(null);
+  const [bilim, setBilim] = useState(null);
+  const [bilimYuklanmoqda, setBilimYuklanmoqda] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/universitet/mening_guruhlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const guruhOch = (g) => {
+    setTanlanganGuruh(g);
+    setBilimYuklanmoqda(true);
+    fetch(`${API_BASE}/api/universitet/guruh_bilimi?token=${encodeURIComponent(token)}&guruh_id=${g.id}`)
+      .then((r) => r.json())
+      .then((d) => { setBilim(d); setBilimYuklanmoqda(false); })
+      .catch(() => setBilimYuklanmoqda(false));
+  };
+
+  const foizRangi = (foiz) => (foiz >= 70 ? "#3B6D11" : foiz >= 40 ? "#8A5A1C" : "#A32D2D");
+  const foizFoni = (foiz) => (foiz >= 70 ? "#EAF3DE" : foiz >= 40 ? "#FDF3E0" : "#FCEBEB");
+
+  if (tanlanganGuruh) {
+    // Kurslar (fan-birinchi) ma'lumotini talaba-birinchi ko'rinishga aylantiramiz —
+    // har bir talaba kartochkasida BARCHA fanlari bir joyda ko'rinishi uchun.
+    const talabaMap = {};
+    if (bilim) {
+      for (const k of bilim.kurslar) {
+        for (const t of k.talabalar) {
+          if (!talabaMap[t.user_id]) talabaMap[t.user_id] = { full_name: t.full_name, fanlar: [] };
+          talabaMap[t.user_id].fanlar.push({ fan: k.fan, foiz: t.otilgan_foiz, ball: t.ortacha_ball });
+        }
+      }
     }
+    const talabalarRoyxati = Object.values(talabaMap);
 
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setTanlanganGuruh(null)} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 {tanlanganGuruh.nomi} — bilim ko'rsatkichi</h1>
+        <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Silabus mavzulari bo'yicha, har fandan alohida — GPA emas, aniq bilim darajasi.</p>
 
-@app.post("/api/admin/sifatida_kirish")
-def admin_sifatida_kirish(token: str, user_id: int):
-    """Admin — istalgan (odatda sinov) hisob sifatida DARHOL kirish
-    uchun token oladi, Google login shart emas. 30 kun amal qiladi
-    (uzoq muddatli sinov uchun). Faqat admin chaqira oladi."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM users WHERE user_id=%s", (user_id,))
-    if not cur.fetchone():
-        cur.close(); conn.close()
-        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
-    cur.close()
-    conn.close()
-    return {"token": _sinov_jwt_yarat(user_id)}
+        {bilimYuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : !bilim || bilim.kurslar.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm mb-1" style={{ color: "#2B2B2B" }}>Hali bu guruhga bog'langan fan yo'q.</p>
+            <p className="text-xs" style={{ color: "#8A8578" }}>Professor to'garak (kurs) yaratganda, shu guruhni tanlashi kerak.</p>
+          </div>
+        ) : talabalarRoyxati.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Hali hech bir talaba fanlarga qo'shilmagan.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {talabalarRoyxati.map((t, i) => {
+              const ortachaFoiz = Math.round(t.fanlar.reduce((s, f) => s + f.foiz, 0) / t.fanlar.length);
+              return (
+                <div key={i} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{t.full_name}</p>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: foizFoni(ortachaFoiz), color: foizRangi(ortachaFoiz) }}>
+                      Umumiy: {ortachaFoiz}%
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {t.fanlar.map((f, j) => (
+                      <span key={j} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: foizFoni(f.foiz), color: foizRangi(f.foiz) }}>
+                        {f.fan}: {f.foiz}%{f.ball !== null ? ` (o'rtacha ${f.ball} ball)` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
 
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🎓 Kurator bo'lgan guruhlarim</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : guruhlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Sizga hali guruh biriktirilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {guruhlar.map((g) => (
+            <button key={g.id} onClick={() => guruhOch(g)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{g.kurs ? `${g.kurs}-kurs` : ""}{g.yonalish ? ` · ${g.yonalish}` : ""} · {g.talaba_soni} talaba</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
+function AiYordamchiBolimi({ token, onOrtga }) {
+  const [suhbat, setSuhbat] = useState([]); // [{savol, javob, xato}]
+  const [savol, setSavol] = useState("");
+  const [yuborilmoqda, setYuborilmoqda] = useState(false);
+  const oxiriRef = useRef(null);
 
-class TestShablonGuruh(BaseModel):
-    diff: str    # oson | o'rta | qiyin | murakkab
-    turi: str    # single_choice | write_answer
-    soni: int    # 0, 5, 10, 15, 20 ...
+  useEffect(() => {
+    oxiriRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [suhbat]);
 
+  const yubor = async () => {
+    if (!savol.trim() || yuborilmoqda) return;
+    const soralganSavol = savol.trim();
+    setSavol("");
+    setSuhbat((prev) => [...prev, { savol: soralganSavol, javob: null, xato: null }]);
+    setYuborilmoqda(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/sorash`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, savol: soralganSavol }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setSuhbat((prev) => prev.map((s, i) => (i === prev.length - 1 ? { ...s, javob: data.javob } : s)));
+    } catch (e) {
+      setSuhbat((prev) => prev.map((s, i) => (i === prev.length - 1 ? { ...s, xato: e.message } : s)));
+    } finally {
+      setYuborilmoqda(false);
+    }
+  };
 
-class TestShablonSorov(BaseModel):
-    topic_codes: list[str]
-    guruhlar: list[TestShablonGuruh]
+  return (
+    <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🤖 AI Yordamchi</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Masalan: "2-A sinfning bugungi davomati qanday?" yoki "Farzandim qaysi fandan orqada qolmoqda?"</p>
 
+      <div className="flex-1 space-y-3 mb-4">
+        {suhbat.length === 0 && (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Savolingizni pastdan yozing.</p>
+          </div>
+        )}
+        {suhbat.map((s, i) => (
+          <div key={i}>
+            <div className="rounded-2xl rounded-br-md p-3.5 mb-2 ml-8" style={{ backgroundColor: "#1B4B7A" }}>
+              <p className="text-sm text-white">{s.savol}</p>
+            </div>
+            <div className="rounded-2xl rounded-bl-md p-3.5 mr-8 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              {s.xato ? (
+                <p className="text-sm" style={{ color: "#B0553A" }}>{s.xato}</p>
+              ) : s.javob ? (
+                <p className="text-sm whitespace-pre-line" style={{ color: "#2B2B2B" }}>{s.javob}</p>
+              ) : (
+                <Loader2 size={16} className="animate-spin" style={{ color: "#1B4B7A" }} />
+              )}
+            </div>
+          </div>
+        ))}
+        <div ref={oxiriRef} />
+      </div>
 
-_YOSH_GURUHI = {"1": "6-7", "2": "7-8", "3": "8-9", "4": "9-10", "5": "10-11",
-                "6": "11-12", "7": "12-13", "8": "13-14", "9": "14-15", "10": "15-16", "11": "16-17"}
+      <div className="flex gap-2 sticky bottom-4">
+        <input type="text" value={savol} onChange={(e) => setSavol(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") yubor(); }}
+          placeholder="Savolingizni yozing..."
+          className="flex-1 px-3.5 py-3 rounded-xl border text-sm bg-white" style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={yubor} disabled={yuborilmoqda || !savol.trim()}
+          className="px-5 py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: yuborilmoqda || !savol.trim() ? 0.5 : 1 }}>
+          →
+        </button>
+      </div>
+    </div>
+  );
+}
 
+function PsixologQidiruv({ token, maktabId, onOrtga }) {
+  const [tanlanganOquvchi, setTanlanganOquvchi] = useState(null);
 
-# ═══════════════════════════════════════════════════════════
-# ADMIN — Topik mavzular (kontent auditi): qaysi mavzuda test
-# bor, qaysisida yo'q — Sinf → Fan → Mavzu albomi
-# ═══════════════════════════════════════════════════════════
+  if (tanlanganOquvchi) {
+    return <OquvchiProfili token={token} userId={tanlanganOquvchi.user_id} onOrtga={() => setTanlanganOquvchi(null)} />;
+  }
 
-@app.get("/api/admin/topik_sinflar")
-def topik_sinflar(token: str):
-    """dts_tree'da mavzusi yaratilgan barcha sinflar ro'yxati (oddiy va
-    to'garak sinflari alohida-alohida qaytariladi)."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("SELECT DISTINCT grade FROM dts_tree WHERE is_deleted=FALSE")
-    hammasi = [r["grade"] for r in cur.fetchall() if r["grade"]]
-    cur.close()
-    conn.close()
-    oddiy = sorted([g for g in hammasi if g.isdigit()], key=int)
-    togarak = sorted([g for g in hammasi if not g.isdigit()])
-    return {"oddiy": oddiy, "togarak": togarak}
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🧠 Psixolog</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>O'quvchini qidirib, uning kuzatuv yozuvlarini ko'ring yoki yangi qo'shing.</p>
+      <MaktabOdamQidiruvi token={token} maktabId={maktabId} tanlanganOdam={null} onTanla={setTanlanganOquvchi} />
+    </div>
+  );
+}
 
+// ═══════════════════════════════════════════════════════════
+// TOPIK MAVZU REJASI — o'qituvchi BIR MARTA yaratadigan, tartibli
+// mavzular ketma-ketligi, keyin bir nechta to'garakda qayta
+// ishlatiladigan "dastur".
+// ═══════════════════════════════════════════════════════════
+function RejaDetali({ token, rejaId, onOrtga }) {
+  const [reja, setReja] = useState(null);
+  const [qatorlar, setQatorlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
 
-@app.get("/api/admin/topik_fanlar")
-def topik_fanlar(sinf: str, token: str):
-    """Berilgan sinfda mavzusi yaratilgan fanlar ro'yxati (test bor-yo'qligidan
-    qat'i nazar — bu TEST bilan cheklanmagan, TO'LIQ kontent auditi)."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT DISTINCT subject_name, COUNT(*) OVER (PARTITION BY subject_name) AS mavzu_soni
-        FROM dts_tree WHERE grade=%s AND is_deleted=FALSE
-    """, (sinf,))
-    fanlar = [{"nom": r["subject_name"], "mavzu_soni": r["mavzu_soni"]} for r in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return {"fanlar": fanlar}
+  const [qidiruvOchiq, setQidiruvOchiq] = useState(false);
+  const [qidiruv, setQidiruv] = useState("");
+  const [qidiruvNatijalari, setQidiruvNatijalari] = useState(null);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
+  const [qidiruvXato, setQidiruvXato] = useState("");
 
+  const [yangiMavzuOchiq, setYangiMavzuOchiq] = useState(false);
+  const [yangiMavzuNomi, setYangiMavzuNomi] = useState("");
+  const [yangiMavzuBob, setYangiMavzuBob] = useState("");
+  const [yangiMavzuYaratilmoqda, setYangiMavzuYaratilmoqda] = useState(false);
 
-@app.get("/api/admin/topik_umumiy_korinish")
-def topik_umumiy_korinish(token: str):
-    """BARCHA sinf va fanlar bo'yicha bir zumda umumiy ko'rinish — har
-    sinfga alohida kirmasdan, qaysi fanda nechta mavzu va shundan
-    nechtasida test borligini BITTA so'rov bilan qaytaradi (admin
-    "Umumiy ko'rinish" tugmasi uchun)."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        WITH mavzu_guruhlari AS (
-            SELECT d.grade, d.subject_name,
-                   COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS mavzu_nomi,
-                   COUNT(DISTINCT gt.topic_code) > 0 AS test_bormi
-            FROM dts_tree d
-            LEFT JOIN generated_tests gt ON gt.topic_code = d.topic_code
-            WHERE d.is_deleted = FALSE
-            GROUP BY d.grade, d.subject_name, COALESCE(d.mavzu_name, d.bolim_name, d.bob_name)
-        )
-        SELECT grade, subject_name,
-               COUNT(*) AS jami_mavzu,
-               COUNT(*) FILTER (WHERE test_bormi) AS testli_mavzu
-        FROM mavzu_guruhlari
-        GROUP BY grade, subject_name
-        ORDER BY grade, subject_name
-    """)
-    qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
+  const yukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/reja_korish?token=${encodeURIComponent(token)}&reja_id=${rejaId}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+        return d;
+      })
+      .then((d) => { setReja(d.reja); setQatorlar(d.qatorlar || []); setXato(""); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+  useEffect(yukla, [token, rejaId]);
 
-    sinflar = {}
-    for r in qatorlar:
-        g = r["grade"]
-        sinflar.setdefault(g, {"sinf": g, "fanlar": []})
-        sinflar[g]["fanlar"].append({
-            "nom": r["subject_name"], "jami_mavzu": r["jami_mavzu"], "testli_mavzu": r["testli_mavzu"],
+  useEffect(() => {
+    if (!qidiruvOchiq) return;
+    setQidirilmoqda(true);
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_qidir?token=${encodeURIComponent(token)}&reja_id=${rejaId}${qidiruv.trim() ? `&qidiruv=${encodeURIComponent(qidiruv.trim())}` : ""}`)
+        .then(async (r) => {
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+          return d;
         })
-    natija = list(sinflar.values())
-    natija.sort(key=lambda s: (0, int(s["sinf"])) if s["sinf"].isdigit() else (1, s["sinf"]))
-    return {"sinflar": natija}
-
-
-# ═══════════════════════════════════════════════════════════
-# MAVZU TUSHUNTIRISHLARI — offlayn (Colab'da, tekin) tayyorlangan
-# AI tushuntirishlarini saqlash va o'quvchiga ko'rsatish. Jonli AI
-# SERVERI YO'Q — bu yerda faqat OLDINDAN yozilgan tushuntirish
-# bazadan o'qiladi, shu sabab hech qanday qo'shimcha xarajat yo'q.
-# ═══════════════════════════════════════════════════════════
-
-def _tushuntirish_jadvali(cur):
-    cur.execute("""CREATE TABLE IF NOT EXISTS mavzu_tushuntirishlari(
-        sinf TEXT NOT NULL, fan TEXT NOT NULL, mavzu_nomi TEXT NOT NULL,
-        tushuntirish TEXT NOT NULL, yaratilgan_at TIMESTAMP DEFAULT NOW(),
-        PRIMARY KEY (sinf, fan, mavzu_nomi)
-    )""")
-
-
-@app.get("/api/mavzu_tushuntirish")
-def mavzu_tushuntirish_ol(sinf: str, fan: str, mavzu: str):
-    """O'quvchi (yoki har kim) uchun — berilgan mavzuning oldindan
-    tayyorlangan AI tushuntirishini qaytaradi. Agar hali yozilmagan
-    bo'lsa — topilmadi=true bilan bo'sh qaytadi (xato emas)."""
-    conn = _db()
-    cur = conn.cursor()
-    _tushuntirish_jadvali(cur)
-    cur.execute(
-        "SELECT tushuntirish FROM mavzu_tushuntirishlari WHERE sinf=%s AND fan=%s AND mavzu_nomi=%s",
-        (sinf, fan, mavzu),
-    )
-    r = cur.fetchone()
-    cur.close()
-    conn.close()
-    if not r:
-        return {"topildi": False, "tushuntirish": None}
-    return {"topildi": True, "tushuntirish": r["tushuntirish"]}
-
-
-@app.post("/api/admin/tushuntirish_import")
-async def tushuntirish_import(token: str, fayl: UploadFile = File(...)):
-    """Offlayn (Colab'da) tayyorlangan Excel faylni import qiladi —
-    ustunlar: Sinf, Fan, Mavzu, Tushuntirish. Mavjud (sinf+fan+mavzu)
-    yozuv bo'lsa — YANGILANADI (qayta generatsiya qilib yuklash mumkin)."""
-    _admin_tekshir(token)
-    import openpyxl
-    import io
-
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb.active
-
-    headers = [str(c.value).strip() if c.value else "" for c in ws[1]]
-    kerakli = {"Sinf", "Fan", "Mavzu", "Tushuntirish"}
-    if not kerakli.issubset(set(headers)):
-        raise HTTPException(status_code=400, detail=f"Ustunlar mos emas — kerak: {', '.join(kerakli)}")
-    idx = {h: i for i, h in enumerate(headers)}
-
-    conn = _db()
-    cur = conn.cursor()
-    _tushuntirish_jadvali(cur)
-    saqlandi, xato_soni = 0, 0
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        if not row or len(row) <= max(idx.values()):
-            continue
-        sinf, fan, mavzu, tushuntirish = row[idx["Sinf"]], row[idx["Fan"]], row[idx["Mavzu"]], row[idx["Tushuntirish"]]
-        if not (sinf and fan and mavzu and tushuntirish):
-            continue
-        try:
-            cur.execute("""
-                INSERT INTO mavzu_tushuntirishlari(sinf, fan, mavzu_nomi, tushuntirish, yaratilgan_at)
-                VALUES(%s,%s,%s,%s,NOW())
-                ON CONFLICT (sinf, fan, mavzu_nomi) DO UPDATE SET
-                    tushuntirish = EXCLUDED.tushuntirish, yaratilgan_at = NOW()
-            """, (str(sinf).strip(), str(fan).strip(), str(mavzu).strip(), str(tushuntirish).strip()))
-            conn.commit()
-            saqlandi += 1
-        except Exception:
-            conn.rollback()
-            xato_soni += 1
-    cur.close()
-    conn.close()
-    return {"saqlandi": saqlandi, "xato": xato_soni}
-
-
-@app.get("/api/admin/topik_royxat")
-def topik_royxat(sinf: str, fan: str, token: str):
-    """Berilgan sinf+fan uchun MAVZU darajasidagi (kichik mavzular
-    birlashtirilgan) to'liq ro'yxat — har biriga chorak/bob/bo'lim,
-    nechta kichik mavzu borligi, va ENG MUHIMI — shu mavzuga TEST
-    borligi yoki YO'QLIGI (test_bormi) qo'shib qaytariladi."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT COALESCE(d.mavzu_name, d.bolim_name, d.bob_name) AS nomi,
-               MIN(d.topic_code) AS topic_code,
-               array_agg(DISTINCT d.topic_code ORDER BY d.topic_code) AS barcha_kodlar,
-               MIN(d.quarter) AS chorak, MIN(d.bob_name) AS bob, MIN(d.bolim_name) AS bolim,
-               COUNT(*) AS kichik_soni,
-               COUNT(DISTINCT gt.topic_code) AS test_bor_soni
-        FROM dts_tree d
-        LEFT JOIN generated_tests gt ON gt.topic_code = d.topic_code
-        WHERE d.grade=%s AND UPPER(d.subject_name)=UPPER(%s) AND d.is_deleted=FALSE
-        GROUP BY COALESCE(d.mavzu_name, d.bolim_name, d.bob_name)
-        ORDER BY MIN(d.topic_code)
-    """, (sinf, fan))
-    qatorlar = cur.fetchall()
-    cur.close()
-    conn.close()
-    mavzular = [{
-        "nomi": r["nomi"], "topic_code": r["topic_code"], "topic_codes": r["barcha_kodlar"], "chorak": r["chorak"],
-        "bob": r["bob"], "bolim": r["bolim"], "kichik_soni": r["kichik_soni"],
-        "test_bormi": r["test_bor_soni"] > 0,
-    } for r in qatorlar]
-    return {"sinf": sinf, "fan": fan, "mavzular": mavzular}
-
-
-@app.delete("/api/admin/mavzu_testlarini_ochir")
-def mavzu_testlarini_ochir(token: str, topic_codes: str):
-    """Berilgan mavzuga tegishli BARCHA kichik mavzularning testlarini
-    o'chiradi. topic_codes — vergul bilan ajratilgan kodlar ro'yxati
-    (bitta mavzuning barcha kichik mavzu kodlari)."""
-    _admin_tekshir(token)
-    kodlar = [k.strip() for k in topic_codes.split(",") if k.strip()]
-    if not kodlar:
-        raise HTTPException(status_code=400, detail="Mavzu kodi berilmagan")
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM generated_tests WHERE topic_code = ANY(%s)", (kodlar,))
-    ochirilgan = cur.rowcount
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi", "ochirilgan_soni": ochirilgan}
-
-
-@app.delete("/api/admin/fan_testlarini_ochir")
-def fan_testlarini_ochir(token: str, sinf: str, fan: str):
-    """Berilgan sinf+fanga tegishli BARCHA mavzularning BARCHA testlarini
-    o'chiradi — butun fan bo'yicha umumiy tozalash uchun."""
-    _admin_tekshir(token)
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        DELETE FROM generated_tests WHERE topic_code IN (
-            SELECT topic_code FROM dts_tree WHERE grade=%s AND UPPER(subject_name)=UPPER(%s) AND is_deleted=FALSE
-        )
-    """, (sinf, fan))
-    ochirilgan = cur.rowcount
-    conn.commit()
-    cur.close()
-    conn.close()
-    return {"holat": "ochirildi", "ochirilgan_soni": ochirilgan}
-
-
-@app.get("/api/admin/mavzu_rasmlari")
-def mavzu_rasmlari(token: str, topic_codes: str):
-    """Berilgan mavzu(lar)ning testlaridagi BARCHA rasm havolalarini
-    (takrorlarsiz) qaytaradi — admin ularni ko'rib, to'g'ri yuklanganini
-    tekshirishi uchun. LaTeX ifodalar ham shu ro'yxatga tushishi mumkin —
-    frontend ularni /api/rasm orqali so'raganda tabiiy ravishda
-    "topilmadi" chiqadi (bu — kutilgan holat, xato emas)."""
-    _admin_tekshir(token)
-    kodlar = [k.strip() for k in topic_codes.split(",") if k.strip()]
-    if not kodlar:
-        return {"rasmlar": []}
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT DISTINCT COALESCE(NULLIF(image_file_id, ''), image_url) AS rasm_id
-        FROM generated_tests
-        WHERE topic_code = ANY(%s) AND COALESCE(NULLIF(image_file_id, ''), image_url, '') != ''
-    """, (kodlar,))
-    rasmlar = [r["rasm_id"] for r in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return {"rasmlar": rasmlar}
-
-
-@app.post("/api/admin/shablon_yukla")
-def shablon_yukla(sorov: TestShablonSorov, token: str):
-    """Tanlangan mavzular + har bir qiyinlik darajasi uchun tanlangan
-    son/tur (tugmali yoki yozuvli) bo'yicha bo'sh Excel shablon yaratadi —
-    UCH varaqli, haqiqiy namunaga (TESTLAR/MALUMOT/RASM_MALUMOTI) mos:
-    - TESTLAR: to'ldiriladigan savollar
-    - MALUMOT: tanlangan mavzular haqida ma'lumot (nazorat uchun)
-    - RASM_MALUMOTI: har savolga tegishli rasm o'rni — description
-      yozilsa, botdagi AI rasm generatori shu tavsif bo'yicha rasm
-      yaratadi (yoki admin qo'lda kollaj orqali yuklaydi)."""
-    _admin_tekshir(token)
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
-    import io
-    from fastapi.responses import StreamingResponse
-
-    kodlar = [k.strip() for k in sorov.topic_codes if k.strip()]
-    if not kodlar:
-        raise HTTPException(status_code=400, detail="Kamida bitta mavzu tanlang")
-    guruhlar = [g for g in sorov.guruhlar if g.soni > 0]
-    if not guruhlar:
-        raise HTTPException(status_code=400, detail="Kamida bitta qiyinlik darajasidan son tanlang")
-
-    conn = _db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT topic_code, grade, subject_name, quarter, bob_name, bolim_name,
-               mavzu_name, kichik_name
-        FROM dts_tree WHERE topic_code = ANY(%s) AND is_deleted=FALSE
-    """, (kodlar,))
-    tc_map = {r["topic_code"]: r for r in cur.fetchall()}
-    cur.close()
-    conn.close()
-
-    wb = openpyxl.Workbook()
-
-    # ═══ 1) TESTLAR — to'ldiriladigan savollar ═══
-    ws = wb.active
-    ws.title = "TESTLAR"
-    testlar_ustunlari = [
-        "topic_code", "difficulty", "situation", "question",
-        "option_a", "option_b", "option_c", "option_d",
-        "correct_answer", "explanation", "question_type", "is_latex",
-        "image_url", "audio_text", "language", "life_level", "age_group", "time_limit",
-    ]
-    diff_colors = {"oson": "E2EFDA", "o'rta": "FFF2CC", "qiyin": "FCE4D6", "murakkab": "F2CEEF"}
-
-    for col, h in enumerate(testlar_ustunlari, 1):
-        cell = ws.cell(1, col, h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="4472C4")
-        cell.alignment = Alignment(horizontal="center")
-
-    rasm_qatorlari = []  # (image_id, topic_code) — RASM_MALUMOTI uchun
-    row_num = 2
-    for kod in kodlar:
-        info = tc_map.get(kod)
-        grade = str(info["grade"]) if info else ""
-        age_group = _YOSH_GURUHI.get(grade, "")
-        for g in guruhlar:
-            color = diff_colors.get(g.diff, "F2F2F2")
-            for i in range(1, g.soni + 1):
-                image_id = f"{kod}-{i}"
-                ws.cell(row_num, 1, kod)
-                ws.cell(row_num, 2, g.diff)
-                ws.cell(row_num, 3, "oddiy")
-                ws.cell(row_num, 11, g.turi)
-                ws.cell(row_num, 12, False)
-                ws.cell(row_num, 13, image_id)
-                ws.cell(row_num, 15, "uz")
-                ws.cell(row_num, 16, 1)
-                ws.cell(row_num, 17, age_group)
-                ws.cell(row_num, 18, 60 if g.turi == "write_answer" else 55)
-                for col in range(1, len(testlar_ustunlari) + 1):
-                    ws.cell(row_num, col).fill = PatternFill("solid", fgColor=color)
-                    ws.cell(row_num, col).alignment = Alignment(wrap_text=True)
-                rasm_qatorlari.append((image_id, kod))
-                row_num += 1
-
-    widths = [22, 10, 10, 45, 18, 18, 18, 18, 15, 35, 15, 8, 22, 20, 8, 8, 8, 10]
-    for col, w in enumerate(widths, 1):
-        ws.column_dimensions[ws.cell(1, col).column_letter].width = w
-
-    # ═══ 2) MALUMOT — tanlangan mavzular haqida (faqat nazorat uchun, o'zgartirmang) ═══
-    ws2 = wb.create_sheet("MALUMOT")
-    malumot_ustunlari = ["#", "Topic code", "Sinf", "Fan", "Chorak", "Bob", "Bolim", "Mavzu", "Kichik mavzu", "Test soni"]
-    for col, h in enumerate(malumot_ustunlari, 1):
-        cell = ws2.cell(1, col, h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="70AD47")
-    for idx, kod in enumerate(kodlar, 1):
-        info = tc_map.get(kod)
-        jami_soni = sum(g.soni for g in guruhlar)
-        ws2.append([
-            idx, kod,
-            str(info["grade"]) if info else "", info["subject_name"] if info else "",
-            info["quarter"] if info else "", info["bob_name"] if info else "",
-            info["bolim_name"] if info else "", info["mavzu_name"] if info else "",
-            info["kichik_name"] if info else "", jami_soni,
-        ])
-    for col, w in zip(range(1, 11), [5, 22, 6, 16, 8, 30, 30, 22, 30, 10]):
-        ws2.column_dimensions[ws2.cell(1, col).column_letter].width = w
-
-    # ═══ 3) RASM_MALUMOTI — har savol-rasm juftligi uchun tavsif ═══
-    ws3 = wb.create_sheet("RASM_MALUMOTI")
-    for col, h in enumerate(["image_id", "topic_code", "image_description"], 1):
-        cell = ws3.cell(1, col, h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="ED7D31")
-    for image_id, kod in rasm_qatorlari:
-        ws3.append([image_id, kod, ""])
-    for col, w in zip(range(1, 4), [26, 22, 55]):
-        ws3.column_dimensions[ws3.cell(1, col).column_letter].width = w
-    ws3.cell(1, 4, "☝️ Har qatorga rasmda NIMA bo'lishi kerakligini yozing — botdagi AI rasm generatori shu tavsif bo'yicha rasm yaratadi. Rasm kerak bo'lmagan savollar uchun qatorni o'chiring.").font = Font(italic=True, color="8A8578")
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=test_shablon.xlsx"},
-    )
-
-
-@app.post("/api/admin/shablon_import")
-async def shablon_import(token: str, fayl: UploadFile = File(...)):
-    """To'ldirilgan Excel shablonni import qiladi — botning
-    import_tests_excel funksiyasidagi duplikat-tekshiruvi bilan bir xil."""
-    _admin_tekshir(token)
-    import openpyxl
-    import io
-
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-
-    ws = wb["TESTLAR"] if "TESTLAR" in wb.sheetnames else wb.active
-    headers = [str(c.value).strip() if c.value else "" for c in ws[1]]
-    if "topic_code" not in headers:
-        raise HTTPException(status_code=400, detail="Excel ustunlari mos emas — 'topic_code' topilmadi")
-
-    conn = _db()
-    cur = conn.cursor()
-    saved = 0
-    duplicates = 0
-    errors = 0
-
-    for row in ws.iter_rows(min_row=2):
-        d = {headers[i]: cell.value for i, cell in enumerate(row) if i < len(headers) and headers[i]}
-        tc = d.get("topic_code")
-        q = d.get("question")
-        if not tc or not q or str(tc).strip() == "" or str(q).strip() == "":
-            continue
-        try:
-            tc_s = str(tc).strip()
-            q_s = str(q).strip()
-            opt_a = str(d.get("option_a") or "").strip()
-            correct = str(d.get("correct_answer") or "").strip()
-
-            cur.execute("""
-                SELECT 1 FROM generated_tests
-                WHERE topic_code=%s AND question=%s AND option_a=%s AND correct_answer=%s
-                LIMIT 1
-            """, (tc_s, q_s, opt_a, correct))
-            if cur.fetchone():
-                duplicates += 1
-                continue
-
-            cur.execute("""
-                INSERT INTO generated_tests
-                (topic_code, difficulty, situation, question, option_a, option_b, option_c, option_d,
-                 correct_answer, explanation, question_type, is_latex, image_url, audio_text,
-                 language, life_level, age_group, time_limit)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                tc_s, d.get("difficulty"), d.get("situation") or "oddiy", q_s,
-                d.get("option_a"), d.get("option_b"), d.get("option_c"), d.get("option_d"),
-                d.get("correct_answer"), d.get("explanation"),
-                d.get("question_type") or "single_choice",
-                bool(d.get("is_latex")) if d.get("is_latex") not in (None, "") else False,
-                d.get("image_url"), d.get("audio_text"), d.get("language") or "uz",
-                d.get("life_level") or 1, d.get("age_group"), d.get("time_limit") or 60,
-            ))
-            conn.commit()
-            saved += 1
-        except Exception as e:
-            conn.rollback()
-            errors += 1
-
-    cur.close()
-    conn.close()
-    return {"saved": saved, "duplicates": duplicates, "errors": errors}
-
-
-# ═══════════════════════════════════════════════════════════
-# ADMIN — Topik shablon (dts_tree uchun) yuklab olish va import qilish
-# Botdagi shablon_yaratish.py (_create_shablon / handle_shablon_document)
-# mantig'iga mos
-# ═══════════════════════════════════════════════════════════
-
-class TopikShablonSorov(BaseModel):
-    sinf: str
-    fan: str
-    mavzular: str  # ko'p qatorli matn: "1 / Colours\n1 / Numbers\n2 / Animals"
-
-
-def _mavzularni_parse(text: str):
-    """Botdagi bilan bir xil parser: 'chorak / mavzu' yoki 'chorak mavzu' formatini o'qiydi."""
-    natija = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        if "/" in line:
-            parts = line.split("/", 1)
-            chorak_raqam = "".join(ch for ch in parts[0].strip() if ch.isdigit())
-            mavzu = parts[1].strip()
-        else:
-            parts = line.split(None, 1)
-            chorak_raqam = parts[0].strip() if parts else "1"
-            mavzu = parts[1].strip() if len(parts) > 1 else line
-        if mavzu and chorak_raqam:
-            natija.append((chorak_raqam, mavzu))
-    return natija
-
-
-@app.post("/api/admin/topik_shablon")
-def topik_shablon(sorov: TopikShablonSorov, token: str):
-    """Sinf + fan + mavzular ro'yxati bo'yicha DTS (topik kod) shablonini
-    Excel qilib yaratadi — MALUMOT varag'i ko'rinishida (haqiqiy namunaga mos)."""
-    _admin_tekshir(token)
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
-    import io
-    from fastapi.responses import StreamingResponse
-
-    mavzular = _mavzularni_parse(sorov.mavzular)
-    if not mavzular:
-        raise HTTPException(status_code=400, detail="Mavzular topilmadi — 'chorak / mavzu' formatida yozing")
-
-    sinf, fan = sorov.sinf.strip(), sorov.fan.strip()
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "MALUMOT"
-
-    headers = ["#", "Topic code", "Sinf", "Fan", "Chorak", "Bob", "Bolim", "Mavzu", "Kichik mavzu", "Test soni"]
-    for col, h in enumerate(headers, 1):
-        cell = ws.cell(1, col, value=h)
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="70AD47")
-        cell.alignment = Alignment(horizontal="center")
-
-    chorak_colors = {"1": "DEEAF1", "2": "E2EFDA", "3": "FFF2CC", "4": "FCE4D6"}
-    row_num = 2
-    idx = 1
-    for chorak, mavzu in mavzular:
-        color = chorak_colors.get(str(chorak), "F2F2F2")
-        for _ in range(2):  # botdagi kabi mavzu boshiga 2 qator (Bob/Bolim/Kichik mavzu uchun 2 xil variant)
-            ws.cell(row_num, 1, value=idx)
-            # "Topic code" ATAYLAB BO'SH qoldiriladi — import qilinganda avtomatik yaratiladi
-            ws.cell(row_num, 3, value=sinf)
-            ws.cell(row_num, 4, value=fan)
-            ws.cell(row_num, 5, value=chorak)
-            ws.cell(row_num, 8, value=mavzu)
-            ws.cell(row_num, 10, value=0)
-            for col in range(1, 11):
-                ws.cell(row_num, col).fill = PatternFill("solid", fgColor=color)
-                ws.cell(row_num, col).alignment = Alignment(horizontal="left", wrap_text=True)
-            row_num += 1
-            idx += 1
-
-    for col, width in zip(range(1, 11), [5, 22, 6, 16, 8, 30, 30, 22, 30, 10]):
-        ws.column_dimensions[ws.cell(1, col).column_letter].width = width
-
-    ws2 = wb.create_sheet("IZOH")
-    ws2.cell(1, 1, value="📋 TO'LDIRISH QO'LLANMASI").font = Font(bold=True, size=14)
-    izohlar = [
-        (3, "#", "O'zgartirmang"),
-        (4, "Topic code", "BO'SH QOLDIRING — import qilinganda avtomatik yaratiladi"),
-        (5, "Sinf / Fan / Chorak", "O'zgartirmang — avtomatik to'ldirilgan"),
-        (6, "Bob", "To'ldiring: masalan '1-bob. Sonlar'"),
-        (7, "Bolim", "To'ldiring: masalan \"1-bo'lim. Narsalarning to'plamlari\""),
-        (8, "Mavzu", "O'zgartirmang — mavzu nomi avtomatik"),
-        (9, "Kichik mavzu", "To'ldiring: mavzuning kichik qismi"),
-        (10, "Test soni", "O'zgartirmang — 0, keyin avtomatik yangilanadi"),
-    ]
-    for r, ustun, izoh in izohlar:
-        ws2.cell(r, 1, value=ustun).font = Font(bold=True)
-        ws2.cell(r, 2, value=izoh)
-    ws2.column_dimensions['A'].width = 18
-    ws2.column_dimensions['B'].width = 55
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    fname = f"shablon_{sinf}sinf_{fan.replace(' ', '_')[:20]}.xlsx"
-    return StreamingResponse(
-        buf,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={fname}"},
-    )
-
-
-@app.post("/api/admin/topik_import")
-async def topik_import(token: str, fayl: UploadFile = File(...)):
-    """To'ldirilgan Topik (MALUMOT) shablonini dts_tree jadvaliga import
-    qiladi. "Topic code" ustuni bo'sh bo'lsa avtomatik yaratiladi, to'ldirilgan
-    bo'lsa — AYNAN o'sha kod bilan saqlanadi (mavjud mavzuni yangilash uchun)."""
-    _admin_tekshir(token)
-    import openpyxl
-    import io
-
-    content = await fayl.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(content))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Excel o'qib bo'lmadi: {e}")
-    ws = wb["MALUMOT"] if "MALUMOT" in wb.sheetnames else wb.active
-
-    headers = [str(c.value).strip() if c.value else "" for c in ws[1]]
-    # Eski (DTS_SHABLON) va yangi (MALUMOT) formatlarini ikkalasini ham qo'llab-quvvatlaymiz
-    eski_format = "Sinf" in headers and headers[0] == "Sinf"
-
-    conn = _db()
-    cur = conn.cursor()
-    added, skipped = 0, 0
-
-    for r in range(2, ws.max_row + 1):
-        if eski_format:
-            berilgan_kod = None
-            sinf, fan, chorak, bob, bolim, mavzu, kichik = (ws.cell(r, c).value for c in range(1, 8))
-        else:
-            berilgan_kod = ws.cell(r, 2).value
-            sinf, fan, chorak, bob, bolim, mavzu, kichik = (ws.cell(r, c).value for c in range(3, 10))
-
-        if not sinf or not mavzu:
-            continue
-
-        if berilgan_kod and str(berilgan_kod).strip():
-            topic_code = str(berilgan_kod).strip()
-        else:
-            cur.execute("""
-                SELECT topic_code FROM dts_tree
-                WHERE grade=%s AND UPPER(subject_name)=UPPER(%s)
-                ORDER BY topic_code DESC LIMIT 1
-            """, (str(sinf), str(fan) if fan else ""))
-            row = cur.fetchone()
-            if row:
-                last = row["topic_code"]
-                parts = last.rsplit('-', 1)
-                new_num = str(int(parts[1]) + 1).zfill(3)
-                topic_code = f"{parts[0]}-{new_num}"
-            else:
-                # MUHIM: bu fan uchun BIRINCHI marta mavzu qo'shilyapti — "01"ni
-                # QATTIQ KODLAMAYMIZ, chunki boshqa fan allaqachon "01"ni band
-                # qilgan bo'lishi mumkin (aks holda ikkala fan bitta topic_code'ga
-                # to'qnashib, natijalar noto'g'ri fanga yozilib qoladi).
-                # Shu grade uchun band qilingan barcha fan-segmentlarini
-                # tekshirib, BO'SH birinchi raqamni tanlaymiz.
-                cur.execute(
-                    "SELECT DISTINCT SPLIT_PART(topic_code, '-', 2) AS seg FROM dts_tree WHERE grade=%s",
-                    (str(sinf),),
-                )
-                band_segmentlar = {r2["seg"] for r2 in cur.fetchall()}
-                fan_segmenti = "01"
-                for n in range(1, 100):
-                    nomzod = str(n).zfill(2)
-                    if nomzod not in band_segmentlar:
-                        fan_segmenti = nomzod
-                        break
-                topic_code = f"{sinf}-{fan_segmenti}-{chorak or 1}-01-01-01-001"
-
-        try:
-            cur.execute("""
-                INSERT INTO dts_tree
-                (topic_code, grade, subject_name, quarter,
-                 bob_name, bolim_name, mavzu_name, kichik_name, is_deleted)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,FALSE)
-                ON CONFLICT (topic_code) DO UPDATE SET
-                    bob_name = EXCLUDED.bob_name, bolim_name = EXCLUDED.bolim_name,
-                    kichik_name = EXCLUDED.kichik_name
-            """, (
-                topic_code, str(sinf), str(fan) if fan else "",
-                str(chorak) if chorak else "1", str(bob) if bob else "",
-                str(bolim) if bolim else "", str(mavzu) if mavzu else "",
-                str(kichik) if kichik else "",
-            ))
-            conn.commit()
-            added += 1
-        except Exception:
-            conn.rollback()
-            skipped += 1
-
-    cur.close()
-    conn.close()
-    return {"added": added, "skipped": skipped}
+        .then((d) => { setQidiruvNatijalari(d.mavzular || []); setQidiruvXato(""); setQidirilmoqda(false); })
+        .catch((e) => { setQidiruvXato(e.message || "Yuklab bo'lmadi"); setQidirilmoqda(false); });
+    }, 350);
+    return () => clearTimeout(kechiktirish);
+  }, [qidiruv, qidiruvOchiq, token, rejaId]);
+
+  const mavzuQosh = async (topicCode) => {
+    await fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_qosh`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, reja_id: rejaId, topic_code: topicCode }),
+    });
+    yukla();
+  };
+
+  const [barchasiniQoshishYuklanmoqda, setBarchasiniQoshishYuklanmoqda] = useState(false);
+  const barchasiniQoshish = async () => {
+    const yangilari = (qidiruvNatijalari || []).filter((m) => !qatorlar.some((q) => q.topic_code === m.topic_code));
+    if (yangilari.length === 0) return;
+    setBarchasiniQoshishYuklanmoqda(true);
+    try {
+      for (const m of yangilari) {
+        // eslint-disable-next-line no-await-in-loop
+        await fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_qosh`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, reja_id: rejaId, topic_code: m.topic_code }),
+        });
+      }
+      yukla();
+    } finally { setBarchasiniQoshishYuklanmoqda(false); }
+  };
+
+  const yangiMavzuYarat = async () => {
+    if (!yangiMavzuNomi.trim()) { setXato("Mavzu nomini kiriting"); return; }
+    setYangiMavzuYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/reja_yangi_mavzu_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, reja_id: rejaId, nomi: yangiMavzuNomi.trim(), bob: yangiMavzuBob.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setYangiMavzuNomi(""); setYangiMavzuBob(""); setYangiMavzuOchiq(false);
+      yukla();
+    } catch (e) { setXato(e.message); } finally { setYangiMavzuYaratilmoqda(false); }
+  };
+
+  const olibTashla = async (qatorId) => {
+    await fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_ochir?token=${encodeURIComponent(token)}&reja_id=${rejaId}&qator_id=${qatorId}`, { method: "DELETE" });
+    yukla();
+  };
+
+  const surish = async (qatorId, yonalish) => {
+    await fetch(`${API_BASE}/api/oqituvchi/reja_qator_surish`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, reja_id: rejaId, qator_id: qatorId, yonalish }),
+    });
+    yukla();
+  };
+
+  if (yuklanmoqda) {
+    return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Rejalarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📋 {reja?.nomi}</h1>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{reja?.sinf}-{reja?.fan} · {qatorlar.length} ta mavzu, tartib bilan</p>
+
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => { setYangiMavzuOchiq(!yangiMavzuOchiq); setQidiruvOchiq(false); }}
+          className="flex-1 text-xs font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          {yangiMavzuOchiq ? "✕ Yopish" : "✏️ Yangi mavzu"}
+        </button>
+        <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setYangiMavzuOchiq(false); }}
+          className="flex-1 text-xs font-semibold px-3 py-2 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
+        </button>
+      </div>
+
+      {yangiMavzuOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Milliy bazada mos mavzu topilmasa — shu yerda nomini yozib, o'zingiz qo'shing.</p>
+          <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
+            placeholder="Bob nomi (ixtiyoriy)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+          <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
+            placeholder="Mavzu nomi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
+            {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Ketma-ketlikka qo'shish"}
+          </button>
+        </div>
+      )}
+
+      {qidiruvOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <input type="text" value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Mavzu nomi bo'yicha qidirish (bo'sh — reja sinf/fani)"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          {!qidirilmoqda && !qidiruvXato && (qidiruvNatijalari || []).some((m) => !qatorlar.some((q) => q.topic_code === m.topic_code)) && (
+            <button onClick={barchasiniQoshish} disabled={barchasiniQoshishYuklanmoqda}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3 flex items-center justify-center gap-2"
+              style={{ backgroundColor: "#EAF3DE", color: "#3B6D11", opacity: barchasiniQoshishYuklanmoqda ? 0.7 : 1 }}>
+              {barchasiniQoshishYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> :
+                `✓✓ Barchasini qo'shish (${(qidiruvNatijalari || []).filter((m) => !qatorlar.some((q) => q.topic_code === m.topic_code)).length} ta)`}
+            </button>
+          )}
+          {qidirilmoqda ? (
+            <div className="py-4 text-center"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+          ) : qidiruvXato ? (
+            <p className="text-xs font-medium" style={{ color: "#A32D2D" }}>⚠️ {qidiruvXato}</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {(qidiruvNatijalari || []).map((m) => {
+                const qoshilganmi = qatorlar.some((q) => q.topic_code === m.topic_code);
+                return (
+                  <div key={m.topic_code} className="flex items-center justify-between gap-2 rounded-lg p-2" style={{ backgroundColor: "#F7F5F0" }}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name}</p>
+                      <p className="text-xs truncate" style={{ color: "#8A8578" }}>{m.subject_name} · {m.grade}-sinf {m.bob_name ? `· ${m.bob_name}` : ""}</p>
+                    </div>
+                    <button onClick={() => mavzuQosh(m.topic_code)} disabled={qoshilganmi}
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
+                      style={qoshilganmi ? { backgroundColor: "#EAF3DE", color: "#3B6D11" } : { backgroundColor: "#1B4B7A", color: "#fff" }}>
+                      {qoshilganmi ? "✓ Qo'shilgan" : "+ Qo'shish"}
+                    </button>
+                  </div>
+                );
+              })}
+              {(qidiruvNatijalari || []).length === 0 && <p className="text-xs" style={{ color: "#8A8578" }}>Hech narsa topilmadi.</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+      {qatorlar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali mavzu qo'shilmagan. Yuqoridagi tugmalardan birini bosing.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {qatorlar.map((q, i) => (
+            <div key={q.qator_id} className="rounded-xl p-3 bg-white border flex items-center gap-2.5" style={{ borderColor: "#E5E1D8" }}>
+              <span className="text-xs font-bold w-6 text-center shrink-0" style={{ color: "#8A8578" }}>{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: "#2B2B2B" }}>{q.mavzu_name || q.kichik_name}</p>
+                <p className="text-xs truncate" style={{ color: "#8A8578" }}>{[q.bob_name, q.bolim_name].filter(Boolean).join(" · ")}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => surish(q.qator_id, "yuqori")} disabled={i === 0}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ backgroundColor: "#F7F5F0", color: i === 0 ? "#C4BFAF" : "#1B4B7A" }}>↑</button>
+                <button onClick={() => surish(q.qator_id, "pastga")} disabled={i === qatorlar.length - 1}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ backgroundColor: "#F7F5F0", color: i === qatorlar.length - 1 ? "#C4BFAF" : "#1B4B7A" }}>↓</button>
+                <button onClick={() => olibTashla(q.qator_id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RejalarimBolimi({ token, onOrtga }) {
+  const [rejalar, setRejalar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganRejaId, setTanlanganRejaId] = useState(null);
+
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [yangiNomi, setYangiNomi] = useState("");
+  const [yangiSinf, setYangiSinf] = useState("");
+  const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false);
+  const [yangiSinfMatni, setYangiSinfMatni] = useState("");
+  const [yangiFanTanlash, setYangiFanTanlash] = useState(true); // true=ro'yxatdan, false=o'zi yozadi
+  const [yangiFan, setYangiFan] = useState("");
+  const [yangiFanMatni, setYangiFanMatni] = useState("");
+  const [yaratilmoqda, setYaratilmoqda] = useState(false);
+
+  const yukla = () => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/rejalarim?token=${encodeURIComponent(token)}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+        return d;
+      })
+      .then((d) => { setRejalar(d.rejalar || []); setXato(""); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+  useEffect(yukla, [token]);
+
+  const rejaYarat = async () => {
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni.trim() : yangiSinf;
+    const fanQiymati = yangiFanTanlash ? yangiFan : yangiFanMatni.trim();
+    if (!yangiNomi.trim()) { setXato("Reja nomini kiriting"); return; }
+    if (!sinfQiymati) { setXato("Sinfni tanlang"); return; }
+    if (!fanQiymati) { setXato("Fanni tanlang yoki yozing"); return; }
+    if (fanQiymati.trim().split(/\s+/).length > 1) { setXato("Fan nomi bitta so'zdan oshmasligi kerak"); return; }
+    setYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/reja_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, nomi: yangiNomi.trim(), sinf: sinfQiymati, fan: fanQiymati.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setYangiNomi(""); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
+      setYangiFan(""); setYangiFanMatni(""); setFormOchiq(false);
+      setTanlanganRejaId(data.reja_id);
+    } catch (e) { setXato(e.message); } finally { setYaratilmoqda(false); }
+  };
+
+  if (tanlanganRejaId) {
+    return <RejaDetali token={token} rejaId={tanlanganRejaId} onOrtga={() => { setTanlanganRejaId(null); yukla(); }} />;
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📋 Rejalarim</h1>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          {formOchiq ? "✕ Yopish" : "+ Yangi reja"}
+        </button>
+      </div>
+      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
+        Bir marta tartibli mavzular ketma-ketligini tuzib qo'ying — keyin bir nechta to'garak guruhida qayta ishlatasiz.
+      </p>
+
+      {formOchiq && (
+        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Reja nomi</label>
+          <input type="text" value={yangiNomi} onChange={(e) => setYangiNomi(e.target.value)}
+            placeholder="masalan: 9-sinf Algebra dasturi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+          {!yangiMaxsusSinf ? (
+            <>
+              <div className="grid grid-cols-6 gap-1.5 mb-2">
+                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                  <button key={n} type="button" onClick={() => setYangiSinf(n)}
+                    className="py-2 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
+                      color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinf(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                Maxsus guruh (Abituriyent, 0-sinf va h.k.) →
+              </button>
+            </>
+          ) : (
+            <>
+              <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
+                placeholder="masalan: Abituriyent, 0-sinf, Fizikani takrorlash"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+              <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                ← Oddiy sinf tanlashga qaytish
+              </button>
+            </>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
+          {yangiFanTanlash ? (
+            <>
+              <div className="flex gap-1.5 flex-wrap mb-2">
+                {BARCHA_MAKTAB_FANLARI.map((f) => (
+                  <button key={f} type="button" onClick={() => setYangiFan(f)}
+                    className="px-3 py-2 rounded-lg border text-sm font-medium"
+                    style={{
+                      borderColor: yangiFan === f ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: yangiFan === f ? "#1B4B7A" : "#FFFFFF",
+                      color: yangiFan === f ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setYangiFanTanlash(false); setYangiFan(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                Ro'yxatda yo'q fan — o'zim yozaman →
+              </button>
+            </>
+          ) : (
+            <>
+              <input type="text" value={yangiFanMatni} onChange={(e) => setYangiFanMatni(e.target.value)}
+                placeholder="Bitta so'z, masalan: Robototexnika"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+              <button type="button" onClick={() => { setYangiFanTanlash(true); setYangiFanMatni(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                ← Ro'yxatdan tanlashga qaytish
+              </button>
+            </>
+          )}
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          <button onClick={rejaYarat} disabled={yaratilmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#1B4B7A", opacity: yaratilmoqda ? 0.7 : 1 }}>
+            {yaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "Rejani yaratish va mavzu qo'shishga o'tish"}
+          </button>
+        </div>
+      )}
+
+      {!formOchiq && xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : rejalar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hali reja yaratilmagan.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {rejalar.map((r) => (
+            <button key={r.id} onClick={() => setTanlanganRejaId(r.id)}
+              className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{r.nomi}</p>
+                <p className="text-xs mt-0.5" style={{ color: "#8A8578" }}>{r.sinf}-{r.fan} · {r.mavzu_soni} ta mavzu</p>
+              </div>
+              <ChevronRight size={16} style={{ color: "#8A8578" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OqituvchiTab({ token, foydalanuvchi }) {
+  const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
+  const [togaraklar, setTogaraklar] = useState([]);
+  const [tanlangan, setTanlangan] = useState(null);
+  const [azolar, setAzolar] = useState([]);
+  const [bahoQoyilayotgan, setBahoQoyilayotgan] = useState(null); // user_id | null
+  const [bahoQiymati, setBahoQiymati] = useState("");
+  const [izohQiymati, setIzohQiymati] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("togarak"); // "togarak" | to'garak guruhlarimi yoki maxsus ekranmi
+  const [muassasalar, setMuassasalar] = useState([]);
+  const [aktivMuassasaIdx, setAktivMuassasaIdx] = useState(0);
+
+  const [yangiNomi, setYangiNomi] = useState("");
+  const [yangiFan, setYangiFan] = useState("");
+  const [yangiFanOzicha, setYangiFanOzicha] = useState(false); // true bo'lsa o'qituvchi ro'yxatda yo'q fanni o'zi yozadi
+  const [yangiSinf, setYangiSinf] = useState("");         // "1".."11"
+  const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false); // true bo'lsa to'garak guruhi (masalan "3-4")
+  const [yangiSinfMatni, setYangiSinfMatni] = useState(""); // tanlangan to'garak sinfi (masalan "3-4")
+  const [togarakSinflari, setTogarakSinflari] = useState([]); // mavjud to'garak sinflari ro'yxati
+  const [togarakSinflariYuklanmoqda, setTogarakSinflariYuklanmoqda] = useState(false);
+  const [sinfFanlari, setSinfFanlari] = useState([]); // tanlangan sinf uchun MAVJUD fanlar ro'yxati
+  const [sinfFanlariYuklanmoqda, setSinfFanlariYuklanmoqda] = useState(false);
+  const [yangiMavjudRejalar, setYangiMavjudRejalar] = useState([]);
+  const [yangiRejalarYuklanmoqda, setYangiRejalarYuklanmoqda] = useState(false);
+  const [yangiTanlanganRejaId, setYangiTanlanganRejaId] = useState(null); // null = rejasiz (eski avtomatik usul)
+  const [yangiRejaQurishOchiq, setYangiRejaQurishOchiq] = useState(null); // reja_id | null — bo'lsa RejaDetali ko'rsatiladi
+  const [yangiRejaNomi, setYangiRejaNomi] = useState("");
+  const [yangiRejaYaratilmoqda, setYangiRejaYaratilmoqda] = useState(false);
+  const [yangiParol, setYangiParol] = useState("");
+  const [yangiMaxTalaba, setYangiMaxTalaba] = useState("");
+  const [yangiOylikSumma, setYangiOylikSumma] = useState("");
+  const [uniGuruhIzlash, setUniGuruhIzlash] = useState("");
+  const [uniGuruhNatijalar, setUniGuruhNatijalar] = useState([]);
+  const [tanlanganUniGuruh, setTanlanganUniGuruh] = useState(null);
+  const [yaratilmoqda, setYaratilmoqda] = useState(false);
+
+  // "Aralash to'garak guruhi" yoqilganda — mavjud to'garak sinflari ro'yxatini yuklaymiz
+  useEffect(() => {
+    if (!yangiMaxsusSinf || togarakSinflari.length > 0) return;
+    setTogarakSinflariYuklanmoqda(true);
+    fetch(`${API_BASE}/api/mavzular?turi=togarak`)
+      .then((r) => r.json())
+      .then((d) => {
+        const sinflar = new Set();
+        (d.fanlar || []).forEach((f) => f.sinflar.forEach((s) => sinflar.add(s.sinf)));
+        setTogarakSinflari(Array.from(sinflar).sort());
+      })
+      .finally(() => setTogarakSinflariYuklanmoqda(false));
+  }, [yangiMaxsusSinf]);
+
+  // Sinf (oddiy yoki to'garak) tanlangach — o'sha sinfda MAVJUD fanlar ro'yxatini yuklaymiz
+  useEffect(() => {
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni : yangiSinf;
+    setYangiFan("");
+    setSinfFanlari([]);
+    if (!sinfQiymati) return;
+    setSinfFanlariYuklanmoqda(true);
+    const turi = yangiMaxsusSinf ? "togarak" : "oddiy";
+    fetch(`${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinfQiymati)}&turi=${turi}`)
+      .then((r) => r.json())
+      .then((d) => setSinfFanlari((d.fanlar || []).map((f) => f.nom)))
+      .finally(() => setSinfFanlariYuklanmoqda(false));
+  }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf]);
+
+  const rejalarniQaytaYukla = () => {
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni : yangiSinf;
+    if (!sinfQiymati || !yangiFan) { setYangiMavjudRejalar([]); return; }
+    setYangiRejalarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/oqituvchi/rejalarim?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(sinfQiymati)}&fan=${encodeURIComponent(yangiFan)}`)
+      .then((r) => r.json())
+      .then((d) => setYangiMavjudRejalar(d.rejalar || []))
+      .catch(() => setYangiMavjudRejalar([]))
+      .finally(() => setYangiRejalarYuklanmoqda(false));
+  };
+  useEffect(() => {
+    setYangiTanlanganRejaId(null);
+    rejalarniQaytaYukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yangiSinf, yangiSinfMatni, yangiMaxsusSinf, yangiFan, token]);
+
+  const yangiRejaYaratishBoshla = async () => {
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni.trim() : yangiSinf;
+    if (!yangiRejaNomi.trim() || !sinfQiymati || !yangiFan) return;
+    setYangiRejaYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/reja_yarat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, nomi: yangiRejaNomi.trim(), sinf: sinfQiymati, fan: yangiFan }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setYangiRejaNomi("");
+      setYangiRejaQurishOchiq(data.reja_id);
+    } catch (e) { setXato(e.message); } finally { setYangiRejaYaratilmoqda(false); }
+  };
+
+  useEffect(() => {
+    if (uniGuruhIzlash.trim().length < 1) { setUniGuruhNatijalar([]); return; }
+    const kechiktirish = setTimeout(() => {
+      fetch(`${API_BASE}/api/oqituvchi/universitet_guruh_qidir?token=${encodeURIComponent(token)}&nomi=${encodeURIComponent(uniGuruhIzlash.trim())}`)
+        .then((r) => r.json())
+        .then((d) => setUniGuruhNatijalar(d.natijalar || []))
+        .catch(() => {});
+    }, 400);
+    return () => clearTimeout(kechiktirish);
+  }, [uniGuruhIzlash, token]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/togaraklar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setTogaraklar(d.togaraklar || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMuassasalar(d.muassasalar || []))
+      .catch(() => {});
+  }, [token]);
+
+  const togarakOch = async (t) => {
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak/${t.id}/azolar?token=${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setAzolar(data.azolar || []);
+      setTanlangan(t);
+      setHolat("azolar");
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYuklanmoqda(false); }
+  };
+
+  const bahoBoshla = (azo) => {
+    setBahoQoyilayotgan(azo.user_id);
+    setBahoQiymati(azo.oxirgi_baho != null ? String(azo.oxirgi_baho) : "");
+    setIzohQiymati("");
+  };
+
+  const bahoSaqla = async (userId) => {
+    const baho = parseInt(bahoQiymati, 10);
+    if (isNaN(baho) || baho < 0 || baho > 100) {
+      setXato("Baho 0-100 oralig'ida bo'lishi kerak");
+      return;
+    }
+    setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/baho_qoy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: tanlangan.id, user_id: userId, baho, izoh: izohQiymati || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setAzolar((prev) => prev.map((a) => (a.user_id === userId ? { ...a, oxirgi_baho: baho } : a)));
+      setBahoQoyilayotgan(null);
+    } catch (e) {
+      setXato(e.message);
+    }
+  };
+
+  const yaratishSaqla = async () => {
+    if (!yangiNomi.trim() || !yangiFan.trim()) {
+      setXato("To'garak nomi va fan kiritilishi shart");
+      return;
+    }
+    const sinfQiymati = yangiMaxsusSinf ? yangiSinfMatni.trim() : yangiSinf;
+    if (!sinfQiymati) {
+      setXato("Sinfni tanlang (yoki to'garak guruhini kiriting)");
+      return;
+    }
+    setYaratilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati,
+          parol: yangiParol || undefined,
+          max_talaba: yangiMaxTalaba ? parseInt(yangiMaxTalaba, 10) : undefined,
+          oylik_summa: yangiOylikSumma ? parseInt(yangiOylikSumma, 10) : undefined,
+          universitet_guruh_id: tanlanganUniGuruh ? tanlanganUniGuruh.id : undefined,
+          reja_id: yangiTanlanganRejaId || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      const yangiTogarak = { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati, max_talaba: yangiMaxTalaba || null, azo_soni: 0 };
+      setTogaraklar((prev) => [...prev, yangiTogarak]);
+      setYangiNomi(""); setYangiFan(""); setYangiFanOzicha(false); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
+      setTogarakSinflari([]); setSinfFanlari([]);
+      setYangiMavjudRejalar([]); setYangiTanlanganRejaId(null); setYangiRejaNomi("");
+      setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
+      setUniGuruhIzlash(""); setUniGuruhNatijalar([]); setTanlanganUniGuruh(null);
+      setTanlangan(yangiTogarak);
+      setAzolar([]);
+      setHolat("mavzular_boshqarish");
+    } catch (e) {
+      setXato(e.message);
+    } finally { setYaratilmoqda(false); }
+  };
+
+  // Fetch hali qaytmagan bo'lsa ham, profildan (foydalanuvchi) darhol
+  // BITTA muassasa ko'rsatiladi — shu bilan ekran "yalang'och" ochilmaydi.
+  const samariMuassasalar = muassasalar.length > 0 ? muassasalar : (
+    foydalanuvchi?.maktab_id ? [{ turi: "maktab", muassasa_id: foydalanuvchi.maktab_id, muassasa_nomi: foydalanuvchi.maktab_nomi, lavozim: foydalanuvchi.lavozim }]
+    : foydalanuvchi?.markaz_id ? [{ turi: "markaz", muassasa_id: foydalanuvchi.markaz_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
+    : foydalanuvchi?.bogcha_id ? [{ turi: "bogcha", muassasa_id: foydalanuvchi.bogcha_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
+    : foydalanuvchi?.universitet_id ? [{ turi: "universitet", muassasa_id: foydalanuvchi.universitet_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
+    : []
+  );
+  const aktivMuassasa = samariMuassasalar[aktivMuassasaIdx] || samariMuassasalar[0] || null;
+  const MUASSASA_IKONKA = { maktab: "🏫", markaz: "🎓", bogcha: "🧸", universitet: "🎓" };
+  const MUASSASA_BOSHQARUVCHI_LAVOZIM = {
+    maktab: ["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"],
+    markaz: ["markaz_direktor", "administrator"],
+    bogcha: ["bogcha_direktor", "bogcha_zam"],
+    universitet: ["rektor", "prorektor"],
+  };
+
+  if (korinish === "markaz") {
+    return <MarkazBoshqaruvi token={token} markazId={aktivMuassasa?.turi === "markaz" ? aktivMuassasa.muassasa_id : foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
+
+  if (korinish === "maktab_rahbariyat") {
+    return <MaktabBoshqaruvi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "kutubxona") {
+    return <KutubxonaBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "moliya") {
+    return <MoliyaBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "hujjatlar") {
+    return <HujjatlarBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "rejalashtirish") {
+    return <RejalashtirishBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "ai_yordamchi") {
+    return <AiYordamchiBolimi token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "rejalarim") {
+    return <RejalarimBolimi token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "fanlar_tahlili") {
+    return <FanlarTahliliBolimi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "psixolog") {
+    return <PsixologQidiruv token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "bogcha") {
+    return <BogchaGuruhim token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (korinish === "universitet") {
+    return <UniversitetGuruhimBilimi token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
+
+  if (yuklanmoqda) {
+    return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  if (holat === "yaratish" && yangiRejaQurishOchiq) {
+    return <RejaDetali token={token} rejaId={yangiRejaQurishOchiq}
+      onOrtga={() => { const rid = yangiRejaQurishOchiq; setYangiRejaQurishOchiq(null); rejalarniQaytaYukla(); setYangiTanlanganRejaId(rid); }} />;
+  }
+
+  if (holat === "yaratish") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => setHolat("togaraklar")} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>Yangi to'garak</h1>
+        <p className="text-sm mb-6" style={{ color: "#8A8578" }}>Bot va saytda bir xil ko'rinadi</p>
+
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>To'garak nomi</label>
+          <input type="text" value={yangiNomi} onChange={(e) => setYangiNomi(e.target.value)}
+            placeholder="masalan: Matematik to'garak"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+          {!yangiMaxsusSinf ? (
+            <>
+              <div className="grid grid-cols-6 gap-1.5 mb-3">
+                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                  <button key={n} type="button" onClick={() => setYangiSinf(n)}
+                    className="py-2.5 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
+                      color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinf(""); }}
+                className="w-full rounded-xl p-3.5 mb-3 flex items-center gap-3 text-left border-2 border-dashed"
+                style={{ borderColor: "#C4BFAF", backgroundColor: "#FAF9F6" }}>
+                <span className="text-xl shrink-0">📚</span>
+                <span>
+                  <span className="text-sm font-semibold block" style={{ color: "#2B2B2B" }}>Bu — oddiy sinf emas</span>
+                  <span className="text-xs" style={{ color: "#8A8578" }}>Abituriyent, aralash guruh (3-4) va h.k. — bosing</span>
+                </span>
+              </button>
+            </>
+          ) : (
+            <>
+              {togarakSinflariYuklanmoqda ? (
+                <div className="py-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+              ) : togarakSinflari.length > 0 ? (
+                <div className="flex gap-1.5 flex-wrap mb-2">
+                  {togarakSinflari.map((s) => (
+                    <button key={s} type="button" onClick={() => setYangiSinfMatni(s)}
+                      className="px-3 py-2 rounded-lg border text-sm font-medium"
+                      style={{
+                        borderColor: yangiSinfMatni === s ? "#1B4B7A" : "#E5E1D8",
+                        backgroundColor: yangiSinfMatni === s ? "#1B4B7A" : "#FFFFFF",
+                        color: yangiSinfMatni === s ? "#FFFFFF" : "#5A5648",
+                      }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+                {togarakSinflari.length > 0 ? "yoki yangi guruh nomi kiriting" : "Guruh nomini kiriting"}
+              </label>
+              <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
+                placeholder="masalan: Abituriyent, 3-4, IDUM tayyorlov"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2"
+                style={{ borderColor: "#E5E1D8" }} />
+              <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                ← Oddiy sinf tanlashga qaytish
+              </button>
+            </>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
+          {!(yangiMaxsusSinf ? yangiSinfMatni : yangiSinf) ? (
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval sinfni tanlang</p>
+          ) : yangiFanOzicha ? (
+            <>
+              <input type="text" value={yangiFan} onChange={(e) => setYangiFan(e.target.value)}
+                placeholder="Bitta so'z, masalan: Robototexnika"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+              <button type="button" onClick={() => { setYangiFanOzicha(false); setYangiFan(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                ← Ro'yxatdan tanlashga qaytish
+              </button>
+            </>
+          ) : sinfFanlariYuklanmoqda ? (
+            <div className="py-3 mb-2"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+          ) : (
+            <>
+              <div className="flex gap-1.5 flex-wrap mb-2">
+                {(sinfFanlari.length > 0 ? sinfFanlari : BARCHA_MAKTAB_FANLARI).map((f) => (
+                  <button key={f} type="button" onClick={() => setYangiFan(f)}
+                    className="px-3 py-2 rounded-lg border text-sm font-medium"
+                    style={{
+                      borderColor: yangiFan === f ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: yangiFan === f ? "#1B4B7A" : "#FFFFFF",
+                      color: yangiFan === f ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => { setYangiFanOzicha(true); setYangiFan(""); }}
+                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+                Ro'yxatda yo'q fan — o'zim yozaman →
+              </button>
+            </>
+          )}
+          {sinfFanlari.length === 0 && (yangiMaxsusSinf ? yangiSinfMatni : yangiSinf) && !sinfFanlariYuklanmoqda && !yangiFanOzicha && (
+            <p className="text-xs -mt-2 mb-3" style={{ color: "#8A8578" }}>
+              Bu guruh uchun hali mavzu/test yo'q — fan tanlansa, keyinroq shablon orqali test qo'shishingiz mumkin.
+            </p>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Topik mavzu rejasi</label>
+          <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+            Reja — o'quvchi o'rganadigan mavzularning tartibli yo'li. Bir marta tuzib, boshqa guruhlarda ham qayta ishlatasiz.
+          </p>
+          {!(yangiMaxsusSinf ? yangiSinfMatni : yangiSinf) ? (
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval sinfni tanlang</p>
+          ) : !yangiFan ? (
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval fanni tanlang</p>
+          ) : yangiRejalarYuklanmoqda ? (
+            <div className="py-3 mb-3"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
+          ) : (
+            <>
+              {yangiMavjudRejalar.length > 0 && (
+                <div className="space-y-1.5 mb-3">
+                  {yangiMavjudRejalar.map((r) => (
+                    <button key={r.id} type="button" onClick={() => setYangiTanlanganRejaId(r.id)}
+                      className="w-full text-left rounded-xl p-3 border-2 flex items-center justify-between"
+                      style={yangiTanlanganRejaId === r.id
+                        ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }
+                        : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+                      <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{r.nomi}</span>
+                      <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{r.mavzu_soni} ta mavzu</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 mb-2">
+                <input type="text" value={yangiRejaNomi} onChange={(e) => setYangiRejaNomi(e.target.value)}
+                  placeholder="Yangi reja nomi, masalan: 9-sinf Algebra"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+                <button type="button" onClick={yangiRejaYaratishBoshla} disabled={yangiRejaYaratilmoqda || !yangiRejaNomi.trim()}
+                  className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm shrink-0"
+                  style={{ backgroundColor: "#1B4B7A", opacity: (yangiRejaYaratilmoqda || !yangiRejaNomi.trim()) ? 0.6 : 1 }}>
+                  {yangiRejaYaratilmoqda ? "..." : "+ Yaratish"}
+                </button>
+              </div>
+              {yangiMavjudRejalar.length === 0 && (
+                <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Hali reja yo'q — yangi yarating, keyin mavzularni tartib bilan qo'shasiz.</p>
+              )}
+              {yangiTanlanganRejaId && (
+                <p className="text-xs mb-3" style={{ color: "#3B6D11" }}>✓ Reja tanlandi — shu rejadagi mavzular avtomatik ulanadi.</p>
+              )}
+              {!yangiTanlanganRejaId && (
+                <button type="button" onClick={() => setYangiTanlanganRejaId(null)} className="text-xs mb-3" style={{ color: "#8A8578" }}>
+                  Hozircha rejasiz davom etaman →
+                </button>
+              )}
+            </>
+          )}
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qo'shilish paroli (ixtiyoriy)</label>
+          <input type="text" value={yangiParol} onChange={(e) => setYangiParol(e.target.value)}
+            placeholder="o'quvchilar shu bilan qo'shiladi"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maks. talaba</label>
+              <input type="number" min="1" value={yangiMaxTalaba} onChange={(e) => setYangiMaxTalaba(e.target.value)}
+                placeholder="25"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                style={{ borderColor: "#E5E1D8" }} />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik (so'm)</label>
+              <input type="number" min="0" value={yangiOylikSumma} onChange={(e) => setYangiOylikSumma(e.target.value)}
+                placeholder="50000"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                style={{ borderColor: "#E5E1D8" }} />
+            </div>
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+            Universitet guruhi (ixtiyoriy — agar bu kursni ma'lum guruh uchun o'qitsangiz)
+          </label>
+          {tanlanganUniGuruh ? (
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border mb-3" style={{ borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+              <span className="text-sm font-medium" style={{ color: "#1B4B7A" }}>
+                🎓 {tanlanganUniGuruh.nomi}{tanlanganUniGuruh.kurs ? ` · ${tanlanganUniGuruh.kurs}-kurs` : ""}
+              </span>
+              <button onClick={() => setTanlanganUniGuruh(null)} className="text-xs font-medium" style={{ color: "#8A8578" }}>✕</button>
+            </div>
+          ) : (
+            <div className="mb-3">
+              <input type="text" value={uniGuruhIzlash} onChange={(e) => setUniGuruhIzlash(e.target.value)}
+                placeholder="Guruh nomini yozing (masalan: 201-guruh)..."
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              {uniGuruhNatijalar.length > 0 && (
+                <div className="mt-1.5 space-y-1">
+                  {uniGuruhNatijalar.map((g) => (
+                    <button key={g.id} onClick={() => { setTanlanganUniGuruh(g); setUniGuruhIzlash(""); setUniGuruhNatijalar([]); }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left" style={{ backgroundColor: "#F7F5F0" }}>
+                      <span className="text-sm" style={{ color: "#2B2B2B" }}>{g.nomi}</span>
+                      <span className="text-xs" style={{ color: "#8A8578" }}>{g.kafedra_nomi}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+          <button onClick={yaratishSaqla} disabled={yaratilmoqda}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#1B4B7A", opacity: yaratilmoqda ? 0.7 : 1 }}>
+            {yaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "To'garak yaratish"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (holat === "azolar") {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
+          className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
+        <button onClick={() => setHolat("mavzular_boshqarish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          📖 To'garak mavzulari →
+        </button>
+        <button onClick={() => setHolat("sozlamalar")} className="block text-xs font-medium mb-5" style={{ color: "#1B4B7A" }}>
+          ⚙️ Guruh sozlamalari →
+        </button>
+        {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {azolar.length === 0 ? (
+          <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-sm" style={{ color: "#8A8578" }}>Bu to'garakda hali a'zo yo'q.</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {azolar.map((a) => (
+              <div key={a.user_id} className="rounded-2xl bg-white border overflow-hidden" style={{ borderColor: "#E5E1D8" }}>
+                <button onClick={() => (bahoQoyilayotgan === a.user_id ? setBahoQoyilayotgan(null) : bahoBoshla(a))}
+                  className="w-full flex items-center justify-between px-4 py-3.5">
+                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{a.full_name}</span>
+                  <span className="text-sm font-semibold" style={{ color: a.oxirgi_baho != null ? "#2D8B8B" : "#B0AA98" }}>
+                    {a.oxirgi_baho != null ? `${a.oxirgi_baho}` : "Baholanmagan"}
+                  </span>
+                </button>
+                {bahoQoyilayotgan === a.user_id && (
+                  <div className="px-4 pb-4 pt-1 space-y-2.5">
+                    <input type="number" min="0" max="100" value={bahoQiymati}
+                      onChange={(e) => setBahoQiymati(e.target.value)}
+                      placeholder="Baho (0-100)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                      style={{ borderColor: "#E5E1D8" }} />
+                    <input type="text" value={izohQiymati} onChange={(e) => setIzohQiymati(e.target.value)}
+                      placeholder="Izoh (ixtiyoriy)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+                      style={{ borderColor: "#E5E1D8" }} />
+                    <button onClick={() => bahoSaqla(a.user_id)}
+                      className="w-full py-2.5 rounded-xl font-semibold text-white text-sm"
+                      style={{ backgroundColor: "#1B4B7A" }}>
+                      Saqlash
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (holat === "mavzular_boshqarish") {
+    return <TogarakMavzularBoshqarish token={token} togarakId={tanlangan.id} onOrtga={() => setHolat("azolar")} />;
+  }
+
+  if (holat === "sozlamalar") {
+    return <TogarakGuruhSozlamalari token={token} togarak={tanlangan} onOrtga={() => setHolat("azolar")} onOchirildi={() => window.location.reload()} />;
+  }
+
+  // holat === "togaraklar"
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Guruhlarim</h1>
+        <button onClick={() => { setXato(""); setHolat("yaratish"); }}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white"
+          style={{ backgroundColor: "#C89B3C" }}>
+          + Yangi
+        </button>
+      </div>
+
+      {samariMuassasalar.length > 1 && (
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          {samariMuassasalar.map((m, idx) => (
+            <button key={`${m.turi}-${m.muassasa_id}`} onClick={() => setAktivMuassasaIdx(idx)}
+              className="shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap"
+              style={idx === aktivMuassasaIdx ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              {MUASSASA_IKONKA[m.turi] || "📍"} {m.muassasa_nomi || (m.turi === "maktab" ? "Maktabim" : m.turi === "markaz" ? "Markazim" : m.turi === "bogcha" ? "Bog'cham" : "Institutim")}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {aktivMuassasa?.turi === "maktab" && (MUASSASA_BOSHQARUVCHI_LAVOZIM.maktab.includes(aktivMuassasa.lavozim)) && (
+        <>
+          <button onClick={() => setKorinish("maktab_rahbariyat")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            🏫 Butun maktabni boshqarish →
+          </button>
+          <button onClick={() => setKorinish("kutubxona")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            📖 Kutubxona →
+          </button>
+          <button onClick={() => setKorinish("moliya")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            💰 Moliya →
+          </button>
+          <button onClick={() => setKorinish("hujjatlar")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            🗂 Hujjatlar →
+          </button>
+          <button onClick={() => setKorinish("rejalashtirish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            📅 Rejalashtirish →
+          </button>
+          <button onClick={() => setKorinish("fanlar_tahlili")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            📊 Fanlar tahlili →
+          </button>
+        </>
+      )}
+      {aktivMuassasa?.turi === "maktab" && aktivMuassasa.lavozim === "psixolog" && (
+        <button onClick={() => setKorinish("psixolog")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🧠 Psixolog →
+        </button>
+      )}
+      {aktivMuassasa?.turi === "markaz" && MUASSASA_BOSHQARUVCHI_LAVOZIM.markaz.includes(aktivMuassasa.lavozim) && (
+        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🎓 Markazimni boshqarish →
+        </button>
+      )}
+      {aktivMuassasa?.turi === "bogcha" && aktivMuassasa.lavozim === "bogcha_opa" && (
+        <button onClick={() => setKorinish("bogcha")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🧸 Bog'cha guruhim →
+        </button>
+      )}
+      {aktivMuassasa?.turi === "universitet" && (
+        <button onClick={() => setKorinish("universitet")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          🎓 Kurator bo'lgan guruhlarim →
+        </button>
+      )}
+      <button onClick={() => setKorinish("rejalarim")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+        📋 Rejalarim (mavzular ketma-ketligi) →
+      </button>
+      <button onClick={() => setKorinish("ai_yordamchi")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+        🤖 AI Yordamchi →
+      </button>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {togaraklar.length === 0 ? (
+        <button onClick={() => { setXato(""); setHolat("yaratish"); }}
+          className="w-full rounded-2xl p-8 text-center border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF" }}>
+          <p className="text-sm font-medium mb-1" style={{ color: "#5A5648" }}>Hali to'garagingiz yo'q</p>
+          <p className="text-xs" style={{ color: "#8A8578" }}>Bosib, birinchisini yarating</p>
+        </button>
+      ) : (
+        <div className="space-y-2.5">
+          {togaraklar.map((t) => (
+            <button key={t.id} onClick={() => togarakOch(t)}
+              className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-white border text-left"
+              style={{ borderColor: "#E5E1D8" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{t.nomi}</p>
+                <p className="text-xs mt-0.5" style={{ color: "#8A8578" }}>{t.fan}</p>
+              </div>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                {t.azo_soni} o'quvchi
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 5.5) OTA-ONA — farzand(lar)ning bilim darajasi
+// ═══════════════════════════════════════════════════════════
+function OtaOnaTab({ token, foydalanuvchi, rang }) {
+  const [farzandlar, setFarzandlar] = useState([]);
+  const [tanlanganBola, setTanlanganBola] = useState(null);
+  const [bilimData, setBilimData] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [korinish, setKorinish] = useState("bilim"); // "bilim" | "ai_yordamchi" | "sogliq"
+  const [sogliq, setSogliq] = useState(null);
+  const [allergiyalar, setAllergiyalar] = useState("");
+  const [qonGuruhi, setQonGuruhi] = useState("");
+  const [aloqaIsmi, setAloqaIsmi] = useState("");
+  const [aloqaTelefoni, setAloqaTelefoni] = useState("");
+  const [boshqaEslatma, setBoshqaEslatma] = useState("");
+  const [sogliqSaqlanmoqda, setSogliqSaqlanmoqda] = useState(false);
+  const [sogliqSaqlandi, setSogliqSaqlandi] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`)
+      .then((r) => r.json())
+      .then((d) => {
+        const royxat = d.farzandlar || [];
+        setFarzandlar(royxat);
+        if (royxat.length > 0) setTanlanganBola((oldin) => oldin || royxat[0].user_id);
+        else setYuklanmoqda(false);
+      })
+      .catch(() => { setXato("Farzandlar ro'yxatini yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [foydalanuvchi.user_id]);
+
+  useEffect(() => {
+    if (!tanlanganBola) return;
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/bola/${tanlanganBola}/bilim`)
+      .then((r) => r.json())
+      .then((d) => { setBilimData(d); setYuklanmoqda(false); })
+      .catch(() => { setXato("Bilim ma'lumotini yuklab bo'lmadi"); setYuklanmoqda(false); });
+    fetch(`${API_BASE}/api/bola/${tanlanganBola}/favqulodda_malumot?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setSogliq(d);
+        setAllergiyalar(d.allergiyalar || ""); setQonGuruhi(d.qon_guruhi || "");
+        setAloqaIsmi(d.aloqa_ismi || ""); setAloqaTelefoni(d.aloqa_telefoni || ""); setBoshqaEslatma(d.boshqa_eslatma || "");
+      })
+      .catch(() => {});
+  }, [tanlanganBola, token]);
+
+  const sogliqSaqla = async () => {
+    setSogliqSaqlanmoqda(true); setSogliqSaqlandi(false);
+    try {
+      await fetch(`${API_BASE}/api/bola/favqulodda_malumot`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, bola_user_id: tanlanganBola, allergiyalar: allergiyalar || undefined, qon_guruhi: qonGuruhi || undefined,
+          aloqa_ismi: aloqaIsmi || undefined, aloqa_telefoni: aloqaTelefoni || undefined, boshqa_eslatma: boshqaEslatma || undefined,
+        }),
+      });
+      setSogliqSaqlandi(true);
+    } finally { setSogliqSaqlanmoqda(false); }
+  };
+
+  if (farzandlar.length === 0 && !yuklanmoqda) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Farzandim</h1>
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-medium mb-1" style={{ color: "#2B2B2B" }}>Hali farzand ulanmagan</p>
+          <p className="text-xs" style={{ color: "#8A8578" }}>Profil bo'limidan farzandingizning kodi bilan ulang.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="px-5 pt-6 pb-2">
+        <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Farzandim</h1>
+        {farzandlar.length > 1 && (
+          <div className="flex gap-2 flex-wrap mb-3">
+            {farzandlar.map((f) => (
+              <button key={f.user_id} onClick={() => setTanlanganBola(f.user_id)}
+                className="px-4 py-2 rounded-full text-sm font-medium"
+                style={tanlanganBola === f.user_id
+                  ? { backgroundColor: "#1B4B7A", color: "#fff" }
+                  : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                {f.full_name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <button onClick={() => setKorinish(korinish === "ai_yordamchi" ? "bilim" : "ai_yordamchi")}
+          className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+          {korinish === "ai_yordamchi" ? "← Bilim ma'lumotiga qaytish" : "🤖 AI Yordamchidan so'rash →"}
+        </button>
+        <button onClick={() => setKorinish(korinish === "sogliq" ? "bilim" : "sogliq")}
+          className="block text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
+          {korinish === "sogliq" ? "← Bilim ma'lumotiga qaytish" : "🚑 Favqulodda ma'lumot →"}
+        </button>
+
+        {korinish !== "ai_yordamchi" && korinish !== "sogliq" && (
+          <div className="rounded-xl px-4 py-3 mb-1 flex items-start gap-2.5" style={{ backgroundColor: "#EAF1F7" }}>
+            <span className="text-base shrink-0">💡</span>
+            <p className="text-xs" style={{ color: "#1B4B7A" }}>
+              Bu yerda farzandingizning <b>bilim darajasini</b>, har fan bo'yicha <b>ta'lim yo'lini</b> (qaysi
+              mavzular o'tilgan, qaysilari qolgan) va agar to'garakka a'zo bo'lsa — <b>to'garak yutuqlarini</b> ham
+              kuzatib borishingiz mumkin. Yana farzand qo'shish yoki ulanishni uzish uchun — Profil bo'limiga o'ting.
+            </p>
+          </div>
+        )}
+      </div>
+      {korinish === "ai_yordamchi" ? (
+        <AiYordamchiBolimi token={token} onOrtga={() => setKorinish("bilim")} />
+      ) : korinish === "sogliq" ? (
+        <div className="px-5 pb-4">
+          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+            Bu ma'lumot favqulodda holatda maktab xodimlariga tezkor ko'rinadi (sinf rahbari, rahbariyat).
+          </p>
+          <div className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Allergiyalar</label>
+            <input type="text" value={allergiyalar} onChange={(e) => setAllergiyalar(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Qon guruhi</label>
+            <input type="text" value={qonGuruhi} onChange={(e) => setQonGuruhi(e.target.value)} placeholder="masalan A+"
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Favqulodda aloqa ismi</label>
+            <input type="text" value={aloqaIsmi} onChange={(e) => setAloqaIsmi(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Favqulodda aloqa telefoni</label>
+            <input type="text" value={aloqaTelefoni} onChange={(e) => setAloqaTelefoni(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#5A5648" }}>Boshqa muhim eslatma</label>
+            <input type="text" value={boshqaEslatma} onChange={(e) => setBoshqaEslatma(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            {sogliqSaqlandi && <p className="text-xs mb-2" style={{ color: "#3B6D11" }}>✅ Saqlandi</p>}
+            <button onClick={sogliqSaqla} disabled={sogliqSaqlanmoqda}
+              className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: sogliqSaqlanmoqda ? 0.7 : 1 }}>
+              {sogliqSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+            </button>
+          </div>
+        </div>
+      ) : yuklanmoqda ? (
+        <div className="px-5 pt-10 text-center">
+          <Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} />
+        </div>
+      ) : xato ? (
+        <p className="px-5 text-sm" style={{ color: "#B0553A" }}>{xato}</p>
+      ) : tanlanganBola ? (
+        <BilimTab data={bilimData} bolaId={tanlanganBola} rang={rang} />
+      ) : null}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6) PROFIL — tahrirlash va rol almashtirish
+// ═══════════════════════════════════════════════════════════
+function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar, rang }) {
+  const profilRangi = rang || "#1B4B7A";
+  const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
+  const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
+  const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
+  const [tugilganSana, setTugilganYil] = useState(foydalanuvchi?.tugilgan_sana || "");
+  const [maktabRaqami, setMaktabRaqami] = useState(foydalanuvchi?.maktab_raqami || "");
+  const [royxatdagiMaktab, setRoyxatdagiMaktab] = useState(
+    foydalanuvchi?.maktab_id && foydalanuvchi?.maktab_nomi ? { id: foydalanuvchi.maktab_id, nomi: foydalanuvchi.maktab_nomi } : null
+  );
+  const [maktabTuri, setMaktabTuri] = useState(foydalanuvchi?.maktab_turi_kaliti || "oddiy");
+  const [sinf, setSinf] = useState(foydalanuvchi?.class ? String(foydalanuvchi.class).replace(/-sinf$/i, "") : "");
+  const [sinfHarfi, setSinfHarfi] = useState(foydalanuvchi?.class_letter || "");
+  const [jins, setJins] = useState(foydalanuvchi?.jins || "");
+  const [oqituvchiFani, setOqituvchiFani] = useState(foydalanuvchi?.oqituvchi_fani || "");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [muvaffaqiyat, setMuvaffaqiyat] = useState(false);
+  const [rolTanlov, setRolTanlov] = useState(null);
+  const [rolOzgartirilmoqda, setRolOzgartirilmoqda] = useState(false);
+  const [rolSurishNatija, setRolSurishNatija] = useState(null); // {holat, qolgan_bepul, admin_test} | "yuklanmoqda" | null
+  const [kodBosqichida, setKodBosqichida] = useState(false);
+  const [kodEmail, setKodEmail] = useState("");
+  const [kodQiymati, setKodQiymati] = useState("");
+  const [kodYuklanmoqda, setKodYuklanmoqda] = useState(false);
+  const [korinish, setKorinish] = useState("profil"); // "profil" | "rasmiy_sinf" | "kirish_kodi" | "togarak_mavzular"
+  const [tanlanganTogarak, setTanlanganTogarak] = useState(null);
+
+  const [otaKod, setOtaKod] = useState(null); // {kod, amal_qilish_daqiqasi} | null
+  const [otaKodOlinmoqda, setOtaKodOlinmoqda] = useState(false);
+  const [otaKodXato, setOtaKodXato] = useState("");
+
+  const [farzandlar, setFarzandlar] = useState([]);
+  const [farzandKodi, setFarzandKodi] = useState("");
+  const [farzandQoshilmoqda, setFarzandQoshilmoqda] = useState(false);
+  const [farzandXato, setFarzandXato] = useState("");
+  const [farzandMuvaffaqiyat, setFarzandMuvaffaqiyat] = useState("");
+
+  const farzandlarniYukla = () => {
+    fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`)
+      .then((r) => r.json())
+      .then((d) => setFarzandlar(d.farzandlar || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (foydalanuvchi?.role === "ota-ona") farzandlarniYukla();
+  }, [foydalanuvchi?.role, foydalanuvchi?.user_id]);
+
+  const farzandQoshish = async () => {
+    if (!farzandKodi.trim()) return;
+    setFarzandQoshilmoqda(true); setFarzandXato(""); setFarzandMuvaffaqiyat("");
+    try {
+      const res = await fetch(`${API_BASE}/api/ota/farzand_boglash?token=${encodeURIComponent(token)}&kod=${encodeURIComponent(farzandKodi.trim())}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setFarzandMuvaffaqiyat(data.holat === "allaqachon_ulangan" ? "Bu farzand allaqachon ulangan" : `✓ ${data.farzand_ismi} ulandi`);
+      setFarzandKodi("");
+      farzandlarniYukla();
+    } catch (e) {
+      setFarzandXato(e.message);
+    } finally { setFarzandQoshilmoqda(false); }
+  };
+
+  const farzandniUzish = async (bolaId) => {
+    try {
+      await fetch(`${API_BASE}/api/ota/farzand_uzish?token=${encodeURIComponent(token)}&farzand_id=${bolaId}`, { method: "DELETE" });
+      setFarzandlar((prev) => prev.filter((f) => f.user_id !== bolaId));
+    } catch { /* jim */ }
+  };
+
+  const otaKodOl = async () => {
+    setOtaKodOlinmoqda(true); setOtaKodXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/farzand/kod_yarat?token=${encodeURIComponent(token)}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setOtaKod(data);
+    } catch (e) {
+      setOtaKodXato(e.message);
+    } finally { setOtaKodOlinmoqda(false); }
+  };
+
+  const [togaraklarim, setTogaraklarim] = useState([]);
+  const [togaraklarYuklanmoqda, setTogaraklarYuklanmoqda] = useState(true);
+  const [qoshilishParol, setQoshilishParol] = useState("");
+  const [qoshilinmoqda, setQoshilinmoqda] = useState(false);
+  const [qoshilishXato, setQoshilishXato] = useState("");
+  const [qoshilishMuvaffaqiyat, setQoshilishMuvaffaqiyat] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/mening_togaraklarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setTogaraklarim(d.togaraklar || []); setTogaraklarYuklanmoqda(false); })
+      .catch(() => setTogaraklarYuklanmoqda(false));
+  }, [token]);
+
+  const togarakkaQoshil = async () => {
+    if (!qoshilishParol.trim()) return;
+    setQoshilinmoqda(true); setQoshilishXato(""); setQoshilishMuvaffaqiyat("");
+    try {
+      const res = await fetch(`${API_BASE}/api/togarakka_qoshil`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, parol: qoshilishParol.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setTogaraklarim((prev) => [...prev, { id: Date.now(), nomi: data.togarak_nomi, fan: "" }]);
+      setQoshilishMuvaffaqiyat(`"${data.togarak_nomi}" ga qo'shildingiz!`);
+      setQoshilishParol("");
+      setTimeout(() => setQoshilishMuvaffaqiyat(""), 3000);
+    } catch (e) {
+      setQoshilishXato(e.message);
+    } finally { setQoshilinmoqda(false); }
+  };
+
+  const profilSaqla = async () => {
+    setSaqlanmoqda(true); setXato(""); setMuvaffaqiyat(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/profil`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token, full_name: ism, region: viloyat, district: tuman,
+          tugilgan_sana: tugilganSana || undefined,
+          maktab_raqami: maktabRaqami || undefined,
+          maktab_turi: foydalanuvchi?.role === "oquvchi" ? maktabTuri : undefined,
+          sinf: foydalanuvchi?.role === "oquvchi" && sinf ? sinf : undefined,
+          sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi ? sinfHarfi : undefined,
+          jins: (foydalanuvchi?.role === "oquvchi" || foydalanuvchi?.role === "oqituvchi") && jins ? jins : undefined,
+          oqituvchi_fani: foydalanuvchi?.role === "oqituvchi" && oqituvchiFani ? oqituvchiFani : undefined,
+          maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onYangilandi({
+        ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman,
+        tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami,
+        maktab_turi_kaliti: maktabTuri, class: sinf, class_letter: sinfHarfi,
+        jins, oqituvchi_fani: oqituvchiFani,
+        maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : foydalanuvchi?.maktab_id,
+        maktab_nomi: royxatdagiMaktab ? royxatdagiMaktab.nomi : foydalanuvchi?.maktab_nomi,
+      });
+      setMuvaffaqiyat(true);
+      setTimeout(() => setMuvaffaqiyat(false), 2500);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setSaqlanmoqda(false); }
+  };
+
+  const rolModalniYop = () => {
+    setRolTanlov(null); setRolSurishNatija(null); setKodBosqichida(false);
+    setKodQiymati(""); setKodEmail(""); setXato("");
+  };
+
+  // Rol tugmasi bosilganda — darhol o'zgartirmaymiz, avval holatni so'raymiz
+  // (nechta bepul imkoniyat qolgani, yoki kod kerakligini bilish uchun).
+  const rolTanlandi = async (v) => {
+    if (v === foydalanuvchi?.role) return;
+    setRolTanlov(v);
+    setRolSurishNatija("yuklanmoqda");
+    setKodBosqichida(false); setKodQiymati(""); setKodEmail(""); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_ozgartir`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yangi_rol: v, tasdiqlayman: false }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setRolSurishNatija(data);
+      if (data.holat === "kod_kerak") setKodBosqichida(true);
+    } catch (e) {
+      setXato(e.message); setRolTanlov(null); setRolSurishNatija(null);
+    }
+  };
+
+  const rolTasdiqla = async () => {
+    setRolOzgartirilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_ozgartir`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yangi_rol: rolTanlov, tasdiqlayman: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      if (data.holat === "kod_kerak") {
+        setKodBosqichida(true);
+        await kodSora();
+      } else {
+        onYangilandi({ ...foydalanuvchi, role: rolTanlov });
+        rolModalniYop();
+      }
+    } catch (e) {
+      setXato(e.message);
+    } finally { setRolOzgartirilmoqda(false); }
+  };
+
+  const kodSora = async () => {
+    setKodYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_kod_yubor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yangi_rol: rolTanlov }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      if (data.holat === "smtp_sozlanmagan") setXato("Email yuborish hozircha sozlanmagan — administratorga murojaat qiling");
+      else setKodEmail(data.email);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setKodYuklanmoqda(false); }
+  };
+
+  const kodTasdiqla = async () => {
+    if (!kodQiymati.trim()) return;
+    setRolOzgartirilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/rol_kod_tasdiqla`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, kod: kodQiymati.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onYangilandi({ ...foydalanuvchi, role: data.yangi_rol });
+      rolModalniYop();
+    } catch (e) {
+      setXato(e.message);
+    } finally { setRolOzgartirilmoqda(false); }
+  };
+
+  const rolNomlari = { oquvchi: "O'quvchi", "ota-ona": "Ota-ona", oqituvchi: "O'qituvchi" };
+
+  if (korinish === "rasmiy_sinf") {
+    return <RasmiySinflarim token={token} onOrtga={() => setKorinish("profil")} />;
+  }
+  if (korinish === "kirish_kodi") {
+    return <KirishKodiFormasi token={token} onOrtga={() => setKorinish("profil")} />;
+  }
+  if (korinish === "togarak_mavzular") {
+    return <TogarakAzoMavzulari token={token} togarak={tanlanganTogarak} onOrtga={() => setKorinish("profil")} />;
+  }
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0" style={{ backgroundColor: profilRangi }}>
+          {(ism || "?").trim().slice(0, 1).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold truncate" style={{ color: "#2B2B2B" }}>{ism || "Profil"}</h1>
+          <p className="text-xs" style={{ color: "#8A8578" }}>
+            {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || "Foydalanuvchi"}
+            {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>👤 Shaxsiy ma'lumotlar</p>
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ism</label>
+        <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+          style={{ borderColor: "#E5E1D8" }} />
+
+        <div className="grid grid-cols-2 gap-2.5 mb-3">
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
+            <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm"
+              style={{ borderColor: "#E5E1D8" }}>
+              <option value="">—</option>
+              {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
+            <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm"
+              style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
+              <option value="">—</option>
+              {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
+        <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
+          min="1950-01-01" max={new Date().toISOString().split("T")[0]}
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+          style={{ borderColor: "#E5E1D8" }} />
+      </div>
+
+      {foydalanuvchi?.role === "oquvchi" && (
+        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🏫 Maktab ma'lumotlari</p>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            {[
+              ["oddiy", "🏫 Oddiy"], ["xususiy", "🏢 Xususiy"],
+              ["ixtisoslashgan", "⭐ IDUM"], ["prezident", "🏆 Prezident"],
+            ].map(([kalit, nom]) => (
+              <button key={kalit} type="button" onClick={() => setMaktabTuri(kalit)}
+                className="py-2 rounded-lg border text-xs font-medium text-center"
+                style={{
+                  borderColor: maktabTuri === kalit ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: maktabTuri === kalit ? "#1B4B7A" : "#FFFFFF",
+                  color: maktabTuri === kalit ? "#FFFFFF" : "#5A5648",
+                }}>
+                {nom}
+              </button>
+            ))}
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ro'yxatdagi maktab (bo'lsa — tanlang, aniqroq bo'ladi)</label>
+          <MaktabQidiruvi tanlanganMaktab={royxatdagiMaktab} onTanla={setRoyxatdagiMaktab} />
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab raqami</label>
+          <input type="text" value={maktabRaqami} onChange={(e) => setMaktabRaqami(e.target.value)}
+            placeholder="masalan: 21"
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
+            style={{ borderColor: "#E5E1D8" }} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                  <button key={n} type="button" onClick={() => setSinf(n)}
+                    className="py-2 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: sinf === n ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: sinf === n ? "#1B4B7A" : "#FFFFFF",
+                      color: sinf === n ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf harfi</label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {SINF_HARFLARI.map((h) => (
+                  <button key={h} type="button" onClick={() => setSinfHarfi(sinfHarfi === h ? "" : h)}
+                    className="py-2 rounded-lg border text-sm font-semibold text-center"
+                    style={{
+                      borderColor: sinfHarfi === h ? "#C89B3C" : "#E5E1D8",
+                      backgroundColor: sinfHarfi === h ? "#C89B3C" : "#FFFFFF",
+                      color: sinfHarfi === h ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 mt-3 block" style={{ color: "#5A5648" }}>Dizayn uchun (ixtiyoriy)</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button type="button" onClick={() => setJins(jins === "ogil" ? "" : "ogil")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "ogil" ? OGIL_RANGI : "#E5E1D8",
+                backgroundColor: jins === "ogil" ? OGIL_RANGI : "#FFFFFF",
+                color: jins === "ogil" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👦 O'g'il
+            </button>
+            <button type="button" onClick={() => setJins(jins === "qiz" ? "" : "qiz")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "qiz" ? QIZ_RANGI : "#E5E1D8",
+                backgroundColor: jins === "qiz" ? QIZ_RANGI : "#FFFFFF",
+                color: jins === "qiz" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👧 Qiz
+            </button>
+          </div>
+        </div>
+      )}
+
+      {foydalanuvchi?.role === "oqituvchi" && (
+        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>📚 O'qituvchi ma'lumotlari</p>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qaysi fanni o'qitasiz?</label>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {BARCHA_MAKTAB_FANLARI.map((f) => {
+              const bu_rang = fanRangiOl(f);
+              const tanlanganmi = oqituvchiFani === f;
+              return (
+                <button key={f} type="button" onClick={() => setOqituvchiFani(tanlanganmi ? "" : f)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border"
+                  style={{
+                    borderColor: tanlanganmi ? bu_rang : "#E5E1D8",
+                    backgroundColor: tanlanganmi ? bu_rang : "#FFFFFF",
+                    color: tanlanganmi ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {f}
+                </button>
+              );
+            })}
+          </div>
+
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Dizayn uchun (ixtiyoriy)</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button type="button" onClick={() => setJins(jins === "ogil" ? "" : "ogil")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "ogil" ? OGIL_RANGI : "#E5E1D8",
+                backgroundColor: jins === "ogil" ? OGIL_RANGI : "#FFFFFF",
+                color: jins === "ogil" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👨 Erkak
+            </button>
+            <button type="button" onClick={() => setJins(jins === "qiz" ? "" : "qiz")}
+              className="py-3 rounded-xl border-2 text-sm font-semibold text-center flex items-center justify-center gap-1.5"
+              style={{
+                borderColor: jins === "qiz" ? QIZ_RANGI : "#E5E1D8",
+                backgroundColor: jins === "qiz" ? QIZ_RANGI : "#FFFFFF",
+                color: jins === "qiz" ? "#FFFFFF" : "#5A5648",
+              }}>
+              👩 Ayol
+            </button>
+          </div>
+          {oqituvchiFani && (
+            <p className="text-xs mt-3 text-center" style={{ color: "#8A8578" }}>
+              Profilingiz "{oqituvchiFani}" rangida bezatiladi.
+            </p>
+          )}
+        </div>
+      )}
+
+      {foydalanuvchi?.role === "oqituvchi" && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <button onClick={() => setKorinish("rasmiy_sinf")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
+            🏫 Rasmiy maktab sinfim bormi? →
+          </button>
+          <button onClick={() => setKorinish("kirish_kodi")} className="block text-xs font-medium" style={{ color: "#1B4B7A" }}>
+            🔑 Maktab/markazdan kirish kodim bor →
+          </button>
+        </div>
+      )}
+
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
+
+      <button onClick={profilSaqla} disabled={saqlanmoqda}
+        className="w-full py-3 rounded-xl font-semibold text-white text-sm mb-4"
+        style={{ backgroundColor: profilRangi, opacity: saqlanmoqda ? 0.7 : 1 }}>
+        {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
+      </button>
+
+      {foydalanuvchi?.role === "oquvchi" && (
+        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🔗 Ota-onani ulash</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+            Kod oling va uni ota-onangizga ayting — u shu kodni o'z profilida kiritib, sizning bilim ko'rsatkichlaringizni ko'ra oladi.
+          </p>
+          {otaKod ? (
+            <div className="rounded-xl p-3 text-center mb-2" style={{ backgroundColor: "#EAF1F7" }}>
+              <p className="text-2xl font-bold tracking-widest mb-0.5" style={{ color: "#1B4B7A" }}>{otaKod.kod}</p>
+              <p className="text-xs" style={{ color: "#5A5648" }}>{otaKod.amal_qilish_daqiqasi} daqiqa amal qiladi</p>
+            </div>
+          ) : null}
+          {otaKodXato && <p className="text-sm mb-2" style={{ color: "#B0553A" }}>{otaKodXato}</p>}
+          <button onClick={otaKodOl} disabled={otaKodOlinmoqda}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm"
+            style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: otaKodOlinmoqda ? 0.7 : 1 }}>
+            {otaKodOlinmoqda ? "..." : otaKod ? "🔄 Yangi kod olish" : "Kod olish"}
+          </button>
+        </div>
+      )}
+
+      {foydalanuvchi?.role === "ota-ona" && (
+        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>👨‍👩‍👧 Farzandlarim</p>
+
+          {farzandlar.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {farzandlar.map((f) => (
+                <span key={f.user_id} className="flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full" style={{ backgroundColor: "#F7F5F0" }}>
+                  <span className="text-xs font-medium" style={{ color: "#5A5648" }}>{f.full_name}</span>
+                  <button onClick={() => farzandniUzish(f.user_id)}
+                    className="w-4.5 h-4.5 rounded-full flex items-center justify-center text-xs" style={{ color: "#8A8578" }} title="Uzish">✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input type="text" value={farzandKodi} onChange={(e) => setFarzandKodi(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="farzand kodi (123456)" maxLength={6}
+              className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm"
+              style={{ borderColor: "#E5E1D8" }} />
+            <button onClick={farzandQoshish} disabled={farzandQoshilmoqda || !farzandKodi.trim()}
+              className="px-4 rounded-xl font-semibold text-white text-sm shrink-0"
+              style={{ backgroundColor: "#1B4B7A", opacity: (farzandQoshilmoqda || !farzandKodi.trim()) ? 0.6 : 1 }}>
+              {farzandQoshilmoqda ? "..." : "Qo'shish"}
+            </button>
+          </div>
+          {farzandXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{farzandXato}</p>}
+          {farzandMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>{farzandMuvaffaqiyat}</p>}
+        </div>
+      )}
+
+      <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-xs font-medium mb-3" style={{ color: "#5A5648" }}>Mening to'garaklarim</p>
+
+        {togaraklarYuklanmoqda ? (
+          <Loader2 size={18} className="animate-spin" style={{ color: "#1B4B7A" }} />
+        ) : togaraklarim.length === 0 ? (
+          <p className="text-sm mb-4" style={{ color: "#8A8578" }}>Hali hech qaysi to'garakka qo'shilmagansiz.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {togaraklarim.map((t) => (
+              <button key={t.id} onClick={() => { setTanlanganTogarak(t); setKorinish("togarak_mavzular"); }}
+                className="text-xs px-3 py-1.5 rounded-full font-medium"
+                style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                {t.nomi} →
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Parol bilan qo'shilish</label>
+        <div className="flex gap-2">
+          <input type="text" value={qoshilishParol} onChange={(e) => setQoshilishParol(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && togarakkaQoshil()}
+            placeholder="to'garak paroli"
+            className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm"
+            style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={togarakkaQoshil} disabled={qoshilinmoqda}
+            className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm shrink-0"
+            style={{ backgroundColor: "#C89B3C", opacity: qoshilinmoqda ? 0.7 : 1 }}>
+            {qoshilinmoqda ? "..." : "Qo'shilish"}
+          </button>
+        </div>
+        {qoshilishXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{qoshilishXato}</p>}
+        {qoshilishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>✓ {qoshilishMuvaffaqiyat}</p>}
+      </div>
+
+      {foydalanuvchi?.is_admin ? (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>Ko'rinish rejimi (faqat siz uchun)</p>
+          <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+            Har rolni ALOHIDA-ALOHIDA sinab ko'rish uchun — bu haqiqiy rolingizni o'zgartirmaydi, faqat ko'rinishni almashtiradi.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[["admin", "🛠 Admin"], ["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
+              <button key={v} onClick={() => onKorinishOzgar(v)}
+                className="py-2.5 rounded-lg border text-xs font-medium"
+                style={{
+                  borderColor: adminKorinish === v ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: adminKorinish === v ? "#1B4B7A" : "#FFFFFF",
+                  color: adminKorinish === v ? "#FFFFFF" : "#5A5648",
+                }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-medium mb-2" style={{ color: "#5A5648" }}>Rolingiz</p>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(rolNomlari).map(([v, l]) => (
+              <button key={v} onClick={() => rolTanlandi(v)}
+                className="py-2.5 rounded-lg border text-xs font-medium"
+                style={{
+                  borderColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: foydalanuvchi?.role === v ? "#1B4B7A" : "#FFFFFF",
+                  color: foydalanuvchi?.role === v ? "#FFFFFF" : "#5A5648",
+                }}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {rolTanlov && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            {rolSurishNatija === "yuklanmoqda" ? (
+              <div className="py-4 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : kodBosqichida ? (
+              <>
+                <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>📧 Tasdiqlash kodi kerak</p>
+                <p className="text-sm mb-4" style={{ color: "#5A5648" }}>
+                  Bepul rol almashtirish imkoniyatingiz tugagan. "{rolNomlari[rolTanlov]}"ga o'zgartirish uchun
+                  Gmail hisobingizga ({kodEmail || "..."}) yuborilgan 6 xonali kodni kiriting.
+                </p>
+                {kodYuklanmoqda ? (
+                  <div className="py-2 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+                ) : (
+                  <>
+                    <input type="text" value={kodQiymati} onChange={(e) => setKodQiymati(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="123456" maxLength={6}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-center text-lg tracking-widest mb-3"
+                      style={{ borderColor: "#E5E1D8" }} />
+                    <button onClick={kodSora} className="text-xs mb-4" style={{ color: "#1B4B7A" }}>Kodni qayta yuborish</button>
+                  </>
+                )}
+                {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+                <div className="flex gap-2.5">
+                  <button onClick={rolModalniYop}
+                    className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                    Bekor qilish
+                  </button>
+                  <button onClick={kodTasdiqla} disabled={rolOzgartirilmoqda || !kodQiymati.trim()}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                    style={{ backgroundColor: "#1B4B7A", opacity: (rolOzgartirilmoqda || !kodQiymati.trim()) ? 0.6 : 1 }}>
+                    {rolOzgartirilmoqda ? "..." : "Tasdiqlash"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⚠️ Rolni o'zgartirasizmi?</p>
+                <p className="text-sm mb-3" style={{ color: "#5A5648" }}>
+                  Rolingiz "{rolNomlari[rolTanlov]}"ga o'zgaradi. Bu ko'rinadigan ma'lumot va imkoniyatlaringizga
+                  butunlay ta'sir qiladi — masalan o'quvchi test/bilim ma'lumotlari, o'qituvchi guruhlari.
+                </p>
+                {rolSurishNatija?.admin_test ? (
+                  <p className="text-xs mb-5 font-medium" style={{ color: "#2D8B8B" }}>
+                    ✓ Admin sifatida cheklovsiz sinab ko'rishingiz mumkin.
+                  </p>
+                ) : (
+                  <p className="text-xs mb-5 font-semibold p-3 rounded-xl" style={{ color: "#8A5A1C", backgroundColor: "#FDF3E3" }}>
+                    DIQQAT: rolni FAQAT 2 marta bepul o'zgartirish mumkin. Sizda {rolSurishNatija?.qolgan_bepul ?? "?"} ta
+                    bepul imkoniyat qoldi. Shundan keyin har safar Gmail orqali tasdiqlash kodi va 30 kunlik kutish talab qilinadi.
+                  </p>
+                )}
+                {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+                <div className="flex gap-2.5">
+                  <button onClick={rolModalniYop}
+                    className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                    Bekor qilish
+                  </button>
+                  <button onClick={rolTasdiqla} disabled={rolOzgartirilmoqda}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+                    {rolOzgartirilmoqda ? "..." : "Tasdiqlash"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan }) {
+  const aktivRang = rang || "#1B4B7A";
+  // DIQQAT: "admin" endi TO'LIQ ALOHIDA rejim — boshqa hech qanday rol
+  // tugmasi bilan ARALASHMAYDI. Har rejimda faqat O'SHA rolga tegishli
+  // bandlar ko'rinadi.
+  const bandlar =
+    rol === "admin"
+      ? [
+          { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
+          { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
+          { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
+          { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
+          { kalit: "profil", nom: "Profil", ikon: User },
+        ]
+      : rol === "oqituvchi"
+      ? [{ kalit: "oqituvchi", nom: "Guruhlarim", ikon: Users }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
+      : rol === "ota-ona"
+      ? [{ kalit: "farzand", nom: "Farzandim", ikon: Heart }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
+      : [
+          { kalit: "bilim", nom: "Bilim", ikon: BarChart3 },
+          { kalit: "test", nom: "Test", ikon: PencilLine },
+          { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
+          { kalit: "profil", nom: "Profil", ikon: User },
+        ];
+  return (
+    <nav className="fixed bottom-0 inset-x-0 z-30 border-t" style={{ backgroundColor: "rgba(255,255,255,0.97)", borderColor: "#E5E1D8" }}>
+      <div className="max-w-md mx-auto grid" style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(0, 1fr))` }}>
+        {bandlar.map(({ kalit, nom, ikon: Ikon }) => {
+          const aktiv = faol === kalit;
+          const taqiqlangan = bloklangan && !aktiv;
+          return (
+            <button key={kalit} onClick={() => !taqiqlangan && onTanlash(kalit)}
+              className="flex flex-col items-center gap-1 py-3 transition-colors"
+              style={{ opacity: taqiqlangan ? 0.35 : 1, cursor: taqiqlangan ? "not-allowed" : "pointer" }}
+              title={taqiqlangan ? "Avval testni yakunlang yoki to'xtating" : undefined}>
+              <Ikon size={22} strokeWidth={aktiv ? 2.5 : 2} style={{ color: aktiv ? aktivRang : "#8A8578" }} />
+              <span className="text-xs" style={{ color: aktiv ? aktivRang : "#8A8578", fontWeight: aktiv ? 600 : 400 }}>{nom}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function XabarlarTab({ token }) {
+  const [bildirishnomalar, setBildirishnomalar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/bildirishnomalar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setBildirishnomalar(d.bildirishnomalar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  const vaqtniKorsat = (izo) => {
+    const sana = new Date(izo);
+    const kunlar = Math.floor((Date.now() - sana.getTime()) / 86400000);
+    if (kunlar === 0) return "Bugun";
+    if (kunlar === 1) return "Kecha";
+    return `${kunlar} kun oldin`;
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : bildirishnomalar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha bildirishnoma yo'q.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {bildirishnomalar.map((b) => (
+            <div key={b.id} className="rounded-xl p-4 bg-white border" style={{ borderColor: b.oqildimi ? "#E5E1D8" : "#F5DFA3" }}>
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg shrink-0">{b.turi === "tolov" ? "💳" : "🔔"}</span>
+                <div className="flex-1">
+                  <p className="text-sm" style={{ color: "#2B2B2B" }}>{b.matn}</p>
+                  <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{vaqtniKorsat(b.yaratildi)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Kabinet({ token }) {
+  const [holat, setHolat] = useState("yuklanmoqda");
+  const [foydalanuvchi, setFoydalanuvchi] = useState(null);
+  const [bilimData, setBilimData] = useState(null);
+  const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
+  const [xatoMatn, setXatoMatn] = useState("");
+  // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
+  // ko'rinadigan "ko'rinish rejimi". Shu orqali admin har rolni (o'quvchi/
+  // ota-ona/o'qituvchi/admin) BIR-BIRIGA ARALASHMASDAN, to'liq alohida
+  // sinab ko'radi.
+  const [adminKorinish, setAdminKorinish] = useState("admin");
+  const [shablonOldindanTanlangan, setShablonOldindanTanlangan] = useState([]);
+  // Test yechish jarayonida (savollar ekranida) TRUE bo'ladi — shu payt
+  // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi, avval test
+  // "To'xtatish" yoki "Yakunlash" bilan yakunlanishi kerak.
+  const [testDavomida, setTestDavomida] = useState(false);
+
+  useEffect(() => {
+    async function yukla() {
+      try {
+        const resU = await fetch(`${API_BASE}/auth/men?token=${encodeURIComponent(token)}`);
+        if (!resU.ok) throw new Error("Sessiya eskirgan");
+        const u = await resU.json();
+        setFoydalanuvchi(u);
+
+        const resB = await fetch(`${API_BASE}/api/bola/${u.user_id}/bilim`);
+        const b = await resB.json();
+        setBilimData(b);
+
+        // Har rol o'ziga mos boshlang'ich sahifadan boshlaydi
+        const korinish = u.is_admin ? "admin" : u.role;
+        if (korinish === "admin") setTab("admin");
+        else if (korinish === "oqituvchi") setTab("oqituvchi");
+        else if (korinish === "ota-ona") setTab("farzand");
+        else setTab("bilim");
+
+        setHolat("tayyor");
+      } catch (e) {
+        setXatoMatn(e.message);
+        setHolat("xato");
+      }
+    }
+    yukla();
+  }, [token]);
+
+  if (holat === "yuklanmoqda") {
+    return <Qobiq><div className="text-center"><Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} /><p className="text-sm" style={{ color: "#8A8578" }}>Yuklanmoqda...</p></div></Qobiq>;
+  }
+  if (holat === "xato") {
+    return <Qobiq><div className="text-center"><WifiOff size={28} className="mx-auto mb-3" style={{ color: "#B0553A" }} /><p className="text-sm" style={{ color: "#B0553A" }}>{xatoMatn}</p></div></Qobiq>;
+  }
+
+  // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
+  const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
+  const joriyRang = joriyRangniHisobla(foydalanuvchi, korinishRoli);
+
+  const korinishOzgardi = (yangi) => {
+    setAdminKorinish(yangi);
+    setTab(yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
+  };
+
+  return (
+    <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}
+      {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin_mavzular" && (
+        <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
+      )}
+      {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} foydalanuvchi={foydalanuvchi} />}
+      {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} token={token} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
+        <TestTab token={token} sinf={foydalanuvchi?.class} onTestFaollik={setTestDavomida} />
+      )}
+      {tab === "xabar" && <XabarlarTab token={token} />}
+      {tab === "profil" && (
+        <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
+          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
+      )}
+      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida} />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ASOSIY — URL manziliga qarab qaysi ekranni ko'rsatishni hal qiladi
+// ═══════════════════════════════════════════════════════════
+export default function App() {
+  const [token, setToken] = useState(null);
+  const [yol] = useState(() => {
+    const p = window.location.pathname;
+    const q = new URLSearchParams(window.location.search);
+    return { p, token: q.get("token"), email: q.get("email"), ism: q.get("ism") };
+  });
+
+  if (token) return <Kabinet token={token} />;
+  if (yol.p === "/kabinet" && yol.token) return <Kabinet token={yol.token} />;
+  if (yol.p === "/ulash" && yol.email) return <UlashEkrani email={yol.email} ism={yol.ism} onUlandi={setToken} />;
+  return <LoginEkrani />;
+}
