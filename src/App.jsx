@@ -7464,9 +7464,17 @@ function RejalarimBolimi({ token, onOrtga }) {
   const [yangiFanTanlash, setYangiFanTanlash] = useState(true); // true=ro'yxatdan, false=o'zi yozadi
   const [yangiFan, setYangiFan] = useState("");
   const [yangiFanMatni, setYangiFanMatni] = useState("");
+  const [meningFanlarim, setMeningFanlarim] = useState([]); // avval o'zi yozgan fanlar — qayta yozib adashmasin
   const [yangiMavzular, setYangiMavzular] = useState("");
   const [yaratilmoqda, setYaratilmoqda] = useState(false);
   const [yaratishProgress, setYaratishProgress] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/mening_fanlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMeningFanlarim(d.fanlar || []))
+      .catch(() => {});
+  }, [token]);
 
   const yukla = () => {
     setYuklanmoqda(true);
@@ -7594,6 +7602,24 @@ function RejalarimBolimi({ token, onOrtga }) {
             </>
           ) : (
             <>
+              {meningFanlarim.length > 0 && (
+                <>
+                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan fanlar:</p>
+                  <div className="flex gap-1.5 flex-wrap mb-2">
+                    {meningFanlarim.map((f) => (
+                      <button key={f} type="button" onClick={() => setYangiFanMatni(f)}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-medium"
+                        style={{
+                          borderColor: yangiFanMatni === f ? "#1B4B7A" : "#E5E1D8",
+                          backgroundColor: yangiFanMatni === f ? "#1B4B7A" : "#FFFFFF",
+                          color: yangiFanMatni === f ? "#FFFFFF" : "#5A5648",
+                        }}>
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
               <input type="text" value={yangiFanMatni} onChange={(e) => setYangiFanMatni(e.target.value)}
                 placeholder="Bitta so'z, masalan: Robototexnika"
                 className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
@@ -7665,6 +7691,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiFan, setYangiFan] = useState("");
   const [yangiFanOzicha, setYangiFanOzicha] = useState(false); // true bo'lsa o'qituvchi ro'yxatda yo'q fanni o'zi yozadi
+  const [meningFanlarim, setMeningFanlarim] = useState([]); // avval o'zi yozgan fanlar — qayta yozib adashmasin
   const [yangiSinf, setYangiSinf] = useState("");         // "1".."11"
   const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false); // true bo'lsa to'garak guruhi (masalan "3-4")
   const [yangiSinfMatni, setYangiSinfMatni] = useState(""); // tanlangan to'garak sinfi (masalan "3-4")
@@ -7768,6 +7795,13 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setMuassasalar(d.muassasalar || []))
+      .catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/mening_fanlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMeningFanlarim(d.fanlar || []))
       .catch(() => {});
   }, [token]);
 
@@ -8009,6 +8043,24 @@ function OqituvchiTab({ token, foydalanuvchi }) {
             <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Avval sinfni tanlang</p>
           ) : yangiFanOzicha ? (
             <>
+              {meningFanlarim.length > 0 && (
+                <>
+                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan fanlar:</p>
+                  <div className="flex gap-1.5 flex-wrap mb-2">
+                    {meningFanlarim.map((f) => (
+                      <button key={f} type="button" onClick={() => setYangiFan(f)}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-medium"
+                        style={{
+                          borderColor: yangiFan === f ? "#1B4B7A" : "#E5E1D8",
+                          backgroundColor: yangiFan === f ? "#1B4B7A" : "#FFFFFF",
+                          color: yangiFan === f ? "#FFFFFF" : "#5A5648",
+                        }}>
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
               <input type="text" value={yangiFan} onChange={(e) => setYangiFan(e.target.value)}
                 placeholder="Bitta so'z, masalan: Robototexnika"
                 className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
