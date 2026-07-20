@@ -7461,6 +7461,7 @@ function RejalarimBolimi({ token, onOrtga }) {
   const [yangiSinf, setYangiSinf] = useState("");
   const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false);
   const [yangiSinfMatni, setYangiSinfMatni] = useState("");
+  const [meningSinflarim, setMeningSinflarim] = useState([]); // avval o'zi yozgan maxsus sinflar — qayta yozib adashmasin
   const [yangiFanTanlash, setYangiFanTanlash] = useState(true); // true=ro'yxatdan, false=o'zi yozadi
   const [yangiFan, setYangiFan] = useState("");
   const [yangiFanMatni, setYangiFanMatni] = useState("");
@@ -7473,6 +7474,10 @@ function RejalarimBolimi({ token, onOrtga }) {
     fetch(`${API_BASE}/api/oqituvchi/mening_fanlarim?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setMeningFanlarim(d.fanlar || []))
+      .catch(() => {});
+    fetch(`${API_BASE}/api/oqituvchi/mening_sinflarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMeningSinflarim(d.sinflar || []))
       .catch(() => {});
   }, [token]);
 
@@ -7569,6 +7574,24 @@ function RejalarimBolimi({ token, onOrtga }) {
             </>
           ) : (
             <>
+              {meningSinflarim.length > 0 && (
+                <>
+                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan guruhlar:</p>
+                  <div className="flex gap-1.5 flex-wrap mb-2">
+                    {meningSinflarim.map((s) => (
+                      <button key={s} type="button" onClick={() => setYangiSinfMatni(s)}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-medium"
+                        style={{
+                          borderColor: yangiSinfMatni === s ? "#1B4B7A" : "#E5E1D8",
+                          backgroundColor: yangiSinfMatni === s ? "#1B4B7A" : "#FFFFFF",
+                          color: yangiSinfMatni === s ? "#FFFFFF" : "#5A5648",
+                        }}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
               <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
                 placeholder="masalan: Abituriyent, 0-sinf, Fizikani takrorlash"
                 className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
@@ -7695,6 +7718,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [yangiSinf, setYangiSinf] = useState("");         // "1".."11"
   const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false); // true bo'lsa to'garak guruhi (masalan "3-4")
   const [yangiSinfMatni, setYangiSinfMatni] = useState(""); // tanlangan to'garak sinfi (masalan "3-4")
+  const [meningSinflarim, setMeningSinflarim] = useState([]); // avval o'zi yozgan maxsus sinflar — qayta yozib adashmasin
   const [togarakSinflari, setTogarakSinflari] = useState([]); // mavjud to'garak sinflari ro'yxati
   const [togarakSinflariYuklanmoqda, setTogarakSinflariYuklanmoqda] = useState(false);
   const [sinfFanlari, setSinfFanlari] = useState([]); // tanlangan sinf uchun MAVJUD fanlar ro'yxati
@@ -7802,6 +7826,10 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     fetch(`${API_BASE}/api/oqituvchi/mening_fanlarim?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setMeningFanlarim(d.fanlar || []))
+      .catch(() => {});
+    fetch(`${API_BASE}/api/oqituvchi/mening_sinflarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setMeningSinflarim(d.sinflar || []))
       .catch(() => {});
   }, [token]);
 
@@ -8024,8 +8052,26 @@ function OqituvchiTab({ token, foydalanuvchi }) {
                   ))}
                 </div>
               ) : null}
+              {meningSinflarim.filter((s) => !togarakSinflari.includes(s)).length > 0 && (
+                <>
+                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan guruhlar:</p>
+                  <div className="flex gap-1.5 flex-wrap mb-2">
+                    {meningSinflarim.filter((s) => !togarakSinflari.includes(s)).map((s) => (
+                      <button key={s} type="button" onClick={() => setYangiSinfMatni(s)}
+                        className="px-3 py-2 rounded-lg border text-sm font-medium"
+                        style={{
+                          borderColor: yangiSinfMatni === s ? "#1B4B7A" : "#E5E1D8",
+                          backgroundColor: yangiSinfMatni === s ? "#1B4B7A" : "#FFFFFF",
+                          color: yangiSinfMatni === s ? "#FFFFFF" : "#5A5648",
+                        }}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
               <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
-                {togarakSinflari.length > 0 ? "yoki yangi guruh nomi kiriting" : "Guruh nomini kiriting"}
+                {(togarakSinflari.length > 0 || meningSinflarim.length > 0) ? "yoki yangi guruh nomi kiriting" : "Guruh nomini kiriting"}
               </label>
               <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
                 placeholder="masalan: Abituriyent, 3-4, IDUM tayyorlov"
