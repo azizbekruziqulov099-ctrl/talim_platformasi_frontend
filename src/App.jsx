@@ -7136,6 +7136,10 @@ function RejaDetali({ token, rejaId, onOrtga }) {
   const [yangiMavzuNomi, setYangiMavzuNomi] = useState("");
   const [yangiMavzuBob, setYangiMavzuBob] = useState("");
   const [yangiMavzuYaratilmoqda, setYangiMavzuYaratilmoqda] = useState(false);
+  const [kopMavzuRejimi, setKopMavzuRejimi] = useState(false);
+  const [kopMavzuMatni, setKopMavzuMatni] = useState("");
+  const [kopMavzuYaratilmoqda, setKopMavzuYaratilmoqda] = useState(false);
+  const [kopMavzuProgress, setKopMavzuProgress] = useState("");
 
   const yukla = () => {
     setYuklanmoqda(true);
@@ -7206,6 +7210,27 @@ function RejaDetali({ token, rejaId, onOrtga }) {
     } catch (e) { setXato(e.message); } finally { setYangiMavzuYaratilmoqda(false); }
   };
 
+  const kopMavzuYarat = async () => {
+    const nomlar = kopMavzuMatni.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (nomlar.length === 0) { setXato("Kamida bitta mavzu nomi yozing"); return; }
+    setKopMavzuYaratilmoqda(true); setXato("");
+    try {
+      for (let i = 0; i < nomlar.length; i++) {
+        setKopMavzuProgress(`${i + 1} / ${nomlar.length}: ${nomlar[i]}`);
+        // eslint-disable-next-line no-await-in-loop
+        const res = await fetch(`${API_BASE}/api/oqituvchi/reja_yangi_mavzu_yarat`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, reja_id: rejaId, nomi: nomlar[i] }),
+        });
+        // eslint-disable-next-line no-await-in-loop
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(`"${nomlar[i]}" qo'shilmadi: ${data.detail || "xato"}`);
+      }
+      setKopMavzuMatni(""); setKopMavzuRejimi(false); setYangiMavzuOchiq(false);
+      yukla();
+    } catch (e) { setXato(e.message); } finally { setKopMavzuYaratilmoqda(false); setKopMavzuProgress(""); }
+  };
+
   const olibTashla = async (qatorId) => {
     await fetch(`${API_BASE}/api/oqituvchi/reja_mavzu_ochir?token=${encodeURIComponent(token)}&reja_id=${rejaId}&qator_id=${qatorId}`, { method: "DELETE" });
     yukla();
@@ -7243,18 +7268,49 @@ function RejaDetali({ token, rejaId, onOrtga }) {
       {yangiMavzuOchiq && (
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Milliy bazada mos mavzu topilmasa — shu yerda nomini yozib, o'zingiz qo'shing.</p>
-          <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
-            placeholder="Bob nomi (ixtiyoriy)"
-            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
-          <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
-            placeholder="Mavzu nomi"
-            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-          <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
-            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
-            {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Ketma-ketlikka qo'shish"}
-          </button>
+          <div className="flex gap-1.5 mb-3">
+            <button type="button" onClick={() => setKopMavzuRejimi(false)}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={!kopMavzuRejimi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              Bittalab
+            </button>
+            <button type="button" onClick={() => setKopMavzuRejimi(true)}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={kopMavzuRejimi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              Bir nechtasini birdan
+            </button>
+          </div>
+
+          {kopMavzuRejimi ? (
+            <>
+              <p className="text-xs mb-2" style={{ color: "#8A8578" }}>Har bir mavzuni YANGI qatorga yozing — tartib bilan qo'shiladi.</p>
+              <textarea value={kopMavzuMatni} onChange={(e) => setKopMavzuMatni(e.target.value)}
+                placeholder={"1-mavzu nomi\n2-mavzu nomi\n3-mavzu nomi\n..."} rows={8}
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={kopMavzuYarat} disabled={kopMavzuYaratilmoqda || !kopMavzuMatni.trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#1B4B7A", opacity: (kopMavzuYaratilmoqda || !kopMavzuMatni.trim()) ? 0.6 : 1 }}>
+                {kopMavzuYaratilmoqda
+                  ? <><Loader2 size={16} className="animate-spin" /> {kopMavzuProgress}</>
+                  : `+ Barchasini qo'shish (${kopMavzuMatni.split("\n").map((s) => s.trim()).filter(Boolean).length} ta)`}
+              </button>
+            </>
+          ) : (
+            <>
+              <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
+                placeholder="Bob nomi (ixtiyoriy)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+              <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
+                placeholder="Mavzu nomi"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
+                {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Ketma-ketlikka qo'shish"}
+              </button>
+            </>
+          )}
         </div>
       )}
 
