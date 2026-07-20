@@ -7460,6 +7460,7 @@ function RejalarimBolimi({ token, onOrtga }) {
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiSinf, setYangiSinf] = useState("");
   const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false);
+  const [yangiSinfTuri, setYangiSinfTuri] = useState("guruh"); // "guruh" (bog'cha) | "grupa" (universitet/markaz)
   const [yangiSinfMatni, setYangiSinfMatni] = useState("");
   const [meningSinflarim, setMeningSinflarim] = useState([]); // avval o'zi yozgan maxsus sinflar — qayta yozib adashmasin
   const [yangiFanTanlash, setYangiFanTanlash] = useState(true); // true=ro'yxatdan, false=o'zi yozadi
@@ -7551,32 +7552,43 @@ function RejalarimBolimi({ token, onOrtga }) {
             placeholder="masalan: 9-sinf Algebra dasturi"
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
 
-          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf / Guruh / Grupa</label>
+          <div className="flex gap-1.5 mb-2">
+            <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={!yangiMaxsusSinf ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🏫 Sinf
+            </button>
+            <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("guruh"); setYangiSinf(""); }}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "guruh") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🧸 Guruh
+            </button>
+            <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("grupa"); setYangiSinf(""); }}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "grupa") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🎓 Grupa
+            </button>
+          </div>
           {!yangiMaxsusSinf ? (
-            <>
-              <div className="grid grid-cols-6 gap-1.5 mb-2">
-                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
-                  <button key={n} type="button" onClick={() => setYangiSinf(n)}
-                    className="py-2 rounded-lg border text-sm font-semibold text-center"
-                    style={{
-                      borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
-                      backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
-                      color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
-                    }}>
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinf(""); }}
-                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
-                Maxsus guruh (Abituriyent, 0-sinf va h.k.) →
-              </button>
-            </>
+            <div className="grid grid-cols-6 gap-1.5 mb-3">
+              {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                <button key={n} type="button" onClick={() => setYangiSinf(n)}
+                  className="py-2 rounded-lg border text-sm font-semibold text-center"
+                  style={{
+                    borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
+                    backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
+                    color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {n}
+                </button>
+              ))}
+            </div>
           ) : (
             <>
               {meningSinflarim.length > 0 && (
                 <>
-                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan guruhlar:</p>
+                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan {yangiSinfTuri === "grupa" ? "grupalar" : "guruhlar"}:</p>
                   <div className="flex gap-1.5 flex-wrap mb-2">
                     {meningSinflarim.map((s) => (
                       <button key={s} type="button" onClick={() => setYangiSinfMatni(s)}
@@ -7593,12 +7605,8 @@ function RejalarimBolimi({ token, onOrtga }) {
                 </>
               )}
               <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
-                placeholder="masalan: Abituriyent, 0-sinf, Fizikani takrorlash"
-                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
-              <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
-                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
-                ← Oddiy sinf tanlashga qaytish
-              </button>
+                placeholder={yangiSinfTuri === "grupa" ? "masalan: 205-guruh, 3-kurs" : "masalan: Kichik guruh, Abituriyent"}
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
             </>
           )}
 
@@ -7717,6 +7725,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [meningFanlarim, setMeningFanlarim] = useState([]); // avval o'zi yozgan fanlar — qayta yozib adashmasin
   const [yangiSinf, setYangiSinf] = useState("");         // "1".."11"
   const [yangiMaxsusSinf, setYangiMaxsusSinf] = useState(false); // true bo'lsa to'garak guruhi (masalan "3-4")
+  const [yangiSinfTuri, setYangiSinfTuri] = useState("guruh"); // "guruh" (bog'cha) | "grupa" (universitet/markaz)
   const [yangiSinfMatni, setYangiSinfMatni] = useState(""); // tanlangan to'garak sinfi (masalan "3-4")
   const [meningSinflarim, setMeningSinflarim] = useState([]); // avval o'zi yozgan maxsus sinflar — qayta yozib adashmasin
   const [togarakSinflari, setTogarakSinflari] = useState([]); // mavjud to'garak sinflari ro'yxati
@@ -8007,32 +8016,38 @@ function OqituvchiTab({ token, foydalanuvchi }) {
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
             style={{ borderColor: "#E5E1D8" }} />
 
-          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf / Guruh / Grupa</label>
+          <div className="flex gap-1.5 mb-2">
+            <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
+              className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
+              style={!yangiMaxsusSinf ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🏫 Sinf
+            </button>
+            <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("guruh"); setYangiSinf(""); }}
+              className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "guruh") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🧸 Guruh
+            </button>
+            <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("grupa"); setYangiSinf(""); }}
+              className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "grupa") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              🎓 Grupa
+            </button>
+          </div>
           {!yangiMaxsusSinf ? (
-            <>
-              <div className="grid grid-cols-6 gap-1.5 mb-3">
-                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
-                  <button key={n} type="button" onClick={() => setYangiSinf(n)}
-                    className="py-2.5 rounded-lg border text-sm font-semibold text-center"
-                    style={{
-                      borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
-                      backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
-                      color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
-                    }}>
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinf(""); }}
-                className="w-full rounded-xl p-3.5 mb-3 flex items-center gap-3 text-left border-2 border-dashed"
-                style={{ borderColor: "#C4BFAF", backgroundColor: "#FAF9F6" }}>
-                <span className="text-xl shrink-0">📚</span>
-                <span>
-                  <span className="text-sm font-semibold block" style={{ color: "#2B2B2B" }}>Bu — oddiy sinf emas</span>
-                  <span className="text-xs" style={{ color: "#8A8578" }}>Abituriyent, aralash guruh (3-4) va h.k. — bosing</span>
-                </span>
-              </button>
-            </>
+            <div className="grid grid-cols-6 gap-1.5 mb-3">
+              {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                <button key={n} type="button" onClick={() => setYangiSinf(n)}
+                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
+                  style={{
+                    borderColor: yangiSinf === n ? "#1B4B7A" : "#E5E1D8",
+                    backgroundColor: yangiSinf === n ? "#1B4B7A" : "#FFFFFF",
+                    color: yangiSinf === n ? "#FFFFFF" : "#5A5648",
+                  }}>
+                  {n}
+                </button>
+              ))}
+            </div>
           ) : (
             <>
               {togarakSinflariYuklanmoqda ? (
@@ -8054,7 +8069,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
               ) : null}
               {meningSinflarim.filter((s) => !togarakSinflari.includes(s)).length > 0 && (
                 <>
-                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan guruhlar:</p>
+                  <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>Avval o'zingiz yozgan {yangiSinfTuri === "grupa" ? "grupalar" : "guruhlar"}:</p>
                   <div className="flex gap-1.5 flex-wrap mb-2">
                     {meningSinflarim.filter((s) => !togarakSinflari.includes(s)).map((s) => (
                       <button key={s} type="button" onClick={() => setYangiSinfMatni(s)}
@@ -8071,16 +8086,12 @@ function OqituvchiTab({ token, foydalanuvchi }) {
                 </>
               )}
               <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
-                {(togarakSinflari.length > 0 || meningSinflarim.length > 0) ? "yoki yangi guruh nomi kiriting" : "Guruh nomini kiriting"}
+                {(togarakSinflari.length > 0 || meningSinflarim.length > 0) ? `yoki yangi ${yangiSinfTuri === "grupa" ? "grupa" : "guruh"} nomi kiriting` : `${yangiSinfTuri === "grupa" ? "Grupa" : "Guruh"} nomini kiriting`}
               </label>
               <input type="text" value={yangiSinfMatni} onChange={(e) => setYangiSinfMatni(e.target.value)}
-                placeholder="masalan: Abituriyent, 3-4, IDUM tayyorlov"
-                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2"
+                placeholder={yangiSinfTuri === "grupa" ? "masalan: 205-guruh, 3-kurs" : "masalan: Abituriyent, 3-4, IDUM tayyorlov"}
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
                 style={{ borderColor: "#E5E1D8" }} />
-              <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
-                className="text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
-                ← Oddiy sinf tanlashga qaytish
-              </button>
             </>
           )}
 
