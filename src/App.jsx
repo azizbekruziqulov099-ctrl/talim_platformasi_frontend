@@ -5,6 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import {
   ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
+  Flame, Star, CalendarCheck, Trophy,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -785,6 +786,20 @@ function TogarakYoli({ bolaId, togarakId, onYopish }) {
   );
 }
 
+function StatKartochka({ ikon, qiymat, yorliq, rang, fon }) {
+  return (
+    <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: fon }}>
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white">
+        {React.cloneElement(ikon, { color: rang })}
+      </div>
+      <div className="min-w-0">
+        <p className="text-base font-bold leading-tight truncate" style={{ color: rang }}>{qiymat}</p>
+        <p className="text-xs leading-tight truncate" style={{ color: "#8A8578" }}>{yorliq}</p>
+      </div>
+    </div>
+  );
+}
+
 function FanBolimi({ fan, onBosildi }) {
   return (
     <button onClick={onBosildi}
@@ -922,6 +937,23 @@ function BilimTab({ data, bolaId, rang, token }) {
         </div>
       </div>
       <div className="px-5 -mt-3 pb-4 space-y-3">
+        <div className="rounded-2xl p-3.5 bg-white border shadow-sm" style={{ borderColor: "#E5E1D8" }}>
+          <div className="grid grid-cols-2 gap-2.5">
+            <StatKartochka ikon={<Flame size={18} />} rang="#C89B3C" fon="#FDF3E0"
+              qiymat={haftalik ? (haftalik.ketma_ket_kun > 0 ? haftalik.ketma_ket_kun : "0") : "—"}
+              yorliq="kun ketma-ket" />
+            <StatKartochka ikon={<BookOpen size={18} />} rang="#1B4B7A" fon="#EAF1F7"
+              qiymat={data.jami_mavzu > 0 ? `${data.otilgan_mavzu}/${data.jami_mavzu}` : "0"}
+              yorliq="mavzu o'rganilgan" />
+            <StatKartochka ikon={<CalendarCheck size={18} />} rang="#3B6D11" fon="#EAF3DE"
+              qiymat={davomat && davomat.jami_kun > 0 ? `${Math.round((davomat.keldi / davomat.jami_kun) * 100)}%` : "—"}
+              yorliq="davomat (30 kun)" />
+            <StatKartochka ikon={<Users size={18} />} rang="#8B5FBF" fon="#F3EEFA"
+              qiymat={mengaTogaraklarim.length}
+              yorliq="faol to'garak" />
+          </div>
+        </div>
+
         {mosSinf && (
           <div className="rounded-2xl p-4 border mb-1" style={{ backgroundColor: "#EAF1F7", borderColor: "#1B4B7A" }}>
             <p className="text-sm font-bold mb-1" style={{ color: "#1B4B7A" }}>🏫 Sinfingiz topildi!</p>
