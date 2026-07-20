@@ -5446,6 +5446,10 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
   const [yangiMavzuNomi, setYangiMavzuNomi] = useState("");
   const [yangiMavzuBob, setYangiMavzuBob] = useState("");
   const [yangiMavzuYaratilmoqda, setYangiMavzuYaratilmoqda] = useState(false);
+  const [kopMavzuRejimi, setKopMavzuRejimi] = useState(false);
+  const [kopMavzuMatni, setKopMavzuMatni] = useState("");
+  const [kopMavzuYaratilmoqda, setKopMavzuYaratilmoqda] = useState(false);
+  const [kopMavzuProgress, setKopMavzuProgress] = useState("");
 
   const mavzularniYukla = () => {
     setYuklanmoqda(true);
@@ -5623,6 +5627,27 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
     } catch (e) { setXato(e.message); } finally { setYangiMavzuYaratilmoqda(false); }
   };
 
+  const kopMavzuYarat = async () => {
+    const nomlar = kopMavzuMatni.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (nomlar.length === 0) { setXato("Kamida bitta mavzu nomi yozing"); return; }
+    setKopMavzuYaratilmoqda(true); setXato("");
+    try {
+      for (let i = 0; i < nomlar.length; i++) {
+        setKopMavzuProgress(`${i + 1} / ${nomlar.length}: ${nomlar[i]}`);
+        // eslint-disable-next-line no-await-in-loop
+        const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_yangi_mavzu_yarat`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, togarak_id: togarakId, nomi: nomlar[i] }),
+        });
+        // eslint-disable-next-line no-await-in-loop
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(`"${nomlar[i]}" qo'shilmadi: ${data.detail || "xato"}`);
+      }
+      setKopMavzuMatni(""); setKopMavzuRejimi(false); setYangiMavzuOchiq(false);
+      mavzularniYukla();
+    } catch (e) { setXato(e.message); } finally { setKopMavzuYaratilmoqda(false); setKopMavzuProgress(""); }
+  };
+
   const KONTENT_YORLIQ = { matn: "📝 Matn", latex: "🧮 LaTeX", rasm: "🖼 Rasm", pdf: "📄 PDF", word: "📃 Word", video: "🎬 Video" };
 
   if (tanlanganMavzu) {
@@ -5722,18 +5747,49 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
           <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
             Milliy bazada mos mavzu topilmasa (masalan yangi maxsus guruh uchun) — shu yerda nomini yozib, o'zingiz qo'shing. Kod avtomatik yaratiladi.
           </p>
-          <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
-            placeholder="Bob nomi (ixtiyoriy)"
-            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
-          <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
-            placeholder="Mavzu nomi"
-            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-          <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
-            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
-            {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Mavzu qo'shish"}
-          </button>
+          <div className="flex gap-1.5 mb-3">
+            <button type="button" onClick={() => setKopMavzuRejimi(false)}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={!kopMavzuRejimi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              Bittalab
+            </button>
+            <button type="button" onClick={() => setKopMavzuRejimi(true)}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold"
+              style={kopMavzuRejimi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              Bir nechtasini birdan
+            </button>
+          </div>
+
+          {kopMavzuRejimi ? (
+            <>
+              <p className="text-xs mb-2" style={{ color: "#8A8578" }}>Har bir mavzuni YANGI qatorga yozing.</p>
+              <textarea value={kopMavzuMatni} onChange={(e) => setKopMavzuMatni(e.target.value)}
+                placeholder={"1-mavzu nomi\n2-mavzu nomi\n3-mavzu nomi\n..."} rows={8}
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={kopMavzuYarat} disabled={kopMavzuYaratilmoqda || !kopMavzuMatni.trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#1B4B7A", opacity: (kopMavzuYaratilmoqda || !kopMavzuMatni.trim()) ? 0.6 : 1 }}>
+                {kopMavzuYaratilmoqda
+                  ? <><Loader2 size={16} className="animate-spin" /> {kopMavzuProgress}</>
+                  : `+ Barchasini qo'shish (${kopMavzuMatni.split("\n").map((s) => s.trim()).filter(Boolean).length} ta)`}
+              </button>
+            </>
+          ) : (
+            <>
+              <input type="text" value={yangiMavzuBob} onChange={(e) => setYangiMavzuBob(e.target.value)}
+                placeholder="Bob nomi (ixtiyoriy)"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
+              <input type="text" value={yangiMavzuNomi} onChange={(e) => setYangiMavzuNomi(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && yangiMavzuYarat()}
+                placeholder="Mavzu nomi"
+                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+              <button onClick={yangiMavzuYarat} disabled={yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#1B4B7A", opacity: (yangiMavzuYaratilmoqda || !yangiMavzuNomi.trim()) ? 0.6 : 1 }}>
+                {yangiMavzuYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "+ Mavzu qo'shish"}
+              </button>
+            </>
+          )}
           {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
         </div>
       )}
@@ -7398,7 +7454,9 @@ function RejalarimBolimi({ token, onOrtga }) {
   const [yangiFanTanlash, setYangiFanTanlash] = useState(true); // true=ro'yxatdan, false=o'zi yozadi
   const [yangiFan, setYangiFan] = useState("");
   const [yangiFanMatni, setYangiFanMatni] = useState("");
+  const [yangiMavzular, setYangiMavzular] = useState("");
   const [yaratilmoqda, setYaratilmoqda] = useState(false);
+  const [yaratishProgress, setYaratishProgress] = useState("");
 
   const yukla = () => {
     setYuklanmoqda(true);
@@ -7420,6 +7478,7 @@ function RejalarimBolimi({ token, onOrtga }) {
     if (!sinfQiymati) { setXato("Sinfni tanlang"); return; }
     if (!fanQiymati) { setXato("Fanni tanlang yoki yozing"); return; }
     if (fanQiymati.trim().split(/\s+/).length > 1) { setXato("Fan nomi bitta so'zdan oshmasligi kerak"); return; }
+    const mavzuNomlari = yangiMavzular.split("\n").map((s) => s.trim()).filter(Boolean);
     setYaratilmoqda(true); setXato("");
     try {
       const res = await fetch(`${API_BASE}/api/oqituvchi/reja_yarat`, {
@@ -7428,10 +7487,21 @@ function RejalarimBolimi({ token, onOrtga }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
+      const rejaId = data.reja_id;
+      for (let i = 0; i < mavzuNomlari.length; i++) {
+        setYaratishProgress(`Mavzular qo'shilmoqda: ${i + 1} / ${mavzuNomlari.length}`);
+        // eslint-disable-next-line no-await-in-loop
+        const mres = await fetch(`${API_BASE}/api/oqituvchi/reja_yangi_mavzu_yarat`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, reja_id: rejaId, nomi: mavzuNomlari[i] }),
+        });
+        // eslint-disable-next-line no-await-in-loop
+        if (!mres.ok) { const md = await mres.json().catch(() => ({})); throw new Error(`"${mavzuNomlari[i]}" qo'shilmadi: ${md.detail || "xato"}`); }
+      }
       setYangiNomi(""); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
-      setYangiFan(""); setYangiFanMatni(""); setFormOchiq(false);
-      setTanlanganRejaId(data.reja_id);
-    } catch (e) { setXato(e.message); } finally { setYaratilmoqda(false); }
+      setYangiFan(""); setYangiFanMatni(""); setYangiMavzular(""); setFormOchiq(false);
+      setTanlanganRejaId(rejaId);
+    } catch (e) { setXato(e.message); } finally { setYaratilmoqda(false); setYaratishProgress(""); }
   };
 
   if (tanlanganRejaId) {
@@ -7524,11 +7594,20 @@ function RejalarimBolimi({ token, onOrtga }) {
             </>
           )}
 
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
+            Mavzular (har birini yangi qatorga yozing — tartib bilan qo'shiladi, ixtiyoriy)
+          </label>
+          <textarea value={yangiMavzular} onChange={(e) => setYangiMavzular(e.target.value)}
+            placeholder={"1-mavzu nomi\n2-mavzu nomi\n3-mavzu nomi\n..."} rows={8}
+            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3 font-mono" style={{ borderColor: "#E5E1D8" }} />
+
           {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
           <button onClick={rejaYarat} disabled={yaratilmoqda}
             className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
             style={{ backgroundColor: "#1B4B7A", opacity: yaratilmoqda ? 0.7 : 1 }}>
-            {yaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "Rejani yaratish va mavzu qo'shishga o'tish"}
+            {yaratilmoqda
+              ? <><Loader2 size={16} className="animate-spin" /> {yaratishProgress || "Yaratilmoqda..."}</>
+              : "Rejani yaratish"}
           </button>
         </div>
       )}
