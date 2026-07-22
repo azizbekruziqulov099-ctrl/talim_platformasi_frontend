@@ -5582,6 +5582,44 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
     return nomi.includes(mavzuQidiruv.trim().toLowerCase());
   });
 
+  const kunKartasiChiqar = (haftaKuni, keng) => {
+    const d = new Date(boshlanish);
+    d.setDate(d.getDate() + (haftaKuni - 1));
+    const sana = _sanaFmt(d);
+    const darsKunimi = darsKunlari.includes(haftaKuni);
+    const s = sanalar.find((x) => x.sana === sana);
+    const bugunmi = sana === _sanaFmt(new Date());
+
+    if (!darsKunimi) {
+      return (
+        <div key={sana} className={`rounded-xl px-3 py-2.5 ${keng ? "flex items-center gap-2" : ""}`} style={{ backgroundColor: "#F7F5F0" }}>
+          <p className="text-xs font-medium" style={{ color: "#B0AA98" }}>{keng ? HAFTA_KUN_TOLIQ[haftaKuni] : HAFTA_KUN_QISQA[haftaKuni]}, {d.getDate()}</p>
+          <p className="text-[11px] italic" style={{ color: "#C4BFAF" }}>dars yo'q</p>
+        </div>
+      );
+    }
+    return (
+      <button key={sana} onClick={() => sanaBosildi(sana)}
+        className={`w-full rounded-xl bg-white border text-left ${keng ? "flex items-center gap-3.5 p-3.5" : "p-3"}`}
+        style={{ borderColor: bugunmi ? "#1B4B7A" : "#E5E1D8", borderWidth: bugunmi ? 2 : 1 }}>
+        <div className={`rounded-lg flex items-center justify-center shrink-0 ${keng ? "w-12 h-12 flex-col gap-0" : "w-full mb-1.5 py-1.5 gap-1.5"}`}
+          style={{ backgroundColor: s?.mavzu_nomi ? "#EAF3DE" : "#EAF1F7" }}>
+          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: s?.mavzu_nomi ? "#3B6D11" : "#1B4B7A" }}>{HAFTA_KUN_QISQA[haftaKuni]}</span>
+          <span className={`font-bold leading-tight ${keng ? "text-base" : "text-sm"}`} style={{ color: s?.mavzu_nomi ? "#3B6D11" : "#1B4B7A" }}>{d.getDate()}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          {!keng && <p className="text-[10px] font-medium mb-0.5" style={{ color: "#8A8578" }}>{bugunmi ? "bugun" : "\u00A0"}</p>}
+          {keng && <p className="text-[11px] font-medium mb-0.5" style={{ color: "#8A8578" }}>{HAFTA_KUN_TOLIQ[haftaKuni]}{bugunmi ? " · bugun" : ""}</p>}
+          {s?.mavzu_nomi ? (
+            <p className={`font-semibold truncate ${keng ? "text-sm" : "text-xs"}`} style={{ color: "#2B2B2B" }}>{s.mavzu_nomi}</p>
+          ) : (
+            <p className={`font-medium ${keng ? "text-sm" : "text-xs"}`} style={{ color: "#C89B3C" }}>+ Tanlash</p>
+          )}
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className="px-5 pt-6 pb-4">
       <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
@@ -5667,44 +5705,15 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
             <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
           ) : korinishTuri === "hafta" ? (
             <div className="space-y-2">
-              {Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(boshlanish);
-                d.setDate(d.getDate() + i);
-                const haftaKuni = i + 1; // 1=Dushanba...7=Yakshanba
-                const sana = _sanaFmt(d);
-                const darsKunimi = darsKunlari.includes(haftaKuni);
-                const s = sanalar.find((x) => x.sana === sana);
-                const bugunmi = sana === _sanaFmt(new Date());
-
-                if (!darsKunimi) {
-                  return (
-                    <div key={sana} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2" style={{ backgroundColor: "#F7F5F0" }}>
-                      <span className="text-xs w-24 shrink-0" style={{ color: "#B0AA98" }}>{HAFTA_KUN_TOLIQ[haftaKuni]}, {d.getDate()}-{OY_NOMLARI[d.getMonth()].slice(0, 3)}</span>
-                      <span className="text-xs italic" style={{ color: "#C4BFAF" }}>dars yo'q</span>
-                    </div>
-                  );
-                }
-                return (
-                  <button key={sana} onClick={() => sanaBosildi(sana)}
-                    className="w-full flex items-center gap-3.5 rounded-2xl p-4 bg-white border text-left"
-                    style={{ borderColor: bugunmi ? "#1B4B7A" : "#E5E1D8", borderWidth: bugunmi ? 2 : 1 }}>
-                    <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0"
-                      style={{ backgroundColor: s?.mavzu_nomi ? "#EAF3DE" : "#EAF1F7" }}>
-                      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: s?.mavzu_nomi ? "#3B6D11" : "#1B4B7A" }}>{HAFTA_KUN_QISQA[haftaKuni]}</span>
-                      <span className="text-lg font-bold leading-tight" style={{ color: s?.mavzu_nomi ? "#3B6D11" : "#1B4B7A" }}>{d.getDate()}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-medium mb-0.5" style={{ color: "#8A8578" }}>{HAFTA_KUN_TOLIQ[haftaKuni]}{bugunmi ? " · bugun" : ""}</p>
-                      {s?.mavzu_nomi ? (
-                        <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{s.mavzu_nomi}</p>
-                      ) : (
-                        <p className="text-sm font-medium" style={{ color: "#C89B3C" }}>+ Mavzu tanlash</p>
-                      )}
-                    </div>
-                    <ChevronRight size={18} className="shrink-0" style={{ color: "#8A8578" }} />
-                  </button>
-                );
-              })}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  {[1, 3, 5].map((hk) => kunKartasiChiqar(hk, false))}
+                </div>
+                <div className="space-y-2">
+                  {[2, 4, 6].map((hk) => kunKartasiChiqar(hk, false))}
+                </div>
+              </div>
+              {kunKartasiChiqar(7, true)}
             </div>
           ) : (
             <div className="rounded-2xl bg-white border p-3.5" style={{ borderColor: "#E5E1D8" }}>
