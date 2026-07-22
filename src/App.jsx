@@ -8627,6 +8627,31 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
 function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar, rang }) {
   const profilRangi = rang || "#1B4B7A";
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
+  const [rasmVersiyasi, setRasmVersiyasi] = useState(0); // yuklangach rasmni qayta so'ratish uchun
+  const [rasmYuklanmoqda, setRasmYuklanmoqda] = useState(false);
+  const [rasmXato, setRasmXato] = useState("");
+  const rasmInputRef = useRef(null);
+  const otaOnaKartaRef = useRef(null);
+
+  const rasmTanlandi = async (e) => {
+    const fayl = e.target.files?.[0];
+    if (!fayl) return;
+    setRasmYuklanmoqda(true); setRasmXato("");
+    try {
+      const forma = new FormData();
+      forma.append("fayl", fayl);
+      const res = await fetch(`${API_BASE}/api/profil_rasm_yukla?token=${encodeURIComponent(token)}`, {
+        method: "POST", body: forma,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      onYangilandi({ ...foydalanuvchi, rasm_bormi: true });
+      setRasmVersiyasi((v) => v + 1);
+    } catch (err) {
+      setRasmXato(err.message);
+    } finally { setRasmYuklanmoqda(false); }
+  };
+
   const [viloyat, setViloyat] = useState(foydalanuvchi?.region || "");
   const [tuman, setTuman] = useState(foydalanuvchi?.district || "");
   const [tugilganSana, setTugilganYil] = useState(foydalanuvchi?.tugilgan_sana || "");
@@ -8635,6 +8660,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
     foydalanuvchi?.maktab_id && foydalanuvchi?.maktab_nomi ? { id: foydalanuvchi.maktab_id, nomi: foydalanuvchi.maktab_nomi } : null
   );
   const [maktabTuri, setMaktabTuri] = useState(foydalanuvchi?.maktab_turi_kaliti || "oddiy");
+  const [sinfSozlamalariOchiq, setSinfSozlamalariOchiq] = useState(false);
   const [sinf, setSinf] = useState(foydalanuvchi?.class ? String(foydalanuvchi.class).replace(/-sinf$/i, "") : "");
   const [sinfHarfi, setSinfHarfi] = useState(foydalanuvchi?.class_letter || "");
   const [jins, setJins] = useState(foydalanuvchi?.jins || "");
@@ -8885,18 +8911,40 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0" style={{ backgroundColor: profilRangi }}>
-          {(ism || "?").trim().slice(0, 1).toUpperCase()}
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-3 min-w-0">
+          <button type="button" onClick={() => rasmInputRef.current?.click()} disabled={rasmYuklanmoqda}
+            className="relative w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0 overflow-hidden"
+            style={{ backgroundColor: profilRangi }}>
+            {foydalanuvchi?.rasm_bormi ? (
+              <img src={`${API_BASE}/api/profil_rasm/${foydalanuvchi.user_id}?v=${rasmVersiyasi}`} alt="" className="w-full h-full object-cover" />
+            ) : (ism || "?").trim().slice(0, 1).toUpperCase()}
+            <span className="absolute bottom-0 inset-x-0 text-center text-[9px] font-semibold py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.45)", color: "#fff" }}>
+              {rasmYuklanmoqda ? "..." : "✏️"}
+            </span>
+          </button>
+          <input ref={rasmInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={rasmTanlandi} className="hidden" />
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold truncate" style={{ color: "#2B2B2B" }}>{ism || "Profil"}</h1>
+            <p className="text-xs" style={{ color: "#8A8578" }}>
+              {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || "Foydalanuvchi"}
+              {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold truncate" style={{ color: "#2B2B2B" }}>{ism || "Profil"}</h1>
-          <p className="text-xs" style={{ color: "#8A8578" }}>
-            {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || "Foydalanuvchi"}
-            {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
-          </p>
-        </div>
+        {foydalanuvchi?.role === "oquvchi" && (
+          <button type="button" onClick={() => otaOnaKartaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border shrink-0" style={{ borderColor: "#E5E1D8" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shrink-0" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+              {otaOnalarim[0]?.rasm_bormi ? (
+                <img src={`${API_BASE}/api/profil_rasm/${otaOnalarim[0].user_id}`} alt="" className="w-full h-full object-cover" />
+              ) : otaOnalarim[0] ? otaOnalarim[0].full_name.trim().slice(0, 1).toUpperCase() : "👤"}
+            </span>
+            <span className="text-xs font-medium" style={{ color: "#1B4B7A" }}>{otaOnalarim[0] ? otaOnalarim[0].full_name.split(" ")[0] : "Ulash"}</span>
+          </button>
+        )}
       </div>
+      {rasmXato && <p className="text-xs mb-3" style={{ color: "#B0553A" }}>{rasmXato}</p>}
 
       <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>👤 Shaxsiy ma'lumotlar</p>
@@ -8940,22 +8988,70 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🏫 Maktab ma'lumotlari</p>
 
-          <div className="grid grid-cols-2 gap-2.5 mb-3">
-            {[
-              ["oddiy", "🏫 Oddiy"], ["xususiy", "🏢 Xususiy"],
-              ["ixtisoslashgan", "⭐ IDUM"], ["prezident", "🏆 Prezident"],
-            ].map(([kalit, nom]) => (
-              <button key={kalit} type="button" onClick={() => setMaktabTuri(kalit)}
-                className="py-2 rounded-lg border text-xs font-medium text-center"
-                style={{
-                  borderColor: maktabTuri === kalit ? "#1B4B7A" : "#E5E1D8",
-                  backgroundColor: maktabTuri === kalit ? "#1B4B7A" : "#FFFFFF",
-                  color: maktabTuri === kalit ? "#FFFFFF" : "#5A5648",
-                }}>
-                {nom}
-              </button>
-            ))}
-          </div>
+          <button type="button" onClick={() => setSinfSozlamalariOchiq(!sinfSozlamalariOchiq)}
+            className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 mb-3" style={{ backgroundColor: "#F7F5F0" }}>
+            <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>
+              {[["oddiy", "🏫 Oddiy"], ["xususiy", "🏢 Xususiy"], ["ixtisoslashgan", "⭐ IDUM"], ["prezident", "🏆 Prezident"]].find(([k]) => k === maktabTuri)?.[1] || "Maktab turi"}
+              {sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : " · sinf tanlanmagan"}
+            </span>
+            <ChevronDown size={16} className="shrink-0 transition-transform" style={{ color: "#8A8578", transform: sinfSozlamalariOchiq ? "rotate(180deg)" : "none" }} />
+          </button>
+
+          {sinfSozlamalariOchiq && (
+            <>
+              <div className="grid grid-cols-2 gap-2.5 mb-3">
+                {[
+                  ["oddiy", "🏫 Oddiy"], ["xususiy", "🏢 Xususiy"],
+                  ["ixtisoslashgan", "⭐ IDUM"], ["prezident", "🏆 Prezident"],
+                ].map(([kalit, nom]) => (
+                  <button key={kalit} type="button" onClick={() => setMaktabTuri(kalit)}
+                    className="py-2 rounded-lg border text-xs font-medium text-center"
+                    style={{
+                      borderColor: maktabTuri === kalit ? "#1B4B7A" : "#E5E1D8",
+                      backgroundColor: maktabTuri === kalit ? "#1B4B7A" : "#FFFFFF",
+                      color: maktabTuri === kalit ? "#FFFFFF" : "#5A5648",
+                    }}>
+                    {nom}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
+                      <button key={n} type="button" onClick={() => setSinf(n)}
+                        className="py-2 rounded-lg border text-sm font-semibold text-center"
+                        style={{
+                          borderColor: sinf === n ? "#1B4B7A" : "#E5E1D8",
+                          backgroundColor: sinf === n ? "#1B4B7A" : "#FFFFFF",
+                          color: sinf === n ? "#FFFFFF" : "#5A5648",
+                        }}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf harfi</label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {SINF_HARFLARI.map((h) => (
+                      <button key={h} type="button" onClick={() => setSinfHarfi(sinfHarfi === h ? "" : h)}
+                        className="py-2 rounded-lg border text-sm font-semibold text-center"
+                        style={{
+                          borderColor: sinfHarfi === h ? "#C89B3C" : "#E5E1D8",
+                          backgroundColor: sinfHarfi === h ? "#C89B3C" : "#FFFFFF",
+                          color: sinfHarfi === h ? "#FFFFFF" : "#5A5648",
+                        }}>
+                        {h}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ro'yxatdagi maktab (bo'lsa — tanlang, aniqroq bo'ladi)</label>
           <MaktabQidiruvi tanlanganMaktab={royxatdagiMaktab} onTanla={setRoyxatdagiMaktab} />
@@ -8965,41 +9061,6 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
             placeholder="masalan: 21"
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
             style={{ borderColor: "#E5E1D8" }} />
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {Array.from({ length: 11 }, (_, i) => String(i + 1)).map((n) => (
-                  <button key={n} type="button" onClick={() => setSinf(n)}
-                    className="py-2 rounded-lg border text-sm font-semibold text-center"
-                    style={{
-                      borderColor: sinf === n ? "#1B4B7A" : "#E5E1D8",
-                      backgroundColor: sinf === n ? "#1B4B7A" : "#FFFFFF",
-                      color: sinf === n ? "#FFFFFF" : "#5A5648",
-                    }}>
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf harfi</label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {SINF_HARFLARI.map((h) => (
-                  <button key={h} type="button" onClick={() => setSinfHarfi(sinfHarfi === h ? "" : h)}
-                    className="py-2 rounded-lg border text-sm font-semibold text-center"
-                    style={{
-                      borderColor: sinfHarfi === h ? "#C89B3C" : "#E5E1D8",
-                      backgroundColor: sinfHarfi === h ? "#C89B3C" : "#FFFFFF",
-                      color: sinfHarfi === h ? "#FFFFFF" : "#5A5648",
-                    }}>
-                    {h}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
 
           <label className="text-xs font-medium mb-1.5 mt-3 block" style={{ color: "#5A5648" }}>Dizayn uchun (ixtiyoriy)</label>
           <div className="grid grid-cols-2 gap-2.5">
@@ -9098,7 +9159,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       </button>
 
       {foydalanuvchi?.role === "oquvchi" && (
-        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <div ref={otaOnaKartaRef} className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🔗 Ota-onani ulash</p>
           {otaOnalarim.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2 mt-2">
