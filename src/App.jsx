@@ -5667,58 +5667,96 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
             <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
           ) : korinishTuri === "hafta" ? (
             <div className="space-y-2">
-              {sanalar.map((s) => {
-                const [, , kun] = s.sana.split("-");
+              {Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(boshlanish);
+                d.setDate(d.getDate() + i);
+                const haftaKuni = i + 1; // 1=Dushanba...7=Yakshanba
+                const sana = _sanaFmt(d);
+                const darsKunimi = darsKunlari.includes(haftaKuni);
+                const s = sanalar.find((x) => x.sana === sana);
+                const bugunmi = sana === _sanaFmt(new Date());
+
+                if (!darsKunimi) {
+                  return (
+                    <div key={sana} className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2" style={{ backgroundColor: "#F7F5F0" }}>
+                      <span className="text-xs w-24 shrink-0" style={{ color: "#B0AA98" }}>{HAFTA_KUN_TOLIQ[haftaKuni]}, {d.getDate()}-{OY_NOMLARI[d.getMonth()].slice(0, 3)}</span>
+                      <span className="text-xs italic" style={{ color: "#C4BFAF" }}>dars yo'q</span>
+                    </div>
+                  );
+                }
                 return (
-                  <button key={s.sana} onClick={() => sanaBosildi(s.sana)}
-                    className="w-full flex items-center gap-3 rounded-xl p-3.5 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
-                    <div className="w-11 h-11 rounded-lg flex flex-col items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}>
-                      <span className="text-[10px] font-medium" style={{ color: "#1B4B7A" }}>{HAFTA_KUN_QISQA[s.hafta_kuni]}</span>
-                      <span className="text-sm font-bold" style={{ color: "#1B4B7A" }}>{kun}</span>
+                  <button key={sana} onClick={() => sanaBosildi(sana)}
+                    className="w-full flex items-center gap-3.5 rounded-2xl p-4 bg-white border text-left"
+                    style={{ borderColor: bugunmi ? "#1B4B7A" : "#E5E1D8", borderWidth: bugunmi ? 2 : 1 }}>
+                    <div className="w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0"
+                      style={{ backgroundColor: s?.mavzu_nomi ? "#EAF3DE" : "#EAF1F7" }}>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: s?.mavzu_nomi ? "#3B6D11" : "#1B4B7A" }}>{HAFTA_KUN_QISQA[haftaKuni]}</span>
+                      <span className="text-lg font-bold leading-tight" style={{ color: s?.mavzu_nomi ? "#3B6D11" : "#1B4B7A" }}>{d.getDate()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      {s.mavzu_nomi ? (
-                        <p className="text-sm font-medium truncate" style={{ color: "#2B2B2B" }}>{s.mavzu_nomi}</p>
+                      <p className="text-[11px] font-medium mb-0.5" style={{ color: "#8A8578" }}>{HAFTA_KUN_TOLIQ[haftaKuni]}{bugunmi ? " · bugun" : ""}</p>
+                      {s?.mavzu_nomi ? (
+                        <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{s.mavzu_nomi}</p>
                       ) : (
-                        <p className="text-sm" style={{ color: "#B0AA98" }}>+ Mavzu tanlash</p>
+                        <p className="text-sm font-medium" style={{ color: "#C89B3C" }}>+ Mavzu tanlash</p>
                       )}
                     </div>
-                    <ChevronRight size={16} className="shrink-0" style={{ color: "#8A8578" }} />
+                    <ChevronRight size={18} className="shrink-0" style={{ color: "#8A8578" }} />
                   </button>
                 );
               })}
-              {sanalar.length === 0 && (
-                <p className="text-sm text-center py-6" style={{ color: "#8A8578" }}>Bu haftada dars kuni yo'q.</p>
-              )}
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-1">
-              {["Du", "Se", "Cho", "Pa", "Ju", "Sh", "Ya"].map((q) => (
-                <p key={q} className="text-[10px] text-center font-medium py-1" style={{ color: "#8A8578" }}>{q}</p>
-              ))}
-              {(() => {
-                const oyBoshi = new Date(ankor.getFullYear(), ankor.getMonth(), 1);
-                const boshiKun = oyBoshi.getDay() === 0 ? 7 : oyBoshi.getDay();
-                const boshlangichBosh = [];
-                for (let i = 1; i < boshiKun; i++) boshlangichBosh.push(<div key={`b${i}`} />);
-                const sanaMap = Object.fromEntries(sanalar.map((s) => [s.sana, s]));
-                const kunlar = [];
-                const jamiKun = new Date(ankor.getFullYear(), ankor.getMonth() + 1, 0).getDate();
-                for (let kun = 1; kun <= jamiKun; kun++) {
-                  const d = new Date(ankor.getFullYear(), ankor.getMonth(), kun);
-                  const key = _sanaFmt(d);
-                  const s = sanaMap[key];
-                  kunlar.push(
-                    <button key={key} onClick={() => s && sanaBosildi(key)} disabled={!s}
-                      className="aspect-square rounded-lg flex flex-col items-center justify-center text-xs p-0.5"
-                      style={s ? { backgroundColor: s.mavzu_nomi ? "#EAF3DE" : "#FDF3E0", color: s.mavzu_nomi ? "#3B6D11" : "#8A5A1C" } : { color: "#C4BFAF" }}>
-                      <span className="font-semibold">{kun}</span>
-                      {s && <span className="text-[8px]">{s.mavzu_nomi ? "✓" : "?"}</span>}
-                    </button>,
-                  );
-                }
-                return [...boshlangichBosh, ...kunlar];
-              })()}
+            <div className="rounded-2xl bg-white border p-3.5" style={{ borderColor: "#E5E1D8" }}>
+              <div className="grid grid-cols-7 mb-1.5">
+                {[1, 2, 3, 4, 5, 6, 7].map((k) => (
+                  <p key={k} className="text-[11px] text-center font-semibold" style={{ color: darsKunlari.includes(k) ? "#1B4B7A" : "#C4BFAF" }}>
+                    {HAFTA_KUN_QISQA[k]}
+                  </p>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {(() => {
+                  const oyBoshi = new Date(ankor.getFullYear(), ankor.getMonth(), 1);
+                  const boshiKun = oyBoshi.getDay() === 0 ? 7 : oyBoshi.getDay();
+                  const boshlangichBosh = [];
+                  for (let i = 1; i < boshiKun; i++) boshlangichBosh.push(<div key={`b${i}`} />);
+                  const sanaMap = Object.fromEntries(sanalar.map((s) => [s.sana, s]));
+                  const bugunKey = _sanaFmt(new Date());
+                  const kunlar = [];
+                  const jamiKun = new Date(ankor.getFullYear(), ankor.getMonth() + 1, 0).getDate();
+                  for (let kun = 1; kun <= jamiKun; kun++) {
+                    const d = new Date(ankor.getFullYear(), ankor.getMonth(), kun);
+                    const key = _sanaFmt(d);
+                    const s = sanaMap[key];
+                    const haftaKuni = d.getDay() === 0 ? 7 : d.getDay();
+                    const darsKunimi = darsKunlari.includes(haftaKuni);
+                    const bugunmi = key === bugunKey;
+                    kunlar.push(
+                      <button key={key} onClick={() => darsKunimi && sanaBosildi(key)} disabled={!darsKunimi}
+                        className="aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 relative"
+                        style={
+                          !darsKunimi ? { color: "#C4BFAF" }
+                          : s?.mavzu_nomi ? { backgroundColor: "#3B6D11", color: "#FFFFFF" }
+                          : { backgroundColor: "#FDF3E0", color: "#8A5A1C", border: "1.5px dashed #C89B3C" }
+                        }>
+                        {bugunmi && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: darsKunimi ? "#FFFFFF" : "#1B4B7A" }} />}
+                        <span className="text-sm font-bold">{kun}</span>
+                        {darsKunimi && <span className="text-[13px] leading-none">{s?.mavzu_nomi ? "✓" : "·"}</span>}
+                      </button>,
+                    );
+                  }
+                  return [...boshlangichBosh, ...kunlar];
+                })()}
+              </div>
+              <div className="flex items-center gap-4 mt-3.5 pt-3 border-t" style={{ borderColor: "#F0EDE5" }}>
+                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "#5A5648" }}>
+                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#3B6D11" }} /> Mavzu bor
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "#5A5648" }}>
+                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#FDF3E0", border: "1.5px dashed #C89B3C" }} /> Bo'sh
+                </span>
+              </div>
             </div>
           )}
         </>
