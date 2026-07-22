@@ -10179,43 +10179,50 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   }
 
   return (
-    <div className="px-5 pt-6 pb-4">
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <div className="flex items-center gap-3 min-w-0">
-          <button type="button" onClick={() => rasmInputRef.current?.click()} disabled={rasmYuklanmoqda}
-            className="relative w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shrink-0 overflow-hidden"
-            style={{ backgroundColor: profilRangi }}>
-            {foydalanuvchi?.rasm_bormi ? (
-              <img src={`${API_BASE}/api/profil_rasm/${foydalanuvchi.user_id}?v=${rasmVersiyasi}`} alt="" className="w-full h-full object-cover" />
-            ) : (ism || "?").trim().slice(0, 1).toUpperCase()}
-            <span className="absolute bottom-0 inset-x-0 text-center text-[9px] font-semibold py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.45)", color: "#fff" }}>
-              {rasmYuklanmoqda ? "..." : "✏️"}
-            </span>
-          </button>
-          <input ref={rasmInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={rasmTanlandi} className="hidden" />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold truncate" style={{ color: "#2B2B2B" }}>{ism || "Profil"}</h1>
-            <p className="text-xs" style={{ color: "#8A8578" }}>
-              {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || "Foydalanuvchi"}
-              {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
-            </p>
+    <div className="pb-4">
+      <div className="relative px-5 pt-8 pb-12 mb-3 overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${profilRangi} 0%, ${profilRangi}CC 100%)` }}>
+        <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
+        <div className="absolute right-10 bottom-0 w-16 h-16 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <button type="button" onClick={() => rasmInputRef.current?.click()} disabled={rasmYuklanmoqda}
+              className="relative w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl shrink-0 overflow-hidden"
+              style={{ backgroundColor: "rgba(255,255,255,0.18)", color: "#fff", border: "2px solid rgba(255,255,255,0.35)" }}>
+              {foydalanuvchi?.rasm_bormi ? (
+                <img src={`${API_BASE}/api/profil_rasm/${foydalanuvchi.user_id}?v=${rasmVersiyasi}`} alt="" className="w-full h-full object-cover" />
+              ) : (ism || "?").trim().slice(0, 1).toUpperCase()}
+              <span className="absolute bottom-0 inset-x-0 text-center text-[9px] font-semibold py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.4)", color: "#fff" }}>
+                {rasmYuklanmoqda ? "..." : "✏️"}
+              </span>
+            </button>
+            <input ref={rasmInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={rasmTanlandi} className="hidden" />
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold truncate" style={{ color: "#fff" }}>{ism || "Profil"}</h1>
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
+                {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || "Foydalanuvchi"}
+                {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
+              </p>
+            </div>
           </div>
+          {foydalanuvchi?.role === "oquvchi" && (
+            <button type="button" onClick={() => otaOnaKartaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.18)" }}>
+              <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.9)", color: profilRangi }}>
+                {otaOnalarim[0]?.rasm_bormi ? (
+                  <img src={`${API_BASE}/api/profil_rasm/${otaOnalarim[0].user_id}`} alt="" className="w-full h-full object-cover" />
+                ) : otaOnalarim[0] ? otaOnalarim[0].full_name.trim().slice(0, 1).toUpperCase() : "👤"}
+              </span>
+              <span className="text-xs font-medium" style={{ color: "#fff" }}>{otaOnalarim[0] ? otaOnalarim[0].full_name.split(" ")[0] : "Ulash"}</span>
+            </button>
+          )}
         </div>
-        {foydalanuvchi?.role === "oquvchi" && (
-          <button type="button" onClick={() => otaOnaKartaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border shrink-0" style={{ borderColor: "#E5E1D8" }}>
-            <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden shrink-0" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-              {otaOnalarim[0]?.rasm_bormi ? (
-                <img src={`${API_BASE}/api/profil_rasm/${otaOnalarim[0].user_id}`} alt="" className="w-full h-full object-cover" />
-              ) : otaOnalarim[0] ? otaOnalarim[0].full_name.trim().slice(0, 1).toUpperCase() : "👤"}
-            </span>
-            <span className="text-xs font-medium" style={{ color: "#1B4B7A" }}>{otaOnalarim[0] ? otaOnalarim[0].full_name.split(" ")[0] : "Ulash"}</span>
-          </button>
-        )}
       </div>
+
+      <div className="px-5 -mt-8">
       {rasmXato && <p className="text-xs mb-3" style={{ color: "#B0553A" }}>{rasmXato}</p>}
 
-      <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+      <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>👤 Shaxsiy ma'lumotlar</p>
 
         <div className="grid grid-cols-2 gap-2.5">
@@ -10254,7 +10261,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       </div>
 
       {foydalanuvchi?.role === "oquvchi" && (
-        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🏫 Maktab ma'lumotlari</p>
 
           <button type="button" onClick={() => setSinfSozlamalariOchiq(!sinfSozlamalariOchiq)}
@@ -10356,7 +10363,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       )}
 
       {foydalanuvchi?.role === "oqituvchi" && (
-        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>📚 O'qituvchi ma'lumotlari</p>
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Qaysi fanni o'qitasiz?</label>
@@ -10408,7 +10415,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       )}
 
       {foydalanuvchi?.role === "oqituvchi" && (
-        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <button onClick={() => setKorinish("rasmiy_sinf")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
             🏫 Rasmiy maktab sinfim bormi? →
           </button>
@@ -10428,7 +10435,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       </button>
 
       {foydalanuvchi?.role === "oquvchi" && (
-        <div ref={otaOnaKartaRef} className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <div ref={otaOnaKartaRef} className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🔗 Ota-onani ulash</p>
           {otaOnalarim.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2 mt-2">
@@ -10458,7 +10465,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       )}
 
       {foydalanuvchi?.role === "ota-ona" && (
-        <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>👨‍👩‍👧 Farzandlarim</p>
 
           {farzandlar.length > 0 && (
@@ -10489,7 +10496,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         </div>
       )}
 
-      <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+      <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-medium mb-3" style={{ color: "#5A5648" }}>Mening to'garaklarim</p>
 
         {togaraklarYuklanmoqda ? (
@@ -10526,7 +10533,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       </div>
 
       {foydalanuvchi?.is_admin ? (
-        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>Ko'rinish rejimi (faqat siz uchun)</p>
           <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
             Har rolni ALOHIDA-ALOHIDA sinab ko'rish uchun — bu haqiqiy rolingizni o'zgartirmaydi, faqat ko'rinishni almashtiradi.
@@ -10546,7 +10553,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-medium mb-2" style={{ color: "#5A5648" }}>Rolingiz</p>
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(rolNomlari).map(([v, l]) => (
@@ -10633,6 +10640,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
