@@ -5,7 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import {
   ChevronRight, ChevronDown, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
-  Flame, Star, CalendarCheck, Trophy,
+  Flame, Star, CalendarCheck, Trophy, Building2,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -8960,7 +8960,7 @@ function RejalarimBolimi({ token, onOrtga }) {
   );
 }
 
-function OqituvchiTab({ token, foydalanuvchi }) {
+function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
   const [tanlangan, setTanlangan] = useState(null);
@@ -8973,6 +8973,15 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [korinish, setKorinish] = useState("togarak"); // "togarak" | to'garak guruhlarimi yoki maxsus ekranmi
   const [muassasalar, setMuassasalar] = useState([]);
   const [aktivMuassasaIdx, setAktivMuassasaIdx] = useState(0);
+
+  // Pastki menyudan ("Maktabim"/"Bog'cham"/"Universitetim"/"Markazim")
+  // to'g'ridan-to'g'ri kelgan bo'lsa — o'sha ekranga o'tamiz. "vaqt"
+  // maydoni — bir xil ekran ketma-ket ikki marta bosilsa ham qayta
+  // ishga tushishi uchun (aks holda useEffect qayta chaqirilmas edi).
+  useEffect(() => {
+    if (boshlanishKorinishi?.korinish) setKorinish(boshlanishKorinishi.korinish);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boshlanishKorinishi?.vaqt]);
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiTuri, setYangiTuri] = useState("oddiy"); // "oddiy" | "avto"
@@ -10628,7 +10637,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   );
 }
 
-function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan }) {
+function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan, qoshimchaBand }) {
   const aktivRang = rang || "#1B4B7A";
   // DIQQAT: "admin" endi TO'LIQ ALOHIDA rejim — boshqa hech qanday rol
   // tugmasi bilan ARALASHMAYDI. Har rejimda faqat O'SHA rolga tegishli
@@ -10643,7 +10652,12 @@ function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan }) {
           { kalit: "profil", nom: "Profil", ikon: User },
         ]
       : rol === "oqituvchi"
-      ? [{ kalit: "oqituvchi", nom: "To'garaklarim", ikon: Users }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
+      ? [
+          { kalit: "oqituvchi", nom: "To'garaklarim", ikon: Users },
+          ...(qoshimchaBand ? [qoshimchaBand] : []),
+          { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
+          { kalit: "profil", nom: "Profil", ikon: User },
+        ]
       : rol === "ota-ona"
       ? [{ kalit: "farzand", nom: "Farzandim", ikon: Heart }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
       : [
@@ -10726,6 +10740,8 @@ function Kabinet({ token }) {
   const [bilimData, setBilimData] = useState(null);
   const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
   const [xatoMatn, setXatoMatn] = useState("");
+  const [muassasalarim, setMuassasalarim] = useState([]);
+  const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
   // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
   // ko'rinadigan "ko'rinish rejimi". Shu orqali admin har rolni (o'quvchi/
   // ota-ona/o'qituvchi/admin) BIR-BIRIGA ARALASHMASDAN, to'liq alohida
@@ -10748,6 +10764,13 @@ function Kabinet({ token }) {
         const resB = await fetch(`${API_BASE}/api/bola/${u.user_id}/bilim`);
         const b = await resB.json();
         setBilimData(b);
+
+        if (u.role === "oqituvchi" && !u.is_admin) {
+          fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
+            .then((r) => r.json())
+            .then((d) => setMuassasalarim(d.muassasalar || []))
+            .catch(() => {});
+        }
 
         // Har rol o'ziga mos boshlang'ich sahifadan boshlaydi
         const korinish = u.is_admin ? "admin" : u.role;
@@ -10776,6 +10799,31 @@ function Kabinet({ token }) {
   const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
   const joriyRang = joriyRangniHisobla(foydalanuvchi, korinishRoli);
 
+  // O'qituvchining pastki menyusiga MUASSASA turiga qarab moslashuvchan
+  // 1 ta qo'shimcha tugma — "Maktabim"/"Bog'cham"/"Universitetim"/
+  // "Markazim" (rahbariyat bo'lsa — boshqaruv ekraniga, oddiy xodim
+  // bo'lsa — o'z guruhi/sinfiga olib boradi).
+  const MUASSASA_LABELLARI = {
+    maktab: { nom: "Maktabim", korinish: "maktab_rahbariyat" },
+    bogcha: { nom: "Bog'cham", korinish: "bogcha" },
+    universitet: { nom: "Universitetim", korinish: "universitet" },
+    markaz: { nom: "Markazim", korinish: "markaz" },
+  };
+  const birinchiMuassasa = muassasalarim[0];
+  const muassasaBandi = birinchiMuassasa && MUASSASA_LABELLARI[birinchiMuassasa.turi]
+    ? { kalit: "oqituvchi_muassasa", nom: MUASSASA_LABELLARI[birinchiMuassasa.turi].nom, ikon: Building2, korinish: MUASSASA_LABELLARI[birinchiMuassasa.turi].korinish }
+    : null;
+
+  const tabTanlandi = (yangiTab) => {
+    if (yangiTab === "oqituvchi_muassasa" && muassasaBandi) {
+      setOqituvchiBoshlanishKorinishi({ korinish: muassasaBandi.korinish, vaqt: Date.now() });
+      setTab("oqituvchi");
+    } else {
+      if (yangiTab === "oqituvchi") setOqituvchiBoshlanishKorinishi({ korinish: "togarak", vaqt: Date.now() });
+      setTab(yangiTab);
+    }
+  };
+
   const korinishOzgardi = (yangi) => {
     setAdminKorinish(yangi);
     setTab(yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
@@ -10788,7 +10836,9 @@ function Kabinet({ token }) {
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
       )}
-      {korinishRoli === "oqituvchi" && tab === "oqituvchi" && <OqituvchiTab token={token} foydalanuvchi={foydalanuvchi} />}
+      {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
+        <OqituvchiTab token={token} foydalanuvchi={foydalanuvchi} boshlanishKorinishi={oqituvchiBoshlanishKorinishi} />
+      )}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && <BilimTab data={bilimData} bolaId={foydalanuvchi?.user_id} rang={joriyRang} token={token} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
@@ -10799,7 +10849,8 @@ function Kabinet({ token }) {
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
       )}
-      <PastkiMenyu faol={tab} onTanlash={setTab} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida} />
+      <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : tab}
+        onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida} qoshimchaBand={muassasaBandi} />
     </div>
   );
 }
