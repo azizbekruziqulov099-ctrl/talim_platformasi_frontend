@@ -5571,12 +5571,139 @@ function MeningKalendarim({ token, togarak, onOrtga, onMavzuOchish }) {
   );
 }
 
+function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
+  const [videolar, setVideolar] = useState([]);
+  const [misollar, setMisollar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [ochilganYechimlar, setOchilganYechimlar] = useState({});
+  const [ochilganVideoSoniya, setOchilganVideoSoniya] = useState({});
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/togarak_azo/mavzu_kitobi?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}&topic_code=${encodeURIComponent(topicCode)}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || `Server xatosi (${r.status})`);
+        return d;
+      })
+      .then((d) => { setVideolar(d.videolar || []); setMisollar(d.misollar || []); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token, togarak.id, topicCode]);
+
+  const youtubeIdOl = (url) => {
+    const m = (url || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{11})/);
+    return m ? m[1] : null;
+  };
+
+  const misolKartasiChiqar = (m, i, videoHavola) => (
+    <div key={m.id} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+      <p className="text-xs font-semibold mb-1.5" style={{ color: "#8A8578" }}>{i + 1}-misol</p>
+      <AralashMatn matn={m.masala_matni} className="text-sm font-medium mb-3" style={{ color: "#2B2B2B" }} />
+      {!ochilganYechimlar[m.id] ? (
+        <button onClick={() => setOchilganYechimlar((p) => ({ ...p, [m.id]: true }))}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+          🤔 Tushunmadim — yechimni ko'rsat
+        </button>
+      ) : (
+        <div className="rounded-xl p-3" style={{ backgroundColor: "#F7F5F0" }}>
+          {m.yechim_matni ? (
+            <AralashMatn matn={m.yechim_matni} className="text-sm" style={{ color: "#5A5648" }} />
+          ) : (
+            <p className="text-xs italic" style={{ color: "#8A8578" }}>Bu misol uchun tushuntirish yozilmagan.</p>
+          )}
+          {m.video_soniya != null && youtubeIdOl(videoHavola) && (
+            !ochilganVideoSoniya[m.id] ? (
+              <button onClick={() => setOchilganVideoSoniya((p) => ({ ...p, [m.id]: true }))}
+                className="text-xs font-semibold mt-2" style={{ color: "#1B4B7A" }}>
+                ▶️ Videoning shu qismini qayta ko'rish
+              </button>
+            ) : (
+              <div className="rounded-lg overflow-hidden mt-2" style={{ aspectRatio: "16/9" }}>
+                <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${youtubeIdOl(videoHavola)}?start=${m.video_soniya}&autoplay=1`}
+                  title="tushuntirish" allowFullScreen />
+              </div>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (yuklanmoqda) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      </div>
+    );
+  }
+  if (xato) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <p className="text-sm" style={{ color: "#A32D2D" }}>⚠️ {xato}</p>
+      </div>
+    );
+  }
+  if (videolar.length === 0 && misollar.length === 0) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Bu mavzu uchun hali kitob tayyorlanmagan.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const guruhlar = videolar.map((v) => ({ video: v, misollar: misollar.filter((m) => m.video_id === v.id) }));
+  const boglanmaganMisollar = misollar.filter((m) => !m.video_id);
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← {mavzuNomi}</button>
+      <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>📖 Kitob</h1>
+
+      <div className="space-y-6">
+        {guruhlar.map((g) => (
+          <div key={g.video.id}>
+            {g.video.sarlavha && <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>{g.video.sarlavha}</p>}
+            {youtubeIdOl(g.video.video_havola) ? (
+              <div className="rounded-xl overflow-hidden mb-3" style={{ aspectRatio: "16/9" }}>
+                <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${youtubeIdOl(g.video.video_havola)}`}
+                  title={g.video.sarlavha || "video"} allowFullScreen />
+              </div>
+            ) : (
+              <a href={g.video.video_havola} target="_blank" rel="noreferrer"
+                className="block text-center text-xs font-semibold py-2.5 rounded-lg mb-3" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                ▶️ Videoni ochish
+              </a>
+            )}
+            <div className="space-y-2.5">
+              {g.misollar.map((m, i) => misolKartasiChiqar(m, i, g.video.video_havola))}
+            </div>
+          </div>
+        ))}
+
+        {boglanmaganMisollar.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>Boshqa misollar</p>
+            <div className="space-y-2.5">
+              {boglanmaganMisollar.map((m, i) => misolKartasiChiqar(m, i, null))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganTopicCode, ochilganiBildir }) {
   const [mavzular, setMavzular] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
   const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
   const [kontentlar, setKontentlar] = useState(null);
+  const [kitobOchiq, setKitobOchiq] = useState(false);
   const [oqilayotganId, setOqilayotganId] = useState(null);
   const [joriySozIndeksi, setJoriySozIndeksi] = useState(-1);
   const korilganVideolar = useRef(new Set());
@@ -5621,13 +5748,23 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
     return m ? m[1] : null;
   };
 
+  if (tanlanganMavzu && kitobOchiq) {
+    return (
+      <OquvchiKitobKorish token={token} togarak={togarak} topicCode={tanlanganMavzu.topic_code} mavzuNomi={tanlanganMavzu.nomi}
+        onOrtga={() => setKitobOchiq(false)} />
+    );
+  }
+
   if (tanlanganMavzu) {
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); window.speechSynthesis.cancel(); setOqilayotganId(null); }}
           className="text-sm mb-4" style={{ color: "#8A8578" }}>← Mavzular</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
-        {tanlanganMavzu.bob_name && <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.bob_name}</p>}
+        {tanlanganMavzu.bob_name && <p className="text-xs mb-2" style={{ color: "#8A8578" }}>{tanlanganMavzu.bob_name}</p>}
+        <button onClick={() => setKitobOchiq(true)} className="text-xs font-semibold mb-5" style={{ color: "#1B4B7A" }}>
+          📖 Kitobni ochish (video + misollar) →
+        </button>
 
         {kontentlar === null ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
