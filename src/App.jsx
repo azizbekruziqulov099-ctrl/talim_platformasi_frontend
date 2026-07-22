@@ -163,15 +163,20 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
 }
 
 function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, joriySozIndeksi, setJoriySozIndeksi }) {
+  const [tezlik, setTezlik] = useState(1);
+  const [pauzada, setPauzada] = useState(false);
   const oqilyaptimi = oqilayotganId === kontentId;
 
-  const boshla = () => {
+  const boshla = (boshlanishTezligi) => {
     window.speechSynthesis.cancel();
-    const sozlar = matn.split(/(\s+)/);
+    setPauzada(false);
+    const tozaMatn = matn.replace(/\$/g, "");
+    const sozlar = tozaMatn.split(/(\s+)/);
     let pozitsiya = 0;
     const sozPozitsiyalari = sozlar.map((s) => { const p = pozitsiya; pozitsiya += s.length; return p; });
-    const utterance = new SpeechSynthesisUtterance(matn);
+    const utterance = new SpeechSynthesisUtterance(tozaMatn);
     utterance.lang = "uz-UZ";
+    utterance.rate = boshlanishTezligi;
     utterance.onboundary = (e) => {
       if (e.name && e.name !== "word") return;
       let idx = 0;
@@ -180,22 +185,48 @@ function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, 
       }
       setJoriySozIndeksi(idx);
     };
-    utterance.onend = () => { setOqilayotganId(null); setJoriySozIndeksi(-1); };
+    utterance.onend = () => { setOqilayotganId(null); setJoriySozIndeksi(-1); setPauzada(false); };
     setOqilayotganId(kontentId);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const pauzaYokiDavomEttir = () => {
+    if (pauzada) { window.speechSynthesis.resume(); setPauzada(false); }
+    else { window.speechSynthesis.pause(); setPauzada(true); }
   };
 
   const toxtat = () => {
     window.speechSynthesis.cancel();
     setOqilayotganId(null);
     setJoriySozIndeksi(-1);
+    setPauzada(false);
+  };
+
+  const tezlikOzgar = (yangiTezlik) => {
+    setTezlik(yangiTezlik);
+    if (oqilyaptimi) boshla(yangiTezlik); // o'qish davomida tezlik o'zgarsa, shu joydan emas, boshidan qayta — brauzerlar tezlikni jonli o'zgartirishni qo'llamaydi
   };
 
   return (
-    <button onClick={oqilyaptimi ? toxtat : boshla}
-      className="text-xs font-semibold mt-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-      {oqilyaptimi ? "⏸ To'xtatish" : "🔊 O'qib berish"}
-    </button>
+    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+      <button onClick={() => (oqilyaptimi ? toxtat() : boshla(tezlik))}
+        className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+        {oqilyaptimi ? "⏹ To'xtatish" : "🔊 O'qib berish"}
+      </button>
+      {oqilyaptimi && (
+        <button onClick={pauzaYokiDavomEttir}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+          {pauzada ? "▶ Davom" : "⏸ Pauza"}
+        </button>
+      )}
+      {[0.75, 1, 1.25, 1.5].map((t) => (
+        <button key={t} onClick={() => tezlikOzgar(t)}
+          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+          style={tezlik === t ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#8A8578" }}>
+          {t}x
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -5578,6 +5609,8 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   const [xato, setXato] = useState("");
   const [ochilganYechimlar, setOchilganYechimlar] = useState({});
   const [ochilganVideoSoniya, setOchilganVideoSoniya] = useState({});
+  const [oqilayotganId, setOqilayotganId] = useState(null);
+  const [joriySozIndeksi, setJoriySozIndeksi] = useState(-1);
 
   const [mustaqilIshlar, setMustaqilIshlar] = useState([]);
   const [javobQoralamalari, setJavobQoralamalari] = useState({}); // {ishId: matn}
@@ -5616,6 +5649,8 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, togarak.id, topicCode]);
 
+  useEffect(() => () => window.speechSynthesis.cancel(), []);
+
   const youtubeIdOl = (url) => {
     const m = (url || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{11})/);
     return m ? m[1] : null;
@@ -5624,16 +5659,22 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   const misolKartasiChiqar = (m, i, videoHavola) => (
     <div key={m.id} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
       <p className="text-xs font-semibold mb-1.5" style={{ color: "#8A8578" }}>{i + 1}-misol</p>
-      <AralashMatn matn={m.masala_matni} className="text-sm font-medium mb-3" style={{ color: "#2B2B2B" }} />
+      <AralashMatn matn={m.masala_matni} className="text-sm font-medium mb-1" style={{ color: "#2B2B2B" }} />
+      <OvozliOqishTugmasi matn={m.masala_matni} kontentId={`masala-${m.id}`} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
+        joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
       {!ochilganYechimlar[m.id] ? (
         <button onClick={() => setOchilganYechimlar((p) => ({ ...p, [m.id]: true }))}
-          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+          className="w-full py-2.5 rounded-xl font-semibold text-sm mt-3" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
           🤔 Tushunmadim — yechimni ko'rsat
         </button>
       ) : (
-        <div className="rounded-xl p-3" style={{ backgroundColor: "#F7F5F0" }}>
+        <div className="rounded-xl p-3 mt-3" style={{ backgroundColor: "#F7F5F0" }}>
           {m.yechim_matni ? (
-            <AralashMatn matn={m.yechim_matni} className="text-sm" style={{ color: "#5A5648" }} />
+            <>
+              <AralashMatn matn={m.yechim_matni} className="text-sm" style={{ color: "#5A5648" }} />
+              <OvozliOqishTugmasi matn={m.yechim_matni} kontentId={`yechim-${m.id}`} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
+                joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+            </>
           ) : (
             <p className="text-xs italic" style={{ color: "#8A8578" }}>Bu misol uchun tushuntirish yozilmagan.</p>
           )}
@@ -5645,7 +5686,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
               </button>
             ) : (
               <div className="rounded-lg overflow-hidden mt-2" style={{ aspectRatio: "16/9" }}>
-                <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${youtubeIdOl(videoHavola)}?start=${m.video_soniya}&autoplay=1`}
+                <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${youtubeIdOl(videoHavola)}?start=${m.video_soniya}${m.video_tugash_soniya != null ? `&end=${m.video_tugash_soniya}` : ""}&autoplay=1`}
                   title="tushuntirish" allowFullScreen />
               </div>
             )
@@ -6316,6 +6357,7 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
   const [misolMasala, setMisolMasala] = useState("");
   const [misolYechim, setMisolYechim] = useState("");
   const [misolSoniya, setMisolSoniya] = useState("");
+  const [misolTugashSoniya, setMisolTugashSoniya] = useState("");
   const [misolSaqlanmoqda, setMisolSaqlanmoqda] = useState(false);
   const [kengaytirilganMisolId, setKengaytirilganMisolId] = useState(null);
 
@@ -6393,10 +6435,11 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
       setMisolMasala(misol.masala_matni);
       setMisolYechim(misol.yechim_matni || "");
       setMisolSoniya(misol.video_soniya != null ? String(misol.video_soniya) : "");
+      setMisolTugashSoniya(misol.video_tugash_soniya != null ? String(misol.video_tugash_soniya) : "");
     } else {
       setTahrirlanayotganMisolId(null);
       setMisolVideoId(videolar.length > 0 ? String(videolar[videolar.length - 1].id) : "");
-      setMisolMasala(""); setMisolYechim(""); setMisolSoniya("");
+      setMisolMasala(""); setMisolYechim(""); setMisolSoniya(""); setMisolTugashSoniya("");
     }
     setMisolFormaOchiq(true);
   };
@@ -6406,11 +6449,12 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
     setMisolSaqlanmoqda(true); setXato("");
     const goVideoId = misolVideoId ? Number(misolVideoId) : null;
     const goSoniya = misolSoniya.trim() ? Number(misolSoniya) : null;
+    const goTugashSoniya = misolTugashSoniya.trim() ? Number(misolTugashSoniya) : null;
     try {
       const yol = tahrirlanayotganMisolId ? "mavzu_misol_tahrirlash" : "mavzu_misol_qosh";
       const tana = tahrirlanayotganMisolId
-        ? { token, misol_id: tahrirlanayotganMisolId, video_id: goVideoId, masala_matni: misolMasala.trim(), yechim_matni: misolYechim.trim() || null, video_soniya: goSoniya }
-        : { token, togarak_id: togarakId, topic_code: mavzu.topic_code, video_id: goVideoId, masala_matni: misolMasala.trim(), yechim_matni: misolYechim.trim() || null, video_soniya: goSoniya };
+        ? { token, misol_id: tahrirlanayotganMisolId, video_id: goVideoId, masala_matni: misolMasala.trim(), yechim_matni: misolYechim.trim() || null, video_soniya: goSoniya, video_tugash_soniya: goTugashSoniya }
+        : { token, togarak_id: togarakId, topic_code: mavzu.topic_code, video_id: goVideoId, masala_matni: misolMasala.trim(), yechim_matni: misolYechim.trim() || null, video_soniya: goSoniya, video_tugash_soniya: goTugashSoniya };
       const res = await fetch(`${API_BASE}/api/oqituvchi/${yol}`, {
         method: tahrirlanayotganMisolId ? "PUT" : "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(tana),
@@ -6507,9 +6551,14 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
                 <label className="text-[11px] font-medium mb-1 block" style={{ color: "#5A5648" }}>Yechim / tushuntirish</label>
                 <textarea value={misolYechim} onChange={(e) => setMisolYechim(e.target.value)} rows={3}
                   className="w-full px-3 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
-                <label className="text-[11px] font-medium mb-1 block" style={{ color: "#5A5648" }}>Videoning qaysi soniyasiga to'g'ri keladi (ixtiyoriy)</label>
-                <input type="number" min="0" value={misolSoniya} onChange={(e) => setMisolSoniya(e.target.value)} placeholder="masalan: 245"
-                  className="w-full px-3 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <label className="text-[11px] font-medium mb-1 block" style={{ color: "#5A5648" }}>Videoning qaysi qismi (soniyada, ixtiyoriy)</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <input type="number" min="0" value={misolSoniya} onChange={(e) => setMisolSoniya(e.target.value)} placeholder="boshlanishi, masalan 245"
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
+                  <span className="text-xs" style={{ color: "#8A8578" }}>—</span>
+                  <input type="number" min="0" value={misolTugashSoniya} onChange={(e) => setMisolTugashSoniya(e.target.value)} placeholder="tugashi, masalan 310"
+                    className="flex-1 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setMisolFormaOchiq(false); setTahrirlanayotganMisolId(null); }} className="flex-1 py-2 rounded-lg border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>Bekor</button>
                   <button onClick={misolSaqla} disabled={misolSaqlanmoqda}
@@ -6534,7 +6583,7 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
                           <span className="text-xs font-bold shrink-0" style={{ color: "#1B4B7A" }}>{i + 1}.</span>
                           {videoNomi && (
                             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                              🎬 {soniyaniVaqtga(m.video_soniya) || videoNomi.sarlavha || "video"}
+                              🎬 {soniyaniVaqtga(m.video_soniya) ? `${soniyaniVaqtga(m.video_soniya)}${m.video_tugash_soniya != null ? `–${soniyaniVaqtga(m.video_tugash_soniya)}` : ""}` : (videoNomi.sarlavha || "video")}
                             </span>
                           )}
                         </div>
