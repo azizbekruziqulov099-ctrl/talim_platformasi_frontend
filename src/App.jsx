@@ -5716,15 +5716,15 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
               {kunKartasiChiqar(7, true)}
             </div>
           ) : (
-            <div className="rounded-2xl bg-white border p-3.5" style={{ borderColor: "#E5E1D8" }}>
-              <div className="grid grid-cols-7 mb-1.5">
+            <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+              <div className="grid grid-cols-7 mb-2">
                 {[1, 2, 3, 4, 5, 6, 7].map((k) => (
-                  <p key={k} className="text-[11px] text-center font-semibold" style={{ color: darsKunlari.includes(k) ? "#1B4B7A" : "#C4BFAF" }}>
-                    {HAFTA_KUN_QISQA[k]}
+                  <p key={k} className="text-[10px] text-center font-semibold uppercase tracking-wide" style={{ color: darsKunlari.includes(k) ? "#1B4B7A" : "#D8D3C7" }}>
+                    {HAFTA_KUN_QISQA[k].slice(0, 2)}
                   </p>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-7 gap-y-1.5 justify-items-center">
                 {(() => {
                   const oyBoshi = new Date(ankor.getFullYear(), ankor.getMonth(), 1);
                   const boshiKun = oyBoshi.getDay() === 0 ? 7 : oyBoshi.getDay();
@@ -5741,29 +5741,30 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
                     const haftaKuni = d.getDay() === 0 ? 7 : d.getDay();
                     const darsKunimi = darsKunlari.includes(haftaKuni);
                     const bugunmi = key === bugunKey;
+                    const mavzuBormi = darsKunimi && s?.mavzu_nomi;
                     kunlar.push(
                       <button key={key} onClick={() => darsKunimi && sanaBosildi(key)} disabled={!darsKunimi}
-                        className="aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 relative"
-                        style={
-                          !darsKunimi ? { color: "#C4BFAF" }
-                          : s?.mavzu_nomi ? { backgroundColor: "#3B6D11", color: "#FFFFFF" }
-                          : { backgroundColor: "#FDF3E0", color: "#8A5A1C", border: "1.5px dashed #C89B3C" }
-                        }>
-                        {bugunmi && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: darsKunimi ? "#FFFFFF" : "#1B4B7A" }} />}
-                        <span className="text-sm font-bold">{kun}</span>
-                        {darsKunimi && <span className="text-[13px] leading-none">{s?.mavzu_nomi ? "✓" : "·"}</span>}
+                        className="w-8 h-8 rounded-full flex items-center justify-center relative"
+                        style={{
+                          backgroundColor: mavzuBormi ? "#3B6D11" : "transparent",
+                          border: bugunmi ? "1.5px solid #1B4B7A" : "1.5px solid transparent",
+                        }}>
+                        <span className="text-xs font-semibold" style={{ color: mavzuBormi ? "#FFFFFF" : darsKunimi ? "#2B2B2B" : "#D8D3C7" }}>{kun}</span>
+                        {darsKunimi && !mavzuBormi && (
+                          <span className="absolute bottom-0.5 w-1 h-1 rounded-full" style={{ backgroundColor: "#C89B3C" }} />
+                        )}
                       </button>,
                     );
                   }
                   return [...boshlangichBosh, ...kunlar];
                 })()}
               </div>
-              <div className="flex items-center gap-4 mt-3.5 pt-3 border-t" style={{ borderColor: "#F0EDE5" }}>
-                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "#5A5648" }}>
-                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#3B6D11" }} /> Mavzu bor
+              <div className="flex items-center gap-3.5 mt-3.5 pt-3 border-t" style={{ borderColor: "#F0EDE5" }}>
+                <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "#8A8578" }}>
+                  <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: "#3B6D11" }} /> Mavzu bor
                 </span>
-                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: "#5A5648" }}>
-                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: "#FDF3E0", border: "1.5px dashed #C89B3C" }} /> Bo'sh
+                <span className="flex items-center gap-1.5 text-[10px]" style={{ color: "#8A8578" }}>
+                  <span className="w-3 h-3 rounded-full inline-flex items-center justify-center" style={{ border: "1px solid #E5E1D8" }}><span className="w-1 h-1 rounded-full" style={{ backgroundColor: "#C89B3C" }} /></span> Bo'sh dars kuni
                 </span>
               </div>
             </div>
