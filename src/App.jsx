@@ -5579,6 +5579,30 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   const [ochilganYechimlar, setOchilganYechimlar] = useState({});
   const [ochilganVideoSoniya, setOchilganVideoSoniya] = useState({});
 
+  const [mustaqilIshlar, setMustaqilIshlar] = useState([]);
+  const [javobQoralamalari, setJavobQoralamalari] = useState({}); // {ishId: matn}
+  const [topshirilmoqda, setTopshirilmoqda] = useState({}); // {ishId: true}
+
+  const ishlarniYukla = () => {
+    fetch(`${API_BASE}/api/togarak_azo/mustaqil_ishlar?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}&topic_code=${encodeURIComponent(topicCode)}`)
+      .then((r) => r.json())
+      .then((d) => setMustaqilIshlar(d.ishlar || []))
+      .catch(() => {});
+  };
+
+  const javobTopshir = async (ishId) => {
+    const matn = (javobQoralamalari[ishId] || "").trim();
+    if (!matn) return;
+    setTopshirilmoqda((p) => ({ ...p, [ishId]: true }));
+    try {
+      await fetch(`${API_BASE}/api/togarak_azo/mustaqil_ish_topshir`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, ish_id: ishId, javob_matni: matn }),
+      });
+      ishlarniYukla();
+    } finally { setTopshirilmoqda((p) => ({ ...p, [ishId]: false })); }
+  };
+
   useEffect(() => {
     fetch(`${API_BASE}/api/togarak_azo/mavzu_kitobi?token=${encodeURIComponent(token)}&togarak_id=${togarak.id}&topic_code=${encodeURIComponent(topicCode)}`)
       .then(async (r) => {
@@ -5588,6 +5612,8 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
       })
       .then((d) => { setVideolar(d.videolar || []); setMisollar(d.misollar || []); setYuklanmoqda(false); })
       .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+    ishlarniYukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, togarak.id, topicCode]);
 
   const youtubeIdOl = (url) => {
@@ -5689,6 +5715,40 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
             <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>Boshqa misollar</p>
             <div className="space-y-2.5">
               {boglanmaganMisollar.map((m, i) => misolKartasiChiqar(m, i, null))}
+            </div>
+          </div>
+        )}
+
+        {mustaqilIshlar.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>📝 Mustaqil ishlar</p>
+            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Kitobni o'rgangach, shu savollarga o'z so'zlaringiz bilan javob yozing.</p>
+            <div className="space-y-3">
+              {mustaqilIshlar.map((ish, i) => {
+                const oxirgi = ish.oxirgi_javob;
+                return (
+                  <div key={ish.id} className="rounded-2xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+                    <AralashMatn matn={`${i + 1}. ${ish.savol_matni}`} className="text-sm font-medium mb-3" style={{ color: "#2B2B2B" }} />
+                    {oxirgi && (
+                      <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: oxirgi.togrimi === true ? "#EAF3DE" : oxirgi.togrimi === false ? "#FCEBEB" : "#F7F5F0" }}>
+                        <p className="text-xs font-semibold mb-1" style={{ color: oxirgi.togrimi === true ? "#3B6D11" : oxirgi.togrimi === false ? "#A32D2D" : "#5A5648" }}>
+                          {oxirgi.togrimi === true ? "✓ To'g'ri" : oxirgi.togrimi === false ? "✕ Noto'g'ri" : "Yuborilgan"}
+                        </p>
+                        <p className="text-xs mb-1.5" style={{ color: "#5A5648" }}>Sizning javobingiz: {oxirgi.javob_matni}</p>
+                        {oxirgi.ai_izohi && <p className="text-xs" style={{ color: "#5A5648" }}>{oxirgi.ai_izohi}</p>}
+                      </div>
+                    )}
+                    <textarea value={javobQoralamalari[ish.id] || ""} onChange={(e) => setJavobQoralamalari((p) => ({ ...p, [ish.id]: e.target.value }))}
+                      rows={3} placeholder={oxirgi ? "Qayta yechib, qayta topshirish uchun yozing..." : "Javobingizni shu yerga yozing..."}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                    <button onClick={() => javobTopshir(ish.id)} disabled={topshirilmoqda[ish.id] || !(javobQoralamalari[ish.id] || "").trim()}
+                      className="w-full py-2.5 rounded-xl font-semibold text-sm text-white"
+                      style={{ backgroundColor: "#1B4B7A", opacity: (topshirilmoqda[ish.id] || !(javobQoralamalari[ish.id] || "").trim()) ? 0.6 : 1 }}>
+                      {topshirilmoqda[ish.id] ? "Tekshirilmoqda..." : oxirgi ? "Qayta topshirish" : "Topshirish"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -6259,6 +6319,39 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
   const [misolSaqlanmoqda, setMisolSaqlanmoqda] = useState(false);
   const [kengaytirilganMisolId, setKengaytirilganMisolId] = useState(null);
 
+  const [mustaqilIshlar, setMustaqilIshlar] = useState([]);
+  const [ishFormaOchiq, setIshFormaOchiq] = useState(false);
+  const [ishSavol, setIshSavol] = useState("");
+  const [ishMezon, setIshMezon] = useState("");
+  const [ishSaqlanmoqda, setIshSaqlanmoqda] = useState(false);
+
+  const ishlarniYukla = () => {
+    fetch(`${API_BASE}/api/oqituvchi/mustaqil_ishlar?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&topic_code=${encodeURIComponent(mavzu.topic_code)}`)
+      .then((r) => r.json())
+      .then((d) => setMustaqilIshlar(d.ishlar || []))
+      .catch(() => {});
+  };
+
+  const ishQosh = async () => {
+    if (!ishSavol.trim() || !ishMezon.trim()) { setXato("Savol va to'g'ri javob mezonini kiriting"); return; }
+    setIshSaqlanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/mustaqil_ish_qosh`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, topic_code: mavzu.topic_code, savol_matni: ishSavol.trim(), togri_javob_mezoni: ishMezon.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setIshSavol(""); setIshMezon(""); setIshFormaOchiq(false);
+      ishlarniYukla();
+    } catch (e) { setXato(e.message); } finally { setIshSaqlanmoqda(false); }
+  };
+
+  const ishOchir = async (ishId) => {
+    await fetch(`${API_BASE}/api/oqituvchi/mustaqil_ish_ochir?token=${encodeURIComponent(token)}&ish_id=${ishId}`, { method: "DELETE" });
+    ishlarniYukla();
+  };
+
   const yukla = () => {
     setYuklanmoqda(true); setXato("");
     fetch(`${API_BASE}/api/oqituvchi/mavzu_kitobi?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&topic_code=${encodeURIComponent(mavzu.topic_code)}`)
@@ -6271,7 +6364,7 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
       .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
   };
 
-  useEffect(() => { yukla(); }, [token, togarakId, mavzu.topic_code]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { yukla(); ishlarniYukla(); }, [token, togarakId, mavzu.topic_code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const videoQosh = async () => {
     if (!videoHavola.trim()) { setXato("Video havolasini kiriting"); return; }
@@ -6466,6 +6559,51 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold" style={{ color: "#5A5648" }}>📝 Mustaqil ishlar ({mustaqilIshlar.length})</p>
+              <button onClick={() => setIshFormaOchiq(!ishFormaOchiq)} className="text-xs font-semibold" style={{ color: "#1B4B7A" }}>
+                {ishFormaOchiq ? "✕ Yopish" : "+ Topshiriq"}
+              </button>
+            </div>
+            <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>
+              O'quvchi kitobni o'rgangach, shu savollarga ERKIN matnda javob yozadi — AI sizning yozgan mezoningiz asosida tekshiradi.
+            </p>
+
+            {ishFormaOchiq && (
+              <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: "#F7F5F0" }}>
+                <label className="text-[11px] font-medium mb-1 block" style={{ color: "#5A5648" }}>Savol matni</label>
+                <textarea value={ishSavol} onChange={(e) => setIshSavol(e.target.value)} rows={2}
+                  placeholder="masalan: 12 va 18 sonlarining EKUBini toping va yechim yo'lini tushuntiring"
+                  className="w-full px-3 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <label className="text-[11px] font-medium mb-1 block" style={{ color: "#5A5648" }}>To'g'ri javob mezoni (AI shunga qarab tekshiradi)</label>
+                <textarea value={ishMezon} onChange={(e) => setIshMezon(e.target.value)} rows={2}
+                  placeholder="masalan: To'g'ri javob 6. O'quvchi ikkala sonni tub ko'paytuvchilarga ajratib, umumiy ko'paytuvchilarni topgan bo'lishi kerak."
+                  className="w-full px-3 py-2 rounded-lg border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
+                <button onClick={ishQosh} disabled={ishSaqlanmoqda}
+                  className="w-full py-2 rounded-lg font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: ishSaqlanmoqda ? 0.7 : 1 }}>
+                  {ishSaqlanmoqda ? "..." : "Qo'shish"}
+                </button>
+              </div>
+            )}
+
+            {mustaqilIshlar.length === 0 ? (
+              <p className="text-xs" style={{ color: "#8A8578" }}>Hali topshiriq qo'shilmagan.</p>
+            ) : (
+              <div className="space-y-2">
+                {mustaqilIshlar.map((ish, i) => (
+                  <div key={ish.id} className="rounded-xl p-3" style={{ backgroundColor: "#F7F5F0" }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <AralashMatn matn={`${i + 1}. ${ish.savol_matni}`} className="text-sm font-medium flex-1" style={{ color: "#2B2B2B" }} />
+                      <button onClick={() => ishOchir(ish.id)} className="text-xs font-semibold shrink-0" style={{ color: "#A32D2D" }}>✕</button>
+                    </div>
+                    <p className="text-[11px] mt-1" style={{ color: "#8A8578" }}>Mezon: {ish.togri_javob_mezoni}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
