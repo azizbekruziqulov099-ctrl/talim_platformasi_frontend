@@ -820,7 +820,7 @@ function FanBolimi({ fan, onBosildi }) {
   );
 }
 
-function BilimTab({ data, bolaId, rang, token }) {
+function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
   const heroRang = rang || "#1B4B7A";
   const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
   const [togarakYoliId, setTogarakYoliId] = useState(null); // ochilgan to'garak yo'li id | null
@@ -866,16 +866,18 @@ function BilimTab({ data, bolaId, rang, token }) {
       .catch(() => {});
   }, [bolaId, token]);
 
-  // FAQAT o'quvchining O'Z Bilim ekranida (token mavjud bo'lganda) —
-  // ota-ona farzandini ko'rayotganda BU banner ko'rinmaydi, chunki
-  // sinfga qo'shilishni faqat o'quvchining o'zi tasdiqlashi kerak.
+  // FAQAT o'quvchining O'Z Bilim ekranida (token mavjud VA ota-ona
+  // ko'rinishidan EMAS) — ota-ona farzandini ko'rayotganda BU banner
+  // ko'rinmaydi, chunki sinfga qo'shilishni faqat o'quvchining o'zi
+  // tasdiqlashi kerak. (token endi davomat uchun ota-ona ko'rinishida
+  // ham uzatiladi, shu sabab bu tekshiruv otaOnaUchun bilan alohida.)
   useEffect(() => {
-    if (!token) return;
+    if (!token || otaOnaUchun) return;
     fetch(`${API_BASE}/api/oquvchi/mos_sinf?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setMosSinf(d.topildi ? d : null))
       .catch(() => {});
-  }, [token]);
+  }, [token, otaOnaUchun]);
 
   const sinfgaQoshil = async () => {
     if (!qoshilishParoli.trim()) { setQoshilishXato("Parolni kiriting"); return; }
@@ -8613,7 +8615,7 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
       ) : xato ? (
         <p className="px-5 text-sm" style={{ color: "#B0553A" }}>{xato}</p>
       ) : tanlanganBola ? (
-        <BilimTab data={bilimData} bolaId={tanlanganBola} rang={rang} />
+        <BilimTab data={bilimData} bolaId={tanlanganBola} rang={rang} token={token} otaOnaUchun />
       ) : null}
     </div>
   );
