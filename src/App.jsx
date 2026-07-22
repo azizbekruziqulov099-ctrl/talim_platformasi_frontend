@@ -4380,7 +4380,7 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>📅 Rejalashtirish</h1>
 
       <div className="flex gap-2 mb-4">
@@ -4547,7 +4547,7 @@ function HujjatlarBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>🗂 Hujjatlar</h1>
         <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
@@ -4660,7 +4660,7 @@ function MoliyaBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>💰 Moliya</h1>
         <input type="month" value={oy} onChange={(e) => setOy(e.target.value)}
@@ -4880,7 +4880,7 @@ function KutubxonaBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 Kutubxona</h1>
         <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
@@ -5254,7 +5254,7 @@ function FanlarTahliliBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Fanlar tahlili</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Butun maktab kesimida, har fandan necha o'quvchi qanday natijada.</p>
 
@@ -5447,6 +5447,314 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga }) {
               <ChevronRight size={16} style={{ color: "#8A8578" }} />
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const HAFTA_KUN_QISQA = { 1: "Dush", 2: "Sesh", 3: "Chor", 4: "Pay", 5: "Juma", 6: "Shan", 7: "Yak" };
+const HAFTA_KUN_TOLIQ = { 1: "Dushanba", 2: "Seshanba", 3: "Chorshanba", 4: "Payshanba", 5: "Juma", 6: "Shanba", 7: "Yakshanba" };
+const OY_NOMLARI = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
+
+function _sanaFmt(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function _haftaBoshi(d) {
+  const n = new Date(d);
+  const kun = n.getDay() === 0 ? 7 : n.getDay(); // 1=Dush...7=Yak
+  n.setDate(n.getDate() - (kun - 1));
+  n.setHours(0, 0, 0, 0);
+  return n;
+}
+
+function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar, onMavzular, onSozlamalar }) {
+  const [korinishTuri, setKorinishTuri] = useState("hafta"); // "hafta" | "oy"
+  const [ankor, setAnkor] = useState(() => new Date()); // hafta yoki oyni belgilaydigan sana
+  const [darsKunlari, setDarsKunlari] = useState(null); // [1,3,5] | null (hali yuklanmagan)
+  const [kunlarTanlovOchiq, setKunlarTanlovOchiq] = useState(false);
+  const [vaqtinchaKunlar, setVaqtinchaKunlar] = useState([]);
+  const [kunlarSaqlanmoqda, setKunlarSaqlanmoqda] = useState(false);
+  const [sanalar, setSanalar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const [tanlanganSana, setTanlanganSana] = useState(null); // mavzu tanlash uchun ochilgan sana
+  const [togarakMavzulari, setTogarakMavzulari] = useState(null); // to'garakning o'z mavzulari (lazy)
+  const [mavzuQidiruv, setMavzuQidiruv] = useState("");
+  const [biriktirilmoqda, setBiriktirilmoqda] = useState(false);
+  const [avtomatikToldirilmoqda, setAvtomatikToldirilmoqda] = useState(false);
+  const [avtomatikXabar, setAvtomatikXabar] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/oqituvchi/togarak_dars_kunlari?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`)
+      .then((r) => r.json())
+      .then((d) => setDarsKunlari(d.kunlar || []))
+      .catch(() => setDarsKunlari([]));
+  }, [token, togarakId]);
+
+  const { boshlanish, tugash } = useMemo(() => {
+    if (korinishTuri === "hafta") {
+      const b = _haftaBoshi(ankor);
+      const t = new Date(b); t.setDate(t.getDate() + 6);
+      return { boshlanish: b, tugash: t };
+    }
+    const b = new Date(ankor.getFullYear(), ankor.getMonth(), 1);
+    const t = new Date(ankor.getFullYear(), ankor.getMonth() + 1, 0);
+    return { boshlanish: b, tugash: t };
+  }, [ankor, korinishTuri]);
+
+  const kalendarniYukla = () => {
+    setYuklanmoqda(true); setXato("");
+    fetch(`${API_BASE}/api/oqituvchi/togarak_kalendar?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&boshlanish=${_sanaFmt(boshlanish)}&tugash=${_sanaFmt(tugash)}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.detail) throw new Error(d.detail); setSanalar(d.sanalar || []); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
+  };
+
+  useEffect(() => {
+    if (darsKunlari === null) return;
+    kalendarniYukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [darsKunlari, boshlanish.getTime(), tugash.getTime()]);
+
+  const kunlarSaqla = async () => {
+    setKunlarSaqlanmoqda(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_dars_kunlari_belgila`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, kunlar: vaqtinchaKunlar }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setDarsKunlari(data.kunlar);
+      setKunlarTanlovOchiq(false);
+    } catch (e) { setXato(e.message); } finally { setKunlarSaqlanmoqda(false); }
+  };
+
+  const sanaBosildi = (sana) => {
+    setTanlanganSana(sana);
+    setMavzuQidiruv("");
+    if (togarakMavzulari === null) {
+      fetch(`${API_BASE}/api/oqituvchi/togarak_barcha_mavzular?token=${encodeURIComponent(token)}&togarak_id=${togarakId}`)
+        .then((r) => r.json())
+        .then((d) => setTogarakMavzulari(d.mavzular || []))
+        .catch(() => setTogarakMavzulari([]));
+    }
+  };
+
+  const mavzuBiriktir = async (topicCode) => {
+    setBiriktirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/oqituvchi/togarak_dars_mavzu_biriktir`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, togarak_id: togarakId, sana: tanlanganSana, topic_code: topicCode }),
+      });
+      setTanlanganSana(null);
+      kalendarniYukla();
+    } finally { setBiriktirilmoqda(false); }
+  };
+
+  const avtomatikToldir = async () => {
+    setAvtomatikToldirilmoqda(true); setAvtomatikXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/togarak_dars_avtomatik_toldir?token=${encodeURIComponent(token)}&togarak_id=${togarakId}&boshlanish=${_sanaFmt(boshlanish)}&tugash=${_sanaFmt(tugash)}`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setAvtomatikXabar(`✓ ${data.toldirilgan_soni} ta kunga mavzu joylashtirildi`);
+      kalendarniYukla();
+    } catch (e) { setAvtomatikXabar(e.message); } finally { setAvtomatikToldirilmoqda(false); }
+  };
+
+  const davrLabel = korinishTuri === "hafta"
+    ? `${boshlanish.getDate()}-${tugash.getDate()} ${OY_NOMLARI[tugash.getMonth()]}`
+    : `${OY_NOMLARI[ankor.getMonth()]} ${ankor.getFullYear()}`;
+
+  const davrniSurish = (yonalish) => {
+    const yangi = new Date(ankor);
+    if (korinishTuri === "hafta") yangi.setDate(yangi.getDate() + yonalish * 7);
+    else yangi.setMonth(yangi.getMonth() + yonalish);
+    setAnkor(yangi);
+  };
+
+  const filtrlanganMavzular = (togarakMavzulari || []).filter((m) => {
+    if (!mavzuQidiruv.trim()) return true;
+    const nomi = (m.mavzu_name || m.kichik_name || m.bolim_name || m.bob_name || "").toLowerCase();
+    return nomi.includes(mavzuQidiruv.trim().toLowerCase());
+  });
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
+      <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{togarakNomi}</h1>
+      <div className="flex gap-3 mb-4">
+        <button onClick={onAzolar} className="text-xs font-medium" style={{ color: "#1B4B7A" }}>👥 Talabalar →</button>
+        <button onClick={onMavzular} className="text-xs font-medium" style={{ color: "#1B4B7A" }}>📖 Mavzular →</button>
+        <button onClick={onSozlamalar} className="text-xs font-medium" style={{ color: "#1B4B7A" }}>⚙️ Sozlamalar →</button>
+      </div>
+
+      {darsKunlari !== null && darsKunlari.length === 0 && !kunlarTanlovOchiq && (
+        <div className="rounded-2xl p-4 border mb-4" style={{ backgroundColor: "#FDF3E0", borderColor: "#C89B3C" }}>
+          <p className="text-sm font-bold mb-1" style={{ color: "#8A5A1C" }}>📅 Dars kunlarini belgilang</p>
+          <p className="text-xs mb-3" style={{ color: "#5A5648" }}>Qaysi kunlari dars o'tishingizni belgilasangiz, shu kunlarga mavzu tayinlab chiqishingiz mumkin.</p>
+          <button onClick={() => { setVaqtinchaKunlar(darsKunlari); setKunlarTanlovOchiq(true); }}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm text-white" style={{ backgroundColor: "#C89B3C" }}>
+            Kunlarni tanlash
+          </button>
+        </div>
+      )}
+
+      {kunlarTanlovOchiq && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-xs font-semibold mb-3" style={{ color: "#5A5648" }}>Qaysi kunlari dars bo'ladi?</p>
+          <div className="grid grid-cols-4 gap-1.5 mb-3">
+            {[1, 2, 3, 4, 5, 6, 7].map((k) => (
+              <button key={k} type="button"
+                onClick={() => setVaqtinchaKunlar((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k])}
+                className="py-2 rounded-lg border text-xs font-semibold text-center"
+                style={{
+                  borderColor: vaqtinchaKunlar.includes(k) ? "#1B4B7A" : "#E5E1D8",
+                  backgroundColor: vaqtinchaKunlar.includes(k) ? "#1B4B7A" : "#FFFFFF",
+                  color: vaqtinchaKunlar.includes(k) ? "#FFFFFF" : "#5A5648",
+                }}>
+                {HAFTA_KUN_QISQA[k]}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setKunlarTanlovOchiq(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>Bekor</button>
+            <button onClick={kunlarSaqla} disabled={kunlarSaqlanmoqda || vaqtinchaKunlar.length === 0}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-white text-sm"
+              style={{ backgroundColor: "#1B4B7A", opacity: (kunlarSaqlanmoqda || vaqtinchaKunlar.length === 0) ? 0.6 : 1 }}>
+              {kunlarSaqlanmoqda ? "..." : "Saqlash"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {darsKunlari !== null && darsKunlari.length > 0 && (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: "#E5E1D8" }}>
+              <button onClick={() => setKorinishTuri("hafta")} className="px-3.5 py-1.5 text-xs font-semibold"
+                style={korinishTuri === "hafta" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                Haftalik
+              </button>
+              <button onClick={() => setKorinishTuri("oy")} className="px-3.5 py-1.5 text-xs font-semibold"
+                style={korinishTuri === "oy" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+                Oylik
+              </button>
+            </div>
+            <button onClick={() => { setVaqtinchaKunlar(darsKunlari); setKunlarTanlovOchiq(true); }} className="text-xs font-medium" style={{ color: "#8A8578" }}>
+              {darsKunlari.map((k) => HAFTA_KUN_QISQA[k]).join(", ")} ✏️
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => davrniSurish(-1)} className="w-8 h-8 rounded-full flex items-center justify-center border" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>‹</button>
+            <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{davrLabel}</p>
+            <button onClick={() => davrniSurish(1)} className="w-8 h-8 rounded-full flex items-center justify-center border" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>›</button>
+          </div>
+
+          <button onClick={avtomatikToldir} disabled={avtomatikToldirilmoqda}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm mb-3" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11", opacity: avtomatikToldirilmoqda ? 0.7 : 1 }}>
+            {avtomatikToldirilmoqda ? "..." : "🪄 Rejadan avtomatik to'ldirish"}
+          </button>
+          {avtomatikXabar && <p className="text-xs mb-3 text-center" style={{ color: avtomatikXabar.startsWith("✓") ? "#3B6D11" : "#B0553A" }}>{avtomatikXabar}</p>}
+
+          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+          {yuklanmoqda ? (
+            <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+          ) : korinishTuri === "hafta" ? (
+            <div className="space-y-2">
+              {sanalar.map((s) => {
+                const [, , kun] = s.sana.split("-");
+                return (
+                  <button key={s.sana} onClick={() => sanaBosildi(s.sana)}
+                    className="w-full flex items-center gap-3 rounded-xl p-3.5 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
+                    <div className="w-11 h-11 rounded-lg flex flex-col items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}>
+                      <span className="text-[10px] font-medium" style={{ color: "#1B4B7A" }}>{HAFTA_KUN_QISQA[s.hafta_kuni]}</span>
+                      <span className="text-sm font-bold" style={{ color: "#1B4B7A" }}>{kun}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {s.mavzu_nomi ? (
+                        <p className="text-sm font-medium truncate" style={{ color: "#2B2B2B" }}>{s.mavzu_nomi}</p>
+                      ) : (
+                        <p className="text-sm" style={{ color: "#B0AA98" }}>+ Mavzu tanlash</p>
+                      )}
+                    </div>
+                    <ChevronRight size={16} className="shrink-0" style={{ color: "#8A8578" }} />
+                  </button>
+                );
+              })}
+              {sanalar.length === 0 && (
+                <p className="text-sm text-center py-6" style={{ color: "#8A8578" }}>Bu haftada dars kuni yo'q.</p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-1">
+              {["Du", "Se", "Cho", "Pa", "Ju", "Sh", "Ya"].map((q) => (
+                <p key={q} className="text-[10px] text-center font-medium py-1" style={{ color: "#8A8578" }}>{q}</p>
+              ))}
+              {(() => {
+                const oyBoshi = new Date(ankor.getFullYear(), ankor.getMonth(), 1);
+                const boshiKun = oyBoshi.getDay() === 0 ? 7 : oyBoshi.getDay();
+                const boshlangichBosh = [];
+                for (let i = 1; i < boshiKun; i++) boshlangichBosh.push(<div key={`b${i}`} />);
+                const sanaMap = Object.fromEntries(sanalar.map((s) => [s.sana, s]));
+                const kunlar = [];
+                const jamiKun = new Date(ankor.getFullYear(), ankor.getMonth() + 1, 0).getDate();
+                for (let kun = 1; kun <= jamiKun; kun++) {
+                  const d = new Date(ankor.getFullYear(), ankor.getMonth(), kun);
+                  const key = _sanaFmt(d);
+                  const s = sanaMap[key];
+                  kunlar.push(
+                    <button key={key} onClick={() => s && sanaBosildi(key)} disabled={!s}
+                      className="aspect-square rounded-lg flex flex-col items-center justify-center text-xs p-0.5"
+                      style={s ? { backgroundColor: s.mavzu_nomi ? "#EAF3DE" : "#FDF3E0", color: s.mavzu_nomi ? "#3B6D11" : "#8A5A1C" } : { color: "#C4BFAF" }}>
+                      <span className="font-semibold">{kun}</span>
+                      {s && <span className="text-[8px]">{s.mavzu_nomi ? "✓" : "?"}</span>}
+                    </button>,
+                  );
+                }
+                return [...boshlangichBosh, ...kunlar];
+              })()}
+            </div>
+          )}
+        </>
+      )}
+
+      {tanlanganSana && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-md rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto" style={{ backgroundColor: "#FFFFFF" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold" style={{ color: "#2B2B2B" }}>{tanlanganSana} uchun mavzu</p>
+              <button onClick={() => setTanlanganSana(null)} style={{ color: "#8A8578" }}>✕</button>
+            </div>
+            {sanalar.find((s) => s.sana === tanlanganSana)?.mavzu_nomi && (
+              <button onClick={() => mavzuBiriktir(null)} disabled={biriktirilmoqda}
+                className="w-full py-2.5 rounded-xl font-medium text-sm mb-3" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                Mavzuni olib tashlash
+              </button>
+            )}
+            <input type="text" value={mavzuQidiruv} onChange={(e) => setMavzuQidiruv(e.target.value)}
+              placeholder="Mavzu qidirish..." className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            {togarakMavzulari === null ? (
+              <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : filtrlanganMavzular.length === 0 ? (
+              <p className="text-sm text-center py-4" style={{ color: "#8A8578" }}>Mavzu topilmadi. Avval "Mavzular" bo'limidan to'garakka mavzu qo'shing.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {filtrlanganMavzular.map((m) => (
+                  <button key={m.topic_code} onClick={() => mavzuBiriktir(m.topic_code)} disabled={biriktirilmoqda}
+                    className="w-full text-left px-3.5 py-2.5 rounded-xl" style={{ backgroundColor: "#F7F5F0" }}>
+                    <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{m.mavzu_name || m.kichik_name || m.bolim_name || m.bob_name}</p>
+                    {m.bob_name && <p className="text-xs" style={{ color: "#8A8578" }}>{m.bob_name}</p>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -6335,7 +6643,7 @@ function RasmiySinflarim({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🏫 Rasmiy sinflarim</h1>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -6413,7 +6721,7 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
   if (!maktabId) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday maktabga bog'lanmagansiz.</p>
         </div>
@@ -6489,7 +6797,7 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
       ) : xato ? (
@@ -6724,7 +7032,7 @@ function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
   if (!markazId) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+        <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday markazga bog'lanmagansiz.</p>
         </div>
@@ -6774,7 +7082,7 @@ function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🎓 Markaz boshqaruvi</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Markazingizga bog'langan barcha guruhlar — bitta ekranda.</p>
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
@@ -7197,7 +7505,7 @@ function PsixologQidiruv({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🧠 Psixolog</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>O'quvchini qidirib, uning kuzatuv yozuvlarini ko'ring yoki yangi qo'shing.</p>
       <MaktabOdamQidiruvi token={token} maktabId={maktabId} tanlanganOdam={null} onTanla={setTanlanganOquvchi} />
@@ -7568,7 +7876,7 @@ function RejalarimBolimi({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← Guruhlarim</button>
+      <button onClick={onOrtga} className="text-sm mb-4" style={{ color: "#8A8578" }}>← To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📋 Rejalarim</h1>
         <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
@@ -7884,7 +8192,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       if (!res.ok) throw new Error(data.detail || "Xato");
       setAzolar(data.azolar || []);
       setTanlangan(t);
-      setHolat("azolar");
+      setHolat("kalendar_reja");
     } catch (e) {
       setXato(e.message);
     } finally { setYuklanmoqda(false); }
@@ -8306,7 +8614,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   if (holat === "azolar") {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
+        <button onClick={() => setHolat("kalendar_reja")}
           className="text-sm mb-4" style={{ color: "#8A8578" }}>← Ortga</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
         <button onClick={() => setHolat("mavzular_boshqarish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
@@ -8357,19 +8665,29 @@ function OqituvchiTab({ token, foydalanuvchi }) {
     );
   }
 
+  if (holat === "kalendar_reja") {
+    return (
+      <TogarakKalendarReja token={token} togarakId={tanlangan.id} togarakNomi={tanlangan.nomi}
+        onOrtga={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
+        onAzolar={() => setHolat("azolar")}
+        onMavzular={() => setHolat("mavzular_boshqarish")}
+        onSozlamalar={() => setHolat("sozlamalar")} />
+    );
+  }
+
   if (holat === "mavzular_boshqarish") {
-    return <TogarakMavzularBoshqarish token={token} togarakId={tanlangan.id} onOrtga={() => setHolat("azolar")} />;
+    return <TogarakMavzularBoshqarish token={token} togarakId={tanlangan.id} onOrtga={() => setHolat("kalendar_reja")} />;
   }
 
   if (holat === "sozlamalar") {
-    return <TogarakGuruhSozlamalari token={token} togarak={tanlangan} onOrtga={() => setHolat("azolar")} onOchirildi={() => window.location.reload()} />;
+    return <TogarakGuruhSozlamalari token={token} togarak={tanlangan} onOrtga={() => setHolat("kalendar_reja")} onOchirildi={() => window.location.reload()} />;
   }
 
   // holat === "togaraklar"
   return (
     <div className="px-5 pt-6 pb-4">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Guruhlarim</h1>
+        <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>To'garaklarim</h1>
         <button onClick={() => { setXato(""); setHolat("yaratish"); }}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white"
           style={{ backgroundColor: "#C89B3C" }}>
@@ -9383,7 +9701,7 @@ function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan }) {
           { kalit: "profil", nom: "Profil", ikon: User },
         ]
       : rol === "oqituvchi"
-      ? [{ kalit: "oqituvchi", nom: "Guruhlarim", ikon: Users }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
+      ? [{ kalit: "oqituvchi", nom: "To'garaklarim", ikon: Users }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
       : rol === "ota-ona"
       ? [{ kalit: "farzand", nom: "Farzandim", ikon: Heart }, { kalit: "xabar", nom: "Xabarlar", ikon: Bell }, { kalit: "profil", nom: "Profil", ikon: User }]
       : [
