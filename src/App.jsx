@@ -8788,6 +8788,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
   const [aktivMuassasaIdx, setAktivMuassasaIdx] = useState(0);
 
   const [yangiNomi, setYangiNomi] = useState("");
+  const [yangiTuri, setYangiTuri] = useState("oddiy"); // "oddiy" | "avto"
   const [yangiFan, setYangiFan] = useState("");
   const [yangiFanOzicha, setYangiFanOzicha] = useState(false); // true bo'lsa o'qituvchi ro'yxatda yo'q fanni o'zi yozadi
   const [meningFanlarim, setMeningFanlarim] = useState([]); // avval o'zi yozgan fanlar — qayta yozib adashmasin
@@ -8968,7 +8969,7 @@ function OqituvchiTab({ token, foydalanuvchi }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati,
+          token, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati, turi: yangiTuri,
           parol: yangiParol || undefined,
           max_talaba: yangiMaxTalaba ? parseInt(yangiMaxTalaba, 10) : undefined,
           oylik_summa: yangiOylikSumma ? parseInt(yangiOylikSumma, 10) : undefined,
@@ -8978,9 +8979,9 @@ function OqituvchiTab({ token, foydalanuvchi }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      const yangiTogarak = { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati, max_talaba: yangiMaxTalaba || null, azo_soni: 0 };
+      const yangiTogarak = { id: data.togarak_id, nomi: yangiNomi.trim(), fan: yangiFan.trim(), sinf: sinfQiymati, turi: yangiTuri, max_talaba: yangiMaxTalaba || null, azo_soni: 0 };
       setTogaraklar((prev) => [...prev, yangiTogarak]);
-      setYangiNomi(""); setYangiFan(""); setYangiFanOzicha(false); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
+      setYangiNomi(""); setYangiTuri("oddiy"); setYangiFan(""); setYangiFanOzicha(false); setYangiSinf(""); setYangiMaxsusSinf(false); setYangiSinfMatni("");
       setTogarakSinflari([]); setSinfFanlari([]);
       setYangiMavjudRejalar([]); setYangiTanlanganRejaId(null); setYangiRejaNomi("");
       setYangiParol(""); setYangiMaxTalaba(""); setYangiOylikSumma("");
@@ -9078,6 +9079,22 @@ function OqituvchiTab({ token, foydalanuvchi }) {
         <p className="text-sm mb-6" style={{ color: "#8A8578" }}>Bot va saytda bir xil ko'rinadi</p>
 
         <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>To'garak turi</label>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button type="button" onClick={() => setYangiTuri("oddiy")}
+              className="rounded-xl p-3 text-left border-2"
+              style={{ borderColor: yangiTuri === "oddiy" ? "#1B4B7A" : "#E5E1D8", backgroundColor: yangiTuri === "oddiy" ? "#EAF1F7" : "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#1B4B7A" }}>🎓 Oddiy</p>
+              <p className="text-[11px]" style={{ color: "#5A5648" }}>Siz jonli dars o'tasiz, kalendar bilan</p>
+            </button>
+            <button type="button" onClick={() => setYangiTuri("avto")}
+              className="rounded-xl p-3 text-left border-2"
+              style={{ borderColor: yangiTuri === "avto" ? "#8B5FBF" : "#E5E1D8", backgroundColor: yangiTuri === "avto" ? "#F3EEFA" : "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#8B5FBF" }}>🤖 Avto</p>
+              <p className="text-[11px]" style={{ color: "#5A5648" }}>O'quvchi mustaqil, kitob orqali o'qiydi</p>
+            </button>
+          </div>
+
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>To'garak nomi</label>
           <input type="text" value={yangiNomi} onChange={(e) => setYangiNomi(e.target.value)}
             placeholder="masalan: Matematik to'garak"
@@ -9952,7 +9969,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   }
   if (korinish === "mening_kalendarim") {
     return (
-      <MeningKalendarim token={token} togarak={tanlanganTogarak} onOrtga={() => setKorinish("togarak_mavzular")}
+      <MeningKalendarim token={token} togarak={tanlanganTogarak}
+        onOrtga={() => setKorinish(tanlanganTogarak?.turi === "avto" ? "profil" : "togarak_mavzular")}
         onMavzuOchish={(topicCode) => { setOchiladiganTopicCode(topicCode); setKorinish("togarak_mavzular"); }} />
     );
   }
@@ -10285,10 +10303,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         ) : (
           <div className="flex flex-wrap gap-2 mb-4">
             {togaraklarim.map((t) => (
-              <button key={t.id} onClick={() => { setTanlanganTogarak(t); setKorinish("togarak_mavzular"); }}
+              <button key={t.id} onClick={() => { setTanlanganTogarak(t); setKorinish(t.turi === "avto" ? "mening_kalendarim" : "togarak_mavzular"); }}
                 className="text-xs px-3 py-1.5 rounded-full font-medium"
-                style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                {t.nomi} →
+                style={t.turi === "avto" ? { backgroundColor: "#F3EEFA", color: "#8B5FBF" } : { backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                {t.turi === "avto" ? "🤖 " : ""}{t.nomi} →
               </button>
             ))}
           </div>
