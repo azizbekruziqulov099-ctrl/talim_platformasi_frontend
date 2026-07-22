@@ -8655,6 +8655,15 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   const [otaKod, setOtaKod] = useState(null); // {kod, amal_qilish_daqiqasi} | null
   const [otaKodOlinmoqda, setOtaKodOlinmoqda] = useState(false);
   const [otaKodXato, setOtaKodXato] = useState("");
+  const [otaOnalarim, setOtaOnalarim] = useState([]); // allaqachon ulangan ota-onalar
+
+  useEffect(() => {
+    if (foydalanuvchi?.role !== "oquvchi") return;
+    fetch(`${API_BASE}/api/oquvchi/ota_onalarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setOtaOnalarim(d.ota_onalar || []))
+      .catch(() => {});
+  }, [foydalanuvchi?.role, token]);
 
   const [farzandlar, setFarzandlar] = useState([]);
   const [farzandKodi, setFarzandKodi] = useState("");
@@ -8892,12 +8901,13 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>👤 Shaxsiy ma'lumotlar</p>
 
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ism</label>
-        <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
-          style={{ borderColor: "#E5E1D8" }} />
-
-        <div className="grid grid-cols-2 gap-2.5 mb-3">
+        <div className="grid grid-cols-2 gap-2.5">
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ism</label>
+            <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+              style={{ borderColor: "#E5E1D8" }} />
+          </div>
           <div>
             <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
             <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
@@ -8906,6 +8916,13 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
               <option value="">—</option>
               {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
+            <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
+              min="1950-01-01" max={new Date().toISOString().split("T")[0]}
+              className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
+              style={{ borderColor: "#E5E1D8" }} />
           </div>
           <div>
             <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
@@ -8917,12 +8934,6 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
             </select>
           </div>
         </div>
-
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tug'ilgan sana</label>
-        <input type="date" value={tugilganSana} onChange={(e) => setTugilganYil(e.target.value)}
-          min="1950-01-01" max={new Date().toISOString().split("T")[0]}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm"
-          style={{ borderColor: "#E5E1D8" }} />
       </div>
 
       {foydalanuvchi?.role === "oquvchi" && (
@@ -9089,8 +9100,17 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       {foydalanuvchi?.role === "oquvchi" && (
         <div className="rounded-2xl p-4 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🔗 Ota-onani ulash</p>
+          {otaOnalarim.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2 mt-2">
+              {otaOnalarim.map((o) => (
+                <span key={o.user_id} className="text-xs font-medium px-3 py-1 rounded-full" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+                  ✓ {o.full_name}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
-            Kod oling va uni ota-onangizga ayting — u shu kodni o'z profilida kiritib, sizning bilim ko'rsatkichlaringizni ko'ra oladi.
+            {otaOnalarim.length > 0 ? "Yana bittasini ulash uchun kod oling:" : "Kod oling va uni ota-onangizga ayting — u shu kodni o'z profilida kiritib, sizning bilim ko'rsatkichlaringizni ko'ra oladi."}
           </p>
           {otaKod ? (
             <div className="rounded-xl p-3 text-center mb-2" style={{ backgroundColor: "#EAF1F7" }}>
