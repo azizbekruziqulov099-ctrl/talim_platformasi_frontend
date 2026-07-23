@@ -3000,7 +3000,16 @@ function TopikShablonBolimi({ token }) {
         {natija && (
           <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
             <p>➕ Qo'shildi: <b>{natija.added}</b></p>
+            {natija.updated > 0 && <p>🔄 Yangilandi: <b>{natija.updated}</b></p>}
             <p>⏭ O'tkazildi: <b>{natija.skipped}</b></p>
+            {natija.xato_namunalari && natija.xato_namunalari.length > 0 && (
+              <div className="mt-2 rounded-lg p-2.5 space-y-1" style={{ backgroundColor: "#FCEBEB" }}>
+                <p className="font-semibold" style={{ color: "#A32D2D" }}>Xato tafsilotlari:</p>
+                {natija.xato_namunalari.map((x, i) => (
+                  <p key={i} className="text-xs" style={{ color: "#A32D2D" }}>{x}</p>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
