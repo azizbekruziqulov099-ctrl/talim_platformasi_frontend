@@ -6,6 +6,7 @@ import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
+  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -5862,9 +5863,13 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
         <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); window.speechSynthesis.cancel(); setOqilayotganId(null); }}
           className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Mavzular</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
-        {tanlanganMavzu.bob_name && <p className="text-xs mb-2" style={{ color: "#8A8578" }}>{tanlanganMavzu.bob_name}</p>}
-        <button onClick={() => setKitobOchiq(true)} className="text-xs font-semibold mb-5" style={{ color: "#1B4B7A" }}>
-          📖 Kitobni ochish (video + misollar) →
+        {tanlanganMavzu.bob_name && <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{tanlanganMavzu.bob_name}</p>}
+        <button onClick={() => setKitobOchiq(true)} className="w-full rounded-2xl bg-white border flex items-center gap-3 px-4 py-3.5 mb-5" style={{ borderColor: "#E5E1D8" }}>
+          <span className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF3DE" }}>
+            <BookOpen size={18} style={{ color: "#3B6D11" }} />
+          </span>
+          <span className="text-sm font-semibold flex-1 text-left" style={{ color: "#2B2B2B" }}>Kitobni ochish</span>
+          <ChevronRight size={16} style={{ color: "#8A8578" }} />
         </button>
 
         {kontentlar === null ? (
@@ -5954,8 +5959,12 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📚 Mavzular</h1>
       <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{togarak.nomi}</p>
       {onKalendar && (
-        <button onClick={onKalendar} className="block text-xs font-semibold mb-5" style={{ color: "#1B4B7A" }}>
-          📅 Mening kalendarim →
+        <button onClick={onKalendar} className="w-full rounded-2xl bg-white border flex items-center gap-3 px-4 py-3.5 mb-5" style={{ borderColor: "#E5E1D8" }}>
+          <span className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}>
+            <Calendar size={18} style={{ color: "#1B4B7A" }} />
+          </span>
+          <span className="text-sm font-semibold flex-1 text-left" style={{ color: "#2B2B2B" }}>Mening kalendarim</span>
+          <ChevronRight size={16} style={{ color: "#8A8578" }} />
         </button>
       )}
       {yuklanmoqda ? (
@@ -6923,8 +6932,15 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.mavzu_name || tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{[tanlanganMavzu.bob_name, tanlanganMavzu.bolim_name].filter(Boolean).join(" · ")}</p>
 
-        <button onClick={() => setKitobOchiq(true)} className="text-xs font-semibold mb-4" style={{ color: "#1B4B7A" }}>
-          📖 Kitob tuzish (video + misollar) →
+        <button onClick={() => setKitobOchiq(true)} className="w-full rounded-2xl bg-white border flex items-center gap-3 px-4 py-3.5 mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <span className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF3DE" }}>
+            <BookOpen size={18} style={{ color: "#3B6D11" }} />
+          </span>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>Kitob tuzish</p>
+            <p className="text-[11px]" style={{ color: "#8A8578" }}>Video + misollar</p>
+          </div>
+          <ChevronRight size={16} style={{ color: "#8A8578" }} />
         </button>
 
         <div className="flex gap-2 flex-wrap mb-4">
@@ -9603,13 +9619,21 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => setHolat("kalendar_reja")}
           className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
-        <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
-        <button onClick={() => setHolat("mavzular_boshqarish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          📖 To'garak mavzulari →
-        </button>
-        <button onClick={() => setHolat("sozlamalar")} className="block text-xs font-medium mb-5" style={{ color: "#1B4B7A" }}>
-          ⚙️ Guruh sozlamalari →
-        </button>
+        <h1 className="text-xl font-bold mb-3" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button onClick={() => setHolat("mavzular_boshqarish")} className="rounded-2xl bg-white border flex items-center gap-2.5 px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF3DE" }}>
+              <BookOpen size={16} style={{ color: "#3B6D11" }} />
+            </span>
+            <span className="text-xs font-semibold" style={{ color: "#2B2B2B" }}>Mavzular</span>
+          </button>
+          <button onClick={() => setHolat("sozlamalar")} className="rounded-2xl bg-white border flex items-center gap-2.5 px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FDF3E0" }}>
+              <Settings size={16} style={{ color: "#8A5A1C" }} />
+            </span>
+            <span className="text-xs font-semibold" style={{ color: "#2B2B2B" }}>Sozlamalar</span>
+          </button>
+        </div>
         {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
 
         {kutilayotganAzolar.length > 0 && (
@@ -9718,54 +9742,48 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
         </div>
       )}
 
-      {aktivMuassasa?.turi === "maktab" && (MUASSASA_BOSHQARUVCHI_LAVOZIM.maktab.includes(aktivMuassasa.lavozim)) && (
-        <>
-          <button onClick={() => setKorinish("maktab_rahbariyat")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            🏫 Butun maktabni boshqarish →
-          </button>
-          <button onClick={() => setKorinish("kutubxona")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            📖 Kutubxona →
-          </button>
-          <button onClick={() => setKorinish("moliya")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            💰 Moliya →
-          </button>
-          <button onClick={() => setKorinish("hujjatlar")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            🗂 Hujjatlar →
-          </button>
-          <button onClick={() => setKorinish("rejalashtirish")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            📅 Rejalashtirish →
-          </button>
-          <button onClick={() => setKorinish("fanlar_tahlili")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            📊 Fanlar tahlili →
-          </button>
-        </>
-      )}
-      {aktivMuassasa?.turi === "maktab" && aktivMuassasa.lavozim === "psixolog" && (
-        <button onClick={() => setKorinish("psixolog")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🧠 Psixolog →
-        </button>
-      )}
-      {aktivMuassasa?.turi === "markaz" && MUASSASA_BOSHQARUVCHI_LAVOZIM.markaz.includes(aktivMuassasa.lavozim) && (
-        <button onClick={() => setKorinish("markaz")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🎓 Markazimni boshqarish →
-        </button>
-      )}
-      {aktivMuassasa?.turi === "bogcha" && aktivMuassasa.lavozim === "bogcha_opa" && (
-        <button onClick={() => setKorinish("bogcha")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🧸 Bog'cha guruhim →
-        </button>
-      )}
-      {aktivMuassasa?.turi === "universitet" && (
-        <button onClick={() => setKorinish("universitet")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          🎓 Kurator bo'lgan guruhlarim →
-        </button>
-      )}
-      <button onClick={() => setKorinish("rejalarim")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-        📋 Rejalarim (mavzular ketma-ketligi) →
-      </button>
-      <button onClick={() => setKorinish("ai_yordamchi")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-        🤖 AI Yordamchi →
-      </button>
+      {(() => {
+        const bandlar = [];
+        if (aktivMuassasa?.turi === "maktab" && MUASSASA_BOSHQARUVCHI_LAVOZIM.maktab.includes(aktivMuassasa.lavozim)) {
+          bandlar.push(
+            { kalit: "maktab_rahbariyat", nom: "Maktabni boshqarish", ikon: Building2, fon: "#EAF1F7", rang: "#1B4B7A" },
+            { kalit: "kutubxona", nom: "Kutubxona", ikon: BookOpen, fon: "#EAF3DE", rang: "#3B6D11" },
+            { kalit: "moliya", nom: "Moliya", ikon: Wallet, fon: "#FDF3E0", rang: "#8A5A1C" },
+            { kalit: "hujjatlar", nom: "Hujjatlar", ikon: Folder, fon: "#F3EEFA", rang: "#8B5FBF" },
+            { kalit: "rejalashtirish", nom: "Rejalashtirish", ikon: Calendar, fon: "#EAF1F7", rang: "#1B4B7A" },
+            { kalit: "fanlar_tahlili", nom: "Fanlar tahlili", ikon: BarChart3, fon: "#FCEBEB", rang: "#A32D2D" },
+          );
+        }
+        if (aktivMuassasa?.turi === "maktab" && aktivMuassasa.lavozim === "psixolog") {
+          bandlar.push({ kalit: "psixolog", nom: "Psixolog", ikon: Brain, fon: "#F3EEFA", rang: "#8B5FBF" });
+        }
+        if (aktivMuassasa?.turi === "markaz" && MUASSASA_BOSHQARUVCHI_LAVOZIM.markaz.includes(aktivMuassasa.lavozim)) {
+          bandlar.push({ kalit: "markaz", nom: "Markazni boshqarish", ikon: GraduationCap, fon: "#EAF1F7", rang: "#1B4B7A" });
+        }
+        if (aktivMuassasa?.turi === "bogcha" && aktivMuassasa.lavozim === "bogcha_opa") {
+          bandlar.push({ kalit: "bogcha", nom: "Bog'cha guruhim", ikon: Users, fon: "#FDF3E0", rang: "#8A5A1C" });
+        }
+        if (aktivMuassasa?.turi === "universitet") {
+          bandlar.push({ kalit: "universitet", nom: "Kurator guruhlarim", ikon: GraduationCap, fon: "#EAF1F7", rang: "#1B4B7A" });
+        }
+        bandlar.push(
+          { kalit: "rejalarim", nom: "Rejalarim", ikon: ClipboardList, fon: "#EAF3DE", rang: "#3B6D11" },
+          { kalit: "ai_yordamchi", nom: "AI Yordamchi", ikon: Bot, fon: "#F3EEFA", rang: "#8B5FBF" },
+        );
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {bandlar.map((b) => (
+              <button key={b.kalit} onClick={() => setKorinish(b.kalit)}
+                className="rounded-2xl bg-white border flex items-center gap-2.5 px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}>
+                <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: b.fon }}>
+                  <b.ikon size={16} style={{ color: b.rang }} />
+                </span>
+                <span className="text-xs font-semibold text-left" style={{ color: "#2B2B2B" }}>{b.nom}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {togaraklar.length === 0 ? (
         <button onClick={() => { setXato(""); setHolat("yaratish"); }}
@@ -11409,6 +11427,22 @@ function Kabinet({ token }) {
            ham zid kelmaydi, faqat kuchsizroq bazasini beradi) */
         .rounded-2xl.bg-white.border, .rounded-xl.bg-white.border {
           box-shadow: 0 1px 2px rgba(43,43,43,0.03), 0 2px 6px rgba(43,43,43,0.045);
+        }
+        /* "Bo'sh holat" kartochkalari (p-6 + text-center + oq fon) —
+           barchasiga bir xil, nozik quti-ikonka, alohida-alohida
+           yozib chiqmasdan */
+        .rounded-2xl.p-6.text-center.bg-white.border::before {
+          content: "";
+          display: block;
+          width: 44px;
+          height: 44px;
+          margin: 0 auto 12px;
+          border-radius: 999px;
+          background-color: #EAF1F7;
+          background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%231B4B7A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpolyline points="22 12 16 12 14 15 10 15 8 12 2 12"/%3E%3Cpath d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/%3E%3C/svg%3E');
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: 20px 20px;
         }
         /* Asosiy (oq matnli, qalin) tugmalar — butun ilova bo'ylab bir xil
            chuqurlik/soya, alohida-alohida yozib chiqmasdan */
