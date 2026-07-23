@@ -2184,6 +2184,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const [mavzuniOchirishTasdiqi, setMavzuniOchirishTasdiqi] = useState(null); // mavzu obyekti | null (BUTUN mavzuni o'chirish uchun)
   const [boshKodTozalashXabari, setBoshKodTozalashXabari] = useState("");
   const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(false);
+  const [fanMavzulariniOchirishTasdiqi, setFanMavzulariniOchirishTasdiqi] = useState(false);
   const [ochirilmoqda, setOchirilmoqda] = useState(false);
   const [rasmGaleriyasi, setRasmGaleriyasi] = useState(null); // {sarlavha, rasmlar: [id,...]} | null
   const [rasmlarYuklanmoqda, setRasmlarYuklanmoqda] = useState(false);
@@ -2298,6 +2299,19 @@ function TopikMavzularTab({ token, onTestYarat }) {
       });
       setFanOchirishTasdiqi(false);
       mavzularniQaytaYukla();
+    } catch {
+      setXato("O'chirib bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
+  const fanMavzulariniButunlayOchir = async () => {
+    setOchirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/fan_mavzularini_butunlay_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
+        method: "DELETE",
+      });
+      setFanMavzulariniOchirishTasdiqi(false);
+      setHolat("fan");
     } catch {
       setXato("O'chirib bo'lmadi");
     } finally { setOchirilmoqda(false); }
@@ -2454,6 +2468,12 @@ function TopikMavzularTab({ token, onTestYarat }) {
           </button>
         )}
       </div>
+      {mavzular.length > 0 && (
+        <button onClick={() => setFanMavzulariniOchirishTasdiqi(true)}
+          className="text-xs font-semibold mb-1" style={{ color: "#A32D2D" }}>
+          🗑 Fandagi barcha mavzularni butunlay o'chirish ({mavzular.length} ta)
+        </button>
+      )}
       <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
         {mavzular.length} ta mavzu · {testliSoni} tasida test bor
       </p>
@@ -2581,6 +2601,27 @@ function TopikMavzularTab({ token, onTestYarat }) {
               <button onClick={fanTestlariniOchir} disabled={ochirilmoqda}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
                 {ochirilmoqda ? "..." : "Ha, hammasini o'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fanMavzulariniOchirishTasdiqi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Butun fandagi mavzularni o'chirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              "{tanlanganFan}" fanidagi BARCHA mavzularning O'ZI ({mavzular.length} ta) va ularning testlari butunlay o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setFanMavzulariniOchirishTasdiqi(false)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={fanMavzulariniButunlayOchir} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "..." : "Ha, butunlay o'chirish"}
               </button>
             </div>
           </div>
