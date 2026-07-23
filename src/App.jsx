@@ -3130,10 +3130,15 @@ function TopikShablonBolimi({ token }) {
           </div>
         )}
 
+        <div className="rounded-xl p-2.5 mb-2" style={{ backgroundColor: "#EAF3DE" }}>
+          <p className="text-[11px] font-semibold" style={{ color: "#3B6D11" }}>
+            ✅ Endi bu tugma ham mavzularni BAZAGA qo'shadi (yuqoridagi "⚡ To'g'ridan-to'g'ri yaratish" bilan bir xil) — farqi shu, natijasini Excel qilib ham beradi, "Topic code" ustuni TO'LIQ to'ldirilgan holda. Bob/Bo'lim qo'shmoqchi bo'lsangiz, shu faylni to'ldirib qayta yuklang.
+          </p>
+        </div>
         <button onClick={shablonYukla} disabled={yuklanmoqda}
           className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border"
           style={{ backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8", opacity: yuklanmoqda ? 0.7 : 1 }}>
-          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Excel shablon sifatida yuklab olish (Bob/Bo'lim to'ldirish uchun)"}
+          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Yaratish + Excel qilib yuklab olish"}
         </button>
       </div>
 
