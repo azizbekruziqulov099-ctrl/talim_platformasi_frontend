@@ -10776,6 +10776,8 @@ function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan, qoshimchaBand }) 
 function XabarlarTab({ token }) {
   const [bildirishnomalar, setBildirishnomalar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [korinish, setKorinish] = useState("bildirishnoma"); // "bildirishnoma" | "suhbatlar"
+  const [tanlanganSuhbat, setTanlanganSuhbat] = useState(null); // { guruh_id } | { boshqa_user_id, boshqa_ismi }
 
   useEffect(() => {
     fetch(`${API_BASE}/api/bildirishnomalar?token=${encodeURIComponent(token)}`)
@@ -10792,10 +10794,27 @@ function XabarlarTab({ token }) {
     return `${kunlar} kun oldin`;
   };
 
+  if (korinish === "suhbatlar" && tanlanganSuhbat) {
+    return <SuhbatOynasi token={token} suhbat={tanlanganSuhbat} onOrtga={() => setTanlanganSuhbat(null)} />;
+  }
+
   return (
     <div className="px-5 pt-6 pb-4">
-      <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>Bildirishnomalar</h1>
-      {yuklanmoqda ? (
+      <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Xabarlar</h1>
+      <div className="flex rounded-xl overflow-hidden border mb-5" style={{ borderColor: "#E5E1D8" }}>
+        <button onClick={() => setKorinish("bildirishnoma")} className="flex-1 py-2 text-sm font-semibold"
+          style={korinish === "bildirishnoma" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+          🔔 Bildirishnomalar
+        </button>
+        <button onClick={() => setKorinish("suhbatlar")} className="flex-1 py-2 text-sm font-semibold"
+          style={korinish === "suhbatlar" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+          💬 Suhbatlar
+        </button>
+      </div>
+
+      {korinish === "suhbatlar" ? (
+        <SuhbatlarRoyxati token={token} onSuhbatOch={setTanlanganSuhbat} />
+      ) : yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
       ) : bildirishnomalar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
@@ -10816,6 +10835,236 @@ function XabarlarTab({ token }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SuhbatlarRoyxati({ token, onSuhbatOch }) {
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [shaxsiylar, setShaxsiylar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [qidiruvOchiq, setQidiruvOchiq] = useState(false);
+  const [qidiruvMatni, setQidiruvMatni] = useState("");
+  const [qidiruvNatijalari, setQidiruvNatijalari] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/chat/guruhlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setGuruhlar(d.guruhlar || []); setShaxsiylar(d.shaxsiylar || []); setYuklanmoqda(false); })
+      .catch(() => setYuklanmoqda(false));
+  }, [token]);
+
+  useEffect(() => {
+    if (qidiruvMatni.trim().length < 2) { setQidiruvNatijalari([]); return; }
+    const vaqt = setTimeout(() => {
+      fetch(`${API_BASE}/api/chat/foydalanuvchi_qidir?token=${encodeURIComponent(token)}&ism=${encodeURIComponent(qidiruvMatni.trim())}`)
+        .then((r) => r.json())
+        .then((d) => setQidiruvNatijalari(d.natijalar || []))
+        .catch(() => {});
+    }, 350);
+    return () => clearTimeout(vaqt);
+  }, [qidiruvMatni, token]);
+
+  const vaqtQisqa = (izo) => {
+    if (!izo) return "";
+    const sana = new Date(izo);
+    const bugun = new Date();
+    if (sana.toDateString() === bugun.toDateString()) return sana.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+    return sana.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" });
+  };
+
+  const oxirgiMatnKorsat = (matn, faylTuri) => {
+    if (matn) return matn;
+    if (faylTuri === "audio") return "🎤 Ovozli xabar";
+    if (faylTuri === "video") return "🎬 Video";
+    if (faylTuri === "video_doira") return "⭕ Video xabar";
+    if (faylTuri === "hujjat") return "📎 Fayl";
+    return "";
+  };
+
+  if (qidiruvOchiq) {
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <input type="text" autoFocus value={qidiruvMatni} onChange={(e) => setQidiruvMatni(e.target.value)}
+            placeholder="Ism bo'yicha qidirish..." className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          <button onClick={() => { setQidiruvOchiq(false); setQidiruvMatni(""); }} className="text-sm font-medium" style={{ color: "#8A8578" }}>Bekor</button>
+        </div>
+        <div className="space-y-1.5">
+          {qidiruvNatijalari.map((n) => (
+            <button key={n.user_id} onClick={() => { setQidiruvOchiq(false); setQidiruvMatni(""); onSuhbatOch({ boshqa_user_id: n.user_id, boshqa_ismi: n.full_name }); }}
+              className="w-full flex items-center gap-3 rounded-xl p-3 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
+              <span className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                {n.full_name.trim().slice(0, 1).toUpperCase()}
+              </span>
+              <span className="text-sm font-medium truncate" style={{ color: "#2B2B2B" }}>{n.full_name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button onClick={() => setQidiruvOchiq(true)} className="w-full flex items-center gap-2 rounded-xl px-3.5 py-2.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
+        <UserPlus size={16} style={{ color: "#8A8578" }} />
+        <span className="text-sm" style={{ color: "#8A8578" }}>Yangi shaxsiy xabar...</span>
+      </button>
+
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : guruhlar.length === 0 && shaxsiylar.length === 0 ? (
+        <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha suhbat yo'q.</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {guruhlar.map((g) => (
+            <button key={`g${g.id}`} onClick={() => onSuhbatOch({ guruh_id: g.id, guruh_nomi: g.nomi })}
+              className="w-full flex items-center gap-3 rounded-xl p-3 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
+              <span className="w-11 h-11 rounded-full flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: "#EAF1F7" }}>
+                {g.nomi.trim().slice(0, 2)}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
+                <p className="text-xs truncate" style={{ color: "#8A8578" }}>{oxirgiMatnKorsat(g.oxirgi_matn, g.oxirgi_fayl_turi) || "Hali xabar yo'q"}</p>
+              </div>
+              {g.oxirgi_vaqt && <span className="text-[11px] shrink-0" style={{ color: "#B0AA98" }}>{vaqtQisqa(g.oxirgi_vaqt)}</span>}
+            </button>
+          ))}
+          {shaxsiylar.map((s) => (
+            <button key={`s${s.user_id}`} onClick={() => onSuhbatOch({ boshqa_user_id: s.user_id, boshqa_ismi: s.full_name })}
+              className="w-full flex items-center gap-3 rounded-xl p-3 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
+              <span className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0" style={{ backgroundColor: "#F3EEFA", color: "#8B5FBF" }}>
+                {s.full_name.trim().slice(0, 1).toUpperCase()}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{s.full_name}</p>
+                <p className="text-xs truncate" style={{ color: "#8A8578" }}>{oxirgiMatnKorsat(s.matn, s.fayl_turi)}</p>
+              </div>
+              {s.yaratilgan_at && <span className="text-[11px] shrink-0" style={{ color: "#B0AA98" }}>{vaqtQisqa(s.yaratilgan_at)}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SuhbatOynasi({ token, suhbat, onOrtga }) {
+  const [xabarlar, setXabarlar] = useState([]);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [matn, setMatn] = useState("");
+  const [yuborilmoqda, setYuborilmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const oxiriRef = useRef(null);
+  const faylInputRef = useRef(null);
+
+  const sarlavha = suhbat.guruh_nomi || suhbat.boshqa_ismi;
+
+  const yukla = () => {
+    const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
+    fetch(`${API_BASE}/api/chat/xabarlar?token=${encodeURIComponent(token)}&${parametr}`)
+      .then((r) => r.json())
+      .then((d) => { setXabarlar(d.xabarlar || []); setYuklanmoqda(false); setTimeout(() => oxiriRef.current?.scrollIntoView(), 50); })
+      .catch(() => setYuklanmoqda(false));
+  };
+
+  useEffect(() => { yukla(); }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const matnYubor = async () => {
+    if (!matn.trim() || yuborilmoqda) return;
+    setYuborilmoqda(true); setXato("");
+    try {
+      const forma = new FormData();
+      forma.append("token", token);
+      if (suhbat.guruh_id) forma.append("guruh_id", suhbat.guruh_id);
+      else forma.append("qabul_qiluvchi_user_id", suhbat.boshqa_user_id);
+      forma.append("matn", matn.trim());
+      const res = await fetch(`${API_BASE}/api/chat/xabar_yubor`, { method: "POST", body: forma });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      setMatn("");
+      yukla();
+    } catch (e) { setXato(e.message); } finally { setYuborilmoqda(false); }
+  };
+
+  const faylTanlandi = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    e.target.value = "";
+    setYuborilmoqda(true); setXato("");
+    const faylTuri = f.type.startsWith("audio/") ? "audio" : f.type.startsWith("video/") ? "video" : "hujjat";
+    try {
+      const forma = new FormData();
+      forma.append("token", token);
+      if (suhbat.guruh_id) forma.append("guruh_id", suhbat.guruh_id);
+      else forma.append("qabul_qiluvchi_user_id", suhbat.boshqa_user_id);
+      forma.append("fayl_turi", faylTuri);
+      forma.append("fayl", f);
+      const res = await fetch(`${API_BASE}/api/chat/xabar_yubor`, { method: "POST", body: forma });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      yukla();
+    } catch (e2) { setXato(e2.message); } finally { setYuborilmoqda(false); }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
+      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}>
+        <ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{sarlavha}
+      </button>
+
+      <div className="flex-1 space-y-2.5 mb-3 overflow-y-auto">
+        {yuklanmoqda ? (
+          <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : xabarlar.length === 0 ? (
+          <p className="text-sm text-center py-10" style={{ color: "#8A8578" }}>Hali xabar yo'q — birinchi bo'lib yozing.</p>
+        ) : (
+          xabarlar.map((x) => (
+            <div key={x.id} className="rounded-2xl px-4 py-2.5 max-w-[80%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8" }}>
+              {suhbat.guruh_id && <p className="text-[11px] font-semibold mb-0.5" style={{ color: "#1B4B7A" }}>{x.yuboruvchi_ismi}</p>}
+              {x.matn && <p className="text-sm" style={{ color: "#2B2B2B" }}>{x.matn}</p>}
+              {x.fayl_turi === "audio" && (
+                <audio controls className="mt-1" style={{ height: 36 }} src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
+              )}
+              {(x.fayl_turi === "video" || x.fayl_turi === "video_doira") && (
+                <video controls className="mt-1 rounded-lg" style={{ maxWidth: 220, borderRadius: x.fayl_turi === "video_doira" ? "50%" : 12 }}
+                  src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
+              )}
+              {x.fayl_turi === "hujjat" && (
+                <a href={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 mt-1 text-xs font-medium" style={{ color: "#1B4B7A" }}>
+                  <FileSpreadsheet size={14} /> {x.fayl_nomi || "Fayl"}
+                </a>
+              )}
+              <p className="text-[10px] mt-1 text-right" style={{ color: "#B0AA98" }}>
+                {new Date(x.yaratilgan_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+          ))
+        )}
+        <div ref={oxiriRef} />
+      </div>
+
+      {xato && <p className="text-xs mb-2" style={{ color: "#B0553A" }}>{xato}</p>}
+
+      <div className="flex items-center gap-2">
+        <button onClick={() => faylInputRef.current?.click()} disabled={yuborilmoqda}
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
+          📎
+        </button>
+        <input ref={faylInputRef} type="file" accept="audio/*,video/*,.pdf,.doc,.docx,.xlsx" onChange={faylTanlandi} className="hidden" />
+        <input type="text" value={matn} onChange={(e) => setMatn(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") matnYubor(); }}
+          placeholder="Xabar yozing..." className="flex-1 px-3.5 py-2.5 rounded-full border text-sm" style={{ borderColor: "#E5E1D8" }} />
+        <button onClick={matnYubor} disabled={!matn.trim() || yuborilmoqda}
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-semibold text-white"
+          style={{ backgroundColor: "#1B4B7A", opacity: (!matn.trim() || yuborilmoqda) ? 0.5 : 1 }}>
+          ➤
+        </button>
+      </div>
     </div>
   );
 }
