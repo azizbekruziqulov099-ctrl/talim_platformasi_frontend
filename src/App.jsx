@@ -2183,6 +2183,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const [mavzuOchirishTasdiqi, setMavzuOchirishTasdiqi] = useState(null); // mavzu obyekti | null
   const [mavzuniOchirishTasdiqi, setMavzuniOchirishTasdiqi] = useState(null); // mavzu obyekti | null (BUTUN mavzuni o'chirish uchun)
   const [boshKodTozalashXabari, setBoshKodTozalashXabari] = useState("");
+  const [faqatToliq, setFaqatToliq] = useState(true); // true: faqat Bob+Bo'lim to'ldirilgan mavzularni ko'rsatadi
   const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(false);
   const [fanMavzulariniOchirishTasdiqi, setFanMavzulariniOchirishTasdiqi] = useState(false);
   const [ochirilmoqda, setOchirilmoqda] = useState(false);
@@ -2458,8 +2459,11 @@ function TopikMavzularTab({ token, onTestYarat }) {
 
   // holat === "mavzular"
   const SAHIFA_HAJMI = 10;
-  const korinadigan = mavzular.slice(sahifa * SAHIFA_HAJMI, sahifa * SAHIFA_HAJMI + SAHIFA_HAJMI);
-  const jamiSahifa = Math.ceil(mavzular.length / SAHIFA_HAJMI) || 1;
+  const toliqMavzular = mavzular.filter((m) => (m.bob || "").trim() && (m.bolim || "").trim());
+  const chalaSoni = mavzular.length - toliqMavzular.length;
+  const korinadiganManba = faqatToliq ? toliqMavzular : mavzular;
+  const korinadigan = korinadiganManba.slice(sahifa * SAHIFA_HAJMI, sahifa * SAHIFA_HAJMI + SAHIFA_HAJMI);
+  const jamiSahifa = Math.ceil(korinadiganManba.length / SAHIFA_HAJMI) || 1;
   const testliSoni = mavzular.filter((m) => m.test_bormi).length;
   return (
     <div className="px-5 pt-6 pb-4">
@@ -2479,9 +2483,15 @@ function TopikMavzularTab({ token, onTestYarat }) {
           🗑 Fandagi barcha mavzularni butunlay o'chirish ({mavzular.length} ta)
         </button>
       )}
-      <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-        {mavzular.length} ta mavzu · {testliSoni} tasida test bor
+      <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+        {korinadiganManba.length} ta mavzu · {testliSoni} tasida test bor{chalaSoni > 0 ? ` · ${chalaSoni} tasi chala (Bob/Bo'lim bo'sh)` : ""}
       </p>
+      {chalaSoni > 0 && (
+        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
+          <input type="checkbox" checked={faqatToliq} onChange={(e) => { setFaqatToliq(e.target.checked); setSahifa(0); }} />
+          <span className="text-xs" style={{ color: "#5A5648" }}>Faqat to'liq to'ldirilganlarni ko'rsatish (chala {chalaSoni} tasini yashirish)</span>
+        </label>
+      )}
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
