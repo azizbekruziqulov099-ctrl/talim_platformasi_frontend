@@ -8965,6 +8965,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   const [togaraklar, setTogaraklar] = useState([]);
   const [tanlangan, setTanlangan] = useState(null);
   const [azolar, setAzolar] = useState([]);
+  const [kutilayotganAzolar, setKutilayotganAzolar] = useState([]);
   const [bahoQoyilayotgan, setBahoQoyilayotgan] = useState(null); // user_id | null
   const [bahoQiymati, setBahoQiymati] = useState("");
   const [izohQiymati, setIzohQiymati] = useState("");
@@ -9119,6 +9120,38 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
     } catch (e) {
       setXato(e.message);
     } finally { setYuklanmoqda(false); }
+  };
+
+  const kutilayotganAzolarniYukla = () => {
+    if (!tanlangan) return;
+    fetch(`${API_BASE}/api/oqituvchi/togarak/${tanlangan.id}/kutilayotgan_azolar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setKutilayotganAzolar(d.azolar || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (holat === "azolar") kutilayotganAzolarniYukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holat, tanlangan]);
+
+  const azolarniQaytaYukla = () => {
+    if (!tanlangan) return;
+    fetch(`${API_BASE}/api/oqituvchi/togarak/${tanlangan.id}/azolar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setAzolar(d.azolar || []))
+      .catch(() => {});
+  };
+
+  const azoTasdiqla = async (azolikId) => {
+    await fetch(`${API_BASE}/api/oqituvchi/azo_tasdiqla?token=${encodeURIComponent(token)}&azolik_id=${azolikId}`, { method: "PUT" });
+    kutilayotganAzolarniYukla();
+    azolarniQaytaYukla();
+  };
+
+  const azoRadEt = async (azolikId) => {
+    await fetch(`${API_BASE}/api/oqituvchi/azo_rad_etish?token=${encodeURIComponent(token)}&azolik_id=${azolikId}`, { method: "DELETE" });
+    kutilayotganAzolarniYukla();
   };
 
   const bahoBoshla = (azo) => {
@@ -9563,6 +9596,30 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
           ⚙️ Guruh sozlamalari →
         </button>
         {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+
+        {kutilayotganAzolar.length > 0 && (
+          <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: "#FDF3E0", border: "1px solid #C89B3C" }}>
+            <p className="text-xs font-bold mb-3" style={{ color: "#8A5A1C" }}>⏳ Kutilayotgan so'rovlar ({kutilayotganAzolar.length})</p>
+            <div className="space-y-2">
+              {kutilayotganAzolar.map((a) => (
+                <div key={a.azolik_id} className="flex items-center justify-between gap-2 rounded-xl bg-white px-3.5 py-2.5">
+                  <span className="text-sm font-medium truncate" style={{ color: "#2B2B2B" }}>{a.full_name}</span>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => azoTasdiqla(a.azolik_id)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+                      ✓ Tasdiqlash
+                    </button>
+                    <button onClick={() => azoRadEt(a.azolik_id)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                      ✕ Rad etish
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {azolar.length === 0 ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm" style={{ color: "#8A8578" }}>Bu to'garakda hali a'zo yo'q.</p>
@@ -10027,10 +10084,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      setTogaraklarim((prev) => [...prev, { id: Date.now(), nomi: data.togarak_nomi, fan: "" }]);
-      setQoshilishMuvaffaqiyat(`"${data.togarak_nomi}" ga qo'shildingiz!`);
+      setTogaraklarim((prev) => [...prev, { id: Date.now(), nomi: data.togarak_nomi, fan: "", tasdiqlangan: false }]);
+      setQoshilishMuvaffaqiyat(`"${data.togarak_nomi}" — so'rovingiz yuborildi, o'qituvchi tasdiqlashini kuting.`);
       setQoshilishParol("");
-      setTimeout(() => setQoshilishMuvaffaqiyat(""), 3000);
+      setTimeout(() => setQoshilishMuvaffaqiyat(""), 5000);
     } catch (e) {
       setQoshilishXato(e.message);
     } finally { setQoshilinmoqda(false); }
@@ -10506,11 +10563,17 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         ) : (
           <div className="flex flex-wrap gap-2 mb-4">
             {togaraklarim.map((t) => (
-              <button key={t.id} onClick={() => { setTanlanganTogarak(t); setKorinish(t.turi === "avto" ? "mening_kalendarim" : "togarak_mavzular"); }}
-                className="text-xs px-3 py-1.5 rounded-full font-medium"
-                style={t.turi === "avto" ? { backgroundColor: "#F3EEFA", color: "#8B5FBF" } : { backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                {t.turi === "avto" ? "🤖 " : ""}{t.nomi} →
-              </button>
+              t.tasdiqlangan === false ? (
+                <span key={t.id} className="text-xs px-3 py-1.5 rounded-full font-medium" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+                  ⏳ {t.nomi} — kutilmoqda
+                </span>
+              ) : (
+                <button key={t.id} onClick={() => { setTanlanganTogarak(t); setKorinish(t.turi === "avto" ? "mening_kalendarim" : "togarak_mavzular"); }}
+                  className="text-xs px-3 py-1.5 rounded-full font-medium"
+                  style={t.turi === "avto" ? { backgroundColor: "#F3EEFA", color: "#8B5FBF" } : { backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                  {t.turi === "avto" ? "🤖 " : ""}{t.nomi} →
+                </button>
+              )
             ))}
           </div>
         )}
@@ -10839,6 +10902,32 @@ function Kabinet({ token }) {
 
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <style>{`
+        button:not(:disabled) { transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+        button:not(:disabled):active { transform: scale(0.97); }
+        button:disabled { cursor: not-allowed; }
+        input, textarea, select {
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        input:focus-visible, textarea:focus-visible, select:focus-visible,
+        input:focus, textarea:focus, select:focus {
+          outline: none;
+          border-color: #1B4B7A !important;
+          box-shadow: 0 0 0 3px rgba(27,75,122,0.14);
+        }
+        button:focus-visible {
+          outline: 2px solid #1B4B7A;
+          outline-offset: 2px;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #D8D3C7; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #C4BFAF; }
+        @media (prefers-reduced-motion: reduce) {
+          button:not(:disabled) { transition: none; }
+          button:not(:disabled):active { transform: none; }
+        }
+      `}</style>
       {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
