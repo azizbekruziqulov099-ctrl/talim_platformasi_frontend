@@ -5,7 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
-  Flame, Star, CalendarCheck, Trophy, Building2, Settings,
+  Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -10952,12 +10952,139 @@ function SuhbatlarRoyxati({ token, onSuhbatOch }) {
   );
 }
 
+function DoiraVideoYozish({ onYubor, onBekor }) {
+  const MAX_SONIYA = 60;
+  const [holat, setHolat] = useState("tayyorlanmoqda"); // tayyorlanmoqda | tayyor | yozilmoqda | korib_chiqish | xato
+  const [xatoMatni, setXatoMatni] = useState("");
+  const [yozilganUrl, setYozilganUrl] = useState(null);
+  const [sekund, setSekund] = useState(0);
+  const jonliVideoRef = useRef(null);
+  const koribChiqishVideoRef = useRef(null);
+  const recorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const boglamlarRef = useRef([]);
+  const taymerRef = useRef(null);
+
+  const kameraniOch = () => {
+    setHolat("tayyorlanmoqda");
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 }, audio: true })
+      .then((stream) => {
+        streamRef.current = stream;
+        if (jonliVideoRef.current) jonliVideoRef.current.srcObject = stream;
+        setHolat("tayyor");
+      })
+      .catch(() => { setXatoMatni("Kameraga ruxsat berilmadi — brauzer sozlamalaridan ruxsat bering."); setHolat("xato"); });
+  };
+
+  useEffect(() => {
+    kameraniOch();
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      clearInterval(taymerRef.current);
+      if (yozilganUrl) URL.revokeObjectURL(yozilganUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const yozishToxtat = () => {
+    clearInterval(taymerRef.current);
+    if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  };
+
+  const yozishBoshla = () => {
+    if (!streamRef.current) return;
+    boglamlarRef.current = [];
+    const turi = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus") ? "video/webm;codecs=vp8,opus" : "video/webm";
+    const recorder = new MediaRecorder(streamRef.current, { mimeType: turi });
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) boglamlarRef.current.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(boglamlarRef.current, { type: "video/webm" });
+      setYozilganUrl(URL.createObjectURL(blob));
+      setHolat("korib_chiqish");
+    };
+    recorderRef.current = recorder;
+    recorder.start();
+    setSekund(0);
+    setHolat("yozilmoqda");
+    taymerRef.current = setInterval(() => {
+      setSekund((prev) => {
+        if (prev + 1 >= MAX_SONIYA) { yozishToxtat(); return prev; }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+
+  const qaytaYoz = () => {
+    if (yozilganUrl) URL.revokeObjectURL(yozilganUrl);
+    setYozilganUrl(null);
+    setSekund(0);
+    kameraniOch();
+  };
+
+  const yuborish = async () => {
+    const javob = await fetch(yozilganUrl);
+    const blob = await javob.blob();
+    onYubor(new File([blob], "doira_video.webm", { type: "video/webm" }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6" style={{ backgroundColor: "rgba(20,20,18,0.92)" }}>
+      <button onClick={() => { streamRef.current?.getTracks().forEach((t) => t.stop()); onBekor(); }}
+        className="absolute top-6 right-5 w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
+        <X size={18} style={{ color: "#fff" }} />
+      </button>
+
+      {holat === "xato" ? (
+        <p className="text-sm text-center px-8" style={{ color: "#fff" }}>{xatoMatni}</p>
+      ) : (
+        <>
+          <div className="relative" style={{ width: 260, height: 260 }}>
+            <div className="rounded-full overflow-hidden w-full h-full" style={{ border: holat === "yozilmoqda" ? "3px solid #E24B4A" : "3px solid rgba(255,255,255,0.3)" }}>
+              {holat === "korib_chiqish" ? (
+                <video ref={koribChiqishVideoRef} src={yozilganUrl} autoPlay loop playsInline className="w-full h-full object-cover" />
+              ) : (
+                <video ref={jonliVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} />
+              )}
+            </div>
+            {holat === "yozilmoqda" && (
+              <span className="absolute top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: "#E24B4A", color: "#fff" }}>
+                {String(Math.floor(sekund / 60)).padStart(2, "0")}:{String(sekund % 60).padStart(2, "0")}
+              </span>
+            )}
+          </div>
+
+          {holat === "korib_chiqish" ? (
+            <div className="flex items-center gap-5">
+              <button onClick={qaytaYoz} className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
+                <RotateCcw size={20} style={{ color: "#fff" }} />
+              </button>
+              <button onClick={yuborish} className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "#1B4B7A" }}>
+                <Send size={24} style={{ color: "#fff" }} />
+              </button>
+            </div>
+          ) : (
+            <button onClick={holat === "yozilmoqda" ? yozishToxtat : yozishBoshla} disabled={holat === "tayyorlanmoqda"}
+              className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: holat === "yozilmoqda" ? "#fff" : "#E24B4A", opacity: holat === "tayyorlanmoqda" ? 0.5 : 1 }}>
+              {holat === "yozilmoqda" ? <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> : <span className="w-6 h-6 rounded-full" style={{ backgroundColor: "#fff" }} />}
+            </button>
+          )}
+          <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
+            {holat === "korib_chiqish" ? "Ko'rib chiqing va yuboring" : holat === "yozilmoqda" ? "Tugatish uchun bosing" : "Yozishni boshlash uchun bosing"}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const [xabarlar, setXabarlar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [matn, setMatn] = useState("");
   const [yuborilmoqda, setYuborilmoqda] = useState(false);
   const [xato, setXato] = useState("");
+  const [doiraVideoOchiq, setDoiraVideoOchiq] = useState(false);
   const oxiriRef = useRef(null);
   const faylInputRef = useRef(null);
 
@@ -10990,28 +11117,38 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
     } catch (e) { setXato(e.message); } finally { setYuborilmoqda(false); }
   };
 
-  const faylTanlandi = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    e.target.value = "";
+  const faylniYubor = async (fayl, faylTuri) => {
     setYuborilmoqda(true); setXato("");
-    const faylTuri = f.type.startsWith("audio/") ? "audio" : f.type.startsWith("video/") ? "video" : "hujjat";
     try {
       const forma = new FormData();
       forma.append("token", token);
       if (suhbat.guruh_id) forma.append("guruh_id", suhbat.guruh_id);
       else forma.append("qabul_qiluvchi_user_id", suhbat.boshqa_user_id);
       forma.append("fayl_turi", faylTuri);
-      forma.append("fayl", f);
+      forma.append("fayl", fayl);
       const res = await fetch(`${API_BASE}/api/chat/xabar_yubor`, { method: "POST", body: forma });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       yukla();
-    } catch (e2) { setXato(e2.message); } finally { setYuborilmoqda(false); }
+    } catch (e) { setXato(e.message); } finally { setYuborilmoqda(false); }
+  };
+
+  const faylTanlandi = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    e.target.value = "";
+    const faylTuri = f.type.startsWith("audio/") ? "audio" : f.type.startsWith("video/") ? "video" : "hujjat";
+    faylniYubor(f, faylTuri);
+  };
+
+  const doiraVideoYuborildi = (fayl) => {
+    setDoiraVideoOchiq(false);
+    faylniYubor(fayl, "video_doira");
   };
 
   return (
     <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
+      {doiraVideoOchiq && <DoiraVideoYozish onYubor={doiraVideoYuborildi} onBekor={() => setDoiraVideoOchiq(false)} />}
       <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}>
         <ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{sarlavha}
       </button>
@@ -11054,6 +11191,10 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
         <button onClick={() => faylInputRef.current?.click()} disabled={yuborilmoqda}
           className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
           📎
+        </button>
+        <button onClick={() => setDoiraVideoOchiq(true)} disabled={yuborilmoqda}
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
+          <Video size={17} style={{ color: "#5A5648" }} />
         </button>
         <input ref={faylInputRef} type="file" accept="audio/*,video/*,.pdf,.doc,.docx,.xlsx" onChange={faylTanlandi} className="hidden" />
         <input type="text" value={matn} onChange={(e) => setMatn(e.target.value)}
