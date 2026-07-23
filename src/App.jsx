@@ -5,7 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
-  Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send,
+  Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -11085,8 +11085,14 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const [yuborilmoqda, setYuborilmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [doiraVideoOchiq, setDoiraVideoOchiq] = useState(false);
+  const [ovozYozilmoqda, setOvozYozilmoqda] = useState(false);
+  const [ovozSekund, setOvozSekund] = useState(0);
   const oxiriRef = useRef(null);
   const faylInputRef = useRef(null);
+  const ovozRecorderRef = useRef(null);
+  const ovozStreamRef = useRef(null);
+  const ovozBoglamlarRef = useRef([]);
+  const ovozTaymerRef = useRef(null);
 
   const sarlavha = suhbat.guruh_nomi || suhbat.boshqa_ismi;
 
@@ -11146,6 +11152,52 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
     faylniYubor(fayl, "video_doira");
   };
 
+  useEffect(() => () => {
+    ovozStreamRef.current?.getTracks().forEach((t) => t.stop());
+    clearInterval(ovozTaymerRef.current);
+  }, []);
+
+  const ovozYozishBoshla = () => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        ovozStreamRef.current = stream;
+        ovozBoglamlarRef.current = [];
+        const recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) ovozBoglamlarRef.current.push(e.data); };
+        ovozRecorderRef.current = recorder;
+        recorder.start();
+        setOvozSekund(0);
+        setOvozYozilmoqda(true);
+        ovozTaymerRef.current = setInterval(() => setOvozSekund((p) => p + 1), 1000);
+      })
+      .catch(() => setXato("Mikrofonga ruxsat berilmadi — brauzer sozlamalaridan ruxsat bering."));
+  };
+
+  const ovozYozishToxtat = () => {
+    clearInterval(ovozTaymerRef.current);
+    ovozStreamRef.current?.getTracks().forEach((t) => t.stop());
+    setOvozYozilmoqda(false);
+  };
+
+  const ovozBekorQil = () => {
+    if (ovozRecorderRef.current && ovozRecorderRef.current.state !== "inactive") {
+      ovozRecorderRef.current.onstop = null;
+      ovozRecorderRef.current.stop();
+    }
+    ovozYozishToxtat();
+  };
+
+  const ovozYuborish = () => {
+    const recorder = ovozRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") { ovozYozishToxtat(); return; }
+    recorder.onstop = () => {
+      const blob = new Blob(ovozBoglamlarRef.current, { type: "audio/webm" });
+      faylniYubor(new File([blob], "ovozli_xabar.webm", { type: "audio/webm" }), "audio");
+    };
+    recorder.stop();
+    ovozYozishToxtat();
+  };
+
   return (
     <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
       {doiraVideoOchiq && <DoiraVideoYozish onYubor={doiraVideoYuborildi} onBekor={() => setDoiraVideoOchiq(false)} />}
@@ -11187,25 +11239,49 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
 
       {xato && <p className="text-xs mb-2" style={{ color: "#B0553A" }}>{xato}</p>}
 
-      <div className="flex items-center gap-2">
-        <button onClick={() => faylInputRef.current?.click()} disabled={yuborilmoqda}
-          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
-          📎
-        </button>
-        <button onClick={() => setDoiraVideoOchiq(true)} disabled={yuborilmoqda}
-          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
-          <Video size={17} style={{ color: "#5A5648" }} />
-        </button>
-        <input ref={faylInputRef} type="file" accept="audio/*,video/*,.pdf,.doc,.docx,.xlsx" onChange={faylTanlandi} className="hidden" />
-        <input type="text" value={matn} onChange={(e) => setMatn(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") matnYubor(); }}
-          placeholder="Xabar yozing..." className="flex-1 px-3.5 py-2.5 rounded-full border text-sm" style={{ borderColor: "#E5E1D8" }} />
-        <button onClick={matnYubor} disabled={!matn.trim() || yuborilmoqda}
-          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-semibold text-white"
-          style={{ backgroundColor: "#1B4B7A", opacity: (!matn.trim() || yuborilmoqda) ? 0.5 : 1 }}>
-          ➤
-        </button>
-      </div>
+      {ovozYozilmoqda ? (
+        <div className="flex items-center gap-2">
+          <button onClick={ovozBekorQil} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FCEBEB" }}>
+            <Trash2 size={16} style={{ color: "#A32D2D" }} />
+          </button>
+          <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-full" style={{ backgroundColor: "#FCEBEB" }}>
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#E24B4A" }} />
+            <span className="text-sm font-semibold" style={{ color: "#A32D2D" }}>
+              Ovoz yozilmoqda — {String(Math.floor(ovozSekund / 60)).padStart(2, "0")}:{String(ovozSekund % 60).padStart(2, "0")}
+            </span>
+          </div>
+          <button onClick={ovozYuborish} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#1B4B7A" }}>
+            <Send size={16} style={{ color: "#fff" }} />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button onClick={() => faylInputRef.current?.click()} disabled={yuborilmoqda}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
+            📎
+          </button>
+          <button onClick={() => setDoiraVideoOchiq(true)} disabled={yuborilmoqda}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
+            <Video size={17} style={{ color: "#5A5648" }} />
+          </button>
+          <input ref={faylInputRef} type="file" accept="audio/*,video/*,.pdf,.doc,.docx,.xlsx" onChange={faylTanlandi} className="hidden" />
+          <input type="text" value={matn} onChange={(e) => setMatn(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") matnYubor(); }}
+            placeholder="Xabar yozing..." className="flex-1 px-3.5 py-2.5 rounded-full border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          {matn.trim() ? (
+            <button onClick={matnYubor} disabled={yuborilmoqda}
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-semibold text-white"
+              style={{ backgroundColor: "#1B4B7A", opacity: yuborilmoqda ? 0.5 : 1 }}>
+              ➤
+            </button>
+          ) : (
+            <button onClick={ovozYozishBoshla} disabled={yuborilmoqda}
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
+              <Mic size={17} style={{ color: "#5A5648" }} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
