@@ -2440,8 +2440,11 @@ function TopikMavzularTab({ token, onTestYarat }) {
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>❌ Test yo'q</span>
                   )}
                 </div>
-                <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+                <p className="text-xs mb-1" style={{ color: "#8A8578" }}>
                   {m.chorak ? `${m.chorak}-chorak` : ""}{m.bob ? ` · ${m.bob}` : ""}{m.bolim ? ` · ${m.bolim}` : ""} · {m.kichik_soni} kichik mavzu
+                </p>
+                <p className="text-[11px] mb-2 font-mono" style={{ color: "#B0AA98" }}>
+                  {m.barcha_kodlar && m.barcha_kodlar.length > 1 ? m.barcha_kodlar.join(", ") : m.topic_code}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {!m.test_bormi ? (
