@@ -1765,7 +1765,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
               <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
               <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
                 Hozirgacha javob bergan {Object.keys(javoblar).length} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
@@ -1919,7 +1919,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
               <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
               <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
                 Hozirgacha javob bergan {jamiJavoblangan} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
@@ -1940,7 +1940,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
         {yakunlashTasdiqi && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+            <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
               <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>✓ Testni yakunlaysizmi?</p>
               <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
                 {jamiJavoblangan} / {savollar.length} savolga javob berdingiz.
@@ -2486,7 +2486,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
 
       {mavzuOchirishTasdiqi && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
             <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Testlarni o'chirasizmi?</p>
             <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
               "{mavzuOchirishTasdiqi.nomi}" mavzusining BARCHA testlari butunlay o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.
@@ -2507,7 +2507,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
 
       {fanOchirishTasdiqi && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
             <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Butun fanni o'chirasizmi?</p>
             <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
               "{tanlanganFan}" fanidagi BARCHA mavzularning BARCHA testlari butunlay o'chiriladi ({testliSoni} ta mavzu). Bu amalni ortga qaytarib bo'lmaydi.
@@ -6329,7 +6329,8 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
 
       {tanlanganSana && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="w-full max-w-md rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto" style={{ backgroundColor: "#FFFFFF" }}>
+          <div className="w-full max-w-md rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 -8px 32px rgba(43,43,43,0.18)" }}>
+            <div className="w-10 h-1.5 rounded-full mx-auto mb-4" style={{ backgroundColor: "#E5E1D8" }} />
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold" style={{ color: "#2B2B2B" }}>{tanlanganSana} uchun mavzu</p>
               <button onClick={() => setTanlanganSana(null)} style={{ color: "#8A8578" }}>✕</button>
@@ -10685,7 +10686,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
       {rolTanlov && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
             {rolSurishNatija === "yuklanmoqda" ? (
               <div className="py-4 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
             ) : kodBosqichida ? (
