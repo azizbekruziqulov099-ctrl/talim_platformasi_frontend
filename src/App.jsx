@@ -2671,6 +2671,7 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [fanlar, setFanlar] = useState([]);
   const [ochiqFan, setOchiqFan] = useState(null);
   const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
+  const [maqsad, setMaqsad] = useState("oddiy"); // "oddiy" | "minimal_bilim"
   const [guruhlar, setGuruhlar] = useState(
     QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 }))
   );
@@ -2678,6 +2679,17 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natija, setNatija] = useState(null);
+
+  const maqsadOzgar = (yangiMaqsad) => {
+    setMaqsad(yangiMaqsad);
+    if (yangiMaqsad === "minimal_bilim") {
+      // Sinfni bitirish/keyingi sinfga o'tish uchun talab qilinadigan
+      // ENG KAM bilim — har mavzudan 3 ta OSON, tugmali savol yetarli.
+      setGuruhlar(QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: diff === "oson" ? 3 : 0 })));
+    } else {
+      setGuruhlar(QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 })));
+    }
+  };
 
   useEffect(() => {
     // faqat_testli=false: bu yerda ADMIN test SHABLON yaratadi — testi
@@ -2715,7 +2727,7 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
       const res = await fetch(`${API_BASE}/api/admin/shablon_yukla?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar }),
+        body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar, maqsad }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -2724,7 +2736,7 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
       const blob = await res.blob();
       const dlUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = dlUrl; a.download = "test_shablon.xlsx";
+      a.href = dlUrl; a.download = maqsad === "minimal_bilim" ? "minimal_bilim_shablon.xlsx" : "test_shablon.xlsx";
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(dlUrl);
     } catch (e) {
@@ -2755,6 +2767,25 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
 
   return (
     <>
+      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>Shablon maqsadi</label>
+        <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
+          <button type="button" onClick={() => maqsadOzgar("oddiy")} className="flex-1 py-2 rounded-full text-xs font-semibold"
+            style={maqsad === "oddiy" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
+            Oddiy
+          </button>
+          <button type="button" onClick={() => maqsadOzgar("minimal_bilim")} className="flex-1 py-2 rounded-full text-xs font-semibold"
+            style={maqsad === "minimal_bilim" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
+            Minimal bilim tekshirish
+          </button>
+        </div>
+        {maqsad === "minimal_bilim" && (
+          <p className="text-[11px] mt-2.5" style={{ color: "#8A8578" }}>
+            Sinfni bitirish / keyingi sinfga o'tish uchun talab qilinadigan ENG KAM bilimni tekshiradi — har mavzudan avtomatik 3 ta oson, tugmali savol belgilandi (pastda o'zgartirishingiz ham mumkin).
+          </p>
+        )}
+      </div>
+
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
           1) Mavzu(lar)ni tanlang ({tanlanganKodlar.length} ta tanlandi)
@@ -2856,6 +2887,11 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
             <p>✅ Saqlandi: <b>{natija.saved}</b></p>
             <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
             <p>❌ Xato: <b>{natija.errors}</b></p>
+            {natija.kod_yoq > 0 && (
+              <p className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Bu mavzular uchun yangi shablon yuklab oling (Topik mavzularini avval to'g'irlab, qayta shablon oling) va savollarni o'sha yangi shablonga ko'chirib qayta yuklang.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -3243,7 +3279,7 @@ function MaktablarBolimi({ token }) {
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🏫 Maktablar</p>
-          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
           </button>
         </div>
@@ -3569,7 +3605,7 @@ function MarkazlarBolimi({ token }) {
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🎓 O'quv markazlari</p>
-          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {formOchiq ? "✕ Yopish" : "+ Yangi markaz"}
           </button>
         </div>
@@ -3772,7 +3808,7 @@ function BogchalarBolimi({ token }) {
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🧸 Bog'chalar</p>
-          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {formOchiq ? "✕ Yopish" : "+ Yangi bog'cha"}
           </button>
         </div>
@@ -4111,7 +4147,7 @@ function UniversitetlarBolimi({ token }) {
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{sarlavhalar[holat]}</p>
-          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {formOchiq ? "✕ Yopish" : "+ Yangi"}
           </button>
         </div>
@@ -4456,7 +4492,7 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
         <>
           <div className="flex items-center justify-between mb-2.5">
             <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>Kelayotgan tadbirlar</p>
-            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
               {formOchiq ? "✕ Yopish" : "+ Yangi"}
             </button>
           </div>
@@ -4606,7 +4642,7 @@ function HujjatlarBolimi({ token, maktabId, onOrtga }) {
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>🗂 Hujjatlar</h1>
-        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
           {formOchiq ? "✕ Yopish" : "+ Yuklash"}
         </button>
       </div>
@@ -4748,7 +4784,7 @@ function MoliyaBolimi({ token, maktabId, onOrtga }) {
 
           <div className="flex items-center justify-between mb-2.5">
             <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>📝 Qo'lda kiritilgan yozuvlar</p>
-            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
               {formOchiq ? "✕ Yopish" : "+ Yozuv"}
             </button>
           </div>
@@ -4939,7 +4975,7 @@ function KutubxonaBolimi({ token, maktabId, onOrtga }) {
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 Kutubxona</h1>
-        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
           {formOchiq ? "✕ Yopish" : "+ Yangi kitob"}
         </button>
       </div>
@@ -7021,7 +7057,7 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
             {testShablonOchiq ? "✕ Yopish" : "🧪 Test shablon"}
           </button>
           <button onClick={() => { setQidiruvOchiq(!qidiruvOchiq); setQidiruv(""); setQidiruvNatijalari(null); setTestShablonOchiq(false); setYangiMavzuOchiq(false); }}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {qidiruvOchiq ? "✕ Yopish" : "+ Mavzu qo'shish"}
           </button>
         </div>
@@ -8824,7 +8860,7 @@ function RejalarimBolimi({ token, onOrtga }) {
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📋 Rejalarim</h1>
-        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+        <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
           {formOchiq ? "✕ Yopish" : "+ Yangi reja"}
         </button>
       </div>
