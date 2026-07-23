@@ -5518,13 +5518,13 @@ function MeningKalendarim({ token, togarak, onOrtga, onMavzuOchish }) {
       {darsKunlari !== null && darsKunlari.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-3">
-            <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: "#E5E1D8" }}>
-              <button onClick={() => setKorinishTuri("hafta")} className="px-3.5 py-1.5 text-xs font-semibold"
-                style={korinishTuri === "hafta" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+            <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
+              <button onClick={() => setKorinishTuri("hafta")} className="px-3.5 py-1.5 rounded-full text-xs font-semibold"
+                style={korinishTuri === "hafta" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
                 Haftalik
               </button>
-              <button onClick={() => setKorinishTuri("oy")} className="px-3.5 py-1.5 text-xs font-semibold"
-                style={korinishTuri === "oy" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+              <button onClick={() => setKorinishTuri("oy")} className="px-3.5 py-1.5 rounded-full text-xs font-semibold"
+                style={korinishTuri === "oy" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
                 Oylik
               </button>
             </div>
@@ -6227,13 +6227,13 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
       {darsKunlari !== null && darsKunlari.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-3">
-            <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: "#E5E1D8" }}>
-              <button onClick={() => setKorinishTuri("hafta")} className="px-3.5 py-1.5 text-xs font-semibold"
-                style={korinishTuri === "hafta" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+            <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
+              <button onClick={() => setKorinishTuri("hafta")} className="px-3.5 py-1.5 rounded-full text-xs font-semibold"
+                style={korinishTuri === "hafta" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
                 Haftalik
               </button>
-              <button onClick={() => setKorinishTuri("oy")} className="px-3.5 py-1.5 text-xs font-semibold"
-                style={korinishTuri === "oy" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+              <button onClick={() => setKorinishTuri("oy")} className="px-3.5 py-1.5 rounded-full text-xs font-semibold"
+                style={korinishTuri === "oy" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
                 Oylik
               </button>
             </div>
@@ -8839,20 +8839,20 @@ function RejalarimBolimi({ token, onOrtga }) {
             className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf / Guruh / Grupa</label>
-          <div className="flex gap-1.5 mb-2">
+          <div className="flex rounded-full p-1 gap-0.5 mb-2" style={{ backgroundColor: "#F0EDE5" }}>
             <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold"
-              style={!yangiMaxsusSinf ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              className="flex-1 py-2 rounded-full text-xs font-semibold"
+              style={!yangiMaxsusSinf ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
               🏫 Sinf
             </button>
             <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("guruh"); setYangiSinf(""); }}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold"
-              style={(yangiMaxsusSinf && yangiSinfTuri === "guruh") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              className="flex-1 py-2 rounded-full text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "guruh") ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
               🧸 Guruh
             </button>
             <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("grupa"); setYangiSinf(""); }}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold"
-              style={(yangiMaxsusSinf && yangiSinfTuri === "grupa") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              className="flex-1 py-2 rounded-full text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "grupa") ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
               🎓 Grupa
             </button>
           </div>
@@ -9362,20 +9362,20 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
             style={{ borderColor: "#E5E1D8" }} />
 
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf / Guruh / Grupa</label>
-          <div className="flex gap-1.5 mb-2">
+          <div className="flex rounded-full p-1 gap-0.5 mb-2" style={{ backgroundColor: "#F0EDE5" }}>
             <button type="button" onClick={() => { setYangiMaxsusSinf(false); setYangiSinfMatni(""); }}
-              className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
-              style={!yangiMaxsusSinf ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              className="flex-1 py-2.5 rounded-full text-xs font-semibold"
+              style={!yangiMaxsusSinf ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
               🏫 Sinf
             </button>
             <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("guruh"); setYangiSinf(""); }}
-              className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
-              style={(yangiMaxsusSinf && yangiSinfTuri === "guruh") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              className="flex-1 py-2.5 rounded-full text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "guruh") ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
               🧸 Guruh
             </button>
             <button type="button" onClick={() => { setYangiMaxsusSinf(true); setYangiSinfTuri("grupa"); setYangiSinf(""); }}
-              className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
-              style={(yangiMaxsusSinf && yangiSinfTuri === "grupa") ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              className="flex-1 py-2.5 rounded-full text-xs font-semibold"
+              style={(yangiMaxsusSinf && yangiSinfTuri === "grupa") ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
               🎓 Grupa
             </button>
           </div>
@@ -10835,13 +10835,13 @@ function XabarlarTab({ token }) {
   return (
     <div className="px-5 pt-6 pb-4">
       <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Xabarlar</h1>
-      <div className="flex rounded-xl overflow-hidden border mb-5" style={{ borderColor: "#E5E1D8" }}>
-        <button onClick={() => setKorinish("bildirishnoma")} className="flex-1 py-2 text-sm font-semibold"
-          style={korinish === "bildirishnoma" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+      <div className="flex rounded-full p-1 gap-0.5 mb-5" style={{ backgroundColor: "#F0EDE5" }}>
+        <button onClick={() => setKorinish("bildirishnoma")} className="flex-1 py-2 rounded-full text-sm font-semibold"
+          style={korinish === "bildirishnoma" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
           🔔 Bildirishnomalar
         </button>
-        <button onClick={() => setKorinish("suhbatlar")} className="flex-1 py-2 text-sm font-semibold"
-          style={korinish === "suhbatlar" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#FFFFFF", color: "#5A5648" }}>
+        <button onClick={() => setKorinish("suhbatlar")} className="flex-1 py-2 rounded-full text-sm font-semibold"
+          style={korinish === "suhbatlar" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
           💬 Suhbatlar
         </button>
       </div>
@@ -11422,13 +11422,26 @@ function Kabinet({ token }) {
         button:not(:disabled):active { transform: scale(0.97); }
         button:disabled { cursor: not-allowed; }
         input, textarea, select {
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
         }
         input:focus-visible, textarea:focus-visible, select:focus-visible,
         input:focus, textarea:focus, select:focus {
           outline: none;
           border-color: #1B4B7A !important;
           box-shadow: 0 0 0 3px rgba(27,75,122,0.14);
+          background-color: #FFFFFF;
+        }
+        /* Barcha chegarali kirish maydonlari — bir xil, nozik iliq fon
+           (oq kartochkadan bir oz ajralib turadi), hover'da chegara
+           bir oz to'qroq bo'ladi */
+        input.border, textarea.border, select.border {
+          background-color: #FAF8F2;
+        }
+        input.border:hover:not(:focus), textarea.border:hover:not(:focus), select.border:hover:not(:focus) {
+          border-color: #C4BFAF;
+        }
+        input.border::placeholder, textarea.border::placeholder {
+          color: #B0AA98;
         }
         button:focus-visible {
           outline: 2px solid #1B4B7A;
