@@ -5,7 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
-  Flame, Star, CalendarCheck, Trophy, Building2,
+  Flame, Star, CalendarCheck, Trophy, Building2, Settings,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -6155,10 +6155,25 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
     <div className="px-5 pt-6 pb-4">
       <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{togarakNomi}</h1>
-      <div className="flex gap-3 mb-4">
-        <button onClick={onAzolar} className="text-xs font-medium" style={{ color: "#1B4B7A" }}>👥 Talabalar →</button>
-        <button onClick={onMavzular} className="text-xs font-medium" style={{ color: "#1B4B7A" }}>📖 Mavzular →</button>
-        <button onClick={onSozlamalar} className="text-xs font-medium" style={{ color: "#1B4B7A" }}>⚙️ Sozlamalar →</button>
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        <button onClick={onAzolar} className="rounded-2xl bg-white border flex flex-col items-center justify-center gap-1.5 py-3.5" style={{ borderColor: "#E5E1D8" }}>
+          <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: "#EAF1F7" }}>
+            <Users size={18} style={{ color: "#1B4B7A" }} />
+          </span>
+          <span className="text-xs font-semibold" style={{ color: "#2B2B2B" }}>Talabalar</span>
+        </button>
+        <button onClick={onMavzular} className="rounded-2xl bg-white border flex flex-col items-center justify-center gap-1.5 py-3.5" style={{ borderColor: "#E5E1D8" }}>
+          <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: "#EAF3DE" }}>
+            <BookOpen size={18} style={{ color: "#3B6D11" }} />
+          </span>
+          <span className="text-xs font-semibold" style={{ color: "#2B2B2B" }}>Mavzular</span>
+        </button>
+        <button onClick={onSozlamalar} className="rounded-2xl bg-white border flex flex-col items-center justify-center gap-1.5 py-3.5" style={{ borderColor: "#E5E1D8" }}>
+          <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: "#FDF3E0" }}>
+            <Settings size={18} style={{ color: "#8A5A1C" }} />
+          </span>
+          <span className="text-xs font-semibold" style={{ color: "#2B2B2B" }}>Sozlamalar</span>
+        </button>
       </div>
 
       {darsKunlari !== null && darsKunlari.length === 0 && !kunlarTanlovOchiq && (
@@ -10923,6 +10938,12 @@ function Kabinet({ token }) {
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #D8D3C7; border-radius: 999px; }
         ::-webkit-scrollbar-thumb:hover { background: #C4BFAF; }
+        /* Oq fonli kartochkalar — butun ilova bo'ylab bir xil, nozik
+           "ko'tarilgan" ko'rinish (allaqachon shadow-sm bo'lganlarga
+           ham zid kelmaydi, faqat kuchsizroq bazasini beradi) */
+        .rounded-2xl.bg-white.border, .rounded-xl.bg-white.border {
+          box-shadow: 0 1px 2px rgba(43,43,43,0.03), 0 2px 6px rgba(43,43,43,0.045);
+        }
         /* Asosiy (oq matnli, qalin) tugmalar — butun ilova bo'ylab bir xil
            chuqurlik/soya, alohida-alohida yozib chiqmasdan */
         button.font-semibold.text-white:not(:disabled) {
