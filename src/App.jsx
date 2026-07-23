@@ -2312,6 +2312,11 @@ function TopikMavzularTab({ token, onTestYarat }) {
       });
       setFanMavzulariniOchirishTasdiqi(false);
       setHolat("fan");
+      setYuklanmoqda(true);
+      fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(tanlanganSinf)}&token=${encodeURIComponent(token)}`)
+        .then((r) => r.json())
+        .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
+        .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
     } catch {
       setXato("O'chirib bo'lmadi");
     } finally { setOchirilmoqda(false); }
