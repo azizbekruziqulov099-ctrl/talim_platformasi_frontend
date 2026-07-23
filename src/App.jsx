@@ -6,7 +6,7 @@ import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
-  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot,
+  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -450,7 +450,7 @@ function UlashEkrani({ email, ism, onUlandi }) {
   if (rejim === "kod") {
     return (
       <Qobiq>
-        <button onClick={() => setRejim(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={() => setRejim(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Ulash kodini kiriting</h1>
         <p className="text-sm mb-5" style={{ color: "#8A8578" }}>Botdagi "👤 Kabinet → 🔗 Saytga ulanish kodi"</p>
         <input type="text" value={kod} onChange={(e) => setKod(e.target.value.toUpperCase())}
@@ -470,7 +470,7 @@ function UlashEkrani({ email, ism, onUlandi }) {
 
   return (
     <Qobiq>
-      <button onClick={() => setRejim(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+      <button onClick={() => setRejim(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       <h1 className="text-lg font-bold mb-5" style={{ color: "#2B2B2B" }}>Ro'yxatdan o'tish</h1>
 
       <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ismingiz</label>
@@ -670,7 +670,7 @@ function TalimYoli({ bolaId, fan, rang, onYopish }) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
       <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
-        <button onClick={onYopish} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={onYopish} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <div className="flex items-center gap-3 mb-5">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold shrink-0" style={{ backgroundColor: rang || "#1B4B7A" }}>
             {fan.slice(0, 1)}
@@ -763,7 +763,7 @@ function TogarakYoli({ bolaId, togarakId, onYopish }) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
       <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
-        <button onClick={onYopish} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={onYopish} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
         ) : xato ? (
@@ -1556,7 +1556,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
     const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setHolat("mavzular")} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
 
@@ -2335,7 +2335,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
         {umumiyKorinish && (
           <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
             <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
-              <button onClick={() => setUmumiyKorinish(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Yopish</button>
+              <button onClick={() => setUmumiyKorinish(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Yopish</button>
               <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Umumiy ko'rinish</h1>
               <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Barcha sinf va fanlar — bir ekranda, alohida kirmasdan.</p>
               {umumiyYuklanmoqda ? (
@@ -2382,7 +2382,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
   if (holat === "fan") {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setHolat("sinf")} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Sinflar</button>
+        <button onClick={() => setHolat("sinf")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Sinflar</button>
         <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>{tanlanganSinf}{/^\d+$/.test(tanlanganSinf) ? "-sinf" : ""} fanlari</h1>
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -2411,7 +2411,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const testliSoni = mavzular.filter((m) => m.test_bormi).length;
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={() => setHolat("fan")} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Fanlar</button>
+      <button onClick={() => setHolat("fan")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Fanlar</button>
       <div className="flex items-start justify-between gap-2 mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>{tanlanganFan}</h1>
         {testliSoni > 0 && (
@@ -2529,7 +2529,7 @@ function TopikMavzularTab({ token, onTestYarat }) {
       {rasmGaleriyasi && (
         <div className="fixed inset-0 z-50 overflow-y-auto" style={{ backgroundColor: "#F7F5F0" }}>
           <div className="px-5 pt-6 pb-10 max-w-md mx-auto">
-            <button onClick={() => setRasmGaleriyasi(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Yopish</button>
+            <button onClick={() => setRasmGaleriyasi(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Yopish</button>
             <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>🖼 {rasmGaleriyasi.sarlavha}</h1>
             <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
               {rasmlarYuklanmoqda ? "Yuklanmoqda..." : `${rasmGaleriyasi.rasmlar.length} ta rasm havolasi topildi`}
@@ -3416,7 +3416,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
   return (
     <div>
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Maktablar</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Maktablar</button>
       <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.nomi}</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
@@ -3674,7 +3674,7 @@ function MarkazTafsiloti({ token, markaz, onOrtga }) {
 
   return (
     <div>
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Markazlar</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Markazlar</button>
       <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{markaz.nomi}</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{[markaz.viloyat, markaz.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}</p>
 
@@ -3914,7 +3914,7 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
 
   return (
     <div>
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Bog'chalar</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Bog'chalar</button>
       <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{bogcha.nomi}</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {bogcha.turi === "xususiy" ? "Xususiy" : "Davlat"} · {[bogcha.viloyat, bogcha.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}
@@ -4106,7 +4106,7 @@ function UniversitetlarBolimi({ token }) {
   return (
     <div>
       {holat !== "universitet" && (
-        <button onClick={ortgaQaytish} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={ortgaQaytish} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       )}
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-center justify-between mb-1">
@@ -4384,7 +4384,7 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
   if (tanlanganSinf) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => { setTanlanganSinf(null); setJadval(null); }} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Sinflar</button>
+        <button onClick={() => { setTanlanganSinf(null); setJadval(null); }} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Sinflar</button>
         <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🗓 {tanlanganSinf.sinf}-{tanlanganSinf.harf} jadvali</h1>
 
         {tahrirlanayotganSlot && (
@@ -4436,7 +4436,7 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>📅 Rejalashtirish</h1>
 
       <div className="flex gap-2 mb-4">
@@ -4603,7 +4603,7 @@ function HujjatlarBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>🗂 Hujjatlar</h1>
         <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
@@ -4716,7 +4716,7 @@ function MoliyaBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>💰 Moliya</h1>
         <input type="month" value={oy} onChange={(e) => setOy(e.target.value)}
@@ -4883,7 +4883,7 @@ function KutubxonaBolimi({ token, maktabId, onOrtga }) {
     const bosh = tanlanganKitob.nusxa_soni - tanlanganKitob.band_soni;
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => { setTanlanganKitob(null); setTarix(null); setBerishOchiq(false); setTanlanganOdam(null); }} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Kutubxona</button>
+        <button onClick={() => { setTanlanganKitob(null); setTarix(null); setBerishOchiq(false); setTanlanganOdam(null); }} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Kutubxona</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganKitob.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
           {tanlanganKitob.muallif || "Muallif noma'lum"}{tanlanganKitob.janr ? ` · ${tanlanganKitob.janr}` : ""} · {bosh}/{tanlanganKitob.nusxa_soni} nusxa bo'sh
@@ -4936,7 +4936,7 @@ function KutubxonaBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 Kutubxona</h1>
         <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
@@ -5070,7 +5070,7 @@ function OquvchiProfili({ token, userId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
       ) : xato ? (
@@ -5260,7 +5260,7 @@ function XodimDavomatBelgilash({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🧑‍🏫 Xodim davomati</h1>
       <input type="date" value={sana} onChange={(e) => setSana(e.target.value)} max={bugun}
         className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4" style={{ borderColor: "#E5E1D8" }} />
@@ -5310,7 +5310,7 @@ function FanlarTahliliBolimi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 Fanlar tahlili</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Butun maktab kesimida, har fandan necha o'quvchi qanday natijada.</p>
 
@@ -5465,7 +5465,7 @@ function MeningKalendarim({ token, togarak, onOrtga, onMavzuOchish }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{togarak.nomi}</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>{togarak.nomi}</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>📅 Mening kalendarim</h1>
 
       {darsKunlari !== null && darsKunlari.length === 0 && !kunlarTanlovOchiq && (
@@ -5707,7 +5707,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   if (xato) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <p className="text-sm" style={{ color: "#A32D2D" }}>⚠️ {xato}</p>
       </div>
     );
@@ -5715,7 +5715,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   if (videolar.length === 0 && misollar.length === 0) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Bu mavzu uchun hali kitob tayyorlanmagan.</p>
         </div>
@@ -5728,7 +5728,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{mavzuNomi}</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>{mavzuNomi}</button>
       <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>📖 Kitob</h1>
 
       <div className="space-y-6">
@@ -5861,7 +5861,7 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); window.speechSynthesis.cancel(); setOqilayotganId(null); }}
-          className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Mavzular</button>
+          className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Mavzular</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         {tanlanganMavzu.bob_name && <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{tanlanganMavzu.bob_name}</p>}
         <button onClick={() => setKitobOchiq(true)} className="w-full rounded-2xl bg-white border flex items-center gap-3 px-4 py-3.5 mb-5" style={{ borderColor: "#E5E1D8" }}>
@@ -5955,7 +5955,7 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Profil</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Profil</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📚 Mavzular</h1>
       <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{togarak.nomi}</p>
       {onKalendar && (
@@ -6162,7 +6162,7 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{togarakNomi}</h1>
       <div className="grid grid-cols-3 gap-2 mb-5">
         <button onClick={onAzolar} className="rounded-2xl bg-white border flex flex-col items-center justify-center gap-1.5 py-3.5" style={{ borderColor: "#E5E1D8" }}>
@@ -6511,7 +6511,7 @@ function MavzuKitobiTahrirlash({ token, togarakId, mavzu, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{mavzu.mavzu_name || mavzu.nomi}</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>{mavzu.mavzu_name || mavzu.nomi}</button>
       <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>📖 Kitob tuzish</h1>
 
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>⚠️ {xato}</p>}
@@ -6928,7 +6928,7 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
   if (tanlanganMavzu) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); formaniTozala(); }} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Mavzular</button>
+        <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); formaniTozala(); }} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Mavzular</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.mavzu_name || tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{[tanlanganMavzu.bob_name, tanlanganMavzu.bolim_name].filter(Boolean).join(" · ")}</p>
 
@@ -7007,7 +7007,7 @@ function TogarakMavzularBoshqarish({ token, togarakId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Guruh</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Guruh</button>
       <div className="flex items-center justify-between mb-1 gap-2">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📖 To'garak mavzulari</h1>
         <div className="flex gap-2 shrink-0 flex-wrap justify-end">
@@ -7244,7 +7244,7 @@ function TogarakGuruhSozlamalari({ token, togarak, onOrtga, onOchirildi }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>⚙️ Guruh sozlamalari</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{togarak.nomi}</p>
 
@@ -7359,7 +7359,7 @@ function DavomatBelgilash({ token, sinfId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>📋 Davomat</h1>
 
       <input type="date" value={sana} onChange={(e) => setSana(e.target.value)} max={bugun}
@@ -7430,7 +7430,7 @@ function KirishKodiFormasi({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Profil</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Profil</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🔑 Kirish kodi</h1>
       <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
         Maktab/markaz/bog'cha admini sizga bergan 6 belgili kodni kiriting — hisobingizga tegishli lavozim avtomatik qo'shiladi.
@@ -7520,7 +7520,7 @@ function RasmiySinflarim({ token, onOrtga }) {
   if (tanlanganSinf) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setTanlanganSinf(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Sinflarim</button>
+        <button onClick={() => setTanlanganSinf(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Sinflarim</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganSinf.sinf}-{tanlanganSinf.harf}</h1>
         <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{tanlanganSinf.maktab_nomi} · {tanlanganSinf.oquvchi_soni} o'quvchi</p>
         <button onClick={() => setDavomatKorinishi(true)}
@@ -7587,7 +7587,7 @@ function RasmiySinflarim({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🏫 Rasmiy sinflarim</h1>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -7665,7 +7665,7 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
   if (!maktabId) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+        <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday maktabga bog'lanmagansiz.</p>
         </div>
@@ -7688,7 +7688,7 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
   if (tanlanganSinf) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => { setTanlanganSinf(null); setAzolar(null); setOquvchilar(null); }} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Sinflar</button>
+        <button onClick={() => { setTanlanganSinf(null); setAzolar(null); setOquvchilar(null); }} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Sinflar</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganSinf.sinf}-{tanlanganSinf.harf}</h1>
         <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{tanlanganSinf.rahbar_ismi || "Rahbar belgilanmagan"} · {tanlanganSinf.oquvchi_soni} o'quvchi</p>
         <button onClick={() => setDavomatKorinishi(true)}
@@ -7741,7 +7741,7 @@ function MaktabBoshqaruvi({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
       ) : xato ? (
@@ -7976,7 +7976,7 @@ function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
   if (!markazId) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+        <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Siz hech qanday markazga bog'lanmagansiz.</p>
         </div>
@@ -7987,7 +7987,7 @@ function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
   if (tanlanganGuruh) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setTanlanganGuruh(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Guruhlar</button>
+        <button onClick={() => setTanlanganGuruh(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Guruhlar</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganGuruh.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganGuruh.fan} · {tanlanganGuruh.oqituvchi_ismi} · {tanlanganGuruh.azo_soni} a'zo</p>
 
@@ -8026,7 +8026,7 @@ function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🎓 Markaz boshqaruvi</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Markazingizga bog'langan barcha guruhlar — bitta ekranda.</p>
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
@@ -8165,7 +8165,7 @@ function BogchaGuruhim({ token, onOrtga }) {
   if (tanlanganGuruh) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setTanlanganGuruh(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Guruhlarim</button>
+        <button onClick={() => setTanlanganGuruh(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Guruhlarim</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganGuruh.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganGuruh.bogcha_nomi}</p>
 
@@ -8225,7 +8225,7 @@ function BogchaGuruhim({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Guruhlarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Guruhlarim</button>
       <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🧸 Bog'cha guruhim</h1>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -8293,7 +8293,7 @@ function UniversitetGuruhimBilimi({ token, onOrtga }) {
 
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setTanlanganGuruh(null)} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Guruhlarim</button>
+        <button onClick={() => setTanlanganGuruh(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Guruhlarim</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📊 {tanlanganGuruh.nomi} — bilim ko'rsatkichi</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Silabus mavzulari bo'yicha, har fandan alohida — GPA emas, aniq bilim darajasi.</p>
 
@@ -8338,7 +8338,7 @@ function UniversitetGuruhimBilimi({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Guruhlarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Guruhlarim</button>
       <h1 className="text-xl font-bold mb-5" style={{ color: "#2B2B2B" }}>🎓 Kurator bo'lgan guruhlarim</h1>
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -8397,7 +8397,7 @@ function AiYordamchiBolimi({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🤖 AI Yordamchi</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>Masalan: "2-A sinfning bugungi davomati qanday?" yoki "Farzandim qaysi fandan orqada qolmoqda?"</p>
 
@@ -8449,7 +8449,7 @@ function PsixologQidiruv({ token, maktabId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>🧠 Psixolog</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>O'quvchini qidirib, uning kuzatuv yozuvlarini ko'ring yoki yangi qo'shing.</p>
       <MaktabOdamQidiruvi token={token} maktabId={maktabId} tanlanganOdam={null} onTanla={setTanlanganOquvchi} />
@@ -8590,7 +8590,7 @@ function RejaDetali({ token, rejaId, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Rejalarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Rejalarim</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>📋 {reja?.nomi}</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{reja?.sinf}-{reja?.fan} · {qatorlar.length} ta mavzu, tartib bilan</p>
 
@@ -8820,7 +8820,7 @@ function RejalarimBolimi({ token, onOrtga }) {
 
   return (
     <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />To'garaklarim</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>To'garaklarim</button>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: "#2B2B2B" }}>📋 Rejalarim</h1>
         <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
@@ -9334,7 +9334,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   if (holat === "yaratish") {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setHolat("togaraklar")} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+        <button onClick={() => setHolat("togaraklar")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>Yangi to'garak</h1>
         <p className="text-sm mb-6" style={{ color: "#8A8578" }}>Bot va saytda bir xil ko'rinadi</p>
 
@@ -9618,7 +9618,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => setHolat("kalendar_reja")}
-          className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}><ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />Ortga</button>
+          className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
         <h1 className="text-xl font-bold mb-3" style={{ color: "#2B2B2B" }}>{tanlangan.nomi}</h1>
         <div className="grid grid-cols-2 gap-2 mb-4">
           <button onClick={() => setHolat("mavzular_boshqarish")} className="rounded-2xl bg-white border flex items-center gap-2.5 px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}>
@@ -9905,14 +9905,22 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
           </div>
         )}
 
-        <button onClick={() => setKorinish(korinish === "ai_yordamchi" ? "bilim" : "ai_yordamchi")}
-          className="text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-          {korinish === "ai_yordamchi" ? "← Bilim ma'lumotiga qaytish" : "🤖 AI Yordamchidan so'rash →"}
-        </button>
-        <button onClick={() => setKorinish(korinish === "sogliq" ? "bilim" : "sogliq")}
-          className="block text-xs font-medium mb-3" style={{ color: "#1B4B7A" }}>
-          {korinish === "sogliq" ? "← Bilim ma'lumotiga qaytish" : "🚑 Favqulodda ma'lumot →"}
-        </button>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button onClick={() => setKorinish(korinish === "ai_yordamchi" ? "bilim" : "ai_yordamchi")}
+            className="rounded-2xl bg-white border flex items-center gap-2.5 px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F3EEFA" }}>
+              {korinish === "ai_yordamchi" ? <ChevronLeft size={16} style={{ color: "#8B5FBF" }} strokeWidth={2.5} /> : <Bot size={16} style={{ color: "#8B5FBF" }} />}
+            </span>
+            <span className="text-xs font-semibold text-left" style={{ color: "#2B2B2B" }}>{korinish === "ai_yordamchi" ? "Orqaga" : "AI Yordamchi"}</span>
+          </button>
+          <button onClick={() => setKorinish(korinish === "sogliq" ? "bilim" : "sogliq")}
+            className="rounded-2xl bg-white border flex items-center gap-2.5 px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FCEBEB" }}>
+              {korinish === "sogliq" ? <ChevronLeft size={16} style={{ color: "#A32D2D" }} strokeWidth={2.5} /> : <AlertTriangle size={16} style={{ color: "#A32D2D" }} />}
+            </span>
+            <span className="text-xs font-semibold text-left" style={{ color: "#2B2B2B" }}>{korinish === "sogliq" ? "Orqaga" : "Favqulodda"}</span>
+          </button>
+        </div>
 
         {korinish !== "ai_yordamchi" && korinish !== "sogliq" && (
           <div className="rounded-xl px-4 py-3 mb-1 flex items-start gap-2.5" style={{ backgroundColor: "#EAF1F7" }}>
@@ -10505,12 +10513,20 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       )}
 
       {foydalanuvchi?.role === "oqituvchi" && (
-        <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
-          <button onClick={() => setKorinish("rasmiy_sinf")} className="block text-xs font-medium mb-2" style={{ color: "#1B4B7A" }}>
-            🏫 Rasmiy maktab sinfim bormi? →
+        <div className="rounded-2xl p-3 bg-white border mb-4 shadow-sm space-y-2" style={{ borderColor: "#E5E1D8" }}>
+          <button onClick={() => setKorinish("rasmiy_sinf")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "#F7F5F0" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}>
+              <GraduationCap size={16} style={{ color: "#1B4B7A" }} />
+            </span>
+            <span className="text-xs font-semibold flex-1 text-left" style={{ color: "#2B2B2B" }}>Rasmiy maktab sinfim bormi?</span>
+            <ChevronRight size={15} style={{ color: "#8A8578" }} />
           </button>
-          <button onClick={() => setKorinish("kirish_kodi")} className="block text-xs font-medium" style={{ color: "#1B4B7A" }}>
-            🔑 Maktab/markazdan kirish kodim bor →
+          <button onClick={() => setKorinish("kirish_kodi")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "#F7F5F0" }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FDF3E0" }}>
+              <KeyRound size={16} style={{ color: "#8A5A1C" }} />
+            </span>
+            <span className="text-xs font-semibold flex-1 text-left" style={{ color: "#2B2B2B" }}>Maktab/markazdan kirish kodim bor</span>
+            <ChevronRight size={15} style={{ color: "#8A8578" }} />
           </button>
         </div>
       )}
