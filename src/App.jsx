@@ -2904,9 +2904,30 @@ function TopikShablonBolimi({ token }) {
   const [fan, setFan] = useState("");
   const [mavzular, setMavzular] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [toliqYaratilmoqda, setToliqYaratilmoqda] = useState(false);
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natija, setNatija] = useState(null);
+  const [toliqNatija, setToliqNatija] = useState(null);
+
+  const toliqYarat = async () => {
+    if (!sinf.trim() || !fan.trim() || !mavzular.trim()) {
+      setXato("Sinf, fan va mavzularni to'ldiring"); return;
+    }
+    setToliqYaratilmoqda(true); setXato(""); setToliqNatija(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/topik_toliq_yarat?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), mavzular }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      setToliqNatija(d);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setToliqYaratilmoqda(false); }
+  };
 
   const shablonYukla = async () => {
     if (!sinf.trim() || !fan.trim() || !mavzular.trim()) {
@@ -2979,10 +3000,33 @@ function TopikShablonBolimi({ token }) {
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-4"
           style={{ borderColor: "#E5E1D8" }} />
 
+        <button onClick={toliqYarat} disabled={toliqYaratilmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 mb-2.5"
+          style={{ backgroundColor: "#3B6D11", opacity: toliqYaratilmoqda ? 0.7 : 1 }}>
+          {toliqYaratilmoqda ? <Loader2 size={16} className="animate-spin" /> : "⚡ To'g'ridan-to'g'ri yaratish"}
+        </button>
+        <p className="text-[11px] mb-3 text-center" style={{ color: "#8A8578" }}>
+          Excel yuklab-to'ldirib-qaytarmasdan — shu zahoti bazaga qo'shadi (Bob/Bo'lim bo'sh qoladi, xohlasangiz keyin to'ldirasiz)
+        </p>
+        {toliqNatija && (
+          <div className="rounded-xl p-3 mb-3 text-sm" style={{ backgroundColor: "#EAF3DE", color: "#2B2B2B" }}>
+            <p>✅ Yaratildi: <b>{toliqNatija.yaratildi}</b></p>
+            <p>♻️ Allaqachon mavjud edi: <b>{toliqNatija.mavjud}</b></p>
+            {toliqNatija.xato > 0 && (
+              <>
+                <p style={{ color: "#A32D2D" }}>❌ Xato: <b>{toliqNatija.xato}</b></p>
+                {toliqNatija.xato_namunalari.map((x, i) => (
+                  <p key={i} className="text-xs mt-1" style={{ color: "#A32D2D" }}>{x}</p>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
         <button onClick={shablonYukla} disabled={yuklanmoqda}
-          className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
-          style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
-          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Shablon yuklab olish"}
+          className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border"
+          style={{ backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8", opacity: yuklanmoqda ? 0.7 : 1 }}>
+          {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Excel shablon sifatida yuklab olish (Bob/Bo'lim to'ldirish uchun)"}
         </button>
       </div>
 
