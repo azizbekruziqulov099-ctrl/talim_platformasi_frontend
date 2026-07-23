@@ -2181,6 +2181,8 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const [xato, setXato] = useState("");
 
   const [mavzuOchirishTasdiqi, setMavzuOchirishTasdiqi] = useState(null); // mavzu obyekti | null
+  const [mavzuniOchirishTasdiqi, setMavzuniOchirishTasdiqi] = useState(null); // mavzu obyekti | null (BUTUN mavzuni o'chirish uchun)
+  const [boshKodTozalashXabari, setBoshKodTozalashXabari] = useState("");
   const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(false);
   const [ochirilmoqda, setOchirilmoqda] = useState(false);
   const [rasmGaleriyasi, setRasmGaleriyasi] = useState(null); // {sarlavha, rasmlar: [id,...]} | null
@@ -2263,6 +2265,31 @@ function TopikMavzularTab({ token, onTestYarat }) {
     } finally { setOchirilmoqda(false); }
   };
 
+  const mavzuniButunlayOchir = async (mavzu) => {
+    setOchirilmoqda(true);
+    try {
+      await fetch(`${API_BASE}/api/admin/mavzu_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
+        method: "DELETE",
+      });
+      setMavzuniOchirishTasdiqi(null);
+      mavzularniQaytaYukla();
+    } catch {
+      setXato("O'chirib bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
+  const boshKodliMavzularniTozala = async () => {
+    setOchirilmoqda(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/bosh_kodli_mavzularni_tozalash?token=${encodeURIComponent(token)}`, { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      setBoshKodTozalashXabari(`✅ ${d.tozalangan_soni || 0} ta bo'sh kodli mavzu tozalandi`);
+      mavzularniQaytaYukla();
+    } catch {
+      setXato("Tozalab bo'lmadi");
+    } finally { setOchirilmoqda(false); }
+  };
+
   const fanTestlariniOchir = async () => {
     setOchirilmoqda(true);
     try {
@@ -2300,6 +2327,12 @@ function TopikMavzularTab({ token, onTestYarat }) {
           </button>
         </div>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Kontent auditi — qaysi mavzuda test bor, qaysisida yo'q.</p>
+        <button onClick={boshKodliMavzularniTozala} disabled={ochirilmoqda}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold mb-4 border"
+          style={{ borderColor: "#F5C6C6", color: "#A32D2D", opacity: ochirilmoqda ? 0.6 : 1 }}>
+          {ochirilmoqda ? <Loader2 size={14} className="animate-spin" /> : "🧹 Bo'sh kodli (buzuq) mavzularni tozalash"}
+        </button>
+        {boshKodTozalashXabari && <p className="text-xs mb-4" style={{ color: "#3B6D11" }}>{boshKodTozalashXabari}</p>}
         {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -2465,6 +2498,10 @@ function TopikMavzularTab({ token, onTestYarat }) {
                       </button>
                     </>
                   )}
+                  <button onClick={() => setMavzuniOchirishTasdiqi(m)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border" style={{ borderColor: "#F5C6C6", color: "#A32D2D" }}>
+                    🗑 Mavzuni butunlay o'chirish
+                  </button>
                 </div>
               </div>
             ))}
@@ -2502,6 +2539,27 @@ function TopikMavzularTab({ token, onTestYarat }) {
               <button onClick={() => mavzuTestlariniOchir(mavzuOchirishTasdiqi)} disabled={ochirilmoqda}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
                 {ochirilmoqda ? "..." : "Ha, o'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mavzuniOchirishTasdiqi && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
+            <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>🗑 Mavzuni butunlay o'chirasizmi?</p>
+            <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
+              "{mavzuniOchirishTasdiqi.nomi}" mavzusining O'ZI (nomi, kodi) va unga tegishli barcha testlari butunlay o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setMavzuniOchirishTasdiqi(null)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                Bekor qilish
+              </button>
+              <button onClick={() => mavzuniButunlayOchir(mavzuniOchirishTasdiqi)} disabled={ochirilmoqda}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D", opacity: ochirilmoqda ? 0.7 : 1 }}>
+                {ochirilmoqda ? "..." : "Ha, butunlay o'chirish"}
               </button>
             </div>
           </div>
