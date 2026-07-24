@@ -102,20 +102,29 @@ function SavolFormulasi({ ifoda }) {
 // deb hisoblamaydi (aks holda oddiy so'zlar harflarga bo'linib,
 // noto'g'ri chiqib qolar edi), faqat $...$ ICHIDAGI qismni formulaga
 // aylantiradi, qolgani oddiy matn bo'lib qoladi.
+// LaTeX qismlarni ajratish uchun UMUMIY naqsh — uch xil holatni ham
+// qamrab oladi: $...$ ichida, [lat]...[/lat] ichida, YOKI hech qanday
+// belgisiz XOM LaTeX buyrug'i (\tfrac{a}{b}, \sqrt{a}, \times va h.k.) —
+// AI ba'zan teglarni butunlay unutib qo'yadi, shuning uchun buyruqning
+// o'zini ham (belgisiz holda) tanib, chizadi.
+const _LATEX_QISM_NAQSHI = "\\$[^$]+\\$|\\[lat\\][^]*?\\[\\/lat\\]|\\\\(?:tfrac|dfrac|frac)\\{[^{}]*\\}\\{[^{}]*\\}|\\\\sqrt\\{[^{}]*\\}|\\\\(?:times|div|cdot|pm|leq|geq|neq|infty|approx)(?![a-zA-Z])";
+const _LATEX_BOLISH_REGEX = new RegExp(`(${_LATEX_QISM_NAQSHI})`, "g");
+
+function _latexMatniniAjrat(qism) {
+  if (qism.startsWith("$") && qism.endsWith("$") && qism.length > 2) return qism.slice(1, -1);
+  if (qism.startsWith("[lat]") && qism.endsWith("[/lat]")) return qism.slice(5, -6);
+  if (qism.startsWith("\\")) return qism; // xom LaTeX buyrug'i — belgisiz, to'g'ridan-to'g'ri KaTeX'ga beriladi
+  return null;
+}
+
 function AralashMatn({ matn, className, style }) {
-  // Ikkala belgilashni ham tushunadi: $...$ VA [lat]...[/lat] — testlar
-  // uchun AI ko'pincha [lat] tegini ishlatadi, boshqa joylarda $ ham
-  // uchraydi; ikkalasi ham xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
-  const qismlar = useMemo(() => (matn || "").split(/(\$[^$]+\$|\[lat\][^]*?\[\/lat\])/g), [matn]);
+  // $...$ , [lat]...[/lat] VA belgisiz xom LaTeX buyrug'i — uchalasi ham
+  // xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
+  const qismlar = useMemo(() => (matn || "").split(_LATEX_BOLISH_REGEX), [matn]);
   return (
     <p className={className} style={{ whiteSpace: "pre-wrap", ...style }}>
       {qismlar.map((qism, i) => {
-        let latexMatni = null;
-        if (qism.startsWith("$") && qism.endsWith("$") && qism.length > 2) {
-          latexMatni = qism.slice(1, -1);
-        } else if (qism.startsWith("[lat]") && qism.endsWith("[/lat]")) {
-          latexMatni = qism.slice(5, -6);
-        }
+        const latexMatni = _latexMatniniAjrat(qism);
         if (latexMatni !== null) {
           try {
             const html = katex.renderToString(latexMatni, { throwOnError: false, output: "html", displayMode: false });
@@ -245,13 +254,7 @@ function SavolRasmi({ rasmId }) {
   useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
 
   if (holat === "xato") {
-    return (
-      <div className="w-full rounded-xl mb-4 flex flex-col items-center justify-center gap-1.5 py-8"
-        style={{ backgroundColor: "#F1EFE8", border: "1px dashed #C4BFAF" }}>
-        <span className="text-2xl">🖼️</span>
-        <span className="text-xs font-medium" style={{ color: "#8A8578" }}>Rasm topilmadi</span>
-      </div>
-    );
+    return null; // rasm topilmasa/yuklanmasa — hech narsa ko'rsatilmaydi, joy egallamaydi
   }
   return (
     <div className="relative mb-4">
@@ -277,23 +280,18 @@ function tegsizKorsat(matn) {
 }
 
 function Matn({ matn, latex }) {
-  // $...$ VA [lat]...[/lat] — ikkalasini ham KaTeX bilan chizadi, qolgan
-  // matnni oddiy tekst sifatida qoldiradi (matn va formula aralash
-  // bo'lishi mumkin). is_latex bayrog'iga qaramay, TEGLAR o'zi bor-yo'qligini
-  // ham tekshiradi — AI ba'zan bayroqni to'g'ri qo'ymasligi mumkin.
+  // Umumiy yordamchidan foydalanadi — $...$, [lat]...[/lat] va belgisiz
+  // xom LaTeX buyrug'ini ham taniydi. is_latex bayrog'iga qaramay, TEGLAR/
+  // buyruq o'zi bor-yo'qligini ham tekshiradi — AI ba'zan bayroqni to'g'ri
+  // qo'ymasligi yoki teglarni butunlay unutishi mumkin.
   const toza = tegsizKorsat(matn) || "";
-  const bormi = toza.includes("$") || toza.includes("[lat]");
+  const bormi = toza.includes("$") || toza.includes("[lat]") || toza.includes("\\");
   if (!bormi) return <>{toza}</>;
-  const qismlar = toza.split(/(\$[^$]+\$|\[lat\][^]*?\[\/lat\])/g);
+  const qismlar = toza.split(_LATEX_BOLISH_REGEX);
   return (
     <>
       {qismlar.map((q, i) => {
-        let latexMatni = null;
-        if (q.startsWith("$") && q.endsWith("$") && q.length > 1) {
-          latexMatni = q.slice(1, -1);
-        } else if (q.startsWith("[lat]") && q.endsWith("[/lat]")) {
-          latexMatni = q.slice(5, -6);
-        }
+        const latexMatni = _latexMatniniAjrat(q);
         if (latexMatni !== null) {
           try {
             const html = katex.renderToString(latexMatni, { throwOnError: false, output: "html" });
