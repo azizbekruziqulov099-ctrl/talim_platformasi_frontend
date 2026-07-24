@@ -184,16 +184,18 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
 function _matnniOvozgaTayyorla(matn) {
   // LaTeX belgilangan (yoki belgisiz) kasrlarni tabiiy o'zbekcha nutqqa
   // aylantiradi — masalan \tfrac{1}{2} → "ikkidan bir", 6\tfrac{1}{2}
-  // (aralash son) → "olti butun ikkidan bir". Xom LaTeX buyrug'ini
-  // to'g'ridan-to'g'ri o'qish ("teskari kesish t frak...") juda
-  // tushunarsiz eshitilgani uchun kerak.
+  // (aralash son) → "olti butun ikkidan bir". Shuningdek: o'lchov
+  // birliklari (kg, sm, km...) to'liq so'zga, va matematik o'zgaruvchilar
+  // (x, y, z, n — songa yopishgan bo'lsa ham, masalan "2x") o'z nomiga
+  // ("iks", "igrik"...) aylantiriladi — xom holda o'qish tushunarsiz
+  // eshitilgani uchun kerak.
   if (!matn) return "";
   let t = matn;
   t = t.replace(/\[lat\]([^]*?)\[\/lat\]/g, "$1");
   t = t.replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/(\d)(\\(?:tfrac|dfrac|frac))/g, "$1 butun $2");
-  t = t.replace(/\\(?:tfrac|dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, "$2 dan $1");
-  t = t.replace(/\\sqrt\{([^{}]*)\}/g, "$1 ning kvadrat ildizi");
+  t = t.replace(/(\d)\s*(\\(?:tfrac|dfrac|cfrac|frac))/g, "$1 butun $2");
+  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "$2 dan $1");
+  t = t.replace(/\\sqrt\s*\{([^{}]*)\}/g, "$1 ning kvadrat ildizi");
   t = t.replace(/\\times/g, " marta ");
   t = t.replace(/\\cdot/g, " marta ");
   t = t.replace(/\\div/g, " bo'lib ");
@@ -203,6 +205,20 @@ function _matnniOvozgaTayyorla(matn) {
   t = t.replace(/\\neq/g, " teng emas ");
   t = t.replace(/\\infty/g, " cheksizlik ");
   t = t.replace(/\\approx/g, " taxminan teng ");
+  const birliklar = [
+    [/\bkm\/soat\b/gi, " kilometr soatiga "],
+    [/\bkg\b/gi, " kilogramm "], [/\bgr\b/gi, " gramm "],
+    [/\bmm\b/gi, " millimetr "], [/\bsm\b/gi, " santimetr "], [/\bkm\b/gi, " kilometr "],
+    [/\bml\b/gi, " millilitr "], [/\bl\b/gi, " litr "],
+    [/\bsm2\b|\bsm²\b/gi, " kvadrat santimetr "], [/\bm2\b|\bm²\b/gi, " kvadrat metr "],
+    [/\bsm3\b|\bsm³\b/gi, " kub santimetr "], [/\bm3\b|\bm³\b/gi, " kub metr "],
+    [/\bm\b/g, " metr "],
+  ];
+  for (const [re, almashtir] of birliklar) t = t.replace(re, almashtir);
+  const ozgaruvchilar = { x: "iks", y: "igrik", z: "zet", n: "en" };
+  t = t.replace(/(?<![a-zA-Zʻʼ'])([xyzn])(?![a-zA-Zʻʼ'])/g, (m, harf) => ` ${ozgaruvchilar[harf]} `);
+  t = t.replace(/°C/g, " daraja Selsiy ");
+  t = t.replace(/%/g, " foiz ");
   t = t.replace(/\$/g, "");
   return t.replace(/\s+/g, " ").trim();
 }
