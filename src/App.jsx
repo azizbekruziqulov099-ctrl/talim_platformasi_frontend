@@ -3655,7 +3655,7 @@ function MaktablarBolimi({ token }) {
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
-  const [natijalar, setNatijalar] = useState(null); // [{fish, lavozim, kirish_kodi, sinf_rahbarligi, sinf_paroli}] | null
+  const [importXabari, setImportXabari] = useState("");
   const [sinflar, setSinflar] = useState([]);
   const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
   const [pulli, setPulli] = useState(maktab.pulli || false);
@@ -3694,16 +3694,25 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const faylTanlandi = async (e) => {
     const fayl = e.target.files[0];
     if (!fayl) return;
-    setImportlanmoqda(true); setXato(""); setNatijalar(null);
+    setImportlanmoqda(true); setXato(""); setImportXabari("");
     try {
       const formData = new FormData();
       formData.append("fayl", fayl);
       const res = await fetch(`${API_BASE}/api/admin/xodim_import?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`, {
         method: "POST", body: formData,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
-      setNatijalar(data.natijalar || []);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "Xato");
+      }
+      // Parollar ekranga chiqarilmaydi — to'g'ridan-to'g'ri Word hujjat qilib yuklab olinadi.
+      const blob = await res.blob();
+      const dlUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl; a.download = "xodimlar_kirish_kodlari.docx";
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(dlUrl);
+      setImportXabari("✅ Import yakunlandi — kirish kodlari Word fayl qilib yuklab olindi.");
       sinflarniYukla();
     } catch (e) {
       setXato(e.message);
@@ -3768,22 +3777,9 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
       </div>
 
-      {natijalar && (
-        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>✅ {natijalar.length} ta xodim qo'shildi</p>
-          <p className="text-xs mb-4" style={{ color: "#B0553A" }}>
-            Diqqat: bu kodlarni endi shu yerdan nusxalab, har bir xodimga (masalan Telegram orqali) yuboring — bu ekranga qayta qaytib bo'lmaydi!
-          </p>
-          <div className="space-y-2.5">
-            {natijalar.map((n, i) => (
-              <div key={i} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
-                <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{n.fish}</p>
-                <p className="text-xs mb-1.5" style={{ color: "#8A8578" }}>{n.lavozim}{n.sinf_rahbarligi ? ` · ${n.sinf_rahbarligi} sinf rahbari` : ""}</p>
-                <p className="text-xs font-mono" style={{ color: "#1B4B7A" }}>🔑 Kirish kodi: <b>{n.kirish_kodi}</b></p>
-                {n.sinf_paroli && <p className="text-xs font-mono" style={{ color: "#8A5A1C" }}>🔐 Sinf paroli: <b>{n.sinf_paroli}</b></p>}
-              </div>
-            ))}
-          </div>
+      {importXabari && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <p className="text-sm font-semibold" style={{ color: "#3B6D11" }}>{importXabari}</p>
         </div>
       )}
 
