@@ -2785,8 +2785,6 @@ const QIYINLIK_DARAJALARI = [
 ];
 
 function TestShablonBolimi({ token, oldindanTanlangan }) {
-  const [fanlar, setFanlar] = useState([]);
-  const [ochiqFan, setOchiqFan] = useState(null);
   const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
   const [maqsad, setMaqsad] = useState("oddiy"); // "oddiy" | "minimal_bilim"
   const [guruhlar, setGuruhlar] = useState(
@@ -2796,6 +2794,53 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natija, setNatija] = useState(null);
+
+  // Bosqichma-bosqich tanlash: sinf_turi -> sinf -> fan -> mavzular
+  const [ichkiBosqich, setIchkiBosqich] = useState("sinf_turi");
+  const [sinflarRoyxati, setSinflarRoyxati] = useState({ oddiy: [], togarak: [] });
+  const [tanlanganSinfTuri, setTanlanganSinfTuri] = useState(null); // "oddiy" | "togarak"
+  const [tanlanganSinfIchki, setTanlanganSinfIchki] = useState(null);
+  const [ichkiFanlar, setIchkiFanlar] = useState([]);
+  const [tanlanganFanIchki, setTanlanganFanIchki] = useState(null);
+  const [ichkiMavzular, setIchkiMavzular] = useState([]);
+  const [ichkiYuklanmoqda, setIchkiYuklanmoqda] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setSinflarRoyxati(d))
+      .catch(() => setXato("Sinflarni yuklab bo'lmadi"));
+  }, [token]);
+
+  const sinfTuriTanlandi = (turi) => {
+    setTanlanganSinfTuri(turi);
+    setIchkiBosqich("sinf");
+  };
+
+  const ichkiSinfTanlandi = (sinf) => {
+    setTanlanganSinfIchki(sinf);
+    setIchkiBosqich("fan");
+    setIchkiYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setIchkiFanlar(d.fanlar || []); setIchkiYuklanmoqda(false); })
+      .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
+  };
+
+  const ichkiFanTanlandi = (fan) => {
+    setTanlanganFanIchki(fan);
+    setIchkiBosqich("mavzular");
+    setIchkiYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setIchkiMavzular(d.mavzular || []); setIchkiYuklanmoqda(false); })
+      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
+  };
+
+  const hammasiniTanlash = () => {
+    const barchaKodlar = ichkiMavzular.flatMap((m) => m.barcha_kodlar || [m.topic_code]);
+    setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...barchaKodlar])));
+  };
 
   const maqsadOzgar = (yangiMaqsad) => {
     setMaqsad(yangiMaqsad);
@@ -2807,15 +2852,6 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
       setGuruhlar(QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 })));
     }
   };
-
-  useEffect(() => {
-    // faqat_testli=false: bu yerda ADMIN test SHABLON yaratadi — testi
-    // hali yo'q mavzular ham ko'rinishi va tanlanishi kerak.
-    fetch(`${API_BASE}/api/mavzular?faqat_testli=false`)
-      .then((r) => r.json())
-      .then((d) => setFanlar(d.fanlar || []))
-      .catch(() => setXato("Mavzularni yuklab bo'lmadi"));
-  }, []);
 
   useEffect(() => {
     if (oldindanTanlangan && oldindanTanlangan.length > 0) {
@@ -2904,39 +2940,91 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
       </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+        <label className="text-xs font-medium mb-3 block" style={{ color: "#5A5648" }}>
           1) Mavzu(lar)ni tanlang ({tanlanganKodlar.length} ta tanlandi)
         </label>
-        <div className="space-y-1.5 max-h-56 overflow-y-auto mb-1">
-          {fanlar.map((fan) => {
-            const ochiq = ochiqFan === fan.qisqa;
-            return (
-              <div key={fan.qisqa} className="rounded-xl overflow-hidden" style={{ backgroundColor: "#F7F5F0" }}>
-                <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)}
-                  className="w-full flex items-center justify-between px-3 py-2.5">
-                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
-                  {ochiq ? <ChevronDown size={16} style={{ color: "#8A8578" }} /> : <ChevronRight size={16} style={{ color: "#8A8578" }} />}
+
+        {ichkiBosqich === "sinf_turi" && (
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => sinfTuriTanlandi("oddiy")}
+              className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }}>
+              🏫 1–11-sinf
+            </button>
+            <button onClick={() => sinfTuriTanlandi("togarak")}
+              className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }}>
+              🎯 Boshqa sinflar
+            </button>
+          </div>
+        )}
+
+        {ichkiBosqich === "sinf" && (
+          <>
+            <button onClick={() => setIchkiBosqich("sinf_turi")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
+              <ChevronLeft size={14} /> Ortga
+            </button>
+            <div className="grid grid-cols-6 gap-1.5">
+              {(tanlanganSinfTuri === "oddiy" ? sinflarRoyxati.oddiy : sinflarRoyxati.togarak).map((s) => (
+                <button key={s} onClick={() => ichkiSinfTanlandi(s)}
+                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
+                  style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
+                  {s}
                 </button>
-                {ochiq && (
-                  <div className="px-3 pb-2.5 space-y-1">
-                    {fan.sinflar.map((s) => (
-                      <div key={s.sinf}>
-                        <p className="text-xs font-medium py-1" style={{ color: "#8A8578" }}>{s.sinf}-sinf</p>
-                        {s.mavzular.map((m) => (
-                          <label key={m.nomi} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-white mb-1 cursor-pointer">
-                            <input type="checkbox" checked={m.topic_codes.every((k) => tanlanganKodlar.includes(k))}
-                              onChange={() => kodniAlmashtir(m.topic_codes)} />
-                            <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
+              ))}
+            </div>
+          </>
+        )}
+
+        {ichkiBosqich === "fan" && (
+          <>
+            <button onClick={() => setIchkiBosqich("sinf")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
+              <ChevronLeft size={14} /> Ortga ({tanlanganSinfIchki}-sinf)
+            </button>
+            {ichkiYuklanmoqda ? (
+              <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : (
+              <div className="space-y-1.5">
+                {ichkiFanlar.map((f) => (
+                  <button key={f.nom} onClick={() => ichkiFanTanlandi(f.nom)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#F7F5F0" }}>
+                    <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                    <span className="flex items-center gap-1 text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu <ChevronRight size={14} /></span>
+                  </button>
+                ))}
+                {ichkiFanlar.length === 0 && <p className="text-xs text-center py-4" style={{ color: "#8A8578" }}>Bu sinfda mavzu yo'q</p>}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </>
+        )}
+
+        {ichkiBosqich === "mavzular" && (
+          <>
+            <button onClick={() => setIchkiBosqich("fan")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
+              <ChevronLeft size={14} /> Ortga ({tanlanganFanIchki})
+            </button>
+            {ichkiYuklanmoqda ? (
+              <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+            ) : (
+              <>
+                <button onClick={hammasiniTanlash}
+                  className="w-full py-2 rounded-lg text-xs font-semibold mb-2" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+                  ✓ Barchasini tanlash ({ichkiMavzular.length} ta mavzu)
+                </button>
+                <div className="space-y-1 max-h-56 overflow-y-auto">
+                  {ichkiMavzular.map((m) => {
+                    const kodlar = m.barcha_kodlar || [m.topic_code];
+                    return (
+                      <label key={m.topic_code} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer" style={{ backgroundColor: "#F7F5F0" }}>
+                        <input type="checkbox" checked={kodlar.every((k) => tanlanganKodlar.includes(k))}
+                          onChange={() => kodniAlmashtir(kodlar)} />
+                        <span className="text-sm flex-1" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
