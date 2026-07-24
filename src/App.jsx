@@ -181,6 +181,32 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
   );
 }
 
+function _matnniOvozgaTayyorla(matn) {
+  // LaTeX belgilangan (yoki belgisiz) kasrlarni tabiiy o'zbekcha nutqqa
+  // aylantiradi — masalan \tfrac{1}{2} → "ikkidan bir", 6\tfrac{1}{2}
+  // (aralash son) → "olti butun ikkidan bir". Xom LaTeX buyrug'ini
+  // to'g'ridan-to'g'ri o'qish ("teskari kesish t frak...") juda
+  // tushunarsiz eshitilgani uchun kerak.
+  if (!matn) return "";
+  let t = matn;
+  t = t.replace(/\[lat\]([^]*?)\[\/lat\]/g, "$1");
+  t = t.replace(/\$([^$]+)\$/g, "$1");
+  t = t.replace(/(\d)(\\(?:tfrac|dfrac|frac))/g, "$1 butun $2");
+  t = t.replace(/\\(?:tfrac|dfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g, "$2 dan $1");
+  t = t.replace(/\\sqrt\{([^{}]*)\}/g, "$1 ning kvadrat ildizi");
+  t = t.replace(/\\times/g, " marta ");
+  t = t.replace(/\\cdot/g, " marta ");
+  t = t.replace(/\\div/g, " bo'lib ");
+  t = t.replace(/\\pm/g, " plyus-minus ");
+  t = t.replace(/\\leq/g, " kichik yoki teng ");
+  t = t.replace(/\\geq/g, " katta yoki teng ");
+  t = t.replace(/\\neq/g, " teng emas ");
+  t = t.replace(/\\infty/g, " cheksizlik ");
+  t = t.replace(/\\approx/g, " taxminan teng ");
+  t = t.replace(/\$/g, "");
+  return t.replace(/\s+/g, " ").trim();
+}
+
 function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, joriySozIndeksi, setJoriySozIndeksi }) {
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
@@ -189,7 +215,7 @@ function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, 
   const boshla = (boshlanishTezligi) => {
     window.speechSynthesis.cancel();
     setPauzada(false);
-    const tozaMatn = matn.replace(/\$/g, "");
+    const tozaMatn = _matnniOvozgaTayyorla(matn);
     const sozlar = tozaMatn.split(/(\s+)/);
     let pozitsiya = 0;
     const sozPozitsiyalari = sozlar.map((s) => { const p = pozitsiya; pozitsiya += s.length; return p; });
