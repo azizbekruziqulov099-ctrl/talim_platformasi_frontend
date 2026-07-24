@@ -103,16 +103,25 @@ function SavolFormulasi({ ifoda }) {
 // noto'g'ri chiqib qolar edi), faqat $...$ ICHIDAGI qismni formulaga
 // aylantiradi, qolgani oddiy matn bo'lib qoladi.
 function AralashMatn({ matn, className, style }) {
-  const qismlar = useMemo(() => (matn || "").split(/(\$[^$]+\$)/g), [matn]);
+  // Ikkala belgilashni ham tushunadi: $...$ VA [lat]...[/lat] — testlar
+  // uchun AI ko'pincha [lat] tegini ishlatadi, boshqa joylarda $ ham
+  // uchraydi; ikkalasi ham xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
+  const qismlar = useMemo(() => (matn || "").split(/(\$[^$]+\$|\[lat\][^]*?\[\/lat\])/g), [matn]);
   return (
     <p className={className} style={{ whiteSpace: "pre-wrap", ...style }}>
       {qismlar.map((qism, i) => {
+        let latexMatni = null;
         if (qism.startsWith("$") && qism.endsWith("$") && qism.length > 2) {
+          latexMatni = qism.slice(1, -1);
+        } else if (qism.startsWith("[lat]") && qism.endsWith("[/lat]")) {
+          latexMatni = qism.slice(5, -6);
+        }
+        if (latexMatni !== null) {
           try {
-            const html = katex.renderToString(qism.slice(1, -1), { throwOnError: false, output: "html", displayMode: false });
+            const html = katex.renderToString(latexMatni, { throwOnError: false, output: "html", displayMode: false });
             return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
           } catch {
-            return <span key={i}>{qism}</span>;
+            return <span key={i}>{latexMatni}</span>;
           }
         }
         return <span key={i}>{qism}</span>;
@@ -268,20 +277,29 @@ function tegsizKorsat(matn) {
 }
 
 function Matn({ matn, latex }) {
-  // is_latex=true bo'lsa — $...$ ichidagi formulalarni KaTeX bilan chizadi,
-  // qolgan matnni oddiy tekst sifatida qoldiradi (matn va formula aralash bo'lishi mumkin).
+  // $...$ VA [lat]...[/lat] — ikkalasini ham KaTeX bilan chizadi, qolgan
+  // matnni oddiy tekst sifatida qoldiradi (matn va formula aralash
+  // bo'lishi mumkin). is_latex bayrog'iga qaramay, TEGLAR o'zi bor-yo'qligini
+  // ham tekshiradi — AI ba'zan bayroqni to'g'ri qo'ymasligi mumkin.
   const toza = tegsizKorsat(matn) || "";
-  if (!latex || !toza.includes("$")) return <>{toza}</>;
-  const qismlar = toza.split(/(\$[^$]+\$)/g);
+  const bormi = toza.includes("$") || toza.includes("[lat]");
+  if (!bormi) return <>{toza}</>;
+  const qismlar = toza.split(/(\$[^$]+\$|\[lat\][^]*?\[\/lat\])/g);
   return (
     <>
       {qismlar.map((q, i) => {
+        let latexMatni = null;
         if (q.startsWith("$") && q.endsWith("$") && q.length > 1) {
+          latexMatni = q.slice(1, -1);
+        } else if (q.startsWith("[lat]") && q.endsWith("[/lat]")) {
+          latexMatni = q.slice(5, -6);
+        }
+        if (latexMatni !== null) {
           try {
-            const html = katex.renderToString(q.slice(1, -1), { throwOnError: false, output: "html" });
+            const html = katex.renderToString(latexMatni, { throwOnError: false, output: "html" });
             return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
           } catch {
-            return <span key={i}>{q}</span>;
+            return <span key={i}>{latexMatni}</span>;
           }
         }
         return <span key={i}>{q}</span>;
@@ -644,7 +662,7 @@ function MavzuQatori({ m, i, sinf, fan, rang }) {
           {yuklanmoqda ? (
             <div className="py-2"><Loader2 size={16} className="animate-spin" style={{ color: "#8A8578" }} /></div>
           ) : tushuntirish ? (
-            <p className="text-sm p-3 rounded-lg leading-relaxed" style={{ backgroundColor: "#FFFFFF", color: "#2B2B2B" }}>{tushuntirish}</p>
+            <AralashMatn matn={tushuntirish} className="text-sm p-3 rounded-lg leading-relaxed" style={{ backgroundColor: "#FFFFFF", color: "#2B2B2B" }} />
           ) : (
             <p className="text-xs" style={{ color: "#8A8578" }}>Bu mavzu uchun hali AI tushuntirishi tayyorlanmagan.</p>
           )}
@@ -1534,10 +1552,10 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
             <div className="space-y-3">
               {natija.xatolar.map((x) => (
                 <div key={x.savol_id} className="rounded-xl p-4 border" style={{ borderColor: "#F3D3D3", backgroundColor: "#FCEBEB" }}>
-                  <p className="text-sm font-medium mb-2" style={{ color: "#2B2B2B" }}>{x.savol}</p>
-                  <p className="text-xs mb-1" style={{ color: "#A32D2D" }}>Sizning javobingiz: <b>{x.sizning_javob}</b></p>
-                  <p className="text-xs" style={{ color: "#3B6D11" }}>To'g'ri javob: <b>{x.togri_javob}</b></p>
-                  {x.tushuntirish && <p className="text-xs mt-1.5" style={{ color: "#5A5648" }}>{x.tushuntirish}</p>}
+                  <AralashMatn matn={x.savol} className="text-sm font-medium mb-2" style={{ color: "#2B2B2B" }} />
+                  <AralashMatn matn={`Sizning javobingiz: ${x.sizning_javob}`} className="text-xs mb-1" style={{ color: "#A32D2D" }} />
+                  <AralashMatn matn={`To'g'ri javob: ${x.togri_javob}`} className="text-xs" style={{ color: "#3B6D11" }} />
+                  {x.tushuntirish && <AralashMatn matn={x.tushuntirish} className="text-xs mt-1.5" style={{ color: "#5A5648" }} />}
                 </div>
               ))}
             </div>
@@ -1746,11 +1764,13 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
         {javobBerilgan && (
           <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
-            <p className="text-sm font-semibold mb-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>
-              {joriyNatija.togrimi ? "✓ To'g'ri!" : `✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`}
-            </p>
+            {joriyNatija.togrimi ? (
+              <p className="text-sm font-semibold" style={{ color: "#3B6D11" }}>✓ To'g'ri!</p>
+            ) : (
+              <AralashMatn matn={`✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`} className="text-sm font-semibold" style={{ color: "#A32D2D" }} />
+            )}
             {joriyNatija.tushuntirish && (
-              <p className="text-sm" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }}>{joriyNatija.tushuntirish}</p>
+              <AralashMatn matn={joriyNatija.tushuntirish} className="text-sm mt-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }} />
             )}
           </div>
         )}
