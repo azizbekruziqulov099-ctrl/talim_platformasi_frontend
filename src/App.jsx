@@ -2935,16 +2935,18 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [natija, setNatija] = useState(null);
   const [diagnostika, setDiagnostika] = useState(null);
   const [diagnostikaYuklanmoqda, setDiagnostikaYuklanmoqda] = useState(false);
+  const [diagnostikaXato, setDiagnostikaXato] = useState("");
 
   const diagnostikaniKor = async () => {
-    setDiagnostikaYuklanmoqda(true); setXato("");
+    setDiagnostikaYuklanmoqda(true); setDiagnostikaXato(""); setDiagnostika(null);
     try {
       const res = await fetch(`${API_BASE}/api/admin/rasm_diagnostika?token=${encodeURIComponent(token)}`);
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
+      const d = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((d && d.detail) || `Server xatosi (${res.status})`);
+      if (!d) throw new Error("Serverdan javob kelmadi");
       setDiagnostika(d);
     } catch (e) {
-      setXato(e.message);
+      setDiagnostikaXato(e.message || "Noma'lum xato — internetni tekshiring");
     } finally { setDiagnostikaYuklanmoqda(false); }
   };
 
@@ -3079,6 +3081,11 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
           style={{ borderColor: "#B7D3E8", color: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
           {diagnostikaYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "🔍 Bazani tekshirish (rasm diagnostikasi)"}
         </button>
+        {diagnostikaXato && (
+          <p className="mt-2 text-sm font-semibold rounded-lg px-3 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+            ❌ {diagnostikaXato}
+          </p>
+        )}
         {diagnostika && (
           <div className="mt-3 text-sm space-y-1" style={{ color: "#2B2B2B" }}>
             <p>Jami testlar: <b>{diagnostika.jami_testlar}</b></p>
