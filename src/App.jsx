@@ -2744,6 +2744,83 @@ function TopikMavzularTab({ token, onTestYarat }) {
   );
 }
 
+function ModeratsiyaTab({ token }) {
+  const [ichkiBolim, setIchkiBolim] = useState("qora"); // "qora" | "xavfli"
+  const [qoraRoyxat, setQoraRoyxat] = useState(null);
+  const [xavfliRoyxat, setXavfliRoyxat] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+
+  useEffect(() => {
+    setYuklanmoqda(true);
+    Promise.all([
+      fetch(`${API_BASE}/api/admin/qora_royxat?token=${encodeURIComponent(token)}`).then((r) => r.json()),
+      fetch(`${API_BASE}/api/admin/xavfli_xabarlar?token=${encodeURIComponent(token)}`).then((r) => r.json()),
+    ])
+      .then(([q, x]) => { setQoraRoyxat(q.royxat || []); setXavfliRoyxat(x.royxat || []); setYuklanmoqda(false); })
+      .catch(() => { setXato("Ro'yxatlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
+  }, [token]);
+
+  const SABAB_NOMLARI = {
+    notogri_fayl_turi: "❌ Noto'g'ri fayl turi",
+    virus: "🦠 Virus topildi",
+    nsfw_rasm: "🔞 Nomaqbul rasm",
+    sokinish: "🤬 So'kinish",
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-4">
+      <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Moderatsiya</h1>
+
+      <div className="flex rounded-full p-1 gap-0.5 mb-4" style={{ backgroundColor: "#F0EDE5" }}>
+        <button onClick={() => setIchkiBolim("qora")} className="flex-1 py-2 rounded-full text-xs font-semibold"
+          style={ichkiBolim === "qora" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
+          🚫 Qora ro'yxat
+        </button>
+        <button onClick={() => setIchkiBolim("xavfli")} className="flex-1 py-2 rounded-full text-xs font-semibold"
+          style={ichkiBolim === "xavfli" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
+          ⚠️ Xavfli xabarlar
+        </button>
+      </div>
+
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
+      {yuklanmoqda ? (
+        <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+      ) : ichkiBolim === "qora" ? (
+        <div className="space-y-2">
+          {qoraRoyxat.length === 0 && <p className="text-sm text-center py-8" style={{ color: "#8A8578" }}>Hozircha bo'sh</p>}
+          {qoraRoyxat.map((q) => (
+            <div key={q.id} className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{q.full_name || `ID: ${q.user_id}`}</p>
+                <span className="text-[10px]" style={{ color: "#B0AA98" }}>{new Date(q.yaratilgan_at).toLocaleString("uz-UZ")}</span>
+              </div>
+              <p className="text-xs font-semibold mb-1" style={{ color: "#A32D2D" }}>{SABAB_NOMLARI[q.sabab] || q.sabab}</p>
+              {q.tafsilot && <p className="text-xs" style={{ color: "#5A5648", wordBreak: "break-word" }}>{q.tafsilot}</p>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
+            ⚠️ Bu — kalit-so'z asosidagi ro'yxat, aniq xavf degani emas. Foydalanuvchi ogohlantirilmagan, xabari oddiy yuborilgan.
+          </p>
+          {xavfliRoyxat.length === 0 && <p className="text-sm text-center py-8" style={{ color: "#8A8578" }}>Hozircha bo'sh</p>}
+          {xavfliRoyxat.map((x) => (
+            <div key={x.id} className="rounded-xl p-3.5 bg-white border" style={{ borderColor: "#F5C6C6" }}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{x.full_name || `ID: ${x.user_id}`}</p>
+                <span className="text-[10px]" style={{ color: "#B0AA98" }}>{new Date(x.yaratilgan_at).toLocaleString("uz-UZ")}</span>
+              </div>
+              <p className="text-sm" style={{ color: "#5A5648", wordBreak: "break-word" }}>{x.xabar_matni}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminTestlarTab({ token }) {
   return <TestTab token={token} sinf={null} />;
 }
@@ -11126,6 +11203,7 @@ function PastkiMenyu({ faol, onTanlash, rol, rang, bloklangan, qoshimchaBand }) 
           { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
           { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
           { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
+          { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
           { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
           { kalit: "profil", nom: "Profil", ikon: User },
         ]
@@ -11350,12 +11428,15 @@ function DoiraVideoYozish({ onYubor, onBekor }) {
   const [xatoMatni, setXatoMatni] = useState("");
   const [yozilganUrl, setYozilganUrl] = useState(null);
   const [sekund, setSekund] = useState(0);
+  const [qulflandi, setQulflandi] = useState(false);
   const jonliVideoRef = useRef(null);
   const koribChiqishVideoRef = useRef(null);
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const boglamlarRef = useRef([]);
   const taymerRef = useRef(null);
+  const boshlanishYRef = useRef(0);
+  const QULF_MASOFASI = 45;
 
   const kameraniOch = () => {
     setHolat("tayyorlanmoqda");
@@ -11378,6 +11459,8 @@ function DoiraVideoYozish({ onYubor, onBekor }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const qulflandiRef = useRef(false);
+
   const yozishToxtat = () => {
     clearInterval(taymerRef.current);
     if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
@@ -11392,8 +11475,14 @@ function DoiraVideoYozish({ onYubor, onBekor }) {
     recorder.ondataavailable = (e) => { if (e.data.size > 0) boglamlarRef.current.push(e.data); };
     recorder.onstop = () => {
       const blob = new Blob(boglamlarRef.current, { type: "video/webm" });
-      setYozilganUrl(URL.createObjectURL(blob));
-      setHolat("korib_chiqish");
+      if (qulflandiRef.current) {
+        // Qulflangan — qo'lda ko'rib chiqish/yuborish uchun preview'ga o'tadi
+        setYozilganUrl(URL.createObjectURL(blob));
+        setHolat("korib_chiqish");
+      } else {
+        // Qulflanmagan — qo'yib yuborilganda DARHOL jo'natiladi (ovozli xabar kabi)
+        onYubor(new File([blob], "doira_video.webm", { type: "video/webm" }));
+      }
     };
     recorderRef.current = recorder;
     recorder.start();
@@ -11405,6 +11494,40 @@ function DoiraVideoYozish({ onYubor, onBekor }) {
         return prev + 1;
       });
     }, 1000);
+  };
+
+  // Bosib turib yozish, qo'yib yuborsa DARHOL jo'natiladi. Yozayotganda
+  // yuqoriga surilsa — qulflanadi, qo'lni olib qo'ysa ham davom etadi
+  // (keyin qo'lda ko'rib chiqib yuborish/qayta yozish kerak).
+  useEffect(() => {
+    if (holat !== "yozilmoqda") return;
+    const harakat = (e) => {
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      if (boshlanishYRef.current - y > QULF_MASOFASI) { qulflandiRef.current = true; setQulflandi(true); }
+    };
+    const qoyildi = () => {
+      if (!qulflandiRef.current) yozishToxtat();
+    };
+    window.addEventListener("mousemove", harakat);
+    window.addEventListener("touchmove", harakat, { passive: true });
+    window.addEventListener("mouseup", qoyildi);
+    window.addEventListener("touchend", qoyildi);
+    return () => {
+      window.removeEventListener("mousemove", harakat);
+      window.removeEventListener("touchmove", harakat);
+      window.removeEventListener("mouseup", qoyildi);
+      window.removeEventListener("touchend", qoyildi);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holat]);
+
+  const bosishBoshlandi = (e) => {
+    e.preventDefault();
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    boshlanishYRef.current = y;
+    qulflandiRef.current = false;
+    setQulflandi(false);
+    yozishBoshla();
   };
 
   const qaytaYoz = () => {
@@ -11456,13 +11579,16 @@ function DoiraVideoYozish({ onYubor, onBekor }) {
               </button>
             </div>
           ) : (
-            <button onClick={holat === "yozilmoqda" ? yozishToxtat : yozishBoshla} disabled={holat === "tayyorlanmoqda"}
-              className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: holat === "yozilmoqda" ? "#fff" : "#E24B4A", opacity: holat === "tayyorlanmoqda" ? 0.5 : 1 }}>
+            <button onMouseDown={holat === "yozilmoqda" ? undefined : bosishBoshlandi}
+              onTouchStart={holat === "yozilmoqda" ? undefined : bosishBoshlandi}
+              onClick={qulflandi && holat === "yozilmoqda" ? yozishToxtat : undefined}
+              disabled={holat === "tayyorlanmoqda"}
+              className="w-16 h-16 rounded-full flex items-center justify-center select-none" style={{ backgroundColor: holat === "yozilmoqda" ? "#fff" : "#E24B4A", opacity: holat === "tayyorlanmoqda" ? 0.5 : 1, touchAction: "none" }}>
               {holat === "yozilmoqda" ? <span className="w-5 h-5 rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> : <span className="w-6 h-6 rounded-full" style={{ backgroundColor: "#fff" }} />}
             </button>
           )}
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
-            {holat === "korib_chiqish" ? "Ko'rib chiqing va yuboring" : holat === "yozilmoqda" ? "Tugatish uchun bosing" : "Yozishni boshlash uchun bosing"}
+            {holat === "korib_chiqish" ? "Ko'rib chiqing va yuboring" : holat === "yozilmoqda" ? (qulflandi ? "🔒 Qulflandi — tugatish uchun bosing" : "⬆ Qulflash uchun suring · qo'yib yuborsangiz jo'natiladi") : "Yozish uchun bosib turing"}
           </p>
         </>
       )}
@@ -11478,6 +11604,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const [xato, setXato] = useState("");
   const [doiraVideoOchiq, setDoiraVideoOchiq] = useState(false);
   const [ovozYozilmoqda, setOvozYozilmoqda] = useState(false);
+  const [ovozQulflandi, setOvozQulflandi] = useState(false);
   const [ovozSekund, setOvozSekund] = useState(0);
   const oxiriRef = useRef(null);
   const faylInputRef = useRef(null);
@@ -11485,6 +11612,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const ovozStreamRef = useRef(null);
   const ovozBoglamlarRef = useRef([]);
   const ovozTaymerRef = useRef(null);
+  const ovozBoshlanishYRef = useRef(0);
 
   const sarlavha = suhbat.guruh_nomi || suhbat.boshqa_ismi;
 
@@ -11549,6 +11677,8 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
     clearInterval(ovozTaymerRef.current);
   }, []);
 
+  const OVOZ_QULF_MASOFASI = 45; // shuncha piksel yuqoriga surilsa — qulflanadi
+
   const ovozYozishBoshla = () => {
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
@@ -11590,6 +11720,43 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
     ovozYozishToxtat();
   };
 
+  // Bosib turib yozish, qo'yib yuborsa yuboriladi — WhatsApp uslubi.
+  // Yozayotganda biroz yuqoriga surilsa — "qulflanadi", shundan keyin
+  // qo'lni olib qo'ysa ham yozish davom etadi (qo'lda yuborish/bekor
+  // qilish kerak bo'ladi).
+  useEffect(() => {
+    if (!ovozYozilmoqda) return;
+    const harakat = (e) => {
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      if (ovozBoshlanishYRef.current - y > OVOZ_QULF_MASOFASI) setOvozQulflandi(true);
+    };
+    const qoyildi = () => {
+      setOvozQulflandi((qulf) => {
+        if (!qulf) ovozYuborish();
+        return qulf;
+      });
+    };
+    window.addEventListener("mousemove", harakat);
+    window.addEventListener("touchmove", harakat, { passive: true });
+    window.addEventListener("mouseup", qoyildi);
+    window.addEventListener("touchend", qoyildi);
+    return () => {
+      window.removeEventListener("mousemove", harakat);
+      window.removeEventListener("touchmove", harakat);
+      window.removeEventListener("mouseup", qoyildi);
+      window.removeEventListener("touchend", qoyildi);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ovozYozilmoqda]);
+
+  const ovozBosishBoshlandi = (e) => {
+    e.preventDefault();
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    ovozBoshlanishYRef.current = y;
+    setOvozQulflandi(false);
+    ovozYozishBoshla();
+  };
+
   return (
     <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
       {doiraVideoOchiq && <DoiraVideoYozish onYubor={doiraVideoYuborildi} onBekor={() => setDoiraVideoOchiq(false)} />}
@@ -11611,7 +11778,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
                 <audio controls className="mt-1" style={{ height: 36 }} src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
               )}
               {(x.fayl_turi === "video" || x.fayl_turi === "video_doira") && (
-                <video controls className="mt-1 rounded-lg" style={{ maxWidth: 220, borderRadius: x.fayl_turi === "video_doira" ? "50%" : 12 }}
+                <video controls className="mt-1 rounded-lg" style={{ maxWidth: 220, borderRadius: 12 }}
                   src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
               )}
               {x.fayl_turi === "hujjat" && (
@@ -11632,20 +11799,30 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
       {xato && <p className="text-xs mb-2" style={{ color: "#B0553A" }}>{xato}</p>}
 
       {ovozYozilmoqda ? (
-        <div className="flex items-center gap-2">
-          <button onClick={ovozBekorQil} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FCEBEB" }}>
-            <Trash2 size={16} style={{ color: "#A32D2D" }} />
-          </button>
-          <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-full" style={{ backgroundColor: "#FCEBEB" }}>
-            <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#E24B4A" }} />
-            <span className="text-sm font-semibold" style={{ color: "#A32D2D" }}>
-              Ovoz yozilmoqda — {String(Math.floor(ovozSekund / 60)).padStart(2, "0")}:{String(ovozSekund % 60).padStart(2, "0")}
-            </span>
+        ovozQulflandi ? (
+          <div className="flex items-center gap-2">
+            <button onClick={ovozBekorQil} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FCEBEB" }}>
+              <Trash2 size={16} style={{ color: "#A32D2D" }} />
+            </button>
+            <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-full" style={{ backgroundColor: "#FCEBEB" }}>
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#E24B4A" }} />
+              <span className="text-sm font-semibold" style={{ color: "#A32D2D" }}>
+                🔒 Ovoz yozilmoqda — {String(Math.floor(ovozSekund / 60)).padStart(2, "0")}:{String(ovozSekund % 60).padStart(2, "0")}
+              </span>
+            </div>
+            <button onClick={ovozYuborish} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#1B4B7A" }}>
+              <Send size={16} style={{ color: "#fff" }} />
+            </button>
           </div>
-          <button onClick={ovozYuborish} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#1B4B7A" }}>
-            <Send size={16} style={{ color: "#fff" }} />
-          </button>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-full select-none" style={{ backgroundColor: "#FCEBEB" }}>
+            <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: "#E24B4A" }} />
+            <span className="text-sm font-semibold shrink-0" style={{ color: "#A32D2D" }}>
+              {String(Math.floor(ovozSekund / 60)).padStart(2, "0")}:{String(ovozSekund % 60).padStart(2, "0")}
+            </span>
+            <span className="text-xs flex-1 text-right" style={{ color: "#A32D2D" }}>⬆ qulflash uchun suring · qo'yib yuborsangiz jo'natiladi</span>
+          </div>
+        )
       ) : (
         <div className="flex items-center gap-2">
           <button onClick={() => faylInputRef.current?.click()} disabled={yuborilmoqda}
@@ -11667,8 +11844,8 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
               ➤
             </button>
           ) : (
-            <button onClick={ovozYozishBoshla} disabled={yuborilmoqda}
-              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0" }}>
+            <button onMouseDown={ovozBosishBoshlandi} onTouchStart={ovozBosishBoshlandi} disabled={yuborilmoqda}
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 select-none" style={{ backgroundColor: "#F7F5F0", touchAction: "none" }}>
               <Mic size={17} style={{ color: "#5A5648" }} />
             </button>
           )}
@@ -11858,6 +12035,7 @@ function Kabinet({ token }) {
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
       )}
+      {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
         <OqituvchiTab token={token} foydalanuvchi={foydalanuvchi} boshlanishKorinishi={oqituvchiBoshlanishKorinishi} />
       )}
