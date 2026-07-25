@@ -3292,6 +3292,19 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
                 )}
               </div>
             )}
+            {natija.rasm_diagnostika && (
+              <div className="mt-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                <p className="font-semibold mb-1">🔍 Rasm diagnostikasi (shu import uchun):</p>
+                <p>Excel ichida topilgan rasm: <b>{natija.rasm_diagnostika.excel_ichida_topilgan_rasm_soni}</b></p>
+                <p>Qatorga bog'langan rasm: <b>{natija.rasm_diagnostika.qatorga_bogliy_qilingan_rasm_soni}</b></p>
+                {natija.rasm_diagnostika.xatolar?.length > 0 && (
+                  <>
+                    <p className="mt-1 font-semibold">Xatolar:</p>
+                    {natija.rasm_diagnostika.xatolar.map((x, i) => <p key={i} className="font-mono" style={{ wordBreak: "break-all" }}>{x}</p>)}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
