@@ -3239,6 +3239,14 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
                 🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Bu mavzular uchun yangi shablon yuklab oling (Topik mavzularini avval to'g'irlab, qayta shablon oling) va savollarni o'sha yangi shablonga ko'chirib qayta yuklang.
               </p>
             )}
+            {natija.yetim_kodlar_soni > 0 && (
+              <div className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+                <p>⚠️ <b>{natija.yetim_kodlar_soni}</b> xil topic_code "Mavzular"da (dts_tree) topilmadi — bu testlar saqlandi, lekin hech qanday mavzuga bog'lanmagani uchun o'quvchiga hech qachon ko'rinmaydi!</p>
+                {natija.yetim_kodlar_namuna?.length > 0 && (
+                  <p className="text-xs mt-1 font-mono" style={{ wordBreak: "break-all" }}>Namuna: {natija.yetim_kodlar_namuna.join(", ")}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
