@@ -76,7 +76,9 @@ const BARCHA_MAKTAB_FANLARI = [
 // uni RASM DEB SO'RAMASDAN, KaTeX bilan FORMULA sifatida chizish kerak.
 function haqiqiyRasmKodimi(qiymat) {
   if (!qiymat) return false;
-  return /^\d+(-\d+){5,9}$/.test(String(qiymat).trim());
+  const q = String(qiymat).trim();
+  if (q.startsWith("/api/")) return true; // Excel'ga joylashtirilgan rasm — to'g'ridan-to'g'ri yo'l
+  return /^\d+(-\d+){5,9}$/.test(q);
 }
 
 function SavolFormulasi({ ifoda }) {
@@ -305,7 +307,7 @@ function SavolRasmi({ rasmId }) {
           <Loader2 size={20} className="animate-spin" style={{ color: "#8A8578" }} />
         </div>
       )}
-      <img src={`${API_BASE}/api/rasm/${rasmId}`} alt=""
+      <img src={String(rasmId).startsWith("/api/") ? `${API_BASE}${rasmId}` : `${API_BASE}/api/rasm/${rasmId}`} alt=""
         className="w-full rounded-xl object-contain"
         style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
         onLoad={() => setHolat("tayyor")}
