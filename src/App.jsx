@@ -3295,6 +3295,8 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
             {natija.rasm_diagnostika && (
               <div className="mt-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
                 <p className="font-semibold mb-1">🔍 Rasm diagnostikasi (shu import uchun):</p>
+                <p>Qabul qilingan fayl hajmi: <b>{(natija.rasm_diagnostika.qabul_qilingan_fayl_hajmi_bayt / 1024 / 1024).toFixed(2)} MB</b></p>
+                <p>openpyxl versiyasi: <b>{natija.rasm_diagnostika.openpyxl_versiyasi}</b></p>
                 <p>Excel ichida topilgan rasm: <b>{natija.rasm_diagnostika.excel_ichida_topilgan_rasm_soni}</b></p>
                 <p>Qatorga bog'langan rasm: <b>{natija.rasm_diagnostika.qatorga_bogliy_qilingan_rasm_soni}</b></p>
                 {natija.rasm_diagnostika.xatolar?.length > 0 && (
