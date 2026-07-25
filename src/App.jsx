@@ -3231,6 +3231,9 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
             <p>✅ Saqlandi: <b>{natija.saved}</b></p>
             <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
             <p>❌ Xato: <b>{natija.errors}</b></p>
+            {natija.rasm_biriktirildi > 0 && (
+              <p>🖼️ Rasm biriktirildi: <b>{natija.rasm_biriktirildi}</b></p>
+            )}
             {natija.kod_yoq > 0 && (
               <p className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
                 🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Bu mavzular uchun yangi shablon yuklab oling (Topik mavzularini avval to'g'irlab, qayta shablon oling) va savollarni o'sha yangi shablonga ko'chirib qayta yuklang.
