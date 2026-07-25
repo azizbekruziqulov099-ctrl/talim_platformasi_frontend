@@ -78,6 +78,7 @@ function haqiqiyRasmKodimi(qiymat) {
   if (!qiymat) return false;
   const q = String(qiymat).trim();
   if (q.startsWith("/api/")) return true; // Excel'ga joylashtirilgan rasm — to'g'ridan-to'g'ri yo'l
+  if (/^https?:\/\//i.test(q)) return true; // to'liq tashqi URL
   return /^\d+(-\d+){5,9}$/.test(q);
 }
 
@@ -307,7 +308,11 @@ function SavolRasmi({ rasmId }) {
           <Loader2 size={20} className="animate-spin" style={{ color: "#8A8578" }} />
         </div>
       )}
-      <img src={String(rasmId).startsWith("/api/") ? `${API_BASE}${rasmId}` : `${API_BASE}/api/rasm/${rasmId}`} alt=""
+      <img src={
+          String(rasmId).startsWith("/api/") ? `${API_BASE}${rasmId}`
+          : /^https?:\/\//i.test(String(rasmId)) ? rasmId
+          : `${API_BASE}/api/rasm/${rasmId}`
+        } alt=""
         className="w-full rounded-xl object-contain"
         style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
         onLoad={() => setHolat("tayyor")}
