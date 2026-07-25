@@ -2933,6 +2933,20 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natija, setNatija] = useState(null);
+  const [diagnostika, setDiagnostika] = useState(null);
+  const [diagnostikaYuklanmoqda, setDiagnostikaYuklanmoqda] = useState(false);
+
+  const diagnostikaniKor = async () => {
+    setDiagnostikaYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rasm_diagnostika?token=${encodeURIComponent(token)}`);
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      setDiagnostika(d);
+    } catch (e) {
+      setXato(e.message);
+    } finally { setDiagnostikaYuklanmoqda(false); }
+  };
 
   // Bosqichma-bosqich tanlash: sinf_turi -> sinf -> fan -> mavzular
   const [ichkiBosqich, setIchkiBosqich] = useState("sinf_turi");
@@ -3059,6 +3073,30 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
 
   return (
     <>
+      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <button onClick={diagnostikaniKor} disabled={diagnostikaYuklanmoqda}
+          className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border"
+          style={{ borderColor: "#B7D3E8", color: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
+          {diagnostikaYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "🔍 Bazani tekshirish (rasm diagnostikasi)"}
+        </button>
+        {diagnostika && (
+          <div className="mt-3 text-sm space-y-1" style={{ color: "#2B2B2B" }}>
+            <p>Jami testlar: <b>{diagnostika.jami_testlar}</b></p>
+            <p>Rasm ma'lumoti saqlangan: <b>{diagnostika.rasm_malumotli_soni}</b></p>
+            <p>image_url to'ldirilgan: <b>{diagnostika.image_urlli_soni}</b></p>
+            <p className="font-semibold mt-2">So'nggi 15 ta yozuv:</p>
+            <div className="rounded-lg overflow-hidden border" style={{ borderColor: "#E5E1D8" }}>
+              {diagnostika.songgi_15_yozuv.map((y) => (
+                <div key={y.id} className="px-2.5 py-2 text-xs border-b" style={{ borderColor: "#F0EDE5" }}>
+                  <p>#{y.id} · {y.topic_code} · {y.rasm_bormi ? "🖼️ rasm BOR" : "⬜ rasm yo'q"}</p>
+                  <p style={{ color: "#8A8578", wordBreak: "break-all" }}>image_url: {y.image_url || "(bo'sh)"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>Shablon maqsadi</label>
         <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
