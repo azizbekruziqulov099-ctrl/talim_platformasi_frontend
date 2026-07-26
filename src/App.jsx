@@ -3200,28 +3200,28 @@ function AdminTab({ token, oldindanTanlangan }) {
           🏫 Maktablar
         </button>
         <button onClick={() => setBolim("markaz")}
-          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "markaz"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🎓 O'quv markazlari
         </button>
         <button onClick={() => setBolim("bogcha")}
-          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "bogcha"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🧸 Bog'chalar
         </button>
         <button onClick={() => setBolim("universitet")}
-          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "universitet"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🎓 Universitetlar
         </button>
         <button onClick={() => setBolim("sinov")}
-          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
+          className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "sinov"
             ? { backgroundColor: "#C89B3C", color: "#fff" }
             : { backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #F5DFA3" }}>
@@ -3443,20 +3443,19 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
         )}
       </div>
 
-      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>Shablon maqsadi</label>
+      <div className="rounded-2xl p-3 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
-          <button type="button" onClick={() => maqsadOzgar("oddiy")} className="flex-1 py-2 rounded-full text-xs font-semibold"
+          <button type="button" onClick={() => maqsadOzgar("oddiy")} className="flex-1 py-1.5 rounded-full text-xs font-semibold"
             style={maqsad === "oddiy" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
             Oddiy
           </button>
-          <button type="button" onClick={() => maqsadOzgar("minimal_bilim")} className="flex-1 py-2 rounded-full text-xs font-semibold"
+          <button type="button" onClick={() => maqsadOzgar("minimal_bilim")} className="flex-1 py-1.5 rounded-full text-xs font-semibold"
             style={maqsad === "minimal_bilim" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
             Minimal bilim tekshirish
           </button>
         </div>
         {maqsad === "minimal_bilim" && (
-          <p className="text-[11px] mt-2.5" style={{ color: "#8A8578" }}>
+          <p className="text-[11px] mt-2" style={{ color: "#8A8578" }}>
             Sinfni bitirish / keyingi sinfga o'tish uchun talab qilinadigan ENG KAM bilimni tekshiradi — har mavzudan avtomatik 3 ta oson, tugmali savol belgilandi (pastda o'zgartirishingiz ham mumkin).
           </p>
         )}
