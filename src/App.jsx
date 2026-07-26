@@ -3164,7 +3164,11 @@ function AdminTestlarTab({ token }) {
 }
 
 function AdminTab({ token, oldindanTanlangan }) {
-  const [bolim, setBolim] = useState("test"); // "test" | "topik" | "tushuntirish" | "maktab" | "markaz"
+  // Faqat "Mavzular"dan "Test shablon yaratish" bosilib, tayyor mavzu bilan
+  // kelinganda — to'g'ridan-to'g'ri "Test shablon"ni ochamiz. Aks holda hech
+  // narsa tanlanmagan holda boshlanadi — sozlamalar foydalanuvchi ANIQ bir
+  // bo'limni tanlaguncha ko'rinmaydi.
+  const [bolim, setBolim] = useState(oldindanTanlangan && oldindanTanlangan.length > 0 ? "test" : null); // null | "test" | "topik" | "tushuntirish" | "maktab" | "markaz" | "bogcha" | "universitet" | "sinov"
 
   return (
     <div className="px-5 pt-6 pb-4">
