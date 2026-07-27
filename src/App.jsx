@@ -237,6 +237,8 @@ function _matnniOvozgaTayyorla(matn) {
   t = t.replace(/°C/g, " daraja Selsiy ");
   t = t.replace(/%/g, " foiz ");
   t = t.replace(/\$/g, "");
+  t = t.replace(/_{2,}/g, " bo'sh joy "); // "___" (bo'sh joy) — "pastki chiziq" deb o'qilmasin
+  t = t.replace(/[_`#]+/g, "");
   return t.replace(/\s+/g, " ").trim();
 }
 
@@ -402,8 +404,131 @@ function Qobiq({ children }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 1) KIRISH — Google tugmasi
+// 1) KIRISH — Google tugmasi, yoki telefon raqami orqali
 // ═══════════════════════════════════════════════════════════
+function TelefonKirish({ onOrtga, onKirdi }) {
+  const [bosqich, setBosqich] = useState("telefon"); // "telefon" | "kod" | "royxat"
+  const [telefon, setTelefon] = useState("");
+  const [kod, setKod] = useState("");
+  const [usul, setUsul] = useState(null); // "telegram" | "sms" — kod qanday yuborilgani
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [ism, setIsm] = useState("");
+  const [rol, setRol] = useState("oquvchi");
+  const [sinf, setSinf] = useState("");
+
+  const kodSora = async () => {
+    if (!telefon.trim()) { setXato("Telefon raqamini kiriting"); return; }
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/telefon_kod_sorash`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telefon: telefon.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      setUsul(d.usul);
+      setBosqich("kod");
+    } catch (e) { setXato(e.message); } finally { setYuklanmoqda(false); }
+  };
+
+  const kodTasdiqla = async () => {
+    if (!kod.trim()) { setXato("Kodni kiriting"); return; }
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/telefon_kod_tasdiqla`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telefon: telefon.trim(), kod: kod.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      if (d.holat === "kirdi") onKirdi(d.token);
+      else setBosqich("royxat");
+    } catch (e) { setXato(e.message); } finally { setYuklanmoqda(false); }
+  };
+
+  const royxatdanOt = async () => {
+    if (!ism.trim()) { setXato("Ismingizni kiriting"); return; }
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/telefon_royxat`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telefon: telefon.trim(), kod: kod.trim(), ism: ism.trim(), rol,
+          sinf: rol === "oquvchi" ? sinf.trim() : undefined,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      onKirdi(d.token);
+    } catch (e) { setXato(e.message); } finally { setYuklanmoqda(false); }
+  };
+
+  return (
+    <Qobiq>
+      <button onClick={onOrtga} className="flex items-center gap-1.5 mb-5 text-sm" style={{ color: "#8A8578" }}>
+        <ChevronLeft size={16} /> Ortga
+      </button>
+
+      {bosqich === "telefon" && (
+        <>
+          <h2 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Telefon raqamingiz</h2>
+          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Tasdiqlash kodi yuboramiz (Telegram orqali, bepul — yoki SMS orqali)</p>
+          <input type="tel" value={telefon} onChange={(e) => setTelefon(e.target.value)} placeholder="+998 90 123 45 67"
+            className="w-full px-4 py-3 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
+          {xato && <p className="text-xs mb-3" style={{ color: "#A32D2D" }}>{xato}</p>}
+          <button onClick={kodSora} disabled={yuklanmoqda}
+            className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A" }}>
+            {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Kod yuborish"}
+          </button>
+        </>
+      )}
+
+      {bosqich === "kod" && (
+        <>
+          <h2 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Tasdiqlash kodi</h2>
+          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
+            {usul === "telegram" ? "Kod Telegram botingizga yuborildi." : "Kod SMS orqali yuborildi."} {telefon}
+          </p>
+          <input type="text" inputMode="numeric" value={kod} onChange={(e) => setKod(e.target.value)} placeholder="000000"
+            className="w-full px-4 py-3 rounded-xl border text-center text-lg tracking-widest mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
+          {xato && <p className="text-xs mb-3" style={{ color: "#A32D2D" }}>{xato}</p>}
+          <button onClick={kodTasdiqla} disabled={yuklanmoqda}
+            className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A" }}>
+            {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Tasdiqlash"}
+          </button>
+        </>
+      )}
+
+      {bosqich === "royxat" && (
+        <>
+          <h2 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Siz haqingizda</h2>
+          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Telefon tasdiqlandi — endi ismingiz va rolingizni ayting</p>
+          <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)} placeholder="F.I.Sh"
+            className="w-full px-4 py-3 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
+          <div className="flex rounded-full p-1 gap-0.5 mb-3" style={{ backgroundColor: "#F0EDE5" }}>
+            {[["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([qiymat, nomi]) => (
+              <button key={qiymat} onClick={() => setRol(qiymat)} className="flex-1 py-2 rounded-full text-xs font-semibold"
+                style={rol === qiymat ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
+                {nomi}
+              </button>
+            ))}
+          </div>
+          {rol === "oquvchi" && (
+            <input type="text" value={sinf} onChange={(e) => setSinf(e.target.value)} placeholder="Sinf (masalan: 5)"
+              className="w-full px-4 py-3 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+          )}
+          {xato && <p className="text-xs mb-3" style={{ color: "#A32D2D" }}>{xato}</p>}
+          <button onClick={royxatdanOt} disabled={yuklanmoqda}
+            className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A" }}>
+            {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Yakunlash"}
+          </button>
+        </>
+      )}
+    </Qobiq>
+  );
+}
+
 function LoginEkrani() {
   return (
     <Qobiq>
