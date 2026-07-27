@@ -3427,6 +3427,36 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [tanlanganFanIchki, setTanlanganFanIchki] = useState(null);
   const [ichkiMavzular, setIchkiMavzular] = useState([]);
   const [ichkiYuklanmoqda, setIchkiYuklanmoqda] = useState(false);
+  const [kopFanRejimi, setKopFanRejimi] = useState(false);
+  const [tanlanganFanlarKop, setTanlanganFanlarKop] = useState([]); // [fan_nomi, ...]
+  const [kopFanYuklanmoqda, setKopFanYuklanmoqda] = useState(false);
+
+  const kopFanBelgilaAlmashtir = (fanNomi) => {
+    setTanlanganFanlarKop((prev) => prev.includes(fanNomi) ? prev.filter((f) => f !== fanNomi) : [...prev, fanNomi]);
+  };
+
+  const kopFanTanlashniYakunla = async () => {
+    if (tanlanganFanlarKop.length === 0) return;
+    setKopFanYuklanmoqda(true); setXato("");
+    try {
+      const barchaKodlar = [];
+      for (const fan of tanlanganFanlarKop) {
+        const res = await fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`);
+        const d = await res.json();
+        for (const m of (d.mavzular || [])) {
+          barchaKodlar.push(...(m.topic_codes && m.topic_codes.length > 0 ? m.topic_codes : [m.topic_code]));
+        }
+      }
+      setTanlanganKodlar(Array.from(new Set(barchaKodlar)));
+      setKopFanRejimi(false);
+      setTanlanganFanlarKop([]);
+      setIchkiBosqich("sinf_turi"); // mavzu tanlash yopiladi, "2) qiyinlik darajasi" ko'rinadi
+    } catch {
+      setXato("Mavzularni yuklab bo'lmadi");
+    } finally {
+      setKopFanYuklanmoqda(false);
+    }
+  };
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
@@ -3627,9 +3657,23 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
 
         {ichkiBosqich === "fan" && (
           <>
-            <button onClick={() => setIchkiBosqich("sinf")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
+            <button onClick={() => { setIchkiBosqich("sinf"); setKopFanRejimi(false); setTanlanganFanlarKop([]); }} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
               <ChevronLeft size={14} /> Ortga ({tanlanganSinfIchki}-sinf)
             </button>
+            {!kopFanRejimi && (
+              <button onClick={() => setKopFanRejimi(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold mb-2.5 border" style={{ borderColor: "#B7D3E8", color: "#1B4B7A" }}>
+                📚 Bir nechta fanni birdaniga tanlash
+              </button>
+            )}
+            {kopFanRejimi && (
+              <div className="rounded-xl px-3 py-2 mb-2.5 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
+                <span className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
+                  {tanlanganFanlarKop.length > 0 ? `${tanlanganFanlarKop.length} ta fan tanlandi` : "Fanlarni belgilang"}
+                </span>
+                <button onClick={() => { setKopFanRejimi(false); setTanlanganFanlarKop([]); }} className="text-xs font-semibold" style={{ color: "#8A8578" }}>Bekor qilish</button>
+              </div>
+            )}
             {ichkiYuklanmoqda ? (
               <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
             ) : (() => {
@@ -3637,7 +3681,19 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
               const iqMi = (nom) => IQ_KALIT_SOZLAR.some((k) => nom.toLowerCase().includes(k));
               const oddiyFanlar = ichkiFanlar.filter((f) => !iqMi(f.nom));
               const iqFanlar = ichkiFanlar.filter((f) => iqMi(f.nom));
-              const FanTugmasi = (f) => (
+              const FanTugmasi = (f) => kopFanRejimi ? (
+                <button key={f.nom} onClick={() => kopFanBelgilaAlmashtir(f.nom)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border"
+                  style={{ backgroundColor: tanlanganFanlarKop.includes(f.nom) ? "#EAF1F7" : "#F7F5F0", borderColor: tanlanganFanlarKop.includes(f.nom) ? "#1B4B7A" : "transparent" }}>
+                  <span className="text-sm font-medium flex items-center gap-2" style={{ color: "#2B2B2B" }}>
+                    <span className="w-4 h-4 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: tanlanganFanlarKop.includes(f.nom) ? "#1B4B7A" : "#fff", border: "1px solid #C4BFAF" }}>
+                      {tanlanganFanlarKop.includes(f.nom) && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
+                    </span>
+                    {f.nom}
+                  </span>
+                  <span className="text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu</span>
+                </button>
+              ) : (
                 <button key={f.nom} onClick={() => ichkiFanTanlandi(f.nom)}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#F7F5F0" }}>
                   <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
@@ -3659,6 +3715,13 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
                 </div>
               );
             })()}
+            {kopFanRejimi && (
+              <button onClick={kopFanTanlashniYakunla} disabled={tanlanganFanlarKop.length === 0 || kopFanYuklanmoqda}
+                className="w-full py-3 rounded-xl font-semibold text-white text-sm mt-3 flex items-center justify-center gap-2"
+                style={{ backgroundColor: tanlanganFanlarKop.length === 0 ? "#B0AA98" : "#1B4B7A" }}>
+                {kopFanYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : `✓ Tanlangan fanlarni qo'shish (${tanlanganFanlarKop.length})`}
+              </button>
+            )}
           </>
         )}
 
