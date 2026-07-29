@@ -286,7 +286,7 @@ export function StudentAnalyticsDashboard({
   const activeContext = (data?.contexts || []).find((c) => Number(c.id) === Number(contextId));
 
   return (
-    <div className={compact ? "" : "px-5 pt-6 pb-5"}>
+    <div className={compact ? "analytics-view" : "analytics-view px-5 pt-6 pb-5"}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-start gap-2.5 min-w-0">
           {onBack && (
@@ -330,8 +330,8 @@ export function StudentAnalyticsDashboard({
           <LegacyFallback data={fallbackData} />
         </div>
       ) : data ? (
-        <div className="space-y-3.5">
-          <div className="rounded-3xl p-5 text-white overflow-hidden relative"
+        <div className="student-analytics-grid space-y-3.5">
+          <div className="student-score-hero rounded-3xl p-5 text-white overflow-hidden relative"
             style={{ background: `linear-gradient(135deg, ${accent}, #2D6E8B)` }}>
             <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
             <div className="absolute right-14 -bottom-14 w-28 h-28 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
@@ -346,7 +346,7 @@ export function StudentAnalyticsDashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="student-kpi-strip premium-kpi-grid grid grid-cols-2 gap-2.5">
             <MetricCard icon={CheckCircle2} label="O'zlashtirilgan mavzu" value={number(summary.mastered_topics)}
               tone="#28735A" soft="#E7F4EE" />
             <MetricCard icon={AlertTriangle} label="Takrorlash kerak" value={number(summary.needs_review)}
@@ -357,7 +357,7 @@ export function StudentAnalyticsDashboard({
               suffix="daq" tone="#8A5A1C" soft="#FDF3E0" />
           </div>
 
-          <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+          <section className="student-trend-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Natija rivoji</p>
@@ -368,7 +368,7 @@ export function StudentAnalyticsDashboard({
             <TrendChart points={data.trend} color={accent} />
           </section>
 
-          <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+          <section className="student-subject-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Fanlar kesimida</p>
               <BarChart3 size={18} style={{ color: accent }} />
@@ -396,7 +396,7 @@ export function StudentAnalyticsDashboard({
             )}
           </section>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="student-focus-grid grid gap-3 md:grid-cols-2">
             <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#FCEBEB" }}>
@@ -450,7 +450,7 @@ export function StudentAnalyticsDashboard({
             </section>
           </div>
 
-          <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+          <section className="student-events-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>So'nggi faoliyatlar</p>
             {(data.recent_events || []).length === 0 ? (
               <p className="text-xs py-4 text-center" style={{ color: "#8A8578" }}>Hali faoliyat yozilmagan</p>
@@ -601,7 +601,7 @@ export function AdminStatisticsTab({ token }) {
   }
 
   return (
-    <div className="px-5 pt-6 pb-5">
+    <div className="analytics-view px-5 pt-6 pb-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1B4B7A" }}>Boshqaruv markazi</p>
@@ -631,7 +631,7 @@ export function AdminStatisticsTab({ token }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 mb-3">
+      <div className="premium-kpi-grid grid grid-cols-2 gap-2.5 mb-3">
         <MetricCard icon={Users} label="O'quvchilar" value={number(data?.summary?.student_count)} tone="#1B4B7A" soft="#EAF1F7" />
         <MetricCard icon={TrendingUp} label="O'rtacha bilim" value={Math.round(number(data?.summary?.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
         <MetricCard icon={BookOpen} label="Faoliyatlar" value={number(data?.summary?.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
@@ -790,7 +790,7 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
   }
 
   return (
-    <div className="px-5 pt-6 pb-5">
+    <div className="analytics-view px-5 pt-6 pb-5">
       <div className="flex items-start gap-3 mb-4">
         <button onClick={onBack} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
           style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
@@ -847,21 +847,21 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
           <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Avval sinf yoki to'garak a'zolarini sinxronlang.</p>
         </div>
       ) : data ? (
-        <div className="space-y-3.5">
-          <div className="grid grid-cols-2 gap-2.5">
+        <div className="teacher-analytics-grid space-y-3.5">
+          <div className="teacher-kpi-strip premium-kpi-grid grid grid-cols-2 gap-2.5">
             <MetricCard icon={Users} label="Guruhdagi o'quvchi" value={number(data.summary.student_count)} />
             <MetricCard icon={TrendingUp} label="O'rtacha bilim" value={Math.round(number(data.summary.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
             <MetricCard icon={BookOpen} label="Faoliyatlar" value={number(data.summary.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
             <MetricCard icon={AlertTriangle} label="Yordam kerak" value={number(data.summary.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
           </div>
 
-          <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+          <section className="teacher-trend-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Guruh rivoji</p>
             <TrendChart points={data.trend} color="#1B4B7A" />
           </section>
 
           {(data.difficult_topics || []).length > 0 && (
-            <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+            <section className="teacher-difficult-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
               <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Sinfga qiyin tushayotgan mavzular</p>
               <div className="space-y-2">
                 {data.difficult_topics.slice(0, 6).map((t) => (
@@ -880,7 +880,7 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
             </section>
           )}
 
-          <section className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+          <section className="teacher-students-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>O'quvchilar</p>
               <span className="text-[10px]" style={{ color: "#8A8578" }}>Past natija yuqorida</span>
