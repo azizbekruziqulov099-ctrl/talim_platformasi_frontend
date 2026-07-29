@@ -12298,9 +12298,9 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
       {foydalanuvchi?.is_admin ? (
         <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>Ko'rinish rejimi (faqat siz uchun)</p>
+          <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>Rol ko‘rinishini almashtirish</p>
           <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
-            Har rolni ALOHIDA-ALOHIDA sinab ko'rish uchun — bu haqiqiy rolingizni o'zgartirmaydi, faqat ko'rinishni almashtiradi.
+            Admin, o‘quvchi, ota-ona va o‘qituvchi kabinetlarini alohida sinang. Bu administrator huquqingizni o‘chirmaydi.
           </p>
           <div className="grid grid-cols-2 gap-2">
             {[["admin", "🛠 Admin"], ["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
@@ -12418,7 +12418,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
       { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
-      { kalit: "profil", nom: "Profil", ikon: User },
+      { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
     ];
   }
   if (rol === "oqituvchi") {
@@ -12457,6 +12457,8 @@ function PastkiMenyu({
 }) {
   const aktivRang = rang || "#1B4B7A";
   const bandlar = menyuBandlariniOl(rol, qoshimchaBand);
+  const profilBandi = bandlar.find((band) => band.kalit === "profil");
+  const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
   const rolNomi = rol === "admin"
     ? "Administrator"
     : rol === "oqituvchi"
@@ -12511,8 +12513,13 @@ function PastkiMenyu({
         </div>
         <nav className="premium-side-nav">
           <p>ASOSIY MENYU</p>
-          {bandlar.map((band) => bandTugmasi(band, true))}
+          {asosiyBandlar.map((band) => bandTugmasi(band, true))}
         </nav>
+        {profilBandi && (
+          <div className="premium-side-profile">
+            {bandTugmasi(profilBandi, true)}
+          </div>
+        )}
         <div className="premium-side-status">
           <span className="premium-live-dot" />
           <div><strong>Tizim faol</strong><small>Barcha xizmatlar ishlayapti</small></div>
@@ -13666,7 +13673,8 @@ function Kabinet({ token }) {
             <div className="premium-top-actions">
               <span className="premium-role-pill">{korinishRoli === "admin" ? "Administrator" : korinishRoli === "oqituvchi" ? "O‘qituvchi" : korinishRoli === "ota-ona" ? "Ota-ona" : "O‘quvchi"}</span>
               <button onClick={() => tabTanlandi("xabar")} aria-label="Xabarlar"><Bell size={18} /></button>
-              <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar" aria-label="Profil">
+              <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar"
+                aria-label="Profil va sozlamalar" title="Profil va sozlamalar">
                 {(foydalanuvchi?.full_name || "TA").trim().split(/\s+/).slice(0, 2).map((q) => q[0]).join("").toUpperCase()}
               </button>
             </div>
