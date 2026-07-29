@@ -1,22 +1,28 @@
 {
-    "name": "samtm-talim-platformasi",
-    "private": true,
-    "version": "0.1.0",
-    "type": "module",
-    "scripts": {
-      "dev": "vite --host 0.0.0.0",
-      "build": "vite build",
-      "preview": "vite preview --host 0.0.0.0 --port $PORT"
-    },
-    "dependencies": {
-      "react": "^18.3.1",
-      "react-dom": "^18.3.1",
-      "lucide-react": "^0.383.0",
-      "recharts": "^2.12.7",
-      "katex": "^0.16.9"
-    },
-    "devDependencies": {
-      "@vitejs/plugin-react": "^4.3.1",
-      "vite": "^5.4.0"
-    }
+  "name": "samtm-talim-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "katex": "^0.16.11",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "vite": "^8.1.5"
   }
+}
