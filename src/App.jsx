@@ -6,7 +6,7 @@ import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
-  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search,
+  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle,
 } from "lucide-react";
 
 const API_BASE = "https://talimplatformasi-production.up.railway.app";
@@ -78,22 +78,8 @@ function haqiqiyRasmKodimi(qiymat) {
   if (!qiymat) return false;
   const q = String(qiymat).trim();
   if (q.startsWith("/api/")) return true; // Excel'ga joylashtirilgan rasm — to'g'ridan-to'g'ri yo'l
-  if (/^https?:\/\//i.test(q)) return true; // to'liq tashqi URL
+  if (/^https?:\/\//i.test(q)) return true; // image_url ustunidagi to'g'ridan-to'g'ri internet havolasi
   return /^\d+(-\d+){5,9}$/.test(q);
-}
-
-// Token ICHIDAGI user_id'ni o'qish uchun — imzo TEKSHIRILMAYDI (bu
-// faqat "shu xabar MENIKIMI" kabi ko'RINISH qarorlari uchun, haqiqiy
-// xavfsizlik har doim backend'da, har bir so'rovda tekshiriladi).
-function _tokenDanUserIdOl(token) {
-  try {
-    const qism = token.split(".")[1];
-    const toldirilgan = qism.replace(/-/g, "+").replace(/_/g, "/").padEnd(qism.length + (4 - (qism.length % 4)) % 4, "=");
-    const payload = JSON.parse(atob(toldirilgan));
-    return payload.user_id ?? null;
-  } catch {
-    return null;
-  }
 }
 
 function SavolFormulasi({ ifoda }) {
@@ -237,8 +223,6 @@ function _matnniOvozgaTayyorla(matn) {
   t = t.replace(/°C/g, " daraja Selsiy ");
   t = t.replace(/%/g, " foiz ");
   t = t.replace(/\$/g, "");
-  t = t.replace(/_{2,}/g, " bo'sh joy "); // "___" (bo'sh joy) — "pastki chiziq" deb o'qilmasin
-  t = t.replace(/[_`#]+/g, "");
   return t.replace(/\s+/g, " ").trim();
 }
 
@@ -314,8 +298,20 @@ function SavolRasmi({ rasmId }) {
   const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
   useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
 
+  const q = String(rasmId || "").trim();
+  const rasmSrc = /^https?:\/\//i.test(q)
+    ? q
+    : q.startsWith("/api/")
+      ? `${API_BASE}${q}`
+      : `${API_BASE}/api/rasm/${encodeURIComponent(q)}`;
+
   if (holat === "xato") {
-    return null; // rasm topilmasa/yuklanmasa — hech narsa ko'rsatilmaydi, joy egallamaydi
+    return (
+      <div className="w-full rounded-xl mb-4 px-4 py-3 text-center text-xs"
+        style={{ backgroundColor: "#FCEBEB", color: "#A32D2D", border: "1px solid #F3D3D3" }}>
+        Rasm yuklanmadi. Administrator rasm diagnostikasini tekshirsin.
+      </div>
+    );
   }
   return (
     <div className="relative mb-4">
@@ -324,15 +320,14 @@ function SavolRasmi({ rasmId }) {
           <Loader2 size={20} className="animate-spin" style={{ color: "#8A8578" }} />
         </div>
       )}
-      <img src={
-          String(rasmId).startsWith("/api/") ? `${API_BASE}${rasmId}`
-          : /^https?:\/\//i.test(String(rasmId)) ? rasmId
-          : `${API_BASE}/api/rasm/${rasmId}`
-        } alt=""
+      <img src={rasmSrc} alt="Savol rasmi"
         className="w-full rounded-xl object-contain"
         style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
         onLoad={() => setHolat("tayyor")}
-        onError={() => setHolat("xato")} />
+        onError={() => {
+          console.error("Savol rasmi yuklanmadi:", rasmSrc);
+          setHolat("xato");
+        }} />
     </div>
   );
 }
@@ -404,131 +399,8 @@ function Qobiq({ children }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 1) KIRISH — Google tugmasi, yoki telefon raqami orqali
+// 1) KIRISH — Google tugmasi
 // ═══════════════════════════════════════════════════════════
-function TelefonKirish({ onOrtga, onKirdi }) {
-  const [bosqich, setBosqich] = useState("telefon"); // "telefon" | "kod" | "royxat"
-  const [telefon, setTelefon] = useState("");
-  const [kod, setKod] = useState("");
-  const [usul, setUsul] = useState(null); // "telegram" | "sms" — kod qanday yuborilgani
-  const [yuklanmoqda, setYuklanmoqda] = useState(false);
-  const [xato, setXato] = useState("");
-  const [ism, setIsm] = useState("");
-  const [rol, setRol] = useState("oquvchi");
-  const [sinf, setSinf] = useState("");
-
-  const kodSora = async () => {
-    if (!telefon.trim()) { setXato("Telefon raqamini kiriting"); return; }
-    setYuklanmoqda(true); setXato("");
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/telefon_kod_sorash`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telefon: telefon.trim() }),
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      setUsul(d.usul);
-      setBosqich("kod");
-    } catch (e) { setXato(e.message); } finally { setYuklanmoqda(false); }
-  };
-
-  const kodTasdiqla = async () => {
-    if (!kod.trim()) { setXato("Kodni kiriting"); return; }
-    setYuklanmoqda(true); setXato("");
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/telefon_kod_tasdiqla`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telefon: telefon.trim(), kod: kod.trim() }),
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      if (d.holat === "kirdi") onKirdi(d.token);
-      else setBosqich("royxat");
-    } catch (e) { setXato(e.message); } finally { setYuklanmoqda(false); }
-  };
-
-  const royxatdanOt = async () => {
-    if (!ism.trim()) { setXato("Ismingizni kiriting"); return; }
-    setYuklanmoqda(true); setXato("");
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/telefon_royxat`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telefon: telefon.trim(), kod: kod.trim(), ism: ism.trim(), rol,
-          sinf: rol === "oquvchi" ? sinf.trim() : undefined,
-        }),
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      onKirdi(d.token);
-    } catch (e) { setXato(e.message); } finally { setYuklanmoqda(false); }
-  };
-
-  return (
-    <Qobiq>
-      <button onClick={onOrtga} className="flex items-center gap-1.5 mb-5 text-sm" style={{ color: "#8A8578" }}>
-        <ChevronLeft size={16} /> Ortga
-      </button>
-
-      {bosqich === "telefon" && (
-        <>
-          <h2 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Telefon raqamingiz</h2>
-          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Tasdiqlash kodi yuboramiz (Telegram orqali, bepul — yoki SMS orqali)</p>
-          <input type="tel" value={telefon} onChange={(e) => setTelefon(e.target.value)} placeholder="+998 90 123 45 67"
-            className="w-full px-4 py-3 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
-          {xato && <p className="text-xs mb-3" style={{ color: "#A32D2D" }}>{xato}</p>}
-          <button onClick={kodSora} disabled={yuklanmoqda}
-            className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A" }}>
-            {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Kod yuborish"}
-          </button>
-        </>
-      )}
-
-      {bosqich === "kod" && (
-        <>
-          <h2 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Tasdiqlash kodi</h2>
-          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-            {usul === "telegram" ? "Kod Telegram botingizga yuborildi." : "Kod SMS orqali yuborildi."} {telefon}
-          </p>
-          <input type="text" inputMode="numeric" value={kod} onChange={(e) => setKod(e.target.value)} placeholder="000000"
-            className="w-full px-4 py-3 rounded-xl border text-center text-lg tracking-widest mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
-          {xato && <p className="text-xs mb-3" style={{ color: "#A32D2D" }}>{xato}</p>}
-          <button onClick={kodTasdiqla} disabled={yuklanmoqda}
-            className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A" }}>
-            {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Tasdiqlash"}
-          </button>
-        </>
-      )}
-
-      {bosqich === "royxat" && (
-        <>
-          <h2 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>Siz haqingizda</h2>
-          <p className="text-xs mb-4" style={{ color: "#8A8578" }}>Telefon tasdiqlandi — endi ismingiz va rolingizni ayting</p>
-          <input type="text" value={ism} onChange={(e) => setIsm(e.target.value)} placeholder="F.I.Sh"
-            className="w-full px-4 py-3 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
-          <div className="flex rounded-full p-1 gap-0.5 mb-3" style={{ backgroundColor: "#F0EDE5" }}>
-            {[["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([qiymat, nomi]) => (
-              <button key={qiymat} onClick={() => setRol(qiymat)} className="flex-1 py-2 rounded-full text-xs font-semibold"
-                style={rol === qiymat ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
-                {nomi}
-              </button>
-            ))}
-          </div>
-          {rol === "oquvchi" && (
-            <input type="text" value={sinf} onChange={(e) => setSinf(e.target.value)} placeholder="Sinf (masalan: 5)"
-              className="w-full px-4 py-3 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-          )}
-          {xato && <p className="text-xs mb-3" style={{ color: "#A32D2D" }}>{xato}</p>}
-          <button onClick={royxatdanOt} disabled={yuklanmoqda}
-            className="w-full py-3.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A" }}>
-            {yuklanmoqda ? <Loader2 size={18} className="animate-spin" /> : "Yakunlash"}
-          </button>
-        </>
-      )}
-    </Qobiq>
-  );
-}
-
 function LoginEkrani() {
   return (
     <Qobiq>
@@ -1080,98 +952,6 @@ function FanBolimi({ fan, onBosildi }) {
   );
 }
 
-function ReaksiyaOyini({ token, bolaId, onYopish }) {
-  const [holat, setHolat] = useState("boshlanmagan"); // boshlanmagan | kutish | tayyor | erta | natija
-  const [natija, setNatija] = useState(null); // millisekund
-  const [tarix, setTarix] = useState(null);
-  const boshlanishVaqtiRef = useRef(0);
-  const kutishTaymerRef = useRef(null);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/bola/${bolaId}/reaksiya_tarixi`)
-      .then((r) => r.json())
-      .then(setTarix)
-      .catch(() => {});
-    return () => clearTimeout(kutishTaymerRef.current);
-  }, [bolaId]);
-
-  const boshlash = () => {
-    setHolat("kutish");
-    setNatija(null);
-    const kutish = 1000 + Math.random() * 2000; // 1-3 soniya
-    kutishTaymerRef.current = setTimeout(() => {
-      boshlanishVaqtiRef.current = performance.now();
-      setHolat("tayyor");
-    }, kutish);
-  };
-
-  const bosildi = async () => {
-    if (holat === "kutish") {
-      clearTimeout(kutishTaymerRef.current);
-      setHolat("erta");
-      return;
-    }
-    if (holat !== "tayyor") return;
-    const ms = Math.round(performance.now() - boshlanishVaqtiRef.current);
-    setNatija(ms);
-    setHolat("natija");
-    try {
-      await fetch(`${API_BASE}/api/bola/reaksiya_natija_saqla`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, millisekund: ms }),
-      });
-      const yangiTarix = await fetch(`${API_BASE}/api/bola/${bolaId}/reaksiya_tarixi`).then((r) => r.json());
-      setTarix(yangiTarix);
-    } catch { /* natija saqlanmasa ham o'yin davom etaveradi */ }
-  };
-
-  const rangi = { boshlanmagan: "#F0EDE5", kutish: "#E24B4A", tayyor: "#3B6D11", erta: "#8A5A1C", natija: "#1B4B7A" }[holat];
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ backgroundColor: "rgba(43,43,43,0.92)" }}>
-      <button onClick={onYopish} className="absolute top-6 right-6 w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
-        <X size={18} style={{ color: "#fff" }} />
-      </button>
-      <p className="text-white text-sm mb-6 text-center">🎮 Reaksiya o'yini — qiziqarli tezlik sinovi (ilmiy o'lchov emas)</p>
-      <button onClick={holat === "tayyor" || holat === "kutish" ? bosildi : boshlash}
-        className="w-56 h-56 rounded-full flex flex-col items-center justify-center text-center px-4 transition-colors"
-        style={{ backgroundColor: rangi }}>
-        {holat === "boshlanmagan" && <span className="text-white font-bold text-lg">Boshlash</span>}
-        {holat === "kutish" && <span className="text-white font-semibold">Kuting...</span>}
-        {holat === "tayyor" && <span className="text-white font-bold text-lg">HOZIR BOSING!</span>}
-        {holat === "erta" && <span className="text-white font-semibold">Juda erta! Qayta urining</span>}
-        {holat === "natija" && (
-          <>
-            <span className="text-white font-bold text-3xl">{natija}</span>
-            <span className="text-white text-sm">millisekund</span>
-          </>
-        )}
-      </button>
-      {(holat === "erta" || holat === "natija") && (
-        <button onClick={boshlash} className="mt-6 px-5 py-2.5 rounded-full text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-          Qayta urinish
-        </button>
-      )}
-      {tarix && tarix.jami_urinish > 0 && (
-        <div className="mt-8 flex gap-4">
-          <div className="text-center">
-            <p className="text-white text-xl font-bold">{tarix.eng_yaxshi}</p>
-            <p className="text-white text-xs" style={{ opacity: 0.7 }}>eng yaxshi (ms)</p>
-          </div>
-          <div className="text-center">
-            <p className="text-white text-xl font-bold">{tarix.ortacha}</p>
-            <p className="text-white text-xs" style={{ opacity: 0.7 }}>o'rtacha (ms)</p>
-          </div>
-          <div className="text-center">
-            <p className="text-white text-xl font-bold">{tarix.jami_urinish}</p>
-            <p className="text-white text-xs" style={{ opacity: 0.7 }}>jami urinish</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
   const heroRang = rang || "#1B4B7A";
   const [yolFani, setYolFani] = useState(null); // {fan, rang} | null
@@ -1180,8 +960,6 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
   const [bugungiTavsiya, setBugungiTavsiya] = useState(null); // {tavsiyalar: [...]} | null (hali yuklanmagan)
   const [haftalik, setHaftalik] = useState(null); // {jami_mavzu, ortacha_ball, ...} | null (hali yuklanmagan)
   const [davomat, setDavomat] = useState(null); // {jami_kun, keldi, kelmadi, ketma_ket_kelmagan} | null
-  const [qiyinlikTahlili, setQiyinlikTahlili] = useState(null); // {darajalar, javob_turlari} | null
-  const [reaksiyaOyiniOchiq, setReaksiyaOyiniOchiq] = useState(false);
   const [mosSinf, setMosSinf] = useState(null); // {sinf_id, sinf_nomi, maktab_nomi, rahbar_ismi} | null
   const [qoshilishParoli, setQoshilishParoli] = useState("");
   const [qoshilinmoqda, setQoshilinmoqda] = useState(false);
@@ -1219,14 +997,6 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
       .then((d) => setDavomat(d))
       .catch(() => {});
   }, [bolaId, token]);
-
-  useEffect(() => {
-    if (!bolaId) return;
-    fetch(`${API_BASE}/api/bola/${bolaId}/qiyinlik_tahlili`)
-      .then((r) => r.json())
-      .then((d) => setQiyinlikTahlili(d))
-      .catch(() => {});
-  }, [bolaId]);
 
   // FAQAT o'quvchining O'Z Bilim ekranida (token mavjud VA ota-ona
   // ko'rinishidan EMAS) — ota-ona farzandini ko'rayotganda BU banner
@@ -1415,51 +1185,6 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
             </div>
           </div>
         )}
-
-        {qiyinlikTahlili && qiyinlikTahlili.darajalar.length > 0 && (
-          <div className="rounded-2xl p-4 bg-white border mb-1" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm font-bold mb-3 flex items-center gap-1.5" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi bo'yicha natijam</p>
-            <div className="space-y-2.5 mb-3">
-              {qiyinlikTahlili.darajalar.map((d) => {
-                const rangi = { oson: "#3B6D11", "o'rta": "#8A5A1C", qiyin: "#B0553A", murakkab: "#A32D2D" }[d.daraja] || "#8A8578";
-                const fonRangi = { oson: "#EAF3DE", "o'rta": "#FDF3E0", qiyin: "#FBE4D8", murakkab: "#FCEBEB" }[d.daraja] || "#F0EDE5";
-                return (
-                  <div key={d.daraja}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-medium capitalize" style={{ color: "#5A5648" }}>{d.daraja}</span>
-                      <span style={{ color: rangi }}>{d.togri}/{d.jami} ({d.foiz}%)</span>
-                    </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: fonRangi }}>
-                      <div className="h-full rounded-full" style={{ width: `${d.foiz}%`, backgroundColor: rangi }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {qiyinlikTahlili.javob_turlari.length > 1 && (
-              <div className="flex gap-2 pt-2 border-t" style={{ borderColor: "#F0EDE5" }}>
-                {qiyinlikTahlili.javob_turlari.map((t) => (
-                  <div key={t.turi} className="flex-1 rounded-xl p-2.5 text-center" style={{ backgroundColor: "#F7F5F0" }}>
-                    <p className="text-xs font-medium mb-0.5" style={{ color: "#5A5648" }}>{t.turi === "write_answer" ? "✍️ Yozma" : "🔘 Tugmali"}</p>
-                    <p className="text-sm font-bold" style={{ color: "#1B4B7A" }}>{t.foiz}%</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {bolaId && (
-          <button onClick={() => setReaksiyaOyiniOchiq(true)}
-            className="rounded-2xl p-4 bg-white border mb-1 flex items-center justify-between text-left" style={{ borderColor: "#E5E1D8" }}>
-            <div>
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>🎮 Reaksiya o'yini</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Tezligingizni sinab ko'ring — qiziqarli sinov</p>
-            </div>
-            <ChevronRight size={18} style={{ color: "#B0AA98" }} />
-          </button>
-        )}
-        {reaksiyaOyiniOchiq && <ReaksiyaOyini token={token} bolaId={bolaId} onYopish={() => setReaksiyaOyiniOchiq(false)} />}
 
         {data.sinf_sozlanmagan ? (
           <div className="rounded-2xl p-6 text-center bg-white border mt-4" style={{ borderColor: "#E5E1D8" }}>
@@ -1673,43 +1398,17 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   };
 
   const [yozibJavob, setYozibJavob] = useState({}); // {savol_id: xom_matn} — bir nechta savol bir vaqtda ko'rinadi
+  const [ovozOynayapti, setOvozOynayapti] = useState(false);
   const ovozRef = useRef(null);
 
-  const [ovozHolati, setOvozHolati] = useState("bosh"); // "bosh" | "yuklanmoqda" | "oynamoqda" | "pauzada"
-  const [ovozTezligi, setOvozTezligi] = useState(1);
-  const [ovozTezlikOchiq, setOvozTezlikOchiq] = useState(false);
-  const ovozMatniRef = useRef(null); // hozir yuklangan/o'ynalayotgan matn — qayta bosilganda solishtirish uchun
-
-  const ovozniToxtat = () => {
-    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
-    ovozMatniRef.current = null;
-    setOvozHolati("bosh");
-  };
-
   const ovozniOqi = (matn) => {
-    // Aynan shu matn hozir yuklangan/o'ynalayotgan bo'lsa — pauza/davom ettirish
-    // (yangidan boshlab, boshidan o'qib bermaydi).
-    if (ovozMatniRef.current === matn && ovozRef.current) {
-      if (ovozRef.current.paused) { ovozRef.current.play(); setOvozHolati("oynamoqda"); }
-      else { ovozRef.current.pause(); setOvozHolati("pauzada"); }
-      return;
-    }
-    // Boshqa matn (yoki hozircha hech narsa) — avvalgisini TO'XTATIB, yangisini boshlaymiz.
-    ovozniToxtat();
-    setOvozHolati("yuklanmoqda");
-    ovozMatniRef.current = matn;
+    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
+    setOvozOynayapti(true);
     const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(matn)}`);
-    audio.playbackRate = ovozTezligi;
     ovozRef.current = audio;
-    audio.oncanplay = () => setOvozHolati("oynamoqda");
-    audio.onended = () => { ovozMatniRef.current = null; setOvozHolati("bosh"); };
-    audio.onerror = () => { ovozMatniRef.current = null; setOvozHolati("bosh"); };
-    audio.play().catch(() => { ovozMatniRef.current = null; setOvozHolati("bosh"); });
-  };
-
-  const ovozTezliginiOzgartir = (tezlik) => {
-    setOvozTezligi(tezlik);
-    if (ovozRef.current) ovozRef.current.playbackRate = tezlik;
+    audio.onended = () => setOvozOynayapti(false);
+    audio.onerror = () => setOvozOynayapti(false);
+    audio.play().catch(() => setOvozOynayapti(false));
   };
 
   const [testRejimi, setTestRejimi] = useState("bir_bir"); // "bir_bir" (mashq, darhol javob) | "hammasi" (imtihon, oxirida bilinadi)
@@ -1727,16 +1426,6 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   const [avtoQoldi, setAvtoQoldi] = useState(null);
   const timerRef = useRef(null);
   const avtoRef = useRef(null);
-
-  // MUHIM: savol o'zgarganda (keyingisiga o'tilganda) — hozir o'qilayotgan
-  // ovoz bo'lsa, DARHOL to'xtatiladi. Aks holda eski savolning ovozi
-  // yangi savolga o'tilgandan keyin ham davom etib, ustma-ust chiqib
-  // ketardi (yoki yangi ovoz umuman eshitilmasdi).
-  useEffect(() => {
-    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
-    ovozMatniRef.current = null;
-    setOvozHolati("bosh");
-  }, [joriySavol]);
 
   // Savollar yuklangach — UMUMIY vaqtni hisoblaymiz (har bir savolning
   // o'z vaqti bo'lsa, hammasini QO'SHIB, BITTA umumiy hisoblagich sifatida
@@ -2077,43 +1766,16 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-          {(() => {
-            const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
-            const shuOqilmoqda = ovozMatniRef.current === ovozMatni;
-            return (
-              <div className="shrink-0 flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1">
-                  <button onClick={() => ovozniOqi(ovozMatni)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}
-                    title="Ovoz chiqarib o'qish">
-                    {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
-                      : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
-                      : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
-                      : "🔊"}
-                  </button>
-                  {shuOqilmoqda && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
-                    <button onClick={() => setOvozTezlikOchiq((o) => !o)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
-                      style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                      {ovozTezligi}x
-                    </button>
-                  )}
-                </div>
-                {shuOqilmoqda && ovozTezlikOchiq && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
-                  <div className="flex gap-1 rounded-full px-1.5 py-1" style={{ backgroundColor: "#F7F5F0" }}>
-                    {[0.75, 1, 1.25, 1.5, 2].map((t) => (
-                      <button key={t} onClick={() => { ovozTezliginiOzgartir(t); setOvozTezlikOchiq(false); }}
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                        style={t === ovozTezligi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { color: "#5A5648" }}>
-                        {t}x
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          <button
+            onClick={() => ovozniOqi(yozuvli
+              ? s.question
+              : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+            disabled={ovozOynayapti}
+            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+            title="Ovoz chiqarib o'qish">
+            {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+          </button>
         </h2>
 
         {yozuvli ? (
@@ -2262,43 +1924,16 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
                 <h2 className="text-lg font-semibold mb-4 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
                   <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-                  {(() => {
-                    const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
-                    const shuOqilmoqda = ovozMatniRef.current === ovozMatni;
-                    return (
-                      <div className="shrink-0 flex flex-col items-end gap-1">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => ovozniOqi(ovozMatni)}
-                            className="w-9 h-9 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}
-                            title="Ovoz chiqarib o'qish">
-                            {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
-                              : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
-                              : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
-                              : "🔊"}
-                          </button>
-                          {shuOqilmoqda && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
-                            <button onClick={() => setOvozTezlikOchiq((o) => !o)}
-                              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
-                              style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                              {ovozTezligi}x
-                            </button>
-                          )}
-                        </div>
-                        {shuOqilmoqda && ovozTezlikOchiq && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
-                          <div className="flex gap-1 rounded-full px-1.5 py-1" style={{ backgroundColor: "#F7F5F0" }}>
-                            {[0.75, 1, 1.25, 1.5, 2].map((t) => (
-                              <button key={t} onClick={() => { ovozTezliginiOzgartir(t); setOvozTezlikOchiq(false); }}
-                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                                style={t === ovozTezligi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { color: "#5A5648" }}>
-                                {t}x
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <button
+                    onClick={() => ovozniOqi(yozuvli
+                      ? s.question
+                      : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`)}
+                    disabled={ovozOynayapti}
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: ovozOynayapti ? 0.6 : 1 }}
+                    title="Ovoz chiqarib o'qish">
+                    {ovozOynayapti ? <Loader2 size={16} className="animate-spin" /> : "🔊"}
+                  </button>
                 </h2>
 
                 {yozuvli ? (
@@ -2634,38 +2269,6 @@ function TopikMavzularTab({ token, onTestYarat }) {
   const [rasmlarYuklanmoqda, setRasmlarYuklanmoqda] = useState(false);
   const [umumiyKorinish, setUmumiyKorinish] = useState(null); // {sinflar: [...]} | null (ochilganda yuklanadi)
   const [umumiyYuklanmoqda, setUmumiyYuklanmoqda] = useState(false);
-  const [kodMoslik, setKodMoslik] = useState(null);
-  const [kodMoslikYuklanmoqda, setKodMoslikYuklanmoqda] = useState(false);
-  const [bobBolimTahrirlanayotgan, setBobBolimTahrirlanayotgan] = useState(null); // topic_code | null
-  const [bobBolimQiymat, setBobBolimQiymat] = useState({ bob: "", bolim: "" });
-  const [bobBolimSaqlanmoqda, setBobBolimSaqlanmoqda] = useState(false);
-
-  const bobBolimniSaqla = async (mavzu) => {
-    setBobBolimSaqlanmoqda(true);
-    try {
-      const kodlar = (mavzu.barcha_kodlar && mavzu.barcha_kodlar.length > 0 ? mavzu.barcha_kodlar : [mavzu.topic_code]).join(",");
-      const params = new URLSearchParams({
-        token, topic_codes: kodlar, yangi_bob: bobBolimQiymat.bob, yangi_bolim: bobBolimQiymat.bolim,
-      });
-      const res = await fetch(`${API_BASE}/api/admin/mavzu_bob_bolim_tahrirla?${params}`, { method: "PUT" });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      setBobBolimTahrirlanayotgan(null);
-      mavzularniQaytaYukla();
-    } catch (e) {
-      setXato(e.message);
-    } finally {
-      setBobBolimSaqlanmoqda(false);
-    }
-  };
-
-  const kodMoslikniTekshir = () => {
-    setKodMoslikYuklanmoqda(true); setKodMoslik(null);
-    fetch(`${API_BASE}/api/admin/mavzu_kod_moslik?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`)
-      .then((r) => r.json())
-      .then((d) => { setKodMoslik(d); setKodMoslikYuklanmoqda(false); })
-      .catch(() => { setXato("Kod moslikni tekshirib bo'lmadi"); setKodMoslikYuklanmoqda(false); });
-  };
 
   const umumiyKorinishniOch = () => {
     setUmumiyKorinish({ sinflar: [] });
@@ -2958,31 +2561,6 @@ function TopikMavzularTab({ token, onTestYarat }) {
           🗑 Fandagi barcha mavzularni butunlay o'chirish ({mavzular.length} ta)
         </button>
       )}
-      <button onClick={kodMoslikniTekshir} disabled={kodMoslikYuklanmoqda}
-        className="text-xs font-semibold mb-1 block" style={{ color: "#1B4B7A" }}>
-        {kodMoslikYuklanmoqda ? "Tekshirilmoqda..." : "🔍 \"Test yo'q\" sababini tekshirish (kod moslik)"}
-      </button>
-      {kodMoslik && (
-        <div className="rounded-xl p-3 mb-3 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-          <p className="font-semibold mb-1.5">Prefiks: <span className="font-mono">{kodMoslik.prefiks}</span></p>
-          {kodMoslik.yetim_testlar.length === 0 ? (
-            <p>✅ Barcha mavjud testlar mavzular bilan to'g'ri moslashgan — "yetim" test topilmadi.</p>
-          ) : (
-            <>
-              <p className="font-semibold" style={{ color: "#A32D2D" }}>⚠️ {kodMoslik.yetim_testlar.length} xil kodda "yetim" testlar bor (Mavzular ro'yxatida topilmadi):</p>
-              {kodMoslik.yetim_testlar.map((y) => (
-                <p key={y.topic_code} className="font-mono mt-0.5" style={{ wordBreak: "break-all" }}>{y.topic_code} — {y.test_soni} ta test</p>
-              ))}
-            </>
-          )}
-          <p className="mt-2 font-semibold">Mavzular ro'yxatidagi kodlar va ularning test soni:</p>
-          {kodMoslik.mavzular.map((m) => (
-            <p key={m.topic_code} className="font-mono mt-0.5" style={{ wordBreak: "break-all", color: m.test_soni > 0 ? "#1B4B7A" : "#8A8578" }}>
-              {m.topic_code} — {m.mavzu_nomi} ({m.test_soni} ta test)
-            </p>
-          ))}
-        </div>
-      )}
       <p className="text-xs mb-2" style={{ color: "#8A8578" }}>
         {korinadiganManba.length} ta mavzu · {testliSoni} tasida test bor{chalaSoni > 0 ? ` · ${chalaSoni} tasi chala (Bob/Bo'lim bo'sh)` : ""}
       </p>
@@ -3014,31 +2592,6 @@ function TopikMavzularTab({ token, onTestYarat }) {
                 <p className="text-[11px] mb-2 font-mono" style={{ color: "#B0AA98" }}>
                   {m.barcha_kodlar && m.barcha_kodlar.length > 1 ? m.barcha_kodlar.join(", ") : m.topic_code}
                 </p>
-                {!m.bob && !m.bolim && (
-                  bobBolimTahrirlanayotgan === m.topic_code ? (
-                    <div className="mb-2.5 p-2.5 rounded-lg space-y-1.5" style={{ backgroundColor: "#F7F5F0" }}>
-                      <input value={bobBolimQiymat.bob} onChange={(e) => setBobBolimQiymat((q) => ({ ...q, bob: e.target.value }))}
-                        placeholder="Bob (masalan: 1-bob. Sonlar)" className="w-full px-2.5 py-1.5 rounded-lg text-xs border" style={{ borderColor: "#E5E1D8" }} />
-                      <input value={bobBolimQiymat.bolim} onChange={(e) => setBobBolimQiymat((q) => ({ ...q, bolim: e.target.value }))}
-                        placeholder="Bo'lim (masalan: 1-bo'lim. Narsalar)" className="w-full px-2.5 py-1.5 rounded-lg text-xs border" style={{ borderColor: "#E5E1D8" }} />
-                      <div className="flex gap-2">
-                        <button onClick={() => bobBolimniSaqla(m)} disabled={bobBolimSaqlanmoqda}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
-                          {bobBolimSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
-                        </button>
-                        <button onClick={() => setBobBolimTahrirlanayotgan(null)} disabled={bobBolimSaqlanmoqda}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EFEBE1", color: "#5A5648" }}>
-                          Bekor qilish
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setBobBolimTahrirlanayotgan(m.topic_code); setBobBolimQiymat({ bob: "", bolim: "" }); }}
-                      className="text-xs font-semibold mb-2.5" style={{ color: "#1B4B7A" }}>
-                      ✏️ Bob/Bo'limni to'ldirish
-                    </button>
-                  )
-                )}
                 <div className="flex gap-2 flex-wrap">
                   {!m.test_bormi ? (
                     <button onClick={() => onTestYarat(m.topic_code)}
@@ -3289,11 +2842,7 @@ function AdminTestlarTab({ token }) {
 }
 
 function AdminTab({ token, oldindanTanlangan }) {
-  // Faqat "Mavzular"dan "Test shablon yaratish" bosilib, tayyor mavzu bilan
-  // kelinganda — to'g'ridan-to'g'ri "Test shablon"ni ochamiz. Aks holda hech
-  // narsa tanlanmagan holda boshlanadi — sozlamalar foydalanuvchi ANIQ bir
-  // bo'limni tanlaguncha ko'rinmaydi.
-  const [bolim, setBolim] = useState(oldindanTanlangan && oldindanTanlangan.length > 0 ? "test" : null); // null | "test" | "topik" | "tushuntirish" | "maktab" | "markaz" | "bogcha" | "universitet" | "sinov"
+  const [bolim, setBolim] = useState("test"); // "test" | "topik" | "tushuntirish" | "maktab" | "markaz"
 
   return (
     <div className="px-5 pt-6 pb-4">
@@ -3329,28 +2878,28 @@ function AdminTab({ token, oldindanTanlangan }) {
           🏫 Maktablar
         </button>
         <button onClick={() => setBolim("markaz")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
           style={bolim === "markaz"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🎓 O'quv markazlari
         </button>
         <button onClick={() => setBolim("bogcha")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
           style={bolim === "bogcha"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🧸 Bog'chalar
         </button>
         <button onClick={() => setBolim("universitet")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
           style={bolim === "universitet"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🎓 Universitetlar
         </button>
         <button onClick={() => setBolim("sinov")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
+          className="py-2.5 rounded-xl font-semibold text-sm col-span-2"
           style={bolim === "sinov"
             ? { backgroundColor: "#C89B3C", color: "#fff" }
             : { backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #F5DFA3" }}>
@@ -3403,7 +2952,6 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [diagnostika, setDiagnostika] = useState(null);
   const [diagnostikaYuklanmoqda, setDiagnostikaYuklanmoqda] = useState(false);
   const [diagnostikaXato, setDiagnostikaXato] = useState("");
-  const [yuklashBolimiOchiq, setYuklashBolimiOchiq] = useState(false);
 
   const diagnostikaniKor = async () => {
     setDiagnostikaYuklanmoqda(true); setDiagnostikaXato(""); setDiagnostika(null);
@@ -3427,36 +2975,6 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [tanlanganFanIchki, setTanlanganFanIchki] = useState(null);
   const [ichkiMavzular, setIchkiMavzular] = useState([]);
   const [ichkiYuklanmoqda, setIchkiYuklanmoqda] = useState(false);
-  const [kopFanRejimi, setKopFanRejimi] = useState(false);
-  const [tanlanganFanlarKop, setTanlanganFanlarKop] = useState([]); // [fan_nomi, ...]
-  const [kopFanYuklanmoqda, setKopFanYuklanmoqda] = useState(false);
-
-  const kopFanBelgilaAlmashtir = (fanNomi) => {
-    setTanlanganFanlarKop((prev) => prev.includes(fanNomi) ? prev.filter((f) => f !== fanNomi) : [...prev, fanNomi]);
-  };
-
-  const kopFanTanlashniYakunla = async () => {
-    if (tanlanganFanlarKop.length === 0) return;
-    setKopFanYuklanmoqda(true); setXato("");
-    try {
-      const barchaKodlar = [];
-      for (const fan of tanlanganFanlarKop) {
-        const res = await fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`);
-        const d = await res.json();
-        for (const m of (d.mavzular || [])) {
-          barchaKodlar.push(...(m.topic_codes && m.topic_codes.length > 0 ? m.topic_codes : [m.topic_code]));
-        }
-      }
-      setTanlanganKodlar(Array.from(new Set(barchaKodlar)));
-      setKopFanRejimi(false);
-      setTanlanganFanlarKop([]);
-      setIchkiBosqich("sinf_turi"); // mavzu tanlash yopiladi, "2) qiyinlik darajasi" ko'rinadi
-    } catch {
-      setXato("Mavzularni yuklab bo'lmadi");
-    } finally {
-      setKopFanYuklanmoqda(false);
-    }
-  };
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
@@ -3602,19 +3120,20 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
         )}
       </div>
 
-      <div className="rounded-2xl p-3 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>Shablon maqsadi</label>
         <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
-          <button type="button" onClick={() => maqsadOzgar("oddiy")} className="flex-1 py-1.5 rounded-full text-xs font-semibold"
+          <button type="button" onClick={() => maqsadOzgar("oddiy")} className="flex-1 py-2 rounded-full text-xs font-semibold"
             style={maqsad === "oddiy" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
             Oddiy
           </button>
-          <button type="button" onClick={() => maqsadOzgar("minimal_bilim")} className="flex-1 py-1.5 rounded-full text-xs font-semibold"
+          <button type="button" onClick={() => maqsadOzgar("minimal_bilim")} className="flex-1 py-2 rounded-full text-xs font-semibold"
             style={maqsad === "minimal_bilim" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
             Minimal bilim tekshirish
           </button>
         </div>
         {maqsad === "minimal_bilim" && (
-          <p className="text-[11px] mt-2" style={{ color: "#8A8578" }}>
+          <p className="text-[11px] mt-2.5" style={{ color: "#8A8578" }}>
             Sinfni bitirish / keyingi sinfga o'tish uchun talab qilinadigan ENG KAM bilimni tekshiradi — har mavzudan avtomatik 3 ta oson, tugmali savol belgilandi (pastda o'zgartirishingiz ham mumkin).
           </p>
         )}
@@ -3657,70 +3176,22 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
 
         {ichkiBosqich === "fan" && (
           <>
-            <button onClick={() => { setIchkiBosqich("sinf"); setKopFanRejimi(false); setTanlanganFanlarKop([]); }} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
+            <button onClick={() => setIchkiBosqich("sinf")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
               <ChevronLeft size={14} /> Ortga ({tanlanganSinfIchki}-sinf)
             </button>
-            {!kopFanRejimi && (
-              <button onClick={() => setKopFanRejimi(true)}
-                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold mb-2.5 border" style={{ borderColor: "#B7D3E8", color: "#1B4B7A" }}>
-                📚 Bir nechta fanni birdaniga tanlash
-              </button>
-            )}
-            {kopFanRejimi && (
-              <div className="rounded-xl px-3 py-2 mb-2.5 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
-                <span className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
-                  {tanlanganFanlarKop.length > 0 ? `${tanlanganFanlarKop.length} ta fan tanlandi` : "Fanlarni belgilang"}
-                </span>
-                <button onClick={() => { setKopFanRejimi(false); setTanlanganFanlarKop([]); }} className="text-xs font-semibold" style={{ color: "#8A8578" }}>Bekor qilish</button>
-              </div>
-            )}
             {ichkiYuklanmoqda ? (
               <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
-            ) : (() => {
-              const IQ_KALIT_SOZLAR = ["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"];
-              const iqMi = (nom) => IQ_KALIT_SOZLAR.some((k) => nom.toLowerCase().includes(k));
-              const oddiyFanlar = ichkiFanlar.filter((f) => !iqMi(f.nom));
-              const iqFanlar = ichkiFanlar.filter((f) => iqMi(f.nom));
-              const FanTugmasi = (f) => kopFanRejimi ? (
-                <button key={f.nom} onClick={() => kopFanBelgilaAlmashtir(f.nom)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border"
-                  style={{ backgroundColor: tanlanganFanlarKop.includes(f.nom) ? "#EAF1F7" : "#F7F5F0", borderColor: tanlanganFanlarKop.includes(f.nom) ? "#1B4B7A" : "transparent" }}>
-                  <span className="text-sm font-medium flex items-center gap-2" style={{ color: "#2B2B2B" }}>
-                    <span className="w-4 h-4 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: tanlanganFanlarKop.includes(f.nom) ? "#1B4B7A" : "#fff", border: "1px solid #C4BFAF" }}>
-                      {tanlanganFanlarKop.includes(f.nom) && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
-                    </span>
-                    {f.nom}
-                  </span>
-                  <span className="text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu</span>
-                </button>
-              ) : (
-                <button key={f.nom} onClick={() => ichkiFanTanlandi(f.nom)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#F7F5F0" }}>
-                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
-                  <span className="flex items-center gap-1 text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu <ChevronRight size={14} /></span>
-                </button>
-              );
-              return (
-                <div className="space-y-1.5">
-                  {oddiyFanlar.map(FanTugmasi)}
-                  {iqFanlar.length > 0 && (
-                    <>
-                      <p className="text-xs font-semibold mt-4 mb-1.5 flex items-center gap-1" style={{ color: "#8A5A1C" }}>
-                        🧠 IQ / Mantiqiy fikrlash — alohida (yoshga oid, oddiy fan emas)
-                      </p>
-                      {iqFanlar.map(FanTugmasi)}
-                    </>
-                  )}
-                  {ichkiFanlar.length === 0 && <p className="text-xs text-center py-4" style={{ color: "#8A8578" }}>Bu sinfda mavzu yo'q</p>}
-                </div>
-              );
-            })()}
-            {kopFanRejimi && (
-              <button onClick={kopFanTanlashniYakunla} disabled={tanlanganFanlarKop.length === 0 || kopFanYuklanmoqda}
-                className="w-full py-3 rounded-xl font-semibold text-white text-sm mt-3 flex items-center justify-center gap-2"
-                style={{ backgroundColor: tanlanganFanlarKop.length === 0 ? "#B0AA98" : "#1B4B7A" }}>
-                {kopFanYuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : `✓ Tanlangan fanlarni qo'shish (${tanlanganFanlarKop.length})`}
-              </button>
+            ) : (
+              <div className="space-y-1.5">
+                {ichkiFanlar.map((f) => (
+                  <button key={f.nom} onClick={() => ichkiFanTanlandi(f.nom)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#F7F5F0" }}>
+                    <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                    <span className="flex items-center gap-1 text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu <ChevronRight size={14} /></span>
+                  </button>
+                ))}
+                {ichkiFanlar.length === 0 && <p className="text-xs text-center py-4" style={{ color: "#8A8578" }}>Bu sinfda mavzu yo'q</p>}
+              </div>
             )}
           </>
         )}
@@ -3806,55 +3277,59 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
       </div>
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-        <button onClick={() => setYuklashBolimiOchiq((o) => !o)} className="w-full flex items-center justify-between">
-          <span className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>To'ldirilgan shablonni yuklash</span>
-          <ChevronDown size={18} style={{ color: "#8A8578", transform: yuklashBolimiOchiq ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
-        </button>
+        <label className="text-xs font-medium mb-2 block" style={{ color: "#5A5648" }}>
+          To'ldirilgan shablonni yuklash
+        </label>
+        <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+        </label>
 
-        {yuklashBolimiOchiq && (
-          <div className="mt-3">
-            <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
-              style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
-              {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
-              <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
-            </label>
-
-            {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
-            {natija && (
-              <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
-                <p>✅ Saqlandi: <b>{natija.saved}</b></p>
-                <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
-                <p>❌ Xato: <b>{natija.errors}</b></p>
-                {natija.rasm_biriktirildi > 0 && (
-                  <p>🖼️ Rasm biriktirildi: <b>{natija.rasm_biriktirildi}</b></p>
+        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {natija && (
+          <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
+            <p>✅ Saqlandi: <b>{natija.saved}</b></p>
+            <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
+            <p>❌ Xato: <b>{natija.errors}</b></p>
+            {natija.errors_detail?.length > 0 && (
+              <div className="mt-1.5 rounded-lg px-2.5 py-2 text-xs"
+                style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                <p className="font-semibold mb-1">Import xatolari:</p>
+                {natija.errors_detail.map((x, i) => (
+                  <p key={i} className="font-mono" style={{ wordBreak: "break-all" }}>{x}</p>
+                ))}
+              </div>
+            )}
+            {natija.rasm_biriktirildi > 0 && (
+              <p>🖼️ Rasm biriktirildi: <b>{natija.rasm_biriktirildi}</b></p>
+            )}
+            {natija.kod_yoq > 0 && (
+              <p className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Bu mavzular uchun yangi shablon yuklab oling (Topik mavzularini avval to'g'irlab, qayta shablon oling) va savollarni o'sha yangi shablonga ko'chirib qayta yuklang.
+              </p>
+            )}
+            {natija.yetim_kodlar_soni > 0 && (
+              <div className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+                <p>⚠️ <b>{natija.yetim_kodlar_soni}</b> xil topic_code "Mavzular"da (dts_tree) topilmadi — bu testlar saqlandi, lekin hech qanday mavzuga bog'lanmagani uchun o'quvchiga hech qachon ko'rinmaydi!</p>
+                {natija.yetim_kodlar_namuna?.length > 0 && (
+                  <p className="text-xs mt-1 font-mono" style={{ wordBreak: "break-all" }}>Namuna: {natija.yetim_kodlar_namuna.join(", ")}</p>
                 )}
-                {natija.kod_yoq > 0 && (
-                  <p className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
-                    🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Bu mavzular uchun yangi shablon yuklab oling (Topik mavzularini avval to'g'irlab, qayta shablon oling) va savollarni o'sha yangi shablonga ko'chirib qayta yuklang.
-                  </p>
-                )}
-                {natija.yetim_kodlar_soni > 0 && (
-                  <div className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
-                    <p>⚠️ <b>{natija.yetim_kodlar_soni}</b> xil topic_code "Mavzular"da (dts_tree) topilmadi — bu testlar saqlandi, lekin hech qanday mavzuga bog'lanmagani uchun o'quvchiga hech qachon ko'rinmaydi!</p>
-                    {natija.yetim_kodlar_namuna?.length > 0 && (
-                      <p className="text-xs mt-1 font-mono" style={{ wordBreak: "break-all" }}>Namuna: {natija.yetim_kodlar_namuna.join(", ")}</p>
-                    )}
-                  </div>
-                )}
-                {natija.rasm_diagnostika && (
-                  <div className="mt-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                    <p className="font-semibold mb-1">🔍 Rasm diagnostikasi (shu import uchun):</p>
-                    <p>Qabul qilingan fayl hajmi: <b>{(natija.rasm_diagnostika.qabul_qilingan_fayl_hajmi_bayt / 1024 / 1024).toFixed(2)} MB</b></p>
-                    <p>openpyxl versiyasi: <b>{natija.rasm_diagnostika.openpyxl_versiyasi}</b></p>
-                    <p>Excel ichida topilgan rasm: <b>{natija.rasm_diagnostika.excel_ichida_topilgan_rasm_soni}</b></p>
-                    <p>Qatorga bog'langan rasm: <b>{natija.rasm_diagnostika.qatorga_bogliy_qilingan_rasm_soni}</b></p>
-                    {natija.rasm_diagnostika.xatolar?.length > 0 && (
-                      <>
-                        <p className="mt-1 font-semibold">Xatolar:</p>
-                        {natija.rasm_diagnostika.xatolar.map((x, i) => <p key={i} className="font-mono" style={{ wordBreak: "break-all" }}>{x}</p>)}
-                      </>
-                    )}
-                  </div>
+              </div>
+            )}
+            {natija.rasm_diagnostika && (
+              <div className="mt-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                <p className="font-semibold mb-1">🔍 Rasm diagnostikasi (shu import uchun):</p>
+                <p>Qabul qilingan fayl hajmi: <b>{(natija.rasm_diagnostika.qabul_qilingan_fayl_hajmi_bayt / 1024 / 1024).toFixed(2)} MB</b></p>
+                <p>openpyxl versiyasi: <b>{natija.rasm_diagnostika.openpyxl_versiyasi}</b></p>
+                <p>XLSX media papkasidagi rasm: <b>{natija.rasm_diagnostika.xlsx_media_fayllari_soni ?? 0}</b></p>
+                <p>Excel ichida topilgan rasm: <b>{natija.rasm_diagnostika.excel_ichida_topilgan_rasm_soni}</b></p>
+                <p>Qatorga bog'langan rasm: <b>{natija.rasm_diagnostika.qatorga_bogliy_qilingan_rasm_soni}</b></p>
+                {natija.rasm_diagnostika.xatolar?.length > 0 && (
+                  <>
+                    <p className="mt-1 font-semibold">Xatolar:</p>
+                    {natija.rasm_diagnostika.xatolar.map((x, i) => <p key={i} className="font-mono" style={{ wordBreak: "break-all" }}>{x}</p>)}
+                  </>
                 )}
               </div>
             )}
@@ -3947,15 +3422,9 @@ function TopikShablonBolimi({ token }) {
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
         <input type="text" value={sinf} onChange={(e) => setSinf(e.target.value)}
-          placeholder={["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => fan.toLowerCase().includes(k)) ? "masalan: 10-11 yosh" : "masalan: 1"}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-1"
+          placeholder="masalan: 1"
+          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
           style={{ borderColor: "#E5E1D8" }} />
-        {["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => fan.toLowerCase().includes(k)) && (
-          <p className="text-[11px] mb-2" style={{ color: "#8A5A1C" }}>
-            🧠 IQ/Mantiqiy fikrlash — bu yerga aniq sinf o'rniga <b>yosh guruhini</b> yozing (masalan "10-11 yosh"), oddiy fanlar bilan aralashib qolmasligi uchun.
-          </p>
-        )}
-        <div className="mb-3" />
 
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
         <input type="text" value={fan} onChange={(e) => setFan(e.target.value)}
@@ -12028,14 +11497,7 @@ function SuhbatlarRoyxati({ token, onSuhbatOch }) {
                 <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{g.nomi}</p>
                 <p className="text-xs truncate" style={{ color: "#8A8578" }}>{oxirgiMatnKorsat(g.oxirgi_matn, g.oxirgi_fayl_turi) || "Hali xabar yo'q"}</p>
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                {g.oxirgi_vaqt && <span className="text-[11px]" style={{ color: "#B0AA98" }}>{vaqtQisqa(g.oxirgi_vaqt)}</span>}
-                {g.okilmagan_soni > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center" style={{ backgroundColor: "#1B4B7A" }}>
-                    {g.okilmagan_soni}
-                  </span>
-                )}
-              </div>
+              {g.oxirgi_vaqt && <span className="text-[11px] shrink-0" style={{ color: "#B0AA98" }}>{vaqtQisqa(g.oxirgi_vaqt)}</span>}
             </button>
           ))}
           {shaxsiylar.map((s) => (
@@ -12048,14 +11510,7 @@ function SuhbatlarRoyxati({ token, onSuhbatOch }) {
                 <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{s.full_name}</p>
                 <p className="text-xs truncate" style={{ color: "#8A8578" }}>{oxirgiMatnKorsat(s.matn, s.fayl_turi)}</p>
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                {s.yaratilgan_at && <span className="text-[11px]" style={{ color: "#B0AA98" }}>{vaqtQisqa(s.yaratilgan_at)}</span>}
-                {s.okilmagan_soni > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center" style={{ backgroundColor: "#1B4B7A" }}>
-                    {s.okilmagan_soni}
-                  </span>
-                )}
-              </div>
+              {s.yaratilgan_at && <span className="text-[11px] shrink-0" style={{ color: "#B0AA98" }}>{vaqtQisqa(s.yaratilgan_at)}</span>}
             </button>
           ))}
         </div>
@@ -12248,10 +11703,6 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const [ovozYozilmoqda, setOvozYozilmoqda] = useState(false);
   const [ovozQulflandi, setOvozQulflandi] = useState(false);
   const [ovozSekund, setOvozSekund] = useState(0);
-  const [tanlanganXabar, setTanlanganXabar] = useState(null); // uzoq bosilgan xabar obyekti | null
-  const [tahrirlanayotganXabar, setTahrirlanayotganXabar] = useState(null); // xabar obyekti | null
-  const [tahrirMatni, setTahrirMatni] = useState("");
-  const [ochirishTasdiqi, setOchirishTasdiqi] = useState(null); // xabar obyekti | null
   const oxiriRef = useRef(null);
   const faylInputRef = useRef(null);
   const ovozRecorderRef = useRef(null);
@@ -12259,144 +11710,18 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const ovozBoglamlarRef = useRef([]);
   const ovozTaymerRef = useRef(null);
   const ovozBoshlanishYRef = useRef(0);
-  const joriyUserId = useMemo(() => _tokenDanUserIdOl(token), [token]);
-  const [reaksiyaTanlanayotgan, setReaksiyaTanlanayotgan] = useState(null); // xabar obyekti | null
-  const [forwardQilinayotgan, setForwardQilinayotgan] = useState(null); // xabar obyekti | null
-  const [forwardSuhbatlar, setForwardSuhbatlar] = useState(null); // {guruhlar, shaxsiylar} | null
-  const [qidiruvOchiq, setQidiruvOchiq] = useState(false);
-  const [qidiruvMatni, setQidiruvMatni] = useState("");
-  const [qidiruvNatijalari, setQidiruvNatijalari] = useState(null);
-  const [kimYozmoqda, setKimYozmoqda] = useState([]);
-  const REAKSIYA_EMOJILARI = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
-  const reaksiyaQoy = async (xabar, emoji) => {
-    setReaksiyaTanlanayotgan(null);
-    const mavjud = (xabar.reaksiyalar || []).find((r) => r.meniki);
-    try {
-      if (mavjud && mavjud.emoji === emoji) {
-        await fetch(`${API_BASE}/api/chat/reaksiya_olib_tashla?token=${encodeURIComponent(token)}&xabar_id=${xabar.id}`, { method: "DELETE" });
-      } else {
-        await fetch(`${API_BASE}/api/chat/reaksiya_qoy?token=${encodeURIComponent(token)}&xabar_id=${xabar.id}&emoji=${encodeURIComponent(emoji)}`, { method: "PUT" });
-      }
-      yukla();
-    } catch {
-      setXato("Reaksiya qo'yib bo'lmadi");
-    }
-  };
-
-  const forwardBoshla = (x) => {
-    setTanlanganXabar(null);
-    setForwardQilinayotgan(x);
-    fetch(`${API_BASE}/api/chat/guruhlarim?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((d) => setForwardSuhbatlar({ guruhlar: d.guruhlar || [], shaxsiylar: d.shaxsiylar || [] }))
-      .catch(() => setXato("Suhbatlar ro'yxatini yuklab bo'lmadi"));
-  };
-
-  const forwardYubor = async (maqsad) => {
-    try {
-      const params = new URLSearchParams({ token, xabar_id: forwardQilinayotgan.id });
-      if (maqsad.guruh_id) params.append("guruh_id", maqsad.guruh_id);
-      else params.append("qabul_qiluvchi_user_id", maqsad.user_id);
-      const res = await fetch(`${API_BASE}/api/chat/xabar_forward?${params}`, { method: "POST" });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      setForwardQilinayotgan(null);
-      setForwardSuhbatlar(null);
-    } catch (e) {
-      setXato(e.message);
-    }
-  };
-
-  const qidir = (matnQiymat) => {
-    setQidiruvMatni(matnQiymat);
-    if (matnQiymat.trim().length < 2) { setQidiruvNatijalari(null); return; }
-    const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-    fetch(`${API_BASE}/api/chat/qidir?token=${encodeURIComponent(token)}&${parametr}&matn=${encodeURIComponent(matnQiymat.trim())}`)
-      .then((r) => r.json())
-      .then((d) => setQidiruvNatijalari(d.natijalar || []))
-      .catch(() => {});
-  };
-
-  const xabarTahrirlashniBoshla = (x) => {
-    setTanlanganXabar(null);
-    setTahrirlanayotganXabar(x);
-    setTahrirMatni(x.matn || "");
-  };
-
-  const xabarTahrirlashniSaqla = async () => {
-    if (!tahrirMatni.trim()) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/chat/xabar_tahrirla`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, xabar_id: tahrirlanayotganXabar.id, yangi_matn: tahrirMatni.trim() }),
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      setTahrirlanayotganXabar(null);
-      yukla();
-    } catch (e) {
-      setXato(e.message);
-    }
-  };
-
-  const xabarniOchir = async (x) => {
-    setTanlanganXabar(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/chat/xabar_ochir?token=${encodeURIComponent(token)}&xabar_id=${x.id}`, { method: "DELETE" });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.detail || "Xato");
-      setOchirishTasdiqi(null);
-      yukla();
-    } catch (e) {
-      setXato(e.message);
-    }
-  };
-
-
-  const [boshqaTomonKorganId, setBoshqaTomonKorganId] = useState(null);
-  const [javobBerilayotgan, setJavobBerilayotgan] = useState(null); // xabar obyekti | null
+  const sarlavha = suhbat.guruh_nomi || suhbat.boshqa_ismi;
 
   const yukla = () => {
     const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
     fetch(`${API_BASE}/api/chat/xabarlar?token=${encodeURIComponent(token)}&${parametr}`)
       .then((r) => r.json())
-      .then((d) => {
-        const royxat = d.xabarlar || [];
-        setXabarlar(royxat);
-        setBoshqaTomonKorganId(d.boshqa_tomon_korgan_id ?? null);
-        setYuklanmoqda(false);
-        setTimeout(() => oxiriRef.current?.scrollIntoView(), 50);
-        if (royxat.length > 0) {
-          const engSonggisi = royxat[royxat.length - 1].id;
-          const kp = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-          fetch(`${API_BASE}/api/chat/korildi_belgila?token=${encodeURIComponent(token)}&oxirgi_xabar_id=${engSonggisi}&${kp}`, { method: "POST" }).catch(() => {});
-        }
-      })
+      .then((d) => { setXabarlar(d.xabarlar || []); setYuklanmoqda(false); setTimeout(() => oxiriRef.current?.scrollIntoView(), 50); })
       .catch(() => setYuklanmoqda(false));
   };
 
   useEffect(() => { yukla(); }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-    const oraliq = setInterval(() => {
-      fetch(`${API_BASE}/api/chat/kim_yozmoqda?token=${encodeURIComponent(token)}&${parametr}`)
-        .then((r) => r.json())
-        .then((d) => setKimYozmoqda(d.ismlar || []))
-        .catch(() => {});
-    }, 2500);
-    return () => clearInterval(oraliq);
-  }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]);
-
-  const yozmoqdaRef = useRef(0);
-  const yozayotganiniBildir = () => {
-    const hozir = Date.now();
-    if (hozir - yozmoqdaRef.current < 2000) return; // 2 soniyada bir marta yetarli
-    yozmoqdaRef.current = hozir;
-    const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-    fetch(`${API_BASE}/api/chat/yozmoqda?token=${encodeURIComponent(token)}&${parametr}`, { method: "POST" }).catch(() => {});
-  };
 
   const matnYubor = async () => {
     if (!matn.trim() || yuborilmoqda) return;
@@ -12407,12 +11732,10 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
       if (suhbat.guruh_id) forma.append("guruh_id", suhbat.guruh_id);
       else forma.append("qabul_qiluvchi_user_id", suhbat.boshqa_user_id);
       forma.append("matn", matn.trim());
-      if (javobBerilayotgan) forma.append("javob_xabar_id", javobBerilayotgan.id);
       const res = await fetch(`${API_BASE}/api/chat/xabar_yubor`, { method: "POST", body: forma });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setMatn("");
-      setJavobBerilayotgan(null);
       yukla();
     } catch (e) { setXato(e.message); } finally { setYuborilmoqda(false); }
   };
@@ -12534,37 +11857,9 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   return (
     <div className="px-5 pt-6 pb-4 flex flex-col" style={{ minHeight: "80vh" }}>
       {doiraVideoOchiq && <DoiraVideoYozish onYubor={doiraVideoYuborildi} onBekor={() => setDoiraVideoOchiq(false)} />}
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={onOrtga} className="flex items-center gap-1 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}>
-          <ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{sarlavha}
-        </button>
-        <button onClick={() => { setQidiruvOchiq((o) => !o); setQidiruvMatni(""); setQidiruvNatijalari(null); }}
-          className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: qidiruvOchiq ? "#EAF1F7" : "transparent" }}>
-          <Search size={16} style={{ color: "#1B4B7A" }} />
-        </button>
-      </div>
-
-      {qidiruvOchiq && (
-        <div className="mb-3">
-          <input type="text" value={qidiruvMatni} onChange={(e) => qidir(e.target.value)} autoFocus
-            placeholder="Suhbat ichida qidirish..." className="w-full px-3.5 py-2.5 rounded-full border text-sm mb-2" style={{ borderColor: "#E5E1D8" }} />
-          {qidiruvNatijalari && (
-            <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-xl border p-2" style={{ borderColor: "#E5E1D8" }}>
-              {qidiruvNatijalari.length === 0 ? (
-                <p className="text-xs text-center py-3" style={{ color: "#8A8578" }}>Hech narsa topilmadi</p>
-              ) : (
-                qidiruvNatijalari.map((n) => (
-                  <div key={n.id} className="px-2.5 py-2 rounded-lg" style={{ backgroundColor: "#F7F5F0" }}>
-                    {suhbat.guruh_id && <p className="text-[11px] font-semibold" style={{ color: "#1B4B7A" }}>{n.yuboruvchi_ismi}</p>}
-                    <p className="text-xs" style={{ color: "#2B2B2B" }}>{n.matn}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "#B0AA98" }}>{new Date(n.yaratilgan_at).toLocaleDateString("uz-UZ")}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <button onClick={onOrtga} className="flex items-center gap-1 mb-4 -ml-1.5 px-2 py-1 rounded-lg transition-colors" style={{ color: "#5A5648" }}>
+        <ChevronLeft size={16} style={{ color: "#1B4B7A" }} strokeWidth={2.5} />{sarlavha}
+      </button>
 
       <div className="flex-1 space-y-2.5 mb-3 overflow-y-auto">
         {yuklanmoqda ? (
@@ -12572,81 +11867,33 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
         ) : xabarlar.length === 0 ? (
           <p className="text-sm text-center py-10" style={{ color: "#8A8578" }}>Hali xabar yo'q — birinchi bo'lib yozing.</p>
         ) : (
-          xabarlar.map((x) => {
-            const meniki = x.yuboruvchi_user_id === joriyUserId;
-            if (x.ochirilgan) {
-              return (
-                <div key={x.id} className="rounded-2xl px-4 py-2.5 max-w-[80%]" style={{ backgroundColor: "#F1EFE8", border: "1px solid #E5E1D8" }}>
-                  <p className="text-sm italic" style={{ color: "#B0AA98" }}>🚫 Xabar o'chirildi</p>
-                </div>
-              );
-            }
-            return (
-              <div key={x.id} onContextMenu={(e) => { e.preventDefault(); setTanlanganXabar(x); }}
-                onTouchStart={() => { const t = setTimeout(() => setTanlanganXabar(x), 500); const tozala = () => { clearTimeout(t); window.removeEventListener("touchend", tozala); }; window.addEventListener("touchend", tozala); }}
-                className="rounded-2xl px-4 py-2.5 max-w-[80%] select-none" style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8" }}>
-                {suhbat.guruh_id && <p className="text-[11px] font-semibold mb-0.5" style={{ color: "#1B4B7A" }}>{x.yuboruvchi_ismi}</p>}
-                {x.javob_xabar_id && (
-                  <div className="rounded-lg px-2 py-1 mb-1.5 border-l-2" style={{ backgroundColor: "#F7F5F0", borderColor: "#1B4B7A" }}>
-                    <p className="text-[11px] font-semibold" style={{ color: "#1B4B7A" }}>{x.javob_yuboruvchi_ismi}</p>
-                    <p className="text-xs truncate" style={{ color: "#5A5648" }}>{x.javob_matn_qisqa || (x.javob_fayl_turi ? "📎 Fayl" : "")}</p>
-                  </div>
-                )}
-                {x.matn && <p className="text-sm" style={{ color: "#2B2B2B" }}>{x.matn}</p>}
-                {x.fayl_turi === "audio" && (
-                  <audio controls className="mt-1" style={{ height: 36 }} src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
-                )}
-                {(x.fayl_turi === "video" || x.fayl_turi === "video_doira") && (
-                  <video controls className="mt-1 rounded-lg" style={{ maxWidth: 220, borderRadius: x.fayl_turi === "video_doira" ? 28 : 12 }}
-                    src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
-                )}
-                {x.fayl_turi === "hujjat" && (
-                  <a href={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-1.5 mt-1 text-xs font-medium" style={{ color: "#1B4B7A" }}>
-                    <FileSpreadsheet size={14} /> {x.fayl_nomi || "Fayl"}
-                  </a>
-                )}
-                {x.reaksiyalar && x.reaksiyalar.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {x.reaksiyalar.map((r) => (
-                      <button key={r.emoji} onClick={() => reaksiyaQoy(x, r.emoji)}
-                        className="text-xs px-1.5 py-0.5 rounded-full border flex items-center gap-1"
-                        style={{ borderColor: r.meniki ? "#1B4B7A" : "#E5E1D8", backgroundColor: r.meniki ? "#EAF1F7" : "#F7F5F0" }}>
-                        {r.emoji} {r.soni > 1 && <span style={{ color: "#8A8578" }}>{r.soni}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <p className="text-[10px] mt-1 text-right flex items-center justify-end gap-1" style={{ color: "#B0AA98" }}>
-                  {x.tahrirlangan && "tahrirlangan · "}
-                  {new Date(x.yaratilgan_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}
-                  {meniki && suhbat.boshqa_user_id && (
-                    <span style={{ color: boshqaTomonKorganId && x.id <= boshqaTomonKorganId ? "#1B4B7A" : "#B0AA98" }}>
-                      {boshqaTomonKorganId && x.id <= boshqaTomonKorganId ? "✓✓" : "✓"}
-                    </span>
-                  )}
-                </p>
-              </div>
-            );
-          })
-        )}
-        {kimYozmoqda.length > 0 && (
-          <p className="text-xs italic px-1" style={{ color: "#8A8578" }}>{kimYozmoqda.join(", ")} yozmoqda...</p>
+          xabarlar.map((x) => (
+            <div key={x.id} className="rounded-2xl px-4 py-2.5 max-w-[80%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8" }}>
+              {suhbat.guruh_id && <p className="text-[11px] font-semibold mb-0.5" style={{ color: "#1B4B7A" }}>{x.yuboruvchi_ismi}</p>}
+              {x.matn && <p className="text-sm" style={{ color: "#2B2B2B" }}>{x.matn}</p>}
+              {x.fayl_turi === "audio" && (
+                <audio controls className="mt-1" style={{ height: 36 }} src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
+              )}
+              {(x.fayl_turi === "video" || x.fayl_turi === "video_doira") && (
+                <video controls className="mt-1 rounded-lg" style={{ maxWidth: 220, borderRadius: 12 }}
+                  src={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} />
+              )}
+              {x.fayl_turi === "hujjat" && (
+                <a href={`${API_BASE}/api/chat/fayl/${x.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 mt-1 text-xs font-medium" style={{ color: "#1B4B7A" }}>
+                  <FileSpreadsheet size={14} /> {x.fayl_nomi || "Fayl"}
+                </a>
+              )}
+              <p className="text-[10px] mt-1 text-right" style={{ color: "#B0AA98" }}>
+                {new Date(x.yaratilgan_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+          ))
         )}
         <div ref={oxiriRef} />
       </div>
 
       {xato && <p className="text-xs mb-2" style={{ color: "#B0553A" }}>{xato}</p>}
-
-      {javobBerilayotgan && (
-        <div className="flex items-center gap-2 mb-2 rounded-xl px-3 py-2 border-l-2" style={{ backgroundColor: "#F7F5F0", borderColor: "#1B4B7A" }}>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold" style={{ color: "#1B4B7A" }}>{javobBerilayotgan.yuboruvchi_ismi}ga javob</p>
-            <p className="text-xs truncate" style={{ color: "#5A5648" }}>{javobBerilayotgan.matn || (javobBerilayotgan.fayl_turi ? "📎 Fayl" : "")}</p>
-          </div>
-          <button onClick={() => setJavobBerilayotgan(null)} className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{ color: "#8A8578" }}>✕</button>
-        </div>
-      )}
 
       {ovozYozilmoqda ? (
         ovozQulflandi ? (
@@ -12684,7 +11931,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
             <Video size={17} style={{ color: "#5A5648" }} />
           </button>
           <input ref={faylInputRef} type="file" accept="audio/*,video/*,.pdf,.doc,.docx,.xlsx" onChange={faylTanlandi} className="hidden" />
-          <input type="text" value={matn} onChange={(e) => { setMatn(e.target.value); yozayotganiniBildir(); }}
+          <input type="text" value={matn} onChange={(e) => setMatn(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") matnYubor(); }}
             placeholder="Xabar yozing..." className="flex-1 px-3.5 py-2.5 rounded-full border text-sm" style={{ borderColor: "#E5E1D8" }} />
           {matn.trim() ? (
@@ -12699,107 +11946,6 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
               <Mic size={17} style={{ color: "#5A5648" }} />
             </button>
           )}
-        </div>
-      )}
-
-      {tanlanganXabar && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: "rgba(43,43,43,0.35)" }} onClick={() => setTanlanganXabar(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-2xl bg-white p-2 pb-6" style={{ boxShadow: "0 -12px 32px rgba(43,43,43,0.18)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-3 mt-1" style={{ backgroundColor: "#E5E1D8" }} />
-            <div className="flex justify-around py-2 mb-1">
-              {REAKSIYA_EMOJILARI.map((emoji) => (
-                <button key={emoji} onClick={() => reaksiyaQoy(tanlanganXabar, emoji)} className="text-2xl active:scale-125 transition-transform">
-                  {emoji}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => { setJavobBerilayotgan(tanlanganXabar); setTanlanganXabar(null); }}
-              className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2.5" style={{ color: "#2B2B2B" }}>
-              ↩️ Javob berish
-            </button>
-            <button onClick={() => forwardBoshla(tanlanganXabar)}
-              className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2.5" style={{ color: "#2B2B2B" }}>
-              ↗️ Boshqa suhbatga yuborish
-            </button>
-            {tanlanganXabar.yuboruvchi_user_id === joriyUserId && tanlanganXabar.matn && (
-              <button onClick={() => xabarTahrirlashniBoshla(tanlanganXabar)}
-                className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2.5" style={{ color: "#2B2B2B" }}>
-                <PencilLine size={16} style={{ color: "#1B4B7A" }} /> Tahrirlash
-              </button>
-            )}
-            {tanlanganXabar.yuboruvchi_user_id === joriyUserId && (
-              <button onClick={() => { setOchirishTasdiqi(tanlanganXabar); setTanlanganXabar(null); }}
-                className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2.5" style={{ color: "#A32D2D" }}>
-                <Trash2 size={16} /> O'chirish
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {tahrirlanayotganXabar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ backgroundColor: "rgba(43,43,43,0.35)" }}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-4" style={{ boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>Xabarni tahrirlash</p>
-            <textarea value={tahrirMatni} onChange={(e) => setTahrirMatni(e.target.value)} rows={3}
-              className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} autoFocus />
-            <div className="flex gap-2">
-              <button onClick={() => setTahrirlanayotganXabar(null)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: "#EFEBE1", color: "#5A5648" }}>
-                Bekor qilish
-              </button>
-              <button onClick={xabarTahrirlashniSaqla}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-                Saqlash
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {ochirishTasdiqi && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" style={{ backgroundColor: "rgba(43,43,43,0.35)" }}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-4" style={{ boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-            <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>Xabarni o'chirasizmi?</p>
-            <p className="text-xs mb-3" style={{ color: "#8A8578" }}>Bu amalni qaytarib bo'lmaydi.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setOchirishTasdiqi(null)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: "#EFEBE1", color: "#5A5648" }}>
-                Bekor qilish
-              </button>
-              <button onClick={() => xabarniOchir(ochirishTasdiqi)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
-                O'chirish
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {forwardQilinayotgan && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: "rgba(43,43,43,0.35)" }} onClick={() => { setForwardQilinayotgan(null); setForwardSuhbatlar(null); }}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-2xl bg-white p-4 max-h-[70vh] overflow-y-auto" style={{ boxShadow: "0 -12px 32px rgba(43,43,43,0.18)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-3" style={{ backgroundColor: "#E5E1D8" }} />
-            <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>Qayerga yuborilsin?</p>
-            {!forwardSuhbatlar ? (
-              <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
-            ) : (
-              <div className="space-y-1.5">
-                {forwardSuhbatlar.guruhlar.map((g) => (
-                  <button key={`g${g.id}`} onClick={() => forwardYubor({ guruh_id: g.id })}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium" style={{ backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
-                    {g.nomi}
-                  </button>
-                ))}
-                {forwardSuhbatlar.shaxsiylar.map((s) => (
-                  <button key={`s${s.user_id}`} onClick={() => forwardYubor({ user_id: s.user_id })}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium" style={{ backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
-                    {s.full_name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
