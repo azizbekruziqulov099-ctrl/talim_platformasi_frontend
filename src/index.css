@@ -509,12 +509,29 @@ button {
 
 .premium-side-nav {
   min-height: 0;
+  flex: 1 1 auto;
   display: grid;
   align-content: start;
   gap: 6px;
   margin-top: 16px;
   overflow-y: auto;
   scrollbar-width: none;
+}
+
+.premium-side-profile {
+  flex: 0 0 auto;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.premium-side-profile .premium-side-link {
+  color: #e7f7f5;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.premium-side-profile .premium-side-link:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .premium-side-nav::-webkit-scrollbar {
@@ -572,11 +589,18 @@ button {
   display: flex;
   align-items: center;
   gap: 11px;
-  margin-top: auto;
+  flex: 0 0 auto;
+  margin-top: 10px;
   padding: 13px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 13px;
   background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-height: 760px) and (min-width: 821px) {
+  .premium-side-status {
+    display: none;
+  }
 }
 
 .premium-side-status strong,
