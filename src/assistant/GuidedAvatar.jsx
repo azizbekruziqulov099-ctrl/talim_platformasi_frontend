@@ -1,19 +1,42 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeft,
   ArrowRight,
   CornerDownRight,
+  Check,
+  MessageCircle,
   Pause,
   Play,
   RotateCcw,
+  Send,
   Volume2,
   VolumeX,
   X,
 } from "lucide-react";
 
-function speakUzbek(text) {
-  if (!("speechSynthesis" in window) || !text) return;
-  window.speechSynthesis.cancel();
+let activeTtsAudio = null;
+
+function stopSpeech() {
+  window.speechSynthesis?.cancel();
+  if (!activeTtsAudio) return;
+  activeTtsAudio.onplaying = null;
+  activeTtsAudio.onended = null;
+  activeTtsAudio.onerror = null;
+  activeTtsAudio.pause();
+  activeTtsAudio = null;
+}
+
+function browserSpeak(text, { onStart, onEnd } = {}) {
+  if (!("speechSynthesis" in window) || !text) {
+    onEnd?.();
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "uz-UZ";
   utterance.rate = 0.92;
@@ -24,25 +47,73 @@ function speakUzbek(text) {
     voices.find((voice) => voice.lang.toLowerCase().startsWith("tr")) ||
     voices.find((voice) => voice.lang.toLowerCase().startsWith("en"));
   if (preferred) utterance.voice = preferred;
+  utterance.onstart = () => onStart?.();
+  utterance.onend = () => onEnd?.();
+  utterance.onerror = () => onEnd?.();
   window.speechSynthesis.speak(utterance);
+}
+
+function speakUzbek(
+  text,
+  { apiBase, variant = "female", onStart, onEnd } = {},
+) {
+  if (!text) return;
+  stopSpeech();
+
+  const base = String(apiBase || "").replace(/\/+$/, "");
+  if (!base) {
+    browserSpeak(text, { onStart, onEnd });
+    return;
+  }
+
+  const url = new URL(`${base}/api/ovoz`, window.location.origin);
+  url.searchParams.set("matn", text.slice(0, 1500));
+  url.searchParams.set("jins", variant === "male" ? "ogil" : "qiz");
+  const audio = new Audio(url.toString());
+  let fallbackStarted = false;
+  activeTtsAudio = audio;
+
+  const fallback = () => {
+    if (fallbackStarted) return;
+    fallbackStarted = true;
+    if (activeTtsAudio === audio) activeTtsAudio = null;
+    audio.pause();
+    browserSpeak(text, { onStart, onEnd });
+  };
+
+  audio.onplaying = () => onStart?.();
+  audio.onended = () => {
+    if (activeTtsAudio === audio) activeTtsAudio = null;
+    onEnd?.();
+  };
+  audio.onerror = fallback;
+  audio.play().catch(fallback);
 }
 
 export default function GuidedAvatar({
   enabled = true,
   variant = "female",
   speechEnabled = true,
+  apiBase,
   steps = [],
   activeKey,
   message,
   onNavigate,
   onAction,
   onUndo,
+  onQuestion,
+  onApplySuggestion,
   onSpeechChange,
   onEnabledChange,
 }) {
   const [minimized, setMinimized] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [activityVersion, setActivityVersion] = useState(0);
+  const [question, setQuestion] = useState("");
+  const [questionBusy, setQuestionBusy] = useState(false);
+  const [questionError, setQuestionError] = useState("");
+  const [suggestion, setSuggestion] = useState(null);
   const lastSpoken = useRef("");
   const actionRef = useRef(onAction);
   const matchedIndex = steps.findIndex((step) => step.key === activeKey);
@@ -55,6 +126,16 @@ export default function GuidedAvatar({
     () => (variant === "male" ? "Temur" : variant === "neutral" ? "Hamroh" : "Ziyo"),
     [variant],
   );
+  const playSpeech = useCallback(
+    (text) =>
+      speakUzbek(text, {
+        apiBase,
+        variant,
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+      }),
+    [apiBase, variant],
+  );
 
   useEffect(() => {
     actionRef.current = onAction;
@@ -63,7 +144,8 @@ export default function GuidedAvatar({
   useEffect(() => {
     if (!enabled || minimized || paused) return undefined;
     const timer = window.setTimeout(() => {
-      window.speechSynthesis?.cancel();
+      stopSpeech();
+      setSpeaking(false);
       setMinimized(true);
       actionRef.current?.("MINIMIZE", activeStep);
     }, 45_000);
@@ -100,15 +182,38 @@ export default function GuidedAvatar({
       return;
     }
     lastSpoken.current = activeMessage;
-    speakUzbek(activeMessage);
-  }, [activeMessage, enabled, minimized, paused, speechEnabled]);
+    playSpeech(activeMessage);
+  }, [
+    activeMessage,
+    enabled,
+    minimized,
+    paused,
+    playSpeech,
+    speechEnabled,
+  ]);
+
+  useEffect(() => {
+    if (enabled && !minimized && !paused && speechEnabled) return;
+    stopSpeech();
+    setSpeaking(false);
+  }, [enabled, minimized, paused, speechEnabled]);
+
+  useEffect(
+    () => () => {
+      stopSpeech();
+    },
+    [],
+  );
 
   if (!enabled) {
     return (
       <button
         type="button"
         className="guided-avatar-restore"
-        onClick={() => onEnabledChange?.(true)}
+        onClick={() => {
+          lastSpoken.current = "";
+          onEnabledChange?.(true);
+        }}
         title="AI yordamchini yoqish"
       >
         <span className={`guided-avatar-face ${variant}`} aria-hidden="true">
@@ -163,9 +268,38 @@ export default function GuidedAvatar({
     onAction?.(direction > 0 ? "NEXT_STEP" : "PREVIOUS_STEP", next);
   };
 
+  const askQuestion = async () => {
+    const clean = question.trim();
+    if (clean.length < 3 || clean.length > 240 || !onQuestion) {
+      setQuestionError("Savol 3–240 belgi oralig‘ida bo‘lsin.");
+      return;
+    }
+    setQuestionBusy(true);
+    setQuestionError("");
+    setSuggestion(null);
+    try {
+      const result = await onQuestion(clean, activeStep);
+      const next =
+        typeof result === "string" ? { message: result } : result;
+      if (!next?.message) {
+        throw new Error("Bu savol uchun xavfsiz taklif topilmadi.");
+      }
+      setSuggestion(next);
+      setQuestion("");
+      if (speechEnabled) playSpeech(next.message);
+      onAction?.("SPEAK", activeStep);
+    } catch (error) {
+      setQuestionError(
+        error?.message || "Savolga hozir javob berib bo‘lmadi.",
+      );
+    } finally {
+      setQuestionBusy(false);
+    }
+  };
+
   return (
     <aside
-      className="guided-avatar-panel"
+      className={`guided-avatar-panel ${speaking ? "speaking" : ""}`}
       aria-live="polite"
       onPointerDown={() => setActivityVersion((value) => value + 1)}
       onFocusCapture={() => setActivityVersion((value) => value + 1)}
@@ -180,7 +314,7 @@ export default function GuidedAvatar({
           </span>
           <span>
             <b>{avatarName}</b>
-            <small>AI yo‘lko‘rsatuvchi</small>
+            <small>Yo‘lko‘rsatuvchi yordamchi</small>
           </span>
         </div>
         <div className="guided-avatar-actions">
@@ -191,9 +325,10 @@ export default function GuidedAvatar({
               onSpeechChange?.(next);
               if (next) {
                 lastSpoken.current = activeMessage;
-                speakUzbek(activeMessage);
+                playSpeech(activeMessage);
               } else {
-                window.speechSynthesis?.cancel();
+                stopSpeech();
+                setSpeaking(false);
               }
             }}
             aria-label={speechEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
@@ -203,7 +338,8 @@ export default function GuidedAvatar({
           <button
             type="button"
             onClick={() => {
-              window.speechSynthesis?.cancel();
+              stopSpeech();
+              setSpeaking(false);
               setMinimized(true);
               onAction?.("MINIMIZE", activeStep);
             }}
@@ -214,7 +350,8 @@ export default function GuidedAvatar({
           <button
             type="button"
             onClick={() => {
-              window.speechSynthesis?.cancel();
+              stopSpeech();
+              setSpeaking(false);
               onEnabledChange?.(false);
             }}
             aria-label="Yordamchini o'chirish"
@@ -225,6 +362,63 @@ export default function GuidedAvatar({
       </div>
 
       <p className="guided-avatar-message">{activeMessage}</p>
+      {onQuestion && (
+        <div className="guided-avatar-question">
+          <label htmlFor="guided-avatar-question-input">
+            <MessageCircle size={13} /> Shu qadam haqida so‘rang
+          </label>
+          <div>
+            <input
+              id="guided-avatar-question-input"
+              value={question}
+              maxLength={240}
+              placeholder="Masalan: 2 smenani tanlasam nima bo‘ladi?"
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  askQuestion();
+                }
+              }}
+            />
+            <button
+              type="button"
+              disabled={questionBusy || question.trim().length < 3}
+              onClick={askQuestion}
+              aria-label="Savolni yuborish"
+            >
+              {questionBusy ? "…" : <Send size={14} />}
+            </button>
+          </div>
+          {questionError && (
+            <small className="guided-avatar-question-error">
+              {questionError}
+            </small>
+          )}
+          {suggestion && (
+            <div className="guided-avatar-suggestion">
+              <p>{suggestion.message}</p>
+              {suggestion.action && onApplySuggestion && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onApplySuggestion(suggestion.action, activeStep);
+                    onAction?.("SET_DRAFT_VALUE", activeStep);
+                    setSuggestion(null);
+                  }}
+                >
+                  <Check size={13} />
+                  {suggestion.actionLabel || "Qoralamaga qo‘llash"}
+                </button>
+              )}
+              <small>
+                Yordamchi faqat ko‘rsatilgan qoralama o‘zgarishini qo‘llaydi;
+                saqlash, e’lon qilish va tasdiqlashni o‘zi bajarmaydi.
+              </small>
+            </div>
+          )}
+        </div>
+      )}
       {activeStep && (
         <div className="guided-avatar-progress">
           <span>
@@ -254,7 +448,10 @@ export default function GuidedAvatar({
           type="button"
           onClick={() => {
             setPaused((value) => {
-              if (!value) window.speechSynthesis?.cancel();
+              if (!value) {
+                stopSpeech();
+                setSpeaking(false);
+              }
               if (value) lastSpoken.current = "";
               onAction?.(value ? "RESUME" : "PAUSE", activeStep);
               return !value;
