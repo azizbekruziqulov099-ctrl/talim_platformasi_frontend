@@ -6,7 +6,7 @@ import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
-  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search,
+  Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search, Baby,
 } from "lucide-react";
 
 const lazyAnalytics = (exportName) =>
@@ -18,6 +18,9 @@ const lazyAnalytics = (exportName) =>
 const AdminStatisticsTab = lazyAnalytics("AdminStatisticsTab");
 const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
+const KindergartenWorkspace = React.lazy(
+  () => import("./kindergarten/KindergartenWorkspace.jsx"),
+);
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -5215,7 +5218,6 @@ function BogchalarBolimi({ token }) {
   const [turi, setTuri] = useState("xususiy");
   const [viloyat, setViloyat] = useState("");
   const [tuman, setTuman] = useState("");
-  const [oylikTolov, setOylikTolov] = useState("");
   const [direktor, setDirektor] = useState(null);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
@@ -5223,7 +5225,11 @@ function BogchalarBolimi({ token }) {
 
   const bogchalarniYukla = () => {
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/bogchalar?token=${encodeURIComponent(token)}`)
+    fetch(`${API_BASE}/api/admin/bogchalar`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      credentials: "omit",
+    })
       .then((r) => r.json())
       .then((d) => { setBogchalar(d.bogchalar || []); setYuklanmoqda(false); })
       .catch(() => setYuklanmoqda(false));
@@ -5240,12 +5246,11 @@ function BogchalarBolimi({ token }) {
         body: JSON.stringify({
           token, nomi: nomi.trim(), turi, viloyat: viloyat || undefined, tuman: tuman || undefined,
           direktor_user_id: direktor ? direktor.user_id : undefined,
-          oylik_tolov: turi === "xususiy" && oylikTolov ? parseInt(oylikTolov, 10) : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      setNomi(""); setTuri("xususiy"); setViloyat(""); setTuman(""); setOylikTolov(""); setDirektor(null); setFormOchiq(false);
+      setNomi(""); setTuri("xususiy"); setViloyat(""); setTuman(""); setDirektor(null); setFormOchiq(false);
       bogchalarniYukla();
     } catch (e) {
       setXato(e.message);
@@ -5306,15 +5311,6 @@ function BogchalarBolimi({ token }) {
             </div>
           </div>
 
-          {turi === "xususiy" && (
-            <>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm, ixtiyoriy)</label>
-              <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
-                placeholder="masalan: 800000"
-                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-            </>
-          )}
-
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy)</label>
           <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
 
@@ -5342,7 +5338,6 @@ function BogchalarBolimi({ token }) {
                 <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{b.nomi}</p>
                 <p className="text-xs" style={{ color: "#8A8578" }}>
                   {b.turi === "xususiy" ? "Xususiy" : "Davlat"} · {[b.viloyat, b.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}
-                  {b.oylik_tolov ? ` · ${b.oylik_tolov.toLocaleString()} so'm/oy` : ""}
                 </p>
                 <p className="text-xs mt-1" style={{ color: b.direktor_ismi ? "#3B6D11" : "#B0553A" }}>
                   {b.direktor_ismi ? `👤 Direktor: ${b.direktor_ismi}` : "⚠️ Direktor hali belgilanmagan"}
@@ -5361,23 +5356,28 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natijalar, setNatijalar] = useState(null);
-  const [turi, setTuri] = useState(bogcha.turi || "xususiy");
-  const [oylikTolov, setOylikTolov] = useState(bogcha.oylik_tolov ? String(bogcha.oylik_tolov) : "");
-  const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
 
-  const tolovSozlashniSaqla = async () => {
-    setTolovSaqlanmoqda(true);
+  const shablonYukla = async () => {
+    setXato("");
     try {
-      await fetch(`${API_BASE}/api/admin/bogcha_tolov_sozlash`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, bogcha_id: bogcha.id, turi, oylik_tolov: oylikTolov ? parseInt(oylikTolov, 10) : undefined }),
+      const response = await fetch(`${API_BASE}/api/admin/bogcha_xodim_shablon`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        credentials: "omit",
       });
-    } finally { setTolovSaqlanmoqda(false); }
-  };
-
-  const shablonYukla = () => {
-    window.open(`${API_BASE}/api/admin/bogcha_xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail || "Shablonni yuklab bo‘lmadi");
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      const download = document.createElement("a");
+      download.href = blobUrl;
+      download.download = "bogcha_xodimlar_shablon.xlsx";
+      download.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      setXato(error.message);
+    }
   };
 
   const faylTanlandi = async (e) => {
@@ -5387,8 +5387,12 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
     try {
       const formData = new FormData();
       formData.append("fayl", fayl);
-      const res = await fetch(`${API_BASE}/api/admin/bogcha_xodim_import?token=${encodeURIComponent(token)}&bogcha_id=${bogcha.id}`, {
-        method: "POST", body: formData,
+      const res = await fetch(`${API_BASE}/api/admin/bogcha_xodim_import?bogcha_id=${bogcha.id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        cache: "no-store",
+        credentials: "omit",
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
@@ -5408,30 +5412,6 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {bogcha.turi === "xususiy" ? "Xususiy" : "Davlat"} · {[bogcha.viloyat, bogcha.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}
       </p>
-
-      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
-        <div className="flex gap-2 mb-3">
-          <button onClick={() => setTuri("davlat")}
-            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
-            style={turi === "davlat" ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
-            Davlat
-          </button>
-          <button onClick={() => setTuri("xususiy")}
-            className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
-            style={turi === "xususiy" ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
-            Xususiy
-          </button>
-        </div>
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm) — bo'sh qoldirsangiz, bepul hisoblanadi</label>
-        <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
-          placeholder="masalan: 800000"
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-        <button onClick={tolovSozlashniSaqla} disabled={tolovSaqlanmoqda}
-          className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: tolovSaqlanmoqda ? 0.7 : 1 }}>
-          {tolovSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
-        </button>
-      </div>
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>Xodimlarni kiritish</p>
@@ -8906,8 +8886,15 @@ function KirishKodiFormasi({ token, onOrtga }) {
     if (!kirishKodi.trim()) { setKodXato("Kodni kiriting"); return; }
     setKodYuborilmoqda(true); setKodXato(""); setKodNatija(null);
     try {
-      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil?token=${encodeURIComponent(token)}&kirish_kodi=${encodeURIComponent(kirishKodi.trim())}`, {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ kirish_kodi: kirishKodi.trim() }),
+        cache: "no-store",
+        credentials: "omit",
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
@@ -8923,11 +8910,12 @@ function KirishKodiFormasi({ token, onOrtga }) {
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Profil</button>
       <h1 className="text-xl font-bold mb-4" style={{ color: "#2B2B2B" }}>🔑 Kirish kodi</h1>
       <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
-        Maktab/markaz/bog'cha admini sizga bergan 6 belgili kodni kiriting — hisobingizga tegishli lavozim avtomatik qo'shiladi.
+        Maktab/markaz/bog‘cha admini sizga bergan 12 belgili bir martalik
+        kodni kiriting — hisobingizga tegishli lavozim avtomatik qo‘shiladi.
       </p>
       <div className="flex gap-2">
         <input type="text" value={kirishKodi} onChange={(e) => setKirishKodi(e.target.value.toUpperCase())}
-          placeholder="masalan: A1B2C3" maxLength={6}
+          placeholder="masalan: A1B2C3D4E5F6" maxLength={12}
           className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
         <button onClick={kodBilanQoshil} disabled={kodYuborilmoqda}
           className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: kodYuborilmoqda ? 0.7 : 1 }}>
@@ -9546,7 +9534,7 @@ function MarkazBoshqaruvi({ token, markazId, onOrtga }) {
   );
 }
 
-function OtaOnaQidiruvi({ token, tanlanganOtaOna, onTanla }) {
+function OtaOnaQidiruvi({ token, guruhId, tanlanganOtaOna, onTanla }) {
   const [ism, setIsm] = useState("");
   const [natijalar, setNatijalar] = useState([]);
   const [qidirilmoqda, setQidirilmoqda] = useState(false);
@@ -9555,13 +9543,17 @@ function OtaOnaQidiruvi({ token, tanlanganOtaOna, onTanla }) {
     if (ism.trim().length < 2) { setNatijalar([]); return; }
     setQidirilmoqda(true);
     const kechiktirish = setTimeout(() => {
-      fetch(`${API_BASE}/api/opa/ota_ona_qidir?token=${encodeURIComponent(token)}&ism=${encodeURIComponent(ism.trim())}`)
+      fetch(`${API_BASE}/api/opa/ota_ona_qidir?ism=${encodeURIComponent(ism.trim())}&guruh_id=${guruhId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        credentials: "omit",
+      })
         .then((r) => r.json())
         .then((d) => { setNatijalar(d.natijalar || []); setQidirilmoqda(false); })
         .catch(() => setQidirilmoqda(false));
     }, 400);
     return () => clearTimeout(kechiktirish);
-  }, [ism, token]);
+  }, [guruhId, ism, token]);
 
   if (tanlanganOtaOna) {
     return (
@@ -9604,7 +9596,11 @@ function BogchaGuruhim({ token, onOrtga }) {
   const [qoshilmoqda, setQoshilmoqda] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/opa/mening_guruhlarim?token=${encodeURIComponent(token)}`)
+    fetch(`${API_BASE}/api/opa/mening_guruhlarim`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      credentials: "omit",
+    })
       .then((r) => r.json())
       .then((d) => { setGuruhlar(d.guruhlar || []); setYuklanmoqda(false); })
       .catch(() => setYuklanmoqda(false));
@@ -9612,7 +9608,11 @@ function BogchaGuruhim({ token, onOrtga }) {
 
   const bolalarniYukla = (guruhId) => {
     setBolalarYuklanmoqda(true);
-    fetch(`${API_BASE}/api/opa/guruh_bolalari?token=${encodeURIComponent(token)}&guruh_id=${guruhId}`)
+    fetch(`${API_BASE}/api/opa/guruh_bolalari?guruh_id=${guruhId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      credentials: "omit",
+    })
       .then((r) => r.json())
       .then((d) => { setBolalar(d.bolalar || []); setBolalarYuklanmoqda(false); })
       .catch(() => setBolalarYuklanmoqda(false));
@@ -9638,16 +9638,11 @@ function BogchaGuruhim({ token, onOrtga }) {
   };
 
   const bolaniChiqar = async (rosterId) => {
-    await fetch(`${API_BASE}/api/opa/bolani_chiqar?token=${encodeURIComponent(token)}&roster_id=${rosterId}`, { method: "DELETE" });
-    bolalarniYukla(tanlanganGuruh.id);
-  };
-
-  const tolovBelgila = async (bola) => {
-    const oy = new Date().toISOString().slice(0, 7);
-    await fetch(`${API_BASE}/api/opa/tolov_belgila`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, bola_user_id: bola.user_id, guruh_id: tanlanganGuruh.id, oy, tolangan_summa: tanlanganGuruh.oylik_tolov }),
+    await fetch(`${API_BASE}/api/opa/bolani_chiqar?roster_id=${rosterId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      credentials: "omit",
     });
     bolalarniYukla(tanlanganGuruh.id);
   };
@@ -9661,7 +9656,12 @@ function BogchaGuruhim({ token, onOrtga }) {
 
         <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Yangi bola qo'shish</label>
-          <OtaOnaQidiruvi token={token} tanlanganOtaOna={tanlanganOtaOna} onTanla={setTanlanganOtaOna} />
+          <OtaOnaQidiruvi
+            token={token}
+            guruhId={tanlanganGuruh.id}
+            tanlanganOtaOna={tanlanganOtaOna}
+            onTanla={setTanlanganOtaOna}
+          />
           <div className="flex gap-2">
             <input type="text" value={yangiBolaIsmi} onChange={(e) => setYangiBolaIsmi(e.target.value)}
               placeholder="Bolaning ismi va familiyasi"
@@ -9679,27 +9679,15 @@ function BogchaGuruhim({ token, onOrtga }) {
           <p className="text-xs" style={{ color: "#8A8578" }}>Hali guruhda bola yo'q.</p>
         ) : (
           <>
-            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>
-              {tanlanganGuruh.oylik_tolov ? `💳 Bu oy to'lovlari` : "👶 Guruh ro'yxati"}
-            </p>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: "#2B2B2B" }}>👶 Guruh ro‘yxati</p>
             <div className="space-y-2">
               {bolalar.map((b) => (
                 <div key={b.roster_id} className="rounded-xl p-3.5 flex items-center justify-between"
-                  style={{ backgroundColor: tanlanganGuruh.oylik_tolov ? (b.qarzdor ? "#FCEBEB" : "#EAF3DE") : "#F7F5F0" }}>
+                  style={{ backgroundColor: "#F7F5F0" }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{b.full_name}</p>
-                    {tanlanganGuruh.oylik_tolov > 0 && (
-                      <p className="text-xs" style={{ color: b.qarzdor ? "#A32D2D" : "#3B6D11" }}>
-                        {b.qarzdor ? `⚠️ Qarzdor (${b.tolangan_summa.toLocaleString()} / ${b.kerakli_summa.toLocaleString()} so'm)` : "✅ To'langan"}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {tanlanganGuruh.oylik_tolov > 0 && b.qarzdor && (
-                      <button onClick={() => tolovBelgila(b)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
-                        To'landi
-                      </button>
-                    )}
                     <button onClick={() => bolaniChiqar(b.roster_id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>
                       ✕
                     </button>
@@ -11508,8 +11496,22 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
     return <PsixologQidiruv token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
   }
 
-  if (korinish === "bogcha") {
-    return <BogchaGuruhim token={token} onOrtga={() => setKorinish("togarak")} />;
+  if (korinish === "bogcha" || korinish === "bogcha_workspace") {
+    return (
+      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+        <KindergartenWorkspace
+          token={token}
+          apiBase={API_BASE}
+          initialWorkspace={aktivMuassasa?.turi === "bogcha" ? aktivMuassasa : null}
+          onBack={() => setKorinish("togarak")}
+          onLegacy={() => setKorinish("bogcha_legacy")}
+        />
+      </React.Suspense>
+    );
+  }
+
+  if (korinish === "bogcha_legacy") {
+    return <BogchaGuruhim token={token} onOrtga={() => setKorinish("bogcha_workspace")} />;
   }
 
   if (korinish === "universitet") {
@@ -11954,9 +11956,13 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
         if (aktivMuassasa?.turi === "markaz" && MUASSASA_BOSHQARUVCHI_LAVOZIM.markaz.includes(aktivMuassasa.lavozim)) {
           bandlar.push({ kalit: "markaz", nom: "Markazni boshqarish", ikon: GraduationCap, fon: "#EAF1F7", rang: "#1B4B7A" });
         }
-        if (aktivMuassasa?.turi === "bogcha" && aktivMuassasa.lavozim === "bogcha_opa") {
-          bandlar.push({ kalit: "bogcha", nom: "Bog'cha guruhim", ikon: Users, fon: "#FDF3E0", rang: "#8A5A1C" });
-        }
+        bandlar.push({
+          kalit: "bogcha_workspace",
+          nom: aktivMuassasa?.turi === "bogcha" ? "Bog'chani boshqarish" : "Bog'cha ochish / qo'shilish",
+          ikon: Baby,
+          fon: "#EEF7F5",
+          rang: "#087F79",
+        });
         if (aktivMuassasa?.turi === "universitet") {
           bandlar.push({ kalit: "universitet", nom: "Kurator guruhlarim", ikon: GraduationCap, fon: "#EAF1F7", rang: "#1B4B7A" });
         }
