@@ -3435,18 +3435,297 @@ function AdminTestlarTab({ token }) {
   return <TestTab token={token} sinf={null} />;
 }
 
+function KitobMiyaBolimi({ token }) {
+  const [fayl, setFayl] = useState(null);
+  const [tekshiruv, setTekshiruv] = useState(null);
+  const [jarayon, setJarayon] = useState("");
+  const [xato, setXato] = useState("");
+  const [importlar, setImportlar] = useState([]);
+
+  const tarixniYukla = () => {
+    fetch(`${API_BASE}/api/admin/ai_miya_importlar?token=${encodeURIComponent(token)}`)
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || "Import tarixi yuklanmadi");
+        setImportlar(d.importlar || []);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    tarixniYukla();
+  }, [token]);
+
+  const tekshir = async () => {
+    if (!fayl || jarayon) return;
+    setJarayon("tekshir");
+    setXato("");
+    setTekshiruv(null);
+    try {
+      const form = new FormData();
+      form.append("fayl", fayl);
+      const res = await fetch(
+        `${API_BASE}/api/admin/ai_miya_tekshir?token=${encodeURIComponent(token)}`,
+        { method: "POST", body: form },
+      );
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Excel tekshirilmadi");
+      setTekshiruv(d);
+      tarixniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setJarayon("");
+    }
+  };
+
+  const qoralamaImport = async () => {
+    if (!tekshiruv?.batch_id || !tekshiruv?.tayyor || jarayon) return;
+    setJarayon("import");
+    setXato("");
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/admin/ai_miya_import/${tekshiruv.batch_id}?token=${encodeURIComponent(token)}`,
+        { method: "POST" },
+      );
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Qoralama import bajarilmadi");
+      setTekshiruv((old) => ({ ...old, importNatija: d, status: "draft_imported" }));
+      tarixniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setJarayon("");
+    }
+  };
+
+  const nashrQil = async (batchId = tekshiruv?.batch_id) => {
+    if (!batchId || jarayon) return;
+    setJarayon(`nashr-${batchId}`);
+    setXato("");
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/admin/ai_miya_nashr/${batchId}?token=${encodeURIComponent(token)}`,
+        { method: "POST" },
+      );
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "Bilimlar nashr qilinmadi");
+      if (tekshiruv?.batch_id === batchId) {
+        setTekshiruv((old) => ({ ...old, status: "published", nashrNatija: d }));
+      }
+      tarixniYukla();
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setJarayon("");
+    }
+  };
+
+  const statusUslubi = (status) => ({
+    published: { fon: "#E7F4EC", rang: "#25683B", nom: "Nashr qilingan" },
+    draft_imported: { fon: "#FFF4D8", rang: "#8A5A1C", nom: "Qoralama" },
+    validated: { fon: "#EAF1F7", rang: "#1B4B7A", nom: "Tekshirilgan" },
+    failed: { fon: "#FCEBEB", rang: "#A32D2D", nom: "Xato" },
+  }[status] || { fon: "#F2F0EA", rang: "#5A5648", nom: status || "Noma'lum" });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl overflow-hidden text-white"
+        style={{ background: "linear-gradient(135deg,#153A55 0%,#1B4B7A 58%,#2D8B8B 100%)" }}>
+        <div className="p-5">
+          <p className="text-xs uppercase tracking-[0.16em] opacity-75">Yagona bilim manbasi</p>
+          <h2 className="text-xl font-bold mt-1">🧠 Kitob → pedagogik AI miya</h2>
+          <p className="text-sm mt-2 leading-relaxed opacity-90">
+            Bir kitob — bir Excel. Avval tekshiriladi, keyin qoralama saqlanadi,
+            faqat siz nashr qilgach o'quvchi, o'qituvchi va to'garakka chiqadi.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 border-t text-center text-[11px]"
+          style={{ borderColor: "rgba(255,255,255,.18)", backgroundColor: "rgba(0,0,0,.08)" }}>
+          {[
+            ["1", "Shablon"],
+            ["2", "Tekshirish"],
+            ["3", "Import va nashr"],
+          ].map(([n, label]) => (
+            <div key={n} className="py-3 border-r last:border-r-0" style={{ borderColor: "rgba(255,255,255,.14)" }}>
+              <span className="inline-flex w-5 h-5 rounded-full bg-white/15 items-center justify-center font-bold mr-1">{n}</span>
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+            style={{ backgroundColor: "#EAF1F7" }}>📥</div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-sm" style={{ color: "#2B2B2B" }}>1. Universal shablonni oling</h3>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>
+              12 varaq: kitob, DTS, bilim, tushuntirish, misol, mashq, ishora,
+              xatolar, metodika, to'garak, lug'at/media va tekshiruv.
+            </p>
+            <a
+              href={`${API_BASE}/api/admin/ai_miya_shablon?token=${encodeURIComponent(token)}`}
+              className="mt-3 inline-flex px-4 py-2.5 rounded-xl text-xs font-semibold text-white"
+              style={{ backgroundColor: "#1B4B7A" }}
+            >
+              📊 AI miya Excel shablonini yuklab olish
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+        <h3 className="font-bold text-sm mb-1" style={{ color: "#2B2B2B" }}>2. To'ldirilgan kitobni tekshiring</h3>
+        <p className="text-xs mb-3" style={{ color: "#8A8578" }}>
+          Bu bosqich jonli bilimga hech narsa yozmaydi. Topic code, manba, sahifa,
+          ID va bog'lanish xatolari qatorigacha ko'rsatiladi.
+        </p>
+        <label className="block rounded-xl border-2 border-dashed p-4 text-center cursor-pointer"
+          style={{ borderColor: fayl ? "#2D8B8B" : "#D8D3C7", backgroundColor: fayl ? "#EEF7F5" : "#FAF8F2" }}>
+          <input type="file" accept=".xlsx" className="hidden"
+            onChange={(e) => { setFayl(e.target.files?.[0] || null); setTekshiruv(null); setXato(""); }} />
+          <p className="text-sm font-semibold" style={{ color: fayl ? "#246D6D" : "#5A5648" }}>
+            {fayl ? `✓ ${fayl.name}` : "Excel faylni tanlang"}
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: "#8A8578" }}>Faqat .xlsx · har safar bitta kitob</p>
+        </label>
+        <button onClick={tekshir} disabled={!fayl || !!jarayon}
+          className="w-full mt-3 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#2D8B8B", opacity: !fayl || jarayon ? .5 : 1 }}>
+          {jarayon === "tekshir" ? <><Loader2 size={17} className="animate-spin" /> Tekshirilmoqda…</> : "🔎 Faylni to'liq tekshirish"}
+        </button>
+      </div>
+
+      {xato && (
+        <div className="rounded-xl p-3.5 text-sm" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+          {xato}
+        </div>
+      )}
+
+      {tekshiruv && (
+        <div className="rounded-2xl bg-white border overflow-hidden" style={{ borderColor: tekshiruv.tayyor ? "#9BCAB6" : "#E6AAAA" }}>
+          <div className="p-4 flex items-start justify-between gap-3"
+            style={{ backgroundColor: tekshiruv.tayyor ? "#EAF5EF" : "#FCEBEB" }}>
+            <div>
+              <p className="text-xs font-semibold" style={{ color: tekshiruv.tayyor ? "#25683B" : "#A32D2D" }}>
+                {tekshiruv.tayyor ? "✓ Importga tayyor" : "⚠️ Tuzatilishi kerak"}
+              </p>
+              <h3 className="font-bold mt-0.5">Tekshiruv paketi #{tekshiruv.batch_id}</h3>
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white">
+              {tekshiruv.summary?.bilim_birliklari || 0} birlik
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-px" style={{ backgroundColor: "#E5E1D8" }}>
+            {[
+              ["Kitob", tekshiruv.summary?.kitoblar || 0],
+              ["Mavzu", tekshiruv.summary?.mavzular || 0],
+              ["Xato", tekshiruv.summary?.xatolar || 0],
+            ].map(([label, value]) => (
+              <div key={label} className="bg-white p-3 text-center">
+                <p className="text-lg font-bold" style={{ color: "#1B4B7A" }}>{value}</p>
+                <p className="text-[10px]" style={{ color: "#8A8578" }}>{label}</p>
+              </div>
+            ))}
+          </div>
+          {(tekshiruv.errors || []).length > 0 && (
+            <div className="p-4 max-h-64 overflow-y-auto space-y-2">
+              {tekshiruv.errors.slice(0, 50).map((e, i) => (
+                <div key={`${e.sheet}-${e.row}-${e.column}-${i}`} className="rounded-xl p-3 text-xs"
+                  style={{ backgroundColor: "#FFF5F3", color: "#8C352B" }}>
+                  <b>{e.sheet} · {e.row}-qator · {e.column || "varaq"}</b>
+                  <p className="mt-0.5">{e.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="p-4 border-t" style={{ borderColor: "#E5E1D8" }}>
+            {tekshiruv.status === "published" ? (
+              <div className="rounded-xl p-3 text-sm font-semibold text-center"
+                style={{ backgroundColor: "#E7F4EC", color: "#25683B" }}>
+                ✓ Kitob bilimi AI miyaga nashr qilindi
+              </div>
+            ) : tekshiruv.status === "draft_imported" || tekshiruv.importNatija ? (
+              <button onClick={() => nashrQil()} disabled={!!jarayon}
+                className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#C89B3C", opacity: jarayon ? .5 : 1 }}>
+                {jarayon.startsWith("nashr-") ? <><Loader2 size={17} className="animate-spin" /> Nashr qilinmoqda…</> : "✅ Tasdiqlash va AI miyaga nashr qilish"}
+              </button>
+            ) : (
+              <button onClick={qoralamaImport} disabled={!tekshiruv.tayyor || !!jarayon}
+                className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+                style={{ backgroundColor: "#1B4B7A", opacity: !tekshiruv.tayyor || jarayon ? .5 : 1 }}>
+                {jarayon === "import" ? <><Loader2 size={17} className="animate-spin" /> Qoralama saqlanmoqda…</> : "📦 Qoralama sifatida import qilish"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {importlar.length > 0 && (
+        <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+          <h3 className="font-bold text-sm mb-3">So'nggi kitob importlari</h3>
+          <div className="space-y-2">
+            {importlar.slice(0, 8).map((item) => {
+              const s = statusUslubi(item.status);
+              return (
+                <div key={item.id} className="rounded-xl border p-3 flex items-center justify-between gap-3"
+                  style={{ borderColor: "#ECE8DF" }}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{item.file_name}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>
+                      #{item.id} · {item.validation_summary?.mavzular || 0} mavzu · {item.validation_summary?.bilim_birliklari || 0} birlik
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full"
+                      style={{ backgroundColor: s.fon, color: s.rang }}>{s.nom}</span>
+                    {item.status === "draft_imported" && (
+                      <button onClick={() => nashrQil(item.id)} disabled={!!jarayon}
+                        className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
+                        style={{ backgroundColor: "#FFF4D8", color: "#8A5A1C" }}>
+                        Nashr
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl p-4 text-xs leading-relaxed"
+        style={{ backgroundColor: "#F1EEE5", color: "#5A5648" }}>
+        <b>Muhim:</b> PDF kitobni avtomatik to'ldirish keyingi alohida yordamchi jarayon.
+        Hozir kitobni shu shablonga siz yoki men bo'lib yozamiz. Sayt esa to'ldirilgan
+        shablonni xatosiz tekshiradi, versiyalaydi, import qiladi va barcha AI rejimlariga ulaydi.
+      </div>
+    </div>
+  );
+}
+
 function AdminTab({ token, oldindanTanlangan }) {
   // Faqat "Mavzular"dan "Test shablon yaratish" bosilib, tayyor mavzu bilan
   // kelinganda — to'g'ridan-to'g'ri "Test shablon"ni ochamiz. Aks holda hech
   // narsa tanlanmagan holda boshlanadi — sozlamalar foydalanuvchi ANIQ bir
   // bo'limni tanlaguncha ko'rinmaydi.
-  const [bolim, setBolim] = useState(oldindanTanlangan && oldindanTanlangan.length > 0 ? "test" : null); // null | "test" | "topik" | "tushuntirish" | "maktab" | "markaz" | "bogcha" | "universitet" | "sinov"
+  const [bolim, setBolim] = useState(oldindanTanlangan && oldindanTanlangan.length > 0 ? "test" : null); // null | "miya" | "test" | "topik" | ...
 
   return (
     <div className="px-5 pt-6 pb-4">
       <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
 
       <div className="grid grid-cols-2 gap-2 mb-5">
+        <button onClick={() => setBolim("miya")}
+          className="col-span-2 py-3 rounded-xl font-semibold text-sm"
+          style={bolim === "miya"
+            ? { background: "linear-gradient(135deg,#1B4B7A,#2D8B8B)", color: "#fff" }
+            : { backgroundColor: "#EEF7F5", color: "#246D6D", border: "1px solid #A8D2C8" }}>
+          🧠 Kitob miyasi · yangi universal import
+        </button>
         <button onClick={() => setBolim("test")}
           className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "test"
@@ -3505,6 +3784,7 @@ function AdminTab({ token, oldindanTanlangan }) {
         </button>
       </div>
 
+      {bolim === "miya" && <KitobMiyaBolimi token={token} />}
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
       {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
@@ -9598,10 +9878,23 @@ const AI_BLOK_RANGLARI = {
   xulosa: { fon: "#EAF1F7", rang: "#1B4B7A" },
 };
 
-function AiJavobBloklari({ javob }) {
+function AiJavobBloklari({ javob, onQuickReply }) {
   if (!javob?.bloklar?.length) return null;
   return (
     <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5 px-1">
+        <span className="text-[10px] font-semibold px-2 py-1 rounded-full"
+          style={javob.knowledge_status === "published"
+            ? { backgroundColor: "#E7F4EC", color: "#25683B" }
+            : { backgroundColor: "#FFF4D8", color: "#8A5A1C" }}>
+          {javob.knowledge_status === "published" ? "✓ Tasdiqlangan kitob bazasi" : "⚠ Bilim hali nashr qilinmagan"}
+        </span>
+        {javob.engine === "rules" && (
+          <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+            API kalitsiz pedagogik miya
+          </span>
+        )}
+      </div>
       {javob.bloklar.map((blok, i) => {
         const uslub = AI_BLOK_RANGLARI[blok.tur] || AI_BLOK_RANGLARI.tushuntirish;
         return (
@@ -9618,6 +9911,26 @@ function AiJavobBloklari({ javob }) {
         <p className="text-[10px] px-1" style={{ color: "#8A8578" }}>
           Baza manbasi: {javob.manba_kodlari.join(", ")}
         </p>
+      )}
+      {(javob.sources || []).length > 0 && (
+        <div className="rounded-xl p-2.5 space-y-1" style={{ backgroundColor: "#F7F5F0" }}>
+          {(javob.sources || []).slice(0, 3).map((s, i) => (
+            <p key={`${s.source_code || "source"}-${s.page || i}`} className="text-[10px]" style={{ color: "#5A5648" }}>
+              📚 {s.book || s.source_code || "Kitob"}{s.page ? ` · ${s.page}-bet` : ""}{s.year ? ` · ${s.year}` : ""}
+            </p>
+          ))}
+        </div>
+      )}
+      {(javob.quick_replies || []).length > 0 && onQuickReply && (
+        <div className="flex flex-wrap gap-1.5 px-1">
+          {javob.quick_replies.map((reply) => (
+            <button key={reply} onClick={() => onQuickReply(reply)}
+              className="min-w-9 px-3 py-2 rounded-xl text-xs font-bold border"
+              style={{ borderColor: "#9DB8CE", backgroundColor: "#F4F8FB", color: "#1B4B7A" }}>
+              {reply}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -9779,7 +10092,7 @@ function AiOquvchiUstozBolimi({ token }) {
                   {x.matn}
                 </div>
               ) : x.muallif === "ai" ? (
-                <div className="mr-4"><AiJavobBloklari javob={x.javob} /></div>
+                <div className="mr-4"><AiJavobBloklari javob={x.javob} onQuickReply={(reply) => yubor(reply)} /></div>
               ) : (
                 <div className="rounded-xl p-3 text-sm" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>{x.matn}</div>
               )}
@@ -9825,6 +10138,8 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
   const [sinf, setSinf] = useState("5");
   const [fan, setFan] = useState("Matematika");
   const [mavzu, setMavzu] = useState("");
+  const [topicCode, setTopicCode] = useState("");
+  const [katalog, setKatalog] = useState(null);
   const [maqsad, setMaqsad] = useState("");
   const [metodika, setMetodika] = useState("Avtomatik");
   const [jihozlar, setJihozlar] = useState("");
@@ -9833,6 +10148,44 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
   const [darsId, setDarsId] = useState(null);
   const [yaratilmoqda, setYaratilmoqda] = useState(false);
   const [xato, setXato] = useState("");
+
+  useEffect(() => {
+    let bekor = false;
+    fetch(`${API_BASE}/api/ai/pedagog/katalog?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(sinf)}`)
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || "Kitob katalogi yuklanmadi");
+        if (bekor) return;
+        setKatalog(d);
+        if (d.fanlar?.length > 0) {
+          const birinchiFan = d.fanlar[0];
+          const birinchiMavzu = birinchiFan.mavzular?.[0];
+          setFan(birinchiFan.fan);
+          setMavzu(birinchiMavzu?.mavzu || "");
+          setTopicCode(birinchiMavzu?.topic_code || "");
+        } else {
+          setTopicCode("");
+        }
+      })
+      .catch(() => { if (!bekor) setKatalog({ fanlar: [] }); });
+    return () => { bekor = true; };
+  }, [token, sinf]);
+
+  const joriyFan = katalog?.fanlar?.find((f) => f.fan === fan);
+
+  const katalogFanOzgar = (yangiFan) => {
+    const topilgan = katalog?.fanlar?.find((f) => f.fan === yangiFan);
+    const birinchi = topilgan?.mavzular?.[0];
+    setFan(yangiFan);
+    setMavzu(birinchi?.mavzu || "");
+    setTopicCode(birinchi?.topic_code || "");
+  };
+
+  const katalogMavzuOzgar = (kod) => {
+    const topilgan = joriyFan?.mavzular?.find((m) => m.topic_code === kod);
+    setTopicCode(kod);
+    setMavzu(topilgan?.mavzu || "");
+  };
 
   const yarat = async () => {
     if (!fan.trim() || !mavzu.trim() || yaratilmoqda) return;
@@ -9845,6 +10198,7 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token, sinf, fan: fan.trim(), mavzu: mavzu.trim(),
+          topic_code: topicCode || null,
           maqsad: maqsad.trim() || null,
           metodika,
           sinf_hajmi: Number(sinfHajmi) || 25,
@@ -9895,13 +10249,32 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
         </div>
         <div>
           <label className="text-xs font-medium block mb-1" style={{ color: "#5A5648" }}>Fan</label>
-          <input value={fan} onChange={(e) => setFan(e.target.value)} placeholder="Masalan: Matematika"
-            className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          {katalog?.fanlar?.length > 0 ? (
+            <select value={fan} onChange={(e) => katalogFanOzgar(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+              {katalog.fanlar.map((f) => <option key={f.fan} value={f.fan}>{f.fan}</option>)}
+            </select>
+          ) : (
+            <input value={fan} onChange={(e) => setFan(e.target.value)} placeholder="Masalan: Matematika"
+              className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          )}
         </div>
         <div>
-          <label className="text-xs font-medium block mb-1" style={{ color: "#5A5648" }}>Mavzu — bazadagi nomi bilan</label>
-          <input value={mavzu} onChange={(e) => setMavzu(e.target.value)} placeholder="Masalan: 9 ga bo'linish alomati"
-            className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          <label className="text-xs font-medium block mb-1" style={{ color: "#5A5648" }}>Nashr qilingan kitob mavzusi</label>
+          {joriyFan?.mavzular?.length > 0 ? (
+            <select value={topicCode} onChange={(e) => katalogMavzuOzgar(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+              {joriyFan.mavzular.map((m) => <option key={m.topic_code} value={m.topic_code}>{m.mavzu}</option>)}
+            </select>
+          ) : (
+            <>
+              <input value={mavzu} onChange={(e) => setMavzu(e.target.value)} placeholder="Masalan: 9 ga bo'linish alomati"
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              <p className="text-[10px] mt-1" style={{ color: "#A16B22" }}>
+                Bu sinfda nashr qilingan Kitob miyasi topilmadi; admin avval import va nashr qilishi kerak.
+              </p>
+            </>
+          )}
         </div>
         <div>
           <label className="text-xs font-medium block mb-1" style={{ color: "#5A5648" }}>O'quv maqsadi</label>
@@ -9943,6 +10316,16 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
                 <p className="text-xs mb-1" style={{ color: "#8A8578" }}>Ochiq dars #{darsId}</p>
                 <h2 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{reja.sarlavha || reja.mavzu}</h2>
                 <p className="text-xs mt-1" style={{ color: "#5A5648" }}>{reja.sinf}-sinf · {reja.fan} · {reja.jami_daqiqa} daqiqa</p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: "#E7F4EC", color: "#25683B" }}>
+                    ✓ Tasdiqlangan kitob bazasi
+                  </span>
+                  {reja.engine === "rules" && (
+                    <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                      API kalitsiz
+                    </span>
+                  )}
+                </div>
               </div>
               <button onClick={() => window.print()} className="h-9 px-3 rounded-xl text-xs font-semibold"
                 style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>🖨 Chop etish</button>
@@ -9991,6 +10374,172 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
             <p className="text-sm"><b>🏠 Uy vazifasi:</b> {reja.uy_vazifasi}</p>
             <p className="text-sm mt-2"><b>🏁 Refleksiya:</b> {reja.refleksiya}</p>
           </div>
+          {(reja.sources || []).length > 0 && (
+            <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+              <h3 className="text-sm font-bold mb-2">📚 Foydalanilgan manbalar</h3>
+              {(reja.sources || []).map((s, i) => (
+                <p key={`${s.source_code || "source"}-${s.page || i}`} className="text-xs py-1" style={{ color: "#5A5648" }}>
+                  {s.book || s.source_code || "Kitob"}{s.page ? ` · ${s.page}-bet` : ""}{s.year ? ` · ${s.year}` : ""}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AiTogarakRejaKonstruktori({ token, onOrtga }) {
+  const [sinf, setSinf] = useState("5");
+  const [katalog, setKatalog] = useState(null);
+  const [fan, setFan] = useState("");
+  const [topicCode, setTopicCode] = useState("");
+  const [yonalish, setYonalish] = useState("Qiziqarli fan to'garagi");
+  const [mashgulotSoni, setMashgulotSoni] = useState(12);
+  const [reja, setReja] = useState(null);
+  const [rejaId, setRejaId] = useState(null);
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/ai/pedagog/katalog?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(sinf)}`)
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || "Katalog yuklanmadi");
+        setKatalog(d);
+        const f = d.fanlar?.[0];
+        setFan(f?.fan || "");
+        setTopicCode(f?.mavzular?.[0]?.topic_code || "");
+      })
+      .catch((e) => { setKatalog({ fanlar: [] }); setXato(e.message); });
+  }, [token, sinf]);
+
+  const joriyFan = katalog?.fanlar?.find((f) => f.fan === fan);
+  const fanOzgar = (value) => {
+    const f = katalog?.fanlar?.find((x) => x.fan === value);
+    setFan(value);
+    setTopicCode(f?.mavzular?.[0]?.topic_code || "");
+  };
+
+  const yarat = async () => {
+    if (!fan || !topicCode || yuklanmoqda) return;
+    setYuklanmoqda(true);
+    setXato("");
+    setReja(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/togarak/yarat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          sinf,
+          fan,
+          yonalish: yonalish.trim() || "Fan to'garagi",
+          topic_codes: [topicCode],
+          mashgulot_soni: Number(mashgulotSoni) || 12,
+          davomiylik_daq: 45,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || "To'garak rejasi yaratilmadi");
+      setReja(d.reja);
+      setRejaId(d.reja_id);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setYuklanmoqda(false);
+    }
+  };
+
+  return (
+    <div className="px-5 pt-6 pb-5">
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}>
+        <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EAF1F7" }}>
+          <ChevronLeft size={15} style={{ color: "#1B4B7A" }} />
+        </span>
+        Ortga
+      </button>
+
+      <div className="rounded-2xl p-4 mb-4 text-white"
+        style={{ background: "linear-gradient(135deg,#246D6D,#2D8B8B)" }}>
+        <p className="text-xs opacity-80">Nashr qilingan kitob miyasi asosida</p>
+        <h1 className="text-xl font-bold mt-0.5">🧭 AI To'garak konstruktori</h1>
+        <p className="text-xs mt-1 opacity-90">1–48 ta 45 daqiqalik mashg'ulot rejasini API kalitsiz tuzadi</p>
+      </div>
+
+      <div className="rounded-2xl bg-white border p-4 space-y-3" style={{ borderColor: "#E5E1D8" }}>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-medium block mb-1">Sinf</label>
+            <select value={sinf} onChange={(e) => setSinf(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+              {Array.from({ length: 11 }, (_, i) => i + 1).map((s) => <option key={s} value={String(s)}>{s}-sinf</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Mashg'ulot soni</label>
+            <input type="number" min="1" max="48" value={mashgulotSoni} onChange={(e) => setMashgulotSoni(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Yo'nalish nomi</label>
+          <input value={yonalish} onChange={(e) => setYonalish(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Fan</label>
+          <select value={fan} onChange={(e) => fanOzgar(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+            {(katalog?.fanlar || []).map((f) => <option key={f.fan} value={f.fan}>{f.fan}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium block mb-1">Boshlang'ich mavzu</label>
+          <select value={topicCode} onChange={(e) => setTopicCode(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+            {(joriyFan?.mavzular || []).map((m) => <option key={m.topic_code} value={m.topic_code}>{m.mavzu}</option>)}
+          </select>
+          {!topicCode && <p className="text-[10px] mt-1" style={{ color: "#A16B22" }}>Bu sinfda nashr qilingan kitob mavzusi yo'q.</p>}
+        </div>
+        <button onClick={yarat} disabled={!topicCode || yuklanmoqda}
+          className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
+          style={{ backgroundColor: "#2D8B8B", opacity: !topicCode || yuklanmoqda ? .5 : 1 }}>
+          {yuklanmoqda ? <><Loader2 size={17} className="animate-spin" /> Reja tuzilmoqda…</> : "🧭 To'garak rejasini yaratish"}
+        </button>
+      </div>
+
+      {xato && <div className="rounded-xl p-3.5 mt-3 text-sm" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>{xato}</div>}
+
+      {reja && (
+        <div className="space-y-3 mt-4">
+          <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+            <p className="text-[10px]" style={{ color: "#8A8578" }}>To'garak rejasi #{rejaId}</p>
+            <h2 className="font-bold mt-1">{reja.sarlavha}</h2>
+            <div className="flex gap-1.5 mt-2">
+              <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: "#E7F4EC", color: "#25683B" }}>✓ Tasdiqlangan baza</span>
+              <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>API kalitsiz</span>
+            </div>
+          </div>
+          {(reja.mashgulotlar || []).map((m) => (
+            <div key={m.tartib} className="rounded-2xl bg-white border overflow-hidden" style={{ borderColor: "#E5E1D8" }}>
+              <div className="px-4 py-3" style={{ backgroundColor: "#EEF7F5" }}>
+                <p className="text-[10px] font-bold" style={{ color: "#246D6D" }}>{m.tartib}-MASHG'ULOT · {reja.davomiylik_daq} DAQIQA</p>
+                <h3 className="font-bold text-sm mt-0.5">{m.mavzu}</h3>
+                <p className="text-xs mt-1" style={{ color: "#5A5648" }}>{m.maqsad}</p>
+              </div>
+              <div className="p-4 space-y-2">
+                {(m.bosqichlar || []).map((b) => (
+                  <div key={b.tartib} className="flex gap-3 text-xs">
+                    <span className="font-bold w-14 shrink-0" style={{ color: "#1B4B7A" }}>{b.daqiqa} daq</span>
+                    <span><b>{b.nomi}:</b> {b.faoliyat}</span>
+                  </div>
+                ))}
+                {m.mustaqil_vazifa && <p className="text-xs rounded-xl p-2.5 mt-2" style={{ backgroundColor: "#F7F5F0" }}><b>Mustaqil vazifa:</b> {m.mustaqil_vazifa}</p>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -10943,6 +11492,9 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   if (korinish === "ai_dars") {
     return <AiOchiqDarsKonstruktori token={token} onOrtga={() => setKorinish("togarak")} />;
   }
+  if (korinish === "ai_togarak") {
+    return <AiTogarakRejaKonstruktori token={token} onOrtga={() => setKorinish("togarak")} />;
+  }
 
   if (korinish === "rejalarim") {
     return <RejalarimBolimi token={token} onOrtga={() => setKorinish("togarak")} />;
@@ -11413,6 +11965,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
           { kalit: "rejalarim", nom: "Rejalarim", ikon: ClipboardList, fon: "#EAF3DE", rang: "#3B6D11" },
           { kalit: "ai_yordamchi", nom: "AI Yordamchi", ikon: Bot, fon: "#F3EEFA", rang: "#8B5FBF" },
           { kalit: "ai_dars", nom: "AI Ochiq dars", ikon: Brain, fon: "#F3EEFA", rang: "#8B5FBF" },
+          { kalit: "ai_togarak", nom: "AI To'garak reja", ikon: GraduationCap, fon: "#EEF7F5", rang: "#246D6D" },
         );
         return (
           <div className="grid grid-cols-2 gap-2 mb-4">
