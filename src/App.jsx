@@ -21,6 +21,9 @@ const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
 const KindergartenWorkspace = React.lazy(
   () => import("./kindergarten/KindergartenWorkspace.jsx"),
 );
+const SchoolWorkspace = React.lazy(
+  () => import("./school/SchoolWorkspace.jsx"),
+);
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -11453,8 +11456,22 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
 
   const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
 
-  if (korinish === "maktab_rahbariyat") {
-    return <MaktabBoshqaruvi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  if (korinish === "maktab_rahbariyat" || korinish === "maktab_workspace") {
+    return (
+      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+        <SchoolWorkspace
+          token={token}
+          apiBase={API_BASE}
+          initialWorkspace={aktivMuassasa?.turi === "maktab" ? aktivMuassasa : null}
+          onBack={() => setKorinish("togarak")}
+          onLegacy={() => setKorinish("maktab_legacy")}
+        />
+      </React.Suspense>
+    );
+  }
+
+  if (korinish === "maktab_legacy") {
+    return <MaktabBoshqaruvi token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("maktab_workspace")} />;
   }
 
   if (korinish === "kutubxona") {
@@ -11942,13 +11959,21 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
         const bandlar = [];
         if (aktivMuassasa?.turi === "maktab" && MUASSASA_BOSHQARUVCHI_LAVOZIM.maktab.includes(aktivMuassasa.lavozim)) {
           bandlar.push(
-            { kalit: "maktab_rahbariyat", nom: "Maktabni boshqarish", ikon: Building2, fon: "#EAF1F7", rang: "#1B4B7A" },
+            { kalit: "maktab_workspace", nom: "Maktabni boshqarish", ikon: Building2, fon: "#EAF1F7", rang: "#1B4B7A" },
             { kalit: "kutubxona", nom: "Kutubxona", ikon: BookOpen, fon: "#EAF3DE", rang: "#3B6D11" },
             { kalit: "moliya", nom: "Moliya", ikon: Wallet, fon: "#FDF3E0", rang: "#8A5A1C" },
             { kalit: "hujjatlar", nom: "Hujjatlar", ikon: Folder, fon: "#F3EEFA", rang: "#8B5FBF" },
             { kalit: "rejalashtirish", nom: "Rejalashtirish", ikon: Calendar, fon: "#EAF1F7", rang: "#1B4B7A" },
             { kalit: "fanlar_tahlili", nom: "Fanlar tahlili", ikon: BarChart3, fon: "#FCEBEB", rang: "#A32D2D" },
           );
+        } else {
+          bandlar.push({
+            kalit: "maktab_workspace",
+            nom: aktivMuassasa?.turi === "maktab" ? "Maktabim" : "Maktab ochish / qo'shilish",
+            ikon: Building2,
+            fon: "#EAF1F7",
+            rang: "#1B4B7A",
+          });
         }
         if (aktivMuassasa?.turi === "maktab" && aktivMuassasa.lavozim === "psixolog") {
           bandlar.push({ kalit: "psixolog", nom: "Psixolog", ikon: Brain, fon: "#F3EEFA", rang: "#8B5FBF" });
