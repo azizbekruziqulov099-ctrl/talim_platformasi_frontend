@@ -24,6 +24,9 @@ const KindergartenWorkspace = React.lazy(
 const SchoolWorkspace = React.lazy(
   () => import("./school/SchoolWorkspace.jsx"),
 );
+const LearningCenterWorkspace = React.lazy(
+  () => import("./center/LearningCenterWorkspace.jsx"),
+);
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -11450,8 +11453,22 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
       onBack={() => setKorinish("togarak")} />;
   }
 
-  if (korinish === "markaz") {
-    return <MarkazBoshqaruvi token={token} markazId={aktivMuassasa?.turi === "markaz" ? aktivMuassasa.muassasa_id : foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("togarak")} />;
+  if (korinish === "markaz" || korinish === "markaz_workspace") {
+    return (
+      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+        <LearningCenterWorkspace
+          token={token}
+          apiBase={API_BASE}
+          initialWorkspace={aktivMuassasa?.turi === "markaz" ? aktivMuassasa : null}
+          onBack={() => setKorinish("togarak")}
+          onLegacy={() => setKorinish("markaz_legacy")}
+        />
+      </React.Suspense>
+    );
+  }
+
+  if (korinish === "markaz_legacy") {
+    return <MarkazBoshqaruvi token={token} markazId={aktivMuassasa?.turi === "markaz" ? aktivMuassasa.muassasa_id : foydalanuvchi?.markaz_id} onOrtga={() => setKorinish("markaz_workspace")} />;
   }
 
   const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
@@ -11978,9 +11995,13 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
         if (aktivMuassasa?.turi === "maktab" && aktivMuassasa.lavozim === "psixolog") {
           bandlar.push({ kalit: "psixolog", nom: "Psixolog", ikon: Brain, fon: "#F3EEFA", rang: "#8B5FBF" });
         }
-        if (aktivMuassasa?.turi === "markaz" && MUASSASA_BOSHQARUVCHI_LAVOZIM.markaz.includes(aktivMuassasa.lavozim)) {
-          bandlar.push({ kalit: "markaz", nom: "Markazni boshqarish", ikon: GraduationCap, fon: "#EAF1F7", rang: "#1B4B7A" });
-        }
+        bandlar.push({
+          kalit: "markaz_workspace",
+          nom: aktivMuassasa?.turi === "markaz" ? "O‘quv markazini boshqarish" : "O‘quv markazi / repetitor",
+          ikon: GraduationCap,
+          fon: "#EAF1F7",
+          rang: "#1B4B7A",
+        });
         bandlar.push({
           kalit: "bogcha_workspace",
           nom: aktivMuassasa?.turi === "bogcha" ? "Bog'chani boshqarish" : "Bog'cha ochish / qo'shilish",
@@ -14129,7 +14150,7 @@ function Kabinet({ token }) {
     maktab: { nom: "Maktabim", korinish: "maktab_rahbariyat" },
     bogcha: { nom: "Bog'cham", korinish: "bogcha" },
     universitet: { nom: "Universitetim", korinish: "universitet" },
-    markaz: { nom: "Markazim", korinish: "markaz" },
+    markaz: { nom: "Markazim", korinish: "markaz_workspace" },
   };
   const birinchiMuassasa = muassasalarim[0];
   const muassasaBandi = birinchiMuassasa && MUASSASA_LABELLARI[birinchiMuassasa.turi]
