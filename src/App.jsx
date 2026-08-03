@@ -27,6 +27,9 @@ const SchoolWorkspace = React.lazy(
 const LearningCenterWorkspace = React.lazy(
   () => import("./center/LearningCenterWorkspace.jsx"),
 );
+const InstituteWorkspace = React.lazy(
+  () => import("./institute/InstituteWorkspace.jsx"),
+);
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -640,7 +643,7 @@ function LoginEkrani() {
 // ═══════════════════════════════════════════════════════════
 // 2) ULASH — Google email topildi, lekin bot hisobiga ULANMAGAN
 // ═══════════════════════════════════════════════════════════
-function UlashEkrani({ email, ism, onUlandi }) {
+function UlashEkrani({ email, ism, oauthGrant, onUlandi }) {
   const [rejim, setRejim] = useState(null); // null | 'kod' | 'royxat'
   const [kod, setKod] = useState("");
   const [ismInput, setIsmInput] = useState(ism || "");
@@ -673,7 +676,7 @@ function UlashEkrani({ email, ism, onUlandi }) {
       const res = await fetch(`${API_BASE}/auth/ulash`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, kod: kod.trim() }),
+        body: JSON.stringify({ email, kod: kod.trim(), oauth_grant: oauthGrant }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
@@ -691,7 +694,7 @@ function UlashEkrani({ email, ism, onUlandi }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email, ism: ismInput.trim(), rol,
+          email, ism: ismInput.trim(), rol, oauth_grant: oauthGrant,
           sinf: rol === "oquvchi" ? sinf : undefined,
           region: viloyat || undefined,
           district: tuman || undefined,
@@ -11548,8 +11551,22 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
     return <BogchaGuruhim token={token} onOrtga={() => setKorinish("bogcha_workspace")} />;
   }
 
-  if (korinish === "universitet") {
-    return <UniversitetGuruhimBilimi token={token} onOrtga={() => setKorinish("togarak")} />;
+  if (korinish === "institut_workspace" || korinish === "universitet") {
+    return (
+      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+        <InstituteWorkspace
+          token={token}
+          apiBase={API_BASE}
+          initialWorkspace={aktivMuassasa?.turi === "universitet" ? aktivMuassasa : null}
+          onBack={() => setKorinish("togarak")}
+          onLegacy={() => setKorinish("universitet_legacy")}
+        />
+      </React.Suspense>
+    );
+  }
+
+  if (korinish === "universitet_legacy") {
+    return <UniversitetGuruhimBilimi token={token} onOrtga={() => setKorinish("institut_workspace")} />;
   }
 
   if (yuklanmoqda) {
@@ -12009,9 +12026,13 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
           fon: "#EEF7F5",
           rang: "#087F79",
         });
-        if (aktivMuassasa?.turi === "universitet") {
-          bandlar.push({ kalit: "universitet", nom: "Kurator guruhlarim", ikon: GraduationCap, fon: "#EAF1F7", rang: "#1B4B7A" });
-        }
+        bandlar.push({
+          kalit: "institut_workspace",
+          nom: aktivMuassasa?.turi === "universitet" ? "Institutni boshqarish" : "Institut / universitet",
+          ikon: GraduationCap,
+          fon: "#F1EEFF",
+          rang: "#6146A5",
+        });
         bandlar.push(
           { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3, fon: "#EAF1F7", rang: "#1B4B7A" },
           { kalit: "rejalarim", nom: "Rejalarim", ikon: ClipboardList, fon: "#EAF3DE", rang: "#3B6D11" },
@@ -14149,7 +14170,7 @@ function Kabinet({ token }) {
   const MUASSASA_LABELLARI = {
     maktab: { nom: "Maktabim", korinish: "maktab_rahbariyat" },
     bogcha: { nom: "Bog'cham", korinish: "bogcha" },
-    universitet: { nom: "Universitetim", korinish: "universitet" },
+    universitet: { nom: "Institutim", korinish: "institut_workspace" },
     markaz: { nom: "Markazim", korinish: "markaz_workspace" },
   };
   const birinchiMuassasa = muassasalarim[0];
@@ -14335,15 +14356,83 @@ function Kabinet({ token }) {
 // ═══════════════════════════════════════════════════════════
 // ASOSIY — URL manziliga qarab qaysi ekranni ko'rsatishni hal qiladi
 // ═══════════════════════════════════════════════════════════
+let _boshlangichYolKeshi = null;
+
+function _boshlangichYolniOl() {
+  // React StrictMode initializer'ni development'da ikki marta chaqiradi.
+  // Birinchi chaqiriqda URL tozalangandan keyin OAuth signalini yo'qotmaslik
+  // uchun bir marta o'qilgan qiymatni modul doirasida saqlaymiz.
+  if (_boshlangichYolKeshi) return _boshlangichYolKeshi;
+  const p = window.location.pathname;
+  const q = new URLSearchParams(window.location.search);
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  _boshlangichYolKeshi = {
+    p,
+    token: q.get("token"),
+    email: q.get("email"),
+    ism: q.get("ism"),
+    oauthTicket: fragment.get("oauth_ticket"),
+    oauthXato: fragment.get("oauth_xato"),
+  };
+  // 60 soniyalik OAuth ticket fragmenti (va eski oqimdan qolishi mumkin
+  // bo'lgan sezgir query'lar) birinchi render boshlanishidayoq tarixdan o'chadi.
+  if (
+    ["token", "email", "ism"].some((key) => q.has(key))
+    || ["oauth_ticket", "oauth_xato"].some((key) => fragment.has(key))
+  ) {
+    window.history.replaceState({}, document.title, p);
+  }
+  return _boshlangichYolKeshi;
+}
+
 export default function App() {
   const [token, setToken] = useState(null);
-  const [yol] = useState(() => {
-    const p = window.location.pathname;
-    const q = new URLSearchParams(window.location.search);
-    return { p, token: q.get("token"), email: q.get("email"), ism: q.get("ism") };
-  });
+  const [yol] = useState(_boshlangichYolniOl);
+  const [oauthYuklanmoqda, setOauthYuklanmoqda] = useState(Boolean(yol.oauthTicket));
+  const [oauthProfil, setOauthProfil] = useState(null);
+  const oauthAlmashinuviBoshlandi = useRef(false);
+
+  useEffect(() => {
+    if (!yol.oauthTicket || oauthAlmashinuviBoshlandi.current) return;
+    oauthAlmashinuviBoshlandi.current = true;
+    fetch(`${API_BASE}/auth/google/exchange`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticket: yol.oauthTicket }),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Google orqali kirib bo'lmadi");
+        if (data.holat === "kirdi" && data.token) setToken(data.token);
+        else if (data.holat === "ulash" && data.email && data.oauth_grant) {
+          setOauthProfil({
+            email: data.email,
+            ism: data.ism || "",
+            oauthGrant: data.oauth_grant,
+          });
+        } else throw new Error("Google kirish javobi noto'g'ri");
+      })
+      .catch(() => {
+        // Avvalgi UI xulqi saqlanadi: bekor qilingan/eskirgan kirish Login'ga qaytadi.
+      })
+      .finally(() => setOauthYuklanmoqda(false));
+  }, [yol.oauthTicket]);
 
   if (token) return <Kabinet token={token} />;
+  if (oauthYuklanmoqda) {
+    return (
+      <Qobiq>
+        <div className="py-10 text-center">
+          <Loader2 size={26} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} />
+          <p className="text-sm" style={{ color: "#5A5648" }}>Google orqali kirilmoqda…</p>
+        </div>
+      </Qobiq>
+    );
+  }
+  if (oauthProfil) {
+    return <UlashEkrani email={oauthProfil.email} ism={oauthProfil.ism} oauthGrant={oauthProfil.oauthGrant} onUlandi={setToken} />;
+  }
   if (yol.p === "/kabinet" && yol.token) return <Kabinet token={yol.token} />;
   if (yol.p === "/ulash" && yol.email) return <UlashEkrani email={yol.email} ism={yol.ism} onUlandi={setToken} />;
   return <LoginEkrani />;
