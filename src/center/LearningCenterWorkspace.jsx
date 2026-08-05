@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -498,6 +497,8 @@ export default function LearningCenterWorkspace({
   initialWorkspace,
   onBack,
   onLegacy,
+  assignedOnly = false,
+  canCreateInstitution = true,
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -727,7 +728,7 @@ export default function LearningCenterWorkspace({
     );
   }
 
-  if (screen === "create") {
+  if (screen === "create" && canCreateInstitution) {
     return (
       <CenterOnboarding
         apiBase={apiBase}
@@ -777,7 +778,7 @@ export default function LearningCenterWorkspace({
       </header>
       <ErrorNotice error={error} onRetry={load} />
 
-      <section className="lc-start-grid">
+      {canCreateInstitution && <section className="lc-start-grid">
         <button
           type="button"
           className="lc-start-card primary"
@@ -788,7 +789,14 @@ export default function LearningCenterWorkspace({
           <p>AI avatar bilan bosqichma-bosqich sozlang</p>
           <ChevronRight size={18} />
         </button>
-      </section>
+      </section>}
+
+      {assignedOnly && workspaces.length === 0 && (
+        <InfoNotice>
+          <b>Markaz ish joyi ulanmagan</b>
+          <p>Oddiy o‘qituvchi markaz ochmaydi. Administrator sizni markazga biriktirgach, ish maydoni shu yerda ko‘rinadi; shaxsiy dars uchun esa “Repetitorlik ochish”dan foydalaning.</p>
+        </InfoNotice>
+      )}
 
       {verifications.length > 0 && (
         <section className="lc-workspaces">
@@ -860,8 +868,8 @@ export default function LearningCenterWorkspace({
         {workspaces.length === 0 ? (
           <EmptyState
             icon={Building2}
-            title="Hali markaz yo‘q"
-            text="Direktor yoki mustaqil repetitor sifatida yangi markaz yarating."
+            title={assignedOnly ? "Ulangan markaz yo‘q" : "Hali markaz yo‘q"}
+            text={assignedOnly ? "Markaz rahbari xodim taklifini yuborishi kerak." : "Direktor sifatida yangi markaz yarating."}
           />
         ) : (
           <div className="lc-workspace-grid">
