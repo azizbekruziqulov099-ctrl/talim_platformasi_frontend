@@ -224,6 +224,171 @@ function LegacyFallback({ data }) {
   );
 }
 
+const ANALYTICS_VARIANTS = {
+  kindergarten: {
+    key: "kindergarten",
+    eyebrow: "RIVOJLANISH BOG‘I",
+    title: "Ko‘nikmalar qanday unib boryapti?",
+    subtitle: "Yoshiga mos yo‘nalishlar, kuzatuvlar va keyingi yumshoq qadamlar",
+    color: "#A8527A",
+    soft: "#F9EAF1",
+    icon: "🌳",
+    subjectLabel: "Rivojlanish yo‘nalishi",
+  },
+  school: {
+    key: "school",
+    eyebrow: "1–11 BILIM YO‘LI",
+    title: "Hozirgi bekatdan keyingi marraga",
+    subtitle: "Sinf, fan va mavzular kesimida o‘tilgan hamda oldindagi yo‘l",
+    color: "#185FA5",
+    soft: "#E8F2FF",
+    icon: "🏫",
+    subjectLabel: "Sinf fani",
+  },
+  learning_center: {
+    key: "learning_center",
+    eyebrow: "KURS MARSHRUTI",
+    title: "Maqsad sari modulma-modul",
+    subtitle: "Kurs rejasidagi faoliyat, o‘zlashtirish va keyingi mashg‘ulot",
+    color: "#167D4A",
+    soft: "#E7F7EE",
+    icon: "🧭",
+    subjectLabel: "Kurs yo‘nalishi",
+  },
+  university: {
+    key: "university",
+    eyebrow: "AKADEMIK ORBITA",
+    title: "Semestr, fan va kompetensiyalar",
+    subtitle: "Baholangan dalillar va akademik rivojlanish bir ko‘rinishda",
+    color: "#6146A5",
+    soft: "#F1EEFF",
+    icon: "🎓",
+    subjectLabel: "Akademik fan",
+  },
+  platform: {
+    key: "platform",
+    eyebrow: "UMUMIY RIVOJLANISH XARITASI",
+    title: "Barcha ta’lim muhitlaridagi yo‘l",
+    subtitle: "Har bir muassasani yuqoridan tanlab, o‘ziga xos xaritasini oching",
+    color: "#1B4B7A",
+    soft: "#EAF1F7",
+    icon: "✨",
+    subjectLabel: "Bilim yo‘nalishi",
+  },
+};
+
+function analyticsVariant(type) {
+  if (["club_offline", "club_online", "club_ai", "personal"].includes(type)) {
+    return ANALYTICS_VARIANTS.learning_center;
+  }
+  return ANALYTICS_VARIANTS[type] || ANALYTICS_VARIANTS.platform;
+}
+
+function LearningJourneyPanel({ contextType, data, summary, student }) {
+  const variant = analyticsVariant(contextType);
+  const [view, setView] = useState("journey");
+  useEffect(() => setView("journey"), [contextType]);
+  const subjects = data?.subjects || [];
+  const events = data?.recent_events || [];
+  const actions = data?.next_actions || [];
+  const currentGrade = Math.max(1, Math.min(11, Number.parseInt(student?.class, 10) || 1));
+
+  return (
+    <section
+      className={`learning-journey learning-journey--${variant.key}`}
+      style={{ "--journey-color": variant.color, "--journey-soft": variant.soft }}
+    >
+      <header className="learning-journey__head">
+        <span className="learning-journey__symbol" aria-hidden="true">{variant.icon}</span>
+        <div>
+          <p>{variant.eyebrow}</p>
+          <h2>{variant.title}</h2>
+          <small>{variant.subtitle}</small>
+        </div>
+      </header>
+
+      <div className="learning-journey__tabs" role="tablist" aria-label="Analitika ko‘rinishi">
+        {[
+          ["journey", "Yo‘l xaritasi"],
+          ["evidence", "Bilim dalillari"],
+          ["next", "Keyingi qadam"],
+        ].map(([key, label]) => (
+          <button key={key} type="button" role="tab" aria-selected={view === key}
+            onClick={() => setView(key)} className={view === key ? "active" : ""}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "journey" && (
+        <div className="learning-journey__body">
+          {variant.key === "school" && (
+            <div className="school-grade-route" aria-label={`Hozirgi bosqich ${currentGrade}-sinf`}>
+              {Array.from({ length: 11 }, (_, index) => index + 1).map((grade) => (
+                <span key={grade} className={grade < currentGrade ? "passed" : grade === currentGrade ? "current" : "future"}>
+                  <b>{grade}</b><small>{grade === currentGrade ? "hozir" : "sinf"}</small>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="learning-journey__summary">
+            <div><b>{number(summary.mastered_topics)}</b><span>Tasdiqlangan</span></div>
+            <div><b>{number(summary.needs_review)}</b><span>Mustahkamlash</span></div>
+            <div><b>{number(summary.event_count)}</b><span>Dalil</span></div>
+          </div>
+          {subjects.length === 0 ? (
+            <p className="learning-journey__empty">Xarita chizilishi uchun hali baholangan faoliyat yetarli emas.</p>
+          ) : (
+            <div className="learning-journey__nodes">
+              {subjects.slice(0, 8).map((subject, index) => (
+                <article key={`${subject.subject}-${index}`}>
+                  <span className="learning-journey__node-number">{index + 1}</span>
+                  <div>
+                    <small>{variant.subjectLabel}</small>
+                    <h3>{subject.subject || "Nomsiz yo‘nalish"}</h3>
+                    <ScoreBar value={subject.avg_score} color={variant.color} height={6} />
+                    <p>{Math.round(number(subject.avg_score))}% · {number(subject.event_count)} faoliyat</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === "evidence" && (
+        <div className="learning-journey__evidence">
+          {events.length === 0 ? (
+            <p className="learning-journey__empty">Test, yozma ish yoki o‘qituvchi kuzatuvi hali qayd etilmagan.</p>
+          ) : events.slice(0, 6).map((event) => (
+            <article key={event.id}>
+              <span>{event.event_type?.includes("ai") ? "🤖" : event.event_type?.includes("test") ? "✍️" : "📖"}</span>
+              <div><b>{EVENT_LABELS[event.event_type] || event.event_type}</b><small>{event.subject || event.context_name} · {dateLabel(event.occurred_at)}</small></div>
+              <strong>{event.score == null ? "Qayd" : `${Math.round(number(event.score))}%`}</strong>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {view === "next" && (
+        <div className="learning-journey__actions">
+          {actions.length === 0 ? (
+            <p className="learning-journey__empty">Shaxsiy tavsiya uchun ma’lumot hali yetarli emas.</p>
+          ) : actions.slice(0, 5).map((action, index) => (
+            <article key={`${action.type}-${index}`}>
+              <span>{index + 1}</span>
+              <div><b>{action.title}</b><p>{action.reason}</p></div>
+              <ChevronRight size={17} />
+            </article>
+          ))}
+        </div>
+      )}
+
+      <footer>Natija hukm yoki reyting emas; u mavjud dalillar asosidagi rivojlanish xaritasidir.</footer>
+    </section>
+  );
+}
+
 export function StudentAnalyticsDashboard({
   token,
   studentId = null,
@@ -284,9 +449,13 @@ export function StudentAnalyticsDashboard({
   const summary = data?.summary || {};
   const student = data?.student || {};
   const activeContext = (data?.contexts || []).find((c) => Number(c.id) === Number(contextId));
+  const activeVariant = analyticsVariant(activeContext?.type);
 
   return (
-    <div className={compact ? "analytics-view" : "analytics-view px-5 pt-6 pb-5"}>
+    <div className={cx(
+      compact ? "analytics-view" : "analytics-view px-5 pt-6 pb-5",
+      `analytics-context-${activeVariant.key}`,
+    )}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-start gap-2.5 min-w-0">
           {onBack && (
@@ -332,7 +501,7 @@ export function StudentAnalyticsDashboard({
       ) : data ? (
         <div className="student-analytics-grid space-y-3.5">
           <div className="student-score-hero rounded-3xl p-5 text-white overflow-hidden relative"
-            style={{ background: `linear-gradient(135deg, ${accent}, #2D6E8B)` }}>
+            style={{ background: `linear-gradient(135deg, ${activeVariant.color}, ${activeVariant.key === "kindergarten" ? "#D07192" : activeVariant.key === "learning_center" ? "#2B9A67" : activeVariant.key === "university" ? "#8B6BC4" : "#2D6E8B"})` }}>
             <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
             <div className="absolute right-14 -bottom-14 w-28 h-28 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
             <p className="text-xs font-semibold opacity-75">{activeContext ? activeContext.name : "Barcha ta'lim muhitlari"}</p>
@@ -345,6 +514,13 @@ export function StudentAnalyticsDashboard({
               <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {number(summary.active_days)} faol kun</span>
             </div>
           </div>
+
+          <LearningJourneyPanel
+            contextType={activeContext?.type || "platform"}
+            data={data}
+            summary={summary}
+            student={student}
+          />
 
           <div className="student-kpi-strip premium-kpi-grid grid grid-cols-2 gap-2.5">
             <MetricCard icon={CheckCircle2} label="O'zlashtirilgan mavzu" value={number(summary.mastered_topics)}
@@ -363,9 +539,9 @@ export function StudentAnalyticsDashboard({
                 <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Natija rivoji</p>
                 <p className="text-[11px]" style={{ color: "#8A8578" }}>Har kunlik baholangan faoliyat</p>
               </div>
-              <TrendingUp size={20} style={{ color: accent }} />
+              <TrendingUp size={20} style={{ color: activeVariant.color }} />
             </div>
-            <TrendChart points={data.trend} color={accent} />
+            <TrendChart points={data.trend} color={activeVariant.color} />
           </section>
 
           <section className="student-subject-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
@@ -745,6 +921,34 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
   const selectedContext = contexts.find((c) => Number(c.id) === Number(contextId));
   const groups = selectedContext?.groups || [];
   const selectedGroup = groups.find((g) => Number(g.id) === Number(groupId));
+  const selectedVariant = analyticsVariant(selectedContext?.type);
+  const teacherCopy = {
+    kindergarten: {
+      eyebrow: "Tarbiyachi kuzatuvi", title: "Guruh rivojlanishi",
+      people: "Guruhdagi bola", score: "Rivojlanish dalili", events: "Kuzatuvlar", help: "Mustahkamlash",
+      trend: "Ko‘nikmalar rivoji", difficult: "Guruhga mashq foydali yo‘nalishlar", list: "Bolalar",
+    },
+    school: {
+      eyebrow: "O‘qituvchi paneli", title: "Sinf analitikasi",
+      people: "Sinfdagi o‘quvchi", score: "O‘rtacha bilim", events: "Tekshiruvlar", help: "Yordam kerak",
+      trend: "Sinf rivoji", difficult: "Sinfga qiyin tushayotgan mavzular", list: "O‘quvchilar",
+    },
+    learning_center: {
+      eyebrow: "Kurs murabbiyi", title: "Kurs marshruti",
+      people: "Kurs o‘quvchisi", score: "O‘zlashtirish", events: "Dars faoliyati", help: "Diqqat kerak",
+      trend: "Kurs rivoji", difficult: "Qayta mashq kerak modullar", list: "Kurs ishtirokchilari",
+    },
+    university: {
+      eyebrow: "Akademik panel", title: "Fan oqimi analitikasi",
+      people: "Talabalar", score: "Akademik natija", events: "Baholash dalili", help: "Qo‘llab-quvvatlash",
+      trend: "Akademik rivoj", difficult: "Mustahkamlash kerak kompetensiyalar", list: "Talabalar",
+    },
+    platform: {
+      eyebrow: "O‘qituvchi paneli", title: "Statistikalar",
+      people: "Guruhdagi o‘quvchi", score: "O‘rtacha bilim", events: "Faoliyatlar", help: "Yordam kerak",
+      trend: "Guruh rivoji", difficult: "Qiyin tushayotgan mavzular", list: "O‘quvchilar",
+    },
+  }[selectedVariant.key];
 
   useEffect(() => {
     if (!groupId) {
@@ -790,15 +994,15 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
   }
 
   return (
-    <div className="analytics-view px-5 pt-6 pb-5">
+    <div className={`analytics-view analytics-context-${selectedVariant.key} px-5 pt-6 pb-5`}>
       <div className="flex items-start gap-3 mb-4">
         <button onClick={onBack} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
           style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
           <ChevronLeft size={18} />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1B4B7A" }}>O'qituvchi paneli</p>
-          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Statistikalar</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: selectedVariant.color }}>{teacherCopy.eyebrow}</p>
+          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>{teacherCopy.title}</h1>
           <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Ish joyi → guruh → o'quvchi → mavzu</p>
         </div>
         <select value={period} onChange={(e) => setPeriod(Number(e.target.value))}
@@ -849,20 +1053,20 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
       ) : data ? (
         <div className="teacher-analytics-grid space-y-3.5">
           <div className="teacher-kpi-strip premium-kpi-grid grid grid-cols-2 gap-2.5">
-            <MetricCard icon={Users} label="Guruhdagi o'quvchi" value={number(data.summary.student_count)} />
-            <MetricCard icon={TrendingUp} label="O'rtacha bilim" value={Math.round(number(data.summary.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
-            <MetricCard icon={BookOpen} label="Faoliyatlar" value={number(data.summary.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
-            <MetricCard icon={AlertTriangle} label="Yordam kerak" value={number(data.summary.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
+            <MetricCard icon={Users} label={teacherCopy.people} value={number(data.summary.student_count)} tone={selectedVariant.color} soft={selectedVariant.soft} />
+            <MetricCard icon={TrendingUp} label={teacherCopy.score} value={Math.round(number(data.summary.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
+            <MetricCard icon={BookOpen} label={teacherCopy.events} value={number(data.summary.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
+            <MetricCard icon={AlertTriangle} label={teacherCopy.help} value={number(data.summary.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
           </div>
 
           <section className="teacher-trend-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Guruh rivoji</p>
-            <TrendChart points={data.trend} color="#1B4B7A" />
+            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>{teacherCopy.trend}</p>
+            <TrendChart points={data.trend} color={selectedVariant.color} />
           </section>
 
           {(data.difficult_topics || []).length > 0 && (
             <section className="teacher-difficult-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Sinfga qiyin tushayotgan mavzular</p>
+              <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>{teacherCopy.difficult}</p>
               <div className="space-y-2">
                 {data.difficult_topics.slice(0, 6).map((t) => (
                   <div key={`${t.subject}-${t.topic_code}`} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "#FAF8F2" }}>
@@ -882,7 +1086,7 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
 
           <section className="teacher-students-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>O'quvchilar</p>
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{teacherCopy.list}</p>
               <span className="text-[10px]" style={{ color: "#8A8578" }}>Past natija yuqorida</span>
             </div>
             <div className="space-y-2">
