@@ -515,6 +515,8 @@ export default function InstituteWorkspace({
   initialWorkspace,
   onBack,
   onLegacy,
+  assignedOnly = false,
+  canCreateInstitution = true,
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -718,7 +720,7 @@ export default function InstituteWorkspace({
     );
   }
 
-  if (screen === "create") {
+  if (screen === "create" && canCreateInstitution) {
     return (
       <InstituteOnboarding
         apiBase={apiBase}
@@ -768,7 +770,7 @@ export default function InstituteWorkspace({
       </header>
       <ErrorNotice error={error} onRetry={load} />
 
-      <section className="inst-start-grid">
+      {canCreateInstitution && <section className="inst-start-grid">
         <button
           type="button"
           className="inst-start-card primary"
@@ -779,7 +781,14 @@ export default function InstituteWorkspace({
           <p>AI avatar bilan bosqichma-bosqich sozlang</p>
           <ChevronRight size={18} />
         </button>
-      </section>
+      </section>}
+
+      {assignedOnly && workspaces.length === 0 && (
+        <InfoNotice>
+          <b>Institut ish joyi ulanmagan</b>
+          <p>Yangi OTMni faqat Administrator markazi ochadi. Rektor yoki registrator sizga vakolat bergach, shu yerda o‘zingizga tegishli akademik ish maydoni ochiladi.</p>
+        </InfoNotice>
+      )}
 
       {verifications.length > 0 && (
         <section className="inst-section">
@@ -841,8 +850,8 @@ export default function InstituteWorkspace({
         {workspaces.length === 0 ? (
           <EmptyState
             icon={Building2}
-            title="Hali institut yo‘q"
-            text="Rektor, ta’sischi yoki administrator sifatida yangi ish maydoni yarating."
+            title={assignedOnly ? "Ulangan institut yo‘q" : "Hali institut yo‘q"}
+            text={assignedOnly ? "Institut rahbari yoki registrator vakolat berishi kerak." : "Administrator markazidan yangi ish maydoni yarating."}
           />
         ) : (
           <div className="inst-workspace-grid">
@@ -3725,5 +3734,3 @@ function SettingsPanel({ apiBase, token, contextId, permissions, institute, pref
     </section>
   );
 }
-
-  
