@@ -440,6 +440,8 @@ export default function SchoolWorkspace({
   initialWorkspace,
   onBack,
   onLegacy,
+  assignedOnly = false,
+  canCreateInstitution = true,
 }) {
   const [screen, setScreen] = useState("home");
   const [loading, setLoading] = useState(true);
@@ -523,7 +525,7 @@ export default function SchoolWorkspace({
     );
   }
 
-  if (screen === "create") {
+  if (screen === "create" && canCreateInstitution) {
     return (
       <SchoolOnboarding
         apiBase={apiBase}
@@ -536,7 +538,7 @@ export default function SchoolWorkspace({
     );
   }
 
-  if (screen === "join") {
+  if (screen === "join" && !assignedOnly) {
     return (
       <JoinSchool
         apiBase={apiBase}
@@ -605,8 +607,8 @@ export default function SchoolWorkspace({
 
       <ErrorNotice error={error} onRetry={() => loadWorkspaces()} />
 
-      <div className="school-start-grid">
-        <button type="button" onClick={() => setScreen("create")}>
+      {(!assignedOnly || canCreateInstitution) && <div className="school-start-grid">
+        {canCreateInstitution && <button type="button" onClick={() => setScreen("create")}>
           <span className="primary">
             <Plus size={21} />
           </span>
@@ -615,8 +617,8 @@ export default function SchoolWorkspace({
             <small>Bino, smena, sinf, xodim, kalendar va jadval poydevori</small>
           </div>
           <ChevronRight size={19} />
-        </button>
-        <button type="button" onClick={() => setScreen("join")}>
+        </button>}
+        {!assignedOnly && <button type="button" onClick={() => setScreen("join")}>
           <span>
             <Search size={21} />
           </span>
@@ -625,8 +627,15 @@ export default function SchoolWorkspace({
             <small>Taklif kodi yoki maktab nomi orqali so‘rov yuborish</small>
           </div>
           <ChevronRight size={19} />
-        </button>
-      </div>
+        </button>}
+      </div>}
+
+      {assignedOnly && workspaces.length === 0 && (
+        <InfoNotice>
+          <b>Maktab ish joyi ulanmagan</b>
+          <p>Maktabni faqat Administrator markazi ochadi. Maktab rahbari sizga xodim taklifini yuborgach, shu yerda faqat o‘zingizga berilgan ish maydoni ochiladi.</p>
+        </InfoNotice>
+      )}
 
       {workspaces.length > 0 && (
         <section className="school-section">
