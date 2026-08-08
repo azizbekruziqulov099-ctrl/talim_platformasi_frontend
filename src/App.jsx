@@ -1971,7 +1971,7 @@ function TestTab({
   const testUslubiniTanla = (yangiRejim) => {
     setTestRejimi(yangiRejim);
     if (yangiRejim === "oyin") {
-      // V18 o'yin dvigateli yosh bosqichini serverdagi DTS sinfidan oladi;
+      // V18.2 o'yin dvigateli yosh bosqichini serverdagi DTS sinfidan oladi;
       // har raund uchun barcha mos savollar bankidan 4+1 tuzilma yasaydi.
       setQiyinlik("");
       setRasimli(null);
@@ -2310,7 +2310,7 @@ function TestTab({
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "oyin" ? { borderColor: rang, backgroundColor: `${rang}12` } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
               <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>🎮 O'yinli test</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Har 4 ta tanlovdan keyin yozma Boss, ochko va kunlik seriya</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>Har 5-savol 4 variantli Boss, 3 jon, ochko va kunlik seriya</p>
             </button>
           </div>
         </div>
@@ -2362,7 +2362,7 @@ function TestTab({
           ) : (testRejimi === "oyin" ? variantlar.length === 0 : mosSoni === 0) ? (
             <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
               {testRejimi === "oyin"
-                ? "O'yin uchun kamida 5 ta mos savol kerak: 4 ta tanlovli va 1 ta yozma Boss."
+                ? "O'yin uchun kamida 5 ta to'liq, 4 variantli savol kerak."
                 : "Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang."}
             </p>
           ) : (
@@ -3929,46 +3929,81 @@ function KitobMiyaBolimi({ token }) {
 }
 
 function AdminTab({ token, oldindanTanlangan }) {
-  // Faqat "Mavzular"dan "Test shablon yaratish" bosilib, tayyor mavzu bilan
-  // kelinganda — to'g'ridan-to'g'ri "Test shablon"ni ochamiz. Aks holda hech
-  // narsa tanlanmagan holda boshlanadi — sozlamalar foydalanuvchi ANIQ bir
-  // bo'limni tanlaguncha ko'rinmaydi.
-  const [bolim, setBolim] = useState(oldindanTanlangan && oldindanTanlangan.length > 0 ? "test" : null); // null | "miya" | "test" | "topik" | ...
+  // Shablonlar sahifasiga kirilganda hech qaysi ish oynasi o'z-o'zidan
+  // ochilmaydi. Mavzular sahifasidan kelgan kodlar esa yo'qolmaydi: foydalanuvchi
+  // keyin "Shablon"ni tanlaganda TestShablonBolimi'ga uzatiladi.
+  const [bolim, setBolim] = useState(null); // null | "miya" | "test" | "topik" | ...
+  const [testRejimi, setTestRejimi] = useState(null); // null | "shablon" | "import"
+
+  const bolimniOch = (yangiBolim) => {
+    setBolim(yangiBolim);
+    setTestRejimi(null);
+  };
+
+  const testMenyusiniAlmashtir = () => {
+    if (bolim === "test") {
+      setBolim(null);
+      setTestRejimi(null);
+      return;
+    }
+    setBolim("test");
+    setTestRejimi(null);
+  };
 
   return (
     <div className="px-5 pt-6 pb-4">
       <h1 className="text-2xl font-bold mb-4" style={{ color: "#2B2B2B" }}>Shablonlar</h1>
 
       <div className="grid grid-cols-2 gap-2 mb-5">
-        <button onClick={() => setBolim("miya")}
+        <button onClick={() => bolimniOch("miya")}
           className="col-span-2 py-3 rounded-xl font-semibold text-sm"
           style={bolim === "miya"
             ? { background: "linear-gradient(135deg,#1B4B7A,#2D8B8B)", color: "#fff" }
             : { backgroundColor: "#EEF7F5", color: "#246D6D", border: "1px solid #A8D2C8" }}>
           🧠 Kitob miyasi · yangi universal import
         </button>
-        <button onClick={() => setBolim("test")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
+        <button type="button" onClick={testMenyusiniAlmashtir}
+          aria-expanded={bolim === "test"} aria-controls="test-shablon-import-tanlov"
+          className="col-span-2 py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "test"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          🧪 Test shablon
+          🧪 Test shablon va import
         </button>
-        <button onClick={() => setBolim("topik")}
+        {bolim === "test" && (
+          <div id="test-shablon-import-tanlov" className="col-span-2 grid grid-cols-2 gap-2 rounded-xl p-2"
+            style={{ backgroundColor: "#EAF1F7" }}>
+            <button type="button" onClick={() => setTestRejimi("shablon")}
+              className="py-2.5 rounded-xl font-semibold text-sm"
+              style={testRejimi === "shablon"
+                ? { backgroundColor: "#2D8B8B", color: "#fff" }
+                : { backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #B7D3E8" }}>
+              📄 Shablon
+            </button>
+            <button type="button" onClick={() => setTestRejimi("import")}
+              className="py-2.5 rounded-xl font-semibold text-sm"
+              style={testRejimi === "import"
+                ? { backgroundColor: "#2D8B8B", color: "#fff" }
+                : { backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #B7D3E8" }}>
+              📤 Import
+            </button>
+          </div>
+        )}
+        <button onClick={() => bolimniOch("topik")}
           className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "topik"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           📋 Topik shablon
         </button>
-        <button onClick={() => setBolim("tushuntirish")}
+        <button onClick={() => bolimniOch("tushuntirish")}
           className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "tushuntirish"
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🤖 Tushuntirish
         </button>
-        <button onClick={() => setBolim("sinov")}
+        <button onClick={() => bolimniOch("sinov")}
           className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "sinov"
             ? { backgroundColor: "#C89B3C", color: "#fff" }
@@ -3978,7 +4013,12 @@ function AdminTab({ token, oldindanTanlangan }) {
       </div>
 
       {bolim === "miya" && <KitobMiyaBolimi token={token} />}
-      {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
+      {bolim === "test" && testRejimi === "shablon" && (
+        <TestShablonBolimi key="shablon" token={token} oldindanTanlangan={oldindanTanlangan} mode="shablon" />
+      )}
+      {bolim === "test" && testRejimi === "import" && (
+        <TestShablonBolimi key="import" token={token} oldindanTanlangan={oldindanTanlangan} mode="import" />
+      )}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
       {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
       {bolim === "sinov" && <SinovMuhitiBolimi token={token} />}
@@ -4192,7 +4232,7 @@ const QIYINLIK_DARAJALARI = [
   ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
 ];
 
-function TestShablonBolimi({ token, oldindanTanlangan }) {
+function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
   const [maqsad, setMaqsad] = useState("oddiy"); // "oddiy" | "minimal_bilim"
   const [guruhlar, setGuruhlar] = useState(
@@ -4205,7 +4245,6 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   const [diagnostika, setDiagnostika] = useState(null);
   const [diagnostikaYuklanmoqda, setDiagnostikaYuklanmoqda] = useState(false);
   const [diagnostikaXato, setDiagnostikaXato] = useState("");
-  const [yuklashBolimiOchiq, setYuklashBolimiOchiq] = useState(false);
 
   const diagnostikaniKor = async () => {
     setDiagnostikaYuklanmoqda(true); setDiagnostikaXato(""); setDiagnostika(null);
@@ -4261,11 +4300,12 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   };
 
   useEffect(() => {
+    if (mode !== "shablon") return;
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setSinflarRoyxati(d))
       .catch(() => setXato("Sinflarni yuklab bo'lmadi"));
-  }, [token]);
+  }, [mode, token]);
 
   const sinfTuriTanlandi = (turi) => {
     setTanlanganSinfTuri(turi);
@@ -4293,7 +4333,7 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   };
 
   const hammasiniTanlash = () => {
-    const barchaKodlar = ichkiMavzular.flatMap((m) => m.barcha_kodlar || [m.topic_code]);
+    const barchaKodlar = ichkiMavzular.flatMap((m) => m.topic_codes || m.barcha_kodlar || [m.topic_code]);
     setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...barchaKodlar])));
   };
 
@@ -4309,10 +4349,10 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
   };
 
   useEffect(() => {
-    if (oldindanTanlangan && oldindanTanlangan.length > 0) {
+    if (mode === "shablon" && oldindanTanlangan && oldindanTanlangan.length > 0) {
       setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...oldindanTanlangan])));
     }
-  }, [oldindanTanlangan]);
+  }, [mode, oldindanTanlangan]);
 
   const kodniAlmashtir = (kodlar) => {
     setTanlanganKodlar((prev) => {
@@ -4373,9 +4413,22 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
     }
   };
 
+  const importQilinganVaraqlar = Array.isArray(natija?.import_qilingan_varaqlar)
+    ? natija.import_qilingan_varaqlar
+    : (Array.isArray(natija?.oqilgan_varaqlar) ? natija.oqilgan_varaqlar : []);
+  const varaqDiagnostikasi = Array.isArray(natija?.varaq_diagnostika)
+    ? natija.varaq_diagnostika
+    : (Array.isArray(natija?.varaq_natijalari) ? natija.varaq_natijalari : []);
+  const importQilinganVaraqSoni = natija?.import_qilingan_varaq_soni
+    ?? natija?.oqilgan_varaqlar_soni
+    ?? importQilinganVaraqlar.length;
+  const korilganSavollarSoni = natija?.korilgan_savollar_soni
+    ?? varaqDiagnostikasi.reduce((jami, varaq) => jami + Number(varaq.savolli_qator || 0), 0);
+
   return (
     <>
-      <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+      {mode === "import" && (
+        <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <button onClick={diagnostikaniKor} disabled={diagnostikaYuklanmoqda}
           className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 border"
           style={{ borderColor: "#B7D3E8", color: "#1B4B7A", backgroundColor: "#EAF1F7" }}>
@@ -4402,9 +4455,12 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="rounded-2xl p-3 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
+      {mode === "shablon" && (
+        <>
+          <div className="rounded-2xl p-3 bg-white border mb-3" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex rounded-full p-1 gap-0.5" style={{ backgroundColor: "#F0EDE5" }}>
           <button type="button" onClick={() => maqsadOzgar("oddiy")} className="flex-1 py-1.5 rounded-full text-xs font-semibold"
             style={maqsad === "oddiy" ? { backgroundColor: "#fff", color: "#1B4B7A", boxShadow: "0 1px 3px rgba(43,43,43,0.12)" } : { backgroundColor: "transparent", color: "#8A8578" }}>
@@ -4420,9 +4476,9 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
             Sinfni bitirish / keyingi sinfga o'tish uchun talab qilinadigan ENG KAM bilimni tekshiradi — har mavzudan avtomatik 3 ta oson, tugmali savol belgilandi (pastda o'zgartirishingiz ham mumkin).
           </p>
         )}
-      </div>
+          </div>
 
-      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <label className="text-xs font-medium mb-3 block" style={{ color: "#5A5648" }}>
           1) Mavzu(lar)ni tanlang ({tanlanganKodlar.length} ta tanlandi)
         </label>
@@ -4542,7 +4598,7 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
                 </button>
                 <div className="space-y-1 max-h-56 overflow-y-auto">
                   {ichkiMavzular.map((m) => {
-                    const kodlar = m.barcha_kodlar || [m.topic_code];
+                    const kodlar = m.topic_codes || m.barcha_kodlar || [m.topic_code];
                     return (
                       <label key={m.topic_code} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer" style={{ backgroundColor: "#F7F5F0" }}>
                         <input type="checkbox" checked={kodlar.every((k) => tanlanganKodlar.includes(k))}
@@ -4556,9 +4612,9 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
             )}
           </>
         )}
-      </div>
+          </div>
 
-      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+          <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <label className="text-xs font-medium mb-3 block" style={{ color: "#5A5648" }}>
           2) Har bir qiyinlik darajasi uchun son va turini tanlang
         </label>
@@ -4605,64 +4661,146 @@ function TestShablonBolimi({ token, oldindanTanlangan }) {
           style={{ backgroundColor: "#1B4B7A", opacity: yuklanmoqda ? 0.7 : 1 }}>
           {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : `📥 Shablon yuklab olish (jami: ${jamiSon} ta × ${tanlanganKodlar.length} mavzu)`}
         </button>
-      </div>
-
-      <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-        <button onClick={() => setYuklashBolimiOchiq((o) => !o)} className="w-full flex items-center justify-between">
-          <span className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>To'ldirilgan shablonni yuklash</span>
-          <ChevronDown size={18} style={{ color: "#8A8578", transform: yuklashBolimiOchiq ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
-        </button>
-
-        {yuklashBolimiOchiq && (
-          <div className="mt-3">
-            <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
-              style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
-              {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 Fayl tanlash"}
-              <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
-            </label>
-
-            {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
-            {natija && (
-              <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
-                <p>✅ Saqlandi: <b>{natija.saved}</b></p>
-                <p>⚠️ Duplikat: <b>{natija.duplicates}</b></p>
-                <p>❌ Xato: <b>{natija.errors}</b></p>
-                {natija.rasm_biriktirildi > 0 && (
-                  <p>🖼️ Rasm biriktirildi: <b>{natija.rasm_biriktirildi}</b></p>
-                )}
-                {natija.kod_yoq > 0 && (
-                  <p className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
-                    🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Bu mavzular uchun yangi shablon yuklab oling (Topik mavzularini avval to'g'irlab, qayta shablon oling) va savollarni o'sha yangi shablonga ko'chirib qayta yuklang.
-                  </p>
-                )}
-                {natija.yetim_kodlar_soni > 0 && (
-                  <div className="mt-1.5 rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
-                    <p>⚠️ <b>{natija.yetim_kodlar_soni}</b> xil topic_code "Mavzular"da (dts_tree) topilmadi — bu testlar saqlandi, lekin hech qanday mavzuga bog'lanmagani uchun o'quvchiga hech qachon ko'rinmaydi!</p>
-                    {natija.yetim_kodlar_namuna?.length > 0 && (
-                      <p className="text-xs mt-1 font-mono" style={{ wordBreak: "break-all" }}>Namuna: {natija.yetim_kodlar_namuna.join(", ")}</p>
-                    )}
-                  </div>
-                )}
-                {natija.rasm_diagnostika && (
-                  <div className="mt-1.5 rounded-lg px-2.5 py-2 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                    <p className="font-semibold mb-1">🔍 Rasm diagnostikasi (shu import uchun):</p>
-                    <p>Qabul qilingan fayl hajmi: <b>{(natija.rasm_diagnostika.qabul_qilingan_fayl_hajmi_bayt / 1024 / 1024).toFixed(2)} MB</b></p>
-                    <p>openpyxl versiyasi: <b>{natija.rasm_diagnostika.openpyxl_versiyasi}</b></p>
-                    <p>Excel ichida topilgan rasm: <b>{natija.rasm_diagnostika.excel_ichida_topilgan_rasm_soni}</b></p>
-                    <p>Qatorga bog'langan rasm: <b>{natija.rasm_diagnostika.qatorga_bogliy_qilingan_rasm_soni}</b></p>
-                    {natija.rasm_diagnostika.xatolar?.length > 0 && (
-                      <>
-                        <p className="mt-1 font-semibold">Xatolar:</p>
-                        {natija.rasm_diagnostika.xatolar.map((x, i) => <p key={i} className="font-mono" style={{ wordBreak: "break-all" }}>{x}</p>)}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {mode === "import" && (
+        <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
+          <div className="mb-3">
+            <h2 className="text-base font-bold" style={{ color: "#2B2B2B" }}>Testlarni import qilish</h2>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>
+              Excel ichidagi barcha <b>TESTLAR</b> va <b>TESTLAR_...</b> varaqlari birgalikda o'qiladi. Natijada qaysi varaqlar import qilingani alohida ko'rsatiladi.
+            </p>
+          </div>
+
+          <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
+            style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+            {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan Excel faylni tanlash"}
+            <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+          </label>
+
+          {xato && (
+            <p className="text-sm mt-3 rounded-lg px-3 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+              ❌ {xato}
+            </p>
+          )}
+          {natija && (
+            <div className="mt-4 text-sm space-y-3" style={{ color: "#2B2B2B" }}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="rounded-xl p-2.5" style={{ backgroundColor: "#EAF1F7" }}>
+                  <p className="text-[10px]" style={{ color: "#5A7894" }}>Import qilingan varaq</p>
+                  <p className="text-lg font-bold" style={{ color: "#1B4B7A" }}>{importQilinganVaraqSoni}</p>
+                </div>
+                <div className="rounded-xl p-2.5" style={{ backgroundColor: "#EEF7F5" }}>
+                  <p className="text-[10px]" style={{ color: "#4F7E75" }}>Ko'rilgan savol</p>
+                  <p className="text-lg font-bold" style={{ color: "#246D6D" }}>{korilganSavollarSoni}</p>
+                </div>
+                <div className="rounded-xl p-2.5" style={{ backgroundColor: "#EDF7EC" }}>
+                  <p className="text-[10px]" style={{ color: "#56734E" }}>Bazaga saqlandi</p>
+                  <p className="text-lg font-bold" style={{ color: "#3D6E35" }}>{natija.saved ?? 0}</p>
+                </div>
+                <div className="rounded-xl p-2.5" style={{ backgroundColor: "#FDF3E0" }}>
+                  <p className="text-[10px]" style={{ color: "#8A6A35" }}>Duplikat</p>
+                  <p className="text-lg font-bold" style={{ color: "#8A5A1C" }}>{natija.duplicates ?? 0}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <p className="font-semibold">O'qilgan test varaqlari ({importQilinganVaraqSoni} ta)</p>
+                {importQilinganVaraqlar.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {importQilinganVaraqlar.map((varaqNomi) => (
+                      <span key={varaqNomi} className="rounded-full px-2 py-1 text-xs font-semibold"
+                        style={{ backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #B7D3E8" }}>
+                        {varaqNomi}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Mos test varag'i topilmadi.</p>
+                )}
+                <p className="text-xs mt-2" style={{ color: "#8A8578" }}>
+                  Fayldagi turli topic_code: <b>{natija.fayldagi_topic_code_soni ?? 0}</b> · Xatolar: <b>{natija.errors ?? 0}</b>
+                </p>
+              </div>
+
+              {varaqDiagnostikasi.length > 0 && (
+                <div>
+                  <p className="font-semibold mb-2">Har bir varaq natijasi</p>
+                  <div className="space-y-2">
+                    {varaqDiagnostikasi.map((varaq, index) => {
+                      const importQilindi = varaq.holat === "import_qilindi";
+                      return (
+                        <div key={`${varaq.varaq || "varaq"}-${index}`} className="rounded-xl border px-3 py-2.5"
+                          style={{ borderColor: importQilindi ? "#A8D2C8" : "#E8B8AE", backgroundColor: importQilindi ? "#F5FBF9" : "#FFF7F5" }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <b className="break-all">{varaq.varaq || `Varaq ${index + 1}`}</b>
+                            <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                              style={{ backgroundColor: importQilindi ? "#DDEFEA" : "#FCEBEB", color: importQilindi ? "#246D6D" : "#A32D2D" }}>
+                              {importQilindi ? "IMPORT QILINDI" : "O'TKAZIB YUBORILDI"}
+                            </span>
+                          </div>
+                          {importQilindi ? (
+                            <p className="text-xs mt-1" style={{ color: "#5A5648" }}>
+                              Savol: <b>{varaq.savolli_qator ?? 0}</b> · Saqlandi: <b>{varaq.saved ?? 0}</b> · Duplikat: <b>{varaq.duplicates ?? 0}</b> · Xato: <b>{varaq.errors ?? 0}</b>
+                              {Number(varaq.kod_yoq || 0) > 0 ? <> · Kodsiz: <b>{varaq.kod_yoq}</b></> : null}
+                            </p>
+                          ) : (
+                            <p className="text-xs mt-1" style={{ color: "#A32D2D" }}>
+                              Yetishmagan ustunlar: {varaq.yetishmagan_ustunlar?.length > 0 ? varaq.yetishmagan_ustunlar.join(", ") : "format mos emas"}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {natija.kod_yoq > 0 && (
+                <p className="rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
+                  🚫 <b>{natija.kod_yoq}</b> ta savol o'tkazib yuborildi — ularning topic_code ustuni bo'sh edi. Topik mavzularini to'g'rilab, yangi shablon orqali qayta yuklang.
+                </p>
+              )}
+              {natija.yetim_kodlar_soni > 0 && (
+                <div className="rounded-lg px-2.5 py-2" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+                  <p>⚠️ <b>{natija.yetim_kodlar_soni}</b> xil topic_code "Mavzular"da topilmadi — bu testlar o'quvchiga ko'rinmaydi.</p>
+                  {natija.yetim_kodlar_namuna?.length > 0 && (
+                    <p className="text-xs mt-1 font-mono" style={{ wordBreak: "break-all" }}>Namuna: {natija.yetim_kodlar_namuna.join(", ")}</p>
+                  )}
+                </div>
+              )}
+              {natija.rasm_biriktirildi > 0 && <p>🖼️ Rasm biriktirildi: <b>{natija.rasm_biriktirildi}</b></p>}
+              {natija.rasm_diagnostika && (
+                <div className="rounded-lg px-2.5 py-2 text-xs" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                  <p className="font-semibold mb-1">🔍 Rasm diagnostikasi (shu import uchun):</p>
+                  <p>Qabul qilingan fayl hajmi: <b>{(Number(natija.rasm_diagnostika.qabul_qilingan_fayl_hajmi_bayt || 0) / 1024 / 1024).toFixed(2)} MB</b></p>
+                  <p>openpyxl versiyasi: <b>{natija.rasm_diagnostika.openpyxl_versiyasi}</b></p>
+                  <p>Excel ichida topilgan rasm: <b>{natija.rasm_diagnostika.excel_ichida_topilgan_rasm_soni ?? 0}</b></p>
+                  <p>Qatorga bog'langan rasm: <b>{natija.rasm_diagnostika.qatorga_bogliy_qilingan_rasm_soni ?? 0}</b></p>
+                  {natija.rasm_diagnostika.xatolar?.length > 0 && (
+                    <>
+                      <p className="mt-1 font-semibold">Xatolar:</p>
+                      {natija.rasm_diagnostika.xatolar.map((rasmXatosi, index) => (
+                        <p key={index} className="font-mono" style={{ wordBreak: "break-all" }}>{rasmXatosi}</p>
+                      ))}
+                    </>
+                  )}
+                  {natija.rasm_diagnostika.ogohlantirishlar?.length > 0 && (
+                    <>
+                      <p className="mt-1 font-semibold">Ogohlantirishlar:</p>
+                      {natija.rasm_diagnostika.ogohlantirishlar.map((ogohlantirish, index) => (
+                        <p key={index} style={{ wordBreak: "break-word" }}>{ogohlantirish}</p>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -14972,7 +15110,7 @@ function Kabinet({ token }) {
         const u = await resU.json();
         setFoydalanuvchi(u);
 
-        // V18: Tashkent sanasi bo'yicha kunlik kirish ochkosi backendda
+        // V18.2: Tashkent sanasi bo'yicha kunlik kirish ochkosi backendda
         // faqat bir marta beriladi. 015 hali o'rnatilmagan eski serverda
         // kabinetning qolgan qismini to'xtatmaymiz.
         fetch(`${API_BASE}/api/oyin/kunlik-kirish`, {
