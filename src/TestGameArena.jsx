@@ -4,10 +4,12 @@ import "./testGames.css";
 import {
   AGE_BANDS,
   GAME_AUTO_READ_MAX_WAIT_MS,
+  GAME_FEEDBACK_HOLD_MS,
   GAME_MODES,
   GAME_TIMEOUT_ANSWER,
   GAME_TIMER_READY_DELAY_MS,
   formatGameTimerSeconds,
+  gameFeedbackCountdownSeconds,
   gameErrorMessage,
   gameLivesRemaining,
   gameQuestionTimerConfig,
@@ -97,7 +99,7 @@ export function GameModePicker({ value, onChange, gradeBand, accent, profile }) 
               type="button"
               key={mode.id}
               aria-pressed={active}
-              className={`game-mode-card ${active ? "is-active" : ""}`}
+              className={`game-mode-card game-mode-card-${mode.id} ${active ? "is-active" : ""}`}
               style={{ "--mode-dark": mode.colors[0], "--mode-light": mode.colors[1] }}
               onClick={() => onChange(mode.id)}
             >
@@ -116,78 +118,210 @@ export function GameModePicker({ value, onChange, gradeBand, accent, profile }) 
 }
 
 
-function BridgeScene({ step, feedback }) {
+function sceneStateClass(feedback) {
+  if (feedback?.type === "timeout") return "is-scene-timeout";
+  if (feedback?.correct === true) return "is-scene-correct";
+  if (feedback?.correct === false) return "is-scene-wrong";
+  return "is-scene-playing";
+}
+
+
+function SceneFeedbackFX({ feedback, successText = "Ajoyib!", failText = "Yana urinib ko'ring" }) {
+  if (feedback?.correct !== true && feedback?.correct !== false && feedback?.type !== "timeout") return null;
+  const correct = feedback?.correct === true;
   return (
-    <div className="game-scene game-scene-bridge" aria-label="Ko'prikdagi yurish holati">
-      <div className={`bridge-runner ${feedback?.correct === true ? "did-jump" : feedback?.correct === false ? "did-shake" : ""}`} style={{ left: `${Math.min(88, 7 + (step - 1) * 20)}%` }}>●</div>
-      <div className="bridge-tiles">
-        {[1, 2, 3, 4, 5].map((number) => <span key={number} className={number < step ? "is-done" : number === step ? "is-current" : ""}>{number === 5 ? "★" : number}</span>)}
-      </div>
-      <small>{step === 5 ? "Boss darvozasi" : `${step}-oyna · to'g'ri javob yo'lni ochadi`}</small>
+    <div className={`scene-feedback-fx ${correct ? "is-success" : "is-fail"}`} aria-hidden="true">
+      <span>{correct ? "✓" : "!"}</span>
+      <strong>{correct ? successText : feedback?.type === "timeout" ? "VAQT TUGADI" : failText}</strong>
+      <i /><i /><i /><i /><i /><i />
     </div>
   );
 }
 
 
-function MillionaireScene({ step }) {
+function GameAvatar({ variant = "runner", className = "" }) {
   return (
-    <div className="game-scene game-scene-millionaire">
-      <div className="millionaire-orbit">M</div>
-      <div className="millionaire-ladder">
-        {[5, 4, 3, 2, 1].map((number) => (
-          <span key={number} className={number === step ? "is-current" : number < step ? "is-done" : ""}>
-            {number === 5 ? "JACKPOT" : `${number * 25} 000`}
-          </span>
-        ))}
-      </div>
+    <span className={`game-avatar avatar-${variant} ${className}`} aria-hidden="true">
+      <i className="avatar-shadow" />
+      <i className="avatar-leg avatar-leg-left" />
+      <i className="avatar-leg avatar-leg-right" />
+      <i className="avatar-body" />
+      <i className="avatar-arm avatar-arm-left" />
+      <i className="avatar-arm avatar-arm-right" />
+      <i className="avatar-head"><b /><em /></i>
+      <i className="avatar-hair" />
+      {variant === "detective" && <i className="avatar-hat" />}
+      {variant === "builder" && <i className="avatar-helmet" />}
+    </span>
+  );
+}
+
+
+function SceneHud({ label, step, icon }) {
+  return (
+    <div className="scene-hud" aria-hidden="true">
+      <span>{icon}</span>
+      <div><small>MISSIYA</small><strong>{label}</strong></div>
+      <b>{step}/5</b>
     </div>
+  );
+}
+
+
+function BridgeScene({ step, feedback }) {
+  const state = sceneStateClass(feedback);
+  const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
+  const runnerIndex = feedback?.correct === true ? safeStep - 1 : Math.max(-0.35, safeStep - 1.75);
+  return (
+    <section className={`game-scene game-scene-bridge ${state}`} aria-label={`Oltin ko'prik, ${safeStep}-oyna`}>
+      <div className="bridge-world" aria-hidden="true">
+        <div className="bridge-sun" />
+        <div className="bridge-cloud bridge-cloud-one" /><div className="bridge-cloud bridge-cloud-two" />
+        <div className="bridge-castle"><i /><i /><i /><b /></div>
+        <div className="bridge-mountains"><i /><i /><i /></div>
+        <div className="bridge-water"><i /><i /><i /></div>
+        <div className="bridge-coins">{[1, 2, 3, 4, 5].map((number) => <i key={number}>★</i>)}</div>
+        <div className="bridge-runner-track" style={{ "--runner-index": runnerIndex }}>
+          <div className="bridge-runner"><GameAvatar variant="runner" /></div>
+        </div>
+        <div className="bridge-tiles">
+          {[1, 2, 3, 4, 5].map((number) => {
+            const classes = [
+              number < safeStep ? "is-done" : "",
+              number === safeStep ? "is-current" : "",
+              number === safeStep && feedback?.correct === true ? "is-cleared" : "",
+              number === safeStep && feedback?.correct === false ? "is-cracked" : "",
+            ].filter(Boolean).join(" ");
+            return (
+              <span key={number} className={classes}>
+                <b>{number === 5 ? "BOSS" : number}</b><i /><em /><u />
+              </span>
+            );
+          })}
+        </div>
+        <div className="bridge-portal"><i>★</i><b>BOSS</b></div>
+      </div>
+      <SceneHud icon="◆" label={safeStep === 5 ? "Boss darvozasi" : "To'g'ri oynaga sakrang"} step={safeStep} />
+      <SceneFeedbackFX feedback={feedback} successText="SAKRASH BAJARILDI!" failText="OYNA DARZ KETDI" />
+      <small className="scene-caption">{safeStep === 5 ? "Darvozani ochish uchun final javobni toping" : "To'g'ri javob qahramonni keyingi oynaga olib o'tadi"}</small>
+    </section>
+  );
+}
+
+
+function MillionaireScene({ step, feedback }) {
+  const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
+  const prizes = ["1 000 000", "500 000", "250 000", "125 000", "64 000"];
+  return (
+    <section className={`game-scene game-scene-millionaire ${sceneStateClass(feedback)}`} aria-label={`Bilim millioneri, ${safeStep}-pog'ona`}>
+      <div className="millionaire-world" aria-hidden="true">
+        <div className="stage-beams"><i /><i /><i /><i /><i /></div>
+        <div className="stage-rings"><i /><i /><i /></div>
+        <div className="stage-audience">{Array.from({ length: 24 }, (_, index) => <i key={index} />)}</div>
+        <div className="millionaire-host"><GameAvatar variant="host" /></div>
+        <div className="millionaire-chair"><i /><b /><GameAvatar variant="contestant" /></div>
+        <div className="millionaire-emblem"><span>M</span><i /></div>
+        <div className="millionaire-ladder">
+          {prizes.map((prize, index) => {
+            const level = 5 - index;
+            return <span key={prize} className={level === safeStep ? "is-current" : level < safeStep ? "is-done" : ""}><i>{level}</i><b>{prize}</b></span>;
+          })}
+        </div>
+      </div>
+      <SceneHud icon="₿" label={safeStep === 5 ? "Millionlik savol" : "Navbatdagi pog'ona"} step={safeStep} />
+      <SceneFeedbackFX feedback={feedback} successText="JAVOB QABUL QILINDI!" failText="NOTO'G'RI JAVOB" />
+      <small className="scene-caption">Bilimingiz bilan bosh sovrin tomon ko'tariling</small>
+    </section>
   );
 }
 
 
 function SpaceScene({ step, feedback }) {
+  const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
+  const rocketIndex = feedback?.correct === true ? safeStep - 1 : Math.max(-0.2, safeStep - 1.55);
   return (
-    <div className="game-scene game-scene-space">
-      <div className="space-stars">✦ · ✧ · ✦ · ✧ · ✦</div>
-      <div className={`space-rocket ${feedback?.correct ? "did-launch" : ""}`} style={{ left: `${Math.min(86, 7 + (step - 1) * 20)}%` }}>▲</div>
-      <div className="space-orbits">{[1, 2, 3, 4, 5].map((number) => <span key={number} className={number <= step ? "is-lit" : ""}>{number === 5 ? "◎" : "○"}</span>)}</div>
-      <small>{step === 5 ? "Qo'nish topshirig'i" : "Keyingi orbitaga tayyor"}</small>
-    </div>
+    <section className={`game-scene game-scene-space ${sceneStateClass(feedback)}`} aria-label={`Kosmik parvoz, ${safeStep}-orbita`}>
+      <div className="space-world" aria-hidden="true">
+        <div className="space-nebula" /><div className="space-nebula is-second" />
+        <div className="space-starfield">{Array.from({ length: 34 }, (_, index) => <i key={index} />)}</div>
+        <div className="space-planet planet-one"><i /></div>
+        <div className="space-planet planet-two"><i /></div>
+        <div className="space-planet planet-boss"><i /><b>BOSS</b></div>
+        <div className="space-route"><i /><i /><i /><i /><i /></div>
+        <div className="space-rocket-track" style={{ "--rocket-index": rocketIndex }}>
+          <div className="space-rocket"><i className="rocket-flame" /><b /><span /><em /></div>
+        </div>
+        <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${safeStep * 20}%` }} /></em></div>
+      </div>
+      <SceneHud icon="✦" label={safeStep === 5 ? "Boss sayyorasi" : "Keyingi orbitaga uching"} step={safeStep} />
+      <SceneFeedbackFX feedback={feedback} successText="ORBITAGA O'TILDI!" failText="ENERGIYA KAMAYDI" />
+      <small className="scene-caption">Har to'g'ri javob raketaga yangi quvvat beradi</small>
+    </section>
   );
 }
 
 
-function DetectiveScene({ step }) {
+function DetectiveScene({ step, feedback }) {
+  const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
+  const clueLabels = ["IZ", "KALIT", "XARITA", "KOD"];
   return (
-    <div className="game-scene game-scene-detective">
-      <div className="detective-board">
-        {[1, 2, 3, 4].map((number) => <span key={number} className={number < step ? "is-found" : number === step ? "is-current" : ""}>DALIL {number}</span>)}
-        <b className={step === 5 ? "is-current" : ""}>XULOSA</b>
+    <section className={`game-scene game-scene-detective ${sceneStateClass(feedback)}`} aria-label={`Bilim detektivi, ${safeStep}-dalil`}>
+      <div className="detective-world" aria-hidden="true">
+        <div className="detective-window"><i /><i /><i /><i /></div>
+        <div className="detective-lamp"><i /><b /></div>
+        <div className="detective-desk"><i /><b /><em /></div>
+        <div className="detective-avatar"><GameAvatar variant="detective" /><i className="detective-glass" /></div>
+        <div className="detective-board">
+          <div className="detective-thread"><i /><i /><i /><i /></div>
+          {clueLabels.map((label, index) => {
+            const number = index + 1;
+            return <span key={label} className={number < safeStep ? "is-found" : number === safeStep ? "is-current" : ""}><i>{number}</i><b>{label}</b><em>{number <= safeStep ? "TOPILDI" : "?"}</em></span>;
+          })}
+          <b className={`detective-verdict ${safeStep === 5 ? "is-current" : ""}`}>XULOSA<i>★</i></b>
+        </div>
+        <div className="detective-spotlight" />
       </div>
-      <small>{step === 5 ? "Topilgan dalillar bilan Boss savolni yeching" : "Muhim ishorani toping"}</small>
-    </div>
+      <SceneHud icon="⌕" label={safeStep === 5 ? "Sirni oching" : `${safeStep}-dalilni toping`} step={safeStep} />
+      <SceneFeedbackFX feedback={feedback} successText="DALIL TOPILDI!" failText="IZ YO'QOLDI" />
+      <small className="scene-caption">Savolni yeching va ish doskasidagi sirli bog'lanishni oching</small>
+    </section>
   );
 }
 
 
-function CityScene({ step }) {
+function CityScene({ step, feedback }) {
+  const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   return (
-    <div className="game-scene game-scene-city">
-      <div className="city-skyline">
-        {[1, 2, 3, 4, 5].map((number) => <span key={number} className={number <= step ? "is-built" : ""} style={{ height: `${22 + number * 9}px` }}>{number === 5 ? "★" : ""}</span>)}
+    <section className={`game-scene game-scene-city ${sceneStateClass(feedback)}`} aria-label={`Bilim shahri, ${safeStep}-qurilish`}>
+      <div className="city-world" aria-hidden="true">
+        <div className="city-sun" /><div className="city-cloud is-one" /><div className="city-cloud is-two" />
+        <div className="city-hills"><i /><i /></div>
+        <div className="city-crane"><i /><b /><em /><u /></div>
+        <div className="city-skyline">
+          {[1, 2, 3, 4, 5].map((number) => (
+            <span key={number} className={`${number < safeStep ? "is-built" : ""} ${number === safeStep ? "is-current" : ""} ${number === safeStep && feedback?.correct === true ? "is-built-now" : ""}`}>
+              <b>{number === 5 ? "★" : ""}</b>{Array.from({ length: Math.min(8, number + 3) }, (_, index) => <i key={index} />)}
+            </span>
+          ))}
+        </div>
+        <div className="city-road"><i /><i /><i /><span /></div>
+        <div className="city-builder"><GameAvatar variant="builder" /><i className="builder-plan" /></div>
+        <div className="city-trees"><i /><i /><i /></div>
       </div>
-      <small>{step === 5 ? "Shahar markazini yakunlang" : "To'g'ri javob — yangi bino"}</small>
-    </div>
+      <SceneHud icon="▦" label={safeStep === 5 ? "Shahar markazi" : "Yangi bino quring"} step={safeStep} />
+      <SceneFeedbackFX feedback={feedback} successText="BINO QURILDI!" failText="LOYIHA TO'XTADI" />
+      <small className="scene-caption">To'g'ri javob bilan shahringizga yangi bino qo'shing</small>
+    </section>
   );
 }
 
 
 function GameScene({ mode, question, feedback }) {
   const step = question?.round_step || 1;
-  if (mode === "millionaire") return <MillionaireScene step={step} />;
+  if (mode === "millionaire") return <MillionaireScene step={step} feedback={feedback} />;
   if (mode === "space") return <SpaceScene step={step} feedback={feedback} />;
-  if (mode === "detective") return <DetectiveScene step={step} />;
-  if (mode === "city") return <CityScene step={step} />;
+  if (mode === "detective") return <DetectiveScene step={step} feedback={feedback} />;
+  if (mode === "city") return <CityScene step={step} feedback={feedback} />;
   return <BridgeScene step={step} feedback={feedback} />;
 }
 
@@ -271,24 +405,26 @@ function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics }) {
       : "Imkonlar tugadi. Yangi o'yinda yana urinib ko'ring.",
   );
   return (
-    <div className="game-result game-terminal-result" style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1] }}>
-      <div className="game-result-burst">♥</div>
-      <p className="game-kicker">MISSIYA YAKUNLANDI</p>
-      <h1>{modeNameForBand(mode, gradeBand)}</h1>
-      <p className="game-terminal-message">{message}</p>
-      {lives !== null && <p className="game-terminal-lives">♥ {lives} imkon qoldi</p>}
-      {terminalResult && (
-        <>
-          <div className="game-result-score" style={{ color: meta.colors[0] }}>
-            <strong>{terminalResult.score_1000 || 0}</strong><span>/ 1000</span>
-          </div>
-          <p>{terminalResult.correct_count || 0} / {terminalResult.total || 0} to'g'ri · {terminalResult.percent || 0}% bilim natijasi</p>
-          <GameProfileStrip profile={terminalResult.profile} accent={meta.colors[0]} compact />
-        </>
-      )}
-      <div className="game-result-actions">
-        <button type="button" onClick={onSetup}>Qayta urinish</button>
-        <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
+    <div className="game-result-overlay">
+      <div className="game-result game-terminal-result" style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1] }}>
+        <div className="game-result-burst">♥</div>
+        <p className="game-kicker">MISSIYA YAKUNLANDI</p>
+        <h1>{modeNameForBand(mode, gradeBand)}</h1>
+        <p className="game-terminal-message">{message}</p>
+        {lives !== null && <p className="game-terminal-lives">♥ {lives} imkon qoldi</p>}
+        {terminalResult && (
+          <>
+            <div className="game-result-score" style={{ color: meta.colors[0] }}>
+              <strong>{terminalResult.score_1000 || 0}</strong><span>/ 1000</span>
+            </div>
+            <p>{terminalResult.correct_count || 0} / {terminalResult.total || 0} to'g'ri · {terminalResult.percent || 0}% bilim natijasi</p>
+            <GameProfileStrip profile={terminalResult.profile} accent={meta.colors[0]} compact />
+          </>
+        )}
+        <div className="game-result-actions">
+          <button type="button" onClick={onSetup}>Qayta urinish</button>
+          <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
+        </div>
       </div>
     </div>
   );
@@ -299,30 +435,32 @@ function ResultScreen({ result, mode, gradeBand, onSetup, onTopics }) {
   const meta = modeForId(mode);
   const color = result.score_1000 >= 850 ? "#C58B19" : result.score_1000 >= 600 ? meta.colors[0] : "#9A3412";
   return (
-    <div className="game-result" style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1] }}>
-      <div className="game-result-burst">{result.perfect ? "★" : result.completed ? "✓" : "■"}</div>
-      <p className="game-kicker">{result.completed ? "MISSIYA YAKUNLANDI" : "O'YIN TO'XTATILDI"}</p>
-      <h1>{modeNameForBand(mode, gradeBand)}</h1>
-      <div className="game-result-score" style={{ color }}>
-        <strong>{result.score_1000 || 0}</strong><span>/ 1000</span>
-      </div>
-      <p>{result.correct_count || 0} / {result.total || 0} to'g'ri · {result.percent || 0}% bilim natijasi</p>
-      <div className="game-result-breakdown">
-        <span><b>{result.regular_points || 0}</b> test</span>
-        <span><b>{result.boss_points || 0}</b> Boss</span>
-        <span><b>{result.completion_points || 0}</b> yakun</span>
-        <span><b>{result.mastery_bonus || 0}</b> bonus</span>
-      </div>
-      <div className="game-earned-points">
-        <span>Hisobga qo'shildi</span>
-        <strong>+{result.awarded_points || 0} ochko</strong>
-        {result.daily_first_test_points > 0 && <small>Shundan +{result.daily_first_test_points} — bugungi birinchi tugallangan test</small>}
-        {result.awarded_points === 0 && result.completed && <small>Bu natija avvalgi rekordingizdan oshmadi; bilim foizi baribir saqlandi.</small>}
-      </div>
-      <GameProfileStrip profile={result.profile} accent={meta.colors[0]} compact />
-      <div className="game-result-actions">
-        <button type="button" onClick={onSetup}>Shu mavzuda yana</button>
-        <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
+    <div className="game-result-overlay">
+      <div className="game-result" style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1] }}>
+        <div className="game-result-burst">{result.perfect ? "★" : result.completed ? "✓" : "■"}</div>
+        <p className="game-kicker">{result.completed ? "MISSIYA YAKUNLANDI" : "O'YIN TO'XTATILDI"}</p>
+        <h1>{modeNameForBand(mode, gradeBand)}</h1>
+        <div className="game-result-score" style={{ color }}>
+          <strong>{result.score_1000 || 0}</strong><span>/ 1000</span>
+        </div>
+        <p>{result.correct_count || 0} / {result.total || 0} to'g'ri · {result.percent || 0}% bilim natijasi</p>
+        <div className="game-result-breakdown">
+          <span><b>{result.regular_points || 0}</b> test</span>
+          <span><b>{result.boss_points || 0}</b> Boss</span>
+          <span><b>{result.completion_points || 0}</b> yakun</span>
+          <span><b>{result.mastery_bonus || 0}</b> bonus</span>
+        </div>
+        <div className="game-earned-points">
+          <span>Hisobga qo'shildi</span>
+          <strong>+{result.awarded_points || 0} ochko</strong>
+          {result.daily_first_test_points > 0 && <small>Shundan +{result.daily_first_test_points} — bugungi birinchi tugallangan test</small>}
+          {result.awarded_points === 0 && result.completed && <small>Bu natija avvalgi rekordingizdan oshmadi; bilim foizi baribir saqlandi.</small>}
+        </div>
+        <GameProfileStrip profile={result.profile} accent={meta.colors[0]} compact />
+        <div className="game-result-actions">
+          <button type="button" onClick={onSetup}>Shu mavzuda yana</button>
+          <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
+        </div>
       </div>
     </div>
   );
@@ -344,9 +482,12 @@ export default function TestGameArena({
   const initialFailure = isFailureTerminal(initialSession) ? initialSession : null;
   const [session, setSession] = useState(initialSession);
   const [answer, setAnswer] = useState("");
+  const [selectedOption, setSelectedOption] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [pendingNext, setPendingNext] = useState(null);
+  const [pendingRetry, setPendingRetry] = useState(null);
+  const [feedbackCountdown, setFeedbackCountdown] = useState(null);
   const [error, setError] = useState("");
   const [stopConfirm, setStopConfirm] = useState(false);
   const [result, setResult] = useState(initialFailure ? null : initialSession?.result || null);
@@ -390,6 +531,18 @@ export default function TestGameArena({
   const readyRequestsRef = useRef(new Map());
   const autoReadPromisesRef = useRef(new Map());
   const timeoutActionRef = useRef({ questionKey: "", actionId: "", sent: false, manualRequired: false });
+  const transitionCommittedRef = useRef("");
+  const arenaRef = useRef(null);
+  const resumeReadyAfterStopRef = useRef(false);
+  const readyGenerationRef = useRef(0);
+
+  const closeStopConfirm = () => {
+    setStopConfirm(false);
+    if (resumeReadyAfterStopRef.current) {
+      resumeReadyAfterStopRef.current = false;
+      setReadyRetry((value) => value + 1);
+    }
+  };
 
   useEffect(() => { stopReadRef.current = onStopRead; }, [onStopRead]);
   useEffect(() => { readRef.current = onRead; }, [onRead]);
@@ -404,6 +557,22 @@ export default function TestGameArena({
     return () => { if (stopReadRef.current) stopReadRef.current(); };
   }, [questionKey]);
 
+  useEffect(() => {
+    const arena = arenaRef.current;
+    if (!arena) return;
+    if (typeof arena.scrollTo === "function") arena.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    else arena.scrollTop = 0;
+  }, [questionKey]);
+
+  useEffect(() => {
+    if (!stopConfirm) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !busy) closeStopConfirm();
+    };
+    globalThis.addEventListener?.("keydown", closeOnEscape);
+    return () => globalThis.removeEventListener?.("keydown", closeOnEscape);
+  }, [stopConfirm, busy]);
+
   const actionId = () => (
     globalThis.crypto?.randomUUID?.()
     || `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
@@ -414,6 +583,12 @@ export default function TestGameArena({
     gameEndedRef.current = true;
     timerStoppedRef.current = true;
     setTimerExpired(false);
+    setPendingNext(null);
+    setPendingRetry(null);
+    setPendingResult(null);
+    setPendingTerminal(null);
+    setFeedbackCountdown(null);
+    resumeReadyAfterStopRef.current = false;
     if (isFailureTerminal(data)) {
       setTerminalFailure(data || { status: "game_over" });
       if (data?.result?.profile && onProfileChange) onProfileChange(data.result.profile);
@@ -445,21 +620,45 @@ export default function TestGameArena({
     if (!pendingNext) return;
     if (stopReadRef.current) stopReadRef.current();
     timerStoppedRef.current = true;
+    // Yangi savol va `preparing` bitta React batchida bo'yaladi. Shu bilan
+    // /tayyor javobidan oldingi bitta kadrda variantlarni bosib yuborib bo'lmaydi.
+    setTimer((current) => ({
+      ...current,
+      phase: "preparing",
+      remainingSeconds: null,
+      activationKey: null,
+      autoReading: false,
+      message: "",
+    }));
     setSession(pendingNext);
     setPendingNext(null);
+    setFeedbackCountdown(null);
     setFeedback(null);
     setAnswer("");
+    setSelectedOption("");
     setError("");
     setTimerExpired(false);
   };
+
+  const feedbackTransition = useMemo(() => {
+    if (pendingRetry) return { kind: "boss_retry", payload: pendingRetry };
+    if (pendingNext) return { kind: "next", payload: pendingNext };
+    if (pendingResult) return { kind: "result", payload: pendingResult };
+    if (pendingTerminal) return { kind: "terminal", payload: pendingTerminal };
+    return null;
+  }, [pendingRetry, pendingNext, pendingResult, pendingTerminal]);
+  const feedbackTransitionKey = feedbackTransition
+    ? `${session?.session_id || "game"}:${questionKey}:${timerCycle}:${feedbackTransition.kind}`
+    : "";
 
   const submitAnswer = async (selected, options = {}) => {
     const isTimeout = options.timeout === true;
     const value = isTimeout ? GAME_TIMEOUT_ANSWER : String(selected ?? answer).trim();
     const timerUnavailable = timer.phase === "preparing" || timer.phase === "error";
-    if ((!value && !isTimeout) || busy || !question || feedback?.finalized || pendingNext || pendingResult || pendingTerminal) return;
+    if ((!value && !isTimeout) || busy || stopConfirm || !question || feedback?.finalized || pendingNext || pendingRetry || pendingResult || pendingTerminal) return;
     if (!isTimeout && (timerUnavailable || timerExpired)) return;
     if (stopReadRef.current) stopReadRef.current();
+    if (!isTimeout && !question.is_boss) setSelectedOption(value.toUpperCase());
     timerStoppedRef.current = true;
     setBusy(true);
     setError("");
@@ -523,18 +722,18 @@ export default function TestGameArena({
       }
       const retry = data.status === "retry" || data.retry === true;
       const lives = gameLivesRemaining(data, data.question, session);
+      // Server yakuniy javobni berdi: feedback animatsiyasi vaqtida eski
+      // countdown ko'rinmaydi va keyingi savol hali faollashtirilmaydi.
+      setTimer((current) => ({
+        ...current,
+        phase: "inactive",
+        remainingSeconds: null,
+        autoReading: false,
+      }));
       if (retry) {
-        setSession((current) => ({
-          ...current,
-          ...data,
-          status: "active",
-          question: {
-            ...current.question,
-            ...(data.question || {}),
-            attempts_used: data.attempts_used ?? data.question?.attempts_used ?? current.question?.attempts_used,
-            attempts_left: data.attempts_left ?? data.question?.attempts_left ?? current.question?.attempts_left,
-          },
-        }));
+        // Bossning yangi urinishini darhol ochmaymiz. 4,5 soniya davomida
+        // xato/timeout animatsiyasi turadi; keyin yangi /tayyor sikli boshlanadi.
+        setPendingRetry(data);
         setFeedback(isTimeout
           ? {
               type: "timeout",
@@ -549,12 +748,7 @@ export default function TestGameArena({
               attemptsLeft: data.attempts_left ?? data.question?.attempts_left,
               livesRemaining: lives,
             });
-        setAnswer("");
         setTimerExpired(false);
-        setTimer((current) => ({ ...current, phase: "preparing", autoReading: false }));
-        // Xuddi shu Boss savoli qayta urinishga berildi: server yangi
-        // deadline'ni faqat navbatdagi idempotent /tayyor javobida beradi.
-        setTimerCycle((value) => value + 1);
         return;
       }
       const terminal = isGameTerminalResponse(data);
@@ -615,6 +809,7 @@ export default function TestGameArena({
         }));
       } else {
         timerStoppedRef.current = false;
+        setSelectedOption("");
       }
     } finally {
       setBusy(false);
@@ -623,7 +818,7 @@ export default function TestGameArena({
 
   const retryTimeout = () => {
     const record = timeoutActionRef.current;
-    if (busy || !timerExpired || record.questionKey !== questionKey || record.sent) return;
+    if (busy || stopConfirm || !timerExpired || record.questionKey !== questionKey || record.sent) return;
     record.sent = true;
     record.manualRequired = false;
     setError("");
@@ -632,7 +827,7 @@ export default function TestGameArena({
   };
 
   const useLifeline = async (lifeline) => {
-    if (busy || !question || timer.phase === "preparing" || timer.phase === "error" || timerExpired || pendingNext) return;
+    if (busy || stopConfirm || !question || timer.phase === "preparing" || timer.phase === "error" || timerExpired || pendingNext || pendingRetry) return;
     setBusy(true);
     setError("");
     try {
@@ -660,6 +855,9 @@ export default function TestGameArena({
 
   const stopGame = async () => {
     if (stopReadRef.current) stopReadRef.current();
+    // Tayyorlashdagi eski async closure Stop xatosidan keyin jonlanib,
+    // modal ortida deadline boshlamasligi uchun ayni avlodni bekor qilamiz.
+    readyGenerationRef.current += 1;
     gameEndedRef.current = true;
     setBusy(true);
     timerStoppedRef.current = true;
@@ -676,7 +874,25 @@ export default function TestGameArena({
       setStopConfirm(false);
     } catch (requestError) {
       gameEndedRef.current = false;
-      if (timer.phase === "running") timerStoppedRef.current = false;
+      if (timer.phase === "running") {
+        timerStoppedRef.current = false;
+      } else if (timer.phase === "preparing") {
+        const activationKey = `${session?.session_id || ""}:${questionKey}:${timerCycle}`;
+        const record = readyRequestsRef.current.get(activationKey);
+        if (record) record.promise = null;
+        autoReadPromisesRef.current.delete(activationKey);
+        if (record?.sent) {
+          // /tayyor tarmoqqa chiqib bo'lgan bo'lishi mumkin: modalni yopib,
+          // o'sha action_id bilan serverdagi qolgan vaqtni darhol yangilaymiz.
+          resumeReadyAfterStopRef.current = false;
+          setStopConfirm(false);
+          setReadyRetry((value) => value + 1);
+        } else {
+          // Server deadline hali boshlanmagan: Continue bosilgach ovoz qayta
+          // o'qiladi va yangi readiness avlodi xavfsiz ishga tushadi.
+          resumeReadyAfterStopRef.current = true;
+        }
+      }
       setError(requestError.message || "O'yin to'xtatilmadi");
     } finally {
       setBusy(false);
@@ -684,6 +900,7 @@ export default function TestGameArena({
   };
 
   const retryReady = () => {
+    if (stopConfirm) return;
     const activationKey = `${session?.session_id || ""}:${questionKey}:${timerCycle}`;
     const record = readyRequestsRef.current.get(activationKey);
     if (record) record.promise = null;
@@ -697,6 +914,7 @@ export default function TestGameArena({
     if (!questionKey || result || terminalFailure) return undefined;
     let active = true;
     const activationKey = `${session.session_id}:${questionKey}:${timerCycle}`;
+    const readyGeneration = readyGenerationRef.current;
     timerStoppedRef.current = true;
     timerAnchorRef.current = null;
     setTimerExpired(false);
@@ -717,12 +935,14 @@ export default function TestGameArena({
 
     let record = readyRequestsRef.current.get(activationKey);
     if (!record) {
-      record = { actionId: actionId(), promise: null };
+      record = { actionId: actionId(), promise: null, sent: false };
       readyRequestsRef.current.set(activationKey, record);
     }
     if (!record.promise) {
       record.promise = (async () => {
-        if (autoRead && readRef.current) {
+        // Oldingi /tayyor tarmoqqa yuborilgan bo'lsa, retry o'sha idempotent
+        // javobni darhol yangilaydi; server vaqti yurayotganda qayta ovoz kutmaydi.
+        if (!record.sent && autoRead && readRef.current) {
           let voicePromise = autoReadPromisesRef.current.get(activationKey);
           if (!voicePromise) {
             try {
@@ -743,7 +963,10 @@ export default function TestGameArena({
         } else {
           await new Promise((resolve) => setTimeout(resolve, GAME_TIMER_READY_DELAY_MS));
         }
-        if (!mountedRef.current || gameEndedRef.current) throw new Error("O'yin oynasi yopildi");
+        if (!mountedRef.current || gameEndedRef.current || readyGeneration !== readyGenerationRef.current) {
+          throw new Error("O'yin tayyorligi pauza qilindi");
+        }
+        record.sent = true;
         const response = await fetch(`${apiBase}/api/oyin/tayyor`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -762,7 +985,7 @@ export default function TestGameArena({
 
     record.promise
       .then((data) => {
-        if (!active || !mountedRef.current) return;
+        if (!active || !mountedRef.current || readyGeneration !== readyGenerationRef.current) return;
         if (isGameTerminalResponse(data)) {
           completeTerminal(data);
           return;
@@ -828,7 +1051,7 @@ export default function TestGameArena({
         if (config.remainingSeconds <= 0) setTimerExpired(true);
       })
       .catch((requestError) => {
-        if (!active || !mountedRef.current || requestError.message === "O'yin oynasi yopildi") return;
+        if (!active || !mountedRef.current || readyGeneration !== readyGenerationRef.current || requestError.message === "O'yin tayyorligi pauza qilindi") return;
         timerStoppedRef.current = true;
         setTimer({
           phase: "error",
@@ -870,13 +1093,88 @@ export default function TestGameArena({
   // Expiry faqat bir marta yuboriladi. Agar lifeline so'rovi ayni paytda
   // ishlayotgan bo'lsa, `busy=false` bo'lgach shu effect bitta actionni yuboradi.
   useEffect(() => {
-    if (!timerExpired || busy || !questionKey || result || terminalFailure || pendingNext || pendingResult || pendingTerminal) return;
+    if (!timerExpired || busy || !questionKey || result || terminalFailure || pendingNext || pendingRetry || pendingResult || pendingTerminal) return;
     const record = timeoutActionRef.current;
     if (record.questionKey !== questionKey || record.sent || record.manualRequired) return;
     record.sent = true;
     submitAnswer(GAME_TIMEOUT_ANSWER, { timeout: true, actionId: record.actionId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timerExpired, busy, questionKey]);
+
+  // Har qanday yakuniy javob bir xil 4,5 soniyalik o'yin animatsiyasidan
+  // o'tadi. StrictMode, qayta render yoki tarmoq replay'i bir transitionni
+  // ikki marta bajarolmaydi. Stop modali ochilsa pauza bekor qilinadi va
+  // modal yopilganda to'liq feedback oralig'i qayta boshlanadi.
+  useEffect(() => {
+    if (!feedbackTransition || !feedbackTransitionKey) {
+      setFeedbackCountdown(null);
+      return undefined;
+    }
+    if (stopConfirm) return undefined;
+
+    if (transitionCommittedRef.current !== feedbackTransitionKey) {
+      transitionCommittedRef.current = "";
+    }
+    const deadline = gameClockNow() + GAME_FEEDBACK_HOLD_MS;
+    setFeedbackCountdown(gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS));
+
+    const updateCountdown = () => {
+      const remaining = Math.max(0, deadline - gameClockNow());
+      setFeedbackCountdown(gameFeedbackCountdownSeconds(remaining));
+    };
+
+    const commitTransition = () => {
+      if (!mountedRef.current || transitionCommittedRef.current === feedbackTransitionKey) return;
+      transitionCommittedRef.current = feedbackTransitionKey;
+      setFeedbackCountdown(0);
+
+      if (feedbackTransition.kind === "next") {
+        moveNext();
+        return;
+      }
+      if (feedbackTransition.kind === "boss_retry") {
+        const data = feedbackTransition.payload || {};
+        if (stopReadRef.current) stopReadRef.current();
+        timerStoppedRef.current = true;
+        setSession((current) => ({
+          ...current,
+          ...data,
+          status: "active",
+          question: {
+            ...current.question,
+            ...(data.question || {}),
+            attempts_used: data.attempts_used ?? data.question?.attempts_used ?? current.question?.attempts_used,
+            attempts_left: data.attempts_left ?? data.question?.attempts_left ?? current.question?.attempts_left,
+          },
+        }));
+        setPendingRetry(null);
+        setFeedback(null);
+        setFeedbackCountdown(null);
+        setAnswer("");
+        setSelectedOption("");
+        setError("");
+        setTimerExpired(false);
+        setTimer((current) => ({ ...current, phase: "preparing", autoReading: false }));
+        // Shu nuqtadan keyingina yangi idempotent /tayyor va yangi deadline.
+        setTimerCycle((value) => value + 1);
+        return;
+      }
+      if (feedbackTransition.kind === "result") {
+        completeTerminal({ result: feedbackTransition.payload, status: "completed" });
+        return;
+      }
+      completeTerminal(feedbackTransition.payload);
+    };
+
+    const intervalId = setInterval(updateCountdown, 100);
+    const timeoutId = setTimeout(commitTransition, GAME_FEEDBACK_HOLD_MS);
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
+    // Transition payloadining o'zi shu kalit yaratilgan paytdagi stabil snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedbackTransitionKey, stopConfirm]);
 
   if (result) {
     return (
@@ -905,8 +1203,9 @@ export default function TestGameArena({
   const overallProgress = Math.max(0, Math.min(100, ((question.position - 1) / question.total) * 100));
   const feedbackFinal = Boolean(feedback?.finalized);
   const interactionLocked = busy
+    || stopConfirm
     || feedbackFinal
-    || Boolean(pendingNext || pendingResult || pendingTerminal)
+    || Boolean(pendingNext || pendingRetry || pendingResult || pendingTerminal)
     || timerExpired
     || timer.phase === "preparing"
     || timer.phase === "error"
@@ -915,6 +1214,7 @@ export default function TestGameArena({
 
   return (
     <div
+      ref={arenaRef}
       className={`test-game-arena game-${mode} game-age-${gradeBand}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
@@ -934,7 +1234,7 @@ export default function TestGameArena({
 
       <GameScene mode={mode} question={question} feedback={feedback} />
 
-      <GameTimer timer={{ ...timer, onRetry: retryReady }} />
+      <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
       {mode === "millionaire" && question.can_use_lifeline && (
         <div className="game-lifelines" aria-label="Yordamlar">
@@ -943,10 +1243,13 @@ export default function TestGameArena({
         </div>
       )}
 
-      <main className={`game-question-card ${isBoss ? "is-boss" : ""}`}>
+      <main
+        key={questionKey}
+        className={`game-question-card ${isBoss ? "is-boss" : ""} ${feedback?.correct === true ? "is-answer-correct" : ""} ${feedback?.correct === false || feedback?.type === "timeout" ? "is-answer-wrong" : ""} ${feedbackTransition ? "is-advancing" : ""}`}
+      >
         <div className="game-question-label">
           <span>{isBoss ? `★ ${age.bossName}` : `${question.round_step}-savol`}</span>
-          {isBoss && <small>{question.attempts_left} imkon qoldi</small>}
+          {isBoss && <small>{feedback?.attemptsLeft ?? question.attempts_left} imkon qoldi</small>}
         </div>
         <GameImage value={question.rasm_id} apiBase={apiBase} />
         <div className="game-question-heading">
@@ -973,7 +1276,12 @@ export default function TestGameArena({
                 type="button"
                 key={option.key}
                 disabled={interactionLocked || option.hidden}
-                className={option.hidden ? "is-hidden-option" : ""}
+                className={[
+                  option.hidden ? "is-hidden-option" : "",
+                  selectedOption === option.key ? "is-selected-option" : "",
+                  feedbackFinal && String(feedback.correctAnswer || "").toUpperCase() === String(option.key || "").toUpperCase() ? "is-correct-option" : "",
+                  feedbackFinal && selectedOption === option.key && feedback.correct === false ? "is-wrong-option" : "",
+                ].filter(Boolean).join(" ")}
                 onClick={() => submitAnswer(option.key)}
               >
                 <span>{option.key}</span>
@@ -996,7 +1304,7 @@ export default function TestGameArena({
               </p>
               {feedback.explanation && <p><GameText value={feedback.explanation} /></p>}
               {feedback.retryable && (
-                <button type="button" className="game-timeout-retry" onClick={retryTimeout} disabled={busy}>
+                <button type="button" className="game-timeout-retry" onClick={retryTimeout} disabled={busy || stopConfirm}>
                   Serverga qayta yuborish
                 </button>
               )}
@@ -1011,20 +1319,27 @@ export default function TestGameArena({
           {error && <div className="is-error">{error}</div>}
         </div>
 
-        {pendingNext && (
-          <button type="button" className="game-next-button" onClick={moveNext}>
-            {pendingNext.question?.is_boss ? `${age.bossName}ga o'tish` : "Keyingi savol"} →
-          </button>
-        )}
-        {pendingResult && (
-          <button type="button" className="game-next-button" onClick={() => completeTerminal({ result: pendingResult, status: "completed" })}>
-            Natijani ko'rish →
-          </button>
-        )}
-        {pendingTerminal && (
-          <button type="button" className="game-next-button is-game-over" onClick={() => completeTerminal(pendingTerminal)}>
-            Missiya natijasini ko'rish →
-          </button>
+        {feedbackTransition && (
+          <div
+            key={`${feedbackTransitionKey}:${stopConfirm ? "paused" : "active"}`}
+            className={`game-feedback-transition is-${feedbackTransition.kind} ${stopConfirm ? "is-paused" : ""}`}
+            role="status"
+            aria-live="polite"
+          >
+            <span className="game-feedback-countdown" aria-hidden="true">
+              <b>{feedbackCountdown ?? gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)}</b>
+              <i />
+            </span>
+            <div>
+              <strong>
+                {feedbackTransition.kind === "next" && (pendingNext?.question?.is_boss ? `${age.bossName} ochilmoqda` : "Keyingi savol tayyorlanmoqda")}
+                {feedbackTransition.kind === "boss_retry" && "Yangi Boss urinishi tayyorlanmoqda"}
+                {feedbackTransition.kind === "result" && "Natijani ko'rish uchun animatsiya yakunlanmoqda"}
+                {feedbackTransition.kind === "terminal" && "Missiya natijasi tayyorlanmoqda"}
+              </strong>
+              <small>4,5 soniyalik o'yin animatsiyasidan keyin avtomatik o'tadi</small>
+            </div>
+          </div>
         )}
       </main>
 
@@ -1035,7 +1350,7 @@ export default function TestGameArena({
             <p>Bilim natijangiz saqlanadi, ammo o'yinni tugatish bonusi va hisob ochkosi berilmaydi.</p>
             {error && <p className="game-modal-error" role="alert">{error}</p>}
             <div>
-              <button type="button" onClick={() => setStopConfirm(false)} disabled={busy}>Davom etish</button>
+              <button type="button" autoFocus onClick={closeStopConfirm} disabled={busy}>Davom etish</button>
               <button type="button" className="is-danger" onClick={stopGame} disabled={busy}>Ha, to'xtatish</button>
             </div>
           </div>
