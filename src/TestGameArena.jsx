@@ -89,7 +89,7 @@ export function GameModePicker({ value, onChange, gradeBand, accent, profile }) 
       <GameProfileStrip profile={profile} accent={accent} />
       <div className="game-age-note">
         <span>{age.label}</span>
-        <p>{age.helper}. Har 4 ta testdan keyin {age.bossAttempts} imkonli yozma {age.bossName} keladi.</p>
+        <p>{age.helper}. Har beshinchi savol 4 variantli {age.bossName} bo'ladi va har savolda bitta urinish beriladi.</p>
       </div>
       <div className="game-mode-grid" aria-label="O'yin turini tanlang">
         {GAME_MODES.map((mode) => {
@@ -142,6 +142,7 @@ function SceneFeedbackFX({ feedback, successText = "Ajoyib!", failText = "Yana u
 function GameAvatar({ variant = "runner", className = "" }) {
   return (
     <span className={`game-avatar avatar-${variant} ${className}`} aria-hidden="true">
+      <i className="avatar-aura" />
       <i className="avatar-shadow" />
       <i className="avatar-leg avatar-leg-left" />
       <i className="avatar-leg avatar-leg-right" />
@@ -149,9 +150,13 @@ function GameAvatar({ variant = "runner", className = "" }) {
       <i className="avatar-arm avatar-arm-left" />
       <i className="avatar-arm avatar-arm-right" />
       <i className="avatar-head"><b /><em /></i>
+      <i className="avatar-face"><b /><em /><u /></i>
       <i className="avatar-hair" />
       {variant === "detective" && <i className="avatar-hat" />}
       {variant === "builder" && <i className="avatar-helmet" />}
+      {variant === "astronaut" && <i className="avatar-space-helmet" />}
+      {variant === "host" && <i className="avatar-microphone" />}
+      {variant === "runner" && <i className="avatar-cape" />}
     </span>
   );
 }
@@ -163,6 +168,56 @@ function SceneHud({ label, step, icon }) {
       <span>{icon}</span>
       <div><small>MISSIYA</small><strong>{label}</strong></div>
       <b>{step}/5</b>
+    </div>
+  );
+}
+
+
+function GameLivesHud({ mode, livesRemaining, feedback }) {
+  const modeCopy = {
+    bridge: { title: "JON ARQONLARI", full: "♥", empty: "×" },
+    millionaire: { title: "IMKON CHIROQLARI", full: "◆", empty: "◇" },
+    space: { title: "ENERGIYA ULANISHI", full: "✦", empty: "×" },
+    detective: { title: "DALIL IPLARI", full: "●", empty: "×" },
+    city: { title: "XAVFSIZLIK TROSSI", full: "▣", empty: "×" },
+  }[mode] || { title: "JONLAR", full: "♥", empty: "×" };
+  const parsedLives = Number(livesRemaining);
+  const parsedMaxLives = Number(feedback?.maxLives);
+  const maxLives = Number.isFinite(parsedMaxLives)
+    ? Math.max(1, Math.min(3, Math.trunc(parsedMaxLives)))
+    : 3;
+  const activeLives = Number.isFinite(parsedLives)
+    ? Math.max(0, Math.min(maxLives, Math.trunc(parsedLives)))
+    : maxLives;
+  const parsedLivesBefore = Number(feedback?.livesBefore);
+  const livesBefore = Number.isFinite(parsedLivesBefore)
+    ? Math.max(0, Math.min(maxLives, Math.trunc(parsedLivesBefore)))
+    : Math.min(maxLives, activeLives + (feedback?.livesLost ? 1 : 0));
+  const lostLife = Boolean(feedback?.livesLost);
+  const gainedLife = Boolean(feedback?.lifeGained);
+  const lostSlotIndex = Math.max(0, livesBefore - 1);
+  return (
+    <div
+      className={`game-lives-hud lives-${mode} ${lostLife ? "did-lose" : ""} ${gainedLife ? "did-gain" : ""}`}
+      role="status"
+      aria-label={`${activeLives} ta jon qoldi`}
+    >
+      <strong>{modeCopy.title}</strong>
+      <div>
+        {Array.from({ length: maxLives }, (_, index) => (
+          <span
+            key={index}
+            className={[
+              index < activeLives ? "is-intact" : "is-broken",
+              lostLife && index === lostSlotIndex ? "is-new-loss" : "",
+              gainedLife && index === activeLives - 1 ? "is-new-life" : "",
+            ].filter(Boolean).join(" ")}
+          >
+            <i /><b>{index < activeLives ? modeCopy.full : modeCopy.empty}</b>
+          </span>
+        ))}
+      </div>
+      <small>{feedback?.lifeGained ? "Bosqich tugadi · jon tiklandi" : `Raunddan o'tsangiz jon ${maxLives} tagacha tiklanadi`}</small>
     </div>
   );
 }
@@ -251,6 +306,7 @@ function SpaceScene({ step, feedback }) {
         <div className="space-rocket-track" style={{ "--rocket-index": rocketIndex }}>
           <div className="space-rocket"><i className="rocket-flame" /><b /><span /><em /></div>
         </div>
+        <div className="space-pilot"><GameAvatar variant="astronaut" /></div>
         <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${safeStep * 20}%` }} /></em></div>
       </div>
       <SceneHud icon="✦" label={safeStep === 5 ? "Boss sayyorasi" : "Keyingi orbitaga uching"} step={safeStep} />
@@ -323,6 +379,19 @@ function GameScene({ mode, question, feedback }) {
   if (mode === "detective") return <DetectiveScene step={step} feedback={feedback} />;
   if (mode === "city") return <CityScene step={step} feedback={feedback} />;
   return <BridgeScene step={step} feedback={feedback} />;
+}
+
+
+function gameAnswerFeedbackTitle(mode, feedback) {
+  const copy = {
+    bridge: { correct: "To'g'ri! Oyna butun qoldi.", wrong: "Oyna sinib tushdi." },
+    millionaire: { correct: "To'g'ri! Keyingi pog'ona ochildi.", wrong: "Bu javob qabul qilinmadi." },
+    space: { correct: "To'g'ri! Raketa quvvat oldi.", wrong: "Portal energiyasi uzildi." },
+    detective: { correct: "To'g'ri! Yangi dalil topildi.", wrong: "Bu dalil noto'g'ri chiqdi." },
+    city: { correct: "To'g'ri! Yangi bino qurildi.", wrong: "Bu qurilish moduli ishlamadi." },
+  }[mode] || { correct: "To'g'ri!", wrong: "Noto'g'ri javob." };
+  if (feedback?.correct) return copy.correct;
+  return `${copy.wrong} To'g'ri javob: ${feedback?.correctAnswer || "—"}`;
 }
 
 
@@ -481,7 +550,6 @@ export default function TestGameArena({
 }) {
   const initialFailure = isFailureTerminal(initialSession) ? initialSession : null;
   const [session, setSession] = useState(initialSession);
-  const [answer, setAnswer] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -514,7 +582,6 @@ export default function TestGameArena({
   const isBoss = Boolean(question?.is_boss);
   const readText = useMemo(() => {
     if (!question) return "";
-    if (question.is_boss) return String(question.question || "");
     const options = (question.options || [])
       .filter((option) => !option.hidden)
       .map((option) => `${option.key}) ${option.text}`)
@@ -634,7 +701,6 @@ export default function TestGameArena({
     setPendingNext(null);
     setFeedbackCountdown(null);
     setFeedback(null);
-    setAnswer("");
     setSelectedOption("");
     setError("");
     setTimerExpired(false);
@@ -653,12 +719,12 @@ export default function TestGameArena({
 
   const submitAnswer = async (selected, options = {}) => {
     const isTimeout = options.timeout === true;
-    const value = isTimeout ? GAME_TIMEOUT_ANSWER : String(selected ?? answer).trim();
+    const value = isTimeout ? GAME_TIMEOUT_ANSWER : String(selected ?? "").trim();
     const timerUnavailable = timer.phase === "preparing" || timer.phase === "error";
     if ((!value && !isTimeout) || busy || stopConfirm || !question || feedback?.finalized || pendingNext || pendingRetry || pendingResult || pendingTerminal) return;
     if (!isTimeout && (timerUnavailable || timerExpired)) return;
     if (stopReadRef.current) stopReadRef.current();
-    if (!isTimeout && !question.is_boss) setSelectedOption(value.toUpperCase());
+    if (!isTimeout) setSelectedOption(value.toUpperCase());
     timerStoppedRef.current = true;
     setBusy(true);
     setError("");
@@ -722,6 +788,17 @@ export default function TestGameArena({
       }
       const retry = data.status === "retry" || data.retry === true;
       const lives = gameLivesRemaining(data, data.question, session);
+      const previousLives = gameLivesRemaining(question, session);
+      const lifeChange = {
+        livesRemaining: lives,
+        livesBefore: data.lives_before ?? previousLives,
+        maxLives: data.max_lives ?? data.question?.max_lives ?? question?.max_lives ?? session?.max_lives ?? 3,
+        livesLost: Boolean(data.lives_lost || data.life_lost)
+          || (lives !== null && previousLives !== null && lives < previousLives),
+        lifeGained: Boolean(data.life_gained || data.lives_gained)
+          || (lives !== null && previousLives !== null && lives > previousLives),
+        levelCompleted: Boolean(data.level_completed || data.round_completed),
+      };
       // Server yakuniy javobni berdi: feedback animatsiyasi vaqtida eski
       // countdown ko'rinmaydi va keyingi savol hali faollashtirilmaydi.
       setTimer((current) => ({
@@ -739,14 +816,14 @@ export default function TestGameArena({
               type: "timeout",
               text: data.message || data.hint || "Vaqt tugadi. Server bitta imkonni hisobdan chiqardi.",
               attemptsLeft: data.attempts_left ?? data.question?.attempts_left,
-              livesRemaining: lives,
+              ...lifeChange,
             }
           : {
               type: "retry",
               correct: false,
               text: data.hint,
               attemptsLeft: data.attempts_left ?? data.question?.attempts_left,
-              livesRemaining: lives,
+              ...lifeChange,
             });
         setTimerExpired(false);
         return;
@@ -757,7 +834,7 @@ export default function TestGameArena({
           setFeedback({
             type: "timeout",
             text: data.message || "Vaqt tugadi. Imkonlar yakunlandi.",
-            livesRemaining: lives,
+            ...lifeChange,
           });
           queueTerminal(data);
         } else {
@@ -773,13 +850,14 @@ export default function TestGameArena({
             text: data.message || "Vaqt tugadi. Bitta imkon kamaydi.",
             correctAnswer: data.correct_answer,
             explanation: data.explanation,
-            livesRemaining: lives,
+            ...lifeChange,
           }
         : {
             finalized: true,
             correct: Boolean(data.correct),
             correctAnswer: data.correct_answer,
             explanation: data.explanation,
+            ...lifeChange,
           };
       setFeedback(finalFeedback);
       if (terminal) {
@@ -1150,7 +1228,6 @@ export default function TestGameArena({
         setPendingRetry(null);
         setFeedback(null);
         setFeedbackCountdown(null);
-        setAnswer("");
         setSelectedOption("");
         setError("");
         setTimerExpired(false);
@@ -1232,24 +1309,27 @@ export default function TestGameArena({
       </header>
       <div className="game-overall-track" role="progressbar" aria-label="O'yin jarayoni" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
 
-      <GameScene mode={mode} question={question} feedback={feedback} />
+      <div className={`game-stage game-stage-${mode} ${sceneStateClass(feedback)}`}>
+        <GameScene mode={mode} question={question} feedback={feedback} />
+        <GameLivesHud mode={mode} livesRemaining={livesRemaining} feedback={feedback} />
 
-      <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
+        <div className="game-stage-content">
+          <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
-      {mode === "millionaire" && question.can_use_lifeline && (
-        <div className="game-lifelines" aria-label="Yordamlar">
-          <button type="button" disabled={interactionLocked || !session.lifelines?.fifty_fifty || question.lifeline_used} onClick={() => useLifeline("fifty_fifty")}>50/50</button>
-          <button type="button" disabled={interactionLocked || !session.lifelines?.remove_one || question.lifeline_used} onClick={() => useLifeline("remove_one")}>−1 xato</button>
-        </div>
-      )}
+          {mode === "millionaire" && question.can_use_lifeline && (
+            <div className="game-lifelines" aria-label="Yordamlar">
+              <button type="button" disabled={interactionLocked || !session.lifelines?.fifty_fifty || question.lifeline_used} onClick={() => useLifeline("fifty_fifty")}>50/50</button>
+              <button type="button" disabled={interactionLocked || !session.lifelines?.remove_one || question.lifeline_used} onClick={() => useLifeline("remove_one")}>−1 xato</button>
+            </div>
+          )}
 
-      <main
-        key={questionKey}
-        className={`game-question-card ${isBoss ? "is-boss" : ""} ${feedback?.correct === true ? "is-answer-correct" : ""} ${feedback?.correct === false || feedback?.type === "timeout" ? "is-answer-wrong" : ""} ${feedbackTransition ? "is-advancing" : ""}`}
-      >
+          <main
+            key={questionKey}
+            className={`game-question-card game-question-in-scene ${isBoss ? "is-boss" : ""} ${feedback?.correct === true ? "is-answer-correct" : ""} ${feedback?.correct === false || feedback?.type === "timeout" ? "is-answer-wrong" : ""} ${feedbackTransition ? "is-advancing" : ""}`}
+          >
         <div className="game-question-label">
           <span>{isBoss ? `★ ${age.bossName}` : `${question.round_step}-savol`}</span>
-          {isBoss && <small>{feedback?.attemptsLeft ?? question.attempts_left} imkon qoldi</small>}
+          {isBoss && <small>4 variantdan birini tanlang</small>}
         </div>
         <GameImage value={question.rasm_id} apiBase={apiBase} />
         <div className="game-question-heading">
@@ -1257,39 +1337,25 @@ export default function TestGameArena({
           {onRead && <button type="button" disabled={interactionLocked} onClick={() => onRead(readText)} aria-label="Savol va javoblarni ovoz chiqarib o'qish">🔊</button>}
         </div>
 
-        {isBoss ? (
-          <form className="game-written-answer" onSubmit={(event) => { event.preventDefault(); submitAnswer(answer); }}>
-            <input
-              value={answer}
-              onChange={(event) => setAnswer(event.target.value)}
-              disabled={interactionLocked}
-              placeholder={gradeBand === "grade_1_4" ? "Bir so'z yoki son yozing" : "Aniq javobingizni yozing"}
-              autoComplete="off"
-              aria-label="Yozma javob"
-            />
-            <button type="submit" disabled={interactionLocked || !answer.trim()}>{busy ? "Tekshirilmoqda..." : "Javobni tekshirish"}</button>
-          </form>
-        ) : (
-          <div className="game-options">
-            {(question.options || []).map((option) => (
-              <button
-                type="button"
-                key={option.key}
-                disabled={interactionLocked || option.hidden}
-                className={[
-                  option.hidden ? "is-hidden-option" : "",
-                  selectedOption === option.key ? "is-selected-option" : "",
-                  feedbackFinal && String(feedback.correctAnswer || "").toUpperCase() === String(option.key || "").toUpperCase() ? "is-correct-option" : "",
-                  feedbackFinal && selectedOption === option.key && feedback.correct === false ? "is-wrong-option" : "",
-                ].filter(Boolean).join(" ")}
-                onClick={() => submitAnswer(option.key)}
-              >
-                <span>{option.key}</span>
-                <b>{option.hidden ? "Xato javob olib tashlandi" : <GameText value={option.text} />}</b>
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="game-options" aria-label={isBoss ? "Boss javob variantlari" : "Javob variantlari"}>
+          {(question.options || []).map((option) => (
+            <button
+              type="button"
+              key={option.key}
+              disabled={interactionLocked || option.hidden}
+              className={[
+                option.hidden ? "is-hidden-option" : "",
+                selectedOption === option.key ? "is-selected-option" : "",
+                feedbackFinal && String(feedback.correctAnswer || "").toUpperCase() === String(option.key || "").toUpperCase() ? "is-correct-option" : "",
+                feedbackFinal && selectedOption === option.key && feedback.correct === false ? "is-wrong-option" : "",
+              ].filter(Boolean).join(" ")}
+              onClick={() => submitAnswer(option.key)}
+            >
+              <span>{option.key}</span>
+              <b>{option.hidden ? "Xato javob olib tashlandi" : <GameText value={option.text} />}</b>
+            </button>
+          ))}
+        </div>
 
         <div className="game-feedback" aria-live="polite">
           {feedback?.type === "retry" && <div className="is-retry"><strong>Yana urinib ko'ring</strong><p>{feedback.text} {feedback.attemptsLeft} imkon qoldi.</p></div>}
@@ -1312,7 +1378,7 @@ export default function TestGameArena({
           )}
           {feedbackFinal && feedback?.type !== "timeout" && (
             <div className={feedback.correct ? "is-correct" : "is-wrong"}>
-              <strong>{feedback.correct ? "To'g'ri! Yo'l ochildi." : `To'g'ri javob: ${feedback.correctAnswer || "—"}`}</strong>
+              <strong>{gameAnswerFeedbackTitle(mode, feedback)}</strong>
               {feedback.explanation && <p><GameText value={feedback.explanation} /></p>}
             </div>
           )}
@@ -1341,7 +1407,9 @@ export default function TestGameArena({
             </div>
           </div>
         )}
-      </main>
+          </main>
+        </div>
+      </div>
 
       {stopConfirm && (
         <div className="game-modal-backdrop" role="dialog" aria-modal="true" aria-label="O'yinni to'xtatish">
