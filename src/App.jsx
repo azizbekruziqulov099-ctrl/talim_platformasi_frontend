@@ -11,6 +11,23 @@ import {
   normalizedClubCapacity,
   topicName,
 } from "./teacherRules.js";
+import {
+  ORGANIZATION_ACTIVATION_PRICE_UZS,
+  ORGANIZATION_TRIAL_DAYS,
+  ORGANIZATION_TYPES,
+  buildAdminWalletCreditPayload,
+  buildActivationPayload,
+  buildTrialStartPayload,
+  formatTrialEnd,
+  formatUzs,
+  makeOrganizationIdempotencyKey,
+  organizationCanActivate,
+  organizationIsReadOnly,
+  organizationToLegacyMembership,
+  organizationTrialErrorMessage,
+  organizationTrialState,
+  organizationTypeMeta,
+} from "./organizationTrialRules.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
@@ -3770,34 +3787,6 @@ function AdminTab({ token, oldindanTanlangan }) {
             : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
           🤖 Tushuntirish
         </button>
-        <button onClick={() => setBolim("maktab")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "maktab"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          🏫 Maktablar
-        </button>
-        <button onClick={() => setBolim("markaz")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "markaz"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          🎓 O'quv markazlari
-        </button>
-        <button onClick={() => setBolim("bogcha")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "bogcha"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          🧸 Bog'chalar
-        </button>
-        <button onClick={() => setBolim("universitet")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "universitet"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-          🎓 Universitetlar
-        </button>
         <button onClick={() => setBolim("sinov")}
           className="py-2.5 rounded-xl font-semibold text-sm"
           style={bolim === "sinov"
@@ -3811,11 +3800,193 @@ function AdminTab({ token, oldindanTanlangan }) {
       {bolim === "test" && <TestShablonBolimi token={token} oldindanTanlangan={oldindanTanlangan} />}
       {bolim === "topik" && <TopikShablonBolimi token={token} />}
       {bolim === "tushuntirish" && <TushuntirishBolimi token={token} />}
-      {bolim === "maktab" && <MaktablarBolimi token={token} />}
-      {bolim === "markaz" && <MarkazlarBolimi token={token} />}
-      {bolim === "bogcha" && <BogchalarBolimi token={token} />}
-      {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
       {bolim === "sinov" && <SinovMuhitiBolimi token={token} />}
+    </div>
+  );
+}
+
+function AdminMuassasalarTab({ token }) {
+  const [bolim, setBolim] = useState(null);
+  const [yangiOchiq, setYangiOchiq] = useState(false);
+  const [yangiTuri, setYangiTuri] = useState("maktab");
+  const [hamyonUserId, setHamyonUserId] = useState("");
+  const [hamyonMiqdori, setHamyonMiqdori] = useState(String(ORGANIZATION_ACTIVATION_PRICE_UZS));
+  const [hamyonReference, setHamyonReference] = useState("");
+  const [hamyonIzoh, setHamyonIzoh] = useState("");
+  const [hamyonTasdiqlandi, setHamyonTasdiqlandi] = useState(false);
+  const [hamyonJarayon, setHamyonJarayon] = useState(false);
+  const [hamyonXato, setHamyonXato] = useState("");
+  const [hamyonNatija, setHamyonNatija] = useState(null);
+  const hamyonKalitiRef = useRef("");
+
+  const turlar = [
+    { kalit: "maktab", nom: "Maktablar", ikon: "🏫", izoh: "Mavjud maktablar ro'yxati va boshqaruvi" },
+    { kalit: "bogcha", nom: "Bog'chalar", ikon: "🧸", izoh: "Mavjud bog'chalar ro'yxati va boshqaruvi" },
+    { kalit: "markaz", nom: "O'quv markazlari", ikon: "🎓", izoh: "Mavjud markazlar ro'yxati va boshqaruvi" },
+    { kalit: "universitet", nom: "Universitetlar", ikon: "🏛️", izoh: "Mavjud oliy ta'lim muassasalari" },
+  ];
+
+  const hamyonMaydoniOzgardi = (setter) => (event) => {
+    setter(event.target.value);
+    hamyonKalitiRef.current = "";
+    setHamyonTasdiqlandi(false);
+    setHamyonXato("");
+    setHamyonNatija(null);
+  };
+
+  const hamyonniToldirish = async () => {
+    const userId = Number(hamyonUserId);
+    const amountUzs = Number(hamyonMiqdori);
+    if (!Number.isInteger(userId) || userId < 1) {
+      setHamyonXato("To'g'ri user_id kiriting");
+      return;
+    }
+    if (!Number.isInteger(amountUzs) || amountUzs < 1 || amountUzs > 100_000_000) {
+      setHamyonXato("amount_uzs 1 dan 100 000 000 gacha bo'lishi kerak");
+      return;
+    }
+    if (hamyonReference.trim().length < 3) {
+      setHamyonXato("Audit uchun kamida 3 belgili reference kiriting");
+      return;
+    }
+    if (!hamyonTasdiqlandi || hamyonJarayon) return;
+    setHamyonJarayon(true);
+    setHamyonXato("");
+    setHamyonNatija(null);
+    try {
+      if (!hamyonKalitiRef.current) {
+        hamyonKalitiRef.current = makeOrganizationIdempotencyKey(`admin-wallet-${userId}`);
+      }
+      const payload = buildAdminWalletCreditPayload({
+        userId,
+        amountUzs,
+        reference: hamyonReference,
+        note: hamyonIzoh,
+        confirmed: hamyonTasdiqlandi,
+        idempotencyKey: hamyonKalitiRef.current,
+      });
+      const data = await muassasaV17Sorov("/admin/hamyon-toldirish", token, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setHamyonNatija(data);
+      hamyonKalitiRef.current = "";
+      setHamyonTasdiqlandi(false);
+      setHamyonReference("");
+      setHamyonIzoh("");
+    } catch (error) {
+      setHamyonXato(organizationTrialErrorMessage(error.payload || error.message));
+    } finally {
+      setHamyonJarayon(false);
+    }
+  };
+
+  if (bolim) {
+    return (
+      <div className="px-5 pt-6 pb-4">
+        <button type="button" onClick={() => setBolim(null)} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}>
+          <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} /></span>
+          Muassasalar
+        </button>
+        {bolim === "maktab" && <MaktablarBolimi token={token} />}
+        {bolim === "markaz" && <MarkazlarBolimi token={token} />}
+        {bolim === "bogcha" && <BogchalarBolimi token={token} />}
+        {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-organizations px-5 pt-6 pb-4">
+      <div className="admin-organizations__header">
+        <div>
+          <span className="premium-eyebrow">ADMINISTRATOR MARKAZI</span>
+          <h1>Muassasalar</h1>
+          <p>Mavjud muassasalarni alohida boshqaring yoki yangi muassasa turini tanlang.</p>
+        </div>
+        <button type="button" onClick={() => setYangiOchiq(true)}>
+          <Building2 size={17} /> Yangi muassasa
+        </button>
+      </div>
+
+      <div className="admin-organizations__section-title">
+        <h2>Mavjud muassasalar</h2>
+        <p>Turini tanlab, muassasalarning to'liq ro'yxati va boshqaruvini oching.</p>
+      </div>
+      <section className="admin-organizations__list" aria-label="Mavjud muassasa turlari">
+        {turlar.map((tur) => (
+          <button type="button" key={tur.kalit} onClick={() => setBolim(tur.kalit)}>
+            <span>{tur.ikon}</span>
+            <div>
+              <b>{tur.nom}</b>
+              <small>{tur.izoh}</small>
+            </div>
+            <ChevronRight size={18} />
+          </button>
+        ))}
+      </section>
+
+      <section className="admin-wallet-credit" aria-labelledby="admin-wallet-title">
+        <div className="admin-wallet-credit__head">
+          <span><Wallet size={18} /></span>
+          <div>
+            <h2 id="admin-wallet-title">Tasdiqlangan hamyon to'ldirish</h2>
+            <p>To'lov provayderi hozircha ulanmagan. Bu blok pul qabul qilmaydi; administrator tashqarida tasdiqlangan to'lovni audit ma'lumoti bilan qo'lda kreditlaydi.</p>
+          </div>
+        </div>
+        <div className="admin-wallet-credit__grid">
+          <label className="org-trial-field">
+            <span>Foydalanuvchi ID · user_id</span>
+            <input type="number" min="1" step="1" inputMode="numeric" value={hamyonUserId} onChange={hamyonMaydoniOzgardi(setHamyonUserId)} placeholder="Masalan: 1842" />
+          </label>
+          <label className="org-trial-field">
+            <span>Miqdor · amount_uzs</span>
+            <input type="number" min="1" max="100000000" step="1" inputMode="numeric" value={hamyonMiqdori} onChange={hamyonMaydoniOzgardi(setHamyonMiqdori)} />
+          </label>
+          <label className="org-trial-field">
+            <span>To'lov reference</span>
+            <input value={hamyonReference} onChange={hamyonMaydoniOzgardi(setHamyonReference)} minLength={3} maxLength={160} placeholder="Chek, o'tkazma yoki ichki hujjat raqami" />
+          </label>
+          <label className="org-trial-field">
+            <span>Izoh · note</span>
+            <input value={hamyonIzoh} onChange={hamyonMaydoniOzgardi(setHamyonIzoh)} maxLength={240} placeholder="Ixtiyoriy audit izohi" />
+          </label>
+        </div>
+        {hamyonXato && <div className="org-trial-notice error" role="alert">{hamyonXato}</div>}
+        {hamyonNatija && (
+          <div className="org-trial-notice success" role="status">
+            Hamyon to'ldirildi. Yangi balans: {formatUzs(hamyonNatija.wallet?.balance_uzs ?? hamyonNatija.balance_uzs)}{hamyonNatija.reused ? " · avvalgi so'rov xavfsiz qaytarildi" : ""}.
+          </div>
+        )}
+        <label className="org-trial-checkbox charge">
+          <input type="checkbox" checked={hamyonTasdiqlandi} onChange={(event) => setHamyonTasdiqlandi(event.target.checked)} />
+          <span><b>{formatUzs(Number(hamyonMiqdori) || 0)}</b> summani user_id <b>{hamyonUserId || "—"}</b> hamyoniga qo'shishni aniq tasdiqlayman. Reference audit jurnalida saqlanadi.</span>
+        </label>
+        <button type="button" className="admin-wallet-credit__submit" disabled={!hamyonTasdiqlandi || hamyonJarayon} onClick={hamyonniToldirish}>
+          {hamyonJarayon ? <><Loader2 size={17} className="animate-spin" /> Kreditlanmoqda...</> : "Tasdiqlangan mablag'ni hamyonga qo'shish"}
+        </button>
+      </section>
+
+      {yangiOchiq && (
+        <div className="org-trial-modal-backdrop" role="presentation" onMouseDown={() => setYangiOchiq(false)}>
+          <section className="org-trial-modal" role="dialog" aria-modal="true" aria-labelledby="admin-new-organization-title" onMouseDown={(event) => event.stopPropagation()}>
+            <button type="button" className="org-trial-modal__close" onClick={() => setYangiOchiq(false)} aria-label="Yopish"><X size={18} /></button>
+            <span className="premium-eyebrow">YANGI MUASSASA</span>
+            <h2 id="admin-new-organization-title">Qaysi turdagi muassasa?</h2>
+            <p>Davlat va ommaviy muassasalar faqat administrator oqimi orqali yaratiladi.</p>
+            <label className="org-trial-field">
+              <span>Muassasa turi</span>
+              <select value={yangiTuri} onChange={(event) => setYangiTuri(event.target.value)}>
+                {turlar.map((tur) => <option key={tur.kalit} value={tur.kalit}>{tur.nom}</option>)}
+              </select>
+            </label>
+            <div className="org-trial-modal__actions">
+              <button type="button" className="secondary" onClick={() => setYangiOchiq(false)}>Bekor qilish</button>
+              <button type="button" className="primary" onClick={() => { setBolim(yangiTuri); setYangiOchiq(false); }}>Davom etish</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -11186,6 +11357,335 @@ function RejalarimBolimi({ token, onOrtga }) {
   );
 }
 
+async function muassasaV17Sorov(path, token, options = {}) {
+  const response = await fetch(`${API_BASE}/api/muassasa-v17${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const raw = await response.text();
+  let data = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = raw ? { detail: raw } : {};
+  }
+  if (!response.ok) {
+    const error = new Error(organizationTrialErrorMessage(data));
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
+  return data;
+}
+
+function MuassasaV17ReadOnlyBanner({ organization }) {
+  if (!organizationIsReadOnly(organization)) return null;
+  return (
+    <div className="org-trial-readonly-banner" role="status">
+      <KeyRound size={19} />
+      <div>
+        <b>Faqat ko'rish rejimi</b>
+        <p>30 kunlik sinov tugagan. Barcha ma'lumotlar saqlangan; tahrirlash bir martalik faollashtirishdan keyin ochiladi.</p>
+      </div>
+    </div>
+  );
+}
+
+function MuassasaV17Markazi({ token, onBack, onWorkspaceOpen }) {
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [jarayon, setJarayon] = useState("");
+  const [xato, setXato] = useState("");
+  const [muvaffaqiyat, setMuvaffaqiyat] = useState("");
+  const [tashkilotlar, setTashkilotlar] = useState([]);
+  const [hamyon, setHamyon] = useState({ balance_uzs: 0 });
+  const [sinovKunlari, setSinovKunlari] = useState(ORGANIZATION_TRIAL_DAYS);
+  const [faollashtirishNarxi, setFaollashtirishNarxi] = useState(ORGANIZATION_ACTIVATION_PRICE_UZS);
+  const [qadam, setQadam] = useState("royxat");
+  const [yangiTuri, setYangiTuri] = useState("school");
+  const [yangiNomi, setYangiNomi] = useState("");
+  const [sinovTasdiqlandi, setSinovTasdiqlandi] = useState(false);
+  const [faollashtiriladigan, setFaollashtiriladigan] = useState(null);
+  const [tolovTasdiqlandi, setTolovTasdiqlandi] = useState(false);
+  const [modalXato, setModalXato] = useState("");
+  const yaratishKalitiRef = useRef("");
+  const faollashtirishKalitlariRef = useRef(new Map());
+
+  const yukla = async ({ sokin = false } = {}) => {
+    if (!sokin) setYuklanmoqda(true);
+    setXato("");
+    try {
+      const data = await muassasaV17Sorov("/meniki", token);
+      setTashkilotlar(Array.isArray(data.organizations) ? data.organizations : []);
+      setHamyon(data.wallet || { balance_uzs: 0 });
+      setSinovKunlari(Number(data.trial_days) || ORGANIZATION_TRIAL_DAYS);
+      setFaollashtirishNarxi(Number(data.activation_price_uzs) || ORGANIZATION_ACTIVATION_PRICE_UZS);
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setYuklanmoqda(false);
+    }
+  };
+
+  useEffect(() => {
+    yukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  const yangiMuassasaOch = () => {
+    setQadam("malumot");
+    setYangiTuri("school");
+    setYangiNomi("");
+    setSinovTasdiqlandi(false);
+    setXato("");
+    setMuvaffaqiyat("");
+    yaratishKalitiRef.current = "";
+  };
+
+  const tafsilotdanTasdiqqa = () => {
+    if (yangiNomi.trim().length < 2) {
+      setXato("Muassasa nomini kiriting");
+      return;
+    }
+    setXato("");
+    setQadam("tasdiq");
+  };
+
+  const sinovniBoshlash = async () => {
+    if (!sinovTasdiqlandi || jarayon) return;
+    setJarayon("sinov");
+    setXato("");
+    setMuvaffaqiyat("");
+    try {
+      if (!yaratishKalitiRef.current) {
+        yaratishKalitiRef.current = makeOrganizationIdempotencyKey("trial-start");
+      }
+      const payload = buildTrialStartPayload({
+        organizationType: yangiTuri,
+        name: yangiNomi,
+        idempotencyKey: yaratishKalitiRef.current,
+      });
+      const organization = await muassasaV17Sorov("/sinov-boshlash", token, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setTashkilotlar((current) => [organization, ...current.filter((item) => Number(item.id) !== Number(organization.id))]);
+      yaratishKalitiRef.current = "";
+      setQadam("royxat");
+      setSinovTasdiqlandi(false);
+      setMuvaffaqiyat(`${organization.name || yangiNomi} uchun ${sinovKunlari} kunlik bepul sinov boshlandi.`);
+      await yukla({ sokin: true });
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setJarayon("");
+    }
+  };
+
+  const faollashtirishniOch = (organization) => {
+    setFaollashtiriladigan(organization);
+    setTolovTasdiqlandi(false);
+    setModalXato("");
+  };
+
+  const faollashtirish = async () => {
+    if (!faollashtiriladigan || !tolovTasdiqlandi || jarayon) return;
+    setJarayon("faollashtirish");
+    setModalXato("");
+    try {
+      const organizationId = faollashtiriladigan.id;
+      if (!faollashtirishKalitlariRef.current.has(organizationId)) {
+        faollashtirishKalitlariRef.current.set(
+          organizationId,
+          makeOrganizationIdempotencyKey(`activation-${organizationId}`),
+        );
+      }
+      const payload = buildActivationPayload({
+        confirmed: tolovTasdiqlandi,
+        idempotencyKey: faollashtirishKalitlariRef.current.get(organizationId),
+      });
+      const data = await muassasaV17Sorov(`/${organizationId}/faollashtirish`, token, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setTashkilotlar((current) => current.map((item) => (
+        Number(item.id) === Number(organizationId) ? data.organization : item
+      )));
+      if (data.wallet) setHamyon(data.wallet);
+      faollashtirishKalitlariRef.current.delete(organizationId);
+      setFaollashtiriladigan(null);
+      setTolovTasdiqlandi(false);
+      setMuvaffaqiyat(`${data.organization?.name || faollashtiriladigan.name} faollashtirildi. ${formatUzs(data.charged_uzs || faollashtirishNarxi)} bir marta yechildi.`);
+      await yukla({ sokin: true });
+    } catch (error) {
+      setModalXato(organizationTrialErrorMessage(error.payload || error.message));
+    } finally {
+      setJarayon("");
+    }
+  };
+
+  const ishMaydoniniOch = (organization) => {
+    const membership = organizationToLegacyMembership(organization);
+    if (membership) onWorkspaceOpen?.(membership, organizationTypeMeta(organization.organization_type).workspace);
+  };
+
+  const joriyNarx = Number(faollashtiriladigan?.activation_price_uzs) || faollashtirishNarxi;
+
+  if (yuklanmoqda) {
+    return (
+      <div className="org-trial-shell px-5 pt-6 pb-4">
+        <button type="button" onClick={onBack} className="org-trial-back"><ChevronLeft size={16} /> Ish maydoniga qaytish</button>
+        <div className="org-trial-loading"><Loader2 size={25} className="animate-spin" /><p>Muassasalar yuklanmoqda...</p></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="org-trial-shell px-5 pt-6 pb-4">
+      <button type="button" onClick={qadam === "royxat" ? onBack : () => { setQadam(qadam === "tasdiq" ? "malumot" : "royxat"); setSinovTasdiqlandi(false); setXato(""); }} className="org-trial-back">
+        <ChevronLeft size={16} /> {qadam === "royxat" ? "Ish maydoniga qaytish" : "Orqaga"}
+      </button>
+
+      <header className="org-trial-hero">
+        <div className="org-trial-hero__icon"><Building2 size={27} /></div>
+        <div>
+          <span className="premium-eyebrow">XUSUSIY MUASSASA</span>
+          <h1>Bitta sodda oqimda muassasa oching</h1>
+          <p>{sinovKunlari} kun bepul foydalaning. Davom ettirish uchun keyin {formatUzs(faollashtirishNarxi)} bir martalik faollashtirish bor — avtomatik yechim yo'q.</p>
+        </div>
+        <div className="org-trial-wallet"><Wallet size={16} /><span>Hamyon</span><b>{formatUzs(hamyon.balance_uzs)}</b></div>
+      </header>
+
+      {xato && <div className="org-trial-notice error" role="alert">{xato}{qadam === "royxat" && <button type="button" onClick={() => yukla()}>Qayta urinish</button>}</div>}
+      {muvaffaqiyat && <div className="org-trial-notice success" role="status">{muvaffaqiyat}</div>}
+
+      {qadam === "malumot" && (
+        <section className="org-trial-wizard" aria-labelledby="new-org-title">
+          <div className="org-trial-step"><span>1</span><b>Muassasa ma'lumoti</b><small>1 / 2 bosqich</small></div>
+          <h2 id="new-org-title">Yangi xususiy muassasa</h2>
+          <p>Bu o'qituvchilar uchun yagona sinov oqimi. Davlat yoki ommaviy muassasa yaratish administrator orqali bajariladi.</p>
+          <label className="org-trial-field">
+            <span>Muassasa turi</span>
+            <select value={yangiTuri} onChange={(event) => { setYangiTuri(event.target.value); setSinovTasdiqlandi(false); yaratishKalitiRef.current = ""; }}>
+              {ORGANIZATION_TYPES.map((item) => <option key={item.value} value={item.value}>{item.icon} {item.label}</option>)}
+            </select>
+          </label>
+          <label className="org-trial-field">
+            <span>Muassasa nomi</span>
+            <input value={yangiNomi} onChange={(event) => { setYangiNomi(event.target.value); setSinovTasdiqlandi(false); yaratishKalitiRef.current = ""; }} placeholder="Masalan: Ziyo xususiy maktabi" maxLength={160} autoFocus />
+          </label>
+          <button type="button" className="org-trial-primary" onClick={tafsilotdanTasdiqqa}>Davom etish <ChevronRight size={17} /></button>
+        </section>
+      )}
+
+      {qadam === "tasdiq" && (
+        <section className="org-trial-wizard" aria-labelledby="trial-confirm-title">
+          <div className="org-trial-step"><span>2</span><b>Sinovni tasdiqlash</b><small>2 / 2 bosqich</small></div>
+          <h2 id="trial-confirm-title">{yangiNomi.trim()}</h2>
+          <div className="org-trial-summary">
+            <div><span>Tur</span><b>{organizationTypeMeta(yangiTuri).icon} {organizationTypeMeta(yangiTuri).label}</b></div>
+            <div><span>Egalik</span><b>Xususiy</b></div>
+            <div><span>Bepul muddat</span><b>{sinovKunlari} kun</b></div>
+            <div><span>Keyingi faollashtirish</span><b>{formatUzs(faollashtirishNarxi)} · bir marta</b></div>
+          </div>
+          <div className="org-trial-terms">
+            <b>Sinov hozir bepul boshlanadi</b>
+            <p>Hozir hamyondan pul yechilmaydi. {sinovKunlari} kundan keyin to'lanmasa, muassasa faqat ko'rish rejimiga o'tadi; barcha ma'lumotlar saqlanadi.</p>
+          </div>
+          <label className="org-trial-checkbox">
+            <input type="checkbox" checked={sinovTasdiqlandi} onChange={(event) => setSinovTasdiqlandi(event.target.checked)} />
+            <span>{sinovKunlari} kunlik bepul sinovni boshlash va undan keyingi faqat ko'rish qoidasini tushundim.</span>
+          </label>
+          <button type="button" className="org-trial-primary" disabled={!sinovTasdiqlandi || jarayon === "sinov"} onClick={sinovniBoshlash}>
+            {jarayon === "sinov" ? <><Loader2 size={17} className="animate-spin" /> Sinov boshlanmoqda...</> : `${sinovKunlari} kunlik bepul sinovni boshlash`}
+          </button>
+        </section>
+      )}
+
+      {qadam === "royxat" && (
+        <>
+          <div className="org-trial-list-head">
+            <div><span className="premium-eyebrow">MUASSASALARIM</span><h2>Xususiy muassasalar</h2></div>
+            <button type="button" onClick={yangiMuassasaOch}><Building2 size={17} /> Yangi muassasa</button>
+          </div>
+          {tashkilotlar.length === 0 ? (
+            <section className="org-trial-empty">
+              <Building2 size={28} />
+              <h3>Hali xususiy muassasa ochilmagan</h3>
+              <p>Bitta “Yangi muassasa” tugmasi orqali bog'cha, maktab, o'quv markazi yoki institut tanlanadi.</p>
+              <button type="button" onClick={yangiMuassasaOch}>Yangi muassasa</button>
+            </section>
+          ) : (
+            <section className="org-trial-list">
+              {tashkilotlar.map((organization) => {
+                const meta = organizationTypeMeta(organization.organization_type);
+                const state = organizationTrialState(organization);
+                return (
+                  <article key={organization.id} className={`org-trial-card ${state.key}`}>
+                    <div className="org-trial-card__main">
+                      <span className="org-trial-card__icon">{meta.icon}</span>
+                      <div>
+                        <div className="org-trial-card__title"><h3>{organization.name}</h3><span className={`org-trial-badge ${state.key}`}>{state.label}</span></div>
+                        <p>{meta.label} · Xususiy muassasa</p>
+                      </div>
+                    </div>
+                    {state.key === "trial" && (
+                      <div className="org-trial-card__timeline">
+                        <CalendarCheck size={17} />
+                        <div><b>{state.detail}</b><span>Sinov tugashi: {formatTrialEnd(organization.trial_ends_at)}</span></div>
+                      </div>
+                    )}
+                    {state.key === "read_only" && (
+                      <div className="org-trial-card__readonly"><KeyRound size={17} /><p><b>Sinov muddati tugagan — faqat ko'rish.</b> Barcha ma'lumot saqlangan va faollashtirilgach yana tahrirlanadi.</p></div>
+                    )}
+                    {state.key === "active" && <p className="org-trial-card__active">✓ Bir martalik faollashtirish bajarilgan</p>}
+                    <div className="org-trial-card__actions">
+                      <button type="button" className="secondary" onClick={() => ishMaydoniniOch(organization)}>Ish maydonini ochish</button>
+                      {organizationCanActivate(organization) && <button type="button" className="primary" onClick={() => faollashtirishniOch(organization)}>Faollashtirish</button>}
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          )}
+          <p className="org-trial-retention"><KeyRound size={15} /> To'lanmagan muassasa o'chirilmaydi: sinovdan keyin ma'lumotlar saqlanib, faqat ko'rish rejimida qoladi.</p>
+        </>
+      )}
+
+      {faollashtiriladigan && (
+        <div className="org-trial-modal-backdrop" role="presentation" onMouseDown={() => jarayon !== "faollashtirish" && setFaollashtiriladigan(null)}>
+          <section className="org-trial-modal" role="dialog" aria-modal="true" aria-labelledby="activation-title" onMouseDown={(event) => event.stopPropagation()}>
+            <button type="button" className="org-trial-modal__close" disabled={jarayon === "faollashtirish"} onClick={() => setFaollashtiriladigan(null)} aria-label="Yopish"><X size={18} /></button>
+            <span className="premium-eyebrow">BIR MARTALIK FAOLLASHTIRISH</span>
+            <h2 id="activation-title">{faollashtiriladigan.name}</h2>
+            <p>Bu obuna emas. Faqat quyidagi tasdiqdan keyin hamyoningizdan bir marta mablag' yechiladi.</p>
+            <div className="org-trial-charge">
+              <div><span>Faollashtirish narxi</span><b>{formatUzs(joriyNarx)}</b></div>
+              <div><span>Hamyondagi mablag'</span><b>{formatUzs(hamyon.balance_uzs)}</b></div>
+              <div><span>To'lov turi</span><b>Bir martalik</b></div>
+            </div>
+            {Number(hamyon.balance_uzs) < joriyNarx && <div className="org-trial-balance-warning">Hamyondagi mablag' yetarli emas. Tasdiqlashdan oldin balansni to'ldiring.</div>}
+            {modalXato && <div className="org-trial-notice error" role="alert">{modalXato}</div>}
+            <label className="org-trial-checkbox charge">
+              <input type="checkbox" checked={tolovTasdiqlandi} onChange={(event) => setTolovTasdiqlandi(event.target.checked)} />
+              <span><b>{formatUzs(joriyNarx)}</b> hamyonimdan bir marta yechilishiga aniq roziman.</span>
+            </label>
+            <div className="org-trial-modal__actions">
+              <button type="button" className="secondary" disabled={jarayon === "faollashtirish"} onClick={() => setFaollashtiriladigan(null)}>Hozir emas</button>
+              <button type="button" className="primary" disabled={!tolovTasdiqlandi || jarayon === "faollashtirish"} onClick={faollashtirish}>
+                {jarayon === "faollashtirish" ? <><Loader2 size={17} className="animate-spin" /> Tasdiqlanmoqda...</> : `${formatUzs(joriyNarx)}ni bir marta yechish`}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
@@ -11493,6 +11993,26 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
     setHolat("yaratish");
   };
 
+  if (korinish === "muassasa_v17") {
+    return (
+      <MuassasaV17Markazi
+        token={token}
+        onBack={() => setKorinish("togarak")}
+        onWorkspaceOpen={(membership, workspace) => {
+          setMuassasalar((current) => [
+            membership,
+            ...current.filter((item) => !(
+              item.organization_v17_id === membership.organization_v17_id
+              || (item.turi === membership.turi && Number(item.muassasa_id) === Number(membership.muassasa_id))
+            )),
+          ]);
+          setAktivMuassasaIdx(0);
+          setKorinish(workspace || "togarak");
+        }}
+      />
+    );
+  }
+
   // Fetch hali qaytmagan bo'lsa ham, profildan (foydalanuvchi) darhol
   // BITTA muassasa ko'rsatiladi — shu bilan ekran "yalang'och" ochilmaydi.
   const samariMuassasalar = muassasalar.length > 0 ? muassasalar : (
@@ -11565,17 +12085,20 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
 
   if (korinish === "markaz" || korinish === "markaz_workspace") {
     return (
-      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
-        <LearningCenterWorkspace
-          token={token}
-          apiBase={API_BASE}
-          initialWorkspace={aktivMuassasa?.turi === "markaz" ? aktivMuassasa : null}
-          onBack={() => setKorinish("togarak")}
-          onLegacy={() => setKorinish("markaz_legacy")}
-          assignedOnly={!foydalanuvchi?.is_admin}
-          canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
-        />
-      </React.Suspense>
+      <div className="org-v17-workspace-wrap">
+        <MuassasaV17ReadOnlyBanner organization={aktivMuassasa} />
+        <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <LearningCenterWorkspace
+            token={token}
+            apiBase={API_BASE}
+            initialWorkspace={aktivMuassasa?.turi === "markaz" ? aktivMuassasa : null}
+            onBack={() => setKorinish("togarak")}
+            onLegacy={() => setKorinish("markaz_legacy")}
+            assignedOnly={!foydalanuvchi?.is_admin}
+            canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
+          />
+        </React.Suspense>
+      </div>
     );
   }
 
@@ -11587,17 +12110,20 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
 
   if (korinish === "maktab_rahbariyat" || korinish === "maktab_workspace") {
     return (
-      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
-        <SchoolWorkspace
-          token={token}
-          apiBase={API_BASE}
-          initialWorkspace={aktivMuassasa?.turi === "maktab" ? aktivMuassasa : null}
-          onBack={() => setKorinish("togarak")}
-          onLegacy={() => setKorinish("maktab_legacy")}
-          assignedOnly={!foydalanuvchi?.is_admin}
-          canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
-        />
-      </React.Suspense>
+      <div className="org-v17-workspace-wrap">
+        <MuassasaV17ReadOnlyBanner organization={aktivMuassasa} />
+        <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <SchoolWorkspace
+            token={token}
+            apiBase={API_BASE}
+            initialWorkspace={aktivMuassasa?.turi === "maktab" ? aktivMuassasa : null}
+            onBack={() => setKorinish("togarak")}
+            onLegacy={() => setKorinish("maktab_legacy")}
+            assignedOnly={!foydalanuvchi?.is_admin}
+            canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
+          />
+        </React.Suspense>
+      </div>
     );
   }
 
@@ -11646,17 +12172,20 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
 
   if (korinish === "bogcha" || korinish === "bogcha_workspace") {
     return (
-      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
-        <KindergartenWorkspace
-          token={token}
-          apiBase={API_BASE}
-          initialWorkspace={aktivMuassasa?.turi === "bogcha" ? aktivMuassasa : null}
-          onBack={() => setKorinish("togarak")}
-          onLegacy={() => setKorinish("bogcha_legacy")}
-          assignedOnly={!foydalanuvchi?.is_admin}
-          canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
-        />
-      </React.Suspense>
+      <div className="org-v17-workspace-wrap">
+        <MuassasaV17ReadOnlyBanner organization={aktivMuassasa} />
+        <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <KindergartenWorkspace
+            token={token}
+            apiBase={API_BASE}
+            initialWorkspace={aktivMuassasa?.turi === "bogcha" ? aktivMuassasa : null}
+            onBack={() => setKorinish("togarak")}
+            onLegacy={() => setKorinish("bogcha_legacy")}
+            assignedOnly={!foydalanuvchi?.is_admin}
+            canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
+          />
+        </React.Suspense>
+      </div>
     );
   }
 
@@ -11666,17 +12195,20 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
 
   if (korinish === "institut_workspace" || korinish === "universitet") {
     return (
-      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
-        <InstituteWorkspace
-          token={token}
-          apiBase={API_BASE}
-          initialWorkspace={aktivMuassasa?.turi === "universitet" ? aktivMuassasa : null}
-          onBack={() => setKorinish("togarak")}
-          onLegacy={() => setKorinish("universitet_legacy")}
-          assignedOnly={!foydalanuvchi?.is_admin}
-          canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
-        />
-      </React.Suspense>
+      <div className="org-v17-workspace-wrap">
+        <MuassasaV17ReadOnlyBanner organization={aktivMuassasa} />
+        <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <InstituteWorkspace
+            token={token}
+            apiBase={API_BASE}
+            initialWorkspace={aktivMuassasa?.turi === "universitet" ? aktivMuassasa : null}
+            onBack={() => setKorinish("togarak")}
+            onLegacy={() => setKorinish("universitet_legacy")}
+            assignedOnly={!foydalanuvchi?.is_admin}
+            canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
+          />
+        </React.Suspense>
+      </div>
     );
   }
 
@@ -12151,6 +12683,13 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
           bandlar.push({ kalit: "psixolog", nom: "Psixolog", ikon: Brain, fon: "#F3EEFA", rang: "#8B5FBF" });
         }
         bandlar.push(
+          {
+            kalit: "muassasa_v17",
+            nom: "Yangi muassasa",
+            ikon: Building2,
+            fon: "#E7F7F4",
+            rang: "#087F79",
+          },
           {
             kalit: "repetitor_workspace",
             nom: "Repetitorlik ochish",
@@ -13164,6 +13703,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   if (rol === "admin") {
     return [
       { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
+      { kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 },
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
@@ -14320,6 +14860,7 @@ function Kabinet({ token }) {
 
   const tabMalumoti = {
     admin: ["Kontent boshqaruvi", "Shablon va import markazi"],
+    admin_muassasalar: ["Muassasalar", "Ro'yxat, yaratish va boshqaruv markazi"],
     admin_testlar: ["Testlar", "Savollar va natijalarni boshqarish"],
     admin_mavzular: ["Mavzular", "DTS va ta’lim mazmuni"],
     admin_statistikalar: ["Statistikalar", "Tizimdan aniq o‘quvchigacha"],
@@ -14432,6 +14973,7 @@ function Kabinet({ token }) {
           </header>
           <div className="premium-page-stage">
       {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}
+      {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
