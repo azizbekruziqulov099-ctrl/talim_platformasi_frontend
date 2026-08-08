@@ -42,7 +42,7 @@ const JUNIOR_AGE_BAND = {
     label: "1–4-sinf",
     bossName: "Sehrli darvoza",
     bridgeName: "Sehrli toshlar",
-    bossAttempts: 3,
+    bossAttempts: 1,
     helper: "Katta tugmalar, savolni avtomatik ovozli o'qish va ko'rinarli vaqt",
 };
 
@@ -50,8 +50,8 @@ const MIDDLE_AGE_BAND = {
     label: "5–9-sinf",
     bossName: "Boss bosqichi",
     bridgeName: "Oltin ko'prik",
-    bossAttempts: 3,
-    helper: "Sarguzasht, qo'lda ovozli o'qish va qisqa yozma javob",
+    bossAttempts: 1,
+    helper: "Sarguzasht, qo'lda ovozli o'qish va 4 variantli bosqich",
 };
 
 export const AGE_BANDS = {
@@ -61,14 +61,14 @@ export const AGE_BANDS = {
     label: "10–11-sinf",
     bossName: "Final topshiriq",
     bridgeName: "Oyna yo'li",
-    bossAttempts: 2,
+    bossAttempts: 1,
     helper: "Strategik ko'rinish, murakkab savol va aniq izoh",
   },
   applicant: {
     label: "Abituriyent",
     bossName: "Imtihon finali",
     bridgeName: "Grant yo'li",
-    bossAttempts: 2,
+    bossAttempts: 1,
     helper: "Sokin professional dizayn va imtihonga yaqin ritm",
   },
   // V18.0 sessiyalarini migratsiya paytida ham ko'rsata olish uchun aliaslar.
