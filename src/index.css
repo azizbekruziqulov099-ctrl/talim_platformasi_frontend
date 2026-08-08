@@ -1250,3 +1250,909 @@ button {
     transition: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────
+   V17 XUSUSIY MUASSASA SINOVI
+   ───────────────────────────────────────────────────────── */
+
+.org-trial-shell,
+.admin-organizations {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  color: #16324f;
+}
+
+.org-trial-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 15px;
+  padding: 7px 0;
+  color: #667085;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.org-trial-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 17px;
+  padding: clamp(20px, 3vw, 30px);
+  color: white;
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(83, 221, 205, 0.24), transparent 14rem),
+    linear-gradient(135deg, #0a304b, #086b70);
+  box-shadow: 0 18px 45px rgba(8, 47, 75, 0.16);
+}
+
+.org-trial-hero__icon {
+  width: 57px;
+  height: 57px;
+  display: grid;
+  place-items: center;
+  color: #6ee0d7;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.org-trial-hero .premium-eyebrow {
+  color: #73e0d8;
+}
+
+.org-trial-hero h1,
+.org-trial-hero p {
+  margin: 0;
+  color: white !important;
+}
+
+.org-trial-hero h1 {
+  margin-top: 5px;
+  font-size: clamp(21px, 3vw, 31px);
+  line-height: 1.08;
+}
+
+.org-trial-hero p {
+  max-width: 670px;
+  margin-top: 8px;
+  color: #c3d9df !important;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.org-trial-wallet {
+  min-width: 140px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 7px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.org-trial-wallet svg {
+  grid-row: span 2;
+  color: #f4c96c;
+}
+
+.org-trial-wallet span {
+  color: #a8c4cc;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.org-trial-wallet b {
+  color: white;
+  font-size: 12px;
+}
+
+.org-trial-loading,
+.org-trial-empty {
+  display: grid;
+  place-items: center;
+  margin-top: 15px;
+  padding: 48px 20px;
+  color: #087f79;
+  border: 1px dashed #b8ccc9;
+  border-radius: 21px;
+  background: white;
+  text-align: center;
+}
+
+.org-trial-loading p,
+.org-trial-empty p,
+.org-trial-empty h3 {
+  margin: 8px 0 0;
+}
+
+.org-trial-empty h3 {
+  color: #102a43;
+  font-size: 16px;
+}
+
+.org-trial-empty p {
+  max-width: 500px;
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.org-trial-empty button {
+  margin-top: 17px;
+  padding: 10px 16px;
+  color: white;
+  border: 0;
+  border-radius: 11px;
+  background: #087f79;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.org-trial-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.org-trial-notice.error {
+  color: #9d312d;
+  border: 1px solid #f1c0bc;
+  background: #fff0ef;
+}
+
+.org-trial-notice.success {
+  color: #24643e;
+  border: 1px solid #b8ddc5;
+  background: #edf8f1;
+}
+
+.org-trial-notice button {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  color: inherit;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.org-trial-wizard {
+  width: min(700px, 100%);
+  margin: 17px auto 0;
+  padding: clamp(20px, 3vw, 29px);
+  border: 1px solid #dce3e9;
+  border-radius: 22px;
+  background: white;
+  box-shadow: 0 14px 38px rgba(16, 42, 67, 0.07);
+}
+
+.org-trial-wizard h2,
+.org-trial-wizard > p {
+  margin: 0;
+}
+
+.org-trial-wizard h2 {
+  margin-top: 20px;
+  color: #102a43;
+  font-size: 21px;
+}
+
+.org-trial-wizard > p {
+  margin-top: 6px;
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.org-trial-step {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.org-trial-step > span {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  color: white;
+  border-radius: 10px;
+  background: #087f79;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.org-trial-step b {
+  color: #29455d;
+  font-size: 11px;
+}
+
+.org-trial-step small {
+  color: #8896a2;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.org-trial-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 17px;
+}
+
+.org-trial-field > span {
+  color: #425b70;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.org-trial-field input,
+.org-trial-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: #16324f;
+  border: 1px solid #dce3e9;
+  border-radius: 11px;
+  background: #fbfcfb;
+  font-size: 12px;
+}
+
+.org-trial-primary {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 19px;
+  padding: 11px 15px;
+  color: white;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #0b948c, #087f79);
+  box-shadow: 0 9px 22px rgba(8, 127, 121, 0.18);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.org-trial-primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.org-trial-summary,
+.org-trial-charge {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 17px;
+}
+
+.org-trial-summary > div,
+.org-trial-charge > div {
+  padding: 11px 12px;
+  border: 1px solid #e2e8ed;
+  border-radius: 12px;
+  background: #fafcfb;
+}
+
+.org-trial-summary span,
+.org-trial-summary b,
+.org-trial-charge span,
+.org-trial-charge b {
+  display: block;
+}
+
+.org-trial-summary span,
+.org-trial-charge span {
+  color: #84929d;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.org-trial-summary b,
+.org-trial-charge b {
+  margin-top: 4px;
+  color: #16324f;
+  font-size: 11px;
+}
+
+.org-trial-terms {
+  margin-top: 13px;
+  padding: 13px;
+  color: #2f6254;
+  border: 1px solid #b9dcd2;
+  border-radius: 13px;
+  background: #eef9f5;
+}
+
+.org-trial-terms b {
+  font-size: 11px;
+}
+
+.org-trial-terms p {
+  margin: 4px 0 0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.org-trial-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 15px;
+  padding: 12px;
+  color: #425b70;
+  border: 1px solid #dce3e9;
+  border-radius: 12px;
+  background: #fbfcfb;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.org-trial-checkbox input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: #087f79;
+}
+
+.org-trial-checkbox.charge {
+  color: #674b13;
+  border-color: #efd38d;
+  background: #fff9e9;
+}
+
+.org-trial-list-head,
+.admin-organizations__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 24px 0 13px;
+}
+
+.org-trial-list-head h2,
+.admin-organizations__header h1,
+.admin-organizations__header p {
+  margin: 0;
+}
+
+.org-trial-list-head h2,
+.admin-organizations__header h1 {
+  margin-top: 3px;
+  color: #102a43;
+  font-size: 24px;
+}
+
+.admin-organizations__header p {
+  margin-top: 6px;
+  color: #667085;
+  font-size: 11px;
+}
+
+.org-trial-list-head > button,
+.admin-organizations__header > button {
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 13px;
+  color: white;
+  border: 0;
+  border-radius: 11px;
+  background: #087f79;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.org-trial-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.org-trial-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #dce3e9;
+  border-radius: 17px;
+  background: white;
+  box-shadow: 0 7px 22px rgba(16, 42, 67, 0.05);
+}
+
+.org-trial-card.read_only {
+  border-color: #ecd19b;
+}
+
+.org-trial-card__main,
+.org-trial-card__title,
+.org-trial-card__timeline,
+.org-trial-card__readonly,
+.org-trial-card__actions {
+  display: flex;
+  align-items: center;
+}
+
+.org-trial-card__main {
+  gap: 11px;
+}
+
+.org-trial-card__main > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.org-trial-card__icon {
+  width: 41px;
+  height: 41px;
+  flex: 0 0 41px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #edf7f5;
+  font-size: 20px;
+}
+
+.org-trial-card__title {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.org-trial-card h3,
+.org-trial-card__main p {
+  margin: 0;
+}
+
+.org-trial-card h3 {
+  overflow: hidden;
+  color: #102a43;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-trial-card__main p {
+  margin-top: 3px;
+  color: #84929d;
+  font-size: 9px;
+}
+
+.org-trial-badge {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.org-trial-badge.trial { color: #8a5a1c; background: #fff4d8; }
+.org-trial-badge.active { color: #23613c; background: #e7f4ec; }
+.org-trial-badge.read_only { color: #8b4f1b; background: #fff0dc; }
+
+.org-trial-card__timeline,
+.org-trial-card__readonly {
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  background: #fff9eb;
+}
+
+.org-trial-card__timeline svg,
+.org-trial-card__readonly svg {
+  flex: 0 0 auto;
+  color: #9b6b20;
+}
+
+.org-trial-card__timeline b,
+.org-trial-card__timeline span {
+  display: block;
+}
+
+.org-trial-card__timeline b,
+.org-trial-card__readonly b {
+  color: #76501a;
+  font-size: 9px;
+}
+
+.org-trial-card__timeline span,
+.org-trial-card__readonly p {
+  margin: 2px 0 0;
+  color: #8b724c;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.org-trial-card__active {
+  margin: 12px 0 0;
+  color: #287348;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.org-trial-card__actions {
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.org-trial-card__actions button,
+.org-trial-modal__actions button {
+  flex: 1;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.org-trial-card__actions .secondary,
+.org-trial-modal__actions .secondary {
+  color: #486176;
+  border: 1px solid #dce3e9;
+  background: white;
+}
+
+.org-trial-card__actions .primary,
+.org-trial-modal__actions .primary {
+  color: white;
+  border: 1px solid #087f79;
+  background: #087f79;
+}
+
+.org-trial-card__actions button:disabled,
+.org-trial-modal__actions button:disabled {
+  opacity: 0.45;
+}
+
+.org-trial-retention {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 13px 0 0;
+  padding: 10px 12px;
+  color: #667085;
+  border-radius: 11px;
+  background: #eef2f4;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.org-trial-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 24, 38, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.org-trial-modal {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  padding: clamp(21px, 4vw, 30px);
+  border: 1px solid #dce3e9;
+  border-radius: 22px;
+  background: white;
+  box-shadow: 0 28px 80px rgba(5, 24, 38, 0.28);
+}
+
+.org-trial-modal h2,
+.org-trial-modal > p {
+  margin: 0;
+}
+
+.org-trial-modal h2 {
+  margin-top: 7px;
+  padding-right: 31px;
+  color: #102a43;
+  font-size: 21px;
+}
+
+.org-trial-modal > p {
+  margin-top: 7px;
+  color: #667085;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.org-trial-modal__close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #667085;
+  border: 1px solid #dce3e9;
+  border-radius: 10px;
+  background: white;
+}
+
+.org-trial-charge {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.org-trial-balance-warning {
+  margin-top: 10px;
+  padding: 9px 11px;
+  color: #955b17;
+  border: 1px solid #efd38d;
+  border-radius: 10px;
+  background: #fff8e6;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.org-trial-modal__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.admin-organizations__header {
+  align-items: center;
+  margin-top: 5px;
+}
+
+.admin-organizations__section-title {
+  margin-top: 22px;
+}
+
+.admin-organizations__section-title h2,
+.admin-organizations__section-title p {
+  margin: 0;
+}
+
+.admin-organizations__section-title h2 {
+  color: #102a43;
+  font-size: 16px;
+}
+
+.admin-organizations__section-title p {
+  margin-top: 4px;
+  color: #84929d;
+  font-size: 9px;
+}
+
+.admin-organizations__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.admin-organizations__list > button {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: #16324f;
+  border: 1px solid #dce3e9;
+  border-radius: 16px;
+  background: white;
+  text-align: left;
+  box-shadow: 0 7px 22px rgba(16, 42, 67, 0.05);
+}
+
+.admin-organizations__list > button > span {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #edf7f5;
+  font-size: 21px;
+}
+
+.admin-organizations__list b,
+.admin-organizations__list small {
+  display: block;
+}
+
+.admin-organizations__list b {
+  font-size: 12px;
+}
+
+.admin-organizations__list small {
+  margin-top: 4px;
+  color: #84929d;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.admin-wallet-credit {
+  margin-top: 18px;
+  padding: clamp(17px, 2.5vw, 23px);
+  border: 1px solid #ead59f;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fffdf7, #fff8e8);
+  box-shadow: 0 8px 24px rgba(108, 77, 20, 0.05);
+}
+
+.admin-wallet-credit__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.admin-wallet-credit__head > span {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  color: #8a5a1c;
+  border-radius: 12px;
+  background: #fff0c9;
+}
+
+.admin-wallet-credit__head h2,
+.admin-wallet-credit__head p {
+  margin: 0;
+}
+
+.admin-wallet-credit__head h2 {
+  color: #543b14;
+  font-size: 14px;
+}
+
+.admin-wallet-credit__head p {
+  max-width: 780px;
+  margin-top: 4px;
+  color: #816d4a;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.admin-wallet-credit__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 10px;
+}
+
+.admin-wallet-credit__submit {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 10px 14px;
+  color: white;
+  border: 0;
+  border-radius: 11px;
+  background: #8a5a1c;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.admin-wallet-credit__submit:disabled {
+  opacity: 0.45;
+}
+
+.org-v17-workspace-wrap {
+  min-width: 0;
+}
+
+.org-trial-readonly-banner {
+  width: calc(100% - 40px);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 15px auto 0;
+  padding: 12px 14px;
+  color: #774b18;
+  border: 1px solid #e8c687;
+  border-radius: 13px;
+  background: #fff7e4;
+}
+
+.org-trial-readonly-banner svg {
+  flex: 0 0 auto;
+}
+
+.org-trial-readonly-banner b,
+.org-trial-readonly-banner p {
+  display: block;
+  margin: 0;
+}
+
+.org-trial-readonly-banner b {
+  font-size: 10px;
+}
+
+.org-trial-readonly-banner p {
+  margin-top: 3px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .org-trial-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .org-trial-wallet {
+    grid-column: 1 / -1;
+  }
+
+  .org-trial-list,
+  .admin-organizations__list,
+  .admin-wallet-credit__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .org-trial-charge {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .org-trial-shell,
+  .admin-organizations {
+    padding-inline: 15px !important;
+  }
+
+  .org-trial-hero {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .org-trial-hero__icon {
+    width: 45px;
+    height: 45px;
+  }
+
+  .org-trial-list-head,
+  .admin-organizations__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .org-trial-list-head > button,
+  .admin-organizations__header > button {
+    width: 100%;
+  }
+
+  .org-trial-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .org-trial-modal__actions {
+    flex-direction: column-reverse;
+  }
+}
