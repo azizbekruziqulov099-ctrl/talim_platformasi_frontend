@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import {
@@ -28,6 +28,13 @@ import {
   organizationTrialState,
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
+import TestGameArena, { GameModePicker, GameProfileStrip } from "./TestGameArena.jsx";
+import {
+  buildGameStartPayload,
+  gameErrorMessage,
+  gameQuestionOptions,
+  gradeBandForClass,
+} from "./testGameRules.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
@@ -1672,7 +1679,16 @@ function BilimMarkazi({
 // ═══════════════════════════════════════════════════════════
 // 4) TEST YECHISH
 // ═══════════════════════════════════════════════════════════
-function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
+function TestTab({
+  token,
+  sinf: sinfXom,
+  turi = "oddiy",
+  onTestFaollik,
+  foydalanuvchi = null,
+  rang = "#1B4B7A",
+  oyinProfil = null,
+  onOyinProfilYangilandi,
+}) {
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
   // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
@@ -1694,6 +1710,8 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   const [natija, setNatija] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
+  const [oyinRejimi, setOyinRejimi] = useState("bridge");
+  const [oyinSessiya, setOyinSessiya] = useState(null);
   const testUrinishIdRef = useRef(null);
   const testBoshlanganAtRef = useRef(null);
 
@@ -1701,7 +1719,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi (test tugatilishi
   // yoki to'xtatilishi kerak).
   useEffect(() => {
-    if (onTestFaollik) onTestFaollik(holat === "savollar");
+    if (onTestFaollik) onTestFaollik(holat === "savollar" || holat === "oyin");
     return () => { if (onTestFaollik) onTestFaollik(false); };
   }, [holat, onTestFaollik]);
 
@@ -1735,9 +1753,10 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   }, [fanlar]);
 
   // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
-  const joriySinfMalumoti = sinf
-    ? sinflarRoyxati.find((s) => String(s.sinf) === String(sinf)) || sinflarRoyxati[0]
-    : sinflarRoyxati.find((s) => String(s.sinf) === String(tanlanganSinf));
+  const faolSinf = (boshqaSinflarRejimi || !sinf) ? tanlanganSinf : sinf;
+  const joriySinfMalumoti = faolSinf
+    ? sinflarRoyxati.find((s) => String(s.sinf) === String(faolSinf))
+    : null;
 
   // Mavzu bosilganda — darhol savol OLMAYMIZ, avval "nechta savol" so'raymiz.
   // MUHIM: har mavzu ostida bir nechta KICHIK mavzu (topic_code) bo'lishi
@@ -1750,6 +1769,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
       nomi: mavzu.nomi,
       fanNomi: fan.nom,
       savol_soni: mavzu.savol_soni,
+      sinf: joriySinfMalumoti?.sinf || sinf || tanlanganSinf,
     });
     setHolat("songi");
   };
@@ -1773,6 +1793,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
       nomi: `Aralash test (${tanlanganKodlar.length} mavzu)`,
       fanNomi: joriySinfMalumoti ? `${joriySinfMalumoti.sinf}-sinf` : "",
       savol_soni: tanlanganKodlar.reduce((s, k) => s + (k.savol_soni || 0), 0),
+      sinf: joriySinfMalumoti?.sinf || sinf || tanlanganSinf,
     });
     setHolat("songi");
   };
@@ -1782,12 +1803,22 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   const [vaqtli, setVaqtli] = useState(null);
   const [yozuvli, setYozuvli] = useState(null);
   const [mosSoni, setMosSoni] = useState(null); // null = hali yuklanmoqda
+  const [testRejimi, setTestRejimi] = useState("bir_bir"); // bir_bir | hammasi | oyin
 
   useEffect(() => {
     if (holat !== "songi" || !tanlanganMavzu) return;
     let bekor = false;
     setMosSoni(null);
-    const so_rov = tanlanganMavzu.aralash
+    const so_rov = testRejimi === "oyin"
+      ? fetch(`${API_BASE}/api/oyin/mavjudligi`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            topic_codes: tanlanganMavzu.kodlar || [tanlanganMavzu.topic_code],
+          }),
+        })
+      : tanlanganMavzu.aralash
       ? fetch(`${API_BASE}/api/test_aralash/soni`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1802,8 +1833,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
           return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
         })();
     so_rov
-      .then((r) => r.json())
-      .then((d) => { if (!bekor) setMosSoni(d.soni ?? 0); })
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(gameErrorMessage(data, "Savollar soni aniqlanmadi"));
+        return data;
+      })
+      .then((d) => { if (!bekor) setMosSoni(d.available_count ?? d.soni ?? 0); })
       .catch((e) => {
         if (!bekor) {
           setXato(`Savollar sonini olib bo'lmadi: ${e.message}`);
@@ -1811,7 +1846,7 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
         }
       });
     return () => { bekor = true; };
-  }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli]);
+  }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli, testRejimi, token]);
   const [toGriSoni, setToGriSoni] = useState(0);
   const [xatoSoni, setXatoSoni] = useState(0);
 
@@ -1824,12 +1859,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            topic_codes: tanlanganMavzu.kodlar || [], soni, qiyinlik: qiyinlik || undefined,
+            token, topic_codes: tanlanganMavzu.kodlar || [], soni, qiyinlik: qiyinlik || undefined,
             rasimli, vaqtli, yozuvli,
           }),
         });
       } else {
-        const qs = new URLSearchParams({ soni });
+        const qs = new URLSearchParams({ soni, token });
         if (qiyinlik) qs.set("qiyinlik", qiyinlik);
         if (rasimli !== null) qs.set("rasimli", rasimli);
         if (vaqtli !== null) qs.set("vaqtli", vaqtli);
@@ -1839,9 +1874,8 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
       setSavollar(data.savollar);
-      testUrinishIdRef.current =
-        globalThis.crypto?.randomUUID?.()
-        || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      testUrinishIdRef.current = data.attempt_id;
+      if (!testUrinishIdRef.current) throw new Error("Server test urinishini yaratolmadi. 015 migratsiyasini tekshiring.");
       testBoshlanganAtRef.current = Date.now();
       setJavoblar({}); setJoriySavol(0); setJoriyNatija(null); setYozibJavob({}); setHolat("savollar");
       setToGriSoni(0); setXatoSoni(0);
@@ -1857,20 +1891,34 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   const [ovozTezligi, setOvozTezligi] = useState(1);
   const [ovozTezlikOchiq, setOvozTezlikOchiq] = useState(false);
   const ovozMatniRef = useRef(null); // hozir yuklangan/o'ynalayotgan matn — qayta bosilganda solishtirish uchun
+  const ovozPromiseRef = useRef(null);
 
-  const ovozniToxtat = () => {
-    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
+  const ovozniToxtat = useCallback(() => {
+    const audio = ovozRef.current;
+    if (audio) {
+      audio.oncanplay = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      ovozRef.current = null;
+    }
+    if (ovozPromiseRef.current) {
+      ovozPromiseRef.current({ status: "stopped" });
+      ovozPromiseRef.current = null;
+    }
     ovozMatniRef.current = null;
     setOvozHolati("bosh");
-  };
+  }, []);
 
-  const ovozniOqi = (matn) => {
+  const ovozniOqi = useCallback((matn) => {
     // Aynan shu matn hozir yuklangan/o'ynalayotgan bo'lsa — pauza/davom ettirish
     // (yangidan boshlab, boshidan o'qib bermaydi).
     if (ovozMatniRef.current === matn && ovozRef.current) {
       if (ovozRef.current.paused) { ovozRef.current.play(); setOvozHolati("oynamoqda"); }
       else { ovozRef.current.pause(); setOvozHolati("pauzada"); }
-      return;
+      return ovozRef.current.__samTmPromise;
     }
     // Boshqa matn (yoki hozircha hech narsa) — avvalgisini TO'XTATIB, yangisini boshlaymiz.
     ovozniToxtat();
@@ -1879,18 +1927,32 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
     const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(matn)}`);
     audio.playbackRate = ovozTezligi;
     ovozRef.current = audio;
-    audio.oncanplay = () => setOvozHolati("oynamoqda");
-    audio.onended = () => { ovozMatniRef.current = null; setOvozHolati("bosh"); };
-    audio.onerror = () => { ovozMatniRef.current = null; setOvozHolati("bosh"); };
-    audio.play().catch(() => { ovozMatniRef.current = null; setOvozHolati("bosh"); });
-  };
+    const tugatish = (status) => {
+      if (ovozRef.current !== audio) return;
+      audio.oncanplay = null;
+      audio.onended = null;
+      audio.onerror = null;
+      ovozRef.current = null;
+      ovozMatniRef.current = null;
+      setOvozHolati("bosh");
+      if (ovozPromiseRef.current) {
+        ovozPromiseRef.current({ status });
+        ovozPromiseRef.current = null;
+      }
+    };
+    audio.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
+    audio.oncanplay = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
+    audio.onended = () => tugatish("ended");
+    audio.onerror = () => tugatish("error");
+    audio.play().catch(() => tugatish("blocked"));
+    return audio.__samTmPromise;
+  }, [ovozTezligi, ovozniToxtat]);
 
   const ovozTezliginiOzgartir = (tezlik) => {
     setOvozTezligi(tezlik);
     if (ovozRef.current) ovozRef.current.playbackRate = tezlik;
   };
 
-  const [testRejimi, setTestRejimi] = useState("bir_bir"); // "bir_bir" (mashq, darhol javob) | "hammasi" (imtihon, oxirida bilinadi)
   const [umumiyVaqt, setUmumiyVaqt] = useState(null); // "hammasi" rejimi uchun — butun test uchun UMUMIY qolgan soniya | null (vaqtsiz)
   const [toxtatishModali, setToxtatishModali] = useState(false);
   const [yakunlashTasdiqi, setYakunlashTasdiqi] = useState(false);
@@ -1905,6 +1967,50 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   const [avtoQoldi, setAvtoQoldi] = useState(null);
   const timerRef = useRef(null);
   const avtoRef = useRef(null);
+
+  const testUslubiniTanla = (yangiRejim) => {
+    setTestRejimi(yangiRejim);
+    if (yangiRejim === "oyin") {
+      // V18 o'yin dvigateli yosh bosqichini serverdagi DTS sinfidan oladi;
+      // har raund uchun barcha mos savollar bankidan 4+1 tuzilma yasaydi.
+      setQiyinlik("");
+      setRasimli(null);
+      setVaqtli(null);
+      setYozuvli(null);
+    }
+  };
+
+  const oyinniBoshlash = async (soni) => {
+    setYuklanmoqda(true);
+    setXato("");
+    try {
+      const payload = buildGameStartPayload({
+        token,
+        topicCodes: tanlanganMavzu?.kodlar || [tanlanganMavzu?.topic_code],
+        questionCount: soni,
+        gameMode: oyinRejimi,
+      });
+      const res = await fetch(`${API_BASE}/api/oyin/boshlash`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(gameErrorMessage(data, "O'yin boshlanmadi"));
+      setOyinSessiya(data);
+      if (data.profile && onOyinProfilYangilandi) onOyinProfilYangilandi(data.profile);
+      testBoshlanganAtRef.current = Date.now();
+      setHolat("oyin");
+    } catch (e) {
+      setXato(e.message || "O'yin boshlanmadi");
+    } finally {
+      setYuklanmoqda(false);
+    }
+  };
+
+  const testniBoshlash = (soni) => (
+    testRejimi === "oyin" ? oyinniBoshlash(soni) : savollarniYukla(soni)
+  );
 
   // MUHIM: savol o'zgarganda (keyingisiga o'tilganda) — hozir o'qilayotgan
   // ovoz bo'lsa, DARHOL to'xtatiladi. Aks holda eski savolning ovozi
@@ -1975,7 +2081,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
       const res = await fetch(`${API_BASE}/api/test/javob_tekshir`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ savol_id: savolId, tanlangan: harf }),
+        body: JSON.stringify({
+          token,
+          attempt_id: testUrinishIdRef.current,
+          savol_id: savolId,
+          tanlangan: harf,
+        }),
       });
       const data = await res.json();
       setJoriyNatija(data);
@@ -2063,6 +2174,9 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
       });
       const data = await res.json();
       setNatija(data);
+      if (data.ochko?.profile && onOyinProfilYangilandi) {
+        onOyinProfilYangilandi(data.ochko.profile);
+      }
       setHolat("natija");
     } catch (e) {
       setXato("Natijani yuborib bo'lmadi");
@@ -2082,10 +2196,28 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
   const qaytaBoshlash = () => {
     setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null);
     setUmumiyVaqt(null); setYozibJavob({}); setJoriySavol(0); setJoriyNatija(null);
+    setOyinSessiya(null);
   };
 
   if (yuklanmoqda) {
     return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  if (holat === "oyin" && oyinSessiya) {
+    return (
+      <TestGameArena
+        token={token}
+        apiBase={API_BASE}
+        initialSession={oyinSessiya}
+        accent={rang}
+        onRead={ovozniOqi}
+        onStopRead={ovozniToxtat}
+        onFinished={() => { if (onTestFaollik) onTestFaollik(false); }}
+        onProfileChange={onOyinProfilYangilandi}
+        onBackToSetup={() => { setOyinSessiya(null); setHolat("songi"); }}
+        onBackToTopics={qaytaBoshlash}
+      />
+    );
   }
 
   if (holat === "natija") {
@@ -2099,6 +2231,26 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
           <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
           <p className="text-sm mb-6" style={{ color: "#8A8578" }}>{natija.togri} / {natija.jami} to'g'ri</p>
         </div>
+
+        {natija.ochko && (
+          <div className="rounded-2xl p-4 bg-white border mb-5" style={{ borderColor: "#E5E1D8" }}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs" style={{ color: "#8A8578" }}>Oddiy test natijasi</p>
+                <p className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{natija.ochko.score_1000 || 0} / 1000</p>
+              </div>
+              <span className="px-3 py-1.5 rounded-full text-sm font-bold" style={{ color: "#7A5412", backgroundColor: "#FFF3CD" }}>
+                +{natija.ochko.awarded_points || 0} ochko
+              </span>
+            </div>
+            {natija.ochko.daily_first_test_points > 0 && (
+              <p className="text-xs mb-3" style={{ color: "#5A5648" }}>
+                Bugungi birinchi tugallangan test uchun +{natija.ochko.daily_first_test_points} bonus.
+              </p>
+            )}
+            <GameProfileStrip profile={natija.ochko.profile} accent={rang} compact />
+          </div>
+        )}
 
         {natija.xatolar && natija.xatolar.length > 0 && (
           <div className="mb-6">
@@ -2127,7 +2279,12 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
   if (holat === "songi") {
     const jami = mosSoni ?? 0;
-    const variantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
+    const oddiyVariantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
+    const oyinVariantlar = gameQuestionOptions(jami);
+    const variantlar = testRejimi === "oyin" ? oyinVariantlar : oddiyVariantlar;
+    const oyinYoshBosqichi = gradeBandForClass(
+      tanlanganMavzu?.sinf || sinf || tanlanganSinf || joriySinfMalumoti?.sinf,
+    );
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
@@ -2136,46 +2293,64 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
 
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🧭 Test uslubi</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <button onClick={() => setTestRejimi("bir_bir")}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button onClick={() => testUslubiniTanla("bir_bir")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "bir_bir" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
               <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📖 Bittalab</p>
               <p className="text-xs" style={{ color: "#8A8578" }}>Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun</p>
             </button>
-            <button onClick={() => setTestRejimi("hammasi")}
+            <button onClick={() => testUslubiniTanla("hammasi")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "hammasi" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
               <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📜 Hammasi birga</p>
               <p className="text-xs" style={{ color: "#8A8578" }}>Natija faqat yakunlaganda ko'rinadi — imtihon uslubida</p>
             </button>
+            <button onClick={() => testUslubiniTanla("oyin")}
+              className="rounded-xl p-3.5 text-left border-2"
+              style={testRejimi === "oyin" ? { borderColor: rang, backgroundColor: `${rang}12` } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>🎮 O'yinli test</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>Har 4 ta tanlovdan keyin yozma Boss, ochko va kunlik seriya</p>
+            </button>
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi</p>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              ["", "🎲 Aralash"], ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"],
-              ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
-            ].map(([qiym, nom]) => (
-              <button key={qiym} onClick={() => setQiyinlik(qiym)}
-                className="px-3.5 py-2 rounded-full text-xs font-semibold transition-colors"
-                style={qiyinlik === qiym
-                  ? { backgroundColor: "#1B4B7A", color: "#fff" }
-                  : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-                {nom}
-              </button>
-            ))}
-          </div>
-        </div>
+        {testRejimi === "oyin" ? (
+          <GameModePicker
+            value={oyinRejimi}
+            onChange={setOyinRejimi}
+            gradeBand={oyinYoshBosqichi}
+            accent={rang}
+            profile={oyinProfil}
+          />
+        ) : (
+          <>
+            <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  ["", "🎲 Aralash"], ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"],
+                  ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
+                ].map(([qiym, nom]) => (
+                  <button key={qiym} onClick={() => setQiyinlik(qiym)}
+                    className="px-3.5 py-2 rounded-full text-xs font-semibold transition-colors"
+                    style={qiyinlik === qiym
+                      ? { backgroundColor: "#1B4B7A", color: "#fff" }
+                      : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    {nom}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>⚙️ Qo'shimcha sozlamalar</p>
-          <UchXilTanlov nom="🖼️ Rasm" qiymat={rasimli} onOzgar={setRasimli} haNomi="Rasmli" yoqNomi="Rasmsiz" />
-          <UchXilTanlov nom="⏱️ Vaqt" qiymat={vaqtli} onOzgar={setVaqtli} haNomi="Vaqtli" yoqNomi="Vaqtsiz" />
-          <UchXilTanlov nom="✍️ Javob turi" qiymat={yozuvli} onOzgar={setYozuvli} haNomi="Yozuvli" yoqNomi="Tugmali" />
-        </div>
+            <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>⚙️ Qo'shimcha sozlamalar</p>
+              <UchXilTanlov nom="🖼️ Rasm" qiymat={rasimli} onOzgar={setRasimli} haNomi="Rasmli" yoqNomi="Rasmsiz" />
+              <UchXilTanlov nom="⏱️ Vaqt" qiymat={vaqtli} onOzgar={setVaqtli} haNomi="Vaqtli" yoqNomi="Vaqtsiz" />
+              <UchXilTanlov nom="✍️ Javob turi" qiymat={yozuvli} onOzgar={setYozuvli} haNomi="Yozuvli" yoqNomi="Tugmali" />
+            </div>
+          </>
+        )}
 
         <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>
@@ -2184,28 +2359,34 @@ function TestTab({ token, sinf: sinfXom, turi = "oddiy", onTestFaollik }) {
           </p>
           {mosSoni === null ? (
             <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
-          ) : mosSoni === 0 ? (
+          ) : (testRejimi === "oyin" ? variantlar.length === 0 : mosSoni === 0) ? (
             <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
-              Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.
+              {testRejimi === "oyin"
+                ? "O'yin uchun kamida 5 ta mos savol kerak: 4 ta tanlovli va 1 ta yozma Boss."
+                : "Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang."}
             </p>
           ) : (
             <>
-              <div className="grid grid-cols-3 gap-2 mb-2.5">
+              <div className={`grid ${testRejimi === "oyin" ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-3"} gap-2 mb-2.5`}>
                 {variantlar.map((n) => (
-                  <button key={n} onClick={() => savollarniYukla(n)}
+                  <button key={n} onClick={() => testniBoshlash(n)}
                     className="py-3.5 rounded-xl border font-semibold text-center text-sm"
                     style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
-                    {n} ta
+                    <span className="block">{n} ta</span>
+                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5} Boss</span>}
                   </button>
                 ))}
               </div>
-              <button onClick={() => savollarniYukla(jami)}
-                className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
-                style={{ backgroundColor: "#1B4B7A" }}>
-                🚀 Hammasi ({jami} ta)
-              </button>
+              {testRejimi !== "oyin" && (
+                <button onClick={() => testniBoshlash(jami)}
+                  className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
+                  style={{ backgroundColor: "#1B4B7A" }}>
+                  🚀 Hammasi ({jami} ta)
+                </button>
+              )}
             </>
           )}
+          {xato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
         </div>
       </div>
     );
@@ -14770,6 +14951,8 @@ function Kabinet({ token }) {
   const [xatoMatn, setXatoMatn] = useState("");
   const [muassasalarim, setMuassasalarim] = useState([]);
   const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
+  const [oyinProfil, setOyinProfil] = useState(null);
+  const [kunlikMukofot, setKunlikMukofot] = useState(0);
   // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
   // ko'rinadigan "ko'rinish rejimi". Shu orqali admin har rolni (o'quvchi/
   // ota-ona/o'qituvchi/admin) BIR-BIRIGA ARALASHMASDAN, to'liq alohida
@@ -14788,6 +14971,24 @@ function Kabinet({ token }) {
         if (!resU.ok) throw new Error("Sessiya eskirgan");
         const u = await resU.json();
         setFoydalanuvchi(u);
+
+        // V18: Tashkent sanasi bo'yicha kunlik kirish ochkosi backendda
+        // faqat bir marta beriladi. 015 hali o'rnatilmagan eski serverda
+        // kabinetning qolgan qismini to'xtatmaymiz.
+        fetch(`${API_BASE}/api/oyin/kunlik-kirish`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        })
+          .then(async (response) => ({ ok: response.ok, data: await response.json() }))
+          .then(({ ok, data }) => {
+            if (ok && data.profile) setOyinProfil(data.profile);
+            if (ok && data.awarded_points > 0) {
+              setKunlikMukofot(data.awarded_points);
+              setTimeout(() => setKunlikMukofot(0), 4500);
+            }
+          })
+          .catch(() => {});
 
         fetch(`${API_BASE}/api/bola/${u.user_id}/bilim`)
           .then((r) => r.json())
@@ -14877,6 +15078,11 @@ function Kabinet({ token }) {
 
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", backgroundImage: "url(\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22260%22%20height%3D%22260%22%20viewBox%3D%220%200%20260%20260%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23E3DECE%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cg%20transform%3D%22translate%2818%2C24%29%20rotate%28-12%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2230%22%20height%3D%2222%22%20rx%3D%222%22/%3E%3Cline%20x1%3D%2215%22%20y1%3D%220%22%20x2%3D%2215%22%20y2%3D%2222%22/%3E%3Cline%20x1%3D%224%22%20y1%3D%226%22%20x2%3D%2212%22%20y2%3D%226%22/%3E%3Cline%20x1%3D%224%22%20y1%3D%2211%22%20x2%3D%2212%22%20y2%3D%2211%22/%3E%3Cline%20x1%3D%2218%22%20y1%3D%226%22%20x2%3D%2226%22%20y2%3D%226%22/%3E%3Cline%20x1%3D%2218%22%20y1%3D%2211%22%20x2%3D%2226%22%20y2%3D%2211%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28160%2C20%29%20rotate%2838%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%227%22%20height%3D%2232%22%20rx%3D%221.5%22/%3E%3Cpath%20d%3D%22M0%2032%20L3.5%2040%20L7%2032%20Z%22/%3E%3Cline%20x1%3D%220%22%20y1%3D%226%22%20x2%3D%227%22%20y2%3D%226%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%2870%2C110%29%20rotate%288%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2246%22%20height%3D%2210%22%20rx%3D%221.5%22/%3E%3Cline%20x1%3D%228%22%20y1%3D%220%22%20x2%3D%228%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2216%22%20y1%3D%220%22%20x2%3D%2216%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2224%22%20y1%3D%220%22%20x2%3D%2224%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2232%22%20y1%3D%220%22%20x2%3D%2232%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2240%22%20y1%3D%220%22%20x2%3D%2240%22%20y2%3D%225%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28185%2C140%29%22%3E%3Crect%20x%3D%220%22%20y%3D%2210%22%20width%3D%2230%22%20height%3D%2234%22%20rx%3D%227%22/%3E%3Crect%20x%3D%227%22%20y%3D%220%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%223%22/%3E%3Cline%20x1%3D%2215%22%20y1%3D%2220%22%20x2%3D%2215%22%20y2%3D%2234%22/%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2227%22%20r%3D%221.5%22%20fill%3D%22%23E3DECE%22%20stroke%3D%22none%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%2830%2C175%29%20rotate%28-25%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%226%22%20height%3D%2228%22%20rx%3D%222%22/%3E%3Cpath%20d%3D%22M0%2028%20L3%2035%20L6%2028%20Z%22/%3E%3Crect%20x%3D%220%22%20y%3D%22-4%22%20width%3D%226%22%20height%3D%225%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28120%2C200%29%20rotate%28-10%29%22%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2210%22%20r%3D%2210%22/%3E%3Cline%20x1%3D%2210%22%20y1%3D%224%22%20x2%3D%2210%22%20y2%3D%2210%22/%3E%3Cline%20x1%3D%2210%22%20y1%3D%2210%22%20x2%3D%2214%22%20y2%3D%2213%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")", backgroundRepeat: "repeat", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      {kunlikMukofot > 0 && (
+        <div className="fixed z-[100] top-4 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full text-sm font-bold text-white shadow-xl" style={{ backgroundColor: "#7A5412" }} role="status">
+          🔥 +{kunlikMukofot} kunlik ochko
+        </div>
+      )}
       <style>{`
         button:not(:disabled) { transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
         button:not(:disabled):active { transform: scale(0.97); }
@@ -15003,7 +15209,15 @@ function Kabinet({ token }) {
       )}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && <AiOquvchiUstozBolimi token={token} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
-        <TestTab token={token} sinf={foydalanuvchi?.class} onTestFaollik={setTestDavomida} />
+        <TestTab
+          token={token}
+          sinf={foydalanuvchi?.class}
+          foydalanuvchi={foydalanuvchi}
+          rang={joriyRang}
+          oyinProfil={oyinProfil}
+          onOyinProfilYangilandi={setOyinProfil}
+          onTestFaollik={setTestDavomida}
+        />
       )}
       {tab === "xabar" && <XabarlarTab token={token} />}
       {tab === "profil" && (
