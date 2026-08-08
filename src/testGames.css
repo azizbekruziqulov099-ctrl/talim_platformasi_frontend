@@ -235,12 +235,7 @@
 .game-options .is-hidden-option > b { color: #6b7280; font-size: 10px; }
 .game-bridge .game-options button { border-color: color-mix(in srgb, #0891b2 25%, #e5e7eb); background: linear-gradient(145deg, rgba(236,254,255,.95), rgba(255,255,255,.98)); box-shadow: inset 0 0 18px rgba(103,232,249,.08); }
 
-.game-written-answer { display: grid; grid-template-columns: 1fr auto; gap: 9px; }
-.game-written-answer input { min-width: 0; min-height: 52px; padding: 0 15px; border: 2px solid #dbe1e9; border-radius: 15px; background: #fff; font-size: 15px; }
-.game-written-answer input:focus { border-color: var(--mode-dark); outline: 3px solid color-mix(in srgb, var(--mode-light) 28%, transparent); }
-.game-written-answer button,
 .game-next-button { min-height: 52px; padding: 0 18px; border: 0; border-radius: 15px; color: white; background: var(--mode-dark); font-size: 12px; font-weight: 900; }
-.game-written-answer button:disabled { opacity: .45; }
 
 .game-feedback { margin-top: 12px; }
 .game-feedback > div { padding: 12px 14px; border-radius: 14px; font-size: 12px; }
@@ -349,8 +344,6 @@
   .game-timer.is-error { grid-template-columns: 34px 1fr; }
   .game-timer.is-error button { grid-column: 1 / -1; width: 100%; }
   .game-options { grid-template-columns: 1fr; }
-  .game-written-answer { grid-template-columns: 1fr; }
-  .game-written-answer button { min-height: 48px; }
   .detective-board { gap: 4px; }
   .detective-board span,
   .detective-board b { padding: 3px; font-size: 7px; }
@@ -1213,4 +1206,503 @@
 
 @media (min-width: 391px) and (max-width: 760px) {
   .game-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* V18.4 immersive arena: savol, rasm, ovoz va 4 javob o'yin oynasining ichida. */
+.game-stage {
+  --stage-pad-x: clamp(14px, 3vw, 34px);
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: var(--scene-width, 1000px);
+  min-height: clamp(650px, 78dvh, 820px);
+  margin: 0 auto 20px;
+  padding: 78px var(--stage-pad-x) 42px;
+  overflow: hidden;
+  border-radius: 32px;
+}
+.game-stage > .game-scene {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  border-radius: inherit;
+}
+.game-stage-content {
+  position: relative;
+  z-index: 30;
+  width: min(100%, 780px);
+  margin: 0 auto;
+}
+.game-stage .game-timer,
+.game-stage .game-lifelines,
+.game-stage .game-question-card {
+  width: 100%;
+  max-width: none;
+}
+.game-stage .game-timer {
+  margin: 0 auto 12px;
+  border-color: rgba(255,255,255,.48);
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 12px 28px rgba(0,0,0,.2), inset 0 1px 0 #fff;
+}
+.game-stage .game-lifelines {
+  position: static;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+.game-stage .game-question-in-scene {
+  margin: 0;
+  padding: clamp(16px, 2.3vw, 25px);
+  overflow: visible;
+  border: 1px solid rgba(255,255,255,.52);
+  color: #fff;
+  background: linear-gradient(145deg,rgba(7,18,38,.88),rgba(12,29,55,.78));
+  box-shadow: 0 24px 54px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.16);
+  backdrop-filter: blur(13px) saturate(1.15);
+}
+.game-stage .game-question-in-scene::before { opacity: .35; }
+.game-stage .game-question-heading { align-items: center; }
+.game-stage .game-question-heading h1 {
+  margin: 2px 0 17px;
+  color: #fff;
+  font-size: clamp(18px, 2.45vw, 26px);
+  line-height: 1.35;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,.42);
+}
+.game-stage .game-question-heading > button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255,255,255,.7);
+  color: #fff;
+  background: color-mix(in srgb,var(--mode-dark) 72%,rgba(255,255,255,.18));
+  box-shadow: 0 0 0 4px rgba(255,255,255,.1), 0 8px 18px rgba(0,0,0,.22);
+}
+.game-stage .game-question-image {
+  width: auto;
+  max-width: min(100%, 460px);
+  max-height: 230px;
+  margin: 0 auto 14px;
+  border: 2px solid rgba(255,255,255,.7);
+  border-radius: 18px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 14px 30px rgba(0,0,0,.28);
+}
+.game-stage .game-formula {
+  max-width: 520px;
+  min-height: 76px;
+  margin: 0 auto 14px;
+  color: #10233c;
+  background: rgba(255,255,255,.92);
+}
+.game-stage .game-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.game-stage .game-options button {
+  min-width: 0;
+  min-height: 82px;
+  color: #fff;
+  border-color: rgba(255,255,255,.58);
+  background: linear-gradient(145deg,rgba(19,45,77,.94),rgba(7,25,51,.93));
+  box-shadow: 0 11px 20px rgba(0,0,0,.24), inset 0 0 17px rgba(255,255,255,.07), inset 0 -3px 0 rgba(0,0,0,.2);
+}
+.game-stage .game-options button > span {
+  flex: 0 0 auto;
+  background: color-mix(in srgb,var(--mode-dark) 83%,#fff);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.2), 0 5px 10px rgba(0,0,0,.22);
+}
+.game-stage .game-options button > b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #fff;
+  font-size: clamp(12px, 1.6vw, 15px);
+  text-shadow: 0 1px 4px rgba(0,0,0,.42);
+}
+.game-stage .game-options button:disabled:not(.is-correct-option):not(.is-wrong-option):not(.is-selected-option) { opacity: .7; }
+.game-stage .game-options button.is-selected-option {
+  border-color: #fff;
+  color: #fff;
+  background: color-mix(in srgb,var(--mode-dark) 72%,#274d73);
+  box-shadow: 0 0 0 4px color-mix(in srgb,var(--mode-light) 32%,transparent), 0 13px 25px rgba(0,0,0,.3);
+}
+.game-stage .game-options button.is-correct-option,
+.game-stage .game-options button.is-correct-option > b { color: #123c20; text-shadow: none; }
+.game-stage .game-options button.is-wrong-option,
+.game-stage .game-options button.is-wrong-option > b { color: #701919; text-shadow: none; }
+.game-stage .game-feedback > div,
+.game-stage .game-feedback-transition {
+  border-color: rgba(255,255,255,.76);
+  box-shadow: 0 10px 22px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+/* Oltin ko'prik: har javob alohida osma shisha oyna, jon esa 3 arqon. */
+.game-lives-hud {
+  position: absolute;
+  z-index: 42;
+  top: 13px;
+  right: 15px;
+  width: 178px;
+  padding: 7px 10px 6px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 15px;
+  color: #fff;
+  background: rgba(3,25,42,.7);
+  box-shadow: 0 9px 22px rgba(0,0,0,.25);
+  backdrop-filter: blur(10px);
+}
+.game-lives-hud > strong,
+.game-lives-hud > small { display: block; text-align: center; }
+.game-lives-hud > strong { font-size: 8px; letter-spacing: .12em; }
+.game-lives-hud > small { margin-top: 3px; color: rgba(255,255,255,.68); font-size: 6px; line-height: 1.2; }
+.game-lives-hud > div { display: flex; justify-content: center; gap: 14px; height: 28px; margin-top: 3px; }
+.game-lives-hud span { position: relative; display: block; width: 24px; height: 28px; }
+.game-lives-hud span > i {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 3px;
+  height: 18px;
+  border-radius: 99px;
+  background: repeating-linear-gradient(0deg,#f8d58c 0 3px,#8a5a20 4px 6px);
+  box-shadow: 0 0 5px rgba(255,223,145,.5);
+  transform: translateX(-50%);
+}
+.game-lives-hud span > b {
+  position: absolute;
+  left: 1px;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 16px;
+  border-radius: 7px 7px 9px 9px;
+  color: #fff7b2;
+  background: #c2414a;
+  box-shadow: 0 0 10px rgba(255,91,105,.55);
+  font-size: 10px;
+}
+.game-lives-hud span.is-broken > i { height: 9px; background: #9ca3af; transform: translateX(-50%) rotate(18deg); transform-origin: top; }
+.game-lives-hud span.is-broken > b { color: #fecaca; background: #5b2830; opacity: .62; transform: translateY(7px) rotate(-13deg); }
+.game-lives-hud.did-lose span.is-new-loss > i { animation: rope-snap .6s ease both; }
+.game-lives-hud.did-lose span.is-new-loss > b { animation: rope-heart-fall 1s ease both; }
+.game-lives-hud.did-gain span.is-new-life > b { animation: life-slot-gain .85s cubic-bezier(.2,1.4,.3,1) both; }
+.game-lives-hud.did-lose.did-gain span.is-new-loss.is-new-life > i { animation: rope-snap-restore 1.45s ease both; }
+.game-lives-hud.did-lose.did-gain span.is-new-loss.is-new-life > b { animation: life-cut-restore 1.45s ease both; }
+.game-lives-hud.lives-millionaire { border-color: rgba(251,191,36,.52); background: rgba(15,10,62,.82); }
+.game-lives-hud.lives-millionaire span > i { top: 12px; width: 20px; height: 2px; background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+.game-lives-hud.lives-millionaire span > b { bottom: 2px; border-radius: 50%; color: #1d124d; background: #fbbf24; box-shadow: 0 0 14px rgba(251,191,36,.8); }
+.game-lives-hud.lives-space { border-color: rgba(103,232,249,.55); background: rgba(4,17,68,.82); }
+.game-lives-hud.lives-space span > i { width: 2px; background: #67e8f9; box-shadow: 0 0 9px #38bdf8; }
+.game-lives-hud.lives-space span > b { color: #dffbff; background: #1d4ed8; box-shadow: 0 0 15px #38bdf8; }
+.game-lives-hud.lives-detective { border-color: rgba(255,218,153,.54); background: rgba(54,27,13,.82); }
+.game-lives-hud.lives-detective span > i { width: 2px; background: #dc2626; box-shadow: none; transform: translateX(-50%) rotate(-8deg); }
+.game-lives-hud.lives-detective span > b { color: #4a2617; background: #f7e4b8; box-shadow: 0 0 0 2px #8b451f; }
+.game-lives-hud.lives-city { border-color: rgba(134,239,172,.5); background: rgba(3,54,48,.84); }
+.game-lives-hud.lives-city span > i { width: 4px; background: repeating-linear-gradient(0deg,#d1fae5 0 2px,#166534 3px 5px); box-shadow: 0 0 7px #86efac; }
+.game-lives-hud.lives-city span > b { color: #e8fff1; background: #166534; box-shadow: 0 0 12px rgba(134,239,172,.65); }
+.game-stage-bridge .game-question-in-scene {
+  border-color: rgba(190,247,255,.64);
+  background: linear-gradient(145deg,rgba(3,42,60,.88),rgba(6,79,95,.72));
+}
+.game-stage-bridge .game-options { gap: 16px 18px; padding-top: 20px; }
+.game-stage-bridge .game-options button {
+  overflow: visible;
+  border: 2px solid rgba(213,251,255,.82);
+  background: linear-gradient(145deg,rgba(207,249,255,.42),rgba(17,113,139,.62));
+  box-shadow: inset 0 0 25px rgba(255,255,255,.25), 0 15px 22px rgba(0,24,39,.42);
+  backdrop-filter: blur(9px);
+}
+.game-stage-bridge .game-options button::before {
+  content: "";
+  position: absolute;
+  left: 19%;
+  right: 19%;
+  top: -22px;
+  height: 22px;
+  border-left: 3px solid #d4a85f;
+  border-right: 3px solid #d4a85f;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,.4));
+}
+.game-stage-bridge .game-options button::after { display: none; }
+.game-stage-bridge.is-scene-wrong .game-options button.is-wrong-option,
+.game-stage-bridge.is-scene-timeout .game-options button.is-wrong-option { transform-origin: top center; animation: bridge-answer-fall 1.35s cubic-bezier(.5,0,.85,.4) forwards; }
+.game-stage-bridge.is-scene-wrong .game-options button.is-wrong-option::before { border-right-style: dashed; transform: rotate(16deg); transform-origin: top right; }
+.game-stage-bridge .game-options button.is-correct-option { animation: bridge-window-safe .8s ease both; }
+
+/* Millioner: savol va javoblar klassik televizion sahnaning o'zida. */
+.game-stage-millionaire .game-stage-content { width: min(100%, 830px); }
+.game-stage-millionaire .game-question-in-scene {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.game-stage-millionaire .game-question-label { justify-content: center; }
+.game-stage-millionaire .game-question-label span { color: #1c1042; background: #fbbf24; }
+.game-stage-millionaire .game-question-heading {
+  position: relative;
+  min-height: 86px;
+  padding: 14px 34px;
+  border: 2px solid #f2c94c;
+  background: radial-gradient(circle at 50% 0,rgba(55,86,184,.7),rgba(8,14,66,.96) 65%);
+  box-shadow: 0 0 0 4px rgba(25,30,92,.74), 0 0 24px rgba(83,164,255,.38), inset 0 0 20px rgba(82,127,255,.3);
+  clip-path: polygon(4% 0,96% 0,100% 50%,96% 100%,4% 100%,0 50%);
+}
+.game-stage-millionaire .game-question-heading h1 { margin: 0; }
+.game-stage-millionaire .game-question-heading > button { background: #5b21b6; }
+.game-stage-millionaire .game-options { gap: 13px 18px; margin-top: 18px; }
+.game-stage-millionaire .game-options button {
+  min-height: 72px;
+  border: 2px solid #d6b44a;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 0,rgba(49,74,165,.58),rgba(7,13,59,.98) 68%);
+  clip-path: polygon(5% 0,95% 0,100% 50%,95% 100%,5% 100%,0 50%);
+  box-shadow: inset 0 0 17px rgba(74,118,255,.32), 0 9px 20px rgba(0,0,0,.32);
+}
+.game-stage-millionaire .game-options button > span { color: #1f1741; background: #fbbf24; }
+.game-stage-millionaire .game-lifelines button { color: #fff5bd; border-color: #d6b44a; background: rgba(14,17,67,.88); }
+
+/* Kosmos: savollar kabinadagi yorqin gologramma panellarida. */
+.game-stage-space .game-question-in-scene {
+  border-color: rgba(94,234,255,.65);
+  background: linear-gradient(145deg,rgba(3,13,49,.9),rgba(15,45,95,.76));
+  box-shadow: 0 0 0 1px rgba(94,234,255,.22), 0 25px 55px rgba(0,6,30,.5), inset 0 0 30px rgba(43,136,255,.15);
+}
+.game-stage-space .game-question-in-scene::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(102,231,255,.14);
+  border-radius: 18px;
+  pointer-events: none;
+}
+.game-stage-space .game-options button {
+  border-color: #67e8f9;
+  background: linear-gradient(145deg,rgba(13,67,135,.88),rgba(5,25,71,.95));
+  clip-path: polygon(0 12px,12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);
+  box-shadow: 0 0 18px rgba(56,189,248,.18), inset 0 0 18px rgba(103,232,249,.11);
+}
+.game-stage-space .game-options button > span { background: #1d4ed8; }
+
+/* Detektiv: savol ish stolida, javoblar alohida dalil kartalari. */
+.game-stage-detective .game-question-in-scene {
+  color: #3c2415;
+  border: 7px solid #4c2b1b;
+  background: linear-gradient(150deg,rgba(255,246,217,.95),rgba(222,195,148,.93));
+  box-shadow: 0 24px 48px rgba(19,9,4,.48), inset 0 0 35px rgba(117,71,28,.15);
+}
+.game-stage-detective .game-question-heading h1 { color: #3c2415; text-shadow: none; }
+.game-stage-detective .game-question-label span { background: #7c3f1d; }
+.game-stage-detective .game-options button {
+  color: #342015;
+  border: 1px solid #9c6d3d;
+  border-radius: 4px;
+  background: linear-gradient(145deg,#fff4ce,#e8cf99);
+  box-shadow: 2px 4px 0 #7c4a29, 0 12px 19px rgba(68,35,13,.2);
+}
+.game-stage-detective .game-options button:nth-child(odd) { transform: rotate(-.45deg); }
+.game-stage-detective .game-options button:nth-child(even) { transform: rotate(.45deg); }
+.game-stage-detective .game-options button > span { color: #fff5d6; background: #8b451f; }
+.game-stage-detective .game-options button > b { color: #3c2415; text-shadow: none; }
+.game-stage-detective .game-question-heading > button { background: #7c3f1d; }
+
+/* Shahar: savol boshqaruv oynasi, javoblar qurilish modullari. */
+.game-stage-city .game-question-in-scene {
+  border: 2px solid rgba(180,255,227,.7);
+  background:
+    linear-gradient(rgba(77,255,206,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(77,255,206,.07) 1px,transparent 1px),
+    linear-gradient(145deg,rgba(3,50,52,.9),rgba(10,80,73,.82));
+  background-size: 24px 24px,24px 24px,auto;
+  box-shadow: 0 25px 50px rgba(0,32,29,.43), inset 0 0 30px rgba(105,255,215,.1);
+}
+.game-stage-city .game-options button {
+  border-color: #86efac;
+  background: linear-gradient(145deg,rgba(19,111,85,.94),rgba(7,63,59,.96));
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 3px rgba(3,46,43,.5), 0 10px 18px rgba(0,35,31,.3);
+}
+.game-stage-city .game-options button > span { background: #166534; }
+
+/* Jonli multfilm qahramonlari: ifoda, yaltirash va rejimga mos aksessuar. */
+.game-avatar .avatar-aura {
+  z-index: 0;
+  left: 2px;
+  top: 10px;
+  width: 55px;
+  height: 55px;
+  border: 2px solid rgba(255,255,255,.34);
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgba(255,255,255,.28);
+  animation: avatar-aura-live 2.1s ease-in-out infinite;
+}
+.game-avatar { scale: 1.16; transform-origin: 50% 100%; }
+.game-avatar .avatar-face { z-index: 7; top: 2px; left: 15px; width: 27px; height: 28px; pointer-events: none; }
+.game-avatar .avatar-face::before,
+.game-avatar .avatar-face::after {
+  content: "";
+  position: absolute;
+  top: 17px;
+  width: 5px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(190,69,65,.43);
+}
+.game-avatar .avatar-face::before { left: 2px; }
+.game-avatar .avatar-face::after { right: 2px; }
+.game-avatar .avatar-face b,
+.game-avatar .avatar-face em {
+  position: absolute;
+  top: 10px;
+  width: 1.5px;
+  height: 1.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 2px #fff;
+  animation: avatar-blink 3.8s infinite;
+}
+.game-avatar .avatar-face b { left: 7px; }
+.game-avatar .avatar-face em { right: 7px; }
+.game-avatar .avatar-face u {
+  position: absolute;
+  left: 10px;
+  top: 19px;
+  width: 8px;
+  height: 4px;
+  border-bottom: 2px solid #713523;
+  border-radius: 0 0 9px 9px;
+  text-decoration: none;
+}
+.game-avatar .avatar-head { animation: avatar-head-live 2.4s ease-in-out infinite; }
+.game-avatar .avatar-cape { z-index: 1; left: 7px; top: 28px; width: 28px; height: 36px; border-radius: 12px 4px 16px 5px; background: linear-gradient(135deg,#ef4444,#9f1239); transform: rotate(12deg); transform-origin: top; animation: avatar-cape-live .6s ease-in-out infinite alternate; }
+.game-avatar .avatar-microphone { z-index: 8; right: -2px; top: 34px; width: 5px; height: 27px; border-radius: 4px; background: #d4d4d8; transform: rotate(36deg); }
+.game-avatar .avatar-microphone::before { content: ""; position: absolute; left: -2px; top: -5px; width: 9px; height: 9px; border-radius: 50%; background: #111827; box-shadow: 0 0 0 2px #a78bfa; }
+.avatar-astronaut { --shirt: #e5eefb; --pants: #263c67; }
+.game-avatar .avatar-space-helmet { z-index: 9; left: 8px; top: -6px; width: 42px; height: 40px; border: 4px solid #e7f6ff; border-radius: 48% 48% 44% 44%; background: linear-gradient(145deg,rgba(125,211,252,.28),rgba(30,64,175,.4)); box-shadow: inset 0 0 11px rgba(255,255,255,.65),0 0 13px rgba(56,189,248,.7); }
+.game-avatar .avatar-space-helmet::after { content: ""; position: absolute; left: 7px; right: 7px; bottom: -6px; height: 5px; border-radius: 5px; background: #94a3b8; }
+.space-pilot { position: absolute; z-index: 17; left: 5%; bottom: 82px; animation: space-pilot-float 2.2s ease-in-out infinite; }
+.avatar-host .avatar-arm-right { animation: avatar-host-wave .8s ease-in-out infinite alternate; }
+.avatar-detective { animation: avatar-detective-live 2.4s ease-in-out infinite; }
+.avatar-builder { animation: avatar-builder-live 1.8s ease-in-out infinite; }
+.game-stage.is-scene-correct .game-avatar .avatar-head { animation: avatar-cheer-face .72s cubic-bezier(.2,1.4,.3,1) both; }
+.game-stage.is-scene-correct .game-avatar .avatar-arm-left { animation: avatar-cheer-left .65s ease both; }
+.game-stage.is-scene-correct .game-avatar .avatar-arm-right { animation: avatar-cheer-right .65s ease both; }
+.game-stage.is-scene-wrong .game-avatar .avatar-head,
+.game-stage.is-scene-timeout .game-avatar .avatar-head { animation: avatar-sad-face .7s ease both; }
+
+@keyframes rope-snap { 0% { height: 18px; transform: translateX(-50%); } 45% { height: 9px; } 100% { height: 9px; transform: translateX(-50%) rotate(24deg); } }
+@keyframes rope-heart-fall { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translate(12px,70px) rotate(90deg); } }
+@keyframes life-slot-gain { 0% { opacity: .2; transform: scale(.25) rotate(-20deg); } 65% { opacity: 1; transform: scale(1.35) rotate(5deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes rope-snap-restore { 0% { height: 18px; transform: translateX(-50%); } 32% { height: 8px; opacity: .35; transform: translateX(-50%) rotate(25deg); } 68% { height: 8px; opacity: .35; transform: translateX(-50%) rotate(-10deg); } 100% { height: 18px; opacity: 1; transform: translateX(-50%) rotate(0); } }
+@keyframes life-cut-restore { 0% { opacity: 1; transform: translateY(0) scale(1); } 36% { opacity: 0; transform: translate(8px,42px) rotate(70deg) scale(.65); } 68% { opacity: .15; transform: translateY(-8px) scale(.35); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes bridge-answer-fall { 0% { opacity: 1; transform: rotate(0) translateY(0); } 18% { transform: rotate(-7deg) translateY(5px); } 100% { opacity: 0; transform: rotate(19deg) translate(25px,220px); } }
+@keyframes bridge-window-safe { 0%,100% { transform: translateY(0); } 45% { transform: translateY(-7px); box-shadow: 0 0 35px rgba(134,239,172,.85); } }
+@keyframes avatar-aura-live { 0%,100% { opacity: .24; transform: scale(.86); } 50% { opacity: .72; transform: scale(1.08); } }
+@keyframes avatar-head-live { 0%,100% { transform: rotate(-2deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-1px); } }
+@keyframes avatar-blink { 0%,45%,49%,100% { transform: scaleY(1); } 47% { transform: scaleY(.08); } }
+@keyframes avatar-cape-live { from { transform: rotate(8deg) skewY(-4deg); } to { transform: rotate(18deg) skewY(7deg); } }
+@keyframes avatar-host-wave { from { transform: rotate(-45deg); } to { transform: rotate(-112deg); } }
+@keyframes avatar-detective-live { 0%,100% { transform: rotate(-1deg); } 50% { transform: rotate(2deg) translateY(-2px); } }
+@keyframes avatar-builder-live { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes avatar-cheer-face { 0% { transform: translateY(0) rotate(0); } 55% { transform: translateY(-8px) rotate(7deg) scale(1.1); } 100% { transform: translateY(0) rotate(-2deg); } }
+@keyframes avatar-cheer-left { to { transform: rotate(145deg); } }
+@keyframes avatar-cheer-right { to { transform: rotate(-145deg); } }
+@keyframes avatar-sad-face { 0%,100% { transform: rotate(0); } 35% { transform: rotate(-8deg) translateY(3px); } 65% { transform: rotate(6deg) translateY(3px); } }
+@keyframes space-pilot-float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(3deg); } }
+
+@media (max-width: 760px) {
+  .game-stage {
+    --stage-pad-x: 10px;
+    min-height: 620px;
+    padding-top: 66px;
+    padding-bottom: 28px;
+    border-radius: 22px;
+  }
+  .game-stage .game-timer { min-height: 49px; margin-bottom: 8px; padding: 7px 10px; }
+  .game-stage .game-question-in-scene { padding: 14px 12px; border-radius: 18px; }
+  .game-stage .game-question-image { max-height: 180px; margin-bottom: 10px; }
+  .game-stage .game-question-heading h1 { margin-bottom: 12px; font-size: clamp(16px, 5vw, 21px); }
+  .game-stage .game-question-heading > button { width: 38px; height: 38px; }
+  .game-stage .game-options { gap: 9px; }
+  .game-stage .game-options button { grid-template-columns: 29px 1fr; gap: 7px; min-height: 72px; padding: 9px; }
+  .game-stage .game-options button > span { width: 29px; height: 29px; }
+  .game-stage .game-options button > b { font-size: clamp(10px, 3.15vw, 13px); }
+  .game-lives-hud { top: 8px; right: 8px; width: 142px; padding: 5px 6px; }
+  .game-lives-hud > div { gap: 10px; }
+  .game-lives-hud > small { display: none; }
+  .game-stage-bridge .game-options { gap: 12px 9px; padding-top: 18px; }
+  .game-stage-millionaire .game-question-heading { min-height: 74px; padding: 11px 20px; clip-path: polygon(3% 0,97% 0,100% 50%,97% 100%,3% 100%,0 50%); }
+  .game-stage-millionaire .game-options { gap: 9px; margin-top: 12px; }
+  .game-stage-millionaire .game-options button { min-height: 70px; clip-path: polygon(3% 0,97% 0,100% 50%,97% 100%,3% 100%,0 50%); }
+  .game-stage-detective .game-question-in-scene { border-width: 4px; }
+  .game-stage .game-feedback > div { font-size: 10px; }
+  .game-stage .game-feedback-transition { grid-template-columns: 40px 1fr; padding: 9px; }
+  .game-avatar { scale: 1.04; }
+  .space-pilot { left: 3%; bottom: 55px; scale: .82; }
+}
+
+/* Desktop fonlarida sifatli multfilm qahramoni allaqachon bor. CSS aktyorlar
+   faqat tor ekranda, fon chetlari kesilganda harakatli qahramon sifatida qoladi. */
+@media (min-width: 761px) {
+  .bridge-runner,
+  .millionaire-host,
+  .millionaire-chair,
+  .space-pilot,
+  .detective-avatar,
+  .city-builder { display: none; }
+}
+
+@media (max-width: 390px) {
+  .game-stage { min-height: 600px; padding-top: 62px; }
+  .game-stage .game-question-label { margin-bottom: 8px; }
+  .game-stage .game-question-label span { font-size: 8px; }
+  .game-stage .game-question-image { max-height: 145px; }
+  .game-stage .game-options button { min-height: 66px; padding: 7px; }
+  .game-lives-hud { width: 124px; }
+  .game-lives-hud > strong { font-size: 6px; }
+  .game-lives-hud > div { gap: 7px; }
+}
+
+/* Butun sahifa emas, faqat juda uzun savolning ichki qismi siljiydi. */
+.test-game-arena {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.test-game-arena > .game-topbar,
+.test-game-arena > .game-overall-track { flex: 0 0 auto; width: 100%; }
+.test-game-arena > .game-stage {
+  flex: 1 1 0;
+  box-sizing: border-box;
+  min-height: 0;
+  height: auto;
+}
+.game-stage-content {
+  box-sizing: border-box;
+  height: 100%;
+  max-height: 100%;
+  padding: 2px 3px 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255,255,255,.52) transparent;
+  scrollbar-width: thin;
+}
+.game-stage-content::-webkit-scrollbar { width: 6px; }
+.game-stage-content::-webkit-scrollbar-thumb { border-radius: 99px; background: rgba(255,255,255,.5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .game-lives-hud *,
+  .game-stage .game-options button,
+  .game-avatar,
+  .game-avatar * { animation: none !important; }
 }
