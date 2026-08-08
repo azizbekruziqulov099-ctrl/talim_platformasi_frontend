@@ -31,6 +31,9 @@ test("arena handles retry-safe actions, terminal replay and final feedback", () 
   assert.match(arena, /Natijani ko'rish/);
   assert.match(arena, /onFinished/);
   assert.match(arena, /stopReadRef/);
+  assert.match(arena, /GAME_FEEDBACK_HOLD_MS/);
+  assert.match(arena, /feedbackTransition/);
+  assert.match(arena, /feedbackCountdown/);
 });
 
 
@@ -38,6 +41,9 @@ test("server readiness owns countdown start and pending feedback has no timer", 
   assert.match(arena, /\/api\/oyin\/tayyor/);
   assert.match(arena, /readyRequestsRef/);
   assert.match(arena, /timerCycle/);
+  assert.match(arena, /resumeReadyAfterStopRef/);
+  assert.match(arena, /readyGenerationRef/);
+  assert.match(arena, /autoReadPromisesRef\.current\.delete\(activationKey\)/);
   assert.match(arena, /config\.status === "waiting"/);
   assert.match(arena, /setSession\(pendingNext\)/);
   assert.match(arena, /gameQuestionTimerConfig/);
