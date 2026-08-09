@@ -1,6 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
+import avatarAdultBoy from "./assets/game-avatars/adult_boy.webp";
+import avatarAdultGirl from "./assets/game-avatars/adult_girl.webp";
+import avatarChildBoy from "./assets/game-avatars/child_boy.webp";
+import avatarChildGirl from "./assets/game-avatars/child_girl.webp";
+import avatarPreteenBoy from "./assets/game-avatars/preteen_boy.webp";
+import avatarPreteenGirl from "./assets/game-avatars/preteen_girl.webp";
+import avatarTeenBoy from "./assets/game-avatars/teen_boy.webp";
+import avatarTeenGirl from "./assets/game-avatars/teen_girl.webp";
+import avatarAdultBoySheet from "./assets/game-avatar-sprites/adult_boy_sheet.webp";
+import avatarAdultGirlSheet from "./assets/game-avatar-sprites/adult_girl_sheet.webp";
+import avatarChildBoySheet from "./assets/game-avatar-sprites/child_boy_sheet.webp";
+import avatarChildGirlSheet from "./assets/game-avatar-sprites/child_girl_sheet.webp";
+import avatarPreteenBoySheet from "./assets/game-avatar-sprites/preteen_boy_sheet.webp";
+import avatarPreteenGirlSheet from "./assets/game-avatar-sprites/preteen_girl_sheet.webp";
+import avatarTeenBoySheet from "./assets/game-avatar-sprites/teen_boy_sheet.webp";
+import avatarTeenGirlSheet from "./assets/game-avatar-sprites/teen_girl_sheet.webp";
 import {
   AGE_BANDS,
   GAME_AUTO_READ_MAX_WAIT_MS,
@@ -20,6 +36,81 @@ import {
   profileLevelLabel,
   shouldAutoReadGameQuestion,
 } from "./testGameRules.js";
+
+
+const GAME_AVATAR_ASSETS = {
+  child: {
+    boy: { preview: avatarChildBoy, sprite: avatarChildBoySheet },
+    girl: { preview: avatarChildGirl, sprite: avatarChildGirlSheet },
+  },
+  preteen: {
+    boy: { preview: avatarPreteenBoy, sprite: avatarPreteenBoySheet },
+    girl: { preview: avatarPreteenGirl, sprite: avatarPreteenGirlSheet },
+  },
+  teen: {
+    boy: { preview: avatarTeenBoy, sprite: avatarTeenBoySheet },
+    girl: { preview: avatarTeenGirl, sprite: avatarTeenGirlSheet },
+  },
+  adult: {
+    boy: { preview: avatarAdultBoy, sprite: avatarAdultBoySheet },
+    girl: { preview: avatarAdultGirl, sprite: avatarAdultGirlSheet },
+  },
+};
+
+
+function gameProfileAge(profile = {}, today = new Date()) {
+  const raw = profile.tugilgan_sana || profile.birth_date || profile.date_of_birth;
+  if (!raw) return null;
+  const born = new Date(`${String(raw).slice(0, 10)}T00:00:00`);
+  if (!Number.isFinite(born.getTime())) return null;
+  let age = today.getFullYear() - born.getFullYear();
+  const beforeBirthday = today.getMonth() < born.getMonth()
+    || (today.getMonth() === born.getMonth() && today.getDate() < born.getDate());
+  if (beforeBirthday) age -= 1;
+  return age >= 4 && age <= 99 ? age : null;
+}
+
+
+function gameProfileGrade(profile = {}) {
+  const raw = profile.class ?? profile.sinf ?? profile.grade;
+  const match = String(raw ?? "").replace(/-sinf$/i, "").match(/(?:^|\D)(\d{1,2})(?:\D|$)/);
+  return match ? Number(match[1]) : null;
+}
+
+
+export function resolveGameAvatarProfile(profile = {}, gradeBand = "applicant", today = new Date()) {
+  const rawGender = String(profile.jins || profile.gender || profile.avatar_gender || "").trim().toLowerCase();
+  const gender = ["qiz", "girl", "female", "ayol"].includes(rawGender) ? "girl" : "boy";
+  const age = gameProfileAge(profile, today);
+  const grade = gameProfileGrade(profile);
+  let ageKey = "adult";
+  if (age !== null) {
+    if (age <= 9) ageKey = "child";
+    else if (age <= 12) ageKey = "preteen";
+    else if (age <= 17) ageKey = "teen";
+  } else if (grade !== null) {
+    if (grade <= 4) ageKey = "child";
+    else if (grade <= 7) ageKey = "preteen";
+    else if (grade <= 11) ageKey = "teen";
+  } else if (gradeBand === "grade_1_4" || gradeBand === "grade_1_5") {
+    ageKey = "child";
+  } else if (gradeBand === "grade_5_9" || gradeBand === "grade_6_9") {
+    ageKey = "preteen";
+  } else if (gradeBand === "grade_10_11") {
+    ageKey = "teen";
+  }
+  const assets = GAME_AVATAR_ASSETS[ageKey][gender];
+  return {
+    gender,
+    ageKey,
+    age,
+    grade,
+    src: assets.preview,
+    sprite: assets.sprite,
+    spriteFrameCount: 9,
+    label: `${gender === "girl" ? "Qiz" : "O'g'il"} · ${age !== null ? `${age} yosh` : grade !== null ? `${grade}-sinf` : AGE_BANDS[gradeBand]?.label || "O'quvchi"}`,
+  };
+}
 
 
 function GameText({ value }) {
@@ -82,11 +173,27 @@ export function GameProfileStrip({ profile, accent = "#1B4B7A", compact = false 
 }
 
 
-export function GameModePicker({ value, onChange, gradeBand, accent, profile }) {
+export function GameModePicker({ value, onChange, gradeBand, accent, profile, playerGender, onPlayerGenderChange }) {
   const age = AGE_BANDS[gradeBand] || AGE_BANDS.applicant;
+  const avatar = resolveGameAvatarProfile({
+    ...profile,
+    jins: playerGender || profile?.jins,
+    class: profile?.class,
+  }, gradeBand);
   return (
     <div className={`game-picker-wrap game-age-${gradeBand}`} style={{ "--game-accent": accent || "#1B4B7A" }}>
       <GameProfileStrip profile={profile} accent={accent} />
+      <div className="game-avatar-choice">
+        <img src={avatar.src} alt="O'yindagi qahramon" />
+        <div>
+          <strong>Sizning o'yin qahramoningiz</strong>
+          <small>{avatar.label} · yosh va sinfga mos</small>
+        </div>
+        <div className="game-avatar-gender" aria-label="Qahramon jinsini tanlang">
+          <button type="button" className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>Qiz</button>
+          <button type="button" className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O'g'il</button>
+        </div>
+      </div>
       <div className="game-age-note">
         <span>{age.label}</span>
         <p>{age.helper}. Har beshinchi savol 4 variantli {age.bossName} bo'ladi va har savolda bitta urinish beriladi.</p>
@@ -139,24 +246,22 @@ function SceneFeedbackFX({ feedback, successText = "Ajoyib!", failText = "Yana u
 }
 
 
-function GameAvatar({ variant = "runner", className = "" }) {
+function GameAvatar({ variant = "runner", className = "", profile }) {
+  const avatar = profile || resolveGameAvatarProfile();
   return (
-    <span className={`game-avatar avatar-${variant} ${className}`} aria-hidden="true">
+    <span className={`game-avatar avatar-${variant} avatar-gender-${avatar.gender} avatar-age-${avatar.ageKey} ${className}`} aria-hidden="true">
       <i className="avatar-aura" />
       <i className="avatar-shadow" />
-      <i className="avatar-leg avatar-leg-left" />
-      <i className="avatar-leg avatar-leg-right" />
-      <i className="avatar-body" />
-      <i className="avatar-arm avatar-arm-left" />
-      <i className="avatar-arm avatar-arm-right" />
-      <i className="avatar-head"><b /><em /></i>
-      <i className="avatar-face"><b /><em /><u /></i>
-      <i className="avatar-hair" />
-      {variant === "detective" && <i className="avatar-hat" />}
-      {variant === "builder" && <i className="avatar-helmet" />}
-      {variant === "astronaut" && <i className="avatar-space-helmet" />}
-      {variant === "host" && <i className="avatar-microphone" />}
-      {variant === "runner" && <i className="avatar-cape" />}
+      <i
+        className="avatar-render"
+        style={{ backgroundImage: `url(${avatar.sprite})` }}
+        data-sprite-frames={avatar.spriteFrameCount}
+      />
+      {variant === "detective" && <><i className="avatar-prop avatar-hat" /><i className="avatar-prop avatar-coat" /></>}
+      {variant === "builder" && <><i className="avatar-prop avatar-helmet" /><i className="avatar-prop avatar-vest" /></>}
+      {variant === "astronaut" && <><i className="avatar-prop avatar-space-helmet" /><i className="avatar-prop avatar-space-pack" /></>}
+      {variant === "contestant" && <i className="avatar-prop avatar-contestant-light" />}
+      {variant === "runner" && <><i className="avatar-prop avatar-harness" /><i className="avatar-prop avatar-cape" /></>}
     </span>
   );
 }
@@ -223,7 +328,7 @@ function GameLivesHud({ mode, livesRemaining, feedback }) {
 }
 
 
-function BridgeScene({ step, feedback }) {
+function BridgeScene({ step, feedback, avatarProfile }) {
   const state = sceneStateClass(feedback);
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const runnerIndex = feedback?.correct === true ? safeStep - 1 : Math.max(-0.35, safeStep - 1.75);
@@ -237,7 +342,7 @@ function BridgeScene({ step, feedback }) {
         <div className="bridge-water"><i /><i /><i /></div>
         <div className="bridge-coins">{[1, 2, 3, 4, 5].map((number) => <i key={number}>★</i>)}</div>
         <div className="bridge-runner-track" style={{ "--runner-index": runnerIndex }}>
-          <div className="bridge-runner"><GameAvatar variant="runner" /></div>
+          <div className="bridge-runner"><GameAvatar variant="runner" profile={avatarProfile} /></div>
         </div>
         <div className="bridge-tiles">
           {[1, 2, 3, 4, 5].map((number) => {
@@ -264,7 +369,7 @@ function BridgeScene({ step, feedback }) {
 }
 
 
-function MillionaireScene({ step, feedback }) {
+function MillionaireScene({ step, feedback, avatarProfile }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const prizes = ["1 000 000", "500 000", "250 000", "125 000", "64 000"];
   return (
@@ -273,8 +378,7 @@ function MillionaireScene({ step, feedback }) {
         <div className="stage-beams"><i /><i /><i /><i /><i /></div>
         <div className="stage-rings"><i /><i /><i /></div>
         <div className="stage-audience">{Array.from({ length: 24 }, (_, index) => <i key={index} />)}</div>
-        <div className="millionaire-host"><GameAvatar variant="host" /></div>
-        <div className="millionaire-chair"><i /><b /><GameAvatar variant="contestant" /></div>
+        <div className="millionaire-chair"><i /><b /><GameAvatar variant="contestant" profile={avatarProfile} /></div>
         <div className="millionaire-emblem"><span>M</span><i /></div>
         <div className="millionaire-ladder">
           {prizes.map((prize, index) => {
@@ -291,7 +395,7 @@ function MillionaireScene({ step, feedback }) {
 }
 
 
-function SpaceScene({ step, feedback }) {
+function SpaceScene({ step, feedback, avatarProfile }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const rocketIndex = feedback?.correct === true ? safeStep - 1 : Math.max(-0.2, safeStep - 1.55);
   return (
@@ -306,7 +410,7 @@ function SpaceScene({ step, feedback }) {
         <div className="space-rocket-track" style={{ "--rocket-index": rocketIndex }}>
           <div className="space-rocket"><i className="rocket-flame" /><b /><span /><em /></div>
         </div>
-        <div className="space-pilot"><GameAvatar variant="astronaut" /></div>
+        <div className="space-pilot"><GameAvatar variant="astronaut" profile={avatarProfile} /></div>
         <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${safeStep * 20}%` }} /></em></div>
       </div>
       <SceneHud icon="✦" label={safeStep === 5 ? "Boss sayyorasi" : "Keyingi orbitaga uching"} step={safeStep} />
@@ -317,7 +421,7 @@ function SpaceScene({ step, feedback }) {
 }
 
 
-function DetectiveScene({ step, feedback }) {
+function DetectiveScene({ step, feedback, avatarProfile }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const clueLabels = ["IZ", "KALIT", "XARITA", "KOD"];
   return (
@@ -326,7 +430,7 @@ function DetectiveScene({ step, feedback }) {
         <div className="detective-window"><i /><i /><i /><i /></div>
         <div className="detective-lamp"><i /><b /></div>
         <div className="detective-desk"><i /><b /><em /></div>
-        <div className="detective-avatar"><GameAvatar variant="detective" /><i className="detective-glass" /></div>
+        <div className="detective-avatar"><GameAvatar variant="detective" profile={avatarProfile} /><i className="detective-glass" /></div>
         <div className="detective-board">
           <div className="detective-thread"><i /><i /><i /><i /></div>
           {clueLabels.map((label, index) => {
@@ -345,7 +449,7 @@ function DetectiveScene({ step, feedback }) {
 }
 
 
-function CityScene({ step, feedback }) {
+function CityScene({ step, feedback, avatarProfile }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   return (
     <section className={`game-scene game-scene-city ${sceneStateClass(feedback)}`} aria-label={`Bilim shahri, ${safeStep}-qurilish`}>
@@ -361,7 +465,7 @@ function CityScene({ step, feedback }) {
           ))}
         </div>
         <div className="city-road"><i /><i /><i /><span /></div>
-        <div className="city-builder"><GameAvatar variant="builder" /><i className="builder-plan" /></div>
+        <div className="city-builder"><GameAvatar variant="builder" profile={avatarProfile} /><i className="builder-plan" /></div>
         <div className="city-trees"><i /><i /><i /></div>
       </div>
       <SceneHud icon="▦" label={safeStep === 5 ? "Shahar markazi" : "Yangi bino quring"} step={safeStep} />
@@ -372,13 +476,13 @@ function CityScene({ step, feedback }) {
 }
 
 
-function GameScene({ mode, question, feedback }) {
+function GameScene({ mode, question, feedback, avatarProfile }) {
   const step = question?.round_step || 1;
-  if (mode === "millionaire") return <MillionaireScene step={step} feedback={feedback} />;
-  if (mode === "space") return <SpaceScene step={step} feedback={feedback} />;
-  if (mode === "detective") return <DetectiveScene step={step} feedback={feedback} />;
-  if (mode === "city") return <CityScene step={step} feedback={feedback} />;
-  return <BridgeScene step={step} feedback={feedback} />;
+  if (mode === "millionaire") return <MillionaireScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
+  if (mode === "space") return <SpaceScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
+  if (mode === "detective") return <DetectiveScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
+  if (mode === "city") return <CityScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
+  return <BridgeScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
 }
 
 
@@ -547,6 +651,7 @@ export default function TestGameArena({
   onRead,
   onStopRead,
   onFinished,
+  playerProfile,
 }) {
   const initialFailure = isFailureTerminal(initialSession) ? initialSession : null;
   const [session, setSession] = useState(initialSession);
@@ -578,6 +683,11 @@ export default function TestGameArena({
   const meta = useMemo(() => modeForId(mode), [mode]);
   const gradeBand = resolveGameGradeBand(session, question);
   const age = AGE_BANDS[gradeBand];
+  const avatarProfile = useMemo(() => resolveGameAvatarProfile({
+    ...playerProfile,
+    jins: playerProfile?.jins || session?.player_gender || session?.jins,
+    class: playerProfile?.class || session?.grade || question?.grade,
+  }, gradeBand), [playerProfile, session?.player_gender, session?.jins, session?.grade, question?.grade, gradeBand]);
   const questionKey = question?.question_key || "";
   const isBoss = Boolean(question?.is_boss);
   const readText = useMemo(() => {
@@ -1292,12 +1402,12 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-${mode} game-age-${gradeBand}`}
+      className={`test-game-arena game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
         <div>
-          <small>{age.label} · {question.round}-raund</small>
+          <small>{age.label} · {avatarProfile.gender === "girl" ? "qiz" : "o'g'il"} qahramon · {question.round}-raund</small>
           <strong>{modeNameForBand(mode, gradeBand)}</strong>
         </div>
         <div className="game-top-stats">
@@ -1310,7 +1420,7 @@ export default function TestGameArena({
       <div className="game-overall-track" role="progressbar" aria-label="O'yin jarayoni" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
 
       <div className={`game-stage game-stage-${mode} ${sceneStateClass(feedback)}`}>
-        <GameScene mode={mode} question={question} feedback={feedback} />
+        <GameScene mode={mode} question={question} feedback={feedback} avatarProfile={avatarProfile} />
         <GameLivesHud mode={mode} livesRemaining={livesRemaining} feedback={feedback} />
 
         <div className="game-stage-content">
