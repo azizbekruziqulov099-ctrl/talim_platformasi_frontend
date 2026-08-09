@@ -1891,14 +1891,18 @@ function TestTab({
 
   const [yozibJavob, setYozibJavob] = useState({}); // {savol_id: xom_matn} — bir nechta savol bir vaqtda ko'rinadi
   const ovozRef = useRef(null);
+  const ovozNutqRef = useRef(null);
 
   const [ovozHolati, setOvozHolati] = useState("bosh"); // "bosh" | "yuklanmoqda" | "oynamoqda" | "pauzada"
+  const [ovozXatosi, setOvozXatosi] = useState("");
   const [ovozTezligi, setOvozTezligi] = useState(1);
   const [ovozTezlikOchiq, setOvozTezlikOchiq] = useState(false);
   const ovozMatniRef = useRef(null); // hozir yuklangan/o'ynalayotgan matn — qayta bosilganda solishtirish uchun
   const ovozPromiseRef = useRef(null);
 
   const ovozniToxtat = useCallback(() => {
+    const resolveCurrent = ovozPromiseRef.current;
+    ovozPromiseRef.current = null;
     const audio = ovozRef.current;
     if (audio) {
       audio.oncanplay = null;
@@ -1909,27 +1913,90 @@ function TestTab({
       audio.load();
       ovozRef.current = null;
     }
-    if (ovozPromiseRef.current) {
-      ovozPromiseRef.current({ status: "stopped" });
-      ovozPromiseRef.current = null;
+    const utterance = ovozNutqRef.current;
+    if (utterance) {
+      utterance.onstart = null;
+      utterance.onend = null;
+      utterance.onerror = null;
+      ovozNutqRef.current = null;
     }
+    globalThis.speechSynthesis?.cancel?.();
+    if (resolveCurrent) resolveCurrent({ status: "stopped" });
     ovozMatniRef.current = null;
+    setOvozXatosi("");
     setOvozHolati("bosh");
   }, []);
 
-  const ovozniOqi = useCallback((matn) => {
+  const ovozniOqi = useCallback((matn, options = {}) => {
+    const tozaMatn = String(matn || "")
+      .replace(/\[\/?(?:lat|ru|en|uz)\]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!tozaMatn) {
+      setOvozXatosi("O'qiladigan matn topilmadi.");
+      return Promise.resolve({ status: "empty" });
+    }
     // Aynan shu matn hozir yuklangan/o'ynalayotgan bo'lsa — pauza/davom ettirish
     // (yangidan boshlab, boshidan o'qib bermaydi).
-    if (ovozMatniRef.current === matn && ovozRef.current) {
+    if (ovozMatniRef.current === tozaMatn && ovozNutqRef.current && globalThis.speechSynthesis) {
+      if (globalThis.speechSynthesis.paused) {
+        globalThis.speechSynthesis.resume();
+        setOvozHolati("oynamoqda");
+      } else {
+        globalThis.speechSynthesis.pause();
+        setOvozHolati("pauzada");
+      }
+      return ovozNutqRef.current.__samTmPromise;
+    }
+    if (ovozMatniRef.current === tozaMatn && ovozRef.current) {
       if (ovozRef.current.paused) { ovozRef.current.play(); setOvozHolati("oynamoqda"); }
       else { ovozRef.current.pause(); setOvozHolati("pauzada"); }
       return ovozRef.current.__samTmPromise;
     }
     // Boshqa matn (yoki hozircha hech narsa) — avvalgisini TO'XTATIB, yangisini boshlaymiz.
     ovozniToxtat();
+    setOvozXatosi("");
     setOvozHolati("yuklanmoqda");
-    ovozMatniRef.current = matn;
-    const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(matn)}`);
+    ovozMatniRef.current = tozaMatn;
+
+    // Karnay bevosita bosilganda brauzerning o'z nutq dvigateli ishlaydi:
+    // bu foydalanuvchi harakati ichida boshlanadi va autoplay blokiga tushmaydi.
+    // Kichik sinflardagi avtomatik o'qishda ham mavjud bo'lsa shu xavfsiz yo'l
+    // ishlatiladi; qo'llab-quvvatlanmasa server MP3 yo'liga qaytamiz.
+    const SpeechUtterance = globalThis.SpeechSynthesisUtterance;
+    const speech = globalThis.speechSynthesis;
+    if (SpeechUtterance && speech) {
+      const utterance = new SpeechUtterance(tozaMatn);
+      utterance.lang = /\[ru\]/i.test(String(matn)) ? "ru-RU" : /\[en\]/i.test(String(matn)) ? "en-US" : "uz-UZ";
+      utterance.rate = ovozTezligi;
+      utterance.pitch = 1;
+      ovozNutqRef.current = utterance;
+      const tugatish = (status) => {
+        if (ovozNutqRef.current !== utterance) return;
+        utterance.onstart = null;
+        utterance.onend = null;
+        utterance.onerror = null;
+        ovozNutqRef.current = null;
+        ovozMatniRef.current = null;
+        setOvozHolati("bosh");
+        if (status === "error") setOvozXatosi("Brauzer ovozni o'qiy olmadi. Karnayni qayta bosing.");
+        const resolveCurrent = ovozPromiseRef.current;
+        ovozPromiseRef.current = null;
+        if (resolveCurrent) resolveCurrent({ status });
+      };
+      utterance.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
+      utterance.onstart = () => {
+        if (ovozNutqRef.current === utterance) setOvozHolati("oynamoqda");
+      };
+      utterance.onend = () => tugatish("ended");
+      utterance.onerror = (event) => tugatish(event?.error === "canceled" ? "stopped" : "error");
+      speech.cancel();
+      speech.speak(utterance);
+      setOvozHolati("oynamoqda");
+      return utterance.__samTmPromise;
+    }
+
+    const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(tozaMatn)}`);
     audio.playbackRate = ovozTezligi;
     ovozRef.current = audio;
     const tugatish = (status) => {
@@ -1940,10 +2007,10 @@ function TestTab({
       ovozRef.current = null;
       ovozMatniRef.current = null;
       setOvozHolati("bosh");
-      if (ovozPromiseRef.current) {
-        ovozPromiseRef.current({ status });
-        ovozPromiseRef.current = null;
-      }
+      if (status === "error" || status === "blocked") setOvozXatosi("Ovoz ishga tushmadi. Karnayni qayta bosing.");
+      const resolveCurrent = ovozPromiseRef.current;
+      ovozPromiseRef.current = null;
+      if (resolveCurrent) resolveCurrent({ status, manual: Boolean(options.manual) });
     };
     audio.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
     audio.oncanplay = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
@@ -2022,10 +2089,8 @@ function TestTab({
   // yangi savolga o'tilgandan keyin ham davom etib, ustma-ust chiqib
   // ketardi (yoki yangi ovoz umuman eshitilmasdi).
   useEffect(() => {
-    if (ovozRef.current) { ovozRef.current.pause(); ovozRef.current = null; }
-    ovozMatniRef.current = null;
-    setOvozHolati("bosh");
-  }, [joriySavol]);
+    ovozniToxtat();
+  }, [joriySavol, ovozniToxtat]);
 
   // Savollar yuklangach — UMUMIY vaqtni hisoblaymiz (har bir savolning
   // o'z vaqti bo'lsa, hammasini QO'SHIB, BITTA umumiy hisoblagich sifatida
@@ -2218,6 +2283,8 @@ function TestTab({
         accent={rang}
         onRead={ovozniOqi}
         onStopRead={ovozniToxtat}
+        readStatus={ovozHolati}
+        readError={ovozXatosi}
         onFinished={() => { if (onTestFaollik) onTestFaollik(false); }}
         onProfileChange={onOyinProfilYangilandi}
         onBackToSetup={() => { setOyinSessiya(null); setHolat("songi"); }}
