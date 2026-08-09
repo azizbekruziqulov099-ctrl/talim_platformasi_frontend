@@ -1711,9 +1711,14 @@ function TestTab({
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
   const [oyinRejimi, setOyinRejimi] = useState("bridge");
+  const [oyinQahramonJinsi, setOyinQahramonJinsi] = useState(foydalanuvchi?.jins || "ogil");
   const [oyinSessiya, setOyinSessiya] = useState(null);
   const testUrinishIdRef = useRef(null);
   const testBoshlanganAtRef = useRef(null);
+
+  useEffect(() => {
+    if (foydalanuvchi?.jins) setOyinQahramonJinsi(foydalanuvchi.jins);
+  }, [foydalanuvchi?.jins]);
 
   // Kabinetga "test hozir davom etyapti" holatini bildiramiz — shu payt
   // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi (test tugatilishi
@@ -2209,6 +2214,7 @@ function TestTab({
         token={token}
         apiBase={API_BASE}
         initialSession={oyinSessiya}
+        playerProfile={{ ...foydalanuvchi, jins: oyinQahramonJinsi, class: sinf || foydalanuvchi?.class }}
         accent={rang}
         onRead={ovozniOqi}
         onStopRead={ovozniToxtat}
@@ -2322,6 +2328,8 @@ function TestTab({
             gradeBand={oyinYoshBosqichi}
             accent={rang}
             profile={oyinProfil}
+            playerGender={oyinQahramonJinsi}
+            onPlayerGenderChange={setOyinQahramonJinsi}
           />
         ) : (
           <>
@@ -4402,11 +4410,26 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       const res = await fetch(`${API_BASE}/api/admin/shablon_import?token=${encodeURIComponent(token)}`, {
         method: "POST", body: formData,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
+      const rawJavob = await res.text();
+      let data = {};
+      try {
+        data = rawJavob ? JSON.parse(rawJavob) : {};
+      } catch {
+        data = {};
+      }
+      if (!res.ok) {
+        const detail = typeof data.detail === "string"
+          ? data.detail
+          : (data.detail?.message || `Server import xatosi (${res.status})`);
+        throw new Error(detail);
+      }
       setNatija(data);
     } catch (e) {
-      setXato(e.message);
+      setXato(
+        e instanceof TypeError && e.message === "Failed to fetch"
+          ? "Backend import vaqtida javob uzildi. Railway backend logini tekshirib, yangi tuzatishni deploy qiling."
+          : e.message
+      );
     } finally {
       setImportlanmoqda(false);
       e.target.value = "";
