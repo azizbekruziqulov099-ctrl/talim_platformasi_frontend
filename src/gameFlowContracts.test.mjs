@@ -5,6 +5,8 @@ import test from "node:test";
 
 const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
 const arena = readFileSync(new URL("./TestGameArena.jsx", import.meta.url), "utf8");
+const arenaStyles = readFileSync(new URL("./testGames.css", import.meta.url), "utf8");
+const rules = readFileSync(new URL("./testGameRules.js", import.meta.url), "utf8");
 
 
 test("test setup exposes classic, exam and game launch paths", () => {
@@ -74,6 +76,69 @@ test("junior auto-read waits for voice and every manual read includes MCQ option
   assert.match(arena, /Promise\.resolve\(readRef\.current\(readText\)\)/);
   assert.match(arena, /GAME_AUTO_READ_MAX_WAIT_MS/);
   assert.match(arena, /question\.options/);
+});
+
+
+test("every regular and Boss question renders four-choice gameplay inside the scene", () => {
+  assert.match(arena, /className=\{`game-stage game-stage-\$\{mode\}/);
+  assert.match(arena, /<GameScene mode=\{mode\} question=\{question\} feedback=\{feedback\} avatarProfile=\{avatarProfile\} \/>/);
+  assert.match(arena, /<div className="game-stage-content">/);
+  assert.match(arena, /<main[\s\S]*game-question-in-scene[\s\S]*<div className="game-options"/);
+  assert.match(arena, /aria-label=\{isBoss \? "Boss javob variantlari" : "Javob variantlari"\}/);
+  assert.doesNotMatch(arena, /className="game-written-answer"/);
+  assert.doesNotMatch(arena, /if \(question\.is_boss\) return String\(question\.question/);
+  assert.doesNotMatch(`${app}\n${arena}\n${rules}`, /yozma Boss|imkonli yozma|qisqa yozma javob/);
+  assert.match(app, /Har 5-savol 4 variantli Boss, 3 jon/);
+  assert.match(rules, /bossAttempts: 1/g);
+});
+
+
+test("all modes expose server-owned three-slot lives and immersive internal scrolling", () => {
+  assert.match(arena, /function GameLivesHud/);
+  assert.match(arena, /<GameLivesHud mode=\{mode\} livesRemaining=\{livesRemaining\} feedback=\{feedback\} \/>/);
+  assert.match(arena, /gameLivesRemaining\(feedback, question, session\)/);
+  assert.match(arena, /Array\.from\(\{ length: maxLives \}/);
+  assert.match(arena, /lifeGained: Boolean\(data\.life_gained/);
+  assert.match(arena, /livesBefore: data\.lives_before \?\? previousLives/);
+  assert.match(arena, /maxLives: data\.max_lives/);
+  assert.match(arena, /levelCompleted: Boolean\(data\.level_completed \|\| data\.round_completed\)/);
+  assert.match(arenaStyles, /\.test-game-arena \{[\s\S]*display: flex;[\s\S]*overflow: hidden;/);
+  assert.match(arenaStyles, /\.game-stage-content \{[\s\S]*overflow-y: auto;/);
+  assert.match(arenaStyles, /\.game-stage-bridge \.game-options button::before/);
+  assert.match(arenaStyles, /bridge-answer-fall/);
+  assert.match(arenaStyles, /rope-snap-restore/);
+  assert.match(arenaStyles, /@media \(min-width: 761px\)[\s\S]*\.detective-avatar,[\s\S]*\.city-builder \{ display: block; \}/);
+  assert.match(arenaStyles, /\.game-stage-millionaire \.game-question-heading/);
+});
+
+
+test("lifelike player follows profile gender and age in every ordinary game", () => {
+  for (const asset of [
+    "adult_boy.webp", "adult_girl.webp", "child_boy.webp", "child_girl.webp",
+    "preteen_boy.webp", "preteen_girl.webp", "teen_boy.webp", "teen_girl.webp",
+  ]) assert.match(arena, new RegExp(asset.replace(".", "\\.")));
+  for (const asset of [
+    "adult_boy_sheet.webp", "adult_girl_sheet.webp", "child_boy_sheet.webp", "child_girl_sheet.webp",
+    "preteen_boy_sheet.webp", "preteen_girl_sheet.webp", "teen_boy_sheet.webp", "teen_girl_sheet.webp",
+  ]) assert.match(arena, new RegExp(asset.replace(".", "\\.")));
+  assert.match(arena, /export function resolveGameAvatarProfile/);
+  assert.match(arena, /profile\.tugilgan_sana/);
+  assert.match(arena, /profile\.class \?\? profile\.sinf \?\? profile\.grade/);
+  assert.match(arena, /avatar-render/);
+  assert.match(arena, /profile=\{avatarProfile\}/g);
+  assert.match(app, /playerProfile=\{\{ \.\.\.foydalanuvchi, jins: oyinQahramonJinsi/);
+  assert.match(app, /onPlayerGenderChange=\{setOyinQahramonJinsi\}/);
+  assert.match(arena, /spriteFrameCount: 9/);
+  assert.match(arena, /data-sprite-frames=\{avatar\.spriteFrameCount\}/);
+  assert.match(arenaStyles, /background-size: 900% 100%/);
+  assert.match(arenaStyles, /@keyframes avatar-sprite-idle/);
+  assert.match(arenaStyles, /@keyframes bridge-sprite-cross/);
+  assert.match(arenaStyles, /37\.5% center[\s\S]*50% center[\s\S]*62\.5% center[\s\S]*75% center/);
+  assert.match(arenaStyles, /@keyframes bridge-sprite-slip[\s\S]*87\.5% center/);
+  assert.match(arenaStyles, /@keyframes avatar-natural-idle/);
+  assert.match(arenaStyles, /@keyframes bridge-human-hang/);
+  assert.match(arenaStyles, /\.game-stage-bridge \.game-options \{ grid-template-columns: repeat\(4,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(arena, /<div className="millionaire-host">/);
 });
 
 
