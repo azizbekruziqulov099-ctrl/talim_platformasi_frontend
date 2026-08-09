@@ -233,13 +233,48 @@ function sceneStateClass(feedback) {
 }
 
 
-function SceneFeedbackFX({ feedback, successText = "Ajoyib!", failText = "Yana urinib ko'ring" }) {
-  if (feedback?.correct !== true && feedback?.correct !== false && feedback?.type !== "timeout") return null;
+const GAME_SCENE_FEEDBACK_COPY = {
+  bridge: { success: "OYNA MUSTAHKAM!", fail: "OYNA SINIB TUSHDI" },
+  millionaire: { success: "POG'ONA OCHILDI!", fail: "JAVOB QABUL QILINMADI" },
+  space: { success: "ORBITAGA O'TILDI!", fail: "ENERGIYA KAMAYDI" },
+  detective: { success: "DALIL TOPILDI!", fail: "IZ YO'QOLDI" },
+  city: { success: "BINO QURILDI!", fail: "LOYIHA TO'XTADI" },
+};
+
+
+function SceneFeedbackFX({ feedback, mode, transition, countdown, paused = false, bossName = "Boss" }) {
+  const hasOutcome = feedback?.correct === true
+    || feedback?.correct === false
+    || (feedback?.type === "timeout" && (feedback?.finalized || transition));
+  if (!hasOutcome) return null;
   const correct = feedback?.correct === true;
+  const copy = GAME_SCENE_FEEDBACK_COPY[mode] || { success: "AJOYIB!", fail: "URINISH YAKUNLANDI" };
+  const nextLabel = transition?.kind === "next"
+    ? (transition?.payload?.question?.is_boss ? `${bossName} ochilmoqda` : "Keyingi savolga o'tiladi")
+    : transition?.kind === "boss_retry"
+      ? "Yangi urinish boshlanadi"
+      : transition?.kind === "result"
+        ? "Natija ochiladi"
+        : transition?.kind === "terminal"
+          ? "Missiya yakunlanadi"
+          : "O'yin animatsiyasi bajarilmoqda";
   return (
-    <div className={`scene-feedback-fx ${correct ? "is-success" : "is-fail"}`} aria-hidden="true">
-      <span>{correct ? "✓" : "!"}</span>
-      <strong>{correct ? successText : feedback?.type === "timeout" ? "VAQT TUGADI" : failText}</strong>
+    <div
+      className={`scene-feedback-fx ${correct ? "is-success" : "is-fail"} ${paused ? "is-paused" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span aria-hidden="true">{correct ? "✓" : "!"}</span>
+      <div>
+        <strong>{correct ? copy.success : feedback?.type === "timeout" ? "VAQT TUGADI" : copy.fail}</strong>
+        {feedback?.explanation && <p><GameText value={feedback.explanation} /></p>}
+        <small>{nextLabel}</small>
+      </div>
+      {transition && (
+        <b className="scene-feedback-countdown" aria-label={`${countdown || gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)} soniya`}>
+          {countdown ?? gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)}
+        </b>
+      )}
       <i /><i /><i /><i /><i /><i />
     </div>
   );
@@ -328,10 +363,9 @@ function GameLivesHud({ mode, livesRemaining, feedback }) {
 }
 
 
-function BridgeScene({ step, feedback, avatarProfile }) {
+function BridgeScene({ step, feedback }) {
   const state = sceneStateClass(feedback);
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
-  const runnerIndex = feedback?.correct === true ? safeStep - 1 : Math.max(-0.35, safeStep - 1.75);
   return (
     <section className={`game-scene game-scene-bridge ${state}`} aria-label={`Oltin ko'prik, ${safeStep}-oyna`}>
       <div className="bridge-world" aria-hidden="true">
@@ -341,28 +375,21 @@ function BridgeScene({ step, feedback, avatarProfile }) {
         <div className="bridge-mountains"><i /><i /><i /></div>
         <div className="bridge-water"><i /><i /><i /></div>
         <div className="bridge-coins">{[1, 2, 3, 4, 5].map((number) => <i key={number}>★</i>)}</div>
-        <div className="bridge-runner-track" style={{ "--runner-index": runnerIndex }}>
-          <div className="bridge-runner"><GameAvatar variant="runner" profile={avatarProfile} /></div>
-        </div>
-        <div className="bridge-tiles">
+        <div className="bridge-progress-route">
           {[1, 2, 3, 4, 5].map((number) => {
             const classes = [
               number < safeStep ? "is-done" : "",
               number === safeStep ? "is-current" : "",
               number === safeStep && feedback?.correct === true ? "is-cleared" : "",
-              number === safeStep && feedback?.correct === false ? "is-cracked" : "",
             ].filter(Boolean).join(" ");
             return (
-              <span key={number} className={classes}>
-                <b>{number === 5 ? "BOSS" : number}</b><i /><em /><u />
-              </span>
+              <span key={number} className={classes}><b>{number === 5 ? "★" : number}</b></span>
             );
           })}
         </div>
         <div className="bridge-portal"><i>★</i><b>BOSS</b></div>
       </div>
       <SceneHud icon="◆" label={safeStep === 5 ? "Boss darvozasi" : "To'g'ri oynaga sakrang"} step={safeStep} />
-      <SceneFeedbackFX feedback={feedback} successText="SAKRASH BAJARILDI!" failText="OYNA DARZ KETDI" />
       <small className="scene-caption">{safeStep === 5 ? "Darvozani ochish uchun final javobni toping" : "To'g'ri javob qahramonni keyingi oynaga olib o'tadi"}</small>
     </section>
   );
@@ -388,7 +415,6 @@ function MillionaireScene({ step, feedback, avatarProfile }) {
         </div>
       </div>
       <SceneHud icon="₿" label={safeStep === 5 ? "Millionlik savol" : "Navbatdagi pog'ona"} step={safeStep} />
-      <SceneFeedbackFX feedback={feedback} successText="JAVOB QABUL QILINDI!" failText="NOTO'G'RI JAVOB" />
       <small className="scene-caption">Bilimingiz bilan bosh sovrin tomon ko'tariling</small>
     </section>
   );
@@ -414,7 +440,6 @@ function SpaceScene({ step, feedback, avatarProfile }) {
         <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${safeStep * 20}%` }} /></em></div>
       </div>
       <SceneHud icon="✦" label={safeStep === 5 ? "Boss sayyorasi" : "Keyingi orbitaga uching"} step={safeStep} />
-      <SceneFeedbackFX feedback={feedback} successText="ORBITAGA O'TILDI!" failText="ENERGIYA KAMAYDI" />
       <small className="scene-caption">Har to'g'ri javob raketaga yangi quvvat beradi</small>
     </section>
   );
@@ -442,7 +467,6 @@ function DetectiveScene({ step, feedback, avatarProfile }) {
         <div className="detective-spotlight" />
       </div>
       <SceneHud icon="⌕" label={safeStep === 5 ? "Sirni oching" : `${safeStep}-dalilni toping`} step={safeStep} />
-      <SceneFeedbackFX feedback={feedback} successText="DALIL TOPILDI!" failText="IZ YO'QOLDI" />
       <small className="scene-caption">Savolni yeching va ish doskasidagi sirli bog'lanishni oching</small>
     </section>
   );
@@ -469,7 +493,6 @@ function CityScene({ step, feedback, avatarProfile }) {
         <div className="city-trees"><i /><i /><i /></div>
       </div>
       <SceneHud icon="▦" label={safeStep === 5 ? "Shahar markazi" : "Yangi bino quring"} step={safeStep} />
-      <SceneFeedbackFX feedback={feedback} successText="BINO QURILDI!" failText="LOYIHA TO'XTADI" />
       <small className="scene-caption">To'g'ri javob bilan shahringizga yangi bino qo'shing</small>
     </section>
   );
@@ -482,20 +505,7 @@ function GameScene({ mode, question, feedback, avatarProfile }) {
   if (mode === "space") return <SpaceScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
   if (mode === "detective") return <DetectiveScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
   if (mode === "city") return <CityScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
-  return <BridgeScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
-}
-
-
-function gameAnswerFeedbackTitle(mode, feedback) {
-  const copy = {
-    bridge: { correct: "To'g'ri! Oyna butun qoldi.", wrong: "Oyna sinib tushdi." },
-    millionaire: { correct: "To'g'ri! Keyingi pog'ona ochildi.", wrong: "Bu javob qabul qilinmadi." },
-    space: { correct: "To'g'ri! Raketa quvvat oldi.", wrong: "Portal energiyasi uzildi." },
-    detective: { correct: "To'g'ri! Yangi dalil topildi.", wrong: "Bu dalil noto'g'ri chiqdi." },
-    city: { correct: "To'g'ri! Yangi bino qurildi.", wrong: "Bu qurilish moduli ishlamadi." },
-  }[mode] || { correct: "To'g'ri!", wrong: "Noto'g'ri javob." };
-  if (feedback?.correct) return copy.correct;
-  return `${copy.wrong} To'g'ri javob: ${feedback?.correctAnswer || "—"}`;
+  return <BridgeScene step={step} feedback={feedback} />;
 }
 
 
@@ -650,6 +660,8 @@ export default function TestGameArena({
   onProfileChange,
   onRead,
   onStopRead,
+  readStatus = "bosh",
+  readError = "",
   onFinished,
   playerProfile,
 }) {
@@ -1398,6 +1410,38 @@ export default function TestGameArena({
     || timer.phase === "error"
     || timer.phase === "expired";
   const livesRemaining = gameLivesRemaining(feedback, question, session);
+  const bridgeOptionIndex = mode === "bridge"
+    ? (question.options || []).findIndex((option) => String(option.key || "").toUpperCase() === selectedOption)
+    : -1;
+  const bridgeOutcome = mode !== "bridge"
+    ? ""
+    : feedback?.correct === true
+      ? "safe"
+      : feedback?.correct === false && bridgeOptionIndex >= 0
+        ? "broken"
+        : feedback?.type === "timeout"
+          ? "timeout"
+          : bridgeOptionIndex >= 0
+            ? "jumping"
+            : "ready";
+  const voiceLocked = busy
+    || stopConfirm
+    || feedbackFinal
+    || Boolean(pendingNext || pendingRetry || pendingResult || pendingTerminal);
+  const readButtonIcon = readStatus === "yuklanmoqda"
+    ? "⏳"
+    : readStatus === "oynamoqda"
+      ? "⏸"
+      : readStatus === "pauzada"
+        ? "▶"
+        : "🔊";
+  const readButtonLabel = readStatus === "yuklanmoqda"
+    ? "Ovoz tayyorlanmoqda"
+    : readStatus === "oynamoqda"
+      ? "Ovozni pauza qilish"
+      : readStatus === "pauzada"
+        ? "Ovozni davom ettirish"
+        : "Savol va javoblarni ovoz chiqarib o'qish";
 
   return (
     <div
@@ -1444,10 +1488,32 @@ export default function TestGameArena({
         <GameImage value={question.rasm_id} apiBase={apiBase} />
         <div className="game-question-heading">
           <h1><GameText value={question.question} /></h1>
-          {onRead && <button type="button" disabled={interactionLocked} onClick={() => onRead(readText)} aria-label="Savol va javoblarni ovoz chiqarib o'qish">🔊</button>}
+          {onRead && (
+            <button
+              type="button"
+              className={`game-read-button is-${readStatus}`}
+              disabled={voiceLocked}
+              onClick={() => onRead(readText, { manual: true })}
+              aria-label={readButtonLabel}
+              title={readButtonLabel}
+            >
+              {readButtonIcon}
+            </button>
+          )}
         </div>
+        {readError && <div className="game-voice-error" role="alert">Ovoz ishga tushmadi. Karnayni yana bosing.</div>}
 
-        <div className="game-options" aria-label={isBoss ? "Boss javob variantlari" : "Javob variantlari"}>
+        <div
+          className={`game-options ${mode === "bridge" ? `bridge-answer-course is-${bridgeOutcome}` : ""}`}
+          style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%" } : undefined}
+          aria-label={isBoss ? "Boss javob variantlari" : "Javob variantlari"}
+        >
+          {mode === "bridge" && (
+            <>
+              <i className="bridge-golden-path" aria-hidden="true" />
+              <div className="bridge-choice-runner" aria-hidden="true"><GameAvatar variant="runner" profile={avatarProfile} /></div>
+            </>
+          )}
           {(question.options || []).map((option) => (
             <button
               type="button"
@@ -1456,8 +1522,8 @@ export default function TestGameArena({
               className={[
                 option.hidden ? "is-hidden-option" : "",
                 selectedOption === option.key ? "is-selected-option" : "",
-                feedbackFinal && String(feedback.correctAnswer || "").toUpperCase() === String(option.key || "").toUpperCase() ? "is-correct-option" : "",
-                feedbackFinal && selectedOption === option.key && feedback.correct === false ? "is-wrong-option" : "",
+                feedback?.correct === true && selectedOption === option.key ? "is-correct-option is-bridge-safe" : "",
+                feedback?.correct === false && selectedOption === option.key ? "is-wrong-option is-bridge-broken" : "",
               ].filter(Boolean).join(" ")}
               onClick={() => submitAnswer(option.key)}
             >
@@ -1468,57 +1534,29 @@ export default function TestGameArena({
         </div>
 
         <div className="game-feedback" aria-live="polite">
-          {feedback?.type === "retry" && <div className="is-retry"><strong>Yana urinib ko'ring</strong><p>{feedback.text} {feedback.attemptsLeft} imkon qoldi.</p></div>}
           {feedback?.type === "lifeline" && <div className="is-help"><strong>Yordam ishladi</strong><p>{feedback.text}</p></div>}
-          {feedback?.type === "timeout" && (
+          {feedback?.type === "timeout" && feedback?.retryable && (
             <div className="is-timeout">
-              <strong>Vaqt tugadi</strong>
-              <p>
-                {feedback.text}
-                {feedback.livesRemaining !== null && feedback.livesRemaining !== undefined ? ` ♥ ${feedback.livesRemaining} imkon qoldi.` : ""}
-                {feedback.attemptsLeft !== null && feedback.attemptsLeft !== undefined ? ` ${feedback.attemptsLeft} urinish qoldi.` : ""}
-              </p>
-              {feedback.explanation && <p><GameText value={feedback.explanation} /></p>}
-              {feedback.retryable && (
-                <button type="button" className="game-timeout-retry" onClick={retryTimeout} disabled={busy || stopConfirm}>
-                  Serverga qayta yuborish
-                </button>
-              )}
-            </div>
-          )}
-          {feedbackFinal && feedback?.type !== "timeout" && (
-            <div className={feedback.correct ? "is-correct" : "is-wrong"}>
-              <strong>{gameAnswerFeedbackTitle(mode, feedback)}</strong>
-              {feedback.explanation && <p><GameText value={feedback.explanation} /></p>}
+              <strong>Server bilan aloqa uzildi</strong>
+              <p>Natijani xavfsiz qayta yuborishingiz mumkin.</p>
+              <button type="button" className="game-timeout-retry" onClick={retryTimeout} disabled={busy || stopConfirm}>
+                Qayta yuborish
+              </button>
             </div>
           )}
           {error && <div className="is-error">{error}</div>}
         </div>
-
-        {feedbackTransition && (
-          <div
-            key={`${feedbackTransitionKey}:${stopConfirm ? "paused" : "active"}`}
-            className={`game-feedback-transition is-${feedbackTransition.kind} ${stopConfirm ? "is-paused" : ""}`}
-            role="status"
-            aria-live="polite"
-          >
-            <span className="game-feedback-countdown" aria-hidden="true">
-              <b>{feedbackCountdown ?? gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)}</b>
-              <i />
-            </span>
-            <div>
-              <strong>
-                {feedbackTransition.kind === "next" && (pendingNext?.question?.is_boss ? `${age.bossName} ochilmoqda` : "Keyingi savol tayyorlanmoqda")}
-                {feedbackTransition.kind === "boss_retry" && "Yangi Boss urinishi tayyorlanmoqda"}
-                {feedbackTransition.kind === "result" && "Natijani ko'rish uchun animatsiya yakunlanmoqda"}
-                {feedbackTransition.kind === "terminal" && "Missiya natijasi tayyorlanmoqda"}
-              </strong>
-              <small>4,5 soniyalik o'yin animatsiyasidan keyin avtomatik o'tadi</small>
-            </div>
-          </div>
-        )}
           </main>
         </div>
+        <SceneFeedbackFX
+          key={`${feedbackTransitionKey || questionKey}:${stopConfirm ? "paused" : "active"}`}
+          feedback={feedback}
+          mode={mode}
+          transition={feedbackTransition}
+          countdown={feedbackCountdown}
+          paused={stopConfirm}
+          bossName={age.bossName}
+        />
       </div>
 
       {stopConfirm && (
