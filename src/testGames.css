@@ -1883,3 +1883,270 @@
   .game-stage-bridge .game-options button > span { width: 22px; height: 22px; font-size: 10px; }
   .game-stage-bridge .game-options button > b { font-size: clamp(8px,2.35vw,11px); line-height: 1.15; }
 }
+
+/* V18.9 — ko'rinadigan savol, haqiqiy javob oynalari va sahna ichidagi natija. */
+.test-game-arena .game-stage-bridge .game-question-heading > h1,
+.test-game-arena .game-stage-millionaire .game-question-heading > h1,
+.test-game-arena .game-stage-space .game-question-heading > h1,
+.test-game-arena .game-stage-city .game-question-heading > h1,
+.test-game-arena .game-stage-bridge .game-question-heading > h1 *,
+.test-game-arena .game-stage-millionaire .game-question-heading > h1 *,
+.test-game-arena .game-stage-space .game-question-heading > h1 *,
+.test-game-arena .game-stage-city .game-question-heading > h1 * {
+  color: #f8fdff !important;
+  -webkit-text-fill-color: #f8fdff !important;
+  opacity: 1 !important;
+  text-shadow: 0 2px 9px rgba(0,0,0,.86) !important;
+}
+.test-game-arena .game-stage-detective .game-question-heading > h1,
+.test-game-arena .game-stage-detective .game-question-heading > h1 * {
+  color: #3c2415 !important;
+  -webkit-text-fill-color: #3c2415 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+.game-question-heading > h1 .katex { color: inherit !important; -webkit-text-fill-color: inherit !important; }
+.game-feedback:empty { display: none; }
+
+.game-read-button { position: relative; font-family: system-ui,sans-serif; font-weight: 900; }
+.game-read-button.is-yuklanmoqda { animation: game-read-pulse .8s ease-in-out infinite alternate; }
+.game-read-button.is-oynamoqda { box-shadow: 0 0 0 5px rgba(103,232,249,.22),0 0 24px rgba(103,232,249,.5) !important; }
+.game-voice-error {
+  width: fit-content;
+  margin: -7px 0 10px auto;
+  padding: 5px 9px;
+  border: 1px solid rgba(254,202,202,.9);
+  border-radius: 9px;
+  color: #fff;
+  background: rgba(153,27,27,.88);
+  font-size: 9px;
+  font-weight: 800;
+}
+@keyframes game-read-pulse { from { opacity: .55; transform: scale(.94); } to { opacity: 1; transform: scale(1.04); } }
+
+/* Bitta suzuvchi natija: savol kartasining pastiga yangi blok qo'shmaydi. */
+.game-stage > .scene-feedback-fx {
+  z-index: 90;
+  top: auto;
+  bottom: 18px;
+  grid-template-columns: 42px minmax(0,1fr) 38px;
+  width: min(520px,calc(100% - 28px));
+  min-width: 0;
+  max-height: 116px;
+  padding: 10px 12px;
+  pointer-events: none;
+}
+.game-stage > .scene-feedback-fx > div { min-width: 0; }
+.game-stage > .scene-feedback-fx > div > strong,
+.game-stage > .scene-feedback-fx > div > p,
+.game-stage > .scene-feedback-fx > div > small { display: block; margin: 0; }
+.game-stage > .scene-feedback-fx > div > strong { font-size: 12px; letter-spacing: .055em; }
+.game-stage > .scene-feedback-fx > div > p {
+  display: -webkit-box;
+  margin-top: 3px;
+  overflow: hidden;
+  color: rgba(255,255,255,.92);
+  font-size: 10px;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.game-stage > .scene-feedback-fx > div > small { margin-top: 4px; color: #fff; font-size: 9px; font-weight: 850; opacity: .84; }
+.scene-feedback-countdown {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255,255,255,.8);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0,0,0,.2);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  animation: game-feedback-ring 1s linear infinite;
+}
+.game-stage > .scene-feedback-fx.is-paused,
+.game-stage > .scene-feedback-fx.is-paused * { animation-play-state: paused !important; }
+
+/* Eski beshta dekorativ oyna endi faqat kichik oltin yo'l ko'rsatkichi. */
+.bridge-progress-route {
+  position: absolute;
+  z-index: 6;
+  left: 12%;
+  right: 12%;
+  bottom: 42px;
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  align-items: center;
+}
+.bridge-progress-route::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 8%;
+  right: 8%;
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg,#7c5421,#f7c94a,#7c5421);
+  box-shadow: 0 0 12px rgba(247,201,74,.6);
+}
+.bridge-progress-route > span { display: grid; place-items: center; }
+.bridge-progress-route > span > b {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255,244,190,.7);
+  border-radius: 50%;
+  color: #fff8d0;
+  background: #76501e;
+  box-shadow: 0 3px 8px rgba(0,0,0,.3);
+  font-size: 9px;
+}
+.bridge-progress-route > span.is-done > b,
+.bridge-progress-route > span.is-cleared > b { color: #5a3300; background: #ffd95a; box-shadow: 0 0 18px #ffd95a; }
+.bridge-progress-route > span.is-current > b { animation: bridge-route-beacon 1s ease-in-out infinite alternate; }
+
+/* Haqiqiy to'rtta javob — bitta qatordagi yuriladigan shisha oynalar. */
+.test-game-arena .game-stage-bridge .bridge-answer-course {
+  position: relative;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: clamp(5px,1.2vw,11px);
+  margin-top: 0;
+  padding-top: 74px;
+  overflow: visible;
+  perspective: 760px;
+}
+.game-stage-bridge .bridge-answer-course > button {
+  min-width: 0;
+  min-height: 82px;
+  overflow: visible;
+  border: 2px solid rgba(218,252,255,.95);
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.32),transparent 38%),
+    linear-gradient(150deg,rgba(111,222,239,.62),rgba(12,86,113,.78));
+  box-shadow: inset 0 0 22px rgba(255,255,255,.26),0 13px 17px rgba(0,22,37,.4),0 0 15px rgba(103,232,249,.18);
+  transform: rotateX(8deg);
+  transform-origin: center bottom;
+  backdrop-filter: blur(8px);
+}
+.game-stage-bridge .bridge-answer-course > button::before { display: none !important; content: none !important; }
+.game-stage-bridge .bridge-answer-course > button::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  display: block;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 9px;
+  pointer-events: none;
+}
+.bridge-choice-runner {
+  position: absolute;
+  z-index: 14;
+  top: -24px;
+  left: var(--bridge-runner-left,-5%);
+  width: 62px;
+  height: 104px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  transition: left .78s cubic-bezier(.16,.92,.24,1.08);
+  filter: drop-shadow(0 8px 7px rgba(0,0,0,.45));
+}
+.bridge-choice-runner .game-avatar { width: 62px; height: 104px; }
+.bridge-answer-course.is-ready .bridge-choice-runner { transform: translateX(-30%) scale(.92); }
+.bridge-answer-course.is-jumping .bridge-choice-runner { animation: bridge-choice-jump .92s cubic-bezier(.2,.65,.28,1) both; }
+.bridge-answer-course.is-safe .bridge-choice-runner { animation: bridge-choice-land 1.05s cubic-bezier(.2,.8,.28,1) both; }
+.bridge-answer-course.is-broken .bridge-choice-runner,
+.bridge-answer-course.is-timeout .bridge-choice-runner { animation: bridge-choice-hang 1.65s cubic-bezier(.45,0,.55,1) both; }
+.bridge-answer-course.is-jumping .bridge-choice-runner .avatar-render {
+  animation: bridge-sprite-cross .92s steps(1,end) both;
+}
+.bridge-answer-course.is-broken .bridge-choice-runner .avatar-render,
+.bridge-answer-course.is-timeout .bridge-choice-runner .avatar-render {
+  animation: bridge-sprite-slip 1.65s steps(1,end) both;
+}
+.bridge-answer-course.is-broken .bridge-choice-runner::before,
+.bridge-answer-course.is-timeout .bridge-choice-runner::before {
+  content: "";
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: 62%;
+  width: 4px;
+  height: 150px;
+  border-radius: 99px;
+  background: repeating-linear-gradient(0deg,#fff1bc 0 5px,#9a661d 6px 10px);
+  box-shadow: 0 0 5px rgba(255,255,255,.7);
+  transform-origin: bottom;
+  animation: bridge-choice-rope 1.65s ease both;
+}
+.bridge-golden-path {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  bottom: -11px;
+  width: 0;
+  height: 5px;
+  border-radius: 99px;
+  background: linear-gradient(90deg,#ffb703,#fff3a6);
+  box-shadow: 0 0 18px #ffd84d;
+  transition: width .75s ease .25s;
+}
+.bridge-answer-course.is-safe .bridge-golden-path { width: var(--bridge-runner-left); }
+.game-stage-bridge .bridge-answer-course > button.is-bridge-safe {
+  color: #3f2a00;
+  border-color: #fff2a0;
+  background: linear-gradient(145deg,#fff1a1,#d99815);
+  box-shadow: inset 0 0 24px rgba(255,255,255,.6),0 0 30px #ffd94d,0 14px 19px rgba(74,41,0,.35);
+  animation: bridge-real-pane-safe .9s ease both;
+}
+.game-stage-bridge .bridge-answer-course > button.is-bridge-broken {
+  border-color: #fecaca;
+  background:
+    linear-gradient(28deg,transparent 43%,rgba(255,255,255,.9) 44% 46%,transparent 47%),
+    linear-gradient(112deg,transparent 50%,rgba(255,255,255,.8) 51% 53%,transparent 54%),
+    linear-gradient(145deg,rgba(248,113,113,.86),rgba(80,20,30,.8));
+  animation: bridge-real-pane-break 1.5s cubic-bezier(.45,0,.85,.35) .35s forwards;
+}
+.game-stage-bridge.is-scene-wrong .bridge-answer-course > button.is-bridge-broken,
+.game-stage-bridge.is-scene-timeout .bridge-answer-course > button.is-bridge-broken {
+  animation: bridge-real-pane-break 1.5s cubic-bezier(.45,0,.85,.35) .35s forwards;
+}
+.game-stage-bridge .bridge-answer-course > button.is-bridge-broken::after {
+  inset: 20% 12%;
+  border: 0;
+  background:
+    linear-gradient(35deg,transparent 46%,#fff 47% 50%,transparent 51%),
+    linear-gradient(125deg,transparent 46%,#fff 47% 50%,transparent 51%);
+  filter: drop-shadow(18px 14px 0 rgba(191,239,255,.72)) drop-shadow(-15px 22px 0 rgba(191,239,255,.55));
+  animation: bridge-glass-shards 1.4s ease .3s both;
+}
+
+@keyframes bridge-route-beacon { to { transform: scale(1.2); background:#fff0a0; box-shadow:0 0 22px #ffd94d; } }
+@keyframes bridge-choice-jump { 0% { transform:translateX(-50%) translateY(0) rotate(0); } 48% { transform:translateX(-50%) translateY(-42px) rotate(5deg); } 100% { transform:translateX(-50%) translateY(0) rotate(0); } }
+@keyframes bridge-choice-land { 0% { transform:translateX(-50%) translateY(-34px) scale(1.04); } 55% { transform:translateX(-50%) translateY(3px) scaleY(.94); } 76% { transform:translateX(-50%) translateY(-8px); } 100% { transform:translateX(-50%) translateY(0); } }
+@keyframes bridge-choice-hang { 0%,22% { transform:translateX(-50%) translateY(0) rotate(0); } 48% { transform:translateX(-50%) translateY(65px) rotate(-9deg); } 70% { transform:translateX(-50%) translateY(55px) rotate(7deg); } 100% { transform:translateX(-50%) translateY(60px) rotate(-3deg); } }
+@keyframes bridge-choice-rope { 0%,18% { opacity:0; transform:scaleY(.05); } 38% { opacity:1; transform:scaleY(1); } 70% { transform:rotate(-5deg); } 100% { transform:rotate(3deg); } }
+@keyframes bridge-real-pane-safe { 45% { transform:rotateX(3deg) translateY(-5px) scale(1.025); } 100% { transform:rotateX(8deg); } }
+@keyframes bridge-real-pane-break { 0% { transform:rotateX(8deg); opacity:1; } 34% { transform:rotateX(15deg) translateY(4px) rotateZ(-2deg); } 100% { transform:rotateX(72deg) translateY(125px) rotateZ(8deg); opacity:.1; } }
+@keyframes bridge-glass-shards { 0%,25% { opacity:0; transform:scale(.5); } 45% { opacity:1; } 100% { opacity:0; transform:translateY(80px) rotate(22deg) scale(1.35); } }
+
+@media (max-width: 760px) {
+  .game-stage > .scene-feedback-fx { bottom: 10px; grid-template-columns: 36px minmax(0,1fr) 32px; max-height: 104px; padding: 8px 9px; }
+  .game-stage > .scene-feedback-fx > span { width: 34px; height: 34px; }
+  .scene-feedback-countdown { width: 30px; height: 30px; font-size: 12px; }
+  .test-game-arena .game-stage-bridge .bridge-answer-course { gap: 5px; padding-top: 58px; }
+  .bridge-choice-runner { top: -16px; width: 45px; height: 76px; }
+  .bridge-choice-runner .game-avatar { width: 45px; height: 76px; }
+  .game-stage-bridge .bridge-answer-course > button { min-height: 72px; padding: 6px 4px; }
+  .game-stage-bridge .game-question-image { max-height: 130px; }
+  .bridge-progress-route { bottom: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-answer-course.is-broken .bridge-choice-runner,
+  .bridge-answer-course.is-timeout .bridge-choice-runner { transform: translateX(-50%) translateY(38px); }
+  .game-stage-bridge .bridge-answer-course > button.is-bridge-broken { transform: rotateX(65deg) translateY(70px); opacity: .28; }
+}
