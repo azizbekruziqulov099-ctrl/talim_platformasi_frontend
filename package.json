@@ -1,7 +1,7 @@
 {
   "name": "samtm-talim-frontend",
   "private": true,
-  "version": "18.8.0",
+  "version": "18.9.0",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
