@@ -50,3 +50,10 @@ test("multi-sheet import result exposes canonical counts, names and per-sheet di
   assert.match(app, /varaq\.holat === "import_qilindi"/);
   assert.match(app, /varaq\.yetishmagan_ustunlar/);
 });
+
+
+test("import reports backend 500 details instead of a bare Failed to fetch", () => {
+  assert.match(app, /const rawJavob = await res\.text\(\)/);
+  assert.match(app, /Server import xatosi \(\$\{res\.status\}\)/);
+  assert.match(app, /Backend import vaqtida javob uzildi/);
+});
