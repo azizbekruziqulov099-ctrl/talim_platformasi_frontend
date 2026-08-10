@@ -257,7 +257,65 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
   );
 }
 
-function _matnniOvozgaTayyorla(matn) {
+const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU" };
+
+function _ovozTiliniTuzat(til) {
+  const kalit = String(til || "").trim().toLowerCase().replace("_", "-").split("-", 1)[0];
+  return Object.prototype.hasOwnProperty.call(OVOZ_TIL_LANG, kalit) ? kalit : "uz";
+}
+
+function _ovozJinsiniTuzat(jins) {
+  return ["ogil", "o'g'il", "erkak", "male", "boy"].includes(String(jins || "").trim().toLowerCase()) ? "ogil" : "qiz";
+}
+
+function _ovozQismlargaBol(matn, asosiyTil = "uz") {
+  const xom = String(matn || "");
+  const standart = _ovozTiliniTuzat(asosiyTil);
+  const naqsh = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
+  const qismlar = [];
+  let oxiri = 0;
+  let mos;
+  while ((mos = naqsh.exec(xom)) !== null) {
+    const oldingi = xom.slice(oxiri, mos.index);
+    if (oldingi.trim()) qismlar.push({ til: standart, matn: oldingi });
+    if (mos[2].trim()) qismlar.push({ til: _ovozTiliniTuzat(mos[1]), matn: mos[2] });
+    oxiri = naqsh.lastIndex;
+  }
+  const qolgan = xom.slice(oxiri);
+  if (qolgan.trim()) qismlar.push({ til: standart, matn: qolgan });
+  return qismlar.length > 0 ? qismlar : [{ til: standart, matn: xom }];
+}
+
+function _brauzerOvoziniTanla(til, jins) {
+  const voices = globalThis.speechSynthesis?.getVoices?.() || [];
+  const lang = OVOZ_TIL_LANG[_ovozTiliniTuzat(til)].toLowerCase();
+  const mosOvozlar = voices.filter((voice) => String(voice.lang || "").toLowerCase().startsWith(lang.slice(0, 2)));
+  if (mosOvozlar.length === 0) return null;
+  const erkakKalitlari = ["male", "david", "guy", "dmitry", "sardor", "mark"];
+  const ayolKalitlari = ["female", "zira", "samantha", "jenny", "svetlana", "madina", "anna"];
+  const kalitlar = _ovozJinsiniTuzat(jins) === "ogil" ? erkakKalitlari : ayolKalitlari;
+  return mosOvozlar.find((voice) => kalitlar.some((kalit) => String(voice.name || "").toLowerCase().includes(kalit))) || mosOvozlar[0];
+}
+
+function _xorijiyMatnniOvozgaTayyorla(matn, til) {
+  const lugat = til === "ru"
+    ? { frac: (a, b) => `${a} делённое на ${b}`, sqrt: (x) => `квадратный корень из ${x}`, square: (x) => `${x} в квадрате`, cube: (x) => `${x} в кубе`, power: (x, n) => `${x} в степени ${n}`, "+": " плюс ", "-": " минус ", "×": " умножить на ", "·": " умножить на ", "*": " умножить на ", "÷": " разделить на ", "=": " равно ", "≤": " меньше или равно ", "≥": " больше или равно ", "≠": " не равно ", "<": " меньше ", ">": " больше " }
+    : { frac: (a, b) => `${a} over ${b}`, sqrt: (x) => `square root of ${x}`, square: (x) => `${x} squared`, cube: (x) => `${x} cubed`, power: (x, n) => `${x} to the power of ${n}`, "+": " plus ", "-": " minus ", "×": " times ", "·": " times ", "*": " times ", "÷": " divided by ", "=": " equals ", "≤": " less than or equal to ", "≥": " greater than or equal to ", "≠": " not equal to ", "<": " less than ", ">": " greater than " };
+  let t = String(matn || "");
+  t = t.replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "$1").replace(/\$([^$]+)\$/g, "$1");
+  t = t.replace(/\\(?:left|right)/g, "");
+  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (_, a, b) => ` ${lugat.frac(a, b)} `);
+  t = t.replace(/\\sqrt\s*\{([^{}]+)\}/g, (_, x) => ` ${lugat.sqrt(x)} `);
+  t = t.replace(/([0-9A-Za-zА-Яа-я]+)\s*\^\s*\{?(\d+)\}?/g, (_, x, n) => ` ${n === "2" ? lugat.square(x) : n === "3" ? lugat.cube(x) : lugat.power(x, n)} `);
+  for (const [re, belgi] of [[/\\times/g, "×"], [/\\cdot/g, "·"], [/\\div/g, "÷"], [/\\leq/g, "≤"], [/\\geq/g, "≥"], [/\\neq/g, "≠"]]) t = t.replace(re, belgi);
+  t = t.replace(/\\pi\b/g, " pi ");
+  for (const belgi of ["≤", "≥", "≠", "+", "-", "×", "·", "*", "÷", "=", "<", ">"])
+    t = t.replace(new RegExp(`\\s*${belgi.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "g"), lugat[belgi]);
+  t = t.replace(/\\[A-Za-z]+|[{}]/g, " ");
+  return t.replace(/\s+/g, " ").trim();
+}
+
+function _matnniOvozgaTayyorla(matn, til = "uz") {
   // LaTeX belgilangan (yoki belgisiz) kasrlarni tabiiy o'zbekcha nutqqa
   // aylantiradi — masalan \tfrac{1}{2} → "ikkidan bir", 6\tfrac{1}{2}
   // (aralash son) → "olti butun ikkidan bir". Shuningdek: o'lchov
@@ -266,6 +324,8 @@ function _matnniOvozgaTayyorla(matn) {
   // ("iks", "igrik"...) aylantiriladi — xom holda o'qish tushunarsiz
   // eshitilgani uchun kerak.
   if (!matn) return "";
+  til = _ovozTiliniTuzat(til);
+  if (til !== "uz") return _xorijiyMatnniOvozgaTayyorla(matn, til);
   let t = matn;
   t = t.replace(/\[lat\]([^]*?)\[\/lat\]/g, "$1");
   t = t.replace(/\$([^$]+)\$/g, "$1");
@@ -281,6 +341,12 @@ function _matnniOvozgaTayyorla(matn) {
   t = t.replace(/\\neq/g, " teng emas ");
   t = t.replace(/\\infty/g, " cheksizlik ");
   t = t.replace(/\\approx/g, " taxminan teng ");
+  t = t.replace(/\\pi\b/g, " pi ");
+  t = t.replace(/([0-9a-zA-Z]+)\s*\^\s*\{?(\d+)\}?/g, (_, asos, daraja) => {
+    if (daraja === "2") return ` ${asos} kvadrat `;
+    if (daraja === "3") return ` ${asos} kub `;
+    return ` ${asos} ning ${daraja}-darajasi `;
+  });
   const birliklar = [
     [/\bkm\/soat\b/gi, " kilometr soatiga "],
     [/\bkg\b/gi, " kilogramm "], [/\bgr\b/gi, " gramm "],
@@ -295,13 +361,26 @@ function _matnniOvozgaTayyorla(matn) {
   t = t.replace(/(?<![a-zA-Zʻʼ'])([xyzn])(?![a-zA-Zʻʼ'])/g, (m, harf) => ` ${ozgaruvchilar[harf]} `);
   t = t.replace(/°C/g, " daraja Selsiy ");
   t = t.replace(/%/g, " foiz ");
+  t = t.replace(/≤/g, " kichik yoki teng ").replace(/≥/g, " katta yoki teng ").replace(/≠/g, " teng emas ");
+  t = t.replace(/\+/g, " plyus ").replace(/−|-/g, " minus ");
+  t = t.replace(/[×·*]/g, " ko'paytirilgan ").replace(/÷/g, " bo'lingan ").replace(/=/g, " teng ");
+  t = t.replace(/</g, " kichik ").replace(/>/g, " katta ");
   t = t.replace(/\$/g, "");
   t = t.replace(/_{2,}/g, " bo'sh joy "); // "___" (bo'sh joy) — "pastki chiziq" deb o'qilmasin
   t = t.replace(/[_`#]+/g, "");
   return t.replace(/\s+/g, " ").trim();
 }
 
-function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, joriySozIndeksi, setJoriySozIndeksi }) {
+function OvozliOqishTugmasi({
+  matn,
+  kontentId,
+  oqilayotganId,
+  setOqilayotganId,
+  joriySozIndeksi,
+  setJoriySozIndeksi,
+  asosiyTil = "uz",
+  ovozJinsi = "qiz",
+}) {
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
   const oqilyaptimi = oqilayotganId === kontentId;
@@ -309,24 +388,40 @@ function OvozliOqishTugmasi({ matn, kontentId, oqilayotganId, setOqilayotganId, 
   const boshla = (boshlanishTezligi) => {
     window.speechSynthesis.cancel();
     setPauzada(false);
-    const tozaMatn = _matnniOvozgaTayyorla(matn);
-    const sozlar = tozaMatn.split(/(\s+)/);
-    let pozitsiya = 0;
-    const sozPozitsiyalari = sozlar.map((s) => { const p = pozitsiya; pozitsiya += s.length; return p; });
-    const utterance = new SpeechSynthesisUtterance(tozaMatn);
-    utterance.lang = "uz-UZ";
-    utterance.rate = boshlanishTezligi;
-    utterance.onboundary = (e) => {
-      if (e.name && e.name !== "word") return;
-      let idx = 0;
-      for (let i = 0; i < sozPozitsiyalari.length; i++) {
-        if (sozPozitsiyalari[i] <= e.charIndex) idx = i; else break;
-      }
-      setJoriySozIndeksi(idx);
+    const qismlar = _ovozQismlargaBol(matn, asosiyTil)
+      .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
+      .filter((qism) => qism.tayyor);
+    let qismIndeksi = 0;
+    const tugadi = () => {
+      setOqilayotganId(null);
+      setJoriySozIndeksi(-1);
+      setPauzada(false);
     };
-    utterance.onend = () => { setOqilayotganId(null); setJoriySozIndeksi(-1); setPauzada(false); };
+    const keyingisiniOqi = () => {
+      if (qismIndeksi >= qismlar.length) { tugadi(); return; }
+      const qism = qismlar[qismIndeksi++];
+      const sozlar = qism.tayyor.split(/(\s+)/);
+      let pozitsiya = 0;
+      const sozPozitsiyalari = sozlar.map((s) => { const p = pozitsiya; pozitsiya += s.length; return p; });
+      const utterance = new SpeechSynthesisUtterance(qism.tayyor);
+      utterance.lang = OVOZ_TIL_LANG[qism.til];
+      utterance.voice = _brauzerOvoziniTanla(qism.til, ovozJinsi);
+      utterance.rate = boshlanishTezligi;
+      utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
+      utterance.onboundary = (e) => {
+        if (e.name && e.name !== "word") return;
+        let idx = 0;
+        for (let i = 0; i < sozPozitsiyalari.length; i++) {
+          if (sozPozitsiyalari[i] <= e.charIndex) idx = i; else break;
+        }
+        setJoriySozIndeksi(idx);
+      };
+      utterance.onend = keyingisiniOqi;
+      utterance.onerror = tugadi;
+      window.speechSynthesis.speak(utterance);
+    };
     setOqilayotganId(kontentId);
-    window.speechSynthesis.speak(utterance);
+    keyingisiniOqi();
   };
 
   const pauzaYokiDavomEttir = () => {
@@ -1928,17 +2023,21 @@ function TestTab({
   }, []);
 
   const ovozniOqi = useCallback((matn, options = {}) => {
-    const tozaMatn = String(matn || "")
-      .replace(/\[\/?(?:lat|ru|en|uz)\]/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const asosiyTil = _ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz");
+    const ovozJinsi = _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz");
+    const xomMatn = String(matn || "").replace(/\s+/g, " ").trim();
+    const ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
+      .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
+      .filter((qism) => qism.tayyor);
+    const tozaMatn = ovozQismlari.map((qism) => qism.tayyor).join(" ").trim();
+    const ovozKaliti = `${asosiyTil}|${ovozJinsi}|${xomMatn}`;
     if (!tozaMatn) {
       setOvozXatosi("O'qiladigan matn topilmadi.");
       return Promise.resolve({ status: "empty" });
     }
     // Aynan shu matn hozir yuklangan/o'ynalayotgan bo'lsa — pauza/davom ettirish
     // (yangidan boshlab, boshidan o'qib bermaydi).
-    if (ovozMatniRef.current === tozaMatn && ovozNutqRef.current && globalThis.speechSynthesis) {
+    if (ovozMatniRef.current === ovozKaliti && ovozNutqRef.current && globalThis.speechSynthesis) {
       if (globalThis.speechSynthesis.paused) {
         globalThis.speechSynthesis.resume();
         setOvozHolati("oynamoqda");
@@ -1948,7 +2047,7 @@ function TestTab({
       }
       return ovozNutqRef.current.__samTmPromise;
     }
-    if (ovozMatniRef.current === tozaMatn && ovozRef.current) {
+    if (ovozMatniRef.current === ovozKaliti && ovozRef.current) {
       if (ovozRef.current.paused) { ovozRef.current.play(); setOvozHolati("oynamoqda"); }
       else { ovozRef.current.pause(); setOvozHolati("pauzada"); }
       return ovozRef.current.__samTmPromise;
@@ -1957,7 +2056,7 @@ function TestTab({
     ovozniToxtat();
     setOvozXatosi("");
     setOvozHolati("yuklanmoqda");
-    ovozMatniRef.current = tozaMatn;
+    ovozMatniRef.current = ovozKaliti;
 
     // Karnay bevosita bosilganda brauzerning o'z nutq dvigateli ishlaydi:
     // bu foydalanuvchi harakati ichida boshlanadi va autoplay blokiga tushmaydi.
@@ -1966,16 +2065,14 @@ function TestTab({
     const SpeechUtterance = globalThis.SpeechSynthesisUtterance;
     const speech = globalThis.speechSynthesis;
     if (SpeechUtterance && speech) {
-      const utterance = new SpeechUtterance(tozaMatn);
-      utterance.lang = /\[ru\]/i.test(String(matn)) ? "ru-RU" : /\[en\]/i.test(String(matn)) ? "en-US" : "uz-UZ";
-      utterance.rate = ovozTezligi;
-      utterance.pitch = 1;
-      ovozNutqRef.current = utterance;
+      let qismIndeksi = 0;
       const tugatish = (status) => {
-        if (ovozNutqRef.current !== utterance) return;
-        utterance.onstart = null;
-        utterance.onend = null;
-        utterance.onerror = null;
+        const joriyNutq = ovozNutqRef.current;
+        if (joriyNutq) {
+          joriyNutq.onstart = null;
+          joriyNutq.onend = null;
+          joriyNutq.onerror = null;
+        }
         ovozNutqRef.current = null;
         ovozMatniRef.current = null;
         setOvozHolati("bosh");
@@ -1984,19 +2081,38 @@ function TestTab({
         ovozPromiseRef.current = null;
         if (resolveCurrent) resolveCurrent({ status });
       };
-      utterance.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
-      utterance.onstart = () => {
-        if (ovozNutqRef.current === utterance) setOvozHolati("oynamoqda");
+      const zanjirPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
+      const keyingiQismniOqi = () => {
+        if (qismIndeksi >= ovozQismlari.length) {
+          tugatish("ended");
+          return;
+        }
+        const qism = ovozQismlari[qismIndeksi++];
+        const utterance = new SpeechUtterance(qism.tayyor);
+        utterance.lang = OVOZ_TIL_LANG[qism.til];
+        utterance.voice = _brauzerOvoziniTanla(qism.til, ovozJinsi);
+        utterance.rate = ovozTezligi;
+        utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
+        utterance.__samTmPromise = zanjirPromise;
+        ovozNutqRef.current = utterance;
+        utterance.onstart = () => {
+          if (ovozNutqRef.current === utterance) setOvozHolati("oynamoqda");
+        };
+        utterance.onend = () => {
+          if (ovozNutqRef.current !== utterance) return;
+          keyingiQismniOqi();
+        };
+        utterance.onerror = (event) => tugatish(event?.error === "canceled" ? "stopped" : "error");
+        speech.speak(utterance);
       };
-      utterance.onend = () => tugatish("ended");
-      utterance.onerror = (event) => tugatish(event?.error === "canceled" ? "stopped" : "error");
       speech.cancel();
-      speech.speak(utterance);
+      keyingiQismniOqi();
       setOvozHolati("oynamoqda");
-      return utterance.__samTmPromise;
+      return zanjirPromise;
     }
 
-    const audio = new Audio(`${API_BASE}/api/ovoz?matn=${encodeURIComponent(tozaMatn)}`);
+    const ovozQs = new URLSearchParams({ matn: xomMatn, jins: ovozJinsi, asosiy_til: asosiyTil });
+    const audio = new Audio(`${API_BASE}/api/ovoz?${ovozQs.toString()}`);
     audio.playbackRate = ovozTezligi;
     ovozRef.current = audio;
     const tugatish = (status) => {
@@ -2018,7 +2134,7 @@ function TestTab({
     audio.onerror = () => tugatish("error");
     audio.play().catch(() => tugatish("blocked"));
     return audio.__samTmPromise;
-  }, [ovozTezligi, ovozniToxtat]);
+  }, [foydalanuvchi?.asosiy_til, foydalanuvchi?.jins, foydalanuvchi?.ovoz_jinsi, ovozTezligi, ovozniToxtat]);
 
   const ovozTezliginiOzgartir = (tezlik) => {
     setOvozTezligi(tezlik);
@@ -4320,6 +4436,11 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const [diagnostika, setDiagnostika] = useState(null);
   const [diagnostikaYuklanmoqda, setDiagnostikaYuklanmoqda] = useState(false);
   const [diagnostikaXato, setDiagnostikaXato] = useState("");
+  const [importSinflar, setImportSinflar] = useState([]);
+  const [importSinf, setImportSinf] = useState("");
+  const [importFanlar, setImportFanlar] = useState([]);
+  const [importFan, setImportFan] = useState("");
+  const [importTanlovYuklanmoqda, setImportTanlovYuklanmoqda] = useState(false);
 
   const diagnostikaniKor = async () => {
     setDiagnostikaYuklanmoqda(true); setDiagnostikaXato(""); setDiagnostika(null);
@@ -4381,6 +4502,27 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       .then((d) => setSinflarRoyxati(d))
       .catch(() => setXato("Sinflarni yuklab bo'lmadi"));
   }, [mode, token]);
+
+  useEffect(() => {
+    if (mode !== "import") return;
+    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setImportSinflar(Array.from(new Set([...(d.oddiy || []), ...(d.togarak || [])]))))
+      .catch(() => setXato("Import uchun sinflarni yuklab bo'lmadi"));
+  }, [mode, token]);
+
+  const importSinfTanlandi = (sinf) => {
+    setImportSinf(sinf);
+    setImportFan("");
+    setImportFanlar([]);
+    if (!sinf) return;
+    setImportTanlovYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { setImportFanlar(d.fanlar || []); setImportFan("__all__"); })
+      .catch(() => setXato("Import uchun fanlarni yuklab bo'lmadi"))
+      .finally(() => setImportTanlovYuklanmoqda(false));
+  };
 
   const sinfTuriTanlandi = (turi) => {
     setTanlanganSinfTuri(turi);
@@ -4470,11 +4612,21 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const faylTanlandi = async (e) => {
     const fayl = e.target.files[0];
     if (!fayl) return;
+    if (!importSinf || !importFan) {
+      setXato("Avval Excel qaysi sinf va fanga tegishli ekanini tanlang");
+      e.target.value = "";
+      return;
+    }
     setImportlanmoqda(true); setXato(""); setNatija(null);
     try {
       const formData = new FormData();
       formData.append("fayl", fayl);
-      const res = await fetch(`${API_BASE}/api/admin/shablon_import?token=${encodeURIComponent(token)}`, {
+      const importQs = new URLSearchParams({
+        token,
+        kutilgan_sinf: importSinf,
+        kutilgan_fan: importFan,
+      });
+      const res = await fetch(`${API_BASE}/api/admin/shablon_import?${importQs.toString()}`, {
         method: "POST", body: formData,
       });
       const rawJavob = await res.text();
@@ -4760,14 +4912,41 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
           <div className="mb-3">
             <h2 className="text-base font-bold" style={{ color: "#2B2B2B" }}>Testlarni import qilish</h2>
             <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>
-              Excel ichidagi barcha <b>TESTLAR</b> va <b>TESTLAR_...</b> varaqlari birgalikda o'qiladi. Natijada qaysi varaqlar import qilingani alohida ko'rsatiladi.
+              Avval sinfni tanlang. Ko'p fanli Excel uchun "Barcha fanlar"ni qoldiring; tizim har bir TESTLAR_... varag'ini o'z faniga tekshiradi. Bitta fan tanlansa, boshqa fan kodi topilganda import to'liq to'xtaydi.
             </p>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>1) Sinf</label>
+              <select value={importSinf} onChange={(e) => importSinfTanlandi(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                <option value="">Sinfni tanlang</option>
+                {importSinflar.map((s) => <option key={s} value={s}>{s}{/^\d+$/.test(String(s)) ? "-sinf" : ""}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>2) Fan</label>
+              <select value={importFan} onChange={(e) => setImportFan(e.target.value)} disabled={!importSinf || importTanlovYuklanmoqda}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm"
+                style={{ borderColor: "#E5E1D8", opacity: !importSinf || importTanlovYuklanmoqda ? 0.55 : 1 }}>
+                <option value="">{importTanlovYuklanmoqda ? "Yuklanmoqda..." : "Fanni tanlang"}</option>
+                <option value="__all__">Barcha fanlar — avtomatik tekshirish</option>
+                {importFanlar.map((f) => <option key={f.nom} value={f.nom}>{f.nom}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {importSinf && importFan && (
+            <p className="text-xs font-semibold rounded-lg px-3 py-2 mb-3" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+              ✓ {importSinf}{/^\d+$/.test(String(importSinf)) ? "-sinf" : ""} · {importFan === "__all__" ? "barcha fanlar varaq nomi va topic_code bo'yicha tekshiriladi" : `faqat ${importFan} qabul qilinadi`}
+            </p>
+          )}
+
           <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
-            style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
-            {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan Excel faylni tanlash"}
-            <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+            style={{ borderColor: importSinf && importFan ? "#C4BFAF" : "#E5E1D8", color: importSinf && importFan ? "#5A5648" : "#B0AA98" }}>
+            {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "3) 📤 To'ldirilgan Excel faylni tanlash"}
+            <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda || !importSinf || !importFan} className="hidden" />
           </label>
 
           {xato && (
@@ -7672,7 +7851,7 @@ function MeningKalendarim({ token, togarak, onOrtga, onMavzuOchish }) {
   );
 }
 
-function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
+function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga, foydalanuvchi = null }) {
   const [videolar, setVideolar] = useState([]);
   const [misollar, setMisollar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -7681,6 +7860,8 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   const [ochilganVideoSoniya, setOchilganVideoSoniya] = useState({});
   const [oqilayotganId, setOqilayotganId] = useState(null);
   const [joriySozIndeksi, setJoriySozIndeksi] = useState(-1);
+  const ovozAsosiyTil = _ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz");
+  const tanlanganOvozJinsi = _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz");
 
   const [mustaqilIshlar, setMustaqilIshlar] = useState([]);
   const [javobQoralamalari, setJavobQoralamalari] = useState({}); // {ishId: matn}
@@ -7731,7 +7912,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
       <p className="text-xs font-semibold mb-1.5" style={{ color: "#8A8578" }}>{i + 1}-misol</p>
       <AralashMatn matn={m.masala_matni} className="text-sm font-medium mb-1" style={{ color: "#2B2B2B" }} />
       <OvozliOqishTugmasi matn={m.masala_matni} kontentId={`masala-${m.id}`} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
-        joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+        joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} asosiyTil={ovozAsosiyTil} ovozJinsi={tanlanganOvozJinsi} />
       {!ochilganYechimlar[m.id] ? (
         <button onClick={() => setOchilganYechimlar((p) => ({ ...p, [m.id]: true }))}
           className="w-full py-2.5 rounded-xl font-semibold text-sm mt-3" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
@@ -7743,7 +7924,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
             <>
               <AralashMatn matn={m.yechim_matni} className="text-sm" style={{ color: "#5A5648" }} />
               <OvozliOqishTugmasi matn={m.yechim_matni} kontentId={`yechim-${m.id}`} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
-                joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} asosiyTil={ovozAsosiyTil} ovozJinsi={tanlanganOvozJinsi} />
             </>
           ) : (
             <p className="text-xs italic" style={{ color: "#8A8578" }}>Bu misol uchun tushuntirish yozilmagan.</p>
@@ -7868,7 +8049,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga }) {
   );
 }
 
-function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganTopicCode, ochilganiBildir }) {
+function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganTopicCode, ochilganiBildir, foydalanuvchi = null }) {
   const [mavzular, setMavzular] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
@@ -7877,6 +8058,8 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
   const [kitobOchiq, setKitobOchiq] = useState(false);
   const [oqilayotganId, setOqilayotganId] = useState(null);
   const [joriySozIndeksi, setJoriySozIndeksi] = useState(-1);
+  const ovozAsosiyTil = _ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz");
+  const tanlanganOvozJinsi = _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz");
   const korilganVideolar = useRef(new Set());
 
   useEffect(() => {
@@ -7922,7 +8105,7 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
   if (tanlanganMavzu && kitobOchiq) {
     return (
       <OquvchiKitobKorish token={token} togarak={togarak} topicCode={tanlanganMavzu.topic_code} mavzuNomi={formatTopicTitle(0, tanlanganMavzu)}
-        onOrtga={() => setKitobOchiq(false)} />
+        onOrtga={() => setKitobOchiq(false)} foydalanuvchi={foydalanuvchi} />
     );
   }
 
@@ -7954,15 +8137,15 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
                   <>
                     <OqiladiganMatn matn={k.matn} joriySozIndeksi={oqilayotganId === k.id ? joriySozIndeksi : -1} />
                     <OvozliOqishTugmasi matn={k.matn} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
-                      joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                      joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} asosiyTil={ovozAsosiyTil} ovozJinsi={tanlanganOvozJinsi} />
                   </>
                 )}
 
                 {k.kontent_turi === "latex" && (
                   <>
                     <SavolFormulasi ifoda={k.matn} />
-                    <OvozliOqishTugmasi matn={latexniOzbekchaOqishga(k.matn)} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
-                      joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                    <OvozliOqishTugmasi matn={k.matn} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
+                      joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} asosiyTil={ovozAsosiyTil} ovozJinsi={tanlanganOvozJinsi} />
                   </>
                 )}
 
@@ -7985,7 +8168,7 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
                       <>
                         <OqiladiganMatn matn={k.matn} joriySozIndeksi={oqilayotganId === k.id ? joriySozIndeksi : -1} />
                         <OvozliOqishTugmasi matn={k.matn} kontentId={k.id} oqilayotganId={oqilayotganId} setOqilayotganId={setOqilayotganId}
-                          joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} />
+                          joriySozIndeksi={joriySozIndeksi} setJoriySozIndeksi={setJoriySozIndeksi} asosiyTil={ovozAsosiyTil} ovozJinsi={tanlanganOvozJinsi} />
                       </>
                     ) : (
                       <a href={`${API_BASE}/api/oqituvchi/togarak_kontent_fayl?biriktirma_id=${k.id}&token=${encodeURIComponent(token)}`}
@@ -13370,6 +13553,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
   const [sinf, setSinf] = useState(foydalanuvchi?.class ? String(foydalanuvchi.class).replace(/-sinf$/i, "") : "");
   const [sinfHarfi, setSinfHarfi] = useState(foydalanuvchi?.class_letter || "");
   const [jins, setJins] = useState(foydalanuvchi?.jins || "");
+  const [asosiyTil, setAsosiyTil] = useState(_ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz"));
+  const [ovozJinsi, setOvozJinsi] = useState(_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz"));
   const [oqituvchiFani, setOqituvchiFani] = useState(foydalanuvchi?.oqituvchi_fani || "");
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
@@ -13500,6 +13685,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi ? sinfHarfi : undefined,
           jins: (foydalanuvchi?.role === "oquvchi" || foydalanuvchi?.role === "oqituvchi") && jins ? jins : undefined,
           oqituvchi_fani: foydalanuvchi?.role === "oqituvchi" && oqituvchiFani ? oqituvchiFani : undefined,
+          asosiy_til: asosiyTil,
+          ovoz_jinsi: ovozJinsi,
           maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : undefined,
         }),
       });
@@ -13509,7 +13696,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman,
         tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami,
         maktab_turi_kaliti: maktabTuri, class: sinf, class_letter: sinfHarfi,
-        jins, oqituvchi_fani: oqituvchiFani,
+        jins, oqituvchi_fani: oqituvchiFani, asosiy_til: asosiyTil, ovoz_jinsi: ovozJinsi,
         maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : foydalanuvchi?.maktab_id,
         maktab_nomi: royxatdagiMaktab ? royxatdagiMaktab.nomi : foydalanuvchi?.maktab_nomi,
       });
@@ -13623,7 +13810,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
     return (
       <TogarakAzoMavzulari token={token} togarak={tanlanganTogarak} onOrtga={() => setKorinish("profil")}
         onKalendar={() => setKorinish("mening_kalendarim")}
-        ochiladiganTopicCode={ochiladiganTopicCode} ochilganiBildir={() => setOchiladiganTopicCode(null)} />
+        ochiladiganTopicCode={ochiladiganTopicCode} ochilganiBildir={() => setOchiladiganTopicCode(null)}
+        foydalanuvchi={foydalanuvchi} />
     );
   }
 
@@ -13881,6 +14069,36 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           </button>
         </div>
       )}
+
+      <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
+        <p className="text-xs font-semibold mb-1 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🔊 Ovoz va til sozlamalari</p>
+        <p className="text-[11px] mb-3 leading-relaxed" style={{ color: "#8A8578" }}>
+          Tegsiz matn asosiy tilda o'qiladi. Faqat <b>[en]...[/en]</b> va <b>[ru]...[/ru]</b> ichidagi qismlar mos xorijiy ovozda o'qiladi. Noma'lum til o'zbekchaga qaytadi.
+        </p>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Asosiy til</label>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {[["uz", "O'zbekcha"], ["en", "English"], ["ru", "Русский"]].map(([kod, nom]) => (
+            <button key={kod} type="button" onClick={() => setAsosiyTil(kod)}
+              className="py-2.5 rounded-xl border text-xs font-semibold"
+              style={{ borderColor: asosiyTil === kod ? profilRangi : "#E5E1D8", backgroundColor: asosiyTil === kod ? profilRangi : "#fff", color: asosiyTil === kod ? "#fff" : "#5A5648" }}>
+              {nom}
+            </button>
+          ))}
+        </div>
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Ovoz</label>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button type="button" onClick={() => setOvozJinsi("ogil")}
+            className="py-2.5 rounded-xl border text-sm font-semibold"
+            style={{ borderColor: ovozJinsi === "ogil" ? OGIL_RANGI : "#E5E1D8", backgroundColor: ovozJinsi === "ogil" ? OGIL_RANGI : "#fff", color: ovozJinsi === "ogil" ? "#fff" : "#5A5648" }}>
+            👨 Erkak ovozi
+          </button>
+          <button type="button" onClick={() => setOvozJinsi("qiz")}
+            className="py-2.5 rounded-xl border text-sm font-semibold"
+            style={{ borderColor: ovozJinsi === "qiz" ? QIZ_RANGI : "#E5E1D8", backgroundColor: ovozJinsi === "qiz" ? QIZ_RANGI : "#fff", color: ovozJinsi === "qiz" ? "#fff" : "#5A5648" }}>
+            👩 Ayol ovozi
+          </button>
+        </div>
+      </div>
 
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
