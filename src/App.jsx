@@ -270,7 +270,11 @@ function _ovozJinsiniTuzat(jins) {
 
 function _ovozQismlargaBol(matn, asosiyTil = "uz") {
   const xom = String(matn || "");
-  const standart = _ovozTiliniTuzat(asosiyTil);
+  // Tegsiz matn hech qachon brauzer/profilning inglizcha standart ovoziga
+  // tushmaydi. Asosiy til qat'iy o'zbekcha; faqat [en] va [ru] teglari
+  // ichidagi bo'laklar o'z tiliga o'tadi. Parametr eski chaqiruvlar bilan
+  // moslik uchun qoldirilgan.
+  const standart = "uz";
   const naqsh = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
   const qismlar = [];
   let oxiri = 0;
@@ -383,29 +387,52 @@ function OvozliOqishTugmasi({
 }) {
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
+  const audioRef = useRef(null);
   const oqilyaptimi = oqilayotganId === kontentId;
 
   const boshla = (boshlanishTezligi) => {
     window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setPauzada(false);
     const qismlar = _ovozQismlargaBol(matn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
+    const brauzerOvozlari = qismlar.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
     let qismIndeksi = 0;
     const tugadi = () => {
+      audioRef.current = null;
       setOqilayotganId(null);
       setJoriySozIndeksi(-1);
       setPauzada(false);
     };
+    if (!brauzerOvozlari.every(Boolean)) {
+      const qs = new URLSearchParams({
+        matn: String(matn || ""),
+        jins: _ovozJinsiniTuzat(ovozJinsi),
+        asosiy_til: "uz",
+      });
+      const audio = new Audio(`${API_BASE}/api/ovoz?${qs.toString()}`);
+      audio.playbackRate = boshlanishTezligi;
+      audio.onended = tugadi;
+      audio.onerror = tugadi;
+      audioRef.current = audio;
+      setOqilayotganId(kontentId);
+      audio.play().catch(tugadi);
+      return;
+    }
     const keyingisiniOqi = () => {
       if (qismIndeksi >= qismlar.length) { tugadi(); return; }
-      const qism = qismlar[qismIndeksi++];
+      const joriyQismIndeksi = qismIndeksi++;
+      const qism = qismlar[joriyQismIndeksi];
       const sozlar = qism.tayyor.split(/(\s+)/);
       let pozitsiya = 0;
       const sozPozitsiyalari = sozlar.map((s) => { const p = pozitsiya; pozitsiya += s.length; return p; });
       const utterance = new SpeechSynthesisUtterance(qism.tayyor);
       utterance.lang = OVOZ_TIL_LANG[qism.til];
-      utterance.voice = _brauzerOvoziniTanla(qism.til, ovozJinsi);
+      utterance.voice = brauzerOvozlari[joriyQismIndeksi];
       utterance.rate = boshlanishTezligi;
       utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
       utterance.onboundary = (e) => {
@@ -425,12 +452,22 @@ function OvozliOqishTugmasi({
   };
 
   const pauzaYokiDavomEttir = () => {
+    if (audioRef.current) {
+      if (pauzada) audioRef.current.play();
+      else audioRef.current.pause();
+      setPauzada(!pauzada);
+      return;
+    }
     if (pauzada) { window.speechSynthesis.resume(); setPauzada(false); }
     else { window.speechSynthesis.pause(); setPauzada(true); }
   };
 
   const toxtat = () => {
     window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setOqilayotganId(null);
     setJoriySozIndeksi(-1);
     setPauzada(false);
@@ -438,8 +475,16 @@ function OvozliOqishTugmasi({
 
   const tezlikOzgar = (yangiTezlik) => {
     setTezlik(yangiTezlik);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = yangiTezlik;
+      return;
+    }
     if (oqilyaptimi) boshla(yangiTezlik); // o'qish davomida tezlik o'zgarsa, shu joydan emas, boshidan qayta — brauzerlar tezlikni jonli o'zgartirishni qo'llamaydi
   };
+
+  useEffect(() => () => {
+    if (audioRef.current) audioRef.current.pause();
+  }, []);
 
   return (
     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -2023,7 +2068,7 @@ function TestTab({
   }, []);
 
   const ovozniOqi = useCallback((matn, options = {}) => {
-    const asosiyTil = _ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz");
+    const asosiyTil = "uz";
     const ovozJinsi = _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz");
     const xomMatn = String(matn || "").replace(/\s+/g, " ").trim();
     const ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
@@ -2064,7 +2109,12 @@ function TestTab({
     // ishlatiladi; qo'llab-quvvatlanmasa server MP3 yo'liga qaytamiz.
     const SpeechUtterance = globalThis.SpeechSynthesisUtterance;
     const speech = globalThis.speechSynthesis;
-    if (SpeechUtterance && speech) {
+    // Windows/Chrome'da o'zbek ovozi o'rnatilmagan bo'lsa, voice=null
+    // brauzerning standart (ko'pincha inglizcha) ovozini tanlaydi. Shu
+    // holatda Web Speech ishlatilmaydi — serverdagi uz-UZ ovoziga o'tiladi.
+    const brauzerOvozlari = ovozQismlari.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
+    const barchaTillarBrauzerdaBor = brauzerOvozlari.every(Boolean);
+    if (SpeechUtterance && speech && barchaTillarBrauzerdaBor) {
       let qismIndeksi = 0;
       const tugatish = (status) => {
         const joriyNutq = ovozNutqRef.current;
@@ -2087,10 +2137,11 @@ function TestTab({
           tugatish("ended");
           return;
         }
-        const qism = ovozQismlari[qismIndeksi++];
+        const joriyQismIndeksi = qismIndeksi++;
+        const qism = ovozQismlari[joriyQismIndeksi];
         const utterance = new SpeechUtterance(qism.tayyor);
         utterance.lang = OVOZ_TIL_LANG[qism.til];
-        utterance.voice = _brauzerOvoziniTanla(qism.til, ovozJinsi);
+        utterance.voice = brauzerOvozlari[joriyQismIndeksi];
         utterance.rate = ovozTezligi;
         utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
         utterance.__samTmPromise = zanjirPromise;
@@ -4912,7 +4963,7 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
           <div className="mb-3">
             <h2 className="text-base font-bold" style={{ color: "#2B2B2B" }}>Testlarni import qilish</h2>
             <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>
-              Avval sinfni tanlang. Ko'p fanli Excel uchun "Barcha fanlar"ni qoldiring; tizim har bir TESTLAR_... varag'ini o'z faniga tekshiradi. Bitta fan tanlansa, boshqa fan kodi topilganda import to'liq to'xtaydi.
+              Avval sinf va fanni tanlang. Bitta fan tanlansa, ko‘p fanli Excel ichidan faqat TESTLAR_&lt;tanlangan fan&gt; varag‘i olinadi. "Barcha fanlar" rejimida har bir TESTLAR_... varag‘i o‘z faniga va MALUMOTdagi mavzusiga qat’iy tekshiriladi.
             </p>
           </div>
 
@@ -4974,6 +5025,19 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
                   <p className="text-lg font-bold" style={{ color: "#8A5A1C" }}>{natija.duplicates ?? 0}</p>
                 </div>
               </div>
+
+              {((natija.tuzatilgan_topic_code_soni ?? 0) > 0
+                || (natija.boshqa_fandan_togri_fanga_kochirilgan_test_soni ?? 0) > 0
+                || (natija.ortiqcha_begona_nusxalar_tozalandi ?? 0) > 0) && (
+                <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
+                  <p className="font-semibold">✓ Fan va mavzu joylashuvi tuzatildi</p>
+                  <p className="text-xs mt-1">
+                    Mavzu kodi tuzatildi: <b>{natija.tuzatilgan_topic_code_soni ?? 0}</b> ·
+                    Boshqa fandan ko‘chirildi: <b>{natija.boshqa_fandan_togri_fanga_kochirilgan_test_soni ?? 0}</b> ·
+                    Ortiqcha begona nusxa tozalandi: <b>{natija.ortiqcha_begona_nusxalar_tozalandi ?? 0}</b>
+                  </p>
+                </div>
+              )}
 
               <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: "#F7F5F0" }}>
                 <p className="font-semibold">O'qilgan test varaqlari ({importQilinganVaraqSoni} ta)</p>
