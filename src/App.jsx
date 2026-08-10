@@ -5028,10 +5028,12 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
               {((natija.tuzatilgan_topic_code_soni ?? 0) > 0
                 || (natija.boshqa_fandan_togri_fanga_kochirilgan_test_soni ?? 0) > 0
-                || (natija.ortiqcha_begona_nusxalar_tozalandi ?? 0) > 0) && (
+                || (natija.ortiqcha_begona_nusxalar_tozalandi ?? 0) > 0
+                || (natija.dts_fan_yozuvlari_tuzatildi ?? 0) > 0) && (
                 <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
                   <p className="font-semibold">✓ Fan va mavzu joylashuvi tuzatildi</p>
                   <p className="text-xs mt-1">
+                    Fan yorlig‘i tiklandi: <b>{natija.dts_fan_yozuvlari_tuzatildi ?? 0}</b> ·
                     Mavzu kodi tuzatildi: <b>{natija.tuzatilgan_topic_code_soni ?? 0}</b> ·
                     Boshqa fandan ko‘chirildi: <b>{natija.boshqa_fandan_togri_fanga_kochirilgan_test_soni ?? 0}</b> ·
                     Ortiqcha begona nusxa tozalandi: <b>{natija.ortiqcha_begona_nusxalar_tozalandi ?? 0}</b>
