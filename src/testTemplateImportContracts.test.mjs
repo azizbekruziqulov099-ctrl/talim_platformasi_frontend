@@ -48,6 +48,9 @@ test("multi-sheet import result exposes canonical counts, names and per-sheet di
   assert.match(app, /natija\?\.varaq_diagnostika/);
   assert.match(app, /Har bir varaq natijasi/);
   assert.match(app, /varaq\.holat === "import_qilindi"/);
+  assert.match(app, /Avto fan:/);
+  assert.match(app, /varaq\.aniqlangan_fan_kodi/);
+  assert.match(app, /varaq\.aniqlangan_fan/);
   assert.match(app, /varaq\.yetishmagan_ustunlar/);
 });
 
