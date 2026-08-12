@@ -57,3 +57,11 @@ test("import reports backend 500 details instead of a bare Failed to fetch", () 
   assert.match(app, /Server import xatosi \(\$\{res\.status\}\)/);
   assert.match(app, /Backend import vaqtida javob uzildi/);
 });
+
+
+test("import UI clearly reports atomic replacement from zero", () => {
+  assert.match(app, /eski testlari tozalanib, barcha fanlar Exceldan noldan yoziladi/);
+  assert.match(app, /eski testlari tozalanib, Exceldan noldan yoziladi/);
+  assert.match(app, /natija\.almashtirishda_ochirilgan_eski_test_soni/);
+  assert.match(app, /Eski test tozalandi/);
+});
