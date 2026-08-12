@@ -4990,7 +4990,9 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
           {importSinf && importFan && (
             <p className="text-xs font-semibold rounded-lg px-3 py-2 mb-3" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
-              ✓ {importSinf}{/^\d+$/.test(String(importSinf)) ? "-sinf" : ""} · {importFan === "__all__" ? "barcha fanlar varaq nomi va topic_code bo'yicha tekshiriladi" : `faqat ${importFan} qabul qilinadi`}
+              ✓ {importSinf}{/^\d+$/.test(String(importSinf)) ? "-sinf" : ""} · {importFan === "__all__"
+                ? "shu sinfning eski testlari tozalanib, barcha fanlar Exceldan noldan yoziladi"
+                : `${importFan}ning eski testlari tozalanib, Exceldan noldan yoziladi`}
             </p>
           )}
 
@@ -5027,12 +5029,14 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
               </div>
 
               {((natija.tuzatilgan_topic_code_soni ?? 0) > 0
+                || (natija.almashtirishda_ochirilgan_eski_test_soni ?? 0) > 0
                 || (natija.boshqa_fandan_togri_fanga_kochirilgan_test_soni ?? 0) > 0
                 || (natija.ortiqcha_begona_nusxalar_tozalandi ?? 0) > 0
                 || (natija.dts_fan_yozuvlari_tuzatildi ?? 0) > 0) && (
                 <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
                   <p className="font-semibold">✓ Fan va mavzu joylashuvi tuzatildi</p>
                   <p className="text-xs mt-1">
+                    Eski test tozalandi: <b>{natija.almashtirishda_ochirilgan_eski_test_soni ?? 0}</b> ·
                     Fan yorlig‘i tiklandi: <b>{natija.dts_fan_yozuvlari_tuzatildi ?? 0}</b> ·
                     Mavzu kodi tuzatildi: <b>{natija.tuzatilgan_topic_code_soni ?? 0}</b> ·
                     Boshqa fandan ko‘chirildi: <b>{natija.boshqa_fandan_togri_fanga_kochirilgan_test_soni ?? 0}</b> ·
