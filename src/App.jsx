@@ -5081,10 +5081,17 @@ function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
                             </span>
                           </div>
                           {importQilindi ? (
-                            <p className="text-xs mt-1" style={{ color: "#5A5648" }}>
-                              Savol: <b>{varaq.savolli_qator ?? 0}</b> · Saqlandi: <b>{varaq.saved ?? 0}</b> · Duplikat: <b>{varaq.duplicates ?? 0}</b> · Xato: <b>{varaq.errors ?? 0}</b>
-                              {Number(varaq.kod_yoq || 0) > 0 ? <> · Kodsiz: <b>{varaq.kod_yoq}</b></> : null}
-                            </p>
+                            <div className="text-xs mt-1" style={{ color: "#5A5648" }}>
+                              {varaq.aniqlangan_fan && (
+                                <p className="font-semibold" style={{ color: "#1B4B7A" }}>
+                                  Avto fan: {varaq.aniqlangan_fan_kodi ? `${varaq.aniqlangan_fan_kodi} · ` : ""}{varaq.aniqlangan_fan}
+                                </p>
+                              )}
+                              <p>
+                                Savol: <b>{varaq.savolli_qator ?? 0}</b> · Saqlandi: <b>{varaq.saved ?? 0}</b> · Duplikat: <b>{varaq.duplicates ?? 0}</b> · Xato: <b>{varaq.errors ?? 0}</b>
+                                {Number(varaq.kod_yoq || 0) > 0 ? <> · Kodsiz: <b>{varaq.kod_yoq}</b></> : null}
+                              </p>
+                            </div>
                           ) : (
                             <p className="text-xs mt-1" style={{ color: "#A32D2D" }}>
                               Yetishmagan ustunlar: {varaq.yetishmagan_ustunlar?.length > 0 ? varaq.yetishmagan_ustunlar.join(", ") : "format mos emas"}
