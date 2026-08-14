@@ -308,6 +308,138 @@ function LearningTopicCard({ topic, isCurrent }) {
   );
 }
 
+function LearningSubjectPathPage({ data, subject, term, setTerm, accent, onBack }) {
+  const subjectTopics = (data?.topics || []).filter((topic) => topic.subject === subject);
+  const termTopics = subjectTopics.filter((topic) => Number(topic.term_no) === Number(term));
+  const groupedWeeks = termTopics.reduce((acc, topic) => {
+    const key = Number(topic.week_no) || 1;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(topic);
+    return acc;
+  }, {});
+  const subjectSummary = data?.subjects?.find((item) => item.name === subject);
+  const currentCode = subjectSummary?.current_topic_code;
+  const foundIndex = subjectTopics.findIndex((topic) => topic.topic_code === currentCode);
+  const currentIndex = foundIndex >= 0 ? foundIndex : 0;
+  const routePosition = subjectTopics.length ? {
+    previous: currentIndex > 0 ? subjectTopics[currentIndex - 1] : null,
+    current: subjectTopics[currentIndex] || null,
+    next: currentIndex + 1 < subjectTopics.length ? subjectTopics[currentIndex + 1] : null,
+  } : null;
+  const olympiad = subjectSummary?.olympiad;
+  const isOlympiad = data?.path_type === "olympiad";
+
+  return (
+    <div className="px-5 pb-6 space-y-4">
+      <section className="rounded-3xl p-5" style={{ background: `linear-gradient(135deg, ${isOlympiad ? "#8A5A1C" : accent}, #173A5B)`, color: "#fff" }}>
+        <button onClick={onBack} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold mb-4"
+          style={{ backgroundColor: "rgba(255,255,255,.14)", color: "#fff" }}>
+          <ChevronLeft size={15} /> Fanlar ro'yxatiga qaytish
+        </button>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#D7E2EA" }}>
+          {isOlympiad ? "Olimpiada ta'lim yo'li" : "Fan ta'lim yo'li"}
+        </p>
+        <h2 className="text-2xl font-bold mt-1">{subject}</h2>
+        <p className="text-xs mt-2" style={{ color: "#D7E2EA" }}>
+          {data?.selected_grade}-sinf · {data?.academic_year} · {subjectTopics.length} mavzu
+        </p>
+      </section>
+
+      {isOlympiad && (
+        <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>4 manbali tayyorgarlik bahosi</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>Yo'q dalil bilim deb taxmin qilinmaydi</p>
+            </div>
+            <span className="text-xl font-bold" style={{ color: "#8A5A1C" }}>
+              {olympiad?.confirmed_readiness_percent == null ? "—" : `${number(olympiad.confirmed_readiness_percent)}%`}
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {(olympiad?.components || []).map((component) => (
+              <div key={component.key} className="rounded-xl p-3" style={{ backgroundColor: component.has_evidence ? "#FFF8E7" : "#F1EFE9" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold" style={{ color: "#3D392F" }}>{component.label}</p>
+                    <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: "#8A8578" }}>{component.description}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ backgroundColor: "#fff", color: "#8A5A1C" }}>
+                    {component.weight}% ulush
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-semibold" style={{ color: component.has_evidence ? "#28735A" : "#8A8578" }}>
+                    {component.has_evidence ? `${number(component.score)}% natija · ${number(component.earned_points)} ball` : "Hali baholanmagan"}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "#8A8578" }}>{number(component.evidence_count)} dalil</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 rounded-xl px-3 py-2.5 text-[11px]" style={{ backgroundColor: "#FAF8F2", color: "#6F6859" }}>
+            {olympiad?.label || "Hali baholanmagan"} · dalil qamrovi {number(olympiad?.evidence_coverage_percent)}%
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Yillik yo'l</p>
+            <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>Chorak va haftalar</h3>
+          </div>
+          <span className="text-[10px] rounded-full px-2.5 py-1" style={{ backgroundColor: "#F1EFE9", color: "#6F6859" }}>{subjectTopics.length} mavzu</span>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[1, 2, 3, 4].map((q) => {
+            const count = subjectTopics.filter((topic) => Number(topic.term_no) === q).length;
+            return (
+              <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold"
+                style={Number(term) === q ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>
+                {q}-chorak<span className="block text-[9px] opacity-70">{count} mavzu</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {routePosition && (
+        <section className="grid grid-cols-3 gap-2">
+          {[
+            ["Oldingi", routePosition.previous, "#F1EFE9", "#6F6859"],
+            ["Hozir", routePosition.current, "#EAF1F7", "#1B4B7A"],
+            ["Keyingi", routePosition.next, "#E7F4EE", "#28735A"],
+          ].map(([label, topic, soft, color]) => (
+            <div key={label} className="rounded-xl p-2.5 min-w-0" style={{ backgroundColor: soft }}>
+              <p className="text-[9px] font-bold uppercase" style={{ color }}>{label}</p>
+              <p className="text-[10px] font-semibold mt-1 leading-snug line-clamp-2" style={{ color: "#3D392F" }}>{topic?.topic_name || "—"}</p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="space-y-4">
+        {Object.keys(groupedWeeks).length === 0 ? (
+          <p className="text-xs text-center py-5" style={{ color: "#8A8578" }}>Bu chorakda mavzu yo'q.</p>
+        ) : Object.entries(groupedWeeks).map(([week, topics]) => (
+          <div key={week}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: "#EEEAE1", color: "#5A5648" }}>{week}</span>
+              <p className="text-xs font-bold" style={{ color: "#3D392F" }}>{week}-hafta</p>
+              <span className="text-[10px]" style={{ color: "#8A8578" }}>{shortDate(topics[0]?.planned_start)}–{shortDate(topics[0]?.planned_end)}</span>
+              <div className="h-px flex-1" style={{ backgroundColor: "#E5E1D8" }} />
+            </div>
+            <div className="space-y-2.5 pl-3 border-l-2" style={{ borderColor: "#E5E1D8" }}>
+              {topics.map((topic) => <LearningTopicCard key={topic.topic_code} topic={topic} isCurrent={topic.topic_code === currentCode} />)}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
+
 export function StudentLearningPathDashboard({
   token,
   studentId = null,
@@ -319,6 +451,8 @@ export function StudentLearningPathDashboard({
   const [grade, setGrade] = useState("");
   const [subject, setSubject] = useState("");
   const [term, setTerm] = useState(1);
+  const [pathMode, setPathMode] = useState("standard");
+  const [view, setView] = useState("overview");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -326,11 +460,13 @@ export function StudentLearningPathDashboard({
 
   useEffect(() => {
     const controller = new AbortController();
-    const path = viewer === "parent" ? "/api/talim-yoli/ota/farzand" : "/api/talim-yoli/meniki";
+    const path = pathMode === "olympiad"
+      ? (viewer === "parent" ? "/api/talim-yoli/ota/olimpiada" : "/api/talim-yoli/olimpiada")
+      : (viewer === "parent" ? "/api/talim-yoli/ota/farzand" : "/api/talim-yoli/meniki");
     const params = new URLSearchParams({ token });
     if (viewer === "parent") params.set("child_id", String(studentId));
-    if (contextId != null) params.set("context_id", String(contextId));
-    if (groupId != null) params.set("group_id", String(groupId));
+    if (pathMode === "standard" && contextId != null) params.set("context_id", String(contextId));
+    if (pathMode === "standard" && groupId != null) params.set("group_id", String(groupId));
     if (grade) params.set("grade", grade);
     setLoading(true);
     setError("");
@@ -342,10 +478,12 @@ export function StudentLearningPathDashboard({
       })
       .then((body) => {
         setData(body);
-        setContextId(body.selected_context?.id ?? null);
-        setGroupId(body.selected_group?.id ?? null);
+        if (body.path_type !== "olympiad") {
+          setContextId(body.selected_context?.id ?? null);
+          setGroupId(body.selected_group?.id ?? null);
+        }
         setGrade(body.selected_grade || "");
-        setSubject((old) => body.subjects?.some((x) => x.name === old) ? old : (body.subjects?.[0]?.name || ""));
+        setSubject((old) => body.subjects?.some((x) => x.name === old) ? old : "");
       })
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
@@ -354,42 +492,57 @@ export function StudentLearningPathDashboard({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [token, studentId, viewer, contextId, groupId, grade, reloadKey]);
+  }, [token, studentId, viewer, contextId, groupId, grade, pathMode, reloadKey]);
 
   const selectContext = (context) => {
+    setPathMode("standard");
+    setData(null);
     setContextId(context.id);
     setGroupId(context.groups?.length === 1 ? context.groups[0].id : null);
     setSubject("");
     setTerm(1);
+    setView("overview");
   };
 
-  const subjectTopics = (data?.topics || []).filter((topic) => topic.subject === subject);
-  const termTopics = subjectTopics.filter((topic) => Number(topic.term_no) === Number(term));
-  const groupedWeeks = termTopics.reduce((acc, topic) => {
-    const key = Number(topic.week_no) || 1;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(topic);
-    return acc;
-  }, {});
-  const currentCode = data?.subjects?.find((x) => x.name === subject)?.current_topic_code;
-  const currentIndex = Math.max(0, subjectTopics.findIndex((topic) => topic.topic_code === currentCode));
-  const routePosition = subjectTopics.length ? {
-    previous: currentIndex > 0 ? subjectTopics[currentIndex - 1] : null,
-    current: subjectTopics[currentIndex] || null,
-    next: currentIndex + 1 < subjectTopics.length ? subjectTopics[currentIndex + 1] : null,
-  } : null;
+  const selectOlympiad = () => {
+    setPathMode("olympiad");
+    setData(null);
+    setContextId(null);
+    setGroupId(null);
+    setSubject("");
+    setTerm(1);
+    setView("overview");
+  };
 
   if (loading && !data) return <div className="px-5 pb-5"><LoadingCard text="Ta'lim yo'li qurilmoqda..." /></div>;
   if (error && !data) return <div className="px-5 pb-5"><ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} /></div>;
 
+  if (view === "subject" && subject) {
+    return (
+      <LearningSubjectPathPage
+        data={data}
+        subject={subject}
+        term={term}
+        setTerm={setTerm}
+        accent={pathMode === "olympiad" ? "#8A5A1C" : accent}
+        onBack={() => { setView("overview"); setSubject(""); setTerm(1); }}
+      />
+    );
+  }
+
   const summary = data?.summary || {};
+  const olympiadSummary = data?.olympiad_summary || {};
+  const isOlympiad = pathMode === "olympiad";
+  const heroColor = isOlympiad ? "#8A5A1C" : accent;
   return (
     <div className="px-5 pb-6 space-y-4">
-      <section className="rounded-3xl p-5 overflow-hidden relative" style={{ background: `linear-gradient(135deg, ${accent}, #173A5B)`, color: "#fff" }}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#C9D8E4" }}>Ta'lim GPS</p>
-        <h2 className="text-2xl font-bold mt-1">Qayerdaman va keyin nima?</h2>
+      <section className="rounded-3xl p-5 overflow-hidden relative" style={{ background: `linear-gradient(135deg, ${heroColor}, #173A5B)`, color: "#fff" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#C9D8E4" }}>{isOlympiad ? "Olimpiada GPS" : "Ta'lim GPS"}</p>
+        <h2 className="text-2xl font-bold mt-1">{isOlympiad ? "Olimpiadaga qanday tayyorlanyapman?" : "Qayerdaman va keyin nima?"}</h2>
         <p className="text-xs mt-2 max-w-xl leading-relaxed" style={{ color: "#D7E2EA" }}>
-          Kalendar, o'qituvchi tasdig'i va bilim natijasi alohida hisoblanadi. Sana o'tishi mavzu o'rganildi degani emas.
+          {isOlympiad
+            ? "To'rtta mustaqil dalil 20% + 20% + 30% + 30% tartibida baholanadi."
+            : "Kalendar, o'qituvchi tasdig'i va bilim natijasi alohida hisoblanadi. Sana o'tishi mavzu o'rganildi degani emas."}
         </p>
         <div className="mt-4 flex items-center gap-2 text-[10px]">
           <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{data?.selected_grade}-sinf</span>
@@ -401,18 +554,21 @@ export function StudentLearningPathDashboard({
       <div className="flex gap-2 overflow-x-auto pb-1">
         {(data?.contexts || []).map((context) => {
           const meta = contextMeta(context.type);
-          const active = Number(data?.selected_context?.id) === Number(context.id);
+          const active = !isOlympiad && Number(data?.selected_context?.id) === Number(context.id);
           return (
-            <button key={context.id} onClick={() => selectContext(context)}
-              className="shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold"
+            <button key={context.id} onClick={() => selectContext(context)} className="shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold"
               style={active ? { backgroundColor: meta.color, borderColor: meta.color, color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>
               {meta.emoji} {context.type === "platform" ? "Maktab dasturi" : context.name}
             </button>
           );
         })}
+        <button onClick={selectOlympiad} className="shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold"
+          style={isOlympiad ? { backgroundColor: "#8A5A1C", borderColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E4C77D", color: "#8A5A1C" }}>
+          🥇 Olimpiada
+        </button>
       </div>
 
-      {(data?.selected_context?.groups || []).length > 1 && (
+      {!isOlympiad && (data?.selected_context?.groups || []).length > 1 && (
         <div className="flex gap-2 overflow-x-auto">
           {data.selected_context.groups.map((group) => (
             <button key={group.id} onClick={() => setGroupId(group.id)} className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold"
@@ -428,136 +584,101 @@ export function StudentLearningPathDashboard({
           <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Ko'rilayotgan bosqich</p>
           <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.selected_grade}-sinf · {data?.calendar_source?.label}</p>
         </div>
-        <select value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(""); setTerm(1); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold" style={{ borderColor: "#D8D3C7", color: "#1B4B7A" }}>
+        <select value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(""); setTerm(1); setView("overview"); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold" style={{ borderColor: "#D8D3C7", color: heroColor }}>
           {(data?.grade_options || []).map((g) => <option key={g} value={g}>{g}-sinf</option>)}
         </select>
       </div>
 
-      {data?.calendar_source?.is_estimate && (
+      {data?.grade_progression?.message && String(data?.selected_grade) === String(data?.student?.current_grade) && (
+        <div className="rounded-2xl border p-3.5" style={{ borderColor: data.grade_progression.status === "completed" ? "#E4C77D" : "#C8DDD4", backgroundColor: data.grade_progression.status === "completed" ? "#FFF8E7" : "#EEF7F3" }}>
+          <p className="text-xs font-bold" style={{ color: data.grade_progression.status === "completed" ? "#6F5320" : "#28735A" }}>
+            {data.grade_progression.status === "completed" ? "✓ Sinf bosqichi yakunlangan" : "● Joriy sinf faol"}
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: "#6F6859" }}>{data.grade_progression.message}</p>
+        </div>
+      )}
+
+      <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex items-start gap-3">
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}><CalendarDays size={17} /></span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.focus_week?.label || "Haftalik reja"}</p>
+              {data?.focus_week?.start && <span className="text-[10px]" style={{ color: "#8A8578" }}>{shortDate(data.focus_week.start)}–{shortDate(data.focus_week.end)}</span>}
+            </div>
+            {(data?.focus_week?.topics || []).length ? (
+              <div className="mt-2 space-y-1.5">
+                {data.focus_week.topics.slice(0, 8).map((topic) => (
+                  <p key={topic.topic_code} className="text-[11px] leading-relaxed" style={{ color: "#5A5648" }}>
+                    <b>{topic.subject}:</b> {topic.topic_name}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] mt-1.5" style={{ color: "#8A8578" }}>{data?.grade_progression?.status === "completed" ? "Bu sinfning reja haftalari tugagan." : "Rejada shu haftaga mavzu topilmadi."}</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {!isOlympiad && data?.calendar_source?.is_estimate && (
         <div className="rounded-xl border px-3 py-2.5 text-[11px] leading-relaxed" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF8E7", color: "#6F5320" }}>
-          Rasmiy maktab kalendari ulanmagan. Hozir mavzular SamTM taxminiy o'quv haftalariga joylandi; o'qituvchi yoki admin rejasi kiritilsa, shu reja ustun bo'ladi.
+          Rasmiy kalendar ulanmagan. Hozir mavzular SamTM taxminiy haftalariga joylandi; o'qituvchi yoki admin rejasi kiritilsa, o'sha reja ustun bo'ladi.
         </div>
       )}
 
       <div className="grid grid-cols-3 gap-2.5">
-        <PathMetric icon={CalendarDays} label="Reja yetgan" value={`${number(summary.planned_reached_percent)}%`} note="Sana bo'yicha" color="#8A5A1C" soft="#FDF3E0" />
-        <PathMetric icon={CheckCircle2} label="Amalda o'tilgan" value={`${number(summary.taught_percent)}%`} note="O'qituvchi tasdig'i" color="#28735A" soft="#E7F4EE" />
-        <PathMetric icon={Brain} label="Tasdiqlangan bilim" value={summary.verified_knowledge_percent == null ? "—" : `${number(summary.verified_knowledge_percent)}%`} note={`${number(summary.verified_topic_count)}/${number(summary.topic_count)} mavzu`} color="#5B63A9" soft="#EFEEFB" />
+        {isOlympiad ? (
+          <>
+            <PathMetric icon={Target} label="Tasdiqlangan tayyorgarlik" value={olympiadSummary.confirmed_readiness_percent == null ? "—" : `${number(olympiadSummary.confirmed_readiness_percent)}%`} note="4 manba yig'indisi" color="#8A5A1C" soft="#FDF3E0" />
+            <PathMetric icon={CheckCircle2} label="Dalil qamrovi" value={`${number(olympiadSummary.evidence_coverage_percent)}%`} note={`${number(olympiadSummary.evaluated_subject_count)}/${number(olympiadSummary.subject_count)} fan`} color="#28735A" soft="#E7F4EE" />
+            <PathMetric icon={Brain} label="Baholash modeli" value="4" note="20 + 20 + 30 + 30" color="#5B63A9" soft="#EFEEFB" />
+          </>
+        ) : (
+          <>
+            <PathMetric icon={CalendarDays} label="Reja yetgan" value={`${number(summary.planned_reached_percent)}%`} note="Sana bo'yicha" color="#8A5A1C" soft="#FDF3E0" />
+            <PathMetric icon={CheckCircle2} label="Amalda o'tilgan" value={`${number(summary.taught_percent)}%`} note="O'qituvchi tasdig'i" color="#28735A" soft="#E7F4EE" />
+            <PathMetric icon={Brain} label="Tasdiqlangan bilim" value={summary.verified_knowledge_percent == null ? "—" : `${number(summary.verified_knowledge_percent)}%`} note={`${number(summary.verified_topic_count)}/${number(summary.topic_count)} mavzu`} color="#5B63A9" soft="#EFEEFB" />
+          </>
+        )}
       </div>
 
       {(data?.subjects || []).length === 0 ? (
         <div className="rounded-2xl bg-white border p-7 text-center" style={{ borderColor: "#E5E1D8" }}>
           <BookOpen size={28} className="mx-auto mb-3" style={{ color: "#8A8578" }} />
-          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>Bu muhit uchun mavzu rejasi hali yo'q</p>
-          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Universitet, markaz yoki to'garak o'qituvchisi mavzularni guruh rejasiga kiritadi.</p>
+          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>Bu yo'l uchun mavzu rejasi hali yo'q</p>
         </div>
       ) : (
-        <>
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Fan yo'llari</p>
-              <span className="text-[10px]" style={{ color: "#8A8578" }}>{data.subjects.length} fan</span>
-            </div>
-            <div className="space-y-2">
-              {data.subjects.map((item, index) => {
-                const active = item.name === subject;
-                return (
-                  <button key={item.name} onClick={() => { setSubject(item.name); setTerm(1); }} className="w-full rounded-2xl border bg-white p-3.5 text-left"
-                    style={{ borderColor: active ? accent : "#E5E1D8", borderWidth: active ? 2 : 1 }}>
-                    <div className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: active ? accent : "#EEEAE1", color: active ? "#fff" : "#5A5648" }}>{String(index + 1).padStart(2, "0")}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-bold truncate" style={{ color: "#2B2B2B" }}>{item.name}</p>
-                          <span className="text-xs font-semibold" style={{ color: item.verified_knowledge_percent == null ? "#8A8578" : "#28735A" }}>{item.verified_knowledge_percent == null ? "Bilim noma'lum" : `${item.verified_knowledge_percent}%`}</span>
-                        </div>
-                        <div className="mt-2"><ScoreBar value={item.planned_reached_percent} color={active ? accent : "#8A8578"} height={6} /></div>
-                        <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>{item.topic_count} mavzu · {item.taught_percent}% o'qituvchi tasdig'i · {item.unknown_topic_count} noma'lum</p>
-                      </div>
-                      <ChevronRight size={17} style={{ color: "#A7A091" }} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          {(data?.olympiad_readiness || []).length > 0 && (
-            <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
-              <div className="flex items-start gap-3 mb-3">
-                <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><Target size={17} /></span>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Olimpiada tayyorgarligi</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>{data.student?.age} yosh · {data.selected_grade}-sinf mavzulari · faqat tekshirilgan bilim asosida</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {data.olympiad_readiness.map((item) => {
-                  const known = item.average_score != null;
-                  return (
-                    <div key={item.subject} className="rounded-xl p-3" style={{ backgroundColor: known ? "#FAF8F2" : "#F1EFE9" }}>
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{isOlympiad ? "Olimpiada fan yo'llari" : "Fan yo'llari"}</p>
+            <span className="text-[10px]" style={{ color: "#8A8578" }}>{data.subjects.length} fan · ustiga bosib ichiga kiring</span>
+          </div>
+          <div className="space-y-2">
+            {data.subjects.map((item, index) => {
+              const olympiad = item.olympiad;
+              const value = isOlympiad ? olympiad?.confirmed_readiness_percent : item.verified_knowledge_percent;
+              return (
+                <button key={item.name} onClick={() => { setSubject(item.name); setTerm(1); setView("subject"); }} className="w-full rounded-2xl border bg-white p-3.5 text-left" style={{ borderColor: "#E5E1D8" }}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: isOlympiad ? "#FDF3E0" : "#EEEAE1", color: isOlympiad ? "#8A5A1C" : "#5A5648" }}>{String(index + 1).padStart(2, "0")}</span>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold truncate" style={{ color: "#3D392F" }}>{item.subject}</p>
-                        <span className="text-xs font-bold" style={{ color: known ? "#8A5A1C" : "#8A8578" }}>{known ? `${item.average_score}%` : "—"}</span>
+                        <p className="text-sm font-bold truncate" style={{ color: "#2B2B2B" }}>{item.name}</p>
+                        <span className="text-xs font-semibold" style={{ color: value == null ? "#8A8578" : "#28735A" }}>{value == null ? "Hali baholanmagan" : `${number(value)}%`}</span>
                       </div>
-                      <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>{item.label} · {item.strong_topic_count}/{item.verified_topic_count} kuchli mavzu</p>
+                      <div className="mt-2"><ScoreBar value={isOlympiad ? olympiad?.evidence_coverage_percent : item.planned_reached_percent} color={isOlympiad ? "#8A5A1C" : accent} height={6} /></div>
+                      <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
+                        {isOlympiad ? `${olympiad?.label || "Hali baholanmagan"} · dalil ${number(olympiad?.evidence_coverage_percent)}%` : `${item.topic_count} mavzu · ${item.taught_percent}% o'qituvchi tasdig'i · ${item.unknown_topic_count} noma'lum`}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {subject && (
-            <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Tanlangan fan</p>
-                  <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{subject}</h3>
-                </div>
-                <span className="text-[10px] rounded-full px-2.5 py-1" style={{ backgroundColor: "#F1EFE9", color: "#6F6859" }}>{subjectTopics.length} mavzu</span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[1, 2, 3, 4].map((q) => {
-                  const count = subjectTopics.filter((t) => Number(t.term_no) === q).length;
-                  return <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold" style={Number(term) === q ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>{q}-chorak<span className="block text-[9px] opacity-70">{count} mavzu</span></button>;
-                })}
-              </div>
-            </section>
-          )}
-
-          {routePosition && (
-            <section className="grid grid-cols-3 gap-2">
-              {[
-                ["Oldingi", routePosition.previous, "#F1EFE9", "#6F6859"],
-                ["Hozir", routePosition.current, "#EAF1F7", "#1B4B7A"],
-                ["Keyingi", routePosition.next, "#E7F4EE", "#28735A"],
-              ].map(([label, topic, soft, color]) => (
-                <div key={label} className="rounded-xl p-2.5 min-w-0" style={{ backgroundColor: soft }}>
-                  <p className="text-[9px] font-bold uppercase" style={{ color }}>{label}</p>
-                  <p className="text-[10px] font-semibold mt-1 leading-snug line-clamp-2" style={{ color: "#3D392F" }}>{topic?.topic_name || "—"}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
-          <section className="space-y-4">
-            {Object.keys(groupedWeeks).length === 0 ? (
-              <p className="text-xs text-center py-5" style={{ color: "#8A8578" }}>Bu chorakda mavzu yo'q.</p>
-            ) : Object.entries(groupedWeeks).map(([week, topics]) => (
-              <div key={week}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: "#EEEAE1", color: "#5A5648" }}>{week}</span>
-                  <p className="text-xs font-bold" style={{ color: "#3D392F" }}>{week}-hafta</p>
-                  <div className="h-px flex-1" style={{ backgroundColor: "#E5E1D8" }} />
-                </div>
-                <div className="space-y-2.5 pl-3 border-l-2" style={{ borderColor: "#E5E1D8" }}>
-                  {topics.map((topic) => <LearningTopicCard key={topic.topic_code} topic={topic} isCurrent={topic.topic_code === currentCode} />)}
-                </div>
-              </div>
-            ))}
-          </section>
-        </>
+                    <ChevronRight size={17} style={{ color: "#A7A091" }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
       )}
       {error && <ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} />}
     </div>
