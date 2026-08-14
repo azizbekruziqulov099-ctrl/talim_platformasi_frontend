@@ -1775,6 +1775,8 @@ function BilimMarkazi({
   viewer = "student",
   otaOnaUchun = false,
   analyticsCompact = false,
+  onOpenTest = null,
+  onOpenLesson = null,
 }) {
   const [ichkiTab, setIchkiTab] = useState("tahlil");
   return (
@@ -1805,6 +1807,8 @@ function BilimMarkazi({
           studentId={viewer === "student" ? null : bolaId}
           viewer={viewer}
           accent={rang}
+          onOpenTest={onOpenTest}
+          onOpenLesson={onOpenLesson}
         />
       ) : (
         <div className={analyticsCompact ? "px-5 pb-4" : ""}>
@@ -1834,6 +1838,7 @@ function TestTab({
   rang = "#1B4B7A",
   oyinProfil = null,
   onOyinProfilYangilandi,
+  initialTarget = null,
 }) {
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
@@ -1861,6 +1866,19 @@ function TestTab({
   const [oyinSessiya, setOyinSessiya] = useState(null);
   const testUrinishIdRef = useRef(null);
   const testBoshlanganAtRef = useRef(null);
+  const talimYoliNishoniRef = useRef(null);
+
+  useEffect(() => {
+    if (!initialTarget?.nonce) return;
+    const targetGrade = String(initialTarget.grade || "").trim();
+    setHolat("mavzular");
+    setFaolTuri("oddiy");
+    setTanlanganSinf(targetGrade || sinf || null);
+    setBoshqaSinflarRejimi(Boolean(targetGrade && targetGrade !== String(sinf || "")));
+    setOchiqFan(null);
+    setXato("");
+    talimYoliNishoniRef.current = null;
+  }, [initialTarget?.nonce, sinf]);
 
   useEffect(() => {
     if (foydalanuvchi?.jins) setOyinQahramonJinsi(foydalanuvchi.jins);
@@ -1908,6 +1926,37 @@ function TestTab({
   const joriySinfMalumoti = faolSinf
     ? sinflarRoyxati.find((s) => String(s.sinf) === String(faolSinf))
     : null;
+
+  useEffect(() => {
+    if (!initialTarget?.nonce || yuklanmoqda || talimYoliNishoniRef.current === initialTarget.nonce) return;
+    const targetGrade = String(initialTarget.grade || faolSinf || sinf || "");
+    const classInfo = sinflarRoyxati.find((item) => String(item.sinf) === targetGrade);
+    if (!classInfo) return;
+    let found = null;
+    for (const fanItem of classInfo.fanlar) {
+      const topic = fanItem.mavzular.find((item) => (
+        (item.topic_codes || []).includes(initialTarget.topic_code)
+        || item.nomi === initialTarget.topic_name
+      ));
+      if (topic) {
+        found = { fanItem, topic };
+        break;
+      }
+    }
+    if (!found) return;
+    setTanlanganMavzu({
+      aralash: true,
+      kodlar: found.topic.topic_codes,
+      nomi: found.topic.nomi,
+      fanNomi: found.fanItem.nom,
+      savol_soni: found.topic.savol_soni,
+      sinf: classInfo.sinf,
+      track: initialTarget.track || "standard",
+    });
+    setOchiqFan(found.fanItem.qisqa);
+    setHolat("songi");
+    talimYoliNishoniRef.current = initialTarget.nonce;
+  }, [initialTarget, yuklanmoqda, sinflarRoyxati, faolSinf, sinf]);
 
   // Mavzu bosilganda — darhol savol OLMAYMIZ, avval "nechta savol" so'raymiz.
   // MUHIM: har mavzu ostida bir nechta KICHIK mavzu (topic_code) bo'lishi
@@ -2400,6 +2449,7 @@ function TestTab({
       token,
       javoblar: ro_yxat,
       jami_savol_soni: savollar.length,
+      track: tanlanganMavzu?.track || "standard",
       attempt_id: testUrinishIdRef.current,
       duration_seconds: testBoshlanganAtRef.current
         ? Math.max(0, Math.round((Date.now() - testBoshlanganAtRef.current) / 1000))
@@ -10786,7 +10836,7 @@ function AiJavobBloklari({ javob, onQuickReply }) {
   );
 }
 
-function AiOquvchiUstozBolimi({ token }) {
+function AiOquvchiUstozBolimi({ token, initialTarget = null }) {
   const [sozlama, setSozlama] = useState(null);
   const [fan, setFan] = useState("");
   const [topicCode, setTopicCode] = useState("");
@@ -10800,19 +10850,29 @@ function AiOquvchiUstozBolimi({ token }) {
   const oxiriRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/ai/ustoz/fan_mavzular?token=${encodeURIComponent(token)}`)
+    const params = new URLSearchParams({ token });
+    if (initialTarget?.grade) params.set("grade", String(initialTarget.grade));
+    fetch(`${API_BASE}/api/ai/ustoz/fan_mavzular?${params}`)
       .then(async (r) => {
         const d = await r.json();
         if (!r.ok) throw new Error(d.detail || "Fanlar yuklanmadi");
         setSozlama(d);
         if (d.fanlar?.length > 0) {
-          setFan(d.fanlar[0].fan);
-          setTopicCode(d.fanlar[0].mavzular?.[0]?.topic_code || "");
+          const preferredFan = d.fanlar.find((item) => (
+            String(item.fan).toLocaleUpperCase("uz") === String(initialTarget?.subject || "").toLocaleUpperCase("uz")
+          )) || d.fanlar[0];
+          const preferredTopic = preferredFan.mavzular?.find((item) => (
+            item.topic_code === initialTarget?.topic_code || item.mavzu === initialTarget?.topic_name
+          )) || preferredFan.mavzular?.[0];
+          setFan(preferredFan.fan);
+          setTopicCode(preferredTopic?.topic_code || "");
+          setSuhbatId(null);
+          setXabarlar([]);
         }
       })
       .catch((e) => setXato(e.message))
       .finally(() => setYuklanmoqda(false));
-  }, [token]);
+  }, [token, initialTarget?.nonce, initialTarget?.grade]);
 
   useEffect(() => {
     oxiriRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -10853,7 +10913,8 @@ function AiOquvchiUstozBolimi({ token }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, fan, topic_code: topicCode, rejim, savol: yuboriladigan,
+          token, fan, topic_code: topicCode, grade: sozlama?.sinf || initialTarget?.grade || undefined,
+          rejim, savol: yuboriladigan,
           suhbat_id: suhbatId,
         }),
       });
@@ -15511,6 +15572,8 @@ function Kabinet({ token }) {
   // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi, avval test
   // "To'xtatish" yoki "Yakunlash" bilan yakunlanishi kerak.
   const [testDavomida, setTestDavomida] = useState(false);
+  const [talimYoliTestNishoni, setTalimYoliTestNishoni] = useState(null);
+  const [talimYoliDarsNishoni, setTalimYoliDarsNishoni] = useState(null);
 
   useEffect(() => {
     async function yukla() {
@@ -15753,9 +15816,19 @@ function Kabinet({ token }) {
           data={bilimData}
           bolaId={foydalanuvchi?.user_id}
           rang={joriyRang}
+          onOpenTest={(topic) => {
+            setTalimYoliTestNishoni({ ...topic, nonce: Date.now() });
+            setTab("test");
+          }}
+          onOpenLesson={(topic) => {
+            setTalimYoliDarsNishoni({ ...topic, nonce: Date.now() });
+            setTab("ai_ustoz");
+          }}
         />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && <AiOquvchiUstozBolimi token={token} />}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
+        <AiOquvchiUstozBolimi token={token} initialTarget={talimYoliDarsNishoni} />
+      )}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab
           token={token}
@@ -15765,6 +15838,7 @@ function Kabinet({ token }) {
           oyinProfil={oyinProfil}
           onOyinProfilYangilandi={setOyinProfil}
           onTestFaollik={setTestDavomida}
+          initialTarget={talimYoliTestNishoni}
         />
       )}
       {tab === "xabar" && <XabarlarTab token={token} />}
