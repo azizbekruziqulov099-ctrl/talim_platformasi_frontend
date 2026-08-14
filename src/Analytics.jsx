@@ -224,6 +224,346 @@ function LegacyFallback({ data }) {
   );
 }
 
+const PATH_STATE_META = {
+  upcoming: { label: "Oldinda", color: "#6F6859", soft: "#F1EFE9", icon: "○" },
+  current: { label: "Shu hafta", color: "#1B4B7A", soft: "#EAF1F7", icon: "●" },
+  expected: { label: "Reja vaqti o'tgan", color: "#8A5A1C", soft: "#FDF3E0", icon: "◷" },
+  taught: { label: "O'tildi", color: "#28735A", soft: "#E7F4EE", icon: "✓" },
+  delayed: { label: "Kechiktirilgan", color: "#A32D2D", soft: "#FCEBEB", icon: "!" },
+  skipped: { label: "Rejadan chiqarilgan", color: "#6F6859", soft: "#F1EFE9", icon: "–" },
+};
+
+const KNOWLEDGE_META = {
+  unknown: { color: "#6F6859", soft: "#F1EFE9" },
+  beginner: { color: "#A32D2D", soft: "#FCEBEB" },
+  developing: { color: "#8A5A1C", soft: "#FDF3E0" },
+  good: { color: "#1B4B7A", soft: "#EAF1F7" },
+  strong: { color: "#28735A", soft: "#E7F4EE" },
+};
+
+function shortDate(value) {
+  if (!value) return "Sana belgilanmagan";
+  const d = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return value;
+  return new Intl.DateTimeFormat("uz-UZ", { day: "numeric", month: "short" }).format(d);
+}
+
+function PathMetric({ icon: Icon, label, value, note, color, soft }) {
+  return (
+    <div className="rounded-2xl border bg-white p-3.5" style={{ borderColor: "#E5E1D8" }}>
+      <span className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ color, backgroundColor: soft }}>
+        <Icon size={16} />
+      </span>
+      <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8578" }}>{label}</p>
+      <p className="text-2xl font-bold mt-0.5" style={{ color: "#2B2B2B" }}>{value}</p>
+      <p className="text-[10px] mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{note}</p>
+    </div>
+  );
+}
+
+function LearningTopicCard({ topic, isCurrent }) {
+  const teaching = PATH_STATE_META[topic.teaching_state?.key] || PATH_STATE_META.upcoming;
+  const knowledge = KNOWLEDGE_META[topic.knowledge_status] || KNOWLEDGE_META.unknown;
+  return (
+    <article className="relative rounded-2xl border bg-white p-4" style={{ borderColor: isCurrent ? "#1B4B7A" : "#E5E1D8", borderWidth: isCurrent ? 2 : 1 }}>
+      {isCurrent && (
+        <span className="absolute -top-2.5 left-4 px-2.5 py-1 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>
+          Siz hozir shu yerdasiz
+        </span>
+      )}
+      <div className={cx("flex items-start gap-3", isCurrent && "pt-1")}>
+        <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold" style={{ color: teaching.color, backgroundColor: teaching.soft }}>
+          {teaching.icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold leading-snug" style={{ color: "#2B2B2B" }}>{topic.topic_name}</p>
+          <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
+            {topic.term_no}-chorak · {topic.week_no}-hafta · {shortDate(topic.planned_start)}–{shortDate(topic.planned_end)}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <div className="rounded-xl p-2.5" style={{ backgroundColor: teaching.soft }}>
+          <p className="text-[9px] uppercase font-semibold" style={{ color: teaching.color }}>Dars holati</p>
+          <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: teaching.color }}>{topic.teaching_state?.label || teaching.label}</p>
+        </div>
+        <div className="rounded-xl p-2.5" style={{ backgroundColor: knowledge.soft }}>
+          <p className="text-[9px] uppercase font-semibold" style={{ color: knowledge.color }}>Bilim dalili</p>
+          <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: knowledge.color }}>
+            {topic.knowledge_score == null ? "Bilim darajasi noma'lum" : `${topic.knowledge_label} · ${Math.round(number(topic.knowledge_score))}%`}
+          </p>
+        </div>
+      </div>
+      {topic.knowledge_score == null ? (
+        <div className="mt-2.5 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed" style={{ backgroundColor: "#FAF8F2", color: "#6F6859" }}>
+          Dars sanasi o'tgani bilim isboti emas. {topic.can_take_test ? "Test bo'limida shu mavzu bo'yicha bilimingizni tekshirishingiz mumkin." : "Bu mavzu uchun test yoki o'qituvchi bahosi hali yo'q."}
+        </div>
+      ) : topic.memory ? (
+        <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "#FAF8F2" }}>
+          <span className="text-[11px]" style={{ color: "#5A5648" }}>{topic.memory.memory_status_label}</span>
+          <span className="text-[10px] font-semibold" style={{ color: "#8A8578" }}>{topic.memory.forgetting_probability}% xavf</span>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+export function StudentLearningPathDashboard({
+  token,
+  studentId = null,
+  viewer = "student",
+  accent = "#1B4B7A",
+}) {
+  const [contextId, setContextId] = useState(null);
+  const [groupId, setGroupId] = useState(null);
+  const [grade, setGrade] = useState("");
+  const [subject, setSubject] = useState("");
+  const [term, setTerm] = useState(1);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const path = viewer === "parent" ? "/api/talim-yoli/ota/farzand" : "/api/talim-yoli/meniki";
+    const params = new URLSearchParams({ token });
+    if (viewer === "parent") params.set("child_id", String(studentId));
+    if (contextId != null) params.set("context_id", String(contextId));
+    if (groupId != null) params.set("group_id", String(groupId));
+    if (grade) params.set("grade", grade);
+    setLoading(true);
+    setError("");
+    fetch(`${API_BASE}${path}?${params}`, { signal: controller.signal })
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Ta'lim yo'li yuklanmadi");
+        return body;
+      })
+      .then((body) => {
+        setData(body);
+        setContextId(body.selected_context?.id ?? null);
+        setGroupId(body.selected_group?.id ?? null);
+        setGrade(body.selected_grade || "");
+        setSubject((old) => body.subjects?.some((x) => x.name === old) ? old : (body.subjects?.[0]?.name || ""));
+      })
+      .catch((e) => {
+        if (e.name !== "AbortError") setError(e.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [token, studentId, viewer, contextId, groupId, grade, reloadKey]);
+
+  const selectContext = (context) => {
+    setContextId(context.id);
+    setGroupId(context.groups?.length === 1 ? context.groups[0].id : null);
+    setSubject("");
+    setTerm(1);
+  };
+
+  const subjectTopics = (data?.topics || []).filter((topic) => topic.subject === subject);
+  const termTopics = subjectTopics.filter((topic) => Number(topic.term_no) === Number(term));
+  const groupedWeeks = termTopics.reduce((acc, topic) => {
+    const key = Number(topic.week_no) || 1;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(topic);
+    return acc;
+  }, {});
+  const currentCode = data?.subjects?.find((x) => x.name === subject)?.current_topic_code;
+  const currentIndex = Math.max(0, subjectTopics.findIndex((topic) => topic.topic_code === currentCode));
+  const routePosition = subjectTopics.length ? {
+    previous: currentIndex > 0 ? subjectTopics[currentIndex - 1] : null,
+    current: subjectTopics[currentIndex] || null,
+    next: currentIndex + 1 < subjectTopics.length ? subjectTopics[currentIndex + 1] : null,
+  } : null;
+
+  if (loading && !data) return <div className="px-5 pb-5"><LoadingCard text="Ta'lim yo'li qurilmoqda..." /></div>;
+  if (error && !data) return <div className="px-5 pb-5"><ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} /></div>;
+
+  const summary = data?.summary || {};
+  return (
+    <div className="px-5 pb-6 space-y-4">
+      <section className="rounded-3xl p-5 overflow-hidden relative" style={{ background: `linear-gradient(135deg, ${accent}, #173A5B)`, color: "#fff" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#C9D8E4" }}>Ta'lim GPS</p>
+        <h2 className="text-2xl font-bold mt-1">Qayerdaman va keyin nima?</h2>
+        <p className="text-xs mt-2 max-w-xl leading-relaxed" style={{ color: "#D7E2EA" }}>
+          Kalendar, o'qituvchi tasdig'i va bilim natijasi alohida hisoblanadi. Sana o'tishi mavzu o'rganildi degani emas.
+        </p>
+        <div className="mt-4 flex items-center gap-2 text-[10px]">
+          <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{data?.selected_grade}-sinf</span>
+          <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{data?.academic_year}</span>
+          {viewer === "parent" && <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>Faqat ko'rish</span>}
+        </div>
+      </section>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {(data?.contexts || []).map((context) => {
+          const meta = contextMeta(context.type);
+          const active = Number(data?.selected_context?.id) === Number(context.id);
+          return (
+            <button key={context.id} onClick={() => selectContext(context)}
+              className="shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold"
+              style={active ? { backgroundColor: meta.color, borderColor: meta.color, color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>
+              {meta.emoji} {context.type === "platform" ? "Maktab dasturi" : context.name}
+            </button>
+          );
+        })}
+      </div>
+
+      {(data?.selected_context?.groups || []).length > 1 && (
+        <div className="flex gap-2 overflow-x-auto">
+          {data.selected_context.groups.map((group) => (
+            <button key={group.id} onClick={() => setGroupId(group.id)} className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold"
+              style={Number(groupId) === Number(group.id) ? { backgroundColor: "#2B2B2B", color: "#fff" } : { backgroundColor: "#EEEAE1", color: "#5A5648" }}>
+              {group.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Ko'rilayotgan bosqich</p>
+          <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.selected_grade}-sinf · {data?.calendar_source?.label}</p>
+        </div>
+        <select value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(""); setTerm(1); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold" style={{ borderColor: "#D8D3C7", color: "#1B4B7A" }}>
+          {(data?.grade_options || []).map((g) => <option key={g} value={g}>{g}-sinf</option>)}
+        </select>
+      </div>
+
+      {data?.calendar_source?.is_estimate && (
+        <div className="rounded-xl border px-3 py-2.5 text-[11px] leading-relaxed" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF8E7", color: "#6F5320" }}>
+          Rasmiy maktab kalendari ulanmagan. Hozir mavzular SamTM taxminiy o'quv haftalariga joylandi; o'qituvchi yoki admin rejasi kiritilsa, shu reja ustun bo'ladi.
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2.5">
+        <PathMetric icon={CalendarDays} label="Reja yetgan" value={`${number(summary.planned_reached_percent)}%`} note="Sana bo'yicha" color="#8A5A1C" soft="#FDF3E0" />
+        <PathMetric icon={CheckCircle2} label="Amalda o'tilgan" value={`${number(summary.taught_percent)}%`} note="O'qituvchi tasdig'i" color="#28735A" soft="#E7F4EE" />
+        <PathMetric icon={Brain} label="Tasdiqlangan bilim" value={summary.verified_knowledge_percent == null ? "—" : `${number(summary.verified_knowledge_percent)}%`} note={`${number(summary.verified_topic_count)}/${number(summary.topic_count)} mavzu`} color="#5B63A9" soft="#EFEEFB" />
+      </div>
+
+      {(data?.subjects || []).length === 0 ? (
+        <div className="rounded-2xl bg-white border p-7 text-center" style={{ borderColor: "#E5E1D8" }}>
+          <BookOpen size={28} className="mx-auto mb-3" style={{ color: "#8A8578" }} />
+          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>Bu muhit uchun mavzu rejasi hali yo'q</p>
+          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Universitet, markaz yoki to'garak o'qituvchisi mavzularni guruh rejasiga kiritadi.</p>
+        </div>
+      ) : (
+        <>
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Fan yo'llari</p>
+              <span className="text-[10px]" style={{ color: "#8A8578" }}>{data.subjects.length} fan</span>
+            </div>
+            <div className="space-y-2">
+              {data.subjects.map((item, index) => {
+                const active = item.name === subject;
+                return (
+                  <button key={item.name} onClick={() => { setSubject(item.name); setTerm(1); }} className="w-full rounded-2xl border bg-white p-3.5 text-left"
+                    style={{ borderColor: active ? accent : "#E5E1D8", borderWidth: active ? 2 : 1 }}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: active ? accent : "#EEEAE1", color: active ? "#fff" : "#5A5648" }}>{String(index + 1).padStart(2, "0")}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold truncate" style={{ color: "#2B2B2B" }}>{item.name}</p>
+                          <span className="text-xs font-semibold" style={{ color: item.verified_knowledge_percent == null ? "#8A8578" : "#28735A" }}>{item.verified_knowledge_percent == null ? "Bilim noma'lum" : `${item.verified_knowledge_percent}%`}</span>
+                        </div>
+                        <div className="mt-2"><ScoreBar value={item.planned_reached_percent} color={active ? accent : "#8A8578"} height={6} /></div>
+                        <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>{item.topic_count} mavzu · {item.taught_percent}% o'qituvchi tasdig'i · {item.unknown_topic_count} noma'lum</p>
+                      </div>
+                      <ChevronRight size={17} style={{ color: "#A7A091" }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {(data?.olympiad_readiness || []).length > 0 && (
+            <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-start gap-3 mb-3">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><Target size={17} /></span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Olimpiada tayyorgarligi</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>{data.student?.age} yosh · {data.selected_grade}-sinf mavzulari · faqat tekshirilgan bilim asosida</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {data.olympiad_readiness.map((item) => {
+                  const known = item.average_score != null;
+                  return (
+                    <div key={item.subject} className="rounded-xl p-3" style={{ backgroundColor: known ? "#FAF8F2" : "#F1EFE9" }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-semibold truncate" style={{ color: "#3D392F" }}>{item.subject}</p>
+                        <span className="text-xs font-bold" style={{ color: known ? "#8A5A1C" : "#8A8578" }}>{known ? `${item.average_score}%` : "—"}</span>
+                      </div>
+                      <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>{item.label} · {item.strong_topic_count}/{item.verified_topic_count} kuchli mavzu</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {subject && (
+            <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Tanlangan fan</p>
+                  <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{subject}</h3>
+                </div>
+                <span className="text-[10px] rounded-full px-2.5 py-1" style={{ backgroundColor: "#F1EFE9", color: "#6F6859" }}>{subjectTopics.length} mavzu</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[1, 2, 3, 4].map((q) => {
+                  const count = subjectTopics.filter((t) => Number(t.term_no) === q).length;
+                  return <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold" style={Number(term) === q ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>{q}-chorak<span className="block text-[9px] opacity-70">{count} mavzu</span></button>;
+                })}
+              </div>
+            </section>
+          )}
+
+          {routePosition && (
+            <section className="grid grid-cols-3 gap-2">
+              {[
+                ["Oldingi", routePosition.previous, "#F1EFE9", "#6F6859"],
+                ["Hozir", routePosition.current, "#EAF1F7", "#1B4B7A"],
+                ["Keyingi", routePosition.next, "#E7F4EE", "#28735A"],
+              ].map(([label, topic, soft, color]) => (
+                <div key={label} className="rounded-xl p-2.5 min-w-0" style={{ backgroundColor: soft }}>
+                  <p className="text-[9px] font-bold uppercase" style={{ color }}>{label}</p>
+                  <p className="text-[10px] font-semibold mt-1 leading-snug line-clamp-2" style={{ color: "#3D392F" }}>{topic?.topic_name || "—"}</p>
+                </div>
+              ))}
+            </section>
+          )}
+
+          <section className="space-y-4">
+            {Object.keys(groupedWeeks).length === 0 ? (
+              <p className="text-xs text-center py-5" style={{ color: "#8A8578" }}>Bu chorakda mavzu yo'q.</p>
+            ) : Object.entries(groupedWeeks).map(([week, topics]) => (
+              <div key={week}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: "#EEEAE1", color: "#5A5648" }}>{week}</span>
+                  <p className="text-xs font-bold" style={{ color: "#3D392F" }}>{week}-hafta</p>
+                  <div className="h-px flex-1" style={{ backgroundColor: "#E5E1D8" }} />
+                </div>
+                <div className="space-y-2.5 pl-3 border-l-2" style={{ borderColor: "#E5E1D8" }}>
+                  {topics.map((topic) => <LearningTopicCard key={topic.topic_code} topic={topic} isCurrent={topic.topic_code === currentCode} />)}
+                </div>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
+      {error && <ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} />}
+    </div>
+  );
+}
+
 export function StudentAnalyticsDashboard({
   token,
   studentId = null,
@@ -747,6 +1087,141 @@ export function AdminStatisticsTab({ token }) {
   );
 }
 
+function TeacherLearningPlanManager({ token, groupId }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(null);
+  const [term, setTerm] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState("");
+  const [message, setMessage] = useState("");
+
+  const load = () => {
+    if (!groupId) return;
+    setLoading(true);
+    setMessage("");
+    fetch(`${API_BASE}/api/talim-yoli/oqituvchi/reja?token=${encodeURIComponent(token)}&group_id=${groupId}`)
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.detail || "Reja yuklanmadi");
+        return body;
+      })
+      .then(setData)
+      .catch((e) => setMessage(e.message))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    setData(null);
+    setOpen(false);
+    setTerm(1);
+    setMessage("");
+  }, [groupId]);
+
+  useEffect(() => {
+    if (open && !data && !loading) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, groupId]);
+
+  const updateTopic = (code, field, value) => {
+    setData((old) => ({
+      ...old,
+      topics: (old?.topics || []).map((topic) => topic.topic_code === code ? { ...topic, [field]: value } : topic),
+    }));
+  };
+
+  const saveTopic = async (topic, status = topic.teaching_status) => {
+    setSaving(topic.topic_code);
+    setMessage("");
+    try {
+      const response = await fetch(`${API_BASE}/api/talim-yoli/oqituvchi/reja`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          group_id: groupId,
+          academic_year: data.academic_year,
+          entries: [{
+            topic_code: topic.topic_code,
+            subject: topic.subject,
+            planned_start: topic.planned_start || null,
+            planned_end: topic.planned_end || null,
+            term_no: Number(topic.term_no),
+            week_no: Number(topic.week_no),
+            teaching_status: status,
+            note: topic.note || null,
+          }],
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.detail || "Reja saqlanmadi");
+      updateTopic(topic.topic_code, "teaching_status", status);
+      setMessage(status === "taught" ? "Mavzu amalda o'tildi deb tasdiqlandi." : "Reja yangilandi.");
+    } catch (e) {
+      setMessage(e.message);
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const topics = (data?.topics || []).filter((topic) => Number(topic.term_no) === Number(term));
+  const taught = (data?.topics || []).filter((topic) => topic.teaching_status === "taught").length;
+
+  return (
+    <section className="rounded-2xl bg-white border overflow-hidden" style={{ borderColor: "#E5E1D8" }}>
+      <button onClick={() => setOpen((value) => !value)} className="w-full p-4 flex items-center gap-3 text-left">
+        <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}><CalendarDays size={18} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="text-sm font-bold block" style={{ color: "#2B2B2B" }}>Mavzu kalendari va “o'tildi” tasdig'i</span>
+          <span className="text-[10px] block mt-0.5" style={{ color: "#8A8578" }}>{data ? `${taught}/${data.topics.length} mavzu amalda o'tilgan` : "Reja sanasi bilim natijasidan alohida yuritiladi"}</span>
+        </span>
+        <ChevronRight size={17} style={{ color: "#A7A091", transform: open ? "rotate(90deg)" : "none" }} />
+      </button>
+      {open && (
+        <div className="border-t p-4" style={{ borderColor: "#EEEAE1" }}>
+          {loading ? <LoadingCard text="Guruh rejasi yuklanmoqda..." /> : !data ? (
+            <ErrorCard message={message || "Reja topilmadi"} onRetry={load} />
+          ) : (
+            <>
+              <div className="rounded-xl px-3 py-2.5 mb-3 text-[11px] leading-relaxed" style={{ backgroundColor: "#FFF8E7", color: "#6F5320" }}>
+                “O'tildi” faqat darsni tasdiqlaydi. O'quvchining bilimi esa shu mavzudagi test yoki mavzuga qo'yilgan bahodan keyin aniqlanadi.
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 mb-3">
+                {[1, 2, 3, 4].map((q) => <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold" style={Number(term) === q ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>{q}-chorak</button>)}
+              </div>
+              <div className="space-y-2 max-h-[34rem] overflow-y-auto pr-1">
+                {topics.map((topic) => {
+                  const meta = PATH_STATE_META[topic.teaching_status === "taught" ? "taught" : topic.teaching_status] || PATH_STATE_META.upcoming;
+                  return (
+                    <div key={topic.topic_code} className="rounded-xl border p-3" style={{ borderColor: "#E5E1D8" }}>
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ color: meta.color, backgroundColor: meta.soft }}>{meta.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold" style={{ color: "#3D392F" }}>{topic.topic_name}</p>
+                          <p className="text-[9px] mt-0.5" style={{ color: "#8A8578" }}>{topic.week_no}-hafta · {topic.subject}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2.5">
+                        <label className="text-[9px]" style={{ color: "#8A8578" }}>Boshlanish<input type="date" value={topic.planned_start || ""} onChange={(e) => updateTopic(topic.topic_code, "planned_start", e.target.value)} className="mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px]" style={{ borderColor: "#D8D3C7", color: "#3D392F" }} /></label>
+                        <label className="text-[9px]" style={{ color: "#8A8578" }}>Tugash<input type="date" value={topic.planned_end || ""} onChange={(e) => updateTopic(topic.topic_code, "planned_end", e.target.value)} className="mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px]" style={{ borderColor: "#D8D3C7", color: "#3D392F" }} /></label>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "planned")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#F1EFE9", color: "#5A5648" }}>Rejada</button>
+                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "delayed")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>Kechikdi</button>
+                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "taught")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#E7F4EE", color: "#28735A" }}>{saving === topic.topic_code ? "..." : "✓ O'tildi"}</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {message && <p className="text-[10px] mt-3" style={{ color: message.includes("saqlan") || message.includes("o'tildi") ? "#28735A" : "#A32D2D" }}>{message}</p>}
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }) {
   const [contexts, setContexts] = useState([]);
   const [contextId, setContextId] = useState(null);
@@ -902,6 +1377,8 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
             <MetricCard icon={BookOpen} label="Faoliyatlar" value={number(data.summary.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
             <MetricCard icon={AlertTriangle} label="Yordam kerak" value={number(data.summary.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
           </div>
+
+          <TeacherLearningPlanManager token={token} groupId={groupId} />
 
           <section className="teacher-trend-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Guruh rivoji</p>
