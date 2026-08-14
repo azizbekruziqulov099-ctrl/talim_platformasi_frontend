@@ -248,6 +248,70 @@ function shortDate(value) {
   return new Intl.DateTimeFormat("uz-UZ", { day: "numeric", month: "short" }).format(d);
 }
 
+const UZ_MONTHS = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+  "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
+];
+
+function monthLabel(key) {
+  const [year, month] = String(key || "").split("-").map(Number);
+  return year && month ? `${UZ_MONTHS[month - 1]} ${year}` : key;
+}
+
+function localDateKey(value) {
+  const d = value instanceof Date ? value : new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function LearningMonthCalendar({ monthKey, topics, currentCode }) {
+  const [year, month] = String(monthKey || "").split("-").map(Number);
+  if (!year || !month) return null;
+  const first = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0).getDate();
+  const leading = (first.getDay() + 6) % 7;
+  const cells = Array.from({ length: leading + lastDay }, (_, index) => (
+    index < leading ? null : index - leading + 1
+  ));
+  const today = localDateKey(new Date());
+  return (
+    <div className="rounded-2xl border bg-white p-3.5" style={{ borderColor: "#E5E1D8" }}>
+      <div className="grid grid-cols-7 gap-1 mb-1.5">
+        {["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"].map((day) => (
+          <span key={day} className="py-1 text-center text-[9px] font-bold" style={{ color: "#8A8578" }}>{day}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, index) => {
+          if (!day) return <span key={`empty-${index}`} className="aspect-square" />;
+          const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const dayTopics = topics.filter((topic) => (
+            topic.planned_start && topic.planned_end
+            && topic.planned_start <= key && topic.planned_end >= key
+          ));
+          const isCurrent = dayTopics.some((topic) => topic.topic_code === currentCode);
+          const hasVerified = dayTopics.some((topic) => topic.knowledge_score != null);
+          const hasTaught = dayTopics.some((topic) => topic.teaching_status === "taught");
+          const color = hasVerified ? "#5B63A9" : hasTaught ? "#28735A" : isCurrent ? "#1B4B7A" : "#C89B3C";
+          return (
+            <div key={key} title={dayTopics.map((topic) => topic.topic_name).join(" · ")}
+              className="aspect-square rounded-lg p-1 flex flex-col items-center justify-between"
+              style={{ backgroundColor: isCurrent ? "#EAF1F7" : key === today ? "#FFF8E7" : dayTopics.length ? "#FAF8F2" : "transparent", border: key === today ? "1px solid #C89B3C" : "1px solid transparent" }}>
+              <span className="text-[9px] font-semibold" style={{ color: isCurrent ? "#1B4B7A" : "#5A5648" }}>{day}</span>
+              {dayTopics.length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap gap-3 mt-3 text-[9px]" style={{ color: "#6F6859" }}>
+        <span>● Reja</span><span style={{ color: "#1B4B7A" }}>● Hozir</span><span style={{ color: "#28735A" }}>● O'tildi</span><span style={{ color: "#5B63A9" }}>● Bilim baholangan</span>
+      </div>
+    </div>
+  );
+}
+
 function PathMetric({ icon: Icon, label, value, note, color, soft }) {
   return (
     <div className="rounded-2xl border bg-white p-3.5" style={{ borderColor: "#E5E1D8" }}>
@@ -261,7 +325,7 @@ function PathMetric({ icon: Icon, label, value, note, color, soft }) {
   );
 }
 
-function LearningTopicCard({ topic, isCurrent }) {
+function LearningTopicCard({ topic, isCurrent, viewer, pathType, grade, onOpenTest, onOpenLesson }) {
   const teaching = PATH_STATE_META[topic.teaching_state?.key] || PATH_STATE_META.upcoming;
   const knowledge = KNOWLEDGE_META[topic.knowledge_status] || KNOWLEDGE_META.unknown;
   return (
@@ -278,7 +342,10 @@ function LearningTopicCard({ topic, isCurrent }) {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-snug" style={{ color: "#2B2B2B" }}>{topic.topic_name}</p>
           <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
-            {topic.term_no}-chorak · {topic.week_no}-hafta · {shortDate(topic.planned_start)}–{shortDate(topic.planned_end)}
+            O'quv yilining {topic.academic_week_no || topic.week_no}-haftasi · {topic.term_no}-chorakning {topic.week_no}-haftasi
+          </p>
+          <p className="text-[10px] mt-0.5" style={{ color: topic.schedule_is_estimate ? "#8A5A1C" : "#28735A" }}>
+            {shortDate(topic.planned_start)}–{shortDate(topic.planned_end)} · {topic.schedule_is_estimate ? "taxminiy sana" : "o'qituvchi/muassasa rejasi"}
           </p>
         </div>
       </div>
@@ -304,19 +371,36 @@ function LearningTopicCard({ topic, isCurrent }) {
           <span className="text-[10px] font-semibold" style={{ color: "#8A8578" }}>{topic.memory.forgetting_probability}% xavf</span>
         </div>
       ) : null}
+      {viewer === "student" && (topic.can_take_test || topic.has_lesson_content) && (
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {topic.has_lesson_content && (
+            <button type="button" onClick={() => onOpenLesson?.({ ...topic, grade, subject: topic.subject })}
+              className={cx("rounded-xl px-3 py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5", !topic.can_take_test && "col-span-2")}
+              style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+              <BookOpen size={14} /> Mavzuni o'rganish
+            </button>
+          )}
+          {topic.can_take_test && (
+            <button type="button" onClick={() => onOpenTest?.({ ...topic, grade, subject: topic.subject, track: pathType === "olympiad" ? "olympiad" : "standard" })}
+              className={cx("rounded-xl px-3 py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5", !topic.has_lesson_content && "col-span-2")}
+              style={{ backgroundColor: pathType === "olympiad" ? "#FFF3D6" : "#E7F4EE", color: pathType === "olympiad" ? "#8A5A1C" : "#28735A" }}>
+              <Target size={14} /> {pathType === "olympiad" ? "Olimpiada testi" : "Test ishlash"}
+            </button>
+          )}
+        </div>
+      )}
     </article>
   );
 }
 
-function LearningSubjectPathPage({ data, subject, term, setTerm, accent, onBack }) {
+function LearningSubjectPathPage({
+  data, subject, term, setTerm, accent, onBack, viewer,
+  onOpenTest, onOpenLesson,
+}) {
+  const [calendarMode, setCalendarMode] = useState("month");
+  const [selectedMonth, setSelectedMonth] = useState("");
   const subjectTopics = (data?.topics || []).filter((topic) => topic.subject === subject);
   const termTopics = subjectTopics.filter((topic) => Number(topic.term_no) === Number(term));
-  const groupedWeeks = termTopics.reduce((acc, topic) => {
-    const key = Number(topic.week_no) || 1;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(topic);
-    return acc;
-  }, {});
   const subjectSummary = data?.subjects?.find((item) => item.name === subject);
   const currentCode = subjectSummary?.current_topic_code;
   const foundIndex = subjectTopics.findIndex((topic) => topic.topic_code === currentCode);
@@ -328,6 +412,32 @@ function LearningSubjectPathPage({ data, subject, term, setTerm, accent, onBack 
   } : null;
   const olympiad = subjectSummary?.olympiad;
   const isOlympiad = data?.path_type === "olympiad";
+  const subjectMonthKeys = [...new Set(subjectTopics.map((topic) => topic.planned_start?.slice(0, 7)).filter(Boolean))].sort();
+  const calendarMonths = data?.calendar?.months || subjectMonthKeys.map((key) => ({ key }));
+  const calendarMonthKeys = calendarMonths.map((month) => month.key);
+  const currentMonth = subjectTopics.find((topic) => topic.topic_code === currentCode)?.planned_start?.slice(0, 7);
+
+  useEffect(() => {
+    const fallback = currentMonth || calendarMonths[0]?.key || subjectMonthKeys[0] || "";
+    setSelectedMonth((old) => calendarMonthKeys.includes(old) ? old : fallback);
+  }, [subject, data?.academic_year, currentMonth]);
+
+  const topicFallsInMonth = (topic, key) => {
+    const [year, month] = String(key || "").split("-").map(Number);
+    if (!year || !month || !topic.planned_start || !topic.planned_end) return false;
+    const monthStart = `${key}-01`;
+    const monthEnd = localDateKey(new Date(year, month, 0));
+    return topic.planned_start <= monthEnd && topic.planned_end >= monthStart;
+  };
+  const visibleTopics = calendarMode === "month"
+    ? subjectTopics.filter((topic) => topicFallsInMonth(topic, selectedMonth))
+    : termTopics;
+  const groupedWeeks = visibleTopics.reduce((acc, topic) => {
+    const key = `${topic.academic_week_no || topic.week_no}-${topic.planned_start || ""}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(topic);
+    return acc;
+  }, {});
 
   return (
     <div className="px-5 pb-6 space-y-4">
@@ -386,23 +496,50 @@ function LearningSubjectPathPage({ data, subject, term, setTerm, accent, onBack 
       <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Yillik yo'l</p>
-            <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>Chorak va haftalar</h3>
+            <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>O'quv kalendari</p>
+            <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{shortDate(data?.calendar?.start)}–{shortDate(data?.calendar?.end)}</h3>
+            <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
+              {number(data?.calendar?.teaching_week_count)} o'qish haftasi · Dushanba–Shanba · {data?.calendar_source?.is_estimate ? "taxminiy reja" : "muassasa rejasi"}
+            </p>
           </div>
           <span className="text-[10px] rounded-full px-2.5 py-1" style={{ backgroundColor: "#F1EFE9", color: "#6F6859" }}>{subjectTopics.length} mavzu</span>
         </div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {[1, 2, 3, 4].map((q) => {
-            const count = subjectTopics.filter((topic) => Number(topic.term_no) === q).length;
-            return (
-              <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold"
-                style={Number(term) === q ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>
-                {q}-chorak<span className="block text-[9px] opacity-70">{count} mavzu</span>
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-1 rounded-xl p-1 mb-3" style={{ backgroundColor: "#EEEAE1" }}>
+          {[["month", "Oylar bo'yicha"], ["week", "Haftalar bo'yicha"]].map(([key, label]) => (
+            <button key={key} onClick={() => setCalendarMode(key)} className="rounded-lg py-2 text-xs font-semibold"
+              style={calendarMode === key ? { backgroundColor: "#fff", color: accent, boxShadow: "0 1px 4px rgba(0,0,0,.08)" } : { color: "#6F6859" }}>
+              {label}
+            </button>
+          ))}
         </div>
+        {calendarMode === "month" ? (
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {calendarMonths.map((month) => (
+              <button key={month.key} onClick={() => setSelectedMonth(month.key)}
+                className="shrink-0 rounded-xl px-3 py-2 text-[10px] font-semibold"
+                style={selectedMonth === month.key ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>
+                {monthLabel(month.key)}<span className="block text-[9px] opacity-75">{subjectTopics.filter((topic) => topicFallsInMonth(topic, month.key)).length} mavzu</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-1.5">
+            {[1, 2, 3, 4].map((q) => {
+              const count = subjectTopics.filter((topic) => Number(topic.term_no) === q).length;
+              return (
+                <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold"
+                  style={Number(term) === q ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>
+                  {q}-chorak<span className="block text-[9px] opacity-70">{count} mavzu</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </section>
+
+      {calendarMode === "month" && (
+        <LearningMonthCalendar monthKey={selectedMonth} topics={subjectTopics} currentCode={currentCode} />
+      )}
 
       {routePosition && (
         <section className="grid grid-cols-3 gap-2">
@@ -422,16 +559,21 @@ function LearningSubjectPathPage({ data, subject, term, setTerm, accent, onBack 
       <section className="space-y-4">
         {Object.keys(groupedWeeks).length === 0 ? (
           <p className="text-xs text-center py-5" style={{ color: "#8A8578" }}>Bu chorakda mavzu yo'q.</p>
-        ) : Object.entries(groupedWeeks).map(([week, topics]) => (
-          <div key={week}>
+        ) : Object.entries(groupedWeeks).map(([weekKey, topics]) => (
+          <div key={weekKey}>
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: "#EEEAE1", color: "#5A5648" }}>{week}</span>
-              <p className="text-xs font-bold" style={{ color: "#3D392F" }}>{week}-hafta</p>
+              <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: "#EEEAE1", color: "#5A5648" }}>{topics[0]?.academic_week_no || topics[0]?.week_no}</span>
+              <p className="text-xs font-bold" style={{ color: "#3D392F" }}>O'quv yilining {topics[0]?.academic_week_no || topics[0]?.week_no}-haftasi</p>
               <span className="text-[10px]" style={{ color: "#8A8578" }}>{shortDate(topics[0]?.planned_start)}–{shortDate(topics[0]?.planned_end)}</span>
               <div className="h-px flex-1" style={{ backgroundColor: "#E5E1D8" }} />
             </div>
             <div className="space-y-2.5 pl-3 border-l-2" style={{ borderColor: "#E5E1D8" }}>
-              {topics.map((topic) => <LearningTopicCard key={topic.topic_code} topic={topic} isCurrent={topic.topic_code === currentCode} />)}
+              {topics.map((topic) => (
+                <LearningTopicCard key={topic.topic_code} topic={topic}
+                  isCurrent={topic.topic_code === currentCode} viewer={viewer}
+                  pathType={data?.path_type} grade={data?.selected_grade}
+                  onOpenTest={onOpenTest} onOpenLesson={onOpenLesson} />
+              ))}
             </div>
           </div>
         ))}
@@ -445,6 +587,8 @@ export function StudentLearningPathDashboard({
   studentId = null,
   viewer = "student",
   accent = "#1B4B7A",
+  onOpenTest = null,
+  onOpenLesson = null,
 }) {
   const [contextId, setContextId] = useState(null);
   const [groupId, setGroupId] = useState(null);
@@ -525,6 +669,9 @@ export function StudentLearningPathDashboard({
         term={term}
         setTerm={setTerm}
         accent={pathMode === "olympiad" ? "#8A5A1C" : accent}
+        viewer={viewer}
+        onOpenTest={onOpenTest}
+        onOpenLesson={onOpenLesson}
         onBack={() => { setView("overview"); setSubject(""); setTerm(1); }}
       />
     );
@@ -643,6 +790,17 @@ export function StudentLearningPathDashboard({
         )}
       </div>
 
+      {!isOlympiad && summary.confirmation_missing_count > 0 && (
+        <div className="rounded-2xl border px-3.5 py-3" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF8E7" }}>
+          <p className="text-xs font-bold" style={{ color: "#6F5320" }}>
+            {summary.confirmation_missing_count} mavzuning reja sanasi o'tgan, lekin “o'tildi” tasdig'i yo'q
+          </p>
+          <p className="text-[10px] mt-1 leading-relaxed" style={{ color: "#8A6B32" }}>
+            Bu mavzular o'rganildi deb hisoblanmaydi. O'qituvchi tasdiqlashi yoki reja sanasini tuzatishi kerak.
+          </p>
+        </div>
+      )}
+
       {(data?.subjects || []).length === 0 ? (
         <div className="rounded-2xl bg-white border p-7 text-center" style={{ borderColor: "#E5E1D8" }}>
           <BookOpen size={28} className="mx-auto mb-3" style={{ color: "#8A8578" }} />
@@ -669,7 +827,9 @@ export function StudentLearningPathDashboard({
                       </div>
                       <div className="mt-2"><ScoreBar value={isOlympiad ? olympiad?.evidence_coverage_percent : item.planned_reached_percent} color={isOlympiad ? "#8A5A1C" : accent} height={6} /></div>
                       <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
-                        {isOlympiad ? `${olympiad?.label || "Hali baholanmagan"} · dalil ${number(olympiad?.evidence_coverage_percent)}%` : `${item.topic_count} mavzu · ${item.taught_percent}% o'qituvchi tasdig'i · ${item.unknown_topic_count} noma'lum`}
+                        {isOlympiad
+                          ? `${olympiad?.label || "Hali baholanmagan"} · dalil ${number(olympiad?.evidence_coverage_percent)}%`
+                          : `${item.topic_count} mavzu · ${item.taught_percent}% tasdiq · ${item.test_available_count} testli · ${item.lesson_available_count} darsli · ${item.unknown_topic_count} noma'lum`}
                       </p>
                     </div>
                     <ChevronRight size={17} style={{ color: "#A7A091" }} />
