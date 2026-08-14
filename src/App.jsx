@@ -52,6 +52,7 @@ const lazyAnalytics = (exportName) =>
   );
 const AdminStatisticsTab = lazyAnalytics("AdminStatisticsTab");
 const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
+const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
 const KindergartenWorkspace = React.lazy(
   () => import("./kindergarten/KindergartenWorkspace.jsx"),
@@ -1799,7 +1800,12 @@ function BilimMarkazi({
         </div>
       )}
       {ichkiTab === "talim_yoli" && data ? (
-        <BilimTab data={data} bolaId={bolaId} rang={rang} token={token} otaOnaUchun={otaOnaUchun} />
+        <StudentLearningPathDashboard
+          token={token}
+          studentId={viewer === "student" ? null : bolaId}
+          viewer={viewer}
+          accent={rang}
+        />
       ) : (
         <div className={analyticsCompact ? "px-5 pb-4" : ""}>
           <StudentAnalyticsDashboard
@@ -12364,6 +12370,8 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   const [kutilayotganAzolar, setKutilayotganAzolar] = useState([]);
   const [bahoQoyilayotgan, setBahoQoyilayotgan] = useState(null); // user_id | null
   const [bahoQiymati, setBahoQiymati] = useState("");
+  const [bahoTopicCode, setBahoTopicCode] = useState("");
+  const [bahoMavzulari, setBahoMavzulari] = useState([]);
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
@@ -12526,6 +12534,10 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
       setAzolar(data.azolar || []);
       setTanlangan(t);
       setHolat("kalendar_reja");
+      fetch(`${API_BASE}/api/oqituvchi/togarak_barcha_mavzular?token=${encodeURIComponent(token)}&togarak_id=${t.id}`)
+        .then((r) => r.json())
+        .then((body) => setBahoMavzulari(body.mavzular || []))
+        .catch(() => setBahoMavzulari([]));
     } catch (e) {
       setXato(e.message);
     } finally { setYuklanmoqda(false); }
@@ -12572,6 +12584,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   const bahoBoshla = (azo) => {
     setBahoQoyilayotgan(azo.user_id);
     setBahoQiymati(azo.oxirgi_baho != null ? String(azo.oxirgi_baho) : "");
+    setBahoTopicCode("");
     setIzohQiymati("");
   };
 
@@ -12581,12 +12594,16 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
       setXato("Baho 0-100 oralig'ida bo'lishi kerak");
       return;
     }
+    if (!bahoTopicCode) {
+      setXato("Baho qaysi mavzuga tegishli ekanini tanlang");
+      return;
+    }
     setXato("");
     try {
       const res = await fetch(`${API_BASE}/api/oqituvchi/baho_qoy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, togarak_id: tanlangan.id, user_id: userId, baho, izoh: izohQiymati || null }),
+        body: JSON.stringify({ token, togarak_id: tanlangan.id, user_id: userId, baho, topic_code: bahoTopicCode, izoh: izohQiymati || null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
@@ -13263,6 +13280,14 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
                 </button>
                 {bahoQoyilayotgan === a.user_id && (
                   <div className="px-4 pb-4 pt-1 space-y-2.5">
+                    <select value={bahoTopicCode} onChange={(e) => setBahoTopicCode(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-sm bg-white"
+                      style={{ borderColor: "#E5E1D8", color: bahoTopicCode ? "#2B2B2B" : "#8A8578" }}>
+                      <option value="">Baholanayotgan mavzuni tanlang</option>
+                      {bahoMavzulari.map((m, index) => (
+                        <option key={m.topic_code} value={m.topic_code}>{formatTopicTitle(index, m)}</option>
+                      ))}
+                    </select>
                     <input type="number" min="0" max="100" value={bahoQiymati}
                       onChange={(e) => setBahoQiymati(e.target.value)}
                       placeholder="Baho (0-100)"
