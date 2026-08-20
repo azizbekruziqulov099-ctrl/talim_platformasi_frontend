@@ -28,9 +28,6 @@ import {
   organizationTrialState,
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
-import TestGameArena, { GameModePicker, GameProfileStrip } from "./TestGameArena.jsx";
-import AdminInstitutionSecurity from "./AdminInstitutionSecurity.jsx";
-import AdminSchoolWizard from "./AdminSchoolWizard.jsx";
 import {
   buildGameStartPayload,
   gameErrorMessage,
@@ -56,6 +53,15 @@ const AdminStatisticsTab = lazyAnalytics("AdminStatisticsTab");
 const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
+const TestGameArena = React.lazy(() => import("./TestGameArena.jsx"));
+const GameModePicker = React.lazy(() =>
+  import("./TestGameArena.jsx").then((module) => ({ default: module.GameModePicker })),
+);
+const GameProfileStrip = React.lazy(() =>
+  import("./TestGameArena.jsx").then((module) => ({ default: module.GameProfileStrip })),
+);
+const AdminInstitutionSecurity = React.lazy(() => import("./AdminInstitutionSecurity.jsx"));
+const AdminSchoolWizard = React.lazy(() => import("./AdminSchoolWizard.jsx"));
 const KindergartenWorkspace = React.lazy(
   () => import("./kindergarten/KindergartenWorkspace.jsx"),
 );
@@ -73,30 +79,22 @@ const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "https://talimplatformasi-production.up.railway.app";
 
+const MAVZULAR_XOTIRA_KESHI = new Map();
+const MAVZULAR_KESH_MS = 5 * 60 * 1000;
+
 // TestGameArena'ning eski versiyasi javob natijasini ko'rsatgandan keyin
-// keyingi savolga o'tishni 4.5 soniya ushlab turadi. Foydalanuvchiga bu
-// "qotib qolish" bo'lib ko'rinadi. Faqat shu o'yin callbackini aniqlab,
-// kutishni qisqartiramiz; ilovadagi boshqa 4500 ms taymerlar o'zgarmaydi.
+// keyingi savolga o'tishni 4.5 soniya ushlab turadi. Bu modul endi faqat
+// o'yin ochilganda yuklanadi; uning aniq 4500 ms kutishi qisqartiriladi.
 const OYIN_ESKI_JAVOB_KUTISH_MS = 4500;
-const OYIN_TEZ_JAVOB_KUTISH_MS = 1500;
+const OYIN_TEZ_JAVOB_KUTISH_MS = 1200;
 
 function _oyinJavobKutishiniTezlashtir() {
   if (typeof window === "undefined" || window.__samTmOyinTezTaymer) return;
   const aslSetTimeout = window.setTimeout.bind(window);
   window.setTimeout = (callback, delay, ...args) => {
-    let haqiqiyKutish = delay;
-    if (Number(delay) === OYIN_ESKI_JAVOB_KUTISH_MS && typeof callback === "function") {
-      try {
-        const callbackManbasi = Function.prototype.toString.call(callback);
-        const oyinOtishCallbacki =
-          callbackManbasi.includes("boss_retry") &&
-          callbackManbasi.includes("next") &&
-          callbackManbasi.includes("result");
-        if (oyinOtishCallbacki) haqiqiyKutish = OYIN_TEZ_JAVOB_KUTISH_MS;
-      } catch {
-        // Noodatiy callback bo'lsa, asl taymerni o'zgartirmaymiz.
-      }
-    }
+    const haqiqiyKutish = Number(delay) === OYIN_ESKI_JAVOB_KUTISH_MS
+      ? OYIN_TEZ_JAVOB_KUTISH_MS
+      : delay;
     return aslSetTimeout(callback, haqiqiyKutish, ...args);
   };
   window.__samTmOyinTezTaymer = true;
@@ -1907,6 +1905,10 @@ function TestTab({
   const testUrinishIdRef = useRef(null);
   const testBoshlanganAtRef = useRef(null);
   const talimYoliNishoniRef = useRef(null);
+  const testBoshlanmoqdaRef = useRef(false);
+  const javobTekshirilmoqdaRef = useRef(new Set());
+  const yakunlanmoqdaRef = useRef(false);
+  const [javobTekshirilmoqdaId, setJavobTekshirilmoqdaId] = useState(null);
 
   useEffect(() => {
     if (!initialTarget?.nonce) return;
@@ -1933,15 +1935,38 @@ function TestTab({
   }, [holat, onTestFaollik]);
 
   useEffect(() => {
-    setYuklanmoqda(true);
     const qs = new URLSearchParams({ turi: faolTuri });
     // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
     // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
     if (sinf && !boshqaSinflarRejimi) qs.set("sinf", sinf);
-    fetch(`${API_BASE}/api/mavzular?${qs.toString()}`)
-      .then((r) => r.json())
-      .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
-      .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
+    const url = `${API_BASE}/api/mavzular?${qs.toString()}`;
+    const keshlangan = MAVZULAR_XOTIRA_KESHI.get(url);
+    if (keshlangan && Date.now() - keshlangan.vaqt < MAVZULAR_KESH_MS) {
+      setFanlar(keshlangan.fanlar);
+      setYuklanmoqda(false);
+      return undefined;
+    }
+    setYuklanmoqda(true);
+    const controller = new AbortController();
+    fetch(url, { signal: controller.signal })
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || "Mavzular yuklanmadi");
+        return d;
+      })
+      .then((d) => {
+        const yangiFanlar = d.fanlar || [];
+        MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
+        setFanlar(yangiFanlar);
+        setYuklanmoqda(false);
+      })
+      .catch((e) => {
+        if (e.name !== "AbortError") {
+          setXato("Mavzularni yuklab bo'lmadi");
+          setYuklanmoqda(false);
+        }
+      });
+    return () => controller.abort();
   }, [sinf, faolTuri, boshqaSinflarRejimi]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
@@ -2048,49 +2073,63 @@ function TestTab({
   useEffect(() => {
     if (holat !== "songi" || !tanlanganMavzu) return;
     let bekor = false;
+    const controller = new AbortController();
     setMosSoni(null);
-    const so_rov = testRejimi === "oyin"
-      ? fetch(`${API_BASE}/api/oyin/mavjudligi`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token,
-            topic_codes: tanlanganMavzu.kodlar || [tanlanganMavzu.topic_code],
-          }),
+    // Sozlamalar ketma-ket bosilganda eski so'rovlar serverga uyulib
+    // ketmasin: 180 ms debounce va avvalgi fetch'ni haqiqiy bekor qilish.
+    const taymer = setTimeout(() => {
+      const umumiy = { signal: controller.signal };
+      const so_rov = testRejimi === "oyin"
+        ? fetch(`${API_BASE}/api/oyin/mavjudligi`, {
+            ...umumiy,
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token,
+              topic_codes: tanlanganMavzu.kodlar || [tanlanganMavzu.topic_code],
+            }),
+          })
+        : tanlanganMavzu.aralash
+        ? fetch(`${API_BASE}/api/test_aralash/soni`, {
+            ...umumiy,
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
+          })
+        : (() => {
+            const qs = new URLSearchParams();
+            if (qiyinlik) qs.set("qiyinlik", qiyinlik);
+            if (rasimli !== null) qs.set("rasimli", rasimli);
+            if (vaqtli !== null) qs.set("vaqtli", vaqtli);
+            if (yozuvli !== null) qs.set("yozuvli", yozuvli);
+            return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`, umumiy);
+          })();
+      so_rov
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(gameErrorMessage(data, "Savollar soni aniqlanmadi"));
+          return data;
         })
-      : tanlanganMavzu.aralash
-      ? fetch(`${API_BASE}/api/test_aralash/soni`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
-        })
-      : (() => {
-          const qs = new URLSearchParams();
-          if (qiyinlik) qs.set("qiyinlik", qiyinlik);
-          if (rasimli !== null) qs.set("rasimli", rasimli);
-          if (vaqtli !== null) qs.set("vaqtli", vaqtli);
-          if (yozuvli !== null) qs.set("yozuvli", yozuvli);
-          return fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}/soni?${qs.toString()}`);
-        })();
-    so_rov
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(gameErrorMessage(data, "Savollar soni aniqlanmadi"));
-        return data;
-      })
-      .then((d) => { if (!bekor) setMosSoni(d.available_count ?? d.soni ?? 0); })
-      .catch((e) => {
-        if (!bekor) {
-          setXato(`Savollar sonini olib bo'lmadi: ${e.message}`);
-          setMosSoni(0);
-        }
-      });
-    return () => { bekor = true; };
+        .then((d) => { if (!bekor) setMosSoni(d.available_count ?? d.soni ?? 0); })
+        .catch((e) => {
+          if (!bekor && e.name !== "AbortError") {
+            setXato(`Savollar sonini olib bo'lmadi: ${e.message}`);
+            setMosSoni(0);
+          }
+        });
+    }, 180);
+    return () => {
+      bekor = true;
+      clearTimeout(taymer);
+      controller.abort();
+    };
   }, [holat, tanlanganMavzu, qiyinlik, rasimli, vaqtli, yozuvli, testRejimi, token]);
   const [toGriSoni, setToGriSoni] = useState(0);
   const [xatoSoni, setXatoSoni] = useState(0);
 
   const savollarniYukla = async (soni) => {
+    if (testBoshlanmoqdaRef.current) return;
+    testBoshlanmoqdaRef.current = true;
     setYuklanmoqda(true); setXato("");
     try {
       let res;
@@ -2121,7 +2160,10 @@ function TestTab({
       setToGriSoni(0); setXatoSoni(0);
     } catch (e) {
       setXato(e.message);
-    } finally { setYuklanmoqda(false); }
+    } finally {
+      testBoshlanmoqdaRef.current = false;
+      setYuklanmoqda(false);
+    }
   };
 
   const [yozibJavob, setYozibJavob] = useState({}); // {savol_id: xom_matn} — bir nechta savol bir vaqtda ko'rinadi
@@ -2321,6 +2363,8 @@ function TestTab({
   };
 
   const oyinniBoshlash = async (soni) => {
+    if (testBoshlanmoqdaRef.current) return;
+    testBoshlanmoqdaRef.current = true;
     setYuklanmoqda(true);
     setXato("");
     try {
@@ -2344,6 +2388,7 @@ function TestTab({
     } catch (e) {
       setXato(e.message || "O'yin boshlanmadi");
     } finally {
+      testBoshlanmoqdaRef.current = false;
       setYuklanmoqda(false);
     }
   };
@@ -2413,6 +2458,9 @@ function TestTab({
   // "bir_bir" (eski, mashq) rejimi uchun — javobni DARHOL tekshiradi va
   // to'g'ri/noto'g'rini shu zahoti ko'rsatadi.
   const javobBerVaTekshir = async (savolId, harf) => {
+    if (javobTekshirilmoqdaRef.current.has(savolId) || joriyNatija) return;
+    javobTekshirilmoqdaRef.current.add(savolId);
+    setJavobTekshirilmoqdaId(savolId);
     if (timerRef.current) clearInterval(timerRef.current);
     setJavoblar((prev) => ({ ...prev, [savolId]: harf }));
     try {
@@ -2427,11 +2475,15 @@ function TestTab({
         }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Javob tekshirilmadi");
       setJoriyNatija(data);
       if (data.togrimi) setToGriSoni((v) => v + 1); else setXatoSoni((v) => v + 1);
     } catch {
       setJoriyNatija({ togrimi: false, togri_javob: "?", tushuntirish: "" });
       setXatoSoni((v) => v + 1);
+    } finally {
+      javobTekshirilmoqdaRef.current.delete(savolId);
+      setJavobTekshirilmoqdaId((joriy) => joriy === savolId ? null : joriy);
     }
   };
 
@@ -2443,30 +2495,21 @@ function TestTab({
   };
 
   const keyingiSavolga = () => {
-    if (avtoRef.current) clearInterval(avtoRef.current);
+    if (avtoRef.current) clearTimeout(avtoRef.current);
     setJoriyNatija(null);
     setYozibJavob({});
     if (joriySavol < savollar.length - 1) setJoriySavol(joriySavol + 1);
     else yakunla();
   };
 
-  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 4 soniyadan keyin
+  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 1.2 soniyadan keyin
   // AVTOMATIK keyingi savolga o'tadi — foydalanuvchi tugma bosishi shart emas
   // (faqat "bir_bir" rejimida ishlaydi).
   useEffect(() => {
     if (!joriyNatija) { setAvtoQoldi(null); return; }
-    setAvtoQoldi(4);
-    avtoRef.current = setInterval(() => {
-      setAvtoQoldi((v) => {
-        if (v <= 1) {
-          clearInterval(avtoRef.current);
-          keyingiSavolga();
-          return 0;
-        }
-        return v - 1;
-      });
-    }, 1000);
-    return () => clearInterval(avtoRef.current);
+    setAvtoQoldi(1);
+    avtoRef.current = setTimeout(keyingiSavolga, 1200);
+    return () => clearTimeout(avtoRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joriyNatija]);
 
@@ -2487,6 +2530,8 @@ function TestTab({
   };
 
   const yakunla = async () => {
+    if (yakunlanmoqdaRef.current) return;
+    yakunlanmoqdaRef.current = true;
     setYuklanmoqda(true);
     const ro_yxat = Object.entries(javoblar).map(([id, tanlangan]) => ({
       savol_id: parseInt(id, 10), tanlangan,
@@ -2512,14 +2557,18 @@ function TestTab({
         ),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Natija saqlanmadi");
       setNatija(data);
       if (data.ochko?.profile && onOyinProfilYangilandi) {
         onOyinProfilYangilandi(data.ochko.profile);
       }
       setHolat("natija");
     } catch (e) {
-      setXato("Natijani yuborib bo'lmadi");
-    } finally { setYuklanmoqda(false); }
+      setXato(e.message || "Natijani yuborib bo'lmadi");
+    } finally {
+      yakunlanmoqdaRef.current = false;
+      setYuklanmoqda(false);
+    }
   };
 
   // yakunlaRef'ni HAR renderda eng so'nggi yakunla'ga tenglashtiramiz —
@@ -2533,6 +2582,10 @@ function TestTab({
   };
 
   const qaytaBoshlash = () => {
+    javobTekshirilmoqdaRef.current.clear();
+    yakunlanmoqdaRef.current = false;
+    testBoshlanmoqdaRef.current = false;
+    setJavobTekshirilmoqdaId(null);
     setHolat("mavzular"); setTanlanganMavzu(null); setSavollar([]); setNatija(null);
     setUmumiyVaqt(null); setYozibJavob({}); setJoriySavol(0); setJoriyNatija(null);
     setOyinSessiya(null);
@@ -2544,21 +2597,23 @@ function TestTab({
 
   if (holat === "oyin" && oyinSessiya) {
     return (
-      <TestGameArena
-        token={token}
-        apiBase={API_BASE}
-        initialSession={oyinSessiya}
-        playerProfile={{ ...foydalanuvchi, jins: oyinQahramonJinsi, class: sinf || foydalanuvchi?.class }}
-        accent={rang}
-        onRead={ovozniOqi}
-        onStopRead={ovozniToxtat}
-        readStatus={ovozHolati}
-        readError={ovozXatosi}
-        onFinished={() => { if (onTestFaollik) onTestFaollik(false); }}
-        onProfileChange={onOyinProfilYangilandi}
-        onBackToSetup={() => { setOyinSessiya(null); setHolat("songi"); }}
-        onBackToTopics={qaytaBoshlash}
-      />
+      <React.Suspense fallback={<div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: rang }} /></div>}>
+        <TestGameArena
+          token={token}
+          apiBase={API_BASE}
+          initialSession={oyinSessiya}
+          playerProfile={{ ...foydalanuvchi, jins: oyinQahramonJinsi, class: sinf || foydalanuvchi?.class }}
+          accent={rang}
+          onRead={ovozniOqi}
+          onStopRead={ovozniToxtat}
+          readStatus={ovozHolati}
+          readError={ovozXatosi}
+          onFinished={() => { if (onTestFaollik) onTestFaollik(false); }}
+          onProfileChange={onOyinProfilYangilandi}
+          onBackToSetup={() => { setOyinSessiya(null); setHolat("songi"); }}
+          onBackToTopics={qaytaBoshlash}
+        />
+      </React.Suspense>
     );
   }
 
@@ -2590,7 +2645,9 @@ function TestTab({
                 Bugungi birinchi tugallangan test uchun +{natija.ochko.daily_first_test_points} bonus.
               </p>
             )}
-            <GameProfileStrip profile={natija.ochko.profile} accent={rang} compact />
+            <React.Suspense fallback={<div className="h-10" />}>
+              <GameProfileStrip profile={natija.ochko.profile} accent={rang} compact />
+            </React.Suspense>
           </div>
         )}
 
@@ -2658,15 +2715,17 @@ function TestTab({
         </div>
 
         {testRejimi === "oyin" ? (
-          <GameModePicker
-            value={oyinRejimi}
-            onChange={setOyinRejimi}
-            gradeBand={oyinYoshBosqichi}
-            accent={rang}
-            profile={oyinProfil}
-            playerGender={oyinQahramonJinsi}
-            onPlayerGenderChange={setOyinQahramonJinsi}
-          />
+          <React.Suspense fallback={<div className="py-8 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: rang }} /></div>}>
+            <GameModePicker
+              value={oyinRejimi}
+              onChange={setOyinRejimi}
+              gradeBand={oyinYoshBosqichi}
+              accent={rang}
+              profile={oyinProfil}
+              playerGender={oyinQahramonJinsi}
+              onPlayerGenderChange={setOyinQahramonJinsi}
+            />
+          </React.Suspense>
         ) : (
           <>
             <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
@@ -2742,6 +2801,7 @@ function TestTab({
     const yozuvli = s.question_type === "write_answer";
     const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
     const javobBerilgan = !!joriyNatija;
+    const javobKutilmoqda = javobTekshirilmoqdaId === s.id;
 
     const variantRangi = (harf) => {
       if (!javobBerilgan) {
@@ -2837,8 +2897,8 @@ function TestTab({
           <div className="mb-4">
             <input type="text" value={javobBerilgan ? (javoblar[s.id] || "") : (yozibJavob[s.id] || "")}
               onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
-              disabled={javobBerilgan}
-              onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobBerVaTekshir(s.id, yozibJavob[s.id].trim()); }}
+              disabled={javobBerilgan || javobKutilmoqda}
+              onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && !javobKutilmoqda && (yozibJavob[s.id] || "").trim()) javobBerVaTekshir(s.id, yozibJavob[s.id].trim()); }}
               placeholder="Javobingizni yozing..."
               className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
               style={javobBerilgan
@@ -2846,17 +2906,17 @@ function TestTab({
                 : { borderColor: "#E5E1D8" }} />
             {!javobBerilgan && (
               <button onClick={() => (yozibJavob[s.id] || "").trim() && javobBerVaTekshir(s.id, yozibJavob[s.id].trim())}
-                disabled={!(yozibJavob[s.id] || "").trim()}
+                disabled={javobKutilmoqda || !(yozibJavob[s.id] || "").trim()}
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm"
-                style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
-                Javobni yuborish
+                style={{ backgroundColor: "#1B4B7A", opacity: !javobKutilmoqda && (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
+                {javobKutilmoqda ? "Tekshirilmoqda..." : "Javobni yuborish"}
               </button>
             )}
           </div>
         ) : (
           <div className="space-y-2.5 mb-4">
             {variantlar.map(([harf, matn]) => (
-              <button key={harf} onClick={() => !javobBerilgan && javobBerVaTekshir(s.id, harf)} disabled={javobBerilgan}
+              <button key={harf} onClick={() => !javobBerilgan && !javobKutilmoqda && javobBerVaTekshir(s.id, harf)} disabled={javobBerilgan || javobKutilmoqda}
                 className="w-full text-left px-4 py-3.5 rounded-xl border flex items-center gap-3"
                 style={variantRangi(harf)}>
                 <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
@@ -2893,7 +2953,9 @@ function TestTab({
             {(oxirgi ? "Yakunlash" : "Keyingi savol")}{avtoQoldi ? ` (${avtoQoldi})` : ""}
           </button>
         ) : (
-          <p className="text-center text-xs" style={{ color: "#B0AA98" }}>Javobni tanlang</p>
+          <p className="text-center text-xs" style={{ color: "#B0AA98" }}>
+            {javobKutilmoqda ? "Javob tekshirilmoqda..." : "Javobni tanlang"}
+          </p>
         )}
 
         {toxtatishModali && (
@@ -2970,7 +3032,11 @@ function TestTab({
 
             return (
               <div key={s.id} ref={(el) => { savolReflari.current[i] = el; }}
-                className="rounded-2xl p-4 bg-white border" style={{ borderColor: javobBerilgan ? "#F5DFA3" : "#E5E1D8" }}>
+                className="rounded-2xl p-4 bg-white border" style={{
+                  borderColor: javobBerilgan ? "#F5DFA3" : "#E5E1D8",
+                  contentVisibility: "auto",
+                  containIntrinsicSize: "520px",
+                }}>
                 <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}-savol</p>
 
                 {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
@@ -5651,25 +5717,36 @@ function DirektorQidiruvi({ token, tanlanganDirektor, onTanla }) {
   );
 }
 
-function SinfGuruhBoshqaruvi({ token, sinf, onSaved }) {
+function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
   const [ochiq, setOchiq] = useState(false);
-  const [azolar, setAzolar] = useState(null);
-  const [tanlanganlar, setTanlanganlar] = useState(() => new Set());
-  const [amal, setAmal] = useState("group_1");
-  const [guruhNomi, setGuruhNomi] = useState("");
+  const [tizimlar, setTizimlar] = useState([]);
+  const [azolar, setAzolar] = useState([]);
+  const [boshqaraOladi, setBoshqaraOladi] = useState(false);
+  const [yuklangan, setYuklangan] = useState(false);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [tanlanganlar, setTanlanganlar] = useState(() => new Set());
+  const [guruhNomi, setGuruhNomi] = useState("");
   const [xabar, setXabar] = useState("");
   const [xato, setXato] = useState("");
 
-  const azolarniYukla = async () => {
-    if (azolar !== null) return;
+  const turMalumoti = {
+    gender: { nomi: "O‘g‘il / Qiz", izoh: "Jismoniy tarbiya va texnologiya uchun", rang: "#EAF4DF" },
+    alphabet: { nomi: "Alifbo 1 / 2", izoh: "Til va informatika uchun", rang: "#EAF1F7" },
+    manual: { nomi: "Mustaqil guruhlar", izoh: "O‘quvchilarni o‘zingiz belgilaysiz", rang: "#FFF5E2" },
+  };
+
+  const tizimlarniYukla = async (majburiy = false) => {
+    if (yuklangan && !majburiy) return;
     setYuklanmoqda(true); setXato("");
     try {
-      const res = await fetch(`${API_BASE}/api/oqituvchi/sinf_azolari?token=${encodeURIComponent(token)}&sinf_id=${sinf.id}`);
+      const res = await fetch(`${API_BASE}/api/maktab/sinf_guruh_tizimlari?token=${encodeURIComponent(token)}&sinf_id=${sinf.id}`);
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "O‘quvchilarni yuklab bo‘lmadi");
+      if (!res.ok) throw new Error(data.detail || "Guruhlarni yuklab bo‘lmadi");
+      setTizimlar(data.tizimlar || []);
       setAzolar(data.azolar || []);
+      setBoshqaraOladi(Boolean(data.boshqara_oladi));
+      setYuklangan(true);
     } catch (error) {
       setXato(error.message);
     } finally {
@@ -5678,52 +5755,103 @@ function SinfGuruhBoshqaruvi({ token, sinf, onSaved }) {
   };
 
   const ochibYop = () => {
-    const yangiHolat = !ochiq;
-    setOchiq(yangiHolat);
-    if (yangiHolat) azolarniYukla();
+    const yangi = !ochiq;
+    setOchiq(yangi);
+    if (yangi) tizimlarniYukla();
   };
 
-  const belgilashniAlmashtir = (userId) => {
-    setTanlanganlar((avvalgi) => {
-      const yangi = new Set(avvalgi);
-      if (yangi.has(userId)) yangi.delete(userId); else yangi.add(userId);
-      return yangi;
-    });
-  };
-
-  const barchasiniAlmashtir = () => {
-    if (!azolar?.length) return;
-    setTanlanganlar((avvalgi) => avvalgi.size === azolar.length
-      ? new Set()
-      : new Set(azolar.map((azo) => azo.user_id)));
-  };
-
-  const tanlanganlargaSaqla = async () => {
-    if (!tanlanganlar.size) { setXato("Kamida bitta o‘quvchini belgilang"); return; }
-    if (amal === "set_name" && guruhNomi.trim().length < 2) { setXato("Guruh nomini yozing"); return; }
+  const tizimniAlmashtir = async (turi) => {
+    if (saqlanmoqda || !boshqaraOladi) return;
+    const mavjud = tizimlar.find((tizim) => tizim.turi === turi);
     setSaqlanmoqda(true); setXato(""); setXabar("");
     try {
-      const ids = [...tanlanganlar];
-      const res = await fetch(`${API_BASE}/api/maktab/sinf_azolarini_guruhla`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, sinf_id: sinf.id, user_ids: ids, amal, guruh_nomi: guruhNomi.trim() || null }),
+      const res = await fetch(`${API_BASE}/api/maktab/sinf_guruh_tizimi`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sinf_id: sinf.id, turi, faol: !mavjud, fanlar: mavjud?.fanlar || [] }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "Guruhni saqlab bo‘lmadi");
-      setAzolar((avvalgi) => (avvalgi || []).map((azo) => {
-        if (!tanlanganlar.has(azo.user_id)) return azo;
-        if (amal === "boys") return { ...azo, jins: "ogil" };
-        if (amal === "girls") return { ...azo, jins: "qiz" };
-        if (amal === "group_1") return { ...azo, guruh_raqami: 1, guruh_qolda: true };
-        if (amal === "group_2") return { ...azo, guruh_raqami: 2, guruh_qolda: true };
-        if (amal === "clear_number") return { ...azo, guruh_raqami: null, guruh_qolda: true };
-        if (amal === "set_name") return { ...azo, guruh_nomi: guruhNomi.trim(), guruh_qolda: true };
-        if (amal === "clear_name") return { ...azo, guruh_nomi: null, guruh_qolda: true };
-        return azo;
-      }));
+      if (!res.ok) throw new Error(data.detail || "Guruhlash tizimini saqlab bo‘lmadi");
+      setTizimlar(data.tizimlar || []);
       setTanlanganlar(new Set());
-      setXabar(`✅ ${data.yangilangan || ids.length} ta o‘quvchi yangilandi. 1-guruh: ${data.guruhlar?.["1"] || 0}, 2-guruh: ${data.guruhlar?.["2"] || 0}.`);
+      setXabar(mavjud ? `✅ ${turMalumoti[turi].nomi} vaqtincha o‘chirildi; tarkibi saqlandi.` : `✅ ${turMalumoti[turi].nomi} qo‘shildi. Boshqa tizimlar saqlandi.`);
+      onSaved?.();
+      await tizimlarniYukla(true);
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setSaqlanmoqda(false);
+    }
+  };
+
+  const fanTanlashniAlmashtir = async (tizim, fan) => {
+    if (saqlanmoqda || !boshqaraOladi) return;
+    const yangiFanlar = (tizim.fanlar || []).includes(fan)
+      ? (tizim.fanlar || []).filter((nom) => nom !== fan)
+      : [...(tizim.fanlar || []), fan];
+    setSaqlanmoqda(true); setXato(""); setXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/sinf_guruh_tizimi`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sinf_id: sinf.id, turi: tizim.turi, faol: true, fanlar: yangiFanlar }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Fan birikmasini saqlab bo‘lmadi");
+      setTizimlar(data.tizimlar || []);
+      setXabar("✅ Fan–guruh birikmasi saqlandi.");
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setSaqlanmoqda(false);
+    }
+  };
+
+  const belgilashniAlmashtir = (userId) => setTanlanganlar((avvalgi) => {
+    const yangi = new Set(avvalgi);
+    if (yangi.has(userId)) yangi.delete(userId); else yangi.add(userId);
+    return yangi;
+  });
+
+  const barchasiniAlmashtir = () => setTanlanganlar((avvalgi) =>
+    avvalgi.size === azolar.length ? new Set() : new Set(azolar.map((azo) => azo.user_id)));
+
+  const manualTizim = tizimlar.find((tizim) => tizim.turi === "manual");
+  const genderTizim = tizimlar.find((tizim) => tizim.turi === "gender");
+
+  const jinsniSaqla = async (amal) => {
+    if (!tanlanganlar.size) { setXato("Kamida bitta o‘quvchini belgilang"); return; }
+    setSaqlanmoqda(true); setXato(""); setXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/sinf_azolarini_guruhla`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sinf_id: sinf.id, user_ids: [...tanlanganlar], amal }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Jins belgisini saqlab bo‘lmadi");
+      setTanlanganlar(new Set());
+      setXabar(`✅ ${data.yangilangan || 0} ta o‘quvchining jinsi belgilandi; O‘g‘il/Qiz guruhi qayta hisoblandi.`);
+      await tizimlarniYukla(true);
+      onSaved?.();
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setSaqlanmoqda(false);
+    }
+  };
+
+  const mustaqilGuruhniSaqla = async (tozalash = false) => {
+    if (!manualTizim || !tanlanganlar.size) { setXato("Kamida bitta o‘quvchini belgilang"); return; }
+    if (!tozalash && guruhNomi.trim().length < 2) { setXato("Mustaqil guruh nomini yozing"); return; }
+    setSaqlanmoqda(true); setXato(""); setXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/maktab/sinf_mustaqil_guruh`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sinf_id: sinf.id, tizim_id: manualTizim.id, user_ids: [...tanlanganlar], guruh_nomi: guruhNomi.trim() || null, tozalash }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Mustaqil guruhni saqlab bo‘lmadi");
+      setTizimlar(data.tizimlar || []);
+      setTanlanganlar(new Set());
+      setXabar(tozalash ? "✅ Tanlangan o‘quvchilar mustaqil guruhdan chiqarildi." : `✅ ${data.yangilangan || 0} ta o‘quvchi “${guruhNomi.trim()}” guruhiga qo‘yildi.`);
       onSaved?.();
     } catch (error) {
       setXato(error.message);
@@ -5739,31 +5867,66 @@ function SinfGuruhBoshqaruvi({ token, sinf, onSaved }) {
     return "Jinsi belgilanmagan";
   };
 
+  const azoGuruhMatni = (userId) => tizimlar.flatMap((tizim) =>
+    (tizim.azolar || []).filter((azo) => Number(azo.user_id) === Number(userId)).map((azo) => `${turMalumoti[tizim.turi]?.nomi || tizim.nomi}: ${azo.guruh_nomi}`));
+
   return (
     <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
-      <button type="button" onClick={ochibYop} className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#EAF1F7" : "#fff", color: "#1B4B7A" }}>
-        <span>☑ O‘quvchilarni belgilab guruhlash</span><span>{ochiq ? "⌃" : "⌄"}</span>
+      <button type="button" onClick={ochibYop} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#EAF1F7" : "#fff", color: "#1B4B7A" }}>
+        <span>👥 Ko‘p guruhli boshqaruv{yuklangan ? ` · ${tizimlar.length} ta faol` : ""}</span><span>{ochiq ? "⌃" : "⌄"}</span>
       </button>
-      {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#B9CCDC" }}>
-        <p className="text-[11px] mb-2" style={{ color: "#6F6859" }}>Belgilar brauzerda ishlaydi; serverga faqat “Tanlanganlarga saqlash” bosilganda bitta so‘rov yuboriladi.</p>
-        {yuklanmoqda ? <div className="py-5"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div> : !azolar?.length ? <p className="text-xs py-3" style={{ color: "#8A8578" }}>Bu sinfda hali o‘quvchi yo‘q.</p> : <>
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <button type="button" onClick={barchasiniAlmashtir} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>{tanlanganlar.size === azolar.length ? "Tanlovni tozalash" : "Barchasini belgilash"}</button>
-            <span className="text-[11px] font-semibold" style={{ color: "#1B4B7A" }}>{tanlanganlar.size}/{azolar.length} tanlandi</span>
+      {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#B9CCDC", contentVisibility: "auto", containIntrinsicSize: "1px 520px" }}>
+        <p className="text-[11px] mb-3" style={{ color: "#6F6859" }}>Bitta sinfda uchala usulni ham bir vaqtda yoqish mumkin. Har biri alohida saqlanadi.</p>
+        {yuklanmoqda ? <div className="py-6"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div> : <>
+          <div className="grid sm:grid-cols-3 gap-2">
+            {Object.entries(turMalumoti).map(([turi, malumot]) => {
+              const tizim = tizimlar.find((item) => item.turi === turi);
+              return <button key={turi} type="button" onClick={() => tizimniAlmashtir(turi)} disabled={saqlanmoqda || !boshqaraOladi} className="rounded-xl border p-3 text-left" style={{ backgroundColor: tizim ? malumot.rang : "#fff", borderColor: tizim ? "#1B4B7A" : "#E5E1D8", opacity: boshqaraOladi ? 1 : 0.72 }}>
+                <span className="flex items-center justify-between gap-2"><b className="text-xs" style={{ color: "#2B2B2B" }}>{malumot.nomi}</b><span className="text-xs font-bold" style={{ color: tizim ? "#3B6D11" : "#A39D8E" }}>{tizim ? "✓ FAOL" : "+ QO‘SHISH"}</span></span>
+                <small className="block mt-1" style={{ color: "#8A8578" }}>{malumot.izoh}</small>
+              </button>;
+            })}
           </div>
-          <div className="max-h-64 overflow-y-auto rounded-lg border divide-y" style={{ borderColor: "#E5E1D8" }}>
-            {azolar.map((azo) => <label key={azo.user_id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer" style={{ backgroundColor: tanlanganlar.has(azo.user_id) ? "#F1F7FB" : "#fff", borderColor: "#F0ECE3" }}>
-              <input type="checkbox" checked={tanlanganlar.has(azo.user_id)} onChange={() => belgilashniAlmashtir(azo.user_id)} />
-              <span className="flex-1 min-w-0"><b className="block text-xs truncate" style={{ color: "#2B2B2B" }}>{azo.full_name}</b><small className="block truncate" style={{ color: "#8A8578" }}>{jinsNomi(azo.jins)} · {azo.guruh_raqami ? `${azo.guruh_raqami}-guruh` : "raqamli guruh yo‘q"}{azo.guruh_nomi ? ` · ${azo.guruh_nomi}` : ""}</small></span>
-            </label>)}
-          </div>
-          <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mt-3">
-            <select value={amal} onChange={(event) => setAmal(event.target.value)} className="px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}>
-              <option value="boys">O‘g‘il deb belgilash</option><option value="girls">Qiz deb belgilash</option><option value="group_1">1-guruhga qo‘yish</option><option value="group_2">2-guruhga qo‘yish</option><option value="clear_number">1/2-guruhni tozalash</option><option value="set_name">Guruh nomini berish</option><option value="clear_name">Guruh nomini tozalash</option>
-            </select>
-            <input value={guruhNomi} onChange={(event) => setGuruhNomi(event.target.value)} disabled={amal !== "set_name"} placeholder="Masalan: Robototexnika" maxLength={50} className="px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8", opacity: amal === "set_name" ? 1 : 0.5 }} />
-            <button type="button" onClick={tanlanganlargaSaqla} disabled={saqlanmoqda || !tanlanganlar.size} className="px-3.5 py-2 rounded-lg text-xs font-bold text-white whitespace-nowrap" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda || !tanlanganlar.size ? 0.55 : 1 }}>{saqlanmoqda ? "Saqlanmoqda..." : "Tanlanganlarga saqlash"}</button>
-          </div>
+
+          {tizimlar.map((tizim) => <div key={tizim.id} className="mt-3 rounded-xl border p-3" style={{ borderColor: "#E5E1D8", backgroundColor: "#FCFBF8" }}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <b className="text-xs" style={{ color: "#2B2B2B" }}>{turMalumoti[tizim.turi]?.nomi || tizim.nomi}</b>
+              <div className="flex flex-wrap gap-1.5">{(tizim.guruhlar || []).map((guruh) => <span key={guruh.guruh_kaliti} className="px-2 py-1 rounded-full text-[10px]" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>{guruh.guruh_nomi}: {guruh.soni}</span>)}</div>
+            </div>
+            {fanlar.length > 0 && <details className="mt-2">
+              <summary className="text-[11px] cursor-pointer font-semibold" style={{ color: "#1B4B7A" }}>Fanlarga bog‘lash (ixtiyoriy) · {(tizim.fanlar || []).length} ta</summary>
+              <div className="flex flex-wrap gap-1.5 mt-2">{fanlar.map((fan) => {
+                const tanlangan = (tizim.fanlar || []).includes(fan);
+                return <button key={fan} type="button" disabled={saqlanmoqda || !boshqaraOladi} onClick={() => fanTanlashniAlmashtir(tizim, fan)} className="px-2 py-1 rounded-lg text-[10px]" style={{ backgroundColor: tanlangan ? "#1B4B7A" : "#fff", color: tanlangan ? "#fff" : "#5A5648", border: "1px solid #D9D4C8" }}>{tanlangan ? "✓ " : ""}{fan}</button>;
+              })}</div>
+            </details>}
+          </div>)}
+
+          {(manualTizim || genderTizim) && boshqaraOladi && <div className="mt-3 rounded-xl border p-3" style={{ borderColor: "#D9D4C8" }}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <button type="button" onClick={barchasiniAlmashtir} disabled={!azolar.length} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>{tanlanganlar.size === azolar.length && azolar.length ? "Tanlovni tozalash" : "Barchasini belgilash"}</button>
+              <span className="text-[11px] font-semibold" style={{ color: "#1B4B7A" }}>{tanlanganlar.size}/{azolar.length} tanlandi</span>
+            </div>
+            {!azolar.length ? <p className="text-xs py-3" style={{ color: "#8A8578" }}>Bu sinfda hali o‘quvchi yo‘q.</p> : <div className="max-h-64 overflow-y-auto rounded-lg border divide-y" style={{ borderColor: "#E5E1D8" }}>
+              {azolar.map((azo) => {
+                const belgilar = azoGuruhMatni(azo.user_id);
+                return <label key={azo.user_id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer" style={{ backgroundColor: tanlanganlar.has(azo.user_id) ? "#F1F7FB" : "#fff", borderColor: "#F0ECE3" }}>
+                  <input type="checkbox" checked={tanlanganlar.has(azo.user_id)} onChange={() => belgilashniAlmashtir(azo.user_id)} />
+                  <span className="flex-1 min-w-0"><b className="block text-xs truncate" style={{ color: "#2B2B2B" }}>{azo.full_name}</b><small className="block truncate" style={{ color: "#8A8578" }}>{jinsNomi(azo.jins)}{belgilar.length ? ` · ${belgilar.join(" · ")}` : " · Guruh belgilanmagan"}</small></span>
+                </label>;
+              })}
+            </div>}
+            {genderTizim && <div className="grid grid-cols-2 gap-2 mt-3">
+              <button type="button" onClick={() => jinsniSaqla("boys")} disabled={saqlanmoqda || !tanlanganlar.size} className="px-3.5 py-2 rounded-lg text-xs font-bold" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A", opacity: saqlanmoqda || !tanlanganlar.size ? 0.55 : 1 }}>Tanlanganlar — O‘g‘il</button>
+              <button type="button" onClick={() => jinsniSaqla("girls")} disabled={saqlanmoqda || !tanlanganlar.size} className="px-3.5 py-2 rounded-lg text-xs font-bold" style={{ backgroundColor: "#F7EAF1", color: "#A8527A", opacity: saqlanmoqda || !tanlanganlar.size ? 0.55 : 1 }}>Tanlanganlar — Qiz</button>
+            </div>}
+            {manualTizim && <div className="grid sm:grid-cols-[1fr_auto_auto] gap-2 mt-3">
+              <input value={guruhNomi} onChange={(event) => setGuruhNomi(event.target.value)} placeholder="Mustaqil guruh nomi, masalan: Kuchli guruh" maxLength={50} className="px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }} />
+              <button type="button" onClick={() => mustaqilGuruhniSaqla(false)} disabled={saqlanmoqda || !tanlanganlar.size} className="px-3.5 py-2 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda || !tanlanganlar.size ? 0.55 : 1 }}>Guruhga qo‘yish</button>
+              <button type="button" onClick={() => mustaqilGuruhniSaqla(true)} disabled={saqlanmoqda || !tanlanganlar.size} className="px-3.5 py-2 rounded-lg text-xs font-bold" style={{ backgroundColor: "#F7F5F0", color: "#B0553A", opacity: saqlanmoqda || !tanlanganlar.size ? 0.55 : 1 }}>Guruhdan chiqarish</button>
+            </div>}
+          </div>}
+          {!boshqaraOladi && <p className="text-[11px] mt-3 p-2.5 rounded-lg" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}>Ko‘rish mumkin. O‘zgartirish faqat admin yoki o‘quv ishlari zavuchiga ruxsat etilgan.</p>}
         </>}
         {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{xato}</p>}
         {xabar && <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>{xabar}</p>}
@@ -5805,14 +5968,16 @@ function MaktablarBolimi({ token }) {
       </div>
 
       {formOchiq && (
-        <AdminSchoolWizard
-          token={token}
-          apiBase={API_BASE}
-          regions={VILOYATLAR}
-          districtsByRegion={HUDUDLAR}
-          onCancel={() => setFormOchiq(false)}
-          onCreated={(school) => { setFormOchiq(false); setTanlanganMaktab(school); maktablarniYukla(); }}
-        />
+        <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <AdminSchoolWizard
+            token={token}
+            apiBase={API_BASE}
+            regions={VILOYATLAR}
+            districtsByRegion={HUDUDLAR}
+            onCancel={() => setFormOchiq(false)}
+            onCreated={(school) => { setFormOchiq(false); setTanlanganMaktab(school); maktablarniYukla(); }}
+          />
+        </React.Suspense>
       )}
 
       {yuklanmoqda ? (
@@ -5932,17 +6097,6 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
   const parolniTashla = async (sinfId) => {
     await fetch(`${API_BASE}/api/admin/sinf_parolini_tashla?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`, { method: "PUT" });
-    sinflarniYukla();
-  };
-
-  const sinfGuruhlashniSaqla = async (sinfId, guruhlashUsuli) => {
-    const res = await fetch(`${API_BASE}/api/maktab/sinf_sozlash`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, sinf_id: sinfId, guruhlash_usuli: guruhlashUsuli }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setXato(data.detail || "Sinf guruhini saqlab bo‘lmadi"); return; }
-    setImportXabari(`✅ Sinf guruhlari yangilandi: 1-guruh ${data.guruhlar?.["1"] || 0} ta, 2-guruh ${data.guruhlar?.["2"] || 0} ta.`);
     sinflarniYukla();
   };
 
@@ -6151,19 +6305,18 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           <div className="space-y-2">
             {sinflar.map((s) => (
               <div key={s.id} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
-                <div className="grid sm:grid-cols-[1fr_220px_auto] gap-3 items-center">
+                <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center">
                   <div>
                   <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"} · {s.psixolog_ismi || "Psixolog belgilanmagan"}</p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
                   </div>
-                  <label className="text-xs font-medium" style={{ color: "#5A5648" }}>O‘quvchilar guruhi<select value={s.guruhlash_usuli || "none"} onChange={(e) => sinfGuruhlashniSaqla(s.id, e.target.value)} className="block w-full mt-1 px-2.5 py-2 rounded-lg border bg-white" style={{ borderColor: "#E5E1D8" }}><option value="none">Bo‘linmaydi</option><option value="gender">O‘g‘il / qiz — avtomatik</option><option value="alphabet">1 / 2 guruh — avtomatik</option><option value="manual">Qo‘lda belgilangan</option></select></label>
                   <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
                     ↻ Parolni tashlash
                   </button>
                 </div>
-                <SinfGuruhBoshqaruvi token={token} sinf={s} onSaved={() => setSinflar((avvalgi) => avvalgi.map((qator) => qator.id === s.id ? { ...qator, guruhlash_usuli: "manual" } : qator))} />
+                <SinfGuruhBoshqaruvi token={token} sinf={s} fanlar={saqlanganFanlar} onSaved={sinflarniYukla} />
               </div>
             ))}
           </div>
@@ -13974,7 +14127,7 @@ function ProfileAccordion({ icon, title, summary, children, nested = false }) {
         <ChevronDown size={17} className="shrink-0 transition-transform" style={{ color: "#8A8578", transform: ochiq ? "rotate(180deg)" : "none" }} />
       </summary>
       <div className={`${nested ? "px-3.5 pb-3.5" : "px-4 pb-4"} border-t pt-3`} style={{ borderColor: "#F0ECE3" }}>
-        {children}
+        {ochiq ? children : null}
       </div>
     </details>
   );
@@ -14702,7 +14855,9 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 
       {foydalanuvchi?.is_admin && (
         <ProfileAccordion icon="🛡️" title="Admin xavfsizligi va arxiv" summary="Parol, faol muassasalar va arxiv">
-        <AdminInstitutionSecurity token={token} apiBase={API_BASE} />
+        <React.Suspense fallback={<div className="py-6 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <AdminInstitutionSecurity token={token} apiBase={API_BASE} />
+        </React.Suspense>
         </ProfileAccordion>
       )}
 
@@ -15344,6 +15499,10 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const [qidiruvMatni, setQidiruvMatni] = useState("");
   const [qidiruvNatijalari, setQidiruvNatijalari] = useState(null);
   const [kimYozmoqda, setKimYozmoqda] = useState([]);
+  const xabarAbortRef = useRef(null);
+  const qidiruvAbortRef = useRef(null);
+  const qidiruvTaymerRef = useRef(null);
+  const oxirgiKorildiRef = useRef(null);
   const REAKSIYA_EMOJILARI = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
   const reaksiyaQoy = async (xabar, emoji) => {
@@ -15387,12 +15546,18 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
 
   const qidir = (matnQiymat) => {
     setQidiruvMatni(matnQiymat);
+    clearTimeout(qidiruvTaymerRef.current);
+    qidiruvAbortRef.current?.abort();
     if (matnQiymat.trim().length < 2) { setQidiruvNatijalari(null); return; }
-    const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-    fetch(`${API_BASE}/api/chat/qidir?token=${encodeURIComponent(token)}&${parametr}&matn=${encodeURIComponent(matnQiymat.trim())}`)
-      .then((r) => r.json())
-      .then((d) => setQidiruvNatijalari(d.natijalar || []))
-      .catch(() => {});
+    qidiruvTaymerRef.current = setTimeout(() => {
+      const controller = new AbortController();
+      qidiruvAbortRef.current = controller;
+      const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
+      fetch(`${API_BASE}/api/chat/qidir?token=${encodeURIComponent(token)}&${parametr}&matn=${encodeURIComponent(matnQiymat.trim())}`, { signal: controller.signal })
+        .then((r) => r.json())
+        .then((d) => setQidiruvNatijalari(d.natijalar || []))
+        .catch((e) => { if (e.name !== "AbortError") setQidiruvNatijalari([]); });
+    }, 300);
   };
 
   const xabarTahrirlashniBoshla = (x) => {
@@ -15435,8 +15600,11 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   const [javobBerilayotgan, setJavobBerilayotgan] = useState(null); // xabar obyekti | null
 
   const yukla = () => {
+    xabarAbortRef.current?.abort();
+    const controller = new AbortController();
+    xabarAbortRef.current = controller;
     const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-    fetch(`${API_BASE}/api/chat/xabarlar?token=${encodeURIComponent(token)}&${parametr}`)
+    fetch(`${API_BASE}/api/chat/xabarlar?token=${encodeURIComponent(token)}&${parametr}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => {
         const royxat = d.xabarlar || [];
@@ -15446,30 +15614,57 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
         setTimeout(() => oxiriRef.current?.scrollIntoView(), 50);
         if (royxat.length > 0) {
           const engSonggisi = royxat[royxat.length - 1].id;
-          const kp = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-          fetch(`${API_BASE}/api/chat/korildi_belgila?token=${encodeURIComponent(token)}&oxirgi_xabar_id=${engSonggisi}&${kp}`, { method: "POST" }).catch(() => {});
+          if (oxirgiKorildiRef.current !== engSonggisi) {
+            oxirgiKorildiRef.current = engSonggisi;
+            const kp = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
+            fetch(`${API_BASE}/api/chat/korildi_belgila?token=${encodeURIComponent(token)}&oxirgi_xabar_id=${engSonggisi}&${kp}`, { method: "POST" }).catch(() => {});
+          }
         }
       })
-      .catch(() => setYuklanmoqda(false));
+      .catch((e) => { if (e.name !== "AbortError") setYuklanmoqda(false); });
   };
 
-  useEffect(() => { yukla(); }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    oxirgiKorildiRef.current = null;
+    yukla();
+    return () => xabarAbortRef.current?.abort();
+  }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
-    const oraliq = setInterval(() => {
-      fetch(`${API_BASE}/api/chat/kim_yozmoqda?token=${encodeURIComponent(token)}&${parametr}`)
+    let controller = null;
+    const tekshir = () => {
+      if (document.visibilityState !== "visible") return;
+      controller?.abort();
+      controller = new AbortController();
+      fetch(`${API_BASE}/api/chat/kim_yozmoqda?token=${encodeURIComponent(token)}&${parametr}`, { signal: controller.signal })
         .then((r) => r.json())
         .then((d) => setKimYozmoqda(d.ismlar || []))
         .catch(() => {});
-    }, 2500);
-    return () => clearInterval(oraliq);
+    };
+    const korinishOzgardi = () => {
+      if (document.visibilityState === "visible") tekshir();
+      else setKimYozmoqda([]);
+    };
+    tekshir();
+    const oraliq = setInterval(tekshir, 6000);
+    document.addEventListener("visibilitychange", korinishOzgardi);
+    return () => {
+      clearInterval(oraliq);
+      controller?.abort();
+      document.removeEventListener("visibilitychange", korinishOzgardi);
+    };
   }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]);
+
+  useEffect(() => () => {
+    clearTimeout(qidiruvTaymerRef.current);
+    qidiruvAbortRef.current?.abort();
+  }, []);
 
   const yozmoqdaRef = useRef(0);
   const yozayotganiniBildir = () => {
     const hozir = Date.now();
-    if (hozir - yozmoqdaRef.current < 2000) return; // 2 soniyada bir marta yetarli
+    if (hozir - yozmoqdaRef.current < 3000) return; // ortiqcha parallel so'rov yubormaydi
     yozmoqdaRef.current = hozir;
     const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
     fetch(`${API_BASE}/api/chat/yozmoqda?token=${encodeURIComponent(token)}&${parametr}`, { method: "POST" }).catch(() => {});
