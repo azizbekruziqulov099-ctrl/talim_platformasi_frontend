@@ -29,7 +29,7 @@ import {
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
 import TestGameArena, { GameModePicker, GameProfileStrip } from "./TestGameArena.jsx";
-import SchoolAdminV23, { OrganizationDeletePanel, SchoolInstitutionManager } from "./SchoolInstitutionV23.jsx";
+import AdminInstitutionSecurity from "./AdminInstitutionSecurity.jsx";
 import {
   buildGameStartPayload,
   gameErrorMessage,
@@ -4462,7 +4462,7 @@ function AdminMuassasalarTab({ token }) {
           <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} /></span>
           Muassasalar
         </button>
-        {bolim === "maktab" && <SchoolAdminV23 apiBase={API_BASE} token={token} />}
+        {bolim === "maktab" && <MaktablarBolimi token={token} />}
         {bolim === "markaz" && <MarkazlarBolimi token={token} />}
         {bolim === "bogcha" && <BogchalarBolimi token={token} />}
         {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
@@ -4565,7 +4565,7 @@ function AdminMuassasalarTab({ token }) {
   );
 }
 
-const SINF_HARFLARI = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
 
 const LAVOZIM_NOMLARI = {
   direktor: "Direktor",
@@ -6173,11 +6173,6 @@ function MarkazTafsiloti({ token, markaz, onOrtga }) {
           </div>
         </div>
       )}
-      <OrganizationDeletePanel
-        apiBase={API_BASE} token={token} organizationType="learning_center"
-        organizationId={markaz.id} name={markaz.nomi} ownCreation={Boolean(markaz.own_creation)}
-        onDeleted={onOrtga}
-      />
     </div>
   );
 }
@@ -6421,11 +6416,6 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
           </div>
         </div>
       )}
-      <OrganizationDeletePanel
-        apiBase={API_BASE} token={token} organizationType="kindergarten"
-        organizationId={bogcha.id} name={bogcha.nomi} ownCreation={Boolean(bogcha.own_creation)}
-        onDeleted={onOrtga}
-      />
     </div>
   );
 }
@@ -6563,15 +6553,6 @@ function UniversitetlarBolimi({ token }) {
         </div>
         {holat === "universitet" && <p className="text-xs" style={{ color: "#8A8578" }}>Rektor → Dekan → Kafedra mudiri → Guruh kuratori tuzilmasi.</p>}
       </div>
-
-      {holat === "fakultet" && tUniversitet && (
-        <OrganizationDeletePanel
-          apiBase={API_BASE} token={token} organizationType="institute"
-          organizationId={tUniversitet.id} name={tUniversitet.nomi}
-          ownCreation={Boolean(tUniversitet.own_creation)}
-          onDeleted={() => { setHolat("universitet"); setTUniversitet(null); universitetlarniYukla(); }}
-        />
-      )}
 
       {formOchiq && (
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
@@ -12944,20 +12925,6 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
             canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
           />
         </React.Suspense>
-        {aktivMaktabId && (
-          foydalanuvchi?.is_admin ||
-          ["owner", "direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "admin", "manager"].includes(aktivMuassasa?.lavozim)
-        ) && (
-          <div className="px-5 pb-8">
-            <SchoolInstitutionManager
-              apiBase={API_BASE}
-              token={token}
-              scopeId={aktivMaktabId}
-              scopeKind={aktivMuassasa?.context_id ? "context" : "school"}
-              school={{ nomi: aktivMuassasa?.muassasa_nomi || "Maktab" }}
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -14463,6 +14430,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         {qoshilishXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{qoshilishXato}</p>}
         {qoshilishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>✓ {qoshilishMuvaffaqiyat}</p>}
       </div>
+
+      {foydalanuvchi?.is_admin && (
+        <AdminInstitutionSecurity token={token} apiBase={API_BASE} />
+      )}
 
       {foydalanuvchi?.is_admin ? (
         <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
