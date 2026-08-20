@@ -1,4 +1,6 @@
-// SAMTM V18.48 — manager loading/fallback tuzatildi.\nimport React, { useEffect, useMemo, useState } from "react";
+// SAMTM V18.49 — blank sahifa tuzatildi: React importi tiklandi.
+// SAMTM V18.48 — manager loading/fallback tuzatildi.
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BarChart3, BellRing, BookOpen, CalendarDays, CheckCircle2,
   ChevronRight, ClipboardCheck, Clock3, GraduationCap, LayoutDashboard,
