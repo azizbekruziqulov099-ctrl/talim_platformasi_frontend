@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+// SAMTM V18.48 — manager loading/fallback tuzatildi.\nimport React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BarChart3, BellRing, BookOpen, CalendarDays, CheckCircle2,
   ChevronRight, ClipboardCheck, Clock3, GraduationCap, LayoutDashboard,
@@ -409,7 +409,15 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
 
   const loadManager = () => {
-    if (!maktabId || teacherMode) return;
+    if (teacherMode) return;
+    if (!maktabId) {
+      setDashboard(null);
+      setYuklama([]);
+      setHolatlar([]);
+      setError("Maktab ID topilmadi. Muassasani qayta tanlang yoki sahifani yangilang.");
+      setLoading(false);
+      return;
+    }
     setLoading(true); setError("");
     Promise.all([
       fetch(`${apiBase}/api/maktab/dashboard?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`).then(r => r.json()),
@@ -470,7 +478,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
             <div>
               <div className="text-xs font-bold tracking-[.14em] uppercase opacity-75">Maktab boshqaruv markazi</div>
-              <h1 className="text-2xl md:text-4xl font-black mt-2">{dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || "Maktab"}</h1>
+              <h1 className="text-2xl md:text-4xl font-black mt-2">{dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab")}</h1>
               <p className="text-sm mt-2 opacity-80 max-w-2xl">Bugungi holat, sinflar, o'qituvchi yuklamasi va e'tibor talab qiladigan vaziyatlar — bir qarashda.</p>
             </div>
             <div className="w-16 h-16 rounded-3xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><School size={31}/></div>
