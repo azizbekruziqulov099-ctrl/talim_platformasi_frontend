@@ -30,6 +30,7 @@ import {
 } from "./organizationTrialRules.js";
 import TestGameArena, { GameModePicker, GameProfileStrip } from "./TestGameArena.jsx";
 import AdminInstitutionSecurity from "./AdminInstitutionSecurity.jsx";
+import AdminSchoolWizard from "./AdminSchoolWizard.jsx";
 import {
   buildGameStartPayload,
   gameErrorMessage,
@@ -4565,7 +4566,7 @@ function AdminMuassasalarTab({ token }) {
   );
 }
 
-const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
+const SINF_HARFLARI = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
 
 const LAVOZIM_NOMLARI = {
   direktor: "Direktor",
@@ -5654,15 +5655,6 @@ function MaktablarBolimi({ token }) {
   const [maktablar, setMaktablar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [formOchiq, setFormOchiq] = useState(false);
-  const [nomi, setNomi] = useState("");
-  const [viloyat, setViloyat] = useState("");
-  const [tuman, setTuman] = useState("");
-  const [smenaSoni, setSmenaSoni] = useState(1);
-  const [direktor, setDirektor] = useState(null); // {user_id, full_name} | null
-  const [pulli, setPulli] = useState(false);
-  const [oylikTolov, setOylikTolov] = useState("");
-  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
-  const [xato, setXato] = useState("");
   const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
 
   const maktablarniYukla = () => {
@@ -5674,28 +5666,6 @@ function MaktablarBolimi({ token }) {
   };
 
   useEffect(maktablarniYukla, [token]);
-
-  const maktabSaqla = async () => {
-    if (!nomi.trim()) { setXato("Maktab nomini kiriting"); return; }
-    setSaqlanmoqda(true); setXato("");
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/maktab_yarat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token, nomi: nomi.trim(), viloyat: viloyat || undefined, tuman: tuman || undefined,
-          smena_soni: smenaSoni, direktor_user_id: direktor ? direktor.user_id : undefined,
-          pulli, oylik_tolov: pulli && oylikTolov ? parseInt(oylikTolov, 10) : undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
-      setNomi(""); setViloyat(""); setTuman(""); setSmenaSoni(1); setDirektor(null); setPulli(false); setOylikTolov(""); setFormOchiq(false);
-      maktablarniYukla();
-    } catch (e) {
-      setXato(e.message);
-    } finally { setSaqlanmoqda(false); }
-  };
 
   if (tanlanganMaktab) {
     return <MaktabTafsiloti token={token} maktab={tanlanganMaktab} onOrtga={() => { setTanlanganMaktab(null); maktablarniYukla(); }} />;
@@ -5710,81 +5680,18 @@ function MaktablarBolimi({ token }) {
             {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
           </button>
         </div>
-        <p className="text-xs" style={{ color: "#8A8578" }}>1-bosqich tayyor. Endi ro'yxatdan maktabni tanlang — xodimlarni Excel orqali kiritasiz (2-bosqich).</p>
+        <p className="text-xs" style={{ color: "#8A8578" }}>Maktab va uning haqiqiy sinflari 4 bosqichda birga yaratiladi. Ortiqcha parallel sinf avtomatik qo'shilmaydi.</p>
       </div>
 
       {formOchiq && (
-        <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab nomi</label>
-          <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
-            placeholder="masalan: 21-maktab"
-            className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
-            style={{ borderColor: "#E5E1D8" }} />
-
-          <div className="grid grid-cols-2 gap-2.5 mb-3">
-            <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Viloyat</label>
-              <select value={viloyat} onChange={(e) => { setViloyat(e.target.value); setTuman(""); }}
-                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
-                <option value="">—</option>
-                {VILOYATLAR.map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Tuman</label>
-              <select value={tuman} onChange={(e) => setTuman(e.target.value)} disabled={!viloyat}
-                className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: viloyat ? 1 : 0.5 }}>
-                <option value="">—</option>
-                {(HUDUDLAR[viloyat] || []).map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Smena soni</label>
-          <div className="flex gap-2 mb-3">
-            {[1, 2].map((n) => (
-              <button key={n} onClick={() => setSmenaSoni(n)}
-                className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
-                style={smenaSoni === n
-                  ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" }
-                  : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
-                {n} smenali
-              </button>
-            ))}
-          </div>
-
-          <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Direktor (ixtiyoriy — keyin ham belgilash mumkin)</label>
-          <DirektorQidiruvi token={token} tanlanganDirektor={direktor} onTanla={setDirektor} />
-
-          <label className="text-xs font-medium mb-1.5 block mt-3" style={{ color: "#5A5648" }}>To'lov turi</label>
-          <div className="flex gap-2 mb-3">
-            <button onClick={() => setPulli(false)}
-              className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
-              style={!pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
-              Bepul (davlat)
-            </button>
-            <button onClick={() => setPulli(true)}
-              className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
-              style={pulli ? { backgroundColor: "#1B4B7A", color: "#fff", borderColor: "#1B4B7A" } : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
-              Pulli (xususiy)
-            </button>
-          </div>
-          {pulli && (
-            <>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Oylik to'lov (so'm)</label>
-              <input type="number" value={oylikTolov} onChange={(e) => setOylikTolov(e.target.value)}
-                placeholder="masalan: 500000"
-                className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
-            </>
-          )}
-
-          {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
-          <button onClick={maktabSaqla} disabled={saqlanmoqda}
-            className="w-full py-3 rounded-xl font-semibold text-white text-sm"
-            style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda ? 0.7 : 1 }}>
-            {saqlanmoqda ? "Saqlanmoqda..." : "Maktabni yaratish"}
-          </button>
-        </div>
+        <AdminSchoolWizard
+          token={token}
+          apiBase={API_BASE}
+          regions={VILOYATLAR}
+          districtsByRegion={HUDUDLAR}
+          onCancel={() => setFormOchiq(false)}
+          onCreated={(school) => { setFormOchiq(false); setTanlanganMaktab(school); maktablarniYukla(); }}
+        />
       )}
 
       {yuklanmoqda ? (
@@ -5799,7 +5706,7 @@ function MaktablarBolimi({ token }) {
             <button key={m.id} onClick={() => setTanlanganMaktab(m)}
               className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.maktab_raqami ? `${m.maktab_raqami}-sonli ${m.nomi}` : m.nomi}</p>
                 <ChevronRight size={16} style={{ color: "#8A8578" }} />
               </div>
               <p className="text-xs" style={{ color: "#8A8578" }}>
@@ -5889,7 +5796,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   return (
     <div>
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Maktablar</button>
-      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.nomi}</h1>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.maktab_raqami ? `${maktab.maktab_raqami}-sonli ${maktab.nomi}` : maktab.nomi}</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
       </p>
@@ -5962,7 +5869,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
               <div key={s.id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
                 <div>
                   <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
-                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"} · {s.psixolog_ismi || "Psixolog belgilanmagan"}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
                 </div>
                 <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
@@ -13731,6 +13639,32 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
 // ═══════════════════════════════════════════════════════════
 // 6) PROFIL — tahrirlash va rol almashtirish
 // ═══════════════════════════════════════════════════════════
+function ProfileAccordion({ icon, title, summary, children, nested = false }) {
+  const [ochiq, setOchiq] = useState(false);
+  return (
+    <details
+      className={`${nested ? "rounded-xl" : "rounded-2xl shadow-sm"} bg-white border mb-3 overflow-visible`}
+      style={{ borderColor: "#E5E1D8" }}
+      onToggle={(event) => setOchiq(event.currentTarget.open)}
+    >
+      <summary
+        className={`${nested ? "px-3.5 py-3" : "px-4 py-3.5"} flex items-center gap-3 cursor-pointer select-none [&::-webkit-details-marker]:hidden`}
+        style={{ listStyle: "none" }}
+      >
+        <span className={`${nested ? "w-8 h-8" : "w-10 h-10"} rounded-xl flex items-center justify-center shrink-0 text-base`} style={{ backgroundColor: "#F7F5F0" }}>{icon}</span>
+        <span className="flex-1 min-w-0">
+          <b className="block text-sm" style={{ color: "#2B2B2B" }}>{title}</b>
+          {summary && <small className="block text-[11px] mt-0.5 truncate" style={{ color: "#8A8578" }}>{summary}</small>}
+        </span>
+        <ChevronDown size={17} className="shrink-0 transition-transform" style={{ color: "#8A8578", transform: ochiq ? "rotate(180deg)" : "none" }} />
+      </summary>
+      <div className={`${nested ? "px-3.5 pb-3.5" : "px-4 pb-4"} border-t pt-3`} style={{ borderColor: "#F0ECE3" }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
 function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar, rang }) {
   const profilRangi = rang || "#1B4B7A";
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
@@ -14077,6 +14011,8 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       <div className="px-5 -mt-8">
       {rasmXato && <p className="text-xs mb-3" style={{ color: "#B0553A" }}>{rasmXato}</p>}
 
+      <ProfileAccordion icon="⚙️" title="Profil sozlamalari" summary="Shaxsiy ma'lumot, maktab, fan, dizayn, ovoz va til">
+      <ProfileAccordion nested icon="👤" title="Shaxsiy ma'lumotlar" summary="Ism, tug'ilgan sana va hudud">
       <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>👤 Shaxsiy ma'lumotlar</p>
 
@@ -14114,8 +14050,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           </div>
         </div>
       </div>
+      </ProfileAccordion>
 
       {foydalanuvchi?.role === "oquvchi" && (
+        <ProfileAccordion nested icon="🏫" title="Maktab va sinf" summary={sinf ? `${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : "Sinf tanlanmagan"}>
         <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🏫 Maktab ma'lumotlari</p>
 
@@ -14215,9 +14153,11 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
             </button>
           </div>
         </div>
+        </ProfileAccordion>
       )}
 
       {foydalanuvchi?.role === "oqituvchi" && (
+        <ProfileAccordion nested icon="📚" title="O'qituvchi ma'lumotlari" summary={oqituvchiFani || "Fan tanlanmagan"}>
         <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "#5A5648" }}>📚 O'qituvchi ma'lumotlari</p>
 
@@ -14267,9 +14207,11 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
             </p>
           )}
         </div>
+        </ProfileAccordion>
       )}
 
       {foydalanuvchi?.role === "oqituvchi" && (
+        <ProfileAccordion nested icon="🔗" title="Maktab yoki markazga ulanish" summary="Rasmiy sinf va kirish kodi">
         <div className="rounded-2xl p-3 bg-white border mb-4 shadow-sm space-y-2" style={{ borderColor: "#E5E1D8" }}>
           <button onClick={() => setKorinish("rasmiy_sinf")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "#F7F5F0" }}>
             <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}>
@@ -14286,8 +14228,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
             <ChevronRight size={15} style={{ color: "#8A8578" }} />
           </button>
         </div>
+        </ProfileAccordion>
       )}
 
+      <ProfileAccordion nested icon="🔊" title="Ovoz va til" summary={`${asosiyTil.toUpperCase()} · ${ovozJinsi === "qiz" ? "Ayol ovozi" : "Erkak ovozi"}`}>
       <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-semibold mb-1 flex items-center gap-1.5" style={{ color: "#5A5648" }}>🔊 Ovoz va til sozlamalari</p>
         <p className="text-[11px] mb-3 leading-relaxed" style={{ color: "#8A8578" }}>
@@ -14317,6 +14261,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           </button>
         </div>
       </div>
+      </ProfileAccordion>
 
       {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{xato}</p>}
       {muvaffaqiyat && <p className="text-sm mb-3" style={{ color: "#3B6D11" }}>✓ Saqlandi</p>}
@@ -14326,9 +14271,12 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         style={{ backgroundColor: profilRangi, opacity: saqlanmoqda ? 0.7 : 1 }}>
         {saqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
       </button>
+      </ProfileAccordion>
 
       {foydalanuvchi?.role === "oquvchi" && (
-        <div ref={otaOnaKartaRef} className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
+        <div ref={otaOnaKartaRef}>
+        <ProfileAccordion icon="🔗" title="Ota-onani ulash" summary={otaOnalarim.length ? `${otaOnalarim.length} ta ota-ona ulangan` : "Kod orqali ulash"}>
+        <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>🔗 Ota-onani ulash</p>
           {otaOnalarim.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2 mt-2">
@@ -14355,9 +14303,12 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
             {otaKodOlinmoqda ? "..." : otaKod ? "🔄 Yangi kod olish" : "Kod olish"}
           </button>
         </div>
+        </ProfileAccordion>
+        </div>
       )}
 
       {foydalanuvchi?.role === "ota-ona" && (
+        <ProfileAccordion icon="👨‍👩‍👧" title="Farzandlarim" summary={farzandlar.length ? `${farzandlar.length} ta farzand ulangan` : "Farzand kodini kiriting"}>
         <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-2" style={{ color: "#2B2B2B" }}>👨‍👩‍👧 Farzandlarim</p>
 
@@ -14387,8 +14338,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           {farzandXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{farzandXato}</p>}
           {farzandMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>{farzandMuvaffaqiyat}</p>}
         </div>
+        </ProfileAccordion>
       )}
 
+      <ProfileAccordion icon="🎯" title="Mening to'garaklarim" summary={togaraklarim.length ? `${togaraklarim.length} ta to'garak` : "Parol bilan qo'shilish"}>
       <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-xs font-medium mb-3" style={{ color: "#5A5648" }}>Mening to'garaklarim</p>
 
@@ -14430,11 +14383,15 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         {qoshilishXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>{qoshilishXato}</p>}
         {qoshilishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>✓ {qoshilishMuvaffaqiyat}</p>}
       </div>
+      </ProfileAccordion>
 
       {foydalanuvchi?.is_admin && (
+        <ProfileAccordion icon="🛡️" title="Admin xavfsizligi va arxiv" summary="Parol, faol muassasalar va arxiv">
         <AdminInstitutionSecurity token={token} apiBase={API_BASE} />
+        </ProfileAccordion>
       )}
 
+      <ProfileAccordion icon="🎭" title={foydalanuvchi?.is_admin ? "Kabinet ko'rinishi" : "Rol sozlamalari"} summary={foydalanuvchi?.is_admin ? "Admin, o'quvchi, ota-ona yoki o'qituvchi" : `Joriy rol: ${rolNomlari[foydalanuvchi?.role] || "—"}`}>
       {foydalanuvchi?.is_admin ? (
         <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-xs font-medium mb-1" style={{ color: "#5A5648" }}>Rol ko‘rinishini almashtirish</p>
@@ -14473,6 +14430,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
           </div>
         </div>
       )}
+      </ProfileAccordion>
 
       {rolTanlov && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
