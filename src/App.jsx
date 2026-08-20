@@ -30,6 +30,7 @@ import {
 } from "./organizationTrialRules.js";
 import TestGameArena, { GameModePicker, GameProfileStrip } from "./TestGameArena.jsx";
 import AdminInstitutionSecurity from "./AdminInstitutionSecurity.jsx";
+import AdminSchoolWizard from "./AdminSchoolWizard.jsx";
 import {
   buildGameStartPayload,
   gameErrorMessage,
@@ -4565,7 +4566,7 @@ function AdminMuassasalarTab({ token }) {
   );
 }
 
-const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
+const SINF_HARFLARI = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
 
 const LAVOZIM_NOMLARI = {
   direktor: "Direktor",
@@ -5710,10 +5711,21 @@ function MaktablarBolimi({ token }) {
             {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
           </button>
         </div>
-        <p className="text-xs" style={{ color: "#8A8578" }}>1-bosqich tayyor. Endi ro'yxatdan maktabni tanlang — xodimlarni Excel orqali kiritasiz (2-bosqich).</p>
+        <p className="text-xs" style={{ color: "#8A8578" }}>Maktab va uning haqiqiy sinflari 3 bosqichda birga yaratiladi. Ortiqcha parallel sinf avtomatik qo'shilmaydi.</p>
       </div>
 
       {formOchiq && (
+        <AdminSchoolWizard
+          token={token}
+          apiBase={API_BASE}
+          regions={VILOYATLAR}
+          districtsByRegion={HUDUDLAR}
+          onCancel={() => setFormOchiq(false)}
+          onCreated={() => { setFormOchiq(false); maktablarniYukla(); }}
+        />
+      )}
+
+      {false && formOchiq && (
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Maktab nomi</label>
           <input type="text" value={nomi} onChange={(e) => setNomi(e.target.value)}
@@ -5799,7 +5811,7 @@ function MaktablarBolimi({ token }) {
             <button key={m.id} onClick={() => setTanlanganMaktab(m)}
               className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.nomi}</p>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.maktab_raqami ? `${m.maktab_raqami}-sonli ${m.nomi}` : m.nomi}</p>
                 <ChevronRight size={16} style={{ color: "#8A8578" }} />
               </div>
               <p className="text-xs" style={{ color: "#8A8578" }}>
@@ -5889,7 +5901,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   return (
     <div>
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Maktablar</button>
-      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.nomi}</h1>
+      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.maktab_raqami ? `${maktab.maktab_raqami}-sonli ${maktab.nomi}` : maktab.nomi}</h1>
       <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
         {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
       </p>
@@ -5962,7 +5974,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
               <div key={s.id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
                 <div>
                   <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
-                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"} · {s.psixolog_ismi || "Psixolog belgilanmagan"}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
                 </div>
                 <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
