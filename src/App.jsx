@@ -1,4 +1,8 @@
-// SAMTM V18.48 — Maktab ID yo‘qolib qolishi va admin preview ko‘rinmasligi tuzatildi.\n// SAMTM V18.47 — Admin maktabni turli rollar sifatida READ-ONLY ko‘ra oladi.\n// SAMTM V18.46 — Kundalik baho eslatmasi o‘qituvchi tomonidan YOQ/O‘CHIQ qilinadi.\nimport React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+// SAMTM V18.49 — blank sahifa tuzatildi: importlar endi komment ichida qolmaydi.
+// SAMTM V18.48 — Maktab ID yo‘qolib qolishi va admin preview ko‘rinmasligi tuzatildi.
+// SAMTM V18.47 — Admin maktabni turli rollar sifatida READ-ONLY ko‘ra oladi.
+// SAMTM V18.46 — Kundalik baho eslatmasi o‘qituvchi tomonidan YOQ/O‘CHIQ qilinadi.
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import {
