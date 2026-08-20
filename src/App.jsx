@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+// SAMTM V18.46 — Kundalik baho eslatmasi o‘qituvchi tomonidan YOQ/O‘CHIQ qilinadi.\nimport React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import {
@@ -2495,15 +2495,14 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
         <span>👥 Ko‘p guruhli boshqaruv{yuklangan ? ` · ${tizimlar.length} ta faol` : ""}</span><span>{ochiq ? "⌃" : "⌄"}</span>
       </button>
       {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#B9CCDC", contentVisibility: "auto", containIntrinsicSize: "1px 520px" }}>
-        <p className="text-[11px] mb-3" style={{ color: "#6F6859" }}>Bitta sinfda uchala usulni ham bir vaqtda yoqish mumkin. Har biri alohida saqlanadi.</p>
+        <p className="text-[11px] mb-3" style={{ color: "#6F6859" }}>Bitta sinfda 2 ta yoki uchala usulni ham bir vaqtda belgilash mumkin. Bittasini belgilash boshqasini o‘chirmaydi; har biri alohida saqlanadi.</p>
         {yuklanmoqda ? <div className="py-6"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div> : <>
           <div className="grid sm:grid-cols-3 gap-2">
             {Object.entries(turMalumoti).map(([turi, malumot]) => {
               const tizim = tizimlar.find((item) => item.turi === turi);
-              return <button key={turi} type="button" onClick={() => tizimniAlmashtir(turi)} disabled={saqlanmoqda || !boshqaraOladi} className="rounded-xl border p-3 text-left" style={{ backgroundColor: tizim ? malumot.rang : "#fff", borderColor: tizim ? "#1B4B7A" : "#E5E1D8", opacity: boshqaraOladi ? 1 : 0.72 }}>
-                <span className="flex items-center justify-between gap-2"><b className="text-xs" style={{ color: "#2B2B2B" }}>{malumot.nomi}</b><span className="text-xs font-bold" style={{ color: tizim ? "#3B6D11" : "#A39D8E" }}>{tizim ? "✓ FAOL" : "+ QO‘SHISH"}</span></span>
-                <small className="block mt-1" style={{ color: "#8A8578" }}>{malumot.izoh}</small>
-              </button>;
+              return <label key={turi} className="rounded-xl border p-3 text-left cursor-pointer" style={{ backgroundColor: tizim ? malumot.rang : "#fff", borderColor: tizim ? "#1B4B7A" : "#E5E1D8", opacity: boshqaraOladi ? 1 : 0.72 }}>
+                <span className="flex items-start gap-2.5"><input type="checkbox" checked={Boolean(tizim)} disabled={saqlanmoqda || !boshqaraOladi} onChange={() => tizimniAlmashtir(turi)} className="mt-0.5" /><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><b className="text-xs" style={{ color: "#2B2B2B" }}>{malumot.nomi}</b><span className="text-xs font-bold" style={{ color: tizim ? "#3B6D11" : "#A39D8E" }}>{tizim ? "✓ FAOL" : "BELGILASH"}</span></span><small className="block mt-1" style={{ color: "#8A8578" }}>{malumot.izoh}</small></span></span>
+              </label>;
             })}
           </div>
 
@@ -2629,6 +2628,7 @@ function MaktablarBolimi({ token }) {
 }
 
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
+  const [boshSahifa, setBoshSahifa] = useState(false);
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [importXabari, setImportXabari] = useState("");
@@ -2763,6 +2763,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       window.URL.revokeObjectURL(dlUrl);
       setImportXabari("✅ Import yakunlandi — kirish kodlari Word fayl qilib yuklab olindi.");
       sinflarniYukla();
+      setBoshSahifa(true);
     } catch (e) {
       setXato(e.message);
     } finally {
@@ -2771,14 +2772,32 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     }
   };
 
+  if (boshSahifa) {
+    return (
+      <SchoolWorkspace
+        token={token}
+        apiBase={API_BASE}
+        initialWorkspace={{ muassasa_id: maktab.id, muassasa_nomi: maktab.nomi, lavozim: "direktor" }}
+        onBack={() => setBoshSahifa(false)}
+        onLegacy={() => setBoshSahifa(false)}
+      />
+    );
+  }
+
   return (
     <div>
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Maktablar</button>
-      <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.maktab_raqami ? `${maktab.maktab_raqami}-sonli ${maktab.nomi}` : maktab.nomi}</h1>
-      <p className="text-xs mb-5" style={{ color: "#8A8578" }}>
-        {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
-      </p>
-
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.maktab_raqami ? `${maktab.maktab_raqami}-sonli ${maktab.nomi}` : maktab.nomi}</h1>
+          <p className="text-xs" style={{ color: "#8A8578" }}>
+            {[maktab.viloyat, maktab.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {maktab.smena_soni} smenali
+          </p>
+        </div>
+        <button onClick={() => setBoshSahifa(true)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm" style={{ background: "linear-gradient(135deg,#1B4B7A,#0F7C82)" }}>
+          🏫 Maktab bosh sahifasi
+        </button>
+      </div>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
         <div className="flex gap-2 mb-3">
