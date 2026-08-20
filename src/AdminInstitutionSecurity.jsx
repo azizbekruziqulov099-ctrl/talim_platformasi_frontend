@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
   Building2,
+  ChevronDown,
   Eye,
   EyeOff,
   Loader2,
@@ -86,6 +87,26 @@ function PasswordField({ label, value, onChange, placeholder, visible, onToggle,
         </button>
       </span>
     </label>
+  );
+}
+
+
+function SecurityAccordion({ icon, title, summary, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className="rounded-xl border mb-3 overflow-visible" style={{ borderColor: "#E5E1D8", backgroundColor: "#fff" }} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer select-none [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}>
+        <span className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>{icon}</span>
+        <span className="flex-1 min-w-0">
+          <b className="block text-sm" style={{ color: "#2B2B2B" }}>{title}</b>
+          {summary && <small className="block text-[11px] mt-0.5 truncate" style={{ color: "#8A8578" }}>{summary}</small>}
+        </span>
+        <ChevronDown size={16} className="shrink-0 transition-transform" style={{ color: "#8A8578", transform: open ? "rotate(180deg)" : "none" }} />
+      </summary>
+      <div className="px-3.5 pb-3.5 pt-3 border-t" style={{ borderColor: "#F0ECE3" }}>
+        {children}
+      </div>
+    </details>
   );
 }
 
@@ -274,7 +295,7 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
   };
 
   return (
-    <section className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "#E5E1D8" }} aria-labelledby="admin-institution-security-title">
+    <section aria-labelledby="admin-institution-security-title">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-start gap-3">
           <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><ShieldCheck size={20} /></span>
@@ -289,7 +310,12 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
       {loadError && <div className="rounded-xl p-3 mb-3 text-sm" role="alert" style={{ backgroundColor: "#FDF0EC", color: "#B0553A" }}>{loadError}</div>}
       {message && <div className="rounded-xl p-3 mb-3 text-sm" role="status" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>✓ {message}</div>}
 
-      <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
+      <SecurityAccordion
+        icon={<ShieldCheck size={16} />}
+        title="O'chirish paroli"
+        summary={status?.configured ? "4 xonali parol faol" : "Parol sozlanmagan"}
+      >
+      <div className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <div>
             <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>O'chirish parolini yangilash</p>
@@ -315,7 +341,13 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
           {passwordSaving ? "Saqlanmoqda..." : "Parolni yangilash"}
         </button>
       </div>
+      </SecurityAccordion>
 
+      <SecurityAccordion
+        icon={<Archive size={16} />}
+        title="Muassasalar va arxiv"
+        summary={`${active.length} faol · ${archived.length} arxiv`}
+      >
       <div className="grid grid-cols-2 gap-2 mb-3" role="tablist" aria-label="Muassasa holati">
         <button type="button" role="tab" aria-selected={tab === "active"} onClick={() => setTab("active")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "active" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Building2 size={15} /> Faol · {active.length}</button>
         <button type="button" role="tab" aria-selected={tab === "archive"} onClick={() => setTab("archive")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "archive" ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Archive size={15} /> Arxiv · {archived.length}</button>
@@ -367,6 +399,7 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
       )}
 
       <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "#8A8578" }}>Arxivdagi muassasa 365 kun ichida tiklanadi. Muddat tugagach avtomatik tozalash ishga tushadi va tiklash yopiladi.</p>
+      </SecurityAccordion>
 
       <ActionDialog
         target={action?.target}
