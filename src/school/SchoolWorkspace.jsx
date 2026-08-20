@@ -3,7 +3,8 @@ import {
   ArrowLeft, BarChart3, BellRing, BookOpen, CalendarDays, CheckCircle2,
   ChevronRight, ClipboardCheck, Clock3, GraduationCap, LayoutDashboard,
   Loader2, MessageCircle, RefreshCw, School, Sparkles, Users, UserRoundCheck,
-  WandSparkles, AlertTriangle, CalendarCheck2, ToggleLeft, ToggleRight
+  WandSparkles, AlertTriangle, CalendarCheck2, ToggleLeft, ToggleRight,
+  Eye, ShieldCheck, UserCog, Stethoscope, Brain, LockKeyhole, X, Search
 } from "lucide-react";
 
 const palette = {
@@ -163,7 +164,240 @@ function TeacherToday({ token, apiBase }) {
   );
 }
 
-export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy }) {
+
+const previewRoleMeta = {
+  maktab_admin: { nom: "Maktab admini", izoh: "To'liq maktab boshqaruv ko'rinishi", icon: <ShieldCheck size={17}/> },
+  direktor: { nom: "Direktor", izoh: "Rahbariyatning kundalik boshqaruv ko'rinishi", icon: <School size={17}/> },
+  zavuch: { nom: "Zavuch", izoh: "Jadval, fan va o'qituvchi yuklamasi", icon: <CalendarDays size={17}/> },
+  manaviyatchi: { nom: "Ma'naviyatchi", izoh: "Davomat va tarbiyaviy kuzatuv", icon: <BellRing size={17}/> },
+  fan_oqituvchisi: { nom: "Fan o'qituvchisi", izoh: "Aniq o'qituvchini tanlab ko'rish", icon: <BookOpen size={17}/> },
+  sinf_rahbari: { nom: "Sinf rahbari", izoh: "Aniq sinfni rahbar sifatida ko'rish", icon: <Users size={17}/> },
+  oquvchi: { nom: "O'quvchi", izoh: "Sinf va o'quvchini tanlab ko'rish", icon: <GraduationCap size={17}/> },
+  ota_ona: { nom: "Ota-ona", izoh: "Farzand natijalarini ota-ona ko'zi bilan", icon: <UserRoundCheck size={17}/> },
+  psixolog: { nom: "Psixolog", izoh: "Faqat tegishli kuzatuv va yordam holatlari", icon: <Brain size={17}/> },
+  hamshira: { nom: "Hamshira", izoh: "Maxfiy sog'liq moduli interfeysi", icon: <Stethoscope size={17}/> },
+};
+
+function PreviewStat({ item }) {
+  const tones = {
+    blue: [palette.sky, palette.blue], teal: [palette.mint, palette.teal],
+    green: [palette.greenBg, palette.green], amber: [palette.amberBg, palette.amber],
+    red: [palette.redBg, palette.red],
+  };
+  const [bg, fg] = tones[item?.tone] || tones.blue;
+  return (
+    <div className="rounded-2xl border bg-white p-4" style={{ borderColor: palette.line }}>
+      <div className="text-2xl font-black" style={{ color: fg }}>{item?.value ?? "—"}</div>
+      <div className="text-xs mt-1" style={{ color: palette.muted }}>{item?.label}</div>
+      <div className="h-1 rounded-full mt-3" style={{ background: bg }} />
+    </div>
+  );
+}
+
+function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
+  const [catalog, setCatalog] = useState(null);
+  const [role, setRole] = useState("maktab_admin");
+  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [error, setError] = useState("");
+  const [roleSearch, setRoleSearch] = useState("");
+
+  useEffect(() => {
+    setLoadingCatalog(true);
+    fetch(`${apiBase}/api/admin/maktab_korish_katalogi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
+      .then(r => r.json().then(d => ({ ok:r.ok, d })))
+      .then(({ok,d}) => {
+        if (!ok || d.detail) throw new Error(d.detail || "Ko'rish katalogi yuklanmadi");
+        setCatalog(d);
+      })
+      .catch(e => setError(e.message || "Ko'rish katalogi yuklanmadi"))
+      .finally(() => setLoadingCatalog(false));
+  }, [token, apiBase, maktabId]);
+
+  const teachers = useMemo(() => (catalog?.xodimlar || []).filter(x => x.fanlari || x.lavozim === "fan_oqituvchisi"), [catalog]);
+  const students = useMemo(() => (catalog?.oquvchilar || []).filter(x => !selectedClass || String(x.sinf_id) === String(selectedClass)), [catalog, selectedClass]);
+
+  useEffect(() => {
+    setSelectedUser("");
+    setSelectedClass("");
+    setSelectedStudent("");
+    setPreview(null);
+    setError("");
+  }, [role]);
+
+  useEffect(() => {
+    if (selectedStudent && !students.some(x => String(x.user_id) === String(selectedStudent))) setSelectedStudent("");
+  }, [selectedClass, students, selectedStudent]);
+
+  const needsTeacher = role === "fan_oqituvchisi";
+  const needsClass = ["sinf_rahbari","oquvchi","ota_ona"].includes(role);
+  const needsStudent = ["oquvchi","ota_ona"].includes(role);
+
+  const canOpen = !needsTeacher || selectedUser
+    ? (!needsClass || selectedClass
+      ? (!needsStudent || selectedStudent || students.length > 0)
+      : false)
+    : false;
+
+  const openPreview = async () => {
+    if (!canOpen) return;
+    setLoadingPreview(true); setError("");
+    const q = new URLSearchParams({
+      token, maktab_id: String(maktabId), rol: role,
+    });
+    if (selectedUser) q.set("user_id", selectedUser);
+    if (selectedClass) q.set("sinf_id", selectedClass);
+    if (selectedStudent) q.set("oquvchi_id", selectedStudent);
+    try {
+      const r = await fetch(`${apiBase}/api/admin/maktab_rol_korish?${q.toString()}`);
+      const d = await r.json();
+      if (!r.ok || d.detail) throw new Error(d.detail || "Ko'rinishni ochib bo'lmadi");
+      setPreview(d);
+    } catch (e) {
+      setError(e.message || "Ko'rinishni ochib bo'lmadi");
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const filteredRoles = Object.entries(previewRoleMeta).filter(([,m]) =>
+    !roleSearch.trim() || `${m.nom} ${m.izoh}`.toLowerCase().includes(roleSearch.trim().toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen" style={{ background: "linear-gradient(180deg,#F3F8FB,#F7F4ED)" }}>
+      <div className="sticky top-0 z-30 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,.94)", borderColor: palette.line }}>
+        <div className="max-w-7xl mx-auto px-4 md:px-7 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.redBg, color: palette.red }}><Eye size={20}/></div>
+            <div className="min-w-0">
+              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>Admin ko'rish rejimi</div>
+              <div className="text-sm font-bold truncate" style={{ color: palette.ink }}>{schoolName || "Maktab"} · hech narsa o'zgarmaydi</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><X size={15}/> Yopish</button>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-7 py-5 grid xl:grid-cols-[340px_1fr] gap-5">
+        <div className="space-y-4">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3"><UserCog size={18} style={{ color: palette.blue }}/><div className="font-black" style={{ color: palette.ink }}>Kim bo'lib ko'ramiz?</div></div>
+            <div className="relative mb-3">
+              <Search size={15} className="absolute left-3 top-3" style={{ color: palette.muted }}/>
+              <input value={roleSearch} onChange={e=>setRoleSearch(e.target.value)} placeholder="Rolni qidiring..." className="w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/>
+            </div>
+            <div className="space-y-2 max-h-[52vh] overflow-auto pr-1">
+              {filteredRoles.map(([key,m]) => (
+                <button key={key} onClick={()=>setRole(key)} className="w-full rounded-2xl border p-3 text-left flex gap-3" style={{ borderColor: role===key ? palette.blue : palette.line, background: role===key ? palette.sky : "#fff" }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: role===key ? "#fff" : palette.cream, color: role===key ? palette.blue : palette.muted }}>{m.icon}</div>
+                  <div>
+                    <div className="text-sm font-black" style={{ color: palette.ink }}>{m.nom}</div>
+                    <div className="text-[11px] mt-0.5 leading-relaxed" style={{ color: palette.muted }}>{m.izoh}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="text-xs font-black uppercase tracking-[.1em] mb-3" style={{ color: palette.teal }}>Tanlash</div>
+            {loadingCatalog ? <div className="py-5 flex justify-center"><Loader2 className="animate-spin" size={22} style={{ color: palette.blue }}/></div> : <>
+              {needsTeacher && (
+                <label className="block mb-3">
+                  <span className="text-xs font-bold" style={{ color: palette.ink }}>O'qituvchi</span>
+                  <select value={selectedUser} onChange={e=>setSelectedUser(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}>
+                    <option value="">O'qituvchini tanlang</option>
+                    {teachers.map(x=><option key={x.user_id} value={x.user_id}>{x.full_name}{x.fanlari ? ` — ${String(x.fanlari).replaceAll("\\n",", ")}` : ""}</option>)}
+                  </select>
+                </label>
+              )}
+              {needsClass && (
+                <label className="block mb-3">
+                  <span className="text-xs font-bold" style={{ color: palette.ink }}>Sinf</span>
+                  <select value={selectedClass} onChange={e=>setSelectedClass(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}>
+                    <option value="">Sinfni tanlang</option>
+                    {(catalog?.sinflar || []).map(x=><option key={x.id} value={x.id}>{x.sinf}-{x.harf} · {x.oquvchi_soni} o'quvchi</option>)}
+                  </select>
+                </label>
+              )}
+              {needsStudent && selectedClass && (
+                <label className="block mb-3">
+                  <span className="text-xs font-bold" style={{ color: palette.ink }}>O'quvchi</span>
+                  <select value={selectedStudent} onChange={e=>setSelectedStudent(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}>
+                    <option value="">{students.length ? "Birinchi o'quvchini avtomatik ko'rish" : "O'quvchi yo'q"}</option>
+                    {students.map(x=><option key={x.user_id} value={x.user_id}>{x.full_name}</option>)}
+                  </select>
+                </label>
+              )}
+              {!needsTeacher && !needsClass && <div className="rounded-xl p-3 text-xs" style={{ background: palette.cream, color: palette.muted }}>Bu rol uchun qo'shimcha odam yoki sinf tanlash shart emas.</div>}
+              <button onClick={openPreview} disabled={!canOpen || loadingPreview} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2" style={{ background: canOpen ? palette.blue : "#AAB6C0", opacity: loadingPreview ? .7 : 1 }}>
+                {loadingPreview ? <Loader2 className="animate-spin" size={17}/> : <Eye size={17}/>} Ko'rinishni ochish
+              </button>
+            </>}
+          </Card>
+        </div>
+
+        <div>
+          {error && <Card className="p-4 mb-4" style={{ borderColor: "#EECACA", background: palette.redBg }}><div className="text-sm font-bold" style={{ color: palette.red }}>{error}</div></Card>}
+
+          {!preview ? (
+            <Card className="min-h-[65vh] p-8 md:p-12 flex items-center justify-center text-center">
+              <div className="max-w-xl">
+                <div className="w-20 h-20 rounded-[28px] mx-auto flex items-center justify-center mb-5" style={{ background: palette.sky, color: palette.blue }}><Eye size={36}/></div>
+                <div className="text-2xl font-black" style={{ color: palette.ink }}>{previewRoleMeta[role]?.nom}</div>
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: palette.muted }}>{previewRoleMeta[role]?.izoh}. Chapdan kerakli odam yoki sinfni tanlab, ko'rinishni oching.</p>
+                <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black" style={{ background: palette.greenBg, color: palette.green }}><LockKeyhole size={14}/> Faqat ko'rish · o'zgartirish yo'q</div>
+              </div>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <Card className="p-5 md:p-7" style={{ background: "linear-gradient(135deg,#163E5B,#0E747B)", borderColor:"transparent", color:"#fff" }}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Siz hozir shunday ko'ryapsiz</div>
+                    <h2 className="text-2xl md:text-3xl font-black mt-2">{preview.rol_nomi}</h2>
+                    <div className="text-sm mt-1 opacity-80">{preview?.tanlangan?.full_name || preview?.tanlangan?.rahbar_ismi || (preview?.tanlangan?.sinf ? `${preview.tanlangan.sinf}-${preview.tanlangan.harf}` : schoolName)}</div>
+                  </div>
+                  <div className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background:"rgba(255,255,255,.14)" }}><LockKeyhole size={14}/> READ ONLY</div>
+                </div>
+              </Card>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                {(preview.kartalar || []).map((x,i)=><PreviewStat key={`${x.label}-${i}`} item={x}/>)}
+              </div>
+
+              {(preview.bolimlar || []).map((b,bi)=>(
+                <Card key={`${b.title}-${bi}`} className="p-5">
+                  <div className="mb-4">
+                    <div className="text-lg font-black" style={{ color: palette.ink }}>{b.title}</div>
+                    {b.subtitle && <div className="text-xs mt-1" style={{ color: palette.muted }}>{b.subtitle}</div>}
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-2.5">
+                    {(b.items || []).map((it,ii)=>(
+                      <div key={`${it.title}-${ii}`} className="rounded-2xl border p-3.5" style={{ borderColor: palette.line, background:"#FCFDFE" }}>
+                        <div className="text-sm font-black" style={{ color: palette.ink }}>{it.title}</div>
+                        <div className="text-xs mt-1 leading-relaxed" style={{ color: palette.muted }}>{it.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {!(b.items || []).length && <div className="rounded-2xl p-5 text-sm text-center" style={{ background: palette.cream, color: palette.muted }}>{b.empty_text || "Ma'lumot yo'q"}</div>}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false }) {
   const maktabId = initialWorkspace?.muassasa_id || initialWorkspace?.id;
   const lavozim = String(initialWorkspace?.lavozim || "").toLowerCase();
   const teacherMode = !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(lavozim) && lavozim;
@@ -172,6 +406,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [holatlar, setHolatlar] = useState([]);
   const [loading, setLoading] = useState(!teacherMode);
   const [error, setError] = useState("");
+  const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
 
   const loadManager = () => {
     if (!maktabId || teacherMode) return;
@@ -190,6 +425,18 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
 
   const jamiOquvchi = dashboard?.bugungi_davomat?.jami_oquvchi ?? dashboard?.sinflar?.reduce((a,s)=>a+(Number(s.oquvchi_soni)||0),0) ?? 0;
   const yuklamaMuammo = useMemo(() => yuklama.filter(x => x.holat === "ortiqcha" || x.holat === "yetishmaydi"), [yuklama]);
+
+  if (adminPreview && adminPreviewOpen) {
+    return (
+      <AdminRolePreview
+        token={token}
+        apiBase={apiBase}
+        maktabId={maktabId}
+        schoolName={dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || "Maktab"}
+        onClose={() => setAdminPreviewOpen(false)}
+      />
+    );
+  }
 
   if (teacherMode) {
     return (
@@ -212,7 +459,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       <div className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <button onClick={onBack} className="flex items-center gap-2 text-sm" style={{ color: palette.muted }}><ArrowLeft size={16}/> Muassasalarga qaytish</button>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.greenBg, border: `1px solid #CFE8D9`, color: palette.green }}><Eye size={14}/> Rol sifatida ko'rish</button>}
             <button onClick={loadManager} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={14}/> Yangilash</button>
             {onLegacy && <button onClick={onLegacy} className="px-3 py-2 rounded-xl text-xs font-bold" style={{ background: palette.sky, color: palette.blue }}>Batafsil boshqaruv</button>}
           </div>
