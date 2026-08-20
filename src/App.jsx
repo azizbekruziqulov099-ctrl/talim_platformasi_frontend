@@ -5651,6 +5651,127 @@ function DirektorQidiruvi({ token, tanlanganDirektor, onTanla }) {
   );
 }
 
+function SinfGuruhBoshqaruvi({ token, sinf, onSaved }) {
+  const [ochiq, setOchiq] = useState(false);
+  const [azolar, setAzolar] = useState(null);
+  const [tanlanganlar, setTanlanganlar] = useState(() => new Set());
+  const [amal, setAmal] = useState("group_1");
+  const [guruhNomi, setGuruhNomi] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xabar, setXabar] = useState("");
+  const [xato, setXato] = useState("");
+
+  const azolarniYukla = async () => {
+    if (azolar !== null) return;
+    setYuklanmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/oqituvchi/sinf_azolari?token=${encodeURIComponent(token)}&sinf_id=${sinf.id}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "O‘quvchilarni yuklab bo‘lmadi");
+      setAzolar(data.azolar || []);
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setYuklanmoqda(false);
+    }
+  };
+
+  const ochibYop = () => {
+    const yangiHolat = !ochiq;
+    setOchiq(yangiHolat);
+    if (yangiHolat) azolarniYukla();
+  };
+
+  const belgilashniAlmashtir = (userId) => {
+    setTanlanganlar((avvalgi) => {
+      const yangi = new Set(avvalgi);
+      if (yangi.has(userId)) yangi.delete(userId); else yangi.add(userId);
+      return yangi;
+    });
+  };
+
+  const barchasiniAlmashtir = () => {
+    if (!azolar?.length) return;
+    setTanlanganlar((avvalgi) => avvalgi.size === azolar.length
+      ? new Set()
+      : new Set(azolar.map((azo) => azo.user_id)));
+  };
+
+  const tanlanganlargaSaqla = async () => {
+    if (!tanlanganlar.size) { setXato("Kamida bitta o‘quvchini belgilang"); return; }
+    if (amal === "set_name" && guruhNomi.trim().length < 2) { setXato("Guruh nomini yozing"); return; }
+    setSaqlanmoqda(true); setXato(""); setXabar("");
+    try {
+      const ids = [...tanlanganlar];
+      const res = await fetch(`${API_BASE}/api/maktab/sinf_azolarini_guruhla`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sinf_id: sinf.id, user_ids: ids, amal, guruh_nomi: guruhNomi.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Guruhni saqlab bo‘lmadi");
+      setAzolar((avvalgi) => (avvalgi || []).map((azo) => {
+        if (!tanlanganlar.has(azo.user_id)) return azo;
+        if (amal === "boys") return { ...azo, jins: "ogil" };
+        if (amal === "girls") return { ...azo, jins: "qiz" };
+        if (amal === "group_1") return { ...azo, guruh_raqami: 1, guruh_qolda: true };
+        if (amal === "group_2") return { ...azo, guruh_raqami: 2, guruh_qolda: true };
+        if (amal === "clear_number") return { ...azo, guruh_raqami: null, guruh_qolda: true };
+        if (amal === "set_name") return { ...azo, guruh_nomi: guruhNomi.trim(), guruh_qolda: true };
+        if (amal === "clear_name") return { ...azo, guruh_nomi: null, guruh_qolda: true };
+        return azo;
+      }));
+      setTanlanganlar(new Set());
+      setXabar(`✅ ${data.yangilangan || ids.length} ta o‘quvchi yangilandi. 1-guruh: ${data.guruhlar?.["1"] || 0}, 2-guruh: ${data.guruhlar?.["2"] || 0}.`);
+      onSaved?.();
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setSaqlanmoqda(false);
+    }
+  };
+
+  const jinsNomi = (jins) => {
+    const kalit = String(jins || "").toLocaleLowerCase("uz").replace(/[’']/g, "");
+    if (["ogil", "erkak", "male", "boy"].includes(kalit)) return "O‘g‘il";
+    if (["qiz", "ayol", "female", "girl"].includes(kalit)) return "Qiz";
+    return "Jinsi belgilanmagan";
+  };
+
+  return (
+    <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
+      <button type="button" onClick={ochibYop} className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#EAF1F7" : "#fff", color: "#1B4B7A" }}>
+        <span>☑ O‘quvchilarni belgilab guruhlash</span><span>{ochiq ? "⌃" : "⌄"}</span>
+      </button>
+      {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#B9CCDC" }}>
+        <p className="text-[11px] mb-2" style={{ color: "#6F6859" }}>Belgilar brauzerda ishlaydi; serverga faqat “Tanlanganlarga saqlash” bosilganda bitta so‘rov yuboriladi.</p>
+        {yuklanmoqda ? <div className="py-5"><Loader2 size={18} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div> : !azolar?.length ? <p className="text-xs py-3" style={{ color: "#8A8578" }}>Bu sinfda hali o‘quvchi yo‘q.</p> : <>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <button type="button" onClick={barchasiniAlmashtir} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>{tanlanganlar.size === azolar.length ? "Tanlovni tozalash" : "Barchasini belgilash"}</button>
+            <span className="text-[11px] font-semibold" style={{ color: "#1B4B7A" }}>{tanlanganlar.size}/{azolar.length} tanlandi</span>
+          </div>
+          <div className="max-h-64 overflow-y-auto rounded-lg border divide-y" style={{ borderColor: "#E5E1D8" }}>
+            {azolar.map((azo) => <label key={azo.user_id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer" style={{ backgroundColor: tanlanganlar.has(azo.user_id) ? "#F1F7FB" : "#fff", borderColor: "#F0ECE3" }}>
+              <input type="checkbox" checked={tanlanganlar.has(azo.user_id)} onChange={() => belgilashniAlmashtir(azo.user_id)} />
+              <span className="flex-1 min-w-0"><b className="block text-xs truncate" style={{ color: "#2B2B2B" }}>{azo.full_name}</b><small className="block truncate" style={{ color: "#8A8578" }}>{jinsNomi(azo.jins)} · {azo.guruh_raqami ? `${azo.guruh_raqami}-guruh` : "raqamli guruh yo‘q"}{azo.guruh_nomi ? ` · ${azo.guruh_nomi}` : ""}</small></span>
+            </label>)}
+          </div>
+          <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 mt-3">
+            <select value={amal} onChange={(event) => setAmal(event.target.value)} className="px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}>
+              <option value="boys">O‘g‘il deb belgilash</option><option value="girls">Qiz deb belgilash</option><option value="group_1">1-guruhga qo‘yish</option><option value="group_2">2-guruhga qo‘yish</option><option value="clear_number">1/2-guruhni tozalash</option><option value="set_name">Guruh nomini berish</option><option value="clear_name">Guruh nomini tozalash</option>
+            </select>
+            <input value={guruhNomi} onChange={(event) => setGuruhNomi(event.target.value)} disabled={amal !== "set_name"} placeholder="Masalan: Robototexnika" maxLength={50} className="px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8", opacity: amal === "set_name" ? 1 : 0.5 }} />
+            <button type="button" onClick={tanlanganlargaSaqla} disabled={saqlanmoqda || !tanlanganlar.size} className="px-3.5 py-2 rounded-lg text-xs font-bold text-white whitespace-nowrap" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda || !tanlanganlar.size ? 0.55 : 1 }}>{saqlanmoqda ? "Saqlanmoqda..." : "Tanlanganlarga saqlash"}</button>
+          </div>
+        </>}
+        {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{xato}</p>}
+        {xabar && <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>{xabar}</p>}
+      </div>}
+    </div>
+  );
+}
+
 function MaktablarBolimi({ token }) {
   const [maktablar, setMaktablar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -6029,17 +6150,20 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         ) : (
           <div className="space-y-2">
             {sinflar.map((s) => (
-              <div key={s.id} className="rounded-xl p-3.5 grid sm:grid-cols-[1fr_220px_auto] gap-3 items-center" style={{ backgroundColor: "#F7F5F0" }}>
-                <div>
+              <div key={s.id} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+                <div className="grid sm:grid-cols-[1fr_220px_auto] gap-3 items-center">
+                  <div>
                   <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"} · {s.psixolog_ismi || "Psixolog belgilanmagan"}</p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
+                  </div>
+                  <label className="text-xs font-medium" style={{ color: "#5A5648" }}>O‘quvchilar guruhi<select value={s.guruhlash_usuli || "none"} onChange={(e) => sinfGuruhlashniSaqla(s.id, e.target.value)} className="block w-full mt-1 px-2.5 py-2 rounded-lg border bg-white" style={{ borderColor: "#E5E1D8" }}><option value="none">Bo‘linmaydi</option><option value="gender">O‘g‘il / qiz — avtomatik</option><option value="alphabet">1 / 2 guruh — avtomatik</option><option value="manual">Qo‘lda belgilangan</option></select></label>
+                  <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
+                    ↻ Parolni tashlash
+                  </button>
                 </div>
-                <label className="text-xs font-medium" style={{ color: "#5A5648" }}>O‘quvchilar guruhi<select value={s.guruhlash_usuli || "none"} onChange={(e) => sinfGuruhlashniSaqla(s.id, e.target.value)} className="block w-full mt-1 px-2.5 py-2 rounded-lg border bg-white" style={{ borderColor: "#E5E1D8" }}><option value="none">Bo‘linmaydi</option><option value="gender">O‘g‘il / qiz</option><option value="alphabet">Alifbo: 1 / 2 guruh</option></select></label>
-                <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
-                  ↻ Parolni tashlash
-                </button>
+                <SinfGuruhBoshqaruvi token={token} sinf={s} onSaved={() => setSinflar((avvalgi) => avvalgi.map((qator) => qator.id === s.id ? { ...qator, guruhlash_usuli: "manual" } : qator))} />
               </div>
             ))}
           </div>
@@ -10072,6 +10196,12 @@ function RasmiySinflarim({ token, onOrtga }) {
           <p className="text-xs" style={{ color: "#5A5648" }}>🔐 Qo'shilish paroli: <b>{tanlanganSinf.qoshilish_paroli}</b></p>
         </div>
 
+        {tanlanganSinf.sinf_boshqara_oladi && (
+          <div className="rounded-xl p-3.5 mb-4" style={{ backgroundColor: "#F7F5F0" }}>
+            <SinfGuruhBoshqaruvi token={token} sinf={tanlanganSinf} onSaved={() => azolarniYukla(tanlanganSinf.id)} />
+          </div>
+        )}
+
         {!tanlanganSinf.pulli ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
             <p className="text-sm" style={{ color: "#8A8578" }}>Bu maktab bepul — to'lov kuzatuvi kerak emas.</p>
@@ -10110,7 +10240,7 @@ function RasmiySinflarim({ token, onOrtga }) {
           <div className="space-y-2">
             {azolar.map((a) => (
               <div key={a.azolik_id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ backgroundColor: "#F7F5F0" }}>
-                <div><button onClick={() => setTanlanganOquvchiId(a.user_id)} className="text-sm font-medium text-left" style={{ color: "#2B2B2B" }}>{a.full_name}</button><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{a.guruh_raqami ? (tanlanganSinf.guruhlash_usuli === "gender" ? (a.guruh_raqami === 1 ? "O‘g‘il bolalar guruhi" : "Qiz bolalar guruhi") : `${a.guruh_raqami}-guruh`) : "Guruh belgilanmagan"}</p></div>
+                <div><button onClick={() => setTanlanganOquvchiId(a.user_id)} className="text-sm font-medium text-left" style={{ color: "#2B2B2B" }}>{a.full_name}</button><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{[a.jins === "ogil" ? "O‘g‘il" : a.jins === "qiz" ? "Qiz" : null, a.guruh_raqami ? `${a.guruh_raqami}-guruh` : null, a.guruh_nomi].filter(Boolean).join(" · ") || "Guruh belgilanmagan"}</p></div>
                 <div className="flex gap-1.5"><button onClick={() => { setOtaOnaOquvchi(a); setOtaOnaQidiruv(""); setOtaOnaNatijalar([]); setOtaOnaXabar(""); }} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>Ota-ona bog‘lash</button><button onClick={() => azoniChiqar(a.azolik_id, tanlanganSinf.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg shrink-0" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>✕ Chiqarish</button></div>
               </div>
             ))}
