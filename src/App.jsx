@@ -29,6 +29,7 @@ import {
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
 import TestGameArena, { GameModePicker, GameProfileStrip } from "./TestGameArena.jsx";
+import SchoolAdminV23, { OrganizationDeletePanel, SchoolInstitutionManager } from "./SchoolInstitutionV23.jsx";
 import {
   buildGameStartPayload,
   gameErrorMessage,
@@ -70,6 +71,44 @@ const InstituteWorkspace = React.lazy(
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "https://talimplatformasi-production.up.railway.app";
+
+// TestGameArena'ning eski versiyasi javob natijasini ko'rsatgandan keyin
+// keyingi savolga o'tishni 4.5 soniya ushlab turadi. Foydalanuvchiga bu
+// "qotib qolish" bo'lib ko'rinadi. Faqat shu o'yin callbackini aniqlab,
+// kutishni qisqartiramiz; ilovadagi boshqa 4500 ms taymerlar o'zgarmaydi.
+const OYIN_ESKI_JAVOB_KUTISH_MS = 4500;
+const OYIN_TEZ_JAVOB_KUTISH_MS = 1500;
+
+function _oyinJavobKutishiniTezlashtir() {
+  if (typeof window === "undefined" || window.__samTmOyinTezTaymer) return;
+  const aslSetTimeout = window.setTimeout.bind(window);
+  window.setTimeout = (callback, delay, ...args) => {
+    let haqiqiyKutish = delay;
+    if (Number(delay) === OYIN_ESKI_JAVOB_KUTISH_MS && typeof callback === "function") {
+      try {
+        const callbackManbasi = Function.prototype.toString.call(callback);
+        const oyinOtishCallbacki =
+          callbackManbasi.includes("boss_retry") &&
+          callbackManbasi.includes("next") &&
+          callbackManbasi.includes("result");
+        if (oyinOtishCallbacki) haqiqiyKutish = OYIN_TEZ_JAVOB_KUTISH_MS;
+      } catch {
+        // Noodatiy callback bo'lsa, asl taymerni o'zgartirmaymiz.
+      }
+    }
+    return aslSetTimeout(callback, haqiqiyKutish, ...args);
+  };
+  window.__samTmOyinTezTaymer = true;
+
+  // Arena ichidagi eski 5 soniyalik raqam yangi tez o'tishga mos emas.
+  // Natija va "Keyingi savolga o'tiladi" matni ko'rinishda qoladi.
+  const style = document.createElement("style");
+  style.dataset.samtmOyinTezTaymer = "true";
+  style.textContent = ".scene-feedback-countdown{display:none!important}";
+  document.head.appendChild(style);
+}
+
+_oyinJavobKutishiniTezlashtir();
 
 // ═══════════════════════════════════════════════════════════
 // DIZAYN TIZIMI — rol/jins/fanga qarab shaxsiylashtirilgan rang
@@ -2092,7 +2131,8 @@ function TestTab({
   const [ovozXatosi, setOvozXatosi] = useState("");
   const [ovozTezligi, setOvozTezligi] = useState(1);
   const [ovozTezlikOchiq, setOvozTezlikOchiq] = useState(false);
-  const ovozMatniRef = useRef(null); // hozir yuklangan/o'ynalayotgan matn — qayta bosilganda solishtirish uchun
+  const ovozMatniRef = useRef(null); // til/jins/matn kaliti — aynan shu audioni pauza/davom ettirish uchun
+  const ovozKorinadiganMatnRef = useRef(null); // karnay tugmasining holatini savol matni bilan bog'laydi
   const ovozPromiseRef = useRef(null);
 
   const ovozniToxtat = useCallback(() => {
@@ -2100,7 +2140,7 @@ function TestTab({
     ovozPromiseRef.current = null;
     const audio = ovozRef.current;
     if (audio) {
-      audio.oncanplay = null;
+      audio.onplaying = null;
       audio.onended = null;
       audio.onerror = null;
       audio.pause();
@@ -2118,6 +2158,7 @@ function TestTab({
     globalThis.speechSynthesis?.cancel?.();
     if (resolveCurrent) resolveCurrent({ status: "stopped" });
     ovozMatniRef.current = null;
+    ovozKorinadiganMatnRef.current = null;
     setOvozXatosi("");
     setOvozHolati("bosh");
   }, []);
@@ -2157,6 +2198,7 @@ function TestTab({
     setOvozXatosi("");
     setOvozHolati("yuklanmoqda");
     ovozMatniRef.current = ovozKaliti;
+    ovozKorinadiganMatnRef.current = xomMatn;
 
     // Karnay bevosita bosilganda brauzerning o'z nutq dvigateli ishlaydi:
     // bu foydalanuvchi harakati ichida boshlanadi va autoplay blokiga tushmaydi.
@@ -2180,6 +2222,7 @@ function TestTab({
         }
         ovozNutqRef.current = null;
         ovozMatniRef.current = null;
+        ovozKorinadiganMatnRef.current = null;
         setOvozHolati("bosh");
         if (status === "error") setOvozXatosi("Brauzer ovozni o'qiy olmadi. Karnayni qayta bosing.");
         const resolveCurrent = ovozPromiseRef.current;
@@ -2219,15 +2262,17 @@ function TestTab({
 
     const ovozQs = new URLSearchParams({ matn: xomMatn, jins: ovozJinsi, asosiy_til: asosiyTil });
     const audio = new Audio(`${API_BASE}/api/ovoz?${ovozQs.toString()}`);
+    audio.preload = "auto";
     audio.playbackRate = ovozTezligi;
     ovozRef.current = audio;
     const tugatish = (status) => {
       if (ovozRef.current !== audio) return;
-      audio.oncanplay = null;
+      audio.onplaying = null;
       audio.onended = null;
       audio.onerror = null;
       ovozRef.current = null;
       ovozMatniRef.current = null;
+      ovozKorinadiganMatnRef.current = null;
       setOvozHolati("bosh");
       if (status === "error" || status === "blocked") setOvozXatosi("Ovoz ishga tushmadi. Karnayni qayta bosing.");
       const resolveCurrent = ovozPromiseRef.current;
@@ -2235,7 +2280,7 @@ function TestTab({
       if (resolveCurrent) resolveCurrent({ status, manual: Boolean(options.manual) });
     };
     audio.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
-    audio.oncanplay = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
+    audio.onplaying = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
     audio.onended = () => tugatish("ended");
     audio.onerror = () => tugatish("error");
     audio.play().catch(() => tugatish("blocked"));
@@ -2745,14 +2790,19 @@ function TestTab({
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
           {(() => {
             const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
-            const shuOqilmoqda = ovozMatniRef.current === ovozMatni;
+            const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
             return (
               <div className="shrink-0 flex flex-col items-end gap-1">
                 <div className="flex items-center gap-1">
                   <button onClick={() => ovozniOqi(ovozMatni)}
+                    aria-busy={shuOqilmoqda && ovozHolati === "yuklanmoqda"}
+                    aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda" : "Ovoz chiqarib o'qish"}
                     className="w-9 h-9 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}
-                    title="Ovoz chiqarib o'qish">
+                    style={{
+                      backgroundColor: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#FFF3CD" : "#EAF1F7",
+                      color: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#8A5A1C" : "#1B4B7A",
+                    }}
+                    title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda..." : "Ovoz chiqarib o'qish"}>
                     {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
                       : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
                       : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
@@ -2930,14 +2980,19 @@ function TestTab({
                   <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
                   {(() => {
                     const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
-                    const shuOqilmoqda = ovozMatniRef.current === ovozMatni;
+                    const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
                     return (
                       <div className="shrink-0 flex flex-col items-end gap-1">
                         <div className="flex items-center gap-1">
                           <button onClick={() => ovozniOqi(ovozMatni)}
+                            aria-busy={shuOqilmoqda && ovozHolati === "yuklanmoqda"}
+                            aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda" : "Ovoz chiqarib o'qish"}
                             className="w-9 h-9 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}
-                            title="Ovoz chiqarib o'qish">
+                            style={{
+                              backgroundColor: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#FFF3CD" : "#EAF1F7",
+                              color: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#8A5A1C" : "#1B4B7A",
+                            }}
+                            title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda..." : "Ovoz chiqarib o'qish"}>
                             {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
                               : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
                               : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
@@ -4407,7 +4462,7 @@ function AdminMuassasalarTab({ token }) {
           <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} /></span>
           Muassasalar
         </button>
-        {bolim === "maktab" && <MaktablarBolimi token={token} />}
+        {bolim === "maktab" && <SchoolAdminV23 apiBase={API_BASE} token={token} />}
         {bolim === "markaz" && <MarkazlarBolimi token={token} />}
         {bolim === "bogcha" && <BogchalarBolimi token={token} />}
         {bolim === "universitet" && <UniversitetlarBolimi token={token} />}
@@ -4510,7 +4565,7 @@ function AdminMuassasalarTab({ token }) {
   );
 }
 
-const SINF_HARFLARI = ["A", "B", "D", "E", "F", "G", "H", "I", "J", "K"];
+const SINF_HARFLARI = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const LAVOZIM_NOMLARI = {
   direktor: "Direktor",
@@ -6118,6 +6173,11 @@ function MarkazTafsiloti({ token, markaz, onOrtga }) {
           </div>
         </div>
       )}
+      <OrganizationDeletePanel
+        apiBase={API_BASE} token={token} organizationType="learning_center"
+        organizationId={markaz.id} name={markaz.nomi} ownCreation={Boolean(markaz.own_creation)}
+        onDeleted={onOrtga}
+      />
     </div>
   );
 }
@@ -6361,6 +6421,11 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
           </div>
         </div>
       )}
+      <OrganizationDeletePanel
+        apiBase={API_BASE} token={token} organizationType="kindergarten"
+        organizationId={bogcha.id} name={bogcha.nomi} ownCreation={Boolean(bogcha.own_creation)}
+        onDeleted={onOrtga}
+      />
     </div>
   );
 }
@@ -6498,6 +6563,15 @@ function UniversitetlarBolimi({ token }) {
         </div>
         {holat === "universitet" && <p className="text-xs" style={{ color: "#8A8578" }}>Rektor → Dekan → Kafedra mudiri → Guruh kuratori tuzilmasi.</p>}
       </div>
+
+      {holat === "fakultet" && tUniversitet && (
+        <OrganizationDeletePanel
+          apiBase={API_BASE} token={token} organizationType="institute"
+          organizationId={tUniversitet.id} name={tUniversitet.nomi}
+          ownCreation={Boolean(tUniversitet.own_creation)}
+          onDeleted={() => { setHolat("universitet"); setTUniversitet(null); universitetlarniYukla(); }}
+        />
+      )}
 
       {formOchiq && (
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
@@ -12870,6 +12944,20 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
             canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
           />
         </React.Suspense>
+        {aktivMaktabId && (
+          foydalanuvchi?.is_admin ||
+          ["owner", "direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "admin", "manager"].includes(aktivMuassasa?.lavozim)
+        ) && (
+          <div className="px-5 pb-8">
+            <SchoolInstitutionManager
+              apiBase={API_BASE}
+              token={token}
+              scopeId={aktivMaktabId}
+              scopeKind={aktivMuassasa?.context_id ? "context" : "school"}
+              school={{ nomi: aktivMuassasa?.muassasa_nomi || "Maktab" }}
+            />
+          </div>
+        )}
       </div>
     );
   }
