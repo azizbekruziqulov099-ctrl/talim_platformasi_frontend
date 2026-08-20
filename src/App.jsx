@@ -1,3 +1,4 @@
+// SAMTM V18.51 — Aqlli dars jadvali, kalendar va mavzu reja moduli.
 // SAMTM V18.49 — blank sahifa tuzatildi: importlar endi komment ichida qolmaydi.
 // SAMTM V18.48 — Maktab ID yo‘qolib qolishi va admin preview ko‘rinmasligi tuzatildi.
 // SAMTM V18.47 — Admin maktabni turli rollar sifatida READ-ONLY ko‘ra oladi.
