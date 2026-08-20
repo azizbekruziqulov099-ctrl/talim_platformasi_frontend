@@ -5680,7 +5680,7 @@ function MaktablarBolimi({ token }) {
             {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
           </button>
         </div>
-        <p className="text-xs" style={{ color: "#8A8578" }}>Maktab va uning haqiqiy sinflari 4 bosqichda birga yaratiladi. Ortiqcha parallel sinf avtomatik qo'shilmaydi.</p>
+        <p className="text-xs" style={{ color: "#8A8578" }}>Bino va xonalarni ommaviy yarating, so‘ng 1–11-sinflarning parallel sonini alohida kiriting. 50–100 ta sinf bir bosishda hisoblanadi.</p>
       </div>
 
       {formOchiq && (
@@ -5732,6 +5732,13 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [pulli, setPulli] = useState(maktab.pulli || false);
   const [oylikTolov, setOylikTolov] = useState(maktab.oylik_tolov ? String(maktab.oylik_tolov) : "");
   const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
+  const [fanKatalogi, setFanKatalogi] = useState([]);
+  const [tanlanganFanlar, setTanlanganFanlar] = useState([]);
+  const [saqlanganFanlar, setSaqlanganFanlar] = useState([]);
+  const [fanlarYuklanmoqda, setFanlarYuklanmoqda] = useState(true);
+  const [fanlarSaqlanmoqda, setFanlarSaqlanmoqda] = useState(false);
+  const [fanXato, setFanXato] = useState("");
+  const [fanXabar, setFanXabar] = useState("");
 
   const sinflarniYukla = () => {
     setSinflarYuklanmoqda(true);
@@ -5741,6 +5748,55 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       .catch(() => setSinflarYuklanmoqda(false));
   };
   useEffect(sinflarniYukla, [token, maktab.id]);
+
+  const fanlarniYukla = () => {
+    setFanlarYuklanmoqda(true); setFanXato("");
+    fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || "Fanlarni yuklab bo'lmadi");
+        return d;
+      })
+      .then((d) => {
+        setFanKatalogi(d.fanlar || []);
+        setTanlanganFanlar(d.tanlangan_fanlar || []);
+        setSaqlanganFanlar(d.tanlangan_fanlar || []);
+        setFanlarYuklanmoqda(false);
+      })
+      .catch((e) => { setFanXato(e.message); setFanlarYuklanmoqda(false); });
+  };
+  useEffect(fanlarniYukla, [token, maktab.id]);
+
+  const fanTanlashniAlmashtir = (fanNomi) => {
+    setFanXabar("");
+    setTanlanganFanlar((avvalgi) => avvalgi.includes(fanNomi)
+      ? avvalgi.filter((nom) => nom !== fanNomi)
+      : [...avvalgi, fanNomi]);
+  };
+
+  const fanlarniSaqla = async () => {
+    if (!tanlanganFanlar.length) { setFanXato("Kamida bitta maktab fanini tanlang"); return; }
+    setFanlarSaqlanmoqda(true); setFanXato(""); setFanXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, maktab_id: maktab.id, fanlar: tanlanganFanlar }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || "Fanlarni saqlab bo'lmadi");
+      setTanlanganFanlar(d.tanlangan_fanlar || []);
+      setSaqlanganFanlar(d.tanlangan_fanlar || []);
+      setFanXabar(`✅ ${d.tanlangan_fanlar?.length || 0} ta fan saqlandi. Endi aqlli shablonni olishingiz mumkin.`);
+    } catch (e) {
+      setFanXato(e.message);
+    } finally {
+      setFanlarSaqlanmoqda(false);
+    }
+  };
+
+  const fanlarOzgargan = JSON.stringify([...tanlanganFanlar].sort()) !== JSON.stringify([...saqlanganFanlar].sort());
+  const fanlarTayyor = saqlanganFanlar.length > 0 && !fanlarOzgargan;
 
   const parolniTashla = async (sinfId) => {
     await fetch(`${API_BASE}/api/admin/sinf_parolini_tashla?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`, { method: "PUT" });
@@ -5759,12 +5815,18 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   };
 
   const shablonYukla = () => {
-    window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}`, "_blank");
+    if (!fanlarTayyor) { setFanXato("Avval maktab fanlarini tanlab saqlang"); return; }
+    window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`, "_blank");
   };
 
   const faylTanlandi = async (e) => {
     const fayl = e.target.files[0];
     if (!fayl) return;
+    if (!fanlarTayyor) {
+      setXato("Avval maktab fanlarini tanlab saqlang");
+      e.target.value = "";
+      return;
+    }
     setImportlanmoqda(true); setXato(""); setImportXabari("");
     try {
       const formData = new FormData();
@@ -5829,23 +5891,98 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         </button>
       </div>
 
+      <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: fanlarTayyor ? "#BFD5AA" : "#E5E1D8" }}>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — Maktab fanlarini tanlash</p>
+            <p className="text-xs mt-1" style={{ color: "#8A8578" }}>
+              Shu maktabda o‘tiladigan barcha fanlarni belgilang. Faqat saqlangan fanlar xodim Excelidagi aqlli tanlovga tushadi.
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
+            style={{ backgroundColor: fanlarTayyor ? "#EAF4DF" : "#F7F5F0", color: fanlarTayyor ? "#3B6D11" : "#8A8578" }}>
+            {fanlarTayyor ? `${saqlanganFanlar.length} ta saqlangan` : "Saqlanmagan"}
+          </span>
+        </div>
+
+        {fanlarYuklanmoqda ? (
+          <div className="py-8 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
+        ) : fanKatalogi.length === 0 ? (
+          <p className="text-xs mt-4 p-3 rounded-xl" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>
+            Fanlar chiqishi uchun avval maktab sinflarini yarating.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 mt-4 mb-3">
+              <button type="button" onClick={() => { setTanlanganFanlar(fanKatalogi.map((fan) => fan.nomi)); setFanXabar(""); }}
+                className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                ✓ Barchasini tanlash
+              </button>
+              <button type="button" onClick={() => { setTanlanganFanlar([]); setFanXabar(""); }}
+                className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                Tanlovni tozalash
+              </button>
+              <span className="px-3 py-2 text-xs" style={{ color: "#8A8578" }}>
+                Tanlandi: {tanlanganFanlar.length}/{fanKatalogi.length}
+              </span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+              {fanKatalogi.map((fan) => {
+                const tanlangan = tanlanganFanlar.includes(fan.nomi);
+                return (
+                  <button key={fan.nomi} type="button" onClick={() => fanTanlashniAlmashtir(fan.nomi)}
+                    className="text-left rounded-xl border p-3 flex items-start gap-2.5"
+                    style={tanlangan
+                      ? { backgroundColor: "#EAF1F7", borderColor: "#1B4B7A", color: "#1B4B7A" }
+                      : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>
+                    <span className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-xs font-bold"
+                      style={{ backgroundColor: tanlangan ? "#1B4B7A" : "#F7F5F0", color: tanlangan ? "#fff" : "#A39D8E" }}>
+                      {tanlangan ? "✓" : ""}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold">{fan.nomi}</span>
+                      <span className="block text-xs mt-0.5" style={{ color: "#8A8578" }}>
+                        {(fan.sinflar || []).join(", ") || "Mos sinf topilmadi"}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button type="button" onClick={fanlarniSaqla}
+              disabled={fanlarSaqlanmoqda || !tanlanganFanlar.length || (!fanlarOzgargan && fanlarTayyor)}
+              className="w-full py-3 rounded-xl font-semibold text-sm mt-4"
+              style={{
+                backgroundColor: fanlarOzgargan ? "#1B4B7A" : "#D7E0E7",
+                color: "#fff",
+                opacity: fanlarSaqlanmoqda || !tanlanganFanlar.length ? 0.65 : 1,
+              }}>
+              {fanlarSaqlanmoqda ? "Saqlanmoqda..." : fanlarOzgargan ? "Tanlangan fanlarni saqlash" : "Fanlar saqlangan"}
+            </button>
+          </>
+        )}
+        {fanXato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{fanXato}</p>}
+        {fanXabar && <p className="text-sm mt-3" style={{ color: "#3B6D11" }}>{fanXabar}</p>}
+      </div>
+
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>2-bosqich — Xodimlarni kiritish</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-          Shablonni yuklab, F.I.Sh / Lavozim / Sinf rahbarligini to'ldirib, qayta yuklang.
-          Har bir xodimga shaxsiy kirish kodi, sinf rahbari bo'lsa — sinf qo'shilish paroli ham avtomatik yaratiladi.
+          Katakni bosib lavozim, sinf, fan va toifani tayyor ro‘yxatdan tanlang.
+          Bir xodim bir nechta sinf yoki fan o‘tsa, <b>DARS_BIRIKMALARI</b> varag‘ida har bir Xodim–Sinf–Fan birikmasini alohida qatorga tanlang.
         </p>
-        <button onClick={shablonYukla}
+        {!fanlarTayyor && <p className="text-xs mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Avval yuqoridagi maktab fanlarini tanlab saqlang.</p>}
+        <button onClick={shablonYukla} disabled={!fanlarTayyor}
           className="w-full py-3 rounded-xl font-semibold text-sm mb-2.5 flex items-center justify-center gap-2"
-          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>
+          style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: fanlarTayyor ? 1 : 0.5 }}>
           📥 Shablonni yuklab olish
         </button>
         <label className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-dashed"
-          style={{ borderColor: "#C4BFAF", color: "#5A5648" }}>
+          style={{ borderColor: "#C4BFAF", color: "#5A5648", opacity: fanlarTayyor ? 1 : 0.5, cursor: fanlarTayyor ? "pointer" : "not-allowed" }}>
           {importlanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📤 To'ldirilgan faylni yuklash"}
-          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda} className="hidden" />
+          <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda || !fanlarTayyor} className="hidden" />
         </label>
-        {xato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+        {xato && <p className="text-sm mt-3 whitespace-pre-line" style={{ color: "#B0553A" }}>{xato}</p>}
       </div>
 
       {importXabari && (
@@ -5855,14 +5992,14 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       )}
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Sinflar</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>4-bosqich — Sinflar</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-          Xodim importi orqali "Sinf rahbarligi" to'ldirilganda avtomatik yaratilgan sinflar shu yerda ko'rinadi.
+          Sinflar avval yaratiladi. Xodim importi yangi sinf yaratmaydi; mavjud sinfga rahbar va dars beruvchi xodimlarni bog‘laydi.
         </p>
         {sinflarYuklanmoqda ? (
           <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
         ) : sinflar.length === 0 ? (
-          <p className="text-xs" style={{ color: "#8A8578" }}>Hali sinf yo'q — xodim importida "Sinf rahbarligi" ustunini to'ldirib yuklang.</p>
+          <p className="text-xs" style={{ color: "#8A8578" }}>Hali sinf yo‘q — avval maktab yaratish oynasida sinflarni yarating.</p>
         ) : (
           <div className="space-y-2">
             {sinflar.map((s) => (
