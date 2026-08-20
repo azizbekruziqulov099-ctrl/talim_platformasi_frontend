@@ -2,13 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const emptyClass = (index = 0) => ({
   key: `${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
-  name: "",
+  grade: "",
+  letter: "A",
   shift: 1,
   leader: null,
   psychologist: null,
   building: "",
   room: "",
 });
+
+const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
+const CLASS_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
 
 export function normalizeSchoolClassName(value) {
   const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-я])$/);
@@ -80,7 +84,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const normalizedClasses = useMemo(() => classes.map((item) => normalizeSchoolClassName(item.name)), [classes]);
+  const normalizedClasses = useMemo(
+    () => classes.map((item) => normalizeSchoolClassName(`${item.grade}-${item.letter}`)),
+    [classes],
+  );
 
   const validateSchool = () => {
     if (name.trim().length < 2) return "Maktab nomini kiriting";
@@ -98,10 +105,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   };
 
   const goNext = () => {
-    const message = step === 1 ? validateSchool() : validateClasses();
+    const message = step === 1 ? validateSchool() : step === 3 ? validateClasses() : "";
     if (message) { setError(message); return; }
     setError("");
-    setStep((current) => Math.min(3, current + 1));
+    setStep((current) => Math.min(4, current + 1));
   };
 
   const updateClass = (key, patch) => {
@@ -150,16 +157,22 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     <section className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#D9D4C8" }}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs font-bold" style={{ color: "#8A5A1C" }}>YANGI MAKTAB · {step}/3 BOSQICH</p>
+          <p className="text-xs font-bold" style={{ color: "#8A5A1C" }}>YANGI MAKTAB · {step}/4 BOSQICH</p>
           <h2 className="text-lg font-bold" style={{ color: "#21384C" }}>
-            {step === 1 ? "Maktab ma’lumoti" : step === 2 ? "Mavjud sinflar" : "Tekshirish va yaratish"}
+            {step === 1
+              ? "Maktab ma’lumoti"
+              : step === 2
+                ? "Ish tartibi"
+                : step === 3
+                  ? "Mavjud sinflar"
+                  : "Tekshirish va yaratish"}
           </h2>
         </div>
         <button type="button" onClick={onCancel} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "#F7F5F0", color: "#5A5648" }}>✕ Yopish</button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        {[1, 2, 3].map((number) => <div key={number} className="h-1.5 rounded-full" style={{ background: number <= step ? "#C89B3C" : "#E9E4D8" }} />)}
+      <div className="grid grid-cols-4 gap-2 mb-5">
+        {[1, 2, 3, 4].map((number) => <div key={number} className="h-1.5 rounded-full" style={{ background: number <= step ? "#C89B3C" : "#E9E4D8" }} />)}
       </div>
 
       {step === 1 && (
@@ -190,6 +203,14 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
               </select>
             </label>
           </div>
+          <div className="rounded-xl px-3.5 py-3 text-xs" style={{ background: "#EEF6F1", color: "#2E6C55" }}>
+            Bu bosqichda faqat maktabning rasmiy nomi va hududi olinadi. To‘lov, balans yoki sinov muddati so‘ralmaydi.
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: "#5A5648" }}>Maktabdagi smena soni *</p>
             <div className="grid grid-cols-2 gap-2">
@@ -198,24 +219,37 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
             </div>
           </div>
           <label className="text-xs font-semibold block" style={{ color: "#5A5648" }}>Direktor · ixtiyoriy
-            <div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={director} onChange={setDirector} placeholder="Direktor ismini yozing..." /></div>
+            <div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={director} onChange={setDirector} placeholder="Mavjud foydalanuvchidan direktor tanlang..." /></div>
           </label>
-          <div className="rounded-xl px-3.5 py-3 text-xs" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Admin yaratmoqda: to‘lov ham, balans ham, sinov muddati ham so‘ralmaydi.</div>
+          <div className="rounded-xl px-3.5 py-3 text-xs leading-relaxed" style={{ background: "#F7F5F0", color: "#5A5648" }}>
+            Direktor hozir tanlanmasa ham maktab yaratiladi. Uni keyin muassasa boshqaruvidan belgilash mumkin. Ikki smena tanlansa, keyingi bosqichda har bir sinfning smenasi alohida ko‘rsatiladi.
+          </div>
         </div>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="space-y-3">
-          <p className="text-xs" style={{ color: "#5A5648" }}>Faqat maktabda haqiqatda mavjud sinflarni kiriting. Tizim parallel sinflarni o‘zi yaratmaydi.</p>
+          <div className="rounded-xl px-3.5 py-3 text-xs" style={{ background: "#FDF3E0", color: "#8A5A1C" }}>
+            Faqat maktabda haqiqatda mavjud sinflarni bittalab kiriting. Tizim 2–3 ta parallelni o‘zi yaratmaydi.
+          </div>
           {classes.map((item, index) => (
             <article key={item.key} className="rounded-2xl border p-4" style={{ borderColor: "#E5E1D8", background: "#FCFBF8" }}>
               <div className="flex items-center justify-between mb-3"><b className="text-sm">{normalizedClasses[index] || `${index + 1}-sinf qatori`}</b>
                 {classes.length > 1 && <button type="button" onClick={() => setClasses((current) => current.filter((row) => row.key !== item.key))} className="text-xs" style={{ color: "#B0553A" }}>Olib tashlash</button>}
               </div>
-              <div className="grid md:grid-cols-3 gap-3">
-                <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf *
-                  <input value={item.name} onChange={(event) => updateClass(item.key, { name: event.target.value })} placeholder="5-A"
-                    className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm uppercase" style={{ borderColor: "#E5E1D8" }} />
+              <div className="grid md:grid-cols-4 gap-3">
+                <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *
+                  <select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })}
+                    className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                    <option value="">Tanlang</option>
+                    {CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}
+                  </select>
+                </label>
+                <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Parallel *
+                  <select value={item.letter} onChange={(event) => updateClass(item.key, { letter: event.target.value })}
+                    className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>
+                    {CLASS_LETTERS.map((letter) => <option key={letter} value={letter}>{letter}</option>)}
+                  </select>
                 </label>
                 {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *
                   <select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value) })}
@@ -239,11 +273,11 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
             </article>
           ))}
           <button type="button" onClick={() => setClasses((current) => [...current, emptyClass(current.length)])}
-            className="w-full py-3 rounded-xl border-2 border-dashed text-sm font-bold" style={{ borderColor: "#B9CCDC", color: "#1B4B7A" }}>＋ Yana bitta sinf qo‘shish</button>
+            className="w-full py-3 rounded-xl border-2 border-dashed text-sm font-bold" style={{ borderColor: "#B9CCDC", color: "#1B4B7A" }}>＋ Yana mavjud sinfni qo‘shish</button>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="space-y-4">
           <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}>
             <h3 className="font-bold" style={{ color: "#21384C" }}>{schoolNumber.trim() ? `${schoolNumber.trim()}-sonli ` : ""}{name.trim()}</h3>
@@ -264,10 +298,9 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       <div className="grid grid-cols-2 gap-2 mt-5">
         <button type="button" onClick={() => step === 1 ? onCancel?.() : setStep((current) => current - 1)} disabled={saving}
           className="py-3 rounded-xl font-bold text-sm" style={{ background: "#F7F5F0", color: "#5A5648" }}>{step === 1 ? "Bekor qilish" : "← Orqaga"}</button>
-        {step < 3 ? <button type="button" onClick={goNext} className="py-3 rounded-xl font-bold text-sm text-white" style={{ background: "#1B4B7A" }}>Davom etish →</button>
+        {step < 4 ? <button type="button" onClick={goNext} className="py-3 rounded-xl font-bold text-sm text-white" style={{ background: "#1B4B7A" }}>Davom etish →</button>
           : <button type="button" onClick={createSchool} disabled={saving} className="py-3 rounded-xl font-bold text-sm text-white" style={{ background: "#1B4B7A", opacity: saving ? 0.65 : 1 }}>{saving ? "Yaratilmoqda..." : "Maktabni yaratish"}</button>}
       </div>
     </section>
   );
 }
-
