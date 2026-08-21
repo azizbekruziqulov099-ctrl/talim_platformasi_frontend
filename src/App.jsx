@@ -1,3 +1,6 @@
+// SAMTM V18.59 — Shablondagi o‘qituvchi fanlari va metod kuni hisoboti.
+// SAMTM V18.58 — Sinf-kun qoidasi bitta kunlik va aniq hisobotli.
+// SAMTM V18.57 — Xavfsiz maktab dashboard APIlariga ulandi.
 // SAMTM V18.56 — moslashuvchan parallel/aniq sinf kun bloklari.
 // SAMTM V18.54 — Kalendar autosave, ommaviy o‘qituvchi sozlamalari va aqlli xodim shabloni.
 // SAMTM V18.52 — Puxta aqlli jadval va to‘liq ekranli maktab workspace.
