@@ -1,3 +1,5 @@
+// SAMTM V18.56 — moslashuvchan parallel/aniq sinf kun bloklari.
+// SAMTM V18.54 — Kalendar autosave, ommaviy o‘qituvchi sozlamalari va aqlli xodim shabloni.
 // SAMTM V18.52 — Puxta aqlli jadval va to‘liq ekranli maktab workspace.
 // SAMTM V18.49 — blank sahifa tuzatildi: importlar endi komment ichida qolmaydi.
 // SAMTM V18.48 — Maktab ID yo‘qolib qolishi va admin preview ko‘rinmasligi tuzatildi.
