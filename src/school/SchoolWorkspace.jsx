@@ -1,7 +1,8 @@
-// SAMTM V18.51 — Aqlli jadval, kalendar, metod kuni va mavzu rejasi.
+// SAMTM V18.52 — Puxta aqlli jadval va to‘liq ekranli maktab workspace.
 // SAMTM V18.49 — blank sahifa tuzatildi: React importi tiklandi.
 // SAMTM V18.48 — manager loading/fallback tuzatildi.
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft, BarChart3, BellRing, BookOpen, CalendarDays, CheckCircle2,
   ChevronRight, ClipboardCheck, Clock3, GraduationCap, LayoutDashboard,
@@ -400,244 +401,535 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
 }
 
 
+function WorkspacePortal({ children }) {
+  useEffect(() => {
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = oldOverflow; };
+  }, []);
+  return createPortal(
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 2147483000, overflow: "auto",
+        background: "linear-gradient(180deg,#F5FAFC 0%,#F7F4ED 100%)",
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
 
-function SmartTimetablePanel({ token, apiBase, maktabId, onClose }) {
-  const [tab, setTab] = useState("calendar");
-  const [data, setData] = useState(null);
-  const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [calendar, setCalendar] = useState({ nomi:"2026/2027", boshlanish:"", tugash:"", hafta_kunlari:6, choraklar:[1,2,3,4].map(chorak=>({chorak,boshlanish:"",tugash:"",holat:"taxminiy"})) });
-  const [day, setDay] = useState({ sana:"", turi:"bayram", nomi:"", holat:"tasdiqlangan" });
-  const [teacherId, setTeacherId] = useState("");
-  const [time, setTime] = useState({ hafta_kuni:1, dars_raqami:1, turi:"band", qattiq:true, izoh:"" });
-  const [classId, setClassId] = useState("");
-  const [fan, setFan] = useState("");
-  const [hours, setHours] = useState({ haftalik_soat:1, kunlik_max:1, ketma_ket_mumkin:false });
-  const [gen, setGen] = useState(null);
-  const [topicText, setTopicText] = useState("");
-  const [quarter, setQuarter] = useState(1);
+async function smartFetch(url, options = {}) {
+  const response = await fetch(url, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.detail) {
+    const detail = typeof data?.detail === "string" ? data.detail : data?.detail?.message || "Amal bajarilmadi";
+    throw new Error(detail);
+  }
+  return data;
+}
 
-  const load = () => {
-    if (!maktabId) return;
-    setBusy(true); setMsg("");
-    fetch(`${apiBase}/api/maktab/aqlli_jadval/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
-      .then(r=>r.json().then(d=>({ok:r.ok,d})))
-      .then(({ok,d})=>{ if(!ok||d.detail) throw new Error(d.detail||"Yuklanmadi"); setData(d); if(d.oquv_yili){setCalendar({nomi:d.oquv_yili.nomi,boshlanish:String(d.oquv_yili.boshlanish||"").slice(0,10),tugash:String(d.oquv_yili.tugash||"").slice(0,10),hafta_kunlari:d.oquv_yili.hafta_kunlari,choraklar:(d.choraklar||[]).map(q=>({chorak:q.chorak,boshlanish:String(q.boshlanish||"").slice(0,10),tugash:String(q.tugash||"").slice(0,10),holat:q.holat}))});}})
-      .catch(e=>setMsg(e.message)).finally(()=>setBusy(false));
+const smartDays = [
+  [1, "Dushanba"], [2, "Seshanba"], [3, "Chorshanba"],
+  [4, "Payshanba"], [5, "Juma"], [6, "Shanba"], [7, "Yakshanba"],
+];
+
+const emptyQuarter = (number) => ({ chorak: number, boshlanish: "", tugash: "", holat: "taxminiy" });
+const defaultShift = (smena) => ({
+  smena, dars_soni: 7, boshlanish_vaqti: smena === 1 ? "08:00" : "13:30",
+  dars_daqiqa: 45, tanaffus_daqiqa: 5, katta_tanaffus_darsdan_keyin: 3,
+  katta_tanaffus_daqiqa: 15,
+});
+
+function SmartHeader({ title, subtitle, onClose, badge = "AQILLI JADVAL 2.0" }) {
+  return (
+    <div className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,.96)", borderColor: palette.line }}>
+      <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-[10px] md:text-xs font-black tracking-[.14em] uppercase" style={{ color: palette.teal }}>{badge}</div>
+          <h1 className="text-lg md:text-2xl font-black truncate" style={{ color: palette.ink }}>{title}</h1>
+          {subtitle && <p className="text-xs mt-0.5 truncate" style={{ color: palette.muted }}>{subtitle}</p>}
+        </div>
+        <button onClick={onClose} className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}>
+          <ArrowLeft size={16}/> Asosiy sahifaga qaytish
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SmartNotice({ tone = "info", children }) {
+  const styles = {
+    info: [palette.sky, palette.blue], success: [palette.greenBg, palette.green],
+    warning: [palette.amberBg, palette.amber], error: [palette.redBg, palette.red],
   };
-  useEffect(load,[token,apiBase,maktabId]);
+  const [background, color] = styles[tone] || styles.info;
+  return <div className="rounded-2xl p-3.5 text-sm leading-relaxed" style={{ background, color }}>{children}</div>;
+}
 
-  const req = async (url, options={}) => {
-    setBusy(true); setMsg("");
-    try { const r=await fetch(url,options); const d=await r.json(); if(!r.ok||d.detail) throw new Error(d.detail||"Xato"); setMsg("Saqlandi ✓"); return d; }
-    catch(e){setMsg(e.message||"Xato"); throw e;} finally{setBusy(false);}
+function SmartStepNav({ step, setStep, teacherOnly }) {
+  const steps = teacherOnly
+    ? [[2, "1. Bo‘sh vaqt"], [5, "2. Mavzu rejasi"]]
+    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. Fan soatlari"], [4, "4. Jadval yaratish"], [5, "5. Mavzu rejasi"]];
+  return (
+    <div className="sticky top-[77px] z-30 border-b" style={{ background: "rgba(247,250,252,.96)", borderColor: palette.line }}>
+      <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {steps.map(([number, label]) => (
+            <button key={number} onClick={() => setStep(number)} className="px-4 py-2.5 rounded-xl border text-sm font-black"
+              style={step === number
+                ? { background: palette.blue, color: "#fff", borderColor: palette.blue }
+                : { background: "#fff", color: palette.ink, borderColor: palette.line }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CalendarStep({ token, apiBase, maktabId, setup, reload }) {
+  const now = new Date();
+  const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  const [form, setForm] = useState({
+    nomi: setup?.oquv_yili?.nomi || `${startYear}/${startYear + 1}`,
+    boshlanish: setup?.oquv_yili?.boshlanish || `${startYear}-09-02`,
+    tugash: setup?.oquv_yili?.tugash || `${startYear + 1}-05-25`,
+    hafta_kunlari: Number(setup?.oquv_yili?.hafta_kunlari || 6),
+    choraklar: (setup?.choraklar?.length ? setup.choraklar : [1,2,3,4].map(emptyQuarter)).map(q => ({ ...q })),
+    smenalar: (setup?.smenalar?.length ? setup.smenalar : [defaultShift(1), defaultShift(2)]).map(s => ({ ...s, boshlanish_vaqti: String(s.boshlanish_vaqti || "").slice(0,5) })),
+  });
+  const [special, setSpecial] = useState({ sana: "", turi: "bayram", nomi: "", holat: "tasdiqlangan", izoh: "" });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!setup) return;
+    setForm(prev => ({
+      ...prev,
+      nomi: setup?.oquv_yili?.nomi || prev.nomi,
+      boshlanish: setup?.oquv_yili?.boshlanish || prev.boshlanish,
+      tugash: setup?.oquv_yili?.tugash || prev.tugash,
+      hafta_kunlari: Number(setup?.oquv_yili?.hafta_kunlari || prev.hafta_kunlari),
+      choraklar: (setup?.choraklar?.length ? setup.choraklar : prev.choraklar).map(q => ({ ...q })),
+      smenalar: (setup?.smenalar?.length ? setup.smenalar : prev.smenalar).map(s => ({ ...s, boshlanish_vaqti: String(s.boshlanish_vaqti || "").slice(0,5) })),
+    }));
+  }, [setup]);
+
+  const updateQuarter = (index, field, value) => setForm(prev => ({ ...prev, choraklar: prev.choraklar.map((q,i) => i === index ? { ...q, [field]: value } : q) }));
+  const updateShift = (index, field, value) => setForm(prev => ({ ...prev, smenalar: prev.smenalar.map((s,i) => i === index ? { ...s, [field]: value } : s) }));
+
+  const suggest = async () => {
+    setSaving(true); setMessage(null);
+    try {
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/kalendar_tavsiya?token=${encodeURIComponent(token)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boshlanish: form.boshlanish, tugash: form.tugash, hafta_kunlari: Number(form.hafta_kunlari) }),
+      });
+      setForm(prev => ({ ...prev, choraklar: data.choraklar }));
+      setMessage({ tone: "warning", text: data.ogohlantirish });
+      for (const day of data.maxsus_kunlar || []) {
+        await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/maxsus_kun?token=${encodeURIComponent(token)}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maktab_id: maktabId, ...day }),
+        });
+      }
+      await reload();
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setSaving(false); }
   };
 
-  const saveCalendar = async()=>{ await req(`${apiBase}/api/maktab/aqlli_jadval/kalendar?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:Number(maktabId),...calendar})}); load(); };
-  const saveDay = async()=>{ await req(`${apiBase}/api/maktab/aqlli_jadval/kun?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:Number(maktabId),...day})}); load(); };
-  const saveTime = async()=>{ if(!teacherId)return setMsg("O'qituvchini tanlang"); await req(`${apiBase}/api/maktab/aqlli_jadval/oqituvchi_vaqti?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:Number(maktabId),user_id:Number(teacherId),...time,dars_raqami:time.turi==="metod_kuni"?null:Number(time.dars_raqami)})}); load(); };
-  const saveHours = async()=>{ if(!classId||!fan.trim())return setMsg("Sinf va fanni kiriting"); await req(`${apiBase}/api/maktab/aqlli_jadval/fan_soati?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:Number(maktabId),sinf_id:Number(classId),fan_nomi:fan,...hours,haftalik_soat:Number(hours.haftalik_soat),kunlik_max:Number(hours.kunlik_max)})}); load(); };
-  const generate = async()=>{ const d=await req(`${apiBase}/api/maktab/aqlli_jadval/yarat?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&darslar_kuniga=7`,{method:"POST"}); setGen(d); };
-  const saveTopics = async()=>{ if(!classId||!fan.trim())return setMsg("Sinf va fanni tanlang"); const mavzular=topicText.split("\n").map(x=>x.trim()).filter(Boolean).map((mavzu)=>({mavzu,soat:1,turi:"mavzu"})); await req(`${apiBase}/api/maktab/aqlli_jadval/mavzu_reja?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:Number(maktabId),sinf_id:Number(classId),fan_nomi:fan,chorak:Number(quarter),mavzular})}); };
-  const distribute = async()=>{ const d=await req(`${apiBase}/api/maktab/aqlli_jadval/mavzularni_taqsimlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${classId}&fan=${encodeURIComponent(fan)}&chorak=${quarter}`,{method:"POST"}); setMsg(`Taqsimlandi: ${d.dars_soni} dars. Avto qo'shimcha: ${(d.avto_qoshildi||[]).length}`); };
+  const save = async () => {
+    setSaving(true); setMessage(null);
+    try {
+      await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/kalendar?token=${encodeURIComponent(token)}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maktab_id: maktabId, nomi: form.nomi, boshlanish: form.boshlanish,
+          tugash: form.tugash, hafta_kunlari: Number(form.hafta_kunlari),
+          choraklar: form.choraklar, smenalar: form.smenalar.map(s => ({
+            ...s, smena: Number(s.smena), dars_soni: Number(s.dars_soni),
+            dars_daqiqa: Number(s.dars_daqiqa), tanaffus_daqiqa: Number(s.tanaffus_daqiqa),
+            katta_tanaffus_darsdan_keyin: Number(s.katta_tanaffus_darsdan_keyin),
+            katta_tanaffus_daqiqa: Number(s.katta_tanaffus_daqiqa),
+          })),
+        }),
+      });
+      setMessage({ tone: "success", text: "O‘quv kalendari va smena vaqtlari saqlandi." });
+      await reload();
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setSaving(false); }
+  };
 
-  const tabs=[['calendar','1. O‘quv kalendari'],['teacher','2. O‘qituvchi vaqti'],['hours','3. Fan soatlari'],['generate','4. Jadval yaratish'],['topics','5. Mavzu rejasi']];
-  return <div className="fixed inset-0 z-50 overflow-auto" style={{background:"#F6F8FA"}}>
-    <div className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur"><div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{color:palette.teal}}>Aqlli yordamchi</div><div className="text-xl font-black" style={{color:palette.ink}}>Dars jadvali va yillik reja</div></div><button onClick={onClose} className="px-4 py-2 rounded-xl font-bold" style={{background:palette.cream}}>Yopish</button></div></div>
-    <div className="max-w-7xl mx-auto px-4 py-5">
-      <div className="flex gap-2 overflow-auto pb-2 mb-4">{tabs.map(([k,l])=><button key={k} onClick={()=>setTab(k)} className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-black" style={{background:tab===k?palette.blue:'#fff',color:tab===k?'#fff':palette.ink,border:`1px solid ${palette.line}`}}>{l}</button>)}</div>
-      {msg&&<div className="mb-4 rounded-xl p-3 text-sm font-bold" style={{background:msg.includes('✓')?palette.greenBg:palette.amberBg,color:msg.includes('✓')?palette.green:palette.amber}}>{msg}</div>}
-      {busy&&<div className="mb-4 text-sm" style={{color:palette.muted}}>Ishlanmoqda...</div>}
+  const saveSpecial = async () => {
+    if (!special.sana) return setMessage({ tone: "error", text: "Maxsus kun sanasini tanlang." });
+    setSaving(true); setMessage(null);
+    try {
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/maxsus_kun?token=${encodeURIComponent(token)}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maktab_id: maktabId, ...special }),
+      });
+      const suffix = data.qayta_taqsimlandi ? ` ${data.qayta_taqsimlandi} ta mavzu taqvimi avtomatik qayta taqsimlandi.` : "";
+      setMessage({ tone: "success", text: `Kun saqlandi.${suffix}` });
+      setSpecial({ sana: "", turi: "bayram", nomi: "", holat: "tasdiqlangan", izoh: "" });
+      await reload();
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setSaving(false); }
+  };
 
-      {tab==='calendar'&&<div className="grid lg:grid-cols-[1fr_.8fr] gap-4"><Card className="p-5"><h3 className="font-black text-lg">O‘quv yili va 4 chorak</h3><p className="text-xs mt-1 mb-4" style={{color:palette.muted}}>Taxminiy sanalar sariq, tasdiqlangan sanalar yashil. Tizim taxminiy sanani hech qachon rasmiy deb ko‘rsatmaydi.</p><div className="grid md:grid-cols-4 gap-2 mb-4"><input value={calendar.nomi} onChange={e=>setCalendar({...calendar,nomi:e.target.value})} className="border rounded-xl p-2" placeholder="2026/2027"/><input type="date" value={calendar.boshlanish} onChange={e=>setCalendar({...calendar,boshlanish:e.target.value})} className="border rounded-xl p-2"/><input type="date" value={calendar.tugash} onChange={e=>setCalendar({...calendar,tugash:e.target.value})} className="border rounded-xl p-2"/><select value={calendar.hafta_kunlari} onChange={e=>setCalendar({...calendar,hafta_kunlari:Number(e.target.value)})} className="border rounded-xl p-2"><option value={5}>5 kun</option><option value={6}>6 kun</option></select></div><div className="space-y-2">{calendar.choraklar.map((q,i)=><div key={q.chorak} className="grid grid-cols-[70px_1fr_1fr_130px] gap-2 items-center"><b>{q.chorak}-chorak</b><input type="date" value={q.boshlanish} onChange={e=>{const a=[...calendar.choraklar];a[i]={...a[i],boshlanish:e.target.value};setCalendar({...calendar,choraklar:a})}} className="border rounded-xl p-2"/><input type="date" value={q.tugash} onChange={e=>{const a=[...calendar.choraklar];a[i]={...a[i],tugash:e.target.value};setCalendar({...calendar,choraklar:a})}} className="border rounded-xl p-2"/><select value={q.holat} onChange={e=>{const a=[...calendar.choraklar];a[i]={...a[i],holat:e.target.value};setCalendar({...calendar,choraklar:a})}} className="border rounded-xl p-2"><option value="taxminiy">Taxminiy</option><option value="tasdiqlangan">Tasdiqlangan</option></select></div>)}</div><button onClick={saveCalendar} className="mt-4 px-5 py-3 rounded-xl text-white font-black" style={{background:palette.blue}}>Kalendarni saqlash</button></Card>
-      <Card className="p-5"><h3 className="font-black text-lg">Maxsus kun qo‘shish</h3><div className="grid gap-2 mt-4"><input type="date" value={day.sana} onChange={e=>setDay({...day,sana:e.target.value})} className="border rounded-xl p-2"/><select value={day.turi} onChange={e=>setDay({...day,turi:e.target.value})} className="border rounded-xl p-2"><option value="bayram">Bayram / dam</option><option value="tatil">Ta’til</option><option value="qoshimcha_dam">Qo‘shimcha dam</option><option value="oqish">O‘qish kuni</option><option value="qoshimcha_oqish">Qo‘shimcha o‘qish kuni</option></select><input value={day.nomi} onChange={e=>setDay({...day,nomi:e.target.value})} className="border rounded-xl p-2" placeholder="Masalan: Bayram"/><select value={day.holat} onChange={e=>setDay({...day,holat:e.target.value})} className="border rounded-xl p-2"><option value="tasdiqlangan">Tasdiqlangan</option><option value="taxminiy">Taxminiy</option></select><button onClick={saveDay} className="px-4 py-2.5 rounded-xl text-white font-black" style={{background:palette.teal}}>Kunni belgilash</button></div><div className="mt-4 space-y-1 max-h-64 overflow-auto">{(data?.maxsus_kunlar||[]).map(x=><div key={x.id} className="rounded-xl p-2 text-xs" style={{background:['dam','bayram','tatil','qoshimcha_dam'].includes(x.turi)?'#FDECEC':x.holat==='taxminiy'?'#FFF4D8':'#E9F7EF'}}><b>{String(x.sana).slice(0,10)}</b> · {x.nomi||x.turi} · {x.holat}</div>)}</div></Card></div>}
+  const removeSpecial = async (day) => {
+    if (!window.confirm(`${day.sana} kungi belgini olib tashlaysizmi?`)) return;
+    try {
+      await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/maxsus_kun?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sana=${day.sana}`, { method: "DELETE" });
+      await reload();
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+  };
 
-      {tab==='teacher'&&<div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4"><Card className="p-5"><h3 className="font-black text-lg">O‘qituvchi bo‘sh vaqti / metod kuni</h3><select value={teacherId} onChange={e=>setTeacherId(e.target.value)} className="w-full border rounded-xl p-2 mt-4"><option value="">O‘qituvchini tanlang</option>{(data?.oqituvchilar||[]).map(x=><option key={x.user_id} value={x.user_id}>{x.full_name} — {x.fanlari||'fan yo‘q'}</option>)}</select><div className="grid grid-cols-2 gap-2 mt-2"><select value={time.hafta_kuni} onChange={e=>setTime({...time,hafta_kuni:Number(e.target.value)})} className="border rounded-xl p-2">{['Dush','Sesh','Chor','Pay','Jum','Shan'].map((x,i)=><option value={i+1} key={x}>{x}</option>)}</select><input type="number" min="1" max="10" value={time.dars_raqami} disabled={time.turi==='metod_kuni'} onChange={e=>setTime({...time,dars_raqami:Number(e.target.value)})} className="border rounded-xl p-2"/></div><select value={time.turi} onChange={e=>setTime({...time,turi:e.target.value})} className="w-full border rounded-xl p-2 mt-2"><option value="band">Bu vaqtda dars qo‘ymang</option><option value="afzal_bosh">Iloji bo‘lsa bo‘sh qoldir</option><option value="metod_kuni">Metod kuni</option></select><label className="flex gap-2 items-center text-sm mt-3"><input type="checkbox" checked={time.qattiq} onChange={e=>setTime({...time,qattiq:e.target.checked})}/> Qattiq cheklov</label><button onClick={saveTime} className="mt-3 px-4 py-2.5 rounded-xl text-white font-black" style={{background:palette.blue}}>Saqlash</button></Card><Card className="p-5"><h3 className="font-black text-lg">Kiritilgan cheklovlar</h3><div className="mt-3 space-y-2 max-h-[420px] overflow-auto">{(data?.vaqtlar||[]).map(x=><div key={x.id} className="rounded-xl p-3" style={{background:palette.cream}}><b>{(data?.oqituvchilar||[]).find(t=>String(t.user_id)===String(x.user_id))?.full_name||x.user_id}</b><div className="text-xs mt-1" style={{color:palette.muted}}>{x.hafta_kuni}-kun · {x.turi} · {x.dars_raqami?`${x.dars_raqami}-dars`:'butun kun'} · {x.qattiq?'qattiq':'yumshoq'}</div></div>)}</div></Card></div>}
+  const dayStyle = (day) => {
+    if (["dam","bayram","tatil","qoshimcha_dam"].includes(day.turi)) return { background: palette.redBg, color: palette.red };
+    if (day.holat === "taxminiy") return { background: palette.amberBg, color: palette.amber };
+    return { background: palette.greenBg, color: palette.green };
+  };
 
-      {tab==='hours'&&<Card className="p-5"><h3 className="font-black text-lg">Sinf–fan haftalik soatlari</h3><p className="text-xs mt-1" style={{color:palette.muted}}>Generator aynan shu soatlarni joylashtiradi.</p><div className="grid md:grid-cols-5 gap-2 mt-4"><select value={classId} onChange={e=>setClassId(e.target.value)} className="border rounded-xl p-2"><option value="">Sinf</option>{(data?.sinflar||[]).map(x=><option key={x.id} value={x.id}>{x.sinf}-{x.harf}</option>)}</select><input value={fan} onChange={e=>setFan(e.target.value)} placeholder="Fan nomi" className="border rounded-xl p-2"/><input type="number" min="0" max="20" value={hours.haftalik_soat} onChange={e=>setHours({...hours,haftalik_soat:Number(e.target.value)})} className="border rounded-xl p-2"/><input type="number" min="1" max="4" value={hours.kunlik_max} onChange={e=>setHours({...hours,kunlik_max:Number(e.target.value)})} className="border rounded-xl p-2"/><button onClick={saveHours} className="rounded-xl text-white font-black" style={{background:palette.teal}}>Saqlash</button></div><div className="mt-4 grid md:grid-cols-2 lg:grid-cols-3 gap-2">{(data?.fan_soatlari||[]).map((x,i)=><div key={i} className="rounded-xl p-3" style={{background:palette.cream}}><b>{(data?.sinflar||[]).find(s=>String(s.id)===String(x.sinf_id))?.sinf}-{(data?.sinflar||[]).find(s=>String(s.id)===String(x.sinf_id))?.harf} · {x.fan_nomi}</b><div className="text-xs">{x.haftalik_soat} soat/hafta · kuniga max {x.kunlik_max}</div></div>)}</div></Card>}
+  return (
+    <div className="space-y-4">
+      {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+      <div className="grid xl:grid-cols-[1.2fr_.8fr] gap-4">
+        <Card className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+            <div><h2 className="text-xl font-black" style={{ color: palette.ink }}>O‘quv yili va 4 chorak</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Taxminiy sanalar sariq, administrator tasdiqlagan sanalar yashil ko‘rinadi.</p></div>
+            <button onClick={suggest} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.amberBg, color: palette.amber }}>Taxminiy sanalarni yaratish</button>
+          </div>
+          <div className="grid sm:grid-cols-4 gap-3 mb-4">
+            <label className="sm:col-span-1 text-xs font-bold" style={{ color: palette.ink }}>O‘quv yili<input value={form.nomi} onChange={e=>setForm({...form,nomi:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{ borderColor: palette.line }}/></label>
+            <label className="text-xs font-bold" style={{ color: palette.ink }}>Boshlanish<input type="date" value={form.boshlanish} onChange={e=>setForm({...form,boshlanish:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{ borderColor: palette.line }}/></label>
+            <label className="text-xs font-bold" style={{ color: palette.ink }}>Tugash<input type="date" value={form.tugash} onChange={e=>setForm({...form,tugash:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{ borderColor: palette.line }}/></label>
+            <label className="text-xs font-bold" style={{ color: palette.ink }}>O‘qish haftasi<select value={form.hafta_kunlari} onChange={e=>setForm({...form,hafta_kunlari:Number(e.target.value)})} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}><option value={5}>5 kun</option><option value={6}>6 kun</option></select></label>
+          </div>
+          <div className="space-y-2">
+            {form.choraklar.map((q,index)=><div key={q.chorak} className="grid grid-cols-[70px_1fr_1fr_130px] gap-2 items-end rounded-2xl p-3" style={{ background: palette.cream }}>
+              <div className="text-sm font-black pb-2" style={{ color: palette.ink }}>{q.chorak}-chorak</div>
+              <label className="text-[11px]" style={{ color: palette.muted }}>Boshlanish<input type="date" value={q.boshlanish || ""} onChange={e=>updateQuarter(index,"boshlanish",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+              <label className="text-[11px]" style={{ color: palette.muted }}>Tugash<input type="date" value={q.tugash || ""} onChange={e=>updateQuarter(index,"tugash",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+              <label className="text-[11px]" style={{ color: palette.muted }}>Holat<select value={q.holat || "taxminiy"} onChange={e=>updateQuarter(index,"holat",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}><option value="taxminiy">Taxminiy</option><option value="tasdiqlangan">Tasdiqlangan</option></select></label>
+            </div>)}
+          </div>
+        </Card>
 
-      {tab==='generate'&&<div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4"><Card className="p-5"><h3 className="font-black text-lg">Aqlli jadval yaratish</h3><p className="text-sm mt-2" style={{color:palette.muted}}>O‘qituvchi konflikti, sinf konflikti, metod kuni, band vaqt va fan kunlik maksimumi hisobga olinadi.</p><button onClick={generate} className="mt-5 px-5 py-3 rounded-xl text-white font-black" style={{background:palette.blue}}>✨ Jadvalni yaratish</button></Card><Card className="p-5">{gen?<><div className="text-4xl font-black" style={{color:gen.sifat>=90?palette.green:palette.amber}}>{gen.sifat}/100</div><div className="text-sm mt-1">Jadval sifati</div><div className="grid grid-cols-3 gap-2 mt-4"><Stat value={gen.jami_soat} label="jami soat" tone="blue"/><Stat value={gen.joylashtirildi} label="joylashdi" tone="green"/><Stat value={gen.joylashtirilmadi} label="joylashmadi" tone={gen.joylashtirilmadi?'red':'green'}/></div>{(gen.muammolar||[]).length>0&&<div className="mt-4 space-y-1">{gen.muammolar.slice(0,10).map((x,i)=><div key={i} className="text-xs rounded-xl p-2" style={{background:palette.redBg}}>{x.fan}: {x.sabab}</div>)}</div>}</>:<div className="text-sm" style={{color:palette.muted}}>Natija shu yerda chiqadi.</div>}</Card></div>}
+        <Card className="p-5">
+          <h2 className="text-xl font-black mb-1" style={{ color: palette.ink }}>Smena va dars vaqtlari</h2>
+          <p className="text-xs mb-4" style={{ color: palette.muted }}>Har smenaning vaqti generator va o‘qituvchi bandligini aniq hisoblaydi.</p>
+          <div className="space-y-3">
+            {form.smenalar.map((s,index)=><div key={s.smena} className="rounded-2xl p-3" style={{ background: palette.cream }}>
+              <div className="font-black text-sm mb-2" style={{ color: palette.ink }}>{s.smena}-smena</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[11px]" style={{ color: palette.muted }}>Boshlanish<input type="time" value={s.boshlanish_vaqti || ""} onChange={e=>updateShift(index,"boshlanish_vaqti",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+                <label className="text-[11px]" style={{ color: palette.muted }}>Dars soni<input type="number" min="1" max="12" value={s.dars_soni} onChange={e=>updateShift(index,"dars_soni",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+                <label className="text-[11px]" style={{ color: palette.muted }}>Dars daqiqasi<input type="number" value={s.dars_daqiqa} onChange={e=>updateShift(index,"dars_daqiqa",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+                <label className="text-[11px]" style={{ color: palette.muted }}>Tanaffus<input type="number" value={s.tanaffus_daqiqa} onChange={e=>updateShift(index,"tanaffus_daqiqa",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+                <label className="text-[11px]" style={{ color: palette.muted }}>Katta tanaffusdan oldin<input type="number" value={s.katta_tanaffus_darsdan_keyin} onChange={e=>updateShift(index,"katta_tanaffus_darsdan_keyin",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+                <label className="text-[11px]" style={{ color: palette.muted }}>Katta tanaffus<input type="number" value={s.katta_tanaffus_daqiqa} onChange={e=>updateShift(index,"katta_tanaffus_daqiqa",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{ borderColor: palette.line }}/></label>
+              </div>
+            </div>)}
+          </div>
+        </Card>
+      </div>
 
-      {tab==='topics'&&<Card className="p-5"><h3 className="font-black text-lg">Chorak mavzu rejasi → real sanalarga avtomatik</h3><p className="text-xs mt-1" style={{color:palette.muted}}>Har qatorga bitta mavzu yozing. Chorakdagi dars soni mavzu soatidan ko‘p bo‘lsa, tizim zaxirani nazorat ishi → xatolar tahlili → mustahkamlash → masalalar yechish tarzida taklif qilib to‘ldiradi. O‘qituvchi keyin o‘zgartira oladi.</p><div className="grid md:grid-cols-3 gap-2 mt-4"><select value={classId} onChange={e=>setClassId(e.target.value)} className="border rounded-xl p-2"><option value="">Sinf</option>{(data?.sinflar||[]).map(x=><option key={x.id} value={x.id}>{x.sinf}-{x.harf}</option>)}</select><input value={fan} onChange={e=>setFan(e.target.value)} placeholder="Fan" className="border rounded-xl p-2"/><select value={quarter} onChange={e=>setQuarter(Number(e.target.value))} className="border rounded-xl p-2">{[1,2,3,4].map(x=><option key={x} value={x}>{x}-chorak</option>)}</select></div><textarea value={topicText} onChange={e=>setTopicText(e.target.value)} rows={12} className="w-full border rounded-xl p-3 mt-3 font-mono text-sm" placeholder={'1-mavzu\n2-mavzu\n3-mavzu'}></textarea><div className="flex gap-2 mt-3"><button onClick={saveTopics} className="px-4 py-2.5 rounded-xl text-white font-black" style={{background:palette.teal}}>Mavzularni saqlash</button><button onClick={distribute} className="px-4 py-2.5 rounded-xl text-white font-black" style={{background:palette.blue}}>Sanaga avtomatik taqsimlash</button></div></Card>}
+      <div className="grid xl:grid-cols-[.75fr_1.25fr] gap-4">
+        <Card className="p-5">
+          <h2 className="text-xl font-black mb-4" style={{ color: palette.ink }}>Maxsus kun qo‘shish</h2>
+          <div className="space-y-2.5">
+            <input type="date" value={special.sana} onChange={e=>setSpecial({...special,sana:e.target.value})} className="w-full p-2.5 rounded-xl border" style={{ borderColor: palette.line }}/>
+            <select value={special.turi} onChange={e=>setSpecial({...special,turi:e.target.value})} className="w-full p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}><option value="bayram">Bayram / dam</option><option value="tatil">Ta’til</option><option value="qoshimcha_dam">Qo‘shimcha dam</option><option value="qoshimcha_oqish">Qo‘shimcha o‘qish kuni</option><option value="oqish">O‘qish kuni</option></select>
+            <input value={special.nomi} onChange={e=>setSpecial({...special,nomi:e.target.value})} placeholder="Masalan: Bayram yoki ko‘chirilgan o‘qish kuni" className="w-full p-2.5 rounded-xl border" style={{ borderColor: palette.line }}/>
+            <select value={special.holat} onChange={e=>setSpecial({...special,holat:e.target.value})} className="w-full p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}><option value="taxminiy">Taxminiy</option><option value="tasdiqlangan">Tasdiqlangan</option></select>
+            <button onClick={saveSpecial} disabled={saving} className="w-full py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>{saving ? "Saqlanmoqda..." : "Kunni belgilash"}</button>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <div className="flex items-center justify-between gap-3 mb-4"><div><h2 className="text-xl font-black" style={{ color: palette.ink }}>Belgilangan kunlar</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Qizil — o‘qish yo‘q. Sariq — taxminiy. Yashil — tasdiqlangan o‘qish kuni.</p></div><button onClick={save} disabled={saving} className="px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{saving ? "..." : "Hammasini saqlash"}</button></div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[360px] overflow-auto pr-1">
+            {(setup?.maxsus_kunlar || []).map(day=><div key={day.id || day.sana} className="rounded-2xl p-3 flex gap-2 items-start" style={dayStyle(day)}><div className="flex-1"><div className="text-sm font-black">{day.sana}</div><div className="text-xs mt-1">{day.nomi || day.turi} · {day.holat}</div></div><button onClick={()=>removeSpecial(day)} className="text-xs font-black">×</button></div>)}
+            {!(setup?.maxsus_kunlar || []).length && <div className="text-sm" style={{ color: palette.muted }}>Hali maxsus kun qo‘shilmagan.</div>}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function TeacherTimeGrid({ setup, selectedTeacher, setSelectedTeacher, teacherOnly, token, apiBase, reload }) {
+  const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
+  const [shift, setShift] = useState(1);
+  const [grid, setGrid] = useState({});
+  const [methodDays, setMethodDays] = useState({});
+  const [rules, setRules] = useState({ kunlik_max: 6, ketma_ket_max: 4, okno_max: 1, afzal_smena: 0, eng_erta_dars: 1, eng_kech_dars: 12 });
+  const [message, setMessage] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const shiftRow = (setup?.smenalar || []).find(s => Number(s.smena) === Number(shift));
+  const periodCount = Number(shiftRow?.dars_soni || 7);
+
+  useEffect(() => {
+    if (!selectedTeacher) return;
+    const newGrid = {}; const methods = {};
+    (setup?.oqituvchi_vaqtlari || []).filter(x=>String(x.user_id)===String(selectedTeacher)).forEach(item=>{
+      if (item.turi === "metod_kuni") methods[item.hafta_kuni] = item.qattiq ? "hard" : "soft";
+      else newGrid[`${item.hafta_kuni}-${item.smena}-${item.dars_raqami}`] = item.turi === "band" ? (item.qattiq ? "band" : "softBand") : "preferred";
+    });
+    const found = (setup?.oqituvchi_qoidalari || []).find(x=>String(x.user_id)===String(selectedTeacher));
+    setGrid(newGrid); setMethodDays(methods);
+    setRules(found ? {
+      kunlik_max:Number(found.kunlik_max), ketma_ket_max:Number(found.ketma_ket_max), okno_max:Number(found.okno_max),
+      afzal_smena:Number(found.afzal_smena), eng_erta_dars:Number(found.eng_erta_dars), eng_kech_dars:Number(found.eng_kech_dars),
+    } : { kunlik_max:6,ketma_ket_max:4,okno_max:1,afzal_smena:0,eng_erta_dars:1,eng_kech_dars:12 });
+  }, [selectedTeacher, setup]);
+
+  const cycle = (day, period) => {
+    const key = `${day}-${shift}-${period}`; const current = grid[key];
+    const next = !current ? "band" : current === "band" ? "preferred" : undefined;
+    setGrid(prev => { const copy={...prev}; if(next) copy[key]=next; else delete copy[key]; return copy; });
+  };
+  const methodCycle = day => setMethodDays(prev => {
+    const current=prev[day]; const next=!current?"hard":current==="hard"?"soft":undefined; const copy={...prev}; if(next)copy[day]=next;else delete copy[day];return copy;
+  });
+  const cellStyle = value => value === "band" ? {background:palette.redBg,color:palette.red,borderColor:"#F2CACA"} : value === "preferred" ? {background:palette.amberBg,color:palette.amber,borderColor:"#F0D7A7"} : {background:"#fff",color:palette.green,borderColor:palette.line};
+
+  const save = async () => {
+    if (!selectedTeacher) return setMessage({ tone:"error", text:"O‘qituvchini tanlang." });
+    setSaving(true); setMessage(null);
+    try {
+      const times=[];
+      Object.entries(grid).forEach(([key,value])=>{ const [day,sm,period]=key.split("-").map(Number); times.push({hafta_kuni:day,smena:sm,dars_raqami:period,turi:value==="preferred"?"afzal_bosh":"band",qattiq:value!=="preferred"}); });
+      Object.entries(methodDays).forEach(([day,value])=>times.push({hafta_kuni:Number(day),smena:0,dars_raqami:0,turi:"metod_kuni",qattiq:value==="hard"}));
+      await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/oqituvchi_vaqti?token=${encodeURIComponent(token)}`,{
+        method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:setup?.sinflar?.[0]?.maktab_id || setup?.oquv_yili?.maktab_id || Number(setup?.maktab_id),user_id:Number(selectedTeacher),qoidalar:rules,vaqtlar:times}),
+      });
+      setMessage({tone:"success",text:"O‘qituvchi bo‘sh vaqti, metod kuni va yuklama qoidalari saqlandi."}); await reload();
+    } catch(error){setMessage({tone:"error",text:error.message});} finally{setSaving(false);}
+  };
+
+  return <div className="space-y-4">
+    {message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    <div className="grid xl:grid-cols-[330px_1fr] gap-4">
+      <Card className="p-5">
+        <h2 className="text-xl font-black" style={{color:palette.ink}}>O‘qituvchi qoidalari</h2>
+        {!teacherOnly&&<label className="block text-xs font-bold mt-4" style={{color:palette.ink}}>O‘qituvchi<select value={selectedTeacher||""} onChange={e=>setSelectedTeacher(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Tanlang</option>{(setup?.oqituvchilar||[]).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></label>}
+        <label className="block text-xs font-bold mt-3" style={{color:palette.ink}}>Ko‘rilayotgan smena<select value={shift} onChange={e=>setShift(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {[['kunlik_max','Kunlik max'],['ketma_ket_max','Ketma-ket max'],['okno_max','Okno max'],['eng_erta_dars','Eng erta'],['eng_kech_dars','Eng kech']].map(([key,label])=><label key={key} className="text-[11px]" style={{color:palette.muted}}>{label}<input type="number" min="0" max="12" value={rules[key]} onChange={e=>setRules({...rules,[key]:Number(e.target.value)})} className="w-full mt-1 p-2 rounded-xl border" style={{borderColor:palette.line}}/></label>)}
+          <label className="text-[11px]" style={{color:palette.muted}}>Afzal smena<select value={rules.afzal_smena} onChange={e=>setRules({...rules,afzal_smena:Number(e.target.value)})} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value={0}>Farqi yo‘q</option><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>
+        </div>
+        <div className="mt-4 space-y-2 text-xs" style={{color:palette.muted}}><div>🟥 Bosmang — qattiq band</div><div>🟨 Iloj bo‘lsa bo‘sh qoldiring</div><div>🟩 Bo‘sh vaqt</div><div>Metod kuni: bir marta — qattiq, ikki marta — yumshoq.</div></div>
+        <button onClick={save} disabled={saving||!selectedTeacher} className="w-full mt-5 py-3 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"Saqlanmoqda...":"Vaqtlarni saqlash"}</button>
+      </Card>
+      <Card className="p-4 md:p-5 overflow-hidden">
+        <div className="overflow-auto">
+          <table className="min-w-[780px] w-full border-separate border-spacing-1.5">
+            <thead><tr><th className="text-left text-xs p-2">Kun</th><th className="text-xs p-2">Metod</th>{Array.from({length:periodCount},(_,i)=><th key={i} className="text-xs p-2">{i+1}-dars</th>)}</tr></thead>
+            <tbody>{smartDays.slice(0,weekdays).map(([day,name])=><tr key={day}><td className="text-xs font-black p-2" style={{color:palette.ink}}>{name}</td><td><button onClick={()=>methodCycle(day)} className="w-full h-10 rounded-xl border text-[11px] font-black" style={methodDays[day]==="hard"?{background:palette.redBg,color:palette.red,borderColor:"#F2CACA"}:methodDays[day]==="soft"?{background:palette.amberBg,color:palette.amber,borderColor:"#F0D7A7"}:{background:"#fff",color:palette.muted,borderColor:palette.line}}>{methodDays[day]==="hard"?"QATTIQ":methodDays[day]==="soft"?"YUMSHOQ":"—"}</button></td>{Array.from({length:periodCount},(_,i)=>{const key=`${day}-${shift}-${i+1}`;const value=grid[key];return <td key={i}><button onClick={()=>cycle(day,i+1)} className="w-full h-10 rounded-xl border font-black" style={cellStyle(value)}>{value==="band"?"×":value==="preferred"?"!":"✓"}</button></td>})}</tr>)}</tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   </div>;
 }
 
-function TeacherAvailabilityPanel({ token, apiBase, onClose }) {
-  const [data,setData]=useState(null); const [form,setForm]=useState({hafta_kuni:1,dars_raqami:1,turi:'band',qattiq:true,izoh:''}); const [msg,setMsg]=useState('');
-  const load=()=>fetch(`${apiBase}/api/maktab/aqlli_jadval/mening_vaqtim?token=${encodeURIComponent(token)}`).then(r=>r.json()).then(setData).catch(()=>setMsg('Yuklanmadi'));
-  useEffect(load,[token,apiBase]);
-  const save=async()=>{const r=await fetch(`${apiBase}/api/maktab/aqlli_jadval/mening_vaqtim?token=${encodeURIComponent(token)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,dars_raqami:form.turi==='metod_kuni'?null:Number(form.dars_raqami)})});const d=await r.json();setMsg(d.detail||'Saqlandi ✓');if(!d.detail)load();};
-  return <div className="fixed inset-0 z-50 overflow-auto p-4" style={{background:'#F6F8FA'}}><div className="max-w-3xl mx-auto"><div className="flex justify-between items-center mb-4"><div><div className="text-xs font-black uppercase" style={{color:palette.teal}}>Mening jadvalim</div><h2 className="text-2xl font-black">Bo‘sh vaqt va metod kuni</h2></div><button onClick={onClose} className="px-4 py-2 rounded-xl" style={{background:palette.cream}}>Yopish</button></div><Card className="p-5"><p className="text-sm" style={{color:palette.muted}}>O‘zingizga noqulay vaqtni yoki metod kunini belgilang. Qattiq cheklov bo‘lsa generator u yerga dars qo‘ymaydi.</p><div className="grid md:grid-cols-3 gap-2 mt-4"><select value={form.hafta_kuni} onChange={e=>setForm({...form,hafta_kuni:Number(e.target.value)})} className="border rounded-xl p-2">{['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'].map((x,i)=><option key={x} value={i+1}>{x}</option>)}</select><input type="number" min="1" max="10" disabled={form.turi==='metod_kuni'} value={form.dars_raqami} onChange={e=>setForm({...form,dars_raqami:Number(e.target.value)})} className="border rounded-xl p-2"/><select value={form.turi} onChange={e=>setForm({...form,turi:e.target.value})} className="border rounded-xl p-2"><option value="band">Bu vaqtda dars yo‘q</option><option value="afzal_bosh">Iloji bo‘lsa bo‘sh</option><option value="metod_kuni">Metod kuni</option></select></div><label className="flex gap-2 mt-3"><input type="checkbox" checked={form.qattiq} onChange={e=>setForm({...form,qattiq:e.target.checked})}/> Qattiq cheklov</label><button onClick={save} className="mt-4 px-5 py-3 rounded-xl text-white font-black" style={{background:palette.blue}}>Saqlash</button>{msg&&<div className="mt-3 text-sm font-bold">{msg}</div>}</Card><div className="mt-4 space-y-2">{(data?.sozlamalar||[]).map(x=><Card key={x.id} className="p-3"><b>{x.hafta_kuni}-kun · {x.turi}</b><div className="text-xs" style={{color:palette.muted}}>{x.dars_raqami?`${x.dars_raqami}-dars`:'butun kun'} · {x.qattiq?'qattiq':'yumshoq'}</div></Card>)}</div></div></div>;
+function LoadsStep({ token, apiBase, maktabId, setup, reload }) {
+  const [classId,setClassId]=useState(String(setup?.sinflar?.[0]?.id||""));
+  const [rows,setRows]=useState([]); const [groupRows,setGroupRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
+  const assignments=useMemo(()=> (setup?.birikmalar||[]).filter(x=>String(x.sinf_id)===String(classId)),[setup,classId]);
+  useEffect(()=>{
+    if(!classId){setRows([]);setGroupRows([]);return;}
+    const existing=(setup?.fan_soatlari||[]).filter(x=>String(x.sinf_id)===String(classId));
+    const subjects=[...new Set([...existing.map(x=>x.fan_nomi),...assignments.map(x=>x.fan_nomi)])];
+    setRows(subjects.map(subject=>{const old=existing.find(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase());return old?{...old}:{fan_nomi:subject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}}));
+    const settings=(setup?.guruh_sozlamalari||[]).filter(x=>String(x.sinf_id)===String(classId));
+    const nonWhole=assignments.filter(x=>String(x.guruh_kaliti||"whole")!=="whole");
+    const unique=[]; const seen=new Set();
+    nonWhole.forEach(a=>{const key=`${String(a.fan_nomi).toLowerCase()}|${a.guruh_kaliti}`;if(seen.has(key))return;seen.add(key);const old=settings.find(x=>String(x.fan_nomi).toLowerCase()===String(a.fan_nomi).toLowerCase()&&String(x.guruh_kaliti)===String(a.guruh_kaliti));unique.push({fan_nomi:a.fan_nomi,guruh_kaliti:a.guruh_kaliti,oqituvchi_user_id:old?.oqituvchi_user_id||a.user_id||null,xona_id:old?.xona_id||null});});
+    setGroupRows(unique);
+  },[classId,setup,assignments]);
+  const update=(index,field,value)=>setRows(prev=>prev.map((r,i)=>i===index?{...r,[field]:value}:r));
+  const addSubject=()=>{if(!newSubject||rows.some(r=>r.fan_nomi===newSubject))return;setRows([...rows,{fan_nomi:newSubject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}]);setNewSubject("");};
+  const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/guruh_sozlamalari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),guruhlar:groupRows.map(g=>({...g,oqituvchi_user_id:g.oqituvchi_user_id?Number(g.oqituvchi_user_id):null,xona_id:g.xona_id?Number(g.xona_id):null}))})});setMessage({tone:"success",text:"Haftalik fan soatlari va parallel guruh xonalari saqlandi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
+  const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
+  const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:"maxsus"})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
+  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Informatika xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
+  <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
+  {groupRows.length>0&&<div className="mt-6"><h3 className="text-lg font-black" style={{color:palette.ink}}>Parallel guruhlar</h3><p className="text-xs mt-1 mb-3" style={{color:palette.muted}}>Ingliz tili 1/2-guruh yoki texnologiya o‘g‘il/qiz guruhlari bir vaqtda turishi uchun har guruh o‘qituvchisi va xonasini ko‘rsating.</p><div className="grid md:grid-cols-2 gap-2">{groupRows.map((g,i)=><div key={`${g.fan_nomi}-${g.guruh_kaliti}`} className="rounded-2xl p-3 grid grid-cols-[1fr_1fr] gap-2" style={{background:palette.cream}}><div className="col-span-2 text-sm font-black" style={{color:palette.ink}}>{g.fan_nomi} · {g.guruh_kaliti}</div><select value={g.oqituvchi_user_id||""} onChange={e=>setGroupRows(prev=>prev.map((x,n)=>n===i?{...x,oqituvchi_user_id:e.target.value}:x))} className="p-2 rounded-xl border bg-white"><option value="">O‘qituvchi</option>{(setup?.oqituvchilar||[]).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select><select value={g.xona_id||""} onChange={e=>setGroupRows(prev=>prev.map((x,n)=>n===i?{...x,xona_id:e.target.value}:x))} className="p-2 rounded-xl border bg-white"><option value="">Xona ko‘rsatilmagan</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></div>)}</div></div>}
+  </Card></div>;
+}
+
+function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
+  const classRow=(setup?.sinflar||[]).find(c=>String(c.id)===String(selectedClass));
+  const slots=(detail?.slotlar||[]).filter(s=>String(s.sinf_id)===String(selectedClass));
+  const shift=Number(classRow?.smena||1);const shiftRow=(setup?.smenalar||[]).find(s=>Number(s.smena)===shift);const periods=Number(shiftRow?.dars_soni||7);const weekdays=Number(setup?.oquv_yili?.hafta_kunlari||6);
+  return <Card className="p-4"><div className="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h3 className="font-black" style={{color:palette.ink}}>Jadval ko‘rinishi</h3><p className="text-xs" style={{color:palette.muted}}>Parallel guruhlar bitta katak ichida alohida ko‘rinadi.</p></div><select value={selectedClass||""} onChange={e=>setSelectedClass(e.target.value)} className="p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}</select></div><div className="overflow-auto"><table className="min-w-[900px] w-full border-separate border-spacing-1.5"><thead><tr><th className="text-xs p-2">Dars</th>{smartDays.slice(0,weekdays).map(([d,n])=><th key={d} className="text-xs p-2">{n}</th>)}</tr></thead><tbody>{Array.from({length:periods},(_,p)=><tr key={p}><td className="text-xs font-black text-center p-2">{p+1}</td>{smartDays.slice(0,weekdays).map(([day])=>{const cell=slots.filter(s=>Number(s.hafta_kuni)===day&&Number(s.dars_raqami)===p+1);return <td key={day} className="align-top"><div className="min-h-[76px] rounded-xl border p-2" style={{borderColor:palette.line,background:cell.length?palette.sky:"#fff"}}>{cell.map(s=><div key={s.id} className="mb-1 last:mb-0"><div className="text-xs font-black" style={{color:palette.ink}}>{s.fan_nomi}</div><div className="text-[10px]" style={{color:palette.muted}}>{s.oqituvchi_ismi||"O‘qituvchi yo‘q"}{s.guruh_kaliti!=="whole"?` · ${s.guruh_kaliti}`:""}</div></div>)}</div></td>})}</tr>)}</tbody></table></div></Card>;
+}
+
+function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
+  const [generating,setGenerating]=useState(false);const [message,setMessage]=useState(null);const [detail,setDetail]=useState(null);const [selectedClass,setSelectedClass]=useState(String(setup?.sinflar?.[0]?.id||""));const [force,setForce]=useState(false);
+  const latestDraft=(setup?.urinishlar||[]).find(r=>r.holat==="draft");const active=(setup?.urinishlar||[]).find(r=>r.holat==="tasdiqlangan");
+  const loadRun=async id=>{if(!id)return;try{setDetail(await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${id}`));}catch(e){setMessage({tone:"error",text:e.message});}};
+  useEffect(()=>{if(latestDraft)loadRun(latestDraft.id);else if(active)loadRun(active.id);},[latestDraft?.id,active?.id]);
+  const generate=async()=>{setGenerating(true);setMessage(null);try{const data=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,urinishlar_soni:10})});setMessage({tone:data.joylashtirilmadi?"warning":"success",text:`Draft yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat, sifat ${data.sifat}/100.`});await reload();await loadRun(data.urinish_id);}catch(e){setMessage({tone:"error",text:e.message});}finally{setGenerating(false);}};
+  const approve=async()=>{const id=detail?.urinish?.id;if(!id)return;try{const data=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/tasdiqlash?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({urinish_id:id,majburan:force})});setMessage({tone:"success",text:`Jadval tasdiqlandi. ${data.qayta_taqsimlandi||0} ta mavzu taqvimi yangilandi.`});await reload();await loadRun(id);}catch(e){setMessage({tone:"error",text:e.message});}};
+  const d=detail?.urinish?.diagnostika||detail?.urinish?.diagnostika_json||{};const problems=d.muammolar||[];const warnings=d.ogohlantirishlar||[];
+  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4"><Card className="p-5"><h2 className="text-xl font-black" style={{color:palette.ink}}>Draft → tekshirish → tasdiqlash</h2><p className="text-xs mt-1" style={{color:palette.muted}}>Yangi jadval eski faol jadvalni darhol o‘chirmaydi. Avval draft yaratiladi.</p><div className="grid grid-cols-3 gap-2 mt-4"><Stat value={detail?.urinish?.sifat??"—"} label="sifat /100" tone="blue"/><Stat value={detail?.urinish?.joylashtirildi??0} label="joylashtirildi" tone="green"/><Stat value={detail?.urinish?.joylashtirilmadi??0} label="joylashmadi" tone={detail?.urinish?.joylashtirilmadi?"red":"green"}/></div><button onClick={generate} disabled={generating} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{generating?"Hisoblanmoqda...":"Yangi draft yaratish"}</button>{detail?.urinish?.holat==="draft"&&<><label className="flex gap-2 items-start text-xs mt-4" style={{color:palette.muted}}><input type="checkbox" checked={force} onChange={e=>setForce(e.target.checked)}/>Joylashtirilmagan darslar bo‘lsa ham majburan tasdiqlash (tavsiya etilmaydi)</label><button onClick={approve} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{background:palette.green}}>Draftni tasdiqlash</button></>}</Card><Card className="p-5"><h3 className="font-black mb-3" style={{color:palette.ink}}>Aniq diagnostika</h3><div className="space-y-2 max-h-[370px] overflow-auto">{problems.map((p,i)=><div key={i} className="rounded-xl p-3" style={{background:palette.redBg}}><div className="text-sm font-black" style={{color:palette.ink}}>{p.sinf} · {p.fan}</div><div className="text-xs mt-1" style={{color:palette.red}}>{p.sabab}</div></div>)}{warnings.map((w,i)=><div key={`w-${i}`} className="rounded-xl p-3 text-xs" style={{background:palette.amberBg,color:palette.amber}}>{w}</div>)}{!problems.length&&!warnings.length&&<SmartNotice tone="success">Qattiq konflikt topilmadi.</SmartNotice>}</div></Card></div>{detail&&<ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass}/>}</div>;
+}
+
+function TopicCalendarRow({ row, token, apiBase, maktabId, onSaved }) {
+  const [title,setTitle]=useState(row.mavzu);const [dateValue,setDateValue]=useState(row.sana);const [saving,setSaving]=useState(false);const [error,setError]=useState("");
+  const save=async()=>{setSaving(true);setError("");try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_taqvimi?token=${encodeURIComponent(token)}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,taqvim_id:row.id,mavzu:title,sana:dateValue})});await onSaved();}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const unlock=async()=>{try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_taqvimi/qulfni_och?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&taqvim_id=${row.id}`,{method:"POST"});await onSaved();}catch(e){setError(e.message);}};
+  return <div className="rounded-2xl border p-3" style={{borderColor:row.qulflangan?"#E8C779":palette.line,background:row.qulflangan?"#FFF9E8":"#fff"}}><div className="grid md:grid-cols-[145px_1fr_auto] gap-2 items-center"><input type="date" value={dateValue||""} onChange={e=>setDateValue(e.target.value)} className="p-2 rounded-xl border"/><input value={title} onChange={e=>setTitle(e.target.value)} className="p-2 rounded-xl border"/><div className="flex gap-1"><button onClick={save} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button>{row.qulflangan&&<button onClick={unlock} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.amber}}>Avtoga qaytarish</button>}</div></div><div className="text-[11px] mt-1" style={{color:palette.muted}}>{row.turi} · {row.dars_raqami}-dars {row.qulflangan?"· o‘qituvchi qulflagan":"· avtomatik"}</div>{error&&<div className="text-xs mt-1" style={{color:palette.red}}>{error}</div>}</div>;
+}
+
+function TopicsStep({ token, apiBase, maktabId, setup, teacherOnly }) {
+  const currentUser=String(setup?.joriy_user_id||"");const allowedAssignments=teacherOnly?(setup?.birikmalar||[]).filter(x=>String(x.user_id)===currentUser):(setup?.birikmalar||[]);
+  const allowedClasses=teacherOnly?(setup?.sinflar||[]).filter(c=>allowedAssignments.some(a=>String(a.sinf_id)===String(c.id))):(setup?.sinflar||[]);
+  const [classId,setClassId]=useState(String(allowedClasses?.[0]?.id||""));const subjects=useMemo(()=>[...new Set([...(setup?.fan_soatlari||[]).filter(x=>String(x.sinf_id)===String(classId)).map(x=>x.fan_nomi),...allowedAssignments.filter(x=>String(x.sinf_id)===String(classId)).map(x=>x.fan_nomi)])],[setup,classId,allowedAssignments]);
+  const [fan,setFan]=useState(subjects[0]||"");const [quarter,setQuarter]=useState(1);const [plan,setPlan]=useState([]);const [calendar,setCalendar]=useState([]);const [message,setMessage]=useState(null);const [loading,setLoading]=useState(false);
+  useEffect(()=>{if(subjects.length&&!subjects.includes(fan))setFan(subjects[0]);},[subjects]);
+  const load=async()=>{if(!classId||!fan)return;setLoading(true);try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_reja?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${classId}&fan=${encodeURIComponent(fan)}&chorak=${quarter}`);setPlan((d.mavzular||[]).map(x=>({...x})));setCalendar(d.taqvim||[]);}catch(e){setMessage({tone:"error",text:e.message});}finally{setLoading(false);}};
+  useEffect(()=>{load();},[classId,fan,quarter]);
+  const importDts=async()=>{try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_reja/dts_import?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${classId}&fan=${encodeURIComponent(fan)}&chorak=${quarter}`,{method:"POST"});setPlan(d.mavzular||[]);setMessage({tone:"success",text:`DTSdan ${d.mavzular?.length||0} ta mavzu olindi. Tekshirib saqlang.`});}catch(e){setMessage({tone:"error",text:e.message});}};
+  const update=(i,f,v)=>setPlan(prev=>prev.map((x,n)=>n===i?{...x,[f]:v}:x));const move=(i,delta)=>{const target=i+delta;if(target<0||target>=plan.length)return;const copy=[...plan];[copy[i],copy[target]]=[copy[target],copy[i]];setPlan(copy);};
+  const save=async()=>{try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_reja?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fan_nomi:fan,chorak:Number(quarter),mavzular:plan.map(x=>({mavzu:x.mavzu,soat:Number(x.soat||1),turi:x.turi||"mavzu",topic_code:x.topic_code||null,manba:x.manba||"qolda"}))})});setMessage({tone:"success",text:"Mavzu rejasi saqlandi."});await load();}catch(e){setMessage({tone:"error",text:e.message});}};
+  const distribute=async()=>{try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzularni_taqsimlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${classId}&fan=${encodeURIComponent(fan)}&chorak=${quarter}`,{method:"POST"});const warning=(d.ogohlantirishlar||[]).join(" ");setMessage({tone:warning?"warning":"success",text:`${d.taqsimlandi||0} ta dars sanaga joylashtirildi. ${warning}`});await load();}catch(e){setMessage({tone:"error",text:e.message});}};
+  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<Card className="p-5"><div className="grid md:grid-cols-[1fr_1.4fr_120px_auto_auto] gap-2 items-end"><label className="text-xs font-bold" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{allowedClasses.map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>Fan<select value={fan} onChange={e=>setFan(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{subjects.map(f=><option key={f}>{f}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>Chorak<select value={quarter} onChange={e=>setQuarter(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{[1,2,3,4].map(q=><option key={q} value={q}>{q}</option>)}</select></label><button onClick={importDts} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>DTSdan olish</button><button onClick={distribute} className="px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>Sanalarga joylash</button></div></Card><div className="grid xl:grid-cols-[1fr_1fr] gap-4"><Card className="p-5"><div className="flex items-center justify-between mb-3"><div><h3 className="text-lg font-black" style={{color:palette.ink}}>Chorak mavzulari</h3><p className="text-xs" style={{color:palette.muted}}>O‘qituvchi nom, soat va tartibni o‘zgartira oladi.</p></div><div className="flex gap-2"><button onClick={()=>setPlan([...plan,{mavzu:"Yangi mavzu",soat:1,turi:"mavzu",manba:"qolda"}])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.ink}}>+ Mavzu</button><button onClick={save} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>Rejani saqlash</button></div></div><div className="space-y-2 max-h-[600px] overflow-auto pr-1">{plan.map((x,i)=><div key={i} className="rounded-2xl border p-3" style={{borderColor:palette.line}}><div className="grid grid-cols-[auto_1fr_70px_135px_auto] gap-2 items-center"><div className="text-xs font-black">{i+1}</div><input value={x.mavzu||""} onChange={e=>update(i,"mavzu",e.target.value)} className="p-2 rounded-xl border"/><input type="number" min="1" max="10" value={x.soat||1} onChange={e=>update(i,"soat",e.target.value)} className="p-2 rounded-xl border"/><select value={x.turi||"mavzu"} onChange={e=>update(i,"turi",e.target.value)} className="p-2 rounded-xl border bg-white"><option value="mavzu">Mavzu</option><option value="nazorat">Nazorat</option><option value="xato_tahlil">Xatolar tahlili</option><option value="mustahkamlash">Mustahkamlash</option><option value="masala">Masala</option></select><div className="flex gap-1"><button onClick={()=>move(i,-1)}>↑</button><button onClick={()=>move(i,1)}>↓</button><button onClick={()=>setPlan(plan.filter((_,n)=>n!==i))} style={{color:palette.red}}>×</button></div></div></div>)}{!plan.length&&!loading&&<SmartNotice tone="warning">Mavzu rejasi bo‘sh. DTSdan oling yoki qo‘lda kiriting.</SmartNotice>}</div></Card><Card className="p-5"><h3 className="text-lg font-black mb-1" style={{color:palette.ink}}>Real dars sanalari</h3><p className="text-xs mb-3" style={{color:palette.muted}}>Dam olish kuni qo‘shilsa avtomatik yozuvlar siljiydi; o‘qituvchi qulflagan yozuv saqlanadi.</p><div className="space-y-2 max-h-[650px] overflow-auto pr-1">{calendar.map(row=><TopicCalendarRow key={row.id} row={row} token={token} apiBase={apiBase} maktabId={maktabId} onSaved={load}/>)}{!calendar.length&&<SmartNotice tone="info">Avval tasdiqlangan jadval va mavzu rejasi bo‘lishi kerak.</SmartNotice>}</div></Card></div></div>;
+}
+
+function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = false, initialStep = 1 }) {
+  const [step,setStep]=useState(teacherOnly?(initialStep===5?5:2):initialStep);const [setup,setSetup]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [selectedTeacher,setSelectedTeacher]=useState("");
+  const load=async()=>{if(!maktabId){setError("Maktab ID topilmadi");setLoading(false);return;}setLoading(true);setError("");try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));}catch(e){setError(e.message);}finally{setLoading(false);}};
+  useEffect(()=>{load();},[maktabId,token,apiBase]);
+  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Draft yaratish, konfliktlarni ko‘rish va faqat tekshirgandan keyin tasdiqlash"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===2&&<TeacherTimeGrid setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
 }
 
 
 export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false }) {
   const maktabId = initialWorkspace?.muassasa_id || initialWorkspace?.id;
   const lavozim = String(initialWorkspace?.lavozim || "").toLowerCase();
-  const teacherMode = !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya"].includes(lavozim) && lavozim;
+  const teacherMode = Boolean(lavozim) && !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "owner", "admin"].includes(lavozim);
   const [dashboard, setDashboard] = useState(null);
   const [yuklama, setYuklama] = useState([]);
   const [holatlar, setHolatlar] = useState([]);
   const [loading, setLoading] = useState(!teacherMode);
   const [error, setError] = useState("");
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
-  const [smartTimetableOpen, setSmartTimetableOpen] = useState(false);
-  const [teacherAvailabilityOpen, setTeacherAvailabilityOpen] = useState(false);
+  const [smartOpen, setSmartOpen] = useState(null);
 
   const loadManager = () => {
     if (teacherMode) return;
     if (!maktabId) {
-      setDashboard(null);
-      setYuklama([]);
-      setHolatlar([]);
-      setError("Maktab ID topilmadi. Muassasani qayta tanlang yoki sahifani yangilang.");
-      setLoading(false);
-      return;
+      setDashboard(null); setYuklama([]); setHolatlar([]);
+      setError("Maktab ID topilmadi. Muassasani qayta tanlang."); setLoading(false); return;
     }
     setLoading(true); setError("");
     Promise.all([
-      fetch(`${apiBase}/api/maktab/dashboard?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`).then(r => r.json()),
-      fetch(`${apiBase}/api/maktab/yuklama_xulosasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`).then(r => r.json()),
-      fetch(`${apiBase}/api/maktab/aqlli_holatlar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`).then(r => r.json()),
+      smartFetch(`${apiBase}/api/maktab/dashboard?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
+      smartFetch(`${apiBase}/api/maktab/yuklama_xulosasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
+      smartFetch(`${apiBase}/api/maktab/aqlli_holatlar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
     ]).then(([d, y, h]) => {
-      if (d.detail) setError(d.detail); else setDashboard(d);
-      setYuklama(y.xodimlar || []); setHolatlar(h.holatlar || []);
-    }).catch(() => setError("Maktab bosh sahifasini yuklab bo'lmadi"))
+      setDashboard(d); setYuklama(y.xodimlar || []); setHolatlar(h.holatlar || []);
+    }).catch((e) => setError(e.message || "Maktab bosh sahifasini yuklab bo‘lmadi"))
       .finally(() => setLoading(false));
   };
   useEffect(loadManager, [token, apiBase, maktabId, teacherMode]);
 
-  const jamiOquvchi = dashboard?.bugungi_davomat?.jami_oquvchi ?? dashboard?.sinflar?.reduce((a,s)=>a+(Number(s.oquvchi_soni)||0),0) ?? 0;
+  const jamiOquvchi = dashboard?.bugungi_davomat?.jami_oquvchi
+    ?? dashboard?.sinflar?.reduce((a,s)=>a+(Number(s.oquvchi_soni)||0),0) ?? 0;
   const yuklamaMuammo = useMemo(() => yuklama.filter(x => x.holat === "ortiqcha" || x.holat === "yetishmaydi"), [yuklama]);
+  const schoolName = dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab");
 
-  if (smartTimetableOpen) {
-    return (
-      <SmartTimetablePanel
-        token={token}
-        apiBase={apiBase}
-        maktabId={maktabId}
-        onClose={() => setSmartTimetableOpen(false)}
-      />
-    );
-  }
-
-  if (teacherAvailabilityOpen) {
-    return (
-      <TeacherAvailabilityPanel
-        token={token}
-        apiBase={apiBase}
-        onClose={() => setTeacherAvailabilityOpen(false)}
-      />
-    );
+  if (smartOpen) {
+    return <WorkspacePortal><SmartTimetablePanel token={token} apiBase={apiBase} maktabId={maktabId} onClose={() => setSmartOpen(null)} teacherOnly={teacherMode} initialStep={smartOpen}/></WorkspacePortal>;
   }
 
   if (adminPreview && adminPreviewOpen) {
-    return (
-      <AdminRolePreview
-        token={token}
-        apiBase={apiBase}
-        maktabId={maktabId}
-        schoolName={dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || "Maktab"}
-        onClose={() => setAdminPreviewOpen(false)}
-      />
-    );
+    return <WorkspacePortal><AdminRolePreview token={token} apiBase={apiBase} maktabId={maktabId} schoolName={schoolName} onClose={() => setAdminPreviewOpen(false)}/></WorkspacePortal>;
   }
 
   if (teacherMode) {
     return (
-      <div className="min-h-screen" style={{ background: "linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
-        <div className="max-w-6xl mx-auto px-4 md:px-7 py-5 md:py-8">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm mb-5" style={{ color: palette.muted }}><ArrowLeft size={16}/> Ish maydoniga qaytish</button>
-          <div className="mb-5">
-            <div className="text-xs font-black tracking-[.14em] uppercase" style={{ color: palette.teal }}>Mening maktabim</div>
-            <h1 className="text-2xl md:text-3xl font-black mt-1" style={{ color: palette.ink }}>{initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || "Maktab"}</h1>
-            <p className="text-sm mt-1" style={{ color: palette.muted }}>Bugungi darslar va sizga kerakli ishlar bir joyda.</p>
-            <button onClick={() => setTeacherAvailabilityOpen(true)} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Bo‘sh vaqt / metod kunini sozlash</button>
-          </div>
-          <TeacherToday token={token} apiBase={apiBase}/>
+      <WorkspacePortal>
+        <div className="min-h-screen">
+          <SmartHeader title={schoolName} subtitle="O‘qituvchi ish maydoni" onClose={onBack}/>
+          <main className="max-w-6xl mx-auto px-4 md:px-7 py-5 md:py-8">
+            <Card className="p-5 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div><div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Mening maktabim</div><h2 className="text-2xl md:text-3xl font-black mt-1">{schoolName}</h2><p className="text-sm mt-1 opacity-80">Bugungi darslar, bo‘sh vaqt va mavzu rejasi bir joyda.</p></div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setSmartOpen(2)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "rgba(255,255,255,.16)" }}>Bo‘sh vaqt / metod kuni</button>
+                  <button onClick={() => setSmartOpen(5)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "#fff", color: palette.blue }}>Mavzu rejasi</button>
+                </div>
+              </div>
+            </Card>
+            <TeacherToday token={token} apiBase={apiBase}/>
+          </main>
         </div>
-      </div>
+      </WorkspacePortal>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
-      <div className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm" style={{ color: palette.muted }}><ArrowLeft size={16}/> Muassasalarga qaytish</button>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setSmartTimetableOpen(true)} className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.sky, border: `1px solid #CFE2F3`, color: palette.blue }}><CalendarDays size={14}/> Aqlli dars jadvali</button>
-            {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.greenBg, border: `1px solid #CFE8D9`, color: palette.green }}><Eye size={14}/> Rol sifatida ko'rish</button>}
-            <button onClick={loadManager} className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={14}/> Yangilash</button>
-            {onLegacy && <button onClick={onLegacy} className="px-3 py-2 rounded-xl text-xs font-bold" style={{ background: palette.sky, color: palette.blue }}>Batafsil boshqaruv</button>}
+    <WorkspacePortal>
+      <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
+        <SmartHeader title={schoolName} subtitle="Maktab boshqaruv markazi" onClose={onBack} badge="MAKTAB WORKSPACE"/>
+        <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
+          <div className="flex flex-wrap justify-end gap-2 mb-5">
+            <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
+            {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
+            <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
+            {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Boshlang‘ich sozlamalar</button>}
           </div>
-        </div>
 
-        <Card className="p-5 md:p-7 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div>
-              <div className="text-xs font-bold tracking-[.14em] uppercase opacity-75">Maktab boshqaruv markazi</div>
-              <h1 className="text-2xl md:text-4xl font-black mt-2">{dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab")}</h1>
-              <p className="text-sm mt-2 opacity-80 max-w-2xl">Bugungi holat, sinflar, o'qituvchi yuklamasi va e'tibor talab qiladigan vaziyatlar — bir qarashda.</p>
+          <Card className="p-5 md:p-7 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              <div><div className="text-xs font-bold tracking-[.14em] uppercase opacity-75">Maktab boshqaruv markazi</div><h1 className="text-2xl md:text-4xl font-black mt-2">{schoolName}</h1><p className="text-sm mt-2 opacity-80 max-w-2xl">Bugungi holat, sinflar, o‘qituvchi yuklamasi va e’tibor talab qiladigan vaziyatlar — bir qarashda.</p></div>
+              <div className="w-16 h-16 rounded-3xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><School size={31}/></div>
             </div>
-            <div className="w-16 h-16 rounded-3xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><School size={31}/></div>
-          </div>
-        </Card>
+          </Card>
 
-        {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <Card className="p-6"><p style={{ color: palette.red }}>{error}</p></Card> : <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-            <Stat icon={<GraduationCap size={18}/>} value={jamiOquvchi} label="o'quvchi" tone="blue" />
-            <Stat icon={<School size={18}/>} value={dashboard?.sinflar?.length ?? 0} label="sinf" tone="teal" />
-            <Stat icon={<UserRoundCheck size={18}/>} value={dashboard?.bugungi_davomat?.kelgan ?? 0} label="bugun kelgan" tone="green" />
-            <Stat icon={<ClipboardCheck size={18}/>} value={dashboard?.bugungi_davomat?.sinflar_belgilamagan ?? 0} label="davomat kiritmagan sinf" tone={dashboard?.bugungi_davomat?.sinflar_belgilamagan ? "amber" : "green"} />
-            <Stat icon={<BellRing size={18}/>} value={holatlar.length} label="ochiq aqlli holat" tone={holatlar.length ? "red" : "green"} />
-          </div>
+          {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <SmartNotice tone="error">{error}</SmartNotice> : <>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+              <Stat icon={<GraduationCap size={18}/>} value={jamiOquvchi} label="o‘quvchi" tone="blue"/>
+              <Stat icon={<School size={18}/>} value={dashboard?.sinflar?.length ?? 0} label="sinf" tone="teal"/>
+              <Stat icon={<UserRoundCheck size={18}/>} value={dashboard?.bugungi_davomat?.kelgan ?? 0} label="bugun kelgan" tone="green"/>
+              <Stat icon={<ClipboardCheck size={18}/>} value={dashboard?.bugungi_davomat?.sinflar_belgilamagan ?? 0} label="davomat kiritmagan sinf" tone={dashboard?.bugungi_davomat?.sinflar_belgilamagan ? "amber" : "green"}/>
+              <Stat icon={<BellRing size={18}/>} value={holatlar.length} label="ochiq aqlli holat" tone={holatlar.length ? "red" : "green"}/>
+            </div>
 
-          <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-4 mb-5">
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Bugun maktabda</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Tezkor nazorat</div></div>
-                <LayoutDashboard size={22} style={{ color: palette.blue }}/>
-              </div>
-              <div className="space-y-2.5">
-                {(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) > 0 && <div className="rounded-2xl p-3.5 flex gap-3" style={{ background: palette.amberBg }}><AlertTriangle size={19} style={{ color: palette.amber }} /><div><div className="text-sm font-bold" style={{ color: palette.ink }}>{dashboard.bugungi_davomat.sinflar_belgilamagan} ta sinf davomat kiritmagan</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>Faqat kelmagan/kechikkan o'quvchini belgilash rejimi ham qo'llab-quvvatlanadi.</div></div></div>}
-                {holatlar.slice(0,4).map(h => <div key={h.id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background: h.daraja >= 3 ? palette.redBg : palette.cream }}><div className="w-8 h-8 rounded-xl flex items-center justify-center font-black" style={{ background: "#fff", color: h.daraja >= 3 ? palette.red : palette.amber }}>{h.daraja}</div><div className="flex-1"><div className="text-sm font-bold" style={{ color: palette.ink }}>{h.full_name}</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>{h.sarlavha}</div></div></div>)}
-                {!holatlar.length && !(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) && <div className="rounded-2xl p-5 flex items-center gap-3" style={{ background: palette.greenBg }}><CheckCircle2 style={{ color: palette.green }}/><div className="text-sm font-bold" style={{ color: palette.green }}>Hozircha shoshilinch signal yo'q.</div></div>}
-              </div>
-            </Card>
+            <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-4 mb-5">
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Bugun maktabda</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Tezkor nazorat</div></div><LayoutDashboard size={22} style={{ color: palette.blue }}/></div>
+                <div className="space-y-2.5">
+                  {(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) > 0 && <div className="rounded-2xl p-3.5 flex gap-3" style={{ background: palette.amberBg }}><AlertTriangle size={19} style={{ color: palette.amber }}/><div><div className="text-sm font-bold" style={{ color: palette.ink }}>{dashboard.bugungi_davomat.sinflar_belgilamagan} ta sinf davomat kiritmagan</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>Faqat kelmagan yoki kechikkan o‘quvchini belgilash kifoya.</div></div></div>}
+                  {holatlar.slice(0,4).map(h=><div key={h.id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background: h.daraja>=3?palette.redBg:palette.cream }}><div className="w-8 h-8 rounded-xl flex items-center justify-center font-black" style={{ background: "#fff", color:h.daraja>=3?palette.red:palette.amber }}>{h.daraja}</div><div className="flex-1"><div className="text-sm font-bold" style={{ color: palette.ink }}>{h.full_name}</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>{h.sarlavha}</div></div></div>)}
+                  {!holatlar.length && !(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) && <SmartNotice tone="success">Hozircha shoshilinch signal yo‘q.</SmartNotice>}
+                </div>
+              </Card>
+              <Card className="p-5">
+                <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
+                <div className="space-y-2">
+                  <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → bo‘sh vaqt → fan soati → draft → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
+                  <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
+                  <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
+                </div>
+              </Card>
+            </div>
 
-            <Card className="p-5">
-              <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
-              <div className="space-y-2">
-                <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → bo‘sh vaqt → fan soati → generator → mavzu rejasi." onClick={() => setSmartTimetableOpen(true)}/>
-                <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={onLegacy}/>
-                <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo'yicha muloqot." onClick={onBack}/>
-              </div>
-            </Card>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-4">
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O'qituvchilar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Haftalik yuklama</div></div><Users size={21} style={{ color: palette.blue }}/></div>
-              <div className="space-y-2 max-h-[390px] overflow-auto pr-1">
-                {yuklama.slice(0,25).map(x => {
-                  const reja=x.haftalik_dars_soati; const amaldagi=Number(x.jadvaldagi_soat||0); const bad=x.holat==="ortiqcha"; const ok=x.holat==="toliq";
-                  return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background: ok ? palette.greenBg : bad ? palette.redBg : palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color: palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color: palette.muted }}>{x.fanlari || "Fan belgilanmagan"}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color: bad ? palette.red : ok ? palette.green : palette.amber }}>{amaldagi}/{reja ?? "—"}</div><div className="text-[11px]" style={{ color: palette.muted }}>soat</div></div></div>
-                })}
-                {!yuklama.length && <div className="text-sm" style={{ color: palette.muted }}>Xodim yuklamasi hali kiritilmagan.</div>}
-              </div>
-            </Card>
-
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Sinflar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Maktab xaritasi</div></div><BookOpen size={21} style={{ color: palette.blue }}/></div>
-              <div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">
-                {(dashboard?.sinflar || []).map(s => <div key={s.id} className="rounded-2xl p-3.5" style={{ background: palette.cream }}><div className="text-base font-black" style={{ color: palette.ink }}>{s.sinf}-{s.harf}</div><div className="text-xs mt-1" style={{ color: palette.muted }}>{s.oquvchi_soni} o'quvchi</div><div className="text-xs mt-1 truncate" style={{ color: s.rahbar_ismi ? palette.teal : palette.amber }}>{s.rahbar_ismi || "Rahbar belgilanmagan"}</div></div>)}
-              </div>
-            </Card>
-          </div>
-        </>}
+            <div className="grid lg:grid-cols-2 gap-4">
+              <Card className="p-5"><div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchilar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Haftalik yuklama</div></div><Users size={21} style={{ color: palette.blue }}/></div><div className="space-y-2 max-h-[390px] overflow-auto pr-1">{yuklama.slice(0,30).map(x=>{const reja=x.haftalik_dars_soati;const amaldagi=Number(x.jadvaldagi_soat||0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.fanlari||"Fan belgilanmagan"}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??"—"}</div><div className="text-[11px]" style={{ color:palette.muted }}>soat</div></div></div>})}{!yuklama.length&&<div className="text-sm" style={{ color:palette.muted }}>Xodim yuklamasi hali kiritilmagan.</div>}</div></Card>
+              <Card className="p-5"><div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Sinflar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Maktab xaritasi</div></div><BookOpen size={21} style={{ color: palette.blue }}/></div><div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{(dashboard?.sinflar||[]).map(s=><div key={s.id} className="rounded-2xl p-3.5" style={{ background:palette.cream }}><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="text-xs mt-1" style={{ color:palette.muted }}>{s.oquvchi_soni} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>{s.rahbar_ismi||"Rahbar belgilanmagan"}</div></div>)}</div></Card>
+            </div>
+          </>}
+        </main>
       </div>
-    </div>
+    </WorkspacePortal>
   );
 }
+
