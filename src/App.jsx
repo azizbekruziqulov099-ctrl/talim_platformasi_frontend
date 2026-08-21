@@ -1,3 +1,4 @@
+// SAMTM V18.60 — Xodim shablonida har bir sinf uchun alohida haftalik soat.
 // SAMTM V18.59 — Shablondagi o‘qituvchi fanlari va metod kuni hisoboti.
 // SAMTM V18.58 — Sinf-kun qoidasi bitta kunlik va aniq hisobotli.
 // SAMTM V18.57 — Xavfsiz maktab dashboard APIlariga ulandi.
