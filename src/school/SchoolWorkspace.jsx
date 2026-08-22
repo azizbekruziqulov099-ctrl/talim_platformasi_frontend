@@ -1,3 +1,4 @@
+// SAMTM V18.71 — avto metod kuni default O‘CHIQ; faqat fan→kun qoidasi bilan YOQiladi.
 // SAMTM V18.70 — aniq fanlar tanlansa mos o‘qituvchilar avtomatik belgilanadi.
 // SAMTM V18.69 — ikki smena bir vaqtda ko‘rinadi; metod kuni barcha soatlarni ranglaydi.
 // SAMTM V18.68 — aniq ko‘p fan filtri va barcha o‘qituvchilar vaqt matritsasi.
@@ -1422,6 +1423,410 @@ function TeacherTimeGridV1868({ setup, selectedTeacher, setSelectedTeacher, teac
 
 
 
+
+function AutoMethodDayPanelV1871({
+  token, apiBase, maktabId, subjects, selectedSubjects, weekdays, reload
+}) {
+  const [enabled, setEnabled] = useState(false);
+  const [rules, setRules] = useState([]);
+  const [report, setReport] = useState([]);
+  const [subject, setSubject] = useState("");
+  const [day, setDay] = useState(1);
+  const [hard, setHard] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const normalize = value =>
+    String(value || "").trim().toLocaleLowerCase("uz");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v2/metod_avto_sozlama?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
+      );
+      setEnabled(Boolean(data.yoqilgan));
+      setRules((data.qoidalar || []).map(row => ({
+        fan_nomi: row.fan_nomi,
+        hafta_kuni: Number(row.hafta_kuni),
+        qattiq: Boolean(row.qattiq),
+      })));
+      setReport(data.hisobot || []);
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [token, apiBase, maktabId]);
+
+  useEffect(() => {
+    if (!subject && subjects.length) setSubject(subjects[0]);
+  }, [subjects, subject]);
+
+  const addSubjects = () => {
+    const targets = selectedSubjects.length
+      ? selectedSubjects
+      : subject
+        ? [subject]
+        : [];
+
+    if (!targets.length) {
+      return setMessage({
+        tone: "error",
+        text: "Avval fan tanlang.",
+      });
+    }
+
+    setRules(previous => {
+      const map = new Map(
+        previous.map(rule => [normalize(rule.fan_nomi), rule])
+      );
+      targets.forEach(fan => {
+        map.set(normalize(fan), {
+          fan_nomi: fan,
+          hafta_kuni: Number(day),
+          qattiq: Boolean(hard),
+        });
+      });
+      return [...map.values()];
+    });
+
+    const dayName =
+      smartDays.find(([value]) => Number(value) === Number(day))?.[1] ||
+      String(day);
+
+    setMessage({
+      tone: "warning",
+      text: (
+        `${targets.length} ta fan uchun ${dayName} qoidasi tayyorlandi. ` +
+        "Hali bazaga saqlanmadi."
+      ),
+    });
+  };
+
+  const updateRule = (index, field, value) =>
+    setRules(previous =>
+      previous.map((rule, i) =>
+        i === index ? { ...rule, [field]: value } : rule
+      )
+    );
+
+  const removeRule = index =>
+    setRules(previous => previous.filter((_, i) => i !== index));
+
+  const save = async nextEnabled => {
+    const state =
+      typeof nextEnabled === "boolean" ? nextEnabled : enabled;
+
+    if (state && !rules.length) {
+      return setMessage({
+        tone: "error",
+        text: (
+          "Avto metod kunini yoqish uchun kamida bitta " +
+          "fan → kun qoidasi qo‘shing."
+        ),
+      });
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const data = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v2/metod_avto_sozlama?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maktab_id: maktabId,
+            yoqilgan: state,
+            qoidalar: rules,
+          }),
+        }
+      );
+
+      setEnabled(Boolean(data.yoqilgan));
+      setReport(data.hisobot || []);
+
+      const conflicts =
+        (data.bir_necha_fan_kuni_ziddiyati || []).length;
+      const manual =
+        (data.qolda_metod_borligi_uchun_otkazildi || []).length;
+
+      setMessage({
+        tone: conflicts || manual ? "warning" : "success",
+        text: state
+          ? (
+              `Avto metod kuni YOQILDI. ` +
+              `${data.avto_belgilangan || 0} ta o‘qituvchiga qo‘llandi.` +
+              (
+                manual
+                  ? ` ${manual} ta o‘qituvchida qo‘lda metod kuni borligi uchun tegilmadi.`
+                  : ""
+              ) +
+              (
+                conflicts
+                  ? ` ${conflicts} ta ko‘p fanli o‘qituvchida ro‘yxatdagi birinchi qoida tanlandi.`
+                  : ""
+              )
+            )
+          : (
+              "Avto metod kuni O‘CHIRILDI. Avtomatik belgilar " +
+              "olib tashlandi; qo‘lda belgilangan kunlar saqlandi."
+            ),
+      });
+
+      await reload();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openAutoSetup = () => {
+    setEnabled(true);
+    setMessage({
+      tone: "info",
+      text: (
+        "Avto sozlash oynasi ochildi. Fan → kun qoidalarini " +
+        "qo‘shib, “Qoidalarni saqlash va avto qo‘llash”ni bosing."
+      ),
+    });
+  };
+
+  return (
+    <Card className="p-5">
+      {message && (
+        <div className="mb-3">
+          <SmartNotice tone={message.tone}>{message.text}</SmartNotice>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2
+            className="text-xl font-black"
+            style={{ color: palette.ink }}
+          >
+            Avto metod kuni
+          </h2>
+          <p
+            className="text-xs mt-1"
+            style={{ color: palette.muted }}
+          >
+            Standart holat O‘CHIQ. Tizim o‘zi fanlarga kun o‘ylab
+            topmaydi. YOQILSA faqat siz saqlagan aniq fan → kun
+            qoidasi ishlaydi.
+          </p>
+        </div>
+
+        <button
+          onClick={() => enabled ? save(false) : openAutoSetup()}
+          disabled={saving || loading}
+          className="px-4 py-2.5 rounded-xl text-sm font-black"
+          style={{
+            background: enabled ? palette.greenBg : palette.cream,
+            color: enabled ? palette.green : palette.muted,
+          }}
+        >
+          {saving
+            ? "Saqlanmoqda..."
+            : enabled
+              ? "AVTO: YOQ — O‘CHIRISH"
+              : "AVTO: O‘CHIQ — SOZLASH/YOQISH"}
+        </button>
+      </div>
+
+      {enabled && (
+        <>
+          <div className="grid lg:grid-cols-[1.5fr_1fr_1fr_auto] gap-2 mt-4">
+            <select
+              value={subject}
+              onChange={event => setSubject(event.target.value)}
+              className="p-2.5 rounded-xl border bg-white"
+            >
+              <option value="">Fanni tanlang</option>
+              {subjects.map(fan => (
+                <option key={fan} value={fan}>{fan}</option>
+              ))}
+            </select>
+
+            <select
+              value={day}
+              onChange={event => setDay(Number(event.target.value))}
+              className="p-2.5 rounded-xl border bg-white"
+            >
+              {smartDays.slice(0, weekdays).map(([value, name]) => (
+                <option key={value} value={value}>{name}</option>
+              ))}
+            </select>
+
+            <select
+              value={hard ? "hard" : "soft"}
+              onChange={event => setHard(event.target.value === "hard")}
+              className="p-2.5 rounded-xl border bg-white"
+            >
+              <option value="hard">
+                Qattiq — dars qo‘yilmasin
+              </option>
+              <option value="soft">
+                Yumshoq — iloji bo‘lsa bo‘sh
+              </option>
+            </select>
+
+            <button
+              onClick={addSubjects}
+              className="px-4 py-2.5 rounded-xl text-sm font-black text-white"
+              style={{ background: palette.teal }}
+            >
+              {selectedSubjects.length
+                ? `Tanlangan ${selectedSubjects.length} fanni qo‘shish`
+                : "Qoida qo‘shish"}
+            </button>
+          </div>
+
+          <div
+            className="mt-3 rounded-xl p-3 text-xs"
+            style={{ background: palette.sky, color: palette.blue }}
+          >
+            Masalan: O‘ZBEKISTON TARIXI → Dushanba → Qattiq.
+            Saqlanganda faqat aynan shu fan o‘qituvchilari Dushanba
+            metod kuni bo‘ladi; TARBIYA yoki boshqa fan aralashmaydi.
+          </div>
+
+          <div className="space-y-2 mt-4 max-h-72 overflow-auto pr-1">
+            {rules.map((rule, index) => (
+              <div
+                key={`${rule.fan_nomi}-${index}`}
+                className="grid md:grid-cols-[1.5fr_1fr_1fr_auto] gap-2 items-center rounded-2xl border p-3"
+                style={{ borderColor: palette.line }}
+              >
+                <div
+                  className="text-sm font-black"
+                  style={{ color: palette.ink }}
+                >
+                  {rule.fan_nomi}
+                </div>
+
+                <select
+                  value={rule.hafta_kuni}
+                  onChange={event =>
+                    updateRule(
+                      index,
+                      "hafta_kuni",
+                      Number(event.target.value)
+                    )
+                  }
+                  className="p-2 rounded-xl border bg-white"
+                >
+                  {smartDays.slice(0, weekdays).map(([value, name]) => (
+                    <option key={value} value={value}>{name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={rule.qattiq ? "hard" : "soft"}
+                  onChange={event =>
+                    updateRule(
+                      index,
+                      "qattiq",
+                      event.target.value === "hard"
+                    )
+                  }
+                  className="p-2 rounded-xl border bg-white"
+                >
+                  <option value="hard">Qattiq</option>
+                  <option value="soft">Yumshoq</option>
+                </select>
+
+                <button
+                  onClick={() => removeRule(index)}
+                  className="px-3 py-2 rounded-xl text-xs font-black"
+                  style={{
+                    background: palette.redBg,
+                    color: palette.red,
+                  }}
+                >
+                  Olib tashlash
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => save(true)}
+              disabled={saving}
+              className="px-5 py-3 rounded-xl text-sm font-black text-white"
+              style={{ background: palette.blue }}
+            >
+              Qoidalarni saqlash va avto qo‘llash
+            </button>
+          </div>
+        </>
+      )}
+
+      <div className="mt-4">
+        <div
+          className="text-sm font-black"
+          style={{ color: palette.ink }}
+        >
+          Fan → metod kuni hisoboti
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+          {report.map(row => (
+            <div
+              key={row.fan_nomi}
+              className="rounded-xl p-3"
+              style={{
+                background: row.qattiq
+                  ? palette.redBg
+                  : palette.amberBg,
+              }}
+            >
+              <div
+                className="text-sm font-black"
+                style={{ color: palette.ink }}
+              >
+                {row.fan_nomi}
+              </div>
+              <div
+                className="text-xs mt-1"
+                style={{
+                  color: row.qattiq
+                    ? palette.red
+                    : palette.amber,
+                }}
+              >
+                {row.kun_nomi} · {row.qattiq ? "Qattiq" : "Yumshoq"}
+                {" · "}
+                {row.oqituvchi_soni} o‘qituvchi
+              </div>
+            </div>
+          ))}
+
+          {!report.length && (
+            <div
+              className="text-xs"
+              style={{ color: palette.muted }}
+            >
+              Avto fan → kun qoidasi yo‘q.
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+
 function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teacherOnly, token, apiBase, maktabId, reload }) {
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
   const shifts = useMemo(() => {
@@ -1993,6 +2398,8 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         </label>)}
       </div>
     </Card>
+
+    {!teacherOnly && <AutoMethodDayPanelV1871 token={token} apiBase={apiBase} maktabId={maktabId} subjects={subjectOptions} selectedSubjects={selectedSubjects} weekdays={weekdays} reload={reload}/>}
 
     {!teacherOnly && <Card className="p-5">
       <h2 className="text-xl font-black" style={{ color: palette.ink }}>
