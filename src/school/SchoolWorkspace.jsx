@@ -1,3 +1,4 @@
+// SAMTM V18.61 — Xodim Excel shabloni gorizontal yurishi va tezligi tuzatildi.
 // SAMTM V18.60 — Har bir sinf bo‘yicha aniq soat importi aqlli jadvalga uzatiladi.
 // SAMTM V18.59 — Shablondagi fanlarni birlashtirib ko‘rsatish va metod kuni hisoboti.
 // SAMTM V18.58 — Bitta kunlik sinf qoidasi va sinf-kun hisoboti.
