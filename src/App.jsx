@@ -1,3 +1,5 @@
+// SAMTM V18.73 — rasmiy metod preset va ixcham matritsa bilan mos.
+// SAMTM V18.72 — ortiqcha tanlov tugmalari olib tashlangan.
 // SAMTM V18.71 — ixtiyoriy avto metod kuni bilan mos.
 // SAMTM V18.70 — fan tanlanganda mos o‘qituvchilar avtomatik tanlanadi.
 // SAMTM V18.69 — soddalashtirilgan ikki smenali vaqt jadvali bilan mos.
