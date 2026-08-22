@@ -1,3 +1,4 @@
+// SAMTM V18.70 — aniq fanlar tanlansa mos o‘qituvchilar avtomatik belgilanadi.
 // SAMTM V18.69 — ikki smena bir vaqtda ko‘rinadi; metod kuni barcha soatlarni ranglaydi.
 // SAMTM V18.68 — aniq ko‘p fan filtri va barcha o‘qituvchilar vaqt matritsasi.
 // SAMTM V18.67 — kunni tanlab, aynan shu metod kunini olib tashlash.
@@ -1797,12 +1798,29 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     }
   };
 
-  const toggleSubject = subject =>
-    setSelectedSubjects(previous =>
-      previous.includes(subject)
-        ? previous.filter(value => value !== subject)
-        : [...previous, subject]
-    );
+  const matchingTeacherIdsForSubjects = subjects => {
+    if (!subjects.length) return [];
+    const exactKeys = new Set(subjects.map(normalizeSubject));
+    return teachers
+      .filter(teacher =>
+        splitSubjects(teacher).some(subject => exactKeys.has(normalizeSubject(subject)))
+      )
+      .map(teacher => String(teacher.user_id));
+  };
+
+  const toggleSubject = subject => {
+    const nextSubjects = selectedSubjects.includes(subject)
+      ? selectedSubjects.filter(value => value !== subject)
+      : [...selectedSubjects, subject];
+    setSelectedSubjects(nextSubjects);
+    // Fan ptichkasi o‘zgarganda aynan shu fanlarga mos o‘qituvchilar darhol belgilanadi.
+    setSelectedIds(matchingTeacherIdsForSubjects(nextSubjects));
+  };
+
+  const clearSubjectFilter = () => {
+    setSelectedSubjects([]);
+    setSelectedIds([]);
+  };
 
   const toggleTeacher = uid =>
     setSelectedIds(previous =>
@@ -1819,7 +1837,12 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   const applyBulk = () => {
     const targets = selectedVisibleIds;
     if (!targets.length) {
-      return setMessage({ tone: "error", text: "Avval kerakli o‘qituvchilarni belgilang." });
+      return setMessage({
+        tone: "error",
+        text: selectedSubjects.length
+          ? "Tanlangan fanlarga mos o‘qituvchi topilmadi."
+          : "Avval fanlarni yoki kerakli o‘qituvchilarni belgilang.",
+      });
     }
 
     setStates(previous => {
@@ -1923,7 +1946,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           style={{ borderColor: palette.line }}
         />
         <button
-          onClick={() => setSelectedSubjects([])}
+          onClick={clearSubjectFilter}
           className="px-3 py-2 rounded-xl text-xs font-black"
           style={{ background: palette.cream, color: palette.ink }}
         >
@@ -1944,6 +1967,10 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           O‘qituvchi tanlovini tozalash
         </button>}
       </div>
+
+      {selectedSubjects.length > 0 && <div className="mt-3 px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.greenBg, color: palette.green }}>
+        Mos o‘qituvchilar avtomatik belgilandi: {selectedVisibleIds.length} ta. Endi kun, metod/smena va rangni tanlab “Qo‘llash”ni bosing.
+      </div>}
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 mt-3 max-h-48 overflow-auto pr-1">
         {filteredSubjectOptions.map(subject => <label
@@ -1972,7 +1999,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         Tanlangan o‘qituvchilarga birga qo‘llash
       </h2>
       <p className="text-xs mt-1" style={{ color: palette.muted }}>
-        Faqat 4 ta tanlov: kun, metod/1-smena/2-smena/ikkala smena, qattiq/yumshoq/bo‘sh va qo‘llash.
+        Fan tanlanganda mos o‘qituvchilar avtomatik belgilanadi. Kun + metod/smena + qattiq/yumshoq/bo‘shni tanlab “Qo‘llash”ni bossangiz pastdagi vaqtlar darhol ranglanadi; keyin tepadagi “Saqlash”ni bosing.
       </p>
 
       <div className="grid md:grid-cols-[1fr_1fr_1.3fr_auto] gap-2 mt-4">
@@ -2016,7 +2043,9 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           className="px-4 py-2.5 rounded-xl text-sm font-black text-white"
           style={{ background: palette.teal }}
         >
-          Qo‘llash ({selectedVisibleIds.length})
+          {selectedSubjects.length
+            ? `Mos o‘qituvchilarga qo‘llash (${selectedVisibleIds.length})`
+            : `Qo‘llash (${selectedVisibleIds.length})`}
         </button>
       </div>
     </Card>}
