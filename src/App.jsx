@@ -1,3 +1,4 @@
+// SAMTM V18.70 — fan tanlanganda mos o‘qituvchilar avtomatik tanlanadi.
 // SAMTM V18.69 — soddalashtirilgan ikki smenali vaqt jadvali bilan mos.
 // SAMTM V18.68 — SchoolWorkspace vaqt matritsasi bilan mos.
 // SAMTM V18.67 — tanlangan metod kunini aniq olib tashlash.
