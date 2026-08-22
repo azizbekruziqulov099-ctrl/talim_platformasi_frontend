@@ -1,3 +1,5 @@
+// SAMTM V18.62 — Xodim shabloni cache qilinmaydi va freeze/split yo‘q.
+// SAMTM V18.61 — Xodim Excel shabloni gorizontal yurishi va tezligi tuzatildi.
 // SAMTM V18.60 — Xodim shablonida har bir sinf uchun alohida haftalik soat.
 // SAMTM V18.59 — Shablondagi o‘qituvchi fanlari va metod kuni hisoboti.
 // SAMTM V18.58 — Sinf-kun qoidasi bitta kunlik va aniq hisobotli.
@@ -2743,7 +2745,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
   const shablonYukla = () => {
     if (!fanlarTayyor) { setFanXato("Avval maktab fanlarini tanlab saqlang"); return; }
-    window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`, "_blank");
+    const cacheBuster = Date.now();
+    window.open(`${API_BASE}/api/admin/xodim_shablon?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}&_=${cacheBuster}`, "_blank", "noopener,noreferrer");
   };
 
   const faylTanlandi = async (e) => {
