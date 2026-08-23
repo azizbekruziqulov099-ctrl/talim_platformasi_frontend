@@ -1,3 +1,6 @@
+// SAMTM V18.76 — guruhli fanlar jadvaldan oldin tasdiqlanadi.
+// SAMTM V18.75 — qat'iy jadval mosligi bilan mos.
+// SAMTM V18.74 — gigiyenik jadval generatori bilan mos.
 // SAMTM V18.73 — rasmiy metod preset va ixcham matritsa bilan mos.
 // SAMTM V18.72 — ortiqcha tanlov tugmalari olib tashlangan.
 // SAMTM V18.71 — ixtiyoriy avto metod kuni bilan mos.
