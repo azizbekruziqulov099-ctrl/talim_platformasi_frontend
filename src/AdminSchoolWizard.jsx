@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
 const CLASS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({ grade, count: 1 }));
+const gradeConfigWithCount = (count) => CLASS_GRADES.map((grade) => ({ grade, count }));
 const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`;
 const cleanInteger = (value, minimum, maximum, fallback = minimum) => {
   const parsed = Number.parseInt(String(value ?? "").replace(/[^0-9]/g, ""), 10);
@@ -16,7 +16,7 @@ const emptyBuilding = (index = 0) => ({
 
 const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
   key: uniqueKey("class", `${grade}-${letter}`), grade, letter, shift,
-  leader: null, psychologist: null, buildingKey: "", roomNumber: "", groupMethods: [],
+  leader: null, psychologist: null, buildingKey: "", roomNumber: "", groupMethod: "none",
 });
 
 export function normalizeSchoolClassName(value) {
@@ -96,7 +96,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [director, setDirector] = useState(null);
   const [skipBuildings, setSkipBuildings] = useState(false);
   const [buildings, setBuildings] = useState([emptyBuilding(0)]);
-  const [gradeConfig, setGradeConfig] = useState(DEFAULT_GRADE_CONFIG);
+  const [gradeConfigsByShift, setGradeConfigsByShift] = useState(() => ({
+    1: gradeConfigWithCount(1),
+    2: gradeConfigWithCount(0),
+  }));
   const [classes, setClasses] = useState([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -107,7 +110,13 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     poolKey: `${building.key}|${room.number.toLocaleLowerCase("uz")}`,
   }))), [buildings, skipBuildings]);
   const buildingByKey = useMemo(() => new Map(buildings.map((item) => [item.key, item])), [buildings]);
-  const requestedClassCount = useMemo(() => gradeConfig.reduce((total, item) => total + item.count, 0), [gradeConfig]);
+  const gradeConfig = gradeConfigsByShift[defaultClassShift] || gradeConfigsByShift[1];
+  const shiftClassCounts = useMemo(() => ({
+    1: gradeConfigsByShift[1].reduce((total, item) => total + item.count, 0),
+    2: gradeConfigsByShift[2].reduce((total, item) => total + item.count, 0),
+  }), [gradeConfigsByShift]);
+  const activeRequestedClassCount = shiftClassCounts[defaultClassShift] || 0;
+  const requestedClassCount = shiftClassCounts[1] + (shiftCount === 2 ? shiftClassCounts[2] : 0);
 
   const validateSchool = () => {
     if (name.trim().length < 2) return "Maktab nomini kiriting";
@@ -184,13 +193,25 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const createRooms = (key) => { setBuildings((current) => current.map((item) => item.key === key ? { ...item, rooms: generateRooms(item) } : item)); setNotice("Xonalar tayyorlandi. Kerak bo‘lsa parametrlarni o‘zgartirib qayta yarating."); setError(""); };
   const removeBuilding = (key) => { setBuildings((current) => current.filter((item) => item.key !== key)); setClasses((current) => current.map((item) => item.buildingKey === key ? { ...item, buildingKey: "", roomNumber: "" } : item)); };
   const updateGradeCount = (grade, rawCount) => {
-    const count = cleanInteger(rawCount, 0, CLASS_LETTERS.length, 0);
-    setGradeConfig((current) => current.map((item) => item.grade === grade ? { ...item, count } : item));
+    const otherShift = defaultClassShift === 1 ? 2 : 1;
+    const otherCount = gradeConfigsByShift[otherShift].find((item) => item.grade === grade)?.count || 0;
+    const count = cleanInteger(rawCount, 0, CLASS_LETTERS.length - otherCount, 0);
+    setGradeConfigsByShift((current) => ({
+      ...current,
+      [defaultClassShift]: current[defaultClassShift].map((item) => item.grade === grade ? { ...item, count } : item),
+    }));
     setError("");
   };
   const applyParallelPreset = (count) => {
-    setGradeConfig(CLASS_GRADES.map((grade) => ({ grade, count })));
-    setError(""); setNotice("Parallel sonlari yangilandi. Pastdagi tugma orqali sinflarni qayta hisoblang.");
+    const otherShift = defaultClassShift === 1 ? 2 : 1;
+    setGradeConfigsByShift((current) => ({
+      ...current,
+      [defaultClassShift]: CLASS_GRADES.map((grade) => {
+        const otherCount = current[otherShift].find((item) => item.grade === grade)?.count || 0;
+        return { grade, count: Math.min(count, CLASS_LETTERS.length - otherCount) };
+      }),
+    }));
+    setError(""); setNotice(`${defaultClassShift}-smena parallel sonlari yangilandi. Boshqa smenadagi tanlovlar saqlandi.`);
   };
 
   const assignRooms = (items, reset = false) => {
@@ -213,17 +234,22 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     if (!requestedClassCount) { setError("Kamida bitta sinf darajasiga parallel sonini kiriting"); return; }
     const existing = new Map(classes.map((item) => [classNameOf(item), item]));
     const desired = [];
-    gradeConfig.forEach(({ grade, count }) => {
-      CLASS_LETTERS.slice(0, count).forEach((letter, index) => {
-        const normalized = `${grade}-${letter}`;
-        const shift = shiftCount === 1 ? 1 : defaultClassShift;
-        const oldItem = existing.get(normalized);
-        desired.push(oldItem ? (Number(oldItem.shift) === shift ? oldItem : { ...oldItem, shift, buildingKey: "", roomNumber: "" }) : emptyClass({ grade, letter, shift }));
+    CLASS_GRADES.forEach((grade) => {
+      let letterIndex = 0;
+      const activeShifts = shiftCount === 2 ? [1, 2] : [1];
+      activeShifts.forEach((shift) => {
+        const count = gradeConfigsByShift[shift].find((item) => item.grade === grade)?.count || 0;
+        CLASS_LETTERS.slice(letterIndex, letterIndex + count).forEach((letter) => {
+          const normalized = `${grade}-${letter}`;
+          const oldItem = existing.get(normalized);
+          desired.push(oldItem ? (Number(oldItem.shift) === shift ? oldItem : { ...oldItem, shift, buildingKey: "", roomNumber: "" }) : emptyClass({ grade, letter, shift }));
+        });
+        letterIndex += count;
       });
     });
     const result = assignRooms(desired);
     setClasses(result.items); setError("");
-    setNotice(`11 ta sinf darajasi qayta hisoblandi. Jami ${result.items.length} ta sinf${result.unassigned ? `; ${result.unassigned} tasiga xona yetmadi` : roomPool.length ? " va xonalar avtomatik biriktirildi" : ""}.`);
+    setNotice(`Ikkala smena birga hisoblandi: 1-smena ${shiftClassCounts[1]} ta${shiftCount === 2 ? `, 2-smena ${shiftClassCounts[2]} ta` : ""}. Jami ${result.items.length} ta sinf${result.unassigned ? `; ${result.unassigned} tasiga xona yetmadi` : roomPool.length ? " va xonalar avtomatik biriktirildi" : ""}.`);
   };
   const autoAssignAllRooms = () => { const result = assignRooms(classes, true); setClasses(result.items); setError(""); setNotice(result.unassigned ? `${result.unassigned} ta sinfga xona yetmadi; ular xonasiz qoldirildi.` : "Barcha sinflarga smena bo‘yicha takrorlanmaydigan xonalar biriktirildi."); };
   const updateClass = (key, patch) => { setClasses((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item)); setError(""); };
@@ -243,8 +269,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
             name: classNameOf(item), shift: shiftCount === 1 ? 1 : Number(item.shift),
             leader_user_id: item.leader?.user_id || null, psychologist_user_id: item.psychologist?.user_id || null,
             building_key: item.buildingKey || null, room_number: item.roomNumber || null,
-            group_methods: item.groupMethods || [],
-            group_method: (item.groupMethods || []).length === 1 ? item.groupMethods[0] : ((item.groupMethods || []).length ? "manual" : "none"),
+            group_method: item.groupMethod || "none",
           })),
         }),
       });
@@ -271,7 +296,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Viloyat *<select value={region} onChange={(event) => { setRegion(event.target.value); setDistrict(""); }} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlang</option>{(regions || []).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
         <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Tuman/shahar *<select value={district} onChange={(event) => setDistrict(event.target.value)} disabled={!region} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: region ? 1 : 0.55 }}><option value="">Tanlang</option>{((districtsByRegion || {})[region] || []).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       </div>
-        <div><p className="text-xs font-semibold mb-1.5" style={{ color: "#5A5648" }}>Maktabdagi smena soni *</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => { setShiftCount(number); if (number === 1) setDefaultClassShift(1); setClasses((current) => sortedClasses(current).map((item) => ({ ...item, shift: number === 1 ? 1 : Math.min(2, Math.max(1, Number(item.shift) || 1)), buildingKey: "", roomNumber: "" }))); }} className="py-2.5 rounded-xl border text-sm font-bold" style={shiftCount === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#E5E1D8" }}>{number} smenali</button>)}</div></div>
+        <div><p className="text-xs font-semibold mb-1.5" style={{ color: "#5A5648" }}>Maktabdagi smena soni *</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => { setShiftCount(number); if (number === 1) setDefaultClassShift(1); setNotice(number === 2 ? "1-smena va 2-smena sinflari alohida kiritiladi; birini tahrirlash ikkinchisini o‘chirmaydi." : "Faqat 1-smena sinflari yaratiladi. 2-smena rejasi o‘chirilmaydi va 2 smenali holatga qaytsangiz saqlanib turadi."); setError(""); }} className="py-2.5 rounded-xl border text-sm font-bold" style={shiftCount === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#E5E1D8" }}>{number} smenali</button>)}</div></div>
       <label className="text-xs font-semibold block" style={{ color: "#5A5648" }}>Direktor · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={director} onChange={setDirector} placeholder="Mavjud foydalanuvchidan direktor tanlang..." /></div></label>
       <div className="rounded-xl px-3.5 py-3 text-xs" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Admin yaratmoqda: platforma to‘lovi, balans va sinov muddati so‘ralmaydi.</div>
     </div>}
@@ -296,19 +321,19 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
 
     {step === 3 && <div className="space-y-4">
       <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
-        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir sinf darajasining parallel sonini alohida yozing. 0 bo‘lsa, o‘sha daraja yaratilmaydi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
+        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir smena alohida saqlanadi. Avval 1-smenani, keyin 2-smenani kiritsangiz, oldingi sinflar o‘chmaydi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta jami</span></div>
         <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>Barchasiga tez qo‘yish:</span>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
-        {shiftCount === 2 && <div className="rounded-xl border p-3 mb-3" style={{ borderColor: "#B9CCDC", background: "#F1F7FB" }}><p className="text-xs font-bold mb-2" style={{ color: "#1B4B7A" }}>Yaratiladigan sinflarning umumiy smenasi</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => setDefaultClassShift(number)} className="py-2 rounded-lg border text-xs font-bold" style={defaultClassShift === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#D9D4C8" }}>{number}-smena</button>)}</div><p className="text-[10px] mt-2" style={{ color: "#6F6859" }}>Hamma sinf avval shu smenada yaratiladi. Pastda kerakli sinfni alohida o‘zgartirasiz.</p></div>}
+        {shiftCount === 2 && <div className="rounded-xl border p-3 mb-3" style={{ borderColor: "#B9CCDC", background: "#F1F7FB" }}><p className="text-xs font-bold mb-2" style={{ color: "#1B4B7A" }}>Qaysi smena sinflarini kiritasiz?</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => { setDefaultClassShift(number); setError(""); setNotice(`${number}-smena oynasi ochildi. Boshqa smenadagi ${shiftClassCounts[number === 1 ? 2 : 1]} ta sinf rejasi saqlanib turibdi.`); }} className="py-2 rounded-lg border text-xs font-bold" style={defaultClassShift === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#D9D4C8" }}>{number}-smena · {shiftClassCounts[number]} ta</button>)}</div><p className="text-[10px] mt-2" style={{ color: "#2E6C55" }}>✓ Smenalar alohida xotirada turadi. Yakunda ikkalasi bitta ro‘yxatga qo‘shiladi.</p></div>}
         <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2">PARALLEL</span><span className="col-span-8">SINF VA SMENA</span></div>
           {gradeConfig.map((item) => <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: item.count ? "white" : "#FAF9F6" }}>
               <b className="col-span-2 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
-              <input aria-label={`${item.grade}-sinf parallel soni`} type="number" min="0" max={CLASS_LETTERS.length} value={item.count} onChange={(event) => updateGradeCount(item.grade, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#1B4B7A" }} />
-              <span className="col-span-8 text-[11px] truncate" style={{ color: item.count ? "#5A5648" : "#A8A397" }}>{item.count ? CLASS_LETTERS.slice(0, item.count).map((letter) => `${item.grade}-${letter}${shiftCount === 2 ? ` (${defaultClassShift}-smena)` : ""}`).join(", ") : "Yaratilmaydi"}</span>
+              <input aria-label={`${item.grade}-sinf ${defaultClassShift}-smena parallel soni`} type="number" min="0" max={CLASS_LETTERS.length - (gradeConfigsByShift[defaultClassShift === 1 ? 2 : 1].find((other) => other.grade === item.grade)?.count || 0)} value={item.count} onChange={(event) => updateGradeCount(item.grade, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#1B4B7A" }} />
+              <span className="col-span-8 text-[11px] truncate" style={{ color: item.count ? "#5A5648" : "#A8A397" }}>{item.count ? (() => { const start = defaultClassShift === 2 ? (gradeConfigsByShift[1].find((first) => first.grade === item.grade)?.count || 0) : 0; return CLASS_LETTERS.slice(start, start + item.count).map((letter) => `${item.grade}-${letter}${shiftCount === 2 ? ` (${defaultClassShift}-smena)` : ""}`).join(", "); })() : "Bu smenada yaratilmaydi"}</span>
             </div>)}
         </div>
-        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? `Barcha yangi sinf ${defaultClassShift}-smenaga tushadi. Pastda har bir sinfni alohida o‘zgartirish mumkin.` : "Har bir qatordagi sonni xohlagan payt o‘zgartirib, ro‘yxatni qayta hisoblash mumkin."}</p>
-        <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
+        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? `${defaultClassShift}-smenada ${activeRequestedClassCount} ta, ikkala smenada jami ${requestedClassCount} ta sinf rejalashtirilgan.` : "Har bir qatordagi sonni xohlagan payt o‘zgartirib, ro‘yxatni qayta hisoblash mumkin."}</p>
+        <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ Ikkala smenadagi {requestedClassCount} ta sinfni hisoblash</button>
       </section>
       {classes.length > 0 && <>
         {!skipBuildings && roomPool.length > 0 && <button type="button" onClick={autoAssignAllRooms} className="w-full py-2.5 rounded-xl text-sm font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>🏫 Xonalarni smena bo‘yicha avtomatik taqsimlash</button>}
@@ -321,7 +346,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · shu smenada bo‘sh<select value={item.roomNumber} onChange={(event) => updateClass(item.key, { roomNumber: event.target.value })} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{availableRooms.map((room) => <option key={room.number} value={room.number}>{room.number}-xona</option>)}</select></label>}
-              <div className="text-xs font-semibold" style={{ color: "#5A5648" }}><span className="block mb-1.5">Guruhlash · bir nechtasini tanlash mumkin</span><div className="grid gap-1.5">{[["gender", "O‘g‘il / Qiz"], ["alphabet", "Alifbo 1 / 2"], ["manual", "Mustaqil"]].map(([method, label]) => { const selected = (item.groupMethods || []).includes(method); return <button key={method} type="button" onClick={() => updateClass(item.key, { groupMethods: selected ? (item.groupMethods || []).filter((value) => value !== method) : [...(item.groupMethods || []), method] })} className="px-3 py-2 rounded-xl border text-left text-xs font-bold" style={selected ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#E5E1D8" }}>{selected ? "✓ " : "+ "}{label}</button>; })}</div></div>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>O‘quvchilarni 2 guruhga bo‘lish<select value={item.groupMethod || "none"} onChange={(event) => updateClass(item.key, { groupMethod: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="none">Hozircha bo‘linmaydi</option><option value="gender">O‘g‘il / qiz bo‘yicha</option><option value="alphabet">Alifbo bo‘yicha: 1-guruh / 2-guruh</option></select></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf rahbari · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.leader} onChange={(person) => updateClass(item.key, { leader: person })} placeholder="Rahbar ismi..." /></div></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Psixolog · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.psychologist} onChange={(person) => updateClass(item.key, { psychologist: person })} placeholder="Psixolog ismi..." /></div></label>
               <button type="button" onClick={() => setClasses((current) => current.filter((row) => row.key !== item.key))} className="self-end py-2 rounded-xl text-xs font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Sinfni olib tashlash</button>
@@ -334,7 +359,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{schoolNumber.trim() ? `${schoolNumber.trim()}-sonli ` : ""}{name.trim()}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
       <div className="grid grid-cols-3 gap-2"><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{skipBuildings ? 0 : buildings.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>bino</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{roomPool.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>xona</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#FDF3E0" }}><b className="block text-lg" style={{ color: "#8A5A1C" }}>{classes.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>sinf</span></div></div>
       {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p></div>)}
-      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); const labels = { gender: "o‘g‘il/qiz", alphabet: "1/2", manual: "mustaqil" }; const groupText = (item.groupMethods || []).map((method) => labels[method]).filter(Boolean).join(" + ") || "guruhsiz"; return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"} · {groupText}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
+      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); const groupText = item.groupMethod === "gender" ? "o‘g‘il/qiz" : item.groupMethod === "alphabet" ? "1/2 guruh" : "guruhsiz"; return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"} · {groupText}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
       <div className="rounded-xl px-3.5 py-3 text-xs font-semibold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Maktab, binolar, xonalar va sinflar bitta xavfsiz amalda yaratiladi. Platforma to‘lovi: 0 so‘m.</div>
     </div>}
 
