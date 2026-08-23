@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.2 · 1–14 to‘liq yangilangan";
+const teacherCategoriesV192 = [
+  "O'ta maxsus mutaxassis (oliy ma'lumotli)",
+  "2-toifali", "1-toifali", "Oliy toifali",
+];
 
 const palette = {
   ink: "#18324B",
@@ -2379,6 +2383,9 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [query, setQuery] = useState("");
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [newTeacher, setNewTeacher] = useState({ full_name: "", ish_staji: "", toifasi: "" });
+  const [entryCode, setEntryCode] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -2400,7 +2407,10 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
   useEffect(() => { load(); }, [maktabId, token, apiBase]);
 
   useEffect(() => {
-    if (!data || !selectedTeacher) {
+    if (!data || creatingNew) {
+      return;
+    }
+    if (!selectedTeacher) {
       setRows([]);
       return;
     }
@@ -2416,7 +2426,7 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
           xona_id: row.xona_id ? String(row.xona_id) : "",
         }))
     );
-  }, [data, selectedTeacher]);
+  }, [data, selectedTeacher, creatingNew]);
 
   const variantsForClass = classId =>
     (data?.guruh_variantlari || []).filter(
@@ -2440,21 +2450,44 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
     ));
   };
 
-  const addRow = () => {
+  const makeEmptyRow = () => {
     const firstClass = data?.sinflar?.[0];
-    setRows(current => [...current, {
+    return {
       sinf_id: String(firstClass?.id || ""),
       fan_nomi: String(data?.fanlar?.[0] || ""),
       guruh_kaliti: "whole",
       haftalik_soat: 1,
       kunlik_max: 1,
       xona_id: "",
-    }]);
+    };
+  };
+
+  const addRow = () => {
+    setRows(current => [...current, makeEmptyRow()]);
+  };
+
+  const startNewTeacher = () => {
+    setCreatingNew(true);
+    setSelectedTeacher("");
+    setNewTeacher({ full_name: "", ish_staji: "", toifasi: "" });
+    setEntryCode("");
+    setRows([makeEmptyRow()]);
+    setMessage(null);
+  };
+
+  const cancelNewTeacher = () => {
+    const firstTeacher = String(data?.oqituvchilar?.[0]?.user_id || "");
+    setCreatingNew(false);
+    setSelectedTeacher(firstTeacher);
+    setEntryCode("");
   };
 
   const save = async () => {
-    if (!selectedTeacher) {
+    if (!creatingNew && !selectedTeacher) {
       return setMessage({ tone: "error", text: "Avval o‘qituvchini tanlang." });
+    }
+    if (creatingNew && newTeacher.full_name.trim().length < 3) {
+      return setMessage({ tone: "error", text: "Yangi o‘qituvchining F.I.Sh.ni kiriting." });
     }
     if (rows.some(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat)) {
       return setMessage({ tone: "error", text: "Har bir qatorda sinf, fan va haftalik soat bo‘lishi kerak." });
@@ -2462,30 +2495,43 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
     setSaving(true);
     setMessage(null);
     try {
+      const qatorlar = rows.map(row => ({
+        sinf_id: Number(row.sinf_id),
+        fan_nomi: row.fan_nomi,
+        guruh_kaliti: row.guruh_kaliti || "whole",
+        haftalik_soat: Number(row.haftalik_soat),
+        kunlik_max: Number(row.kunlik_max || 1),
+        xona_id: row.xona_id ? Number(row.xona_id) : null,
+      }));
       const result = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_yuklamasi?token=${encodeURIComponent(token)}`,
+        `${apiBase}/api/maktab/aqlli_jadval/v3/${creatingNew ? "oqituvchi_qoshish" : "oqituvchi_yuklamasi"}?token=${encodeURIComponent(token)}`,
         {
-          method: "PUT",
+          method: creatingNew ? "POST" : "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: JSON.stringify(creatingNew ? {
+            maktab_id: maktabId,
+            full_name: newTeacher.full_name.trim(),
+            ish_staji: newTeacher.ish_staji === "" ? null : Number(newTeacher.ish_staji),
+            toifasi: newTeacher.toifasi || null,
+            qatorlar,
+          } : {
             maktab_id: maktabId,
             user_id: Number(selectedTeacher),
-            qatorlar: rows.map(row => ({
-              sinf_id: Number(row.sinf_id),
-              fan_nomi: row.fan_nomi,
-              guruh_kaliti: row.guruh_kaliti || "whole",
-              haftalik_soat: Number(row.haftalik_soat),
-              kunlik_max: Number(row.kunlik_max || 1),
-              xona_id: row.xona_id ? Number(row.xona_id) : null,
-            })),
+            qatorlar,
           }),
         }
       );
       setData(result.matritsa);
+      if (creatingNew) {
+        setSelectedTeacher(String(result.user_id));
+        setCreatingNew(false);
+        setEntryCode(result.kirish_kodi || "");
+        setNewTeacher({ full_name: "", ish_staji: "", toifasi: "" });
+      }
       const warnings = result.ogohlantirishlar || [];
       setMessage({
         tone: warnings.length ? "warning" : "success",
-        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
+        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
       });
       await onChanged?.();
     } catch (error) {
@@ -2506,6 +2552,11 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
   const teacherTotal = (data?.hisob?.oqituvchilar || []).find(
     item => String(item.user_id) === String(selectedTeacher)
   );
+  const draftFanTotal = rows.reduce(
+    (sum, row) => sum + Number(row.haftalik_soat || 0), 0
+  );
+  const draftClassTotal = creatingNew ? 0 : Number(teacherTotal?.sinf_soati || 0);
+  const draftWeeklyTotal = draftFanTotal + draftClassTotal;
   const selectedRowsByClass = rows.reduce((map, row) => {
     map[String(row.sinf_id)] = [...(map[String(row.sinf_id)] || []), row];
     return map;
@@ -2517,6 +2568,14 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    {entryCode && <div className="rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
+      <div className="flex-1 min-w-[240px]">
+        <div className="text-xs font-black" style={{ color: palette.green }}>YANGI O‘QITUVCHINING 7 KUNLIK KIRISH KODI</div>
+        <div className="text-xl font-black tracking-[.18em] mt-1" style={{ color: palette.ink }}>{entryCode}</div>
+        <div className="text-[11px] mt-1" style={{ color: palette.muted }}>Kodni o‘qituvchiga alohida bering. U Google hisobini shu kod bilan bog‘laydi.</div>
+      </div>
+      <button onClick={() => navigator.clipboard?.writeText(entryCode)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.green, color: "#fff" }}>Kodni nusxalash</button>
+    </div>}
 
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2529,43 +2588,67 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
           </p>
         </div>
         <button onClick={save} disabled={saving} className="px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>
-          {saving ? "Saqlanmoqda..." : "O‘qituvchi yuklamasini saqlash"}
+          {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
         </button>
       </div>
 
       <div className="grid xl:grid-cols-[320px_1fr] gap-4 mt-5">
         <div className="rounded-2xl p-4" style={{ background: palette.cream }}>
-          <label className="text-xs font-black" style={{ color: palette.ink }}>
-            O‘qituvchi qidirish
-            <div className="relative mt-1.5">
-              <Search size={15} className="absolute left-3 top-3" style={{ color: palette.muted }}/>
-              <input value={query} onChange={event => setQuery(event.target.value)} placeholder="F.I.Sh." className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+          {!creatingNew && <button onClick={startNewTeacher} className="w-full px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
+            + Yangi o‘qituvchini qo‘lda kiritish
+          </button>}
+          {creatingNew ? <div className="space-y-3">
+            <div>
+              <div className="text-sm font-black" style={{ color: palette.ink }}>Yangi o‘qituvchi</div>
+              <div className="text-[11px] mt-1" style={{ color: palette.muted }}>F.I.Sh.ni yozing, o‘ng tomonda fan–sinf–guruh va soatlarni kiriting.</div>
             </div>
-          </label>
-          <div className="space-y-1.5 mt-3 max-h-[420px] overflow-auto pr-1">
-            {teachers.map(item => {
-              const total = (data?.hisob?.oqituvchilar || []).find(
-                value => String(value.user_id) === String(item.user_id)
-              );
-              const active = String(item.user_id) === String(selectedTeacher);
-              return <button key={item.user_id} onClick={() => setSelectedTeacher(String(item.user_id))} className="w-full rounded-xl p-3 text-left border" style={{
-                background: active ? palette.sky : "#fff",
-                borderColor: active ? palette.blue : palette.line,
-              }}>
-                <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
-                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                  {total?.haftalik_jami || 0} soat · {(item.fanlar_royxati || []).join(", ") || "fan kiritilmagan"}
-                </div>
-              </button>;
-            })}
-          </div>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh.
+              <input autoFocus value={newTeacher.full_name} onChange={event => setNewTeacher(current => ({ ...current, full_name: event.target.value }))} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+            </label>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji
+              <input type="number" min="0" max="60" value={newTeacher.ish_staji} onChange={event => setNewTeacher(current => ({ ...current, ish_staji: event.target.value }))} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+            </label>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>Toifasi
+              <select value={newTeacher.toifasi} onChange={event => setNewTeacher(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+                <option value="">Belgilanmagan</option>
+                {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </label>
+            <button onClick={cancelNewTeacher} className="w-full px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
+          </div> : <>
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>
+              O‘qituvchi qidirish
+              <div className="relative mt-1.5">
+                <Search size={15} className="absolute left-3 top-3" style={{ color: palette.muted }}/>
+                <input value={query} onChange={event => setQuery(event.target.value)} placeholder="F.I.Sh." className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+              </div>
+            </label>
+            <div className="space-y-1.5 mt-3 max-h-[420px] overflow-auto pr-1">
+              {teachers.map(item => {
+                const total = (data?.hisob?.oqituvchilar || []).find(
+                  value => String(value.user_id) === String(item.user_id)
+                );
+                const active = String(item.user_id) === String(selectedTeacher);
+                return <button key={item.user_id} onClick={() => setSelectedTeacher(String(item.user_id))} className="w-full rounded-xl p-3 text-left border" style={{
+                  background: active ? palette.sky : "#fff",
+                  borderColor: active ? palette.blue : palette.line,
+                }}>
+                  <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
+                  <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
+                    {total?.haftalik_jami || 0} soat · {(item.fanlar_royxati || []).join(", ") || "fan kiritilmagan"}
+                  </div>
+                </button>;
+              })}
+              {!teachers.length && <div className="text-xs p-3 text-center" style={{ color: palette.muted }}>O‘qituvchi topilmadi.</div>}
+            </div>
+          </>}
         </div>
 
         <div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Stat value={teacherTotal?.fan_soati || 0} label="fan soati" tone="blue"/>
-            <Stat value={teacherTotal?.sinf_soati || 0} label="sinf soati" tone="teal"/>
-            <Stat value={teacherTotal?.haftalik_jami || 0} label="haftalik jami" tone="green"/>
+            <Stat value={draftFanTotal} label="fan soati · hozirgi" tone="blue"/>
+            <Stat value={draftClassTotal} label="sinf soati" tone="teal"/>
+            <Stat value={draftWeeklyTotal} label="haftalik jami · avtomatik" tone="green"/>
             <Stat value={rows.length} label="aniq qator" tone="amber"/>
           </div>
 
@@ -2758,11 +2841,12 @@ function SanitaryScheduleRulesV1874() {
       </div>
       <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>SanQvaN profili faol</span>
     </div>
-    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+    <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-3 mt-4">
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>1-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 2 kun 5 dars. 5-dars faqat yengil fan.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>2–4-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 4 kun 5 dars. 6-dars qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>5–11-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Majburiy jadvalda kuniga maksimum 6 dars. 7-darsga majburiy fan qo‘yilmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan tartibi</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika va tillar ertaroq; yengil fanlar 3–5; jismoniy tarbiya oxirgi darslarga afzal.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Ichki okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>1–2–3, bo‘sh 4, keyin 5 ko‘rinishidagi jadval tasdiqlanmaydi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika 1–5; jismoniy tarbiya 3–6 afzal. 1–2 faqat boshqa imkon bo‘lmasa ishlatiladi.</div></div>
     </div>
   </Card>;
 }
@@ -3754,11 +3838,12 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     <div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4">
       <Card className="p-5">
         <h2 className="text-xl font-black" style={{ color: palette.ink }}>3. Draft yaratish va tasdiqlash</h2>
-        <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski faol jadval yangi draft 100% mos bo‘lib tasdiqlanmaguncha saqlanadi.</p>
-        <div className="grid grid-cols-3 gap-2 mt-4">
+        <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski faol jadval yangi draft 100% mos va sinf kunlari oknosiz bo‘lib tasdiqlanmaguncha saqlanadi.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
           <Stat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
           <Stat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashtirildi" tone="green"/>
           <Stat value={detail?.urinish?.joylashtirilmadi ?? 0} label="joylashmadi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
+          <Stat value={diagnostics.sinf_oknolari ?? "—"} label="sinf oknosi" tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
         </div>
         <button onClick={generate} disabled={generating || !groupReady || !preflight?.tayyor} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: (groupReady && preflight?.tayyor) ? palette.blue : "#9BA8B2" }}>{generating ? "Hisoblanmoqda..." : (!groupReady ? "Avval guruhlarni tasdiqlang" : "Yangi draft yaratish")}</button>
         {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
