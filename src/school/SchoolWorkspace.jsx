@@ -1,3 +1,4 @@
+// SAMTM V18.77 — guruh tasdiqlash V18.77 shablon manbasi bilan mos.
 // SAMTM V18.76 — sinf guruhlari va o‘qituvchilarini bitta oynada tekshirish.
 // SAMTM V18.75 — sinf, fan va o‘qituvchi soatlari 100% mos bo‘lmaguncha tasdiqlanmaydi.
 // SAMTM V18.74 — SanQvaN kunlik yuklama va fan tartibi.
