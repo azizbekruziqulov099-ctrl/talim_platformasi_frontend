@@ -1,4 +1,4 @@
-// SamTM V19.2 — 1–14 to‘liq: o‘qituvchi-asosli yuklama va aqlli almashtirish.
+// SamTM V19.2 — 1–14 to‘liq: o‘qituvchi yuklamasi, oknosiz sinf jadvali va aqlli almashtirish.
 // SAMTM V19.0 — clean-scale frontend; lazy workspaces preserved.
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
@@ -2918,6 +2918,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           jadval → O‘qituvchi + fan-soat” oynasidan shu ma’lumotlarni Excelsiz
           ham kiritish mumkin. Har bir qatorda fan–sinf–guruh–soat aniq
           saqlanadi, shuning uchun bir o‘qituvchining fanlari aralashmaydi.
+          Yangi o‘qituvchining o‘zini ham shu oynadagi “Qo‘lda kiritish”
+          tugmasi orqali yaratish mumkin.
         </p>
         {!fanlarTayyor && <p className="text-xs mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Avval yuqoridagi maktab fanlarini tanlab saqlang.</p>}
         <button onClick={shablonYukla} disabled={!fanlarTayyor}
