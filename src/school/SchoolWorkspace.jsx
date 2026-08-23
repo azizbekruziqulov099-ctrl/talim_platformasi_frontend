@@ -1,3 +1,4 @@
+// SamTM V19.2 — o‘qituvchi + fan + sinf + guruh + soat bitta aniq qatorda.
 // SAMTM V19.0 — teacher matrix is paginated to prevent DOM freezes.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -8,6 +9,8 @@ import {
   WandSparkles, AlertTriangle, CalendarCheck2, ToggleLeft, ToggleRight,
   Eye, ShieldCheck, UserCog, Stethoscope, Brain, LockKeyhole, X, Search
 } from "lucide-react";
+
+const SAMTM_TEACHER_FIRST_RELEASE = "V19.2 · 1–14 to‘liq yangilangan";
 
 const palette = {
   ink: "#18324B",
@@ -469,7 +472,7 @@ function SmartNotice({ tone = "info", children }) {
 function SmartStepNav({ step, setStep, teacherOnly }) {
   const steps = teacherOnly
     ? [[2, "1. Bo‘sh vaqt"], [5, "2. Mavzu rejasi"]]
-    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. Fan soatlari"], [4, "4. Jadval yaratish"], [5, "5. Mavzu rejasi"]];
+    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. O‘qituvchi + fan-soat"], [4, "4. Jadval yaratish"], [5, "5. Mavzu rejasi"]];
   return (
     <div className="sticky top-[77px] z-30 border-b" style={{ background: "rgba(247,250,252,.96)", borderColor: palette.line }}>
       <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 overflow-x-auto">
@@ -2346,7 +2349,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 }
 
 
-function LoadsStep({ token, apiBase, maktabId, setup, reload, setStep }) {
+function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep }) {
   const [classId,setClassId]=useState(String(setup?.sinflar?.[0]?.id||""));
   const [rows,setRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
   const assignments=useMemo(()=> (setup?.birikmalar||[]).filter(x=>String(x.sinf_id)===String(classId)),[setup,classId]);
@@ -2365,6 +2368,334 @@ function LoadsStep({ token, apiBase, maktabId, setup, reload, setStep }) {
   <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
   <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini 4-bosqichdagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
   </Card></div>;
+}
+
+
+function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
+  const [data, setData] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState("");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [query, setQuery] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
+      );
+      setData(result);
+      setSelectedTeacher(current =>
+        current || String(result.oqituvchilar?.[0]?.user_id || "")
+      );
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [maktabId, token, apiBase]);
+
+  useEffect(() => {
+    if (!data || !selectedTeacher) {
+      setRows([]);
+      return;
+    }
+    setRows(
+      (data.birikmalar || [])
+        .filter(row => String(row.user_id) === String(selectedTeacher))
+        .map(row => ({
+          sinf_id: String(row.sinf_id),
+          fan_nomi: row.fan_nomi,
+          guruh_kaliti: row.guruh_kaliti || "whole",
+          haftalik_soat: Number(row.haftalik_soat || 1),
+          kunlik_max: Number(row.kunlik_max || 1),
+          xona_id: row.xona_id ? String(row.xona_id) : "",
+        }))
+    );
+  }, [data, selectedTeacher]);
+
+  const variantsForClass = classId =>
+    (data?.guruh_variantlari || []).filter(
+      item => String(item.sinf_id) === String(classId)
+    );
+
+  const variantFor = row =>
+    variantsForClass(row.sinf_id).find(
+      item => String(item.guruh_kaliti) === String(row.guruh_kaliti)
+    );
+
+  const subjectsFor = row => {
+    const variant = variantFor(row);
+    const allowed = variant?.fanlar || [];
+    return allowed.length ? allowed : (data?.fanlar || []);
+  };
+
+  const update = (index, changes) => {
+    setRows(current => current.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, ...changes } : row
+    ));
+  };
+
+  const addRow = () => {
+    const firstClass = data?.sinflar?.[0];
+    setRows(current => [...current, {
+      sinf_id: String(firstClass?.id || ""),
+      fan_nomi: String(data?.fanlar?.[0] || ""),
+      guruh_kaliti: "whole",
+      haftalik_soat: 1,
+      kunlik_max: 1,
+      xona_id: "",
+    }]);
+  };
+
+  const save = async () => {
+    if (!selectedTeacher) {
+      return setMessage({ tone: "error", text: "Avval o‘qituvchini tanlang." });
+    }
+    if (rows.some(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat)) {
+      return setMessage({ tone: "error", text: "Har bir qatorda sinf, fan va haftalik soat bo‘lishi kerak." });
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_yuklamasi?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maktab_id: maktabId,
+            user_id: Number(selectedTeacher),
+            qatorlar: rows.map(row => ({
+              sinf_id: Number(row.sinf_id),
+              fan_nomi: row.fan_nomi,
+              guruh_kaliti: row.guruh_kaliti || "whole",
+              haftalik_soat: Number(row.haftalik_soat),
+              kunlik_max: Number(row.kunlik_max || 1),
+              xona_id: row.xona_id ? Number(row.xona_id) : null,
+            })),
+          }),
+        }
+      );
+      setData(result.matritsa);
+      const warnings = result.ogohlantirishlar || [];
+      setMessage({
+        tone: warnings.length ? "warning" : "success",
+        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
+      });
+      await onChanged?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const teachers = (data?.oqituvchilar || []).filter(teacher =>
+    !query.trim() || String(teacher.full_name || "")
+      .toLocaleLowerCase("uz")
+      .includes(query.trim().toLocaleLowerCase("uz"))
+  );
+  const teacher = (data?.oqituvchilar || []).find(
+    item => String(item.user_id) === String(selectedTeacher)
+  );
+  const teacherTotal = (data?.hisob?.oqituvchilar || []).find(
+    item => String(item.user_id) === String(selectedTeacher)
+  );
+  const selectedRowsByClass = rows.reduce((map, row) => {
+    map[String(row.sinf_id)] = [...(map[String(row.sinf_id)] || []), row];
+    return map;
+  }, {});
+
+  if (loading) {
+    return <Card className="p-8"><div className="flex justify-center"><Loader2 className="animate-spin" style={{ color: palette.blue }}/></div></Card>;
+  }
+
+  return <div className="space-y-4">
+    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{SAMTM_TEACHER_FIRST_RELEASE} · asosiy kiritish usuli</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>O‘qituvchi bo‘yicha fan–sinf–guruh yuklamasi</h2>
+          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
+            Har bir qator bitta aniq dars: o‘qituvchi + fan + sinf + guruh + haftalik soat.
+            Fizika, Astronomiya va Iqtisod bir o‘qituvchida bo‘lsa ham aralashmaydi.
+          </p>
+        </div>
+        <button onClick={save} disabled={saving} className="px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>
+          {saving ? "Saqlanmoqda..." : "O‘qituvchi yuklamasini saqlash"}
+        </button>
+      </div>
+
+      <div className="grid xl:grid-cols-[320px_1fr] gap-4 mt-5">
+        <div className="rounded-2xl p-4" style={{ background: palette.cream }}>
+          <label className="text-xs font-black" style={{ color: palette.ink }}>
+            O‘qituvchi qidirish
+            <div className="relative mt-1.5">
+              <Search size={15} className="absolute left-3 top-3" style={{ color: palette.muted }}/>
+              <input value={query} onChange={event => setQuery(event.target.value)} placeholder="F.I.Sh." className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+            </div>
+          </label>
+          <div className="space-y-1.5 mt-3 max-h-[420px] overflow-auto pr-1">
+            {teachers.map(item => {
+              const total = (data?.hisob?.oqituvchilar || []).find(
+                value => String(value.user_id) === String(item.user_id)
+              );
+              const active = String(item.user_id) === String(selectedTeacher);
+              return <button key={item.user_id} onClick={() => setSelectedTeacher(String(item.user_id))} className="w-full rounded-xl p-3 text-left border" style={{
+                background: active ? palette.sky : "#fff",
+                borderColor: active ? palette.blue : palette.line,
+              }}>
+                <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
+                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
+                  {total?.haftalik_jami || 0} soat · {(item.fanlar_royxati || []).join(", ") || "fan kiritilmagan"}
+                </div>
+              </button>;
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Stat value={teacherTotal?.fan_soati || 0} label="fan soati" tone="blue"/>
+            <Stat value={teacherTotal?.sinf_soati || 0} label="sinf soati" tone="teal"/>
+            <Stat value={teacherTotal?.haftalik_jami || 0} label="haftalik jami" tone="green"/>
+            <Stat value={rows.length} label="aniq qator" tone="amber"/>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            {rows.map((row, index) => {
+              const variants = variantsForClass(row.sinf_id);
+              const subjects = subjectsFor(row);
+              return <div key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_90px_150px_38px] gap-2 items-end" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf
+                  <select value={row.sinf_id} onChange={event => update(index, {
+                    sinf_id: event.target.value,
+                    guruh_kaliti: "whole",
+                  })} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                    {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan
+                  <select value={row.fan_nomi} onChange={event => update(index, { fan_nomi: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                    {!subjects.includes(row.fan_nomi) && row.fan_nomi && <option value={row.fan_nomi}>{row.fan_nomi}</option>}
+                    {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Guruh
+                  <select value={row.guruh_kaliti} onChange={event => {
+                    const next = variants.find(item => item.guruh_kaliti === event.target.value);
+                    update(index, {
+                      guruh_kaliti: event.target.value,
+                      fan_nomi: next?.fanlar?.length && !next.fanlar.includes(row.fan_nomi)
+                        ? next.fanlar[0] : row.fan_nomi,
+                    });
+                  }} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                    {variants.map(variant => <option key={variant.guruh_kaliti} value={variant.guruh_kaliti}>{variant.guruh_nomi}</option>)}
+                  </select>
+                </label>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik
+                  <input type="number" min="1" max="20" value={row.haftalik_soat} onChange={event => update(index, { haftalik_soat: event.target.value })} className="w-full mt-1 p-2 rounded-lg border"/>
+                </label>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Kunlik max
+                  <input type="number" min="1" max="4" value={row.kunlik_max} onChange={event => update(index, { kunlik_max: event.target.value })} className="w-full mt-1 p-2 rounded-lg border"/>
+                </label>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Xona
+                  <select value={row.xona_id || ""} onChange={event => update(index, { xona_id: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                    <option value="">Sinf xonasi</option>
+                    {(data?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}
+                  </select>
+                </label>
+                <button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="h-9 rounded-lg font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
+              </div>;
+            })}
+          </div>
+
+          {!rows.length && <div className="mt-4"><SmartNotice tone="info">{teacher?.full_name || "Bu o‘qituvchi"} uchun hali dars qatori yo‘q. “Yangi fan–sinf qatori”ni bosing.</SmartNotice></div>}
+          <button onClick={addRow} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yangi fan–sinf qatori</button>
+        </div>
+      </div>
+    </Card>
+
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-black" style={{ color: palette.ink }}>Ixcham sinf/guruh kataklari</h3>
+          <p className="text-xs mt-1" style={{ color: palette.muted }}>Bitta sinf bitta katak. Guruhlar 1G, 2G, O‘ va Q ko‘rinishida ichida turadi; raqam katakni kattalashtirmaydi.</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 min-w-[360px]">
+          <Stat value={data?.hisob?.maktab_haftalik_soat || 0} label="maktab haftalik" tone="blue"/>
+          <Stat value={data?.hisob?.maktab_yillik_soat || 0} label="maktab yillik" tone="teal"/>
+          <Stat value={data?.hisob?.oqituvchi_soat_jami || 0} label="o‘qituvchi-soat" tone="green"/>
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-4">
+        {(data?.sinflar || []).map(cls => {
+          const classRows = selectedRowsByClass[String(cls.id)] || [];
+          const classTotal = (data?.hisob?.sinflar || []).find(item => String(item.sinf_id) === String(cls.id));
+          const variants = variantsForClass(cls.id);
+          return <div key={cls.id} className="rounded-2xl border overflow-hidden" style={{ borderColor: palette.ink }}>
+            <div className="px-3 py-2 flex items-center justify-between" style={{ background: palette.ink, color: "#fff" }}>
+              <span className="text-sm font-black">{cls.sinf}-{cls.harf}</span>
+              <span className="text-[10px] font-black">{classTotal?.haftalik_soat || 0} s/hafta</span>
+            </div>
+            <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(5, Math.max(1, variants.length))}, minmax(0,1fr))` }}>
+              {variants.map(variant => {
+                const hours = classRows
+                  .filter(row => String(row.guruh_kaliti) === String(variant.guruh_kaliti))
+                  .reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0);
+                return <div key={variant.guruh_kaliti} className="min-w-0 px-1 py-1.5 text-center border-r border-b last:border-r-0" style={{ borderColor: palette.line, background: hours ? palette.sky : "#fff" }}>
+                  <div className="text-[10px] font-black truncate" style={{ color: palette.ink }}>{variant.guruh_kaliti === "whole" ? "Jami" : variant.qisqa}</div>
+                  <div className="text-sm font-black leading-none mt-1" style={{ color: hours ? palette.blue : "#BBC5CC" }}>{hours || "—"}</div>
+                </div>;
+              })}
+            </div>
+          </div>;
+        })}
+      </div>
+      <div className="mt-4 rounded-xl p-3 text-xs" style={{ background: palette.cream, color: palette.muted }}>
+        Excel shabloni olib tashlanmadi: katta ro‘yxatni Excel orqali import qilish mumkin. Saytdagi ushbu oyna ham, Excel ham bir xil aniq yuklama manbasiga yozadi.
+      </div>
+    </Card>
+  </div>;
+}
+
+
+function LoadsStep(props) {
+  const [mode, setMode] = useState("teacher");
+  const { token, apiBase, maktabId, setup, reload, setStep } = props;
+  return <div className="space-y-4">
+    <Card className="p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-black" style={{ color: palette.ink }}>Yuklama kiritish usuli</div>
+          <div className="text-xs mt-1" style={{ color: palette.muted }}>O‘qituvchi bo‘yicha kiritish tezroq; eski sinf/Excel usuli ham saqlangan.</div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{
+            background: mode === "teacher" ? palette.blue : palette.sky,
+            color: mode === "teacher" ? "#fff" : palette.blue,
+          }}>O‘qituvchi qo‘shish / yuklama</button>
+          <button onClick={() => setMode("legacy")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{
+            background: mode === "legacy" ? palette.blue : palette.cream,
+            color: mode === "legacy" ? "#fff" : palette.ink,
+          }}>Eski sinf/Excel usuli</button>
+        </div>
+      </div>
+    </Card>
+    {mode === "teacher"
+      ? <>
+          <ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>
+          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload}/>
+        </>
+      : <LegacyLoadsStepV191 {...props}/>}
+  </div>;
 }
 
 function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
@@ -2433,6 +2764,170 @@ function SanitaryScheduleRulesV1874() {
       <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>5–11-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Majburiy jadvalda kuniga maksimum 6 dars. 7-darsga majburiy fan qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan tartibi</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika va tillar ertaroq; yengil fanlar 3–5; jismoniy tarbiya oxirgi darslarga afzal.</div></div>
     </div>
+  </Card>;
+}
+
+
+function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
+  const movableSlots = useMemo(
+    () => (detail?.slotlar || []).filter(
+      slot => String(slot.fan_nomi || "").trim().toLocaleLowerCase("uz") !== "sinf soati"
+    ),
+    [detail]
+  );
+  const [slotId, setSlotId] = useState("");
+  const [report, setReport] = useState(null);
+  const [autoMode, setAutoMode] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    const first = movableSlots[0];
+    if (!movableSlots.some(slot => String(slot.id) === String(slotId))) {
+      setSlotId(String(first?.id || ""));
+      setReport(null);
+    }
+  }, [movableSlots, slotId]);
+
+  const loadSuggestions = async () => {
+    if (!slotId || !detail?.urinish?.id) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/almashtirish_tavsiyalari?token=${encodeURIComponent(token)}&urinish_id=${detail.urinish.id}&slot_id=${slotId}`
+      );
+      setReport(result);
+      setAutoMode(Boolean(result.avtomatik_tavsiya));
+      if (!result.tavsiyalar?.length) {
+        setMessage({ tone: "warning", text: "Bu dars uchun hozir xavfsiz bo‘sh joy yoki almashtirish topilmadi." });
+      }
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeMode = async next => {
+    setAutoMode(next);
+    try {
+      await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/almashtirish_rejimi?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maktab_id: maktabId, avtomatik_tavsiya: next }),
+        }
+      );
+    } catch (error) {
+      setAutoMode(!next);
+      setMessage({ tone: "error", text: error.message });
+    }
+  };
+
+  const apply = async suggestion => {
+    if (!suggestion) return;
+    setApplying(true);
+    setMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/almashtirish?token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            urinish_id: Number(detail.urinish.id),
+            slot_id: Number(slotId),
+            yangi_hafta_kuni: Number(suggestion.yangi_hafta_kuni),
+            yangi_dars_raqami: Number(suggestion.yangi_dars_raqami),
+            turi: suggestion.turi,
+          }),
+        }
+      );
+      setMessage({
+        tone: result.tasdiqlash_mumkin ? "success" : "warning",
+        text: `${result.holat}. ${result.yangi_draft ? "Faol jadval saqlanib, alohida yangi draft yaratildi." : "Draft yangilandi."}`,
+      });
+      setReport(null);
+      await onApplied?.(result.urinish_id);
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+      await loadSuggestions();
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const dayName = day => smartDays.find(([value]) => Number(value) === Number(day))?.[1] || day;
+  const topSuggestion = report?.tavsiyalar?.[0];
+
+  return <Card className="p-5">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>V19.2 · aqlli o‘zgartirish</div>
+        <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Darsni ko‘chirish va xavfsiz almashtirish</h2>
+        <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
+          Tizim o‘qituvchi, sinf, xona, metod kuni va parallel darsni tekshiradi.
+          Avtomatik rejim eng yaxshi variantni beradi; uni o‘chirib variantni qo‘lda tanlash mumkin.
+        </p>
+      </div>
+      <button onClick={() => changeMode(!autoMode)} className="px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2" style={{
+        background: autoMode ? palette.greenBg : palette.cream,
+        color: autoMode ? palette.green : palette.ink,
+      }}>
+        {autoMode ? <ToggleRight size={19}/> : <ToggleLeft size={19}/>}
+        {autoMode ? "Avtomatik tavsiya yoqilgan" : "Qo‘lda tanlash"}
+      </button>
+    </div>
+
+    {message && <div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}
+
+    <div className="grid lg:grid-cols-[1fr_auto] gap-3 mt-4 items-end">
+      <label className="text-xs font-black" style={{ color: palette.ink }}>
+        Qaysi darsning joyi o‘zgarsin?
+        <select value={slotId} onChange={event => { setSlotId(event.target.value); setReport(null); }} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+          {movableSlots.map(slot => <option key={slot.id} value={slot.id}>
+            {slot.sinf}-{slot.harf} · {dayName(slot.hafta_kuni)} · {slot.dars_raqami}-dars · {slot.fan_nomi} · {slot.oqituvchi_ismi || "o‘qituvchi yo‘q"}{slot.guruh_kaliti !== "whole" ? ` · ${slot.guruh_kaliti}` : ""}
+          </option>)}
+        </select>
+      </label>
+      <button onClick={loadSuggestions} disabled={loading || !slotId} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>
+        {loading ? "Tekshirilmoqda..." : "Xavfsiz variantlarni ko‘rsatish"}
+      </button>
+    </div>
+
+    {(report?.parallel_ziddiyatlar || []).length > 0 && <div className="mt-4 space-y-2">
+      {report.parallel_ziddiyatlar.map((conflict, index) => <div key={index} className="rounded-xl p-3 text-xs font-bold" style={{ background: palette.redBg, color: palette.red }}>
+        {conflict.oqituvchi_ismi}: {dayName(conflict.hafta_kuni)}, {conflict.dars_raqami}-darsda {conflict.sinflar.join(" va ")} parallel tushgan.
+      </div>)}
+    </div>}
+
+    {report && autoMode && topSuggestion && <div className="mt-4 rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
+      <div className="flex-1 min-w-[250px]">
+        <div className="text-xs font-black uppercase" style={{ color: palette.green }}>Eng yaxshi xavfsiz variant</div>
+        <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>
+          {dayName(topSuggestion.yangi_hafta_kuni)} · {topSuggestion.yangi_dars_raqami}-dars · {topSuggestion.turi === "almashtirish" ? "almashtirish" : "bo‘sh joyga ko‘chirish"}
+        </div>
+        <div className="text-xs mt-1" style={{ color: palette.muted }}>{topSuggestion.nishon}</div>
+      </div>
+      <button onClick={() => apply(topSuggestion)} disabled={applying} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: palette.green }}>
+        {applying ? "Bajarilmoqda..." : "Shu variantni qo‘llash"}
+      </button>
+    </div>}
+
+    {report && !autoMode && <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3 mt-4">
+      {(report.tavsiyalar || []).map((suggestion, index) => <button key={index} onClick={() => apply(suggestion)} disabled={applying} className="rounded-2xl border p-3 text-left" style={{ borderColor: palette.line, background: "#fff" }}>
+        <div className="text-xs font-black" style={{ color: palette.blue }}>
+          {dayName(suggestion.yangi_hafta_kuni)} · {suggestion.yangi_dars_raqami}-dars
+        </div>
+        <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>
+          {suggestion.turi === "almashtirish" ? "Almashtirish" : "Bo‘sh joyga ko‘chirish"}
+        </div>
+        <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{suggestion.nishon}</div>
+      </button>)}
+    </div>}
   </Card>;
 }
 
@@ -2718,10 +3213,10 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
         className="mt-4 rounded-xl p-3 text-xs leading-relaxed"
         style={{ background: palette.sky, color: palette.blue }}
       >
-        Guruhli fan sinf jadvalida haftasiga bir marta sanaladi. Masalan
-        Ingliz tili haftasiga 3 soat bo‘lsa, 1-guruh va 2-guruh ayni 3 ta
-        vaqtda parallel turadi; sinf rejasida 3 soat, har bir guruh
-        o‘qituvchisining yuklamasida esa 3 soatdan hisoblanadi.
+        Guruhli fan sinf rejasida guruhlar soniga ko‘paymaydi. Masalan
+        Ingliz tili haftasiga 1 soat va 2 guruh bo‘lsa: sinf rejasida 1 soat,
+        1-guruh o‘qituvchisida 1 soat, 2-guruh o‘qituvchisida 1 soat,
+        jadvalda esa ikkala guruh bir vaqtda turadigan 1 parallel slot bo‘ladi.
       </div>
 
       <div className="flex flex-wrap gap-2 mt-4">
@@ -2857,13 +3352,24 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                             {pair.fan_nomi}
                           </div>
                           <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                            Sinf fan soati: haftasiga {pair.haftalik_soat || "—"} · Import:
+                            Import:
                             {" "}
                             {(pair.import_oqituvchilari || [])
                               .map(row =>
                                 `${row.full_name}${row.guruh_kaliti !== "whole" ? ` (${row.guruh_kaliti})` : ""}`
                               )
                               .join(", ") || "o‘qituvchi yo‘q"}
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5 mt-2 max-w-xl">
+                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
+                              Sinf rejasi: {pair.sinf_reja_soati ?? pair.haftalik_soat ?? "—"} soat
+                            </div>
+                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>
+                              Jadval: {pair.jadval_parallel_slot_soni ?? pair.haftalik_soat ?? "—"} parallel slot
+                            </div>
+                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>
+                              O‘qituvchi jami: {pair.oqituvchi_soat_jami ?? "—"} soat
+                            </div>
                           </div>
                         </div>
                         <span
@@ -3276,7 +3782,18 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </Card>
     </div>
 
-    {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass}/>} 
+    {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass}/>}
+    {detail && <SmartSwapPanelV192
+      token={token}
+      apiBase={apiBase}
+      maktabId={maktabId}
+      detail={detail}
+      onApplied={async id => {
+        await reload();
+        setRunId(String(id));
+        await loadRun(id);
+      }}
+    />}
   </div>;
 }
 
@@ -3455,4 +3972,3 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     </WorkspacePortal>
   );
 }
-
