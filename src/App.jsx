@@ -1,3 +1,4 @@
+// SamTM V19.2 — 1–14 to‘liq: o‘qituvchi-asosli yuklama va aqlli almashtirish.
 // SAMTM V19.0 — clean-scale frontend; lazy workspaces preserved.
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
@@ -2908,10 +2909,15 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish · V19.2</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
           Katakni bosib lavozim, sinf, fan va toifani tayyor ro‘yxatdan tanlang.
-          Butun sinf darslari <b>DARS_BIRIKMALARI</b>da yoziladi. Oldindan yaratilgan 1/2-guruh, o‘g‘il/qiz va mustaqil guruhlar <b>GURUHLI_DARSLAR</b> varag‘ida “5-A / 1-guruh” kabi tayyor chiqadi; u yerda faqat shu guruhga biriktirilgan fanlar ko‘rsatiladi.
+          Yangi shablonda butun sinf va barcha 1/2-guruh, o‘g‘il/qiz hamda
+          mustaqil guruhlar bitta <b>XODIMLAR</b> varag‘ida aniq fan bilan
+          chiqadi. Alohida GURUHLI_DARSLAR varag‘i yo‘q. Saytda esa “Aqlli
+          jadval → O‘qituvchi + fan-soat” oynasidan shu ma’lumotlarni Excelsiz
+          ham kiritish mumkin. Har bir qatorda fan–sinf–guruh–soat aniq
+          saqlanadi, shuning uchun bir o‘qituvchining fanlari aralashmaydi.
         </p>
         {!fanlarTayyor && <p className="text-xs mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Avval yuqoridagi maktab fanlarini tanlab saqlang.</p>}
         <button onClick={shablonYukla} disabled={!fanlarTayyor}
