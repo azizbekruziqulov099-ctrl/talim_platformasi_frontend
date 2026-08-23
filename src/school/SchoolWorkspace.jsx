@@ -1,3 +1,6 @@
+// SAMTM V18.76 — sinf guruhlari va o‘qituvchilarini bitta oynada tekshirish.
+// SAMTM V18.75 — sinf, fan va o‘qituvchi soatlari 100% mos bo‘lmaguncha tasdiqlanmaydi.
+// SAMTM V18.74 — SanQvaN kunlik yuklama va fan tartibi.
 // SAMTM V18.73 — rasmiy metod kunlari YOQ va 6 kun ekranga sig‘adigan ixcham matritsa.
 // SAMTM V18.72 — o‘qituvchi tanlovi avtomatik, UI soddalashtirilgan.
 // SAMTM V18.71 — avto metod kuni default O‘CHIQ; faqat fan→kun qoidasi bilan YOQiladi.
@@ -2336,27 +2339,22 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
 function LoadsStep({ token, apiBase, maktabId, setup, reload, setStep }) {
   const [classId,setClassId]=useState(String(setup?.sinflar?.[0]?.id||""));
-  const [rows,setRows]=useState([]); const [groupRows,setGroupRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
+  const [rows,setRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
   const assignments=useMemo(()=> (setup?.birikmalar||[]).filter(x=>String(x.sinf_id)===String(classId)),[setup,classId]);
   useEffect(()=>{
-    if(!classId){setRows([]);setGroupRows([]);return;}
+    if(!classId){setRows([]);return;}
     const existing=(setup?.fan_soatlari||[]).filter(x=>String(x.sinf_id)===String(classId));
     const subjects=[...new Set([...existing.map(x=>x.fan_nomi),...assignments.map(x=>x.fan_nomi)])];
     setRows(subjects.map(subject=>{const old=existing.find(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase());return old?{...old}:{fan_nomi:subject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}}));
-    const settings=(setup?.guruh_sozlamalari||[]).filter(x=>String(x.sinf_id)===String(classId));
-    const nonWhole=assignments.filter(x=>String(x.guruh_kaliti||"whole")!=="whole");
-    const unique=[]; const seen=new Set();
-    nonWhole.forEach(a=>{const key=`${String(a.fan_nomi).toLowerCase()}|${a.guruh_kaliti}`;if(seen.has(key))return;seen.add(key);const old=settings.find(x=>String(x.fan_nomi).toLowerCase()===String(a.fan_nomi).toLowerCase()&&String(x.guruh_kaliti)===String(a.guruh_kaliti));unique.push({fan_nomi:a.fan_nomi,guruh_kaliti:a.guruh_kaliti,oqituvchi_user_id:old?.oqituvchi_user_id||a.user_id||null,xona_id:old?.xona_id||null});});
-    setGroupRows(unique);
   },[classId,setup,assignments]);
   const update=(index,field,value)=>setRows(prev=>prev.map((r,i)=>i===index?{...r,[field]:value}:r));
   const addSubject=()=>{if(!newSubject||rows.some(r=>r.fan_nomi===newSubject))return;setRows([...rows,{fan_nomi:newSubject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}]);setNewSubject("");};
-  const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/guruh_sozlamalari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),guruhlar:groupRows.map(g=>({...g,oqituvchi_user_id:g.oqituvchi_user_id?Number(g.oqituvchi_user_id):null,xona_id:g.xona_id?Number(g.xona_id):null}))})});setMessage({tone:"success",text:"Haftalik fan soatlari va parallel guruh xonalari saqlandi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
+  const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});setMessage({tone:"success",text:"Haftalik fan soatlari saqlandi. Guruh o‘qituvchilari 4-bosqichdagi bitta tasdiqlash oynasida boshqariladi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
   const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
   const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:"maxsus"})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
   return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Informatika xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
   <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
-  {groupRows.length>0&&<div className="mt-6"><h3 className="text-lg font-black" style={{color:palette.ink}}>Parallel guruhlar</h3><p className="text-xs mt-1 mb-3" style={{color:palette.muted}}>Ingliz tili 1/2-guruh yoki texnologiya o‘g‘il/qiz guruhlari bir vaqtda turishi uchun har guruh o‘qituvchisi va xonasini ko‘rsating.</p><div className="grid md:grid-cols-2 gap-2">{groupRows.map((g,i)=><div key={`${g.fan_nomi}-${g.guruh_kaliti}`} className="rounded-2xl p-3 grid grid-cols-[1fr_1fr] gap-2" style={{background:palette.cream}}><div className="col-span-2 text-sm font-black" style={{color:palette.ink}}>{g.fan_nomi} · {g.guruh_kaliti}</div><select value={g.oqituvchi_user_id||""} onChange={e=>setGroupRows(prev=>prev.map((x,n)=>n===i?{...x,oqituvchi_user_id:e.target.value}:x))} className="p-2 rounded-xl border bg-white"><option value="">O‘qituvchi</option>{(setup?.oqituvchilar||[]).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select><select value={g.xona_id||""} onChange={e=>setGroupRows(prev=>prev.map((x,n)=>n===i?{...x,xona_id:e.target.value}:x))} className="p-2 rounded-xl border bg-white"><option value="">Xona ko‘rsatilmagan</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></div>)}</div></div>}
+  <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini 4-bosqichdagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
   </Card></div>;
 }
 
@@ -2371,7 +2369,8 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
   ).map(rule => Number(rule.hafta_kuni)));
   const shift = Number(classRow?.smena || 1);
   const shiftRow = (setup?.smenalar || []).find(s => Number(s.smena) === shift);
-  const periods = Number(shiftRow?.dars_soni || 7);
+  const sanitaryPeriodLimit = gradeNumber >= 1 && gradeNumber <= 4 ? 5 : 6;
+  const periods = Math.min(Number(shiftRow?.dars_soni || 7), sanitaryPeriodLimit);
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
 
   return (
@@ -2379,7 +2378,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="font-black" style={{ color: palette.ink }}>Jadval ko‘rinishi</h3>
-          <p className="text-xs" style={{ color: palette.muted }}>Parallel guruhlar bitta katak ichida alohida ko‘rinadi. Qizil “blok” kunlari 1-bosqichdagi sinf-kun qoidalaridan olinadi.</p>
+          <p className="text-xs" style={{ color: palette.muted }}>1–4-sinflarda jadval 5 qatorgacha, 5–11-sinflarda 6 qatorgacha ko‘rinadi. Parallel guruhlar bitta katak ichida alohida ko‘rinadi.</p>
         </div>
         <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
           {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
@@ -2409,15 +2408,867 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
   );
 }
 
+
+function SanitaryScheduleRulesV1874() {
+  return <Card className="p-5">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 className="text-xl font-black" style={{color:palette.ink}}>Jadval yaratishdan oldingi qattiq qoidalar</h2>
+        <p className="text-xs mt-1" style={{color:palette.muted}}>Generator bu qoidalarni avtomatik tekshiradi; majburan tasdiqlash ham ularni buzmaydi.</p>
+      </div>
+      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>SanQvaN profili faol</span>
+    </div>
+    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>1-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 2 kun 5 dars. 5-dars faqat yengil fan.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>2–4-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 4 kun 5 dars. 6-dars qo‘yilmaydi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>5–11-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Majburiy jadvalda kuniga maksimum 6 dars. 7-darsga majburiy fan qo‘yilmaydi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan tartibi</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika va tillar ertaroq; yengil fanlar 3–5; jismoniy tarbiya oxirgi darslarga afzal.</div></div>
+    </div>
+  </Card>;
+}
+
+
+function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, onSaved }) {
+  const [report, setReport] = useState(null);
+  const [drafts, setDrafts] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [grade, setGrade] = useState("all");
+  const [onlyProblems, setOnlyProblems] = useState(false);
+
+  const keyOf = pair => `${pair.sinf_id}|${pair.fan_kaliti}`;
+  const makeDraft = pair => ({
+    sinf_id: Number(pair.sinf_id),
+    fan_nomi: pair.fan_nomi,
+    turi: pair.turi || "group",
+    tizim_id: pair.tizim_id ? Number(pair.tizim_id) : null,
+    asosiy_oqituvchi_user_id: pair.asosiy_oqituvchi_user_id
+      ? Number(pair.asosiy_oqituvchi_user_id)
+      : null,
+    guruhlar: (pair.guruhlar || []).map(group => ({
+      guruh_kaliti: group.guruh_kaliti,
+      guruh_nomi: group.guruh_nomi,
+      oqituvchi_user_id: group.oqituvchi_user_id
+        ? Number(group.oqituvchi_user_id)
+        : null,
+      xona_id: group.xona_id ? Number(group.xona_id) : null,
+    })),
+  });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tasdiqlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
+      );
+      setReport(data);
+      const next = {};
+      (data.fanlar || []).forEach(pair => {
+        next[keyOf(pair)] = makeDraft(pair);
+      });
+      setDrafts(next);
+      onReadyChange?.(Boolean(data.tayyor));
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+      onReadyChange?.(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [token, apiBase, maktabId]);
+
+  const updateDraft = (pair, patch) => {
+    const key = keyOf(pair);
+    setDrafts(previous => ({
+      ...previous,
+      [key]: { ...(previous[key] || makeDraft(pair)), ...patch },
+    }));
+  };
+
+  const selectSystem = (pair, systemId) => {
+    const system = (pair.tizimlar || []).find(
+      row => String(row.id) === String(systemId)
+    );
+    const current = drafts[keyOf(pair)] || makeDraft(pair);
+    const oldByKey = new Map(
+      (current.guruhlar || []).map(group => [group.guruh_kaliti, group])
+    );
+    const imported = pair.import_oqituvchilari || [];
+
+    updateDraft(pair, {
+      turi: "group",
+      tizim_id: system ? Number(system.id) : null,
+      guruhlar: (system?.guruhlar || []).map((group, index) => {
+        const old = oldByKey.get(group.guruh_kaliti);
+        const suggested = pair.guruhlar?.[index];
+        const importedTeacher = imported[index];
+        return {
+          guruh_kaliti: group.guruh_kaliti,
+          guruh_nomi: group.guruh_nomi,
+          oqituvchi_user_id:
+            old?.oqituvchi_user_id ||
+            suggested?.oqituvchi_user_id ||
+            importedTeacher?.user_id ||
+            null,
+          xona_id: old?.xona_id || suggested?.xona_id || null,
+        };
+      }),
+    });
+  };
+
+  const updateGroupTeacher = (pair, groupKey, teacherId) => {
+    const key = keyOf(pair);
+    const current = drafts[key] || makeDraft(pair);
+    updateDraft(pair, {
+      guruhlar: (current.guruhlar || []).map(group =>
+        group.guruh_kaliti === groupKey
+          ? {
+              ...group,
+              oqituvchi_user_id: teacherId ? Number(teacherId) : null,
+            }
+          : group
+      ),
+    });
+  };
+
+  const validateDraft = (pair, draft) => {
+    if (!draft) return "Taqsimot topilmadi";
+    if (!Number(pair.haftalik_soat || 0)) {
+      return "Avval bu sinf–fan uchun haftalik soatni kiriting";
+    }
+    if (draft.turi === "whole") {
+      return draft.asosiy_oqituvchi_user_id
+        ? null
+        : "Butun sinf uchun o‘qituvchi tanlang";
+    }
+    if (!draft.tizim_id) return "Guruhlash tizimini tanlang";
+    if (!(draft.guruhlar || []).length) return "Guruhlar topilmadi";
+    const ids = draft.guruhlar.map(
+      group => Number(group.oqituvchi_user_id || 0)
+    );
+    if (ids.some(id => !id)) return "Har bir guruhga o‘qituvchi tanlang";
+    if (new Set(ids).size !== ids.length) {
+      return "Parallel guruhlarga turli o‘qituvchi tanlang";
+    }
+    return null;
+  };
+
+  const savePairs = async pairs => {
+    const payload = [];
+    for (const pair of pairs) {
+      const draft = drafts[keyOf(pair)] || makeDraft(pair);
+      const error = validateDraft(pair, draft);
+      if (error) {
+        setMessage({
+          tone: "error",
+          text: `${pair.sinf} · ${pair.fan_nomi}: ${error}`,
+        });
+        return;
+      }
+      payload.push({
+        sinf_id: Number(draft.sinf_id),
+        fan_nomi: draft.fan_nomi,
+        turi: draft.turi,
+        tizim_id:
+          draft.turi === "group" ? Number(draft.tizim_id) : null,
+        asosiy_oqituvchi_user_id:
+          draft.turi === "whole"
+            ? Number(draft.asosiy_oqituvchi_user_id)
+            : null,
+        guruhlar:
+          draft.turi === "group"
+            ? draft.guruhlar.map(group => ({
+                guruh_kaliti: group.guruh_kaliti,
+                oqituvchi_user_id: Number(group.oqituvchi_user_id),
+                xona_id: group.xona_id ? Number(group.xona_id) : null,
+              }))
+            : [],
+      });
+    }
+
+    if (!payload.length) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const data = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tasdiqlash?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maktab_id: maktabId,
+            birikmalar: payload,
+          }),
+        }
+      );
+      const pending = data.hisobot?.xulosa?.tasdiqlanmagan || 0;
+      setMessage({
+        tone: pending ? "warning" : "success",
+        text: pending
+          ? `${data.tasdiqlangan_soni || payload.length} ta taqsimot saqlandi. Yana ${pending} ta guruhli fan tasdiqlanishi kerak.`
+          : "Barcha guruhli fanlar tasdiqlandi va jadval manbasi qayta sinxronlandi.",
+      });
+      await load();
+      await onSaved?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createSystem = async (pair, type) => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tizimi_tez?token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maktab_id: maktabId,
+            sinf_id: Number(pair.sinf_id),
+            fan_nomi: pair.fan_nomi,
+            turi: type,
+          }),
+        }
+      );
+      setMessage({
+        tone: "success",
+        text:
+          type === "alphabet"
+            ? `${pair.sinf} uchun 1-guruh / 2-guruh tizimi tayyorlandi.`
+            : `${pair.sinf} uchun O‘g‘il / Qiz guruh tizimi tayyorlandi.`,
+      });
+      await load();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const visibleClasses = (report?.sinflar || []).filter(cls => {
+    if (grade !== "all" && String(cls.sinf_daraja) !== String(grade)) {
+      return false;
+    }
+    if (!onlyProblems) return true;
+    return (cls.fanlar || []).some(pair => !pair.tasdiqlangan);
+  });
+  const visiblePairs = visibleClasses.flatMap(cls => cls.fanlar || []);
+  const unresolvedVisible = visiblePairs.filter(pair => !pair.tasdiqlangan);
+  const summary = report?.xulosa || {};
+
+  return (
+    <Card className="p-5">
+      {message && (
+        <div className="mb-3">
+          <SmartNotice tone={message.tone}>{message.text}</SmartNotice>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black" style={{ color: palette.ink }}>
+            1. Sinf guruhlari va o‘qituvchilarini tasdiqlash
+          </h2>
+          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
+            Sinf yaratishda saqlangan 1/2-guruh, o‘g‘il/qiz yoki mustaqil
+            guruhlar Excel importidagi o‘qituvchilar bilan solishtiriladi.
+            Masalan 5-A Ingliz tiliga 2 ta o‘qituvchi yozilgan bo‘lsa,
+            tizim ularni 1-guruh va 2-guruhga taklif qiladi. Shu oynada
+            o‘qituvchilarni almashtirib, jadvaldan oldin tasdiqlaysiz.
+          </p>
+        </div>
+        <div className="grid grid-cols-4 gap-2 min-w-[420px]">
+          <Stat value={summary.sinf_soni || 0} label="jami sinf" tone="blue" />
+          <Stat
+            value={summary.guruh_tizimli_sinf_soni || 0}
+            label="guruhli sinf"
+            tone="teal"
+          />
+          <Stat
+            value={summary.tasdiqlangan || 0}
+            label="tasdiqlangan"
+            tone="green"
+          />
+          <Stat
+            value={summary.tasdiqlanmagan || 0}
+            label="qolgan"
+            tone={summary.tasdiqlanmagan ? "red" : "green"}
+          />
+        </div>
+      </div>
+
+      <div
+        className="mt-4 rounded-xl p-3 text-xs leading-relaxed"
+        style={{ background: palette.sky, color: palette.blue }}
+      >
+        Guruhli fan sinf jadvalida haftasiga bir marta sanaladi. Masalan
+        Ingliz tili haftasiga 3 soat bo‘lsa, 1-guruh va 2-guruh ayni 3 ta
+        vaqtda parallel turadi; sinf rejasida 3 soat, har bir guruh
+        o‘qituvchisining yuklamasida esa 3 soatdan hisoblanadi.
+      </div>
+
+      <div className="flex flex-wrap gap-2 mt-4">
+        <select
+          value={grade}
+          onChange={event => setGrade(event.target.value)}
+          className="p-2.5 rounded-xl border bg-white"
+        >
+          <option value="all">Barcha parallellar</option>
+          {Array.from({ length: 11 }, (_, index) => index + 1).map(value => (
+            <option key={value} value={value}>
+              {value}-sinflar
+            </option>
+          ))}
+        </select>
+        <label
+          className="px-3 py-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold"
+          style={{ borderColor: palette.line }}
+        >
+          <input
+            type="checkbox"
+            checked={onlyProblems}
+            onChange={event => setOnlyProblems(event.target.checked)}
+          />
+          Faqat tasdiqlanmagan/xato fanlar
+        </label>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="px-3 py-2.5 rounded-xl text-xs font-black"
+          style={{ background: palette.sky, color: palette.blue }}
+        >
+          {loading ? "Yuklanmoqda..." : "Qayta tekshirish"}
+        </button>
+        <button
+          onClick={() => savePairs(unresolvedVisible)}
+          disabled={saving || !unresolvedVisible.length}
+          className="px-4 py-2.5 rounded-xl text-xs font-black text-white"
+          style={{
+            background: unresolvedVisible.length ? palette.teal : "#9BA8B2",
+          }}
+        >
+          Ko‘rinayotganlarni saqlash va tasdiqlash
+        </button>
+      </div>
+
+      {report?.tayyor && (
+        <div
+          className="mt-4 rounded-xl p-3 text-xs font-bold"
+          style={{ background: palette.greenBg, color: palette.green }}
+        >
+          Barcha guruhli fanlarda guruhlar, o‘qituvchilar va haftalik soatlar
+          tasdiqlangan. Endi shablon/reja mosligini tekshirish mumkin.
+        </div>
+      )}
+
+      <div className="space-y-4 mt-4 max-h-[780px] overflow-auto pr-1">
+        {visibleClasses.map(cls => (
+          <div
+            key={cls.sinf_id}
+            className="rounded-2xl border p-4"
+            style={{ borderColor: palette.line, background: "#FCFDFE" }}
+          >
+            <div className="flex flex-wrap justify-between gap-2">
+              <div>
+                <div className="text-lg font-black" style={{ color: palette.ink }}>
+                  {cls.sinf} · {cls.smena}-smena
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(cls.tizimlar || []).map(system => (
+                    <span
+                      key={system.id}
+                      className="px-2 py-1 rounded-full text-[10px] font-black"
+                      style={{ background: palette.sky, color: palette.blue }}
+                    >
+                      {system.nomi} · {(system.guruhlar || [])
+                        .map(group => `${group.guruh_nomi} (${group.oquvchi_soni ?? group.soni ?? 0})`)
+                        .join(" / ")}
+                    </span>
+                  ))}
+                  {!(cls.tizimlar || []).length && (
+                    <span className="text-xs" style={{ color: palette.muted }}>
+                      Guruhlash tizimi yaratilmagan
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="text-xs font-bold" style={{ color: palette.muted }}>
+                {(cls.fanlar || []).length} ta guruh tekshiruvi
+              </div>
+            </div>
+
+            {!(cls.fanlar || []).length ? (
+              <div
+                className="mt-3 rounded-xl p-3 text-xs"
+                style={{ background: palette.cream, color: palette.muted }}
+              >
+                Bu sinfda hozircha ikki o‘qituvchili yoki guruh tizimiga
+                biriktirilgan fan topilmadi.
+              </div>
+            ) : (
+              <div className="space-y-3 mt-3">
+                {(cls.fanlar || []).map(pair => {
+                  const draft = drafts[keyOf(pair)] || makeDraft(pair);
+                  const pairError = validateDraft(pair, draft);
+                  const hasAlphabet = (pair.tizimlar || []).some(
+                    system => system.turi === "alphabet"
+                  );
+                  const hasGender = (pair.tizimlar || []).some(
+                    system => system.turi === "gender"
+                  );
+
+                  return (
+                    <div
+                      key={keyOf(pair)}
+                      className="rounded-2xl border p-3"
+                      style={{
+                        borderColor: pair.tasdiqlangan
+                          ? "#B9DFC5"
+                          : pair.xatolar?.length
+                            ? "#E9B7B7"
+                            : "#E8CF91",
+                        background: pair.tasdiqlangan
+                          ? palette.greenBg
+                          : pair.xatolar?.length
+                            ? palette.redBg
+                            : palette.amberBg,
+                      }}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-black" style={{ color: palette.ink }}>
+                            {pair.fan_nomi}
+                          </div>
+                          <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
+                            Sinf fan soati: haftasiga {pair.haftalik_soat || "—"} · Import:
+                            {" "}
+                            {(pair.import_oqituvchilari || [])
+                              .map(row =>
+                                `${row.full_name}${row.guruh_kaliti !== "whole" ? ` (${row.guruh_kaliti})` : ""}`
+                              )
+                              .join(", ") || "o‘qituvchi yo‘q"}
+                          </div>
+                        </div>
+                        <span
+                          className="px-2 py-1 rounded-full text-[10px] font-black"
+                          style={{
+                            background: pair.tasdiqlangan
+                              ? "#D7F0DF"
+                              : pair.xatolar?.length
+                                ? "#F7D8D8"
+                                : "#FFF0C7",
+                            color: pair.tasdiqlangan
+                              ? palette.green
+                              : pair.xatolar?.length
+                                ? palette.red
+                                : palette.amber,
+                          }}
+                        >
+                          {pair.tasdiqlangan
+                            ? "TASDIQLANGAN"
+                            : pair.xatolar?.length
+                              ? "TUZATISH KERAK"
+                              : "TEKSHIRIB TASDIQLANG"}
+                        </span>
+                      </div>
+
+                      <div className="grid md:grid-cols-[180px_1fr] gap-2 mt-3">
+                        <label className="text-xs font-bold" style={{ color: palette.ink }}>
+                          Dars turi
+                          <select
+                            value={draft.turi}
+                            onChange={event =>
+                              updateDraft(pair, { turi: event.target.value })
+                            }
+                            className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
+                          >
+                            <option value="group">Guruhlarga bo‘lingan</option>
+                            <option value="whole">Butun sinf</option>
+                          </select>
+                        </label>
+
+                        {draft.turi === "group" ? (
+                          <label className="text-xs font-bold" style={{ color: palette.ink }}>
+                            Qaysi guruhlash tizimi?
+                            <select
+                              value={draft.tizim_id || ""}
+                              onChange={event => selectSystem(pair, event.target.value)}
+                              className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
+                            >
+                              <option value="">Tizimni tanlang</option>
+                              {(pair.tizimlar || []).map(system => (
+                                <option key={system.id} value={system.id}>
+                                  {system.nomi}
+                                  {system.fan_biriktirilgan
+                                    ? " · fan avval biriktirilgan"
+                                    : " · tanlansa fanga biriktiriladi"}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : (
+                          <label className="text-xs font-bold" style={{ color: palette.ink }}>
+                            Butun sinf o‘qituvchisi
+                            <select
+                              value={draft.asosiy_oqituvchi_user_id || ""}
+                              onChange={event =>
+                                updateDraft(pair, {
+                                  asosiy_oqituvchi_user_id: event.target.value
+                                    ? Number(event.target.value)
+                                    : null,
+                                })
+                              }
+                              className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
+                            >
+                              <option value="">O‘qituvchini tanlang</option>
+                              {(pair.kandidat_oqituvchilar || []).map(teacher => (
+                                <option key={teacher.user_id} value={teacher.user_id}>
+                                  {teacher.full_name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                      </div>
+
+                      {draft.turi === "group" && !(pair.tizimlar || []).length && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <button
+                            onClick={() => createSystem(pair, "alphabet")}
+                            disabled={saving}
+                            className="px-3 py-2 rounded-xl text-xs font-black"
+                            style={{ background: palette.sky, color: palette.blue }}
+                          >
+                            + 1-guruh / 2-guruh yaratish
+                          </button>
+                          <button
+                            onClick={() => createSystem(pair, "gender")}
+                            disabled={saving}
+                            className="px-3 py-2 rounded-xl text-xs font-black"
+                            style={{ background: palette.cream, color: palette.ink }}
+                          >
+                            + O‘g‘il / Qiz guruhini yaratish
+                          </button>
+                        </div>
+                      )}
+
+                      {draft.turi === "group" && (pair.tizimlar || []).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {!hasAlphabet && (
+                            <button
+                              onClick={() => createSystem(pair, "alphabet")}
+                              disabled={saving}
+                              className="px-3 py-2 rounded-xl text-[11px] font-black"
+                              style={{ background: palette.sky, color: palette.blue }}
+                            >
+                              Boshqa variant: 1/2-guruh
+                            </button>
+                          )}
+                          {!hasGender && (
+                            <button
+                              onClick={() => createSystem(pair, "gender")}
+                              disabled={saving}
+                              className="px-3 py-2 rounded-xl text-[11px] font-black"
+                              style={{ background: palette.cream, color: palette.ink }}
+                            >
+                              Boshqa variant: O‘g‘il/Qiz
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {draft.turi === "group" && (
+                        <div className="grid md:grid-cols-2 gap-2 mt-3">
+                          {(draft.guruhlar || []).map(group => (
+                            <label
+                              key={group.guruh_kaliti}
+                              className="rounded-xl border p-3 text-xs font-bold"
+                              style={{
+                                borderColor: palette.line,
+                                background: "#fff",
+                                color: palette.ink,
+                              }}
+                            >
+                              {group.guruh_nomi}
+                              <select
+                                value={group.oqituvchi_user_id || ""}
+                                onChange={event =>
+                                  updateGroupTeacher(
+                                    pair,
+                                    group.guruh_kaliti,
+                                    event.target.value
+                                  )
+                                }
+                                className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
+                              >
+                                <option value="">O‘qituvchini tanlang</option>
+                                {(pair.kandidat_oqituvchilar || []).map(teacher => (
+                                  <option key={teacher.user_id} value={teacher.user_id}>
+                                    {teacher.full_name} · reja {teacher.haftalik_dars_soati ?? "—"}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="mt-1 font-normal" style={{ color: palette.muted }}>
+                                O‘quvchi: {group.oquvchi_soni ?? 0} · shu guruh
+                                o‘qituvchisiga haftasiga {pair.haftalik_soat || "—"} soat
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {(pair.xatolar || []).map((error, index) => (
+                        <div key={`e-${index}`} className="text-xs mt-2" style={{ color: palette.red }}>
+                          {error}
+                        </div>
+                      ))}
+                      {(pair.ogohlantirishlar || []).map((warning, index) => (
+                        <div key={`w-${index}`} className="text-xs mt-2" style={{ color: palette.amber }}>
+                          {warning}
+                        </div>
+                      ))}
+                      {pairError && (
+                        <div className="text-xs mt-2 font-bold" style={{ color: palette.red }}>
+                          {pairError}
+                        </div>
+                      )}
+
+                      <div className="flex justify-end mt-3">
+                        <button
+                          onClick={() => savePairs([pair])}
+                          disabled={saving || Boolean(pairError)}
+                          className="px-4 py-2.5 rounded-xl text-xs font-black text-white"
+                          style={{ background: pairError ? "#9BA8B2" : palette.blue }}
+                        >
+                          Saqlash va tasdiqlash
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {!loading && !visibleClasses.length && (
+          <div className="p-7 text-center text-sm" style={{ color: palette.muted }}>
+            Bu filtr bo‘yicha sinf topilmadi.
+          </div>
+        )}
+      </div>
+
+      <div
+        className="mt-4 rounded-xl p-3 text-xs"
+        style={{ background: palette.cream, color: palette.muted }}
+      >
+        Mustaqil guruh a’zolarini o‘zgartirish kerak bo‘lsa, “Asosiy sahifaga
+        qaytish”ni bosing va sinf kartasidagi “Ko‘p guruhli boshqaruv”dan
+        o‘quvchilar tarkibini tuzating. Bu oynada esa fan va o‘qituvchi
+        taqsimoti tasdiqlanadi.
+      </div>
+    </Card>
+  );
+}
+
+
 function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
-  const [generating,setGenerating]=useState(false);const [message,setMessage]=useState(null);const [detail,setDetail]=useState(null);const [selectedClass,setSelectedClass]=useState(String(setup?.sinflar?.[0]?.id||""));const [force,setForce]=useState(false);
-  const latestDraft=(setup?.urinishlar||[]).find(r=>r.holat==="draft");const active=(setup?.urinishlar||[]).find(r=>r.holat==="tasdiqlangan");
-  const loadRun=async id=>{if(!id)return;try{setDetail(await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${id}`));}catch(e){setMessage({tone:"error",text:e.message});}};
-  useEffect(()=>{if(latestDraft)loadRun(latestDraft.id);else if(active)loadRun(active.id);},[latestDraft?.id,active?.id]);
-  const generate=async()=>{setGenerating(true);setMessage(null);try{const data=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,urinishlar_soni:10})});setMessage({tone:data.joylashtirilmadi?"warning":"success",text:`Draft yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat, sifat ${data.sifat}/100.`});await reload();await loadRun(data.urinish_id);}catch(e){setMessage({tone:"error",text:e.message});}finally{setGenerating(false);}};
-  const approve=async()=>{const id=detail?.urinish?.id;if(!id)return;try{const data=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/tasdiqlash?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({urinish_id:id,majburan:force})});setMessage({tone:"success",text:`Jadval tasdiqlandi. ${data.qayta_taqsimlandi||0} ta mavzu taqvimi yangilandi.`});await reload();await loadRun(id);}catch(e){setMessage({tone:"error",text:e.message});}};
-  const d=detail?.urinish?.diagnostika||detail?.urinish?.diagnostika_json||{};const problems=d.muammolar||[];const warnings=d.ogohlantirishlar||[];
-  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<SmartNotice tone="info">Qattiq sinf-kun qoidalari 1-bosqichdan boshqariladi. Tanlangan parallel yoki aniq sinfga bloklangan kunlarda generator dars qo‘ymaydi; draft tasdig‘i, dars ko‘chirish va mavzu sanasi ham shu qoidani buzmaydi.</SmartNotice><div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4"><Card className="p-5"><h2 className="text-xl font-black" style={{color:palette.ink}}>Draft → tekshirish → tasdiqlash</h2><p className="text-xs mt-1" style={{color:palette.muted}}>Yangi jadval eski faol jadvalni darhol o‘chirmaydi. Avval draft yaratiladi.</p><div className="grid grid-cols-3 gap-2 mt-4"><Stat value={detail?.urinish?.sifat??"—"} label="sifat /100" tone="blue"/><Stat value={detail?.urinish?.joylashtirildi??0} label="joylashtirildi" tone="green"/><Stat value={detail?.urinish?.joylashtirilmadi??0} label="joylashmadi" tone={detail?.urinish?.joylashtirilmadi?"red":"green"}/></div><button onClick={generate} disabled={generating} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{generating?"Hisoblanmoqda...":"Yangi draft yaratish"}</button>{detail?.urinish?.holat==="draft"&&<><label className="flex gap-2 items-start text-xs mt-4" style={{color:palette.muted}}><input type="checkbox" checked={force} onChange={e=>setForce(e.target.checked)}/>Joylashtirilmagan darslar bo‘lsa ham majburan tasdiqlash (tavsiya etilmaydi)</label><button onClick={approve} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{background:palette.green}}>Draftni tasdiqlash</button></>}</Card><Card className="p-5"><h3 className="font-black mb-3" style={{color:palette.ink}}>Aniq diagnostika</h3><div className="space-y-2 max-h-[370px] overflow-auto">{problems.map((p,i)=><div key={i} className="rounded-xl p-3" style={{background:palette.redBg}}><div className="text-sm font-black" style={{color:palette.ink}}>{p.sinf} · {p.fan}</div><div className="text-xs mt-1" style={{color:palette.red}}>{p.sabab}</div></div>)}{warnings.map((w,i)=><div key={`w-${i}`} className="rounded-xl p-3 text-xs" style={{background:palette.amberBg,color:palette.amber}}>{w}</div>)}{!problems.length&&!warnings.length&&<SmartNotice tone="success">Qattiq konflikt topilmadi.</SmartNotice>}</div></Card></div>{detail&&<ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass}/>}</div>;
+  const runs = setup?.urinishlar || [];
+  const [runId, setRunId] = useState(String(runs[0]?.id || ""));
+  const [detail, setDetail] = useState(null);
+  const [preflight, setPreflight] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [groupReady, setGroupReady] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
+
+  const loadRun = async id => {
+    if (!id) { setDetail(null); return; }
+    try {
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${id}`);
+      setDetail(data);
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    }
+  };
+
+  const checkSources = async silent => {
+    if (!groupReady) {
+      if (!silent) {
+        setMessage({ tone: "error", text: "Avval guruhli fanlarda qaysi guruhga qaysi o‘qituvchi kirishini tasdiqlang." });
+      }
+      return;
+    }
+    setChecking(true);
+    if (!silent) setMessage(null);
+    try {
+      const report = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/moslik?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST" });
+      setPreflight(report);
+      if (!silent) {
+        setMessage({
+          tone: report.tayyor ? "success" : "error",
+          text: report.tayyor
+            ? "Shablon, o‘qituvchi yuklamasi, sinf soatlari va qattiq vaqt cheklovlari bir-biriga mos."
+            : `Jadval yaratishdan oldin ${report.xulosa?.xato_soni || report.xatolar?.length || 0} ta xatoni tuzating.`,
+        });
+      }
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (groupReady) checkSources(true);
+    else setPreflight(null);
+  }, [maktabId, token, apiBase, groupReady]);
+  useEffect(() => { if (runId) loadRun(runId); }, [runId]);
+  useEffect(() => {
+    if (runs[0]?.id && !runId) setRunId(String(runs[0].id));
+  }, [runs, runId]);
+
+  const generate = async () => {
+    if (!groupReady) {
+      return setMessage({ tone: "error", text: "Avval guruh va o‘qituvchilar taqsimotini tasdiqlang." });
+    }
+    if (!preflight?.tayyor) {
+      return setMessage({ tone: "error", text: "Avval manba mosligi 100% bo‘lishi kerak." });
+    }
+    setGenerating(true);
+    setMessage(null);
+    try {
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 32 }),
+      });
+      const match = data.moslik?.xulosa || {};
+      setMessage({
+        tone: data.tasdiqlash_mumkin ? "success" : "warning",
+        text: data.tasdiqlash_mumkin
+          ? `Draft 100% mos yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat. Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}.`
+          : `Draft yaratildi, lekin tasdiqlanmaydi: ${data.joylashtirildi}/${data.jami_soat} soat. Diagnostikadagi farqlarni tuzating.`,
+      });
+      await reload();
+      setRunId(String(data.urinish_id));
+      await loadRun(data.urinish_id);
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+      await checkSources(true);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const approve = async () => {
+    const id = detail?.urinish?.id;
+    if (!id) return;
+    const diagnostics = detail?.urinish?.diagnostika || {};
+    if (!diagnostics.tasdiqlash_mumkin) {
+      return setMessage({ tone: "error", text: "Bu draft reja bilan 100% mos emas va tasdiqlanmaydi." });
+    }
+    try {
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/tasdiqlash?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urinish_id: id, majburan: false }),
+      });
+      setMessage({ tone: "success", text: `Jadval 100% moslik bilan tasdiqlandi. ${data.qayta_taqsimlandi || 0} ta mavzu taqvimi yangilandi.` });
+      await reload();
+      await loadRun(id);
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    }
+  };
+
+  const diagnostics = detail?.urinish?.diagnostika || {};
+  const problems = diagnostics.muammolar || [];
+  const warnings = diagnostics.ogohlantirishlar || [];
+  const match = diagnostics.jadval_mosligi || {};
+  const canApprove = Boolean(diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
+  const pre = preflight?.xulosa || {};
+  const matchSummary = match.xulosa || {};
+
+  const mismatchRows = [
+    ...(match.sinflar || []).filter(row => !row.mos).map(row => ({ type: "Sinf", name: row.sinf, plan: row.reja, actual: row.jadval })),
+    ...(match.oqituvchilar || []).filter(row => !row.mos).map(row => ({ type: "O‘qituvchi", name: row.full_name, plan: row.reja, actual: row.jadval })),
+    ...(match.fanlar || []).filter(row => !row.mos).map(row => ({ type: "Fan", name: `${row.sinf} · ${row.fan}`, plan: row.reja, actual: row.jadval })),
+  ];
+
+  return <div className="space-y-4">
+    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    <SanitaryScheduleRulesV1874 />
+    <GroupAssignmentReviewV1876
+      token={token}
+      apiBase={apiBase}
+      maktabId={maktabId}
+      onReadyChange={setGroupReady}
+      onSaved={async () => { await reload(); }}
+    />
+
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black" style={{ color: palette.ink }}>2. Shablon va reja mosligi</h2>
+          <p className="text-xs mt-1" style={{ color: palette.muted }}>Excel DARS_BIRIKMALARI → sinf–fan haftalik soati → o‘qituvchi jami → bo‘sh kun/soatlar birgalikda tekshiriladi.</p>
+        </div>
+        <button onClick={() => checkSources(false)} disabled={checking || !groupReady} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: groupReady ? palette.sky : "#E6EAED", color: groupReady ? palette.blue : palette.muted }}>{checking ? "Tekshirilmoqda..." : (groupReady ? "Qayta tekshirish" : "Avval guruhlarni tasdiqlang")}</button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <Stat value={preflight?.tayyor ? "100%" : "—"} label="manba mosligi" tone={preflight?.tayyor ? "green" : "red"}/>
+        <Stat value={`${pre.sinf_soni || 0}`} label="sinf" tone="blue"/>
+        <Stat value={`${pre.oqituvchi_soni || 0}`} label="o‘qituvchi" tone="teal"/>
+        <Stat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
+      </div>
+
+      {(preflight?.xatolar || []).length > 0 && <div className="space-y-2 mt-4 max-h-64 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-xl p-3 text-xs" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}</div>}
+      {preflight?.tayyor && <div className="mt-4 rounded-xl p-3 text-xs font-bold" style={{ background: palette.greenBg, color: palette.green }}>Har bir sinfning haftalik jami, har bir fanning haftalik soni, har bir o‘qituvchining haftalik yuklamasi va qattiq bo‘sh vaqti bo‘yicha jadval yaratish mumkin.</div>}
+    </Card>
+
+    <div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4">
+      <Card className="p-5">
+        <h2 className="text-xl font-black" style={{ color: palette.ink }}>3. Draft yaratish va tasdiqlash</h2>
+        <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski faol jadval yangi draft 100% mos bo‘lib tasdiqlanmaguncha saqlanadi.</p>
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          <Stat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
+          <Stat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashtirildi" tone="green"/>
+          <Stat value={detail?.urinish?.joylashtirilmadi ?? 0} label="joylashmadi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
+        </div>
+        <button onClick={generate} disabled={generating || !groupReady || !preflight?.tayyor} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: (groupReady && preflight?.tayyor) ? palette.blue : "#9BA8B2" }}>{generating ? "Hisoblanmoqda..." : (!groupReady ? "Avval guruhlarni tasdiqlang" : "Yangi draft yaratish")}</button>
+        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
+
+        {detail && <div className="mt-4 grid grid-cols-3 gap-2">
+          <Stat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label="sinf mos" tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
+          <Stat value={`${matchSummary.oqituvchi_mos || 0}/${matchSummary.oqituvchi_jami || 0}`} label="o‘qituvchi mos" tone={(matchSummary.oqituvchi_mos === matchSummary.oqituvchi_jami) ? "green" : "red"}/>
+          <Stat value={`${matchSummary.fan_mos || 0}/${matchSummary.fan_jami || 0}`} label="fan mos" tone={(matchSummary.fan_mos === matchSummary.fan_jami) ? "green" : "red"}/>
+        </div>}
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="font-black mb-3" style={{ color: palette.ink }}>Aniq diagnostika</h3>
+        <div className="space-y-2 max-h-[430px] overflow-auto">
+          {mismatchRows.map((row, index) => <div key={`m-${index}`} className="rounded-xl p-3" style={{ background: palette.redBg }}><div className="text-sm font-black" style={{ color: palette.ink }}>{row.type} · {row.name}</div><div className="text-xs mt-1" style={{ color: palette.red }}>Reja: {row.plan} · Jadval: {row.actual} · Farq: {row.actual - row.plan}</div></div>)}
+          {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-xl p-3 text-xs" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
+          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-xl p-3" style={{ background: palette.redBg }}><div className="text-sm font-black" style={{ color: palette.ink }}>{problem.sinf} · {problem.fan}</div><div className="text-xs mt-1" style={{ color: palette.red }}>{problem.sabab}</div></div>)}
+          {warnings.map((warning, index) => <div key={`w-${index}`} className="rounded-xl p-3 text-xs" style={{ background: palette.amberBg, color: palette.amber }}>{warning}</div>)}
+          {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">Sinf, fan va o‘qituvchi soatlari 100% mos.</SmartNotice>}
+        </div>
+      </Card>
+    </div>
+
+    {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass}/>} 
+  </div>;
 }
 
 function TopicCalendarRow({ row, token, apiBase, maktabId, onSaved }) {
