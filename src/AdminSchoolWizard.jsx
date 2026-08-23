@@ -14,9 +14,20 @@ const emptyBuilding = (index = 0) => ({
   floors: 2, roomsPerFloor: 10, floorRoomCounts: { 1: 10, 2: 10 }, scheme: "floor", customRooms: "", rooms: [],
 });
 
+const GROUP_SYSTEM_DEFAULTS = {
+  alphabet: { type: "alphabet", name: "Alifbo bo‘yicha 1/2-guruh" },
+  gender: { type: "gender", name: "O‘g‘il / qiz" },
+  manual: { type: "manual", name: "" },
+};
+
+const newGroupSystem = (type) => ({
+  key: uniqueKey(`group-${type}`),
+  ...(GROUP_SYSTEM_DEFAULTS[type] || GROUP_SYSTEM_DEFAULTS.manual),
+});
+
 const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
   key: uniqueKey("class", `${grade}-${letter}`), grade, letter, shift,
-  leader: null, psychologist: null, buildingKey: "", roomNumber: "", groupMethod: "none", groupCount: 2,
+  leader: null, psychologist: null, buildingKey: "", roomNumber: "", groupSystems: [],
 });
 
 export function normalizeSchoolClassName(value) {
@@ -144,6 +155,8 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     if (new Set(normalized).size !== normalized.length) return "Bir xil sinf ikki marta kiritilgan";
     const occupiedRooms = new Set();
     for (const item of classes) {
+      const manualSystem = (item.groupSystems || []).find((system) => system.type === "manual");
+      if (manualSystem && manualSystem.name.trim().length < 2) return `${classNameOf(item)} uchun boshqa guruh turi nomini yozing`;
       if (item.roomNumber && !item.buildingKey) return `${classNameOf(item)} uchun binoni tanlang`;
       if (item.buildingKey && !buildingByKey.has(item.buildingKey)) return `${classNameOf(item)} uchun tanlangan bino topilmadi`;
       if (item.roomNumber && !buildingByKey.get(item.buildingKey)?.rooms.some((room) => room.number === item.roomNumber)) return `${classNameOf(item)} uchun tanlangan xona topilmadi`;
@@ -253,6 +266,29 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   };
   const autoAssignAllRooms = () => { const result = assignRooms(classes, true); setClasses(result.items); setError(""); setNotice(result.unassigned ? `${result.unassigned} ta sinfga xona yetmadi; ular xonasiz qoldirildi.` : "Barcha sinflarga smena bo‘yicha takrorlanmaydigan xonalar biriktirildi."); };
   const updateClass = (key, patch) => { setClasses((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item)); setError(""); };
+  const addGroupSystem = (classKey, type) => {
+    setClasses((current) => current.map((item) => {
+      if (item.key !== classKey) return item;
+      const systems = Array.isArray(item.groupSystems) ? item.groupSystems : [];
+      if (systems.some((system) => system.type === type)) return item;
+      return { ...item, groupSystems: [...systems, newGroupSystem(type)] };
+    }));
+    setError("");
+  };
+  const updateGroupSystem = (classKey, systemKey, patch) => {
+    setClasses((current) => current.map((item) => item.key !== classKey ? item : {
+      ...item,
+      groupSystems: (item.groupSystems || []).map((system) => system.key === systemKey ? { ...system, ...patch } : system),
+    }));
+    setError("");
+  };
+  const removeGroupSystem = (classKey, systemKey) => {
+    setClasses((current) => current.map((item) => item.key !== classKey ? item : {
+      ...item,
+      groupSystems: (item.groupSystems || []).filter((system) => system.key !== systemKey),
+    }));
+    setError("");
+  };
 
   const createSchool = async () => {
     const message = validateSchool() || validateBuildings() || validateClasses();
@@ -265,13 +301,17 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           token, name: name.trim(), school_number: schoolNumber.trim() || null, region, district,
           shift_count: shiftCount, director_user_id: director?.user_id || null,
           buildings: skipBuildings ? [] : buildings.map((building) => ({ key: building.key, name: building.name.trim(), floors: Number(building.floors), rooms: building.rooms.map((room) => ({ number: room.number, floor: room.floor })) })),
-          classes: sortedClasses(classes).map((item) => ({
-            name: classNameOf(item), shift: shiftCount === 1 ? 1 : Number(item.shift),
-            leader_user_id: item.leader?.user_id || null, psychologist_user_id: item.psychologist?.user_id || null,
-            building_key: item.buildingKey || null, room_number: item.roomNumber || null,
-            group_method: item.groupMethod || "none",
-            group_count: item.groupMethod === "none" ? 1 : item.groupMethod === "gender" ? 2 : cleanInteger(item.groupCount, 2, 4, 2),
-          })),
+          classes: sortedClasses(classes).map((item) => {
+            const groupSystems = (item.groupSystems || []).map((system) => ({ type: system.type, name: system.name.trim() }));
+            return {
+              name: classNameOf(item), shift: shiftCount === 1 ? 1 : Number(item.shift),
+              leader_user_id: item.leader?.user_id || null, psychologist_user_id: item.psychologist?.user_id || null,
+              building_key: item.buildingKey || null, room_number: item.roomNumber || null,
+              group_method: groupSystems.length === 0 ? "none" : groupSystems.length === 1 ? groupSystems[0].type : "manual",
+              group_count: groupSystems.length ? 2 : 1,
+              group_systems: groupSystems,
+            };
+          }),
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -347,8 +387,11 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · shu smenada bo‘sh<select value={item.roomNumber} onChange={(event) => updateClass(item.key, { roomNumber: event.target.value })} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{availableRooms.map((room) => <option key={room.number} value={room.number}>{room.number}-xona</option>)}</select></label>}
-              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Guruhlash usuli<select value={item.groupMethod || "none"} onChange={(event) => { const groupMethod = event.target.value; updateClass(item.key, { groupMethod, groupCount: groupMethod === "gender" ? 2 : item.groupCount || 2 }); }} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="none">Hozircha bo‘linmaydi</option><option value="alphabet">Alifbo bo‘yicha</option><option value="gender">O‘g‘il / qiz bo‘yicha</option><option value="manual">Qo‘lda taqsimlash</option></select></label>
-              {item.groupMethod !== "none" && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Guruh soni<select value={item.groupMethod === "gender" ? 2 : cleanInteger(item.groupCount, 2, 4, 2)} onChange={(event) => updateClass(item.key, { groupCount: Number(event.target.value) })} disabled={item.groupMethod === "gender"} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: item.groupMethod === "gender" ? 0.65 : 1 }}><option value={2}>2 ta guruh</option><option value={3}>3 ta guruh</option><option value={4}>4 ta guruh</option></select><small className="block mt-1 font-normal" style={{ color: "#8A8578" }}>{item.groupMethod === "gender" ? "O‘g‘il/qiz usulida doim 2 ta guruh bo‘ladi." : "2, 3 yoki 4 ta guruhni tanlang."}</small></label>}
+              <div className="md:col-span-3 rounded-xl border p-3" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
+                <div className="flex flex-wrap items-start justify-between gap-2"><div><b className="text-xs" style={{ color: "#21384C" }}>Guruhlash turlari</b><p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>Bir sinfga bir nechta tur qo‘shiladi; ular bir-birini o‘chirmaydi.</p></div><span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{(item.groupSystems || []).length} ta tur</span></div>
+                {(item.groupSystems || []).length > 0 && <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">{(item.groupSystems || []).map((system) => <div key={system.key} className="rounded-lg border p-2.5" style={{ borderColor: "#B9CCDC", background: "white" }}><div className="flex items-center justify-between gap-2"><b className="text-[11px]" style={{ color: "#1B4B7A" }}>{system.type === "alphabet" ? "Alifbo 1/2" : system.type === "gender" ? "O‘g‘il / qiz" : "Boshqa tur"}</b><button type="button" onClick={() => removeGroupSystem(item.key, system.key)} className="text-[10px]" style={{ color: "#B0553A" }}>✕ Olib tashlash</button></div>{system.type === "manual" && <input value={system.name} onChange={(event) => updateGroupSystem(item.key, system.key, { name: event.target.value })} maxLength={80} placeholder="Masalan: Kuchli / o‘rta guruhlar" className="w-full mt-2 px-2.5 py-1.5 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }} />}{system.type !== "manual" && <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>{system.name}</p>}</div>)}</div>}
+                <div className="flex flex-wrap gap-1.5 mt-2">{[["alphabet", "＋ Alifbo 1/2"], ["gender", "＋ O‘g‘il/qiz"], ["manual", "＋ Boshqa guruh turi"]].map(([type, label]) => { const mavjud = (item.groupSystems || []).some((system) => system.type === type); return <button type="button" key={type} onClick={() => addGroupSystem(item.key, type)} disabled={mavjud} className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: mavjud ? "#EEEAE1" : "#EAF1F7", color: mavjud ? "#A39D8E" : "#1B4B7A", cursor: mavjud ? "not-allowed" : "pointer" }}>{mavjud ? "✓ " : ""}{label.replace("＋ ", "")}</button>; })}</div>
+              </div>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf rahbari · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.leader} onChange={(person) => updateClass(item.key, { leader: person })} placeholder="Rahbar ismi..." /></div></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Psixolog · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.psychologist} onChange={(person) => updateClass(item.key, { psychologist: person })} placeholder="Psixolog ismi..." /></div></label>
               <button type="button" onClick={() => setClasses((current) => current.filter((row) => row.key !== item.key))} className="self-end py-2 rounded-xl text-xs font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Sinfni olib tashlash</button>
@@ -361,7 +404,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{schoolNumber.trim() ? `${schoolNumber.trim()}-sonli ` : ""}{name.trim()}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
       <div className="grid grid-cols-3 gap-2"><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{skipBuildings ? 0 : buildings.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>bino</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{roomPool.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>xona</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#FDF3E0" }}><b className="block text-lg" style={{ color: "#8A5A1C" }}>{classes.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>sinf</span></div></div>
       {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p></div>)}
-      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); const groupText = item.groupMethod === "gender" ? "o‘g‘il/qiz · 2 guruh" : item.groupMethod === "alphabet" ? `alifbo · ${cleanInteger(item.groupCount, 2, 4, 2)} guruh` : item.groupMethod === "manual" ? `qo‘lda · ${cleanInteger(item.groupCount, 2, 4, 2)} guruh` : "guruhsiz"; return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"} · {groupText}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
+      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); const groupText = (item.groupSystems || []).length ? (item.groupSystems || []).map((system) => system.type === "alphabet" ? "alifbo 1/2" : system.type === "gender" ? "o‘g‘il/qiz" : system.name || "boshqa tur").join(" + ") : "guruhsiz"; return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"} · {groupText}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
       <div className="rounded-xl px-3.5 py-3 text-xs font-semibold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Maktab, binolar, xonalar va sinflar bitta xavfsiz amalda yaratiladi. Platforma to‘lovi: 0 so‘m.</div>
     </div>}
 
