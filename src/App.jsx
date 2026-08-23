@@ -1,29 +1,4 @@
-// SAMTM V18.77 — shablon bazadagi real sinf guruhlarini alohida ko‘rsatadi.
-// SAMTM V18.76 — guruhli fanlar jadvaldan oldin tasdiqlanadi.
-// SAMTM V18.75 — qat'iy jadval mosligi bilan mos.
-// SAMTM V18.74 — gigiyenik jadval generatori bilan mos.
-// SAMTM V18.73 — rasmiy metod preset va ixcham matritsa bilan mos.
-// SAMTM V18.72 — ortiqcha tanlov tugmalari olib tashlangan.
-// SAMTM V18.71 — ixtiyoriy avto metod kuni bilan mos.
-// SAMTM V18.70 — fan tanlanganda mos o‘qituvchilar avtomatik tanlanadi.
-// SAMTM V18.69 — soddalashtirilgan ikki smenali vaqt jadvali bilan mos.
-// SAMTM V18.68 — SchoolWorkspace vaqt matritsasi bilan mos.
-// SAMTM V18.67 — tanlangan metod kunini aniq olib tashlash.
-// SAMTM V18.66 — metod kunini ommaviy tozalash va sinf soati.
-// SAMTM V18.65 — backend va SchoolWorkspace bilan mos.
-// SAMTM V18.62 — Xodim shabloni cache qilinmaydi va freeze/split yo‘q.
-// SAMTM V18.61 — Xodim Excel shabloni gorizontal yurishi va tezligi tuzatildi.
-// SAMTM V18.60 — Xodim shablonida har bir sinf uchun alohida haftalik soat.
-// SAMTM V18.59 — Shablondagi o‘qituvchi fanlari va metod kuni hisoboti.
-// SAMTM V18.58 — Sinf-kun qoidasi bitta kunlik va aniq hisobotli.
-// SAMTM V18.57 — Xavfsiz maktab dashboard APIlariga ulandi.
-// SAMTM V18.56 — moslashuvchan parallel/aniq sinf kun bloklari.
-// SAMTM V18.54 — Kalendar autosave, ommaviy o‘qituvchi sozlamalari va aqlli xodim shabloni.
-// SAMTM V18.52 — Puxta aqlli jadval va to‘liq ekranli maktab workspace.
-// SAMTM V18.49 — blank sahifa tuzatildi: importlar endi komment ichida qolmaydi.
-// SAMTM V18.48 — Maktab ID yo‘qolib qolishi va admin preview ko‘rinmasligi tuzatildi.
-// SAMTM V18.47 — Admin maktabni turli rollar sifatida READ-ONLY ko‘ra oladi.
-// SAMTM V18.46 — Kundalik baho eslatmasi o‘qituvchi tomonidan YOQ/O‘CHIQ qilinadi.
+// SAMTM V19.0 — clean-scale frontend; lazy workspaces preserved.
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
