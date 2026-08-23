@@ -2388,6 +2388,9 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
     alphabet: { nomi: `Alifbo · ${sinf.guruh_soni || 2} guruh`, izoh: "Sinfda tanlangan 2, 3 yoki 4 guruh", rang: "#EAF1F7" },
     manual: { nomi: "Mustaqil guruhlar", izoh: "O‘quvchilarni o‘zingiz belgilaysiz", rang: "#FFF5E2" },
   };
+  const tizimNomi = (tizim) => tizim.turi === "manual" && tizim.nomi
+    ? tizim.nomi
+    : turMalumoti[tizim.turi]?.nomi || tizim.nomi;
 
   const tizimlarniYukla = async (majburiy = false) => {
     if (yuklangan && !majburiy) return;
@@ -2521,7 +2524,7 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
   };
 
   const azoGuruhMatni = (userId) => tizimlar.flatMap((tizim) =>
-    (tizim.azolar || []).filter((azo) => Number(azo.user_id) === Number(userId)).map((azo) => `${turMalumoti[tizim.turi]?.nomi || tizim.nomi}: ${azo.guruh_nomi}`));
+    (tizim.azolar || []).filter((azo) => Number(azo.user_id) === Number(userId)).map((azo) => `${tizimNomi(tizim)}: ${azo.guruh_nomi}`));
 
   return (
     <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
@@ -2542,7 +2545,7 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
 
           {tizimlar.map((tizim) => <div key={tizim.id} className="mt-3 rounded-xl border p-3" style={{ borderColor: "#E5E1D8", backgroundColor: "#FCFBF8" }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <b className="text-xs" style={{ color: "#2B2B2B" }}>{turMalumoti[tizim.turi]?.nomi || tizim.nomi}</b>
+              <b className="text-xs" style={{ color: "#2B2B2B" }}>{tizimNomi(tizim)}</b>
               <div className="flex flex-wrap gap-1.5">{(tizim.guruhlar || []).map((guruh) => <span key={guruh.guruh_kaliti} className="px-2 py-1 rounded-full text-[10px]" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>{guruh.guruh_nomi}: {guruh.soni}</span>)}</div>
             </div>
             {fanlar.length > 0 && <details className="mt-2">
