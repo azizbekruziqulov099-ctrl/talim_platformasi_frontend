@@ -1,3 +1,4 @@
+// SAMTM V18.77 — shablon bazadagi real sinf guruhlarini alohida ko‘rsatadi.
 // SAMTM V18.76 — guruhli fanlar jadvaldan oldin tasdiqlanadi.
 // SAMTM V18.75 — qat'iy jadval mosligi bilan mos.
 // SAMTM V18.74 — gigiyenik jadval generatori bilan mos.
@@ -2935,7 +2936,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
           Katakni bosib lavozim, sinf, fan va toifani tayyor ro‘yxatdan tanlang.
-          Bir xodim bir nechta sinf yoki fan o‘tsa, <b>DARS_BIRIKMALARI</b> varag‘ida har bir Xodim–Sinf–Fan–Guruh birikmasini alohida qatorga tanlang.
+          Butun sinf darslari <b>DARS_BIRIKMALARI</b>da yoziladi. Oldindan yaratilgan 1/2-guruh, o‘g‘il/qiz va mustaqil guruhlar <b>GURUHLI_DARSLAR</b> varag‘ida “5-A / 1-guruh” kabi tayyor chiqadi; u yerda faqat shu guruhga biriktirilgan fanlar ko‘rsatiladi.
         </p>
         {!fanlarTayyor && <p className="text-xs mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Avval yuqoridagi maktab fanlarini tanlab saqlang.</p>}
         <button onClick={shablonYukla} disabled={!fanlarTayyor}
