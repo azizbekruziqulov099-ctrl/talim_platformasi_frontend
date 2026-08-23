@@ -2385,7 +2385,7 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
 
   const turMalumoti = {
     gender: { nomi: "O‘g‘il / Qiz", izoh: "Jismoniy tarbiya va texnologiya uchun", rang: "#EAF4DF" },
-    alphabet: { nomi: "Alifbo 1 / 2", izoh: "Til va informatika uchun", rang: "#EAF1F7" },
+    alphabet: { nomi: `Alifbo · ${sinf.guruh_soni || 2} guruh`, izoh: "Sinfda tanlangan 2, 3 yoki 4 guruh", rang: "#EAF1F7" },
     manual: { nomi: "Mustaqil guruhlar", izoh: "O‘quvchilarni o‘zingiz belgilaysiz", rang: "#FFF5E2" },
   };
 
@@ -2666,6 +2666,8 @@ function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }
   const [smena, setSmena] = useState(Number(sinf.smena) || 1);
   const [binoId, setBinoId] = useState(sinf.bino_id ? String(sinf.bino_id) : "");
   const [xonaId, setXonaId] = useState(sinf.xona_id ? String(sinf.xona_id) : "");
+  const [guruhlashUsuli, setGuruhlashUsuli] = useState(sinf.guruhlash_usuli || "none");
+  const [guruhSoni, setGuruhSoni] = useState(Number(sinf.guruh_soni) || 2);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [xabar, setXabar] = useState("");
@@ -2674,7 +2676,9 @@ function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }
     setSmena(Number(sinf.smena) || 1);
     setBinoId(sinf.bino_id ? String(sinf.bino_id) : "");
     setXonaId(sinf.xona_id ? String(sinf.xona_id) : "");
-  }, [sinf.id, sinf.smena, sinf.bino_id, sinf.xona_id]);
+    setGuruhlashUsuli(sinf.guruhlash_usuli || "none");
+    setGuruhSoni(Number(sinf.guruh_soni) || 2);
+  }, [sinf.id, sinf.smena, sinf.bino_id, sinf.xona_id, sinf.guruhlash_usuli, sinf.guruh_soni]);
 
   const selectedBuilding = buildings.find((building) => String(building.id) === String(binoId));
   const bandXonaIds = useMemo(() => new Set(
@@ -2703,11 +2707,13 @@ function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }
           xona_id: xonaId ? Number(xonaId) : null,
           joyni_tozalash: !binoId,
           xona_tozalash: Boolean(binoId && !xonaId),
+          guruhlash_usuli: guruhlashUsuli,
+          guruh_soni: guruhlashUsuli === "none" ? 1 : guruhlashUsuli === "gender" ? 2 : guruhSoni,
         }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "Sinf xonasi va smenasini saqlab bo‘lmadi");
-      setXabar("✅ Smena va xona saqlandi.");
+      setXabar("✅ Smena, xona va guruh sozlamasi saqlandi.");
       onSaved?.();
     } catch (error) {
       setXato(error.message);
@@ -2719,7 +2725,7 @@ function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }
   return (
     <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
       <button type="button" onClick={() => setOchiq((value) => !value)} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#EEF6F1" : "#fff", color: "#2E6C55" }}>
-        <span>🏫 Smena va sinf xonasi</span><span>{ochiq ? "⌃" : "⌄"}</span>
+        <span>🏫 Smena, xona va guruh</span><span>{ochiq ? "⌃" : "⌄"}</span>
       </button>
       {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#BFD5AA" }}>
         <p className="text-[11px] mb-3" style={{ color: "#6F6859" }}>Xona shu smenada boshqa sinfga band bo‘lsa tanlab bo‘lmaydi. 1-smenadagi xona 2-smenada qayta ishlatilishi mumkin.</p>
@@ -2728,8 +2734,12 @@ function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }
           <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Bino<select value={binoId} onChange={(event) => { setBinoId(event.target.value); setXonaId(""); setXato(""); setXabar(""); }} disabled={loading} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}><option value="">Bino tanlanmagan</option>{buildings.map((building) => <option key={building.id} value={building.id}>{building.name}</option>)}</select></label>
           <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Xona<select value={xonaId} onChange={(event) => { setXonaId(event.target.value); setXato(""); setXabar(""); }} disabled={loading || !selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Xonasiz</option>{(selectedBuilding?.rooms || []).map((room) => <option key={room.id} value={room.id} disabled={bandXonaIds.has(String(room.id))}>{room.number}-xona · {room.floor}-qavat{bandXonaIds.has(String(room.id)) ? " · BAND" : ""}</option>)}</select></label>
         </div>
+        <div className="grid sm:grid-cols-2 gap-2 mt-2">
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Guruhlash usuli<select value={guruhlashUsuli} onChange={(event) => { const usul = event.target.value; setGuruhlashUsuli(usul); if (usul === "gender") setGuruhSoni(2); setXato(""); setXabar(""); }} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}><option value="none">Guruhsiz</option><option value="alphabet">Alifbo bo‘yicha</option><option value="gender">O‘g‘il / qiz</option><option value="manual">Qo‘lda taqsimlash</option></select></label>
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648", opacity: guruhlashUsuli === "none" ? 0.5 : 1 }}>Guruh soni<select value={guruhlashUsuli === "gender" ? 2 : guruhSoni} onChange={(event) => { setGuruhSoni(Number(event.target.value)); setXato(""); setXabar(""); }} disabled={guruhlashUsuli === "none" || guruhlashUsuli === "gender"} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}><option value={2}>2 ta guruh</option><option value={3}>3 ta guruh</option><option value={4}>4 ta guruh</option></select></label>
+        </div>
         {!loading && buildings.length === 0 && <p className="text-[11px] mt-2 p-2.5 rounded-lg" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Bu maktabda hali bino va xona yaratilmagan. Hozir smenani saqlash mumkin; xona katalogi yaratilgach shu yerdan tanlanadi.</p>}
-        <button type="button" onClick={saqla} disabled={saqlanmoqda || loading} className="w-full mt-3 py-2.5 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#2E6C55", opacity: saqlanmoqda || loading ? 0.6 : 1 }}>{saqlanmoqda ? "Saqlanmoqda..." : "Smena va xonani saqlash"}</button>
+        <button type="button" onClick={saqla} disabled={saqlanmoqda || loading} className="w-full mt-3 py-2.5 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#2E6C55", opacity: saqlanmoqda || loading ? 0.6 : 1 }}>{saqlanmoqda ? "Saqlanmoqda..." : "Smena, xona va guruhni saqlash"}</button>
         {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{xato}</p>}
         {xabar && <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>{xabar}</p>}
       </div>}
@@ -3039,7 +3049,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish · V19.2</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
           Katakni bosib lavozim, sinf, fan va toifani tayyor ro‘yxatdan tanlang.
-          Yangi shablonda butun sinf va barcha 1/2-guruh, o‘g‘il/qiz hamda
+          Yangi shablonda butun sinf va barcha 1–4-guruh, o‘g‘il/qiz hamda
           mustaqil guruhlar bitta <b>XODIMLAR</b> varag‘ida aniq fan bilan
           chiqadi. Alohida GURUHLI_DARSLAR varag‘i yo‘q. Saytda esa “Aqlli
           jadval → O‘qituvchi + fan-soat” oynasidan shu ma’lumotlarni Excelsiz
@@ -3085,7 +3095,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                   <div>
                   <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"} · {s.psixolog_ismi || "Psixolog belgilanmagan"}</p>
-                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""}</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""} · {s.guruhlash_usuli === "none" ? "guruhsiz" : s.guruhlash_usuli === "gender" ? "o‘g‘il/qiz · 2 guruh" : `${s.guruh_soni || 2} guruh`}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
                   </div>
                   <button onClick={() => parolniTashla(s.id)} className="text-xs font-medium px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>
