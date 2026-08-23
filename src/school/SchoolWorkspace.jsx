@@ -1,25 +1,4 @@
-// SAMTM V18.77 — guruh tasdiqlash V18.77 shablon manbasi bilan mos.
-// SAMTM V18.76 — sinf guruhlari va o‘qituvchilarini bitta oynada tekshirish.
-// SAMTM V18.75 — sinf, fan va o‘qituvchi soatlari 100% mos bo‘lmaguncha tasdiqlanmaydi.
-// SAMTM V18.74 — SanQvaN kunlik yuklama va fan tartibi.
-// SAMTM V18.73 — rasmiy metod kunlari YOQ va 6 kun ekranga sig‘adigan ixcham matritsa.
-// SAMTM V18.72 — o‘qituvchi tanlovi avtomatik, UI soddalashtirilgan.
-// SAMTM V18.71 — avto metod kuni default O‘CHIQ; faqat fan→kun qoidasi bilan YOQiladi.
-// SAMTM V18.70 — aniq fanlar tanlansa mos o‘qituvchilar avtomatik belgilanadi.
-// SAMTM V18.69 — ikki smena bir vaqtda ko‘rinadi; metod kuni barcha soatlarni ranglaydi.
-// SAMTM V18.68 — aniq ko‘p fan filtri va barcha o‘qituvchilar vaqt matritsasi.
-// SAMTM V18.67 — kunni tanlab, aynan shu metod kunini olib tashlash.
-// SAMTM V18.66 — metod kunini tozalash + sinf soatini qat’iy joylash.
-// SAMTM V18.65 — psixolog sinflari va aniq haftalik yuklama.
-// SAMTM V18.61 — Xodim Excel shabloni gorizontal yurishi va tezligi tuzatildi.
-// SAMTM V18.60 — Har bir sinf bo‘yicha aniq soat importi aqlli jadvalga uzatiladi.
-// SAMTM V18.59 — Shablondagi fanlarni birlashtirib ko‘rsatish va metod kuni hisoboti.
-// SAMTM V18.58 — Bitta kunlik sinf qoidasi va sinf-kun hisoboti.
-// SAMTM V18.57 — Maktab bosh sahifasi xavfsiz va qisman yuklanadi.
-// SAMTM V18.56 — xohlagan parallel/aniq sinf uchun xohlagan kunni bir tugma bilan bloklash.
-// SAMTM V18.54 — Kalendar autosave, ommaviy o‘qituvchi vaqti va aqlli shablon.
-// SAMTM V18.49 — blank sahifa tuzatildi: React importi tiklandi.
-// SAMTM V18.48 — manager loading/fallback tuzatildi.
+// SAMTM V19.0 — teacher matrix is paginated to prevent DOM freezes.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -1457,6 +1436,8 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   const [bulkDay, setBulkDay] = useState(1);
   const [bulkTarget, setBulkTarget] = useState("method");
   const [bulkLevel, setBulkLevel] = useState("hard");
+  const [teacherPage, setTeacherPage] = useState(1);
+  const TEACHERS_PER_PAGE = 12;
 
   const normalizeSubject = value => String(value || "").trim().toLocaleLowerCase("uz");
   const splitSubjects = teacher => {
@@ -1511,6 +1492,21 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     () => selectedIds.filter(id => visibleIdSet.has(String(id))),
     [selectedIds, visibleIdSet]
   );
+
+  const teacherPageCount = Math.max(1, Math.ceil(visibleTeachers.length / TEACHERS_PER_PAGE));
+  const pagedTeachers = useMemo(() => {
+    const safePage = Math.min(Math.max(1, teacherPage), teacherPageCount);
+    const start = (safePage - 1) * TEACHERS_PER_PAGE;
+    return visibleTeachers.slice(start, start + TEACHERS_PER_PAGE);
+  }, [visibleTeachers, teacherPage, teacherPageCount]);
+
+  useEffect(() => {
+    setTeacherPage(1);
+  }, [selectedSubjects, subjectSearch]);
+
+  useEffect(() => {
+    if (teacherPage > teacherPageCount) setTeacherPage(teacherPageCount);
+  }, [teacherPage, teacherPageCount]);
 
   const emptyState = () => ({ methods: {}, slots: {} });
   const defaultRules = () => ({
@@ -2068,6 +2064,18 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         <span style={{ color: "#9C5700" }}>🟨 YUMSHOQ — iloji bo‘lsa bo‘sh</span>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-2 rounded-lg border p-2" style={{ borderColor: palette.line }}>
+        <div className="text-[10px] font-bold" style={{ color: palette.muted }}>
+          {visibleTeachers.length} o‘qituvchi · sahifada {pagedTeachers.length} ta · {teacherPage}/{teacherPageCount}
+        </div>
+        <div className="flex gap-1">
+          <button onClick={() => setTeacherPage(1)} disabled={teacherPage <= 1} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>Boshi</button>
+          <button onClick={() => setTeacherPage(page => Math.max(1, page - 1))} disabled={teacherPage <= 1} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>Oldingi</button>
+          <button onClick={() => setTeacherPage(page => Math.min(teacherPageCount, page + 1))} disabled={teacherPage >= teacherPageCount} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>Keyingi</button>
+          <button onClick={() => setTeacherPage(teacherPageCount)} disabled={teacherPage >= teacherPageCount} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>Oxiri</button>
+        </div>
+      </div>
+
       <div className="mt-2 rounded-lg p-2 text-[10px]"
            style={{ background: palette.sky, color: palette.blue }}>
         Metod kuni qizil yoki sariq qilinsa ikkala smenadagi barcha soatlar avtomatik shu rangga kiradi.
@@ -2108,7 +2116,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           </thead>
 
           <tbody>
-            {visibleTeachers.map((teacher, rowIndex) => {
+            {pagedTeachers.map((teacher, rowIndex) => {
               const uid = String(teacher.user_id);
               const teacherState = states[uid] || emptyState();
               const isDirty = dirtyIds.includes(uid);
