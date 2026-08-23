@@ -78,6 +78,38 @@ function lazyPanel(Component, props) {
   );
 }
 
+class MaktabSahifaXatoChegarasi extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { xato: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { xato: error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("Maktab bosh sahifasi yuklanmadi", error, info);
+  }
+
+  render() {
+    if (!this.state.xato) return this.props.children;
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-5 py-10" style={{ backgroundColor: "#F7F5F0" }}>
+        <div className="w-full max-w-md rounded-2xl border bg-white p-5 text-center" style={{ borderColor: "#E1B9AC" }}>
+          <AlertTriangle size={28} className="mx-auto" style={{ color: "#B0553A" }} />
+          <h2 className="text-lg font-bold mt-3" style={{ color: "#2B2B2B" }}>Maktab sahifasi yuklanmadi</h2>
+          <p className="text-xs mt-2" style={{ color: "#8A8578" }}>Oq ekran o‘rniga xato ushlandi. Yangilangan SchoolWorkspace fayli deploy qilinganini tekshirib, qayta urinib ko‘ring.</p>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <button type="button" onClick={this.props.onBack} className="py-2.5 rounded-xl text-sm font-bold" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>← Ortga</button>
+            <button type="button" onClick={() => window.location.reload()} className="py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>Qayta yuklash</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 function TestTab(props) { return lazyPanel(LazyTestTab, props); }
 function TopikMavzularTab(props) { return lazyPanel(LazyTopikMavzularTab, props); }
 function ModeratsiyaTab(props) { return lazyPanel(LazyModeratsiyaTab, props); }
@@ -2629,6 +2661,82 @@ function MaktablarBolimi({ token }) {
   );
 }
 
+function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }) {
+  const [ochiq, setOchiq] = useState(false);
+  const [smena, setSmena] = useState(Number(sinf.smena) || 1);
+  const [binoId, setBinoId] = useState(sinf.bino_id ? String(sinf.bino_id) : "");
+  const [xonaId, setXonaId] = useState(sinf.xona_id ? String(sinf.xona_id) : "");
+  const [saqlanmoqda, setSaqlanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+  const [xabar, setXabar] = useState("");
+
+  useEffect(() => {
+    setSmena(Number(sinf.smena) || 1);
+    setBinoId(sinf.bino_id ? String(sinf.bino_id) : "");
+    setXonaId(sinf.xona_id ? String(sinf.xona_id) : "");
+  }, [sinf.id, sinf.smena, sinf.bino_id, sinf.xona_id]);
+
+  const selectedBuilding = buildings.find((building) => String(building.id) === String(binoId));
+  const bandXonaIds = useMemo(() => new Set(
+    sinflar
+      .filter((item) => Number(item.id) !== Number(sinf.id) && Number(item.smena || 1) === Number(smena) && item.xona_id)
+      .map((item) => String(item.xona_id)),
+  ), [sinf.id, sinflar, smena]);
+
+  const smenaniAlmashtir = (nextShift) => {
+    setSmena(nextShift);
+    if (xonaId && sinflar.some((item) => Number(item.id) !== Number(sinf.id) && Number(item.smena || 1) === Number(nextShift) && String(item.xona_id) === String(xonaId))) setXonaId("");
+    setXato(""); setXabar("");
+  };
+
+  const saqla = async () => {
+    setSaqlanmoqda(true); setXato(""); setXabar("");
+    try {
+      const response = await fetch(`${API_BASE}/api/maktab/sinf_sozlash`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          sinf_id: sinf.id,
+          smena,
+          bino_id: binoId ? Number(binoId) : null,
+          xona_id: xonaId ? Number(xonaId) : null,
+          joyni_tozalash: !binoId,
+          xona_tozalash: Boolean(binoId && !xonaId),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "Sinf xonasi va smenasini saqlab bo‘lmadi");
+      setXabar("✅ Smena va xona saqlandi.");
+      onSaved?.();
+    } catch (error) {
+      setXato(error.message);
+    } finally {
+      setSaqlanmoqda(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
+      <button type="button" onClick={() => setOchiq((value) => !value)} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#EEF6F1" : "#fff", color: "#2E6C55" }}>
+        <span>🏫 Smena va sinf xonasi</span><span>{ochiq ? "⌃" : "⌄"}</span>
+      </button>
+      {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#BFD5AA" }}>
+        <p className="text-[11px] mb-3" style={{ color: "#6F6859" }}>Xona shu smenada boshqa sinfga band bo‘lsa tanlab bo‘lmaydi. 1-smenadagi xona 2-smenada qayta ishlatilishi mumkin.</p>
+        <div className="grid sm:grid-cols-3 gap-2">
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Smena<select value={smena} onChange={(event) => smenaniAlmashtir(Number(event.target.value))} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Bino<select value={binoId} onChange={(event) => { setBinoId(event.target.value); setXonaId(""); setXato(""); setXabar(""); }} disabled={loading} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8" }}><option value="">Bino tanlanmagan</option>{buildings.map((building) => <option key={building.id} value={building.id}>{building.name}</option>)}</select></label>
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Xona<select value={xonaId} onChange={(event) => { setXonaId(event.target.value); setXato(""); setXabar(""); }} disabled={loading || !selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-xs" style={{ borderColor: "#D9D4C8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Xonasiz</option>{(selectedBuilding?.rooms || []).map((room) => <option key={room.id} value={room.id} disabled={bandXonaIds.has(String(room.id))}>{room.number}-xona · {room.floor}-qavat{bandXonaIds.has(String(room.id)) ? " · BAND" : ""}</option>)}</select></label>
+        </div>
+        {!loading && buildings.length === 0 && <p className="text-[11px] mt-2 p-2.5 rounded-lg" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Bu maktabda hali bino va xona yaratilmagan. Hozir smenani saqlash mumkin; xona katalogi yaratilgach shu yerdan tanlanadi.</p>}
+        <button type="button" onClick={saqla} disabled={saqlanmoqda || loading} className="w-full mt-3 py-2.5 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#2E6C55", opacity: saqlanmoqda || loading ? 0.6 : 1 }}>{saqlanmoqda ? "Saqlanmoqda..." : "Smena va xonani saqlash"}</button>
+        {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{xato}</p>}
+        {xabar && <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>{xabar}</p>}
+      </div>}
+    </div>
+  );
+}
+
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [boshSahifa, setBoshSahifa] = useState(false);
   const [importlanmoqda, setImportlanmoqda] = useState(false);
@@ -2636,6 +2744,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [importXabari, setImportXabari] = useState("");
   const [sinflar, setSinflar] = useState([]);
   const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
+  const [maktabResurslari, setMaktabResurslari] = useState([]);
+  const [resurslarYuklanmoqda, setResurslarYuklanmoqda] = useState(true);
   const [pulli, setPulli] = useState(maktab.pulli || false);
   const [oylikTolov, setOylikTolov] = useState(maktab.oylik_tolov ? String(maktab.oylik_tolov) : "");
   const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
@@ -2656,6 +2766,19 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       .catch(() => setSinflarYuklanmoqda(false));
   };
   useEffect(sinflarniYukla, [token, maktab.id]);
+
+  const resurslarniYukla = () => {
+    setResurslarYuklanmoqda(true);
+    fetch(`${API_BASE}/api/admin/maktab-resurslari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.detail || "Bino va xonalarni yuklab bo‘lmadi");
+        return d;
+      })
+      .then((d) => { setMaktabResurslari(d.buildings || []); setResurslarYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message); setResurslarYuklanmoqda(false); });
+  };
+  useEffect(resurslarniYukla, [token, maktab.id]);
 
   const fanlarniYukla = () => {
     setFanlarYuklanmoqda(true); setFanXato("");
@@ -2777,14 +2900,18 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
   if (boshSahifa) {
     return (
-      <SchoolWorkspace
-        token={token}
-        apiBase={API_BASE}
-        initialWorkspace={{ muassasa_id: maktab.id, muassasa_nomi: maktab.nomi, lavozim: "direktor" }}
-        onBack={() => setBoshSahifa(false)}
-        onLegacy={() => setBoshSahifa(false)}
-        adminPreview={true}
-      />
+      <MaktabSahifaXatoChegarasi onBack={() => setBoshSahifa(false)}>
+        <React.Suspense fallback={<OgirBolimYuklanmoqda />}>
+          <SchoolWorkspace
+            token={token}
+            apiBase={API_BASE}
+            initialWorkspace={{ muassasa_id: maktab.id, muassasa_nomi: maktab.nomi, lavozim: "direktor" }}
+            onBack={() => setBoshSahifa(false)}
+            onLegacy={() => setBoshSahifa(false)}
+            adminPreview={true}
+          />
+        </React.Suspense>
+      </MaktabSahifaXatoChegarasi>
     );
   }
 
@@ -2944,7 +3071,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
         <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>4-bosqich — Sinflar</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-          Sinflar avval yaratiladi. Xodim importi yangi sinf yaratmaydi; mavjud sinfga rahbar va dars beruvchi xodimlarni bog‘laydi.
+          Har bir sinf kartasidan smena, bo‘sh xona va bir nechta guruhlash tizimini to‘g‘ridan-to‘g‘ri boshqaring. Xodim importi yangi sinf yaratmaydi; mavjud sinfga rahbar va dars beruvchi xodimlarni bog‘laydi.
         </p>
         {sinflarYuklanmoqda ? (
           <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
@@ -2965,6 +3092,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                     ↻ Parolni tashlash
                   </button>
                 </div>
+                <SinfJoyBoshqaruvi token={token} sinf={s} sinflar={sinflar} buildings={maktabResurslari} loading={resurslarYuklanmoqda} onSaved={() => { sinflarniYukla(); resurslarniYukla(); }} />
                 <SinfGuruhBoshqaruvi token={token} sinf={s} fanlar={saqlanganFanlar} onSaved={sinflarniYukla} />
               </div>
             ))}
