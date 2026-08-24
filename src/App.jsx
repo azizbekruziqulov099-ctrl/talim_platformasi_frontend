@@ -2759,6 +2759,64 @@ function fanNomiKalitiV194(value) {
     .trim();
 }
 
+function fanNomlariniBirlashtirV194(names, canonicalByKey = new Map()) {
+  const result = [];
+  const seen = new Set();
+  (names || []).forEach((name) => {
+    const key = fanNomiKalitiV194(name);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    result.push(canonicalByKey.get(key) || String(name || "").trim());
+  });
+  return result;
+}
+
+function fanKataloginiBirlashtirV194(items) {
+  const byKey = new Map();
+  (items || []).forEach((raw) => {
+    const key = fanNomiKalitiV194(raw?.nomi);
+    if (!key) return;
+    const current = byKey.get(key);
+    const incoming = {
+      ...raw,
+      standart_sinflar: [...new Set((raw?.standart_sinflar || []).map(Number))].filter((grade) => grade >= 1 && grade <= 11).sort((a, b) => a - b),
+    };
+    if (!current) {
+      byKey.set(key, incoming);
+      return;
+    }
+    if (current.maxsus && !incoming.maxsus) {
+      byKey.set(key, {
+        ...incoming,
+        standart_sinflar: [...new Set([...(current.standart_sinflar || []), ...incoming.standart_sinflar])].sort((a, b) => a - b),
+      });
+      return;
+    }
+    byKey.set(key, {
+      ...current,
+      standart_sinflar: [...new Set([...(current.standart_sinflar || []), ...incoming.standart_sinflar])].sort((a, b) => a - b),
+    });
+  });
+  return [...byKey.values()].sort((a, b) => String(a.nomi).localeCompare(String(b.nomi), "uz"));
+}
+
+function fanSozlamalariniBirlashtirV194(items, canonicalByKey = new Map()) {
+  const byKey = new Map();
+  (items || []).forEach((item) => {
+    const key = fanNomiKalitiV194(item?.fan_nomi);
+    if (!key) return;
+    const current = byKey.get(key) || { fan_nomi: canonicalByKey.get(key) || item.fan_nomi, sinflar: [] };
+    byKey.set(key, {
+      ...current,
+      fan_nomi: canonicalByKey.get(key) || current.fan_nomi,
+      sinflar: [...new Set([...(current.sinflar || []), ...(item?.sinflar || [])].map(Number))]
+        .filter((grade) => grade >= 1 && grade <= 11)
+        .sort((a, b) => a - b),
+    });
+  });
+  return [...byKey.values()].sort((a, b) => String(a.fan_nomi).localeCompare(String(b.fan_nomi), "uz"));
+}
+
 function fanNomiMasofasiV194(left, right) {
   const a = fanNomiKalitiV194(left); const b = fanNomiKalitiV194(right);
   const row = Array.from({ length: b.length + 1 }, (_, index) => index);
@@ -2801,6 +2859,14 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [fanXato, setFanXato] = useState("");
   const [fanXabar, setFanXabar] = useState("");
   const [yangiFanNomi, setYangiFanNomi] = useState("");
+  const [fanTakrorSoni, setFanTakrorSoni] = useState(0);
+  const [ochiqBolimlar, setOchiqBolimlar] = useState({
+    tolov: false, fanlar: true, xodimlar: false, sinflar: false,
+  });
+
+  const bolimniAlmashtir = (key) => {
+    setOchiqBolimlar((current) => ({ ...current, [key]: !current[key] }));
+  };
 
   const sinflarniYukla = () => {
     setSinflarYuklanmoqda(true);
@@ -2833,15 +2899,24 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         return d;
       })
       .then((d) => {
-        setFanKatalogi(d.fanlar || []);
-        setTanlanganFanlar(d.tanlangan_fanlar || []);
-        setSaqlanganFanlar(d.tanlangan_fanlar || []);
-        const settings = d.fan_sinflari || [];
+        const catalog = fanKataloginiBirlashtirV194(d.fanlar || []);
+        const canonicalByKey = new Map(catalog.map((fan) => [fanNomiKalitiV194(fan.nomi), fan.nomi]));
+        const settings = fanSozlamalariniBirlashtirV194(d.fan_sinflari || [], canonicalByKey);
+        const selected = fanNomlariniBirlashtirV194([
+          ...(d.tanlangan_fanlar || []), ...settings.map((item) => item.fan_nomi),
+        ], canonicalByKey);
+        setFanKatalogi(catalog);
+        setTanlanganFanlar(selected);
+        setSaqlanganFanlar(selected);
         setFanSinflari(Object.fromEntries(settings.map((item) => [item.fan_nomi, item.sinflar || []])));
         setSaqlanganFanSozlamalari(settings.map((item) => ({ fan_nomi: item.fan_nomi, sinflar: [...(item.sinflar || [])].sort((a, b) => a - b) })));
         setFanOchirishTasdiqlari([]);
         setFanOchirishTasdiqi(null);
         setRasmiyReja(d.rasmiy_reja || null);
+        setFanTakrorSoni(Number(d.takror_yozuv_soni || 0));
+        if (Number(d.takror_yozuv_soni || 0) > 0) {
+          setFanXabar(`${d.takror_yozuv_soni} ta eski takror fan/bog‘lanma topildi. Bitta nusxaga birlashtirish uchun saqlang.`);
+        }
         setFanlarYuklanmoqda(false);
       })
       .catch((e) => { setFanXato(e.message); setFanlarYuklanmoqda(false); });
@@ -2850,14 +2925,23 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
   const fanTanlashniDarholAlmashtir = (fanNomi) => {
     setFanXabar("");
-    const catalogItem = fanKatalogi.find((fan) => fan.nomi === fanNomi);
+    const key = fanNomiKalitiV194(fanNomi);
+    const catalogItem = fanKatalogi.find((fan) => fanNomiKalitiV194(fan.nomi) === key);
+    const canonicalName = catalogItem?.nomi || fanNomi;
     setTanlanganFanlar((avvalgi) => {
-      if (avvalgi.includes(fanNomi)) {
-        setFanSinflari((current) => { const next = { ...current }; delete next[fanNomi]; return next; });
-        return avvalgi.filter((nom) => nom !== fanNomi);
+      const mavjud = avvalgi.some((nom) => fanNomiKalitiV194(nom) === key);
+      if (mavjud) {
+        setFanSinflari((current) => {
+          const next = { ...current };
+          Object.keys(next).forEach((name) => {
+            if (fanNomiKalitiV194(name) === key) delete next[name];
+          });
+          return next;
+        });
+        return avvalgi.filter((nom) => fanNomiKalitiV194(nom) !== key);
       }
-      setFanSinflari((current) => ({ ...current, [fanNomi]: [...(catalogItem?.standart_sinflar || [])] }));
-      return [...avvalgi, fanNomi];
+      setFanSinflari((current) => ({ ...current, [canonicalName]: [...(catalogItem?.standart_sinflar || [])] }));
+      return fanNomlariniBirlashtirV194([...avvalgi, canonicalName]);
     });
   };
 
@@ -2913,10 +2997,14 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     const finalName = mavjud?.nomi || nomi;
     const schoolGrades = [...new Set(sinflar.map((cls) => Number(String(cls.sinf || "").match(/\d+/)?.[0] || 0)).filter((grade) => grade >= 1 && grade <= 11))].sort((a, b) => a - b);
     if (!mavjud) setFanKatalogi((avvalgi) => [...avvalgi, { nomi: finalName, manba: "Maktab qo‘shgan · maxsus", standart_sinflar: schoolGrades, maxsus: true }]);
-    setTanlanganFanlar((avvalgi) => avvalgi.includes(finalName) ? avvalgi : [...avvalgi, finalName]);
+    const alreadySelected = tanlanganFanlar.some((name) => fanNomiKalitiV194(name) === fanNomiKalitiV194(finalName));
+    setTanlanganFanlar((avvalgi) => fanNomlariniBirlashtirV194([...avvalgi, finalName]));
     setFanSinflari((current) => ({ ...current, [finalName]: current[finalName] || [...(mavjud?.standart_sinflar || schoolGrades)] }));
     if (imloTasdiq) setImloTasdiqlanganFanlar((current) => current.includes(finalName) ? current : [...current, finalName]);
-    setYangiFanNomi(""); setFanTaklifi(null); setFanXato(""); setFanXabar("Fan tanlovga qo‘shildi. Sinflarini tekshirib, saqlang.");
+    setYangiFanNomi(""); setFanTaklifi(null); setFanXato("");
+    setFanXabar(alreadySelected
+      ? "Bu fan ro‘yxatda bor. Ikkinchi nusxa yaratilmadi."
+      : "Fan tanlovga qo‘shildi. Sinflarini tekshirib, saqlang.");
   };
 
   const yangiFanQosh = () => {
@@ -2995,13 +3083,18 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         return;
       }
       if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Fanlarni saqlab bo'lmadi");
-      setTanlanganFanlar(d.tanlangan_fanlar || []);
-      setSaqlanganFanlar(d.tanlangan_fanlar || []);
-      const settings = d.fan_sinflari || [];
+      const catalog = fanKataloginiBirlashtirV194(fanKatalogi);
+      const canonicalByKey = new Map(catalog.map((fan) => [fanNomiKalitiV194(fan.nomi), fan.nomi]));
+      const settings = fanSozlamalariniBirlashtirV194(d.fan_sinflari || [], canonicalByKey);
+      const selected = fanNomlariniBirlashtirV194(d.tanlangan_fanlar || [], canonicalByKey);
+      setFanKatalogi(catalog);
+      setTanlanganFanlar(selected);
+      setSaqlanganFanlar(selected);
       setFanSinflari(Object.fromEntries(settings.map((item) => [item.fan_nomi, item.sinflar || []])));
       setSaqlanganFanSozlamalari(settings.map((item) => ({ fan_nomi: item.fan_nomi, sinflar: [...(item.sinflar || [])].sort((a, b) => a - b) })));
       setFanOchirishTasdiqlari([]);
       setFanOchirishTasdiqi(null);
+      setFanTakrorSoni(0);
       setFanXabar(`✅ ${d.tanlangan_fanlar?.length || 0} ta fan va ularning sinflari saqlandi.${d.ogohlantirish ? ` ${d.ogohlantirish}` : ""}`);
     } catch (e) {
       setFanXato(e.message);
@@ -3041,14 +3134,36 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   };
 
   const fanSozlamaImzosi = (names, settings) => JSON.stringify(
-    [...names].sort((a, b) => a.localeCompare(b, "uz")).map((fan_nomi) => ({
+    fanNomlariniBirlashtirV194(names).sort((a, b) => a.localeCompare(b, "uz")).map((fan_nomi) => ({
       fan_nomi,
-      sinflar: [...(settings[fan_nomi] || [])].sort((a, b) => a - b),
+      sinflar: [...new Set(Object.entries(settings || {})
+        .filter(([name]) => fanNomiKalitiV194(name) === fanNomiKalitiV194(fan_nomi))
+        .flatMap(([, grades]) => grades || []))].sort((a, b) => a - b),
     }))
   );
   const savedSettingsMap = Object.fromEntries(saqlanganFanSozlamalari.map((item) => [item.fan_nomi, item.sinflar || []]));
-  const fanlarOzgargan = fanSozlamaImzosi(tanlanganFanlar, fanSinflari) !== fanSozlamaImzosi(saqlanganFanlar, savedSettingsMap);
+  const fanlarOzgargan = fanTakrorSoni > 0 || fanSozlamaImzosi(tanlanganFanlar, fanSinflari) !== fanSozlamaImzosi(saqlanganFanlar, savedSettingsMap);
   const fanlarTayyor = saqlanganFanlar.length > 0 && !fanlarOzgargan;
+  const rasmiyFanKalitlari = new Set(
+    fanKatalogi.filter((fan) => !fan.maxsus).map((fan) => fanNomiKalitiV194(fan.nomi))
+  );
+  const maxsusTanlanganFanlar = tanlanganFanlar.filter(
+    (name) => !rasmiyFanKalitlari.has(fanNomiKalitiV194(name))
+  );
+
+  const maxsusFanlarniTanlovdanChiqar = () => {
+    const officialNames = tanlanganFanlar.filter(
+      (name) => rasmiyFanKalitlari.has(fanNomiKalitiV194(name))
+    );
+    setTanlanganFanlar(fanNomlariniBirlashtirV194(officialNames));
+    setFanSinflari((current) => Object.fromEntries(
+      Object.entries(current).filter(([name]) => rasmiyFanKalitlari.has(fanNomiKalitiV194(name)))
+    ));
+    setFanOchirishTasdiqlari([]);
+    setFanOchirishTasdiqi(null);
+    setFanXato("");
+    setFanXabar(`${maxsusTanlanganFanlar.length} ta rasmiy bo‘lmagan fan tanlovdan chiqarildi. Bog‘lanmalari bo‘lsa, saqlashda tizim alohida ogohlantiradi.`);
+  };
 
   const parolniTashla = async (sinfId) => {
     await fetch(`${API_BASE}/api/admin/sinf_parolini_tashla?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`, { method: "PUT" });
@@ -3141,7 +3256,11 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         </button>
       </div>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>💳 To'lov sozlamalari</p>
+        <button type="button" onClick={() => bolimniAlmashtir("tolov")} className="w-full flex items-center justify-between gap-3 text-left" aria-expanded={ochiqBolimlar.tolov}>
+          <span><b className="block text-sm" style={{ color: "#2B2B2B" }}>1-bosqich — To‘lov sozlamalari</b><small className="block text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{pulli ? `Pulli${oylikTolov ? ` · ${oylikTolov} so‘m` : ""}` : "Bepul davlat maktabi"}</small></span>
+          <ChevronDown size={18} style={{ color: "#8A8578", transform: ochiqBolimlar.tolov ? "rotate(180deg)" : "none", transition: "transform .2s" }}/>
+        </button>
+        {ochiqBolimlar.tolov && <div className="mt-4 pt-4 border-t" style={{ borderColor: "#F0ECE3" }}>
         <div className="flex gap-2 mb-3">
           <button onClick={() => setPulli(false)}
             className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
@@ -3166,21 +3285,24 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           className="w-full py-2.5 rounded-xl font-semibold text-sm" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A", opacity: tolovSaqlanmoqda ? 0.7 : 1 }}>
           {tolovSaqlanmoqda ? "Saqlanmoqda..." : "Saqlash"}
         </button>
+        </div>}
       </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: fanlarTayyor ? "#BFD5AA" : "#E5E1D8" }}>
-        <div className="flex items-start justify-between gap-3 mb-1">
+        <button type="button" onClick={() => bolimniAlmashtir("fanlar")} className="w-full flex items-start justify-between gap-3 text-left" aria-expanded={ochiqBolimlar.fanlar}>
           <div>
             <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — Maktab fanlarini tanlash</p>
             <p className="text-xs mt-1" style={{ color: "#8A8578" }}>
               Fanlarni tanlang va har biri qaysi 1–11-sinflarda o‘tilishini belgilang. O‘quv reja avtomatik soatni faqat shu bog‘lanmalarga qo‘yadi.
             </p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
+          <span className="flex items-center gap-2 shrink-0"><span className="text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: fanlarTayyor ? "#EAF4DF" : "#F7F5F0", color: fanlarTayyor ? "#3B6D11" : "#8A8578" }}>
             {fanlarTayyor ? `${saqlanganFanlar.length} ta saqlangan` : "Saqlanmagan"}
-          </span>
-        </div>
+          </span><ChevronDown size={18} style={{ color: "#8A8578", transform: ochiqBolimlar.fanlar ? "rotate(180deg)" : "none", transition: "transform .2s" }}/></span>
+        </button>
+
+        {ochiqBolimlar.fanlar && <div className="mt-4 pt-4 border-t" style={{ borderColor: "#F0ECE3" }}>
 
         {saqlanganFanSozlamalari.length > 0 && <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "#F2F8ED" }}>
           <div className="text-[11px] font-bold mb-2" style={{ color: "#3B6D11" }}>HOZIR SAQLANGAN FANLAR</div>
@@ -3256,8 +3378,12 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                 setFanXabar("");
               }}
                 className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                ⚡ Rasmiy 2026–2027 fanlarini tanlash
+                ⚡ Rasmiy 1–11 fanlarini tanlash
               </button>
+              {maxsusTanlanganFanlar.length > 0 && <button type="button" onClick={maxsusFanlarniTanlovdanChiqar}
+                className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: "#FFF1EE", color: "#B0553A", border: "1px solid #EBC5BC" }}>
+                Rasmiy bo‘lmagan {maxsusTanlanganFanlar.length} ta fanni chiqarish
+              </button>}
               <button type="button" onClick={() => {
                 setTanlanganFanlar([...saqlanganFanlar]);
                 setFanSinflari(Object.fromEntries(saqlanganFanSozlamalari.map((item) => [item.fan_nomi, [...item.sinflar]])));
@@ -3286,7 +3412,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                     <span>
                       <span className="block text-sm font-semibold">{fan.nomi}</span>
                       <span className="block text-xs mt-0.5" style={{ color: "#8A8578" }}>
-                        {fan.manba || "DTS tavsiyasi"}{(fan.standart_sinflar || []).length ? ` · ${fan.standart_sinflar.join(", ")}-sinflar` : " · maxsus fan"}
+                        {fan.maxsus ? "Maktab qo‘shgan maxsus fan" : "Rasmiy 1–11 fan"}{(fan.standart_sinflar || []).length ? ` · ${fan.standart_sinflar.join(", ")}-sinflar` : ""}
                       </span>
                     </span>
                   </button>
@@ -3332,15 +3458,20 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
               {fanlarSaqlanmoqda ? "Saqlanmoqda..." : fanlarOzgargan ? "Tanlangan fanlarni saqlash" : "Fanlar saqlangan"}
             </button>
             {tanlanganFanlar.some((fan) => !(fanSinflari[fan] || []).length) && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>Har bir tanlangan fan uchun kamida bitta sinfni belgilang.</p>}
-            {rasmiyReja && <p className="text-[10px] mt-2 text-center" style={{ color: "#8A8578" }}>Avtomatik soatlar manbasi: {rasmiyReja.buyruq}, {rasmiyReja.sana}, {rasmiyReja.ilova}.</p>}
+            {rasmiyReja && <p className="text-[10px] mt-2 text-center" style={{ color: "#8A8578" }}>Avtomatik soatlar maktab tasdiqlagan o‘quv rejadan olinadi.</p>}
           </>
         )}
         {fanXato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{fanXato}</p>}
         {fanXabar && <p className="text-sm mt-3" style={{ color: "#3B6D11" }}>{fanXabar}</p>}
+        </div>}
       </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish · V19.3</p>
+        <button type="button" onClick={() => bolimniAlmashtir("xodimlar")} className="w-full flex items-center justify-between gap-3 text-left" aria-expanded={ochiqBolimlar.xodimlar}>
+          <span><b className="block text-sm" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish</b><small className="block text-[11px] mt-0.5" style={{ color: "#8A8578" }}>Bitta o‘qituvchi — bitta qatorli shablon</small></span>
+          <ChevronDown size={18} style={{ color: "#8A8578", transform: ochiqBolimlar.xodimlar ? "rotate(180deg)" : "none", transition: "transform .2s" }}/>
+        </button>
+        {ochiqBolimlar.xodimlar && <div className="mt-4 pt-4 border-t" style={{ borderColor: "#F0ECE3" }}>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
           <b>Bitta o‘qituvchi faqat bitta qatorda yoziladi.</b> Avval 1-FANni
           tanlang, keyingi kataklarda shu fan o‘tiladigan sinf yoki aniq guruhni
@@ -3362,6 +3493,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           <input type="file" accept=".xlsx" onChange={faylTanlandi} disabled={importlanmoqda || !fanlarTayyor} className="hidden" />
         </label>
         {xato && <p className="text-sm mt-3 whitespace-pre-line" style={{ color: "#B0553A" }}>{xato}</p>}
+        </div>}
       </div>
 
       {importXabari && (
@@ -3371,7 +3503,11 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       )}
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>4-bosqich — Sinflar</p>
+        <button type="button" onClick={() => bolimniAlmashtir("sinflar")} className="w-full flex items-center justify-between gap-3 text-left" aria-expanded={ochiqBolimlar.sinflar}>
+          <span><b className="block text-sm" style={{ color: "#2B2B2B" }}>4-bosqich — Sinflar</b><small className="block text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{sinflar.length} ta sinf · smena, xona va guruhlar</small></span>
+          <ChevronDown size={18} style={{ color: "#8A8578", transform: ochiqBolimlar.sinflar ? "rotate(180deg)" : "none", transition: "transform .2s" }}/>
+        </button>
+        {ochiqBolimlar.sinflar && <div className="mt-4 pt-4 border-t" style={{ borderColor: "#F0ECE3" }}>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
           Har bir sinf kartasidan smena, bo‘sh xona va bir nechta guruhlash tizimini to‘g‘ridan-to‘g‘ri boshqaring. Xodim importi yangi sinf yaratmaydi; mavjud sinfga rahbar va dars beruvchi xodimlarni bog‘laydi.
         </p>
@@ -3400,6 +3536,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
             ))}
           </div>
         )}
+        </div>}
       </div>
     </div>
   );
