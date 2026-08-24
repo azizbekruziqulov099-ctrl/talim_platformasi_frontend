@@ -2406,7 +2406,10 @@ function primaryTeacherCanTeachV193(subject) {
   ].some(blocked => key.includes(blocked));
 }
 
-function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged, startWithNew = false }) {
+function TeacherFirstLoadEditorV192({
+  token, apiBase, maktabId, onChanged, startWithNew = false,
+  planOnly = false, showPlan = true,
+}) {
   const [data, setData] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [rows, setRows] = useState([]);
@@ -2756,8 +2759,8 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged, start
   }
 
   return <div className="space-y-4">
-    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-    {entryCode && <div className="rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
+    {!planOnly && message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    {!planOnly && entryCode && <div className="rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
       <div className="flex-1 min-w-[240px]">
         <div className="text-xs font-black" style={{ color: palette.green }}>YANGI O‘QITUVCHINING 7 KUNLIK KIRISH KODI</div>
         <div className="text-xl font-black tracking-[.18em] mt-1" style={{ color: palette.ink }}>{entryCode}</div>
@@ -2766,7 +2769,7 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged, start
       <button onClick={() => navigator.clipboard?.writeText(entryCode)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.green, color: "#fff" }}>Kodni nusxalash</button>
     </div>}
 
-    <Card className="p-5">
+    {showPlan && <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>1-QADAM · O‘QUV REJA</div>
@@ -2819,12 +2822,15 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged, start
           <button onClick={() => setPlanRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="h-9 rounded-lg font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
         </div>)}
       </div>
-    </Card>
+    </Card>}
 
     {data?.oquv_reja?.holat !== "tasdiqlangan" && <SmartNotice tone="warning">
-      O‘qituvchi yuklamasini saqlashdan oldin yuqoridagi o‘quv rejani tasdiqlang.
+      {planOnly
+        ? "Fan–sinf–haftalik soatlarni tekshirib, rejani tasdiqlang. Shundan keyin o‘qituvchi qo‘shish ochiladi."
+        : "O‘qituvchi qo‘shish bloklangan. Bosh sahifadagi “O‘quv reja” oynasidan rejani tasdiqlang."}
     </SmartNotice>}
 
+    {!planOnly && <>
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -3036,6 +3042,7 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged, start
         Excel shabloni olib tashlanmadi: katta ro‘yxatni Excel orqali import qilish mumkin. Saytdagi ushbu oyna ham, Excel ham bir xil aniq yuklama manbasiga yozadi.
       </div>
     </Card>
+    </>}
   </div>;
 }
 
@@ -3065,7 +3072,7 @@ function LoadsStep(props) {
     {mode === "teacher"
       ? <>
           <ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>
-          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload}/>
+          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/>
         </>
       : <LegacyLoadsStepV191 {...props}/>}
   </div>;
@@ -4285,6 +4292,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
   const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
+  const [curriculumOpen, setCurriculumOpen] = useState(false);
+  const [curriculumStatus, setCurriculumStatus] = useState(null);
 
   const loadManager = () => {
     if (teacherMode) return;
@@ -4297,7 +4306,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       smartFetch(`${apiBase}/api/maktab/dashboard_xavfsiz?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
       smartFetch(`${apiBase}/api/maktab/yuklama_xulosasi_xavfsiz?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
       smartFetch(`${apiBase}/api/maktab/aqlli_holatlar_xavfsiz?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
-    ]).then(([dashboardResult, workloadResult, casesResult]) => {
+      smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
+    ]).then(([dashboardResult, workloadResult, casesResult, curriculumResult]) => {
       const warnings = [];
       if (dashboardResult.status === "fulfilled") {
         setDashboard(dashboardResult.value);
@@ -4320,6 +4330,12 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         setHolatlar([]);
         warnings.push(`Aqlli holatlar vaqtincha yuklanmadi: ${casesResult.reason?.message || "server xatosi"}`);
       }
+      if (curriculumResult.status === "fulfilled") {
+        setCurriculumStatus(curriculumResult.value.oquv_reja?.holat || "draft");
+      } else {
+        setCurriculumStatus("draft");
+        warnings.push(`O‘quv reja holati yuklanmadi: ${curriculumResult.reason?.message || "server xatosi"}`);
+      }
       setLoadWarnings([...new Set(warnings.filter(Boolean))]);
     }).finally(() => setLoading(false));
   };
@@ -4329,13 +4345,32 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     ?? dashboard?.sinflar?.reduce((a,s)=>a+(Number(s.oquvchi_soni)||0),0) ?? 0;
   const yuklamaMuammo = useMemo(() => yuklama.filter(x => x.holat === "ortiqcha" || x.holat === "yetishmaydi"), [yuklama]);
   const schoolName = dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab");
+  const curriculumApproved = curriculumStatus === "tasdiqlangan";
+  const openTeacherEditor = () => {
+    if (!curriculumApproved) {
+      setCurriculumOpen(true);
+      return;
+    }
+    setTeacherEditorOpen(true);
+  };
+
+  if (curriculumOpen) {
+    return <WorkspacePortal>
+      <div className="min-h-screen">
+        <SmartHeader title={`${schoolName} · O‘quv reja`} subtitle="Fan → sinf → haftalik soat → tasdiqlash" onClose={() => { setCurriculumOpen(false); loadManager(); }}/>
+        <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
+          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} planOnly onChanged={loadManager}/>
+        </main>
+      </div>
+    </WorkspacePortal>;
+  }
 
   if (teacherEditorOpen) {
     return <WorkspacePortal>
       <div className="min-h-screen">
         <SmartHeader title={`${schoolName} · O‘qituvchi qo‘shish`} subtitle="F.I.Sh. → fan → sinf yoki guruh → haftalik soat → jadval yuklamasi" onClose={() => setTeacherEditorOpen(false)}/>
         <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
-          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} startWithNew onChanged={loadManager}/>
+          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} startWithNew showPlan={false} onChanged={loadManager}/>
         </main>
       </div>
     </WorkspacePortal>;
@@ -4377,7 +4412,10 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         <SmartHeader title={schoolName} subtitle="Maktab boshqaruv markazi" onClose={onBack} badge="MAKTAB WORKSPACE"/>
         <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
           <div className="flex flex-wrap justify-end gap-2 mb-5">
-            <button onClick={() => setTeacherEditorOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
+            <button onClick={() => setCurriculumOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: curriculumApproved ? palette.green : palette.amber, color: "#fff" }}>
+              <BookOpen size={16}/> O‘quv reja {curriculumApproved ? "✓" : "· tasdiqlanmagan"}
+            </button>
+            <button onClick={openTeacherEditor} disabled={!curriculumApproved} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.teal, color: "#fff" }} title={curriculumApproved ? "O‘qituvchi qo‘shish" : "Avval o‘quv rejani tasdiqlang"}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
             <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
             {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
             <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
@@ -4413,7 +4451,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <Card className="p-5">
                 <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
                 <div className="space-y-2">
-                  <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc="F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." onClick={() => setTeacherEditorOpen(true)}/>
+                  <QuickAction icon={<BookOpen size={18}/>} title={`O‘quv reja · ${curriculumApproved ? "tasdiqlangan" : "tasdiqlanmagan"}`} desc="Avval fan–sinf–haftalik soatlarni tekshiring va tasdiqlang." onClick={() => setCurriculumOpen(true)}/>
+                  <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc={curriculumApproved ? "F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." : "Bloklangan: avval o‘quv rejani tasdiqlang."} onClick={openTeacherEditor}/>
                   <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → bo‘sh vaqt → fan soati → draft → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
                   <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
                   <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
@@ -4428,7 +4467,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                     <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchilar</div>
                     <div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Haftalik yuklama</div>
                   </div>
-                  <button onClick={() => setTeacherEditorOpen(true)} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }}>
+                  <button onClick={openTeacherEditor} disabled={!curriculumApproved} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.teal, color: "#fff" }}>
                     <UserCog size={16}/> + O‘qituvchi
                   </button>
                 </div>
@@ -4437,7 +4476,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                   {!yuklama.length&&<div className="rounded-2xl border-2 border-dashed p-5 text-center" style={{ borderColor: palette.line, background: palette.cream }}>
                     <div className="text-sm font-black" style={{ color: palette.ink }}>Hali o‘qituvchi kiritilmagan</div>
                     <div className="text-xs mt-1" style={{ color: palette.muted }}>F.I.Sh., fan, sinf yoki guruh va haftalik soatni qo‘lda kiriting.</div>
-                    <button onClick={() => setTeacherEditorOpen(true)} className="mt-3 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
+                    <button onClick={openTeacherEditor} disabled={!curriculumApproved} className="mt-3 px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.teal }}>
                       + Birinchi o‘qituvchini qo‘shish
                     </button>
                   </div>}
