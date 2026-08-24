@@ -3049,17 +3049,15 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       </div>
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish · V19.2</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>3-bosqich — Xodimlarni kiritish · V19.3</p>
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
-          Katakni bosib lavozim, sinf, fan va toifani tayyor ro‘yxatdan tanlang.
-          Yangi shablonda butun sinf va barcha 1–4-guruh, o‘g‘il/qiz hamda
-          mustaqil guruhlar bitta <b>XODIMLAR</b> varag‘ida aniq fan bilan
-          chiqadi. Alohida GURUHLI_DARSLAR varag‘i yo‘q. Saytda esa “Aqlli
-          jadval → O‘qituvchi + fan-soat” oynasidan shu ma’lumotlarni Excelsiz
-          ham kiritish mumkin. Har bir qatorda fan–sinf–guruh–soat aniq
-          saqlanadi, shuning uchun bir o‘qituvchining fanlari aralashmaydi.
-          Yangi o‘qituvchining o‘zini ham shu oynadagi “Qo‘lda kiritish”
-          tugmasi orqali yaratish mumkin.
+          <b>Bitta o‘qituvchi faqat bitta qatorda yoziladi.</b> Avval 1-FANni
+          tanlang, keyingi kataklarda shu fan o‘tiladigan sinf yoki aniq guruhni
+          va uning yonida haftalik soatni kiriting. Shu fan boshqa sinflarga ham
+          o‘tilsa, 1.2, 1.3 va keyingi kataklardan davom eting. Boshqa fan uchun
+          2-FAN blokiga o‘ting. Har bir fan uchun 16 ta sinf/guruh, jami 5 ta fan
+          bloki bor; haftalik jami avtomatik hisoblanadi. Eski shablonlar ham
+          import qilinaveradi.
         </p>
         {!fanlarTayyor && <p className="text-xs mb-3 p-3 rounded-xl" style={{ backgroundColor: "#FFF5E2", color: "#8A5A1C" }}>Avval yuqoridagi maktab fanlarini tanlab saqlang.</p>}
         <button onClick={shablonYukla} disabled={!fanlarTayyor}
