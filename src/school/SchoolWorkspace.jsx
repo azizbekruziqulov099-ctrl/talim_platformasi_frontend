@@ -2355,7 +2355,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
 function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep }) {
   const [classId,setClassId]=useState(String(setup?.sinflar?.[0]?.id||""));
-  const [rows,setRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
+  const [rows,setRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [roomType,setRoomType]=useState("reserve"); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
   const assignments=useMemo(()=> (setup?.birikmalar||[]).filter(x=>String(x.sinf_id)===String(classId)),[setup,classId]);
   useEffect(()=>{
     if(!classId){setRows([]);return;}
@@ -2367,8 +2367,8 @@ function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep 
   const addSubject=()=>{if(!newSubject||rows.some(r=>r.fan_nomi===newSubject))return;setRows([...rows,{fan_nomi:newSubject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}]);setNewSubject("");};
   const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});setMessage({tone:"success",text:"Haftalik fan soatlari saqlandi. Guruh o‘qituvchilari 4-bosqichdagi bitta tasdiqlash oynasida boshqariladi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
   const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
-  const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:"maxsus"})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
-  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Informatika xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
+  const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:roomType})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
+  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Ingliz tili zaxira xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold min-w-[210px]" style={{color:palette.ink}}>Xona turi<select value={roomType} onChange={e=>setRoomType(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="reserve">Zaxira / guruh xonasi</option><option value="sport">Sport zal</option><option value="classroom">Oddiy dars xonasi</option><option value="non_teaching">Dars o‘tilmaydigan xona</option></select></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
   <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
   <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini 4-bosqichdagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
   </Card></div>;
@@ -2781,9 +2781,12 @@ function LoadsStep(props) {
   </div>;
 }
 
-function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
+function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged }) {
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
+  const [roomEditor, setRoomEditor] = useState(null);
+  const [roomMessage, setRoomMessage] = useState(null);
+  const [savingRoom, setSavingRoom] = useState(false);
   const gradeNumber = Number(String(classRow?.sinf || '').match(/\d+/)?.[0] || 0);
   const rules = setup?.sinf_kun_bloklari || setup?.avtomatik_qoidalar?.sinf_kun_bloklari || [];
   const blockedDays = new Set(rules.filter(rule =>
@@ -2796,8 +2799,43 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
   const periods = Math.min(Number(shiftRow?.dars_soni || 7), sanitaryPeriodLimit);
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
 
+  const openRoomEditor = slot => setRoomEditor({
+    slotId: Number(slot.id),
+    catalogId: slot.xona_id ? String(slot.xona_id) : "",
+    customName: slot.xona_id ? "" : String(slot.xona_nomi || slot.xona_matni || ""),
+  });
+
+  const saveRoom = async slot => {
+    if (!roomEditor || Number(roomEditor.slotId) !== Number(slot.id)) return;
+    setSavingRoom(true);
+    setRoomMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/slot_xonasi?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            urinish_id: Number(detail?.urinish?.id),
+            slot_id: Number(slot.id),
+            xona_id: roomEditor.catalogId ? Number(roomEditor.catalogId) : null,
+            xona_matni: roomEditor.catalogId ? null : roomEditor.customName.trim() || null,
+          }),
+        }
+      );
+      setRoomEditor(null);
+      setRoomMessage({ tone: "success", text: `${result.xona || "Sinf xonasi"} saqlandi.${result.yangi_draft ? " Faol jadval saqlanib, yangi draft ochildi." : ""}` });
+      await onRoomChanged?.(result);
+    } catch (error) {
+      setRoomMessage({ tone: "error", text: error.message });
+    } finally {
+      setSavingRoom(false);
+    }
+  };
+
   return (
     <Card className="p-4">
+      {roomMessage && <div className="mb-3"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="font-black" style={{ color: palette.ink }}>Jadval ko‘rinishi</h3>
@@ -2820,7 +2858,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass }) {
                 const blocked = blockedDays.has(day);
                 const cell = blocked ? [] : slots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.dars_raqami) === periodIndex + 1);
                 return <td key={day} className="align-top"><div className="min-h-[76px] rounded-xl border p-2" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
-                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-1 last:mb-0"><div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div><div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}{slot.guruh_kaliti !== 'whole' ? ` · ${slot.guruh_kaliti}` : ''}</div></div>)}
+                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-2 last:mb-0 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,.72)" }}><div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div><div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}{slot.guruh_kaliti !== 'whole' ? ` · ${slot.guruh_kaliti}` : ''}</div><button type="button" onClick={() => openRoomEditor(slot)} className="mt-1 text-left text-[10px] font-bold" style={{ color: slot.xona_nomi || slot.xona_matni ? palette.blue : palette.red }}>Xona: {slot.xona_nomi || slot.xona_matni || "yozilmagan"} · tahrirlash</button>{Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-2 rounded-lg border p-2 space-y-1.5" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1.5 rounded-lg border bg-white text-[10px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205 yoki boshqa bino 102" maxLength={80} className="w-full p-1.5 rounded-lg border text-[10px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-2 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}</div>)}
                 </div></td>;
               })}
             </tr>
@@ -3034,13 +3072,13 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
     asosiy_oqituvchi_user_id: pair.asosiy_oqituvchi_user_id
       ? Number(pair.asosiy_oqituvchi_user_id)
       : null,
-    guruhlar: (pair.guruhlar || []).map(group => ({
+    guruhlar: (pair.guruhlar || []).map((group, index) => ({
       guruh_kaliti: group.guruh_kaliti,
       guruh_nomi: group.guruh_nomi,
       oqituvchi_user_id: group.oqituvchi_user_id
         ? Number(group.oqituvchi_user_id)
         : null,
-      xona_id: group.xona_id ? Number(group.xona_id) : null,
+      xona_id: index === 0 ? null : (group.xona_id ? Number(group.xona_id) : null),
     })),
   });
 
@@ -3102,7 +3140,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
             suggested?.oqituvchi_user_id ||
             importedTeacher?.user_id ||
             null,
-          xona_id: old?.xona_id || suggested?.xona_id || null,
+          xona_id: index === 0 ? null : (old?.xona_id || suggested?.xona_id || null),
         };
       }),
     });
@@ -3120,6 +3158,28 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
             }
           : group
       ),
+    });
+  };
+
+  const updateGroupRoom = (pair, groupKey, roomId) => {
+    const key = keyOf(pair);
+    const current = drafts[key] || makeDraft(pair);
+    updateDraft(pair, {
+      guruhlar: (current.guruhlar || []).map(group =>
+        group.guruh_kaliti === groupKey
+          ? { ...group, xona_id: roomId ? Number(roomId) : null }
+          : group
+      ),
+    });
+  };
+
+  const roomOptionsFor = pair => {
+    const subject = String(pair.fan_nomi || "").toLocaleLowerCase("uz");
+    const sportSubject = /jismoniy|sport|fizkultura/.test(subject);
+    return [...(report?.xonalar || [])].sort((left, right) => {
+      const leftPreferred = sportSubject ? left.turi === "sport" : left.turi === "reserve";
+      const rightPreferred = sportSubject ? right.turi === "sport" : right.turi === "reserve";
+      return Number(rightPreferred) - Number(leftPreferred) || String(left.nomi).localeCompare(String(right.nomi));
     });
   };
 
@@ -3586,13 +3646,13 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
 
                       {draft.turi === "group" && (
                         <div className="grid md:grid-cols-2 gap-2 mt-3">
-                          {(draft.guruhlar || []).map(group => (
+                          {(draft.guruhlar || []).map((group, groupIndex) => (
                             <label
                               key={group.guruh_kaliti}
                               className="rounded-xl border p-3 text-xs font-bold"
                               style={{
-                                borderColor: palette.line,
-                                background: "#fff",
+                                borderColor: groupIndex > 0 && !group.xona_id ? "#E4B7AE" : palette.line,
+                                background: groupIndex > 0 && !group.xona_id ? "#FFF8F6" : "#fff",
                                 color: palette.ink,
                               }}
                             >
@@ -3615,6 +3675,16 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                                   </option>
                                 ))}
                               </select>
+                              {groupIndex === 0 ? <div className="w-full mt-2 p-2.5 rounded-xl border font-normal" style={{ borderColor: "#B9DFC5", background: palette.greenBg, color: palette.green }}>Xona: sinfning o‘z xonasi</div> : <select
+                                value={group.xona_id || ""}
+                                onChange={event => updateGroupRoom(pair, group.guruh_kaliti, event.target.value)}
+                                className="w-full mt-2 p-2.5 rounded-xl border bg-white"
+                                style={{ borderColor: group.xona_id ? palette.line : "#E4B7AE" }}
+                              >
+                                <option value="">Bo‘linishga xona topilmadi</option>
+                                {roomOptionsFor(pair).map(room => <option key={room.id} value={room.id}>{room.nomi} · {room.turi === "sport" ? "sport zal" : room.turi === "reserve" ? "zaxira/guruh" : "dars xonasi"}</option>)}
+                              </select>}
+                              {groupIndex > 0 && !group.xona_id && <div className="mt-1.5 text-[10px] font-normal" style={{ color: "#B0553A" }}>Bo‘linishga xona topilmadi. Sport zal yoki zaxira xona yarating; zarur bo‘lsa jadvalda xonani qo‘lda yozasiz.</div>}
                               <div className="mt-1 font-normal" style={{ color: palette.muted }}>
                                 O‘quvchi: {group.oquvchi_soni ?? 0} · shu guruh
                                 o‘qituvchisiga haftasiga {pair.haftalik_soat || "—"} soat
@@ -3867,7 +3937,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </Card>
     </div>
 
-    {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass}/>}
+    {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
     {detail && <SmartSwapPanelV192
       token={token}
       apiBase={apiBase}
