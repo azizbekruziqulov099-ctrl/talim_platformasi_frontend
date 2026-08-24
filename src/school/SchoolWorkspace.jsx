@@ -2375,7 +2375,19 @@ function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep 
 }
 
 
-function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
+function emptyTeacherLoadRowV192(matrix) {
+  const firstClass = matrix?.sinflar?.[0];
+  return {
+    sinf_id: String(firstClass?.id || ""),
+    fan_nomi: String(matrix?.fanlar?.[0] || ""),
+    guruh_kaliti: "whole",
+    haftalik_soat: 1,
+    kunlik_max: 1,
+    xona_id: "",
+  };
+}
+
+function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged, startWithNew = false }) {
   const [data, setData] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [rows, setRows] = useState([]);
@@ -2383,8 +2395,10 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [query, setQuery] = useState("");
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [newTeacher, setNewTeacher] = useState({ full_name: "", ish_staji: "", toifasi: "" });
+  const [creatingNew, setCreatingNew] = useState(Boolean(startWithNew));
+  const [newTeacher, setNewTeacher] = useState({
+    full_name: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
+  });
   const [entryCode, setEntryCode] = useState("");
 
   const load = async () => {
@@ -2394,9 +2408,15 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
         `${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
       );
       setData(result);
-      setSelectedTeacher(current =>
-        current || String(result.oqituvchilar?.[0]?.user_id || "")
-      );
+      if (startWithNew) {
+        setCreatingNew(true);
+        setSelectedTeacher("");
+        setRows([emptyTeacherLoadRowV192(result)]);
+      } else {
+        setSelectedTeacher(current =>
+          current || String(result.oqituvchilar?.[0]?.user_id || "")
+        );
+      }
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
     } finally {
@@ -2433,6 +2453,12 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
       item => String(item.sinf_id) === String(classId)
     );
 
+  const update = (index, changes) => {
+    setRows(current => current.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, ...changes } : row
+    ));
+  };
+
   const variantFor = row =>
     variantsForClass(row.sinf_id).find(
       item => String(item.guruh_kaliti) === String(row.guruh_kaliti)
@@ -2444,34 +2470,16 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
     return allowed.length ? allowed : (data?.fanlar || []);
   };
 
-  const update = (index, changes) => {
-    setRows(current => current.map((row, rowIndex) =>
-      rowIndex === index ? { ...row, ...changes } : row
-    ));
-  };
-
-  const makeEmptyRow = () => {
-    const firstClass = data?.sinflar?.[0];
-    return {
-      sinf_id: String(firstClass?.id || ""),
-      fan_nomi: String(data?.fanlar?.[0] || ""),
-      guruh_kaliti: "whole",
-      haftalik_soat: 1,
-      kunlik_max: 1,
-      xona_id: "",
-    };
-  };
-
   const addRow = () => {
-    setRows(current => [...current, makeEmptyRow()]);
+    setRows(current => [...current, emptyTeacherLoadRowV192(data)]);
   };
 
   const startNewTeacher = () => {
     setCreatingNew(true);
     setSelectedTeacher("");
-    setNewTeacher({ full_name: "", ish_staji: "", toifasi: "" });
+    setNewTeacher({ full_name: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "" });
     setEntryCode("");
-    setRows([makeEmptyRow()]);
+    setRows([emptyTeacherLoadRowV192(data)]);
     setMessage(null);
   };
 
@@ -2488,6 +2496,12 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
     }
     if (creatingNew && newTeacher.full_name.trim().length < 3) {
       return setMessage({ tone: "error", text: "Yangi o‘qituvchining F.I.Sh.ni kiriting." });
+    }
+    const currentYear = new Date().getFullYear();
+    if (creatingNew && newTeacher.tugilgan_yili !== "" && (
+      Number(newTeacher.tugilgan_yili) < 1900 || Number(newTeacher.tugilgan_yili) > currentYear
+    )) {
+      return setMessage({ tone: "error", text: `Tug‘ilgan yil 1900–${currentYear} oralig‘ida bo‘lishi kerak.` });
     }
     if (rows.some(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat)) {
       return setMessage({ tone: "error", text: "Har bir qatorda sinf, fan va haftalik soat bo‘lishi kerak." });
@@ -2511,8 +2525,10 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
           body: JSON.stringify(creatingNew ? {
             maktab_id: maktabId,
             full_name: newTeacher.full_name.trim(),
+            tugilgan_yili: newTeacher.tugilgan_yili === "" ? null : Number(newTeacher.tugilgan_yili),
             ish_staji: newTeacher.ish_staji === "" ? null : Number(newTeacher.ish_staji),
             toifasi: newTeacher.toifasi || null,
+            rahbar_sinf_id: newTeacher.rahbar_sinf_id ? Number(newTeacher.rahbar_sinf_id) : null,
             qatorlar,
           } : {
             maktab_id: maktabId,
@@ -2526,12 +2542,12 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
         setSelectedTeacher(String(result.user_id));
         setCreatingNew(false);
         setEntryCode(result.kirish_kodi || "");
-        setNewTeacher({ full_name: "", ish_staji: "", toifasi: "" });
+        setNewTeacher({ full_name: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "" });
       }
       const warnings = result.ogohlantirishlar || [];
       setMessage({
         tone: warnings.length ? "warning" : "success",
-        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
+        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}.` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
       });
       await onChanged?.();
     } catch (error) {
@@ -2600,12 +2616,16 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
           {creatingNew ? <div className="space-y-3">
             <div>
               <div className="text-sm font-black" style={{ color: palette.ink }}>Yangi o‘qituvchi</div>
-              <div className="text-[11px] mt-1" style={{ color: palette.muted }}>F.I.Sh.ni yozing, o‘ng tomonda fan–sinf–guruh va soatlarni kiriting.</div>
+              <div className="text-[11px] mt-1" style={{ color: palette.muted }}><b>* Majburiy:</b> F.I.Sh. va kamida bitta fan–sinf–guruh–soat qatori. Qolganlari ixtiyoriy.</div>
             </div>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh.
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
               <input autoFocus value={newTeacher.full_name} onChange={event => setNewTeacher(current => ({ ...current, full_name: event.target.value }))} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
             </label>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji
+            <div className="pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan yili
+              <input type="number" min="1900" max={new Date().getFullYear()} value={newTeacher.tugilgan_yili} onChange={event => setNewTeacher(current => ({ ...current, tugilgan_yili: event.target.value }))} placeholder="Masalan: 1988" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+            </label>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
               <input type="number" min="0" max="60" value={newTeacher.ish_staji} onChange={event => setNewTeacher(current => ({ ...current, ish_staji: event.target.value }))} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
             </label>
             <label className="block text-xs font-black" style={{ color: palette.ink }}>Toifasi
@@ -2613,6 +2633,15 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
                 <option value="">Belgilanmagan</option>
                 {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
               </select>
+            </label>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
+              <select value={newTeacher.rahbar_sinf_id} onChange={event => setNewTeacher(current => ({ ...current, rahbar_sinf_id: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+                <option value="">Sinf rahbari emas</option>
+                {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id} disabled={Boolean(cls.rahbar_user_id)}>
+                  {cls.sinf}-{cls.harf}{cls.rahbar_user_id ? ` · ${cls.rahbar_ismi || "rahbari bor"}` : ""}
+                </option>)}
+              </select>
+              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Rahbari bor sinflar tanlanmaydi.</span>
             </label>
             <button onClick={cancelNewTeacher} className="w-full px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
           </div> : <>
@@ -2657,7 +2686,7 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
               const variants = variantsForClass(row.sinf_id);
               const subjects = subjectsFor(row);
               return <div key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_90px_150px_38px] gap-2 items-end" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf <span style={{ color: palette.red }}>*</span>
                   <select value={row.sinf_id} onChange={event => update(index, {
                     sinf_id: event.target.value,
                     guruh_kaliti: "whole",
@@ -2665,13 +2694,13 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
                     {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan <span style={{ color: palette.red }}>*</span>
                   <select value={row.fan_nomi} onChange={event => update(index, { fan_nomi: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
                     {!subjects.includes(row.fan_nomi) && row.fan_nomi && <option value={row.fan_nomi}>{row.fan_nomi}</option>}
                     {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Guruh
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Guruh / butun sinf <span style={{ color: palette.red }}>*</span>
                   <select value={row.guruh_kaliti} onChange={event => {
                     const next = variants.find(item => item.guruh_kaliti === event.target.value);
                     update(index, {
@@ -2683,13 +2712,13 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
                     {variants.map(variant => <option key={variant.guruh_kaliti} value={variant.guruh_kaliti}>{variant.guruh_nomi}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik soat <span style={{ color: palette.red }}>*</span>
                   <input type="number" min="1" max="20" value={row.haftalik_soat} onChange={event => update(index, { haftalik_soat: event.target.value })} className="w-full mt-1 p-2 rounded-lg border"/>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Kunlik max
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Kunlik max · jadval
                   <input type="number" min="1" max="4" value={row.kunlik_max} onChange={event => update(index, { kunlik_max: event.target.value })} className="w-full mt-1 p-2 rounded-lg border"/>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Xona
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Xona · jadval
                   <select value={row.xona_id || ""} onChange={event => update(index, { xona_id: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
                     <option value="">Sinf xonasi</option>
                     {(data?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}
@@ -2701,7 +2730,7 @@ function TeacherFirstLoadEditorV192({ token, apiBase, maktabId, onChanged }) {
           </div>
 
           {!rows.length && <div className="mt-4"><SmartNotice tone="info">{teacher?.full_name || "Bu o‘qituvchi"} uchun hali dars qatori yo‘q. “Yangi fan–sinf qatori”ni bosing.</SmartNotice></div>}
-          <button onClick={addRow} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yangi fan–sinf qatori</button>
+          <button onClick={addRow} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
         </div>
       </div>
     </Card>
@@ -3994,6 +4023,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [loadWarnings, setLoadWarnings] = useState([]);
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
+  const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
 
   const loadManager = () => {
     if (teacherMode) return;
@@ -4039,6 +4069,17 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const yuklamaMuammo = useMemo(() => yuklama.filter(x => x.holat === "ortiqcha" || x.holat === "yetishmaydi"), [yuklama]);
   const schoolName = dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab");
 
+  if (teacherEditorOpen) {
+    return <WorkspacePortal>
+      <div className="min-h-screen">
+        <SmartHeader title={`${schoolName} · O‘qituvchi qo‘shish`} subtitle="F.I.Sh. → fan → sinf yoki guruh → haftalik soat → jadval yuklamasi" onClose={() => setTeacherEditorOpen(false)}/>
+        <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
+          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} startWithNew onChanged={loadManager}/>
+        </main>
+      </div>
+    </WorkspacePortal>;
+  }
+
   if (smartOpen) {
     return <WorkspacePortal><SmartTimetablePanel token={token} apiBase={apiBase} maktabId={maktabId} onClose={() => setSmartOpen(null)} teacherOnly={teacherMode} initialStep={smartOpen}/></WorkspacePortal>;
   }
@@ -4075,6 +4116,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         <SmartHeader title={schoolName} subtitle="Maktab boshqaruv markazi" onClose={onBack} badge="MAKTAB WORKSPACE"/>
         <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
           <div className="flex flex-wrap justify-end gap-2 mb-5">
+            <button onClick={() => setTeacherEditorOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
             <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
             {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
             <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
@@ -4110,6 +4152,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <Card className="p-5">
                 <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
                 <div className="space-y-2">
+                  <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc="F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." onClick={() => setTeacherEditorOpen(true)}/>
                   <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → bo‘sh vaqt → fan soati → draft → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
                   <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
                   <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
@@ -4118,7 +4161,27 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </div>
 
             <div className="grid lg:grid-cols-2 gap-4">
-              <Card className="p-5"><div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchilar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Haftalik yuklama</div></div><Users size={21} style={{ color: palette.blue }}/></div><div className="space-y-2 max-h-[390px] overflow-auto pr-1">{yuklama.slice(0,30).map(x=>{const reja=x.haftalik_reja_jami??x.haftalik_dars_soati;const amaldagi=Number(x.jadvaldagi_soat||0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.lavozim==="psixolog"?`Psixolog · ${x.psixolog_sinf_soni||0} sinf`:`${x.fanlari||"Fan belgilanmagan"}${x.sinf_soati_soni?` · +${x.sinf_soati_soni} sinf soati`:""}`}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??"—"}</div><div className="text-[11px]" style={{ color:palette.muted }}>soat</div></div></div>})}{!yuklama.length&&<div className="text-sm" style={{ color:palette.muted }}>Xodim yuklamasi hali kiritilmagan.</div>}</div></Card>
+              <Card className="p-5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchilar</div>
+                    <div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Haftalik yuklama</div>
+                  </div>
+                  <button onClick={() => setTeacherEditorOpen(true)} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }}>
+                    <UserCog size={16}/> + O‘qituvchi
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-[390px] overflow-auto pr-1">
+                  {yuklama.slice(0,30).map(x=>{const reja=x.haftalik_reja_jami??x.haftalik_dars_soati;const amaldagi=Number(x.jadvaldagi_soat||0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.lavozim==="psixolog"?`Psixolog · ${x.psixolog_sinf_soni||0} sinf`:`${x.fanlari||"Fan belgilanmagan"}${x.sinf_soati_soni?` · +${x.sinf_soati_soni} sinf soati`:""}`}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??"—"}</div><div className="text-[11px]" style={{ color:palette.muted }}>soat</div></div></div>})}
+                  {!yuklama.length&&<div className="rounded-2xl border-2 border-dashed p-5 text-center" style={{ borderColor: palette.line, background: palette.cream }}>
+                    <div className="text-sm font-black" style={{ color: palette.ink }}>Hali o‘qituvchi kiritilmagan</div>
+                    <div className="text-xs mt-1" style={{ color: palette.muted }}>F.I.Sh., fan, sinf yoki guruh va haftalik soatni qo‘lda kiriting.</div>
+                    <button onClick={() => setTeacherEditorOpen(true)} className="mt-3 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
+                      + Birinchi o‘qituvchini qo‘shish
+                    </button>
+                  </div>}
+                </div>
+              </Card>
               <Card className="p-5"><div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Sinflar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Maktab xaritasi</div></div><BookOpen size={21} style={{ color: palette.blue }}/></div><div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{(dashboard?.sinflar||[]).map(s=><div key={s.id} className="rounded-2xl p-3.5" style={{ background:palette.cream }}><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="text-xs mt-1" style={{ color:palette.muted }}>{s.oquvchi_soni} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>Rahbar: {s.rahbar_ismi||"belgilanmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>Psixolog: {s.psixolog_ismi||"belgilanmagan"}</div></div>)}</div></Card>
             </div>
           </>}
