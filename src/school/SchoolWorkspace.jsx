@@ -2422,8 +2422,8 @@ function TeacherFirstLoadEditorV192({
     full_name: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
   });
   const [entryCode, setEntryCode] = useState("");
-  const [planClassId, setPlanClassId] = useState("");
-  const [planRows, setPlanRows] = useState([]);
+  const [planSubjects, setPlanSubjects] = useState([]);
+  const [planCells, setPlanCells] = useState({});
   const [planSaving, setPlanSaving] = useState(false);
   const [planMessage, setPlanMessage] = useState(null);
 
@@ -2434,7 +2434,6 @@ function TeacherFirstLoadEditorV192({
         `${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
       );
       setData(result);
-      setPlanClassId(current => current || String(result.sinflar?.[0]?.id || ""));
       if (startWithNew) {
         setCreatingNew(true);
         setSelectedTeacher("");
@@ -2454,17 +2453,26 @@ function TeacherFirstLoadEditorV192({
   useEffect(() => { load(); }, [maktabId, token, apiBase]);
 
   useEffect(() => {
-    if (!data || !planClassId) return;
-    setPlanRows(
-      (data.oquv_reja?.qatorlar || [])
-        .filter(item => String(item.sinf_id) === String(planClassId))
-        .map(item => ({
-          fan_nomi: item.fan_nomi,
-          haftalik_soat: Number(item.haftalik_soat || 1),
-          kunlik_max: Number(item.kunlik_max || 1),
-        }))
-    );
-  }, [data, planClassId]);
+    if (!data) return;
+    const templateRows = data.oquv_reja?.andoza_qatorlar || [];
+    const savedRows = data.oquv_reja?.qatorlar || [];
+    const subjectMap = new Map();
+    [...templateRows, ...savedRows].forEach(item => {
+      const key = subjectKeyV193(item.fan_nomi);
+      if (key && !subjectMap.has(key)) subjectMap.set(key, item.fan_nomi);
+    });
+    (data.fanlar || []).forEach(subject => {
+      const key = subjectKeyV193(subject);
+      if (key && !subjectMap.has(key)) subjectMap.set(key, subject);
+    });
+    setPlanSubjects([...subjectMap.values()]);
+    const sourceRows = savedRows.length ? savedRows : templateRows;
+    const nextCells = {};
+    sourceRows.forEach(item => {
+      nextCells[`${item.sinf_id}|${subjectKeyV193(item.fan_nomi)}`] = Number(item.haftalik_soat || 0);
+    });
+    setPlanCells(nextCells);
+  }, [data]);
 
   useEffect(() => {
     if (!data || creatingNew) {
@@ -2526,55 +2534,124 @@ function TeacherFirstLoadEditorV192({
     return planned.length ? planned : (data?.fanlar || []);
   };
 
-  const updatePlanRow = (index, changes) => {
-    setPlanRows(current => current.map((row, rowIndex) =>
-      rowIndex === index ? { ...row, ...changes } : row
+  const planCellKey = (classId, subject) => `${classId}|${subjectKeyV193(subject)}`;
+
+  const updatePlanCell = (classId, subject, value) => {
+    const numeric = value === "" ? 0 : Math.max(0, Math.min(20, Number(value) || 0));
+    setPlanCells(current => ({ ...current, [planCellKey(classId, subject)]: numeric }));
+  };
+
+  const renamePlanSubject = (index, nextName) => {
+    const oldName = planSubjects[index];
+    setPlanSubjects(current => current.map((subject, subjectIndex) =>
+      subjectIndex === index ? nextName : subject
     ));
+    if (subjectKeyV193(oldName) === subjectKeyV193(nextName)) return;
+    setPlanCells(current => {
+      const next = { ...current };
+      (data?.sinflar || []).forEach(cls => {
+        const oldKey = planCellKey(cls.id, oldName);
+        const nextKey = planCellKey(cls.id, nextName);
+        if (Object.prototype.hasOwnProperty.call(next, oldKey)) {
+          next[nextKey] = next[oldKey];
+          delete next[oldKey];
+        }
+      });
+      return next;
+    });
   };
 
-  const addPlanRow = () => {
-    const used = new Set(planRows.map(row => subjectKeyV193(row.fan_nomi)));
-    const subject = (data?.fanlar || []).find(item => !used.has(subjectKeyV193(item))) || "";
-    setPlanRows(current => [...current, { fan_nomi: subject, haftalik_soat: 1, kunlik_max: 1 }]);
+  const addPlanSubject = () => {
+    const used = new Set(planSubjects.map(subjectKeyV193));
+    const subject = (data?.fanlar || []).find(item => !used.has(subjectKeyV193(item))) || "Yangi fan";
+    setPlanSubjects(current => [...current, subject]);
   };
 
-  const restorePlanTemplate = () => {
-    setPlanRows(
-      (data?.oquv_reja?.andoza_qatorlar || [])
-        .filter(item => String(item.sinf_id) === String(planClassId))
-        .map(item => ({
-          fan_nomi: item.fan_nomi,
-          haftalik_soat: Number(item.haftalik_soat || 1),
-          kunlik_max: Number(item.kunlik_max || 1),
-        }))
-    );
-    setPlanMessage({ tone: "info", text: "Tanlangan sinfga tayanch andoza qaytarildi. Endi saqlang." });
+  const removePlanSubject = subject => {
+    setPlanSubjects(current => current.filter(item => item !== subject));
+    setPlanCells(current => {
+      const next = { ...current };
+      (data?.sinflar || []).forEach(cls => delete next[planCellKey(cls.id, subject)]);
+      return next;
+    });
+  };
+
+  const autoFillPlanTemplate = () => {
+    const templateRows = data?.oquv_reja?.andoza_qatorlar || [];
+    if (!templateRows.length) {
+      return setPlanMessage({ tone: "error", text: "Avtomatik andoza backenddan kelmadi. Yangilangan backend kodini ham deploy qiling." });
+    }
+    const nextCells = {};
+    templateRows.forEach(item => {
+      nextCells[planCellKey(item.sinf_id, item.fan_nomi)] = Number(item.haftalik_soat || 0);
+    });
+    const subjectMap = new Map(planSubjects.map(subject => [subjectKeyV193(subject), subject]));
+    templateRows.forEach(item => {
+      const key = subjectKeyV193(item.fan_nomi);
+      if (!subjectMap.has(key)) subjectMap.set(key, item.fan_nomi);
+    });
+    setPlanSubjects([...subjectMap.values()]);
+    setPlanCells(nextCells);
+    setPlanMessage({
+      tone: "success",
+      text: `Sinov maktabi andozasi ${data?.sinflar?.length || 0} ta sinfga avtomatik to‘ldirildi. Istalgan katakdagi soatni tuzatishingiz mumkin.`,
+    });
+  };
+
+  const planPayloadRows = () => {
+    const seenSubjects = new Set();
+    const rows = [];
+    planSubjects.forEach(subject => {
+      const cleanSubject = String(subject || "").replace(/\s+/g, " ").trim();
+      const subjectKey = subjectKeyV193(cleanSubject);
+      if (!subjectKey || seenSubjects.has(subjectKey)) return;
+      seenSubjects.add(subjectKey);
+      (data?.sinflar || []).forEach(cls => {
+        const hours = Number(planCells[planCellKey(cls.id, cleanSubject)] || 0);
+        if (hours > 0) rows.push({
+          sinf_id: Number(cls.id),
+          fan_nomi: cleanSubject,
+          haftalik_soat: hours,
+          kunlik_max: 1,
+        });
+      });
+    });
+    return rows;
   };
 
   const savePlan = async (approve = false) => {
-    if (!planClassId || !planRows.length) {
-      return setPlanMessage({ tone: "error", text: "Sinf rejasida kamida bitta fan bo‘lishi kerak." });
+    if (!(data?.sinflar || []).length) {
+      return setPlanMessage({ tone: "error", text: "Sinf ro‘yxati kelmadi. Backenddagi samtm_school.py faylini ham yangilang." });
     }
-    if (planRows.some(row => !row.fan_nomi.trim() || Number(row.haftalik_soat) < 1)) {
-      return setPlanMessage({ tone: "error", text: "Har bir reja qatorida fan va haftalik soat bo‘lishi kerak." });
+    if (!planSubjects.length || planSubjects.some(subject => !String(subject || "").trim())) {
+      return setPlanMessage({ tone: "error", text: "Fan nomlari bo‘sh qolmasligi kerak." });
+    }
+    const normalized = planSubjects.map(subjectKeyV193).filter(Boolean);
+    if (new Set(normalized).size !== normalized.length) {
+      return setPlanMessage({ tone: "error", text: "Bir xil fan ikki marta yozilgan. Takror fanlardan birini o‘chiring." });
+    }
+    const qatorlar = planPayloadRows();
+    if (!qatorlar.length) {
+      return setPlanMessage({ tone: "error", text: "Hech bir sinf–fan kesishmasiga haftalik soat yozilmagan." });
+    }
+    const emptyClasses = (data?.sinflar || []).filter(cls =>
+      !qatorlar.some(row => String(row.sinf_id) === String(cls.id))
+    );
+    if (approve && emptyClasses.length) {
+      return setPlanMessage({
+        tone: "error",
+        text: `Soati kiritilmagan sinflar: ${emptyClasses.map(cls => `${cls.sinf}-${cls.harf}`).join(", ")}`,
+      });
     }
     setPlanSaving(true);
     setPlanMessage(null);
     try {
       const saved = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v3/oquv_reja?token=${encodeURIComponent(token)}`,
+        `${apiBase}/api/maktab/aqlli_jadval/v3/oquv_reja/matritsa?token=${encodeURIComponent(token)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            maktab_id: maktabId,
-            sinf_id: Number(planClassId),
-            fanlar: planRows.map(row => ({
-              fan_nomi: row.fan_nomi.trim(),
-              haftalik_soat: Number(row.haftalik_soat),
-              kunlik_max: Number(row.kunlik_max || 1),
-            })),
-          }),
+          body: JSON.stringify({ maktab_id: maktabId, qatorlar }),
         }
       );
       let nextMatrix = saved.matritsa;
@@ -2593,8 +2670,8 @@ function TeacherFirstLoadEditorV192({
       setPlanMessage({
         tone: "success",
         text: approve
-          ? "O‘quv reja saqlandi va barcha sinflar uchun tasdiqlandi. Endi o‘qituvchi yuklamasini kiriting."
-          : "Tanlangan sinf reja qatorlari draftga saqlandi. Tekshirib, keyin tasdiqlang.",
+          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat matritsasi saqlandi va tasdiqlandi.`
+          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi draftga saqlandi.`,
       });
       await onChanged?.();
     } catch (error) {
@@ -2753,13 +2830,23 @@ function TeacherFirstLoadEditorV192({
     map[String(row.sinf_id)] = [...(map[String(row.sinf_id)] || []), row];
     return map;
   }, {});
+  const planDraftRows = planPayloadRows();
+  const planSchoolTotal = planDraftRows.reduce(
+    (sum, row) => sum + Number(row.haftalik_soat || 0), 0
+  );
 
   if (loading) {
     return <Card className="p-8"><div className="flex justify-center"><Loader2 className="animate-spin" style={{ color: palette.blue }}/></div></Card>;
   }
 
+  if (!data) {
+    return <Card className="p-6"><SmartNotice tone="error">
+      {message?.text || "O‘quv reja ma’lumotlari yuklanmadi. Backenddagi samtm_school.py faylini yangilab, qayta deploy qiling."}
+    </SmartNotice></Card>;
+  }
+
   return <div className="space-y-4">
-    {!planOnly && message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     {!planOnly && entryCode && <div className="rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
       <div className="flex-1 min-w-[240px]">
         <div className="text-xs font-black" style={{ color: palette.green }}>YANGI O‘QITUVCHINING 7 KUNLIK KIRISH KODI</div>
@@ -2791,37 +2878,76 @@ function TeacherFirstLoadEditorV192({
       </div>
 
       {planMessage && <div className="mt-4"><SmartNotice tone={planMessage.tone}>{planMessage.text}</SmartNotice></div>}
-      <div className="flex flex-wrap items-end gap-3 mt-4">
-        <label className="text-xs font-black min-w-[220px]" style={{ color: palette.ink }}>Sinf
-          <select value={planClassId} onChange={event => setPlanClassId(event.target.value)} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
-            {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {cls.smena}-smena</option>)}
-          </select>
-        </label>
-        <div className="rounded-xl px-4 py-2.5 min-w-[150px]" style={{ background: palette.sky }}>
-          <div className="text-[10px] font-black uppercase" style={{ color: palette.blue }}>Haftalik jami</div>
-          <div className="text-xl font-black" style={{ color: palette.ink }}>{planRows.reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0)} soat</div>
+      <div className="flex flex-wrap items-center gap-3 mt-4">
+        <div className="rounded-xl px-4 py-2.5 min-w-[130px]" style={{ background: palette.sky }}>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.blue }}>Sinflar</div>
+          <div className="text-xl font-black" style={{ color: palette.ink }}>{data.sinflar?.length || 0} ta</div>
         </div>
-        <button onClick={restorePlanTemplate} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Andozani qaytarish</button>
-        <button onClick={addPlanRow} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>+ Fan</button>
+        <div className="rounded-xl px-4 py-2.5 min-w-[130px]" style={{ background: palette.mint }}>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>Fanlar</div>
+          <div className="text-xl font-black" style={{ color: palette.ink }}>{planSubjects.length} ta</div>
+        </div>
+        <div className="rounded-xl px-4 py-2.5 min-w-[170px]" style={{ background: palette.cream }}>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Maktab haftalik jami</div>
+          <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal} soat</div>
+        </div>
+        <button onClick={autoFillPlanTemplate} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>
+          ⚡ Sinov maktabi andozasi bilan avtomatik to‘ldirish
+        </button>
+        <button onClick={addPlanSubject} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>+ Fan qo‘shish</button>
         <div className="flex-1"/>
-        <button onClick={() => savePlan(false)} disabled={planSaving} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue, border: `1px solid ${palette.blue}` }}>{planSaving ? "Saqlanmoqda..." : "Draftni saqlash"}</button>
-        <button onClick={() => savePlan(true)} disabled={planSaving} className="px-5 py-2.5 rounded-xl text-xs font-black text-white" style={{ background: palette.green }}>{planSaving ? "..." : "Saqlash va rejani tasdiqlash"}</button>
+        <button onClick={() => savePlan(false)} disabled={planSaving} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue, border: `1px solid ${palette.blue}` }}>{planSaving ? "Saqlanmoqda..." : "Matritsani draftga saqlash"}</button>
+        <button onClick={() => savePlan(true)} disabled={planSaving} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.green }}>{planSaving ? "..." : "Barchasini saqlash va tasdiqlash"}</button>
       </div>
 
-      <datalist id="v193-subjects">
-        {(data?.fanlar || []).map(subject => <option key={subject} value={subject}/>) }
-      </datalist>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-4">
-        {planRows.map((row, index) => <div key={`${row.fan_nomi}-${index}`} className="rounded-xl border p-2.5 grid grid-cols-[1fr_72px_32px] gap-2 items-end" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
-          <label className="text-[10px] font-black" style={{ color: palette.muted }}>Fan
-            <input list="v193-subjects" value={row.fan_nomi} onChange={event => updatePlanRow(index, { fan_nomi: event.target.value })} className="w-full mt-1 px-2 py-2 rounded-lg border bg-white"/>
-          </label>
-          <label className="text-[10px] font-black" style={{ color: palette.muted }}>Soat
-            <input type="number" min="1" max="20" value={row.haftalik_soat} onChange={event => updatePlanRow(index, { haftalik_soat: event.target.value })} className="w-full mt-1 px-2 py-2 rounded-lg border"/>
-          </label>
-          <button onClick={() => setPlanRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="h-9 rounded-lg font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
-        </div>)}
-      </div>
+      {!(data.sinflar || []).length ? <div className="mt-4"><SmartNotice tone="error">
+        Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.
+      </SmartNotice></div> : <>
+        <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
+          Bo‘sh yoki 0 katak — bu fan shu sinfda yo‘q. Soat yozilgan har bir katak alohida saqlanadi. Jadvalni yon tomonga surib barcha sinflarni ko‘ring.
+        </div>
+        <datalist id="v193-subjects">
+          {(data.fanlar || []).map(subject => <option key={subject} value={subject}/>) }
+        </datalist>
+        <div className="mt-3 rounded-2xl border overflow-auto max-h-[68vh]" style={{ borderColor: palette.line }}>
+          <table className="border-collapse text-xs" style={{ minWidth: `${260 + (data.sinflar?.length || 0) * 82}px`, width: "100%" }}>
+            <thead className="sticky top-0 z-20">
+              <tr>
+                <th className="sticky left-0 z-30 p-3 text-left min-w-[260px]" style={{ background: palette.ink, color: "#fff" }}>FAN ↓ / SINF →</th>
+                {(data.sinflar || []).map(cls => <th key={cls.id} className="p-2 text-center min-w-[82px]" style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}>
+                  <div className="font-black">{cls.sinf}-{cls.harf}</div>
+                  <div className="text-[9px] opacity-70">{cls.smena}-smena</div>
+                </th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {planSubjects.map((subject, index) => <tr key={`${subject}-${index}`} className="border-t" style={{ borderColor: palette.line }}>
+                <td className="sticky left-0 z-10 p-2 min-w-[260px]" style={{ background: index % 2 ? "#F8FBFD" : "#fff", borderRight: `1px solid ${palette.line}` }}>
+                  <div className="flex items-center gap-2">
+                    <input list="v193-subjects" value={subject} onChange={event => renamePlanSubject(index, event.target.value)} className="min-w-0 flex-1 px-2.5 py-2 rounded-lg border bg-white font-black" style={{ borderColor: palette.line, color: palette.ink }}/>
+                    <button onClick={() => removePlanSubject(subject)} className="w-8 h-8 rounded-lg font-black shrink-0" style={{ background: palette.redBg, color: palette.red }}>×</button>
+                  </div>
+                </td>
+                {(data.sinflar || []).map(cls => {
+                  const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
+                  return <td key={cls.id} className="p-1.5 text-center" style={{ background: value > 0 ? palette.greenBg : (index % 2 ? "#F8FBFD" : "#fff"), borderLeft: `1px solid ${palette.line}` }}>
+                    <input type="number" min="0" max="20" step="1" value={value || ""} placeholder="0" onChange={event => updatePlanCell(cls.id, subject, event.target.value)} className="w-14 px-1.5 py-2 rounded-lg border text-center font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted }}/>
+                  </td>;
+                })}
+              </tr>)}
+            </tbody>
+            <tfoot className="sticky bottom-0 z-20">
+              <tr>
+                <th className="sticky left-0 z-30 p-3 text-left" style={{ background: palette.blue, color: "#fff" }}>SINF HAFTALIK JAMI</th>
+                {(data.sinflar || []).map(cls => {
+                  const total = planSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
+                  return <th key={cls.id} className="p-2 text-center text-sm font-black" style={{ background: palette.blue, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.2)" }}>{total}</th>;
+                })}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </>}
     </Card>}
 
     {data?.oquv_reja?.holat !== "tasdiqlangan" && <SmartNotice tone="warning">
