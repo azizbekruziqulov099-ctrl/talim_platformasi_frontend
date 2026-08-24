@@ -2446,7 +2446,7 @@ function specialtyMatchesSubjectV194(specialtyValue, subject) {
 
 function TeacherFirstLoadEditorV192({
   token, apiBase, maktabId, onChanged, startWithNew = false,
-  planOnly = false, showPlan = true,
+  planOnly = false, showPlan = true, onEditPlan,
 }) {
   const [data, setData] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState("");
@@ -2470,6 +2470,8 @@ function TeacherFirstLoadEditorV192({
   const [planCells, setPlanCells] = useState({});
   const [planSaving, setPlanSaving] = useState(false);
   const [planMessage, setPlanMessage] = useState(null);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const [deletingTeacher, setDeletingTeacher] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -2583,6 +2585,58 @@ function TeacherFirstLoadEditorV192({
       item => subjectKeyV193(item.fan_nomi) === subjectKeyV193(subject)
     );
 
+  const allocationKey = row => [
+    String(row?.sinf_id || ""),
+    subjectKeyV193(row?.fan_nomi),
+    String(row?.guruh_kaliti || "whole"),
+  ].join("|");
+
+  const allocationInfo = (index, candidate, sourceRows = rows) => {
+    const planItem = planItemFor(candidate?.sinf_id, candidate?.fan_nomi);
+    const approved = data?.oquv_reja?.holat === "tasdiqlangan";
+    const planHours = approved ? Number(planItem?.haftalik_soat || 0) : 20;
+    const key = allocationKey(candidate);
+    const currentTeacherId = creatingNew ? null : String(selectedTeacher || "");
+    const outsideRows = (data?.birikmalar || []).filter(item =>
+      allocationKey(item) === key &&
+      (!currentTeacherId || String(item.user_id) !== currentTeacherId)
+    );
+    const outsideHours = outsideRows.reduce(
+      (sum, item) => sum + Number(item.haftalik_soat || 0), 0
+    );
+    const draftOtherHours = sourceRows.reduce((sum, item, itemIndex) =>
+      itemIndex !== index && allocationKey(item) === key
+        ? sum + Number(item.haftalik_soat || 0) : sum, 0
+    );
+    const maxForRow = approved
+      ? Math.max(0, planHours - outsideHours - draftOtherHours)
+      : 20;
+    const currentHours = Number(candidate?.haftalik_soat || 0);
+    return {
+      approved, planHours, outsideHours, draftOtherHours, maxForRow,
+      currentHours, remainingAfterRow: Math.max(0, maxForRow - currentHours),
+      outsideNames: [...new Set(outsideRows.map(item => item.full_name).filter(Boolean))],
+    };
+  };
+
+  const mergeDuplicateRows = sourceRows => {
+    const merged = new Map();
+    sourceRows.forEach(row => {
+      const key = allocationKey(row);
+      const current = merged.get(key);
+      if (!current) {
+        merged.set(key, { ...row });
+        return;
+      }
+      current.haftalik_soat = Number(current.haftalik_soat || 0) + Number(row.haftalik_soat || 0);
+      current.kunlik_max = Math.max(Number(current.kunlik_max || 1), Number(row.kunlik_max || 1));
+      if (!current.xona_id && row.xona_id) current.xona_id = row.xona_id;
+      current.auto_specialty = Boolean(current.auto_specialty && row.auto_specialty);
+      current.is_placeholder = false;
+    });
+    return [...merged.values()];
+  };
+
   const subjectsFor = row => {
     const variant = variantFor(row);
     const allowed = variant?.fanlar || [];
@@ -2599,6 +2653,35 @@ function TeacherFirstLoadEditorV192({
       return planned.length ? intersection : allowed;
     }
     return planned.length ? planned : (data?.fanlar || []);
+  };
+
+  const applyRowChoice = (index, changes) => {
+    const current = rows[index] || {};
+    const candidate = { ...current, ...changes };
+    const planItem = planItemFor(candidate.sinf_id, candidate.fan_nomi);
+    const preferred = data?.oquv_reja?.holat === "tasdiqlangan"
+      ? Number(planItem?.haftalik_soat || candidate.haftalik_soat || 1)
+      : Number(candidate.haftalik_soat || 1);
+    const info = allocationInfo(index, candidate);
+    if (info.approved && info.maxForRow <= 0) {
+      const cls = (data?.sinflar || []).find(item => String(item.id) === String(candidate.sinf_id));
+      setMessage({
+        tone: "warning",
+        text: `${cls ? `${cls.sinf}-${cls.harf}` : "Bu sinf"} / ${candidate.fan_nomi}: reja ${info.planHours} soat va hammasi oldin tanlangan. Boshqa fan yoki guruhni tanlang.`,
+      });
+      return;
+    }
+    update(index, {
+      ...changes,
+      haftalik_soat: info.approved ? Math.min(preferred, info.maxForRow) : preferred,
+      kunlik_max: Number(planItem?.kunlik_max || candidate.kunlik_max || 1),
+    });
+    if (info.approved && info.maxForRow < info.planHours) {
+      setMessage({
+        tone: "warning",
+        text: `${candidate.fan_nomi}: reja ${info.planHours} soat; oldingi tanlovlardan keyin ${info.maxForRow} soat qoldi.`,
+      });
+    }
   };
 
   const planCellKey = (classId, subject) => `${classId}|${subjectKeyV193(subject)}`;
@@ -2661,7 +2744,7 @@ function TeacherFirstLoadEditorV192({
     setPlanCells(nextCells);
     setPlanMessage({
       tone: "success",
-      text: `MMTVning 2026–2027 tayanch rejasi faqat maktabda tanlangan fan–sinflarga avtomatik qo‘yildi. Istalgan soatni tuzatishingiz mumkin.`,
+      text: `Rasmiy tayanch reja faqat maktabda tanlangan fan–sinflarga avtomatik qo‘yildi. Istalgan soatni tuzatishingiz mumkin.`,
     });
   };
 
@@ -2722,6 +2805,7 @@ function TeacherFirstLoadEditorV192({
         }
       );
       let nextMatrix = saved.matritsa;
+      let approvalWarnings = [];
       if (approve) {
         const approved = await smartFetch(
           `${apiBase}/api/maktab/aqlli_jadval/v3/oquv_reja/tasdiqlash?token=${encodeURIComponent(token)}`,
@@ -2732,13 +2816,14 @@ function TeacherFirstLoadEditorV192({
           }
         );
         nextMatrix = approved.matritsa;
+        approvalWarnings = approved.ogohlantirishlar || [];
       }
       setData(nextMatrix);
       setPlanMessage({
         tone: "success",
         text: approve
-          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat matritsasi saqlandi va tasdiqlandi.`
-          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi draftga saqlandi.`,
+          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat matritsasi saqlandi va tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
+          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi vaqtincha saqlandi. Reja hali tasdiqlanmadi va dars jadvaliga kiritilmadi.`,
       });
       await onChanged?.();
     } catch (error) {
@@ -2819,7 +2904,7 @@ function TeacherFirstLoadEditorV192({
             const key = `${classId}|${subjectKeyV193(item.fan_nomi)}|${variant.guruh_kaliti}`;
             if (seen.has(key)) return;
             seen.add(key);
-            result.push({
+            const candidate = {
               sinf_id: String(classId),
               fan_nomi: item.fan_nomi,
               guruh_kaliti: variant.guruh_kaliti,
@@ -2828,7 +2913,14 @@ function TeacherFirstLoadEditorV192({
               xona_id: "",
               is_placeholder: false,
               auto_specialty: true,
-            });
+            };
+            const info = allocationInfo(result.length, candidate, result);
+            if (!info.approved || info.maxForRow > 0) {
+              candidate.haftalik_soat = info.approved
+                ? Math.min(candidate.haftalik_soat, info.maxForRow)
+                : candidate.haftalik_soat;
+              result.push(candidate);
+            }
           });
         });
     });
@@ -2901,7 +2993,34 @@ function TeacherFirstLoadEditorV192({
   };
 
   const addRow = () => {
-    setRows(current => [...current, emptyTeacherLoadRowV192(data)]);
+    if (data?.oquv_reja?.holat !== "tasdiqlangan") {
+      setRows(current => [...current, emptyTeacherLoadRowV192(data)]);
+      return;
+    }
+    const nextIndex = rows.length;
+    for (const cls of (data?.sinflar || [])) {
+      for (const variant of variantsForClass(cls.id)) {
+        const probe = { sinf_id: String(cls.id), guruh_kaliti: variant.guruh_kaliti };
+        for (const subject of subjectsFor({ ...probe, fan_nomi: "" })) {
+          const planItem = planItemFor(cls.id, subject);
+          const candidate = {
+            ...probe, fan_nomi: subject,
+            haftalik_soat: Number(planItem?.haftalik_soat || 1),
+            kunlik_max: Number(planItem?.kunlik_max || 1), xona_id: "",
+          };
+          const info = allocationInfo(nextIndex, candidate);
+          if (info.maxForRow > 0) {
+            setRows(current => [...current, {
+              ...candidate,
+              haftalik_soat: Math.min(candidate.haftalik_soat, info.maxForRow),
+              is_placeholder: false,
+            }]);
+            return;
+          }
+        }
+      }
+    }
+    setMessage({ tone: "warning", text: "Barcha tasdiqlangan fan–sinf–guruh soatlari taqsimlangan. Ortiqcha qator qo‘shib bo‘lmaydi." });
   };
 
   const startNewTeacher = () => {
@@ -2923,6 +3042,40 @@ function TeacherFirstLoadEditorV192({
     setCreatingNew(false);
     setSelectedTeacher(firstTeacher);
     setEntryCode("");
+  };
+
+  const confirmTeacherDelete = async () => {
+    if (!deleteCandidate || deletingTeacher) return;
+    setDeletingTeacher(true);
+    setMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_ochirish?token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maktab_id: Number(maktabId),
+            user_id: Number(deleteCandidate.user_id),
+            tasdiq: true,
+          }),
+        }
+      );
+      setData(result.matritsa);
+      const firstTeacher = String(result.matritsa?.oqituvchilar?.[0]?.user_id || "");
+      setSelectedTeacher(firstTeacher);
+      setRows([]);
+      setDeleteCandidate(null);
+      setMessage({
+        tone: "success",
+        text: `${result.oqituvchi} maktabdan o‘chirildi. ${result.ochirilgan_qator || 0} ta yuklama qatori va ${result.ochirilgan_soat || 0} soat olib tashlandi. Eski jadval bekor qilindi.`,
+      });
+      await onChanged?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setDeletingTeacher(false);
+    }
   };
 
   const save = async () => {
@@ -2950,13 +3103,31 @@ function TeacherFirstLoadEditorV192({
     )) {
       return setMessage({ tone: "error", text: `Tug‘ilgan yil 1900–${currentYear} oralig‘ida bo‘lishi kerak.` });
     }
-    if (rows.some(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat)) {
+    const mergedRows = mergeDuplicateRows(rows);
+    if (!mergedRows.length) {
+      return setMessage({ tone: "error", text: "Kamida bitta fan–sinf–guruh qatorini kiriting." });
+    }
+    if (mergedRows.some(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat)) {
       return setMessage({ tone: "error", text: "Har bir qatorda sinf, fan va haftalik soat bo‘lishi kerak." });
+    }
+    for (let index = 0; index < mergedRows.length; index += 1) {
+      const row = mergedRows[index];
+      const info = allocationInfo(index, row, mergedRows);
+      if (info.approved && Number(row.haftalik_soat || 0) > info.maxForRow) {
+        const cls = (data?.sinflar || []).find(item => String(item.id) === String(row.sinf_id));
+        return setMessage({
+          tone: "error",
+          text: `${cls ? `${cls.sinf}-${cls.harf}` : "Sinf"} / ${row.fan_nomi}: faqat ${info.maxForRow} soat qoldi. ${Number(row.haftalik_soat || 0)} soat saqlab bo‘lmaydi.`,
+        });
+      }
+    }
+    if (mergedRows.length !== rows.length) {
+      setRows(mergedRows);
     }
     setSaving(true);
     setMessage(null);
     try {
-      const qatorlar = rows.map(row => ({
+      const qatorlar = mergedRows.map(row => ({
         sinf_id: Number(row.sinf_id),
         fan_nomi: row.fan_nomi,
         guruh_kaliti: row.guruh_kaliti || "whole",
@@ -3052,6 +3223,19 @@ function TeacherFirstLoadEditorV192({
   }
 
   return <div className="space-y-4">
+    {deleteCandidate && <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(15,35,50,.62)" }}>
+      <div className="w-full max-w-md rounded-3xl border bg-white p-6" style={{ borderColor: palette.line, boxShadow: "0 25px 80px rgba(0,0,0,.25)" }}>
+        <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>O‘QITUVCHINI O‘CHIRISH</div>
+        <div className="text-xl font-black mt-2" style={{ color: palette.ink }}>{deleteCandidate.full_name}</div>
+        <div className="text-sm mt-3 leading-relaxed" style={{ color: palette.muted }}>
+          Bu o‘qituvchi, uning barcha fan–sinf–guruh yuklamalari, sinf rahbarligi va faol jadval birikmalari maktabdan olib tashlanadi. Bu amalni bajarilsinmi?
+        </div>
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <button type="button" onClick={() => setDeleteCandidate(null)} disabled={deletingTeacher} className="px-4 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Yo‘q, bekor qilish</button>
+          <button type="button" onClick={confirmTeacherDelete} disabled={deletingTeacher} className="px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>{deletingTeacher ? "O‘chirilmoqda..." : "Ha, o‘chirish"}</button>
+        </div>
+      </div>
+    </div>}
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     {!planOnly && entryCode && <div className="rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
       <div className="flex-1 min-w-[240px]">
@@ -3077,7 +3261,7 @@ function TeacherFirstLoadEditorV192({
             background: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.greenBg : palette.amberBg,
             color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber,
           }}>
-            {data?.oquv_reja?.holat === "tasdiqlangan" ? "✓ TASDIQLANGAN" : "DRAFT · TASDIQLANMAGAN"}
+            {data?.oquv_reja?.holat === "tasdiqlangan" ? "✓ TASDIQLANGAN" : "VAQTINCHA · TASDIQLANMAGAN"}
           </span>
           <span className="text-[11px]" style={{ color: palette.muted }}>V{data?.oquv_reja?.versiya || 1}</span>
         </div>
@@ -3098,11 +3282,14 @@ function TeacherFirstLoadEditorV192({
           <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal} soat</div>
         </div>
         <button onClick={autoFillPlanTemplate} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>
-          ⚡ Rasmiy 2026–2027 reja bilan avtomatik to‘ldirish
+          ⚡ Rasmiy o‘quv reja bilan avtomatik to‘ldirish
         </button>
         <div className="flex-1"/>
-        <button onClick={() => savePlan(false)} disabled={planSaving} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue, border: `1px solid ${palette.blue}` }}>{planSaving ? "Saqlanmoqda..." : "Matritsani draftga saqlash"}</button>
-        <button onClick={() => savePlan(true)} disabled={planSaving} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.green }}>{planSaving ? "..." : "Barchasini saqlash va tasdiqlash"}</button>
+        <button onClick={() => savePlan(false)} disabled={planSaving} title="Keyin davom ettirish uchun saqlaydi; reja va dars jadvalini faollashtirmaydi" className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue, border: `1px solid ${palette.blue}` }}>{planSaving ? "Saqlanmoqda..." : "Vaqtincha saqlash · tasdiqlamasdan"}</button>
+        <button onClick={() => savePlan(true)} disabled={planSaving} title="O‘quv rejani faol qiladi va o‘qituvchi/jadval avtomatik hisobiga uzatadi" className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.green }}>{planSaving ? "..." : "Saqlash va rejani tasdiqlash"}</button>
+      </div>
+      <div className="mt-2 text-[10px] text-right" style={{ color: palette.muted }}>
+        Vaqtincha saqlash — keyin davom ettirish uchun. Tasdiqlash — o‘qituvchi avtomatik soati va dars jadvali uchun faol qiladi.
       </div>
 
       {!(data.sinflar || []).length ? <div className="mt-4"><SmartNotice tone="error">
@@ -3162,9 +3349,13 @@ function TeacherFirstLoadEditorV192({
             Fizika, Astronomiya va Iqtisod bir o‘qituvchida bo‘lsa ham aralashmaydi.
           </p>
         </div>
-        <button onClick={save} disabled={saving} className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
-          {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {onEditPlan && <button type="button" onClick={onEditPlan} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: palette.amberBg, color: palette.amber }}>O‘quv reja soatini tahrirlash</button>}
+          {!creatingNew && teacher && <button type="button" onClick={() => setDeleteCandidate(teacher)} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>O‘qituvchini o‘chirish</button>}
+          <button onClick={save} disabled={saving} className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
+            {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
+          </button>
+        </div>
       </div>
 
       <div className="grid xl:grid-cols-[320px_1fr] gap-4 mt-5">
@@ -3324,6 +3515,7 @@ function TeacherFirstLoadEditorV192({
             {rows.map((row, index) => {
               const variants = variantsForClass(row.sinf_id);
               const subjects = subjectsFor(row);
+              const allocation = allocationInfo(index, row);
               return <div key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_90px_150px_38px] gap-2 items-end" style={{ borderColor: row.auto_specialty ? "#8FC4A5" : palette.line, background: row.auto_specialty ? palette.greenBg : "#FCFDFE" }}>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf <span style={{ color: palette.red }}>*</span>{row.auto_specialty && <span className="ml-1 px-1.5 py-0.5 rounded" style={{ background: palette.green, color: "#fff" }}>AVTO</span>}
                   <select value={row.sinf_id} onChange={event => {
@@ -3331,12 +3523,10 @@ function TeacherFirstLoadEditorV192({
                     const approved = data?.oquv_reja?.holat === "tasdiqlangan";
                     const firstPlan = approved ? planForClass(classId)[0] : null;
                     const firstConfigured = (data?.fan_sinflari || []).find(item => String(item.sinf_id) === String(classId))?.fanlar?.[0];
-                    update(index, {
+                    applyRowChoice(index, {
                       sinf_id: classId,
                       guruh_kaliti: "whole",
                       fan_nomi: firstPlan?.fan_nomi || firstConfigured || "",
-                      haftalik_soat: approved ? Number(firstPlan?.haftalik_soat || "") : "",
-                      kunlik_max: Number(firstPlan?.kunlik_max || 1),
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white">
                     {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
@@ -3345,16 +3535,17 @@ function TeacherFirstLoadEditorV192({
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan <span style={{ color: palette.red }}>*</span>
                   <select value={row.fan_nomi} onChange={event => {
                     const subject = event.target.value;
-                    const planItem = planItemFor(row.sinf_id, subject);
-                    update(index, {
+                    applyRowChoice(index, {
                       fan_nomi: subject,
-                      haftalik_soat: data?.oquv_reja?.holat === "tasdiqlangan"
-                        ? Number(planItem?.haftalik_soat || row.haftalik_soat || "") : "",
-                      kunlik_max: Number(planItem?.kunlik_max || row.kunlik_max || 1),
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white">
                     {!subjects.includes(row.fan_nomi) && row.fan_nomi && <option value={row.fan_nomi}>{row.fan_nomi}</option>}
-                    {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+                    {subjects.map(subject => {
+                      const candidate = { ...row, fan_nomi: subject };
+                      const info = allocationInfo(index, candidate);
+                      const same = allocationKey(candidate) === allocationKey(row);
+                      return <option key={subject} value={subject} disabled={!same && info.approved && info.maxForRow <= 0}>{subject}{!same && info.approved && info.maxForRow <= 0 ? " · soati to‘liq olingan" : ""}</option>;
+                    })}
                   </select>
                 </label>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Guruh / butun sinf <span style={{ color: palette.red }}>*</span>
@@ -3363,22 +3554,36 @@ function TeacherFirstLoadEditorV192({
                     const choices = subjectsFor({ ...row, guruh_kaliti: nextKey });
                     const subject = choices.some(item => subjectKeyV193(item) === subjectKeyV193(row.fan_nomi))
                       ? row.fan_nomi : (choices[0] || row.fan_nomi);
-                    const planItem = planItemFor(row.sinf_id, subject);
-                    update(index, {
+                    applyRowChoice(index, {
                       guruh_kaliti: nextKey,
                       fan_nomi: subject,
-                      haftalik_soat: data?.oquv_reja?.holat === "tasdiqlangan"
-                        ? Number(planItem?.haftalik_soat || row.haftalik_soat || "") : row.haftalik_soat,
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white">
-                    {variants.map(variant => <option key={variant.guruh_kaliti} value={variant.guruh_kaliti}>{variant.guruh_nomi}</option>)}
+                    {variants.map(variant => {
+                      const candidate = { ...row, guruh_kaliti: variant.guruh_kaliti };
+                      const info = allocationInfo(index, candidate);
+                      const same = allocationKey(candidate) === allocationKey(row);
+                      return <option key={variant.guruh_kaliti} value={variant.guruh_kaliti} disabled={!same && info.approved && info.maxForRow <= 0}>{variant.guruh_nomi}{!same && info.approved && info.maxForRow <= 0 ? " · to‘liq" : ""}</option>;
+                    })}
                   </select>
                 </label>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik soat <span style={{ color: palette.red }}>*</span>
-                  <input type="number" min="1" max="20" step="1" value={row.haftalik_soat} placeholder="Qo‘lda yozing" onChange={event => update(index, { haftalik_soat: event.target.value })} className="w-full mt-1 p-2 rounded-lg border"/>
+                  <input type="number" min="1" max={allocation.approved ? Math.max(1, allocation.maxForRow) : 20} step="1" value={row.haftalik_soat} placeholder="Qo‘lda yozing" onChange={event => {
+                    if (event.target.value === "") return update(index, { haftalik_soat: "" });
+                    const requested = Math.max(1, Number(event.target.value || 1));
+                    if (allocation.approved && requested > allocation.maxForRow) {
+                      update(index, { haftalik_soat: allocation.maxForRow });
+                      setMessage({
+                        tone: "warning",
+                        text: `${row.fan_nomi}: reja ${allocation.planHours} soat. Boshqa o‘qituvchi yoki yuqoridagi qatorlarda ${allocation.outsideHours + allocation.draftOtherHours} soat tanlangan; faqat ${allocation.maxForRow} soat qoldi.`,
+                      });
+                      return;
+                    }
+                    update(index, { haftalik_soat: requested });
+                  }} className="w-full mt-1 p-2 rounded-lg border" style={{ borderColor: allocation.approved && allocation.remainingAfterRow === 0 ? "#8FC4A5" : palette.line }}/>
                   <span className="block mt-1 text-[9px] font-normal" style={{ color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber }}>
                     {data?.oquv_reja?.holat === "tasdiqlangan"
-                      ? `Reja: ${planItemFor(row.sinf_id, row.fan_nomi)?.haftalik_soat || "—"} soat${row.guruh_kaliti !== "whole" ? " · shu guruhning o‘ziga" : ""}`
+                      ? `Reja ${allocation.planHours} · band ${allocation.outsideHours + allocation.draftOtherHours + allocation.currentHours} · qoldi ${allocation.remainingAfterRow}${row.guruh_kaliti !== "whole" ? " · har guruh alohida" : ""}`
                       : `Avto soat yo‘q · qo‘lda yozing${row.guruh_kaliti !== "whole" ? " · shu guruhning o‘ziga" : ""}`}
                   </span>
                 </label>
@@ -4766,7 +4971,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       <div className="min-h-screen">
         <SmartHeader title={`${schoolName} · O‘qituvchi qo‘shish`} subtitle="F.I.Sh. → fan → sinf yoki guruh → haftalik soat → jadval yuklamasi" onClose={() => setTeacherEditorOpen(false)}/>
         <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
-          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} startWithNew showPlan={false} onChanged={loadManager}/>
+          <TeacherFirstLoadEditorV192
+            token={token} apiBase={apiBase} maktabId={maktabId}
+            startWithNew showPlan={false} onChanged={loadManager}
+            onEditPlan={() => { setTeacherEditorOpen(false); setCurriculumOpen(true); }}
+          />
         </main>
       </div>
     </WorkspacePortal>;
@@ -4868,7 +5077,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                   </button>
                 </div>
                 <div className="space-y-2 max-h-[390px] overflow-auto pr-1">
-                  {yuklama.slice(0,30).map(x=>{const reja=x.haftalik_reja_jami??x.haftalik_dars_soati;const amaldagi=Number(x.jadvaldagi_soat||0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.lavozim==="psixolog"?`Psixolog · ${x.psixolog_sinf_soni||0} sinf`:`${x.fanlari||"Fan belgilanmagan"}${x.sinf_soati_soni?` · +${x.sinf_soati_soni} sinf soati`:""}`}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??"—"}</div><div className="text-[11px]" style={{ color:palette.muted }}>soat</div></div></div>})}
+                  {yuklama.slice(0,30).map(x=>{const reja=x.haftalik_reja_jami??x.haftalik_dars_soati;const amaldagi=Number(x.amaldagi_soat??x.biriktirilgan_soat??x.jadvaldagi_soat??0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.lavozim==="psixolog"?`Psixolog · ${x.psixolog_sinf_soni||0} sinf`:`${x.fanlari||"Fan belgilanmagan"}${x.sinf_soati_soni?` · +${x.sinf_soati_soni} sinf soati`:""}`}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??"—"}</div><div className="text-[10px]" style={{ color:palette.muted }}>{x.hisob_manbasi==="tasdiqlangan_jadval"?"jadval soati":"biriktirilgan soat"}</div></div></div>})}
                   {!yuklama.length&&<div className="rounded-2xl border-2 border-dashed p-5 text-center" style={{ borderColor: palette.line, background: palette.cream }}>
                     <div className="text-sm font-black" style={{ color: palette.ink }}>Hali o‘qituvchi kiritilmagan</div>
                     <div className="text-xs mt-1" style={{ color: palette.muted }}>F.I.Sh., fan, sinf yoki guruh va haftalik soatni qo‘lda kiriting.</div>
