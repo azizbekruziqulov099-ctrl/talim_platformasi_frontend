@@ -2750,6 +2750,29 @@ function SinfJoyBoshqaruvi({ token, sinf, sinflar, buildings, loading, onSaved }
   );
 }
 
+function fanNomiKalitiV194(value) {
+  return String(value || "")
+    .toLocaleLowerCase("uz")
+    .replace(/[‘’ʻʼ`']/g, "'")
+    .replace(/[^a-z0-9а-яёўғқҳў' ]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function fanNomiMasofasiV194(left, right) {
+  const a = fanNomiKalitiV194(left); const b = fanNomiKalitiV194(right);
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    let diagonal = row[0]; row[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const old = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = old;
+    }
+  }
+  return row[b.length];
+}
+
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [boshSahifa, setBoshSahifa] = useState(false);
   const [importlanmoqda, setImportlanmoqda] = useState(false);
@@ -2765,6 +2788,14 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [fanKatalogi, setFanKatalogi] = useState([]);
   const [tanlanganFanlar, setTanlanganFanlar] = useState([]);
   const [saqlanganFanlar, setSaqlanganFanlar] = useState([]);
+  const [fanSinflari, setFanSinflari] = useState({});
+  const [saqlanganFanSozlamalari, setSaqlanganFanSozlamalari] = useState([]);
+  const [imloTasdiqlanganFanlar, setImloTasdiqlanganFanlar] = useState([]);
+  const [fanTaklifi, setFanTaklifi] = useState(null);
+  const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(null);
+  const [fanOchirishTekshirilmoqda, setFanOchirishTekshirilmoqda] = useState(false);
+  const [fanOchirishTasdiqlari, setFanOchirishTasdiqlari] = useState([]);
+  const [rasmiyReja, setRasmiyReja] = useState(null);
   const [fanlarYuklanmoqda, setFanlarYuklanmoqda] = useState(true);
   const [fanlarSaqlanmoqda, setFanlarSaqlanmoqda] = useState(false);
   const [fanXato, setFanXato] = useState("");
@@ -2805,43 +2836,173 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         setFanKatalogi(d.fanlar || []);
         setTanlanganFanlar(d.tanlangan_fanlar || []);
         setSaqlanganFanlar(d.tanlangan_fanlar || []);
+        const settings = d.fan_sinflari || [];
+        setFanSinflari(Object.fromEntries(settings.map((item) => [item.fan_nomi, item.sinflar || []])));
+        setSaqlanganFanSozlamalari(settings.map((item) => ({ fan_nomi: item.fan_nomi, sinflar: [...(item.sinflar || [])].sort((a, b) => a - b) })));
+        setFanOchirishTasdiqlari([]);
+        setFanOchirishTasdiqi(null);
+        setRasmiyReja(d.rasmiy_reja || null);
         setFanlarYuklanmoqda(false);
       })
       .catch((e) => { setFanXato(e.message); setFanlarYuklanmoqda(false); });
   };
   useEffect(fanlarniYukla, [token, maktab.id]);
 
-  const fanTanlashniAlmashtir = (fanNomi) => {
+  const fanTanlashniDarholAlmashtir = (fanNomi) => {
     setFanXabar("");
-    setTanlanganFanlar((avvalgi) => avvalgi.includes(fanNomi)
-      ? avvalgi.filter((nom) => nom !== fanNomi)
-      : [...avvalgi, fanNomi]);
+    const catalogItem = fanKatalogi.find((fan) => fan.nomi === fanNomi);
+    setTanlanganFanlar((avvalgi) => {
+      if (avvalgi.includes(fanNomi)) {
+        setFanSinflari((current) => { const next = { ...current }; delete next[fanNomi]; return next; });
+        return avvalgi.filter((nom) => nom !== fanNomi);
+      }
+      setFanSinflari((current) => ({ ...current, [fanNomi]: [...(catalogItem?.standart_sinflar || [])] }));
+      return [...avvalgi, fanNomi];
+    });
+  };
+
+  const fanSinfiniDarholAlmashtir = (fanNomi, grade) => {
+    setFanSinflari((current) => {
+      const grades = current[fanNomi] || [];
+      return { ...current, [fanNomi]: grades.includes(grade) ? grades.filter((item) => item !== grade) : [...grades, grade].sort((a, b) => a - b) };
+    });
+    setFanXabar("");
+  };
+
+  const fanOchirishniTekshir = async (fanNomi, grade = null, turi = "sinf") => {
+    setFanOchirishTekshirilmoqda(true); setFanXato(""); setFanXabar("");
+    try {
+      const params = new URLSearchParams({
+        token,
+        maktab_id: String(maktab.id),
+        fan_nomi: fanNomi,
+      });
+      if (grade !== null) params.set("sinf_darajasi", String(grade));
+      const res = await fetch(`${API_BASE}/api/admin/maktab_fan_ochirish_tasiri?${params.toString()}`);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Fan bog‘lanishini tekshirib bo‘lmadi");
+      if (!d.saqlangan) {
+        if (turi === "fan") fanTanlashniDarholAlmashtir(fanNomi);
+        else fanSinfiniDarholAlmashtir(fanNomi, grade);
+        return;
+      }
+      setFanOchirishTasdiqi({
+        turi, fanNomi, grade,
+        tasirlar: d.tasirlar || [],
+        tasdiq_kalitlari: d.tasdiq_kalitlari || [],
+        serverSave: false,
+      });
+    } catch (error) {
+      setFanXato(error.message);
+    } finally {
+      setFanOchirishTekshirilmoqda(false);
+    }
+  };
+
+  const fanTanlashniAlmashtir = (fanNomi) => {
+    const saved = saqlanganFanSozlamalari.some((item) => fanNomiKalitiV194(item.fan_nomi) === fanNomiKalitiV194(fanNomi));
+    if (tanlanganFanlar.includes(fanNomi) && saved) {
+      fanOchirishniTekshir(fanNomi, null, "fan");
+      return;
+    }
+    fanTanlashniDarholAlmashtir(fanNomi);
+  };
+
+  const fanQoshishniYakunla = (nomi, imloTasdiq = false) => {
+    const mavjud = fanKatalogi.find((fan) => fanNomiKalitiV194(fan.nomi) === fanNomiKalitiV194(nomi));
+    const finalName = mavjud?.nomi || nomi;
+    const schoolGrades = [...new Set(sinflar.map((cls) => Number(String(cls.sinf || "").match(/\d+/)?.[0] || 0)).filter((grade) => grade >= 1 && grade <= 11))].sort((a, b) => a - b);
+    if (!mavjud) setFanKatalogi((avvalgi) => [...avvalgi, { nomi: finalName, manba: "Maktab qo‘shgan · maxsus", standart_sinflar: schoolGrades, maxsus: true }]);
+    setTanlanganFanlar((avvalgi) => avvalgi.includes(finalName) ? avvalgi : [...avvalgi, finalName]);
+    setFanSinflari((current) => ({ ...current, [finalName]: current[finalName] || [...(mavjud?.standart_sinflar || schoolGrades)] }));
+    if (imloTasdiq) setImloTasdiqlanganFanlar((current) => current.includes(finalName) ? current : [...current, finalName]);
+    setYangiFanNomi(""); setFanTaklifi(null); setFanXato(""); setFanXabar("Fan tanlovga qo‘shildi. Sinflarini tekshirib, saqlang.");
   };
 
   const yangiFanQosh = () => {
     const toza = yangiFanNomi.trim().replace(/\s+/g, " ");
     if (toza.length < 2) { setFanXato("Yangi fan nomini kiriting"); return; }
-    const mavjud = fanKatalogi.find((fan) => fan.nomi.toLocaleLowerCase("uz") === toza.toLocaleLowerCase("uz"));
-    const nomi = mavjud?.nomi || toza;
-    if (!mavjud) setFanKatalogi((avvalgi) => [...avvalgi, { nomi, manba: "Maktab qo‘shgan" }]);
-    setTanlanganFanlar((avvalgi) => avvalgi.includes(nomi) ? avvalgi : [...avvalgi, nomi]);
-    setYangiFanNomi(""); setFanXato(""); setFanXabar("Yangi fan tanlovga qo‘shildi. Endi saqlang.");
+    const exact = fanKatalogi.find((fan) => fanNomiKalitiV194(fan.nomi) === fanNomiKalitiV194(toza));
+    if (exact) { fanQoshishniYakunla(exact.nomi); return; }
+    const nearest = fanKatalogi
+      .map((fan) => ({ fan, distance: fanNomiMasofasiV194(toza, fan.nomi) }))
+      .sort((a, b) => a.distance - b.distance)[0];
+    const limit = fanNomiKalitiV194(toza).length <= 8 ? 1 : 2;
+    if (nearest && nearest.distance <= limit) {
+      setFanTaklifi({ kiritilgan: toza, taklif: nearest.fan.nomi }); setFanXato(""); return;
+    }
+    fanQoshishniYakunla(toza, true);
   };
 
-  const fanlarniSaqla = async () => {
+  const fanTaklifiniYakunla = (taklifgaTogrilash) => {
+    if (!fanTaklifi) return;
+    const oldName = fanTaklifi.kiritilgan;
+    setTanlanganFanlar((current) => current.filter((name) => fanNomiKalitiV194(name) !== fanNomiKalitiV194(oldName)));
+    setFanSinflari((current) => {
+      const next = { ...current };
+      Object.keys(next).forEach((name) => {
+        if (fanNomiKalitiV194(name) === fanNomiKalitiV194(oldName)) delete next[name];
+      });
+      return next;
+    });
+    fanQoshishniYakunla(taklifgaTogrilash ? fanTaklifi.taklif : oldName, !taklifgaTogrilash);
+  };
+
+  const fanSinfiniAlmashtir = (fanNomi, grade) => {
+    const removing = (fanSinflari[fanNomi] || []).includes(grade);
+    const savedItem = saqlanganFanSozlamalari.find((item) => fanNomiKalitiV194(item.fan_nomi) === fanNomiKalitiV194(fanNomi));
+    if (removing && (savedItem?.sinflar || []).includes(grade)) {
+      fanOchirishniTekshir(fanNomi, grade, "sinf");
+      return;
+    }
+    fanSinfiniDarholAlmashtir(fanNomi, grade);
+  };
+
+  const fanlarniSaqla = async (tasdiqlarOverride = null) => {
     if (!tanlanganFanlar.length) { setFanXato("Kamida bitta maktab fanini tanlang"); return; }
     setFanlarSaqlanmoqda(true); setFanXato(""); setFanXabar("");
     try {
       const res = await fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, maktab_id: maktab.id, fanlar: tanlanganFanlar }),
+        body: JSON.stringify({
+          token,
+          maktab_id: maktab.id,
+          fanlar: tanlanganFanlar,
+          fan_sinflari: tanlanganFanlar.map((fan_nomi) => ({
+            fan_nomi,
+            sinflar: fanSinflari[fan_nomi] || [],
+            imlo_tasdiq: imloTasdiqlanganFanlar.includes(fan_nomi),
+          })),
+          ochirish_tasdiqlari: Array.isArray(tasdiqlarOverride) ? tasdiqlarOverride : fanOchirishTasdiqlari,
+        }),
       });
       const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(d.detail || "Fanlarni saqlab bo'lmadi");
+      if (!res.ok && d.detail?.code === "FAN_IMLO_TAKLIFI") {
+        setFanTaklifi({ kiritilgan: d.detail.kiritilgan, taklif: d.detail.taklif });
+        throw new Error(d.detail.message || "Fan nomini tekshiring");
+      }
+      if (!res.ok && d.detail?.code === "FAN_OCHIRISH_TASDIQI") {
+        setFanOchirishTasdiqi({
+          turi: "server",
+          fanNomi: "Saqlangan fan–sinf bog‘lanmasi",
+          grade: null,
+          tasirlar: d.detail.tasirlar || [],
+          tasdiq_kalitlari: d.detail.tasdiq_kalitlari || [],
+          serverSave: true,
+        });
+        setFanXato("");
+        return;
+      }
+      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Fanlarni saqlab bo'lmadi");
       setTanlanganFanlar(d.tanlangan_fanlar || []);
       setSaqlanganFanlar(d.tanlangan_fanlar || []);
-      setFanXabar(`✅ ${d.tanlangan_fanlar?.length || 0} ta fan saqlandi. Endi aqlli shablonni olishingiz mumkin.`);
+      const settings = d.fan_sinflari || [];
+      setFanSinflari(Object.fromEntries(settings.map((item) => [item.fan_nomi, item.sinflar || []])));
+      setSaqlanganFanSozlamalari(settings.map((item) => ({ fan_nomi: item.fan_nomi, sinflar: [...(item.sinflar || [])].sort((a, b) => a - b) })));
+      setFanOchirishTasdiqlari([]);
+      setFanOchirishTasdiqi(null);
+      setFanXabar(`✅ ${d.tanlangan_fanlar?.length || 0} ta fan va ularning sinflari saqlandi.${d.ogohlantirish ? ` ${d.ogohlantirish}` : ""}`);
     } catch (e) {
       setFanXato(e.message);
     } finally {
@@ -2849,7 +3010,44 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     }
   };
 
-  const fanlarOzgargan = JSON.stringify([...tanlanganFanlar].sort()) !== JSON.stringify([...saqlanganFanlar].sort());
+  const fanOchiruvniTasdiqlash = () => {
+    if (!fanOchirishTasdiqi) return;
+    const nextConfirmations = [...new Set([
+      ...fanOchirishTasdiqlari,
+      ...(fanOchirishTasdiqi.tasdiq_kalitlari || []),
+    ])];
+    setFanOchirishTasdiqlari(nextConfirmations);
+    const pending = fanOchirishTasdiqi;
+    setFanOchirishTasdiqi(null);
+    if (pending.serverSave) {
+      fanlarniSaqla(nextConfirmations);
+    } else if (pending.turi === "fan") {
+      fanTanlashniDarholAlmashtir(pending.fanNomi);
+    } else {
+      fanSinfiniDarholAlmashtir(pending.fanNomi, pending.grade);
+    }
+  };
+
+  const fanOchiruvniQoldirish = () => {
+    if (fanOchirishTasdiqi?.serverSave) {
+      setTanlanganFanlar([...saqlanganFanlar]);
+      setFanSinflari(Object.fromEntries(
+        saqlanganFanSozlamalari.map((item) => [item.fan_nomi, [...item.sinflar]])
+      ));
+      setFanOchirishTasdiqlari([]);
+      setFanXabar("O‘chirish bekor qilindi, saqlangan fanlar qaytarildi.");
+    }
+    setFanOchirishTasdiqi(null);
+  };
+
+  const fanSozlamaImzosi = (names, settings) => JSON.stringify(
+    [...names].sort((a, b) => a.localeCompare(b, "uz")).map((fan_nomi) => ({
+      fan_nomi,
+      sinflar: [...(settings[fan_nomi] || [])].sort((a, b) => a - b),
+    }))
+  );
+  const savedSettingsMap = Object.fromEntries(saqlanganFanSozlamalari.map((item) => [item.fan_nomi, item.sinflar || []]));
+  const fanlarOzgargan = fanSozlamaImzosi(tanlanganFanlar, fanSinflari) !== fanSozlamaImzosi(saqlanganFanlar, savedSettingsMap);
   const fanlarTayyor = saqlanganFanlar.length > 0 && !fanlarOzgargan;
 
   const parolniTashla = async (sinfId) => {
@@ -2975,7 +3173,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           <div>
             <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — Maktab fanlarini tanlash</p>
             <p className="text-xs mt-1" style={{ color: "#8A8578" }}>
-              Shu maktabda o‘tiladigan barcha fanlarni belgilang. Faqat saqlangan fanlar xodim Excelidagi aqlli tanlovga tushadi.
+              Fanlarni tanlang va har biri qaysi 1–11-sinflarda o‘tilishini belgilang. O‘quv reja avtomatik soatni faqat shu bog‘lanmalarga qo‘yadi.
             </p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
@@ -2984,10 +3182,58 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
           </span>
         </div>
 
+        {saqlanganFanSozlamalari.length > 0 && <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "#F2F8ED" }}>
+          <div className="text-[11px] font-bold mb-2" style={{ color: "#3B6D11" }}>HOZIR SAQLANGAN FANLAR</div>
+          <div className="flex flex-wrap gap-1.5">
+            {saqlanganFanSozlamalari.map((item) => <span key={item.fan_nomi} className="px-2.5 py-1.5 rounded-lg text-xs" style={{ backgroundColor: "#fff", color: "#3B6D11", border: "1px solid #CFE2BE" }}>
+              <b>{item.fan_nomi}</b> · {item.sinflar.join(", ") || "sinf belgilanmagan"}
+            </span>)}
+          </div>
+        </div>}
+
         <div className="grid sm:grid-cols-[1fr_auto] gap-2 mt-4">
           <input value={yangiFanNomi} onChange={(e) => setYangiFanNomi(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); yangiFanQosh(); } }} placeholder="Ro‘yxatda yo‘q fan nomini yozing..." className="px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
           <button type="button" onClick={yangiFanQosh} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>＋ Fan qo‘shish</button>
         </div>
+        {fanTaklifi && <div className="mt-2 p-3 rounded-xl border" style={{ backgroundColor: "#FFF8E8", borderColor: "#E9C985", color: "#6D4B13" }}>
+          <div className="text-sm font-semibold">“{fanTaklifi.kiritilgan}” yozildi. “{fanTaklifi.taklif}” nazarda tutilganmi?</div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <button type="button" onClick={() => fanTaklifiniYakunla(true)} className="px-3 py-2 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#3B6D11" }}>“{fanTaklifi.taklif}”ga to‘g‘rilash</button>
+            <button type="button" onClick={() => fanTaklifiniYakunla(false)} className="px-3 py-2 rounded-lg text-xs font-bold" style={{ backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #E9C985" }}>Alohida maxsus fan bo‘lib qolsin</button>
+            <button type="button" onClick={() => setFanTaklifi(null)} className="px-3 py-2 rounded-lg text-xs">Bekor qilish</button>
+          </div>
+        </div>}
+        {fanOchirishTekshirilmoqda && <div className="mt-2 p-3 rounded-xl flex items-center gap-2 text-sm" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+          <Loader2 size={16} className="animate-spin"/> Fan o‘quv reja, o‘qituvchi va jadval bilan bog‘langanmi — tekshirilmoqda...
+        </div>}
+        {fanOchirishTasdiqi && (() => {
+          const impacts = fanOchirishTasdiqi.tasirlar || [];
+          const totals = impacts.reduce((sum, item) => ({
+            planRows: sum.planRows + Number(item.oquv_reja_qatori || 0),
+            planHours: sum.planHours + Number(item.oquv_reja_soati || 0),
+            teacherRows: sum.teacherRows + Number(item.oqituvchi_birikmasi || 0),
+            teacherHours: sum.teacherHours + Number(item.oqituvchi_soati || 0),
+            teachers: sum.teachers + Number(item.oqituvchi_soni || 0),
+            slots: sum.slots + Number(item.aqlli_jadval_sloti || 0) + Number(item.eski_jadval_sloti || 0),
+            topics: sum.topics + Number(item.mavzu_reja_qatori || 0),
+            groups: sum.groups + Number(item.guruh_tizimi || 0),
+          }), { planRows: 0, planHours: 0, teacherRows: 0, teacherHours: 0, teachers: 0, slots: 0, topics: 0, groups: 0 });
+          return <div className="mt-3 p-4 rounded-2xl border-2" style={{ backgroundColor: "#FFF1EE", borderColor: "#D88A76", color: "#713421" }}>
+            <div className="text-sm font-bold">⚠️ {fanOchirishTasdiqi.fanNomi}{fanOchirishTasdiqi.grade ? ` · ${fanOchirishTasdiqi.grade}-sinf` : ""}ni o‘chirmoqchimisiz?</div>
+            <p className="text-xs mt-1.5">Bu saqlangan bog‘lanma. O‘chirilsa fan shu sinf uchun o‘qituvchi tanlovidan va avtomatik o‘quv rejadan chiqadi; o‘quv reja qayta draft holatiga o‘tadi.</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-white"><b>O‘quv reja</b><br/>{totals.planRows} qator · {totals.planHours} soat</div>
+              <div className="p-2.5 rounded-xl bg-white"><b>O‘qituvchi</b><br/>{totals.teacherRows} birikma · {totals.teacherHours} soat</div>
+              <div className="p-2.5 rounded-xl bg-white"><b>Dars jadvali</b><br/>{totals.slots} ta slot</div>
+              <div className="p-2.5 rounded-xl bg-white"><b>Mavzu/guruh</b><br/>{totals.topics} mavzu · {totals.groups} guruh</div>
+            </div>
+            {!totals.planRows && !totals.teacherRows && !totals.slots && !totals.topics && !totals.groups && <p className="text-xs mt-2 p-2 rounded-lg bg-white">Hozircha real soat yoki jadval bog‘lanmasi yo‘q. Shunga qaramay, fan bu sinf tanlovidan olib tashlanadi.</p>}
+            <div className="flex flex-wrap justify-end gap-2 mt-3">
+              <button type="button" onClick={fanOchiruvniQoldirish} className="px-4 py-2.5 rounded-xl text-xs font-bold" style={{ backgroundColor: "#fff", color: "#3B6D11", border: "1px solid #BFD5AA" }}>Qoldirish</button>
+              <button type="button" onClick={fanOchiruvniTasdiqlash} className="px-4 py-2.5 rounded-xl text-xs font-bold text-white" style={{ backgroundColor: "#B0553A" }}>Baribir o‘chirish</button>
+            </div>
+          </div>;
+        })()}
         {fanlarYuklanmoqda ? (
           <div className="py-8 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
         ) : fanKatalogi.length === 0 ? (
@@ -2997,13 +3243,28 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         ) : (
           <>
             <div className="flex flex-wrap gap-2 mt-4 mb-3">
-              <button type="button" onClick={() => { setTanlanganFanlar(fanKatalogi.map((fan) => fan.nomi)); setFanXabar(""); }}
+              <button type="button" onClick={() => {
+                const official = fanKatalogi.filter((fan) => !fan.maxsus && (fan.standart_sinflar || []).length);
+                setTanlanganFanlar((current) => [...new Set([...current, ...official.map((fan) => fan.nomi)])]);
+                setFanSinflari((current) => ({
+                  ...current,
+                  ...Object.fromEntries(official.map((fan) => [
+                    fan.nomi,
+                    [...new Set([...(current[fan.nomi] || []), ...fan.standart_sinflar])].sort((a, b) => a - b),
+                  ])),
+                }));
+                setFanXabar("");
+              }}
                 className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                ✓ Barchasini tanlash
+                ⚡ Rasmiy 2026–2027 fanlarini tanlash
               </button>
-              <button type="button" onClick={() => { setTanlanganFanlar([]); setFanXabar(""); }}
+              <button type="button" onClick={() => {
+                setTanlanganFanlar([...saqlanganFanlar]);
+                setFanSinflari(Object.fromEntries(saqlanganFanSozlamalari.map((item) => [item.fan_nomi, [...item.sinflar]])));
+                setFanOchirishTasdiqlari([]); setFanOchirishTasdiqi(null); setFanXabar("Saqlangan holat qaytarildi.");
+              }}
                 className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-                Tanlovni tozalash
+                Saqlangan holatga qaytish
               </button>
               <span className="px-3 py-2 text-xs" style={{ color: "#8A8578" }}>
                 Tanlandi: {tanlanganFanlar.length}/{fanKatalogi.length}
@@ -3025,15 +3286,43 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                     <span>
                       <span className="block text-sm font-semibold">{fan.nomi}</span>
                       <span className="block text-xs mt-0.5" style={{ color: "#8A8578" }}>
-                        {fan.manba || "DTS tavsiyasi"} · sinfga avtomatik biriktirilmaydi
+                        {fan.manba || "DTS tavsiyasi"}{(fan.standart_sinflar || []).length ? ` · ${fan.standart_sinflar.join(", ")}-sinflar` : " · maxsus fan"}
                       </span>
                     </span>
                   </button>
                 );
               })}
             </div>
+            {tanlanganFanlar.length > 0 && <div className="mt-4 rounded-2xl border overflow-hidden" style={{ borderColor: "#D9E4EC" }}>
+              <div className="px-3 py-2.5 text-xs font-bold" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
+                Tanlangan fanlar → tegishli sinflar. Noto‘g‘ri sinfni bosib olib tashlang yoki keraklisini qo‘shing.
+              </div>
+              <div className="max-h-80 overflow-y-auto divide-y">
+                {tanlanganFanlar.map((fanNomi) => <div key={fanNomi} className="grid md:grid-cols-[230px_1fr] gap-2 px-3 py-2.5 items-center">
+                  <div className="text-xs font-bold" style={{ color: "#2B2B2B" }}>{fanNomi}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {Array.from({ length: 11 }, (_, index) => index + 1).map((grade) => {
+                      const active = (fanSinflari[fanNomi] || []).includes(grade);
+                      return <button key={grade} type="button" onClick={() => fanSinfiniAlmashtir(fanNomi, grade)} className="w-8 h-8 rounded-lg text-[11px] font-bold" style={{ backgroundColor: active ? "#1B4B7A" : "#F7F5F0", color: active ? "#fff" : "#8A8578", border: `1px solid ${active ? "#1B4B7A" : "#E5E1D8"}` }}>{grade}</button>;
+                    })}
+                  </div>
+                </div>)}
+              </div>
+            </div>}
+            {tanlanganFanlar.length > 0 && <div className="mt-3 grid lg:grid-cols-2 gap-2">
+              {Array.from({ length: 11 }, (_, index) => index + 1).map((grade) => {
+                const subjects = tanlanganFanlar.filter((fanNomi) => (fanSinflari[fanNomi] || []).includes(grade));
+                return <div key={grade} className="rounded-xl p-2.5 flex gap-2 items-start" style={{ backgroundColor: subjects.length ? "#F7FAFC" : "#FFF1EE", border: `1px solid ${subjects.length ? "#D9E4EC" : "#EBC5BC"}` }}>
+                  <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ backgroundColor: subjects.length ? "#1B4B7A" : "#B0553A", color: "#fff" }}>{grade}</span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold mb-1" style={{ color: "#8A8578" }}>{grade}-SINFDA SAQLANADIGAN FANLAR · {subjects.length} TA</div>
+                    <div className="flex flex-wrap gap-1">{subjects.length ? subjects.map((subject) => <button type="button" key={subject} onClick={() => fanSinfiniAlmashtir(subject, grade)} title="Bu sinfdan olib tashlash" className="px-2 py-1 rounded-md text-[10px]" style={{ backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #D9E4EC" }}>{subject} ×</button>) : <span className="text-[11px]" style={{ color: "#B0553A" }}>Bu sinf uchun fan tanlanmagan</span>}</div>
+                  </div>
+                </div>;
+              })}
+            </div>}
             <button type="button" onClick={fanlarniSaqla}
-              disabled={fanlarSaqlanmoqda || !tanlanganFanlar.length || (!fanlarOzgargan && fanlarTayyor)}
+              disabled={fanlarSaqlanmoqda || !tanlanganFanlar.length || tanlanganFanlar.some((fan) => !(fanSinflari[fan] || []).length) || (!fanlarOzgargan && fanlarTayyor)}
               className="w-full py-3 rounded-xl font-semibold text-sm mt-4"
               style={{
                 backgroundColor: fanlarOzgargan ? "#1B4B7A" : "#D7E0E7",
@@ -3042,6 +3331,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
               }}>
               {fanlarSaqlanmoqda ? "Saqlanmoqda..." : fanlarOzgargan ? "Tanlangan fanlarni saqlash" : "Fanlar saqlangan"}
             </button>
+            {tanlanganFanlar.some((fan) => !(fanSinflari[fan] || []).length) && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>Har bir tanlangan fan uchun kamida bitta sinfni belgilang.</p>}
+            {rasmiyReja && <p className="text-[10px] mt-2 text-center" style={{ color: "#8A8578" }}>Avtomatik soatlar manbasi: {rasmiyReja.buyruq}, {rasmiyReja.sana}, {rasmiyReja.ilova}.</p>}
           </>
         )}
         {fanXato && <p className="text-sm mt-3" style={{ color: "#B0553A" }}>{fanXato}</p>}
