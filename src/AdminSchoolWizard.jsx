@@ -246,6 +246,13 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     } : item));
     setError("");
   };
+  const selectClassShift = (number) => {
+    const selectedShift = Number(number) === 2 ? 2 : 1;
+    if (selectedShift === 2 && shiftCount !== 2) setShiftCount(2);
+    setDefaultClassShift(selectedShift);
+    setError("");
+    setNotice(`${selectedShift}-smena oynasi ochildi. Boshqa smenadagi ${shiftClassCounts[selectedShift === 1 ? 2 : 1]} ta sinf rejasi saqlanib turibdi.${selectedShift === 2 && shiftCount !== 2 ? " Maktab 2 smenali holatga o'tkazildi." : ""}`);
+  };
   const createRooms = (key) => {
     setBuildings((current) => current.map((item) => item.key === key ? { ...item, rooms: generateRooms(item) } : item));
     setEditingRoom(null);
@@ -439,7 +446,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
         <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir smena alohida saqlanadi. Avval 1-smenani, keyin 2-smenani kiritsangiz, oldingi sinflar o‘chmaydi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta jami</span></div>
         <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>Barchasiga tez qo‘yish:</span>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
-        {shiftCount === 2 && <div className="rounded-xl border p-3 mb-3" style={{ borderColor: "#B9CCDC", background: "#F1F7FB" }}><p className="text-xs font-bold mb-2" style={{ color: "#1B4B7A" }}>Qaysi smena sinflarini kiritasiz?</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => { setDefaultClassShift(number); setError(""); setNotice(`${number}-smena oynasi ochildi. Boshqa smenadagi ${shiftClassCounts[number === 1 ? 2 : 1]} ta sinf rejasi saqlanib turibdi.`); }} className="py-2 rounded-lg border text-xs font-bold" style={defaultClassShift === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#D9D4C8" }}>{number}-smena · {shiftClassCounts[number]} ta</button>)}</div><p className="text-[10px] mt-2" style={{ color: "#2E6C55" }}>✓ Smenalar saqlanadi va parallel harflari umumiy davom etadi: 1-smena A/B bo‘lsa, 2-smena C dan boshlanadi.</p></div>}
+        <div className="rounded-xl border p-3 mb-3" style={{ borderColor: "#B9CCDC", background: "#F1F7FB" }}><p className="text-xs font-bold mb-2" style={{ color: "#1B4B7A" }}>Qaysi smena sinflarini kiritasiz?</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => selectClassShift(number)} className="py-2 rounded-lg border text-xs font-bold" style={defaultClassShift === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#D9D4C8" }}>{number}-smena · {shiftClassCounts[number]} ta</button>)}</div><p className="text-[10px] mt-2" style={{ color: "#2E6C55" }}>✓ Smena tanlovi doim saqlanadi. Masalan, 1-smenada 2-A bo‘lsa, 2-smena 2-B dan boshlanadi; bir smenani tahrirlash ikkinchisini o‘chirmaydi.</p></div>
         <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2">PARALLEL</span><span className="col-span-8">SINF VA SMENA</span></div>
           {gradeConfig.map((item) => <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: item.count ? "white" : "#FAF9F6" }}>
