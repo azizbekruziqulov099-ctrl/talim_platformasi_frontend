@@ -1,4 +1,4 @@
-// SamTM V19.7 — backend capability tekshiruvi bilan 0,5/1,5 saqlash va A/B hafta.
+// SamTM V19.8 — yangi maktab ID sini avtomatik bog'lash, 0,5/1,5 va A/B hafta.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
 // SamTM V19.5 — 0,5/1,5 soatli fanlarni aniq saqlash va server xatosini to'liq ko'rsatish.
 // SamTM V19.5 — 0,5 + 0,5 fanlar bitta slotda toq/juft haftalarda A/B navbat bilan ko'rsatiladi.
@@ -3774,18 +3774,21 @@ function TeacherFirstLoadEditorV192({
           );
         } catch (capabilityError) {
           const deploymentError = new Error(
-            "Backend hali V19.7 ga yangilanmagan. Avval BACKEND xizmatidagi backend/samtm_school.py faylini ushbu paketdagi 1-kod bilan to‘liq almashtirib deploy qiling. /api/versiya javobida samtm-fractional-hours-ab-week-v19.7 chiqmaguncha 0,5 va 1,5 saqlanmaydi."
+            "Backend hali V19.8 ga yangilanmagan. Avval BACKEND xizmatidagi backend/samtm_school.py faylini ushbu paketdagi 1-kod bilan to‘liq almashtirib deploy qiling. /api/versiya javobida samtm-school-workspace-link-v19.8 chiqmaguncha 0,5 va 1,5 saqlanmaydi."
           );
           deploymentError.status = capabilityError?.status || 409;
           throw deploymentError;
         }
         if (
-          capability?.release !== "samtm-fractional-hours-ab-week-v19.7"
+          ![
+            "samtm-fractional-hours-ab-week-v19.7",
+            "samtm-school-workspace-link-v19.8",
+          ].includes(capability?.release)
           || !capability?.fractional_hours
           || !capability?.schema_ready
         ) {
           const migrationError = new Error(
-            "Backend V19.7 kodi topildi, lekin 0,5/1,5 soat uchun baza migratsiyasi tayyor emas. Railway BACKEND logida “V19.7 0,5/1,5 soat migratsiyasi” xatosini tekshiring va backendni qayta deploy qiling."
+            "Backend V19.8 kodi topildi, lekin 0,5/1,5 soat uchun baza migratsiyasi tayyor emas. Railway BACKEND logida “V19.8 0,5/1,5 soat migratsiyasi” xatosini tekshiring va backendni qayta deploy qiling."
           );
           migrationError.status = 503;
           throw migrationError;
@@ -6163,7 +6166,14 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
 
 
 export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false }) {
-  const maktabId = initialWorkspace?.muassasa_id || initialWorkspace?.id;
+  const organizationV17Id = initialWorkspace?.organization_v17_id || null;
+  const contextId = initialWorkspace?.context_id || null;
+  const linkedInitialId = initialWorkspace?.external_id || initialWorkspace?.legacy_maktab_id || (
+    organizationV17Id || contextId ? null : (initialWorkspace?.muassasa_id || initialWorkspace?.id)
+  );
+  const [maktabId, setMaktabId] = useState(linkedInitialId || null);
+  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId || !linkedInitialId));
+  const [workspaceLinkError, setWorkspaceLinkError] = useState("");
   const lavozim = String(initialWorkspace?.lavozim || "").toLowerCase();
   const teacherMode = Boolean(lavozim) && !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "owner", "admin"].includes(lavozim);
   const [dashboard, setDashboard] = useState(null);
@@ -6178,11 +6188,51 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [curriculumOpen, setCurriculumOpen] = useState(false);
   const [curriculumStatus, setCurriculumStatus] = useState(null);
 
+  useEffect(() => {
+    let active = true;
+    const mustResolve = Boolean(organizationV17Id || contextId || !linkedInitialId);
+    if (!mustResolve) {
+      setMaktabId(linkedInitialId);
+      setWorkspaceResolving(false);
+      setWorkspaceLinkError("");
+      return () => { active = false; };
+    }
+    setWorkspaceResolving(true);
+    setWorkspaceLinkError("");
+    smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/maktab_workspace_boglash?token=${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        organization_v17_id: organizationV17Id ? Number(organizationV17Id) : null,
+        context_id: contextId ? Number(contextId) : null,
+      }),
+    }).then(result => {
+      if (!active) return;
+      if (!result?.maktab_id) throw new Error("Server haqiqiy maktab ID sini qaytarmadi.");
+      setMaktabId(Number(result.maktab_id));
+      setWorkspaceLinkError("");
+    }).catch(error => {
+      if (!active) return;
+      setMaktabId(null);
+      setWorkspaceLinkError(error?.message || "Yangi maktab ish maydoniga bog‘lanmadi.");
+    }).finally(() => {
+      if (active) setWorkspaceResolving(false);
+    });
+    return () => { active = false; };
+  }, [token, apiBase, organizationV17Id, contextId, linkedInitialId]);
+
   const loadManager = () => {
     if (teacherMode) return;
+    if (workspaceResolving) {
+      setLoading(true); setError(""); return;
+    }
+    if (workspaceLinkError) {
+      setDashboard(null); setYuklama([]); setHolatlar([]);
+      setError(`Maktab ish maydoniga ulanmayapti: ${workspaceLinkError}`); setLoading(false); return;
+    }
     if (!maktabId) {
       setDashboard(null); setYuklama([]); setHolatlar([]);
-      setError("Maktab ID topilmadi. Muassasani qayta tanlang."); setLoading(false); return;
+      setError("Maktab ID topilmadi. Yangi maktabni yaratish yoki tanlash yakunlanmagan."); setLoading(false); return;
     }
     setLoading(true); setError(""); setLoadWarnings([]);
     Promise.allSettled([
@@ -6222,7 +6272,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setLoadWarnings([...new Set(warnings.filter(Boolean))]);
     }).finally(() => setLoading(false));
   };
-  useEffect(loadManager, [token, apiBase, maktabId, teacherMode]);
+  useEffect(loadManager, [token, apiBase, maktabId, teacherMode, workspaceResolving, workspaceLinkError]);
 
   const jamiOquvchi = dashboard?.bugungi_davomat?.jami_oquvchi
     ?? dashboard?.sinflar?.reduce((a,s)=>a+(Number(s.oquvchi_soni)||0),0) ?? 0;
