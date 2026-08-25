@@ -2420,6 +2420,28 @@ function groupedSubjectMatchesV195(left, right) {
   return leftKey === rightKey || groupedSubjectFamilyV195(leftKey) === groupedSubjectFamilyV195(rightKey);
 }
 
+function sameSubjectV196(left, right) {
+  const leftKey = subjectKeyV193(left);
+  const rightKey = subjectKeyV193(right);
+  return Boolean(leftKey && rightKey && leftKey === rightKey);
+}
+
+function groupedSubjectSchemeV196(value) {
+  const key = subjectKeyV193(value);
+  if (/chet tili|ingliz tili|english|rus tili|russki|nemis tili|fransuz tili|informatika|axborot texnolog/.test(key)) return "numbered";
+  if (/texnolog|mehnat|jismoniy tarbiya|fizkultura|sport/.test(key)) return "gender";
+  return "";
+}
+
+function groupedVariantSchemeV196(variant) {
+  const key = subjectKeyV193(
+    `${variant?.guruh_nomi || ""} ${variant?.qisqa || ""} ${variant?.guruh_kaliti || ""}`
+  );
+  if (/o'g'il|ogil|boy|male|erkak|qiz|girl|female|ayol/.test(key)) return "gender";
+  if (/1[-_ ]?guruh|2[-_ ]?guruh|guruh[-_ ]?1|guruh[-_ ]?2|group[-_ ]?1|group[-_ ]?2|(^|[^a-z0-9])g[12]([^a-z0-9]|$)|birinchi|ikkinchi/.test(key)) return "numbered";
+  return "";
+}
+
 function groupedVariantPriorityV195(variant, subject) {
   const variantKey = subjectKeyV193(
     `${variant?.guruh_nomi || ""} ${variant?.qisqa || ""} ${variant?.guruh_kaliti || ""}`
@@ -2702,6 +2724,29 @@ function TeacherFirstLoadEditorV192({
       item => String(item.sinf_id) === String(classId)
     );
 
+  const groupedVariantsForSubjectV196 = (classId, subject) => {
+    const variants = variantsForClass(classId).filter(
+      variant => variant.guruh_kaliti !== "whole"
+    );
+    const scheme = groupedSubjectSchemeV196(subject);
+    if (scheme) {
+      const byScheme = variants.filter(variant => groupedVariantSchemeV196(variant) === scheme);
+      if (byScheme.length) return sortGroupedVariantsV195(byScheme, subject);
+    }
+    const explicitlyLinked = variants.filter(variant =>
+      (variant.fanlar || []).some(item => groupedSubjectMatchesV195(item, subject))
+    );
+    return sortGroupedVariantsV195(explicitlyLinked, subject);
+  };
+
+  const selectableVariantsForSubjectV196 = (classId, subject) => {
+    const grouped = groupedVariantsForSubjectV196(classId, subject);
+    if (grouped.length || groupedSubjectSchemeV196(subject)) return grouped;
+    const variants = variantsForClass(classId);
+    const whole = variants.find(variant => variant.guruh_kaliti === "whole");
+    return whole ? [whole] : variants;
+  };
+
   const update = (index, changes) => {
     setRows(current => current.map((row, rowIndex) =>
       rowIndex === index
@@ -2787,6 +2832,13 @@ function TeacherFirstLoadEditorV192({
     const planned = approved
       ? planForClass(row.sinf_id).map(item => item.fan_nomi)
       : configured;
+    const variantScheme = groupedVariantSchemeV196(variant);
+    if (variantScheme) {
+      const byScheme = planned.filter(subject =>
+        groupedSubjectSchemeV196(subject) === variantScheme
+      );
+      if (byScheme.length) return byScheme;
+    }
     if (allowed.length) {
       const intersection = planned.filter(subject =>
         allowed.some(item => groupedSubjectMatchesV195(item, subject))
@@ -2794,6 +2846,36 @@ function TeacherFirstLoadEditorV192({
       return planned.length ? intersection : allowed;
     }
     return planned.length ? planned : (data?.fanlar || []);
+  };
+
+  const preferredVariantForSubjectV196 = (index, row, classId, subject, sourceRows = rows) => {
+    const grouped = groupedVariantsForSubjectV196(classId, subject);
+    if (!grouped.length) return null;
+    const currentVariant = sameSubjectV196(row?.fan_nomi, subject)
+      ? grouped.find(variant =>
+          String(variant.guruh_kaliti) === String(row?.guruh_kaliti || "whole")
+        )
+      : null;
+    if (currentVariant) {
+      const currentCandidate = {
+        ...row,
+        sinf_id: String(classId),
+        fan_nomi: subject,
+        guruh_kaliti: currentVariant.guruh_kaliti,
+      };
+      const currentInfo = allocationInfo(index, currentCandidate, sourceRows);
+      if (!currentInfo.approved || currentInfo.maxForRow > 0) return currentVariant;
+    }
+    return grouped.find(variant => {
+      const candidate = {
+        ...row,
+        sinf_id: String(classId),
+        fan_nomi: subject,
+        guruh_kaliti: variant.guruh_kaliti,
+      };
+      const info = allocationInfo(index, candidate, sourceRows);
+      return !info.approved || info.maxForRow > 0;
+    }) || null;
   };
 
   const applyRowChoice = (index, changes) => {
@@ -3040,19 +3122,16 @@ function TeacherFirstLoadEditorV192({
       planForClass(classId)
         .filter(item => specialtyMatchesSubjectV194(specialtyValue, item.fan_nomi, options))
         .forEach(item => {
-          const grouped = sortGroupedVariantsV195(variantsForClass(classId).filter(variant =>
-            variant.guruh_kaliti !== "whole" &&
-            (variant.fanlar || []).some(subject =>
-              groupedSubjectMatchesV195(subject, item.fan_nomi)
-            )
-          ), item.fan_nomi);
+          const grouped = groupedVariantsForSubjectV196(classId, item.fan_nomi);
+          const groupedRequired = Boolean(groupedSubjectSchemeV196(item.fan_nomi));
           const ownedVariant = grouped.find(variant =>
             rows.some(row =>
               String(row.sinf_id) === String(classId) &&
-              groupedSubjectMatchesV195(row.fan_nomi, item.fan_nomi) &&
+              sameSubjectV196(row.fan_nomi, item.fan_nomi) &&
               String(row.guruh_kaliti || "whole") === String(variant.guruh_kaliti)
             )
           );
+          if (groupedRequired && !grouped.length) return;
           const targets = grouped.length
             ? (ownedVariant ? [ownedVariant] : grouped)
             : [{ guruh_kaliti: "whole", guruh_nomi: "Butun sinf" }];
@@ -3251,9 +3330,10 @@ function TeacherFirstLoadEditorV192({
       return;
     }
     for (const cls of (data?.sinflar || [])) {
-      for (const variant of variantsForClass(cls.id)) {
-        const probe = { sinf_id: String(cls.id), guruh_kaliti: variant.guruh_kaliti };
-        for (const subject of subjectsFor({ ...probe, fan_nomi: "" })) {
+      const plannedSubjects = planForClass(cls.id).map(item => item.fan_nomi);
+      for (const subject of plannedSubjects) {
+        for (const variant of selectableVariantsForSubjectV196(cls.id, subject)) {
+          const probe = { sinf_id: String(cls.id), guruh_kaliti: variant.guruh_kaliti };
           const planItem = planItemFor(cls.id, subject);
           const candidate = {
             ...probe, fan_nomi: subject,
@@ -3377,6 +3457,22 @@ function TeacherFirstLoadEditorV192({
       creatingNew || String(chosenLeaderClass.rahbar_user_id) !== String(selectedTeacher)
     )) {
       return setMessage({ tone: "error", text: `${chosenLeaderClass.sinf}-${chosenLeaderClass.harf} sinfida boshqa rahbar bor.` });
+    }
+    const invalidGroupedRow = rows.find(row => {
+      if (!groupedSubjectSchemeV196(row.fan_nomi)) return false;
+      return !groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi).some(variant =>
+        String(variant.guruh_kaliti) === String(row.guruh_kaliti || "whole")
+      );
+    });
+    if (invalidGroupedRow) {
+      const cls = (data?.sinflar || []).find(item =>
+        String(item.id) === String(invalidGroupedRow.sinf_id)
+      );
+      const scheme = groupedSubjectSchemeV196(invalidGroupedRow.fan_nomi);
+      return setMessage({
+        tone: "error",
+        text: `${cls ? `${cls.sinf}-${cls.harf}` : "Sinf"} / ${invalidGroupedRow.fan_nomi} guruhli fan. Butun sinf emas, ${scheme === "gender" ? "O‘g‘il bolalar yoki Qiz bolalar" : "1-guruh yoki 2-guruh"}ni tanlang.`,
+      });
     }
     const mergedRows = mergeDuplicateRows(rows);
     if (!mergedRows.length) {
@@ -3539,11 +3635,13 @@ function TeacherFirstLoadEditorV192({
     return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
   };
   const allocationTargetsFor = (classId, subject) => {
-    const grouped = variantsForClass(classId).filter(variant =>
-      variant.guruh_kaliti !== "whole" &&
-      (variant.fanlar || []).some(item => groupedSubjectMatchesV195(item, subject))
-    );
+    const grouped = groupedVariantsForSubjectV196(classId, subject);
     if (grouped.length) return grouped;
+    if (groupedSubjectSchemeV196(subject)) return [{
+      sinf_id: Number(classId), guruh_kaliti: "group_missing",
+      guruh_nomi: "Guruh sozlanmagan", qisqa: "Guruh yo‘q",
+      missing: true,
+    }];
     return [{
       sinf_id: Number(classId), guruh_kaliti: "whole",
       guruh_nomi: "Butun sinf", qisqa: "Sinf",
@@ -3554,7 +3652,7 @@ function TeacherFirstLoadEditorV192({
     const targets = allocationTargetsFor(classId, planItem.fan_nomi).map(target => {
       const matching = effectiveAllocationRows.filter(row =>
         String(row.sinf_id) === String(classId) &&
-        groupedSubjectMatchesV195(row.fan_nomi, planItem.fan_nomi) &&
+        sameSubjectV196(row.fan_nomi, planItem.fan_nomi) &&
         String(row.guruh_kaliti || "whole") === String(target.guruh_kaliti || "whole")
       );
       const teachersById = new Map();
@@ -4230,7 +4328,8 @@ function TeacherFirstLoadEditorV192({
 
           <div className="space-y-2 mt-4">
             {rows.map((row, index) => {
-              const variants = variantsForClass(row.sinf_id);
+              const variants = selectableVariantsForSubjectV196(row.sinf_id, row.fan_nomi);
+              const groupedRequired = Boolean(groupedSubjectSchemeV196(row.fan_nomi));
               const subjects = subjectsFor(row);
               const allocation = allocationInfo(index, row);
               return <div id={`teacher-load-row-${index}`} key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_90px_150px_38px] gap-2 items-end scroll-mt-24" style={{ borderColor: row.auto_specialty ? "#8FC4A5" : palette.line, background: row.auto_specialty ? palette.greenBg : "#FCFDFE" }}>
@@ -4240,10 +4339,15 @@ function TeacherFirstLoadEditorV192({
                     const approved = data?.oquv_reja?.holat === "tasdiqlangan";
                     const firstPlan = approved ? planForClass(classId)[0] : null;
                     const firstConfigured = (data?.fan_sinflari || []).find(item => String(item.sinf_id) === String(classId))?.fanlar?.[0];
+                    const subject = firstPlan?.fan_nomi || firstConfigured || "";
+                    const preferredVariant = preferredVariantForSubjectV196(index, row, classId, subject);
+                    if (groupedSubjectSchemeV196(subject) && !preferredVariant) {
+                      return setMessage({ tone: "warning", text: `${subject}: bu sinfda mos guruh sozlanmagan yoki ikkala guruh ham band.` });
+                    }
                     applyRowChoice(index, {
                       sinf_id: classId,
-                      guruh_kaliti: "whole",
-                      fan_nomi: firstPlan?.fan_nomi || firstConfigured || "",
+                      guruh_kaliti: preferredVariant?.guruh_kaliti || "whole",
+                      fan_nomi: subject,
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white">
                     {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
@@ -4252,8 +4356,13 @@ function TeacherFirstLoadEditorV192({
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan <span style={{ color: palette.red }}>*</span>
                   <select value={row.fan_nomi} onChange={event => {
                     const subject = event.target.value;
+                    const preferredVariant = preferredVariantForSubjectV196(index, row, row.sinf_id, subject);
+                    if (groupedSubjectSchemeV196(subject) && !preferredVariant) {
+                      return setMessage({ tone: "warning", text: `${subject}: mos guruh sozlanmagan yoki shu fan bo‘yicha ikkala guruh ham band.` });
+                    }
                     applyRowChoice(index, {
                       fan_nomi: subject,
+                      guruh_kaliti: preferredVariant?.guruh_kaliti || "whole",
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white">
                     {!subjects.includes(row.fan_nomi) && row.fan_nomi && <option value={row.fan_nomi}>{row.fan_nomi}</option>}
@@ -4276,6 +4385,11 @@ function TeacherFirstLoadEditorV192({
                       fan_nomi: subject,
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                    {!variants.some(variant => String(variant.guruh_kaliti) === String(row.guruh_kaliti)) && (
+                      <option value={row.guruh_kaliti || "whole"} disabled>
+                        {groupedRequired ? "Guruh tanlanmagan — bu fan guruhli" : "Joriy guruh"}
+                      </option>
+                    )}
                     {variants.map(variant => {
                       const candidate = { ...row, guruh_kaliti: variant.guruh_kaliti };
                       const info = allocationInfo(index, candidate);
