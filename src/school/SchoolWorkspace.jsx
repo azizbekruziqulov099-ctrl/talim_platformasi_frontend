@@ -2459,37 +2459,6 @@ function primaryTeacherCanTeachV193(subject) {
   ].some(blocked => key.includes(blocked));
 }
 
-const teacherSpecialtiesV194 = [
-  { value: "boshlangich", label: "Boshlang‘ich ta’lim", subjects: [] },
-  { value: "matematika", label: "Matematika", subjects: ["matematika", "algebra", "geometriya"] },
-  { value: "informatika", label: "Informatika va axborot texnologiyalari", subjects: ["informatika", "axborot texnologiyalari", "informatika va axborot texnologiyalari"] },
-  { value: "fizika", label: "Fizika va astronomiya", subjects: ["fizika", "astronomiya"] },
-  { value: "kimyo", label: "Kimyo", subjects: ["kimyo"] },
-  { value: "biologiya", label: "Biologiya va tabiiy fanlar", subjects: ["biologiya", "tabiiy fan", "tabiiy fanlar"] },
-  { value: "geografiya", label: "Geografiya", subjects: ["geografiya"] },
-  { value: "iqtisod", label: "Iqtisodiy bilim asoslari", subjects: ["iqtisod", "iqtisodiy bilim asoslari", "tadbirkorlik asoslari"] },
-  { value: "tarix", label: "Tarix", subjects: ["tarixdan hikoyalar", "qadimgi dunyo tarixi", "o'zbekiston tarixi", "jahon tarixi", "tarix"] },
-  { value: "ozbek_tili", label: "O‘zbek tili va adabiyoti", subjects: ["o'zbek tili", "ona tili", "adabiyot", "o'qish savodxonligi"] },
-  { value: "rus_tili", label: "Rus tili va adabiyoti", subjects: ["rus tili", "rus adabiyoti"] },
-  { value: "ingliz_tili", label: "Xorijiy til va adabiyoti: ingliz tili", subjects: ["chet tili", "ingliz tili", "english"] },
-  { value: "nemis_tili", label: "Xorijiy til va adabiyoti: nemis tili", subjects: ["nemis tili", "german"] },
-  { value: "fransuz_tili", label: "Xorijiy til va adabiyoti: fransuz tili", subjects: ["fransuz tili", "french"] },
-  { value: "chet_tili", label: "Xorijiy til va adabiyoti (tili ko‘rsatilmagan)", subjects: ["chet tili", "ingliz tili", "nemis tili", "fransuz tili", "english", "german", "french"] },
-  { value: "tasviriy_grafika", label: "Tasviriy san’at va muhandislik grafikasi", subjects: ["tasviriy san'at", "rasm", "chizmachilik", "muhandislik grafikasi"] },
-  { value: "musiqa", label: "Musiqa ta’limi", subjects: ["musiqa madaniyati", "musiqa"] },
-  { value: "texnologiya", label: "Texnologik ta’lim", subjects: ["texnologiya", "mehnat"] },
-  { value: "milliy_goya_huquq", label: "Milliy g‘oya, ma’naviyat asoslari va huquq ta’limi", subjects: ["tarbiya", "davlat va huquq asoslari", "huquq", "ma'naviyat asoslari", "milliy g'oya"] },
-  { value: "jismoniy", label: "Jismoniy madaniyat", subjects: ["jismoniy tarbiya", "sport"] },
-  { value: "chqbt", label: "Chaqiriqqacha harbiy ta’lim", subjects: ["chaqiruvga qadar boshlang'ich tayyorgarlik", "chaqiriqqacha harbiy ta'lim", "chqbt"] },
-  { value: "pedagogika", label: "Pedagogika va psixologiya", subjects: ["pedagogika", "psixologiya"] },
-];
-
-const legacySpecialtyAliasesV195 = {
-  ona_tili: "ozbek_tili",
-  tarbiya_huquq: "milliy_goya_huquq",
-  tasviriy: "tasviriy_grafika",
-};
-
 const specialtyColorsV195 = [
   { strong: "#155A7A", soft: "#EDF5FB", line: "#8BB9D2" },
   { strong: "#0F7C82", soft: "#EAF7F4", line: "#83C7C5" },
@@ -2504,38 +2473,32 @@ const specialtyClassQuickRangesV195 = [
   { key: "10_11", label: "10–11-sinflar", min: 10, max: 11 },
 ];
 
-function normalizedSpecialtyValueV195(value) {
-  const key = String(value || "").trim();
-  return legacySpecialtyAliasesV195[key] || key;
-}
-
-function specialtyOptionV194(value, options = teacherSpecialtiesV194) {
-  const firstValue = specialtyValuesV195(value)[0] || "";
-  return options.find(item => item.value === firstValue);
-}
-
 function specialtyValuesV195(value) {
-  return [...new Set(String(value || "").split(";").map(normalizedSpecialtyValueV195).filter(Boolean))].slice(0, 3);
+  return [...new Set(String(value || "").split(";").map(item => String(item).trim()).filter(Boolean))];
 }
 
-function specialtyLabelV195(value, options = teacherSpecialtiesV194) {
+function specialtyLabelV195(value, options = []) {
   const labels = specialtyValuesV195(value).map(item =>
     options.find(option => option.value === item)?.label || item
   );
   return labels.join(" + ");
 }
 
-function specialtyMatchesSubjectV194(specialtyValue, subject, options = teacherSpecialtiesV194) {
+function specialtyMatchesSubjectV194(specialtyValue, subject, options = []) {
   return specialtyValuesV195(specialtyValue).some(specialtyKey => {
     const option = options.find(item => item.value === specialtyKey);
     if (!option) return false;
-    if (option.value === "boshlangich") return primaryTeacherCanTeachV193(subject);
-    const key = subjectKeyV193(subject);
-    return option.subjects.some(item => {
-      const needle = subjectKeyV193(item);
-      return key === needle || key.includes(needle) || needle.includes(key);
-    });
+    return subjectKeyV193(option.value) === subjectKeyV193(subject);
   });
+}
+
+function pairedTeachingSubjectsV196(subject, choices) {
+  const key = subjectKeyV193(subject);
+  const wanted = [];
+  if (/algebra/.test(key) && !/geometriya/.test(key)) wanted.push(/(^|\s)geometriya(\s|$)/);
+  if (/ona tili/.test(key) && !/adabiyot/.test(key)) wanted.push(/(^|\s)adabiyot(\s|$)/);
+  return wanted.map(pattern => choices.find(item => pattern.test(subjectKeyV193(item))))
+    .filter(Boolean);
 }
 
 function teacherBirthProfileV195(teacher) {
@@ -2584,15 +2547,7 @@ function TeacherFirstLoadEditorV192({
   const [allocationInspectorClassId, setAllocationInspectorClassId] = useState("");
   const [allocationInspectorSubjectKey, setAllocationInspectorSubjectKey] = useState("");
   const [allocationOverviewOpen, setAllocationOverviewOpen] = useState(false);
-  const [customSpecialties, setCustomSpecialties] = useState([]);
-  const [specialtyCreatorOpen, setSpecialtyCreatorOpen] = useState(false);
-  const [specialtyDraft, setSpecialtyDraft] = useState({ label: "", subjects: [] });
-  const [specialtyDraftError, setSpecialtyDraftError] = useState("");
   const birthDateMaxV195 = new Date().toISOString().slice(0, 10);
-  const specialtyOptions = useMemo(
-    () => [...teacherSpecialtiesV194, ...customSpecialties],
-    [customSpecialties]
-  );
   const specialtySubjectChoices = useMemo(() => {
     const unique = new Map();
     [...(data?.fanlar || []), ...planSubjects].forEach(subject => {
@@ -2601,17 +2556,9 @@ function TeacherFirstLoadEditorV192({
     });
     return [...unique.values()].sort((left, right) => String(left).localeCompare(String(right), "uz"));
   }, [data, planSubjects]);
-
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(`samtm_custom_specialties_v195_${maktabId}`) || "[]");
-      setCustomSpecialties(Array.isArray(saved) ? saved.filter(item =>
-        item && item.value && item.label && Array.isArray(item.subjects)
-      ) : []);
-    } catch {
-      setCustomSpecialties([]);
-    }
-  }, [maktabId]);
+  const specialtyOptions = useMemo(() =>
+    specialtySubjectChoices.map(subject => ({ value: subject, label: subject, subjects: [subject] })),
+  [specialtySubjectChoices]);
 
   const load = async () => {
     setLoading(true);
@@ -2709,8 +2656,27 @@ function TeacherFirstLoadEditorV192({
     const leaderClass = (data.sinflar || []).find(
       item => String(item.rahbar_user_id) === String(selectedTeacher)
     );
+    const teacherRows = (data.birikmalar || []).filter(
+      row => String(row.user_id) === String(selectedTeacher)
+    );
+    const storedSubjects = Array.isArray(current?.otadigan_fanlari)
+      ? current.otadigan_fanlari : [];
+    const listedSubjects = Array.isArray(current?.fanlar_royxati)
+      ? current.fanlar_royxati : [];
+    const rowSubjects = [...new Map(teacherRows.map(row =>
+      [subjectKeyV193(row.fan_nomi), row.fan_nomi]
+    )).values()];
+    const baseValues = (storedSubjects.length ? storedSubjects
+      : listedSubjects.length ? listedSubjects
+      : rowSubjects.length ? rowSubjects
+      : specialtyValuesV195(current?.mutaxassisligi)
+    ).map(String).filter(Boolean);
+    const values = [...new Map([
+      ...baseValues,
+      ...baseValues.flatMap(subject => pairedTeachingSubjectsV196(subject, specialtySubjectChoices)),
+    ].map(subject => [subjectKeyV193(subject), subject])).values()];
     setExistingProfile({
-      mutaxassisligi: String(current?.mutaxassisligi || ""),
+      mutaxassisligi: values.join(";"),
       haftalik_maqsad_soat: current?.haftalik_maqsad_soat == null
         ? "" : String(current.haftalik_maqsad_soat),
       tugilgan_sana: birthProfile.tugilgan_sana,
@@ -2719,21 +2685,17 @@ function TeacherFirstLoadEditorV192({
       toifasi: String(current?.toifasi || ""),
       rahbar_sinf_id: String(current?.rahbar_sinf_id || leaderClass?.id || ""),
     });
-    const values = specialtyValuesV195(current?.mutaxassisligi);
-    const teacherRows = (data.birikmalar || []).filter(
-      row => String(row.user_id) === String(selectedTeacher)
-    );
     const inferredClassIds = {};
     values.forEach(value => {
       inferredClassIds[value] = [...new Set(teacherRows
-        .filter(row => specialtyMatchesSubjectV194(value, row.fan_nomi, specialtyOptions))
+        .filter(row => subjectKeyV193(value) === subjectKeyV193(row.fan_nomi))
         .map(row => String(row.sinf_id))
       )];
     });
     setSpecialtyClassIdsByValue(inferredClassIds);
     setActiveAutoSpecialty(values[0] || "");
     setAutoSpecialty(true);
-  }, [data, selectedTeacher, creatingNew, specialtyOptions]);
+  }, [data, selectedTeacher, creatingNew, specialtyOptions, specialtySubjectChoices]);
 
   const variantsForClass = classId =>
     (data?.guruh_variantlari || []).filter(
@@ -3138,10 +3100,15 @@ function TeacherFirstLoadEditorV192({
     });
     setSpecialtyClassIdsByValue(normalizedMap);
     if (!enabled) return;
+    if (!selectedValues.some(value => normalizedMap[value]?.length)) {
+      setRows(current => current.filter(row => !row.auto_specialty && !row.is_placeholder));
+      setMessage(null);
+      return;
+    }
     if (data?.oquv_reja?.holat !== "tasdiqlangan") {
       setMessage({
         tone: "warning",
-        text: "Mutaxassislik bo‘yicha avtomatik fan va soat uchun o‘quv rejani tasdiqlang. Qo‘lda qator kiritish ochiq qoladi.",
+        text: "Tanlangan fan bo‘yicha avtomatik soat uchun o‘quv rejani tasdiqlang. Qo‘lda qator kiritish ochiq qoladi.",
       });
       return;
     }
@@ -3168,10 +3135,10 @@ function TeacherFirstLoadEditorV192({
     const focusCount = generated.filter(row => row.auto_specialty_value === focusSpecialty).length;
     setMessage(generated.length ? {
       tone: "success",
-      text: `${specialtyLabelV195(focusSpecialty, options) || "Mutaxassislik"}: ${focusCount} ta qator. Barcha mutaxassisliklar bo‘yicha jami ${generated.length} ta fan–sinf qatori saqlandi.`,
+      text: `${specialtyLabelV195(focusSpecialty, options) || "Fan"}: ${focusCount} ta qator. Barcha tanlangan fanlar bo‘yicha jami ${generated.length} ta fan–sinf qatori tayyorlandi.`,
     } : {
       tone: "warning",
-      text: "Tanlangan mutaxassislik va sinflarning tasdiqlangan rejasida mos fan topilmadi.",
+      text: "Tanlangan fan uchun belgilangan sinflarning tasdiqlangan rejasida soat topilmadi.",
     });
   };
 
@@ -3183,7 +3150,7 @@ function TeacherFirstLoadEditorV192({
     enabled = autoSpecialty
   ) => {
     if (!specialtyValue) {
-      setMessage({ tone: "warning", text: "Avval yuqoridan mutaxassislikni tanlang." });
+      setMessage({ tone: "warning", text: "Avval yuqoridan o‘tadigan fanni tanlang." });
       return;
     }
     const nextMap = {
@@ -3204,17 +3171,20 @@ function TeacherFirstLoadEditorV192({
   };
 
   const addSpecialtyValue = value => {
-    const specialtyValue = normalizedSpecialtyValueV195(value);
+    const specialtyValue = String(value || "").trim();
     if (!specialtyValue) return;
     const current = specialtyValuesV195(activeSpecialty());
     if (current.includes(specialtyValue)) return;
-    if (current.length >= 3) {
-      setMessage({ tone: "warning", text: "Bitta o‘qituvchiga ko‘pi bilan 3 ta mutaxassislik tanlanadi. Avval bittasini olib tashlang." });
-      return;
-    }
-    const nextMap = { ...specialtyClassIdsByValue, [specialtyValue]: specialtyClassIdsByValue[specialtyValue] || [] };
+    const paired = pairedTeachingSubjectsV196(specialtyValue, specialtySubjectChoices)
+      .filter(subject => !current.includes(subject));
+    const additions = [...new Set([specialtyValue, ...paired])];
+    const next = [...current, ...additions];
+    const nextMap = { ...specialtyClassIdsByValue };
+    additions.forEach(subject => {
+      nextMap[subject] = specialtyClassIdsByValue[subject] || [];
+    });
     setActiveAutoSpecialty(specialtyValue);
-    changeSpecialty([...current, specialtyValue].join(";"), specialtyOptions, nextMap, specialtyValue);
+    changeSpecialty(next.join(";"), specialtyOptions, nextMap, specialtyValue);
   };
 
   const removeSpecialtyValue = value => {
@@ -3224,59 +3194,6 @@ function TeacherFirstLoadEditorV192({
     const nextActive = activeAutoSpecialty === value ? next[0] || "" : activeAutoSpecialty;
     setActiveAutoSpecialty(nextActive);
     changeSpecialty(next.join(";"), specialtyOptions, nextMap, nextActive);
-  };
-
-  const toggleSpecialtyDraftSubject = subject => {
-    setSpecialtyDraft(current => ({
-      ...current,
-      subjects: current.subjects.some(item => groupedSubjectMatchesV195(item, subject))
-        ? current.subjects.filter(item => !groupedSubjectMatchesV195(item, subject))
-        : [...current.subjects, subject],
-    }));
-    setSpecialtyDraftError("");
-  };
-
-  const saveCustomSpecialty = () => {
-    const label = specialtyDraft.label.trim();
-    const subjects = [...new Set(specialtyDraft.subjects.map(item => String(item).trim()).filter(Boolean))];
-    if (label.length < 2) {
-      setSpecialtyDraftError("Mutaxassislik nomini kiriting.");
-      return;
-    }
-    if (!subjects.length) {
-      setSpecialtyDraftError("Bu mutaxassislikka kamida bitta fan biriktiring.");
-      return;
-    }
-    if (specialtyOptions.some(item => subjectKeyV193(item.label) === subjectKeyV193(label))) {
-      setSpecialtyDraftError("Bu nomdagi mutaxassislik ro‘yxatda bor. Uni yuqoridan tanlang.");
-      return;
-    }
-    const current = specialtyValuesV195(activeSpecialty());
-    if (current.length >= 3) {
-      setSpecialtyDraftError("Avval tanlangan mutaxassisliklardan bittasini olib tashlang (eng ko‘pi 3 ta).");
-      return;
-    }
-    const slug = subjectKeyV193(label).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "yangi";
-    const option = {
-      value: `custom_${slug}_${Date.now().toString(36)}`,
-      label,
-      subjects,
-    };
-    const nextCustom = [...customSpecialties, option];
-    const nextOptions = [...teacherSpecialtiesV194, ...nextCustom];
-    setCustomSpecialties(nextCustom);
-    try {
-      window.localStorage.setItem(`samtm_custom_specialties_v195_${maktabId}`, JSON.stringify(nextCustom));
-    } catch {
-      // Brauzer xotirasi yopiq bo‘lsa ham joriy oynada ishlashda davom etadi.
-    }
-    setSpecialtyDraft({ label: "", subjects: [] });
-    setSpecialtyDraftError("");
-    setSpecialtyCreatorOpen(false);
-    const nextMap = { ...specialtyClassIdsByValue, [option.value]: [] };
-    setActiveAutoSpecialty(option.value);
-    changeSpecialty([...current, option.value].join(";"), nextOptions, nextMap, option.value);
-    setMessage({ tone: "success", text: `${label} yaratildi, ${subjects.length} ta fan biriktirildi va o‘qituvchiga tanlandi.` });
   };
 
   const specialtyClassIdsForQuickRange = range => (data?.sinflar || [])
@@ -3289,7 +3206,7 @@ function TeacherFirstLoadEditorV192({
 
   const quickSelectSpecialtyClasses = range => {
     if (!resolvedAutoSpecialty) {
-      setMessage({ tone: "warning", text: "Avval yuqoridan mutaxassislikni tanlang." });
+      setMessage({ tone: "warning", text: "Avval yuqoridan o‘tadigan fanni tanlang." });
       return;
     }
     const nextClassIds = specialtyClassIdsForQuickRange(range);
@@ -3298,7 +3215,7 @@ function TeacherFirstLoadEditorV192({
 
   const toggleSpecialtyClass = classId => {
     if (!resolvedAutoSpecialty) {
-      setMessage({ tone: "warning", text: "Avval mutaxassislikni tanlang." });
+      setMessage({ tone: "warning", text: "Avval o‘tadigan fanni tanlang." });
       return;
     }
     const key = String(classId);
@@ -3427,7 +3344,7 @@ function TeacherFirstLoadEditorV192({
       return setMessage({ tone: "error", text: "Yangi o‘qituvchining F.I.Sh.ni kiriting." });
     }
     if (creatingNew && !newTeacher.mutaxassisligi) {
-      return setMessage({ tone: "error", text: "O‘qituvchining mutaxassisligini tanlang." });
+      return setMessage({ tone: "error", text: "O‘qituvchi o‘tadigan kamida bitta fanni tanlang." });
     }
     if (creatingNew && !newTeacher.haftalik_maqsad_soat) {
       return setMessage({ tone: "error", text: "Haftalik maqsad soatini kiriting. Masalan: 25." });
@@ -3502,6 +3419,7 @@ function TeacherFirstLoadEditorV192({
             maktab_id: maktabId,
             full_name: newTeacher.full_name.trim(),
             mutaxassisligi: newTeacher.mutaxassisligi,
+            otadigan_fanlari: specialtyValuesV195(newTeacher.mutaxassisligi),
             haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
             tugilgan_sana: newTeacher.tugilgan_sana || null,
             tugilgan_yili: newTeacher.tugilgan_sana
@@ -3515,6 +3433,7 @@ function TeacherFirstLoadEditorV192({
             maktab_id: maktabId,
             user_id: Number(selectedTeacher),
             mutaxassisligi: existingProfile.mutaxassisligi || null,
+            otadigan_fanlari: specialtyValuesV195(existingProfile.mutaxassisligi),
             haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
               ? null : Number(existingProfile.haftalik_maqsad_soat),
             tugilgan_sana: existingProfile.tugilgan_sana || null,
@@ -3543,9 +3462,6 @@ function TeacherFirstLoadEditorV192({
         setSpecialtyClassIdsByValue({});
         setActiveAutoSpecialty("");
         setAutoSpecialty(true);
-        setSpecialtyCreatorOpen(false);
-        setSpecialtyDraft({ label: "", subjects: [] });
-        setSpecialtyDraftError("");
         setAllocationOverviewOpen(false);
         window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
           document.getElementById(result.kirish_kodi ? "teacher-entry-code" : "new-teacher-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -3709,65 +3625,40 @@ function TeacherFirstLoadEditorV192({
 
   const renderSpecialtyPicker = required => {
     const selected = specialtyValuesV195(activeSpecialty());
-    return <div>
+    return <div className={required ? "" : "md:col-span-2"}>
       <div className="text-xs font-black" style={{ color: palette.ink }}>
-        Mutaxassisligi {required && <span style={{ color: palette.red }}>*</span>}
+        O‘tadigan fanlari {required && <span style={{ color: palette.red }}>*</span>}
       </div>
-      <select
-        value=""
-        onChange={event => addSpecialtyValue(event.target.value)}
-        disabled={selected.length >= 3}
-        className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white disabled:opacity-55"
-        style={{ borderColor: palette.line }}
-      >
-        <option value="">{selected.length ? "+ Yana mutaxassislik tanlash" : "Mutaxassislikni tanlang"}</option>
-        {specialtyOptions.map(option => <option key={option.value} value={option.value} disabled={selected.includes(option.value)}>
-          {option.label}{selected.includes(option.value) ? " · tanlangan" : ""}
-        </option>)}
-      </select>
+      <div className="text-[10px] mt-1" style={{ color: palette.muted }}>
+        Fan ustiga bosing — tanlanadi. Yana bossangiz bekor bo‘ladi. Fanlar soni cheklanmagan.
+      </div>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {selected.map(value => {
           const option = specialtyOptions.find(item => item.value === value);
           return <span key={value} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
             {option?.label || value}
-            <button type="button" onClick={() => removeSpecialtyValue(value)} aria-label={`${option?.label || value} mutaxassisligini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
+            <button type="button" onClick={() => removeSpecialtyValue(value)} aria-label={`${option?.label || value} fanini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
           </span>;
         })}
-        {!selected.length && <span className="text-[10px]" style={{ color: palette.muted }}>Hozircha tanlanmagan</span>}
+        {!selected.length && <span className="text-[10px]" style={{ color: palette.amber }}>Hozircha fan tanlanmagan</span>}
       </div>
-      <div className="flex items-center justify-between gap-2 mt-2">
-        <span className="text-[10px] font-bold" style={{ color: selected.length >= 3 ? palette.amber : palette.muted }}>{selected.length}/3 ta tanlandi</span>
-        <button type="button" onClick={() => { setSpecialtyCreatorOpen(current => !current); setSpecialtyDraftError(""); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.mint, color: palette.teal }}>
-          + Yangi mutaxassislik yaratish
-        </button>
+      <div className="mt-2 max-h-52 overflow-auto rounded-xl border p-2 grid sm:grid-cols-2 gap-1.5" style={{ borderColor: palette.line, background: "#fff" }}>
+        {specialtySubjectChoices.map(subject => {
+          const selectedValue = selected.find(item => subjectKeyV193(item) === subjectKeyV193(subject));
+          const checked = Boolean(selectedValue);
+          return <button type="button" key={subjectKeyV193(subject)} onClick={() =>
+            checked ? removeSpecialtyValue(selectedValue) : addSpecialtyValue(subject)
+          } className="px-2.5 py-2 rounded-lg border text-[10px] font-black text-left" style={{
+            background: checked ? palette.teal : palette.cream,
+            color: checked ? "#fff" : palette.ink,
+            borderColor: checked ? palette.teal : palette.line,
+          }}>{checked ? "✓ " : "+ "}{subject}</button>;
+        })}
+        {!specialtySubjectChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>Avval o‘quv reja fanlarini kiriting.</div>}
       </div>
-      {specialtyCreatorOpen && <div className="mt-2 rounded-xl border p-3" style={{ borderColor: palette.line, background: "#fff" }}>
-        <div className="text-[11px] font-black" style={{ color: palette.ink }}>Yangi mutaxassislik va uning fanlari</div>
-        <input
-          value={specialtyDraft.label}
-          onChange={event => { setSpecialtyDraft(current => ({ ...current, label: event.target.value })); setSpecialtyDraftError(""); }}
-          placeholder="Masalan: Robototexnika"
-          className="w-full mt-2 px-3 py-2 rounded-lg border text-xs"
-          style={{ borderColor: palette.line }}
-        />
-        <div className="text-[10px] font-black mt-2" style={{ color: palette.teal }}>Fanlarni biriktiring (kamida 1 ta)</div>
-        <div className="mt-1.5 max-h-40 overflow-auto rounded-lg border p-2 grid sm:grid-cols-2 gap-1" style={{ borderColor: palette.line }}>
-          {specialtySubjectChoices.map(subject => {
-            const checked = specialtyDraft.subjects.some(item => groupedSubjectMatchesV195(item, subject));
-            return <label key={subjectKeyV193(subject)} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-[10px] cursor-pointer" style={{ background: checked ? palette.mint : palette.cream, color: palette.ink }}>
-              <input type="checkbox" checked={checked} onChange={() => toggleSpecialtyDraftSubject(subject)} />
-              <span>{subject}</span>
-            </label>;
-          })}
-          {!specialtySubjectChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>Avval o‘quv reja fanlarini kiriting.</div>}
-        </div>
-        {specialtyDraft.subjects.length > 0 && <div className="text-[10px] mt-1.5" style={{ color: palette.green }}>{specialtyDraft.subjects.length} ta fan tanlandi</div>}
-        {specialtyDraftError && <div className="text-[10px] font-bold mt-1.5" style={{ color: palette.red }}>{specialtyDraftError}</div>}
-        <div className="flex gap-2 mt-2">
-          <button type="button" onClick={saveCustomSpecialty} className="flex-1 px-3 py-2 rounded-lg text-[10px] font-black text-white" style={{ background: palette.teal }}>Yaratish va tanlash</button>
-          <button type="button" onClick={() => { setSpecialtyCreatorOpen(false); setSpecialtyDraftError(""); }} className="px-3 py-2 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
-        </div>
-      </div>}
+      <div className="text-[10px] font-bold mt-2" style={{ color: selected.length ? palette.green : palette.muted }}>
+        {selected.length} ta fan tanlandi · cheklov yo‘q. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.
+      </div>
     </div>;
   };
 
@@ -4081,7 +3972,7 @@ function TeacherFirstLoadEditorV192({
           {creatingNew ? <div id="new-teacher-form" className="space-y-3 scroll-mt-4">
             <div>
               <div className="text-sm font-black" style={{ color: palette.ink }}>Yangi o‘qituvchi</div>
-              <div className="text-[11px] mt-1" style={{ color: palette.muted }}><b>* Majburiy:</b> F.I.Sh., mutaxassislik, haftalik maqsad soati va kamida bitta aniq dars qatori.</div>
+              <div className="text-[11px] mt-1" style={{ color: palette.muted }}><b>* Majburiy:</b> F.I.Sh., o‘tadigan fanlar, haftalik maqsad soati va kamida bitta aniq dars qatori.</div>
             </div>
             {(data?.oqituvchilar || []).length > 0 && <div className="rounded-xl border p-2.5" style={{ borderColor: palette.line, background: "#fff" }}>
               <div className="flex items-center justify-between gap-2">
@@ -4104,7 +3995,7 @@ function TeacherFirstLoadEditorV192({
                   }} className="w-full rounded-lg px-2.5 py-2 text-left border" style={{ background: recent ? palette.greenBg : palette.sky, borderColor: recent ? "#8FC4A5" : palette.line }}>
                     <div className="text-[11px] font-black truncate" style={{ color: palette.ink }}>{recent ? "YANGI · " : ""}{item.full_name}</div>
                     <div className="text-[9px] mt-0.5 truncate" style={{ color: palette.muted }}>
-                      {total?.haftalik_jami || 0} soat · {specialtyLabelV195(item.mutaxassisligi, specialtyOptions) || "mutaxassislik kiritilmagan"}
+                      {total?.haftalik_jami || 0} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
                     </div>
                   </button>;
                 })}
@@ -4173,10 +4064,10 @@ function TeacherFirstLoadEditorV192({
                 }}>
                   <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
                   <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                    {total?.haftalik_jami || 0}/{item.haftalik_maqsad_soat || "—"} soat · {specialtyLabelV195(item.mutaxassisligi, specialtyOptions) || "mutaxassislik kiritilmagan"}
+                    {total?.haftalik_jami || 0}/{item.haftalik_maqsad_soat || "—"} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
                   </div>
                   <div className="text-[10px] mt-0.5 truncate" style={{ color: palette.muted }}>
-                    {(item.fanlar_royxati || []).join(", ") || "fan kiritilmagan"}
+                    {item.toifasi || "Toifa belgilanmagan"}{item.ish_staji == null ? "" : ` · ${item.ish_staji} yil staj`}
                   </div>
                 </button>;
               })}
@@ -4231,9 +4122,9 @@ function TeacherFirstLoadEditorV192({
           <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: palette.line, background: "#F8FBFD" }}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-black" style={{ color: palette.ink }}>Mutaxassislik bo‘yicha aqlli yuklama</div>
+                <div className="text-sm font-black" style={{ color: palette.ink }}>Fanlar bo‘yicha aqlli yuklama</div>
                 <div className="text-[11px] mt-1 max-w-2xl" style={{ color: palette.muted }}>
-                  Sinfni tanlang — tizim faqat tasdiqlangan o‘quv rejada shu mutaxassislikka tegishli fanlarni aniq soati bilan qo‘shadi. Mavjud bo‘lmagan fan yaratilmaydi.
+                  Yuqorida o‘qituvchi o‘tadigan fanlarni tanlang, keyin har bir fan uchun sinflarni bosing — tizim tasdiqlangan o‘quv rejadan faqat shu fanning aniq soatini qo‘shadi. Mavjud bo‘lmagan fan yaratilmaydi.
                   Sinf yoki fan almashtirilsa soat ham shu juftlik bo‘yicha yangilanadi; qator qo‘shilsa yoki o‘chirilsa jami yuklama darhol qayta hisoblanadi.
                 </div>
               </div>
@@ -4246,7 +4137,7 @@ function TeacherFirstLoadEditorV192({
               </button>
             </div>
             <div className="mt-3">
-              <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>1. Avval mutaxassislikni tanlang</div>
+              <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>1. O‘tadigan fanni tanlang</div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {activeSpecialtyValues.map((value, index) => {
                   const option = specialtyOptions.find(item => item.value === value);
@@ -4263,11 +4154,11 @@ function TeacherFirstLoadEditorV192({
                     <span className="block text-[9px] mt-0.5 opacity-80">{classCount} ta sinf tanlangan</span>
                   </button>;
                 })}
-                {!activeSpecialtyValues.length && <span className="text-[10px] rounded-lg px-3 py-2" style={{ background: palette.amberBg, color: palette.amber }}>Yuqoridan kamida bitta mutaxassislik tanlang.</span>}
+                {!activeSpecialtyValues.length && <span className="text-[10px] rounded-lg px-3 py-2" style={{ background: palette.amberBg, color: palette.amber }}>Yuqoridan kamida bitta o‘tadigan fanni tanlang.</span>}
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>2. Shu mutaxassislik dars o‘tadigan sinflar</span>
+              <span className="text-[10px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>2. Shu fan o‘tiladigan sinflar</span>
               <span className="text-[10px]" style={{ color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber }}>
                 {data?.oquv_reja?.holat === "tasdiqlangan" ? "Reja tasdiqlangan · avto tayyor" : "Reja tasdiqlanmagan · faqat qo‘lda"}
               </span>
@@ -4288,7 +4179,7 @@ function TeacherFirstLoadEditorV192({
                 })}
                 <button type="button" onClick={() => applySpecialtyAuto([], resolvedAutoSpecialty)} disabled={!resolvedAutoSpecialty || !specialtyClassIds.length} className="px-3 py-2 rounded-lg border text-[10px] font-black disabled:opacity-40" style={{ background: "#fff", color: palette.red, borderColor: "#E8BBBB" }}>Tanlovni tozalash</button>
               </div>
-              <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>Bitta tugma o‘sha bosqichdagi barcha sinflarni tanlaydi va faol mutaxassislikning avto fan-soatlarini darhol yangilaydi.</div>
+              <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>Bitta tugma o‘sha bosqichdagi barcha sinflarni tanlaydi va faol fanning reja soatlarini darhol yangilaydi.</div>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
               {(data?.sinflar || []).map(cls => {
@@ -4301,11 +4192,11 @@ function TeacherFirstLoadEditorV192({
               })}
             </div>
             <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
-              Rangli sinflar faqat yuqorida faol turgan mutaxassislikka tegishli. Boshqa mutaxassislikka o‘tsangiz oldingi tanlov va qatorlar saqlanib qoladi.
+              Rangli sinflar faqat yuqorida faol turgan fanga tegishli. Boshqa fanga o‘tsangiz oldingi fan sinflari va qatorlari saqlanib qoladi.
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds, resolvedAutoSpecialty)} disabled={!autoSpecialty || !resolvedAutoSpecialty} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: activeSpecialtyTone.strong }}>
-                Shu mutaxassislik sinflarini qayta to‘ldirish
+                Shu fan sinflarini qayta to‘ldirish
               </button>
               <button type="button" onClick={() => {
                 setAllocationOverviewOpen(true);
