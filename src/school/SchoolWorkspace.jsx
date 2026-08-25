@@ -2432,34 +2432,71 @@ function primaryTeacherCanTeachV193(subject) {
 const teacherSpecialtiesV194 = [
   { value: "boshlangich", label: "Boshlang‘ich ta’lim", subjects: [] },
   { value: "matematika", label: "Matematika", subjects: ["matematika", "algebra", "geometriya"] },
+  { value: "informatika", label: "Informatika va axborot texnologiyalari", subjects: ["informatika", "axborot texnologiyalari", "informatika va axborot texnologiyalari"] },
   { value: "fizika", label: "Fizika va astronomiya", subjects: ["fizika", "astronomiya"] },
-  { value: "tarix", label: "Tarix", subjects: ["tarixdan hikoyalar", "qadimgi dunyo tarixi", "o'zbekiston tarixi", "jahon tarixi"] },
-  { value: "ona_tili", label: "Ona tili va adabiyot", subjects: ["ona tili", "o'qish savodxonligi", "adabiyot"] },
-  { value: "informatika", label: "Informatika va AT", subjects: ["informatika", "axborot texnologiyalari"] },
-  { value: "biologiya", label: "Biologiya va tabiiy fan", subjects: ["biologiya", "tabiiy fan"] },
   { value: "kimyo", label: "Kimyo", subjects: ["kimyo"] },
-  { value: "geografiya", label: "Geografiya va iqtisod", subjects: ["geografiya", "iqtisodiy bilim asoslari", "tadbirkorlik asoslari"] },
-  { value: "chet_tili", label: "Chet tili", subjects: ["chet tili", "ingliz tili", "nemis tili", "fransuz tili"] },
-  { value: "rus_tili", label: "Rus tili", subjects: ["rus tili"] },
-  { value: "tarbiya_huquq", label: "Tarbiya va huquq", subjects: ["tarbiya", "davlat va huquq asoslari"] },
-  { value: "texnologiya", label: "Texnologiya va chizmachilik", subjects: ["texnologiya", "chizmachilik"] },
-  { value: "jismoniy", label: "Jismoniy tarbiya va ChQBT", subjects: ["jismoniy tarbiya", "chaqiruvga qadar boshlang'ich tayyorgarlik", "chqbt"] },
-  { value: "musiqa", label: "Musiqa", subjects: ["musiqa madaniyati", "musiqa"] },
-  { value: "tasviriy", label: "Tasviriy san’at", subjects: ["tasviriy san'at", "tasviriy san'at"] },
+  { value: "biologiya", label: "Biologiya va tabiiy fanlar", subjects: ["biologiya", "tabiiy fan", "tabiiy fanlar"] },
+  { value: "geografiya", label: "Geografiya", subjects: ["geografiya"] },
+  { value: "iqtisod", label: "Iqtisodiy bilim asoslari", subjects: ["iqtisod", "iqtisodiy bilim asoslari", "tadbirkorlik asoslari"] },
+  { value: "tarix", label: "Tarix", subjects: ["tarixdan hikoyalar", "qadimgi dunyo tarixi", "o'zbekiston tarixi", "jahon tarixi", "tarix"] },
+  { value: "ozbek_tili", label: "O‘zbek tili va adabiyoti", subjects: ["o'zbek tili", "ona tili", "adabiyot", "o'qish savodxonligi"] },
+  { value: "rus_tili", label: "Rus tili va adabiyoti", subjects: ["rus tili", "rus adabiyoti"] },
+  { value: "ingliz_tili", label: "Xorijiy til va adabiyoti: ingliz tili", subjects: ["chet tili", "ingliz tili", "english"] },
+  { value: "nemis_tili", label: "Xorijiy til va adabiyoti: nemis tili", subjects: ["nemis tili", "german"] },
+  { value: "fransuz_tili", label: "Xorijiy til va adabiyoti: fransuz tili", subjects: ["fransuz tili", "french"] },
+  { value: "chet_tili", label: "Xorijiy til va adabiyoti (tili ko‘rsatilmagan)", subjects: ["chet tili", "ingliz tili", "nemis tili", "fransuz tili", "english", "german", "french"] },
+  { value: "tasviriy_grafika", label: "Tasviriy san’at va muhandislik grafikasi", subjects: ["tasviriy san'at", "rasm", "chizmachilik", "muhandislik grafikasi"] },
+  { value: "musiqa", label: "Musiqa ta’limi", subjects: ["musiqa madaniyati", "musiqa"] },
+  { value: "texnologiya", label: "Texnologik ta’lim", subjects: ["texnologiya", "mehnat"] },
+  { value: "milliy_goya_huquq", label: "Milliy g‘oya, ma’naviyat asoslari va huquq ta’limi", subjects: ["tarbiya", "davlat va huquq asoslari", "huquq", "ma'naviyat asoslari", "milliy g'oya"] },
+  { value: "jismoniy", label: "Jismoniy madaniyat", subjects: ["jismoniy tarbiya", "sport"] },
+  { value: "chqbt", label: "Chaqiriqqacha harbiy ta’lim", subjects: ["chaqiruvga qadar boshlang'ich tayyorgarlik", "chaqiriqqacha harbiy ta'lim", "chqbt"] },
+  { value: "pedagogika", label: "Pedagogika va psixologiya", subjects: ["pedagogika", "psixologiya"] },
 ];
 
-function specialtyOptionV194(value) {
-  return teacherSpecialtiesV194.find(item => item.value === String(value || ""));
+const legacySpecialtyAliasesV195 = {
+  ona_tili: "ozbek_tili",
+  tarbiya_huquq: "milliy_goya_huquq",
+  tasviriy: "tasviriy_grafika",
+};
+
+const specialtyColorsV195 = [
+  { strong: "#155A7A", soft: "#EDF5FB", line: "#8BB9D2" },
+  { strong: "#0F7C82", soft: "#EAF7F4", line: "#83C7C5" },
+  { strong: "#A96A14", soft: "#FFF4DE", line: "#E5BC76" },
+];
+
+function normalizedSpecialtyValueV195(value) {
+  const key = String(value || "").trim();
+  return legacySpecialtyAliasesV195[key] || key;
 }
 
-function specialtyMatchesSubjectV194(specialtyValue, subject) {
-  const option = specialtyOptionV194(specialtyValue);
-  if (!option) return false;
-  if (option.value === "boshlangich") return primaryTeacherCanTeachV193(subject);
-  const key = subjectKeyV193(subject);
-  return option.subjects.some(item => {
-    const needle = subjectKeyV193(item);
-    return key === needle || key.includes(needle) || needle.includes(key);
+function specialtyOptionV194(value, options = teacherSpecialtiesV194) {
+  const firstValue = specialtyValuesV195(value)[0] || "";
+  return options.find(item => item.value === firstValue);
+}
+
+function specialtyValuesV195(value) {
+  return [...new Set(String(value || "").split(";").map(normalizedSpecialtyValueV195).filter(Boolean))].slice(0, 3);
+}
+
+function specialtyLabelV195(value, options = teacherSpecialtiesV194) {
+  const labels = specialtyValuesV195(value).map(item =>
+    options.find(option => option.value === item)?.label || item
+  );
+  return labels.join(" + ");
+}
+
+function specialtyMatchesSubjectV194(specialtyValue, subject, options = teacherSpecialtiesV194) {
+  return specialtyValuesV195(specialtyValue).some(specialtyKey => {
+    const option = options.find(item => item.value === specialtyKey);
+    if (!option) return false;
+    if (option.value === "boshlangich") return primaryTeacherCanTeachV193(subject);
+    const key = subjectKeyV193(subject);
+    return option.subjects.some(item => {
+      const needle = subjectKeyV193(item);
+      return key === needle || key.includes(needle) || needle.includes(key);
+    });
   });
 }
 
@@ -2483,7 +2520,8 @@ function TeacherFirstLoadEditorV192({
     mutaxassisligi: "", haftalik_maqsad_soat: "",
   });
   const [autoSpecialty, setAutoSpecialty] = useState(true);
-  const [specialtyClassIds, setSpecialtyClassIds] = useState([]);
+  const [specialtyClassIdsByValue, setSpecialtyClassIdsByValue] = useState({});
+  const [activeAutoSpecialty, setActiveAutoSpecialty] = useState("");
   const [entryCode, setEntryCode] = useState("");
   const [planSubjects, setPlanSubjects] = useState([]);
   const [planCells, setPlanCells] = useState({});
@@ -2496,6 +2534,33 @@ function TeacherFirstLoadEditorV192({
   const [allocationInspectorClassId, setAllocationInspectorClassId] = useState("");
   const [allocationInspectorSubjectKey, setAllocationInspectorSubjectKey] = useState("");
   const [allocationOverviewOpen, setAllocationOverviewOpen] = useState(false);
+  const [customSpecialties, setCustomSpecialties] = useState([]);
+  const [specialtyCreatorOpen, setSpecialtyCreatorOpen] = useState(false);
+  const [specialtyDraft, setSpecialtyDraft] = useState({ label: "", subjects: [] });
+  const [specialtyDraftError, setSpecialtyDraftError] = useState("");
+  const specialtyOptions = useMemo(
+    () => [...teacherSpecialtiesV194, ...customSpecialties],
+    [customSpecialties]
+  );
+  const specialtySubjectChoices = useMemo(() => {
+    const unique = new Map();
+    [...(data?.fanlar || []), ...planSubjects].forEach(subject => {
+      const key = subjectKeyV193(subject);
+      if (key && !unique.has(key)) unique.set(key, subject);
+    });
+    return [...unique.values()].sort((left, right) => String(left).localeCompare(String(right), "uz"));
+  }, [data, planSubjects]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(`samtm_custom_specialties_v195_${maktabId}`) || "[]");
+      setCustomSpecialties(Array.isArray(saved) ? saved.filter(item =>
+        item && item.value && item.label && Array.isArray(item.subjects)
+      ) : []);
+    } catch {
+      setCustomSpecialties([]);
+    }
+  }, [maktabId]);
 
   const load = async () => {
     setLoading(true);
@@ -2594,9 +2659,21 @@ function TeacherFirstLoadEditorV192({
       haftalik_maqsad_soat: current?.haftalik_maqsad_soat == null
         ? "" : String(current.haftalik_maqsad_soat),
     });
-    setSpecialtyClassIds([]);
+    const values = specialtyValuesV195(current?.mutaxassisligi);
+    const teacherRows = (data.birikmalar || []).filter(
+      row => String(row.user_id) === String(selectedTeacher)
+    );
+    const inferredClassIds = {};
+    values.forEach(value => {
+      inferredClassIds[value] = [...new Set(teacherRows
+        .filter(row => specialtyMatchesSubjectV194(value, row.fan_nomi, specialtyOptions))
+        .map(row => String(row.sinf_id))
+      )];
+    });
+    setSpecialtyClassIdsByValue(inferredClassIds);
+    setActiveAutoSpecialty(values[0] || "");
     setAutoSpecialty(true);
-  }, [data, selectedTeacher, creatingNew]);
+  }, [data, selectedTeacher, creatingNew, specialtyOptions]);
 
   const variantsForClass = classId =>
     (data?.guruh_variantlari || []).filter(
@@ -2918,6 +2995,14 @@ function TeacherFirstLoadEditorV192({
     ? newTeacher.mutaxassisligi
     : existingProfile.mutaxassisligi;
 
+  const activeSpecialtyValues = specialtyValuesV195(activeSpecialty());
+  const resolvedAutoSpecialty = activeSpecialtyValues.includes(activeAutoSpecialty)
+    ? activeAutoSpecialty
+    : activeSpecialtyValues[0] || "";
+  const specialtyClassIds = specialtyClassIdsByValue[resolvedAutoSpecialty] || [];
+  const activeSpecialtyIndex = Math.max(0, activeSpecialtyValues.indexOf(resolvedAutoSpecialty));
+  const activeSpecialtyTone = specialtyColorsV195[activeSpecialtyIndex % specialtyColorsV195.length];
+
   const setActiveProfile = changes => {
     if (creatingNew) {
       setNewTeacher(current => ({ ...current, ...changes }));
@@ -2926,12 +3011,12 @@ function TeacherFirstLoadEditorV192({
     }
   };
 
-  const autoRowsForSpecialty = (classIds, specialtyValue) => {
+  const autoRowsForSpecialty = (classIds, specialtyValue, options = specialtyOptions) => {
     const result = [];
     const seen = new Set();
     classIds.forEach(classId => {
       planForClass(classId)
-        .filter(item => specialtyMatchesSubjectV194(specialtyValue, item.fan_nomi))
+        .filter(item => specialtyMatchesSubjectV194(specialtyValue, item.fan_nomi, options))
         .forEach(item => {
           const grouped = variantsForClass(classId).filter(variant =>
             variant.guruh_kaliti !== "whole" &&
@@ -2955,6 +3040,7 @@ function TeacherFirstLoadEditorV192({
               xona_id: "",
               is_placeholder: false,
               auto_specialty: true,
+              auto_specialty_value: specialtyValue,
             };
             const info = allocationInfo(result.length, candidate, result);
             if (!info.approved || info.maxForRow > 0) {
@@ -2969,10 +3055,20 @@ function TeacherFirstLoadEditorV192({
     return result;
   };
 
-  const applySpecialtyAuto = (nextClassIds, nextSpecialty = activeSpecialty()) => {
-    const normalizedIds = [...new Set(nextClassIds.map(String))];
-    setSpecialtyClassIds(normalizedIds);
-    if (!autoSpecialty) return;
+  const rebuildSpecialtyAuto = (
+    nextClassMap,
+    nextSpecialty = activeSpecialty(),
+    options = specialtyOptions,
+    focusSpecialty = resolvedAutoSpecialty,
+    enabled = autoSpecialty
+  ) => {
+    const selectedValues = specialtyValuesV195(nextSpecialty);
+    const normalizedMap = {};
+    selectedValues.forEach(value => {
+      normalizedMap[value] = [...new Set((nextClassMap[value] || []).map(String))];
+    });
+    setSpecialtyClassIdsByValue(normalizedMap);
+    if (!enabled) return;
     if (data?.oquv_reja?.holat !== "tasdiqlangan") {
       setMessage({
         tone: "warning",
@@ -2980,39 +3076,150 @@ function TeacherFirstLoadEditorV192({
       });
       return;
     }
+    const generated = [];
+    const generatedKeys = new Set();
+    selectedValues.forEach(value => {
+      autoRowsForSpecialty(normalizedMap[value] || [], value, options).forEach(row => {
+        const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${row.guruh_kaliti || "whole"}`;
+        if (generatedKeys.has(key)) return;
+        generatedKeys.add(key);
+        generated.push({ ...row, auto_specialty_value: value });
+      });
+    });
     setRows(current => {
       const manualRows = current.filter(row => !row.auto_specialty && !row.is_placeholder);
-      if (!nextSpecialty || !normalizedIds.length) return manualRows;
       const manualKeys = new Set(manualRows.map(row =>
         `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${row.guruh_kaliti || "whole"}`
       ));
-      const generated = autoRowsForSpecialty(normalizedIds, nextSpecialty)
-        .filter(row => !manualKeys.has(
+      const available = generated.filter(row => !manualKeys.has(
           `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${row.guruh_kaliti || "whole"}`
-        ));
-      return [...manualRows, ...generated];
+      ));
+      return [...manualRows, ...available];
     });
-    const generatedCount = autoRowsForSpecialty(normalizedIds, nextSpecialty).length;
-    setMessage(generatedCount ? {
+    const focusCount = generated.filter(row => row.auto_specialty_value === focusSpecialty).length;
+    setMessage(generated.length ? {
       tone: "success",
-      text: `${specialtyOptionV194(nextSpecialty)?.label || "Mutaxassislik"}: tanlangan sinflarga ${generatedCount} ta fan–sinf qatori tasdiqlangan reja soati bilan tayyorlandi. Har birini qo‘lda tuzatish mumkin.`,
+      text: `${specialtyLabelV195(focusSpecialty, options) || "Mutaxassislik"}: ${focusCount} ta qator. Barcha mutaxassisliklar bo‘yicha jami ${generated.length} ta fan–sinf qatori saqlandi.`,
     } : {
       tone: "warning",
-      text: "Tanlangan sinflarning tasdiqlangan rejasida bu mutaxassislikka mos fan topilmadi.",
+      text: "Tanlangan mutaxassislik va sinflarning tasdiqlangan rejasida mos fan topilmadi.",
     });
   };
 
-  const changeSpecialty = value => {
+  const applySpecialtyAuto = (
+    nextClassIds,
+    specialtyValue = resolvedAutoSpecialty,
+    nextSpecialty = activeSpecialty(),
+    options = specialtyOptions,
+    enabled = autoSpecialty
+  ) => {
+    if (!specialtyValue) {
+      setMessage({ tone: "warning", text: "Avval yuqoridan mutaxassislikni tanlang." });
+      return;
+    }
+    const nextMap = {
+      ...specialtyClassIdsByValue,
+      [specialtyValue]: [...new Set(nextClassIds.map(String))],
+    };
+    rebuildSpecialtyAuto(nextMap, nextSpecialty, options, specialtyValue, enabled);
+  };
+
+  const changeSpecialty = (
+    value,
+    options = specialtyOptions,
+    nextClassMap = specialtyClassIdsByValue,
+    focusSpecialty = resolvedAutoSpecialty
+  ) => {
     setActiveProfile({ mutaxassisligi: value });
-    if (autoSpecialty) applySpecialtyAuto(specialtyClassIds, value);
+    rebuildSpecialtyAuto(nextClassMap, value, options, focusSpecialty);
+  };
+
+  const addSpecialtyValue = value => {
+    const specialtyValue = normalizedSpecialtyValueV195(value);
+    if (!specialtyValue) return;
+    const current = specialtyValuesV195(activeSpecialty());
+    if (current.includes(specialtyValue)) return;
+    if (current.length >= 3) {
+      setMessage({ tone: "warning", text: "Bitta o‘qituvchiga ko‘pi bilan 3 ta mutaxassislik tanlanadi. Avval bittasini olib tashlang." });
+      return;
+    }
+    const nextMap = { ...specialtyClassIdsByValue, [specialtyValue]: specialtyClassIdsByValue[specialtyValue] || [] };
+    setActiveAutoSpecialty(specialtyValue);
+    changeSpecialty([...current, specialtyValue].join(";"), specialtyOptions, nextMap, specialtyValue);
+  };
+
+  const removeSpecialtyValue = value => {
+    const next = specialtyValuesV195(activeSpecialty()).filter(item => item !== value);
+    const nextMap = {};
+    next.forEach(item => { nextMap[item] = specialtyClassIdsByValue[item] || []; });
+    const nextActive = activeAutoSpecialty === value ? next[0] || "" : activeAutoSpecialty;
+    setActiveAutoSpecialty(nextActive);
+    changeSpecialty(next.join(";"), specialtyOptions, nextMap, nextActive);
+  };
+
+  const toggleSpecialtyDraftSubject = subject => {
+    setSpecialtyDraft(current => ({
+      ...current,
+      subjects: current.subjects.some(item => groupedSubjectMatchesV195(item, subject))
+        ? current.subjects.filter(item => !groupedSubjectMatchesV195(item, subject))
+        : [...current.subjects, subject],
+    }));
+    setSpecialtyDraftError("");
+  };
+
+  const saveCustomSpecialty = () => {
+    const label = specialtyDraft.label.trim();
+    const subjects = [...new Set(specialtyDraft.subjects.map(item => String(item).trim()).filter(Boolean))];
+    if (label.length < 2) {
+      setSpecialtyDraftError("Mutaxassislik nomini kiriting.");
+      return;
+    }
+    if (!subjects.length) {
+      setSpecialtyDraftError("Bu mutaxassislikka kamida bitta fan biriktiring.");
+      return;
+    }
+    if (specialtyOptions.some(item => subjectKeyV193(item.label) === subjectKeyV193(label))) {
+      setSpecialtyDraftError("Bu nomdagi mutaxassislik ro‘yxatda bor. Uni yuqoridan tanlang.");
+      return;
+    }
+    const current = specialtyValuesV195(activeSpecialty());
+    if (current.length >= 3) {
+      setSpecialtyDraftError("Avval tanlangan mutaxassisliklardan bittasini olib tashlang (eng ko‘pi 3 ta).");
+      return;
+    }
+    const slug = subjectKeyV193(label).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "yangi";
+    const option = {
+      value: `custom_${slug}_${Date.now().toString(36)}`,
+      label,
+      subjects,
+    };
+    const nextCustom = [...customSpecialties, option];
+    const nextOptions = [...teacherSpecialtiesV194, ...nextCustom];
+    setCustomSpecialties(nextCustom);
+    try {
+      window.localStorage.setItem(`samtm_custom_specialties_v195_${maktabId}`, JSON.stringify(nextCustom));
+    } catch {
+      // Brauzer xotirasi yopiq bo‘lsa ham joriy oynada ishlashda davom etadi.
+    }
+    setSpecialtyDraft({ label: "", subjects: [] });
+    setSpecialtyDraftError("");
+    setSpecialtyCreatorOpen(false);
+    const nextMap = { ...specialtyClassIdsByValue, [option.value]: [] };
+    setActiveAutoSpecialty(option.value);
+    changeSpecialty([...current, option.value].join(";"), nextOptions, nextMap, option.value);
+    setMessage({ tone: "success", text: `${label} yaratildi, ${subjects.length} ta fan biriktirildi va o‘qituvchiga tanlandi.` });
   };
 
   const toggleSpecialtyClass = classId => {
+    if (!resolvedAutoSpecialty) {
+      setMessage({ tone: "warning", text: "Avval mutaxassislikni tanlang." });
+      return;
+    }
     const key = String(classId);
     const next = specialtyClassIds.includes(key)
       ? specialtyClassIds.filter(item => item !== key)
       : [...specialtyClassIds, key];
-    applySpecialtyAuto(next);
+    applySpecialtyAuto(next, resolvedAutoSpecialty);
   };
 
   const changeAutoSpecialty = enabled => {
@@ -3020,16 +3227,13 @@ function TeacherFirstLoadEditorV192({
     if (enabled) {
       const specialtyValue = activeSpecialty();
       if (data?.oquv_reja?.holat === "tasdiqlangan" && specialtyValue) {
-        const generated = autoRowsForSpecialty(specialtyClassIds, specialtyValue);
-        setRows(current => {
-          const manualRows = current.filter(row => !row.auto_specialty && !row.is_placeholder);
-          const manualKeys = new Set(manualRows.map(row =>
-            `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${row.guruh_kaliti || "whole"}`
-          ));
-          return [...manualRows, ...generated.filter(row => !manualKeys.has(
-            `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${row.guruh_kaliti || "whole"}`
-          ))];
-        });
+        rebuildSpecialtyAuto(
+          specialtyClassIdsByValue,
+          specialtyValue,
+          specialtyOptions,
+          resolvedAutoSpecialty,
+          true
+        );
       }
     }
   };
@@ -3078,7 +3282,8 @@ function TeacherFirstLoadEditorV192({
       full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
       tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
     });
-    setSpecialtyClassIds([]);
+    setSpecialtyClassIdsByValue({});
+    setActiveAutoSpecialty("");
     setAutoSpecialty(true);
     setEntryCode("");
     setRows([emptyTeacherLoadRowV192(data)]);
@@ -3217,7 +3422,8 @@ function TeacherFirstLoadEditorV192({
           full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
           tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
         });
-        setSpecialtyClassIds([]);
+        setSpecialtyClassIdsByValue({});
+        setActiveAutoSpecialty("");
       }
       const warnings = result.ogohlantirishlar || [];
       setMessage({
@@ -3374,6 +3580,70 @@ function TeacherFirstLoadEditorV192({
   const allocationInspectorSubject = allocationInspectorSummary?.details.find(
     item => item.subject_key === allocationInspectorSubjectKey
   ) || allocationInspectorSummary?.details[0] || null;
+
+  const renderSpecialtyPicker = required => {
+    const selected = specialtyValuesV195(activeSpecialty());
+    return <div>
+      <div className="text-xs font-black" style={{ color: palette.ink }}>
+        Mutaxassisligi {required && <span style={{ color: palette.red }}>*</span>}
+      </div>
+      <select
+        value=""
+        onChange={event => addSpecialtyValue(event.target.value)}
+        disabled={selected.length >= 3}
+        className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white disabled:opacity-55"
+        style={{ borderColor: palette.line }}
+      >
+        <option value="">{selected.length ? "+ Yana mutaxassislik tanlash" : "Mutaxassislikni tanlang"}</option>
+        {specialtyOptions.map(option => <option key={option.value} value={option.value} disabled={selected.includes(option.value)}>
+          {option.label}{selected.includes(option.value) ? " · tanlangan" : ""}
+        </option>)}
+      </select>
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {selected.map(value => {
+          const option = specialtyOptions.find(item => item.value === value);
+          return <span key={value} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
+            {option?.label || value}
+            <button type="button" onClick={() => removeSpecialtyValue(value)} aria-label={`${option?.label || value} mutaxassisligini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
+          </span>;
+        })}
+        {!selected.length && <span className="text-[10px]" style={{ color: palette.muted }}>Hozircha tanlanmagan</span>}
+      </div>
+      <div className="flex items-center justify-between gap-2 mt-2">
+        <span className="text-[10px] font-bold" style={{ color: selected.length >= 3 ? palette.amber : palette.muted }}>{selected.length}/3 ta tanlandi</span>
+        <button type="button" onClick={() => { setSpecialtyCreatorOpen(current => !current); setSpecialtyDraftError(""); }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.mint, color: palette.teal }}>
+          + Yangi mutaxassislik yaratish
+        </button>
+      </div>
+      {specialtyCreatorOpen && <div className="mt-2 rounded-xl border p-3" style={{ borderColor: palette.line, background: "#fff" }}>
+        <div className="text-[11px] font-black" style={{ color: palette.ink }}>Yangi mutaxassislik va uning fanlari</div>
+        <input
+          value={specialtyDraft.label}
+          onChange={event => { setSpecialtyDraft(current => ({ ...current, label: event.target.value })); setSpecialtyDraftError(""); }}
+          placeholder="Masalan: Robototexnika"
+          className="w-full mt-2 px-3 py-2 rounded-lg border text-xs"
+          style={{ borderColor: palette.line }}
+        />
+        <div className="text-[10px] font-black mt-2" style={{ color: palette.teal }}>Fanlarni biriktiring (kamida 1 ta)</div>
+        <div className="mt-1.5 max-h-40 overflow-auto rounded-lg border p-2 grid sm:grid-cols-2 gap-1" style={{ borderColor: palette.line }}>
+          {specialtySubjectChoices.map(subject => {
+            const checked = specialtyDraft.subjects.some(item => groupedSubjectMatchesV195(item, subject));
+            return <label key={subjectKeyV193(subject)} className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-[10px] cursor-pointer" style={{ background: checked ? palette.mint : palette.cream, color: palette.ink }}>
+              <input type="checkbox" checked={checked} onChange={() => toggleSpecialtyDraftSubject(subject)} />
+              <span>{subject}</span>
+            </label>;
+          })}
+          {!specialtySubjectChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>Avval o‘quv reja fanlarini kiriting.</div>}
+        </div>
+        {specialtyDraft.subjects.length > 0 && <div className="text-[10px] mt-1.5" style={{ color: palette.green }}>{specialtyDraft.subjects.length} ta fan tanlandi</div>}
+        {specialtyDraftError && <div className="text-[10px] font-bold mt-1.5" style={{ color: palette.red }}>{specialtyDraftError}</div>}
+        <div className="flex gap-2 mt-2">
+          <button type="button" onClick={saveCustomSpecialty} className="flex-1 px-3 py-2 rounded-lg text-[10px] font-black text-white" style={{ background: palette.teal }}>Yaratish va tanlash</button>
+          <button type="button" onClick={() => { setSpecialtyCreatorOpen(false); setSpecialtyDraftError(""); }} className="px-3 py-2 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
+        </div>
+      </div>}
+    </div>;
+  };
 
   if (loading) {
     return <Card className="p-8"><div className="flex justify-center"><Loader2 className="animate-spin" style={{ color: palette.blue }}/></div></Card>;
@@ -3690,12 +3960,7 @@ function TeacherFirstLoadEditorV192({
             <label className="block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
               <input autoFocus value={newTeacher.full_name} onChange={event => setNewTeacher(current => ({ ...current, full_name: event.target.value }))} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
             </label>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Mutaxassisligi <span style={{ color: palette.red }}>*</span>
-              <select value={newTeacher.mutaxassisligi} onChange={event => changeSpecialty(event.target.value)} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
-                <option value="">Mutaxassislikni tanlang</option>
-                {teacherSpecialtiesV194.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
+            {renderSpecialtyPicker(true)}
             <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati <span style={{ color: palette.red }}>*</span>
               <input type="number" min="1" max="60" step="1" value={newTeacher.haftalik_maqsad_soat} onChange={event => setNewTeacher(current => ({ ...current, haftalik_maqsad_soat: event.target.value }))} placeholder="Masalan: 25" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
               <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.</span>
@@ -3750,7 +4015,7 @@ function TeacherFirstLoadEditorV192({
                 }}>
                   <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
                   <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                    {total?.haftalik_jami || 0}/{item.haftalik_maqsad_soat || "—"} soat · {specialtyOptionV194(item.mutaxassisligi)?.label || "mutaxassislik kiritilmagan"}
+                    {total?.haftalik_jami || 0}/{item.haftalik_maqsad_soat || "—"} soat · {specialtyLabelV195(item.mutaxassisligi, specialtyOptions) || "mutaxassislik kiritilmagan"}
                   </div>
                   <div className="text-[10px] mt-0.5 truncate" style={{ color: palette.muted }}>
                     {(item.fanlar_royxati || []).join(", ") || "fan kiritilmagan"}
@@ -3765,12 +4030,7 @@ function TeacherFirstLoadEditorV192({
         <div>
           {!creatingNew && <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: palette.line, background: "#fff" }}>
             <div className="grid md:grid-cols-2 gap-3">
-              <label className="block text-xs font-black" style={{ color: palette.ink }}>Mutaxassisligi
-                <select value={existingProfile.mutaxassisligi} onChange={event => changeSpecialty(event.target.value)} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
-                  <option value="">Mutaxassislikni tanlang</option>
-                  {teacherSpecialtiesV194.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
+              {renderSpecialtyPicker(false)}
               <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
                 <input type="number" min="1" max="60" step="1" value={existingProfile.haftalik_maqsad_soat} onChange={event => setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value }))} placeholder="Masalan: 25" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
               </label>
@@ -3794,8 +4054,29 @@ function TeacherFirstLoadEditorV192({
                 AVTO {autoSpecialty ? "YOQILGAN" : "O‘CHIRILGAN"}
               </button>
             </div>
+            <div className="mt-3">
+              <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>1. Avval mutaxassislikni tanlang</div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {activeSpecialtyValues.map((value, index) => {
+                  const option = specialtyOptions.find(item => item.value === value);
+                  const tone = specialtyColorsV195[index % specialtyColorsV195.length];
+                  const active = value === resolvedAutoSpecialty;
+                  const classCount = (specialtyClassIdsByValue[value] || []).length;
+                  return <button type="button" key={value} onClick={() => setActiveAutoSpecialty(value)} className="px-3 py-2.5 rounded-xl border text-[11px] font-black text-left" style={{
+                    background: active ? tone.strong : tone.soft,
+                    color: active ? "#fff" : tone.strong,
+                    borderColor: tone.line,
+                    boxShadow: active ? `0 5px 16px ${tone.strong}33` : "none",
+                  }}>
+                    {active ? "✓ " : ""}{option?.label || value}
+                    <span className="block text-[9px] mt-0.5 opacity-80">{classCount} ta sinf tanlangan</span>
+                  </button>;
+                })}
+                {!activeSpecialtyValues.length && <span className="text-[10px] rounded-lg px-3 py-2" style={{ background: palette.amberBg, color: palette.amber }}>Yuqoridan kamida bitta mutaxassislik tanlang.</span>}
+              </div>
+            </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>Dars o‘tadigan sinflar</span>
+              <span className="text-[10px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>2. Shu mutaxassislik dars o‘tadigan sinflar</span>
               <span className="text-[10px]" style={{ color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber }}>
                 {data?.oquv_reja?.holat === "tasdiqlangan" ? "Reja tasdiqlangan · avto tayyor" : "Reja tasdiqlanmagan · faqat qo‘lda"}
               </span>
@@ -3804,18 +4085,18 @@ function TeacherFirstLoadEditorV192({
               {(data?.sinflar || []).map(cls => {
                 const active = specialtyClassIds.includes(String(cls.id));
                 return <button type="button" key={cls.id} onClick={() => toggleSpecialtyClass(cls.id)} title={active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni tanlang — avto yuklama tayyorlanadi"} className="px-2 py-2 rounded-lg border text-[11px] font-black" style={{
-                  background: active ? palette.blue : "#fff",
+                  background: active ? activeSpecialtyTone.strong : "#fff",
                   color: active ? "#fff" : palette.ink,
-                  borderColor: active ? palette.blue : palette.line,
+                  borderColor: active ? activeSpecialtyTone.strong : palette.line,
                 }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}</button>;
               })}
             </div>
             <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
-              Ko‘k sinflar — avto to‘ldirish uchun tanlangan sinflar. Bir nechta sinfni ketma-ket tanlash mumkin.
+              Rangli sinflar faqat yuqorida faol turgan mutaxassislikka tegishli. Boshqa mutaxassislikka o‘tsangiz oldingi tanlov va qatorlar saqlanib qoladi.
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds)} disabled={!autoSpecialty || !activeSpecialty()} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: palette.teal }}>
-                Tanlangan sinflarni reja bo‘yicha qayta to‘ldirish
+              <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds, resolvedAutoSpecialty)} disabled={!autoSpecialty || !resolvedAutoSpecialty} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: activeSpecialtyTone.strong }}>
+                Shu mutaxassislik sinflarini qayta to‘ldirish
               </button>
               <button type="button" onClick={() => {
                 setAllocationOverviewOpen(true);
@@ -3931,11 +4212,11 @@ function TeacherFirstLoadEditorV192({
           </div>
 
           {!rows.length && <div className="mt-4"><SmartNotice tone="info">{teacher?.full_name || "Bu o‘qituvchi"} uchun hali dars qatori yo‘q. “Yangi fan–sinf qatori”ni bosing.</SmartNotice></div>}
-          <div id="teacher-load-bottom-actions" className="mt-4 pt-4 border-t flex flex-col items-start gap-2 scroll-mb-4" style={{ borderColor: palette.line }}>
-            <button onClick={save} disabled={saving} className="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
+          <div id="teacher-load-bottom-actions" className="mt-4 pt-4 border-t grid grid-cols-2 items-center gap-4 scroll-mb-4" style={{ borderColor: palette.line }}>
+            <button onClick={addRow} className="justify-self-start px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
+            <button onClick={save} disabled={saving} className="justify-self-end px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
               {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
             </button>
-            <button onClick={addRow} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
           </div>
         </div>
       </div>
