@@ -2422,8 +2422,10 @@ function groupedSubjectMatchesV195(left, right) {
 
 function primaryTeacherCanTeachV193(subject) {
   const key = subjectKeyV193(subject);
+  if (/informatika|axborot texnolog|jismoniy tarbiya|fizkultura|sport/.test(key)) return true;
   return ![
-    "musiqa", "tarbiya", "chet tili", "ingliz tili", "rus tili", "informatika",
+    "musiqa", "tarbiya", "chet tili", "ingliz tili", "rus tili",
+    "tasviriy san'at", "rasm",
   ].some(blocked => key.includes(blocked));
 }
 
@@ -2908,7 +2910,7 @@ function TeacherFirstLoadEditorV192({
     ]);
     setMessage({
       tone: "success",
-      text: `${classRow.sinf}-${classRow.harf}: ${additions.length} ta mos fan tasdiqlangan reja soati bilan qo‘shildi. Musiqa, Tarbiya, chet/rus tili va Informatika qo‘shilmadi.`,
+      text: `${classRow.sinf}-${classRow.harf}: ${additions.length} ta mos fan tasdiqlangan reja soati bilan qo‘shildi. Informatika va Jismoniy tarbiya reja mavjud bo‘lsa qo‘shiladi; Musiqa, Tarbiya, chet/rus tili va Tasviriy san’at qo‘shilmaydi.`,
     });
   };
 
