@@ -1,3 +1,5 @@
+// SamTM V19.7 — backend capability tekshiruvi bilan 0,5/1,5 saqlash va A/B hafta.
+// SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
 // SamTM V19.5 — 0,5/1,5 soatli fanlarni aniq saqlash va server xatosini to'liq ko'rsatish.
 // SamTM V19.5 — 0,5 + 0,5 fanlar bitta slotda toq/juft haftalarda A/B navbat bilan ko'rsatiladi.
 // SamTM V19.5 — 422 saqlash xatosi: bo‘sh maydonlarni tashlash, eski server formati bilan qayta urinish va aniq xato matni.
@@ -2445,7 +2447,7 @@ function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep 
   const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
   const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:roomType})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
   return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Ingliz tili zaxira xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold min-w-[210px]" style={{color:palette.ink}}>Xona turi<select value={roomType} onChange={e=>setRoomType(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="reserve">Zaxira / guruh xonasi</option><option value="sport">Sport zal</option><option value="classroom">Oddiy dars xonasi</option><option value="non_teaching">Dars o‘tilmaydigan xona</option></select></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
-  <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
+  <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" title="0,5 = har ikki haftada 1 dars (A/B hafta)" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
   <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini 4-bosqichdagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
   </Card></div>;
 }
@@ -3717,6 +3719,17 @@ function TeacherFirstLoadEditorV192({
         `teacher-row-${incompleteRowIndex}-${missingField}`
       );
     }
+    const invalidHourStepIndex = rows.findIndex(row => {
+      const hours = Number(row.haftalik_soat || 0);
+      return hours < 0.5 || hours > 20
+        || Math.abs(hours * 2 - Math.round(hours * 2)) > 1e-9;
+    });
+    if (invalidHourStepIndex >= 0) {
+      return showValidationErrorV199(
+        "Haftalik soat 0,5–20 oralig‘ida va 0,5 qadamda bo‘lishi kerak. Masalan: 0,5; 1; 1,5; 2.",
+        `teacher-row-${invalidHourStepIndex}-hours`
+      );
+    }
     const mergedRows = mergeDuplicateRows(rows);
     if (!mergedRows.length) {
       return showValidationErrorV199("Kamida bitta fan–sinf–guruh qatorini kiriting.", "teacher-load-top-actions");
@@ -3750,6 +3763,34 @@ function TeacherFirstLoadEditorV192({
         kunlik_max: Number(row.kunlik_max || 1),
         xona_id: row.xona_id ? Number(row.xona_id) : null,
       }));
+      const hasFractionalHours = qatorlar.some(
+        row => !Number.isInteger(Number(row.haftalik_soat))
+      );
+      if (hasFractionalHours) {
+        let capability;
+        try {
+          capability = await smartFetch(
+            `${apiBase}/api/maktab/aqlli_jadval/v3/soat_imkoniyatlari`
+          );
+        } catch (capabilityError) {
+          const deploymentError = new Error(
+            "Backend hali V19.7 ga yangilanmagan. Avval BACKEND xizmatidagi backend/samtm_school.py faylini ushbu paketdagi 1-kod bilan to‘liq almashtirib deploy qiling. /api/versiya javobida samtm-fractional-hours-ab-week-v19.7 chiqmaguncha 0,5 va 1,5 saqlanmaydi."
+          );
+          deploymentError.status = capabilityError?.status || 409;
+          throw deploymentError;
+        }
+        if (
+          capability?.release !== "samtm-fractional-hours-ab-week-v19.7"
+          || !capability?.fractional_hours
+          || !capability?.schema_ready
+        ) {
+          const migrationError = new Error(
+            "Backend V19.7 kodi topildi, lekin 0,5/1,5 soat uchun baza migratsiyasi tayyor emas. Railway BACKEND logida “V19.7 0,5/1,5 soat migratsiyasi” xatosini tekshiring va backendni qayta deploy qiling."
+          );
+          migrationError.status = 503;
+          throw migrationError;
+        }
+      }
       const fullPayload = compactApiPayloadV200(creatingNew ? {
         maktab_id: maktabId,
         full_name: newTeacher.full_name.trim(),
@@ -3817,10 +3858,9 @@ function TeacherFirstLoadEditorV192({
         try {
           result = await submitTeacherPayload(compatibilityPayload);
         } catch (compatibilityError) {
-          const hasFractionalHours = qatorlar.some(row => !Number.isInteger(Number(row.haftalik_soat)));
           if (hasFractionalHours && compatibilityError?.status === 422) {
             const fractionError = new Error(
-              "0,5 yoki 1,5 soatli fan serverda eski butun-son formatida qolgan. Ushbu paketdagi backend/samtm_school.py faylini ham to‘liq almashtirib deploy qiling."
+              "0,5 yoki 1,5 soatli fan serverda eski butun-son formatida qolgan. Railway BACKEND xizmatidagi backend/samtm_school.py faylini ushbu paketdagi 1-kod bilan to‘liq almashtirib deploy qiling."
             );
             fractionError.status = 422;
             fractionError.validationPath = compatibilityError.validationPath || [];
@@ -4792,10 +4832,10 @@ function TeacherFirstLoadEditorV192({
                   {fieldIsInvalidV199(`teacher-row-${index}-group`) && <span className="block mt-1 text-[9px]" style={{ color: palette.red }}>Mos guruhni tanlang.</span>}
                 </label>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik soat <span style={{ color: palette.red }}>*</span>
-                  <input id={`teacher-row-${index}-hours`} type="number" min="1" max={allocation.approved ? Math.max(1, allocation.maxForRow) : 20} step="1" value={row.haftalik_soat} placeholder="Qo‘lda yozing" onChange={event => {
+                  <input id={`teacher-row-${index}-hours`} type="number" min="0.5" max={allocation.approved ? Math.max(0.5, allocation.maxForRow) : 20} step="0.5" value={row.haftalik_soat} placeholder="Masalan: 0,5" onChange={event => {
                     clearInvalidFieldV199(`teacher-row-${index}-hours`);
                     if (event.target.value === "") return update(index, { haftalik_soat: "" });
-                    const requested = Math.max(1, Number(event.target.value || 1));
+                    const requested = Math.max(0.5, Number(event.target.value || 0.5));
                     if (allocation.approved && requested > allocation.maxForRow) {
                       update(index, { haftalik_soat: allocation.maxForRow });
                       setMessage({
@@ -4807,6 +4847,11 @@ function TeacherFirstLoadEditorV192({
                     update(index, { haftalik_soat: requested });
                   }} className="w-full mt-1 p-2 rounded-lg border" style={invalidFieldStyleV199(`teacher-row-${index}-hours`, allocation.approved && allocation.remainingAfterRow === 0 ? "#8FC4A5" : palette.line)}/>
                   {fieldIsInvalidV199(`teacher-row-${index}-hours`) && <span className="block mt-1 text-[9px] font-black" style={{ color: palette.red }}>Haftalik soatni to‘g‘ri kiriting.</span>}
+                  {Math.abs(Number(row.haftalik_soat || 0) % 1 - 0.5) < 1e-9 && <span className="block mt-1 rounded-md px-1.5 py-1 text-[9px] font-black" style={{ color: palette.blue, background: palette.sky }}>
+                    {Number(row.haftalik_soat) < 1
+                      ? "A/B HAFTA: bu fan har ikki haftada 1 marta o‘tadi. Jadvalda TOQ yoki JUFT hafta deb ko‘rinadi."
+                      : `${Math.floor(Number(row.haftalik_soat))} dars har hafta + 1 dars har ikki haftada (A/B) o‘tadi.`}
+                  </span>}
                   <span className="block mt-1 text-[9px] font-normal" style={{ color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber }}>
                     {data?.oquv_reja?.holat === "tasdiqlangan"
                       ? `Reja ${allocation.planHours} · band ${allocation.outsideHours + allocation.draftOtherHours + allocation.currentHours} · qoldi ${allocation.remainingAfterRow}${row.guruh_kaliti !== "whole" ? " · har guruh alohida" : ""}`
@@ -4964,6 +5009,11 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
         <div>
           <h3 className="font-black" style={{ color: palette.ink }}>Jadval ko‘rinishi</h3>
           <p className="text-xs" style={{ color: palette.muted }}>1–4-sinflarda jadval 5 qatorgacha, 5–11-sinflarda 6 qatorgacha ko‘rinadi. Parallel guruhlar bitta katak ichida alohida ko‘rinadi.</p>
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-[9px] font-black">
+            <span className="px-2 py-1 rounded-lg" style={{ background: palette.greenBg, color: palette.green }}>HOZIRGI {detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
+            <span className="px-2 py-1 rounded-lg" style={{ background: palette.sky, color: palette.blue }}>0,5 + 0,5 = BITTA KATAKDA A/B ALMASHUV</span>
+            <span style={{ color: palette.muted }}>Bir hafta birinchi fan, keyingi hafta ikkinchi fan o‘tadi.</span>
+          </div>
         </div>
         <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
           {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
@@ -5001,14 +5051,17 @@ function SanitaryScheduleRulesV1874() {
         <h2 className="text-xl font-black" style={{color:palette.ink}}>Jadval yaratishdan oldingi qattiq qoidalar</h2>
         <p className="text-xs mt-1" style={{color:palette.muted}}>Generator bu qoidalarni avtomatik tekshiradi; majburan tasdiqlash ham ularni buzmaydi.</p>
       </div>
-      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>SanQvaN profili faol</span>
+      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>V19.6 qulaylik strategiyasi faol</span>
     </div>
-    <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-3 mt-4">
+    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>1-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 2 kun 5 dars. 5-dars faqat yengil fan.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>2–4-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 4 kun 5 dars. 6-dars qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>5–11-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Majburiy jadvalda kuniga maksimum 6 dars. 7-darsga majburiy fan qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Ichki okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>1–2–3, bo‘sh 4, keyin 5 ko‘rinishidagi jadval tasdiqlanmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika 1–5; jismoniy tarbiya 3–6 afzal. 1–2 faqat boshqa imkon bo‘lmasa ishlatiladi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinf yoshiga mos</div><div className="text-xs mt-1" style={{color:palette.muted}}>5–6-sinf 1–3-darsga mosroq; 7–8-sinf 2–4; 9–11-sinf og‘ir fanlari asosan 2–4-darsga joylanadi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>O‘qituvchiga ixcham</div><div className="text-xs mt-1" style={{color:palette.muted}}>Bekor “oyna”, ortiqcha ish kuni va 5-sinfdan birdan 11-sinfga keskin ketma-ket o‘tish kamaytiriladi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>To‘g‘ri almashuv</div><div className="text-xs mt-1" style={{color:palette.muted}}>Ketma-ket og‘ir fanlar kamayadi; jismoniy tarbiyadan keyin matematika, fizika kabi yozma-og‘ir fan imkon qadar qo‘yilmaydi.</div></div>
     </div>
   </Card>;
 }
@@ -5985,6 +6038,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const diagnostics = detail?.urinish?.diagnostika || {};
+  const comfort = diagnostics.qulaylik_strategiyasi || {};
   const problems = diagnostics.muammolar || [];
   const warnings = diagnostics.ogohlantirishlar || [];
   const match = diagnostics.jadval_mosligi || {};
@@ -6033,11 +6087,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       <Card className="p-5">
         <h2 className="text-xl font-black" style={{ color: palette.ink }}>3. Draft yaratish va tasdiqlash</h2>
         <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski faol jadval yangi draft 100% mos va sinf kunlari oknosiz bo‘lib tasdiqlanmaguncha saqlanadi.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
           <Stat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
           <Stat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashtirildi" tone="green"/>
           <Stat value={detail?.urinish?.joylashtirilmadi ?? 0} label="joylashmadi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
           <Stat value={diagnostics.sinf_oknolari ?? "—"} label="sinf oknosi" tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
+          <Stat value={diagnostics.oqituvchi_oknolari ?? "—"} label="o‘qituvchi oknosi" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
+          <Stat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir fan" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
         <button onClick={generate} disabled={generating || !groupReady || !preflight?.tayyor} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: (groupReady && preflight?.tayyor) ? palette.blue : "#9BA8B2" }}>{generating ? "Hisoblanmoqda..." : (!groupReady ? "Avval guruhlarni tasdiqlang" : "Yangi draft yaratish")}</button>
         {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
