@@ -3035,6 +3035,9 @@ function TeacherFirstLoadEditorV192({
   const addRow = () => {
     if (data?.oquv_reja?.holat !== "tasdiqlangan") {
       setRows(current => [...current, emptyTeacherLoadRowV192(data)]);
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
+        document.getElementById("teacher-load-bottom-actions")?.scrollIntoView({ behavior: "smooth", block: "end" })
+      ));
       return;
     }
     const nextIndex = rows.length;
@@ -3055,6 +3058,9 @@ function TeacherFirstLoadEditorV192({
               haftalik_soat: Math.min(candidate.haftalik_soat, info.maxForRow),
               is_placeholder: false,
             }]);
+            window.requestAnimationFrame(() => window.requestAnimationFrame(() =>
+              document.getElementById("teacher-load-bottom-actions")?.scrollIntoView({ behavior: "smooth", block: "end" })
+            ));
             return;
           }
         }
@@ -3666,9 +3672,6 @@ function TeacherFirstLoadEditorV192({
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={openPlanReference} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.amberBg, color: palette.amber }}><BookOpen size={16}/> O‘quv rejani ko‘rish</button>
           {!creatingNew && teacher && <button type="button" onClick={() => setDeleteCandidate(teacher)} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>O‘qituvchini o‘chirish</button>}
-          <button onClick={save} disabled={saving} className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
-            {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
-          </button>
         </div>
       </div>
 
@@ -3926,7 +3929,12 @@ function TeacherFirstLoadEditorV192({
           </div>
 
           {!rows.length && <div className="mt-4"><SmartNotice tone="info">{teacher?.full_name || "Bu o‘qituvchi"} uchun hali dars qatori yo‘q. “Yangi fan–sinf qatori”ni bosing.</SmartNotice></div>}
-          <button onClick={addRow} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
+          <div id="teacher-load-bottom-actions" className="mt-4 pt-4 border-t flex flex-col items-start gap-2 scroll-mb-4" style={{ borderColor: palette.line }}>
+            <button onClick={save} disabled={saving} className="w-full sm:w-auto px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
+              {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
+            </button>
+            <button onClick={addRow} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
+          </div>
         </div>
       </div>
     </Card>
