@@ -63,6 +63,18 @@ function Stat({ icon, value, label, tone = "blue" }) {
   );
 }
 
+function CompactStat({ value, label, tone = "blue" }) {
+  const map = {
+    blue: [palette.sky, palette.blue], teal: [palette.mint, palette.teal],
+    green: [palette.greenBg, palette.green], amber: [palette.amberBg, palette.amber], red: [palette.redBg, palette.red]
+  };
+  const [bg, fg] = map[tone] || map.blue;
+  return <div className="rounded-xl px-2.5 py-2 min-w-0" style={{ background: bg }}>
+    <div className="text-lg leading-none font-black truncate" style={{ color: palette.ink }}>{value ?? "—"}</div>
+    <div className="text-[10px] leading-tight mt-1 truncate" style={{ color: fg }}>{label}</div>
+  </div>;
+}
+
 function QuickAction({ icon, title, desc, onClick }) {
   return (
     <button onClick={onClick} className="w-full text-left rounded-2xl border p-4 bg-white transition-transform active:scale-[.99]" style={{ borderColor: palette.line }}>
@@ -4962,6 +4974,15 @@ function scheduleGroupLabel(value) {
   return key.replaceAll("_", " ");
 }
 
+function scheduleGroupShortLabel(value) {
+  const full = scheduleGroupLabel(value);
+  if (full === "Butun sinf") return "";
+  if (full === "O‘g‘il bolalar") return "O‘";
+  if (full === "Qiz bolalar") return "Q";
+  const numbered = full.match(/^(\d+)-guruh$/);
+  return numbered ? `${numbered[1]}G` : full.slice(0, 3);
+}
+
 function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged }) {
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
@@ -5015,36 +5036,55 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
   };
 
   return (
-    <Card className="p-4">
-      {roomMessage && <div className="mb-3"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div>
-          <h3 className="font-black" style={{ color: palette.ink }}>Jadval ko‘rinishi</h3>
-          <p className="text-xs" style={{ color: palette.muted }}>1–4-sinflarda jadval 5 qatorgacha, 5–11-sinflarda 6 qatorgacha ko‘rinadi. Parallel guruhlar bitta katak ichida alohida ko‘rinadi.</p>
-          <div className="flex flex-wrap items-center gap-2 mt-2 text-[9px] font-black">
-            <span className="px-2 py-1 rounded-lg" style={{ background: palette.greenBg, color: palette.green }}>HOZIRGI {detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
-            <span className="px-2 py-1 rounded-lg" style={{ background: palette.sky, color: palette.blue }}>0,5 + 0,5 = BITTA KATAKDA A/B ALMASHUV</span>
-            <span style={{ color: palette.muted }}>Bir hafta birinchi fan, keyingi hafta ikkinchi fan o‘tadi.</span>
+    <Card className="p-2.5">
+      {roomMessage && <div className="mb-1.5"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+        <div className="min-w-0">
+          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Haftalik dars jadvali</h3>
+          <div className="flex flex-wrap items-center gap-1 mt-1 text-[8px] font-black">
+            <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
+            <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>A/B · 0,5 + 0,5</span>
+            <span style={{ color: palette.muted }}>Xona ustiga bosib tahrirlang.</span>
           </div>
         </div>
-        <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+        <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
         </select>
       </div>
       <div className="overflow-auto">
-        <table className="min-w-[900px] w-full border-separate border-spacing-1.5">
-          <thead><tr><th className="text-xs p-2">Dars</th>{smartDays.slice(0, weekdays).map(([day, name]) => {
+        <table className="min-w-[760px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
+          <colgroup><col style={{ width: 32 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
+          <thead><tr><th className="text-[9px] py-1">№</th>{smartDays.slice(0, weekdays).map(([day, name]) => {
             const blocked = blockedDays.has(day);
-            return <th key={day} className="text-xs p-2" style={blocked ? { color: palette.red, background: palette.redBg } : {}}>{name}{blocked ? ' · blok' : ''}</th>;
+            return <th key={day} className="text-[9px] leading-none py-1 rounded-md" style={blocked ? { color: palette.red, background: palette.redBg } : { color: palette.ink }}>{name}{blocked ? ' · blok' : ''}</th>;
           })}</tr></thead>
           <tbody>{Array.from({ length: periods }, (_, periodIndex) => (
             <tr key={periodIndex}>
-              <td className="text-xs font-black text-center p-2">{periodIndex + 1}</td>
+              <td className="text-[10px] font-black text-center p-0.5">{periodIndex + 1}</td>
               {smartDays.slice(0, weekdays).map(([day]) => {
                 const blocked = blockedDays.has(day);
                 const cell = blocked ? [] : slots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.dars_raqami) === periodIndex + 1);
-                return <td key={day} className="align-top"><div className="min-h-[76px] rounded-xl border p-2" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
-                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-2 last:mb-0 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,.72)", borderLeft: slot.guruh_kaliti !== "whole" ? `3px solid ${palette.teal}` : "none" }}>{slot.guruh_kaliti !== "whole" && <div className="inline-flex mb-1 px-1.5 py-0.5 rounded-md text-[9px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{scheduleGroupLabel(slot.guruh_kaliti)}</div>}<div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div>{slot.hafta_turi && slot.hafta_turi !== "har_hafta" && <div className="inline-flex mt-1 px-1.5 py-0.5 rounded-md text-[9px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"}{slot.hafta_turi === detail?.joriy_hafta_turi ? " · HOZIR" : ""}</div>}<div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</div><button type="button" onClick={() => openRoomEditor(slot)} className="mt-1 text-left text-[10px] font-bold" style={{ color: slot.xona_nomi || slot.xona_matni ? palette.blue : palette.red }}>Xona: {slot.xona_nomi || slot.xona_matni || "Xona yo‘q"} · tahrirlash</button>{Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-2 rounded-lg border p-2 space-y-1.5" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1.5 rounded-lg border bg-white text-[10px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205 yoki boshqa bino 102" maxLength={80} className="w-full p-1.5 rounded-lg border text-[10px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-2 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}</div>)}
+                return <td key={day} className="align-top p-0"><div className="min-h-[44px] rounded-lg border p-1 overflow-hidden" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
+                  {blocked ? <div className="min-h-[34px] flex items-center justify-center text-center text-[8px] leading-tight font-black" style={{ color: palette.red }}>Dars yo‘q</div> : cell.map(slot => {
+                    const grouped = slot.guruh_kaliti !== "whole";
+                    const shortGroup = scheduleGroupShortLabel(slot.guruh_kaliti);
+                    const groupTitle = scheduleGroupLabel(slot.guruh_kaliti);
+                    const alternating = slot.hafta_turi && slot.hafta_turi !== "har_hafta";
+                    const roomName = slot.xona_nomi || slot.xona_matni || "Xona yo‘q";
+                    const roomExists = Boolean(slot.xona_nomi || slot.xona_matni);
+                    return <div key={slot.id} className="mb-0.5 last:mb-0 rounded-md px-1 py-0.5 leading-none" style={{ background: "rgba(255,255,255,.78)", borderLeft: grouped ? `2px solid ${palette.teal}` : "none" }}>
+                      <div className="flex items-center gap-1 min-w-0">
+                        {grouped && <span title={groupTitle} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{shortGroup}</span>}
+                        {alternating && <span title={slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "T·0,5" : "J·0,5"}</span>}
+                        <span className="truncate text-[9px] leading-tight font-black" title={slot.fan_nomi} style={{ color: palette.ink }}>{slot.fan_nomi}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[7px] leading-tight">
+                        <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
+                        <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>
+                      </div>
+                      {Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
+                    </div>;
+                  })}
                 </div></td>;
               })}
             </tr>
@@ -6057,57 +6097,57 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     ...(match.fanlar || []).filter(row => !row.mos).map(row => ({ type: "Fan", name: `${row.sinf} · ${row.fan}`, plan: row.reja, actual: row.jadval })),
   ];
 
-  return <div className="space-y-4">
+  return <div className="space-y-3">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-    <Card className="p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <Card className="p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>BITTA TUGMA</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>Tugma bosilganda tizim moslikni o‘zi yana bir marta tekshiradi va jadvalni yaratadi. 2-guruh uchun xona yozilmagan bo‘lsa jarayon to‘xtamaydi — jadvalda “Xona yo‘q” deb ko‘rinadi va keyin tahrirlash mumkin.</p>
+          <h2 className="text-lg font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
+          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl truncate" style={{ color: palette.muted }}>Moslik qayta tekshiriladi; guruh xonasi yozilmagan bo‘lsa jadval “Xona yo‘q” bilan yaratiladi.</p>
         </div>
-        <button onClick={generate} disabled={generating || checking} className="px-6 py-3.5 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:opacity-60" style={{ background: palette.blue }}><WandSparkles size={17}/>{generating ? "Jadval yaratilmoqda..." : "Dars jadvalini yaratish"}</button>
+        <button onClick={generate} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-60" style={{ background: palette.blue }}><WandSparkles size={15}/>{generating ? "Yaratilmoqda..." : "Dars jadvalini yaratish"}</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-        <Stat value={preflight?.tayyor ? "100%" : preflight ? "—" : "…"} label="avtomatik moslik" tone={preflight?.tayyor ? "green" : "amber"}/>
-        <Stat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label="sinf" tone="blue"/>
-        <Stat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label="o‘qituvchi" tone="teal"/>
-        <Stat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
+      <div className="grid grid-cols-4 gap-1.5 mt-2.5">
+        <CompactStat value={preflight?.tayyor ? "100%" : preflight ? "—" : "…"} label="avtomatik moslik" tone={preflight?.tayyor ? "green" : "amber"}/>
+        <CompactStat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label="sinf" tone="blue"/>
+        <CompactStat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label="o‘qituvchi" tone="teal"/>
+        <CompactStat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
       </div>
 
-      {(preflight?.xatolar || []).length > 0 && <div className="space-y-2 mt-4 max-h-64 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-xl p-3 text-xs" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}</div>}
-      {preflight?.tayyor && <div className="mt-4 rounded-xl p-3 text-xs font-bold" style={{ background: palette.greenBg, color: palette.green }}>Moslik tayyor. Yuqoridagi tugma jadvalni yaratadi; xona yetishmasligi faqat ogohlantirish bo‘ladi.</div>}
+      {(preflight?.xatolar || []).length > 0 && <div className="space-y-1 mt-2 max-h-28 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={error} style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}</div>}
+      {preflight?.tayyor && <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={{ background: palette.greenBg, color: palette.green }}>Moslik tayyor · xona yetishmasligi jadvalni to‘xtatmaydi.</div>}
     </Card>
 
-    <div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4">
-      <Card className="p-5">
-        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Yaratilgan jadval va tasdiqlash</h2>
-        <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski faol jadval yangi draft 100% mos va sinf kunlari oknosiz bo‘lib tasdiqlanmaguncha saqlanadi.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
-          <Stat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
-          <Stat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashtirildi" tone="green"/>
-          <Stat value={detail?.urinish?.joylashtirilmadi ?? 0} label="joylashmadi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
-          <Stat value={diagnostics.sinf_oknolari ?? "—"} label="sinf oknosi" tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
-          <Stat value={diagnostics.oqituvchi_oknolari ?? "—"} label="o‘qituvchi oknosi" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
-          <Stat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir fan" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
+    <div className="grid lg:grid-cols-[.9fr_1.1fr] gap-3">
+      <Card className="p-3.5">
+        <h2 className="text-base font-black leading-tight" style={{ color: palette.ink }}>Yaratilgan jadval va tasdiqlash</h2>
+        <p className="text-[10px] leading-tight mt-0.5 truncate" style={{ color: palette.muted }}>Eski jadval yangi draft 100% mos tasdiqlanmaguncha saqlanadi.</p>
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5 mt-2.5">
+          <CompactStat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
+          <CompactStat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashdi" tone="green"/>
+          <CompactStat value={detail?.urinish?.joylashtirilmadi ?? 0} label="qoldi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
+          <CompactStat value={diagnostics.sinf_oknolari ?? "—"} label="sinf oknosi" tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
+          <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label="ustoz oknosi" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
+          <CompactStat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
-        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
+        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
 
-        {detail && <div className="mt-4 grid grid-cols-3 gap-2">
-          <Stat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label="sinf mos" tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
-          <Stat value={`${matchSummary.oqituvchi_mos || 0}/${matchSummary.oqituvchi_jami || 0}`} label="o‘qituvchi mos" tone={(matchSummary.oqituvchi_mos === matchSummary.oqituvchi_jami) ? "green" : "red"}/>
-          <Stat value={`${matchSummary.fan_mos || 0}/${matchSummary.fan_jami || 0}`} label="fan mos" tone={(matchSummary.fan_mos === matchSummary.fan_jami) ? "green" : "red"}/>
+        {detail && <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+          <CompactStat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label="sinf mos" tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
+          <CompactStat value={`${matchSummary.oqituvchi_mos || 0}/${matchSummary.oqituvchi_jami || 0}`} label="o‘qituvchi mos" tone={(matchSummary.oqituvchi_mos === matchSummary.oqituvchi_jami) ? "green" : "red"}/>
+          <CompactStat value={`${matchSummary.fan_mos || 0}/${matchSummary.fan_jami || 0}`} label="fan mos" tone={(matchSummary.fan_mos === matchSummary.fan_jami) ? "green" : "red"}/>
         </div>}
       </Card>
 
-      <Card className="p-5">
-        <h3 className="font-black mb-3" style={{ color: palette.ink }}>Aniq diagnostika</h3>
-        <div className="space-y-2 max-h-[430px] overflow-auto">
-          {mismatchRows.map((row, index) => <div key={`m-${index}`} className="rounded-xl p-3" style={{ background: palette.redBg }}><div className="text-sm font-black" style={{ color: palette.ink }}>{row.type} · {row.name}</div><div className="text-xs mt-1" style={{ color: palette.red }}>Reja: {row.plan} · Jadval: {row.actual} · Farq: {row.actual - row.plan}</div></div>)}
-          {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-xl p-3 text-xs" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
-          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-xl p-3" style={{ background: palette.redBg }}><div className="text-sm font-black" style={{ color: palette.ink }}>{problem.sinf} · {problem.fan}</div><div className="text-xs mt-1" style={{ color: palette.red }}>{problem.sabab}</div></div>)}
-          {warnings.map((warning, index) => <div key={`w-${index}`} className="rounded-xl p-3 text-xs" style={{ background: palette.amberBg, color: palette.amber }}>{warning}</div>)}
+      <Card className="p-3.5">
+        <div className="flex items-center justify-between gap-2 mb-2"><h3 className="text-sm font-black" style={{ color: palette.ink }}>Aniq diagnostika</h3><span className="text-[10px] font-black px-2 py-1 rounded-full" style={{ background: mismatchRows.length ? palette.redBg : palette.greenBg, color: mismatchRows.length ? palette.red : palette.green }}>{mismatchRows.length + (match.xatolar || []).length + problems.length} ta</span></div>
+        <div className="space-y-1 max-h-[220px] overflow-auto pr-1">
+          {mismatchRows.map((row, index) => <div key={`m-${index}`} className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2 text-[11px] leading-tight" style={{ background: palette.redBg }}><span className="font-bold truncate" title={`${row.type} · ${row.name}`} style={{ color: palette.ink }}>{row.type} · {row.name}</span><span className="shrink-0 font-black" style={{ color: palette.red }}>{row.plan}→{row.actual} ({row.actual - row.plan})</span></div>)}
+          {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={error} style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
+          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2 text-[11px] leading-tight" style={{ background: palette.redBg }}><span className="font-bold truncate" title={`${problem.sinf} · ${problem.fan}`} style={{ color: palette.ink }}>{problem.sinf} · {problem.fan}</span><span className="shrink-0 truncate max-w-[45%]" title={problem.sabab} style={{ color: palette.red }}>{problem.sabab}</span></div>)}
+          {warnings.length > 0 && <div className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={warnings.join(" · ")} style={{ background: palette.amberBg, color: palette.amber }}>{warnings.length} ta ogohlantirish · {warnings[0]}</div>}
           {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">Sinf, fan va o‘qituvchi soatlari 100% mos.</SmartNotice>}
         </div>
       </Card>
