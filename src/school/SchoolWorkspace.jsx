@@ -1446,8 +1446,8 @@ function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
 
   useEffect(() => { load(); }, [token, apiBase, maktabId]);
 
-  const save = async (enabled, reapply=false) => {
-    if (reapply && !window.confirm("Rasmiy fan-kun taqsimoti barcha mos o‘qituvchilarga qayta qo‘llansinmi? Hozirgi metod kunlari rasmiy preset bilan almashtiriladi.")) return;
+  const save = async () => {
+    if (!window.confirm("Rasmiy metod kunlari mos fan o‘qituvchilarining haftalik vaqtiga yozilsinmi? Avvalgi metod kuni belgilari rasmiy taqsimot bilan almashtiriladi.")) return;
     setSaving(true);
     try {
       const result = await smartFetch(
@@ -1455,15 +1455,13 @@ function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ maktab_id: maktabId, yoqilgan: enabled, qayta_qollash: reapply }),
+          body: JSON.stringify({ maktab_id: maktabId, yoqilgan: true, qayta_qollash: true }),
         }
       );
       setData(result);
       setMessage({
         tone: result.ziddiyat_soni ? "warning" : "success",
-        text: enabled
-          ? `Rasmiy metod kunlari YOQ. ${result.jami_oqituvchi || 0} ta o‘qituvchi moslandi.${result.ziddiyat_soni ? ` ${result.ziddiyat_soni} ta ko‘p fanli o‘qituvchini pastdagi matritsada tekshiring.` : ""}`
-          : "Rasmiy avto metod kuni O‘CHIRILDI. Qo‘lda tuzatilgan vaqtlar saqlandi.",
+        text: `Rasmiy metod kunlari ${result.jami_oqituvchi || 0} ta o‘qituvchining haftalik vaqtiga yozildi.${result.ziddiyat_soni ? ` ${result.ziddiyat_soni} ta ko‘p fanli o‘qituvchini pastdagi jadvalda tekshiring.` : ""}`,
       });
       await reload();
     } catch (error) {
@@ -1473,17 +1471,14 @@ function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
     }
   };
 
-  return <Card className="p-3">
+  return <div className="rounded-xl border p-3" style={{borderColor:palette.line,background:"#F8FBFD"}}>
     {message && <div className="mb-2"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div>
-        <div className="text-base font-black" style={{color:palette.ink}}>Rasmiy metod kunlari</div>
-        <div className="text-[11px] mt-0.5" style={{color:palette.muted}}>O‘zA 12.12.2024 tartibi · Psixologga avtomatik belgilanmaydi · keyin matritsada bittalab tuzatish mumkin.</div>
+        <div className="text-sm font-black" style={{color:palette.ink}}>Rasmiy metod kunlari</div>
+        <div className="text-[10px] mt-0.5" style={{color:palette.muted}}>Mos o‘qituvchilarning metod kunini dars qo‘yiladigan vaqtdan chiqaradi. Haftalik yuklama kamaymaydi — darslar boshqa kunlarga joylanadi.</div>
       </div>
-      <div className="flex gap-2">
-        <button onClick={()=>save(!data?.yoqilgan,false)} disabled={saving||loading} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:data?.yoqilgan?palette.greenBg:palette.cream,color:data?.yoqilgan?palette.green:palette.muted}}>{saving?"Saqlanmoqda...":data?.yoqilgan?"AVTO: YOQ — O‘CHIRISH":"AVTO: O‘CHIQ — YOQISH"}</button>
-        <button onClick={()=>save(true,true)} disabled={saving||loading} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>Rasmiy taqsimotni qayta qo‘llash</button>
-      </div>
+      <button onClick={save} disabled={saving||loading} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?"Yozilmoqda...":"Metod kunlarini dars vaqtidan chiqarish"}</button>
     </div>
     {loading ? <div className="py-4 flex justify-center"><Loader2 size={18} className="animate-spin" style={{color:palette.blue}}/></div> : <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-1.5 mt-3">
       {(data?.kunlar||[]).map(day=><div key={day.hafta_kuni} className="rounded-xl border p-2" style={{borderColor:palette.line,background:day.hafta_kuni===6?"#F7F1FC":"#FAFCFD"}}>
@@ -1492,7 +1487,7 @@ function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
       </div>)}
     </div>}
     {!!data?.ziddiyat_soni && <div className="text-[10px] mt-2 px-2 py-1.5 rounded-lg" style={{background:palette.amberBg,color:palette.amber}}>{data.ziddiyat_soni} ta o‘qituvchi turli kun guruhidagi bir nechta fan o‘tadi. Tizim eng ko‘p fan tushgan kunni tanladi; pastda qo‘lda tuzating.</div>}
-  </Card>;
+  </div>;
 }
 
 
@@ -1520,7 +1515,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   const [saving, setSaving] = useState(false);
 
   const [bulkDay, setBulkDay] = useState(1);
-  const [bulkTarget, setBulkTarget] = useState("method");
+  const [bulkDayType, setBulkDayType] = useState("method");
   const [bulkLevel, setBulkLevel] = useState("hard");
   const [teacherPage, setTeacherPage] = useState(1);
   const TEACHERS_PER_PAGE = 12;
@@ -1594,7 +1589,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     if (teacherPage > teacherPageCount) setTeacherPage(teacherPageCount);
   }, [teacherPage, teacherPageCount]);
 
-  const emptyState = () => ({ methods: {}, slots: {} });
+  const emptyState = () => ({ methods: {}, methodKinds: {}, slots: {} });
   const defaultRules = () => ({
     kunlik_max: 6,
     ketma_ket_max: 4,
@@ -1643,6 +1638,12 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
       if (row.turi === "metod_kuni") {
         teacherState.methods[day] = level;
+        const note = String(row.izoh || "").toLocaleLowerCase("uz");
+        teacherState.methodKinds[day] = note.includes("mustaqil")
+          ? "self_study"
+          : note.includes("amaliyot")
+            ? "practice"
+            : "method";
         return;
       }
 
@@ -1692,6 +1693,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
   const cloneTeacherState = value => ({
     methods: { ...(value?.methods || {}) },
+    methodKinds: { ...(value?.methodKinds || {}) },
     slots: { ...(value?.slots || {}) },
   });
 
@@ -1720,6 +1722,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
       }
     });
     delete teacherState.methods[day];
+    delete teacherState.methodKinds[day];
     return level;
   };
 
@@ -1746,9 +1749,11 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     const next = cycleLevel(current);
     if (next) {
       teacherState.methods[day] = next;
+      teacherState.methodKinds[day] = teacherState.methodKinds[day] || "method";
       clearDaySlots(teacherState, day);
     } else {
       delete teacherState.methods[day];
+      delete teacherState.methodKinds[day];
     }
   });
 
@@ -1783,6 +1788,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
   const clearTeacherTimes = uid => updateTeacherState(uid, teacherState => {
     teacherState.methods = {};
+    teacherState.methodKinds = {};
     teacherState.slots = {};
   });
 
@@ -1821,13 +1827,19 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     const rows = [];
 
     Object.entries(teacherState.methods).forEach(([day, level]) => {
+      const kind = teacherState.methodKinds?.[day] || "method";
+      const kindLabel = kind === "self_study"
+        ? "Mustaqil ishlash kuni"
+        : kind === "practice"
+          ? "Amaliyot kuni"
+          : "Metod kuni";
       rows.push({
         hafta_kuni: Number(day),
         smena: 0,
         dars_raqami: 0,
         turi: "metod_kuni",
         qattiq: level === "hard",
-        izoh: "V18.69 metod kuni",
+        izoh: `V19.8 KUN TURI: ${kindLabel}`,
       });
     });
 
@@ -1880,7 +1892,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
       setDirtyIds(previous => previous.filter(uid => !uniqueIds.includes(String(uid))));
       setMessage({
         tone: "success",
-        text: `${result.oqituvchi_soni || uniqueIds.length} ta o‘qituvchining metod kuni va dars soatlari saqlandi.`,
+        text: `${result.oqituvchi_soni || uniqueIds.length} ta o‘qituvchining kun belgilari va dars vaqtlari saqlandi.`,
       });
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
@@ -1939,28 +1951,13 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         const teacherState = cloneTeacherState(previous[uid] || emptyState());
         const level = bulkLevel === "clear" ? undefined : bulkLevel;
 
-        if (bulkTarget === "method") {
-          if (level) {
-            teacherState.methods[bulkDay] = level;
-            clearDaySlots(teacherState, bulkDay);
-          } else {
-            delete teacherState.methods[bulkDay];
-          }
+        if (level) {
+          teacherState.methods[bulkDay] = level;
+          teacherState.methodKinds[bulkDay] = bulkDayType;
+          clearDaySlots(teacherState, bulkDay);
         } else {
-          materializeMethodDay(teacherState, bulkDay);
-          const targetShifts = bulkTarget === "both"
-            ? shifts
-            : shifts.filter(shift => Number(shift.smena) === Number(bulkTarget));
-
-          targetShifts.forEach(shift => {
-            for (let period = 1; period <= Number(shift.dars_soni || 7); period += 1) {
-              setLevel(
-                teacherState.slots,
-                `${bulkDay}-${shift.smena}-${period}`,
-                level
-              );
-            }
-          });
+          delete teacherState.methods[bulkDay];
+          delete teacherState.methodKinds[bulkDay];
         }
 
         next[uid] = teacherState;
@@ -1973,10 +1970,11 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     const dayName =
       smartDays.find(([day]) => Number(day) === Number(bulkDay))?.[1] ||
       String(bulkDay);
-    const targetName =
-      bulkTarget === "method" ? "metod kuni" :
-      bulkTarget === "both" ? "ikkala smena" :
-      `${bulkTarget}-smena`;
+    const targetName = bulkDayType === "self_study"
+      ? "mustaqil ishlash kuni"
+      : bulkDayType === "practice"
+        ? "amaliyot kuni"
+        : "metod kuni";
     const levelName =
       bulkLevel === "hard" ? "qattiq" :
       bulkLevel === "soft" ? "yumshoq" : "bo‘sh";
@@ -2065,73 +2063,14 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
       </div>
     </Card>
 
-    {!teacherOnly && <OfficialMethodPresetPanelV1873 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload}/>}
-
-    {!teacherOnly && <Card className="p-5">
-      <h2 className="text-xl font-black" style={{ color: palette.ink }}>
-        Tanlangan o‘qituvchilarga birga qo‘llash
-      </h2>
-      <p className="text-xs mt-1" style={{ color: palette.muted }}>
-        Kun, metod/smena va qattiq/yumshoq/bo‘sh holatini tanlang. “Qo‘llash”dan keyin pastdagi vaqtlar ranglanadi; so‘ng “Saqlash”ni bosing.
-      </p>
-
-      <div className="grid md:grid-cols-[1fr_1fr_1.3fr_auto] gap-2 mt-4">
-        <select
-          value={bulkDay}
-          onChange={event => setBulkDay(Number(event.target.value))}
-          className="p-2.5 rounded-xl border bg-white"
-        >
-          {smartDays.slice(0, weekdays).map(([day, name]) =>
-            <option key={day} value={day}>{name}</option>
-          )}
-        </select>
-
-        <select
-          value={bulkTarget}
-          onChange={event => setBulkTarget(event.target.value)}
-          className="p-2.5 rounded-xl border bg-white"
-        >
-          <option value="method">Metod/kasbiy kun</option>
-          {shifts.map(shift =>
-            <option key={shift.smena} value={String(shift.smena)}>
-              {shift.smena}-smena to‘liq
-            </option>
-          )}
-          <option value="both">Ikkala smena to‘liq</option>
-        </select>
-
-        <select
-          value={bulkLevel}
-          onChange={event => setBulkLevel(event.target.value)}
-          className="p-2.5 rounded-xl border bg-white"
-        >
-          <option value="hard">Qattiq — dars qo‘yilmasin</option>
-          <option value="soft">Yumshoq — iloji bo‘lsa bo‘sh</option>
-          <option value="clear">Bo‘sh — cheklovni olib tashlash</option>
-        </select>
-
-        <button
-          onClick={applyBulk}
-          disabled={saving || !selectedSubjects.length || !selectedVisibleIds.length}
-          className="px-4 py-2.5 rounded-xl text-sm font-black text-white"
-          style={{ background: selectedSubjects.length && selectedVisibleIds.length ? palette.teal : "#AAB5BD" }}
-        >
-          {selectedSubjects.length
-            ? `Qo‘llash (${selectedVisibleIds.length})`
-            : "Avval fan tanlang"}
-        </button>
-      </div>
-    </Card>}
-
     <Card className="p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-black" style={{ color: palette.ink }}>
-            O‘qituvchilar vaqt jadvali
+            O‘qituvchi haftalik vaqti
           </h2>
           <p className="text-xs mt-1" style={{ color: palette.muted }}>
-            Har kuni METOD, uning ostida 1-smena va 2-smena alohida.
-            Smenada 6 dars bo‘lsa 6 ta, 7 dars bo‘lsa 7 ta tugma chiqadi.
+            Metod, mustaqil ishlash yoki amaliyot kunini fan o‘qituvchilariga belgilang; zarur bo‘lsa pastdagi soatlarni qo‘lda tuzating.
           </p>
         </div>
         <button
@@ -2143,6 +2082,59 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           {saving ? "Saqlanmoqda..." : `Saqlash (${dirtyIds.length})`}
         </button>
       </div>
+
+      {!teacherOnly && <div className="space-y-2 mt-3">
+        <OfficialMethodPresetPanelV1873 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload}/>
+
+        <div className="rounded-xl border p-3" style={{borderColor:palette.line,background:"#FFFCF5"}}>
+          <div className="font-black text-sm" style={{color:palette.ink}}>Tanlangan fan o‘qituvchilariga kun belgilash</div>
+          <div className="text-[10px] mt-0.5" style={{color:palette.muted}}>
+            Tepada fanlarni tanlang. Tizim faqat shu fanlarga biriktirilgan o‘qituvchilarga tanlangan kun turini qo‘llaydi.
+          </div>
+          <div className="grid md:grid-cols-[1fr_1.2fr_1.5fr_auto] gap-2 mt-3">
+            <select
+              value={bulkDay}
+              onChange={event => setBulkDay(Number(event.target.value))}
+              className="p-2.5 rounded-xl border bg-white"
+            >
+              {smartDays.slice(0, weekdays).map(([day, name]) =>
+                <option key={day} value={day}>{name}</option>
+              )}
+            </select>
+
+            <select
+              value={bulkDayType}
+              onChange={event => setBulkDayType(event.target.value)}
+              className="p-2.5 rounded-xl border bg-white"
+            >
+              <option value="method">Metod kuni</option>
+              <option value="self_study">Mustaqil ishlash kuni</option>
+              <option value="practice">Amaliyot kuni</option>
+            </select>
+
+            <select
+              value={bulkLevel}
+              onChange={event => setBulkLevel(event.target.value)}
+              className="p-2.5 rounded-xl border bg-white"
+            >
+              <option value="hard">Bu kuni dars qo‘yilmasin</option>
+              <option value="soft">Iloji bo‘lsa bu kun bo‘sh qolsin</option>
+              <option value="clear">Shu kun belgisini olib tashlash</option>
+            </select>
+
+            <button
+              onClick={applyBulk}
+              disabled={saving || !selectedSubjects.length || !selectedVisibleIds.length}
+              className="px-4 py-2.5 rounded-xl text-sm font-black text-white"
+              style={{ background: selectedSubjects.length && selectedVisibleIds.length ? palette.teal : "#AAB5BD" }}
+            >
+              {selectedSubjects.length
+                ? `Fan o‘qituvchilariga qo‘llash (${selectedVisibleIds.length})`
+                : "Avval fan tanlang"}
+            </button>
+          </div>
+        </div>
+      </div>}
 
       <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-bold">
         <span style={{ color: "#28765B" }}>🟩 BO‘SH — dars qo‘yish mumkin</span>
@@ -2164,7 +2156,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
       <div className="mt-2 rounded-lg p-2 text-[10px]"
            style={{ background: palette.sky, color: palette.blue }}>
-        Metod kuni qizil yoki sariq qilinsa ikkala smenadagi barcha soatlar avtomatik shu rangga kiradi.
+        Kun turi qizil yoki sariq qilinsa ikkala smenadagi barcha soatlar avtomatik shu rangga kiradi.
         Bitta soatga dars qo‘ymoqchi bo‘lsangiz, aynan o‘sha raqamni bosing — u yashil ochiladi,
         qolgan soatlar bloklanganicha qoladi. Smena nomini bossangiz shu smena to‘liq ochiladi yoki holati almashadi.
       </div>
@@ -2266,6 +2258,12 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
                 {smartDays.slice(0, weekdays).map(([day]) => {
                   const methodLevel = teacherState.methods[day];
+                  const methodKind = teacherState.methodKinds?.[day] || "method";
+                  const methodLabel = methodKind === "self_study"
+                    ? "MUSTAQIL"
+                    : methodKind === "practice"
+                      ? "AMALIYOT"
+                      : "METOD";
 
                   return <td
                     key={day}
@@ -2280,9 +2278,9 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
                       onClick={() => cycleMethod(uid, day)}
                       className="w-full h-6 rounded-md border text-[8px] font-black"
                       style={levelStyle(methodLevel)}
-                      title="Metod kuni: BO‘SH → QATTIQ → YUMSHOQ → BO‘SH"
+                      title={`${methodLabel}: BO‘SH → QATTIQ → YUMSHOQ → BO‘SH`}
                     >
-                      M · {levelText(methodLevel)}
+                      {methodLabel} · {levelText(methodLevel)}
                     </button>
 
                     <div className="space-y-1 mt-1">
