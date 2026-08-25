@@ -2420,6 +2420,36 @@ function groupedSubjectMatchesV195(left, right) {
   return leftKey === rightKey || groupedSubjectFamilyV195(leftKey) === groupedSubjectFamilyV195(rightKey);
 }
 
+function groupedVariantPriorityV195(variant, subject) {
+  const variantKey = subjectKeyV193(
+    `${variant?.guruh_nomi || ""} ${variant?.qisqa || ""} ${variant?.guruh_kaliti || ""}`
+  );
+  const subjectKey = subjectKeyV193(subject);
+  const genderSubject = /texnolog|mehnat|jismoniy|fizkultura|sport/.test(subjectKey);
+  const boys = /o'g'il|ogil|boy|male|erkak/.test(variantKey);
+  const girls = /qiz|girl|female|ayol/.test(variantKey);
+  const first = /(^|[^0-9])1([^0-9]|$)|birinchi|group[_ -]?1|guruh[_ -]?1|g1/.test(variantKey);
+  const second = /(^|[^0-9])2([^0-9]|$)|ikkinchi|group[_ -]?2|guruh[_ -]?2|g2/.test(variantKey);
+  if (genderSubject) {
+    if (boys) return 0;
+    if (girls) return 1;
+  }
+  if (first) return 0;
+  if (second) return 1;
+  if (boys) return 2;
+  if (girls) return 3;
+  return 10;
+}
+
+function sortGroupedVariantsV195(variants, subject) {
+  return variants.map((variant, index) => ({ variant, index }))
+    .sort((left, right) =>
+      groupedVariantPriorityV195(left.variant, subject) - groupedVariantPriorityV195(right.variant, subject) ||
+      left.index - right.index
+    )
+    .map(item => item.variant);
+}
+
 function primaryTeacherCanTeachV193(subject) {
   const key = subjectKeyV193(subject);
   if (/informatika|axborot texnolog|jismoniy tarbiya|fizkultura|sport/.test(key)) return true;
@@ -2508,6 +2538,16 @@ function specialtyMatchesSubjectV194(specialtyValue, subject, options = teacherS
   });
 }
 
+function teacherBirthProfileV195(teacher) {
+  const rawDate = teacher?.tugilgan_sana || teacher?.tugilgan_kuni || teacher?.birth_date || "";
+  const normalizedDate = /^\d{4}-\d{2}-\d{2}/.test(String(rawDate))
+    ? String(rawDate).slice(0, 10) : "";
+  return {
+    tugilgan_sana: normalizedDate,
+    tugilgan_yili: normalizedDate.slice(0, 4) || String(teacher?.tugilgan_yili || ""),
+  };
+}
+
 function TeacherFirstLoadEditorV192({
   token, apiBase, maktabId, onChanged, startWithNew = false,
   planOnly = false, showPlan = true,
@@ -2522,10 +2562,11 @@ function TeacherFirstLoadEditorV192({
   const [creatingNew, setCreatingNew] = useState(Boolean(startWithNew));
   const [newTeacher, setNewTeacher] = useState({
     full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
-    tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
+    tugilgan_sana: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
   });
   const [existingProfile, setExistingProfile] = useState({
     mutaxassisligi: "", haftalik_maqsad_soat: "",
+    tugilgan_sana: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
   });
   const [autoSpecialty, setAutoSpecialty] = useState(true);
   const [specialtyClassIdsByValue, setSpecialtyClassIdsByValue] = useState({});
@@ -2547,6 +2588,7 @@ function TeacherFirstLoadEditorV192({
   const [specialtyCreatorOpen, setSpecialtyCreatorOpen] = useState(false);
   const [specialtyDraft, setSpecialtyDraft] = useState({ label: "", subjects: [] });
   const [specialtyDraftError, setSpecialtyDraftError] = useState("");
+  const birthDateMaxV195 = new Date().toISOString().slice(0, 10);
   const specialtyOptions = useMemo(
     () => [...teacherSpecialtiesV194, ...customSpecialties],
     [customSpecialties]
@@ -2663,10 +2705,19 @@ function TeacherFirstLoadEditorV192({
     const current = (data.oqituvchilar || []).find(
       item => String(item.user_id) === String(selectedTeacher)
     );
+    const birthProfile = teacherBirthProfileV195(current);
+    const leaderClass = (data.sinflar || []).find(
+      item => String(item.rahbar_user_id) === String(selectedTeacher)
+    );
     setExistingProfile({
       mutaxassisligi: String(current?.mutaxassisligi || ""),
       haftalik_maqsad_soat: current?.haftalik_maqsad_soat == null
         ? "" : String(current.haftalik_maqsad_soat),
+      tugilgan_sana: birthProfile.tugilgan_sana,
+      tugilgan_yili: birthProfile.tugilgan_yili,
+      ish_staji: current?.ish_staji == null ? "" : String(current.ish_staji),
+      toifasi: String(current?.toifasi || ""),
+      rahbar_sinf_id: String(current?.rahbar_sinf_id || leaderClass?.id || ""),
     });
     const values = specialtyValuesV195(current?.mutaxassisligi);
     const teacherRows = (data.birikmalar || []).filter(
@@ -3027,19 +3078,25 @@ function TeacherFirstLoadEditorV192({
       planForClass(classId)
         .filter(item => specialtyMatchesSubjectV194(specialtyValue, item.fan_nomi, options))
         .forEach(item => {
-          const grouped = variantsForClass(classId).filter(variant =>
+          const grouped = sortGroupedVariantsV195(variantsForClass(classId).filter(variant =>
             variant.guruh_kaliti !== "whole" &&
             (variant.fanlar || []).some(subject =>
               groupedSubjectMatchesV195(subject, item.fan_nomi)
             )
+          ), item.fan_nomi);
+          const ownedVariant = grouped.find(variant =>
+            rows.some(row =>
+              String(row.sinf_id) === String(classId) &&
+              groupedSubjectMatchesV195(row.fan_nomi, item.fan_nomi) &&
+              String(row.guruh_kaliti || "whole") === String(variant.guruh_kaliti)
+            )
           );
           const targets = grouped.length
-            ? grouped
-            : [{ guruh_kaliti: "whole" }];
-          targets.forEach(variant => {
+            ? (ownedVariant ? [ownedVariant] : grouped)
+            : [{ guruh_kaliti: "whole", guruh_nomi: "Butun sinf" }];
+          for (const variant of targets) {
             const key = `${classId}|${subjectKeyV193(item.fan_nomi)}|${variant.guruh_kaliti}`;
-            if (seen.has(key)) return;
-            seen.add(key);
+            if (seen.has(key)) continue;
             const candidate = {
               sinf_id: String(classId),
               fan_nomi: item.fan_nomi,
@@ -3050,15 +3107,18 @@ function TeacherFirstLoadEditorV192({
               is_placeholder: false,
               auto_specialty: true,
               auto_specialty_value: specialtyValue,
+              auto_group_name: variant.guruh_nomi || variant.qisqa || variant.guruh_kaliti,
             };
             const info = allocationInfo(result.length, candidate, result);
             if (!info.approved || info.maxForRow > 0) {
               candidate.haftalik_soat = info.approved
                 ? Math.min(candidate.haftalik_soat, info.maxForRow)
                 : candidate.haftalik_soat;
+              seen.add(key);
               result.push(candidate);
+              break;
             }
-          });
+          }
         });
     });
     return result;
@@ -3307,7 +3367,7 @@ function TeacherFirstLoadEditorV192({
     setQuery("");
     setNewTeacher({
       full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
-      tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
+      tugilgan_sana: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
     });
     setSpecialtyClassIdsByValue({});
     setActiveAutoSpecialty("");
@@ -3378,10 +3438,28 @@ function TeacherFirstLoadEditorV192({
       return setMessage({ tone: "error", text: "Haftalik maqsad soati 1–60 oralig‘ida bo‘lishi kerak." });
     }
     const currentYear = new Date().getFullYear();
-    if (creatingNew && newTeacher.tugilgan_yili !== "" && (
-      Number(newTeacher.tugilgan_yili) < 1900 || Number(newTeacher.tugilgan_yili) > currentYear
+    if (profile.tugilgan_sana && (
+      profile.tugilgan_sana < "1900-01-01" || profile.tugilgan_sana > birthDateMaxV195
     )) {
-      return setMessage({ tone: "error", text: `Tug‘ilgan yil 1900–${currentYear} oralig‘ida bo‘lishi kerak.` });
+      return setMessage({ tone: "error", text: `Tug‘ilgan sana 1900-01-01 va ${birthDateMaxV195} oralig‘ida bo‘lishi kerak.` });
+    }
+    if (!profile.tugilgan_sana && profile.tugilgan_yili !== "" && (
+      Number(profile.tugilgan_yili) < 1900 || Number(profile.tugilgan_yili) > currentYear
+    )) {
+      return setMessage({ tone: "error", text: `Eski tug‘ilgan yil 1900–${currentYear} oralig‘ida bo‘lishi kerak.` });
+    }
+    if (profile.ish_staji !== "" && (
+      Number(profile.ish_staji) < 0 || Number(profile.ish_staji) > 60
+    )) {
+      return setMessage({ tone: "error", text: "Ish staji 0–60 yil oralig‘ida bo‘lishi kerak." });
+    }
+    const chosenLeaderClass = (data?.sinflar || []).find(
+      item => String(item.id) === String(profile.rahbar_sinf_id)
+    );
+    if (chosenLeaderClass?.rahbar_user_id && (
+      creatingNew || String(chosenLeaderClass.rahbar_user_id) !== String(selectedTeacher)
+    )) {
+      return setMessage({ tone: "error", text: `${chosenLeaderClass.sinf}-${chosenLeaderClass.harf} sinfida boshqa rahbar bor.` });
     }
     const mergedRows = mergeDuplicateRows(rows);
     if (!mergedRows.length) {
@@ -3425,7 +3503,10 @@ function TeacherFirstLoadEditorV192({
             full_name: newTeacher.full_name.trim(),
             mutaxassisligi: newTeacher.mutaxassisligi,
             haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
-            tugilgan_yili: newTeacher.tugilgan_yili === "" ? null : Number(newTeacher.tugilgan_yili),
+            tugilgan_sana: newTeacher.tugilgan_sana || null,
+            tugilgan_yili: newTeacher.tugilgan_sana
+              ? Number(newTeacher.tugilgan_sana.slice(0, 4))
+              : (newTeacher.tugilgan_yili === "" ? null : Number(newTeacher.tugilgan_yili)),
             ish_staji: newTeacher.ish_staji === "" ? null : Number(newTeacher.ish_staji),
             toifasi: newTeacher.toifasi || null,
             rahbar_sinf_id: newTeacher.rahbar_sinf_id ? Number(newTeacher.rahbar_sinf_id) : null,
@@ -3436,6 +3517,13 @@ function TeacherFirstLoadEditorV192({
             mutaxassisligi: existingProfile.mutaxassisligi || null,
             haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
               ? null : Number(existingProfile.haftalik_maqsad_soat),
+            tugilgan_sana: existingProfile.tugilgan_sana || null,
+            tugilgan_yili: existingProfile.tugilgan_sana
+              ? Number(existingProfile.tugilgan_sana.slice(0, 4))
+              : (existingProfile.tugilgan_yili === "" ? null : Number(existingProfile.tugilgan_yili)),
+            ish_staji: existingProfile.ish_staji === "" ? null : Number(existingProfile.ish_staji),
+            toifasi: existingProfile.toifasi || null,
+            rahbar_sinf_id: existingProfile.rahbar_sinf_id ? Number(existingProfile.rahbar_sinf_id) : null,
             qatorlar,
           }),
         }
@@ -3449,7 +3537,7 @@ function TeacherFirstLoadEditorV192({
         setEntryCode(result.kirish_kodi || "");
         setNewTeacher({
           full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
-          tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
+          tugilgan_sana: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
         });
         setRows([]);
         setSpecialtyClassIdsByValue({});
@@ -4032,8 +4120,12 @@ function TeacherFirstLoadEditorV192({
               <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.</span>
             </label>
             <div className="pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan yili
-              <input type="number" min="1900" max={new Date().getFullYear()} value={newTeacher.tugilgan_yili} onChange={event => setNewTeacher(current => ({ ...current, tugilgan_yili: event.target.value }))} placeholder="Masalan: 1988" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+            <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
+              <input type="date" min="1900-01-01" max={birthDateMaxV195} value={newTeacher.tugilgan_sana} onChange={event => setNewTeacher(current => ({
+                ...current,
+                tugilgan_sana: event.target.value,
+                tugilgan_yili: event.target.value ? event.target.value.slice(0, 4) : "",
+              }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
             </label>
             <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
               <input type="number" min="0" max="60" value={newTeacher.ish_staji} onChange={event => setNewTeacher(current => ({ ...current, ish_staji: event.target.value }))} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
@@ -4095,10 +4187,43 @@ function TeacherFirstLoadEditorV192({
 
         <div>
           {!creatingNew && <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: palette.line, background: "#fff" }}>
+            <div className="text-[10px] font-black uppercase tracking-[.12em] mb-3" style={{ color: palette.teal }}>O‘qituvchi ma’lumotlarini tahrirlash</div>
             <div className="grid md:grid-cols-2 gap-3">
               {renderSpecialtyPicker(false)}
               <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
                 <input type="number" min="1" max="60" step="1" value={existingProfile.haftalik_maqsad_soat} onChange={event => setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value }))} placeholder="Masalan: 25" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+              </label>
+              <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
+                <input type="date" min="1900-01-01" max={birthDateMaxV195} value={existingProfile.tugilgan_sana} onChange={event => setExistingProfile(current => ({
+                  ...current,
+                  tugilgan_sana: event.target.value,
+                  tugilgan_yili: event.target.value ? event.target.value.slice(0, 4) : "",
+                }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+                {existingProfile.tugilgan_yili && !existingProfile.tugilgan_sana && <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.amber }}>
+                  Eski bazada faqat {existingProfile.tugilgan_yili}-yil saqlangan. Oy va kunni belgilang.
+                </span>}
+              </label>
+              <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
+                <input type="number" min="0" max="60" step="1" value={existingProfile.ish_staji} onChange={event => setExistingProfile(current => ({ ...current, ish_staji: event.target.value }))} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+              </label>
+              <label className="block text-xs font-black" style={{ color: palette.ink }}>Toifasi
+                <select value={existingProfile.toifasi} onChange={event => setExistingProfile(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+                  <option value="">Belgilanmagan</option>
+                  {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
+                </select>
+              </label>
+              <label className="block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
+                <select value={existingProfile.rahbar_sinf_id} onChange={event => setExistingProfile(current => ({ ...current, rahbar_sinf_id: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+                  <option value="">Sinf rahbari emas</option>
+                  {(data?.sinflar || []).map(cls => {
+                    const belongsToCurrent = String(cls.rahbar_user_id || "") === String(selectedTeacher);
+                    const occupiedByOther = Boolean(cls.rahbar_user_id) && !belongsToCurrent;
+                    return <option key={cls.id} value={cls.id} disabled={occupiedByOther}>
+                      {cls.sinf}-{cls.harf}{occupiedByOther ? ` · ${cls.rahbar_ismi || "rahbari bor"}` : belongsToCurrent ? " · hozirgi sinfi" : ""}
+                    </option>;
+                  })}
+                </select>
+                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq turadi.</span>
               </label>
             </div>
           </div>}
@@ -4218,7 +4343,7 @@ function TeacherFirstLoadEditorV192({
               const subjects = subjectsFor(row);
               const allocation = allocationInfo(index, row);
               return <div id={`teacher-load-row-${index}`} key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_90px_150px_38px] gap-2 items-end scroll-mt-24" style={{ borderColor: row.auto_specialty ? "#8FC4A5" : palette.line, background: row.auto_specialty ? palette.greenBg : "#FCFDFE" }}>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf <span style={{ color: palette.red }}>*</span>{row.auto_specialty && <span className="ml-1 px-1.5 py-0.5 rounded" style={{ background: palette.green, color: "#fff" }}>AVTO</span>}
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf <span style={{ color: palette.red }}>*</span>{row.auto_specialty && <span className="ml-1 px-1.5 py-0.5 rounded" style={{ background: palette.green, color: "#fff" }}>AVTO{row.auto_group_name ? ` · ${row.auto_group_name}` : ""}</span>}
                   <select value={row.sinf_id} onChange={event => {
                     const classId = event.target.value;
                     const approved = data?.oquv_reja?.holat === "tasdiqlangan";
