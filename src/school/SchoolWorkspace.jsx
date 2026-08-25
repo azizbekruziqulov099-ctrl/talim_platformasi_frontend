@@ -1,3 +1,5 @@
+// SamTM V19.5 — 0,5/1,5 soatli fanlarni aniq saqlash va server xatosini to'liq ko'rsatish.
+// SamTM V19.5 — 0,5 + 0,5 fanlar bitta slotda toq/juft haftalarda A/B navbat bilan ko'rsatiladi.
 // SamTM V19.5 — 422 saqlash xatosi: bo‘sh maydonlarni tashlash, eski server formati bilan qayta urinish va aniq xato matni.
 // SamTM V19.5 — saqlash xatolarini modal, avtomatik scroll, fokus va qizil maydon bilan ko‘rsatadi.
 // SamTM V19.2 — o‘qituvchi + fan + sinf + guruh + soat bitta aniq qatorda.
@@ -480,12 +482,18 @@ async function smartFetch(url, options = {}) {
       ? rawDetail
       : validationText
         || rawDetail?.message
+        || rawDetail?.detail
+        || rawDetail?.error
         || data?.message
         || data?.error
         || (responseText && responseText.length < 240 ? responseText : "")
         || `Amal bajarilmadi (HTTP ${response.status})`;
-    const apiError = new Error(detail);
+    const visibleDetail = /^amal bajarilmadi\.?$/i.test(String(detail).trim())
+      ? `${detail} (HTTP ${response.status})`
+      : detail;
+    const apiError = new Error(visibleDetail);
     apiError.status = response.status;
+    apiError.code = rawDetail?.code || data?.code || "";
     apiError.data = data;
     apiError.validationPath = validationItems[0]?.loc || [];
     throw apiError;
@@ -3652,9 +3660,11 @@ function TeacherFirstLoadEditorV192({
       return showValidationErrorV199("Haftalik maqsad soatini kiriting. Masalan: 25.", "new-teacher-weekly-target");
     }
     if (profile.haftalik_maqsad_soat !== "" && (
-      Number(profile.haftalik_maqsad_soat) < 1 || Number(profile.haftalik_maqsad_soat) > 60
+      Number(profile.haftalik_maqsad_soat) < 0.5
+      || Number(profile.haftalik_maqsad_soat) > 60
+      || Math.abs(Number(profile.haftalik_maqsad_soat) * 2 - Math.round(Number(profile.haftalik_maqsad_soat) * 2)) > 1e-9
     )) {
-      return showValidationErrorV199("Haftalik maqsad soati 1–60 oralig‘ida bo‘lishi kerak.", `${profileFieldPrefix}-weekly-target`);
+      return showValidationErrorV199("Haftalik maqsad soati 0,5–60 oralig‘ida va 0,5 qadamda bo‘lishi kerak.", `${profileFieldPrefix}-weekly-target`);
     }
     const currentYear = new Date().getFullYear();
     if (profile.tugilgan_sana && (
@@ -3799,9 +3809,25 @@ function TeacherFirstLoadEditorV192({
       try {
         result = await submitTeacherPayload(fullPayload);
       } catch (firstError) {
-        if (firstError?.status !== 422) throw firstError;
+        const retryableCompatibilityError = firstError?.status === 422
+          || Number(firstError?.status || 0) >= 500
+          || /amal bajarilmadi|database_error|server xatosi/i.test(String(firstError?.message || ""));
+        if (!retryableCompatibilityError) throw firstError;
         compatibilityRetryUsed = true;
-        result = await submitTeacherPayload(compatibilityPayload);
+        try {
+          result = await submitTeacherPayload(compatibilityPayload);
+        } catch (compatibilityError) {
+          const hasFractionalHours = qatorlar.some(row => !Number.isInteger(Number(row.haftalik_soat)));
+          if (hasFractionalHours && compatibilityError?.status === 422) {
+            const fractionError = new Error(
+              "0,5 yoki 1,5 soatli fan serverda eski butun-son formatida qolgan. Ushbu paketdagi backend/samtm_school.py faylini ham to‘liq almashtirib deploy qiling."
+            );
+            fractionError.status = 422;
+            fractionError.validationPath = compatibilityError.validationPath || [];
+            throw fractionError;
+          }
+          throw compatibilityError;
+        }
       }
       setData(result.matritsa);
       setValidationDialog(null);
@@ -4455,7 +4481,7 @@ function TeacherFirstLoadEditorV192({
             </label>
             {renderSpecialtyPicker(true)}
             <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati <span style={{ color: palette.red }}>*</span>
-              <input id="new-teacher-weekly-target" type="number" min="1" max="60" step="1" value={newTeacher.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("new-teacher-weekly-target"); setNewTeacher(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 25" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-weekly-target")}/>
+              <input id="new-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={newTeacher.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("new-teacher-weekly-target"); setNewTeacher(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-weekly-target")}/>
               {fieldIsInvalidV199("new-teacher-weekly-target") && <span className="block mt-1 text-[10px] font-black" style={{ color: palette.red }}>Haftalik maqsad soatini kiriting. Masalan: 25.</span>}
               <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.</span>
             </label>
@@ -4531,7 +4557,7 @@ function TeacherFirstLoadEditorV192({
             <div className="grid md:grid-cols-2 gap-3">
               {renderSpecialtyPicker(false)}
               <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
-                <input id="existing-teacher-weekly-target" type="number" min="1" max="60" step="1" value={existingProfile.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("existing-teacher-weekly-target"); setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 25" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-weekly-target")}/>
+                <input id="existing-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={existingProfile.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("existing-teacher-weekly-target"); setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-weekly-target")}/>
               </label>
               <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
                 <input id="existing-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={existingProfile.tugilgan_sana} onChange={event => { clearInvalidFieldV199("existing-teacher-birth-date"); setExistingProfile(current => ({
@@ -4956,7 +4982,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                 const blocked = blockedDays.has(day);
                 const cell = blocked ? [] : slots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.dars_raqami) === periodIndex + 1);
                 return <td key={day} className="align-top"><div className="min-h-[76px] rounded-xl border p-2" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
-                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-2 last:mb-0 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,.72)" }}><div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div><div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}{slot.guruh_kaliti !== 'whole' ? ` · ${slot.guruh_kaliti}` : ''}</div><button type="button" onClick={() => openRoomEditor(slot)} className="mt-1 text-left text-[10px] font-bold" style={{ color: slot.xona_nomi || slot.xona_matni ? palette.blue : palette.red }}>Xona: {slot.xona_nomi || slot.xona_matni || "yozilmagan"} · tahrirlash</button>{Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-2 rounded-lg border p-2 space-y-1.5" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1.5 rounded-lg border bg-white text-[10px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205 yoki boshqa bino 102" maxLength={80} className="w-full p-1.5 rounded-lg border text-[10px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-2 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}</div>)}
+                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-2 last:mb-0 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,.72)" }}><div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div>{slot.hafta_turi && slot.hafta_turi !== "har_hafta" && <div className="inline-flex mt-1 px-1.5 py-0.5 rounded-md text-[9px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"}{slot.hafta_turi === detail?.joriy_hafta_turi ? " · HOZIR" : ""}</div>}<div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}{slot.guruh_kaliti !== 'whole' ? ` · ${slot.guruh_kaliti}` : ''}</div><button type="button" onClick={() => openRoomEditor(slot)} className="mt-1 text-left text-[10px] font-bold" style={{ color: slot.xona_nomi || slot.xona_matni ? palette.blue : palette.red }}>Xona: {slot.xona_nomi || slot.xona_matni || "yozilmagan"} · tahrirlash</button>{Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-2 rounded-lg border p-2 space-y-1.5" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1.5 rounded-lg border bg-white text-[10px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205 yoki boshqa bino 102" maxLength={80} className="w-full p-1.5 rounded-lg border text-[10px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-2 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}</div>)}
                 </div></td>;
               })}
             </tr>
