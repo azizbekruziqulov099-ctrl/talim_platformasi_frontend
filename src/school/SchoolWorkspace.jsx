@@ -1,3 +1,4 @@
+// SamTM V19.8 — o‘qituvchi vaqti va fan-soati saqlanadi; bitta yaratish tugmasi va “Xona yo‘q” ko‘rinishi.
 // SamTM V19.8 — yangi maktab ID sini avtomatik bog'lash, 0,5/1,5 va A/B hafta.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
 // SamTM V19.5 — 0,5/1,5 soatli fanlarni aniq saqlash va server xatosini to'liq ko'rsatish.
@@ -676,7 +677,7 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
         });
         setMessage({
           tone: draft.joylashtirilmadi ? "warning" : "success",
-          text: `Qoida qo‘llandi va yangi draft yaratildi: ${draft.joylashtirildi} ta joylashdi, ${draft.joylashtirilmadi} ta joylashmadi. 4-bosqichda tekshiring.`,
+          text: `Qoida qo‘llandi va yangi draft yaratildi: ${draft.joylashtirildi} ta joylashdi, ${draft.joylashtirilmadi} ta joylashmadi. “Jadval yaratish” bosqichida tekshiring.`,
         });
         await reload(); setStep?.(4);
       } catch (error) {
@@ -787,7 +788,7 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
           <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
             <div>
               <div className="text-sm font-black" style={{ color: palette.ink }}>Qaysi sinf qaysi kuni dars olmaydi?</div>
-              <div className="text-xs mt-1" style={{ color: palette.muted }}>Bu — qoida hisoboti. Haqiqiy haftalik darslar 4-bosqichdagi jadvalda ko‘rinadi.</div>
+              <div className="text-xs mt-1" style={{ color: palette.muted }}>Bu — qoida hisoboti. Haqiqiy haftalik darslar “Jadval yaratish” bosqichida ko‘rinadi.</div>
             </div>
             <div className="flex gap-2">
               <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{affectedClasses.length} sinf</div>
@@ -2443,12 +2444,12 @@ function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep 
   },[classId,setup,assignments]);
   const update=(index,field,value)=>setRows(prev=>prev.map((r,i)=>i===index?{...r,[field]:value}:r));
   const addSubject=()=>{if(!newSubject||rows.some(r=>r.fan_nomi===newSubject))return;setRows([...rows,{fan_nomi:newSubject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}]);setNewSubject("");};
-  const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});setMessage({tone:"success",text:"Haftalik fan soatlari saqlandi. Guruh o‘qituvchilari 4-bosqichdagi bitta tasdiqlash oynasida boshqariladi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
+  const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});setMessage({tone:"success",text:"Haftalik fan soatlari saqlandi. Guruh o‘qituvchilari “Jadval yaratish” bosqichidagi bitta tasdiqlash oynasida boshqariladi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
   const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
   const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:roomType})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
   return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Ingliz tili zaxira xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold min-w-[210px]" style={{color:palette.ink}}>Xona turi<select value={roomType} onChange={e=>setRoomType(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="reserve">Zaxira / guruh xonasi</option><option value="sport">Sport zal</option><option value="classroom">Oddiy dars xonasi</option><option value="non_teaching">Dars o‘tilmaydigan xona</option></select></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
   <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" title="0,5 = har ikki haftada 1 dars (A/B hafta)" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
-  <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini 4-bosqichdagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
+  <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini “Jadval yaratish” bosqichidagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
   </Card></div>;
 }
 
@@ -4949,7 +4950,7 @@ function LoadsStep(props) {
           <ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>
           <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/>
         </>
-      : <LegacyLoadsStepV191 {...props}/>}
+      : <LegacyLoadsStepV191 {...props}/>} 
   </div>;
 }
 
@@ -5035,7 +5036,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                 const blocked = blockedDays.has(day);
                 const cell = blocked ? [] : slots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.dars_raqami) === periodIndex + 1);
                 return <td key={day} className="align-top"><div className="min-h-[76px] rounded-xl border p-2" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
-                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-2 last:mb-0 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,.72)" }}><div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div>{slot.hafta_turi && slot.hafta_turi !== "har_hafta" && <div className="inline-flex mt-1 px-1.5 py-0.5 rounded-md text-[9px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"}{slot.hafta_turi === detail?.joriy_hafta_turi ? " · HOZIR" : ""}</div>}<div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}{slot.guruh_kaliti !== 'whole' ? ` · ${slot.guruh_kaliti}` : ''}</div><button type="button" onClick={() => openRoomEditor(slot)} className="mt-1 text-left text-[10px] font-bold" style={{ color: slot.xona_nomi || slot.xona_matni ? palette.blue : palette.red }}>Xona: {slot.xona_nomi || slot.xona_matni || "yozilmagan"} · tahrirlash</button>{Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-2 rounded-lg border p-2 space-y-1.5" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1.5 rounded-lg border bg-white text-[10px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205 yoki boshqa bino 102" maxLength={80} className="w-full p-1.5 rounded-lg border text-[10px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-2 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}</div>)}
+                  {blocked ? <div className="min-h-[58px] flex items-center justify-center text-center text-[10px] font-black" style={{ color: palette.red }}>Bu sinf uchun dars yo‘q</div> : cell.map(slot => <div key={slot.id} className="mb-2 last:mb-0 rounded-lg p-1.5" style={{ background: "rgba(255,255,255,.72)" }}><div className="text-xs font-black" style={{ color: palette.ink }}>{slot.fan_nomi}</div>{slot.hafta_turi && slot.hafta_turi !== "har_hafta" && <div className="inline-flex mt-1 px-1.5 py-0.5 rounded-md text-[9px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"}{slot.hafta_turi === detail?.joriy_hafta_turi ? " · HOZIR" : ""}</div>}<div className="text-[10px]" style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}{slot.guruh_kaliti !== 'whole' ? ` · ${slot.guruh_kaliti}` : ''}</div><button type="button" onClick={() => openRoomEditor(slot)} className="mt-1 text-left text-[10px] font-bold" style={{ color: slot.xona_nomi || slot.xona_matni ? palette.blue : palette.red }}>Xona: {slot.xona_nomi || slot.xona_matni || "Xona yo‘q"} · tahrirlash</button>{Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-2 rounded-lg border p-2 space-y-1.5" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1.5 rounded-lg border bg-white text-[10px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205 yoki boshqa bino 102" maxLength={80} className="w-full p-1.5 rounded-lg border text-[10px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-2 py-1.5 rounded-lg text-[10px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}</div>)}
                 </div></td>;
               })}
             </tr>
@@ -5937,7 +5938,6 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState(null);
-  const [groupReady, setGroupReady] = useState(false);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
 
   const loadRun = async id => {
@@ -5951,12 +5951,6 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const checkSources = async silent => {
-    if (!groupReady) {
-      if (!silent) {
-        setMessage({ tone: "error", text: "Avval guruhli fanlarda qaysi guruhga qaysi o‘qituvchi kirishini tasdiqlang." });
-      }
-      return;
-    }
     setChecking(true);
     if (!silent) setMessage(null);
     try {
@@ -5970,32 +5964,32 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
             : `Jadval yaratishdan oldin ${report.xulosa?.xato_soni || report.xatolar?.length || 0} ta xatoni tuzating.`,
         });
       }
+      return report;
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
+      return null;
     } finally {
       setChecking(false);
     }
   };
 
-  useEffect(() => {
-    if (groupReady) checkSources(true);
-    else setPreflight(null);
-  }, [maktabId, token, apiBase, groupReady]);
+  useEffect(() => { checkSources(true); }, [maktabId, token, apiBase]);
   useEffect(() => { if (runId) loadRun(runId); }, [runId]);
   useEffect(() => {
     if (runs[0]?.id && !runId) setRunId(String(runs[0].id));
   }, [runs, runId]);
 
   const generate = async () => {
-    if (!groupReady) {
-      return setMessage({ tone: "error", text: "Avval guruh va o‘qituvchilar taqsimotini tasdiqlang." });
-    }
-    if (!preflight?.tayyor) {
-      return setMessage({ tone: "error", text: "Avval manba mosligi 100% bo‘lishi kerak." });
-    }
     setGenerating(true);
     setMessage(null);
     try {
+      const currentReport = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/moslik?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST" });
+      setPreflight(currentReport);
+      if (!currentReport?.tayyor) {
+        const errorCount = currentReport?.xulosa?.xato_soni || currentReport?.xatolar?.length || 0;
+        setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi. Xona yozilmagani xato emas; qolgan fan–sinf–o‘qituvchi xatolarini tuzating.` });
+        return;
+      }
       const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6057,38 +6051,30 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-    <SanitaryScheduleRulesV1874 />
-    <GroupAssignmentReviewV1876
-      token={token}
-      apiBase={apiBase}
-      maktabId={maktabId}
-      onReadyChange={setGroupReady}
-      onSaved={async () => { await reload(); }}
-    />
-
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black" style={{ color: palette.ink }}>2. Shablon va reja mosligi</h2>
-          <p className="text-xs mt-1" style={{ color: palette.muted }}>Excel DARS_BIRIKMALARI → sinf–fan haftalik soati → o‘qituvchi jami → bo‘sh kun/soatlar birgalikda tekshiriladi.</p>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>BITTA TUGMA</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
+          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>Tugma bosilganda tizim moslikni o‘zi yana bir marta tekshiradi va jadvalni yaratadi. 2-guruh uchun xona yozilmagan bo‘lsa jarayon to‘xtamaydi — jadvalda “Xona yo‘q” deb ko‘rinadi va keyin tahrirlash mumkin.</p>
         </div>
-        <button onClick={() => checkSources(false)} disabled={checking || !groupReady} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: groupReady ? palette.sky : "#E6EAED", color: groupReady ? palette.blue : palette.muted }}>{checking ? "Tekshirilmoqda..." : (groupReady ? "Qayta tekshirish" : "Avval guruhlarni tasdiqlang")}</button>
+        <button onClick={generate} disabled={generating || checking} className="px-6 py-3.5 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:opacity-60" style={{ background: palette.blue }}><WandSparkles size={17}/>{generating ? "Jadval yaratilmoqda..." : "Dars jadvalini yaratish"}</button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-        <Stat value={preflight?.tayyor ? "100%" : "—"} label="manba mosligi" tone={preflight?.tayyor ? "green" : "red"}/>
-        <Stat value={`${pre.sinf_soni || 0}`} label="sinf" tone="blue"/>
-        <Stat value={`${pre.oqituvchi_soni || 0}`} label="o‘qituvchi" tone="teal"/>
+        <Stat value={preflight?.tayyor ? "100%" : preflight ? "—" : "…"} label="avtomatik moslik" tone={preflight?.tayyor ? "green" : "amber"}/>
+        <Stat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label="sinf" tone="blue"/>
+        <Stat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label="o‘qituvchi" tone="teal"/>
         <Stat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
       </div>
 
       {(preflight?.xatolar || []).length > 0 && <div className="space-y-2 mt-4 max-h-64 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-xl p-3 text-xs" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}</div>}
-      {preflight?.tayyor && <div className="mt-4 rounded-xl p-3 text-xs font-bold" style={{ background: palette.greenBg, color: palette.green }}>Har bir sinfning haftalik jami, har bir fanning haftalik soni, har bir o‘qituvchining haftalik yuklamasi va qattiq bo‘sh vaqti bo‘yicha jadval yaratish mumkin.</div>}
+      {preflight?.tayyor && <div className="mt-4 rounded-xl p-3 text-xs font-bold" style={{ background: palette.greenBg, color: palette.green }}>Moslik tayyor. Yuqoridagi tugma jadvalni yaratadi; xona yetishmasligi faqat ogohlantirish bo‘ladi.</div>}
     </Card>
 
     <div className="grid lg:grid-cols-[.8fr_1.2fr] gap-4">
       <Card className="p-5">
-        <h2 className="text-xl font-black" style={{ color: palette.ink }}>3. Draft yaratish va tasdiqlash</h2>
+        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Yaratilgan jadval va tasdiqlash</h2>
         <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski faol jadval yangi draft 100% mos va sinf kunlari oknosiz bo‘lib tasdiqlanmaguncha saqlanadi.</p>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
           <Stat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
@@ -6098,7 +6084,6 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           <Stat value={diagnostics.oqituvchi_oknolari ?? "—"} label="o‘qituvchi oknosi" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
           <Stat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir fan" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
-        <button onClick={generate} disabled={generating || !groupReady || !preflight?.tayyor} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: (groupReady && preflight?.tayyor) ? palette.blue : "#9BA8B2" }}>{generating ? "Hisoblanmoqda..." : (!groupReady ? "Avval guruhlarni tasdiqlang" : "Yangi draft yaratish")}</button>
         {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
 
         {detail && <div className="mt-4 grid grid-cols-3 gap-2">
@@ -6161,7 +6146,7 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
   const [step,setStep]=useState(teacherOnly?(initialStep===5?5:2):initialStep);const [setup,setSetup]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [selectedTeacher,setSelectedTeacher]=useState("");
   const load=async()=>{if(!maktabId){setError("Maktab ID topilmadi");setLoading(false);return;}setLoading(true);setError("");try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));}catch(e){setError(e.message);}finally{setLoading(false);}};
   useEffect(()=>{load();},[maktabId,token,apiBase]);
-  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Draft yaratish, konfliktlarni ko‘rish va faqat tekshirgandan keyin tasdiqlash"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
+  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, fan-soat, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
 }
 
 
@@ -6385,7 +6370,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                 <div className="space-y-2">
                   <QuickAction icon={<BookOpen size={18}/>} title={`O‘quv reja · ${curriculumApproved ? "tasdiqlangan" : "tasdiqlanmagan"}`} desc="Avval fan–sinf–haftalik soatlarni tekshiring va tasdiqlang." onClick={() => setCurriculumOpen(true)}/>
                   <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc={curriculumApproved ? "F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." : "Ochiq: soatni qo‘lda yozing. Reja tasdiqlansa soat avtomatik chiqadi."} onClick={openTeacherEditor}/>
-                  <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → bo‘sh vaqt → fan soati → draft → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
+                  <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → o‘qituvchi vaqti → fan-soat → jadval yaratish → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
                   <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
                   <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
                 </div>
