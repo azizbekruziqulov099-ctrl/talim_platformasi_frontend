@@ -2466,6 +2466,14 @@ const specialtyColorsV195 = [
   { strong: "#A96A14", soft: "#FFF4DE", line: "#E5BC76" },
 ];
 
+const specialtyClassQuickRangesV195 = [
+  { key: "all", label: "Barcha sinflar", all: true },
+  { key: "1_4", label: "1–4-sinflar", min: 1, max: 4 },
+  { key: "5_7", label: "5–7-sinflar", min: 5, max: 7 },
+  { key: "8_9", label: "8–9-sinflar", min: 8, max: 9 },
+  { key: "10_11", label: "10–11-sinflar", min: 10, max: 11 },
+];
+
 function normalizedSpecialtyValueV195(value) {
   const key = String(value || "").trim();
   return legacySpecialtyAliasesV195[key] || key;
@@ -3209,6 +3217,23 @@ function TeacherFirstLoadEditorV192({
     setActiveAutoSpecialty(option.value);
     changeSpecialty([...current, option.value].join(";"), nextOptions, nextMap, option.value);
     setMessage({ tone: "success", text: `${label} yaratildi, ${subjects.length} ta fan biriktirildi va o‘qituvchiga tanlandi.` });
+  };
+
+  const specialtyClassIdsForQuickRange = range => (data?.sinflar || [])
+    .filter(cls => {
+      if (range.all) return true;
+      const grade = Number(String(cls.sinf || "").match(/\d+/)?.[0] || 0);
+      return grade >= range.min && grade <= range.max;
+    })
+    .map(cls => String(cls.id));
+
+  const quickSelectSpecialtyClasses = range => {
+    if (!resolvedAutoSpecialty) {
+      setMessage({ tone: "warning", text: "Avval yuqoridan mutaxassislikni tanlang." });
+      return;
+    }
+    const nextClassIds = specialtyClassIdsForQuickRange(range);
+    applySpecialtyAuto(nextClassIds, resolvedAutoSpecialty);
   };
 
   const toggleSpecialtyClass = classId => {
@@ -4121,6 +4146,24 @@ function TeacherFirstLoadEditorV192({
               <span className="text-[10px]" style={{ color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber }}>
                 {data?.oquv_reja?.holat === "tasdiqlangan" ? "Reja tasdiqlangan · avto tayyor" : "Reja tasdiqlanmagan · faqat qo‘lda"}
               </span>
+            </div>
+            <div className="mt-2 rounded-xl border p-2.5" style={{ borderColor: activeSpecialtyTone.line, background: activeSpecialtyTone.soft }}>
+              <div className="text-[9px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>Tezkor belgilash</div>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {specialtyClassQuickRangesV195.map(range => {
+                  const rangeIds = specialtyClassIdsForQuickRange(range);
+                  const exactSelection = rangeIds.length > 0 &&
+                    rangeIds.length === specialtyClassIds.length &&
+                    rangeIds.every(id => specialtyClassIds.includes(id));
+                  return <button type="button" key={range.key} onClick={() => quickSelectSpecialtyClasses(range)} disabled={!resolvedAutoSpecialty || !rangeIds.length} className="px-3 py-2 rounded-lg border text-[10px] font-black disabled:opacity-40" style={{
+                    background: exactSelection ? activeSpecialtyTone.strong : "#fff",
+                    color: exactSelection ? "#fff" : activeSpecialtyTone.strong,
+                    borderColor: activeSpecialtyTone.line,
+                  }}>{exactSelection ? "✓ " : ""}{range.label} · {rangeIds.length}</button>;
+                })}
+                <button type="button" onClick={() => applySpecialtyAuto([], resolvedAutoSpecialty)} disabled={!resolvedAutoSpecialty || !specialtyClassIds.length} className="px-3 py-2 rounded-lg border text-[10px] font-black disabled:opacity-40" style={{ background: "#fff", color: palette.red, borderColor: "#E8BBBB" }}>Tanlovni tozalash</button>
+              </div>
+              <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>Bitta tugma o‘sha bosqichdagi barcha sinflarni tanlaydi va faol mutaxassislikning avto fan-soatlarini darhol yangilaydi.</div>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
               {(data?.sinflar || []).map(cls => {
