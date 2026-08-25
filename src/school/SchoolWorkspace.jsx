@@ -1,3 +1,4 @@
+// SamTM V19.5 — 422 saqlash xatosi: bo‘sh maydonlarni tashlash, eski server formati bilan qayta urinish va aniq xato matni.
 // SamTM V19.5 — saqlash xatolarini modal, avtomatik scroll, fokus va qizil maydon bilan ko‘rsatadi.
 // SamTM V19.2 — o‘qituvchi + fan + sinf + guruh + soat bitta aniq qatorda.
 // SAMTM V19.0 — teacher matrix is paginated to prevent DOM freezes.
@@ -428,12 +429,78 @@ function WorkspacePortal({ children }) {
 
 async function smartFetch(url, options = {}) {
   const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let data = {};
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (_) {
+    data = {};
+  }
   if (!response.ok || data?.detail) {
-    const detail = typeof data?.detail === "string" ? data.detail : data?.detail?.message || "Amal bajarilmadi";
-    throw new Error(detail);
+    const rawDetail = data?.detail;
+    const validationItems = Array.isArray(rawDetail) ? rawDetail : [];
+    const fieldNames = {
+      full_name: "F.I.Sh.",
+      mutaxassisligi: "O‘tadigan fanlar",
+      otadigan_fanlari: "O‘tadigan fanlar",
+      haftalik_maqsad_soat: "Haftalik maqsad soati",
+      tugilgan_sana: "Tug‘ilgan sana",
+      tugilgan_yili: "Tug‘ilgan yil",
+      ish_staji: "Ish staji",
+      toifasi: "Toifasi",
+      rahbar_sinf_id: "Sinf rahbarligi",
+      sinf_id: "Sinf",
+      fan_nomi: "Fan",
+      guruh_kaliti: "Guruh",
+      haftalik_soat: "Haftalik soat",
+      kunlik_max: "Kunlik maksimum",
+      xona_id: "Xona",
+      qatorlar: "Yuklama qatorlari",
+    };
+    const validationText = validationItems.slice(0, 4).map(item => {
+      const path = Array.isArray(item?.loc) ? item.loc.filter(part => part !== "body") : [];
+      const field = [...path].reverse().find(part => typeof part === "string") || "Maydon";
+      const rowIndex = path.indexOf("qatorlar") >= 0 ? Number(path[path.indexOf("qatorlar") + 1]) : NaN;
+      const rowLabel = Number.isInteger(rowIndex) ? `${rowIndex + 1}-qator · ` : "";
+      const rawMessage = String(item?.msg || "noto‘g‘ri qiymat");
+      const translatedMessage = /field required/i.test(rawMessage)
+        ? "majburiy qiymat yuborilmagan"
+        : /valid integer/i.test(rawMessage)
+          ? "butun son kiriting"
+          : /valid number|finite number/i.test(rawMessage)
+            ? "to‘g‘ri son kiriting"
+            : /valid date/i.test(rawMessage)
+              ? "sanani to‘g‘ri kiriting"
+              : /extra inputs/i.test(rawMessage)
+                ? "serverning eski versiyasi bu maydonni hali qabul qilmayapti"
+                : rawMessage;
+      return `${rowLabel}${fieldNames[field] || field}: ${translatedMessage}`;
+    }).join("; ");
+    const detail = typeof rawDetail === "string"
+      ? rawDetail
+      : validationText
+        || rawDetail?.message
+        || data?.message
+        || data?.error
+        || (responseText && responseText.length < 240 ? responseText : "")
+        || `Amal bajarilmadi (HTTP ${response.status})`;
+    const apiError = new Error(detail);
+    apiError.status = response.status;
+    apiError.data = data;
+    apiError.validationPath = validationItems[0]?.loc || [];
+    throw apiError;
   }
   return data;
+}
+
+function compactApiPayloadV200(value) {
+  if (Array.isArray(value)) return value.map(compactApiPayloadV200);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, item]) => item !== null && item !== undefined && item !== "")
+      .map(([key, item]) => [key, compactApiPayloadV200(item)])
+  );
 }
 
 const smartDays = [
@@ -3673,43 +3740,69 @@ function TeacherFirstLoadEditorV192({
         kunlik_max: Number(row.kunlik_max || 1),
         xona_id: row.xona_id ? Number(row.xona_id) : null,
       }));
-      const result = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v3/${creatingNew ? "oqituvchi_qoshish" : "oqituvchi_yuklamasi"}?token=${encodeURIComponent(token)}`,
-        {
-          method: creatingNew ? "POST" : "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(creatingNew ? {
-            maktab_id: maktabId,
-            full_name: newTeacher.full_name.trim(),
-            mutaxassisligi: newTeacher.mutaxassisligi,
-            otadigan_fanlari: specialtyValuesV195(newTeacher.mutaxassisligi),
-            haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
-            tugilgan_sana: newTeacher.tugilgan_sana || null,
-            tugilgan_yili: newTeacher.tugilgan_sana
-              ? Number(newTeacher.tugilgan_sana.slice(0, 4))
-              : (newTeacher.tugilgan_yili === "" ? null : Number(newTeacher.tugilgan_yili)),
-            ish_staji: newTeacher.ish_staji === "" ? null : Number(newTeacher.ish_staji),
-            toifasi: newTeacher.toifasi || null,
-            rahbar_sinf_id: newTeacher.rahbar_sinf_id ? Number(newTeacher.rahbar_sinf_id) : null,
-            qatorlar,
-          } : {
-            maktab_id: maktabId,
-            user_id: Number(selectedTeacher),
-            mutaxassisligi: existingProfile.mutaxassisligi || null,
-            otadigan_fanlari: specialtyValuesV195(existingProfile.mutaxassisligi),
-            haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
-              ? null : Number(existingProfile.haftalik_maqsad_soat),
-            tugilgan_sana: existingProfile.tugilgan_sana || null,
-            tugilgan_yili: existingProfile.tugilgan_sana
-              ? Number(existingProfile.tugilgan_sana.slice(0, 4))
-              : (existingProfile.tugilgan_yili === "" ? null : Number(existingProfile.tugilgan_yili)),
-            ish_staji: existingProfile.ish_staji === "" ? null : Number(existingProfile.ish_staji),
-            toifasi: existingProfile.toifasi || null,
-            rahbar_sinf_id: existingProfile.rahbar_sinf_id ? Number(existingProfile.rahbar_sinf_id) : null,
-            qatorlar,
-          }),
-        }
-      );
+      const fullPayload = compactApiPayloadV200(creatingNew ? {
+        maktab_id: maktabId,
+        full_name: newTeacher.full_name.trim(),
+        mutaxassisligi: newTeacher.mutaxassisligi,
+        otadigan_fanlari: specialtyValuesV195(newTeacher.mutaxassisligi),
+        haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
+        tugilgan_sana: newTeacher.tugilgan_sana || null,
+        tugilgan_yili: newTeacher.tugilgan_sana
+          ? Number(newTeacher.tugilgan_sana.slice(0, 4))
+          : (newTeacher.tugilgan_yili === "" ? null : Number(newTeacher.tugilgan_yili)),
+        ish_staji: newTeacher.ish_staji === "" ? null : Number(newTeacher.ish_staji),
+        toifasi: newTeacher.toifasi || null,
+        rahbar_sinf_id: newTeacher.rahbar_sinf_id ? Number(newTeacher.rahbar_sinf_id) : null,
+        qatorlar,
+      } : {
+        maktab_id: maktabId,
+        user_id: Number(selectedTeacher),
+        mutaxassisligi: existingProfile.mutaxassisligi || null,
+        otadigan_fanlari: specialtyValuesV195(existingProfile.mutaxassisligi),
+        haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
+          ? null : Number(existingProfile.haftalik_maqsad_soat),
+        tugilgan_sana: existingProfile.tugilgan_sana || null,
+        tugilgan_yili: existingProfile.tugilgan_sana
+          ? Number(existingProfile.tugilgan_sana.slice(0, 4))
+          : (existingProfile.tugilgan_yili === "" ? null : Number(existingProfile.tugilgan_yili)),
+        ish_staji: existingProfile.ish_staji === "" ? null : Number(existingProfile.ish_staji),
+        toifasi: existingProfile.toifasi || null,
+        rahbar_sinf_id: existingProfile.rahbar_sinf_id ? Number(existingProfile.rahbar_sinf_id) : null,
+        qatorlar,
+      });
+      const compatibilityPayload = compactApiPayloadV200(creatingNew ? {
+        maktab_id: maktabId,
+        full_name: newTeacher.full_name.trim(),
+        mutaxassisligi: newTeacher.mutaxassisligi,
+        haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
+        qatorlar: qatorlar.map(({ sinf_id, fan_nomi, guruh_kaliti, haftalik_soat }) => ({
+          sinf_id, fan_nomi, guruh_kaliti, haftalik_soat,
+        })),
+      } : {
+        maktab_id: maktabId,
+        user_id: Number(selectedTeacher),
+        mutaxassisligi: existingProfile.mutaxassisligi || null,
+        haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
+          ? null : Number(existingProfile.haftalik_maqsad_soat),
+        qatorlar: qatorlar.map(({ sinf_id, fan_nomi, guruh_kaliti, haftalik_soat }) => ({
+          sinf_id, fan_nomi, guruh_kaliti, haftalik_soat,
+        })),
+      });
+      const saveUrl = `${apiBase}/api/maktab/aqlli_jadval/v3/${creatingNew ? "oqituvchi_qoshish" : "oqituvchi_yuklamasi"}?token=${encodeURIComponent(token)}`;
+      const submitTeacherPayload = payload => smartFetch(saveUrl, {
+        method: creatingNew ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      let compatibilityRetryUsed = false;
+      let result;
+      try {
+        result = await submitTeacherPayload(fullPayload);
+      } catch (firstError) {
+        if (firstError?.status !== 422) throw firstError;
+        compatibilityRetryUsed = true;
+        result = await submitTeacherPayload(compatibilityPayload);
+      }
       setData(result.matritsa);
       setValidationDialog(null);
       setInvalidFieldIds([]);
@@ -3732,14 +3825,49 @@ function TeacherFirstLoadEditorV192({
           document.getElementById(result.kirish_kodi ? "teacher-entry-code" : "new-teacher-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
         ));
       }
-      const warnings = result.ogohlantirishlar || [];
+      const warnings = [...(result.ogohlantirishlar || [])];
+      if (compatibilityRetryUsed) {
+        warnings.push("Server eski saqlash formatini qabul qildi; asosiy o‘qituvchi va yuklama ma’lumotlari saqlandi.");
+      }
       setMessage({
         tone: warnings.length ? "warning" : "success",
         text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}.` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
       });
-      await onChanged?.();
+      try {
+        await onChanged?.();
+      } catch (_) {
+        setMessage(current => current ? {
+          ...current,
+          tone: "warning",
+          text: `${current.text} O‘qituvchi saqlandi, faqat yuqori dashboardni yangilash vaqtincha bajarilmadi.`,
+        } : current);
+      }
     } catch (error) {
-      showValidationErrorV199(error.message || "Saqlashda xato yuz berdi. Ma’lumotlarni tekshiring.", "teacher-load-top-actions");
+      const path = Array.isArray(error?.validationPath) ? error.validationPath : [];
+      const rowPathIndex = path.indexOf("qatorlar");
+      const serverRowIndex = rowPathIndex >= 0 ? Number(path[rowPathIndex + 1]) : NaN;
+      const serverField = [...path].reverse().find(part => typeof part === "string" && part !== "body") || "";
+      const rowFieldMap = {
+        sinf_id: "class", fan_nomi: "subject", guruh_kaliti: "group",
+        haftalik_soat: "hours", kunlik_max: "hours", xona_id: "hours",
+      };
+      const profileFieldMap = {
+        full_name: "new-teacher-full-name",
+        mutaxassisligi: creatingNew ? "teacher-subject-picker" : "existing-teacher-subject-picker",
+        otadigan_fanlari: creatingNew ? "teacher-subject-picker" : "existing-teacher-subject-picker",
+        haftalik_maqsad_soat: creatingNew ? "new-teacher-weekly-target" : "existing-teacher-weekly-target",
+        tugilgan_sana: creatingNew ? "new-teacher-birth-date" : "existing-teacher-birth-date",
+        tugilgan_yili: creatingNew ? "new-teacher-birth-date" : "existing-teacher-birth-date",
+        ish_staji: creatingNew ? "new-teacher-experience" : "existing-teacher-experience",
+        rahbar_sinf_id: creatingNew ? "new-teacher-leader-class" : "existing-teacher-leader-class",
+      };
+      const errorFieldId = Number.isInteger(serverRowIndex) && rowFieldMap[serverField]
+        ? `teacher-row-${serverRowIndex}-${rowFieldMap[serverField]}`
+        : profileFieldMap[serverField] || "teacher-load-top-actions";
+      showValidationErrorV199(
+        error.message || "Saqlashda xato yuz berdi. Ma’lumotlarni tekshiring.",
+        errorFieldId
+      );
     } finally {
       setSaving(false);
     }
