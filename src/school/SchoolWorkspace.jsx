@@ -2403,6 +2403,23 @@ function subjectKeyV193(value) {
     .trim();
 }
 
+function groupedSubjectFamilyV195(value) {
+  const key = subjectKeyV193(value);
+  if (/chet tili|ingliz tili|english|nemis tili|fransuz tili/.test(key)) return "chet_tili";
+  if (/rus tili|russki/.test(key)) return "rus_tili";
+  if (/informatika|axborot texnolog/.test(key)) return "informatika";
+  if (/jismoniy tarbiya|fizkultura|sport/.test(key)) return "jismoniy";
+  if (/texnologiya|mehnat/.test(key)) return "texnologiya";
+  return key;
+}
+
+function groupedSubjectMatchesV195(left, right) {
+  const leftKey = subjectKeyV193(left);
+  const rightKey = subjectKeyV193(right);
+  if (!leftKey || !rightKey) return false;
+  return leftKey === rightKey || groupedSubjectFamilyV195(leftKey) === groupedSubjectFamilyV195(rightKey);
+}
+
 function primaryTeacherCanTeachV193(subject) {
   const key = subjectKeyV193(subject);
   return ![
@@ -2476,6 +2493,7 @@ function TeacherFirstLoadEditorV192({
   const [planReferenceClassId, setPlanReferenceClassId] = useState("");
   const [allocationInspectorClassId, setAllocationInspectorClassId] = useState("");
   const [allocationInspectorSubjectKey, setAllocationInspectorSubjectKey] = useState("");
+  const [allocationOverviewOpen, setAllocationOverviewOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -2669,8 +2687,9 @@ function TeacherFirstLoadEditorV192({
       ? planForClass(row.sinf_id).map(item => item.fan_nomi)
       : configured;
     if (allowed.length) {
-      const allowedKeys = new Set(allowed.map(subjectKeyV193));
-      const intersection = planned.filter(subject => allowedKeys.has(subjectKeyV193(subject)));
+      const intersection = planned.filter(subject =>
+        allowed.some(item => groupedSubjectMatchesV195(item, subject))
+      );
       return planned.length ? intersection : allowed;
     }
     return planned.length ? planned : (data?.fanlar || []);
@@ -2915,7 +2934,7 @@ function TeacherFirstLoadEditorV192({
           const grouped = variantsForClass(classId).filter(variant =>
             variant.guruh_kaliti !== "whole" &&
             (variant.fanlar || []).some(subject =>
-              subjectKeyV193(subject) === subjectKeyV193(item.fan_nomi)
+              groupedSubjectMatchesV195(subject, item.fan_nomi)
             )
           );
           const targets = grouped.length
@@ -3224,10 +3243,6 @@ function TeacherFirstLoadEditorV192({
   const draftClassTotal = creatingNew ? 0 : Number(teacherTotal?.sinf_soati || 0);
   const draftWeeklyTotal = draftFanTotal + draftClassTotal;
   const targetDifference = targetHours ? targetHours - draftWeeklyTotal : 0;
-  const selectedRowsByClass = rows.reduce((map, row) => {
-    map[String(row.sinf_id)] = [...(map[String(row.sinf_id)] || []), row];
-    return map;
-  }, {});
   const planDraftRows = planPayloadRows();
   const planSchoolTotal = planDraftRows.reduce(
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
@@ -3270,7 +3285,7 @@ function TeacherFirstLoadEditorV192({
   const allocationTargetsFor = (classId, subject) => {
     const grouped = variantsForClass(classId).filter(variant =>
       variant.guruh_kaliti !== "whole" &&
-      (variant.fanlar || []).some(item => subjectKeyV193(item) === subjectKeyV193(subject))
+      (variant.fanlar || []).some(item => groupedSubjectMatchesV195(item, subject))
     );
     if (grouped.length) return grouped;
     return [{
@@ -3283,7 +3298,7 @@ function TeacherFirstLoadEditorV192({
     const targets = allocationTargetsFor(classId, planItem.fan_nomi).map(target => {
       const matching = effectiveAllocationRows.filter(row =>
         String(row.sinf_id) === String(classId) &&
-        subjectKeyV193(row.fan_nomi) === subjectKeyV193(planItem.fan_nomi) &&
+        groupedSubjectMatchesV195(row.fan_nomi, planItem.fan_nomi) &&
         String(row.guruh_kaliti || "whole") === String(target.guruh_kaliti || "whole")
       );
       const teachersById = new Map();
@@ -3314,7 +3329,9 @@ function TeacherFirstLoadEditorV192({
     return {
       fan_nomi: planItem.fan_nomi,
       subject_key: subjectKeyV193(planItem.fan_nomi),
-      expectedPerTarget, targets, required, assigned, remaining, extra,
+      expectedPerTarget, targets, targetCount: targets.length,
+      grouped: targets.length > 1 || targets[0]?.guruh_kaliti !== "whole",
+      required, assigned, remaining, extra,
       complete: remaining <= 0 && extra <= 0,
     };
   });
@@ -3324,9 +3341,12 @@ function TeacherFirstLoadEditorV192({
     const assigned = details.reduce((sum, item) => sum + item.assigned, 0);
     const remaining = details.reduce((sum, item) => sum + item.remaining, 0);
     const extra = details.reduce((sum, item) => sum + item.extra, 0);
+    const nominalRequired = details.reduce((sum, item) => sum + item.expectedPerTarget, 0);
+    const groupedSubjects = details.filter(item => item.grouped).length;
     const completeSubjects = details.filter(item => item.complete).length;
     return {
-      details, required, assigned, remaining, extra, completeSubjects,
+      details, nominalRequired, groupedSubjects,
+      required, assigned, remaining, extra, completeSubjects,
       subjectCount: details.length,
       percent: required > 0 ? Math.min(100, Math.round(((required - remaining) / required) * 100)) : 0,
       complete: required > 0 && remaining <= 0 && extra <= 0,
@@ -3367,12 +3387,14 @@ function TeacherFirstLoadEditorV192({
               <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>SINF YUKLAMASI TAQSIMOTI</div>
               <div className="text-xl font-black" style={{ color: palette.ink }}>{allocationInspectorClass.sinf}-{allocationInspectorClass.harf} · fan va guruhlar</div>
               <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>Guruhlangan fanlarda reja soati har bir guruhga alohida hisoblanadi. Oynani yopsangiz o‘qituvchi formasidagi barcha yozuvlar saqlanib turadi.</div>
+              <div className="text-[10px] font-black mt-1" style={{ color: palette.blue }}>Dars reja: {displayAllocationHours(allocationInspectorSummary.nominalRequired)} soat · guruhlar bilan o‘qituvchi yuklamasi: {displayAllocationHours(allocationInspectorSummary.required)} soat</div>
             </div>
             <span className="px-3 py-2 rounded-xl text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>FAQAT KO‘RISH</span>
             <button type="button" onClick={() => { setAllocationInspectorClassId(""); setAllocationInspectorSubjectKey(""); }} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><ArrowLeft size={16}/> O‘qituvchiga qaytish</button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-4">
-            <div className="rounded-xl px-3 py-2" style={{ background: palette.sky }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>Reja bo‘yicha</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.required)} soat</div></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 mt-4">
+            <div className="rounded-xl px-3 py-2" style={{ background: palette.sky }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>O‘quv reja</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.nominalRequired)} soat</div><div className="text-[8px] font-bold" style={{ color: palette.muted }}>Guruh sabab ko‘paymaydi</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: "#EEF2FF" }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>O‘qituvchi yuklama rejasi</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.required)} soat</div><div className="text-[8px] font-bold" style={{ color: palette.muted }}>Har bir guruh alohida</div></div>
             <div className="rounded-xl px-3 py-2" style={{ background: palette.mint }}><div className="text-[9px] font-black uppercase" style={{ color: palette.teal }}>Berilgan</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.assigned)} soat</div></div>
             <div className="rounded-xl px-3 py-2" style={{ background: allocationInspectorSummary.remaining ? palette.amberBg : palette.greenBg }}><div className="text-[9px] font-black uppercase" style={{ color: allocationInspectorSummary.remaining ? palette.amber : palette.green }}>Qolgan</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.remaining)} soat</div></div>
             <div className="rounded-xl px-3 py-2" style={{ background: allocationInspectorSummary.extra ? palette.redBg : palette.cream }}><div className="text-[9px] font-black uppercase" style={{ color: allocationInspectorSummary.extra ? palette.red : palette.muted }}>Ortiqcha</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.extra)} soat</div></div>
@@ -3406,7 +3428,12 @@ function TeacherFirstLoadEditorV192({
                     <div className="font-black leading-tight" style={{ color: palette.ink }}>{detail.fan_nomi}</div>
                     <span className="shrink-0 px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: toneBg, color: toneColor }}>{detail.extra ? `+${displayAllocationHours(detail.extra)} ORTIQ` : detail.complete ? "TO‘LDI" : detail.assigned > 0 ? `${displayAllocationHours(detail.remaining)} QOLDI` : "BERILMAGAN"}</span>
                   </div>
-                  <div className="text-[10px] mt-2" style={{ color: palette.muted }}>Berildi: <b>{displayAllocationHours(detail.assigned)}</b> / kerak: <b>{displayAllocationHours(detail.required)}</b> soat</div>
+                  <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
+                    {detail.grouped
+                      ? <>Har guruh: <b>{displayAllocationHours(detail.expectedPerTarget)}</b> soat × <b>{detail.targetCount}</b> guruh = jami <b>{displayAllocationHours(detail.required)}</b> soat</>
+                      : <>Butun sinf: <b>{displayAllocationHours(detail.required)}</b> soat</>}
+                  </div>
+                  <div className="text-[10px] mt-1" style={{ color: toneColor }}>Berildi: <b>{displayAllocationHours(detail.assigned)}</b> · qoldi: <b>{displayAllocationHours(detail.remaining)}</b> soat</div>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {detail.targets.map(target => <span key={target.guruh_kaliti} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: target.extra ? palette.redBg : target.remaining ? palette.amberBg : palette.greenBg, color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{target.qisqa || target.guruh_nomi}: {displayAllocationHours(target.assigned)}/{displayAllocationHours(target.expected)}</span>)}
                   </div>
@@ -3419,7 +3446,11 @@ function TeacherFirstLoadEditorV192({
             {!allocationInspectorSubject ? <div className="text-sm" style={{ color: palette.muted }}>Ko‘rish uchun fan ustiga boring yoki bosing.</div> : <>
               <div className="text-[10px] font-black uppercase tracking-[.1em]" style={{ color: palette.teal }}>FAN TAQSIMOTI</div>
               <div className="text-lg font-black mt-1" style={{ color: palette.ink }}>{allocationInspectorSubject.fan_nomi}</div>
-              <div className="text-xs mt-1" style={{ color: palette.muted }}>O‘quv reja: har bir guruhga {displayAllocationHours(allocationInspectorSubject.expectedPerTarget)} soat</div>
+              <div className="text-xs mt-1" style={{ color: palette.muted }}>
+                {allocationInspectorSubject.grouped
+                  ? <>Har bir guruhga <b>{displayAllocationHours(allocationInspectorSubject.expectedPerTarget)} soat</b> × <b>{allocationInspectorSubject.targetCount} guruh</b> = jami <b>{displayAllocationHours(allocationInspectorSubject.required)} soat</b></>
+                  : <>Butun sinf uchun <b>{displayAllocationHours(allocationInspectorSubject.required)} soat</b></>}
+              </div>
               <div className="space-y-2 mt-4">
                 {allocationInspectorSubject.targets.map(target => <div key={target.guruh_kaliti} className="rounded-xl border p-3" style={{ borderColor: target.extra ? "#E5AAAA" : target.remaining ? "#E7C58A" : "#9BCBAD", background: target.extra ? palette.redBg : target.remaining ? palette.amberBg : palette.greenBg }}>
                   <div className="flex items-center justify-between gap-2">
@@ -3764,35 +3795,34 @@ function TeacherFirstLoadEditorV192({
                 {data?.oquv_reja?.holat === "tasdiqlangan" ? "Reja tasdiqlangan · avto tayyor" : "Reja tasdiqlanmagan · faqat qo‘lda"}
               </span>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mt-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
               {(data?.sinflar || []).map(cls => {
                 const active = specialtyClassIds.includes(String(cls.id));
-                const summary = classAllocationSummary(cls.id);
-                const statusColor = summary.extra ? palette.red : summary.complete ? palette.green : summary.assigned > 0 ? palette.amber : palette.muted;
-                const statusBg = summary.extra ? palette.redBg : summary.complete ? palette.greenBg : summary.assigned > 0 ? palette.amberBg : palette.cream;
-                return <div key={cls.id} className="rounded-xl border overflow-hidden" style={{ borderColor: active ? palette.blue : summary.complete ? "#9BCBAD" : palette.line, background: "#fff" }}>
-                  <button type="button" onClick={() => toggleSpecialtyClass(cls.id)} title={active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni o‘qituvchiga tanlash"} className="w-full px-2.5 py-2 flex items-center justify-between gap-2 text-[11px] font-black" style={{ background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>
-                    <span>{cls.sinf}-{cls.harf}</span><span>{active ? "✓" : "+"}</span>
-                  </button>
-                  <button type="button" onClick={() => openClassAllocationInspector(cls.id)} title={`${cls.sinf}-${cls.harf}: ${displayAllocationHours(summary.assigned)}/${displayAllocationHours(summary.required)} soat berilgan, ${displayAllocationHours(summary.remaining)} soat qolgan. Batafsil ko‘rish uchun bosing.`} className="w-full px-2.5 py-2 text-left border-t" style={{ borderColor: palette.line, background: statusBg }}>
-                    <div className="flex items-center justify-between gap-1 text-[9px] font-black" style={{ color: statusColor }}><span>{summary.required ? `${displayAllocationHours(summary.assigned)}/${displayAllocationHours(summary.required)} SOAT` : "REJA YO‘Q"}</span><span>{summary.extra ? `+${displayAllocationHours(summary.extra)}` : summary.complete ? "TO‘LDI" : `${displayAllocationHours(summary.remaining)} QOLDI`}</span></div>
-                    <div className="h-1.5 rounded-full overflow-hidden mt-1.5" style={{ background: "rgba(255,255,255,.8)" }}><div className="h-full rounded-full" style={{ width: `${summary.percent}%`, background: statusColor }}/></div>
-                    <div className="text-[8px] font-bold mt-1" style={{ color: palette.muted }}>Taqsimotni ko‘rish</div>
-                  </button>
-                </div>;
+                return <button type="button" key={cls.id} onClick={() => toggleSpecialtyClass(cls.id)} title={active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni tanlang — avto yuklama tayyorlanadi"} className="px-2 py-2 rounded-lg border text-[11px] font-black" style={{
+                  background: active ? palette.blue : "#fff",
+                  color: active ? "#fff" : palette.ink,
+                  borderColor: active ? palette.blue : palette.line,
+                }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}</button>;
               })}
             </div>
             <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
-              Sinf nomi ustiga bosing — o‘qituvchiga tanlanadi. Pastdagi soat holatiga bosing — fan, guruh va o‘qituvchilar taqsimoti ochiladi.
+              Ko‘k sinflar — avto to‘ldirish uchun tanlangan sinflar. Bir nechta sinfni ketma-ket tanlash mumkin.
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds)} disabled={!autoSpecialty || !activeSpecialty()} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: palette.teal }}>
                 Tanlangan sinflarni reja bo‘yicha qayta to‘ldirish
               </button>
+              <button type="button" onClick={() => {
+                setAllocationOverviewOpen(true);
+                window.requestAnimationFrame(() => document.getElementById("sinf-yuklama-holati")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+              }} className="px-4 py-2.5 rounded-xl text-xs font-black border flex items-center gap-2" style={{ background: palette.sky, color: palette.blue, borderColor: palette.line }}>
+                <BarChart3 size={15}/> Pastdagi sinf yuklamasi holati ↓
+              </button>
               <span className="text-[10px]" style={{ color: palette.muted }}>
                 Avtoni o‘chirsangiz, hozirgi qatorlar saqlanadi va faqat qo‘lda o‘zgaradi.
               </span>
             </div>
+
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -3901,45 +3931,40 @@ function TeacherFirstLoadEditorV192({
       </div>
     </Card>
 
-    <Card className="p-5">
+    <Card className="p-5 scroll-mt-4" id="sinf-yuklama-holati">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-black" style={{ color: palette.ink }}>Ixcham sinf/guruh kataklari</h3>
-          <p className="text-xs mt-1" style={{ color: palette.muted }}>Bitta sinf bitta katak. Guruhlar 1G, 2G, O‘ va Q ko‘rinishida ichida turadi; raqam katakni kattalashtirmaydi.</p>
+          <h3 className="text-lg font-black" style={{ color: palette.ink }}>Sinf yuklamasi holati</h3>
+          <p className="text-xs mt-1" style={{ color: palette.muted }}>Eski katta sinf/guruh kataklari o‘rniga: reja, berilgan, qolgan va ortiqcha soat. Bu bo‘lim faqat ko‘rish uchun.</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 min-w-[360px]">
-          <Stat value={data?.hisob?.maktab_haftalik_soat || 0} label="maktab haftalik" tone="blue"/>
-          <Stat value={data?.hisob?.maktab_yillik_soat || 0} label="maktab yillik" tone="teal"/>
-          <Stat value={data?.hisob?.oqituvchi_soat_jami || 0} label="o‘qituvchi-soat" tone="green"/>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2 text-[9px] font-black"><span style={{ color: palette.green }}>● To‘ldi</span><span style={{ color: palette.amber }}>● Qoldi</span><span style={{ color: palette.red }}>● Ortiqcha</span></div>
+          <button type="button" onClick={() => setAllocationOverviewOpen(current => !current)} className="px-4 py-2.5 rounded-xl text-xs font-black border" style={{ background: allocationOverviewOpen ? palette.sky : "#fff", color: palette.blue, borderColor: palette.line }}>{allocationOverviewOpen ? "Yig‘ish ▲" : "Ko‘rsatish ▼"}</button>
         </div>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-4">
-        {(data?.sinflar || []).map(cls => {
-          const classRows = selectedRowsByClass[String(cls.id)] || [];
-          const classTotal = (data?.hisob?.sinflar || []).find(item => String(item.sinf_id) === String(cls.id));
-          const variants = variantsForClass(cls.id);
-          return <div key={cls.id} className="rounded-2xl border overflow-hidden" style={{ borderColor: palette.ink }}>
-            <div className="px-3 py-2 flex items-center justify-between" style={{ background: palette.ink, color: "#fff" }}>
-              <span className="text-sm font-black">{cls.sinf}-{cls.harf}</span>
-              <span className="text-[10px] font-black">{classTotal?.haftalik_soat || 0} s/hafta</span>
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: `repeat(${Math.min(5, Math.max(1, variants.length))}, minmax(0,1fr))` }}>
-              {variants.map(variant => {
-                const hours = classRows
-                  .filter(row => String(row.guruh_kaliti) === String(variant.guruh_kaliti))
-                  .reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0);
-                return <div key={variant.guruh_kaliti} className="min-w-0 px-1 py-1.5 text-center border-r border-b last:border-r-0" style={{ borderColor: palette.line, background: hours ? palette.sky : "#fff" }}>
-                  <div className="text-[10px] font-black truncate" style={{ color: palette.ink }}>{variant.guruh_kaliti === "whole" ? "Jami" : variant.qisqa}</div>
-                  <div className="text-sm font-black leading-none mt-1" style={{ color: hours ? palette.blue : "#BBC5CC" }}>{hours || "—"}</div>
-                </div>;
-              })}
-            </div>
-          </div>;
-        })}
-      </div>
-      <div className="mt-4 rounded-xl p-3 text-xs" style={{ background: palette.cream, color: palette.muted }}>
-        Excel shabloni olib tashlanmadi: katta ro‘yxatni Excel orqali import qilish mumkin. Saytdagi ushbu oyna ham, Excel ham bir xil aniq yuklama manbasiga yozadi.
-      </div>
+      {allocationOverviewOpen && <>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-4">
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).nominalRequired, 0)} label="o‘quv reja · ko‘paymaydi" tone="blue"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).required, 0)} label="o‘qituvchi yuklama rejasi" tone="blue"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).assigned, 0)} label="o‘qituvchilarga berilgan" tone="teal"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).remaining, 0)} label="hali taqsimlanmagan" tone="amber"/>
+          <Stat value={(data?.sinflar || []).filter(cls => classAllocationSummary(cls.id).complete).length} label="to‘liq sinflar" tone="green"/>
+        </div>
+        <div className="text-[10px] mt-3" style={{ color: palette.muted }}>Sinfni bosing — fan, 1/2-guruh yoki o‘g‘il/qiz guruhi va qaysi o‘qituvchiga necha soat berilgani ochiladi. Joriy saqlanmagan qator ham hisobga kiradi.</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mt-3">
+          {(data?.sinflar || []).map(cls => {
+            const summary = classAllocationSummary(cls.id);
+            const statusColor = summary.extra ? palette.red : summary.complete ? palette.green : summary.assigned > 0 ? palette.amber : palette.muted;
+            const statusBg = summary.extra ? palette.redBg : summary.complete ? palette.greenBg : summary.assigned > 0 ? palette.amberBg : palette.cream;
+            return <button type="button" key={cls.id} onClick={() => openClassAllocationInspector(cls.id)} title={`${cls.sinf}-${cls.harf}: dars reja ${displayAllocationHours(summary.nominalRequired)} soat, guruhlar bilan ${displayAllocationHours(summary.required)} soat; ${displayAllocationHours(summary.assigned)} soat berilgan, ${displayAllocationHours(summary.remaining)} soat qolgan. Batafsil ko‘rish uchun bosing.`} className="rounded-xl border p-2.5 text-left hover:shadow-md" style={{ borderColor: statusColor, background: statusBg }}>
+              <div className="flex items-center justify-between gap-2"><span className="text-xs font-black" style={{ color: palette.ink }}>{cls.sinf}-{cls.harf}</span><span className="text-[9px] font-black" style={{ color: statusColor }}>{!summary.required ? "REJA YO‘Q" : summary.extra ? `+${displayAllocationHours(summary.extra)} ORTIQ` : summary.complete ? "TO‘LDI" : `${displayAllocationHours(summary.remaining)} QOLDI`}</span></div>
+              <div className="text-[9px] font-bold mt-1" style={{ color: statusColor }}>{summary.required ? `Yuklama: ${displayAllocationHours(summary.assigned)} / ${displayAllocationHours(summary.required)} soat` : "O‘quv reja yo‘q"}</div>
+              {summary.required > summary.nominalRequired && <div className="text-[8px] font-black mt-1" style={{ color: palette.blue }}>Dars reja {displayAllocationHours(summary.nominalRequired)} · {summary.groupedSubjects} ta guruhli fan</div>}
+              <div className="h-1.5 rounded-full overflow-hidden mt-1.5" style={{ background: "rgba(255,255,255,.8)" }}><div className="h-full rounded-full" style={{ width: `${summary.percent}%`, background: statusColor }}/></div>
+            </button>;
+          })}
+        </div>
+      </>}
     </Card>
     </>}
   </div>;
