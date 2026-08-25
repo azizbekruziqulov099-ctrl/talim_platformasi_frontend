@@ -2726,10 +2726,78 @@ function TeacherFirstLoadEditorV192({
       item => String(item.sinf_id) === String(classId)
     );
 
-  const groupedVariantsForSubjectV196 = (classId, subject) => {
+  const groupVariantSystemKeyV198 = variant => String(
+    variant?.tizim_id || variant?.guruh_tizimi_id || variant?.system_id || ""
+  );
+
+  const configuredGroupVariantsForClassV198 = classId => {
     const variants = variantsForClass(classId).filter(
       variant => variant.guruh_kaliti !== "whole"
     );
+    if (!variants.length) return [];
+    const cls = (data?.sinflar || []).find(item =>
+      String(item.id) === String(classId)
+    ) || {};
+    const declaredCollections = [
+      cls.guruh_tizimlari, cls.guruhlash_tizimlari, cls.tizimlar, cls.guruhlar,
+    ];
+    const matrixGroupCollections = [
+      data?.guruhli_sinflar, data?.guruh_tizimlari,
+      data?.sinf_guruh_tizimlari, data?.guruhlangan_sinflar,
+    ];
+    const matrixDeclaresGroups = matrixGroupCollections.some(collection =>
+      Array.isArray(collection) && collection.some(item =>
+        String(
+          item && typeof item === "object"
+            ? (item.sinf_id ?? item.class_id ?? item.sinf?.id ?? "")
+            : item
+        ) === String(classId)
+      )
+    );
+    const classDeclaresGroups = matrixDeclaresGroups || declaredCollections.some(value =>
+      Array.isArray(value) && value.length > 0
+    ) || [
+      cls.guruh_tizimi_soni, cls.guruh_tizimlari_soni,
+      cls.guruhlash_tizimi_soni, cls.guruhlar_soni, cls.guruh_soni,
+      cls.guruh_tizimi_id, cls.guruhlash_tizimi_id,
+    ].some(value => Number(value || 0) > 0) || [
+      cls.guruhlangan, cls.guruhlarga_bolingan, cls.guruhga_bolingan,
+      cls.guruh_tizimi_bor, cls.guruhlash_bor, cls.is_grouped,
+      cls.has_groups, cls.has_group_system,
+    ].some(value => value === true || value === 1 || value === "1") ||
+      ["guruh_turi", "guruhlash_turi"].some(field =>
+        cls[field] && !["whole", "butun", "none"].includes(subjectKeyV193(cls[field]))
+      );
+    if (classDeclaresGroups) return variants;
+    const configuredSeeds = variants.filter(variant => {
+      const studentCount = [
+        variant.oquvchi_soni, variant.oquvchilar_soni, variant.soni,
+        variant.student_count, variant.azolar_soni, variant.jami_oquvchi,
+      ].find(value => value !== undefined && value !== null);
+      const activeFlag = [
+        variant.faol, variant.tanlangan, variant.tasdiqlangan,
+        variant.fan_biriktirilgan, variant.yaratilgan,
+        variant.tizim_faol, variant.sinfga_biriktirilgan,
+        variant.configured, variant.is_configured, variant.class_configured,
+      ].some(value => value === true || value === 1 || value === "1");
+      return Number(studentCount || 0) > 0 || activeFlag || (variant.fanlar || []).length > 0;
+    });
+    if (!configuredSeeds.length) return [];
+    const systemKeys = new Set(
+      configuredSeeds.map(groupVariantSystemKeyV198).filter(Boolean)
+    );
+    const schemes = new Set(
+      configuredSeeds.map(groupedVariantSchemeV196).filter(Boolean)
+    );
+    return variants.filter(variant =>
+      (groupVariantSystemKeyV198(variant) && systemKeys.has(groupVariantSystemKeyV198(variant))) ||
+      schemes.has(groupedVariantSchemeV196(variant))
+    );
+  };
+
+  const groupedVariantsForSubjectV196 = (classId, subject) => {
+    const variants = configuredGroupVariantsForClassV198(classId);
+    if (!variants.length) return [];
     const scheme = groupedSubjectSchemeV196(subject);
     const exactlyLinked = variants.filter(variant =>
       (variant.fanlar || []).some(item => sameSubjectV196(item, subject))
@@ -2743,14 +2811,18 @@ function TeacherFirstLoadEditorV192({
     const explicitlyLinked = variants.filter(variant =>
       (variant.fanlar || []).some(item => groupedSubjectMatchesV195(item, subject))
     );
-    if (!explicitlyLinked.length) return [];
-    if (scheme) {
+    if (explicitlyLinked.length && scheme) {
       const byScheme = explicitlyLinked.filter(variant =>
         groupedVariantSchemeV196(variant) === scheme
       );
       if (byScheme.length) return sortGroupedVariantsV195(byScheme, subject);
     }
-    return sortGroupedVariantsV195(explicitlyLinked, subject);
+    if (explicitlyLinked.length) return sortGroupedVariantsV195(explicitlyLinked, subject);
+    if (!scheme) return [];
+    const defaultVariants = variants.filter(variant =>
+      groupedVariantSchemeV196(variant) === scheme
+    );
+    return sortGroupedVariantsV195(defaultVariants, subject);
   };
 
   const selectableVariantsForSubjectV196 = (classId, subject) => {
@@ -2758,16 +2830,21 @@ function TeacherFirstLoadEditorV192({
     if (grouped.length) return grouped;
     const variants = variantsForClass(classId);
     const whole = variants.find(variant => variant.guruh_kaliti === "whole");
-    return whole ? [whole] : [{
+    const wholeVariant = whole || {
       sinf_id: Number(classId), guruh_kaliti: "whole",
       guruh_nomi: "Butun sinf", qisqa: "Sinf",
-    }];
+    };
+    if (groupedSubjectSchemeV196(subject)) return [wholeVariant];
+    return [wholeVariant, ...configuredGroupVariantsForClassV198(classId)];
   };
 
-  const normalizedGroupKeyForSubjectV197 = (classId, subject, groupKey) =>
-    groupedVariantsForSubjectV196(classId, subject).length
-      ? String(groupKey || "whole")
-      : "whole";
+  const normalizedGroupKeyForSubjectV197 = (classId, subject, groupKey) => {
+    const requested = String(groupKey || "whole");
+    if (requested === "whole") return requested;
+    return configuredGroupVariantsForClassV198(classId).some(variant =>
+      String(variant.guruh_kaliti) === requested
+    ) ? requested : "whole";
+  };
 
   const update = (index, changes) => {
     setRows(current => current.map((row, rowIndex) =>
@@ -2865,9 +2942,13 @@ function TeacherFirstLoadEditorV192({
     const variantScheme = groupedVariantSchemeV196(variant);
     if (variantScheme) {
       const byScheme = planned.filter(subject =>
-        groupedSubjectSchemeV196(subject) === variantScheme &&
         groupedVariantsForSubjectV196(row.sinf_id, subject).some(item =>
           String(item.guruh_kaliti) === String(row.guruh_kaliti)
+        ) || (
+          !groupedSubjectSchemeV196(subject) &&
+          configuredGroupVariantsForClassV198(row.sinf_id).some(item =>
+            String(item.guruh_kaliti) === String(row.guruh_kaliti)
+          )
         )
       );
       if (byScheme.length) return byScheme;
@@ -3363,7 +3444,13 @@ function TeacherFirstLoadEditorV192({
     for (const cls of (data?.sinflar || [])) {
       const plannedSubjects = planForClass(cls.id).map(item => item.fan_nomi);
       for (const subject of plannedSubjects) {
-        for (const variant of selectableVariantsForSubjectV196(cls.id, subject)) {
+        const automaticVariants = groupedVariantsForSubjectV196(cls.id, subject);
+        const rowVariants = automaticVariants.length
+          ? automaticVariants
+          : selectableVariantsForSubjectV196(cls.id, subject).filter(
+              variant => variant.guruh_kaliti === "whole"
+            );
+        for (const variant of rowVariants) {
           const probe = { sinf_id: String(cls.id), guruh_kaliti: variant.guruh_kaliti };
           const planItem = planItemFor(cls.id, subject);
           const candidate = {
@@ -3669,6 +3756,27 @@ function TeacherFirstLoadEditorV192({
   const allocationTargetsFor = (classId, subject) => {
     const grouped = groupedVariantsForSubjectV196(classId, subject);
     if (grouped.length) return grouped;
+    const configured = configuredGroupVariantsForClassV198(classId);
+    const manuallyUsed = configured.filter(variant =>
+      effectiveAllocationRows.some(row =>
+        String(row.sinf_id) === String(classId) &&
+        sameSubjectV196(row.fan_nomi, subject) &&
+        String(row.guruh_kaliti || "whole") === String(variant.guruh_kaliti)
+      )
+    );
+    if (manuallyUsed.length) {
+      const systemKeys = new Set(
+        manuallyUsed.map(groupVariantSystemKeyV198).filter(Boolean)
+      );
+      const schemes = new Set(
+        manuallyUsed.map(groupedVariantSchemeV196).filter(Boolean)
+      );
+      const parallel = configured.filter(variant =>
+        (groupVariantSystemKeyV198(variant) && systemKeys.has(groupVariantSystemKeyV198(variant))) ||
+        schemes.has(groupedVariantSchemeV196(variant))
+      );
+      return sortGroupedVariantsV195(parallel.length ? parallel : manuallyUsed, subject);
+    }
     return [{
       sinf_id: Number(classId), guruh_kaliti: "whole",
       guruh_nomi: "Butun sinf", qisqa: "Sinf",
@@ -4331,11 +4439,19 @@ function TeacherFirstLoadEditorV192({
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
               {(data?.sinflar || []).map(cls => {
                 const active = specialtyClassIds.includes(String(cls.id));
-                return <button type="button" key={cls.id} onClick={() => toggleSpecialtyClass(cls.id)} title={active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni tanlang — avto yuklama tayyorlanadi"} className="px-2 py-2 rounded-lg border text-[11px] font-black" style={{
+                const groupSchemes = new Set(
+                  configuredGroupVariantsForClassV198(cls.id)
+                    .map(groupedVariantSchemeV196).filter(Boolean)
+                );
+                const groupHint = [
+                  groupSchemes.has("numbered") ? "1/2" : "",
+                  groupSchemes.has("gender") ? "O‘/Q" : "",
+                ].filter(Boolean).join(" · ") || "Butun";
+                return <button type="button" key={cls.id} onClick={() => toggleSpecialtyClass(cls.id)} title={`${active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni tanlang — avto yuklama tayyorlanadi"} · ${groupHint}`} className="px-2 py-2 rounded-lg border text-[11px] font-black" style={{
                   background: active ? activeSpecialtyTone.strong : "#fff",
                   color: active ? "#fff" : palette.ink,
                   borderColor: active ? activeSpecialtyTone.strong : palette.line,
-                }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}</button>;
+                }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}<span className="block text-[8px] mt-0.5 opacity-75">{groupHint}</span></button>;
               })}
             </div>
             <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
