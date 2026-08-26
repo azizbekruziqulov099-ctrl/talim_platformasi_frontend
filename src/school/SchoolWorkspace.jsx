@@ -1,3 +1,4 @@
+// SamTM V19.9 — jadval faqat 100% soat mosligi va parallel to‘qnashuvsiz saqlanadi; sinf bajarilishi foizda ko‘rinadi.
 // SamTM V19.8 — o‘qituvchi vaqti va fan-soati saqlanadi; bitta yaratish tugmasi va “Xona yo‘q” ko‘rinishi.
 // SamTM V19.8 — yangi maktab ID sini avtomatik bog'lash, 0,5/1,5 va A/B hafta.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -6232,7 +6233,11 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       setPreflight(currentReport);
       if (!currentReport?.tayyor) {
         const errorCount = currentReport?.xulosa?.xato_soni || currentReport?.xatolar?.length || 0;
-        setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi. Xona yozilmagani xato emas; qolgan fan–sinf–o‘qituvchi xatolarini tuzating.` });
+        const firstErrors = (currentReport?.xatolar || []).slice(0, 3).join(" · ");
+        setMessage({
+          tone: "error",
+          text: `${errorCount} ta qattiq moslik xatosi sabab generatorga POST yuborilmadi.${firstErrors ? ` Avval: ${firstErrors}` : ""} Xona yozilmagani xato emas.`,
+        });
         return;
       }
       const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
@@ -6287,6 +6292,21 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const canApprove = Boolean(diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
   const matchSummary = match.xulosa || {};
+  const classProgress = (match.sinflar || []).map(row => {
+    const plan = Number(row.reja || 0);
+    const actual = Number(row.jadval || 0);
+    const percent = Number.isFinite(Number(row.foiz))
+      ? Number(row.foiz)
+      : (plan > 0 ? Math.max(0, Math.min(100, Math.round((actual / plan) * 100))) : 100);
+    return { ...row, plan, actual, percent };
+  }).sort((left, right) => left.percent - right.percent || String(left.sinf).localeCompare(String(right.sinf)));
+  const overallClassPercent = Number.isFinite(Number(matchSummary.sinf_bajarilish_foizi))
+    ? Number(matchSummary.sinf_bajarilish_foizi)
+    : (() => {
+        const plan = classProgress.reduce((sum, row) => sum + row.plan, 0);
+        const actual = classProgress.reduce((sum, row) => sum + row.actual, 0);
+        return plan > 0 ? Math.max(0, Math.min(100, Math.round((actual / plan) * 100))) : 0;
+      })();
 
   const mismatchRows = [
     ...(match.sinflar || []).filter(row => !row.mos).map(row => ({ type: "Sinf", name: row.sinf, plan: row.reja, actual: row.jadval })),
@@ -6353,6 +6373,37 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </Card>
     </div>
 
+    {detail && classProgress.length > 0 && <Card className="p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>SINFMA-SINF NAZORAT</div>
+          <h3 className="text-base font-black leading-tight" style={{ color: palette.ink }}>Jadval bajarilish foizi</h3>
+          <p className="text-[10px] mt-0.5" style={{ color: palette.muted }}>Har bir sinfda reja soati va jadvalga aniq tushgan soat bir qarashda ko‘rinadi.</p>
+        </div>
+        <div className="rounded-2xl px-4 py-2 text-center" style={{ background: overallClassPercent === 100 ? palette.greenBg : palette.amberBg }}>
+          <div className="text-xl font-black" style={{ color: overallClassPercent === 100 ? palette.green : palette.amber }}>{overallClassPercent}%</div>
+          <div className="text-[9px] font-black uppercase" style={{ color: palette.muted }}>maktab bo‘yicha</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 mt-2.5">
+        {classProgress.map(row => {
+          const complete = row.percent === 100;
+          const tone = complete ? palette.green : row.percent >= 80 ? palette.amber : palette.red;
+          const background = complete ? palette.greenBg : row.percent >= 80 ? palette.amberBg : palette.redBg;
+          return <div key={row.sinf_id || row.sinf} className="rounded-xl px-2.5 py-2 border" style={{ borderColor: tone, background }}>
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs font-black truncate" style={{ color: palette.ink }}>{row.sinf}</span>
+              <span className="text-[10px] font-black" style={{ color: tone }}>{row.percent}%</span>
+            </div>
+            <div className="text-[10px] font-bold mt-0.5" style={{ color: tone }}>{row.actual}/{row.plan} soat{complete ? " · TO‘LIQ" : ` · ${Math.max(0, row.plan - row.actual)} qoldi`}</div>
+            <div className="h-1.5 rounded-full mt-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,.85)" }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${row.percent}%`, background: tone }}/>
+            </div>
+          </div>;
+        })}
+      </div>
+    </Card>}
+
     {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
     {detail && <SmartSwapPanelV192
       token={token}
@@ -6399,14 +6450,20 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
 
 
 export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false }) {
-  const organizationV17Id = initialWorkspace?.organization_v17_id || null;
-  const contextId = initialWorkspace?.context_id || null;
-  const linkedInitialId = initialWorkspace?.external_id || initialWorkspace?.legacy_maktab_id || (
-    organizationV17Id || contextId ? null : (initialWorkspace?.muassasa_id || initialWorkspace?.id)
+  const organizationV17Id = initialWorkspace?.organization_v17_id || (
+    initialWorkspace?.organization_type === "school" ? initialWorkspace?.id : null
   );
-  const isNewSchoolFlow = !organizationV17Id && !contextId && !linkedInitialId;
-  const [maktabId, setMaktabId] = useState(linkedInitialId || null);
-  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId));
+  const contextId = initialWorkspace?.context_id || null;
+  const selectedWorkspaceId = initialWorkspace?.external_id
+    || initialWorkspace?.legacy_maktab_id
+    || initialWorkspace?.muassasa_id
+    || initialWorkspace?.id
+    || null;
+  const isNewSchoolFlow = !organizationV17Id && !contextId && !selectedWorkspaceId;
+  // Tanlangan bitta ID context, V17 organization yoki haqiqiy maktab ID
+  // bo'lishi mumkin. Uni tekshirmasdan dashboardga yubormaymiz.
+  const [maktabId, setMaktabId] = useState(null);
+  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId || selectedWorkspaceId));
   const [workspaceLinkError, setWorkspaceLinkError] = useState("");
   const [newSchoolName, setNewSchoolName] = useState(initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || "");
   const [newSchoolRegion, setNewSchoolRegion] = useState(initialWorkspace?.viloyat || initialWorkspace?.region || "");
@@ -6431,9 +6488,9 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
 
   useEffect(() => {
     let active = true;
-    const mustResolve = Boolean(organizationV17Id || contextId);
+    const mustResolve = Boolean(organizationV17Id || contextId || selectedWorkspaceId);
     if (!mustResolve) {
-      setMaktabId(linkedInitialId);
+      setMaktabId(null);
       setWorkspaceResolving(false);
       setWorkspaceLinkError("");
       return () => { active = false; };
@@ -6446,6 +6503,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       body: JSON.stringify({
         organization_v17_id: organizationV17Id ? Number(organizationV17Id) : null,
         context_id: contextId ? Number(contextId) : null,
+        selected_id: selectedWorkspaceId ? Number(selectedWorkspaceId) : null,
       }),
     }).then(result => {
       if (!active) return;
@@ -6460,7 +6518,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       if (active) setWorkspaceResolving(false);
     });
     return () => { active = false; };
-  }, [token, apiBase, organizationV17Id, contextId, linkedInitialId]);
+  }, [token, apiBase, organizationV17Id, contextId, selectedWorkspaceId]);
 
   const createNewSchool = async (event) => {
     event?.preventDefault?.();
@@ -6557,7 +6615,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     setTeacherEditorOpen(true);
   };
 
-  if (isNewSchoolFlow && !maktabId) {
+  const showNewSchoolForm = !maktabId && (
+    isNewSchoolFlow || (!workspaceResolving && Boolean(workspaceLinkError))
+  );
+
+  if (showNewSchoolForm) {
     return <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
         <SmartHeader title="Yangi maktab" subtitle="Maktabni yaratish va ish maydonini ochish" onClose={onBack} badge="MAKTAB WORKSPACE"/>
@@ -6568,6 +6630,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <div><h1 className="text-2xl font-black" style={{ color: palette.ink }}>Yangi maktab yaratish</h1><p className="text-sm mt-1" style={{ color: palette.muted }}>Nomini kiriting. Saqlanganda yangi maktab ID yaratiladi va aynan shu maktabning boshqaruv oynasi ochiladi.</p></div>
             </div>
             <form onSubmit={createNewSchool} className="space-y-4">
+              {workspaceLinkError && <SmartNotice tone="warning">Tanlangan muassasa hali haqiqiy maktab ID bilan bog‘lanmagan: {workspaceLinkError} Quyidagi tugma yangi maktab ID yaratib, ish maydonini darhol ochadi.</SmartNotice>}
               <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Maktab nomi *</span><input autoFocus value={newSchoolName} onChange={e=>setNewSchoolName(e.target.value)} placeholder="Masalan: 25-son umumiy o‘rta ta’lim maktabi" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: newSchoolError && !String(newSchoolName||'').trim() ? palette.red : palette.line, background: "#fff", color: palette.ink }}/></label>
               <div className="grid md:grid-cols-2 gap-4">
                 <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Viloyat</span><input value={newSchoolRegion} onChange={e=>setNewSchoolRegion(e.target.value)} placeholder="Viloyat" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}/></label>
