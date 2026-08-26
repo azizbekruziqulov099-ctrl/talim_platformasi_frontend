@@ -5091,7 +5091,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
         </select>
       </div>
       <div className="overflow-auto">
-        <table className="min-w-[760px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
+        <table className="min-w-[860px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
           <colgroup><col style={{ width: 32 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
           <thead><tr><th className="text-[9px] py-1">№</th>{smartDays.slice(0, weekdays).map(([day, name]) => {
             const blocked = blockedDays.has(day);
@@ -5103,8 +5103,8 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
               {smartDays.slice(0, weekdays).map(([day]) => {
                 const blocked = blockedDays.has(day);
                 const cell = blocked ? [] : slots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.dars_raqami) === periodIndex + 1);
-                return <td key={day} className="align-top p-0"><div className="min-h-[44px] rounded-lg border p-1 overflow-hidden" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
-                  {blocked ? <div className="min-h-[34px] flex items-center justify-center text-center text-[8px] leading-tight font-black" style={{ color: palette.red }}>Dars yo‘q</div> : cell.map(slot => {
+                return <td key={day} className="align-top p-0"><div className="min-h-[48px] rounded-lg border p-1 overflow-hidden" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
+                  {blocked ? <div className="min-h-[38px] flex items-center justify-center text-center text-[9px] leading-tight font-black" style={{ color: palette.red }}>Dars yo‘q</div> : cell.map(slot => {
                     const grouped = slot.guruh_kaliti !== "whole";
                     const shortGroup = scheduleGroupShortLabel(slot.guruh_kaliti);
                     const groupTitle = scheduleGroupLabel(slot.guruh_kaliti);
@@ -5115,9 +5115,9 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                       <div className="flex items-center gap-1 min-w-0">
                         {grouped && <span title={groupTitle} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{shortGroup}</span>}
                         {alternating && <span title={slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "T·0,5" : "J·0,5"}</span>}
-                        <span className="truncate text-[9px] leading-tight font-black" title={slot.fan_nomi} style={{ color: palette.ink }}>{slot.fan_nomi}</span>
+                        <span className="text-[10px] leading-[1.05] font-black" title={slot.fan_nomi} style={{ color: palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{slot.fan_nomi}</span>
                       </div>
-                      <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[7px] leading-tight">
+                      <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[8px] leading-tight">
                         <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
                         <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>
                       </div>
@@ -5169,10 +5169,13 @@ function TeacherWeeklySchedule({ detail, setup }) {
   const actualWeeklyHours = [...weightedSessions.values()].reduce((sum, value) => sum + value, 0);
   const plannedWeeklyHours = Number(selectedTeacher?.haftalik_reja_jami ?? selectedTeacher?.haftalik_dars_soati ?? actualWeeklyHours);
   const activeDays = new Set(selectedSlots.map(slot => Number(slot.hafta_kuni))).size;
-  const gapCount = [1, 2].reduce((total, shift) => total + smartDays.slice(0, weekdays).reduce((sum, [day]) => {
+  const gapProfiles = [1, 2].flatMap(shift => smartDays.slice(0, weekdays).map(([day, name]) => {
     const periods = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift).map(slot => Number(slot.dars_raqami)))].sort((a, b) => a - b);
-    return sum + (periods.length > 1 ? periods[periods.length - 1] - periods[0] + 1 - periods.length : 0);
-  }, 0), 0);
+    return { shift, day, name, gap: periods.length > 1 ? periods[periods.length - 1] - periods[0] + 1 - periods.length : 0 };
+  }));
+  const gapCount = gapProfiles.reduce((sum, row) => sum + row.gap, 0);
+  const gapShiftDays = gapProfiles.filter(row => row.gap > 0).length;
+  const multiGapShiftDays = gapProfiles.filter(row => row.gap > 1).length;
   const crossShiftGaps = smartDays.slice(0, weekdays).map(([day, name]) => {
     const first = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 1);
     const second = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 2);
@@ -5204,7 +5207,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: actualWeeklyHours === plannedWeeklyHours ? palette.greenBg : palette.amberBg, color: actualWeeklyHours === plannedWeeklyHours ? palette.green : palette.amber }}>Reja/jadval {scheduleHourLabel(plannedWeeklyHours)}/{scheduleHourLabel(actualWeeklyHours)}</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: gapCount ? palette.amberBg : palette.greenBg, color: gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}</span>
+        <span title={gapCount ? `${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}` : "Smena ichida bo‘sh dars yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}{gapShiftDays ? ` · ${gapShiftDays} kun` : ""}</span>
         <span title={crossShiftGaps.length ? `Jami: ${scheduleDurationLabel(totalCrossShiftGap)} · ${crossShiftGaps.map(row => `${row.name}: ${scheduleDurationLabel(row.minutes)}`).join("; ")}` : "Ustoz bir kunda ikki smenada ishlamaydi"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: maxCrossShiftGap > 180 ? palette.redBg : maxCrossShiftGap > 120 ? palette.amberBg : palette.greenBg, color: maxCrossShiftGap > 180 ? palette.red : maxCrossShiftGap > 120 ? palette.amber : palette.green }}>{crossShiftGaps.length ? `Smena oralig‘i max ${scheduleDurationLabel(maxCrossShiftGap)}` : "Smena oralig‘i yo‘q"}</span>
         <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
@@ -5212,8 +5215,8 @@ function TeacherWeeklySchedule({ detail, setup }) {
       </div>
     </div>
     {!teachers.length ? <SmartNotice tone="warning">Jadvalda o‘qituvchi topilmadi.</SmartNotice> : <div className="overflow-auto">
-      <table className="min-w-[760px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
-        <colgroup><col style={{ width: 52 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
+      <table className="min-w-[900px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
+        <colgroup><col style={{ width: 56 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
         <thead><tr><th className="text-[8px] py-1">Smena</th>{smartDays.slice(0, weekdays).map(([day, name]) => <th key={day} className="text-[9px] py-1" style={{ color: palette.ink }}>{name}</th>)}</tr></thead>
         <tbody>{[1, 2].flatMap(shift => Array.from({ length: 6 }, (_, index) => {
           const period = index + 1;
@@ -5221,11 +5224,10 @@ function TeacherWeeklySchedule({ detail, setup }) {
             <td className="text-[9px] font-black text-center rounded-md" style={{ background: shift === 1 ? palette.sky : palette.cream, color: palette.ink }}>{shift}-s · {period}</td>
             {smartDays.slice(0, weekdays).map(([day]) => {
               const cell = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift && Number(slot.dars_raqami) === period);
-              return <td key={day} className="align-top p-0"><div className="min-h-[28px] rounded-md border px-1 py-0.5 overflow-hidden" style={{ borderColor: palette.line, background: cell.length ? palette.sky : "#fff" }}>
-                {cell.map(slot => <div key={slot.id} className="flex items-center gap-1 text-[8px] leading-tight min-w-0">
-                  {slot.guruh_kaliti !== "whole" && <span className="shrink-0 px-1 rounded font-black" style={{ background: palette.greenBg, color: palette.green }}>{scheduleGroupShortLabel(slot.guruh_kaliti)}</span>}
-                  {slot.hafta_turi && slot.hafta_turi !== "har_hafta" && <span className="shrink-0 font-black" style={{ color: palette.amber }}>{slot.hafta_turi === "toq" ? "T" : "J"}</span>}
-                  <span className="truncate font-black" title={`${slot.sinf}-${slot.harf} · ${slot.fan_nomi}`}>{slot.sinf}-{slot.harf} · {slot.fan_nomi}</span>
+              return <td key={day} className="align-top p-0"><div className="min-h-[32px] rounded-md border px-1 py-0.5 overflow-hidden" style={{ borderColor: palette.line, background: cell.length ? palette.sky : "#fff" }}>
+                {cell.map(slot => <div key={slot.id} className="grid grid-cols-[auto_1fr] items-start gap-1 text-[9px] leading-[1.05] min-w-0">
+                  <span className="shrink-0 px-1 py-0.5 rounded font-black" style={{ background: slot.guruh_kaliti !== "whole" ? palette.greenBg : "#fff", color: slot.guruh_kaliti !== "whole" ? palette.green : palette.ink }}>{slot.sinf}-{slot.harf}{slot.guruh_kaliti !== "whole" ? ` · ${scheduleGroupShortLabel(slot.guruh_kaliti)}` : ""}{slot.hafta_turi && slot.hafta_turi !== "har_hafta" ? ` · ${slot.hafta_turi === "toq" ? "T" : "J"}` : ""}</span>
+                  <span className="font-black" title={`${slot.sinf}-${slot.harf} · ${slot.fan_nomi}`} style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{slot.fan_nomi}</span>
                 </div>)}
               </div></td>;
             })}
@@ -6367,9 +6369,17 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const linkedInitialId = initialWorkspace?.external_id || initialWorkspace?.legacy_maktab_id || (
     organizationV17Id || contextId ? null : (initialWorkspace?.muassasa_id || initialWorkspace?.id)
   );
+  const isNewSchoolFlow = !organizationV17Id && !contextId && !linkedInitialId;
   const [maktabId, setMaktabId] = useState(linkedInitialId || null);
-  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId || !linkedInitialId));
+  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId));
   const [workspaceLinkError, setWorkspaceLinkError] = useState("");
+  const [newSchoolName, setNewSchoolName] = useState(initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || "");
+  const [newSchoolRegion, setNewSchoolRegion] = useState(initialWorkspace?.viloyat || initialWorkspace?.region || "");
+  const [newSchoolDistrict, setNewSchoolDistrict] = useState(initialWorkspace?.tuman || initialWorkspace?.district || "");
+  const [newSchoolShifts, setNewSchoolShifts] = useState(Number(initialWorkspace?.smena_soni) === 2 ? 2 : 1);
+  const [newSchoolCreating, setNewSchoolCreating] = useState(false);
+  const [newSchoolError, setNewSchoolError] = useState("");
+  const [createdSchoolName, setCreatedSchoolName] = useState("");
   const lavozim = String(initialWorkspace?.lavozim || "").toLowerCase();
   const teacherMode = Boolean(lavozim) && !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "owner", "admin"].includes(lavozim);
   const [dashboard, setDashboard] = useState(null);
@@ -6386,7 +6396,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
 
   useEffect(() => {
     let active = true;
-    const mustResolve = Boolean(organizationV17Id || contextId || !linkedInitialId);
+    const mustResolve = Boolean(organizationV17Id || contextId);
     if (!mustResolve) {
       setMaktabId(linkedInitialId);
       setWorkspaceResolving(false);
@@ -6416,6 +6426,39 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     });
     return () => { active = false; };
   }, [token, apiBase, organizationV17Id, contextId, linkedInitialId]);
+
+  const createNewSchool = async (event) => {
+    event?.preventDefault?.();
+    const nomi = String(newSchoolName || "").trim();
+    if (!nomi) {
+      setNewSchoolError("Maktab nomini kiriting.");
+      return;
+    }
+    setNewSchoolCreating(true);
+    setNewSchoolError("");
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/maktab_workspace_boglash?token=${encodeURIComponent(token)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          create_new: true,
+          nomi,
+          viloyat: String(newSchoolRegion || "").trim() || null,
+          tuman: String(newSchoolDistrict || "").trim() || null,
+          smena_soni: Number(newSchoolShifts) === 2 ? 2 : 1,
+        }),
+      });
+      if (!result?.maktab_id) throw new Error("Server yangi maktab ID sini qaytarmadi.");
+      setCreatedSchoolName(result.maktab_nomi || nomi);
+      setMaktabId(Number(result.maktab_id));
+      setWorkspaceLinkError("");
+      setError("");
+    } catch (error) {
+      setNewSchoolError(error?.message || "Yangi maktab yaratilmadi.");
+    } finally {
+      setNewSchoolCreating(false);
+    }
+  };
 
   const loadManager = () => {
     if (teacherMode) return;
@@ -6473,11 +6516,40 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const jamiOquvchi = dashboard?.bugungi_davomat?.jami_oquvchi
     ?? dashboard?.sinflar?.reduce((a,s)=>a+(Number(s.oquvchi_soni)||0),0) ?? 0;
   const yuklamaMuammo = useMemo(() => yuklama.filter(x => x.holat === "ortiqcha" || x.holat === "yetishmaydi"), [yuklama]);
-  const schoolName = dashboard?.maktab_nomi || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab");
+  const schoolName = dashboard?.maktab_nomi || createdSchoolName || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab");
   const curriculumApproved = curriculumStatus === "tasdiqlangan";
   const openTeacherEditor = () => {
     setTeacherEditorOpen(true);
   };
+
+  if (isNewSchoolFlow && !maktabId) {
+    return <WorkspacePortal>
+      <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
+        <SmartHeader title="Yangi maktab" subtitle="Maktabni yaratish va ish maydonini ochish" onClose={onBack} badge="MAKTAB WORKSPACE"/>
+        <main className="max-w-2xl mx-auto px-4 md:px-7 py-7 md:py-10">
+          <Card className="p-5 md:p-7">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.greenBg, color: palette.teal }}><School size={25}/></div>
+              <div><h1 className="text-2xl font-black" style={{ color: palette.ink }}>Yangi maktab yaratish</h1><p className="text-sm mt-1" style={{ color: palette.muted }}>Nomini kiriting. Saqlanganda yangi maktab ID yaratiladi va aynan shu maktabning boshqaruv oynasi ochiladi.</p></div>
+            </div>
+            <form onSubmit={createNewSchool} className="space-y-4">
+              <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Maktab nomi *</span><input autoFocus value={newSchoolName} onChange={e=>setNewSchoolName(e.target.value)} placeholder="Masalan: 25-son umumiy o‘rta ta’lim maktabi" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: newSchoolError && !String(newSchoolName||'').trim() ? palette.red : palette.line, background: "#fff", color: palette.ink }}/></label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Viloyat</span><input value={newSchoolRegion} onChange={e=>setNewSchoolRegion(e.target.value)} placeholder="Viloyat" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}/></label>
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Tuman / shahar</span><input value={newSchoolDistrict} onChange={e=>setNewSchoolDistrict(e.target.value)} placeholder="Tuman yoki shahar" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}/></label>
+              </div>
+              <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Smena soni</span><select value={newSchoolShifts} onChange={e=>setNewSchoolShifts(Number(e.target.value))} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value={1}>1 smena</option><option value={2}>2 smena</option></select></label>
+              {newSchoolError && <SmartNotice tone="error">{newSchoolError}</SmartNotice>}
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                <button type="button" onClick={onBack} disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
+                <button type="submit" disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: palette.teal }}>{newSchoolCreating ? <><Loader2 size={17} className="animate-spin"/> Yaratilmoqda...</> : <><School size={17}/> Maktabni yaratish</>}</button>
+              </div>
+            </form>
+          </Card>
+        </main>
+      </div>
+    </WorkspacePortal>;
+  }
 
   if (curriculumOpen) {
     return <WorkspacePortal>
