@@ -14,7 +14,8 @@ import {
   ChevronRight, ClipboardCheck, Clock3, GraduationCap, LayoutDashboard,
   Loader2, MessageCircle, RefreshCw, School, Sparkles, Users, UserRoundCheck,
   WandSparkles, AlertTriangle, CalendarCheck2, ToggleLeft, ToggleRight,
-  Eye, ShieldCheck, UserCog, Stethoscope, Brain, LockKeyhole, X, Search
+  Eye, ShieldCheck, UserCog, Stethoscope, Brain, LockKeyhole, X, Search,
+  Download
 } from "lucide-react";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
@@ -2500,6 +2501,18 @@ function mismatchExplanationV199(row) {
   const plan = Number(row?.plan || 0);
   const actual = Number(row?.actual || 0);
   const difference = Math.round(Math.abs(plan - actual) * 10) / 10;
+  if (row?.type === "Sinf" && row?.fanLoad != null) {
+    const equation = `${scheduleHourLabel(row.fanLoad)} soat fan yuklamasi + ${scheduleHourLabel(row.classHourPlan || 0)} soat SINF SOATI = ${scheduleHourLabel(plan)} soat`;
+    if (actual < plan) return `${equation}. Jadvalda ${scheduleHourLabel(actual)} soat bor, demak ${scheduleHourLabel(difference)} soat hali joylashmagan.`;
+    if (actual > plan) return `${equation}. Jadvalda ${scheduleHourLabel(actual)} soat bor, demak ${scheduleHourLabel(difference)} soat ortiqcha.`;
+    return `${equation}. Jadvalda ham ${scheduleHourLabel(actual)} soat — hammasi to‘liq.`;
+  }
+  if (row?.type === "O‘qituvchi" && row?.fanLoad != null) {
+    const equation = `${scheduleHourLabel(row.fanLoad)} soat fan + ${scheduleHourLabel(row.classHourPlan || 0)} soat sinf rahbarligi = ${scheduleHourLabel(plan)} soat`;
+    return actual === plan
+      ? `${equation}. O‘qituvchi jadvalida ham ${scheduleHourLabel(actual)} soat — to‘liq.`
+      : `${equation}. O‘qituvchi jadvalida ${scheduleHourLabel(actual)} soat; farq ${scheduleHourLabel(difference)} soat.`;
+  }
   if (actual < plan) {
     return `Rejada ${plan} soat bor. Jadvalga ${actual} soat joylashdi. Shuning uchun ${difference} soat yetishmayapti.`;
   }
@@ -2507,6 +2520,30 @@ function mismatchExplanationV199(row) {
     return `Rejada ${plan} soat bor. Jadvalga ${actual} soat joylashdi. Shuning uchun ${difference} soat ortiqcha joylashgan.`;
   }
   return `Rejadagi ${plan} soatning hammasi jadvalga to‘liq joylashdi.`;
+}
+
+async function downloadScheduleWorkbookV200(apiBase, token, runId, type) {
+  const response = await fetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jadval_xlsx?token=${encodeURIComponent(token)}&urinish_id=${encodeURIComponent(runId)}&turi=${encodeURIComponent(type)}`);
+  if (!response.ok) {
+    let message = `Excel yuklanmadi (${response.status})`;
+    try {
+      const payload = await response.json();
+      message = payload?.detail || payload?.message || message;
+    } catch (_) {}
+    throw new Error(message);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const filename = encoded ? decodeURIComponent(encoded) : `SAMTM_${type}_jadvali.xlsx`;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 function groupedSubjectFamilyV195(value) {
@@ -5069,6 +5106,21 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
   const sanitaryPeriodLimit = gradeNumber >= 1 && gradeNumber <= 4 ? 5 : 6;
   const periods = Math.min(Number(shiftRow?.dars_soni || 7), sanitaryPeriodLimit);
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
+  const classMatch = (detail?.urinish?.diagnostika?.jadval_mosligi?.sinflar || [])
+    .find(row => String(row.sinf_id) === String(selectedClass));
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadClasses = async () => {
+    setDownloading(true);
+    setRoomMessage(null);
+    try {
+      await downloadScheduleWorkbookV200(apiBase, token, detail?.urinish?.id, "sinflar");
+    } catch (error) {
+      setRoomMessage({ tone: "error", text: error.message });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const openRoomEditor = slot => setRoomEditor({
     slotId: Number(slot.id),
@@ -5116,10 +5168,16 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
             <span style={{ color: palette.muted }}>Xona ustiga bosib tahrirlang.</span>
           </div>
         </div>
-        <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
-          {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
-        </select>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={downloadClasses} disabled={downloading} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={13}/>{downloading ? "Tayyorlanmoqda..." : "Sinflar XLSX"}</button>
+          <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
+            {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
+          </select>
+        </div>
       </div>
+      {classMatch && <div className="mb-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-black" style={{ background: classMatch.mos ? palette.greenBg : palette.amberBg, color: classMatch.mos ? palette.green : palette.amber }}>
+        {scheduleHourLabel(classMatch.fan_yuklama)} soat fan yuklamasi + {scheduleHourLabel(classMatch.sinf_soati_reja)} soat SINF SOATI = {scheduleHourLabel(classMatch.reja)} soat reja · jadvalda {scheduleHourLabel(classMatch.jadval)} soat {classMatch.mos ? "✓ TO‘LIQ" : `· ${scheduleHourLabel(Math.abs(Number(classMatch.farq || 0)))} soat farq`}
+      </div>}
       <div className="overflow-auto">
         <table className="min-w-[860px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
           <colgroup><col style={{ width: 32 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
@@ -5171,11 +5229,6 @@ function TeacherWeeklySchedule({ detail, setup }) {
     (setup?.oqituvchilar || []).forEach(row => {
       if (row?.user_id != null) catalog.set(String(row.user_id), { ...row, user_id: row.user_id, full_name: row.full_name || `ID ${row.user_id}` });
     });
-    (detail?.slotlar || []).forEach(row => {
-      if (row?.oqituvchi_user_id != null && !catalog.has(String(row.oqituvchi_user_id))) {
-        catalog.set(String(row.oqituvchi_user_id), { user_id: row.oqituvchi_user_id, full_name: row.oqituvchi_ismi || `ID ${row.oqituvchi_user_id}` });
-      }
-    });
     return [...catalog.values()].sort((a, b) => String(a.full_name).localeCompare(String(b.full_name), "uz"));
   }, [setup, detail]);
   const [teacherId, setTeacherId] = useState("");
@@ -5190,6 +5243,8 @@ function TeacherWeeklySchedule({ detail, setup }) {
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
   const selectedSlots = (detail?.slotlar || []).filter(slot => String(slot.oqituvchi_user_id) === String(teacherId));
   const selectedTeacher = teachers.find(row => String(row.user_id) === String(teacherId));
+  const teacherMatch = (detail?.urinish?.diagnostika?.jadval_mosligi?.oqituvchilar || [])
+    .find(row => String(row.user_id) === String(teacherId));
   const weightedSessions = new Map();
   selectedSlots.forEach(slot => {
     const weekType = slot.hafta_turi || "har_hafta";
@@ -5197,7 +5252,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
     weightedSessions.set(key, weekType === "har_hafta" ? 1 : 0.5);
   });
   const actualWeeklyHours = [...weightedSessions.values()].reduce((sum, value) => sum + value, 0);
-  const plannedWeeklyHours = Number(selectedTeacher?.haftalik_reja_jami ?? selectedTeacher?.haftalik_dars_soati ?? actualWeeklyHours);
+  const plannedWeeklyHours = Number(teacherMatch?.reja ?? selectedTeacher?.haftalik_reja_jami ?? selectedTeacher?.haftalik_dars_soati ?? actualWeeklyHours);
   const activeDays = new Set(selectedSlots.map(slot => Number(slot.hafta_kuni))).size;
   const gapProfiles = [1, 2].flatMap(shift => smartDays.slice(0, weekdays).map(([day, name]) => {
     const periods = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift).map(slot => Number(slot.dars_raqami)))].sort((a, b) => a - b);
@@ -5206,17 +5261,19 @@ function TeacherWeeklySchedule({ detail, setup }) {
   const gapCount = gapProfiles.reduce((sum, row) => sum + row.gap, 0);
   const gapShiftDays = gapProfiles.filter(row => row.gap > 0).length;
   const multiGapShiftDays = gapProfiles.filter(row => row.gap > 1).length;
-  const crossShiftGaps = smartDays.slice(0, weekdays).map(([day, name]) => {
-    const first = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 1);
-    const second = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 2);
-    if (!first.length || !second.length) return null;
-    const firstEnds = first.map(slot => scheduleShiftSlotInterval(setup, 1, slot.dars_raqami)?.end).filter(value => value != null);
-    const secondStarts = second.map(slot => scheduleShiftSlotInterval(setup, 2, slot.dars_raqami)?.start).filter(value => value != null);
-    if (!firstEnds.length || !secondStarts.length) return null;
-    return { day, name, minutes: Math.max(0, Math.min(...secondStarts) - Math.max(...firstEnds)) };
-  }).filter(Boolean);
-  const maxCrossShiftGap = Math.max(0, ...crossShiftGaps.map(row => row.minutes));
-  const totalCrossShiftGap = crossShiftGaps.reduce((sum, row) => sum + row.minutes, 0);
+  const unifiedDayGaps = smartDays.slice(0, weekdays).map(([day, name]) => {
+    const intervals = [...new Map(selectedSlots
+      .filter(slot => Number(slot.hafta_kuni) === day)
+      .map(slot => {
+        const interval = scheduleShiftSlotInterval(setup, slot.smena, slot.dars_raqami);
+        return interval ? [`${slot.smena}:${slot.dars_raqami}`, interval] : null;
+      }).filter(Boolean)).values()].sort((left, right) => left.start - right.start);
+    const gaps = intervals.slice(1).map((interval, index) => Math.max(0, interval.start - intervals[index].end)).filter(minutes => minutes > 25);
+    return { day, name, gaps, total: gaps.reduce((sum, value) => sum + value, 0), max: Math.max(0, ...gaps) };
+  });
+  const unifiedGapCount = unifiedDayGaps.reduce((sum, row) => sum + row.gaps.length, 0);
+  const unifiedGapMinutes = unifiedDayGaps.reduce((sum, row) => sum + row.total, 0);
+  const unifiedMaxGap = Math.max(0, ...unifiedDayGaps.map(row => row.max));
   const parallelConflict = selectedSlots.some((slot, index) => selectedSlots.slice(index + 1).some(other => {
     const sameTime = Number(slot.hafta_kuni) === Number(other.hafta_kuni)
       && Number(slot.smena) === Number(other.smena)
@@ -5238,7 +5295,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
         <span title={gapCount ? `${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}` : "Smena ichida bo‘sh dars yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}{gapShiftDays ? ` · ${gapShiftDays} kun` : ""}</span>
-        <span title={crossShiftGaps.length ? `Jami: ${scheduleDurationLabel(totalCrossShiftGap)} · ${crossShiftGaps.map(row => `${row.name}: ${scheduleDurationLabel(row.minutes)}`).join("; ")}` : "Ustoz bir kunda ikki smenada ishlamaydi"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: maxCrossShiftGap > 180 ? palette.redBg : maxCrossShiftGap > 120 ? palette.amberBg : palette.greenBg, color: maxCrossShiftGap > 180 ? palette.red : maxCrossShiftGap > 120 ? palette.amber : palette.green }}>{crossShiftGaps.length ? `Smena oralig‘i max ${scheduleDurationLabel(maxCrossShiftGap)}` : "Smena oralig‘i yo‘q"}</span>
+        <span title={unifiedGapCount ? `Ikki smena bitta ish kuni sifatida: jami ${scheduleDurationLabel(unifiedGapMinutes)} · ${unifiedDayGaps.filter(row => row.gaps.length).map(row => `${row.name}: ${row.gaps.map(scheduleDurationLabel).join(", ")}`).join("; ")}` : "1- va 2-smena birga hisoblanganda ortiqcha kutish yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unifiedMaxGap > 120 ? palette.redBg : unifiedMaxGap > 60 ? palette.amberBg : palette.greenBg, color: unifiedMaxGap > 120 ? palette.red : unifiedMaxGap > 60 ? palette.amber : palette.green }}>{unifiedGapCount ? `Kun bo‘shlig‘i ${unifiedGapCount} · max ${scheduleDurationLabel(unifiedMaxGap)}` : "Kun bo‘shlig‘i yo‘q"}</span>
         <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
         </select>
@@ -5274,6 +5331,8 @@ function TeacherScheduleStep({ token, apiBase, setup }) {
   const run = setup?.urinishlar?.[0];
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState("");
+  const [exportError, setExportError] = useState("");
+  const [downloading, setDownloading] = useState(false);
   useEffect(() => {
     let alive = true;
     setDetail(null);
@@ -5287,7 +5346,22 @@ function TeacherScheduleStep({ token, apiBase, setup }) {
   if (!run?.id) return <SmartNotice tone="warning">Avval 4-bosqichda dars jadvalini yarating.</SmartNotice>;
   if (error) return <SmartNotice tone="error">{error}</SmartNotice>;
   if (!detail) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></div>;
-  return <TeacherWeeklySchedule detail={detail} setup={setup}/>;
+  const downloadTeachers = async () => {
+    setDownloading(true);
+    setExportError("");
+    try {
+      await downloadScheduleWorkbookV200(apiBase, token, run.id, "oqituvchilar");
+    } catch (reason) {
+      setExportError(reason.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+  return <div className="space-y-2">
+    {exportError && <SmartNotice tone="error">{exportError}</SmartNotice>}
+    <div className="flex justify-end"><button type="button" onClick={downloadTeachers} disabled={downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1.5" style={{ background: palette.green }}><Download size={14}/>{downloading ? "Tayyorlanmoqda..." : "O‘qituvchilar XLSX"}</button></div>
+    <TeacherWeeklySchedule detail={detail} setup={setup}/>
+  </div>;
 }
 
 
@@ -6254,7 +6328,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       setMessage({
         tone: "error",
         text: networkFailure
-          ? "Jadval generatori backenddan o‘z vaqtida javob olmadi. Backenddagi samtm_school.py REV49 bo‘lishi kerak; qayta deploydan keyin tugmani yana bir marta bosing. Oldingi draft o‘chirilmagan."
+          ? "Jadval generatori backenddan o‘z vaqtida javob olmadi. Backenddagi samtm_school.py REV50 bo‘lishi kerak; qayta deploydan keyin tugmani yana bir marta bosing. Oldingi draft o‘chirilmagan."
           : rawMessage || "Jadvalni yaratib bo‘lmadi.",
       });
       if (!networkFailure) await checkSources(true);
@@ -6294,8 +6368,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const matchSummary = match.xulosa || {};
 
   const mismatchRows = [
-    ...(match.sinflar || []).filter(row => !row.mos).map(row => ({ type: "Sinf", name: row.sinf, plan: row.reja, actual: row.jadval })),
-    ...(match.oqituvchilar || []).filter(row => !row.mos).map(row => ({ type: "O‘qituvchi", name: row.full_name, plan: row.reja, actual: row.jadval })),
+    ...(match.sinflar || []).filter(row => !row.mos).map(row => ({ type: "Sinf", name: row.sinf, plan: row.reja, actual: row.jadval, fanLoad: row.fan_yuklama, classHourPlan: row.sinf_soati_reja })),
+    ...(match.oqituvchilar || []).filter(row => !row.mos).map(row => ({ type: "O‘qituvchi", name: row.full_name, plan: row.reja, actual: row.jadval, fanLoad: row.fan_yuklama, classHourPlan: row.sinf_soati_reja })),
     ...(match.fanlar || []).filter(row => !row.mos).map(row => ({ type: "Fan", name: `${row.sinf} · ${row.fan}`, plan: row.reja, actual: row.jadval })),
   ];
 
