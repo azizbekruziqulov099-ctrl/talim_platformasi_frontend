@@ -4983,6 +4983,45 @@ function scheduleGroupShortLabel(value) {
   return numbered ? `${numbered[1]}G` : full.slice(0, 3);
 }
 
+function scheduleClockMinutes(value) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+function scheduleShiftSlotInterval(setup, shift, period) {
+  const row = (setup?.smenalar || []).find(item => Number(item.smena) === Number(shift));
+  const saved = (row?.slotlar || []).find(item => Number(item.dars_raqami) === Number(period));
+  if (saved) {
+    const start = scheduleClockMinutes(saved.boshlanish);
+    const end = scheduleClockMinutes(saved.tugash);
+    if (start != null && end != null) return { start, end };
+  }
+  let start = scheduleClockMinutes(row?.boshlanish_vaqti ?? (Number(shift) === 1 ? "08:00" : "13:30"));
+  if (start == null) return null;
+  const lesson = Number(row?.dars_daqiqa || 45);
+  const normalBreak = Number(row?.tanaffus_daqiqa || 5);
+  const bigAfter = Number(row?.katta_tanaffus_darsdan_keyin || 0);
+  const bigBreak = Number(row?.katta_tanaffus_daqiqa || 15);
+  for (let number = 1; number <= Number(period); number += 1) {
+    const end = start + lesson;
+    if (number === Number(period)) return { start, end };
+    start = end + (number === bigAfter ? bigBreak : normalBreak);
+  }
+  return null;
+}
+
+function scheduleDurationLabel(minutes) {
+  const value = Math.max(0, Number(minutes || 0));
+  const hours = Math.floor(value / 60);
+  const rest = value % 60;
+  return hours ? `${hours} soat${rest ? ` ${rest} daq` : ""}` : `${rest} daq`;
+}
+
+function scheduleHourLabel(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? String(number) : number.toFixed(1).replace(".", ",");
+}
+
 function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged }) {
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
@@ -5100,7 +5139,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
   const teachers = useMemo(() => {
     const catalog = new Map();
     (setup?.oqituvchilar || []).forEach(row => {
-      if (row?.user_id != null) catalog.set(String(row.user_id), { user_id: row.user_id, full_name: row.full_name || `ID ${row.user_id}` });
+      if (row?.user_id != null) catalog.set(String(row.user_id), { ...row, user_id: row.user_id, full_name: row.full_name || `ID ${row.user_id}` });
     });
     (detail?.slotlar || []).forEach(row => {
       if (row?.oqituvchi_user_id != null && !catalog.has(String(row.oqituvchi_user_id))) {
@@ -5121,18 +5160,39 @@ function TeacherWeeklySchedule({ detail, setup }) {
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
   const selectedSlots = (detail?.slotlar || []).filter(slot => String(slot.oqituvchi_user_id) === String(teacherId));
   const selectedTeacher = teachers.find(row => String(row.user_id) === String(teacherId));
-  const sessionCount = new Set(selectedSlots.map(slot => `${slot.hafta_kuni}:${slot.smena}:${slot.dars_raqami}:${slot.hafta_turi || "har_hafta"}`)).size;
+  const weightedSessions = new Map();
+  selectedSlots.forEach(slot => {
+    const weekType = slot.hafta_turi || "har_hafta";
+    const key = `${slot.hafta_kuni}:${slot.smena}:${slot.dars_raqami}:${weekType}`;
+    weightedSessions.set(key, weekType === "har_hafta" ? 1 : 0.5);
+  });
+  const actualWeeklyHours = [...weightedSessions.values()].reduce((sum, value) => sum + value, 0);
+  const plannedWeeklyHours = Number(selectedTeacher?.haftalik_reja_jami ?? selectedTeacher?.haftalik_dars_soati ?? actualWeeklyHours);
   const activeDays = new Set(selectedSlots.map(slot => Number(slot.hafta_kuni))).size;
   const gapCount = [1, 2].reduce((total, shift) => total + smartDays.slice(0, weekdays).reduce((sum, [day]) => {
     const periods = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift).map(slot => Number(slot.dars_raqami)))].sort((a, b) => a - b);
     return sum + (periods.length > 1 ? periods[periods.length - 1] - periods[0] + 1 - periods.length : 0);
   }, 0), 0);
-  const crossShiftBlocks = smartDays.slice(0, weekdays).reduce((total, [day]) => {
-    const first = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 1).map(slot => Number(slot.dars_raqami)))];
-    const second = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 2).map(slot => Number(slot.dars_raqami)))];
-    if (!first.length || !second.length) return total;
-    return total + Math.max(0, 6 - Math.max(...first)) + Math.max(0, Math.min(...second) - 1);
-  }, 0);
+  const crossShiftGaps = smartDays.slice(0, weekdays).map(([day, name]) => {
+    const first = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 1);
+    const second = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 2);
+    if (!first.length || !second.length) return null;
+    const firstEnds = first.map(slot => scheduleShiftSlotInterval(setup, 1, slot.dars_raqami)?.end).filter(value => value != null);
+    const secondStarts = second.map(slot => scheduleShiftSlotInterval(setup, 2, slot.dars_raqami)?.start).filter(value => value != null);
+    if (!firstEnds.length || !secondStarts.length) return null;
+    return { day, name, minutes: Math.max(0, Math.min(...secondStarts) - Math.max(...firstEnds)) };
+  }).filter(Boolean);
+  const maxCrossShiftGap = Math.max(0, ...crossShiftGaps.map(row => row.minutes));
+  const totalCrossShiftGap = crossShiftGaps.reduce((sum, row) => sum + row.minutes, 0);
+  const parallelConflict = selectedSlots.some((slot, index) => selectedSlots.slice(index + 1).some(other => {
+    const sameTime = Number(slot.hafta_kuni) === Number(other.hafta_kuni)
+      && Number(slot.smena) === Number(other.smena)
+      && Number(slot.dars_raqami) === Number(other.dars_raqami);
+    const firstType = slot.hafta_turi || "har_hafta";
+    const secondType = other.hafta_turi || "har_hafta";
+    const sameWeek = firstType === "har_hafta" || secondType === "har_hafta" || firstType === secondType;
+    return sameTime && sameWeek && Number(slot.id) !== Number(other.id);
+  }));
 
   return <Card className="p-2.5">
     <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
@@ -5141,10 +5201,11 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <p className="text-[9px] mt-0.5" style={{ color: palette.muted }}>Har ikki smena, haftaning 6 kuni va har smenadagi 6 dars bitta ixcham ko‘rinishda.</p>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{sessionCount} dars</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: actualWeeklyHours === plannedWeeklyHours ? palette.greenBg : palette.amberBg, color: actualWeeklyHours === plannedWeeklyHours ? palette.green : palette.amber }}>Reja/jadval {scheduleHourLabel(plannedWeeklyHours)}/{scheduleHourLabel(actualWeeklyHours)}</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: gapCount ? palette.amberBg : palette.greenBg, color: gapCount ? palette.amber : palette.green }}>{gapCount} okno</span>
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: crossShiftBlocks ? palette.amberBg : palette.greenBg, color: crossShiftBlocks ? palette.amber : palette.green }}>smena oralig‘i {crossShiftBlocks} blok</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: gapCount ? palette.amberBg : palette.greenBg, color: gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}</span>
+        <span title={crossShiftGaps.length ? `Jami: ${scheduleDurationLabel(totalCrossShiftGap)} · ${crossShiftGaps.map(row => `${row.name}: ${scheduleDurationLabel(row.minutes)}`).join("; ")}` : "Ustoz bir kunda ikki smenada ishlamaydi"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: maxCrossShiftGap > 180 ? palette.redBg : maxCrossShiftGap > 120 ? palette.amberBg : palette.greenBg, color: maxCrossShiftGap > 180 ? palette.red : maxCrossShiftGap > 120 ? palette.amber : palette.green }}>{crossShiftGaps.length ? `Smena oralig‘i max ${scheduleDurationLabel(maxCrossShiftGap)}` : "Smena oralig‘i yo‘q"}</span>
         <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
         </select>
@@ -5214,7 +5275,7 @@ function SanitaryScheduleRulesV1874() {
       <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Ichki okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>1–2–3, bo‘sh 4, keyin 5 ko‘rinishidagi jadval tasdiqlanmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Ona tili, adabiyot, matematika, algebra, geometriya, fizika, kimyo va biologiya 1–4; J/T va texnologiya 3–6 afzal. J/T 1-darsga tushmaydi, 2 faqat zaruratda.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinf yoshiga mos</div><div className="text-xs mt-1" style={{color:palette.muted}}>5–6-sinf 1–3-darsga mosroq; 7–8-sinf 2–4; 9–11-sinf og‘ir fanlari asosan 2–4-darsga joylanadi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>O‘qituvchiga ixcham</div><div className="text-xs mt-1" style={{color:palette.muted}}>Bekor “oyna” kamayadi. Ikki smenali ustozning 1-smenasi oxiriga, 2-smenasi boshiga yig‘ilib, smenalar orasidagi kutish qisqaradi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>O‘qituvchiga ixcham</div><div className="text-xs mt-1" style={{color:palette.muted}}>Bekor “oyna” kamayadi. Ikki smenali ustozning haqiqiy tugash/boshlanish vaqti hisoblanadi: 1–2 soatgacha afzal, 3 soat faqat zaruratda, undan ortig‘i keskin jazolanadi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>To‘g‘ri almashuv</div><div className="text-xs mt-1" style={{color:palette.muted}}>Ketma-ket og‘ir fanlar kamayadi; jismoniy tarbiyadan keyin matematika, fizika kabi yozma-og‘ir fan imkon qadar qo‘yilmaydi.</div></div>
     </div>
   </Card>;
