@@ -567,7 +567,7 @@ function SmartNotice({ tone = "info", children }) {
 function SmartStepNav({ step, setStep, teacherOnly }) {
   const steps = teacherOnly
     ? [[2, "1. Bo‘sh vaqt"], [5, "2. Mavzu rejasi"]]
-    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. O‘qituvchi + fan-soat"], [4, "4. Jadval yaratish"], [5, "5. Mavzu rejasi"]];
+    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. O‘qituvchi + fan-soat"], [4, "4. Jadval yaratish"], [45, "5. O‘qituvchi jadvali"], [5, "6. Mavzu rejasi"]];
   return (
     <div className="sticky top-[77px] z-30 border-b" style={{ background: "rgba(247,250,252,.96)", borderColor: palette.line }}>
       <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 overflow-x-auto">
@@ -1446,7 +1446,7 @@ function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
       );
       setData(result);
       if (result.birinchi_marta_qollandi) {
-        setMessage({ tone: "success", text: `Rasmiy metod kunlari ${result.jami_oqituvchi || 0} ta o‘qituvchiga qattiq cheklov sifatida qo‘llandi.` });
+        setMessage({ tone: "success", text: `Rasmiy metod kunlari ${result.jami_oqituvchi || 0} ta o‘qituvchiga qulaylik tavsiyasi sifatida qo‘llandi. Haftalik dars kamaymaydi.` });
         await reload();
       }
     } catch (error) {
@@ -1488,9 +1488,9 @@ function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div>
         <div className="text-sm font-black" style={{color:palette.ink}}>Rasmiy metod kunlari</div>
-        <div className="text-[10px] mt-0.5" style={{color:palette.muted}}>Mos o‘qituvchilarning metod kunini dars qo‘yiladigan vaqtdan chiqaradi. Haftalik yuklama kamaymaydi — darslar boshqa kunlarga joylanadi.</div>
+        <div className="text-[10px] mt-0.5" style={{color:palette.muted}}>Avval darslarni boshqa kunlarga joylaydi. Rejani to‘liq yopish uchun zarur bo‘lsa metod kunidan ham foydalanadi; haftalik yuklama kamaymaydi.</div>
       </div>
-      <button onClick={save} disabled={saving||loading} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?"Yozilmoqda...":"Metod kunlarini dars vaqtidan chiqarish"}</button>
+      <button onClick={save} disabled={saving||loading} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?"Yozilmoqda...":"Metod kunlarini qulaylikka qo‘llash"}</button>
     </div>
     {loading ? <div className="py-4 flex justify-center"><Loader2 size={18} className="animate-spin" style={{color:palette.blue}}/></div> : <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-1.5 mt-3">
       {(data?.kunlar||[]).map(day=><div key={day.hafta_kuni} className="rounded-xl border p-2" style={{borderColor:palette.line,background:day.hafta_kuni===6?"#F7F1FC":"#FAFCFD"}}>
@@ -5096,6 +5096,101 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
 }
 
 
+function TeacherWeeklySchedule({ detail, setup }) {
+  const teachers = useMemo(() => {
+    const catalog = new Map();
+    (setup?.oqituvchilar || []).forEach(row => {
+      if (row?.user_id != null) catalog.set(String(row.user_id), { user_id: row.user_id, full_name: row.full_name || `ID ${row.user_id}` });
+    });
+    (detail?.slotlar || []).forEach(row => {
+      if (row?.oqituvchi_user_id != null && !catalog.has(String(row.oqituvchi_user_id))) {
+        catalog.set(String(row.oqituvchi_user_id), { user_id: row.oqituvchi_user_id, full_name: row.oqituvchi_ismi || `ID ${row.oqituvchi_user_id}` });
+      }
+    });
+    return [...catalog.values()].sort((a, b) => String(a.full_name).localeCompare(String(b.full_name), "uz"));
+  }, [setup, detail]);
+  const [teacherId, setTeacherId] = useState("");
+  useEffect(() => {
+    if (!teachers.length) return setTeacherId("");
+    if (!teachers.some(row => String(row.user_id) === String(teacherId))) {
+      const firstWithLesson = teachers.find(teacher => (detail?.slotlar || []).some(slot => String(slot.oqituvchi_user_id) === String(teacher.user_id)));
+      setTeacherId(String((firstWithLesson || teachers[0]).user_id));
+    }
+  }, [teachers, detail, teacherId]);
+
+  const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
+  const selectedSlots = (detail?.slotlar || []).filter(slot => String(slot.oqituvchi_user_id) === String(teacherId));
+  const selectedTeacher = teachers.find(row => String(row.user_id) === String(teacherId));
+  const sessionCount = new Set(selectedSlots.map(slot => `${slot.hafta_kuni}:${slot.smena}:${slot.dars_raqami}:${slot.hafta_turi || "har_hafta"}`)).size;
+  const activeDays = new Set(selectedSlots.map(slot => Number(slot.hafta_kuni))).size;
+  const gapCount = [1, 2].reduce((total, shift) => total + smartDays.slice(0, weekdays).reduce((sum, [day]) => {
+    const periods = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift).map(slot => Number(slot.dars_raqami)))].sort((a, b) => a - b);
+    return sum + (periods.length > 1 ? periods[periods.length - 1] - periods[0] + 1 - periods.length : 0);
+  }, 0), 0);
+
+  return <Card className="p-2.5">
+    <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
+      <div>
+        <h2 className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchining 1/2-smena haftalik jadvali</h2>
+        <p className="text-[9px] mt-0.5" style={{ color: palette.muted }}>Har ikki smena, haftaning 6 kuni va har smenadagi 6 dars bitta ixcham ko‘rinishda.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{sessionCount} dars</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: gapCount ? palette.amberBg : palette.greenBg, color: gapCount ? palette.amber : palette.green }}>{gapCount} okno</span>
+        <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
+          {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
+        </select>
+      </div>
+    </div>
+    {!teachers.length ? <SmartNotice tone="warning">Jadvalda o‘qituvchi topilmadi.</SmartNotice> : <div className="overflow-auto">
+      <table className="min-w-[760px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
+        <colgroup><col style={{ width: 52 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
+        <thead><tr><th className="text-[8px] py-1">Smena</th>{smartDays.slice(0, weekdays).map(([day, name]) => <th key={day} className="text-[9px] py-1" style={{ color: palette.ink }}>{name}</th>)}</tr></thead>
+        <tbody>{[1, 2].flatMap(shift => Array.from({ length: 6 }, (_, index) => {
+          const period = index + 1;
+          return <tr key={`${shift}-${period}`}>
+            <td className="text-[9px] font-black text-center rounded-md" style={{ background: shift === 1 ? palette.sky : palette.cream, color: palette.ink }}>{shift}-s · {period}</td>
+            {smartDays.slice(0, weekdays).map(([day]) => {
+              const cell = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift && Number(slot.dars_raqami) === period);
+              return <td key={day} className="align-top p-0"><div className="min-h-[28px] rounded-md border px-1 py-0.5 overflow-hidden" style={{ borderColor: palette.line, background: cell.length ? palette.sky : "#fff" }}>
+                {cell.map(slot => <div key={slot.id} className="flex items-center gap-1 text-[8px] leading-tight min-w-0">
+                  {slot.guruh_kaliti !== "whole" && <span className="shrink-0 px-1 rounded font-black" style={{ background: palette.greenBg, color: palette.green }}>{scheduleGroupShortLabel(slot.guruh_kaliti)}</span>}
+                  {slot.hafta_turi && slot.hafta_turi !== "har_hafta" && <span className="shrink-0 font-black" style={{ color: palette.amber }}>{slot.hafta_turi === "toq" ? "T" : "J"}</span>}
+                  <span className="truncate font-black" title={`${slot.sinf}-${slot.harf} · ${slot.fan_nomi}`}>{slot.sinf}-{slot.harf} · {slot.fan_nomi}</span>
+                </div>)}
+              </div></td>;
+            })}
+          </tr>;
+        }))}</tbody>
+      </table>
+    </div>}
+    {selectedTeacher && <div className="mt-1 text-[8px] truncate" style={{ color: palette.muted }}>{selectedTeacher.full_name} · katta bo‘sh oynalar qizil diagnostikaga tushadi, jadval yaratishda esa ixcham ketma-ketlik ustuvor.</div>}
+  </Card>;
+}
+
+
+function TeacherScheduleStep({ token, apiBase, setup }) {
+  const run = setup?.urinishlar?.[0];
+  const [detail, setDetail] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let alive = true;
+    setDetail(null);
+    setError("");
+    if (!run?.id) return;
+    smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${run.id}`)
+      .then(data => { if (alive) setDetail(data); })
+      .catch(reason => { if (alive) setError(reason.message); });
+    return () => { alive = false; };
+  }, [run?.id, token, apiBase]);
+  if (!run?.id) return <SmartNotice tone="warning">Avval 4-bosqichda dars jadvalini yarating.</SmartNotice>;
+  if (error) return <SmartNotice tone="error">{error}</SmartNotice>;
+  if (!detail) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></div>;
+  return <TeacherWeeklySchedule detail={detail} setup={setup}/>;
+}
+
+
 function SanitaryScheduleRulesV1874() {
   return <Card className="p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -5110,7 +5205,7 @@ function SanitaryScheduleRulesV1874() {
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>2–4-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 4 kun 5 dars. 6-dars qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>5–11-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Majburiy jadvalda kuniga maksimum 6 dars. 7-darsga majburiy fan qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Ichki okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>1–2–3, bo‘sh 4, keyin 5 ko‘rinishidagi jadval tasdiqlanmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika 1–5; jismoniy tarbiya 3–6 afzal. 1–2 faqat boshqa imkon bo‘lmasa ishlatiladi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika ertaroq; jismoniy tarbiya va texnologiya 3–6 afzal. Texnologiya 1–2 ga faqat zaruratda tushadi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinf yoshiga mos</div><div className="text-xs mt-1" style={{color:palette.muted}}>5–6-sinf 1–3-darsga mosroq; 7–8-sinf 2–4; 9–11-sinf og‘ir fanlari asosan 2–4-darsga joylanadi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>O‘qituvchiga ixcham</div><div className="text-xs mt-1" style={{color:palette.muted}}>Bekor “oyna”, ortiqcha ish kuni va 5-sinfdan birdan 11-sinfga keskin ketma-ket o‘tish kamaytiriladi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>To‘g‘ri almashuv</div><div className="text-xs mt-1" style={{color:palette.muted}}>Ketma-ket og‘ir fanlar kamayadi; jismoniy tarbiyadan keyin matematika, fizika kabi yozma-og‘ir fan imkon qadar qo‘yilmaydi.</div></div>
@@ -6194,7 +6289,7 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
   const [step,setStep]=useState(teacherOnly?(initialStep===5?5:2):initialStep);const [setup,setSetup]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [selectedTeacher,setSelectedTeacher]=useState("");
   const load=async()=>{if(!maktabId){setError("Maktab ID topilmadi");setLoading(false);return;}setLoading(true);setError("");try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));}catch(e){setError(e.message);}finally{setLoading(false);}};
   useEffect(()=>{load();},[maktabId,token,apiBase]);
-  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, fan-soat, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
+  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, fan-soat, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
 }
 
 
