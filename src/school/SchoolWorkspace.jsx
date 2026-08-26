@@ -5246,6 +5246,45 @@ function TeacherWeeklySchedule({ detail, setup }) {
       .filter(row => String(row.user_id) === String(teacherId) && row.turi === "metod_kuni")
       .map(row => [Number(row.hafta_kuni), row])
   );
+  const teacherUnavailableDays = (() => {
+    const shiftRows = (setup?.smenalar || []).length
+      ? setup.smenalar
+      : [{ smena: 1, dars_soni: 6 }, { smena: 2, dars_soni: 6 }];
+    const allKeys = shiftRows.flatMap(shift =>
+      Array.from(
+        { length: Number(shift.dars_soni || 6) },
+        (_, index) => `${Number(shift.smena)}:${index + 1}`
+      )
+    );
+    const blocked = new Map();
+    (setup?.oqituvchi_vaqtlari || [])
+      .filter(row =>
+        String(row.user_id) === String(teacherId)
+        && row.turi === "band"
+        && Boolean(row.qattiq)
+      )
+      .forEach(row => {
+        const day = Number(row.hafta_kuni);
+        const rowShift = Number(row.smena || 0);
+        const rowPeriod = Number(row.dars_raqami || 0);
+        const values = blocked.get(day) || new Set();
+        shiftRows.forEach(shift => {
+          const shiftNumber = Number(shift.smena);
+          if (rowShift && rowShift !== shiftNumber) return;
+          for (let period = 1; period <= Number(shift.dars_soni || 6); period += 1) {
+            if (rowPeriod && rowPeriod !== period) continue;
+            values.add(`${shiftNumber}:${period}`);
+          }
+        });
+        blocked.set(day, values);
+      });
+    return new Map(
+      [...blocked.entries()].filter(([day, values]) =>
+        !teacherMethodDays.has(Number(day))
+        && allKeys.every(key => values.has(key))
+      )
+    );
+  })();
   const teacherMatch = (detail?.urinish?.diagnostika?.jadval_mosligi?.oqituvchilar || [])
     .find(row => String(row.user_id) === String(teacherId));
   const teacherGenerationSummary = (detail?.urinish?.diagnostika?.oqituvchi_yuklamasi || [])
@@ -5315,6 +5354,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
         {preferredWorkDays && <span title={`${scheduleHourLabel(plannedWeeklyHours)} soat uchun avval ${preferredWorkDays} kun, faqat zaruratda ${fallbackWorkDays} kun ishlatiladi.`} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: activeDays <= preferredWorkDays ? palette.greenBg : activeDays <= fallbackWorkDays ? palette.amberBg : palette.redBg, color: activeDays <= preferredWorkDays ? palette.green : activeDays <= fallbackWorkDays ? palette.amber : palette.red }}>Kun maqsadi {preferredWorkDays} · amalda {activeDays}</span>}
         {!!teacherMethodDays.size && <span title="Metod kuni to‘liq yopiq: bu kunga dars qo‘yilmaydi." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: methodDayLessons.length ? palette.redBg : palette.greenBg, color: methodDayLessons.length ? palette.red : palette.green }}>{teacherMethodDays.size} metod kuni{methodDayLessons.length ? ` · XATO ${methodDayLessons.length} dars` : " · yopiq"}</span>}
+        {!!teacherUnavailableDays.size && <span title="Bu oddiy dars olinmaydigan kun. Metod kuni hisoblanmaydi." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{teacherUnavailableDays.size} dars olinmaydigan kun</span>}
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
         <span title={gapCount ? `${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}` : "Smena ichida bo‘sh dars yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}{gapShiftDays ? ` · ${gapShiftDays} kun` : ""}</span>
         <span title={unifiedGapCount ? `Ikki smena bitta ish kuni sifatida: jami ${scheduleDurationLabel(unifiedGapMinutes)} · ${unifiedDayGaps.filter(row => row.gaps.length).map(row => `${row.name}: ${row.gaps.map(scheduleDurationLabel).join(", ")}`).join("; ")}` : "1- va 2-smena birga hisoblanganda ortiqcha kutish yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unifiedMaxGap > 120 ? palette.redBg : unifiedMaxGap > 60 ? palette.amberBg : palette.greenBg, color: unifiedMaxGap > 120 ? palette.red : unifiedMaxGap > 60 ? palette.amber : palette.green }}>{unifiedGapCount ? `Kun bo‘shlig‘i ${unifiedGapCount} · max ${scheduleDurationLabel(unifiedMaxGap)}` : "Kun bo‘shlig‘i yo‘q"}</span>
@@ -5326,14 +5366,15 @@ function TeacherWeeklySchedule({ detail, setup }) {
     {!teachers.length ? <SmartNotice tone="warning">Jadvalda o‘qituvchi topilmadi.</SmartNotice> : <div className="overflow-auto">
       <table className="min-w-[900px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
         <colgroup><col style={{ width: 56 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
-        <thead><tr><th className="text-[8px] py-1">Smena</th>{smartDays.slice(0, weekdays).map(([day, name]) => <th key={day} className="text-[9px] py-1" style={{ color: teacherMethodDays.has(Number(day)) ? palette.amber : palette.ink }}>{name}{teacherMethodDays.has(Number(day)) && <span className="block text-[7px]">METOD KUNI</span>}</th>)}</tr></thead>
+        <thead><tr><th className="text-[8px] py-1">Smena</th>{smartDays.slice(0, weekdays).map(([day, name]) => <th key={day} className="text-[9px] py-1" style={{ color: teacherMethodDays.has(Number(day)) ? palette.amber : teacherUnavailableDays.has(Number(day)) ? palette.blue : palette.ink }}>{name}{teacherMethodDays.has(Number(day)) && <span className="block text-[7px]">METOD KUNI</span>}{teacherUnavailableDays.has(Number(day)) && <span className="block text-[7px]">DARS OLINMAYDI</span>}</th>)}</tr></thead>
         <tbody>{[1, 2].flatMap(shift => Array.from({ length: 6 }, (_, index) => {
           const period = index + 1;
           return <tr key={`${shift}-${period}`}>
             <td className="text-[9px] font-black text-center rounded-md" style={{ background: shift === 1 ? palette.sky : palette.cream, color: palette.ink }}>{shift}-s · {period}</td>
             {smartDays.slice(0, weekdays).map(([day]) => {
               const methodDay = teacherMethodDays.get(Number(day));
-              if (methodDay && !(shift === 1 && period === 1)) return null;
+              const unavailableDay = teacherUnavailableDays.get(Number(day));
+              if ((methodDay || unavailableDay) && !(shift === 1 && period === 1)) return null;
               if (methodDay) {
                 const lessons = selectedSlots.filter(slot => Number(slot.hafta_kuni) === Number(day));
                 return <td key={day} rowSpan={12} className="align-middle p-0.5">
@@ -5341,6 +5382,15 @@ function TeacherWeeklySchedule({ detail, setup }) {
                     <div className="text-[12px] font-black" style={{ color: lessons.length ? palette.red : palette.amber }}>METOD KUNI</div>
                     <div className="text-[9px] font-bold mt-1" style={{ color: lessons.length ? palette.red : palette.ink }}>{lessons.length ? `XATO: eski draftda ${lessons.length} ta dars bor` : "Dars qo‘yilmaydi"}</div>
                     {!!lessons.length && <div className="mt-2 space-y-1 w-full">{lessons.slice(0, 4).map(slot => <div key={slot.id} className="rounded bg-white px-1 py-1 text-[8px] font-bold" style={{ color: palette.red }}>{slot.sinf}-{slot.harf} · {slot.fan_nomi}</div>)}</div>}
+                  </div>
+                </td>;
+              }
+              if (unavailableDay) {
+                const lessons = selectedSlots.filter(slot => Number(slot.hafta_kuni) === Number(day));
+                return <td key={day} rowSpan={12} className="align-middle p-0.5">
+                  <div className="min-h-[390px] h-full rounded-xl border-2 px-2 py-3 flex flex-col items-center justify-center text-center" style={{ borderColor: lessons.length ? "#D99B9B" : palette.line, background: lessons.length ? palette.redBg : palette.sky }}>
+                    <div className="text-[12px] font-black" style={{ color: lessons.length ? palette.red : palette.blue }}>DARS OLINMAYDI</div>
+                    <div className="text-[9px] font-bold mt-1" style={{ color: lessons.length ? palette.red : palette.ink }}>{lessons.length ? `XATO: eski draftda ${lessons.length} ta dars bor` : "Oddiy yopiq kun · metod kuni emas"}</div>
                   </div>
                 </td>;
               }
@@ -5366,7 +5416,8 @@ function TeacherWeeklySchedule({ detail, setup }) {
       </p>
       {teacherMissingDetails.length ? <div className="grid md:grid-cols-2 gap-1.5 mt-2">
         {teacherMissingDetails.slice(0, 10).map((problem, index) => <div key={`${problem.sinf}-${problem.fan}-${index}`} className="rounded-lg border bg-white p-2" style={{ borderColor: "#F0CACA" }}>
-          <div className="text-[10px] font-black" style={{ color: palette.ink }}>{problem.sinf || "Sinf"} · {problem.fan || "Fan"} · {scheduleHourLabel(problem.soat || 1)} soat</div>
+          <div className="text-[10px] font-black" style={{ color: palette.ink }}>{problem.sinf || "Sinf"} · {problem.fan || "Fan"}{problem.guruh_kaliti && problem.guruh_kaliti !== "whole" ? ` · ${scheduleGroupLabel(problem.guruh_kaliti)}` : ""} · {scheduleHourLabel(problem.soat || 1)} soat</div>
+          {problem.parallel_guruh && <div className="text-[9px] font-black mt-1" style={{ color: palette.blue }}>Parallel dars: sinf uchun 1 katak, har bir guruh o‘qituvchisi uchun 1 soatdan.</div>}
           <div className="text-[9px] leading-relaxed mt-1" style={{ color: palette.red }}><b>Sabab:</b> {problem.sabab_izohi || problem.sabab || "Mos bo‘sh katak topilmadi."}</div>
           <div className="text-[9px] leading-relaxed mt-1" style={{ color: palette.green }}><b>Yechim:</b> {problem.yechim || "O‘qituvchi va sinf vaqt cheklovlarini tekshirib, yangi draft yarating."}</div>
         </div>)}
