@@ -2492,6 +2492,23 @@ function subjectKeyV193(value) {
     .trim();
 }
 
+function isClassHourSubjectV199(value) {
+  return subjectKeyV193(value) === "sinf soati";
+}
+
+function mismatchExplanationV199(row) {
+  const plan = Number(row?.plan || 0);
+  const actual = Number(row?.actual || 0);
+  const difference = Math.round(Math.abs(plan - actual) * 10) / 10;
+  if (actual < plan) {
+    return `Rejada ${plan} soat bor. Jadvalga ${actual} soat joylashdi. Shuning uchun ${difference} soat yetishmayapti.`;
+  }
+  if (actual > plan) {
+    return `Rejada ${plan} soat bor. Jadvalga ${actual} soat joylashdi. Shuning uchun ${difference} soat ortiqcha joylashgan.`;
+  }
+  return `Rejadagi ${plan} soatning hammasi jadvalga to‘liq joylashdi.`;
+}
+
 function groupedSubjectFamilyV195(value) {
   const key = subjectKeyV193(value);
   if (/chet tili|ingliz tili|english|nemis tili|fransuz tili/.test(key)) return "chet_tili";
@@ -2663,7 +2680,9 @@ function TeacherFirstLoadEditorV192({
   const birthDateMaxV195 = new Date().toISOString().slice(0, 10);
   const specialtySubjectChoices = useMemo(() => {
     const unique = new Map();
-    [...(data?.fanlar || []), ...planSubjects].forEach(subject => {
+    [...(data?.fanlar || []), ...planSubjects]
+      .filter(subject => !isClassHourSubjectV199(subject))
+      .forEach(subject => {
       const key = subjectKeyV193(subject);
       if (key && !unique.has(key)) unique.set(key, subject);
     });
@@ -2724,7 +2743,7 @@ function TeacherFirstLoadEditorV192({
       const key = subjectKeyV193(item.fan_nomi);
       if (key && !subjectMap.has(key)) subjectMap.set(key, item.fan_nomi);
     });
-    (data.fanlar || []).forEach(subject => {
+    (data.fanlar || []).filter(subject => !isClassHourSubjectV199(subject)).forEach(subject => {
       const key = subjectKeyV193(subject);
       if (key && !subjectMap.has(key)) subjectMap.set(key, subject);
     });
@@ -3163,7 +3182,9 @@ function TeacherFirstLoadEditorV192({
     templateRows.forEach(item => {
       nextCells[planCellKey(item.sinf_id, item.fan_nomi)] = Number(item.haftalik_soat || 0);
     });
-    const subjectMap = new Map(planSubjects.map(subject => [subjectKeyV193(subject), subject]));
+    const subjectMap = new Map(planSubjects
+      .filter(subject => !isClassHourSubjectV199(subject))
+      .map(subject => [subjectKeyV193(subject), subject]));
     templateRows.forEach(item => {
       const key = subjectKeyV193(item.fan_nomi);
       if (!subjectMap.has(key)) subjectMap.set(key, item.fan_nomi);
@@ -3172,7 +3193,7 @@ function TeacherFirstLoadEditorV192({
     setPlanCells(nextCells);
     setPlanMessage({
       tone: "success",
-      text: `Rasmiy tayanch reja faqat maktabda tanlangan fan–sinflarga avtomatik qo‘yildi. Istalgan soatni tuzatishingiz mumkin.`,
+      text: `Rasmiy tayanch reja qo‘yildi. Har bir sinfga fanlardan tashqari yana 1 soat SINF SOATI avtomatik qo‘shildi.`,
     });
   };
 
@@ -3182,7 +3203,7 @@ function TeacherFirstLoadEditorV192({
     planSubjects.forEach(subject => {
       const cleanSubject = String(subject || "").replace(/\s+/g, " ").trim();
       const subjectKey = subjectKeyV193(cleanSubject);
-      if (!subjectKey || seenSubjects.has(subjectKey)) return;
+      if (!subjectKey || isClassHourSubjectV199(cleanSubject) || seenSubjects.has(subjectKey)) return;
       seenSubjects.add(subjectKey);
       (data?.sinflar || []).forEach(cls => {
         const hours = Number(planCells[planCellKey(cls.id, cleanSubject)] || 0);
@@ -3250,8 +3271,8 @@ function TeacherFirstLoadEditorV192({
       setPlanMessage({
         tone: "success",
         text: approve
-          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat matritsasi saqlandi va tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
-          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi vaqtincha saqlandi. Reja hali tasdiqlanmadi va dars jadvaliga kiritilmadi.`,
+          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat rejasi saqlandi. Har sinfga 1 soat SINF SOATI ham qo‘shildi va reja tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
+          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi va har sinf uchun 1 soat SINF SOATI vaqtincha saqlandi. Reja hali tasdiqlanmadi.`,
       });
       await onChanged?.();
     } catch (error) {
@@ -3911,7 +3932,7 @@ function TeacherFirstLoadEditorV192({
       }
       setMessage({
         tone: warnings.length ? "warning" : "success",
-        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}.` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
+        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga jami ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}. SINF SOATI avtomatik qo‘shildi (+1 soat).` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
       });
       try {
         await onChanged?.();
@@ -3969,13 +3990,15 @@ function TeacherFirstLoadEditorV192({
   const draftFanTotal = rows.reduce(
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
   );
-  const draftClassTotal = creatingNew ? 0 : Number(teacherTotal?.sinf_soati || 0);
+  const draftClassTotal = activeProfileValues.rahbar_sinf_id ? 1 : 0;
   const draftWeeklyTotal = draftFanTotal + draftClassTotal;
   const targetDifference = targetHours ? targetHours - draftWeeklyTotal : 0;
   const planDraftRows = planPayloadRows();
-  const planSchoolTotal = planDraftRows.reduce(
+  const planAcademicTotal = planDraftRows.reduce(
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
   );
+  const planClassHourTotal = (data?.sinflar || []).length;
+  const planSchoolTotal = planAcademicTotal + planClassHourTotal;
   const openPlanReference = () => {
     const currentClassId = rows.find(row => row.sinf_id)?.sinf_id || "";
     setPlanReferenceClassId(String(currentClassId));
@@ -4412,8 +4435,9 @@ function TeacherFirstLoadEditorV192({
           <div className="text-xl font-black" style={{ color: palette.ink }}>{planSubjects.length} ta</div>
         </div>
         <div className="rounded-xl px-4 py-2.5 min-w-[170px]" style={{ background: palette.cream }}>
-          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Maktab haftalik jami</div>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Fanlar + sinf soati</div>
           <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal} soat</div>
+          <div className="text-[9px] font-bold" style={{ color: palette.muted }}>{planAcademicTotal} fan + {planClassHourTotal} sinf soati</div>
         </div>
         <button onClick={autoFillPlanTemplate} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>
           ⚡ Rasmiy o‘quv reja bilan avtomatik to‘ldirish
@@ -4430,22 +4454,25 @@ function TeacherFirstLoadEditorV192({
         Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.
       </SmartNotice></div> : <>
         <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
-          Sinflar qatorlarda, fanlar ustunlarda. Bo‘sh/0 katak — fan bu sinfda yo‘q. Fanlar va tegishli sinflar “Boshlang‘ich sozlamalar”dagi saqlangan tanlovdan keladi.
+          Sinflar qatorlarda, fanlar ustunlarda. SINF SOATI har bir sinfga 1 soatdan avtomatik va faqat bir marta qo‘shiladi.
         </div>
         <div className="mt-3 rounded-2xl border overflow-auto max-h-[68vh]" style={{ borderColor: palette.line }}>
-          <table className="border-collapse text-xs" style={{ minWidth: `${175 + planSubjects.length * 54 + 90}px`, width: "100%" }}>
+          <table className="border-collapse text-xs" style={{ minWidth: `${175 + (planSubjects.length + 1) * 54 + 90}px`, width: "100%" }}>
             <thead className="sticky top-0 z-20">
               <tr>
                 <th className="sticky left-0 z-30 p-3 text-left min-w-[175px]" style={{ background: palette.ink, color: "#fff" }}>SINF ↓ / FAN →</th>
                 {planSubjects.map(subject => <th key={subject} className="p-0 text-center min-w-[54px] h-[165px]" title={subject} style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}>
                   <div className="mx-auto text-[10px] font-black leading-tight" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 155 }}>{subject}</div>
                 </th>)}
+                <th className="p-0 text-center min-w-[54px] h-[165px]" title="Har bir sinfga avtomatik 1 soat" style={{ background: palette.teal, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}>
+                  <div className="mx-auto text-[10px] font-black leading-tight" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 155 }}>SINF SOATI · AVTO</div>
+                </th>
                 <th className="p-2 text-center min-w-[90px]" style={{ background: palette.blue, color: "#fff" }}>HAFTALIK<br/>JAMI</th>
               </tr>
             </thead>
             <tbody>
               {(data.sinflar || []).map((cls, classIndex) => {
-                const classTotal = planSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
+                const classTotal = 1 + planSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
                 return <tr key={cls.id} className="border-t" style={{ borderColor: palette.line }}>
                   <th className="sticky left-0 z-10 p-2.5 text-left" style={{ background: classIndex % 2 ? "#F8FBFD" : "#fff", color: palette.ink, borderRight: `1px solid ${palette.line}` }}>
                     <div className="font-black">{cls.sinf}-{cls.harf}</div>
@@ -4457,6 +4484,9 @@ function TeacherFirstLoadEditorV192({
                     <input aria-label={`${cls.sinf}-${cls.harf} ${subject}`} type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="—" onChange={event => updatePlanCell(cls.id, subject, event.target.value)} className="w-11 px-1 py-2 rounded-lg border text-center font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted }}/>
                   </td>;
                 })}
+                  <td className="p-1 text-center" title="Sinf rahbariga avtomatik biriktiriladi" style={{ background: palette.mint, borderLeft: `1px solid ${palette.line}` }}>
+                    <div className="w-11 mx-auto px-1 py-2 rounded-lg border text-center font-black" style={{ borderColor: "#8FC4A5", color: palette.green }}>1</div>
+                  </td>
                   <th className="p-2 text-center text-sm font-black" style={{ background: palette.blue, color: "#fff" }}>{classTotal}</th>
                 </tr>;
               })}
@@ -4563,7 +4593,7 @@ function TeacherFirstLoadEditorV192({
                   {cls.sinf}-{cls.harf}{cls.rahbar_user_id ? ` · ${cls.rahbar_ismi || "rahbari bor"}` : ""}
                 </option>)}
               </select>
-              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Rahbari bor sinflar tanlanmaydi.</span>
+              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Sinf tanlansa, o‘qituvchiga haftasiga 1 soat SINF SOATI avtomatik qo‘shiladi. Rahbari bor sinflar tanlanmaydi.</span>
             </label>
             {(() => {
               const leaderClass = (data?.sinflar || []).find(cls => String(cls.id) === String(newTeacher.rahbar_sinf_id));
@@ -4643,7 +4673,7 @@ function TeacherFirstLoadEditorV192({
                     </option>;
                   })}
                 </select>
-                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq turadi.</span>
+                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Tanlangan sinf uchun 1 soat SINF SOATI avtomatik yuklamaga kiradi. Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq.</span>
               </label>
             </div>
           </div>}
@@ -5187,6 +5217,8 @@ function TeacherWeeklySchedule({ detail, setup }) {
   }).filter(Boolean);
   const maxCrossShiftGap = Math.max(0, ...crossShiftGaps.map(row => row.minutes));
   const totalCrossShiftGap = crossShiftGaps.reduce((sum, row) => sum + row.minutes, 0);
+  const overOneHourDays = crossShiftGaps.filter(row => row.minutes > 60).length;
+  const overTwoHourDays = crossShiftGaps.filter(row => row.minutes > 120).length;
   const parallelConflict = selectedSlots.some((slot, index) => selectedSlots.slice(index + 1).some(other => {
     const sameTime = Number(slot.hafta_kuni) === Number(other.hafta_kuni)
       && Number(slot.smena) === Number(other.smena)
@@ -5208,7 +5240,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
         <span title={gapCount ? `${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}` : "Smena ichida bo‘sh dars yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}{gapShiftDays ? ` · ${gapShiftDays} kun` : ""}</span>
-        <span title={crossShiftGaps.length ? `Jami: ${scheduleDurationLabel(totalCrossShiftGap)} · ${crossShiftGaps.map(row => `${row.name}: ${scheduleDurationLabel(row.minutes)}`).join("; ")}` : "Ustoz bir kunda ikki smenada ishlamaydi"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: maxCrossShiftGap > 180 ? palette.redBg : maxCrossShiftGap > 120 ? palette.amberBg : palette.greenBg, color: maxCrossShiftGap > 180 ? palette.red : maxCrossShiftGap > 120 ? palette.amber : palette.green }}>{crossShiftGaps.length ? `Smena oralig‘i max ${scheduleDurationLabel(maxCrossShiftGap)}` : "Smena oralig‘i yo‘q"}</span>
+        <span title={crossShiftGaps.length ? `Maqsad: 0–1 soat; faqat bitta kunda 1–2 soat istisno. Jami: ${scheduleDurationLabel(totalCrossShiftGap)} · ${crossShiftGaps.map(row => `${row.name}: ${scheduleDurationLabel(row.minutes)}`).join("; ")}` : "Ustoz bir kunda ikki smenada ishlamaydi"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: overTwoHourDays || overOneHourDays > 1 ? palette.redBg : overOneHourDays ? palette.amberBg : palette.greenBg, color: overTwoHourDays || overOneHourDays > 1 ? palette.red : overOneHourDays ? palette.amber : palette.green }}>{crossShiftGaps.length ? `Smena oralig‘i max ${scheduleDurationLabel(maxCrossShiftGap)}${overOneHourDays ? ` · >1s ${overOneHourDays} kun` : ""}` : "Smena oralig‘i yo‘q"}</span>
         <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
         </select>
@@ -5235,7 +5267,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         }))}</tbody>
       </table>
     </div>}
-    {selectedTeacher && <div className="mt-1 text-[8px] truncate" style={{ color: palette.muted }}>{selectedTeacher.full_name} · 1-smena darslari oxiriga, 2-smena darslari boshiga yaqinlashtirilib ichki okno va smenalar orasidagi kutish birga kamaytiriladi.</div>}
+    {selectedTeacher && <div className="mt-1 text-[8px] truncate" style={{ color: palette.muted }}>{selectedTeacher.full_name} · ichki okno maqsadi 0; smenalar oralig‘i odatda 0–1 soat, faqat bir kunda 1–2 soat istisno. 15–19 soatli fan ustozlari avval 4, sig‘masa 5 kunga zichlanadi.</div>}
   </Card>;
 }
 
@@ -6309,7 +6341,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       <Card className="p-3.5">
         <div className="flex items-center justify-between gap-2 mb-2"><h3 className="text-sm font-black" style={{ color: palette.ink }}>Aniq diagnostika</h3><span className="text-[10px] font-black px-2 py-1 rounded-full" style={{ background: mismatchRows.length ? palette.redBg : palette.greenBg, color: mismatchRows.length ? palette.red : palette.green }}>{mismatchRows.length + (match.xatolar || []).length + problems.length} ta</span></div>
         <div className="space-y-1 max-h-[220px] overflow-auto pr-1">
-          {mismatchRows.map((row, index) => <div key={`m-${index}`} className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2 text-[11px] leading-tight" style={{ background: palette.redBg }}><span className="font-bold truncate" title={`${row.type} · ${row.name}`} style={{ color: palette.ink }}>{row.type} · {row.name}</span><span className="shrink-0 font-black" style={{ color: palette.red }}>{row.plan}→{row.actual} ({row.actual - row.plan})</span></div>)}
+          {mismatchRows.map((row, index) => <div key={`m-${index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-tight" style={{ background: palette.redBg }}>
+            <div className="font-black" style={{ color: palette.ink }}>{row.type} · {row.name}</div>
+            <div className="mt-1 font-bold" style={{ color: palette.red }}>{mismatchExplanationV199(row)}</div>
+          </div>)}
           {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={error} style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
           {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2 text-[11px] leading-tight" style={{ background: palette.redBg }}><span className="font-bold truncate" title={`${problem.sinf} · ${problem.fan}`} style={{ color: palette.ink }}>{problem.sinf} · {problem.fan}</span><span className="shrink-0 truncate max-w-[45%]" title={problem.sabab} style={{ color: palette.red }}>{problem.sabab}</span></div>)}
           {warnings.length > 0 && <div className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={warnings.join(" · ")} style={{ background: palette.amberBg, color: palette.amber }}>{warnings.length} ta ogohlantirish · {warnings[0]}</div>}
