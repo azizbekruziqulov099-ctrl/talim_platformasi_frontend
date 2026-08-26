@@ -5127,6 +5127,12 @@ function TeacherWeeklySchedule({ detail, setup }) {
     const periods = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift).map(slot => Number(slot.dars_raqami)))].sort((a, b) => a - b);
     return sum + (periods.length > 1 ? periods[periods.length - 1] - periods[0] + 1 - periods.length : 0);
   }, 0), 0);
+  const crossShiftBlocks = smartDays.slice(0, weekdays).reduce((total, [day]) => {
+    const first = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 1).map(slot => Number(slot.dars_raqami)))];
+    const second = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === 2).map(slot => Number(slot.dars_raqami)))];
+    if (!first.length || !second.length) return total;
+    return total + Math.max(0, 6 - Math.max(...first)) + Math.max(0, Math.min(...second) - 1);
+  }, 0);
 
   return <Card className="p-2.5">
     <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
@@ -5138,6 +5144,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{sessionCount} dars</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: gapCount ? palette.amberBg : palette.greenBg, color: gapCount ? palette.amber : palette.green }}>{gapCount} okno</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: crossShiftBlocks ? palette.amberBg : palette.greenBg, color: crossShiftBlocks ? palette.amber : palette.green }}>smena oralig‘i {crossShiftBlocks} blok</span>
         <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
         </select>
@@ -5165,7 +5172,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         }))}</tbody>
       </table>
     </div>}
-    {selectedTeacher && <div className="mt-1 text-[8px] truncate" style={{ color: palette.muted }}>{selectedTeacher.full_name} · katta bo‘sh oynalar qizil diagnostikaga tushadi, jadval yaratishda esa ixcham ketma-ketlik ustuvor.</div>}
+    {selectedTeacher && <div className="mt-1 text-[8px] truncate" style={{ color: palette.muted }}>{selectedTeacher.full_name} · 1-smena darslari oxiriga, 2-smena darslari boshiga yaqinlashtirilib ichki okno va smenalar orasidagi kutish birga kamaytiriladi.</div>}
   </Card>;
 }
 
@@ -5198,16 +5205,16 @@ function SanitaryScheduleRulesV1874() {
         <h2 className="text-xl font-black" style={{color:palette.ink}}>Jadval yaratishdan oldingi qattiq qoidalar</h2>
         <p className="text-xs mt-1" style={{color:palette.muted}}>Generator bu qoidalarni avtomatik tekshiradi; majburan tasdiqlash ham ularni buzmaydi.</p>
       </div>
-      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>V19.6 qulaylik strategiyasi faol</span>
+      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>V19.8 pedagogik strategiya faol</span>
     </div>
     <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>1-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 2 kun 5 dars. 5-dars faqat yengil fan.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>2–4-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Odatda 4 dars; haftada ko‘pi bilan 4 kun 5 dars. 6-dars qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>5–11-sinf</div><div className="text-xs mt-1" style={{color:palette.muted}}>Majburiy jadvalda kuniga maksimum 6 dars. 7-darsga majburiy fan qo‘yilmaydi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Ichki okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>1–2–3, bo‘sh 4, keyin 5 ko‘rinishidagi jadval tasdiqlanmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika ertaroq; jismoniy tarbiya va texnologiya 3–6 afzal. Texnologiya 1–2 ga faqat zaruratda tushadi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Fan vaqti</div><div className="text-xs mt-1" style={{color:palette.muted}}>Ona tili, adabiyot, matematika, algebra, geometriya, fizika, kimyo va biologiya 1–4; J/T va texnologiya 3–6 afzal. J/T 1-darsga tushmaydi, 2 faqat zaruratda.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinf yoshiga mos</div><div className="text-xs mt-1" style={{color:palette.muted}}>5–6-sinf 1–3-darsga mosroq; 7–8-sinf 2–4; 9–11-sinf og‘ir fanlari asosan 2–4-darsga joylanadi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>O‘qituvchiga ixcham</div><div className="text-xs mt-1" style={{color:palette.muted}}>Bekor “oyna”, ortiqcha ish kuni va 5-sinfdan birdan 11-sinfga keskin ketma-ket o‘tish kamaytiriladi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>O‘qituvchiga ixcham</div><div className="text-xs mt-1" style={{color:palette.muted}}>Bekor “oyna” kamayadi. Ikki smenali ustozning 1-smenasi oxiriga, 2-smenasi boshiga yig‘ilib, smenalar orasidagi kutish qisqaradi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>To‘g‘ri almashuv</div><div className="text-xs mt-1" style={{color:palette.muted}}>Ketma-ket og‘ir fanlar kamayadi; jismoniy tarbiyadan keyin matematika, fizika kabi yozma-og‘ir fan imkon qadar qo‘yilmaydi.</div></div>
     </div>
   </Card>;
