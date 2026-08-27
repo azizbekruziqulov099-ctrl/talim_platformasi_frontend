@@ -398,6 +398,17 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
   const load = useCallback(async (explicitId) => {
     setLoading(true); setError("");
     try {
+      if (initialFacultyId && (explicitId || legacyUniversityId)) {
+        const directUniversityId = Number(explicitId || legacyUniversityId);
+        const s = await api(`/api/institut/v20/tuzilma?universitet_id=${directUniversityId}&token=${encodeURIComponent(token)}`);
+        setBootstrap({
+          universitet: { id: directUniversityId, nomi: initialWorkspace?.nomi || "Institut", viloyat: "", tuman: "" },
+          rollar: [{ rol: "institut_admin" }], asosiy_rol: "institut_admin",
+          ruxsatlar: { super_admin: true, tuzilma_korish: true, tuzilma_boshqarish: true, xodim_korish: true, xodim_boshqarish: true, admin_boshqarish: true, qabul_korish: true, hujjat_belgilash: true, bazaga_belgilash: true, saytga_kiritish: true, qabul_holatlari_toliq: true, sayt_holati_korish: true, parol_korish: true, tyutor_korish: true, tyutor_boshqarish: true, maxfiy_malumot: true },
+          sonlar: { fakultet: (s.fakultetlar || []).length, yonalish: (s.fakultetlar || []).flatMap(f => f.kafedralar || []).flatMap(k => k.yonalishlar || []).length, talaba: 0 },
+        });
+        setStructure(s); setSuperAdminInstitutes(null); return;
+      }
       const qs = new URLSearchParams({ token }); if (explicitId || manualUniversityId || legacyUniversityId) qs.set("universitet_id", explicitId || manualUniversityId || legacyUniversityId); else if (workspaceId) qs.set("workspace_id", workspaceId);
       const b = await api(`/api/institut/v20/bootstrap?${qs}`); setBootstrap(b);
       const s = await api(`/api/institut/v20/tuzilma?universitet_id=${b.universitet.id}&token=${encodeURIComponent(token)}`); setStructure(s);
@@ -408,10 +419,11 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
         setSuperAdminInstitutes(adminData.institutlar || []);
       } catch { setSuperAdminInstitutes(null); }
     } finally { setLoading(false); }
-  }, [api, token, workspaceId, legacyUniversityId, manualUniversityId]);
+  }, [api, token, workspaceId, legacyUniversityId, manualUniversityId, initialFacultyId, initialWorkspace?.nomi]);
   useEffect(() => { load(); }, [load]);
   const refreshStructure = async () => { if (!bootstrap) return; try { setStructure(await api(`/api/institut/v20/tuzilma?universitet_id=${bootstrap.universitet.id}&token=${encodeURIComponent(token)}`)); } catch {} };
   if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 size={30} className="animate-spin" style={{ color: COLORS.blue }} /></div>;
+  if (!bootstrap && initialFacultyId) return <main className="mx-auto max-w-2xl p-6"><button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Kafedralarga qaytish</button><ErrorBox text={error || "Tanlangan fakultetning import ma’lumoti yuklanmadi."} /></main>;
   if (!bootstrap) {
     if (showInstituteCreate || (canCreateInstitution && superAdminInstitutes?.length === 0)) return <InstituteCreate api={api} token={token} onCreated={id => { setManualUniversityId(id); load(id); }} onBack={() => setShowInstituteCreate(false)} />;
     if (canCreateInstitution || superAdminInstitutes) return <main className="mx-auto max-w-5xl p-4 md:p-7"><button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Bosh sahifa</button><Card className="p-5 md:p-7"><div className="flex flex-wrap items-center justify-between gap-3"><div><Pill tone="violet">SUPER ADMIN</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>Institutni tanlang</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>Super-admin uchun institut paroli kerak emas.</p></div><Button onClick={() => setShowInstituteCreate(true)}><Plus size={16} /> Yangi institut</Button></div><div className="mt-5 grid gap-3 md:grid-cols-2">{(superAdminInstitutes || []).map(x => <button key={x.id} onClick={() => { setManualUniversityId(x.id); load(x.id); }} className="rounded-2xl border p-4 text-left" style={{ borderColor: COLORS.line, background: "#fff" }}><div className="font-black" style={{ color: COLORS.ink }}>{x.nomi}</div><div className="mt-1 text-xs" style={{ color: COLORS.muted }}>{x.viloyat || ""} {x.tuman || ""}</div><div className="mt-3 flex gap-2"><Pill tone="blue">{x.fakultet_soni || 0} fakultet</Pill><Pill tone="green">{x.talaba_soni || 0} talaba</Pill></div></button>)}</div>{!(superAdminInstitutes || []).length && <div className="mt-5"><Empty>Hozircha institut yo‘q. “Yangi institut”ni bosing.</Empty></div>}</Card></main>;
@@ -420,6 +432,10 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
   const id = bootstrap.universitet.id; const permissions = bootstrap.ruxsatlar || {};
   const openStructure = mode => { setStructureStartMode(mode); setTab("structure"); };
   if (bootstrap.asosiy_rol === "talaba") return <main className="mx-auto max-w-6xl p-4 md:p-7"><button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Bosh sahifa</button><StudentHome api={api} token={token} universityId={id} /></main>;
+  if (initialFacultyId) {
+    const directFaculty = (structure?.fakultetlar || []).find(f => String(f.id) === String(initialFacultyId));
+    return <main className="min-h-screen p-4 md:p-7" style={{ background: "linear-gradient(180deg,#F4FAFB,#FAF8F3)" }}><div className="mx-auto max-w-[1500px]"><button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Kafedralarga qaytish</button><Card className="mb-4 p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}><Pill tone="blue">TALABALAR IMPORTI</Pill><h1 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{directFaculty?.nomi || "Tanlangan fakultet"}</h1><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{bootstrap.universitet.nomi} · XLS fayl shu fakultetga import qilinadi.</p></Card><AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={id} structure={structure} permissions={permissions} onCredentials={setCredentials} startMode="import" lockedFacultyId={initialFacultyId} /><CredentialsModal items={credentials} onClose={() => setCredentials([])} /></div></main>;
+  }
   const tabs = [
     ["dashboard", "Asosiy", GraduationCap], ["structure", "Tuzilma", Building2],
     ["staff", "Xodimlar", Users], ["admission", "1-kurs qabuli", ClipboardCheck],
