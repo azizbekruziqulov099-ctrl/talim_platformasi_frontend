@@ -1014,9 +1014,9 @@ function ClassHourPanel({ token, apiBase, maktabId, setup, reload, setStep }) {
   useEffect(()=>{if(day>weekdays)setDay(weekdays);if(period>maxPeriod)setPeriod(maxPeriod);},[weekdays,maxPeriod]);
   const toggle=(list,setter,value)=>setter(list.includes(String(value))?list.filter(x=>x!==String(value)):[...list,String(value)]);
   const selectedCount=mode==="parallel"?classes.filter(c=>grades.includes(String(Number(String(c.sinf||"").replace(/\D/g,""))))).length:classIds.length;
-  const saveRule=async createDraft=>{if(!selectedCount)return setMessage({tone:"error",text:"Kamida bitta parallel yoki aniq sinfni tanlang."});setSaving(true);setMessage(null);try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_soati_bulk?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,qamrov:mode,sinf_darajalari:grades.map(Number),sinf_idlar:classIds.map(Number),hafta_kuni:Number(day),dars_raqami:Number(period)})});const skipped=d.otkazib_yuborildi||[];let text=`${d.saqlandi||0} ta sinfga sinf soati saqlandi. U sinfning o‘z smenasida ${smartDays.find(([x])=>Number(x)===Number(day))?.[1]}, ${period}-darsga va sinf rahbariga biriktiriladi.`;if(skipped.length)text+=` ${skipped.length} ta sinf o‘tkazib yuborildi: ${skipped.slice(0,4).map(x=>`${x.sinf} — ${x.sabab}`).join("; ")}`;setMessage({tone:skipped.length?"warning":"success",text});await reload();if(createDraft){try{const draft=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,urinishlar_soni:10})});setMessage({tone:draft.joylashtirilmadi?"warning":"success",text:`Sinf soati qoidasi saqlandi va yangi draft yaratildi: ${draft.joylashtirildi}/${draft.jami_soat} soat joylashdi.`});setStep?.(4);}catch(e){setMessage({tone:"warning",text:`Sinf soati qoidasi saqlandi, lekin yangi draft yaratilmadi: ${e.message}`});}}}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
+  const saveRule=async createDraft=>{if(!selectedCount)return setMessage({tone:"error",text:"Kamida bitta parallel yoki aniq sinfni tanlang."});setSaving(true);setMessage(null);try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_soati_bulk?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,qamrov:mode,sinf_darajalari:grades.map(Number),sinf_idlar:classIds.map(Number),hafta_kuni:Number(day),dars_raqami:Number(period)})});const skipped=d.otkazib_yuborildi||[];let text=`${d.saqlandi||0} ta sinfga Kelajak soati saqlandi. U sinfning o‘z smenasida ${smartDays.find(([x])=>Number(x)===Number(day))?.[1]}, ${period}-darsga va sinf rahbariga biriktiriladi.`;if(skipped.length)text+=` ${skipped.length} ta sinf o‘tkazib yuborildi: ${skipped.slice(0,4).map(x=>`${x.sinf} — ${x.sabab}`).join("; ")}`;setMessage({tone:skipped.length?"warning":"success",text});await reload();if(createDraft){try{const draft=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,urinishlar_soni:10})});setMessage({tone:draft.joylashtirilmadi?"warning":"success",text:`Kelajak soati qoidasi saqlandi va yangi draft yaratildi: ${draft.joylashtirildi}/${draft.jami_soat} soat joylashdi.`});setStep?.(4);}catch(e){setMessage({tone:"warning",text:`Kelajak soati qoidasi saqlandi, lekin yangi draft yaratilmadi: ${e.message}`});}}}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
   const remove=async row=>{if(!window.confirm(`${row.sinf}-${row.harf} sinf soati qoidasi olib tashlansinmi?`))return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_soati?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${row.sinf_id}`,{method:"DELETE"});setMessage({tone:"success",text:`${row.sinf}-${row.harf} sinf soati qoidasi olib tashlandi. Faol jadval o‘zgarmaydi; keyingi draftda qo‘llanmaydi.`});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
-  return <Card className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>Sinf soatini avtomatik joylash</h2><p className="text-xs mt-1" style={{color:palette.muted}}>Kun va dars raqamini bir marta belgilang. Har sinf o‘z smenasida, aynan shu vaqtda <b>SINF SOATI</b> bo‘lib chiqadi va sinf rahbariga biriktiriladi.</p></div><div className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>{rules.length} ta faol qoida</div></div>{message&&<div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}<div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4 mt-4"><div className="rounded-2xl p-4" style={{background:palette.cream}}><div className="flex gap-2 mb-3"><button onClick={()=>setMode("parallel")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="parallel"?palette.blue:"#fff",color:mode==="parallel"?"#fff":palette.ink}}>Parallel sinflar</button><button onClick={()=>setMode("aniq")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="aniq"?palette.blue:"#fff",color:mode==="aniq"?"#fff":palette.ink}}>Aniq sinflar</button></div>{mode==="parallel"?<><div className="text-xs font-black mb-2">Qaysi parallel?</div><div className="grid grid-cols-4 sm:grid-cols-6 gap-2">{availableGrades.map(g=><button key={g} onClick={()=>toggle(grades,setGrades,g)} className="py-2 rounded-xl border text-xs font-black" style={{background:grades.includes(String(g))?palette.sky:"#fff",borderColor:grades.includes(String(g))?palette.blue:palette.line,color:grades.includes(String(g))?palette.blue:palette.muted}}>{g}-sinf</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setGrades(availableGrades.map(String))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>Barchasi</button><button onClick={()=>setGrades([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>Tozalash</button></div></>:<><div className="text-xs font-black mb-2">Qaysi sinflar?</div><div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-40 overflow-auto">{classes.map(c=><button key={c.id} onClick={()=>toggle(classIds,setClassIds,c.id)} className="py-2 rounded-xl border text-xs font-black" style={{background:classIds.includes(String(c.id))?palette.sky:"#fff",borderColor:classIds.includes(String(c.id))?palette.blue:palette.line,color:classIds.includes(String(c.id))?palette.blue:palette.muted}}>{c.sinf}-{c.harf}</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setClassIds(classes.map(c=>String(c.id)))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>Barchasi</button><button onClick={()=>setClassIds([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>Tozalash</button></div></>}<div className="text-xs font-black mt-4 mb-2">Qaysi kuni?</div><div className="grid grid-cols-3 gap-2">{smartDays.slice(0,weekdays).map(([d,n])=><button key={d} onClick={()=>setDay(Number(d))} className="py-2 rounded-xl border text-xs font-black" style={{background:Number(day)===Number(d)?palette.sky:"#fff",borderColor:Number(day)===Number(d)?palette.blue:palette.line,color:Number(day)===Number(d)?palette.blue:palette.muted}}>{n}</button>)}</div><label className="block text-xs font-black mt-4">Qaysi dars?<select value={period} onChange={e=>setPeriod(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white">{Array.from({length:maxPeriod},(_,i)=><option key={i+1} value={i+1}>{i+1}-dars</option>)}</select></label><div className="text-[11px] mt-2" style={{color:palette.muted}}>Smena alohida tanlanmaydi: har bir sinfning o‘z smenasi avtomatik olinadi.</div><div className="grid sm:grid-cols-2 gap-2 mt-4"><button onClick={()=>saveRule(false)} disabled={saving} className="py-3 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>Faqat qoidani saqlash ({selectedCount})</button><button onClick={()=>saveRule(true)} disabled={saving} className="py-3 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>Qoida + yangi draft</button></div></div><div><div className="text-sm font-black mb-2" style={{color:palette.ink}}>Faol sinf soati qoidalari</div><div className="space-y-2 max-h-[470px] overflow-auto">{rules.map(r=><div key={r.id} className="rounded-2xl border p-3 flex items-center gap-3" style={{borderColor:palette.line,background:"#fff"}}><div className="flex-1 min-w-0"><div className="text-sm font-black" style={{color:palette.ink}}>{r.sinf}-{r.harf} · {smartDays.find(([d])=>Number(d)===Number(r.hafta_kuni))?.[1]} · {r.dars_raqami}-dars</div><div className="text-xs mt-1" style={{color:r.rahbar_ismi?palette.teal:palette.red}}>{r.smena}-smena · Sinf rahbari: {r.rahbar_ismi||"belgilanmagan"}</div></div><button onClick={()=>remove(r)} className="w-8 h-8 rounded-xl font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rules.length&&<SmartNotice tone="info">Sinf soati qoidasi hali yo‘q. Sinflar, kun va darsni tanlab saqlang.</SmartNotice>}</div></div></div></Card>;
+  return <Card className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>Kelajak soatini avtomatik joylash</h2><p className="text-xs mt-1" style={{color:palette.muted}}>Kun va dars raqamini bir marta belgilang. Har sinf o‘z smenasida, aynan shu vaqtda haftasiga <b>1 soat KELAJAK SOATI</b> o‘tiladi va sinf rahbariga biriktiriladi.</p></div><div className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>{rules.length} ta faol qoida</div></div>{message&&<div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}<div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4 mt-4"><div className="rounded-2xl p-4" style={{background:palette.cream}}><div className="flex gap-2 mb-3"><button onClick={()=>setMode("parallel")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="parallel"?palette.blue:"#fff",color:mode==="parallel"?"#fff":palette.ink}}>Parallel sinflar</button><button onClick={()=>setMode("aniq")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="aniq"?palette.blue:"#fff",color:mode==="aniq"?"#fff":palette.ink}}>Aniq sinflar</button></div>{mode==="parallel"?<><div className="text-xs font-black mb-2">Qaysi parallel?</div><div className="grid grid-cols-4 sm:grid-cols-6 gap-2">{availableGrades.map(g=><button key={g} onClick={()=>toggle(grades,setGrades,g)} className="py-2 rounded-xl border text-xs font-black" style={{background:grades.includes(String(g))?palette.sky:"#fff",borderColor:grades.includes(String(g))?palette.blue:palette.line,color:grades.includes(String(g))?palette.blue:palette.muted}}>{g}-sinf</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setGrades(availableGrades.map(String))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>Barchasi</button><button onClick={()=>setGrades([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>Tozalash</button></div></>:<><div className="text-xs font-black mb-2">Qaysi sinflar?</div><div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-40 overflow-auto">{classes.map(c=><button key={c.id} onClick={()=>toggle(classIds,setClassIds,c.id)} className="py-2 rounded-xl border text-xs font-black" style={{background:classIds.includes(String(c.id))?palette.sky:"#fff",borderColor:classIds.includes(String(c.id))?palette.blue:palette.line,color:classIds.includes(String(c.id))?palette.blue:palette.muted}}>{c.sinf}-{c.harf}</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setClassIds(classes.map(c=>String(c.id)))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>Barchasi</button><button onClick={()=>setClassIds([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>Tozalash</button></div></>}<div className="text-xs font-black mt-4 mb-2">Qaysi kuni?</div><div className="grid grid-cols-3 gap-2">{smartDays.slice(0,weekdays).map(([d,n])=><button key={d} onClick={()=>setDay(Number(d))} className="py-2 rounded-xl border text-xs font-black" style={{background:Number(day)===Number(d)?palette.sky:"#fff",borderColor:Number(day)===Number(d)?palette.blue:palette.line,color:Number(day)===Number(d)?palette.blue:palette.muted}}>{n}</button>)}</div><label className="block text-xs font-black mt-4">Qaysi dars?<select value={period} onChange={e=>setPeriod(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white">{Array.from({length:maxPeriod},(_,i)=><option key={i+1} value={i+1}>{i+1}-dars</option>)}</select></label><div className="text-[11px] mt-2" style={{color:palette.muted}}>Smena alohida tanlanmaydi: har bir sinfning o‘z smenasi avtomatik olinadi.</div><div className="grid sm:grid-cols-2 gap-2 mt-4"><button onClick={()=>saveRule(false)} disabled={saving} className="py-3 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>Faqat qoidani saqlash ({selectedCount})</button><button onClick={()=>saveRule(true)} disabled={saving} className="py-3 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>Qoida + yangi draft</button></div></div><div><div className="text-sm font-black mb-2" style={{color:palette.ink}}>Faol Kelajak soati qoidalari</div><div className="space-y-2 max-h-[470px] overflow-auto">{rules.map(r=><div key={r.id} className="rounded-2xl border p-3 flex items-center gap-3" style={{borderColor:palette.line,background:"#fff"}}><div className="flex-1 min-w-0"><div className="text-sm font-black" style={{color:palette.ink}}>{r.sinf}-{r.harf} · {smartDays.find(([d])=>Number(d)===Number(r.hafta_kuni))?.[1]} · {r.dars_raqami}-dars</div><div className="text-xs mt-1" style={{color:r.rahbar_ismi?palette.teal:palette.red}}>{r.smena}-smena · Sinf rahbari: {r.rahbar_ismi||"belgilanmagan"}</div></div><button onClick={()=>remove(r)} className="w-8 h-8 rounded-xl font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rules.length&&<SmartNotice tone="info">Kelajak soati qoidasi hali yo‘q. Sinflar, kun va darsni tanlab saqlang.</SmartNotice>}</div></div></div></Card>;
 }
 
 
@@ -2495,12 +2495,16 @@ function isClassHourSubjectV199(value) {
   return subjectKeyV193(value) === "sinf soati";
 }
 
+function subjectDisplayNameV201(value) {
+  return isClassHourSubjectV199(value) ? "KELAJAK SOATI" : value;
+}
+
 function mismatchExplanationV199(row) {
   const plan = Number(row?.plan || 0);
   const actual = Number(row?.actual || 0);
   const difference = Math.round(Math.abs(plan - actual) * 10) / 10;
   if (row?.type === "Sinf" && row?.fanLoad != null) {
-    const equation = `${scheduleHourLabel(row.fanLoad)} soat fan yuklamasi + ${scheduleHourLabel(row.classHourPlan || 0)} soat SINF SOATI = ${scheduleHourLabel(plan)} soat`;
+    const equation = `${scheduleHourLabel(row.fanLoad)} soat fan yuklamasi + ${scheduleHourLabel(row.classHourPlan || 0)} soat KELAJAK SOATI = ${scheduleHourLabel(plan)} soat`;
     if (actual < plan) return `${equation}. Jadvalda ${scheduleHourLabel(actual)} soat bor, demak ${scheduleHourLabel(difference)} soat hali joylashmagan.`;
     if (actual > plan) return `${equation}. Jadvalda ${scheduleHourLabel(actual)} soat bor, demak ${scheduleHourLabel(difference)} soat ortiqcha.`;
     return `${equation}. Jadvalda ham ${scheduleHourLabel(actual)} soat — hammasi to‘liq.`;
@@ -2674,7 +2678,7 @@ function teacherBirthProfileV195(teacher) {
   };
 }
 
-export function TeacherFirstLoadEditorV192({
+function TeacherFirstLoadEditorV192({
   token, apiBase, maktabId, onChanged, startWithNew = false,
   planOnly = false, showPlan = true,
 }) {
@@ -3173,6 +3177,15 @@ export function TeacherFirstLoadEditorV192({
     setPlanCells(current => ({ ...current, [planCellKey(classId, subject)]: numeric }));
   };
 
+  const updatePlanGradeCell = (classes, subject, value) => {
+    const numeric = value === "" ? 0 : Math.round(Math.max(0, Math.min(20, Number(value) || 0)) * 2) / 2;
+    setPlanCells(current => {
+      const next = { ...current };
+      classes.forEach(cls => { next[planCellKey(cls.id, subject)] = numeric; });
+      return next;
+    });
+  };
+
   const renamePlanSubject = (index, nextName) => {
     const oldName = planSubjects[index];
     setPlanSubjects(current => current.map((subject, subjectIndex) =>
@@ -3228,7 +3241,7 @@ export function TeacherFirstLoadEditorV192({
     setPlanCells(nextCells);
     setPlanMessage({
       tone: "success",
-      text: `Rasmiy tayanch reja qo‘yildi. Har bir sinfga fanlardan tashqari yana 1 soat SINF SOATI avtomatik qo‘shildi.`,
+      text: `Rasmiy tayanch reja qo‘yildi. Har bir sinfga fanlardan tashqari yana 1 soat KELAJAK SOATI avtomatik qo‘shildi.`,
     });
   };
 
@@ -3306,8 +3319,8 @@ export function TeacherFirstLoadEditorV192({
       setPlanMessage({
         tone: "success",
         text: approve
-          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat rejasi saqlandi. Har sinfga 1 soat SINF SOATI ham qo‘shildi va reja tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
-          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi va har sinf uchun 1 soat SINF SOATI vaqtincha saqlandi. Reja hali tasdiqlanmadi.`,
+          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat rejasi saqlandi. Har sinfga 1 soat KELAJAK SOATI ham qo‘shildi va reja tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
+          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi va har sinf uchun 1 soat KELAJAK SOATI vaqtincha saqlandi. Reja hali tasdiqlanmadi.`,
       });
       await onChanged?.();
     } catch (error) {
@@ -3967,7 +3980,7 @@ export function TeacherFirstLoadEditorV192({
       }
       setMessage({
         tone: warnings.length ? "warning" : "success",
-        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga jami ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}. SINF SOATI avtomatik qo‘shildi (+1 soat).` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
+        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga jami ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}. KELAJAK SOATI avtomatik qo‘shildi (+1 soat).` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
       });
       try {
         await onChanged?.();
@@ -4034,6 +4047,14 @@ export function TeacherFirstLoadEditorV192({
   );
   const planClassHourTotal = (data?.sinflar || []).length;
   const planSchoolTotal = planAcademicTotal + planClassHourTotal;
+  const planGradeRows = Object.values((data?.sinflar || []).reduce((result, cls) => {
+    const match = String(cls.sinf || "").match(/\d+/);
+    const grade = match ? Number(match[0]) : 0;
+    if (grade < 1 || grade > 11) return result;
+    if (!result[grade]) result[grade] = { grade, classes: [] };
+    result[grade].classes.push(cls);
+    return result;
+  }, {})).sort((left, right) => left.grade - right.grade);
   const openPlanReference = () => {
     const currentClassId = rows.find(row => row.sinf_id)?.sinf_id || "";
     setPlanReferenceClassId(String(currentClassId));
@@ -4431,7 +4452,7 @@ export function TeacherFirstLoadEditorV192({
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     {!planOnly && entryCode && <div id="teacher-entry-code" className="rounded-2xl border p-4 flex flex-wrap items-center gap-3 scroll-mt-4" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
       <div className="flex-1 min-w-[240px]">
-        <div className="text-xs font-black" style={{ color: palette.green }}>YANGI O‘QITUVCHINING 2 OYLIK KIRISH KODI</div>
+        <div className="text-xs font-black" style={{ color: palette.green }}>YANGI O‘QITUVCHINING 7 KUNLIK KIRISH KODI</div>
         <div className="text-xl font-black tracking-[.18em] mt-1" style={{ color: palette.ink }}>{entryCode}</div>
         <div className="text-[11px] mt-1" style={{ color: palette.muted }}>Kodni o‘qituvchiga alohida bering. U Google hisobini shu kod bilan bog‘laydi.</div>
       </div>
@@ -4470,7 +4491,7 @@ export function TeacherFirstLoadEditorV192({
           <div className="text-xl font-black" style={{ color: palette.ink }}>{planSubjects.length} ta</div>
         </div>
         <div className="rounded-xl px-4 py-2.5 min-w-[170px]" style={{ background: palette.cream }}>
-          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Fanlar + sinf soati</div>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Fanlar + kelajak soati</div>
           <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal} soat</div>
           <div className="text-[9px] font-bold" style={{ color: palette.muted }}>{planAcademicTotal} fan + {planClassHourTotal} sinf soati</div>
         </div>
@@ -4489,44 +4510,25 @@ export function TeacherFirstLoadEditorV192({
         Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.
       </SmartNotice></div> : <>
         <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
-          Sinflar qatorlarda, fanlar ustunlarda. SINF SOATI har bir sinfga 1 soatdan avtomatik va faqat bir marta qo‘shiladi.
+          Faqat 1–11-sinf darajalari ko‘rsatiladi. Kiritilgan soat shu darajadagi barcha A/B/C parallel sinflarga bir xil qo‘llanadi.
         </div>
-        <div className="mt-3 rounded-2xl border overflow-auto max-h-[68vh]" style={{ borderColor: palette.line }}>
-          <table className="border-collapse text-xs" style={{ minWidth: `${175 + (planSubjects.length + 1) * 54 + 90}px`, width: "100%" }}>
-            <thead className="sticky top-0 z-20">
-              <tr>
-                <th className="sticky left-0 z-30 p-3 text-left min-w-[175px]" style={{ background: palette.ink, color: "#fff" }}>SINF ↓ / FAN →</th>
-                {planSubjects.map(subject => <th key={subject} className="p-0 text-center min-w-[54px] h-[165px]" title={subject} style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}>
-                  <div className="mx-auto text-[10px] font-black leading-tight" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 155 }}>{subject}</div>
-                </th>)}
-                <th className="p-0 text-center min-w-[54px] h-[165px]" title="Har bir sinfga avtomatik 1 soat" style={{ background: palette.teal, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}>
-                  <div className="mx-auto text-[10px] font-black leading-tight" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 155 }}>SINF SOATI · AVTO</div>
-                </th>
-                <th className="p-2 text-center min-w-[90px]" style={{ background: palette.blue, color: "#fff" }}>HAFTALIK<br/>JAMI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.sinflar || []).map((cls, classIndex) => {
-                const classTotal = 1 + planSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
-                return <tr key={cls.id} className="border-t" style={{ borderColor: palette.line }}>
-                  <th className="sticky left-0 z-10 p-2.5 text-left" style={{ background: classIndex % 2 ? "#F8FBFD" : "#fff", color: palette.ink, borderRight: `1px solid ${palette.line}` }}>
-                    <div className="font-black">{cls.sinf}-{cls.harf}</div>
-                    <div className="text-[9px] mt-0.5" style={{ color: palette.muted }}>{cls.smena}-smena</div>
-                  </th>
-                  {planSubjects.map(subject => {
-                  const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
-                  return <td key={subject} className="p-1 text-center" style={{ background: value > 0 ? palette.greenBg : (classIndex % 2 ? "#F8FBFD" : "#fff"), borderLeft: `1px solid ${palette.line}` }}>
-                    <input aria-label={`${cls.sinf}-${cls.harf} ${subject}`} type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="—" onChange={event => updatePlanCell(cls.id, subject, event.target.value)} className="w-11 px-1 py-2 rounded-lg border text-center font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted }}/>
-                  </td>;
-                })}
-                  <td className="p-1 text-center" title="Sinf rahbariga avtomatik biriktiriladi" style={{ background: palette.mint, borderLeft: `1px solid ${palette.line}` }}>
-                    <div className="w-11 mx-auto px-1 py-2 rounded-lg border text-center font-black" style={{ borderColor: "#8FC4A5", color: palette.green }}>1</div>
-                  </td>
-                  <th className="p-2 text-center text-sm font-black" style={{ background: palette.blue, color: "#fff" }}>{classTotal}</th>
-                </tr>;
-              })}
-            </tbody>
-          </table>
+        <div className="mt-3 space-y-3 max-h-[68vh] overflow-y-auto pr-1">
+          {planGradeRows.map(gradeRow => {
+            const cls = gradeRow.classes[0];
+            const configured = (data.fan_sinflari || []).find(item => String(item.sinf_id) === String(cls?.id))?.fanlar || [];
+            const allowedSubjects = configured.length ? configured : planSubjects;
+            const classTotal = 1 + allowedSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
+            return <div key={gradeRow.grade} className="rounded-2xl border p-4" style={{ borderColor: palette.line, background: "#fff" }}>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div><div className="text-base font-black" style={{ color: palette.ink }}>{gradeRow.grade}-sinf</div><div className="text-[10px]" style={{ color: palette.muted }}>Barcha parallel sinflarga bir xil qo‘llanadi</div></div>
+                <div className="flex gap-2"><span className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.mint, color: palette.green }}>Kelajak soati: 1</span><span className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Jami: {classTotal}</span></div>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">{allowedSubjects.map(subject => {
+                const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
+                return <label key={subject} className="rounded-xl border p-3" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, background: value > 0 ? palette.greenBg : "#F8FBFD" }}><span className="block text-xs font-black mb-2" style={{ color: palette.ink }}>{subject}</span><span className="flex items-center gap-2"><input type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="Soat" onChange={event => updatePlanGradeCell(gradeRow.classes, subject, event.target.value)} className="w-full px-3 py-2 rounded-lg border text-center font-black"/><small style={{ color: palette.muted }}>soat</small></span></label>;
+              })}</div>
+            </div>;
+          })}
         </div>
       </>}
     </Card>}
@@ -4628,7 +4630,7 @@ export function TeacherFirstLoadEditorV192({
                   {cls.sinf}-{cls.harf}{cls.rahbar_user_id ? ` · ${cls.rahbar_ismi || "rahbari bor"}` : ""}
                 </option>)}
               </select>
-              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Sinf tanlansa, o‘qituvchiga haftasiga 1 soat SINF SOATI avtomatik qo‘shiladi. Rahbari bor sinflar tanlanmaydi.</span>
+              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Sinf tanlansa, o‘qituvchiga haftasiga 1 soat KELAJAK SOATI avtomatik qo‘shiladi. Rahbari bor sinflar tanlanmaydi.</span>
             </label>
             {(() => {
               const leaderClass = (data?.sinflar || []).find(cls => String(cls.id) === String(newTeacher.rahbar_sinf_id));
@@ -4708,7 +4710,7 @@ export function TeacherFirstLoadEditorV192({
                     </option>;
                   })}
                 </select>
-                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Tanlangan sinf uchun 1 soat SINF SOATI avtomatik yuklamaga kiradi. Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq.</span>
+                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Tanlangan sinf uchun 1 soat KELAJAK SOATI avtomatik yuklamaga kiradi. Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq.</span>
               </label>
             </div>
           </div>}
@@ -5174,7 +5176,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
         </div>
       </div>
       {classMatch && <div className="mb-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-black" style={{ background: classMatch.mos ? palette.greenBg : palette.amberBg, color: classMatch.mos ? palette.green : palette.amber }}>
-        {scheduleHourLabel(classMatch.fan_yuklama)} soat fan yuklamasi + {scheduleHourLabel(classMatch.sinf_soati_reja)} soat SINF SOATI = {scheduleHourLabel(classMatch.reja)} soat reja · jadvalda {scheduleHourLabel(classMatch.jadval)} soat {classMatch.mos ? "✓ TO‘LIQ" : `· ${scheduleHourLabel(Math.abs(Number(classMatch.farq || 0)))} soat farq`}
+        {scheduleHourLabel(classMatch.fan_yuklama)} soat fan yuklamasi + {scheduleHourLabel(classMatch.sinf_soati_reja)} soat KELAJAK SOATI = {scheduleHourLabel(classMatch.reja)} soat reja · jadvalda {scheduleHourLabel(classMatch.jadval)} soat {classMatch.mos ? "✓ TO‘LIQ" : `· ${scheduleHourLabel(Math.abs(Number(classMatch.farq || 0)))} soat farq`}
       </div>}
       <div className="overflow-auto">
         <table className="min-w-[860px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
@@ -5201,7 +5203,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                       <div className="flex items-center gap-1 min-w-0">
                         {grouped && <span title={groupTitle} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{shortGroup}</span>}
                         {alternating && <span title={slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "T·0,5" : "J·0,5"}</span>}
-                        <span className="text-[10px] leading-[1.05] font-black" title={slot.fan_nomi} style={{ color: palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{slot.fan_nomi}</span>
+                        <span className="text-[10px] leading-[1.05] font-black" title={subjectDisplayNameV201(slot.fan_nomi)} style={{ color: palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{subjectDisplayNameV201(slot.fan_nomi)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[8px] leading-tight">
                         <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
@@ -5381,7 +5383,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
                   <div className="min-h-[390px] h-full rounded-xl border-2 px-2 py-3 flex flex-col items-center justify-center text-center" style={{ borderColor: lessons.length ? "#D99B9B" : "#E7C477", background: lessons.length ? palette.redBg : palette.amberBg }}>
                     <div className="text-[12px] font-black" style={{ color: lessons.length ? palette.red : palette.amber }}>METOD KUNI</div>
                     <div className="text-[9px] font-bold mt-1" style={{ color: lessons.length ? palette.red : palette.ink }}>{lessons.length ? `XATO: eski draftda ${lessons.length} ta dars bor` : "Dars qo‘yilmaydi"}</div>
-                    {!!lessons.length && <div className="mt-2 space-y-1 w-full">{lessons.slice(0, 4).map(slot => <div key={slot.id} className="rounded bg-white px-1 py-1 text-[8px] font-bold" style={{ color: palette.red }}>{slot.sinf}-{slot.harf} · {slot.fan_nomi}</div>)}</div>}
+                    {!!lessons.length && <div className="mt-2 space-y-1 w-full">{lessons.slice(0, 4).map(slot => <div key={slot.id} className="rounded bg-white px-1 py-1 text-[8px] font-bold" style={{ color: palette.red }}>{slot.sinf}-{slot.harf} · {subjectDisplayNameV201(slot.fan_nomi)}</div>)}</div>}
                   </div>
                 </td>;
               }
@@ -5398,7 +5400,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
               return <td key={day} className="align-top p-0"><div className="min-h-[32px] rounded-md border px-1 py-0.5 overflow-hidden" style={{ borderColor: palette.line, background: cell.length ? palette.sky : "#fff" }}>
                 {cell.map(slot => <div key={slot.id} className="grid grid-cols-[auto_1fr] items-start gap-1 text-[9px] leading-[1.05] min-w-0">
                   <span className="shrink-0 px-1 py-0.5 rounded font-black" style={{ background: slot.guruh_kaliti !== "whole" ? palette.greenBg : "#fff", color: slot.guruh_kaliti !== "whole" ? palette.green : palette.ink }}>{slot.sinf}-{slot.harf}{slot.guruh_kaliti !== "whole" ? ` · ${scheduleGroupShortLabel(slot.guruh_kaliti)}` : ""}{slot.hafta_turi && slot.hafta_turi !== "har_hafta" ? ` · ${slot.hafta_turi === "toq" ? "T" : "J"}` : ""}</span>
-                  <span className="font-black" title={`${slot.sinf}-${slot.harf} · ${slot.fan_nomi}`} style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{slot.fan_nomi}</span>
+                  <span className="font-black" title={`${slot.sinf}-${slot.harf} · ${subjectDisplayNameV201(slot.fan_nomi)}`} style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{subjectDisplayNameV201(slot.fan_nomi)}</span>
                 </div>)}
               </div></td>;
             })}
@@ -5612,7 +5614,7 @@ function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
         Qaysi darsning joyi o‘zgarsin?
         <select value={slotId} onChange={event => { setSlotId(event.target.value); setReport(null); }} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
           {movableSlots.map(slot => <option key={slot.id} value={slot.id}>
-            {slot.sinf}-{slot.harf} · {dayName(slot.hafta_kuni)} · {slot.dars_raqami}-dars · {slot.fan_nomi} · {slot.oqituvchi_ismi || "o‘qituvchi yo‘q"}{slot.guruh_kaliti !== "whole" ? ` · ${slot.guruh_kaliti}` : ""}
+            {slot.sinf}-{slot.harf} · {dayName(slot.hafta_kuni)} · {slot.dars_raqami}-dars · {subjectDisplayNameV201(slot.fan_nomi)} · {slot.oqituvchi_ismi || "o‘qituvchi yo‘q"}{slot.guruh_kaliti !== "whole" ? ` · ${slot.guruh_kaliti}` : ""}
           </option>)}
         </select>
       </label>
@@ -6358,7 +6360,7 @@ function ScheduleRobotProgressV201({ progress, setup }) {
   const stage = safeProgress < 10
     ? { title: "Manbalarni tekshiryapman", text: "Fan–sinf–o‘qituvchi birikmalari va qattiq qoidalarni solishtiryapman." }
     : safeProgress < 28
-      ? { title: `${currentClass} sinfini tayyorlayapman`, text: "Haftalik soat, SINF SOATI va guruhlarni bitta modelga yig‘yapman." }
+      ? { title: `${currentClass} sinfini tayyorlayapman`, text: "Haftalik soat, KELAJAK SOATI va guruhlarni bitta modelga yig‘yapman." }
       : safeProgress < 48
         ? { title: `${currentClass} uchun qulay vaqt qidiryapman`, text: "Og‘ir fanlarni ertaroq, J/T va Texnologiyani qulayroq katakka qo‘yyapman." }
         : safeProgress < 68
@@ -6658,7 +6660,7 @@ function v198PositiveSchoolId(...values) {
   return null;
 }
 
-export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
+export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false }) {
   const organizationV17Id = initialWorkspace?.organization_v17_id || null;
   const contextId = initialWorkspace?.context_id || null;
   // Mavjud maktablar ro'yxati haqiqiy IDni ko'pincha ``maktab_id`` bilan
@@ -6678,8 +6680,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const workspaceNameHint = initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || null;
   const isNewSchoolFlow = !organizationV17Id && !contextId && !linkedInitialId;
   const [maktabId, setMaktabId] = useState(linkedInitialId || null);
-  const [newSchoolMode, setNewSchoolMode] = useState(isNewSchoolFlow);
-  const [workspaceRetry, setWorkspaceRetry] = useState(0);
   const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId));
   const [workspaceLinkError, setWorkspaceLinkError] = useState("");
   const [newSchoolName, setNewSchoolName] = useState(initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || "");
@@ -6691,7 +6691,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [createdSchoolName, setCreatedSchoolName] = useState("");
   const lavozim = String(initialWorkspace?.lavozim || "").toLowerCase();
   const teacherMode = Boolean(lavozim) && !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "owner", "admin"].includes(lavozim);
-  const canCreateAnotherSchool = canCreateInstitution || ["owner", "direktor", "admin"].includes(lavozim);
   const [dashboard, setDashboard] = useState(null);
   const [yuklama, setYuklama] = useState([]);
   const [holatlar, setHolatlar] = useState([]);
@@ -6701,17 +6700,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
   const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
-  const [curriculumOpen, setCurriculumOpen] = useState(initialView === "curriculum");
+  const [curriculumOpen, setCurriculumOpen] = useState(false);
   const [curriculumStatus, setCurriculumStatus] = useState(null);
 
   useEffect(() => {
     let active = true;
     const mustResolve = Boolean((organizationV17Id || contextId) && !linkedInitialId);
     if (!mustResolve) {
-      // REV60: muassasalarim javobida external_id/maktab_id bo'lsa
-      // V17 bog'lash so'rovini kutmay haqiqiy eski maktabni ochamiz.
-      // Bu eski maktablarni ro'yxatda saqlaydi va context IDni maktab ID
-      // sifatida ishlatib yuborishdan himoya qiladi.
       setMaktabId(linkedInitialId);
       setWorkspaceResolving(false);
       setWorkspaceLinkError("");
@@ -6764,28 +6759,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       if (active) setWorkspaceResolving(false);
     });
     return () => { active = false; };
-  }, [token, apiBase, organizationV17Id, contextId, linkedInitialId, directLegacySchoolId, workspaceNameHint, workspaceRetry]);
-
-  const openNewSchoolForm = () => {
-    // Eski maktab ID si va a'zoligi yaratish muvaffaqiyatli tugaguncha
-    // o'zgarmaydi. Formani eski maktab nomi bilan to'ldirib dublikat
-    // yaratmaslik uchun yangi maktab maydonlarini tozalab ochamiz.
-    setNewSchoolName("");
-    setNewSchoolRegion("");
-    setNewSchoolDistrict("");
-    setNewSchoolShifts(1);
-    setNewSchoolError("");
-    setNewSchoolMode(true);
-  };
-
-  const closeNewSchoolForm = () => {
-    if (isNewSchoolFlow && !maktabId) {
-      onBack?.();
-      return;
-    }
-    setNewSchoolError("");
-    setNewSchoolMode(false);
-  };
+  }, [token, apiBase, organizationV17Id, contextId, linkedInitialId, directLegacySchoolId, workspaceNameHint]);
 
   const createNewSchool = async (event) => {
     event?.preventDefault?.();
@@ -6811,7 +6785,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       if (!result?.maktab_id) throw new Error("Server yangi maktab ID sini qaytarmadi.");
       setCreatedSchoolName(result.maktab_nomi || nomi);
       setMaktabId(Number(result.maktab_id));
-      setNewSchoolMode(false);
       setWorkspaceLinkError("");
       setError("");
     } catch (error) {
@@ -6883,15 +6856,15 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     setTeacherEditorOpen(true);
   };
 
-  if (newSchoolMode || (isNewSchoolFlow && !maktabId)) {
+  if (isNewSchoolFlow && !maktabId) {
     return <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
-        <SmartHeader title="Yangi maktab" subtitle="Maktabni yaratish va ish maydonini ochish" onClose={closeNewSchoolForm} badge="MAKTAB WORKSPACE"/>
+        <SmartHeader title="Yangi maktab" subtitle="Maktabni yaratish va ish maydonini ochish" onClose={onBack} badge="MAKTAB WORKSPACE"/>
         <main className="max-w-2xl mx-auto px-4 md:px-7 py-7 md:py-10">
           <Card className="p-5 md:p-7">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.greenBg, color: palette.teal }}><School size={25}/></div>
-              <div><h1 className="text-2xl font-black" style={{ color: palette.ink }}>Yangi maktab yaratish</h1><p className="text-sm mt-1" style={{ color: palette.muted }}>Yangi maktab alohida yaratiladi. Oldingi maktab va uning barcha ma'lumotlari saqlanib qoladi.</p></div>
+              <div><h1 className="text-2xl font-black" style={{ color: palette.ink }}>Yangi maktab yaratish</h1><p className="text-sm mt-1" style={{ color: palette.muted }}>Nomini kiriting. Saqlanganda yangi maktab ID yaratiladi va aynan shu maktabning boshqaruv oynasi ochiladi.</p></div>
             </div>
             <form onSubmit={createNewSchool} className="space-y-4">
               <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Maktab nomi *</span><input autoFocus value={newSchoolName} onChange={e=>setNewSchoolName(e.target.value)} placeholder="Masalan: 25-son umumiy o‘rta ta’lim maktabi" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: newSchoolError && !String(newSchoolName||'').trim() ? palette.red : palette.line, background: "#fff", color: palette.ink }}/></label>
@@ -6902,7 +6875,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Smena soni</span><select value={newSchoolShifts} onChange={e=>setNewSchoolShifts(Number(e.target.value))} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value={1}>1 smena</option><option value={2}>2 smena</option></select></label>
               {newSchoolError && <SmartNotice tone="error">{newSchoolError}</SmartNotice>}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-                <button type="button" onClick={closeNewSchoolForm} disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
+                <button type="button" onClick={onBack} disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
                 <button type="submit" disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: palette.teal }}>{newSchoolCreating ? <><Loader2 size={17} className="animate-spin"/> Yaratilmoqda...</> : <><School size={17}/> Maktabni yaratish</>}</button>
               </div>
             </form>
@@ -6973,7 +6946,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         <SmartHeader title={schoolName} subtitle="Maktab boshqaruv markazi" onClose={onBack} badge="MAKTAB WORKSPACE"/>
         <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
           <div className="flex flex-wrap justify-end gap-2 mb-5">
-            {canCreateAnotherSchool && <button onClick={openNewSchoolForm} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><School size={16}/> Yangi maktab</button>}
             <button onClick={() => setCurriculumOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: curriculumApproved ? palette.green : palette.amber, color: "#fff" }}>
               <BookOpen size={16}/> O‘quv reja {curriculumApproved ? "✓" : "· tasdiqlanmagan"}
             </button>
@@ -6992,7 +6964,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           </Card>
 
           {loadWarnings.length > 0 && !loading && <div className="mb-4 space-y-2">{loadWarnings.slice(0,5).map((warning, index)=><SmartNotice key={`${warning}-${index}`} tone="warning">{warning}</SmartNotice>)}</div>}
-          {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <div className="space-y-3"><SmartNotice tone="error">{error}</SmartNotice>{workspaceLinkError && <div className="flex flex-wrap gap-2"><button onClick={() => setWorkspaceRetry(value => value + 1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><RefreshCw size={15}/> Maktabni qayta bog'lash</button><button onClick={onBack} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Muassasani qayta tanlash</button></div>}</div> : <>
+          {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <SmartNotice tone="error">{error}</SmartNotice> : <>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
               <Stat icon={<GraduationCap size={18}/>} value={jamiOquvchi} label="o‘quvchi" tone="blue"/>
               <Stat icon={<School size={18}/>} value={dashboard?.sinflar?.length ?? 0} label="sinf" tone="teal"/>
