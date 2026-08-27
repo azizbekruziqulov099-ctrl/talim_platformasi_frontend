@@ -2509,6 +2509,15 @@ function subjectKeyV193(value) {
     .trim();
 }
 
+function teacherSubjectKeyV203(value) {
+  const key = subjectKeyV193(value)
+    .replace(/\s*\(science\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (/^tabiiy fan(lar)?$/.test(key)) return "tabiiy fan";
+  return key;
+}
+
 function isClassHourSubjectV199(value) {
   return subjectKeyV193(value) === "sinf soati";
 }
@@ -2761,14 +2770,18 @@ function TeacherFirstLoadEditorV192({
   const birthDateMaxV195 = new Date().toISOString().slice(0, 10);
   const specialtySubjectChoices = useMemo(() => {
     const unique = new Map();
-    [...(data?.fanlar || []), ...planSubjects]
+    const adminSubjects = (data?.fan_sinflari || [])
+      .flatMap(item => item.fanlar || [])
+      .filter(Boolean);
+    const source = adminSubjects.length ? adminSubjects : (data?.fanlar || []);
+    source
       .filter(subject => !isClassHourSubjectV199(subject))
       .forEach(subject => {
-      const key = subjectKeyV193(subject);
+      const key = teacherSubjectKeyV203(subject);
       if (key && !unique.has(key)) unique.set(key, subject);
     });
     return [...unique.values()].sort((left, right) => String(left).localeCompare(String(right), "uz"));
-  }, [data, planSubjects]);
+  }, [data]);
   const specialtyOptions = useMemo(() =>
     specialtySubjectChoices.map(subject => ({ value: subject, label: subject, subjects: [subject] })),
   [specialtySubjectChoices]);
@@ -2862,7 +2875,9 @@ function TeacherFirstLoadEditorV192({
         .filter(row => String(row.user_id) === String(selectedTeacher))
         .map(row => ({
           sinf_id: String(row.sinf_id),
-          fan_nomi: row.fan_nomi,
+          fan_nomi: specialtySubjectChoices.find(subject =>
+            teacherSubjectKeyV203(subject) === teacherSubjectKeyV203(row.fan_nomi)
+          ) || row.fan_nomi,
           guruh_kaliti: normalizedGroupKeyForSubjectV197(
             row.sinf_id, row.fan_nomi, row.guruh_kaliti
           ),
@@ -2872,7 +2887,7 @@ function TeacherFirstLoadEditorV192({
           auto_specialty: false,
         }))
     );
-  }, [data, selectedTeacher, creatingNew]);
+  }, [data, selectedTeacher, creatingNew, specialtySubjectChoices]);
 
   useEffect(() => {
     if (!data || creatingNew || !selectedTeacher) return;
@@ -2898,10 +2913,16 @@ function TeacherFirstLoadEditorV192({
       : rowSubjects.length ? rowSubjects
       : specialtyValuesV195(current?.mutaxassisligi)
     ).map(String).filter(Boolean);
+    const allowedSubjects = new Map(
+      specialtySubjectChoices.map(subject => [teacherSubjectKeyV203(subject), subject])
+    );
+    const canonicalBaseValues = baseValues
+      .map(subject => allowedSubjects.get(teacherSubjectKeyV203(subject)))
+      .filter(Boolean);
     const values = [...new Map([
-      ...baseValues,
-      ...baseValues.flatMap(subject => pairedTeachingSubjectsV196(subject, specialtySubjectChoices)),
-    ].map(subject => [subjectKeyV193(subject), subject])).values()];
+      ...canonicalBaseValues,
+      ...canonicalBaseValues.flatMap(subject => pairedTeachingSubjectsV196(subject, specialtySubjectChoices)),
+    ].map(subject => [teacherSubjectKeyV203(subject), subject])).values()];
     setExistingProfile({
       mutaxassisligi: values.join(";"),
       haftalik_maqsad_soat: current?.haftalik_maqsad_soat == null
@@ -3155,6 +3176,13 @@ function TeacherFirstLoadEditorV192({
   };
 
   const subjectsFor = row => {
+    const assignedSubjects = specialtyValuesV195(
+      creatingNew ? newTeacher.mutaxassisligi : existingProfile.mutaxassisligi
+    );
+    const assignedKeys = new Set(assignedSubjects.map(teacherSubjectKeyV203));
+    const onlyAssigned = subjects => [...new Map((subjects || [])
+      .filter(subject => assignedKeys.has(teacherSubjectKeyV203(subject)))
+      .map(subject => [teacherSubjectKeyV203(subject), subject])).values()];
     const variant = variantFor(row);
     const allowed = variant?.fanlar || [];
     const approved = data?.oquv_reja?.holat === "tasdiqlangan";
@@ -3176,15 +3204,15 @@ function TeacherFirstLoadEditorV192({
           )
         )
       );
-      if (byScheme.length) return byScheme;
+      if (byScheme.length) return onlyAssigned(byScheme);
     }
     if (allowed.length) {
       const intersection = planned.filter(subject =>
         allowed.some(item => groupedSubjectMatchesV195(item, subject))
       );
-      return planned.length ? intersection : allowed;
+      return onlyAssigned(planned.length ? intersection : allowed);
     }
-    return planned.length ? planned : (data?.fanlar || []);
+    return onlyAssigned(planned.length ? planned : (data?.fanlar || []));
   };
 
   const preferredVariantForSubjectV196 = (index, row, classId, subject, sourceRows = rows) => {
@@ -3644,7 +3672,7 @@ function TeacherFirstLoadEditorV192({
     const specialtyValue = String(value || "").trim();
     if (!specialtyValue) return;
     const current = specialtyValuesV195(activeSpecialty());
-    if (current.includes(specialtyValue)) return;
+    if (current.some(item => teacherSubjectKeyV203(item) === teacherSubjectKeyV203(specialtyValue))) return;
     const paired = pairedTeachingSubjectsV196(specialtyValue, specialtySubjectChoices)
       .filter(subject => !current.includes(subject));
     const additions = [...new Set([specialtyValue, ...paired])];
@@ -3781,6 +3809,23 @@ function TeacherFirstLoadEditorV192({
       const focusTarget = target.matches?.("input,select,textarea,button")
         ? target : target.querySelector?.("input,select,textarea,button");
       focusTarget?.focus?.();
+    }));
+  };
+
+  const openTeacherEditorV204 = teacherId => {
+    const nextTeacherId = String(teacherId || "");
+    if (!nextTeacherId) return;
+    clearInvalidFieldV199("teacher-selector-panel");
+    setCreatingNew(false);
+    setSelectedTeacher(nextTeacherId);
+    setEntryCode("");
+    setMessage(null);
+    setValidationDialog(null);
+    setInvalidFieldIds([]);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const panel = document.getElementById("existing-teacher-edit-panel");
+      panel?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      panel?.querySelector?.("input,select,button")?.focus?.();
     }));
   };
 
@@ -3930,7 +3975,7 @@ function TeacherFirstLoadEditorV192({
       );
     }
     const mergedRows = mergeDuplicateRows(rows);
-    if (!mergedRows.length) {
+    if (creatingNew && !mergedRows.length) {
       return showValidationErrorV199("Kamida bitta fan–sinf–guruh qatorini kiriting.", "teacher-load-top-actions");
     }
     if (mergedRows.some(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat)) {
@@ -4341,7 +4386,7 @@ function TeacherFirstLoadEditorV192({
   const renderSpecialtyPicker = required => {
     const selected = specialtyValuesV195(activeSpecialty());
     const pickerId = required ? "teacher-subject-picker" : "existing-teacher-subject-picker";
-    return <div id={pickerId} className={`${required ? "" : "md:col-span-2"} ${fieldIsInvalidV199(pickerId) ? "rounded-xl border p-2" : ""}`} style={fieldIsInvalidV199(pickerId) ? invalidFieldStyleV199(pickerId) : undefined}>
+    return <div id={pickerId} className={`${required ? "col-span-2" : "md:col-span-2"} ${fieldIsInvalidV199(pickerId) ? "rounded-xl border p-2" : ""}`} style={fieldIsInvalidV199(pickerId) ? invalidFieldStyleV199(pickerId) : undefined}>
       <div className="text-xs font-black" style={{ color: palette.ink }}>
         O‘tadigan fanlari {required && <span style={{ color: palette.red }}>*</span>}
       </div>
@@ -4351,7 +4396,7 @@ function TeacherFirstLoadEditorV192({
       <div className="flex flex-wrap gap-1.5 mt-2">
         {selected.map(value => {
           const option = specialtyOptions.find(item => item.value === value);
-          const fanNumber = specialtySubjectChoices.findIndex(item => subjectKeyV193(item) === subjectKeyV193(value)) + 1;
+          const fanNumber = specialtySubjectChoices.findIndex(item => teacherSubjectKeyV203(item) === teacherSubjectKeyV203(value)) + 1;
           return <span key={value} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
             {fanNumber > 0 ? `${String(fanNumber).padStart(2, "0")}. ` : ""}{option?.label || value}
             <button type="button" onClick={() => { clearInvalidFieldV199(pickerId); removeSpecialtyValue(value); }} aria-label={`${option?.label || value} fanini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
@@ -4364,14 +4409,14 @@ function TeacherFirstLoadEditorV192({
         <input value={specialtyQuery} onChange={event => setSpecialtyQuery(event.target.value)} placeholder="Fan nomi yoki raqami: 07, bio, mat..." className="min-w-0 flex-1 bg-transparent outline-none text-xs"/>
         {specialtyQuery && <button type="button" onClick={() => setSpecialtyQuery("")} className="text-xs font-black" style={{ color: palette.red }}>×</button>}
       </label>
-      <div className="mt-2 max-h-48 overflow-auto rounded-xl border p-2 grid sm:grid-cols-2 gap-1.5" style={{ borderColor: palette.line, background: "#fff" }}>
+      <div className="mt-2 max-h-28 overflow-auto rounded-xl border p-1.5 grid grid-cols-2 gap-1.5" style={{ borderColor: palette.line, background: "#fff" }}>
         {numberedSpecialtyChoices.map(({ subject, numberText }) => {
-          const selectedValue = selected.find(item => subjectKeyV193(item) === subjectKeyV193(subject));
+          const selectedValue = selected.find(item => teacherSubjectKeyV203(item) === teacherSubjectKeyV203(subject));
           const checked = Boolean(selectedValue);
           return <button type="button" key={subjectKeyV193(subject)} onClick={() => {
             clearInvalidFieldV199(pickerId);
             checked ? removeSpecialtyValue(selectedValue) : addSpecialtyValue(subject);
-          }} className="px-2.5 py-2 rounded-lg border text-[10px] font-black text-left" style={{
+          }} className="px-2 py-1.5 rounded-lg border text-[11px] font-black text-left" style={{
             background: checked ? palette.teal : palette.cream,
             color: checked ? "#fff" : palette.ink,
             borderColor: checked ? palette.teal : palette.line,
@@ -4380,7 +4425,7 @@ function TeacherFirstLoadEditorV192({
         {!numberedSpecialtyChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>{specialtySubjectChoices.length ? "Qidiruv bo‘yicha fan topilmadi." : "Avval o‘quv reja fanlarini kiriting."}</div>}
       </div>
       <div className="text-[10px] font-bold mt-2" style={{ color: selected.length ? palette.green : palette.muted }}>
-        {selected.length} ta fan tanlandi · cheklov yo‘q. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.
+        {selected.length} ta fan · faqat admin tasdiqlagan fanlar. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.
       </div>
       {fieldIsInvalidV199(pickerId) && <div className="text-[10px] font-black mt-1" style={{ color: palette.red }}>Bu yerdan kamida bitta fan tanlang.</div>}
     </div>;
@@ -4708,22 +4753,22 @@ function TeacherFirstLoadEditorV192({
         </div>
       </div>
 
-      <div className="grid xl:grid-cols-[320px_1fr] gap-4 mt-5">
-        <div id="teacher-selector-panel" className="rounded-2xl p-4 border" style={{ background: palette.cream, borderColor: fieldIsInvalidV199("teacher-selector-panel") ? palette.red : "transparent" }}>
+      <div className="grid xl:grid-cols-[380px_minmax(0,1fr)] gap-3 mt-4 items-start">
+        <div id="teacher-selector-panel" className="rounded-2xl p-3 border xl:sticky xl:top-3" style={{ background: palette.cream, borderColor: fieldIsInvalidV199("teacher-selector-panel") ? palette.red : "transparent" }}>
           {!creatingNew && <button onClick={startNewTeacher} className="w-full px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
             + Yangi o‘qituvchini qo‘lda kiritish
           </button>}
-          {creatingNew ? <div id="new-teacher-form" className="space-y-3 scroll-mt-4">
-            <div>
+          {creatingNew ? <div id="new-teacher-form" className="grid grid-cols-2 gap-2 scroll-mt-4">
+            <div className="col-span-2">
               <div className="text-sm font-black" style={{ color: palette.ink }}>Yangi o‘qituvchi</div>
               <div className="text-[11px] mt-1" style={{ color: palette.muted }}><b>* Majburiy:</b> F.I.Sh., o‘tadigan fanlar, haftalik maqsad soati va kamida bitta aniq dars qatori.</div>
             </div>
-            {(data?.oqituvchilar || []).length > 0 && <div className="rounded-xl border p-2.5" style={{ borderColor: palette.line, background: "#fff" }}>
+            {(data?.oqituvchilar || []).length > 0 && <div className="col-span-2 rounded-xl border p-2" style={{ borderColor: palette.line, background: "#fff" }}>
               <div className="flex items-center justify-between gap-2">
                 <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>Saqlangan o‘qituvchilar</div>
                 <div className="text-[9px]" style={{ color: palette.muted }}>Eng yangi yuqorida</div>
               </div>
-              <div className="space-y-1 mt-2 max-h-36 overflow-auto pr-1">
+              <div className="space-y-1 mt-1.5 max-h-24 overflow-auto pr-1">
                 {[...(data?.oqituvchilar || [])].sort((left, right) =>
                   Number(String(right.user_id) === recentlyCreatedTeacherId) - Number(String(left.user_id) === recentlyCreatedTeacherId)
                 ).map(item => {
@@ -4731,14 +4776,7 @@ function TeacherFirstLoadEditorV192({
                     value => String(value.user_id) === String(item.user_id)
                   );
                   const recent = String(item.user_id) === recentlyCreatedTeacherId;
-                  return <button type="button" key={item.user_id} onClick={() => {
-                    setCreatingNew(false);
-                    setSelectedTeacher(String(item.user_id));
-                    setEntryCode("");
-                    setMessage(null);
-                    setValidationDialog(null);
-                    setInvalidFieldIds([]);
-                  }} className="w-full rounded-lg px-2.5 py-2 text-left border" style={{ background: recent ? palette.greenBg : palette.sky, borderColor: recent ? "#8FC4A5" : palette.line }}>
+                  return <button type="button" key={item.user_id} onClick={() => openTeacherEditorV204(item.user_id)} className="w-full rounded-lg px-2.5 py-2 text-left border" style={{ background: recent ? palette.greenBg : palette.sky, borderColor: recent ? "#8FC4A5" : palette.line }}>
                     <div className="text-[11px] font-black truncate" style={{ color: palette.ink }}>{recent ? "YANGI · " : ""}{item.full_name}</div>
                     <div className="text-[9px] mt-0.5 truncate" style={{ color: palette.muted }}>
                       {total?.haftalik_jami || 0} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
@@ -4748,7 +4786,7 @@ function TeacherFirstLoadEditorV192({
               </div>
               <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>O‘qituvchini bossangiz uning yuklamasi tahrirlash uchun ochiladi.</div>
             </div>}
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
+            <label className="col-span-2 block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
               <input id="new-teacher-full-name" autoFocus value={newTeacher.full_name} onChange={event => { clearInvalidFieldV199("new-teacher-full-name"); setNewTeacher(current => ({ ...current, full_name: event.target.value })); }} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-full-name")}/>
               {fieldIsInvalidV199("new-teacher-full-name") && <span className="block mt-1 text-[10px]" style={{ color: palette.red }}>Bu yerni to‘ldiring.</span>}
             </label>
@@ -4758,7 +4796,7 @@ function TeacherFirstLoadEditorV192({
               {fieldIsInvalidV199("new-teacher-weekly-target") && <span className="block mt-1 text-[10px] font-black" style={{ color: palette.red }}>Haftalik maqsad soatini kiriting. Masalan: 25.</span>}
               <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.</span>
             </label>
-            <div className="pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
+            <div className="col-span-2 pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
             <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
               <input id="new-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={newTeacher.tugilgan_sana} onChange={event => { clearInvalidFieldV199("new-teacher-birth-date"); setNewTeacher(current => ({
                 ...current,
@@ -4791,7 +4829,7 @@ function TeacherFirstLoadEditorV192({
                 ⚡ {data?.oquv_reja?.holat === "tasdiqlangan" ? "Sinf rahbari fanlarini reja bo‘yicha qo‘shish" : "Avto fan/soat · reja tasdiqlanmagan"}
               </button> : null;
             })()}
-            <button onClick={cancelNewTeacher} className="w-full px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
+            <button onClick={cancelNewTeacher} className="col-span-2 w-full px-4 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
           </div> : <>
             <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>
               O‘qituvchi qidirish
@@ -4806,7 +4844,7 @@ function TeacherFirstLoadEditorV192({
                   value => String(value.user_id) === String(item.user_id)
                 );
                 const active = String(item.user_id) === String(selectedTeacher);
-                return <button key={item.user_id} onClick={() => { clearInvalidFieldV199("teacher-selector-panel"); setSelectedTeacher(String(item.user_id)); }} className="w-full rounded-xl p-3 text-left border" style={{
+                return <button key={item.user_id} onClick={() => openTeacherEditorV204(item.user_id)} className="w-full rounded-xl p-3 text-left border" style={{
                   background: active ? palette.sky : "#fff",
                   borderColor: active ? palette.blue : palette.line,
                 }}>
@@ -4825,8 +4863,16 @@ function TeacherFirstLoadEditorV192({
         </div>
 
         <div>
-          {!creatingNew && <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: palette.line, background: "#fff" }}>
-            <div className="text-[10px] font-black uppercase tracking-[.12em] mb-3" style={{ color: palette.teal }}>O‘qituvchi ma’lumotlarini tahrirlash</div>
+          {!creatingNew && <div id="existing-teacher-edit-panel" className="rounded-2xl border p-4 mb-4 scroll-mt-4" style={{ borderColor: palette.line, background: "#fff" }}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchi ma’lumotlarini tahrirlash</div>
+                <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>{teacher?.full_name || "Tanlangan o‘qituvchi"}</div>
+              </div>
+              <button type="button" onClick={save} disabled={saving || !selectedTeacher} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
+                {saving ? "Saqlanmoqda..." : "O‘zgarishlarni saqlash"}
+              </button>
+            </div>
             <div className="grid md:grid-cols-2 gap-3">
               {renderSpecialtyPicker(false)}
               <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
@@ -4967,7 +5013,7 @@ function TeacherFirstLoadEditorV192({
           <div id="teacher-load-top-actions" className="sticky top-2 z-30 mt-4 p-3 rounded-2xl border grid grid-cols-2 items-center gap-4" style={{ borderColor: fieldIsInvalidV199("teacher-load-top-actions") ? palette.red : palette.line, background: fieldIsInvalidV199("teacher-load-top-actions") ? palette.redBg : "rgba(255,255,255,.97)", boxShadow: fieldIsInvalidV199("teacher-load-top-actions") ? "0 0 0 3px rgba(165,66,66,.16)" : "0 8px 24px rgba(24,50,75,.10)" }}>
             <button onClick={() => { clearInvalidFieldV199("teacher-load-top-actions"); addRow(); }} className="justify-self-start px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
             <button onClick={save} disabled={saving} className="justify-self-end px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
-              {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘qituvchi yuklamasini saqlash"}
+              {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘zgarishlarni saqlash"}
             </button>
           </div>
 
