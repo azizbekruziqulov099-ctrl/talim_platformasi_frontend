@@ -2941,10 +2941,64 @@ function TeacherFirstLoadEditorV192({
     // Server bu yerga faqat sinfda avval yaratilgan haqiqiy guruhlarni beradi.
     // Qo‘shimcha flagni kutish guruhlarni noto‘g‘ri ravishda yashirgan.
     return variants;
-    // Backend faqat sinfga amalda yaratilgan guruh tizimlarini variant sifatida
-    // qaytaradi. Shuning uchun fan nomiga qaramay shu sinfning barcha mavjud
-    // guruhlari qo'lda tanlanishi kerak; fanlar ro'yxati faqat avto tavsiyadir.
-    return variants;
+    const cls = (data?.sinflar || []).find(item =>
+      String(item.id) === String(classId)
+    ) || {};
+    const declaredCollections = [
+      cls.guruh_tizimlari, cls.guruhlash_tizimlari, cls.tizimlar, cls.guruhlar,
+    ];
+    const matrixGroupCollections = [
+      data?.guruhli_sinflar, data?.guruh_tizimlari,
+      data?.sinf_guruh_tizimlari, data?.guruhlangan_sinflar,
+    ];
+    const matrixDeclaresGroups = matrixGroupCollections.some(collection =>
+      Array.isArray(collection) && collection.some(item =>
+        String(
+          item && typeof item === "object"
+            ? (item.sinf_id ?? item.class_id ?? item.sinf?.id ?? "")
+            : item
+        ) === String(classId)
+      )
+    );
+    const classDeclaresGroups = matrixDeclaresGroups || declaredCollections.some(value =>
+      Array.isArray(value) && value.length > 0
+    ) || [
+      cls.guruh_tizimi_soni, cls.guruh_tizimlari_soni,
+      cls.guruhlash_tizimi_soni, cls.guruhlar_soni, cls.guruh_soni,
+      cls.guruh_tizimi_id, cls.guruhlash_tizimi_id,
+    ].some(value => Number(value || 0) > 0) || [
+      cls.guruhlangan, cls.guruhlarga_bolingan, cls.guruhga_bolingan,
+      cls.guruh_tizimi_bor, cls.guruhlash_bor, cls.is_grouped,
+      cls.has_groups, cls.has_group_system,
+    ].some(value => value === true || value === 1 || value === "1") ||
+      ["guruh_turi", "guruhlash_turi"].some(field =>
+        cls[field] && !["whole", "butun", "none"].includes(subjectKeyV193(cls[field]))
+      );
+    if (classDeclaresGroups) return variants;
+    const configuredSeeds = variants.filter(variant => {
+      const studentCount = [
+        variant.oquvchi_soni, variant.oquvchilar_soni, variant.soni,
+        variant.student_count, variant.azolar_soni, variant.jami_oquvchi,
+      ].find(value => value !== undefined && value !== null);
+      const activeFlag = [
+        variant.faol, variant.tanlangan, variant.tasdiqlangan,
+        variant.fan_biriktirilgan, variant.yaratilgan,
+        variant.tizim_faol, variant.sinfga_biriktirilgan,
+        variant.configured, variant.is_configured, variant.class_configured,
+      ].some(value => value === true || value === 1 || value === "1");
+      return Number(studentCount || 0) > 0 || activeFlag || (variant.fanlar || []).length > 0;
+    });
+    if (!configuredSeeds.length) return [];
+    const systemKeys = new Set(
+      configuredSeeds.map(groupVariantSystemKeyV198).filter(Boolean)
+    );
+    const schemes = new Set(
+      configuredSeeds.map(groupedVariantSchemeV196).filter(Boolean)
+    );
+    return variants.filter(variant =>
+      (groupVariantSystemKeyV198(variant) && systemKeys.has(groupVariantSystemKeyV198(variant))) ||
+      schemes.has(groupedVariantSchemeV196(variant))
+    );
   };
 
   const groupedVariantsForSubjectV196 = (classId, subject) => {
@@ -2978,36 +3032,35 @@ function TeacherFirstLoadEditorV192({
   };
 
   const selectableVariantsForSubjectV196 = (classId, subject) => {
-    const grouped = groupedVariantsForSubjectV196(classId, subject);
-    if (grouped.length) return grouped;
     const variants = variantsForClass(classId);
     const whole = variants.find(variant => variant.guruh_kaliti === "whole");
     const wholeVariant = whole || {
       sinf_id: Number(classId), guruh_kaliti: "whole",
       guruh_nomi: "Butun sinf", qisqa: "Sinf",
     };
+    // Guruh tanlovi fan nomidan yasalmaydi. Sinf avval qaysi guruhlarga
+    // bo‘lingan bo‘lsa, barcha fanlarda faqat o‘sha haqiqiy guruhlar chiqadi.
+    // Bo‘linmagan sinfda esa faqat “Butun sinf” qoladi.
     return [wholeVariant, ...configuredGroupVariantsForClassV198(classId)];
   };
 
-  const assignedRoomForClassV200 = classId => {
-    const cls = (data?.sinflar || []).find(item => String(item.id) === String(classId));
-    if (!cls) return null;
-    const directId = cls.xona_id ?? cls.room_id ?? cls.biriktirilgan_xona_id;
-    if (directId) {
-      return (data?.xonalar || []).find(room => String(room.id) === String(directId)) || null;
-    }
-    const roomText = subjectKeyV193(cls.xona || cls.xona_nomi || "");
-    if (!roomText) return null;
-    const roomAliases = new Set([
-      roomText,
-      subjectKeyV193(`${roomText}-xona`),
-      subjectKeyV193(`${roomText} xona`),
-      subjectKeyV193(`xona ${roomText}`),
-    ]);
-    return (data?.xonalar || []).find(room => {
-      const roomName = subjectKeyV193(room.nomi || "");
-      return roomAliases.has(roomName);
-    }) || null;
+  const classRoomInfoV202 = classId => {
+    const cls = (data?.sinflar || []).find(item => String(item.id) === String(classId)) || {};
+    const directId = cls.xona_id ?? cls.sinf_xona_id ?? cls.asosiy_xona_id ?? cls.xona?.id ?? null;
+    const linkedRooms = (data?.xonalar || []).filter(room =>
+      String(room.sinf_id ?? room.class_id ?? room.biriktirilgan_sinf_id ?? "") === String(classId)
+    );
+    const directRoom = directId == null ? null : (data?.xonalar || []).find(room =>
+      String(room.id) === String(directId)
+    );
+    const classRoom = directRoom || linkedRooms[0] || null;
+    const specialRooms = (data?.xonalar || []).filter(room =>
+      ["reserve", "sport"].includes(String(room.turi || room.xona_turi || "").toLowerCase())
+    );
+    const allowed = [classRoom, ...specialRooms].filter(Boolean).filter((room, index, list) =>
+      list.findIndex(item => String(item.id) === String(room.id)) === index
+    );
+    return { classRoom, allowed };
   };
 
   const normalizedGroupKeyForSubjectV197 = (classId, subject, groupKey) => {
@@ -3907,9 +3960,7 @@ function TeacherFirstLoadEditorV192({
         guruh_kaliti: row.guruh_kaliti || "whole",
         haftalik_soat: Number(row.haftalik_soat),
         kunlik_max: Number(row.kunlik_max || 1),
-        // Sinfning o'ziga biriktirilmagan xona yuklamaga yashirincha kirmaydi.
-        xona_id: assignedRoomForClassV200(row.sinf_id)?.id
-          ? Number(assignedRoomForClassV200(row.sinf_id).id) : null,
+        xona_id: row.xona_id ? Number(row.xona_id) : null,
       }));
       const hasFractionalHours = qatorlar.some(
         row => !Number.isInteger(Number(row.haftalik_soat))
@@ -4048,7 +4099,7 @@ function TeacherFirstLoadEditorV192({
       }
       setMessage({
         tone: warnings.length ? "warning" : "success",
-        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, ${result.fan_soati ?? result.haftalik_jami} soat fan yuklamasi saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}; KELAJAK SOATI alohida +${result.sinf_soati || 1} (ortiqcha yuklama emas).` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
+        text: `${result.oqituvchi}: ${result.qator_soni} ta aniq fan–sinf–guruh qatori, haftasiga jami ${result.haftalik_jami} soat saqlandi.${result.rahbar_sinf_nomi ? ` Sinf rahbari: ${result.rahbar_sinf_nomi}. KELAJAK SOATI avtomatik qo‘shildi (+1 soat).` : ""}${result.kirish_kodi ? " Kirish kodi quyida bir marta ko‘rsatildi." : ""}${creatingNew ? " Oyna navbatdagi yangi o‘qituvchi uchun tozalandi." : ""}${warnings.length ? ` ${warnings.join("; ")}` : ""}`,
       });
       try {
         await onChanged?.();
@@ -4107,10 +4158,9 @@ function TeacherFirstLoadEditorV192({
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
   );
   const draftClassTotal = activeProfileValues.rahbar_sinf_id ? 1 : 0;
-  // Haftalik maqsad — faqat fan yuklamasi. Kelajak soati rahbarlik qo'shimchasi
-  // bo'lib, maqsaddan oshish xatosini bermaydi va jadvalda alohida +1 turadi.
+  // KELAJAK SOATI alohida xizmat soati: asosiy haftalik maqsad/farqqa qo‘shilmaydi.
   const draftWeeklyTotal = draftFanTotal;
-  const targetDifference = targetHours ? targetHours - draftFanTotal : 0;
+  const targetDifference = targetHours ? targetHours - draftWeeklyTotal : 0;
   const planDraftRows = planPayloadRows();
   const planAcademicTotal = planDraftRows.reduce(
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
@@ -4691,7 +4741,7 @@ function TeacherFirstLoadEditorV192({
                   }} className="w-full rounded-lg px-2.5 py-2 text-left border" style={{ background: recent ? palette.greenBg : palette.sky, borderColor: recent ? "#8FC4A5" : palette.line }}>
                     <div className="text-[11px] font-black truncate" style={{ color: palette.ink }}>{recent ? "YANGI · " : ""}{item.full_name}</div>
                     <div className="text-[9px] mt-0.5 truncate" style={{ color: palette.muted }}>
-                      {total?.fan_soati ?? total?.haftalik_jami ?? 0}{Number(total?.sinf_soati || 0) ? ` + ${total.sinf_soati} Kelajak` : ""} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
+                      {total?.haftalik_jami || 0} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
                     </div>
                   </button>;
                 })}
@@ -4762,7 +4812,7 @@ function TeacherFirstLoadEditorV192({
                 }}>
                   <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
                   <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                    {total?.fan_soati ?? total?.haftalik_jami ?? 0}/{item.haftalik_maqsad_soat || "—"}{Number(total?.sinf_soati || 0) ? ` + ${total.sinf_soati} Kelajak` : ""} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
+                    {total?.haftalik_jami || 0}/{item.haftalik_maqsad_soat || "—"} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
                   </div>
                   <div className="text-[10px] mt-0.5 truncate" style={{ color: palette.muted }}>
                     {item.toifasi || "Toifa belgilanmagan"}{item.ish_staji == null ? "" : ` · ${item.ish_staji} yil staj`}
@@ -4909,7 +4959,7 @@ function TeacherFirstLoadEditorV192({
 
           <div className="grid grid-cols-4 gap-1.5">
             <CompactStat value={targetHours || "—"} label="haftalik maqsad" tone="blue"/>
-            <CompactStat value={draftClassTotal ? `${draftFanTotal} + ${draftClassTotal}` : draftFanTotal} label={draftClassTotal ? `fan + ${classHourName || "Kelajak soati"}` : "tanlangan fan yuklamasi"} tone="teal"/>
+            <CompactStat value={draftClassTotal ? `${draftWeeklyTotal} + 1` : draftWeeklyTotal} label={draftClassTotal ? "yuklama + Kelajak soati" : "tanlangan yuklama"} tone="teal"/>
             <CompactStat value={targetHours ? Math.abs(targetDifference) : "—"} label={targetHours ? (targetDifference > 0 ? "soat qoldi" : targetDifference < 0 ? "soat oshdi" : "maqsadga teng") : "farq"} tone={targetDifference < 0 ? "amber" : "green"}/>
             <CompactStat value={rows.length} label="aniq qator" tone="amber"/>
           </div>
@@ -4927,7 +4977,6 @@ function TeacherFirstLoadEditorV192({
               const groupedRequired = groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi).length > 0;
               const subjects = subjectsFor(row);
               const allocation = allocationInfo(index, row);
-              const assignedRoom = assignedRoomForClassV200(row.sinf_id);
               return <div id={`teacher-load-row-${index}`} key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_150px_38px] gap-2 items-end scroll-mt-24" style={{ borderColor: row.auto_specialty ? "#8FC4A5" : palette.line, background: row.auto_specialty ? palette.greenBg : "#FCFDFE" }}>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf <span style={{ color: palette.red }}>*</span>{row.auto_specialty && <span className="ml-1 px-1.5 py-0.5 rounded" style={{ background: palette.green, color: "#fff" }}>AVTO{row.auto_group_name ? ` · ${row.auto_group_name}` : ""}</span>}
                   <select id={`teacher-row-${index}-class`} value={row.sinf_id} onChange={event => {
@@ -4947,7 +4996,6 @@ function TeacherFirstLoadEditorV192({
                       sinf_id: classId,
                       guruh_kaliti: preferredVariant?.guruh_kaliti || "whole",
                       fan_nomi: subject,
-                      xona_id: assignedRoomForClassV200(classId)?.id ? String(assignedRoomForClassV200(classId).id) : "",
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white" style={invalidFieldStyleV199(`teacher-row-${index}-class`)}>
                     {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
@@ -5030,12 +5078,14 @@ function TeacherFirstLoadEditorV192({
                       : `Avto soat yo‘q · qo‘lda yozing${row.guruh_kaliti !== "whole" ? " · shu guruhning o‘ziga" : ""}`}
                   </span>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinfga biriktirilgan xona
-                  <select value={assignedRoom ? String(assignedRoom.id) : ""} onChange={event => update(index, { xona_id: event.target.value })} disabled={!assignedRoom} className="w-full mt-1 p-2 rounded-lg border bg-white disabled:opacity-70">
-                    <option value="">Xona biriktirilmagan</option>
-                    {assignedRoom && <option value={assignedRoom.id}>{assignedRoom.nomi}</option>}
-                  </select>
-                  <span className="block mt-1 text-[9px] font-normal" style={{ color: assignedRoom ? palette.green : palette.muted }}>{assignedRoom ? "Faqat shu sinfning o‘z xonasi olinadi." : "Jadvalda yolg‘on xona qo‘yilmaydi."}</span>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Xona · jadval
+                  {(() => {
+                    const roomInfo = classRoomInfoV202(row.sinf_id);
+                    return <select value={row.xona_id || ""} onChange={event => update(index, { xona_id: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                      <option value="">{roomInfo.classRoom ? `Sinf xonasi · ${roomInfo.classRoom.nomi}` : "Sinf xonasi biriktirilmagan"}</option>
+                      {roomInfo.allowed.map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}
+                    </select>;
+                  })()}
                 </label>
                 <button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="h-9 rounded-lg font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
               </div>;
