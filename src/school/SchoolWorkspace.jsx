@@ -6658,7 +6658,7 @@ function v198PositiveSchoolId(...values) {
   return null;
 }
 
-export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false, canCreateInstitution = false }) {
+export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
   const organizationV17Id = initialWorkspace?.organization_v17_id || null;
   const contextId = initialWorkspace?.context_id || null;
   // Mavjud maktablar ro'yxati haqiqiy IDni ko'pincha ``maktab_id`` bilan
@@ -6701,7 +6701,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
   const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
-  const [curriculumOpen, setCurriculumOpen] = useState(false);
+  const [curriculumOpen, setCurriculumOpen] = useState(initialView === "curriculum");
   const [curriculumStatus, setCurriculumStatus] = useState(null);
 
   useEffect(() => {
