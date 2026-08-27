@@ -1,314 +1,414 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Archive,
+  Building2,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  Trash2,
+  X,
+} from "lucide-react";
 
-const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
-const CLASS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({ grade, count: 1, firstShiftCount: 1 }));
-const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`;
 
-const emptyBuilding = (index = 0) => ({
-  key: uniqueKey("building", index), name: index === 0 ? "Asosiy bino" : `${index + 1}-bino`,
-  floors: 2, roomsPerFloor: 10, scheme: "floor", customRooms: "", rooms: [],
-});
+const TYPE_ORDER = ["maktab", "bogcha", "markaz", "universitet"];
 
-const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
-  key: uniqueKey("class", `${grade}-${letter}`), grade, letter, shift,
-  leader: null, psychologist: null, buildingKey: "", roomNumber: "",
-});
 
-export function normalizeSchoolClassName(value) {
-  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-я])$/);
-  return match ? `${match[1]}-${match[2].toUpperCase()}` : "";
+function errorMessage(payload, fallback = "Amal bajarilmadi") {
+  if (!payload) return fallback;
+  if (typeof payload === "string") return payload;
+  if (typeof payload.detail === "string") return payload.detail;
+  if (typeof payload.message === "string") return payload.message;
+  return fallback;
 }
 
-function classNameOf(item) { return normalizeSchoolClassName(`${item.grade}-${item.letter}`); }
-function sortedClasses(items) { return [...items].sort((a, b) => Number(a.grade) - Number(b.grade) || a.letter.localeCompare(b.letter)); }
 
-function generateRooms(building) {
-  const floors = Math.max(1, Math.min(20, Number(building.floors) || 1));
-  const perFloor = Math.max(1, Math.min(100, Number(building.roomsPerFloor) || 1));
-  const generated = [];
-  let sequential = 1;
-  for (let floor = 1; floor <= floors; floor += 1) {
-    for (let index = 1; index <= perFloor; index += 1) {
-      const number = building.scheme === "floor" ? `${floor}${String(index).padStart(2, "0")}` : String(sequential);
-      generated.push({ number, floor });
-      sequential += 1;
-    }
-  }
-  const custom = String(building.customRooms || "").split(/[,;\n]+/).map((item) => item.trim()).filter(Boolean).map((number) => {
-    const numeric = Number.parseInt(number, 10);
-    const guessedFloor = Number.isFinite(numeric) && numeric >= 100 ? Math.floor(numeric / 100) : 1;
-    return { number, floor: Math.max(1, Math.min(floors, guessedFloor)) };
+async function securityRequest(apiBase, path, token, options = {}) {
+  const isGet = !options.method || options.method === "GET";
+  const url = new URL(`${apiBase}/api/admin/muassasa-xavfsizligi${path}`);
+  if (isGet) url.searchParams.set("token", token);
+  const response = await fetch(url.toString(), {
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
   });
-  const unique = new Map();
-  [...generated, ...custom].forEach((room) => unique.set(room.number.toLocaleLowerCase("uz"), room));
-  return [...unique.values()];
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(errorMessage(payload, `Server xatosi (${response.status})`));
+    error.status = response.status;
+    throw error;
+  }
+  return payload || {};
 }
 
-function PersonPicker({ token, apiBase, value, onChange, placeholder }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("uz-UZ", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  }).format(date);
+}
+
+
+function PasswordField({ label, value, onChange, placeholder, visible, onToggle, autoComplete }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>{label}</span>
+      <span className="relative block">
+        <input
+          type={visible ? "text" : "password"}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={4}
+          value={value}
+          onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          className="w-full px-3.5 py-2.5 pr-11 rounded-xl border text-sm tracking-[0.35em]"
+          style={{ borderColor: "#E5E1D8" }}
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute inset-y-0 right-0 w-10 flex items-center justify-center"
+          aria-label={visible ? "Parolni yashirish" : "Parolni ko'rsatish"}
+          style={{ color: "#8A8578" }}
+        >
+          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </span>
+    </label>
+  );
+}
+
+
+function SecurityAccordion({ icon, title, summary, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className="rounded-xl border mb-3 overflow-visible" style={{ borderColor: "#E5E1D8", backgroundColor: "#fff" }} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer select-none [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}>
+        <span className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0", color: "#1B4B7A" }}>{icon}</span>
+        <span className="flex-1 min-w-0">
+          <b className="block text-sm" style={{ color: "#2B2B2B" }}>{title}</b>
+          {summary && <small className="block text-[11px] mt-0.5 truncate" style={{ color: "#8A8578" }}>{summary}</small>}
+        </span>
+        <ChevronDown size={16} className="shrink-0 transition-transform" style={{ color: "#8A8578", transform: open ? "rotate(180deg)" : "none" }} />
+      </summary>
+      <div className="px-3.5 pb-3.5 pt-3 border-t" style={{ borderColor: "#F0ECE3" }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
+
+function ActionDialog({ target, mode, onClose, onSuccess, token, apiBase }) {
+  const [password, setPassword] = useState("");
+  const [reason, setReason] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (value || query.trim().length < 2) { setResults([]); return undefined; }
-    setLoading(true);
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(`${apiBase}/api/admin/foydalanuvchi_qidir?token=${encodeURIComponent(token)}&ism=${encodeURIComponent(query.trim())}`);
-        const data = await response.json();
-        setResults(response.ok ? (data.natijalar || []) : []);
-      } catch { setResults([]); } finally { setLoading(false); }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [apiBase, query, token, value]);
+    setPassword("");
+    setReason("");
+    setVisible(false);
+    setSaving(false);
+    setError("");
+  }, [target, mode]);
 
-  if (value) return (
-    <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 border" style={{ borderColor: "#B9CCDC", background: "#F1F7FB" }}>
-      <span className="text-xs font-semibold" style={{ color: "#1B4B7A" }}>{value.full_name}</span>
-      <button type="button" onClick={() => { onChange(null); setQuery(""); }} className="text-xs" style={{ color: "#8A5A1C" }}>✕</button>
+  if (!target) return null;
+  const restore = mode === "restore";
+
+  const submit = async () => {
+    if (password.length !== 4 || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const payload = restore
+        ? { token, archive_id: target.archive_id, ochirish_paroli: password }
+        : {
+            token,
+            muassasa_turi: target.muassasa_turi,
+            muassasa_id: target.muassasa_id,
+            ochirish_paroli: password,
+            sabab: reason.trim() || undefined,
+          };
+      await securityRequest(
+        apiBase,
+        restore ? "/tiklash" : "/arxivlash",
+        token,
+        { method: "POST", body: JSON.stringify(payload) },
+      );
+      onSuccess(restore ? "Muassasa arxivdan tiklandi" : "Muassasa 1 yillik arxivga olindi");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-5" style={{ backgroundColor: "rgba(18,25,31,0.55)" }}>
+      <section className="w-full max-w-md rounded-2xl p-5 bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="institution-security-action-title">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.16em] mb-1" style={{ color: restore ? "#2D8B8B" : "#B0553A" }}>
+              {restore ? "ARXIVDAN TIKLASH" : "XAVFSIZ ARXIVLASH"}
+            </p>
+            <h3 id="institution-security-action-title" className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{target.nomi}</h3>
+            <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{target.turi_nomi} · ID {target.muassasa_id}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Yopish" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}><X size={17} /></button>
+        </div>
+
+        <div className="rounded-xl p-3 mb-4 text-xs leading-relaxed" style={{ backgroundColor: restore ? "#EEF7F5" : "#FDF0EC", color: restore ? "#246D6D" : "#8E3E2B" }}>
+          {restore
+            ? "Muassasa barcha saqlangan bog'lanishlari bilan yana faol ro'yxatga qaytadi."
+            : "Muassasa darhol faol ro'yxatdan olinadi, 365 kun arxivda saqlanadi va shu muddat ichida tiklanishi mumkin."}
+        </div>
+
+        {!restore && (
+          <label className="block mb-3">
+            <span className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sabab · ixtiyoriy</span>
+            <input value={reason} onChange={(event) => setReason(event.target.value.slice(0, 500))} placeholder="Masalan: xato yaratilgan" className="w-full px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          </label>
+        )}
+
+        <PasswordField
+          label="Adminning 4 xonali o'chirish paroli"
+          value={password}
+          onChange={setPassword}
+          placeholder="••••"
+          visible={visible}
+          onToggle={() => setVisible((current) => !current)}
+          autoComplete="current-password"
+        />
+        {error && <p className="text-sm mt-3" role="alert" style={{ color: "#B0553A" }}>{error}</p>}
+
+        <div className="grid grid-cols-2 gap-2.5 mt-5">
+          <button type="button" onClick={onClose} className="py-2.5 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>Bekor qilish</button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={password.length !== 4 || saving}
+            className="py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+            style={{ backgroundColor: restore ? "#2D8B8B" : "#B0553A", opacity: password.length !== 4 || saving ? 0.55 : 1 }}
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : restore ? <RotateCcw size={16} /> : <Archive size={16} />}
+            {saving ? "..." : restore ? "Tiklash" : "Arxivlash"}
+          </button>
+        </div>
+      </section>
     </div>
   );
-
-  return <div className="relative">
-    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} className="w-full px-3 py-2 rounded-xl border text-xs" style={{ borderColor: "#E5E1D8" }} />
-    {loading && <span className="absolute right-3 top-2 text-xs" style={{ color: "#8A8578" }}>...</span>}
-    {results.length > 0 && <div className="absolute z-30 left-0 right-0 mt-1 rounded-xl border bg-white shadow-lg p-1 max-h-44 overflow-auto" style={{ borderColor: "#E5E1D8" }}>
-      {results.map((person) => <button type="button" key={person.user_id} onClick={() => { onChange(person); setQuery(""); setResults([]); }} className="w-full text-left rounded-lg px-3 py-2 text-xs hover:bg-slate-50">
-        <b>{person.full_name}</b><span className="block" style={{ color: "#8A8578" }}>{person.role} · ID {person.user_id}</span>
-      </button>)}
-    </div>}
-  </div>;
 }
 
-export default function AdminSchoolWizard({ token, apiBase, regions, districtsByRegion, onCancel, onCreated }) {
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState("");
-  const [schoolNumber, setSchoolNumber] = useState("");
-  const [region, setRegion] = useState("");
-  const [district, setDistrict] = useState("");
-  const [shiftCount, setShiftCount] = useState(1);
-  const [director, setDirector] = useState(null);
-  const [skipBuildings, setSkipBuildings] = useState(false);
-  const [buildings, setBuildings] = useState([emptyBuilding(0)]);
-  const [gradeConfig, setGradeConfig] = useState(DEFAULT_GRADE_CONFIG);
-  const [classes, setClasses] = useState([]);
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  const roomPool = useMemo(() => skipBuildings ? [] : buildings.flatMap((building) => building.rooms.map((room) => ({
-    ...room, buildingKey: building.key, buildingName: building.name,
-    poolKey: `${building.key}|${room.number.toLocaleLowerCase("uz")}`,
-  }))), [buildings, skipBuildings]);
-  const buildingByKey = useMemo(() => new Map(buildings.map((item) => [item.key, item])), [buildings]);
-  const requestedClassCount = useMemo(() => gradeConfig.reduce((total, item) => total + item.count, 0), [gradeConfig]);
+export default function AdminInstitutionSecurity({ token, apiBase }) {
+  const [status, setStatus] = useState(null);
+  const [active, setActive] = useState([]);
+  const [archived, setArchived] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [message, setMessage] = useState("");
+  const [tab, setTab] = useState("active");
 
-  const validateSchool = () => {
-    if (name.trim().length < 2) return "Maktab nomini kiriting";
-    if (!region) return "Viloyatni tanlang";
-    if (!district) return "Tumanni tanlang";
-    return "";
-  };
-  const validateBuildings = () => {
-    if (skipBuildings) return "";
-    if (!buildings.length) return "Kamida bitta bino yarating yoki ‘keyin kiritaman’ni belgilang";
-    const names = new Set();
-    for (const building of buildings) {
-      const normalizedName = building.name.trim().toLocaleLowerCase("uz");
-      if (!normalizedName) return "Har bir bino nomini kiriting";
-      if (names.has(normalizedName)) return `${building.name} ikki marta kiritilgan`;
-      names.add(normalizedName);
-      if (building.rooms.length === 0) return `${building.name} uchun xonalarni avtomatik yarating`;
-    }
-    return "";
-  };
-  const validateClasses = () => {
-    if (!classes.length) return "Kamida bitta haqiqiy sinf yarating";
-    const normalized = classes.map(classNameOf);
-    if (normalized.some((item) => !item)) return "Sinf darajasi va parallelini tanlang";
-    if (new Set(normalized).size !== normalized.length) return "Bir xil sinf ikki marta kiritilgan";
-    for (const item of classes) {
-      if (item.roomNumber && !item.buildingKey) return `${classNameOf(item)} uchun binoni tanlang`;
-      if (item.buildingKey && !buildingByKey.has(item.buildingKey)) return `${classNameOf(item)} uchun tanlangan bino topilmadi`;
-      if (item.roomNumber && !buildingByKey.get(item.buildingKey)?.rooms.some((room) => room.number === item.roomNumber)) return `${classNameOf(item)} uchun tanlangan xona topilmadi`;
-    }
-    return "";
-  };
+  const [newPassword, setNewPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [showRepeat, setShowRepeat] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
-  const goNext = () => {
-    const message = step === 1 ? validateSchool() : step === 2 ? validateBuildings() : validateClasses();
-    if (message) { setError(message); return; }
-    setError(""); setNotice(""); setStep((current) => Math.min(4, current + 1));
-  };
-  const updateBuilding = (key, patch) => { setBuildings((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item)); setError(""); };
-  const createRooms = (key) => { setBuildings((current) => current.map((item) => item.key === key ? { ...item, rooms: generateRooms(item) } : item)); setNotice("Xonalar tayyorlandi. Kerak bo‘lsa parametrlarni o‘zgartirib qayta yarating."); setError(""); };
-  const removeBuilding = (key) => { setBuildings((current) => current.filter((item) => item.key !== key)); setClasses((current) => current.map((item) => item.buildingKey === key ? { ...item, buildingKey: "", roomNumber: "" } : item)); };
-  const updateGradeCount = (grade, rawCount) => {
-    const count = Math.max(0, Math.min(CLASS_LETTERS.length, Number.parseInt(rawCount, 10) || 0));
-    setGradeConfig((current) => current.map((item) => item.grade === grade ? {
-      ...item, count, firstShiftCount: shiftCount === 1 ? count : Math.min(item.firstShiftCount, count),
-    } : item));
-    setError("");
-  };
-  const updateGradeFirstShift = (grade, rawCount) => {
-    setGradeConfig((current) => current.map((item) => item.grade === grade ? {
-      ...item, firstShiftCount: Math.max(0, Math.min(item.count, Number.parseInt(rawCount, 10) || 0)),
-    } : item));
-    setError("");
-  };
-  const applyParallelPreset = (count) => {
-    setGradeConfig(CLASS_GRADES.map((grade) => ({
-      grade, count, firstShiftCount: shiftCount === 1 ? count : Math.ceil(count / 2),
-    })));
-    setError(""); setNotice("Parallel sonlari yangilandi. Pastdagi tugma orqali sinflarni qayta hisoblang.");
-  };
+  const [action, setAction] = useState(null);
 
-  const assignRooms = (items, reset = false) => {
-    if (skipBuildings || roomPool.length === 0) return { items, unassigned: 0 };
-    const used = { 1: new Set(), 2: new Set() };
-    if (!reset) items.forEach((item) => { if (item.buildingKey && item.roomNumber) used[Number(item.shift) || 1].add(`${item.buildingKey}|${item.roomNumber.toLocaleLowerCase("uz")}`); });
-    let unassigned = 0;
-    const assigned = sortedClasses(items).map((item) => {
-      if (!reset && item.buildingKey && item.roomNumber) return item;
-      const shift = shiftCount === 1 ? 1 : Number(item.shift) || 1;
-      const room = roomPool.find((candidate) => !used[shift].has(candidate.poolKey));
-      if (!room) { unassigned += 1; return { ...item, buildingKey: "", roomNumber: "" }; }
-      used[shift].add(room.poolKey);
-      return { ...item, buildingKey: room.buildingKey, roomNumber: room.number };
-    });
-    return { items: assigned, unassigned };
-  };
-
-  const generateClasses = () => {
-    if (!requestedClassCount) { setError("Kamida bitta sinf darajasiga parallel sonini kiriting"); return; }
-    const existing = new Map(classes.map((item) => [classNameOf(item), item]));
-    const desired = [];
-    gradeConfig.forEach(({ grade, count, firstShiftCount }) => {
-      CLASS_LETTERS.slice(0, count).forEach((letter, index) => {
-        const normalized = `${grade}-${letter}`;
-        const shift = shiftCount === 1 || index < firstShiftCount ? 1 : 2;
-        const oldItem = existing.get(normalized);
-        desired.push(oldItem ? (Number(oldItem.shift) === shift ? oldItem : { ...oldItem, shift, buildingKey: "", roomNumber: "" }) : emptyClass({ grade, letter, shift }));
-      });
-    });
-    const result = assignRooms(desired);
-    setClasses(result.items); setError("");
-    setNotice(`11 ta sinf darajasi qayta hisoblandi. Jami ${result.items.length} ta sinf${result.unassigned ? `; ${result.unassigned} tasiga xona yetmadi` : roomPool.length ? " va xonalar avtomatik biriktirildi" : ""}.`);
-  };
-  const autoAssignAllRooms = () => { const result = assignRooms(classes, true); setClasses(result.items); setError(""); setNotice(result.unassigned ? `${result.unassigned} ta sinfga xona yetmadi; ular xonasiz qoldirildi.` : "Barcha sinflarga smena bo‘yicha takrorlanmaydigan xonalar biriktirildi."); };
-  const updateClass = (key, patch) => { setClasses((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item)); setError(""); };
-
-  const createSchool = async () => {
-    const message = validateSchool() || validateBuildings() || validateClasses();
-    if (message || saving) { setError(message); return; }
-    setSaving(true); setError("");
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
     try {
-      const response = await fetch(`${apiBase}/api/admin/maktab-yaratish-v2`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const [statusData, activeData, archiveData] = await Promise.all([
+        securityRequest(apiBase, "/holat", token),
+        securityRequest(apiBase, "/faol", token),
+        securityRequest(apiBase, "/arxiv", token),
+      ]);
+      setStatus(statusData);
+      setActive(activeData.muassasalar || []);
+      setArchived(archiveData.arxiv || []);
+    } catch (requestError) {
+      setLoadError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBase, token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const groupedActive = useMemo(() => {
+    const groups = new Map();
+    TYPE_ORDER.forEach((type) => groups.set(type, []));
+    active.forEach((institution) => {
+      if (!groups.has(institution.muassasa_turi)) groups.set(institution.muassasa_turi, []);
+      groups.get(institution.muassasa_turi).push(institution);
+    });
+    return [...groups.entries()].filter(([, institutions]) => institutions.length > 0);
+  }, [active]);
+
+  const savePassword = async () => {
+    if (newPassword.length !== 4 || repeatPassword.length !== 4 || passwordSaving) return;
+    setPasswordSaving(true);
+    setPasswordError("");
+    setMessage("");
+    try {
+      await securityRequest(apiBase, "/parol", token, {
+        method: "PUT",
         body: JSON.stringify({
-          token, name: name.trim(), school_number: schoolNumber.trim() || null, region, district,
-          shift_count: shiftCount, director_user_id: director?.user_id || null,
-          buildings: skipBuildings ? [] : buildings.map((building) => ({ key: building.key, name: building.name.trim(), floors: Number(building.floors), rooms: building.rooms.map((room) => ({ number: room.number, floor: room.floor })) })),
-          classes: sortedClasses(classes).map((item) => ({
-            name: classNameOf(item), shift: shiftCount === 1 ? 1 : Number(item.shift),
-            leader_user_id: item.leader?.user_id || null, psychologist_user_id: item.psychologist?.user_id || null,
-            building_key: item.buildingKey || null, room_number: item.roomNumber || null,
-          })),
+          token,
+          yangi_parol: newPassword,
+          yangi_parol_takror: repeatPassword,
         }),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.detail || "Maktabni yaratib bo‘lmadi");
-      onCreated?.(data.school, data);
-    } catch (requestError) { setError(requestError.message || "Maktabni yaratib bo‘lmadi"); }
-    finally { setSaving(false); }
+      setNewPassword("");
+      setRepeatPassword("");
+      setMessage("O'chirish paroli yangilandi");
+      await load();
+    } catch (requestError) {
+      setPasswordError(requestError.message);
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
-  return <section className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#D9D4C8" }}>
-    <div className="flex items-start justify-between gap-3 mb-4"><div>
-      <p className="text-xs font-bold" style={{ color: "#8A5A1C" }}>YANGI MAKTAB · {step}/4 BOSQICH</p>
-      <h2 className="text-lg font-bold" style={{ color: "#21384C" }}>{step === 1 ? "Maktab ma’lumoti" : step === 2 ? "Bino va xonalar" : step === 3 ? "Sinflarni tez yaratish" : "Tekshirish va yaratish"}</h2>
-    </div><button type="button" onClick={onCancel} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "#F7F5F0", color: "#5A5648" }}>✕ Yopish</button></div>
-    <div className="grid grid-cols-4 gap-2 mb-5">{[1, 2, 3, 4].map((number) => <div key={number} className="h-1.5 rounded-full" style={{ background: number <= step ? "#C89B3C" : "#E9E4D8" }} />)}</div>
+  const actionCompleted = async (text) => {
+    setAction(null);
+    setMessage(text);
+    await load();
+  };
 
-    {step === 1 && <div className="space-y-3">
-      <div className="grid md:grid-cols-2 gap-3">
-        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab nomi *<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: Ziyo maktabi" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab raqami · ixtiyoriy<input value={schoolNumber} onChange={(event) => setSchoolNumber(event.target.value)} placeholder="Masalan: 21" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-      </div>
-      <div className="grid md:grid-cols-2 gap-3">
-        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Viloyat *<select value={region} onChange={(event) => { setRegion(event.target.value); setDistrict(""); }} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlang</option>{(regions || []).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Tuman/shahar *<select value={district} onChange={(event) => setDistrict(event.target.value)} disabled={!region} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: region ? 1 : 0.55 }}><option value="">Tanlang</option>{((districtsByRegion || {})[region] || []).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-      </div>
-      <div><p className="text-xs font-semibold mb-1.5" style={{ color: "#5A5648" }}>Maktabdagi smena soni *</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => { setShiftCount(number); setGradeConfig((current) => current.map((item) => ({ ...item, firstShiftCount: number === 1 ? item.count : Math.ceil(item.count / 2) }))); setClasses((current) => current.map((item) => ({ ...item, shift: 1, buildingKey: "", roomNumber: "" }))); }} className="py-2.5 rounded-xl border text-sm font-bold" style={shiftCount === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#E5E1D8" }}>{number} smenali</button>)}</div></div>
-      <label className="text-xs font-semibold block" style={{ color: "#5A5648" }}>Direktor · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={director} onChange={setDirector} placeholder="Mavjud foydalanuvchidan direktor tanlang..." /></div></label>
-      <div className="rounded-xl px-3.5 py-3 text-xs" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Admin yaratmoqda: platforma to‘lovi, balans va sinov muddati so‘ralmaydi.</div>
-    </div>}
-
-    {step === 2 && <div className="space-y-3">
-      <label className="flex items-start gap-2.5 rounded-xl px-3.5 py-3 cursor-pointer" style={{ background: skipBuildings ? "#FDF3E0" : "#F7F5F0" }}><input type="checkbox" checked={skipBuildings} onChange={(event) => setSkipBuildings(event.target.checked)} className="mt-0.5" /><span className="text-xs" style={{ color: "#5A5648" }}><b>Bino va xonalarni keyin kiritaman</b><small className="block mt-0.5">Belgilanmasa, hozir bino va xonalar to‘liq yaratiladi.</small></span></label>
-      {!skipBuildings && buildings.map((building, index) => <article key={building.key} className="rounded-2xl border p-4" style={{ borderColor: "#E5E1D8", background: "#FCFBF8" }}>
-        <div className="flex items-center justify-between mb-3"><b className="text-sm" style={{ color: "#21384C" }}>{building.name.trim() || `${index + 1}-bino`}</b>{buildings.length > 1 && <button type="button" onClick={() => removeBuilding(building.key)} className="text-xs" style={{ color: "#B0553A" }}>Olib tashlash</button>}</div>
-        <div className="grid md:grid-cols-4 gap-3">
-          <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Bino nomi *<input value={building.name} onChange={(event) => updateBuilding(building.key, { name: event.target.value, rooms: [] })} placeholder="Masalan: Asosiy bino" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-          <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Qavat soni *<input type="number" min="1" max="20" value={building.floors} onChange={(event) => updateBuilding(building.key, { floors: event.target.value, rooms: [] })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-          <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Har qavatdagi xona *<input type="number" min="1" max="100" value={building.roomsPerFloor} onChange={(event) => updateBuilding(building.key, { roomsPerFloor: event.target.value, rooms: [] })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-          <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Xona raqamlash usuli<select value={building.scheme} onChange={(event) => updateBuilding(building.key, { scheme: event.target.value, rooms: [] })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="floor">Qavat bo‘yicha: 101, 102… 201, 202…</option><option value="sequential">Oddiy ketma-ket: 1, 2, 3…</option></select></label>
-          <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Qo‘shimcha xona raqamlari · ixtiyoriy<input value={building.customRooms} onChange={(event) => updateBuilding(building.key, { customRooms: event.target.value, rooms: [] })} placeholder="Masalan: Sportzal, Lab-1, 305" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+  return (
+    <section aria-labelledby="admin-institution-security-title">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-start gap-3">
+          <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><ShieldCheck size={20} /></span>
+          <div>
+            <h2 id="admin-institution-security-title" className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Muassasa xavfsizligi va arxivi</h2>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>Kim yaratganidan qat'i nazar, admin 4 xonali parol bilan istalgan muassasani arxivlaydi.</p>
+          </div>
         </div>
-        <button type="button" onClick={() => createRooms(building.key)} className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {building.rooms.length ? "Xonalarni qayta yaratish" : "Xonalarni avtomatik yaratish"}</button>
-        {building.rooms.length > 0 && <div className="mt-3 rounded-xl p-3" style={{ background: "#F1F7FB" }}><p className="text-xs font-bold mb-2" style={{ color: "#1B4B7A" }}>{building.rooms.length} ta xona tayyor</p><div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto">{building.rooms.map((room) => <span key={`${building.key}-${room.number}`} className="px-2 py-1 rounded-lg text-[11px]" style={{ background: "white", color: "#5A5648" }}>{room.number}</span>)}</div></div>}
-      </article>)}
-      {!skipBuildings && <button type="button" onClick={() => setBuildings((current) => [...current, emptyBuilding(current.length)])} className="w-full py-3 rounded-xl border-2 border-dashed text-sm font-bold" style={{ borderColor: "#B9CCDC", color: "#1B4B7A" }}>＋ Yana bino qo‘shish</button>}
-    </div>}
+        <button type="button" onClick={load} disabled={loading} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }} aria-label="Yangilash"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /></button>
+      </div>
 
-    {step === 3 && <div className="space-y-4">
-      <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
-        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir sinf darajasining parallel sonini alohida yozing. 0 bo‘lsa, o‘sha daraja yaratilmaydi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
-        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>Barchasiga tez qo‘yish:</span>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
-        <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2">PARALLEL</span>{shiftCount === 2 && <span className="col-span-2">1-SMENA</span>}<span className={shiftCount === 2 ? "col-span-6" : "col-span-8"}>YARATILADIGAN SINFLAR</span></div>
-          {gradeConfig.map((item) => {
-            const secondShiftCount = Math.max(0, item.count - item.firstShiftCount);
-            return <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: item.count ? "white" : "#FAF9F6" }}>
-              <b className="col-span-2 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
-              <input aria-label={`${item.grade}-sinf parallel soni`} type="number" min="0" max={CLASS_LETTERS.length} value={item.count} onChange={(event) => updateGradeCount(item.grade, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#1B4B7A" }} />
-              {shiftCount === 2 && <input aria-label={`${item.grade}-sinf 1-smena soni`} title={`Qolgan ${secondShiftCount} tasi 2-smenada`} type="number" min="0" max={item.count} value={item.firstShiftCount} onChange={(event) => updateGradeFirstShift(item.grade, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#8A5A1C" }} />}
-              <span className={`${shiftCount === 2 ? "col-span-6" : "col-span-8"} text-[11px] truncate`} style={{ color: item.count ? "#5A5648" : "#A8A397" }}>{item.count ? `${CLASS_LETTERS.slice(0, item.count).map((letter) => `${item.grade}-${letter}`).join(", ")}${shiftCount === 2 ? ` · 2-smena: ${secondShiftCount} ta` : ""}` : "Yaratilmaydi"}</span>
-            </div>;
-          })}
+      {loadError && <div className="rounded-xl p-3 mb-3 text-sm" role="alert" style={{ backgroundColor: "#FDF0EC", color: "#B0553A" }}>{loadError}</div>}
+      {message && <div className="rounded-xl p-3 mb-3 text-sm" role="status" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>✓ {message}</div>}
+
+      <SecurityAccordion
+        icon={<ShieldCheck size={16} />}
+        title="O'chirish paroli"
+        summary={status?.configured ? "4 xonali parol faol" : "Parol sozlanmagan"}
+      >
+      <div className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div>
+            <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>O'chirish parolini yangilash</p>
+            <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>
+              {status?.source === "settings"
+                ? `Sozlamadagi parol faol · ${formatDate(status.updated_at)}`
+                : status?.source === "railway"
+                  ? "Eski Railway paroli faol — u o'zgartirilmaguncha saqlanadi"
+                  : "Parol hali belgilanmagan"}
+            </p>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ backgroundColor: status?.configured ? "#EAF3DE" : "#FDF0EC", color: status?.configured ? "#3B6D11" : "#B0553A" }}>{status?.configured ? "FAOL" : "SOZLANMAGAN"}</span>
         </div>
-        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "1-smena ustuniga nechta parallel ertalab o‘qishini yozing; qolganlari avtomatik 2-smenaga o‘tadi." : "Har bir qatordagi sonni xohlagan payt o‘zgartirib, ro‘yxatni qayta hisoblash mumkin."}</p>
-        <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
-      </section>
-      {classes.length > 0 && <>
-        {!skipBuildings && roomPool.length > 0 && <button type="button" onClick={autoAssignAllRooms} className="w-full py-2.5 rounded-xl text-sm font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>🏫 Xonalarni smena bo‘yicha avtomatik taqsimlash</button>}
-        <div className="flex items-center justify-between gap-2"><div><b className="text-sm" style={{ color: "#21384C" }}>Yaratiladigan sinflar</b><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>Kerakli sinfni bosing: uning smena, bino, xona, rahbar va psixologi alohida ochiladi.</p></div><button type="button" onClick={() => { setClasses([]); setNotice(""); }} className="text-xs whitespace-nowrap" style={{ color: "#B0553A" }}>Ro‘yxatni tozalash</button></div>
-        <div className="space-y-2">{sortedClasses(classes).map((item) => {
-          const selectedBuilding = buildingByKey.get(item.buildingKey);
-          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
-            <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
-              {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
-              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
-              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · ixtiyoriy<select value={item.roomNumber} onChange={(event) => updateClass(item.key, { roomNumber: event.target.value })} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => <option key={room.number} value={room.number}>{room.number}-xona</option>)}</select></label>}
-              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf rahbari · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.leader} onChange={(person) => updateClass(item.key, { leader: person })} placeholder="Rahbar ismi..." /></div></label>
-              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Psixolog · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.psychologist} onChange={(person) => updateClass(item.key, { psychologist: person })} placeholder="Psixolog ismi..." /></div></label>
-              <button type="button" onClick={() => setClasses((current) => current.filter((row) => row.key !== item.key))} className="self-end py-2 rounded-xl text-xs font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Sinfni olib tashlash</button>
-            </div></details>;
-        })}</div>
-      </>}
-    </div>}
 
-    {step === 4 && <div className="space-y-4">
-      <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{schoolNumber.trim() ? `${schoolNumber.trim()}-sonli ` : ""}{name.trim()}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
-      <div className="grid grid-cols-3 gap-2"><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{skipBuildings ? 0 : buildings.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>bino</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{roomPool.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>xona</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#FDF3E0" }}><b className="block text-lg" style={{ color: "#8A5A1C" }}>{classes.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>sinf</span></div></div>
-      {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p></div>)}
-      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
-      <div className="rounded-xl px-3.5 py-3 text-xs font-semibold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Maktab, binolar, xonalar va sinflar bitta xavfsiz amalda yaratiladi. Platforma to‘lovi: 0 so‘m.</div>
-    </div>}
+        <p className="text-[11px] mb-2.5" style={{ color: "#8A8578" }}>Admin akkaunti tasdiqlangani uchun yangi parolni istalgan payt to'g'ridan-to'g'ri belgilash mumkin.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <PasswordField label="Yangi 4 raqam" value={newPassword} onChange={setNewPassword} placeholder="••••" visible={showNew} onToggle={() => setShowNew((value) => !value)} autoComplete="new-password" />
+          <PasswordField label="Yangi parolni takrorlang" value={repeatPassword} onChange={setRepeatPassword} placeholder="••••" visible={showRepeat} onToggle={() => setShowRepeat((value) => !value)} autoComplete="new-password" />
+        </div>
+        {passwordError && <p className="text-xs mt-2" role="alert" style={{ color: "#B0553A" }}>{passwordError}</p>}
+        <button type="button" onClick={savePassword} disabled={passwordSaving || newPassword.length !== 4 || repeatPassword.length !== 4} className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A", opacity: passwordSaving || newPassword.length !== 4 || repeatPassword.length !== 4 ? 0.5 : 1 }}>
+          {passwordSaving ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+          {passwordSaving ? "Saqlanmoqda..." : "Parolni yangilash"}
+        </button>
+      </div>
+      </SecurityAccordion>
 
-    {notice && <div className="mt-4 rounded-xl px-3.5 py-3 text-xs" role="status" style={{ background: "#EEF6F1", color: "#2E6C55" }}>✓ {notice}</div>}
-    {error && <div className="mt-4 rounded-xl px-3.5 py-3 text-sm" role="alert" style={{ background: "#FFF0EC", color: "#A04431" }}>{error}</div>}
-    <div className="grid grid-cols-2 gap-2 mt-5"><button type="button" onClick={() => step === 1 ? onCancel?.() : setStep((current) => current - 1)} disabled={saving} className="py-3 rounded-xl font-bold text-sm" style={{ background: "#F7F5F0", color: "#5A5648" }}>{step === 1 ? "Bekor qilish" : "← Orqaga"}</button>{step < 4 ? <button type="button" onClick={goNext} className="py-3 rounded-xl font-bold text-sm text-white" style={{ background: "#1B4B7A" }}>Davom etish →</button> : <button type="button" onClick={createSchool} disabled={saving} className="py-3 rounded-xl font-bold text-sm text-white" style={{ background: "#1B4B7A", opacity: saving ? 0.65 : 1 }}>{saving ? "Yaratilmoqda..." : "Hammasini yaratish"}</button>}</div>
-  </section>;
+      <SecurityAccordion
+        icon={<Archive size={16} />}
+        title="Muassasalar va arxiv"
+        summary={`${active.length} faol · ${archived.length} arxiv`}
+      >
+      <div className="grid grid-cols-2 gap-2 mb-3" role="tablist" aria-label="Muassasa holati">
+        <button type="button" role="tab" aria-selected={tab === "active"} onClick={() => setTab("active")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "active" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Building2 size={15} /> Faol · {active.length}</button>
+        <button type="button" role="tab" aria-selected={tab === "archive"} onClick={() => setTab("archive")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "archive" ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Archive size={15} /> Arxiv · {archived.length}</button>
+      </div>
+
+      {loading ? (
+        <div className="py-8 flex items-center justify-center"><Loader2 size={22} className="animate-spin" style={{ color: "#1B4B7A" }} /></div>
+      ) : tab === "active" ? (
+        groupedActive.length === 0 ? (
+          <div className="rounded-xl p-5 text-center" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}><p className="text-sm">Faol muassasa topilmadi.</p></div>
+        ) : (
+          <div className="space-y-3">
+            {groupedActive.map(([type, institutions]) => (
+              <div key={type}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1.5" style={{ color: "#8A8578" }}>{institutions[0]?.turi_nomi}</p>
+                <div className="space-y-1.5">
+                  {institutions.map((institution) => (
+                    <div key={`${institution.muassasa_turi}-${institution.muassasa_id}`} className="rounded-xl p-3 flex items-center justify-between gap-3" style={{ backgroundColor: "#FAF8F2" }}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{institution.nomi}</p>
+                        <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>ID {institution.muassasa_id}</p>
+                      </div>
+                      <button type="button" onClick={() => setAction({ mode: "archive", target: institution })} disabled={!status?.configured} className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0" style={{ backgroundColor: "#FDF0EC", color: "#B0553A", opacity: status?.configured ? 1 : 0.45 }}><Trash2 size={14} /> Arxivlash</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : archived.length === 0 ? (
+        <div className="rounded-xl p-5 text-center" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}><Archive size={24} className="mx-auto mb-2" /><p className="text-sm">Arxiv bo'sh.</p></div>
+      ) : (
+        <div className="space-y-2">
+          {archived.map((institution) => (
+            <div key={institution.archive_id} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{institution.nomi}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{institution.turi_nomi} · arxivlandi {formatDate(institution.archived_at)}</p>
+                  <p className="text-[11px] mt-1 font-medium" style={{ color: institution.days_remaining <= 30 ? "#B0553A" : "#8A5A1C" }}>{institution.days_remaining} kun qoldi · {formatDate(institution.purge_after)} dan keyin butunlay o'chadi</p>
+                  {institution.sababi && <p className="text-[11px] mt-1" style={{ color: "#5A5648" }}>Sabab: {institution.sababi}</p>}
+                </div>
+                <button type="button" onClick={() => setAction({ mode: "restore", target: institution })} className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0" style={{ backgroundColor: "#EEF7F5", color: "#246D6D" }}><RotateCcw size={14} /> Tiklash</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "#8A8578" }}>Arxivdagi muassasa 365 kun ichida tiklanadi. Muddat tugagach avtomatik tozalash ishga tushadi va tiklash yopiladi.</p>
+      </SecurityAccordion>
+
+      <ActionDialog
+        target={action?.target}
+        mode={action?.mode}
+        onClose={() => setAction(null)}
+        onSuccess={actionCompleted}
+        token={token}
+        apiBase={apiBase}
+      />
+    </section>
+  );
 }
