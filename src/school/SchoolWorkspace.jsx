@@ -3576,7 +3576,6 @@ function TeacherFirstLoadEditorV192({
                 : candidate.haftalik_soat;
               seen.add(key);
               result.push(candidate);
-              break;
             }
           }
         });
@@ -3893,14 +3892,29 @@ function TeacherFirstLoadEditorV192({
   const save = async () => {
     const profile = creatingNew ? newTeacher : existingProfile;
     const profileFieldPrefix = creatingNew ? "new-teacher" : "existing-teacher";
+    const leaderClassForSave = (data?.sinflar || []).find(item =>
+      String(item.id) === String(profile.rahbar_sinf_id || "")
+    );
+    const leaderGradeForSave = Number(String(leaderClassForSave?.sinf || "").match(/\d+/)?.[0] || 0);
+    const primaryLeaderWholeRow = row => leaderGradeForSave >= 1 && leaderGradeForSave <= 4
+      && String(row.sinf_id) === String(profile.rahbar_sinf_id || "")
+      && primaryTeacherCanTeachV193(row.fan_nomi);
+    const saveRows = rows;
+    const rowSubjects = [...new Set(saveRows
+      .map(row => String(row.fan_nomi || "").trim())
+      .filter(Boolean))];
+    const selectedNewTeacherSubjects = specialtyValuesV195(newTeacher.mutaxassisligi);
+    const effectiveNewTeacherSubjects = selectedNewTeacherSubjects.length
+      ? selectedNewTeacherSubjects : rowSubjects;
+    const effectiveNewTeacherSpecialty = effectiveNewTeacherSubjects.join(";");
     if (!creatingNew && !selectedTeacher) {
       return showValidationErrorV199("Avval o‘qituvchini tanlang.", "teacher-selector-panel");
     }
     if (creatingNew && newTeacher.full_name.trim().length < 3) {
       return showValidationErrorV199("Yangi o‘qituvchining F.I.Sh.ni kiriting.", "new-teacher-full-name");
     }
-    if (creatingNew && !newTeacher.mutaxassisligi) {
-      return showValidationErrorV199("O‘qituvchi o‘tadigan kamida bitta fanni tanlang.", "teacher-subject-picker");
+    if (creatingNew && !effectiveNewTeacherSubjects.length) {
+      return showValidationErrorV199("Kamida bitta fan tanlang yoki sinf rahbari fanlarini avtomatik qo‘shing.", "teacher-subject-picker");
     }
     if (creatingNew && !newTeacher.haftalik_maqsad_soat) {
       return showValidationErrorV199("Haftalik maqsad soatini kiriting. Masalan: 25.", "new-teacher-weekly-target");
@@ -3936,34 +3950,26 @@ function TeacherFirstLoadEditorV192({
     )) {
       return showValidationErrorV199(`${chosenLeaderClass.sinf}-${chosenLeaderClass.harf} sinfida boshqa rahbar bor.`, `${profileFieldPrefix}-leader-class`);
     }
-    const invalidGroupedRow = rows.find(row => {
-      const grouped = groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi);
-      if (!grouped.length) return false;
-      return !grouped.some(variant =>
-        String(variant.guruh_kaliti) === String(row.guruh_kaliti || "whole")
-      );
+    const groupedWholeRows = saveRows.filter(row => {
+      const grouped = primaryLeaderWholeRow(row)
+        ? [] : groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi);
+      return grouped.length > 0 && String(row.guruh_kaliti || "whole") === "whole";
     });
-    if (invalidGroupedRow) {
-      const invalidGroupedIndex = rows.indexOf(invalidGroupedRow);
-      const cls = (data?.sinflar || []).find(item =>
-        String(item.id) === String(invalidGroupedRow.sinf_id)
-      );
-      const scheme = groupedSubjectSchemeV196(invalidGroupedRow.fan_nomi);
-      return showValidationErrorV199(
-        `${cls ? `${cls.sinf}-${cls.harf}` : "Sinf"} / ${invalidGroupedRow.fan_nomi} guruhli fan. Butun sinf emas, ${scheme === "gender" ? "O‘g‘il bolalar yoki Qiz bolalar" : "1-guruh yoki 2-guruh"}ni tanlang.`,
-        `teacher-row-${invalidGroupedIndex}-group`
-      );
+    if (groupedWholeRows.length && !window.confirm(
+      `${groupedWholeRows.length} ta guruhli fan “Butun sinf” holatida turibdi. OK bossangiz avtomatik o‘zgartirilmaydi va aynan shu holatda saqlanadi.`
+    )) {
+      return;
     }
-    const incompleteRowIndex = rows.findIndex(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat);
+    const incompleteRowIndex = saveRows.findIndex(row => !row.sinf_id || !row.fan_nomi || !row.haftalik_soat);
     if (incompleteRowIndex >= 0) {
-      const incompleteRow = rows[incompleteRowIndex];
+      const incompleteRow = saveRows[incompleteRowIndex];
       const missingField = !incompleteRow.sinf_id ? "class" : !incompleteRow.fan_nomi ? "subject" : "hours";
       return showValidationErrorV199(
         "Har bir qatorda sinf, fan va haftalik soat bo‘lishi kerak. Qizil joyni to‘ldiring.",
         `teacher-row-${incompleteRowIndex}-${missingField}`
       );
     }
-    const invalidHourStepIndex = rows.findIndex(row => {
+    const invalidHourStepIndex = saveRows.findIndex(row => {
       const hours = Number(row.haftalik_soat || 0);
       return hours < 0.5 || hours > 20
         || Math.abs(hours * 2 - Math.round(hours * 2)) > 1e-9;
@@ -3974,7 +3980,7 @@ function TeacherFirstLoadEditorV192({
         `teacher-row-${invalidHourStepIndex}-hours`
       );
     }
-    const mergedRows = mergeDuplicateRows(rows);
+    const mergedRows = mergeDuplicateRows(saveRows);
     if (creatingNew && !mergedRows.length) {
       return showValidationErrorV199("Kamida bitta fan–sinf–guruh qatorini kiriting.", "teacher-load-top-actions");
     }
@@ -3993,7 +3999,7 @@ function TeacherFirstLoadEditorV192({
         );
       }
     }
-    if (mergedRows.length !== rows.length) {
+    if (mergedRows.length !== saveRows.length) {
       setRows(mergedRows);
     }
     setSaving(true);
@@ -4041,8 +4047,8 @@ function TeacherFirstLoadEditorV192({
       const fullPayload = compactApiPayloadV200(creatingNew ? {
         maktab_id: maktabId,
         full_name: newTeacher.full_name.trim(),
-        mutaxassisligi: newTeacher.mutaxassisligi,
-        otadigan_fanlari: specialtyValuesV195(newTeacher.mutaxassisligi),
+        mutaxassisligi: effectiveNewTeacherSpecialty,
+        otadigan_fanlari: effectiveNewTeacherSubjects,
         haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
         tugilgan_sana: newTeacher.tugilgan_sana || null,
         tugilgan_yili: newTeacher.tugilgan_sana
@@ -4071,7 +4077,7 @@ function TeacherFirstLoadEditorV192({
       const compatibilityPayload = compactApiPayloadV200(creatingNew ? {
         maktab_id: maktabId,
         full_name: newTeacher.full_name.trim(),
-        mutaxassisligi: newTeacher.mutaxassisligi,
+        mutaxassisligi: effectiveNewTeacherSpecialty,
         haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
         qatorlar: qatorlar.map(({ sinf_id, fan_nomi, guruh_kaliti, haftalik_soat }) => ({
           sinf_id, fan_nomi, guruh_kaliti, haftalik_soat,
@@ -4139,6 +4145,9 @@ function TeacherFirstLoadEditorV192({
         ));
       }
       const warnings = [...(result.ogohlantirishlar || [])];
+      if (groupedWholeRows.length) {
+        warnings.push(`${groupedWholeRows.length} ta guruhli fan siz tanlagandek “Butun sinf” holatida saqlandi.`);
+      }
       if (compatibilityRetryUsed) {
         warnings.push("Server eski saqlash formatini qabul qildi; asosiy o‘qituvchi va yuklama ma’lumotlari saqlandi.");
       }
@@ -4385,10 +4394,15 @@ function TeacherFirstLoadEditorV192({
 
   const renderSpecialtyPicker = required => {
     const selected = specialtyValuesV195(activeSpecialty());
+    const inferredFromRows = required && !selected.length
+      ? [...new Set(rows.map(row => String(row.fan_nomi || "").trim()).filter(Boolean))]
+      : [];
+    const selectionRequired = required && !inferredFromRows.length;
     const pickerId = required ? "teacher-subject-picker" : "existing-teacher-subject-picker";
-    return <div id={pickerId} className={`${required ? "col-span-2" : "md:col-span-2"} ${fieldIsInvalidV199(pickerId) ? "rounded-xl border p-2" : ""}`} style={fieldIsInvalidV199(pickerId) ? invalidFieldStyleV199(pickerId) : undefined}>
+    const pickerInvalid = fieldIsInvalidV199(pickerId) && selectionRequired;
+    return <div id={pickerId} className={`${required ? "col-span-2" : "md:col-span-2"} ${pickerInvalid ? "rounded-xl border p-2" : ""}`} style={pickerInvalid ? invalidFieldStyleV199(pickerId) : undefined}>
       <div className="text-xs font-black" style={{ color: palette.ink }}>
-        O‘tadigan fanlari {required && <span style={{ color: palette.red }}>*</span>}
+        O‘tadigan fanlari {selectionRequired && <span style={{ color: palette.red }}>*</span>}
       </div>
       <div className="text-[10px] mt-1" style={{ color: palette.muted }}>
         Fan ustiga bosing — tanlanadi. Yana bossangiz bekor bo‘ladi. Fanlar soni cheklanmagan.
@@ -4402,7 +4416,8 @@ function TeacherFirstLoadEditorV192({
             <button type="button" onClick={() => { clearInvalidFieldV199(pickerId); removeSpecialtyValue(value); }} aria-label={`${option?.label || value} fanini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
           </span>;
         })}
-        {!selected.length && <span className="text-[10px]" style={{ color: palette.amber }}>Hozircha fan tanlanmagan</span>}
+        {!selected.length && inferredFromRows.length > 0 && <span className="text-[10px] font-bold" style={{ color: palette.green }}>Pastdagi avtomatik darslardan olinadi: {inferredFromRows.join(", ")}</span>}
+        {!selected.length && !inferredFromRows.length && <span className="text-[10px]" style={{ color: palette.amber }}>Hozircha fan tanlanmagan</span>}
       </div>
       <label className="mt-2 flex items-center gap-2 rounded-xl border bg-white px-3 py-2" style={{ borderColor: palette.line }}>
         <Search size={15} style={{ color: palette.blue }}/>
@@ -4427,7 +4442,7 @@ function TeacherFirstLoadEditorV192({
       <div className="text-[10px] font-bold mt-2" style={{ color: selected.length ? palette.green : palette.muted }}>
         {selected.length} ta fan · faqat admin tasdiqlagan fanlar. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.
       </div>
-      {fieldIsInvalidV199(pickerId) && <div className="text-[10px] font-black mt-1" style={{ color: palette.red }}>Bu yerdan kamida bitta fan tanlang.</div>}
+      {pickerInvalid && <div className="text-[10px] font-black mt-1" style={{ color: palette.red }}>Fan tanlang yoki sinf rahbari darslarini avtomatik qo‘shing.</div>}
     </div>;
   };
 
@@ -5020,7 +5035,13 @@ function TeacherFirstLoadEditorV192({
           <div className="space-y-2 mt-4">
             {rows.map((row, index) => {
               const variants = selectableVariantsForSubjectV196(row.sinf_id, row.fan_nomi);
-              const groupedRequired = groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi).length > 0;
+              const rowClass = (data?.sinflar || []).find(cls => String(cls.id) === String(row.sinf_id));
+              const rowGrade = Number(String(rowClass?.sinf || "").match(/\d+/)?.[0] || 0);
+              const activeLeaderClassId = creatingNew ? newTeacher.rahbar_sinf_id : existingProfile.rahbar_sinf_id;
+              const primaryLeaderWhole = rowGrade >= 1 && rowGrade <= 4
+                && String(row.sinf_id) === String(activeLeaderClassId || "")
+                && primaryTeacherCanTeachV193(row.fan_nomi);
+              const groupedRequired = !primaryLeaderWhole && groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi).length > 0;
               const subjects = subjectsFor(row);
               const allocation = allocationInfo(index, row);
               return <div id={`teacher-load-row-${index}`} key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_150px_38px] gap-2 items-end scroll-mt-24" style={{ borderColor: row.auto_specialty ? "#8FC4A5" : palette.line, background: row.auto_specialty ? palette.greenBg : "#FCFDFE" }}>
