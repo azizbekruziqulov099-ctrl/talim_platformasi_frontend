@@ -3029,16 +3029,35 @@ function TeacherFirstLoadEditorV192({
   };
 
   const selectableVariantsForSubjectV196 = (classId, subject) => {
-    const grouped = groupedVariantsForSubjectV196(classId, subject);
-    if (grouped.length) return grouped;
     const variants = variantsForClass(classId);
     const whole = variants.find(variant => variant.guruh_kaliti === "whole");
     const wholeVariant = whole || {
       sinf_id: Number(classId), guruh_kaliti: "whole",
       guruh_nomi: "Butun sinf", qisqa: "Sinf",
     };
-    if (groupedSubjectSchemeV196(subject)) return [wholeVariant];
+    // Guruh tanlovi fan nomidan yasalmaydi. Sinf avval qaysi guruhlarga
+    // bo‘lingan bo‘lsa, barcha fanlarda faqat o‘sha haqiqiy guruhlar chiqadi.
+    // Bo‘linmagan sinfda esa faqat “Butun sinf” qoladi.
     return [wholeVariant, ...configuredGroupVariantsForClassV198(classId)];
+  };
+
+  const classRoomInfoV202 = classId => {
+    const cls = (data?.sinflar || []).find(item => String(item.id) === String(classId)) || {};
+    const directId = cls.xona_id ?? cls.sinf_xona_id ?? cls.asosiy_xona_id ?? cls.xona?.id ?? null;
+    const linkedRooms = (data?.xonalar || []).filter(room =>
+      String(room.sinf_id ?? room.class_id ?? room.biriktirilgan_sinf_id ?? "") === String(classId)
+    );
+    const directRoom = directId == null ? null : (data?.xonalar || []).find(room =>
+      String(room.id) === String(directId)
+    );
+    const classRoom = directRoom || linkedRooms[0] || null;
+    const specialRooms = (data?.xonalar || []).filter(room =>
+      ["reserve", "sport"].includes(String(room.turi || room.xona_turi || "").toLowerCase())
+    );
+    const allowed = [classRoom, ...specialRooms].filter(Boolean).filter((room, index, list) =>
+      list.findIndex(item => String(item.id) === String(room.id)) === index
+    );
+    return { classRoom, allowed };
   };
 
   const normalizedGroupKeyForSubjectV197 = (classId, subject, groupKey) => {
@@ -4136,7 +4155,8 @@ function TeacherFirstLoadEditorV192({
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
   );
   const draftClassTotal = activeProfileValues.rahbar_sinf_id ? 1 : 0;
-  const draftWeeklyTotal = draftFanTotal + draftClassTotal;
+  // KELAJAK SOATI alohida xizmat soati: asosiy haftalik maqsad/farqqa qo‘shilmaydi.
+  const draftWeeklyTotal = draftFanTotal;
   const targetDifference = targetHours ? targetHours - draftWeeklyTotal : 0;
   const planDraftRows = planPayloadRows();
   const planAcademicTotal = planDraftRows.reduce(
@@ -4936,7 +4956,7 @@ function TeacherFirstLoadEditorV192({
 
           <div className="grid grid-cols-4 gap-1.5">
             <CompactStat value={targetHours || "—"} label="haftalik maqsad" tone="blue"/>
-            <CompactStat value={draftWeeklyTotal} label="tanlangan yuklama" tone="teal"/>
+            <CompactStat value={draftClassTotal ? `${draftWeeklyTotal} + 1` : draftWeeklyTotal} label={draftClassTotal ? "yuklama + Kelajak soati" : "tanlangan yuklama"} tone="teal"/>
             <CompactStat value={targetHours ? Math.abs(targetDifference) : "—"} label={targetHours ? (targetDifference > 0 ? "soat qoldi" : targetDifference < 0 ? "soat oshdi" : "maqsadga teng") : "farq"} tone={targetDifference < 0 ? "amber" : "green"}/>
             <CompactStat value={rows.length} label="aniq qator" tone="amber"/>
           </div>
@@ -5059,10 +5079,13 @@ function TeacherFirstLoadEditorV192({
                   <input type="number" min="1" max="4" value={row.kunlik_max} onChange={event => update(index, { kunlik_max: event.target.value })} className="w-full mt-1 p-2 rounded-lg border"/>
                 </label>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Xona · jadval
-                  <select value={row.xona_id || ""} onChange={event => update(index, { xona_id: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
-                    <option value="">Sinf xonasi</option>
-                    {(data?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}
-                  </select>
+                  {(() => {
+                    const roomInfo = classRoomInfoV202(row.sinf_id);
+                    return <select value={row.xona_id || ""} onChange={event => update(index, { xona_id: event.target.value })} className="w-full mt-1 p-2 rounded-lg border bg-white">
+                      <option value="">{roomInfo.classRoom ? `Sinf xonasi · ${roomInfo.classRoom.nomi}` : "Sinf xonasi biriktirilmagan"}</option>
+                      {roomInfo.allowed.map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}
+                    </select>;
+                  })()}
                 </label>
                 <button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="h-9 rounded-lg font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
               </div>;
