@@ -2488,7 +2488,7 @@ function DirektorQidiruvi({ token, tanlanganDirektor, onTanla, onYangiIsm }) {
   );
 }
 
-function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved, ochiq = false, onToggle }) {
+function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved, ochiq = false, onToggle, yangilashVersiyasi = 0 }) {
   const [tizimlar, setTizimlar] = useState([]);
   const [azolar, setAzolar] = useState([]);
   const [boshqaraOladi, setBoshqaraOladi] = useState(false);
@@ -2528,7 +2528,7 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved, ochiq = false,
     setYuklangan(false);
     setTizimlar([]);
     tizimlarniYukla(true);
-  }, [sinf.id, token]);
+  }, [sinf.id, token, yangilashVersiyasi]);
 
   const ochibYop = () => {
     onToggle?.();
@@ -2803,6 +2803,11 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [sinflar, setSinflar] = useState([]);
   const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
   const [ochiqSinfGuruhId, setOchiqSinfGuruhId] = useState(null);
+  const [tanlanganGuruhSinflari, setTanlanganGuruhSinflari] = useState(() => new Set());
+  const [ommaviyGuruhTurlari, setOmmaviyGuruhTurlari] = useState(() => new Set(["alphabet"]));
+  const [ommaviyGuruhSaqlanmoqda, setOmmaviyGuruhSaqlanmoqda] = useState(false);
+  const [ommaviyGuruhXabar, setOmmaviyGuruhXabar] = useState("");
+  const [guruhYangilashVersiyasi, setGuruhYangilashVersiyasi] = useState(0);
   const [pulli, setPulli] = useState(maktab.pulli || false);
   const [oylikTolov, setOylikTolov] = useState(maktab.oylik_tolov ? String(maktab.oylik_tolov) : "");
   const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
@@ -2832,6 +2837,55 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
       .then((r) => r.json())
       .then((d) => { setSinflar(d.sinflar || []); setSinflarYuklanmoqda(false); })
       .catch(() => setSinflarYuklanmoqda(false));
+  };
+
+  const guruhSinfiniTanlash = (sinfId) => setTanlanganGuruhSinflari((avvalgi) => {
+    const yangi = new Set(avvalgi);
+    if (yangi.has(sinfId)) yangi.delete(sinfId); else yangi.add(sinfId);
+    return yangi;
+  });
+
+  const ommaviyGuruhTuriniTanlash = (turi) => setOmmaviyGuruhTurlari((avvalgi) => {
+    const yangi = new Set(avvalgi);
+    if (yangi.has(turi)) yangi.delete(turi); else yangi.add(turi);
+    return yangi;
+  });
+
+  const tanlanganSinflarniGuruhlash = async () => {
+    if (!tanlanganGuruhSinflari.size) return setOmmaviyGuruhXabar("Avval guruhlanadigan sinflarni ptichka bilan tanlang.");
+    if (!ommaviyGuruhTurlari.size) return setOmmaviyGuruhXabar("1/2 guruh yoki O‘g‘il/Qiz turidan kamida bittasini tanlang.");
+    setOmmaviyGuruhSaqlanmoqda(true); setOmmaviyGuruhXabar("");
+    try {
+      const vazifalar = [];
+      const mavjudTizimlar = new Map();
+      await Promise.all([...tanlanganGuruhSinflari].map(async (sinfId) => {
+        const res = await fetch(`${API_BASE}/api/maktab/sinf_guruh_tizimlari?token=${encodeURIComponent(token)}&sinf_id=${sinfId}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Sinfning mavjud guruhlarini o‘qib bo‘lmadi");
+        mavjudTizimlar.set(sinfId, data.tizimlar || []);
+      }));
+      tanlanganGuruhSinflari.forEach((sinfId) => ommaviyGuruhTurlari.forEach((turi) => {
+        const mavjud = (mavjudTizimlar.get(sinfId) || []).find((tizim) => tizim.turi === turi);
+        vazifalar.push(fetch(`${API_BASE}/api/maktab/sinf_guruh_tizimi`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, sinf_id: sinfId, turi, faol: true, fanlar: mavjud?.fanlar || [] }),
+        }).then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.detail || "Guruhlashni saqlab bo‘lmadi");
+          return data;
+        }));
+      }));
+      await Promise.all(vazifalar);
+      const sinfSoni = tanlanganGuruhSinflari.size;
+      const turlar = [...ommaviyGuruhTurlari].map((turi) => turi === "alphabet" ? "1/2 guruh" : "O‘g‘il/Qiz").join(" va ");
+      setOmmaviyGuruhXabar(`✅ ${sinfSoni} ta sinfga ${turlar} qo‘llandi.`);
+      setGuruhYangilashVersiyasi((qiymat) => qiymat + 1);
+      sinflarniYukla(true);
+    } catch (error) {
+      setOmmaviyGuruhXabar(`❌ ${error.message}`);
+    } finally {
+      setOmmaviyGuruhSaqlanmoqda(false);
+    }
   };
   useEffect(sinflarniYukla, [token, maktab.id]);
 
@@ -3177,6 +3231,20 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         <p className="text-xs mb-4" style={{ color: "#8A8578" }}>
           Sinflar avval yaratiladi. Xodim importi yangi sinf yaratmaydi; mavjud sinfga rahbar va dars beruvchi xodimlarni bog‘laydi.
         </p>
+        {!!sinflar.length && <div className="rounded-xl border p-3.5 mb-4" style={{ backgroundColor: "#F1F7FB", borderColor: "#B9CCDC" }}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div><b className="text-sm" style={{ color: "#1B4B7A" }}>Sinflarni ommaviy guruhlash</b><p className="text-[11px] mt-0.5" style={{ color: "#63808D" }}>Pastdan kerakli sinflarni ptichka bilan tanlang, guruh turini belgilang va qo‘llang.</p></div>
+            <span className="px-3 py-1.5 rounded-full text-xs font-bold" style={{ backgroundColor: "#fff", color: "#1B4B7A" }}>{tanlanganGuruhSinflari.size} ta sinf tanlandi</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <button type="button" onClick={() => setTanlanganGuruhSinflari(new Set(sinflar.map((sinf) => sinf.id)))} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #B9CCDC" }}>✓ Barcha sinflar</button>
+            <button type="button" onClick={() => setTanlanganGuruhSinflari(new Set())} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #E5D1A5" }}>Tanlovni tozalash</button>
+            <label className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-xs font-bold" style={{ backgroundColor: ommaviyGuruhTurlari.has("alphabet") ? "#DDEBF4" : "#fff", color: "#1B4B7A", border: "1px solid #B9CCDC" }}><input type="checkbox" checked={ommaviyGuruhTurlari.has("alphabet")} onChange={() => ommaviyGuruhTuriniTanlash("alphabet")}/> 1/2 guruh</label>
+            <label className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-xs font-bold" style={{ backgroundColor: ommaviyGuruhTurlari.has("gender") ? "#F4E6EF" : "#fff", color: "#934A70", border: "1px solid #DDB9CC" }}><input type="checkbox" checked={ommaviyGuruhTurlari.has("gender")} onChange={() => ommaviyGuruhTuriniTanlash("gender")}/> O‘g‘il/Qiz</label>
+            <button type="button" disabled={ommaviyGuruhSaqlanmoqda || !tanlanganGuruhSinflari.size || !ommaviyGuruhTurlari.size} onClick={tanlanganSinflarniGuruhlash} className="px-4 py-2 rounded-lg text-xs font-bold text-white" style={{ backgroundColor: "#087F8C", opacity: ommaviyGuruhSaqlanmoqda || !tanlanganGuruhSinflari.size || !ommaviyGuruhTurlari.size ? .5 : 1 }}>{ommaviyGuruhSaqlanmoqda ? "Saqlanmoqda..." : "Tanlangan sinflarga qo‘llash"}</button>
+          </div>
+          {ommaviyGuruhXabar && <p className="text-xs font-semibold mt-2" style={{ color: ommaviyGuruhXabar.startsWith("❌") ? "#B0553A" : "#3B6D11" }}>{ommaviyGuruhXabar}</p>}
+        </div>}
         {sinflarYuklanmoqda ? (
           <div className="py-6 text-center"><Loader2 size={20} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
         ) : sinflar.length === 0 ? (
@@ -3184,10 +3252,10 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
             {sinflar.map((s) => (
-              <div key={s.id} className={`rounded-xl p-3.5 transition-all ${String(ochiqSinfGuruhId) === String(s.id) ? "md:col-span-2 xl:col-span-4" : ""}`} style={{ backgroundColor: "#F7F5F0", border: String(ochiqSinfGuruhId) === String(s.id) ? "2px solid #1B4B7A" : "1px solid #E5E1D8", boxShadow: String(ochiqSinfGuruhId) === String(s.id) ? "0 10px 28px rgba(27,75,122,.14)" : "none" }}>
+              <div key={s.id} className={`rounded-xl p-3.5 transition-all ${String(ochiqSinfGuruhId) === String(s.id) ? "md:col-span-2 xl:col-span-4" : ""}`} style={{ backgroundColor: tanlanganGuruhSinflari.has(s.id) ? "#EDF5FA" : "#F7F5F0", border: String(ochiqSinfGuruhId) === String(s.id) ? "2px solid #1B4B7A" : tanlanganGuruhSinflari.has(s.id) ? "2px solid #5C94B7" : "1px solid #E5E1D8", boxShadow: String(ochiqSinfGuruhId) === String(s.id) ? "0 10px 28px rgba(27,75,122,.14)" : "none" }}>
                 <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center">
                   <div>
-                  <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
+                  <label className="flex items-center gap-2 text-sm font-bold cursor-pointer" style={{ color: "#2B2B2B" }}><input type="checkbox" checked={tanlanganGuruhSinflari.has(s.id)} onChange={() => guruhSinfiniTanlash(s.id)}/>{s.sinf}-{s.harf}</label>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.rahbar_ismi || "Rahbar belgilanmagan"} · {s.psixolog_ismi || "Psixolog belgilanmagan"}</p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.smena || 1}-smena{s.bino ? ` · ${s.bino}` : ""}{s.xona ? ` · ${s.xona}-xona` : ""}</p>
                   <p className="text-xs font-mono mt-0.5" style={{ color: "#8A5A1C" }}>🔐 {s.qoshilish_paroli}</p>
@@ -3203,6 +3271,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                   ochiq={String(ochiqSinfGuruhId) === String(s.id)}
                   onToggle={() => setOchiqSinfGuruhId((avvalgi) => String(avvalgi) === String(s.id) ? null : s.id)}
                   onSaved={() => sinflarniYukla(true)}
+                  yangilashVersiyasi={guruhYangilashVersiyasi}
                 />
               </div>
             ))}
