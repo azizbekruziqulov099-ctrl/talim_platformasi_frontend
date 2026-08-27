@@ -79,89 +79,7 @@ function lazyPanel(Component, props) {
 }
 
 function TestTab(props) { return lazyPanel(LazyTestTab, props); }
-function DtsNomTahrirlash({ token }) {
-  const [ochiq, setOchiq] = useState(false);
-  const [sinf, setSinf] = useState("1");
-  const [fanlar, setFanlar] = useState([]);
-  const [fan, setFan] = useState("");
-  const [mavzular, setMavzular] = useState([]);
-  const [xato, setXato] = useState("");
-  const [yuklanmoqda, setYuklanmoqda] = useState(false);
-
-  const jsonOl = async (url, options) => {
-    const res = await fetch(url, options);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Server xatosi");
-    return data;
-  };
-  const fanlarniYukla = async (joriySinf = sinf) => {
-    setYuklanmoqda(true); setXato(""); setFan(""); setMavzular([]);
-    try {
-      const d = await jsonOl(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(joriySinf)}&token=${encodeURIComponent(token)}`);
-      setFanlar(d.fanlar || []);
-    } catch (e) { setXato(e.message); }
-    finally { setYuklanmoqda(false); }
-  };
-  const mavzularniYukla = async (joriyFan) => {
-    setYuklanmoqda(true); setXato(""); setFan(joriyFan);
-    try {
-      const d = await jsonOl(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(joriyFan)}&token=${encodeURIComponent(token)}`);
-      setMavzular(d.mavzular || []);
-    } catch (e) { setXato(e.message); }
-    finally { setYuklanmoqda(false); }
-  };
-  const fanTahrirla = async (eskiFan) => {
-    const yangiFan = window.prompt("Fan nomini tahrirlang. Mavzu kodlari va testlar o‘zgarmaydi:", eskiFan)?.trim();
-    if (!yangiFan || yangiFan === eskiFan) return;
-    setYuklanmoqda(true); setXato("");
-    try {
-      const q = new URLSearchParams({ token, sinf, eski_fan: eskiFan, yangi_fan: yangiFan });
-      await jsonOl(`${API_BASE}/api/admin/topik_fan_nomini_tahrirla?${q}`, { method: "PUT" });
-      await fanlarniYukla(sinf);
-    } catch (e) { setXato(e.message); setYuklanmoqda(false); }
-  };
-  const mavzuTahrirla = async (mavzu) => {
-    const yangiMavzu = window.prompt("Mavzu nomini tahrirlang. Testlar o‘chmaydi:", mavzu.nomi || "")?.trim();
-    if (!yangiMavzu || yangiMavzu === mavzu.nomi) return;
-    setYuklanmoqda(true); setXato("");
-    try {
-      const q = new URLSearchParams({ token, topic_codes: (mavzu.topic_codes || [mavzu.topic_code]).join(","), yangi_mavzu: yangiMavzu });
-      await jsonOl(`${API_BASE}/api/admin/topik_mavzu_nomini_tahrirla?${q}`, { method: "PUT" });
-      await mavzularniYukla(fan);
-    } catch (e) { setXato(e.message); setYuklanmoqda(false); }
-  };
-
-  return <div className="mb-4 rounded-2xl border bg-white p-4" style={{ borderColor: "#d5e1e7" }}>
-    <button type="button" onClick={() => { const n = !ochiq; setOchiq(n); if (n && !fanlar.length) fanlarniYukla(); }}
-      className="w-full flex items-center justify-between font-semibold" style={{ color: "#12324b" }}>
-      <span>✎ DTS fan va mavzu nomlarini tahrirlash</span><span>{ochiq ? "▲" : "▼"}</span>
-    </button>
-    {ochiq && <div className="mt-4">
-      <div className="flex flex-wrap gap-2 mb-4">{Array.from({ length: 11 }, (_, i) => String(i + 1)).map((g) =>
-        <button key={g} type="button" onClick={() => { setSinf(g); fanlarniYukla(g); }}
-          className="px-3 py-2 rounded-xl border font-semibold" style={{ background: sinf === g ? "#155f78" : "#f4f8fa", color: sinf === g ? "white" : "#12324b" }}>{g}-sinf</button>
-      )}</div>
-      {xato && <div className="p-3 mb-3 rounded-xl" style={{ background: "#fff0f0", color: "#b42318" }}>{xato}</div>}
-      {yuklanmoqda && <div className="py-3 text-sm">Yuklanmoqda...</div>}
-      {!fan && !yuklanmoqda && <div className="space-y-2">{fanlar.map((f) =>
-        <div key={f.nom} className="flex items-center gap-2 border rounded-xl p-3">
-          <button type="button" onClick={() => mavzularniYukla(f.nom)} className="flex-1 text-left font-semibold">{f.nom} <span className="font-normal text-xs">({f.mavzu_soni} yozuv)</span></button>
-          <button type="button" aria-label={`${f.nom}ni tahrirlash`} title="Tahrirlash" onClick={() => fanTahrirla(f.nom)} className="px-3 py-2 rounded-lg border font-bold">⋮</button>
-        </div>)}</div>}
-      {fan && <div>
-        <button type="button" onClick={() => { setFan(""); setMavzular([]); }} className="mb-3 font-semibold">← Fanlarga qaytish</button>
-        <h3 className="font-bold mb-3">{fan}</h3>
-        <div className="space-y-2">{mavzular.map((m) => <div key={m.topic_code} className="flex items-center gap-2 border rounded-xl p-3">
-          <div className="flex-1"><div className="font-semibold">{m.nomi}</div><div className="text-xs opacity-70">{m.topic_code} · {m.kichik_soni} kichik mavzu</div></div>
-          <button type="button" aria-label={`${m.nomi}ni tahrirlash`} title="Tahrirlash" onClick={() => mavzuTahrirla(m)} className="px-3 py-2 rounded-lg border font-bold">⋮</button>
-        </div>)}</div>
-      </div>}
-    </div>}
-  </div>;
-}
-function TopikMavzularTab(props) {
-  return <><DtsNomTahrirlash token={props.token} />{lazyPanel(LazyTopikMavzularTab, props)}</>;
-}
+function TopikMavzularTab(props) { return lazyPanel(LazyTopikMavzularTab, props); }
 function ModeratsiyaTab(props) { return lazyPanel(LazyModeratsiyaTab, props); }
 function KitobMiyaBolimi(props) { return lazyPanel(LazyKitobMiyaBolimi, props); }
 function TestShablonBolimi(props) { return lazyPanel(LazyTestShablonBolimi, props); }
@@ -2720,11 +2638,6 @@ function MaktablarBolimi({ token }) {
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [boshSahifa, setBoshSahifa] = useState(false);
   const [workspaceStartView, setWorkspaceStartView] = useState("dashboard");
-  const [fanBosqichiOchiq, setFanBosqichiOchiq] = useState(false);
-  const [ochiqSinfDarajasi, setOchiqSinfDarajasi] = useState(1);
-  const [dtsSinfFanlari, setDtsSinfFanlari] = useState({});
-  const [sinfFanlari, setSinfFanlari] = useState({});
-  const [yangiSinfFani, setYangiSinfFani] = useState({});
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [importXabari, setImportXabari] = useState("");
@@ -2742,17 +2655,6 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [fanXabar, setFanXabar] = useState("");
   const [yangiFanNomi, setYangiFanNomi] = useState("");
 
-  const fanApiXatosi = (detail, fallback) => {
-    if (typeof detail === "string" && detail.trim()) return detail;
-    if (Array.isArray(detail)) return detail.map(item => item?.msg || JSON.stringify(item)).join("; ");
-    if (detail && typeof detail === "object") {
-      const message = detail.message || detail.detail || detail.error;
-      const errorId = detail.error_id ? ` (xato kodi: ${detail.error_id})` : "";
-      return `${message || fallback}${errorId}`;
-    }
-    return fallback;
-  };
-
   const sinflarniYukla = () => {
     setSinflarYuklanmoqda(true);
     fetch(`${API_BASE}/api/admin/maktab_sinflari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
@@ -2767,51 +2669,16 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
       .then(async (r) => {
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(fanApiXatosi(d.detail, "Fanlarni yuklab bo'lmadi"));
+        if (!r.ok) throw new Error(d.detail || "Fanlarni yuklab bo'lmadi");
         return d;
       })
       .then((d) => {
         setFanKatalogi(d.fanlar || []);
         setTanlanganFanlar(d.tanlangan_fanlar || []);
         setSaqlanganFanlar(d.tanlangan_fanlar || []);
-        setDtsSinfFanlari(d.dts_sinf_fanlari || {});
-        setSinfFanlari(d.sinf_fanlari || {});
         setFanlarYuklanmoqda(false);
       })
       .catch((e) => { setFanXato(e.message); setFanlarYuklanmoqda(false); });
-  };
-
-  const sinfFaniniAlmashtir = (daraja, fan) => {
-    const kalit = String(daraja);
-    setSinfFanlari((avvalgi) => {
-      const royxat = avvalgi[kalit] || [];
-      return { ...avvalgi, [kalit]: royxat.includes(fan) ? royxat.filter((nom) => nom !== fan) : [...royxat, fan] };
-    });
-  };
-
-  const sinfgaYangiFanQosh = (daraja) => {
-    const kalit = String(daraja);
-    const fan = String(yangiSinfFani[kalit] || "").trim().replace(/\s+/g, " ");
-    if (fan.length < 2) return;
-    setSinfFanlari((avvalgi) => ({ ...avvalgi, [kalit]: (avvalgi[kalit] || []).some((nom) => nom.toLocaleLowerCase("uz") === fan.toLocaleLowerCase("uz")) ? avvalgi[kalit] : [...(avvalgi[kalit] || []), fan] }));
-    setYangiSinfFani((avvalgi) => ({ ...avvalgi, [kalit]: "" }));
-  };
-
-  const sinfFanlariniSaqla = async () => {
-    setFanlarSaqlanmoqda(true); setFanXato(""); setFanXabar("");
-    try {
-      const res = await fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, maktab_id: maktab.id, fanlar: [], sinf_fanlari: sinfFanlari }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(fanApiXatosi(d.detail, "Sinf fanlarini saqlab bo‘lmadi"));
-      setSinfFanlari(d.sinf_fanlari || sinfFanlari);
-      setTanlanganFanlar(d.tanlangan_fanlar || []);
-      setSaqlanganFanlar(d.tanlangan_fanlar || []);
-      setFanXabar("✅ 1–11-sinflarning fanlari saqlandi.");
-    } catch (e) { setFanXato(e.message); }
-    finally { setFanlarSaqlanmoqda(false); }
   };
   useEffect(fanlarniYukla, [token, maktab.id]);
 
@@ -2973,19 +2840,9 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#BFD5AA" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — 1–11-sinflarga fanlarni biriktirish</p><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir sinfda DTS fanlari yozib chiqadi. Fanlarni belgilang yoki faqat shu sinfga yangi fan qo‘shing. Bu yerda haftalik soat va o‘quv reja tasdig‘i yo‘q.</p></div>
-          <button type="button" onClick={() => setFanBosqichiOchiq((ochiq) => !ochiq)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{fanBosqichiOchiq ? "✕ Fanlarni yopish" : "1–11-sinf fanlarini tanlash →"}</button>
+          <div><p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — Har bir sinf uchun fan va haftalik soat</p><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Endi 43 ta fanni maktabga birdan belgilash yo‘q. Har bir sinfni tanlab, faqat o‘sha sinf fanlari va haftalik soatini kiriting.</p></div>
+          <button type="button" onClick={() => { setWorkspaceStartView("curriculum"); setBoshSahifa(true); }} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>Sinfma-sinf o‘quv rejani ochish →</button>
         </div>
-        {fanBosqichiOchiq && <div className="mt-4 border-t pt-4" style={{ borderColor: "#DDE8D4" }}>
-          <div className="flex flex-wrap gap-2 mb-4">{Array.from({ length: 11 }, (_, i) => i + 1).map((daraja) => <button key={daraja} type="button" onClick={() => setOchiqSinfDarajasi(daraja)} className="px-3 py-2 rounded-xl text-xs font-bold" style={{ backgroundColor: ochiqSinfDarajasi === daraja ? "#1B4B7A" : "#EAF1F7", color: ochiqSinfDarajasi === daraja ? "#fff" : "#1B4B7A" }}>{daraja}-sinf</button>)}</div>
-          <div className="rounded-xl border p-4" style={{ borderColor: "#D9E5EA" }}>
-            <div className="flex items-center justify-between gap-2"><b>{ochiqSinfDarajasi}-sinf fanlari</b><span className="text-xs" style={{ color: "#63808D" }}>{(sinfFanlari[String(ochiqSinfDarajasi)] || []).length} ta tanlangan</span></div>
-            <div className="grid sm:grid-cols-[1fr_auto] gap-2 mt-3"><input value={yangiSinfFani[String(ochiqSinfDarajasi)] || ""} onChange={(e) => setYangiSinfFani((a) => ({ ...a, [String(ochiqSinfDarajasi)]: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sinfgaYangiFanQosh(ochiqSinfDarajasi); } }} placeholder={`${ochiqSinfDarajasi}-sinfga yangi fan qo‘shish...`} className="px-3 py-2.5 rounded-xl border text-sm"/><button type="button" onClick={() => sinfgaYangiFanQosh(ochiqSinfDarajasi)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#087F8C" }}>+ Fan qo‘shish</button></div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">{[...new Set([...(dtsSinfFanlari[String(ochiqSinfDarajasi)] || []), ...(sinfFanlari[String(ochiqSinfDarajasi)] || [])])].map((fan) => { const tanlangan = (sinfFanlari[String(ochiqSinfDarajasi)] || []).includes(fan); return <button key={fan} type="button" onClick={() => sinfFaniniAlmashtir(ochiqSinfDarajasi, fan)} className="text-left px-3 py-3 rounded-xl border text-sm font-semibold" style={{ backgroundColor: tanlangan ? "#EAF4DF" : "#fff", borderColor: tanlangan ? "#8CB76D" : "#D9E5EA", color: tanlangan ? "#315F18" : "#526875" }}>{tanlangan ? "✓ " : ""}{fan}</button>; })}</div>
-          </div>
-          {fanXato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{fanXato}</p>}{fanXabar && <p className="text-xs mt-3" style={{ color: "#3B6D11" }}>{fanXabar}</p>}
-          <button type="button" onClick={sinfFanlariniSaqla} disabled={fanlarSaqlanmoqda} className="w-full mt-4 py-3 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{fanlarSaqlanmoqda ? "Saqlanmoqda..." : "1–11-sinf fanlarini saqlash"}</button>
-        </div>}
       </div>
 
       {false && <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: fanlarTayyor ? "#BFD5AA" : "#E5E1D8" }}>
