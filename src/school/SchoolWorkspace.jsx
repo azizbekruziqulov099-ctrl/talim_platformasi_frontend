@@ -2674,7 +2674,7 @@ function teacherBirthProfileV195(teacher) {
   };
 }
 
-function TeacherFirstLoadEditorV192({
+export function TeacherFirstLoadEditorV192({
   token, apiBase, maktabId, onChanged, startWithNew = false,
   planOnly = false, showPlan = true,
 }) {
