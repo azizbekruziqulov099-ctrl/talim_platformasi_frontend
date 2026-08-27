@@ -2818,6 +2818,44 @@ function MaktablarBolimi({ token }) {
   );
 }
 
+function SinfAsosiyTahriri({ token, sinf, ochiq, onToggle, onSaved }) {
+  const [harf, setHarf] = useState(sinf.harf || "A");
+  const [smena, setSmena] = useState(Number(sinf.smena || 1));
+  const [bino, setBino] = useState(sinf.bino || "");
+  const [xona, setXona] = useState(sinf.xona || "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    setHarf(sinf.harf || "A"); setSmena(Number(sinf.smena || 1));
+    setBino(sinf.bino || ""); setXona(sinf.xona || "");
+  }, [sinf.id, sinf.harf, sinf.smena, sinf.bino, sinf.xona]);
+  const save = async () => {
+    setSaving(true); setMessage(""); setError("");
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/maktab_sinf_tahrirla`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, sinf_id: sinf.id, harf, smena: Number(smena), bino: bino.trim() || null, xona: xona.trim() || null }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "Sinf ma’lumotini saqlab bo‘lmadi");
+      setMessage(`✅ ${data.sinf?.sinf || sinf.sinf}-${data.sinf?.harf || harf} yangilandi.`);
+      onSaved?.();
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+  return <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
+    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold" style={{ background: ochiq ? "#EAF1F7" : "#fff", color: "#1B4B7A" }}><span>✏️ Harf · smena · xona</span><span>{ochiq ? "Yopish ▲" : "O‘zgartirish ▼"}</span></button>
+    {ochiq && <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3 p-3 rounded-xl" style={{ background: "#fff" }}>
+      <label className="text-xs font-bold">Sinf harfi<input value={harf} maxLength={8} onChange={e => setHarf(e.target.value)} placeholder="A yoki А" className="block w-full mt-1 p-2.5 rounded-lg border font-normal"/></label>
+      <label className="text-xs font-bold">Smena<select value={smena} onChange={e => setSmena(Number(e.target.value))} className="block w-full mt-1 p-2.5 rounded-lg border bg-white font-normal"><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>
+      <label className="text-xs font-bold">Bino<input value={bino} onChange={e => setBino(e.target.value)} placeholder="Masalan: Asosiy bino" className="block w-full mt-1 p-2.5 rounded-lg border font-normal"/></label>
+      <label className="text-xs font-bold">Xona<input value={xona} onChange={e => setXona(e.target.value)} placeholder="Masalan: 101" className="block w-full mt-1 p-2.5 rounded-lg border font-normal"/></label>
+      <div className="sm:col-span-2 xl:col-span-4 flex flex-wrap items-center gap-3"><button type="button" disabled={saving || !String(harf).trim()} onClick={save} className="px-4 py-2.5 rounded-xl text-xs font-black text-white" style={{ background: "#087F8C", opacity: saving ? .6 : 1 }}>{saving ? "Saqlanmoqda..." : "Sinf ma’lumotini saqlash"}</button>{message && <span className="text-xs font-bold" style={{ color: "#28734B" }}>{message}</span>}{error && <span className="text-xs font-bold" style={{ color: "#B0553A" }}>❌ {error}</span>}</div>
+    </div>}
+  </div>;
+}
+
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [boshSahifa, setBoshSahifa] = useState(false);
   const [workspaceStartView, setWorkspaceStartView] = useState("dashboard");
@@ -2832,6 +2870,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [sinflar, setSinflar] = useState([]);
   const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
   const [ochiqSinfGuruhId, setOchiqSinfGuruhId] = useState(null);
+  const [ochiqSinfTahrirId, setOchiqSinfTahrirId] = useState(null);
   const [tanlanganGuruhSinflari, setTanlanganGuruhSinflari] = useState(() => new Set());
   const [ommaviyGuruhTurlari, setOmmaviyGuruhTurlari] = useState(() => new Set(["alphabet"]));
   const [ommaviyGuruhSaqlanmoqda, setOmmaviyGuruhSaqlanmoqda] = useState(false);
@@ -3337,7 +3376,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
             {sinflar.map((s) => (
-              <div key={s.id} className={`rounded-xl p-3.5 transition-all ${String(ochiqSinfGuruhId) === String(s.id) ? "md:col-span-2 xl:col-span-4" : ""}`} style={{ backgroundColor: tanlanganGuruhSinflari.has(s.id) ? "#EDF5FA" : "#F7F5F0", border: String(ochiqSinfGuruhId) === String(s.id) ? "2px solid #1B4B7A" : tanlanganGuruhSinflari.has(s.id) ? "2px solid #5C94B7" : "1px solid #E5E1D8", boxShadow: String(ochiqSinfGuruhId) === String(s.id) ? "0 10px 28px rgba(27,75,122,.14)" : "none" }}>
+              <div key={s.id} className={`rounded-xl p-3.5 transition-all ${String(ochiqSinfGuruhId) === String(s.id) || String(ochiqSinfTahrirId) === String(s.id) ? "md:col-span-2 xl:col-span-4" : ""}`} style={{ backgroundColor: tanlanganGuruhSinflari.has(s.id) ? "#EDF5FA" : "#F7F5F0", border: String(ochiqSinfGuruhId) === String(s.id) || String(ochiqSinfTahrirId) === String(s.id) ? "2px solid #1B4B7A" : tanlanganGuruhSinflari.has(s.id) ? "2px solid #5C94B7" : "1px solid #E5E1D8", boxShadow: String(ochiqSinfGuruhId) === String(s.id) || String(ochiqSinfTahrirId) === String(s.id) ? "0 10px 28px rgba(27,75,122,.14)" : "none" }}>
                 <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center">
                   <div>
                   <label className="flex items-center gap-2 text-sm font-bold cursor-pointer" style={{ color: "#2B2B2B" }}><input type="checkbox" checked={tanlanganGuruhSinflari.has(s.id)} onChange={() => guruhSinfiniTanlash(s.id)}/>{s.sinf}-{s.harf}</label>
@@ -3349,12 +3388,19 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                     ↻ Parolni tashlash
                   </button>
                 </div>
+                <SinfAsosiyTahriri
+                  token={token}
+                  sinf={s}
+                  ochiq={String(ochiqSinfTahrirId) === String(s.id)}
+                  onToggle={() => { setOchiqSinfGuruhId(null); setOchiqSinfTahrirId((avvalgi) => String(avvalgi) === String(s.id) ? null : s.id); }}
+                  onSaved={() => sinflarniYukla(true)}
+                />
                 <SinfGuruhBoshqaruvi
                   token={token}
                   sinf={s}
                   fanlar={saqlanganFanlar}
                   ochiq={String(ochiqSinfGuruhId) === String(s.id)}
-                  onToggle={() => setOchiqSinfGuruhId((avvalgi) => String(avvalgi) === String(s.id) ? null : s.id)}
+                  onToggle={() => { setOchiqSinfTahrirId(null); setOchiqSinfGuruhId((avvalgi) => String(avvalgi) === String(s.id) ? null : s.id); }}
                   onSaved={() => sinflarniYukla(true)}
                   yangilashVersiyasi={guruhYangilashVersiyasi}
                 />
