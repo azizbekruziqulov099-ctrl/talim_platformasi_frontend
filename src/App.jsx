@@ -93,11 +93,6 @@ const KindergartenWorkspace = React.lazy(
 const SchoolWorkspace = React.lazy(
   () => import("./school/SchoolWorkspace.jsx"),
 );
-const SchoolCurriculumEditor = React.lazy(() =>
-  import("./school/SchoolWorkspace.jsx").then((module) => ({
-    default: module.TeacherFirstLoadEditorV192,
-  })),
-);
 const LearningCenterWorkspace = React.lazy(
   () => import("./center/LearningCenterWorkspace.jsx"),
 );
@@ -2643,7 +2638,11 @@ function MaktablarBolimi({ token }) {
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [boshSahifa, setBoshSahifa] = useState(false);
   const [workspaceStartView, setWorkspaceStartView] = useState("dashboard");
-  const [oquvRejaOchiq, setOquvRejaOchiq] = useState(false);
+  const [fanBosqichiOchiq, setFanBosqichiOchiq] = useState(false);
+  const [ochiqSinfDarajasi, setOchiqSinfDarajasi] = useState(1);
+  const [dtsSinfFanlari, setDtsSinfFanlari] = useState({});
+  const [sinfFanlari, setSinfFanlari] = useState({});
+  const [yangiSinfFani, setYangiSinfFani] = useState({});
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [importXabari, setImportXabari] = useState("");
@@ -2682,9 +2681,44 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         setFanKatalogi(d.fanlar || []);
         setTanlanganFanlar(d.tanlangan_fanlar || []);
         setSaqlanganFanlar(d.tanlangan_fanlar || []);
+        setDtsSinfFanlari(d.dts_sinf_fanlari || {});
+        setSinfFanlari(d.sinf_fanlari || {});
         setFanlarYuklanmoqda(false);
       })
       .catch((e) => { setFanXato(e.message); setFanlarYuklanmoqda(false); });
+  };
+
+  const sinfFaniniAlmashtir = (daraja, fan) => {
+    const kalit = String(daraja);
+    setSinfFanlari((avvalgi) => {
+      const royxat = avvalgi[kalit] || [];
+      return { ...avvalgi, [kalit]: royxat.includes(fan) ? royxat.filter((nom) => nom !== fan) : [...royxat, fan] };
+    });
+  };
+
+  const sinfgaYangiFanQosh = (daraja) => {
+    const kalit = String(daraja);
+    const fan = String(yangiSinfFani[kalit] || "").trim().replace(/\s+/g, " ");
+    if (fan.length < 2) return;
+    setSinfFanlari((avvalgi) => ({ ...avvalgi, [kalit]: (avvalgi[kalit] || []).some((nom) => nom.toLocaleLowerCase("uz") === fan.toLocaleLowerCase("uz")) ? avvalgi[kalit] : [...(avvalgi[kalit] || []), fan] }));
+    setYangiSinfFani((avvalgi) => ({ ...avvalgi, [kalit]: "" }));
+  };
+
+  const sinfFanlariniSaqla = async () => {
+    setFanlarSaqlanmoqda(true); setFanXato(""); setFanXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, maktab_id: maktab.id, fanlar: [], sinf_fanlari: sinfFanlari }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || "Sinf fanlarini saqlab bo‘lmadi");
+      setSinfFanlari(d.sinf_fanlari || sinfFanlari);
+      setTanlanganFanlar(d.tanlangan_fanlar || []);
+      setSaqlanganFanlar(d.tanlangan_fanlar || []);
+      setFanXabar("✅ 1–11-sinflarning fanlari saqlandi.");
+    } catch (e) { setFanXato(e.message); }
+    finally { setFanlarSaqlanmoqda(false); }
   };
   useEffect(fanlarniYukla, [token, maktab.id]);
 
@@ -2846,20 +2880,18 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#BFD5AA" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — 1–11-sinflarga fanlarni biriktirish</p><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir sinfga DTS bo‘yicha fanlar avtomatik qo‘yiladi. Kerakli sinf soatini o‘zgartiring; DTSda yo‘q fan bo‘lsa yangi fan qo‘shib, faqat kerakli sinfga soat kiriting.</p></div>
-          <button type="button" onClick={() => setOquvRejaOchiq((ochiq) => !ochiq)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{oquvRejaOchiq ? "✕ Fanlarni yopish" : "1–11-sinf fanlarini tanlash →"}</button>
+          <div><p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — 1–11-sinflarga fanlarni biriktirish</p><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir sinfda DTS fanlari yozib chiqadi. Fanlarni belgilang yoki faqat shu sinfga yangi fan qo‘shing. Bu yerda haftalik soat va o‘quv reja tasdig‘i yo‘q.</p></div>
+          <button type="button" onClick={() => setFanBosqichiOchiq((ochiq) => !ochiq)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{fanBosqichiOchiq ? "✕ Fanlarni yopish" : "1–11-sinf fanlarini tanlash →"}</button>
         </div>
-        {oquvRejaOchiq && <div className="mt-4 border-t pt-4" style={{ borderColor: "#DDE8D4" }}>
-          <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
-            <SchoolCurriculumEditor
-              token={token}
-              apiBase={API_BASE}
-              maktabId={maktab.id}
-              planOnly={true}
-              showPlan={true}
-              onChanged={sinflarniYukla}
-            />
-          </React.Suspense>
+        {fanBosqichiOchiq && <div className="mt-4 border-t pt-4" style={{ borderColor: "#DDE8D4" }}>
+          <div className="flex flex-wrap gap-2 mb-4">{Array.from({ length: 11 }, (_, i) => i + 1).map((daraja) => <button key={daraja} type="button" onClick={() => setOchiqSinfDarajasi(daraja)} className="px-3 py-2 rounded-xl text-xs font-bold" style={{ backgroundColor: ochiqSinfDarajasi === daraja ? "#1B4B7A" : "#EAF1F7", color: ochiqSinfDarajasi === daraja ? "#fff" : "#1B4B7A" }}>{daraja}-sinf</button>)}</div>
+          <div className="rounded-xl border p-4" style={{ borderColor: "#D9E5EA" }}>
+            <div className="flex items-center justify-between gap-2"><b>{ochiqSinfDarajasi}-sinf fanlari</b><span className="text-xs" style={{ color: "#63808D" }}>{(sinfFanlari[String(ochiqSinfDarajasi)] || []).length} ta tanlangan</span></div>
+            <div className="grid sm:grid-cols-[1fr_auto] gap-2 mt-3"><input value={yangiSinfFani[String(ochiqSinfDarajasi)] || ""} onChange={(e) => setYangiSinfFani((a) => ({ ...a, [String(ochiqSinfDarajasi)]: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sinfgaYangiFanQosh(ochiqSinfDarajasi); } }} placeholder={`${ochiqSinfDarajasi}-sinfga yangi fan qo‘shish...`} className="px-3 py-2.5 rounded-xl border text-sm"/><button type="button" onClick={() => sinfgaYangiFanQosh(ochiqSinfDarajasi)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#087F8C" }}>+ Fan qo‘shish</button></div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">{[...new Set([...(dtsSinfFanlari[String(ochiqSinfDarajasi)] || []), ...(sinfFanlari[String(ochiqSinfDarajasi)] || [])])].map((fan) => { const tanlangan = (sinfFanlari[String(ochiqSinfDarajasi)] || []).includes(fan); return <button key={fan} type="button" onClick={() => sinfFaniniAlmashtir(ochiqSinfDarajasi, fan)} className="text-left px-3 py-3 rounded-xl border text-sm font-semibold" style={{ backgroundColor: tanlangan ? "#EAF4DF" : "#fff", borderColor: tanlangan ? "#8CB76D" : "#D9E5EA", color: tanlangan ? "#315F18" : "#526875" }}>{tanlangan ? "✓ " : ""}{fan}</button>; })}</div>
+          </div>
+          {fanXato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{fanXato}</p>}{fanXabar && <p className="text-xs mt-3" style={{ color: "#3B6D11" }}>{fanXabar}</p>}
+          <button type="button" onClick={sinfFanlariniSaqla} disabled={fanlarSaqlanmoqda} className="w-full mt-4 py-3 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{fanlarSaqlanmoqda ? "Saqlanmoqda..." : "1–11-sinf fanlarini saqlash"}</button>
         </div>}
       </div>
 
