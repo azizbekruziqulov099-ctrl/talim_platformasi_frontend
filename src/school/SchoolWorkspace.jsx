@@ -2517,6 +2517,26 @@ function subjectDisplayNameV201(value) {
   return isClassHourSubjectV199(value) ? "KELAJAK SOATI" : value;
 }
 
+function compactCurriculumSubjectV201(value) {
+  const original = String(value || "").trim();
+  const key = subjectKeyV193(original);
+  const known = {
+    "informatika va axborot texnologiyalari": "INFORMATIKA",
+    "o'qish savodxonligi va alifbe": "O‘QISH + ALIFBE",
+    "chaqiruvga qadar boshlang'ich tayyorgarlik": "CHQBT",
+    "davlat va huquq asoslari": "HUQUQ ASOSLARI",
+    "iqtisodiy bilim asoslari": "IQTISOD ASOSLARI",
+    "musiqa madaniyati": "MUSIQA",
+    "tabiiy fan (science)": "TABIIY FAN",
+    "tarixdan hikoyalar": "TARIX HIKOYALARI",
+    "qadimgi dunyo tarixi": "QADIMGI TARIX",
+    "o'zbekiston tarixi": "O‘ZB. TARIXI",
+  };
+  if (known[key]) return known[key];
+  const upper = original.toLocaleUpperCase("uz");
+  return upper.length > 22 ? `${upper.slice(0, 20).trim()}…` : upper;
+}
+
 function mismatchExplanationV199(row) {
   const plan = Number(row?.plan || 0);
   const actual = Number(row?.actual || 0);
@@ -4585,33 +4605,59 @@ function TeacherFirstLoadEditorV192({
         Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.
       </SmartNotice></div> : <>
         <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
-          Qatorlarda faqat 1–11-sinf darajalari ko‘rsatiladi. Kiritilgan soat shu darajadagi A/B/C parallel sinflarning barchasiga bir xil qo‘llanadi.
+          Qatorlarda fanlar, ustunlarda 1–11-sinflar ko‘rsatiladi. Fan nomi qisqa ko‘rinadi; ustiga olib kelsangiz to‘liq nomi chiqadi. Kiritilgan soat A/B/C parallel sinflarning barchasiga bir xil qo‘llanadi.
         </div>
-        <div className="mt-3 space-y-3 max-h-[68vh] overflow-y-auto pr-1">
-          {planGradeRows.map(gradeRow => {
-            const cls = gradeRow.classes[0];
-            const sinfgaRuxsatFanlar = gradePlanSubjects(gradeRow);
-            const classHourValue = Number(classHourGradeHours[gradeRow.grade] || 0);
-            const classTotal = classHourValue + sinfgaRuxsatFanlar.reduce(
-              (sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0
-            );
-            return <div key={gradeRow.grade} className="rounded-2xl border p-4" style={{ borderColor: palette.line, background: "#fff" }}>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <div><div className="text-base font-black" style={{ color: palette.ink }}>{gradeRow.grade}-sinf</div><div className="text-[10px]" style={{ color: palette.muted }}>Tanlangan fanlar barcha parallel sinflarga bir xil qo‘llanadi</div></div>
-                <div className="flex items-center gap-2"><label className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.mint, color: palette.green }}>{classHourName || "KELAJAK SOATI"}: <input aria-label={`${gradeRow.grade}-sinf maxsus soati`} type="number" min="0" max="5" step="1" value={classHourValue} onChange={event => setClassHourGradeHours(current => ({ ...current, [gradeRow.grade]: Math.max(0, Math.min(5, Number(event.target.value) || 0)) }))} className="w-14 px-2 py-1 rounded-lg border text-center font-black"/> soat</label><span className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Jami: {classTotal}</span></div>
-              </div>
-              <div className="flex gap-2 mb-3"><input value={planNewSubjectByGrade[gradeRow.grade] || ""} onChange={event => setPlanNewSubjectByGrade(current => ({ ...current, [gradeRow.grade]: event.target.value }))} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addPlanSubjectToGrade(gradeRow); } }} placeholder={`${gradeRow.grade}-sinfga yangi fan nomi`} className="flex-1 min-w-0 px-3 py-2 rounded-xl border"/><button type="button" onClick={() => addPlanSubjectToGrade(gradeRow)} className="px-4 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>+ Fan qo‘shish</button></div>
-              {!sinfgaRuxsatFanlar.length ? <SmartNotice tone="warning">DTSda ham fan topilmadi. Yuqoridan fan qo‘shing.</SmartNotice> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {sinfgaRuxsatFanlar.map(subject => {
+        <div className="mt-3 rounded-2xl border overflow-auto" style={{ borderColor: palette.line, maxHeight: "68vh" }}>
+          <table className="border-collapse text-[11px]" style={{ minWidth: "790px", width: "100%", tableLayout: "fixed" }}>
+            <thead className="sticky top-0 z-30">
+              <tr>
+                <th className="sticky left-0 z-40 w-[176px] min-w-[176px] px-3 py-3 text-left" style={{ background: palette.ink, color: "#fff" }}>FAN ↓ / SINF →</th>
+                {planGradeRows.map(gradeRow => <th key={gradeRow.grade} className="w-[52px] min-w-[52px] px-1 py-2 text-center" style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.16)" }}>
+                  <div className="font-black whitespace-nowrap">{gradeRow.grade}-sinf</div>
+                  <button type="button" title={`${gradeRow.grade}-sinfga yangi fan qo‘shish`} onClick={() => {
+                    const name = window.prompt(`${gradeRow.grade}-sinfga qo‘shiladigan fan nomi:`)?.replace(/\s+/g, " ").trim();
+                    if (!name) return;
+                    if (!planSubjects.some(item => subjectKeyV193(item) === subjectKeyV193(name))) setPlanSubjects(items => [...items, name]);
+                    updatePlanGradeCell(gradeRow.classes, name, 1);
+                  }} className="mt-1 w-5 h-5 rounded-md text-[12px] font-black" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }}>+</button>
+                </th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {planSubjects.map((subject, subjectIndex) => <tr key={subject} style={{ borderTop: `1px solid ${palette.line}` }}>
+                <th className="sticky left-0 z-20 px-2.5 py-2 text-left" title={subject} style={{ background: subjectIndex % 2 ? "#F7FAFC" : "#fff", color: palette.ink, borderRight: `1px solid ${palette.line}` }}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex-1 min-w-0 truncate font-black" title={subject}>{compactCurriculumSubjectV201(subject)}</span>
+                    <button type="button" title="Fan nomini tahrirlash" onClick={() => {
+                      const next = window.prompt("Fan nomini tahrirlang:", subject)?.replace(/\s+/g, " ").trim();
+                      if (next && next !== subject) renamePlanSubject(subjectIndex, next);
+                    }} className="shrink-0 w-6 h-6 rounded-md border font-black" style={{ background: "#fff", color: palette.blue, borderColor: palette.line }}>⋮</button>
+                    <button type="button" title="Fanni barcha sinflardan olib tashlash" onClick={() => removePlanSubject(subject)} className="shrink-0 w-6 h-6 rounded-md font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
+                  </div>
+                </th>
+                {planGradeRows.map(gradeRow => {
+                  const cls = gradeRow.classes[0];
+                  const allowed = gradePlanSubjects(gradeRow).some(item => subjectKeyV193(item) === subjectKeyV193(subject));
                   const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
-                  return <label key={subject} className="rounded-xl border p-3" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, background: value > 0 ? palette.greenBg : "#F8FBFD" }}>
-                    <span className="flex items-center justify-between gap-2 text-xs font-black mb-2" style={{ color: palette.ink }}><span>{subject}</span><span className="flex gap-1"><button type="button" title="Fan nomini tahrirlash" onClick={event => { event.preventDefault(); const next = window.prompt("Fan nomini tahrirlang:", subject)?.trim(); if (!next || next === subject) return; const oldValue = Number(planCells[planCellKey(cls.id, subject)] || 0); updatePlanGradeCell(gradeRow.classes, subject, 0); if (!planSubjects.some(item => subjectKeyV193(item) === subjectKeyV193(next))) setPlanSubjects(items => [...items, next]); updatePlanGradeCell(gradeRow.classes, next, oldValue || 1); }} className="px-2 py-1 rounded-lg border" style={{ background: "#fff", color: palette.blue }}>⋮</button><button type="button" title="Shu sinfdan olib tashlash" onClick={event => { event.preventDefault(); updatePlanGradeCell(gradeRow.classes, subject, 0); }} className="px-2 py-1 rounded-lg" style={{ background: palette.redBg, color: palette.red }}>×</button></span></span>
-                    <span className="flex items-center gap-2"><input aria-label={`${gradeRow.grade}-sinf ${subject}`} type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="Soat" onChange={event => updatePlanGradeCell(gradeRow.classes, subject, event.target.value)} className="w-full px-3 py-2 rounded-lg border text-center font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted }}/><small style={{ color: palette.muted }}>soat</small></span>
-                  </label>;
+                  return <td key={gradeRow.grade} className="p-1 text-center" title={`${gradeRow.grade}-sinf · ${subject}${allowed ? ` · ${value || 0} soat` : " · bu sinfda tanlanmagan"}`} style={{ background: value > 0 ? palette.greenBg : (subjectIndex % 2 ? "#F7FAFC" : "#fff"), borderLeft: `1px solid ${palette.line}` }}>
+                    {allowed ? <input aria-label={`${gradeRow.grade}-sinf ${subject}`} type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="—" onChange={event => updatePlanGradeCell(gradeRow.classes, subject, event.target.value)} className="w-[42px] h-8 rounded-md border text-center text-[11px] font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted, background: "#fff" }}/> : <span style={{ color: "#C6CDD1" }}>×</span>}
+                  </td>;
                 })}
-              </div>}
-            </div>;
-          })}
+              </tr>)}
+              <tr style={{ borderTop: `2px solid ${palette.teal}` }}>
+                <th className="sticky left-0 z-20 px-2.5 py-2 text-left font-black" title={classHourName || "KELAJAK SOATI"} style={{ background: palette.mint, color: palette.green, borderRight: `1px solid ${palette.line}` }}>{compactCurriculumSubjectV201(classHourName || "KELAJAK SOATI")}</th>
+                {planGradeRows.map(gradeRow => <td key={gradeRow.grade} className="p-1 text-center" style={{ background: palette.mint, borderLeft: `1px solid ${palette.line}` }}><input aria-label={`${gradeRow.grade}-sinf maxsus soati`} type="number" min="0" max="5" step="1" value={Number(classHourGradeHours[gradeRow.grade] || 0)} onChange={event => setClassHourGradeHours(current => ({ ...current, [gradeRow.grade]: Math.max(0, Math.min(5, Number(event.target.value) || 0)) }))} className="w-[42px] h-8 rounded-md border text-center text-[11px] font-black" style={{ borderColor: "#8FC4A5", color: palette.green, background: "#fff" }}/></td>)}
+              </tr>
+              <tr style={{ borderTop: `1px solid ${palette.line}` }}>
+                <th className="sticky left-0 z-20 px-2.5 py-2 text-left font-black" style={{ background: palette.blue, color: "#fff" }}>JAMI YUKLAMA</th>
+                {planGradeRows.map(gradeRow => {
+                  const cls = gradeRow.classes[0];
+                  const total = Number(classHourGradeHours[gradeRow.grade] || 0) + planSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
+                  return <th key={gradeRow.grade} className="p-2 text-center text-xs font-black" style={{ background: palette.blue, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.2)" }}>{total}</th>;
+                })}
+              </tr>
+            </tbody>
+          </table>
         </div>
       </>}
     </Card>}
