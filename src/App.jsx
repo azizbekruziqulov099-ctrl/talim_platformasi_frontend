@@ -93,6 +93,11 @@ const KindergartenWorkspace = React.lazy(
 const SchoolWorkspace = React.lazy(
   () => import("./school/SchoolWorkspace.jsx"),
 );
+const SchoolCurriculumEditor = React.lazy(() =>
+  import("./school/SchoolWorkspace.jsx").then((module) => ({
+    default: module.TeacherFirstLoadEditorV192,
+  })),
+);
 const LearningCenterWorkspace = React.lazy(
   () => import("./center/LearningCenterWorkspace.jsx"),
 );
@@ -2638,6 +2643,7 @@ function MaktablarBolimi({ token }) {
 function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [boshSahifa, setBoshSahifa] = useState(false);
   const [workspaceStartView, setWorkspaceStartView] = useState("dashboard");
+  const [oquvRejaOchiq, setOquvRejaOchiq] = useState(false);
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [importXabari, setImportXabari] = useState("");
@@ -2840,9 +2846,21 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#BFD5AA" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — Har bir sinf uchun fan va haftalik soat</p><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Endi 43 ta fanni maktabga birdan belgilash yo‘q. Har bir sinfni tanlab, faqat o‘sha sinf fanlari va haftalik soatini kiriting.</p></div>
-          <button type="button" onClick={() => { setWorkspaceStartView("curriculum"); setBoshSahifa(true); }} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>Sinfma-sinf o‘quv rejani ochish →</button>
+          <div><p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>2-bosqich — 1–11-sinflarga fanlarni biriktirish</p><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har bir sinfga DTS bo‘yicha fanlar avtomatik qo‘yiladi. Kerakli sinf soatini o‘zgartiring; DTSda yo‘q fan bo‘lsa yangi fan qo‘shib, faqat kerakli sinfga soat kiriting.</p></div>
+          <button type="button" onClick={() => setOquvRejaOchiq((ochiq) => !ochiq)} className="px-4 py-2.5 rounded-xl text-sm font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{oquvRejaOchiq ? "✕ Fanlarni yopish" : "1–11-sinf fanlarini tanlash →"}</button>
         </div>
+        {oquvRejaOchiq && <div className="mt-4 border-t pt-4" style={{ borderColor: "#DDE8D4" }}>
+          <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+            <SchoolCurriculumEditor
+              token={token}
+              apiBase={API_BASE}
+              maktabId={maktab.id}
+              planOnly={true}
+              showPlan={true}
+              onChanged={sinflarniYukla}
+            />
+          </React.Suspense>
+        </div>}
       </div>
 
       {false && <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: fanlarTayyor ? "#BFD5AA" : "#E5E1D8" }}>
