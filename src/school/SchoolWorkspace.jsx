@@ -2729,6 +2729,7 @@ function TeacherFirstLoadEditorV192({
   const [validationDialog, setValidationDialog] = useState(null);
   const [invalidFieldIds, setInvalidFieldIds] = useState([]);
   const [query, setQuery] = useState("");
+  const [specialtyQuery, setSpecialtyQuery] = useState("");
   const [creatingNew, setCreatingNew] = useState(Boolean(startWithNew));
   const [newTeacher, setNewTeacher] = useState({
     full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
@@ -2771,6 +2772,12 @@ function TeacherFirstLoadEditorV192({
   const specialtyOptions = useMemo(() =>
     specialtySubjectChoices.map(subject => ({ value: subject, label: subject, subjects: [subject] })),
   [specialtySubjectChoices]);
+  const numberedSpecialtyChoices = useMemo(() => {
+    const needle = String(specialtyQuery || "").trim().toLocaleLowerCase("uz");
+    return specialtySubjectChoices.map((subject, index) => ({
+      subject, number: index + 1, numberText: String(index + 1).padStart(2, "0"),
+    })).filter(item => !needle || item.numberText.includes(needle) || String(item.number).includes(needle) || subjectKeyV193(item.subject).includes(subjectKeyV193(needle)));
+  }, [specialtySubjectChoices, specialtyQuery]);
 
   const load = async () => {
     setLoading(true);
@@ -4321,15 +4328,21 @@ function TeacherFirstLoadEditorV192({
       <div className="flex flex-wrap gap-1.5 mt-2">
         {selected.map(value => {
           const option = specialtyOptions.find(item => item.value === value);
+          const fanNumber = specialtySubjectChoices.findIndex(item => subjectKeyV193(item) === subjectKeyV193(value)) + 1;
           return <span key={value} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
-            {option?.label || value}
+            {fanNumber > 0 ? `${String(fanNumber).padStart(2, "0")}. ` : ""}{option?.label || value}
             <button type="button" onClick={() => { clearInvalidFieldV199(pickerId); removeSpecialtyValue(value); }} aria-label={`${option?.label || value} fanini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
           </span>;
         })}
         {!selected.length && <span className="text-[10px]" style={{ color: palette.amber }}>Hozircha fan tanlanmagan</span>}
       </div>
-      <div className="mt-2 max-h-52 overflow-auto rounded-xl border p-2 grid sm:grid-cols-2 gap-1.5" style={{ borderColor: palette.line, background: "#fff" }}>
-        {specialtySubjectChoices.map(subject => {
+      <label className="mt-2 flex items-center gap-2 rounded-xl border bg-white px-3 py-2" style={{ borderColor: palette.line }}>
+        <Search size={15} style={{ color: palette.blue }}/>
+        <input value={specialtyQuery} onChange={event => setSpecialtyQuery(event.target.value)} placeholder="Fan nomi yoki raqami: 07, bio, mat..." className="min-w-0 flex-1 bg-transparent outline-none text-xs"/>
+        {specialtyQuery && <button type="button" onClick={() => setSpecialtyQuery("")} className="text-xs font-black" style={{ color: palette.red }}>×</button>}
+      </label>
+      <div className="mt-2 max-h-48 overflow-auto rounded-xl border p-2 grid sm:grid-cols-2 gap-1.5" style={{ borderColor: palette.line, background: "#fff" }}>
+        {numberedSpecialtyChoices.map(({ subject, numberText }) => {
           const selectedValue = selected.find(item => subjectKeyV193(item) === subjectKeyV193(subject));
           const checked = Boolean(selectedValue);
           return <button type="button" key={subjectKeyV193(subject)} onClick={() => {
@@ -4339,9 +4352,9 @@ function TeacherFirstLoadEditorV192({
             background: checked ? palette.teal : palette.cream,
             color: checked ? "#fff" : palette.ink,
             borderColor: checked ? palette.teal : palette.line,
-          }}>{checked ? "✓ " : "+ "}{subject}</button>;
+          }}><span className="inline-flex min-w-7 mr-1.5 justify-center rounded px-1 py-0.5" style={{ background: checked ? "rgba(255,255,255,.2)" : palette.sky }}>{numberText}</span>{checked ? "✓ " : "+ "}{subject}</button>;
         })}
-        {!specialtySubjectChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>Avval o‘quv reja fanlarini kiriting.</div>}
+        {!numberedSpecialtyChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>{specialtySubjectChoices.length ? "Qidiruv bo‘yicha fan topilmadi." : "Avval o‘quv reja fanlarini kiriting."}</div>}
       </div>
       <div className="text-[10px] font-bold mt-2" style={{ color: selected.length ? palette.green : palette.muted }}>
         {selected.length} ta fan tanlandi · cheklov yo‘q. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.
@@ -4831,14 +4844,11 @@ function TeacherFirstLoadEditorV192({
             </div>
           </div>}
 
-          <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: palette.line, background: "#F8FBFD" }}>
+          <div className="rounded-2xl border p-3 mb-2" style={{ borderColor: palette.line, background: "#F8FBFD" }}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-black" style={{ color: palette.ink }}>Fanlar bo‘yicha aqlli yuklama</div>
-                <div className="text-[11px] mt-1 max-w-2xl" style={{ color: palette.muted }}>
-                  Yuqorida o‘qituvchi o‘tadigan fanlarni tanlang, keyin har bir fan uchun sinflarni bosing — tizim tasdiqlangan o‘quv rejadan faqat shu fanning aniq soatini qo‘shadi. Mavjud bo‘lmagan fan yaratilmaydi.
-                  Sinf yoki fan almashtirilsa soat ham shu juftlik bo‘yicha yangilanadi; qator qo‘shilsa yoki o‘chirilsa jami yuklama darhol qayta hisoblanadi.
-                </div>
+                <div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>Fan → sinflar → tasdiqlangan o‘quv rejadan aniq soat.</div>
               </div>
               <button type="button" role="switch" aria-checked={autoSpecialty} onClick={() => changeAutoSpecialty(!autoSpecialty)} className="px-4 py-2.5 rounded-xl text-xs font-black border" style={{
                 background: autoSpecialty ? palette.greenBg : "#fff",
@@ -4853,17 +4863,17 @@ function TeacherFirstLoadEditorV192({
               <div className="flex flex-wrap gap-2 mt-2">
                 {activeSpecialtyValues.map((value, index) => {
                   const option = specialtyOptions.find(item => item.value === value);
+                  const fanNumber = specialtySubjectChoices.findIndex(item => subjectKeyV193(item) === subjectKeyV193(value)) + 1;
                   const tone = specialtyColorsV195[index % specialtyColorsV195.length];
                   const active = value === resolvedAutoSpecialty;
                   const classCount = (specialtyClassIdsByValue[value] || []).length;
-                  return <button type="button" key={value} onClick={() => setActiveAutoSpecialty(value)} className="px-3 py-2.5 rounded-xl border text-[11px] font-black text-left" style={{
+                  return <button type="button" key={value} onClick={() => setActiveAutoSpecialty(value)} className="px-2.5 py-2 rounded-xl border text-[10px] font-black text-left" style={{
                     background: active ? tone.strong : tone.soft,
                     color: active ? "#fff" : tone.strong,
                     borderColor: tone.line,
                     boxShadow: active ? `0 5px 16px ${tone.strong}33` : "none",
                   }}>
-                    {active ? "✓ " : ""}{option?.label || value}
-                    <span className="block text-[9px] mt-0.5 opacity-80">{classCount} ta sinf tanlangan</span>
+                    {active ? "✓ " : ""}{fanNumber > 0 ? `${String(fanNumber).padStart(2, "0")}. ` : ""}{option?.label || value}<span className="ml-1 opacity-75">· {classCount} sinf</span>
                   </button>;
                 })}
                 {!activeSpecialtyValues.length && <span className="text-[10px] rounded-lg px-3 py-2" style={{ background: palette.amberBg, color: palette.amber }}>Yuqoridan kamida bitta o‘tadigan fanni tanlang.</span>}
@@ -4875,9 +4885,9 @@ function TeacherFirstLoadEditorV192({
                 {data?.oquv_reja?.holat === "tasdiqlangan" ? "Reja tasdiqlangan · avto tayyor" : "Reja tasdiqlanmagan · faqat qo‘lda"}
               </span>
             </div>
-            <div className="mt-2 rounded-xl border p-2.5" style={{ borderColor: activeSpecialtyTone.line, background: activeSpecialtyTone.soft }}>
-              <div className="text-[9px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>Tezkor belgilash</div>
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
+            <div className="mt-2 rounded-xl border px-2.5 py-2" style={{ borderColor: activeSpecialtyTone.line, background: activeSpecialtyTone.soft }}>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[9px] font-black uppercase mr-1" style={{ color: activeSpecialtyTone.strong }}>Tezkor:</span>
                 {specialtyClassQuickRangesV195.map(range => {
                   const rangeIds = specialtyClassIdsForQuickRange(range);
                   const exactSelection = rangeIds.length > 0 &&
@@ -4891,7 +4901,6 @@ function TeacherFirstLoadEditorV192({
                 })}
                 <button type="button" onClick={() => applySpecialtyAuto([], resolvedAutoSpecialty)} disabled={!resolvedAutoSpecialty || !specialtyClassIds.length} className="px-3 py-2 rounded-lg border text-[10px] font-black disabled:opacity-40" style={{ background: "#fff", color: palette.red, borderColor: "#E8BBBB" }}>Tanlovni tozalash</button>
               </div>
-              <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>Bitta tugma o‘sha bosqichdagi barcha sinflarni tanlaydi va faol fanning reja soatlarini darhol yangilaydi.</div>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
               {(data?.sinflar || []).map(cls => {
@@ -4911,34 +4920,25 @@ function TeacherFirstLoadEditorV192({
                 }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}<span className="block text-[8px] mt-0.5 opacity-75">{groupHint}</span></button>;
               })}
             </div>
-            <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
-              Rangli sinflar faqat yuqorida faol turgan fanga tegishli. Boshqa fanga o‘tsangiz oldingi fan sinflari va qatorlari saqlanib qoladi.
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds, resolvedAutoSpecialty)} disabled={!autoSpecialty || !resolvedAutoSpecialty} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: activeSpecialtyTone.strong }}>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds, resolvedAutoSpecialty)} disabled={!autoSpecialty || !resolvedAutoSpecialty} className="px-3 py-2 rounded-xl text-[11px] font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: activeSpecialtyTone.strong }}>
                 Shu fan sinflarini qayta to‘ldirish
               </button>
               <button type="button" onClick={() => {
                 setAllocationOverviewOpen(true);
                 window.requestAnimationFrame(() => document.getElementById("sinf-yuklama-holati")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-              }} className="px-4 py-2.5 rounded-xl text-xs font-black border flex items-center gap-2" style={{ background: palette.sky, color: palette.blue, borderColor: palette.line }}>
+              }} className="px-3 py-2 rounded-xl text-[11px] font-black border flex items-center gap-1.5" style={{ background: palette.sky, color: palette.blue, borderColor: palette.line }}>
                 <BarChart3 size={15}/> Pastdagi sinf yuklamasi holati ↓
               </button>
-              <span className="text-[10px]" style={{ color: palette.muted }}>
-                Avtoni o‘chirsangiz, hozirgi qatorlar saqlanadi va faqat qo‘lda o‘zgaradi.
-              </span>
             </div>
 
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Stat value={targetHours || "—"} label="haftalik maqsad" tone="blue"/>
-            <Stat value={draftWeeklyTotal} label="tanlangan yuklama" tone="teal"/>
-            <Stat value={targetHours ? Math.abs(targetDifference) : "—"} label={targetHours ? (targetDifference > 0 ? "soat qoldi" : targetDifference < 0 ? "soat oshdi" : "maqsadga teng") : "farq"} tone={targetDifference < 0 ? "amber" : "green"}/>
-            <Stat value={rows.length} label="aniq qator" tone="amber"/>
-          </div>
-          <div className="mt-2 text-[10px]" style={{ color: palette.muted }}>
-            Tanlangan yuklama qatorlarning jonli yig‘indisi: fan/sinf qo‘shilsa ortadi, o‘chirilsa kamayadi. Qo‘lda tuzatilgan soat avto tomonidan qayta bosilmaydi.
+          <div className="grid grid-cols-4 gap-1.5">
+            <CompactStat value={targetHours || "—"} label="haftalik maqsad" tone="blue"/>
+            <CompactStat value={draftWeeklyTotal} label="tanlangan yuklama" tone="teal"/>
+            <CompactStat value={targetHours ? Math.abs(targetDifference) : "—"} label={targetHours ? (targetDifference > 0 ? "soat qoldi" : targetDifference < 0 ? "soat oshdi" : "maqsadga teng") : "farq"} tone={targetDifference < 0 ? "amber" : "green"}/>
+            <CompactStat value={rows.length} label="aniq qator" tone="amber"/>
           </div>
 
           <div id="teacher-load-top-actions" className="sticky top-2 z-30 mt-4 p-3 rounded-2xl border grid grid-cols-2 items-center gap-4" style={{ borderColor: fieldIsInvalidV199("teacher-load-top-actions") ? palette.red : palette.line, background: fieldIsInvalidV199("teacher-load-top-actions") ? palette.redBg : "rgba(255,255,255,.97)", boxShadow: fieldIsInvalidV199("teacher-load-top-actions") ? "0 0 0 3px rgba(165,66,66,.16)" : "0 8px 24px rgba(24,50,75,.10)" }}>
