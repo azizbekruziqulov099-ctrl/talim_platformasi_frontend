@@ -2884,7 +2884,10 @@ function TeacherFirstLoadEditorV192({
           haftalik_soat: Number(row.haftalik_soat || 1),
           kunlik_max: Number(row.kunlik_max || 1),
           xona_id: row.xona_id ? String(row.xona_id) : "",
-          auto_specialty: false,
+          auto_specialty: true,
+          auto_specialty_value: specialtySubjectChoices.find(subject =>
+            teacherSubjectKeyV203(subject) === teacherSubjectKeyV203(row.fan_nomi)
+          ) || row.fan_nomi,
         }))
     );
   }, [data, selectedTeacher, creatingNew, specialtySubjectChoices]);
@@ -4417,7 +4420,7 @@ function TeacherFirstLoadEditorV192({
     const selectionRequired = required && !inferredFromRows.length;
     const pickerId = required ? "teacher-subject-picker" : "existing-teacher-subject-picker";
     const pickerInvalid = fieldIsInvalidV199(pickerId) && selectionRequired;
-    return <div id={pickerId} className={`${required ? "col-span-2" : "md:col-span-2"} ${pickerInvalid ? "rounded-xl border p-2" : ""}`} style={pickerInvalid ? invalidFieldStyleV199(pickerId) : undefined}>
+    return <div id={pickerId} className={`${required ? "col-span-2 order-4" : "md:col-span-2 order-3"} ${pickerInvalid ? "rounded-xl border p-2" : ""}`} style={pickerInvalid ? invalidFieldStyleV199(pickerId) : undefined}>
       <div className="text-xs font-black" style={{ color: palette.ink }}>
         O‘tadigan fanlari {selectionRequired && <span style={{ color: palette.red }}>*</span>}
       </div>
@@ -4818,34 +4821,34 @@ function TeacherFirstLoadEditorV192({
               </div>
               <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>O‘qituvchini bossangiz uning yuklamasi tahrirlash uchun ochiladi.</div>
             </div>}
-            <label className="col-span-2 block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
+            <label className="col-span-2 order-1 block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
               <input id="new-teacher-full-name" autoFocus value={newTeacher.full_name} onChange={event => { clearInvalidFieldV199("new-teacher-full-name"); setNewTeacher(current => ({ ...current, full_name: event.target.value })); }} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-full-name")}/>
               {fieldIsInvalidV199("new-teacher-full-name") && <span className="block mt-1 text-[10px]" style={{ color: palette.red }}>Bu yerni to‘ldiring.</span>}
             </label>
             {renderSpecialtyPicker(true)}
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati <span style={{ color: palette.red }}>*</span>
+            <label className="order-2 block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati <span style={{ color: palette.red }}>*</span>
               <input id="new-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={newTeacher.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("new-teacher-weekly-target"); setNewTeacher(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-weekly-target")}/>
               {fieldIsInvalidV199("new-teacher-weekly-target") && <span className="block mt-1 text-[10px] font-black" style={{ color: palette.red }}>Haftalik maqsad soatini kiriting. Masalan: 25.</span>}
               <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.</span>
             </label>
-            <div className="col-span-2 pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
+            <div className="col-span-2 order-5 pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
+            <label className="order-6 block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
               <input id="new-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={newTeacher.tugilgan_sana} onChange={event => { clearInvalidFieldV199("new-teacher-birth-date"); setNewTeacher(current => ({
                 ...current,
                 tugilgan_sana: event.target.value,
                 tugilgan_yili: event.target.value ? event.target.value.slice(0, 4) : "",
               })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-birth-date")}/>
             </label>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
+            <label className="order-6 block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
               <input id="new-teacher-experience" type="number" min="0" max="60" value={newTeacher.ish_staji} onChange={event => { clearInvalidFieldV199("new-teacher-experience"); setNewTeacher(current => ({ ...current, ish_staji: event.target.value })); }} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-experience")}/>
             </label>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Toifasi
+            <label className="order-6 block text-xs font-black" style={{ color: palette.ink }}>Toifasi
               <select value={newTeacher.toifasi} onChange={event => setNewTeacher(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
                 <option value="">Belgilanmagan</option>
                 {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
+            <label className="order-2 block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
               <select id="new-teacher-leader-class" value={newTeacher.rahbar_sinf_id} onChange={event => { clearInvalidFieldV199("new-teacher-leader-class"); setNewTeacher(current => ({ ...current, rahbar_sinf_id: event.target.value })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-leader-class")}>
                 <option value="">Sinf rahbari emas</option>
                 {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id} disabled={Boolean(cls.rahbar_user_id)}>
@@ -4857,11 +4860,11 @@ function TeacherFirstLoadEditorV192({
             {(() => {
               const leaderClass = (data?.sinflar || []).find(cls => String(cls.id) === String(newTeacher.rahbar_sinf_id));
               const grade = Number(String(leaderClass?.sinf || "").match(/\d+/)?.[0] || 0);
-              return grade >= 1 && grade <= 4 ? <button onClick={addPrimaryTeacherPlan} disabled={data?.oquv_reja?.holat !== "tasdiqlangan"} className="w-full px-4 py-3 rounded-xl text-xs font-black text-white disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.green }} title={data?.oquv_reja?.holat === "tasdiqlangan" ? "Mos fanlar reja soati bilan qo‘shiladi" : "Avtomatik soat uchun o‘quv reja tasdiqlanishi kerak"}>
+              return grade >= 1 && grade <= 4 ? <button onClick={addPrimaryTeacherPlan} disabled={data?.oquv_reja?.holat !== "tasdiqlangan"} className="col-span-2 order-3 w-full px-4 py-3 rounded-xl text-xs font-black text-white disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.green }} title={data?.oquv_reja?.holat === "tasdiqlangan" ? "Mos fanlar reja soati bilan qo‘shiladi" : "Avtomatik soat uchun o‘quv reja tasdiqlanishi kerak"}>
                 ⚡ {data?.oquv_reja?.holat === "tasdiqlangan" ? "Sinf rahbari fanlarini reja bo‘yicha qo‘shish" : "Avto fan/soat · reja tasdiqlanmagan"}
               </button> : null;
             })()}
-            <button onClick={cancelNewTeacher} className="col-span-2 w-full px-4 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
+            <button onClick={cancelNewTeacher} className="col-span-2 order-7 w-full px-4 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
           </div> : <>
             <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>
               O‘qituvchi qidirish
@@ -4907,10 +4910,10 @@ function TeacherFirstLoadEditorV192({
             </div>
             <div className="grid md:grid-cols-2 gap-3">
               {renderSpecialtyPicker(false)}
-              <label className="block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
+              <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
                 <input id="existing-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={existingProfile.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("existing-teacher-weekly-target"); setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-weekly-target")}/>
               </label>
-              <label className="block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
+              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
                 <input id="existing-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={existingProfile.tugilgan_sana} onChange={event => { clearInvalidFieldV199("existing-teacher-birth-date"); setExistingProfile(current => ({
                   ...current,
                   tugilgan_sana: event.target.value,
@@ -4920,16 +4923,16 @@ function TeacherFirstLoadEditorV192({
                   Eski bazada faqat {existingProfile.tugilgan_yili}-yil saqlangan. Oy va kunni belgilang.
                 </span>}
               </label>
-              <label className="block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
+              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
                 <input id="existing-teacher-experience" type="number" min="0" max="60" step="1" value={existingProfile.ish_staji} onChange={event => { clearInvalidFieldV199("existing-teacher-experience"); setExistingProfile(current => ({ ...current, ish_staji: event.target.value })); }} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-experience")}/>
               </label>
-              <label className="block text-xs font-black" style={{ color: palette.ink }}>Toifasi
+              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>Toifasi
                 <select value={existingProfile.toifasi} onChange={event => setExistingProfile(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
                   <option value="">Belgilanmagan</option>
                   {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
                 </select>
               </label>
-              <label className="block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
+              <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
                 <select id="existing-teacher-leader-class" value={existingProfile.rahbar_sinf_id} onChange={event => { clearInvalidFieldV199("existing-teacher-leader-class"); setExistingProfile(current => ({ ...current, rahbar_sinf_id: event.target.value })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-leader-class")}>
                   <option value="">Sinf rahbari emas</option>
                   {(data?.sinflar || []).map(cls => {
