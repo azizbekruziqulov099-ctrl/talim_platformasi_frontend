@@ -3549,7 +3549,7 @@ function UniversitetlarBolimi({ token }) {
           initialWorkspace={{ turi: "universitet", muassasa_id: workspaceUniversity.id, nomi: workspaceUniversity.nomi }}
           onBack={() => setWorkspaceUniversity(null)}
           assignedOnly={false}
-          canCreateInstitution={false}
+          canCreateInstitution={true}
         />
       </React.Suspense>
     );
