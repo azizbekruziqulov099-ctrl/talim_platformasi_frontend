@@ -3547,6 +3547,7 @@ function UniversitetlarBolimi({ token }) {
           token={token}
           apiBase={API_BASE}
           initialWorkspace={{ turi: "universitet", muassasa_id: workspaceUniversity.id, nomi: workspaceUniversity.nomi }}
+          initialFacultyId={workspaceUniversity.importFacultyId || null}
           onBack={() => setWorkspaceUniversity(null)}
           assignedOnly={false}
           canCreateInstitution={true}
@@ -3567,7 +3568,7 @@ function UniversitetlarBolimi({ token }) {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{sarlavhalar[holat]}</p>
           <div className="flex flex-wrap gap-2">
-            {tUniversitet && <button onClick={() => setWorkspaceUniversity(tUniversitet)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#0D7A77", backgroundColor: "#ECF8F4", color: "#0D7A77" }}>📥 Institut boshqaruvi va import</button>}
+            {holat === "kafedra" && tUniversitet && tFakultet && <button onClick={() => setWorkspaceUniversity({ ...tUniversitet, importFacultyId: tFakultet.id })} className="text-xs font-semibold px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#0D7A77", backgroundColor: "#ECF8F4", color: "#0D7A77" }}>📥 Talabalarni import qilish</button>}
             <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
               {formOchiq ? "✕ Yopish" : "+ Yangi"}
             </button>
