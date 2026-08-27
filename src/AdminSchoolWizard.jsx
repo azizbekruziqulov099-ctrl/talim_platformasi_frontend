@@ -7,7 +7,7 @@ const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Mat
 
 const emptyBuilding = (index = 0) => ({
   key: uniqueKey("building", index), name: index === 0 ? "Asosiy bino" : `${index + 1}-bino`,
-  floors: 2, roomsPerFloor: 10, scheme: "floor", customRooms: "", rooms: [],
+  floors: 2, roomsPerFloor: 10, floorRoomCounts: [10, 10], scheme: "floor", customRooms: "", rooms: [],
 });
 
 const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
@@ -25,11 +25,13 @@ function sortedClasses(items) { return [...items].sort((a, b) => Number(a.grade)
 
 function generateRooms(building) {
   const floors = Math.max(1, Math.min(20, Number(building.floors) || 1));
-  const perFloor = Math.max(1, Math.min(100, Number(building.roomsPerFloor) || 1));
+  const floorRoomCounts = Array.from({ length: floors }, (_, index) => Math.max(0, Math.min(100,
+    Number(building.floorRoomCounts?.[index] ?? building.roomsPerFloor) || 0,
+  )));
   const generated = [];
   let sequential = 1;
   for (let floor = 1; floor <= floors; floor += 1) {
-    for (let index = 1; index <= perFloor; index += 1) {
+    for (let index = 1; index <= floorRoomCounts[floor - 1]; index += 1) {
       const number = building.scheme === "floor" ? `${floor}${String(index).padStart(2, "0")}` : String(sequential);
       generated.push({ number, floor });
       sequential += 1;
@@ -142,6 +144,24 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     setError(""); setNotice(""); setStep((current) => Math.min(4, current + 1));
   };
   const updateBuilding = (key, patch) => { setBuildings((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item)); setError(""); };
+  const updateBuildingFloors = (key, rawFloors) => {
+    const floors = Math.max(1, Math.min(20, Number.parseInt(rawFloors, 10) || 1));
+    setBuildings((current) => current.map((item) => item.key === key ? {
+      ...item, floors,
+      floorRoomCounts: Array.from({ length: floors }, (_, index) => item.floorRoomCounts?.[index] ?? item.roomsPerFloor ?? 10),
+      rooms: [],
+    } : item));
+    setError("");
+  };
+  const updateFloorRoomCount = (key, floorIndex, rawCount) => {
+    const count = Math.max(0, Math.min(100, Number.parseInt(rawCount, 10) || 0));
+    setBuildings((current) => current.map((item) => item.key === key ? {
+      ...item,
+      floorRoomCounts: Array.from({ length: Number(item.floors) || 1 }, (_, index) => index === floorIndex ? count : (item.floorRoomCounts?.[index] ?? item.roomsPerFloor ?? 10)),
+      rooms: [],
+    } : item));
+    setError("");
+  };
   const createRooms = (key) => { setBuildings((current) => current.map((item) => item.key === key ? { ...item, rooms: generateRooms(item) } : item)); setNotice("Xonalar tayyorlandi. Kerak bo‘lsa parametrlarni o‘zgartirib qayta yarating."); setError(""); };
   const removeBuilding = (key) => { setBuildings((current) => current.filter((item) => item.key !== key)); setClasses((current) => current.map((item) => item.buildingKey === key ? { ...item, buildingKey: "", roomNumber: "" } : item)); };
   const updateGradeCount = (grade, rawCount) => {
@@ -251,13 +271,13 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <div className="flex items-center justify-between mb-3"><b className="text-sm" style={{ color: "#21384C" }}>{building.name.trim() || `${index + 1}-bino`}</b>{buildings.length > 1 && <button type="button" onClick={() => removeBuilding(building.key)} className="text-xs" style={{ color: "#B0553A" }}>Olib tashlash</button>}</div>
         <div className="grid md:grid-cols-4 gap-3">
           <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Bino nomi *<input value={building.name} onChange={(event) => updateBuilding(building.key, { name: event.target.value, rooms: [] })} placeholder="Masalan: Asosiy bino" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-          <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Qavat soni *<input type="number" min="1" max="20" value={building.floors} onChange={(event) => updateBuilding(building.key, { floors: event.target.value, rooms: [] })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-          <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Har qavatdagi xona *<input type="number" min="1" max="100" value={building.roomsPerFloor} onChange={(event) => updateBuilding(building.key, { roomsPerFloor: event.target.value, rooms: [] })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+          <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Qavat soni *<input type="number" min="1" max="20" value={building.floors} onChange={(event) => updateBuildingFloors(building.key, event.target.value)} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+          <div className="md:col-span-4"><p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>Har bir qavatdagi xona soni *</p><div className="grid grid-cols-2 md:grid-cols-4 gap-2">{Array.from({ length: Number(building.floors) || 1 }, (_, floorIndex) => <label key={floorIndex} className="text-[11px] font-semibold rounded-xl border p-2.5" style={{ color: "#5A5648", borderColor: "#E5E1D8", background: "white" }}>{floorIndex + 1}-qavat<input aria-label={`${floorIndex + 1}-qavat xona soni`} type="number" min="0" max="100" value={building.floorRoomCounts?.[floorIndex] ?? building.roomsPerFloor ?? 10} onChange={(event) => updateFloorRoomCount(building.key, floorIndex, event.target.value)} className="block w-full mt-1.5 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#D9D4C8" }} /></label>)}</div></div>
           <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Xona raqamlash usuli<select value={building.scheme} onChange={(event) => updateBuilding(building.key, { scheme: event.target.value, rooms: [] })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="floor">Qavat bo‘yicha: 101, 102… 201, 202…</option><option value="sequential">Oddiy ketma-ket: 1, 2, 3…</option></select></label>
           <label className="text-xs font-semibold md:col-span-2" style={{ color: "#5A5648" }}>Qo‘shimcha xona raqamlari · ixtiyoriy<input value={building.customRooms} onChange={(event) => updateBuilding(building.key, { customRooms: event.target.value, rooms: [] })} placeholder="Masalan: Sportzal, Lab-1, 305" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
         </div>
         <button type="button" onClick={() => createRooms(building.key)} className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {building.rooms.length ? "Xonalarni qayta yaratish" : "Xonalarni avtomatik yaratish"}</button>
-        {building.rooms.length > 0 && <div className="mt-3 rounded-xl p-3" style={{ background: "#F1F7FB" }}><p className="text-xs font-bold mb-2" style={{ color: "#1B4B7A" }}>{building.rooms.length} ta xona tayyor</p><div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto">{building.rooms.map((room) => <span key={`${building.key}-${room.number}`} className="px-2 py-1 rounded-lg text-[11px]" style={{ background: "white", color: "#5A5648" }}>{room.number}</span>)}</div></div>}
+        {building.rooms.length > 0 && <div className="mt-3 rounded-xl p-3" style={{ background: "#F1F7FB" }}><p className="text-xs font-bold mb-1" style={{ color: "#1B4B7A" }}>{building.rooms.length} ta xona tayyor</p><p className="text-[11px] mb-2" style={{ color: "#5A5648" }}>{Array.from({ length: Number(building.floors) || 1 }, (_, floorIndex) => `${floorIndex + 1}-qavat: ${building.rooms.filter((room) => room.floor === floorIndex + 1).length} xona`).join(" · ")}</p><div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto">{building.rooms.map((room) => <span key={`${building.key}-${room.number}`} className="px-2 py-1 rounded-lg text-[11px]" style={{ background: "white", color: "#5A5648" }}>{room.number}</span>)}</div></div>}
       </article>)}
       {!skipBuildings && <button type="button" onClick={() => setBuildings((current) => [...current, emptyBuilding(current.length)])} className="w-full py-3 rounded-xl border-2 border-dashed text-sm font-bold" style={{ borderColor: "#B9CCDC", color: "#1B4B7A" }}>＋ Yana bino qo‘shish</button>}
     </div>}
@@ -302,7 +322,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     {step === 4 && <div className="space-y-4">
       <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{schoolNumber.trim() ? `${schoolNumber.trim()}-sonli ` : ""}{name.trim()}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
       <div className="grid grid-cols-3 gap-2"><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{skipBuildings ? 0 : buildings.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>bino</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{roomPool.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>xona</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#FDF3E0" }}><b className="block text-lg" style={{ color: "#8A5A1C" }}>{classes.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>sinf</span></div></div>
-      {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p></div>)}
+      {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p><p className="text-[11px] mt-1" style={{ color: "#5A5648" }}>{Array.from({ length: Number(building.floors) || 1 }, (_, floorIndex) => `${floorIndex + 1}-qavat: ${building.rooms.filter((room) => room.floor === floorIndex + 1).length} xona`).join(" · ")}</p></div>)}
       <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
       <div className="rounded-xl px-3.5 py-3 text-xs font-semibold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Maktab, binolar, xonalar va sinflar bitta xavfsiz amalda yaratiladi. Platforma to‘lovi: 0 so‘m.</div>
     </div>}
