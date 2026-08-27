@@ -4512,23 +4512,27 @@ function TeacherFirstLoadEditorV192({
         <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
           Faqat 1–11-sinf darajalari ko‘rsatiladi. Kiritilgan soat shu darajadagi barcha A/B/C parallel sinflarga bir xil qo‘llanadi.
         </div>
-        <div className="mt-3 space-y-3 max-h-[68vh] overflow-y-auto pr-1">
-          {planGradeRows.map(gradeRow => {
-            const cls = gradeRow.classes[0];
-            const configured = (data.fan_sinflari || []).find(item => String(item.sinf_id) === String(cls?.id))?.fanlar || [];
-            const allowedSubjects = configured.length ? configured : planSubjects;
-            const classTotal = 1 + allowedSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
-            return <div key={gradeRow.grade} className="rounded-2xl border p-4" style={{ borderColor: palette.line, background: "#fff" }}>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <div><div className="text-base font-black" style={{ color: palette.ink }}>{gradeRow.grade}-sinf</div><div className="text-[10px]" style={{ color: palette.muted }}>Barcha parallel sinflarga bir xil qo‘llanadi</div></div>
-                <div className="flex gap-2"><span className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.mint, color: palette.green }}>Kelajak soati: 1</span><span className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Jami: {classTotal}</span></div>
-              </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">{allowedSubjects.map(subject => {
-                const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
-                return <label key={subject} className="rounded-xl border p-3" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, background: value > 0 ? palette.greenBg : "#F8FBFD" }}><span className="block text-xs font-black mb-2" style={{ color: palette.ink }}>{subject}</span><span className="flex items-center gap-2"><input type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="Soat" onChange={event => updatePlanGradeCell(gradeRow.classes, subject, event.target.value)} className="w-full px-3 py-2 rounded-lg border text-center font-black"/><small style={{ color: palette.muted }}>soat</small></span></label>;
-              })}</div>
-            </div>;
-          })}
+        <div className="mt-3 rounded-2xl border overflow-auto max-h-[68vh]" style={{ borderColor: palette.line }}>
+          <table className="border-collapse text-xs" style={{ minWidth: `${175 + (planSubjects.length + 1) * 60 + 100}px`, width: "100%" }}>
+            <thead className="sticky top-0 z-20"><tr>
+              <th className="sticky left-0 z-30 p-3 text-left min-w-[175px]" style={{ background: palette.ink, color: "#fff" }}>SINF ↓ / FAN →</th>
+              {planSubjects.map(subject => <th key={subject} className="p-0 text-center min-w-[60px] h-[165px]" title={subject} style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}><div className="mx-auto text-[10px] font-black leading-tight" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 155 }}>{subject}</div></th>)}
+              <th className="p-0 text-center min-w-[60px] h-[165px]" style={{ background: palette.teal, color: "#fff" }}><div className="mx-auto text-[10px] font-black" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>KELAJAK SOATI · 1</div></th>
+              <th className="p-2 text-center min-w-[100px]" style={{ background: palette.blue, color: "#fff" }}>JAMI<br/>YUKLAMA</th>
+            </tr></thead>
+            <tbody>{planGradeRows.map((gradeRow, rowIndex) => {
+              const cls = gradeRow.classes[0];
+              const configured = (data.fan_sinflari || []).find(item => String(item.sinf_id) === String(cls?.id))?.fanlar || [];
+              const fanRuxsatmi = subject => !configured.length || configured.some(fan => subjectKeyV193(fan) === subjectKeyV193(subject));
+              const classTotal = 1 + planSubjects.reduce((sum, subject) => fanRuxsatmi(subject) ? sum + Number(planCells[planCellKey(cls.id, subject)] || 0) : sum, 0);
+              return <tr key={gradeRow.grade} className="border-t" style={{ borderColor: palette.line }}>
+                <th className="sticky left-0 z-10 p-3 text-left" style={{ background: rowIndex % 2 ? "#F8FBFD" : "#fff", color: palette.ink }}><div className="font-black">{gradeRow.grade}-sinf</div></th>
+                {planSubjects.map(subject => { const ruxsat=fanRuxsatmi(subject); const value=ruxsat?Number(planCells[planCellKey(cls.id,subject)]||0):0; return <td key={subject} className="p-1 text-center" style={{ background:!ruxsat?"#E9ECEF":value>0?palette.greenBg:(rowIndex%2?"#F8FBFD":"#fff"),borderLeft:`1px solid ${palette.line}` }}>{ruxsat?<input type="number" min="0" max="20" step="0.5" value={value||""} placeholder="—" onChange={event=>updatePlanGradeCell(gradeRow.classes,subject,event.target.value)} className="w-12 px-1 py-2 rounded-lg border text-center font-black"/>:<span style={{color:"#A5ADB4"}}>×</span>}</td>; })}
+                <td className="p-2 text-center font-black" style={{ background:palette.mint,color:palette.green }}>1</td>
+                <th className="p-2 text-center text-sm font-black" style={{ background:palette.blue,color:"#fff" }}>{classTotal}</th>
+              </tr>;
+            })}</tbody>
+          </table>
         </div>
       </>}
     </Card>}
