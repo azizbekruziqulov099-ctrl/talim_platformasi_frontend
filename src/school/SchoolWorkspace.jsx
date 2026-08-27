@@ -3906,7 +3906,13 @@ function TeacherFirstLoadEditorV192({
     const selectedNewTeacherSubjects = specialtyValuesV195(newTeacher.mutaxassisligi);
     const effectiveNewTeacherSubjects = selectedNewTeacherSubjects.length
       ? selectedNewTeacherSubjects : rowSubjects;
-    const effectiveNewTeacherSpecialty = effectiveNewTeacherSubjects.join(";");
+    const compactSpecialty = subjects => subjects.reduce((result, subject) => {
+      const candidate = result ? `${result};${subject}` : subject;
+      return candidate.length <= 120 ? candidate : result;
+    }, "");
+    const effectiveNewTeacherSpecialty = compactSpecialty(effectiveNewTeacherSubjects);
+    const existingTeacherSubjects = specialtyValuesV195(existingProfile.mutaxassisligi);
+    const effectiveExistingTeacherSpecialty = compactSpecialty(existingTeacherSubjects);
     if (!creatingNew && !selectedTeacher) {
       return showValidationErrorV199("Avval o‘qituvchini tanlang.", "teacher-selector-panel");
     }
@@ -4061,8 +4067,8 @@ function TeacherFirstLoadEditorV192({
       } : {
         maktab_id: maktabId,
         user_id: Number(selectedTeacher),
-        mutaxassisligi: existingProfile.mutaxassisligi || null,
-        otadigan_fanlari: specialtyValuesV195(existingProfile.mutaxassisligi),
+        mutaxassisligi: effectiveExistingTeacherSpecialty || null,
+        otadigan_fanlari: existingTeacherSubjects,
         haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
           ? null : Number(existingProfile.haftalik_maqsad_soat),
         tugilgan_sana: existingProfile.tugilgan_sana || null,
@@ -4085,7 +4091,7 @@ function TeacherFirstLoadEditorV192({
       } : {
         maktab_id: maktabId,
         user_id: Number(selectedTeacher),
-        mutaxassisligi: existingProfile.mutaxassisligi || null,
+        mutaxassisligi: effectiveExistingTeacherSpecialty || null,
         haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
           ? null : Number(existingProfile.haftalik_maqsad_soat),
         qatorlar: qatorlar.map(({ sinf_id, fan_nomi, guruh_kaliti, haftalik_soat }) => ({
@@ -4268,6 +4274,17 @@ function TeacherFirstLoadEditorV192({
     return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
   };
   const allocationTargetsFor = (classId, subject) => {
+    const actualSubjectRows = effectiveAllocationRows.filter(row =>
+      String(row.sinf_id) === String(classId) &&
+      sameSubjectV196(row.fan_nomi, subject)
+    );
+    const hasWholeAssignment = actualSubjectRows.some(row =>
+      String(row.guruh_kaliti || "whole") === "whole"
+    );
+    if (hasWholeAssignment) return [{
+      sinf_id: Number(classId), guruh_kaliti: "whole",
+      guruh_nomi: "Butun sinf", qisqa: "Sinf",
+    }];
     const grouped = groupedVariantsForSubjectV196(classId, subject);
     if (grouped.length) return grouped;
     const configured = configuredGroupVariantsForClassV198(classId);
