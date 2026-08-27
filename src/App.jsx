@@ -2860,13 +2860,26 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     return fallback;
   };
 
-  const sinfFanKaliti = (nom) => String(nom || "")
+  const sinfFanKaliti = (nom) => {
+    const kalit = String(nom || "")
     .normalize("NFKD")
     .toLocaleLowerCase("uz")
     .replace(/[ʻʼ’`´]/g, "'")
     .replace(/[^a-z0-9а-яёқғҳў' ]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+    // TTS, eski maktab sozlamasi va admin andozasida bir fan turlicha
+    // yozilgan bo‘lsa ham bitta fan hisoblanadi.
+    if (/^informatika( va axborot texnologiyalari)?$/.test(kalit)) return "informatika";
+    if (/^tabiiy fan(lar)?( science)?$/.test(kalit)) return "tabiiy fan";
+    if (/^musiqa( madaniyati)?$/.test(kalit)) return "musiqa";
+    if (/^ona tili( va yozuv)?$/.test(kalit)) return "ona tili";
+    if (/^o'qish savodxonligi( va alifbe)?$/.test(kalit)) return "o'qish savodxonligi";
+    if (/^chaqiruvga qadar boshlang'ich tayyorgarlik$/.test(kalit) || kalit === "chqbt") return "chqbt";
+    if (/^texn[ao]logiya o?'?g'?il( bolalar)?$/.test(kalit)) return "texnologiya o'g'il";
+    if (/^texn[ao]logiya qizlar$/.test(kalit)) return "texnologiya qizlar";
+    return kalit;
+  };
 
   const takrorsizSinfFanlari = (fanlar, asosiyFanlar = []) => {
     const asosiyNomlar = new Map();
