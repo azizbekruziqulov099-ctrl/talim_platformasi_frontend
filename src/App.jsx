@@ -2488,8 +2488,7 @@ function DirektorQidiruvi({ token, tanlanganDirektor, onTanla, onYangiIsm }) {
   );
 }
 
-function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
-  const [ochiq, setOchiq] = useState(false);
+function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved, ochiq = false, onToggle }) {
   const [tizimlar, setTizimlar] = useState([]);
   const [azolar, setAzolar] = useState([]);
   const [boshqaraOladi, setBoshqaraOladi] = useState(false);
@@ -2525,10 +2524,15 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
     }
   };
 
+  useEffect(() => {
+    setYuklangan(false);
+    setTizimlar([]);
+    tizimlarniYukla(true);
+  }, [sinf.id, token]);
+
   const ochibYop = () => {
-    const yangi = !ochiq;
-    setOchiq(yangi);
-    if (yangi) tizimlarniYukla();
+    onToggle?.();
+    if (!ochiq) tizimlarniYukla();
   };
 
   const tizimniAlmashtir = async (turi) => {
@@ -2643,8 +2647,8 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved }) {
 
   return (
     <div className="mt-2 border-t pt-2" style={{ borderColor: "#E5E1D8" }}>
-      <button type="button" onClick={ochibYop} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#EAF1F7" : "#fff", color: "#1B4B7A" }}>
-        <span>👥 Ko‘p guruhli boshqaruv{yuklangan ? ` · ${tizimlar.length} ta faol` : ""}</span><span>{ochiq ? "⌃" : "⌄"}</span>
+      <button type="button" onClick={ochibYop} className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: ochiq ? "#DDEBF4" : tizimlar.length ? "#EAF4DF" : "#fff", color: tizimlar.length ? "#315F18" : "#1B4B7A", border: `1px solid ${tizimlar.length ? "#9FC47F" : "#E5E1D8"}` }}>
+        <span>{tizimlar.length ? `✅ Guruhga bo‘lingan · ${tizimlar.length} ta faol` : "👥 Guruhga bo‘lish"}</span><span>{ochiq ? "▲ Yopish" : "▼ Ochish"}</span>
       </button>
       {ochiq && <div className="mt-2 rounded-xl border p-3" style={{ backgroundColor: "#fff", borderColor: "#B9CCDC", contentVisibility: "auto", containIntrinsicSize: "1px 520px" }}>
         <p className="text-[11px] mb-3" style={{ color: "#6F6859" }}>Bitta sinfda 2 ta yoki uchala usulni ham bir vaqtda belgilash mumkin. Bittasini belgilash boshqasini o‘chirmaydi; har biri alohida saqlanadi.</p>
@@ -2798,6 +2802,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [importXabari, setImportXabari] = useState("");
   const [sinflar, setSinflar] = useState([]);
   const [sinflarYuklanmoqda, setSinflarYuklanmoqda] = useState(true);
+  const [ochiqSinfGuruhId, setOchiqSinfGuruhId] = useState(null);
   const [pulli, setPulli] = useState(maktab.pulli || false);
   const [oylikTolov, setOylikTolov] = useState(maktab.oylik_tolov ? String(maktab.oylik_tolov) : "");
   const [tolovSaqlanmoqda, setTolovSaqlanmoqda] = useState(false);
@@ -2821,8 +2826,8 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     return fallback;
   };
 
-  const sinflarniYukla = () => {
-    setSinflarYuklanmoqda(true);
+  const sinflarniYukla = (sokin = false) => {
+    if (!sokin) setSinflarYuklanmoqda(true);
     fetch(`${API_BASE}/api/admin/maktab_sinflari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
       .then((r) => r.json())
       .then((d) => { setSinflar(d.sinflar || []); setSinflarYuklanmoqda(false); })
@@ -3177,9 +3182,9 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         ) : sinflar.length === 0 ? (
           <p className="text-xs" style={{ color: "#8A8578" }}>Hali sinf yo‘q — avval maktab yaratish oynasida sinflarni yarating.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
             {sinflar.map((s) => (
-              <div key={s.id} className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+              <div key={s.id} className={`rounded-xl p-3.5 transition-all ${String(ochiqSinfGuruhId) === String(s.id) ? "md:col-span-2 xl:col-span-4" : ""}`} style={{ backgroundColor: "#F7F5F0", border: String(ochiqSinfGuruhId) === String(s.id) ? "2px solid #1B4B7A" : "1px solid #E5E1D8", boxShadow: String(ochiqSinfGuruhId) === String(s.id) ? "0 10px 28px rgba(27,75,122,.14)" : "none" }}>
                 <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center">
                   <div>
                   <p className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{s.sinf}-{s.harf}</p>
@@ -3191,7 +3196,14 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
                     ↻ Parolni tashlash
                   </button>
                 </div>
-                <SinfGuruhBoshqaruvi token={token} sinf={s} fanlar={saqlanganFanlar} onSaved={sinflarniYukla} />
+                <SinfGuruhBoshqaruvi
+                  token={token}
+                  sinf={s}
+                  fanlar={saqlanganFanlar}
+                  ochiq={String(ochiqSinfGuruhId) === String(s.id)}
+                  onToggle={() => setOchiqSinfGuruhId((avvalgi) => String(avvalgi) === String(s.id) ? null : s.id)}
+                  onSaved={() => sinflarniYukla(true)}
+                />
               </div>
             ))}
           </div>
