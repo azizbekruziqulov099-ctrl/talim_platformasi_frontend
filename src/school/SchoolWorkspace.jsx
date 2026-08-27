@@ -446,7 +446,25 @@ function WorkspacePortal({ children }) {
 }
 
 async function smartFetch(url, options = {}) {
-  const response = await fetch(url, options);
+  const method = String(options.method || "GET").toUpperCase();
+  const maximumAttempts = method === "GET" ? 3 : 1;
+  let response;
+  let networkError;
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    try {
+      response = await fetch(url, method === "GET" ? { ...options, cache: "no-store" } : options);
+      break;
+    } catch (error) {
+      networkError = error;
+      if (attempt < maximumAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 650 * attempt));
+      }
+    }
+  }
+  if (!response) {
+    const endpoint = (() => { try { return new URL(url).pathname; } catch (_) { return String(url); } })();
+    throw new Error(`Serverga ulanib bo‘lmadi (${endpoint}). Backend deploy holatini va VITE_API_BASE manzilini tekshiring: ${networkError?.message || "tarmoq xatosi"}`);
+  }
   const responseText = await response.text();
   let data = {};
   try {
@@ -2782,10 +2800,6 @@ function TeacherFirstLoadEditorV192({
       const key = subjectKeyV193(item.fan_nomi);
       if (key && !subjectMap.has(key)) subjectMap.set(key, item.fan_nomi);
     });
-    (data.fanlar || []).filter(subject => !isClassHourSubjectV199(subject)).forEach(subject => {
-      const key = subjectKeyV193(subject);
-      if (key && !subjectMap.has(key)) subjectMap.set(key, subject);
-    });
     setPlanSubjects([...subjectMap.values()]);
     const sourceRows = savedRows.length ? savedRows : templateRows;
     const nextCells = {};
@@ -4493,7 +4507,7 @@ function TeacherFirstLoadEditorV192({
         <div className="rounded-xl px-4 py-2.5 min-w-[170px]" style={{ background: palette.cream }}>
           <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Fanlar + kelajak soati</div>
           <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal} soat</div>
-          <div className="text-[9px] font-bold" style={{ color: palette.muted }}>{planAcademicTotal} fan + {planClassHourTotal} sinf soati</div>
+          <div className="text-[9px] font-bold" style={{ color: palette.muted }}>{planAcademicTotal} fan + {planClassHourTotal} Kelajak soati</div>
         </div>
         <button onClick={autoFillPlanTemplate} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>
           ⚡ Rasmiy o‘quv reja bilan avtomatik to‘ldirish
