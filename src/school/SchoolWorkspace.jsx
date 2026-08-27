@@ -2818,13 +2818,15 @@ function TeacherFirstLoadEditorV192({
     if (!data) return;
     const templateRows = data.oquv_reja?.andoza_qatorlar || [];
     const savedRows = data.oquv_reja?.qatorlar || [];
+    const centralTemplate = Boolean(data.oquv_reja?.markaziy_andoza);
+    const displayRows = centralTemplate ? templateRows : [...templateRows, ...savedRows];
     const subjectMap = new Map();
-    [...templateRows, ...savedRows].forEach(item => {
+    displayRows.forEach(item => {
       const key = subjectKeyV193(item.fan_nomi);
       if (key && !subjectMap.has(key)) subjectMap.set(key, item.fan_nomi);
     });
     setPlanSubjects([...subjectMap.values()]);
-    const sourceRows = savedRows.length ? savedRows : templateRows;
+    const sourceRows = centralTemplate ? templateRows : (savedRows.length ? savedRows : templateRows);
     const nextCells = {};
     sourceRows.forEach(item => {
       nextCells[`${item.sinf_id}|${subjectKeyV193(item.fan_nomi)}`] = Number(item.haftalik_soat || 0);
@@ -4605,35 +4607,20 @@ function TeacherFirstLoadEditorV192({
         Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.
       </SmartNotice></div> : <>
         <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
-          Qatorlarda fanlar, ustunlarda 1–11-sinflar ko‘rsatiladi. Fan nomi qisqa ko‘rinadi; ustiga olib kelsangiz to‘liq nomi chiqadi. Kiritilgan soat A/B/C parallel sinflarning barchasiga bir xil qo‘llanadi.
+          Fanlar bu sahifada qo‘shilmaydi: ular maktabning 1–11-sinf fan tanlovidan olinadi. Qatorlarda tanlangan fanlar, ustunlarda sinflar turadi; bu yerda faqat admin andozasidan ko‘chgan haftalik soat tekshiriladi. Kiritilgan soat A/B/C parallel sinflarning barchasiga bir xil qo‘llanadi.
         </div>
         <div className="mt-3 rounded-2xl border overflow-auto" style={{ borderColor: palette.line, maxHeight: "68vh" }}>
           <table className="border-collapse text-[11px]" style={{ minWidth: "790px", width: "100%", tableLayout: "fixed" }}>
             <thead className="sticky top-0 z-30">
               <tr>
                 <th className="sticky left-0 z-40 w-[176px] min-w-[176px] px-3 py-3 text-left" style={{ background: palette.ink, color: "#fff" }}>FAN ↓ / SINF →</th>
-                {planGradeRows.map(gradeRow => <th key={gradeRow.grade} className="w-[52px] min-w-[52px] px-1 py-2 text-center" style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.16)" }}>
-                  <div className="font-black whitespace-nowrap">{gradeRow.grade}-sinf</div>
-                  <button type="button" title={`${gradeRow.grade}-sinfga yangi fan qo‘shish`} onClick={() => {
-                    const name = window.prompt(`${gradeRow.grade}-sinfga qo‘shiladigan fan nomi:`)?.replace(/\s+/g, " ").trim();
-                    if (!name) return;
-                    if (!planSubjects.some(item => subjectKeyV193(item) === subjectKeyV193(name))) setPlanSubjects(items => [...items, name]);
-                    updatePlanGradeCell(gradeRow.classes, name, 1);
-                  }} className="mt-1 w-5 h-5 rounded-md text-[12px] font-black" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }}>+</button>
-                </th>)}
+                {planGradeRows.map(gradeRow => <th key={gradeRow.grade} className="w-[52px] min-w-[52px] px-1 py-3 text-center font-black whitespace-nowrap" style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.16)" }}>{gradeRow.grade}-sinf</th>)}
               </tr>
             </thead>
             <tbody>
               {planSubjects.map((subject, subjectIndex) => <tr key={subject} style={{ borderTop: `1px solid ${palette.line}` }}>
                 <th className="sticky left-0 z-20 px-2.5 py-2 text-left" title={subject} style={{ background: subjectIndex % 2 ? "#F7FAFC" : "#fff", color: palette.ink, borderRight: `1px solid ${palette.line}` }}>
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex-1 min-w-0 truncate font-black" title={subject}>{compactCurriculumSubjectV201(subject)}</span>
-                    <button type="button" title="Fan nomini tahrirlash" onClick={() => {
-                      const next = window.prompt("Fan nomini tahrirlang:", subject)?.replace(/\s+/g, " ").trim();
-                      if (next && next !== subject) renamePlanSubject(subjectIndex, next);
-                    }} className="shrink-0 w-6 h-6 rounded-md border font-black" style={{ background: "#fff", color: palette.blue, borderColor: palette.line }}>⋮</button>
-                    <button type="button" title="Fanni barcha sinflardan olib tashlash" onClick={() => removePlanSubject(subject)} className="shrink-0 w-6 h-6 rounded-md font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
-                  </div>
+                  <span className="block min-w-0 truncate font-black" title={subject}>{compactCurriculumSubjectV201(subject)}</span>
                 </th>
                 {planGradeRows.map(gradeRow => {
                   const cls = gradeRow.classes[0];
