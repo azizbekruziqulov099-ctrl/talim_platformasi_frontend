@@ -2660,6 +2660,17 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
   const [fanXabar, setFanXabar] = useState("");
   const [yangiFanNomi, setYangiFanNomi] = useState("");
 
+  const fanApiXatosi = (detail, fallback) => {
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (Array.isArray(detail)) return detail.map(item => item?.msg || JSON.stringify(item)).join("; ");
+    if (detail && typeof detail === "object") {
+      const message = detail.message || detail.detail || detail.error;
+      const errorId = detail.error_id ? ` (xato kodi: ${detail.error_id})` : "";
+      return `${message || fallback}${errorId}`;
+    }
+    return fallback;
+  };
+
   const sinflarniYukla = () => {
     setSinflarYuklanmoqda(true);
     fetch(`${API_BASE}/api/admin/maktab_sinflari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
@@ -2674,7 +2685,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
     fetch(`${API_BASE}/api/admin/maktab_fan_sozlamalari?token=${encodeURIComponent(token)}&maktab_id=${maktab.id}`)
       .then(async (r) => {
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(d.detail || "Fanlarni yuklab bo'lmadi");
+        if (!r.ok) throw new Error(fanApiXatosi(d.detail, "Fanlarni yuklab bo'lmadi"));
         return d;
       })
       .then((d) => {
@@ -2712,7 +2723,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
         body: JSON.stringify({ token, maktab_id: maktab.id, fanlar: [], sinf_fanlari: sinfFanlari }),
       });
       const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(d.detail || "Sinf fanlarini saqlab bo‘lmadi");
+      if (!res.ok) throw new Error(fanApiXatosi(d.detail, "Sinf fanlarini saqlab bo‘lmadi"));
       setSinfFanlari(d.sinf_fanlari || sinfFanlari);
       setTanlanganFanlar(d.tanlangan_fanlar || []);
       setSaqlanganFanlar(d.tanlangan_fanlar || []);
