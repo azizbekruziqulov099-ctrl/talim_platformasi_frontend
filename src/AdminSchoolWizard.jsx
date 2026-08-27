@@ -16,8 +16,8 @@ const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
 });
 
 export function normalizeSchoolClassName(value) {
-  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-я])$/);
-  return match ? `${match[1]}-${match[2].toUpperCase()}` : "";
+  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ0-9]{1,6})$/u);
+  return match ? `${match[1]}-${match[2].toLocaleUpperCase("uz")}` : "";
 }
 
 function classNameOf(item) { return normalizeSchoolClassName(`${item.grade}-${item.letter}`); }
@@ -130,10 +130,16 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     const normalized = classes.map(classNameOf);
     if (normalized.some((item) => !item)) return "Sinf darajasi va parallelini tanlang";
     if (new Set(normalized).size !== normalized.length) return "Bir xil sinf ikki marta kiritilgan";
+    const occupiedRooms = new Set();
     for (const item of classes) {
       if (item.roomNumber && !item.buildingKey) return `${classNameOf(item)} uchun binoni tanlang`;
       if (item.buildingKey && !buildingByKey.has(item.buildingKey)) return `${classNameOf(item)} uchun tanlangan bino topilmadi`;
       if (item.roomNumber && !buildingByKey.get(item.buildingKey)?.rooms.some((room) => room.number === item.roomNumber)) return `${classNameOf(item)} uchun tanlangan xona topilmadi`;
+      if (item.buildingKey && item.roomNumber) {
+        const occupiedKey = `${Number(item.shift) || 1}|${item.buildingKey}|${item.roomNumber.toLocaleLowerCase("uz")}`;
+        if (occupiedRooms.has(occupiedKey)) return `${item.shift}-smenada ${item.roomNumber}-xona boshqa sinfga biriktirilgan`;
+        occupiedRooms.add(occupiedKey);
+      }
     }
     return "";
   };
@@ -308,9 +314,14 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           const selectedBuilding = buildingByKey.get(item.buildingKey);
           return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
             <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *<select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf harfi yoki belgisi *<input value={item.letter} maxLength={6} onChange={(event) => updateClass(item.key, { letter: event.target.value })} placeholder="A, Б, V yoki Z1" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
-              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · ixtiyoriy<select value={item.roomNumber} onChange={(event) => updateClass(item.key, { roomNumber: event.target.value })} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => <option key={room.number} value={room.number}>{room.number}-xona</option>)}</select></label>}
+              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · ixtiyoriy<select value={item.roomNumber} onChange={(event) => updateClass(item.key, { roomNumber: event.target.value })} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => {
+                const occupied = classes.some((other) => other.key !== item.key && Number(other.shift) === Number(item.shift) && other.buildingKey === item.buildingKey && String(other.roomNumber || "").toLocaleLowerCase("uz") === String(room.number).toLocaleLowerCase("uz"));
+                return <option key={room.number} value={room.number} disabled={occupied}>{room.number}-xona{occupied ? ` · ${item.shift}-smenada band` : ""}</option>;
+              })}</select></label>}
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf rahbari · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.leader} onChange={(person) => updateClass(item.key, { leader: person })} placeholder="Rahbar ismi..." /></div></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Psixolog · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={item.psychologist} onChange={(person) => updateClass(item.key, { psychologist: person })} placeholder="Psixolog ismi..." /></div></label>
               <button type="button" onClick={() => setClasses((current) => current.filter((row) => row.key !== item.key))} className="self-end py-2 rounded-xl text-xs font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Sinfni olib tashlash</button>
