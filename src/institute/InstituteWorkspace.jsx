@@ -510,3 +510,4 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
     <CredentialsModal items={credentials} onClose={() => setCredentials([])} />
   </main>;
 }
+//
