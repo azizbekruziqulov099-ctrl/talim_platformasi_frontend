@@ -2095,16 +2095,15 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "Saqlab bo‘lmadi");
-      setMessage(`✅ ${section === "fanlar" ? "Fanlar" : section === "yuklama" ? "Haftalik yuklama" : section === "jadval" ? "Dars taqsimoti" : "Metod kunlari"} tasdiqlandi va maktablarga ulanishga tayyor.`);
+      setMessage(`✅ ${section === "fanlar" ? "Fanlar" : section === "yuklama" ? "O‘quv reja" : "Metod kunlari"} tasdiqlandi va maktablarga ulanishga tayyor.`);
       await load();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
   };
   const tabs = [
     ["fanlar", "1. Fanlar", "1–11-sinf uchun tasdiqlangan fanlar"],
-    ["yuklama", "2. Haftalik yuklama", "Har fan necha soat o‘tiladi"],
-    ["jadval", "3. Dars taqsimoti", "Bir kunda necha marta qo‘yish mumkin"],
-    ["metod", "4. Metod kunlari", "Fan o‘qituvchilarining metod kuni"],
+    ["yuklama", "2. O‘quv reja", "1–11-sinfda har fan necha soat o‘tiladi"],
+    ["metod", "3. Metod kunlari", "Fan o‘qituvchilarining metod kuni"],
   ];
   const uniqueSubjects = Array.from(new Map(rows.map(row => [String(row.fan_nomi || "").trim().toLocaleLowerCase("uz"), row])).values()).sort((a, b) => String(a.fan_nomi).localeCompare(String(b.fan_nomi), "uz"));
   const approved = Boolean(approvals?.[section]?.tasdiqlangan);
@@ -2112,16 +2111,15 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
     <button type="button" onClick={onOrtga} className="flex items-center gap-2 mb-4" style={{ color: "#5A5648" }}><ChevronLeft size={16}/> Muassasa turlari</button>
     <div className="rounded-3xl border bg-white p-5" style={{ borderColor: "#D8E2E8" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><span className="premium-eyebrow">MUASSASA SOZLAMALARI · MAKTAB</span><h1 className="text-2xl font-black mt-1">Maktablar uchun yagona andoza</h1><p className="text-sm mt-1" style={{ color: "#6F777B" }}>To‘rtta sozlama bir-biriga bog‘langan. Maktab alohida o‘zgartirmagan bo‘lsa, tasdiqlangan andozani avtomatik oladi.</p></div>
+        <div><span className="premium-eyebrow">MUASSASA SOZLAMALARI · MAKTAB</span><h1 className="text-2xl font-black mt-1">Maktablar uchun yagona andoza</h1><p className="text-sm mt-1" style={{ color: "#6F777B" }}>Fanlar, o‘quv reja va metod kunlari bir-biriga bog‘langan. Maktab alohida o‘zgartirmagan bo‘lsa, tasdiqlangan andozani avtomatik oladi.</p></div>
         <span className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: approved ? "#EAF7EF" : "#FFF2DB", color: approved ? "#28734B" : "#9A6718" }}>{approved ? "✓ Tasdiqlangan" : "Tasdiqlanmagan"}</span>
       </div>
       {error && <div className="mt-4 rounded-xl p-3 text-sm" style={{ background: "#FDECEC", color: "#B83C3C" }}>{error}</div>}
       {message && <div className="mt-4 rounded-xl p-3 text-sm" style={{ background: "#EAF7EF", color: "#28734B" }}>{message}</div>}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-5">{tabs.map(([key, title, text]) => <button key={key} onClick={() => { setSection(key); setMessage(""); setError(""); }} className="text-left p-4 rounded-2xl border" style={{ borderColor: section === key ? "#176B75" : "#D8E2E8", background: section === key ? "#EAF7F6" : "#fff" }}><b>{title}</b><small className="block mt-1" style={{ color: "#6F777B" }}>{text}</small></button>)}</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">{tabs.map(([key, title, text]) => <button key={key} onClick={() => { setSection(key); setMessage(""); setError(""); }} className="text-left p-4 rounded-2xl border" style={{ borderColor: section === key ? "#176B75" : "#D8E2E8", background: section === key ? "#EAF7F6" : "#fff" }}><b>{title}</b><small className="block mt-1" style={{ color: "#6F777B" }}>{text}</small></button>)}</div>
       {section !== "metod" && <div className="flex flex-wrap gap-2 mt-5">{Array.from({ length: 11 }, (_, i) => i + 1).map(item => <button key={item} onClick={() => setGrade(item)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: grade === item ? "#1B4B7A" : "#EEF4F7", color: grade === item ? "#fff" : "#38505E" }}>{item}-sinf</button>)}</div>}
       {section === "fanlar" && <><div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">{current.map(({ row, index }) => <div key={`${grade}-${index}`} className="flex gap-2 p-3 rounded-xl border"><input value={row.fan_nomi} onChange={e => update(index, "fan_nomi", e.target.value)} className="min-w-0 flex-1 p-2 rounded-lg border"/><button onClick={() => remove(index)} className="px-3 rounded-lg font-black" style={{ color: "#B83C3C", background: "#FDECEC" }}>×</button></div>)}</div><button onClick={add} className="mt-4 px-4 py-2.5 rounded-xl font-black" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>+ {grade}-sinfga fan qo‘shish</button></>}
       {section === "yuklama" && <div className="mt-4 overflow-auto"><table className="min-w-[620px] w-full text-sm"><thead><tr className="text-left"><th className="p-3">Tasdiqlangan fan</th><th>Haftalik soat</th></tr></thead><tbody>{current.map(({ row, index }) => <tr key={`${grade}-${row.fan_nomi}`} className="border-t"><td className="p-3 font-bold">{row.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" value={row.haftalik_soat} onChange={e => update(index, "haftalik_soat", e.target.value)} className="w-32 p-2 rounded-lg border"/></td></tr>)}</tbody><tfoot><tr className="border-t"><td className="p-3 font-black">Jami</td><td className="font-black">{current.reduce((sum, item) => sum + Number(item.row.haftalik_soat || 0), 0)} soat</td></tr></tfoot></table></div>}
-      {section === "jadval" && <div className="mt-4 overflow-auto"><table className="min-w-[620px] w-full text-sm"><thead><tr className="text-left"><th className="p-3">Tasdiqlangan fan</th><th>Bir kundagi eng ko‘p dars</th></tr></thead><tbody>{current.map(({ row, index }) => <tr key={`${grade}-${row.fan_nomi}`} className="border-t"><td className="p-3 font-bold">{row.fan_nomi}</td><td><input type="number" min="1" max="4" value={row.kunlik_max || 1} onChange={e => update(index, "kunlik_max", e.target.value)} className="w-24 p-2 rounded-lg border"/></td></tr>)}</tbody></table></div>}
       {section === "metod" && <div className="mt-4 overflow-auto"><table className="min-w-[620px] w-full text-sm"><thead><tr className="text-left"><th className="p-3">Tasdiqlangan fan</th><th>Metod kuni</th></tr></thead><tbody>{uniqueSubjects.map(row => <tr key={row.fan_nomi} className="border-t"><td className="p-3 font-bold">{row.fan_nomi}</td><td><select value={row.metod_kuni || ""} onChange={e => updateSubjectRule(row.fan_nomi, "metod_kuni", e.target.value || null)} className="w-44 p-2 rounded-lg border bg-white"><option value="">Belgilanmagan</option>{days.slice(1).map((day, i) => <option key={day} value={i + 1}>{day}</option>)}</select></td></tr>)}</tbody></table></div>}
       {!loading && section !== "metod" && !current.length && <div className="rounded-xl p-4 mt-3" style={{ background: "#FFF6E7", color: "#8A5A1C" }}>Bu sinf uchun tasdiqlangan fan yo‘q.</div>}
       <div className="mt-5 p-4 rounded-2xl" style={{ background: "#F4F8FA" }}><p className="text-sm mb-3">Tasdiqlashdan keyin bu bo‘lim alohida sozlama qilmagan barcha maktablarga ulanadi.</p><button onClick={save} disabled={saving || loading} className="px-5 py-3 rounded-xl text-white font-black" style={{ background: "#176B75" }}>{saving ? "Saqlanmoqda…" : "Saqlash va tasdiqlash"}</button></div>
@@ -2132,7 +2130,7 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
 function AdminMuassasaSozlamalari({ token, onOrtga }) {
   const [type, setType] = useState(null);
   const types = [
-    ["maktab", "🏫", "Maktab", "1–11-sinf fanlari, yuklama, dars va metod kunlari"],
+    ["maktab", "🏫", "Maktab", "1–11-sinf fanlari, o‘quv reja va metod kunlari"],
     ["bogcha", "🧸", "Bog‘cha", "Bog‘cha uchun alohida markaziy andoza"],
     ["markaz", "🎓", "O‘quv markazi", "Markazlar uchun alohida markaziy andoza"],
     ["universitet", "🏛️", "Institut / universitet", "Oliy ta’lim uchun alohida markaziy andoza"],
@@ -3862,6 +3860,7 @@ function UniversitetlarBolimi({ token }) {
   const [universitetlar, setUniversitetlar] = useState([]);
   const [fakultetlar, setFakultetlar] = useState([]);
   const [kafedralar, setKafedralar] = useState([]);
+  const [yonalishlar, setYonalishlar] = useState([]);
   const [guruhlar, setGuruhlar] = useState([]);
   const [tUniversitet, setTUniversitet] = useState(null);
   const [tFakultet, setTFakultet] = useState(null);
@@ -3899,6 +3898,13 @@ function UniversitetlarBolimi({ token }) {
     fetch(`${API_BASE}/api/admin/kafedralar?token=${encodeURIComponent(token)}&fakultet_id=${fakultetId}`)
       .then((r) => r.json()).then((d) => { setKafedralar(d.kafedralar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
   };
+  const yonalishlarniYukla = (fakultetId) => {
+    setYuklanmoqda(true);
+    fetch(`${API_BASE}/api/institut/v20/fakultet/${fakultetId}/yonalishlar?token=${encodeURIComponent(token)}`)
+      .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.detail || "Yo‘nalishlar yuklanmadi"); return d; })
+      .then((d) => { setYonalishlar(d.yonalishlar || []); setYuklanmoqda(false); })
+      .catch((e) => { setXato(e.message); setYonalishlar([]); setYuklanmoqda(false); });
+  };
   const guruhlarniYukla = (kafedraId) => {
     setYuklanmoqda(true);
     fetch(`${API_BASE}/api/admin/universitet_guruhlari?token=${encodeURIComponent(token)}&kafedra_id=${kafedraId}`)
@@ -3906,7 +3912,7 @@ function UniversitetlarBolimi({ token }) {
   };
 
   const universitetOch = (u) => { setTUniversitet(u); setHolat("fakultet"); formniTozala(); fakultetlarniYukla(u.id); };
-  const fakultetOch = (f) => { setTFakultet(f); setHolat("kafedra"); formniTozala(); kafedralarniYukla(f.id); };
+  const fakultetOch = (f) => { setTFakultet(f); setHolat("kafedra"); formniTozala(); yonalishlarniYukla(f.id); };
   const kafedraOch = (k) => { setTKafedra(k); setHolat("guruh"); formniTozala(); guruhlarniYukla(k.id); };
 
   const universitetSaqla = async () => {
@@ -3994,8 +4000,8 @@ function UniversitetlarBolimi({ token }) {
     );
   }
 
-  const sarlavhalar = { universitet: "🎓 Universitetlar", fakultet: `📚 ${tUniversitet?.nomi} — Fakultetlar`, kafedra: `🏛 ${tFakultet?.nomi} — Kafedralar`, guruh: `👥 ${tKafedra?.nomi} — Guruhlar` };
-  const royxat = holat === "universitet" ? universitetlar : holat === "fakultet" ? fakultetlar : holat === "kafedra" ? kafedralar : guruhlar;
+  const sarlavhalar = { universitet: "🎓 Universitetlar", fakultet: `📚 ${tUniversitet?.nomi} — Fakultetlar`, kafedra: `🎓 ${tFakultet?.nomi} — Yo‘nalishlar`, guruh: `👥 ${tKafedra?.nomi} — Guruhlar` };
+  const royxat = holat === "universitet" ? universitetlar : holat === "fakultet" ? fakultetlar : holat === "kafedra" ? yonalishlar : guruhlar;
 
   return (
     <div>
@@ -4006,10 +4012,10 @@ function UniversitetlarBolimi({ token }) {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{sarlavhalar[holat]}</p>
           <div className="flex flex-wrap gap-2">
-            {holat === "kafedra" && tUniversitet && tFakultet && <button onClick={() => setWorkspaceUniversity({ ...tUniversitet, importFacultyId: tFakultet.id })} className="text-xs font-semibold px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#0D7A77", backgroundColor: "#ECF8F4", color: "#0D7A77" }}>📥 Talabalarni import qilish</button>}
-            <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+            {holat === "kafedra" && tUniversitet && tFakultet && <button onClick={() => setWorkspaceUniversity({ ...tUniversitet, importFacultyId: tFakultet.id })} className="text-xs font-semibold px-3.5 py-1.5 rounded-full border" style={{ borderColor: "#0D7A77", backgroundColor: "#ECF8F4", color: "#0D7A77" }}>📥 Talabalar va import</button>}
+            {holat !== "kafedra" && <button onClick={() => setFormOchiq(!formOchiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
               {formOchiq ? "✕ Yopish" : "+ Yangi"}
-            </button>
+            </button>}
           </div>
         </div>
         {holat === "universitet" && <p className="text-xs" style={{ color: "#8A8578" }}>Rektor → Dekan → Kafedra mudiri → Guruh kuratori tuzilmasi.</p>}
@@ -4107,12 +4113,12 @@ function UniversitetlarBolimi({ token }) {
               <ChevronRight size={16} style={{ color: "#8A8578" }} />
             </button>
           ))}
-          {holat === "kafedra" && kafedralar.map((k) => (
-            <button key={k.id} onClick={() => kafedraOch(k)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
+          {holat === "kafedra" && yonalishlar.map((y) => (
+            <button key={y.id} onClick={() => setWorkspaceUniversity({ ...tUniversitet, importFacultyId: tFakultet.id })} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
               <div>
-                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{k.nomi}</p>
-                <p className="text-xs" style={{ color: "#8A8578" }}>{k.guruh_soni} guruh</p>
-                <p className="text-xs mt-1" style={{ color: k.mudir_ismi ? "#3B6D11" : "#B0553A" }}>{k.mudir_ismi ? `👤 Mudir: ${k.mudir_ismi}` : "⚠️ Mudir belgilanmagan"}</p>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{y.nomi}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{y.daraja || "Bakalavriat"} · {y.talim_shakllari || "Shakl belgilanmagan"} · {y.talim_tillari || "Til belgilanmagan"}</p>
+                <p className="text-xs mt-1 font-semibold" style={{ color: "#0D7A77" }}>👥 {y.talaba_soni || 0} talaba · 📄 {y.hujjat_soni || 0} hujjat · ✅ {y.baza_soni || 0} bazada</p>
               </div>
               <ChevronRight size={16} style={{ color: "#8A8578" }} />
             </button>
