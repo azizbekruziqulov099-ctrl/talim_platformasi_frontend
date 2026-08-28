@@ -1923,6 +1923,9 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         }
       );
 
+      // Server tasdiqlagan holatni darhol qayta o‘qiymiz. Aks holda ekranda
+      // eski setup qolib, saqlangan kun yana "SAQLANMAGAN" bo‘lib ko‘rinardi.
+      if (typeof reload === "function") await reload();
       setDirtyIds(previous => previous.filter(uid => !uniqueIds.includes(String(uid))));
       setMessage({
         tone: "success",
