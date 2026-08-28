@@ -6596,6 +6596,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationFailure, setGenerationFailure] = useState(null);
   const [message, setMessage] = useState(null);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
 
@@ -6680,6 +6681,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setGenerating(true);
     setGenerationProgress(3);
     setMessage(null);
+    setGenerationFailure(null);
     try {
       const capability = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/soat_imkoniyatlari`);
       if (capability?.jadval_release !== "JADVAL-REV57") {
@@ -6709,6 +6711,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 1 }),
       });
       const match = data.moslik?.xulosa || {};
+      setGenerationFailure(null);
       setMessage({
         tone: data.tasdiqlash_mumkin ? "success" : "warning",
         text: data.tasdiqlash_mumkin
@@ -6722,6 +6725,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       await new Promise(resolve => window.setTimeout(resolve, 550));
     } catch (error) {
       const rawMessage = String(error?.message || "");
+      const structuredFailure = error?.data?.detail;
+      if (structuredFailure?.code === "JADVALGA_SIGMADI") {
+        setGenerationFailure(structuredFailure);
+      }
       const networkFailure = /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
       if (networkFailure) {
         setMessage({ tone: "warning", text: "Aloqa uzildi, lekin backend hisoblashni davom ettirishi mumkin. Yangi draft avtomatik qidirilmoqda…" });
@@ -6766,6 +6773,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const comfort = diagnostics.qulaylik_strategiyasi || {};
   const problems = diagnostics.muammolar || [];
   const warnings = diagnostics.ogohlantirishlar || [];
+  const failureProblems = generationFailure?.muammolar || [];
+  const scheduleRules = generationFailure?.qoidalar || diagnostics.jadval_qoidalari || [];
   const match = diagnostics.jadval_mosligi || {};
   const canApprove = Boolean(diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
@@ -6801,6 +6810,43 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       {preflight?.tayyor && <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={{ background: palette.greenBg, color: palette.green }}>Moslik tayyor · xona yetishmasligi jadvalni to‘xtatmaydi.</div>}
     </Card>
 
+    {generationFailure && <Card className="p-3.5" style={{ borderColor: palette.red }}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>JADVALGA SIG‘MAGAN DARSLAR</div>
+          <h3 className="text-base font-black" style={{ color: palette.ink }}>{generationFailure.message}</h3>
+        </div>
+        <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>{failureProblems.length} ta</span>
+      </div>
+      <div className="mt-3 space-y-2">
+        {failureProblems.map((problem, index) => <div key={`failure-${problem.raqam || index}`} className="rounded-xl p-3" style={{ background: palette.redBg }}>
+          <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} · {problem.fan} · {problem.takror_raqami || 1}-soat</div>
+          <div className="mt-1 text-[11px] font-bold" style={{ color: palette.muted }}>
+            {problem.smena ? `${problem.smena}-smena` : "Smena ko‘rsatilmagan"}
+            {problem.qat_iy_vaqt ? ` · Qat’iy vaqt: ${problem.qat_iy_vaqt}` : " · Erkin joylashtiriladigan dars"}
+            {(problem.oqituvchilar || []).length ? ` · O‘qituvchi: ${problem.oqituvchilar.join(", ")}` : ""}
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {(problem.sabablar || []).map((reason, reasonIndex) => <div key={`reason-${reasonIndex}`} className="rounded-lg bg-white/80 px-2.5 py-2 text-[11px] leading-snug">
+              <div className="font-black" style={{ color: palette.red }}>{reasonIndex + 1}) {reason.sabab} · {reason.rad_etilgan_katak_soni || 0} ta katak rad etildi</div>
+              <div className="mt-0.5" style={{ color: palette.ink }}><b>Sababi:</b> {reason.izoh}</div>
+              <div className="mt-0.5" style={{ color: palette.green }}><b>Yechim:</b> {reason.yechim}</div>
+            </div>)}
+          </div>
+        </div>)}
+      </div>
+    </Card>}
+
+    {scheduleRules.length > 0 && <Card className="p-3.5">
+      <h3 className="text-base font-black" style={{ color: palette.ink }}>Jadval generatori ishlatadigan barcha qoidalar</h3>
+      <p className="text-[11px] mt-0.5" style={{ color: palette.muted }}>Qoidalar ustuvorlik tartibida raqamlangan. Hech biri yashirilmagan.</p>
+      <div className="mt-2 grid md:grid-cols-2 gap-1.5">
+        {scheduleRules.map((rule, index) => <div key={`rule-${rule.raqam || index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-snug" style={{ background: palette.blueBg || "#EFF7FB", color: palette.ink }}>
+          <b>{rule.raqam || index + 1}.</b> {rule.qoida}
+        </div>)}
+      </div>
+    </Card>}
+
     <div className="grid lg:grid-cols-[.9fr_1.1fr] gap-3">
       <Card className="p-3.5">
         <h2 className="text-base font-black leading-tight" style={{ color: palette.ink }}>Yaratilgan jadval va tasdiqlash</h2>
@@ -6830,7 +6876,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
             <div className="mt-1 font-bold" style={{ color: palette.red }}>{mismatchExplanationV199(row)}</div>
           </div>)}
           {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={error} style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
-          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2 py-1.5 flex items-center justify-between gap-2 text-[11px] leading-tight" style={{ background: palette.redBg }}><span className="font-bold truncate" title={`${problem.sinf} · ${problem.fan}`} style={{ color: palette.ink }}>{problem.sinf} · {problem.fan}</span><span className="shrink-0 truncate max-w-[45%]" title={problem.sabab} style={{ color: palette.red }}>{problem.sabab}</span></div>)}
+          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-snug" style={{ background: palette.redBg }}><div className="font-black" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} · {problem.fan}</div><div className="mt-1 font-bold" style={{ color: palette.red }}>{problem.sabab || (problem.sabablar || []).map(row => row.sabab).join("; ")}</div>{problem.sabab_izohi && <div className="mt-0.5" style={{ color: palette.ink }}>{problem.sabab_izohi}</div>}{problem.yechim && <div className="mt-0.5" style={{ color: palette.green }}>Yechim: {problem.yechim}</div>}</div>)}
           {warnings.length > 0 && <div className="rounded-lg px-2 py-1.5 text-[11px] leading-tight truncate" title={warnings.join(" · ")} style={{ background: palette.amberBg, color: palette.amber }}>{warnings.length} ta ogohlantirish · {warnings[0]}</div>}
           {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">Sinf, fan va o‘qituvchi soatlari 100% mos.</SmartNotice>}
         </div>
