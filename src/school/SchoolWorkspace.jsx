@@ -6609,6 +6609,32 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     }
   };
 
+  const recoverGeneratedDraft = async previousId => {
+    // Railway/proksi POST javobini brauzerdan oldin yopsa ham backend jadvalni
+    // tugatib bazaga saqlaydi. Yolg'on "yaratilmadi" xabari bermasdan, yangi
+    // draftni sozlamalar endpointidan topib ochamiz.
+    for (let attempt = 0; attempt < 15; attempt += 1) {
+      if (attempt) await new Promise(resolve => window.setTimeout(resolve, 2000));
+      try {
+        const fresh = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);
+        const newest = fresh?.urinishlar?.[0];
+        if (newest?.id && String(newest.id) !== String(previousId || "")) {
+          setRunId(String(newest.id));
+          await loadRun(newest.id);
+          await reload();
+          const placed = Number(newest.joylashtirildi ?? newest.joylashdi ?? 0);
+          const total = Number(newest.jami_soat ?? newest.jami ?? placed);
+          setGenerationProgress(100);
+          setMessage({ tone: placed === total ? "success" : "warning", text: `Jadval backendda yaratildi va qayta olindi: ${placed}/${total} soat joylashdi. Aloqa uzilishi natijani yo‘qotmadi.` });
+          return true;
+        }
+      } catch (_) {
+        // Backend hisoblayotgan paytda tekshiruv muvaffaqiyatsiz bo'lishi mumkin.
+      }
+    }
+    return false;
+  };
+
   const checkSources = async silent => {
     setChecking(true);
     if (!silent) setMessage(null);
@@ -6650,6 +6676,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   }, [generating]);
 
   const generate = async () => {
+    const previousRunId = runs[0]?.id || runId || null;
     setGenerating(true);
     setGenerationProgress(3);
     setMessage(null);
@@ -6685,10 +6712,15 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     } catch (error) {
       const rawMessage = String(error?.message || "");
       const networkFailure = /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
+      if (networkFailure) {
+        setMessage({ tone: "warning", text: "Aloqa uzildi, lekin backend hisoblashni davom ettirishi mumkin. Yangi draft avtomatik qidirilmoqda…" });
+        const recovered = await recoverGeneratedDraft(previousRunId);
+        if (recovered) return;
+      }
       setMessage({
         tone: "error",
         text: networkFailure
-          ? "Jadval generatori backenddan o‘z vaqtida javob olmadi. Backenddagi samtm_school.py REV52 bo‘lishi kerak; qayta deploydan keyin tugmani yana bir marta bosing. Oldingi draft o‘chirilmagan."
+          ? "Backend 30 soniya ichida yangi draftni qaytarmadi. Oldingi jadval o‘chirilmagan; Railway logida JADVAL-REV53 tugash yozuvini tekshiring."
           : rawMessage || "Jadvalni yaratib bo‘lmadi.",
       });
       setGenerationProgress(0);
