@@ -1537,6 +1537,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   }, [setup]);
 
   const [subjectSearch, setSubjectSearch] = useState("");
+  const [teacherSearch, setTeacherSearch] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [states, setStates] = useState({});
@@ -1590,11 +1591,14 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   );
 
   const visibleTeachers = useMemo(() => {
-    if (!selectedSubjectKeys.size) return teachers;
-    return teachers.filter(teacher =>
-      splitSubjects(teacher).some(subject => selectedSubjectKeys.has(normalizeSubject(subject)))
-    );
-  }, [teachers, selectedSubjectKeys]);
+    const query = normalizeSubject(teacherSearch);
+    if (!query) return teachers;
+    return teachers.filter(teacher => [
+      teacher.full_name,
+      ...splitSubjects(teacher),
+      ...(teacher.sinflar_royxati || []),
+    ].some(value => normalizeSubject(value).includes(query)));
+  }, [teachers, teacherSearch]);
 
   const visibleIdSet = useMemo(
     () => new Set(visibleTeachers.map(teacher => String(teacher.user_id))),
@@ -1614,7 +1618,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
   useEffect(() => {
     setTeacherPage(1);
-  }, [selectedSubjects, subjectSearch]);
+  }, [selectedSubjects, subjectSearch, teacherSearch]);
 
   useEffect(() => {
     if (teacherPage > teacherPageCount) setTeacherPage(teacherPageCount);
@@ -2035,7 +2039,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
 
-    <Card className="p-5">
+    {false && <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-black" style={{ color: palette.ink }}>
@@ -2091,16 +2095,16 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           </span>
         </label>)}
       </div>
-    </Card>
+    </Card>}
 
     <Card className="p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-black" style={{ color: palette.ink }}>
-            O‘qituvchi haftalik vaqti
+            O‘qituvchining dars qo‘yilmaydigan vaqtlarini belgilang
           </h2>
           <p className="text-xs mt-1" style={{ color: palette.muted }}>
-            Metod, mustaqil ishlash yoki amaliyot kuni to‘liq yopiq kun hisoblanadi — bu kunga dars qo‘yilmaydi.
+            O‘qituvchini lupa bilan toping. Kun tugmasini bossangiz o‘sha kuni dars qo‘yilmaydi; smena yoki dars raqamini bossangiz faqat tanlangan vaqt o‘zgaradi.
           </p>
         </div>
         <button
@@ -2113,7 +2117,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         </button>
       </div>
 
-      {!teacherOnly && <div className="space-y-2 mt-3">
+      {false && !teacherOnly && <div className="space-y-2 mt-3">
         <OfficialMethodPresetPanelV1873 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload}/>
 
         <div className="rounded-xl border p-3" style={{borderColor:palette.line,background:"#FFFCF5"}}>
@@ -2165,6 +2169,12 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         </div>
       </div>}
 
+      <label className="mt-3 flex items-center gap-2 rounded-xl border bg-white px-3 py-2.5" style={{ borderColor: palette.line }}>
+        <Search size={17} style={{ color: palette.blue }}/>
+        <input value={teacherSearch} onChange={event => setTeacherSearch(event.target.value)} placeholder="O‘qituvchini F.I.Sh. bo‘yicha qidiring..." className="min-w-0 flex-1 bg-transparent outline-none text-sm"/>
+        {teacherSearch && <button type="button" onClick={() => setTeacherSearch("")} className="text-sm font-black" style={{ color: palette.red }}>×</button>}
+      </label>
+
       <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-bold">
         <span style={{ color: "#28765B" }}>🟩 BO‘SH — dars qo‘yish mumkin</span>
         <span style={{ color: "#B42318" }}>🟥 QATTIQ — dars qo‘yilmaydi</span>
@@ -2185,9 +2195,8 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
       <div className="mt-2 rounded-lg p-2 text-[10px]"
            style={{ background: palette.sky, color: palette.blue }}>
-        Kun turi qizil yoki sariq qilinsa ikkala smenadagi barcha soatlar avtomatik shu rangga kiradi.
-        Bitta soatga dars qo‘ymoqchi bo‘lsangiz, aynan o‘sha raqamni bosing — u yashil ochiladi,
-        qolgan soatlar bloklanganicha qoladi. Smena nomini bossangiz shu smena to‘liq ochiladi yoki holati almashadi.
+        O‘qituvchi qatoridagi kun tugmasi: yashil — dars qo‘yish mumkin, qizil — shu kuni umuman dars qo‘yilmaydi.
+        Faqat bitta smena yoki dars vaqtini o‘zgartirish kerak bo‘lsa, smena nomini yoki dars raqamini bosing. Oxirida “Saqlash”ni bosing.
       </div>
 
       <div className="overflow-auto max-h-[76vh] mt-2 rounded-xl border"
@@ -6650,7 +6659,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (!currentReport?.tayyor) {
         const errorCount = currentReport?.xulosa?.xato_soni || currentReport?.xatolar?.length || 0;
         const exactErrors = (currentReport?.xatolar || []).slice(0, 5).join("; ");
-        setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi.${exactErrors ? ` ${exactErrors}.` : ""} Xona yozilmagani va sinf rahbari hali belgilanmagani jadvalni bloklamaydi.` });
+        setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi.${exactErrors ? ` ${exactErrors}.` : ""} O‘quv yili, xona, sinf rahbari va Kelajak soati hali belgilanmagani jadvalni bloklamaydi — ularni keyin tahrirlash mumkin.` });
         setGenerationProgress(0);
         return;
       }
