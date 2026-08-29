@@ -30,6 +30,7 @@ import {
   organizationTrialState,
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
+import { initializeSamtmPwa, registerPhoneBackHandler } from "./pwa/samtmPwa.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
@@ -13212,7 +13213,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   );
 }
 
-function Kabinet({ token }) {
+function Kabinet({ token, onSessionExpired }) {
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
   const [bilimData, setBilimData] = useState(null);
@@ -13235,11 +13236,27 @@ function Kabinet({ token }) {
   const [talimYoliTestNishoni, setTalimYoliTestNishoni] = useState(null);
   const [talimYoliDarsNishoni, setTalimYoliDarsNishoni] = useState(null);
 
+  const kabinetAsosiyTabi = foydalanuvchi?.is_admin
+    ? (adminKorinish === "admin" ? "admin" : adminKorinish === "oqituvchi" ? "oqituvchi" : adminKorinish === "ota-ona" ? "farzand" : "bilim")
+    : (foydalanuvchi?.role === "oqituvchi" ? "oqituvchi" : foydalanuvchi?.role === "ota-ona" ? "farzand" : "bilim");
+
+  useEffect(() => registerPhoneBackHandler("kabinet-tab", () => {
+    // Test ketayotgan paytda tasodifiy telefon "orqaga" tugmasi testni
+    // tashlab yubormaydi. Test o'zining To'xtatish/Yakunlash amali bilan yopiladi.
+    if (testDavomida) return true;
+    if (!tab || !foydalanuvchi || tab === kabinetAsosiyTabi) return false;
+    setTab(kabinetAsosiyTabi);
+    return true;
+  }), [foydalanuvchi, kabinetAsosiyTabi, tab, testDavomida]);
+
   useEffect(() => {
     async function yukla() {
       try {
         const resU = await fetch(`${API_BASE}/auth/men?token=${encodeURIComponent(token)}`);
-        if (!resU.ok) throw new Error("Sessiya eskirgan");
+        if (!resU.ok) {
+          if (resU.status === 401 || resU.status === 403) onSessionExpired?.();
+          throw new Error("Sessiya eskirgan");
+        }
         const u = await resU.json();
         setFoydalanuvchi(u);
 
@@ -13287,7 +13304,7 @@ function Kabinet({ token }) {
       }
     }
     yukla();
-  }, [token]);
+  }, [token, onSessionExpired]);
 
   if (holat === "yuklanmoqda") {
     return <Qobiq><div className="text-center"><Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} /><p className="text-sm" style={{ color: "#8A8578" }}>Yuklanmoqda...</p></div></Qobiq>;
@@ -13548,12 +13565,38 @@ function _boshlangichYolniOl() {
   return _boshlangichYolKeshi;
 }
 
+const SAMTM_TOKEN_STORAGE_KEY = "samtm_login_token_v1";
+
+function _saqlanganTokenniOl() {
+  try {
+    return window.localStorage.getItem(SAMTM_TOKEN_STORAGE_KEY);
+  } catch {
+    // Maxfiylik rejimi yoki yopiq WebView localStorage'ni bloklasa ham
+    // ilova oddiy bir martalik kirish rejimida ishlashda davom etadi.
+    return null;
+  }
+}
+
 export default function App() {
-  const [token, setToken] = useState(null);
   const [yol] = useState(_boshlangichYolniOl);
+  const [token, setToken] = useState(() => yol.token || _saqlanganTokenniOl());
   const [oauthYuklanmoqda, setOauthYuklanmoqda] = useState(Boolean(yol.oauthTicket));
   const [oauthProfil, setOauthProfil] = useState(null);
   const oauthAlmashinuviBoshlandi = useRef(false);
+  const sessiyaniTozala = useCallback(() => setToken(null), []);
+
+  useEffect(() => {
+    initializeSamtmPwa();
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (token) window.localStorage.setItem(SAMTM_TOKEN_STORAGE_KEY, token);
+      else window.localStorage.removeItem(SAMTM_TOKEN_STORAGE_KEY);
+    } catch {
+      // Saqlash bloklangan qurilmada kirish joriy sahifa ochiq turguncha ishlaydi.
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!yol.oauthTicket || oauthAlmashinuviBoshlandi.current) return;
@@ -13582,7 +13625,7 @@ export default function App() {
       .finally(() => setOauthYuklanmoqda(false));
   }, [yol.oauthTicket]);
 
-  if (token) return <Kabinet token={token} />;
+  if (token) return <Kabinet token={token} onSessionExpired={sessiyaniTozala} />;
   if (oauthYuklanmoqda) {
     return (
       <Qobiq>
@@ -13596,7 +13639,6 @@ export default function App() {
   if (oauthProfil) {
     return <UlashEkrani email={oauthProfil.email} ism={oauthProfil.ism} oauthGrant={oauthProfil.oauthGrant} onUlandi={setToken} />;
   }
-  if (yol.p === "/kabinet" && yol.token) return <Kabinet token={yol.token} />;
   if (yol.p === "/ulash" && yol.email) return <UlashEkrani email={yol.email} ism={yol.ism} onUlandi={setToken} />;
   return <LoginEkrani />;
 }
