@@ -2,6 +2,7 @@ const BACK_HANDLERS = new Map();
 const GUARD_KEY = "__samtm_phone_back_guard__";
 let initialized = false;
 let installPrompt = null;
+let backHandlerOrder = 0;
 
 function ensureManifest() {
   if (document.querySelector('link[rel="manifest"]')) return;
@@ -62,9 +63,16 @@ function armPhoneBackGuard() {
 }
 
 function handlerPriority(id) {
-  if (id.includes("smart")) return 300;
-  if (id.includes("structure")) return 200;
-  if (id.includes("school") || id.includes("institute")) return 100;
+  const normalizedId = String(id || "").toLowerCase();
+  if (normalizedId.includes("smart")) return 300;
+  if (normalizedId.includes("admissions") || normalizedId.includes("admission") || normalizedId.includes("qabul")) return 260;
+  if (normalizedId.includes("structure")) return 220;
+  if (
+    normalizedId.includes("institute-workspace") ||
+    normalizedId.includes("school-workspace")
+  ) return 180;
+  if (normalizedId.includes("admin-universitetlar")) return 120;
+  if (normalizedId.includes("kabinet")) return 50;
   return 0;
 }
 
@@ -101,11 +109,11 @@ function handlePhoneBack() {
   }, 500);
 }
 
-export function registerPhoneBackHandler(id, handler) {
+export function registerPhoneBackHandler(id, handler, explicitPriority) {
   const entry = {
     handler,
-    priority: handlerPriority(id),
-    order: Date.now() + Math.random(),
+    priority: Number.isFinite(explicitPriority) ? explicitPriority : handlerPriority(id),
+    order: ++backHandlerOrder,
   };
   BACK_HANDLERS.delete(id);
   BACK_HANDLERS.set(id, entry);
