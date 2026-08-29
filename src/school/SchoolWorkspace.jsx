@@ -5658,6 +5658,7 @@ function SanitaryScheduleRulesV1874() {
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Ixcham ish kunlari</div><div className="text-xs mt-1" style={{color:palette.muted}}>2–6 soat: 2 kun (zaruratda 3); 7–10: 3 kun (4); 11–15: 4 kun (5). Bir soatli o‘qituvchi — 1 kun.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Ikki smena yaqin</div><div className="text-xs mt-1" style={{color:palette.muted}}>1- va 2-smena oralig‘i 1 soat, ko‘pi bilan 2 soat afzal. 3 soat faqat boshqa qattiq cheklovlar majbur qilsa qoladi.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>J/T va texnologiya</div><div className="text-xs mt-1" style={{color:palette.muted}}>Asosan 3–6-dars. Mumkin bo‘lsa ketma-ket juft qo‘yiladi; J/Tdan keyin og‘ir yozma fan qo‘yilmaydi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Asosiy fanlar 1–5</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi. Faqat boshqa legal katak qolmasa 6-dars ishlatiladi; bir sinfda haftasiga ko‘pi bilan 2 kun.</div></div>
       <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinfda okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>Sinf kuni 1-darsdan boshlanadi va uzluksiz ketadi. Og‘ir hamda yengil fanlar imkon qadar almashadi.</div></div>
     </div>
   </Card>;
@@ -6525,11 +6526,11 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
 
 const ONE_GENERATOR_POLICY_V210 = {
   nomi: "Yagona kuchli generator",
-  izoh: "Qat’iy qoidalarni buzmasdan jadvalni ichki bosqichlarda to‘liq va ixcham joylaydi.",
+  izoh: "Avval barcha majburiy darsni qattiq qoidalar ichida sig‘diradi; keyin oyna, fan vaqti va kun taqsimotini yaxshilaydi. Asosiy fanlar 1–5-darsda, faqat zaruratda 6-darsda turadi.",
   qoidalar: [
     "KELAJAK SOATI va boshqa aniq mashg‘ulotlar tanlangan kun-darsga avval qo‘yiladi. Sinf rahbari uchun faqat shu katak metod kuni yoki to‘liq qizil kun istisnosi; oddiy darslar yopiq qoladi.",
     "Qizil vaqti 20 foizdan ko‘p o‘qituvchilarning darslari qolgan yuklamadan oldin joylashtiriladi; metod kuni yopiq qoladi.",
-    "Matematika, algebra, geometriya, fizika, kimyo va biologiya ertaroq; J/T va texnologiya iloji boricha 3–6-darslarda joylashadi.",
+    "Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi; boshqa legal katak qolmasa 6-darsga tushadi, lekin har bir sinfda haftasiga ko‘pi bilan 2 kun. J/T va texnologiya iloji boricha 3–6-darslarda joylashadi.",
     "Sinfda ichki okno bo‘lmaydi; o‘qituvchi kunlari ixcham qilinadi va uzoq kutish imkon qadar kamaytiriladi.",
     "Haftasiga 2 soat darsi bor bir smenali o‘qituvchi uchun 1-dars va smenaning oxirgi darsi imkon qadar tanlanmaydi.",
     "Sinf, o‘qituvchi va xona parallelligi, smena, guruh sinxronligi hamda aniq haftalik soatlar buzilmaydi.",
@@ -6540,7 +6541,7 @@ const ONE_GENERATOR_POLICY_V210 = {
 const GENERATION_PHASES_V210 = {
   capability: { title: "Generatorni tekshiryapman", text: "Backendda yagona kuchli generator yoqilganini tekshiryapman." },
   preflight: { title: "Manbalarni tekshiryapman", text: "Fan–sinf–o‘qituvchi birikmalari va qat’iy vaqt qoidalari solishtirilmoqda." },
-  calculating: { title: "Jadval hisoblanmoqda", text: "Backend qat’iy, muvozanatli va yakuniy ichki bosqichlarda eng to‘liq xavfsiz variantni qidirmoqda." },
+  calculating: { title: "Jadval hisoblanmoqda", text: "Avval to‘liq va to‘qnashuvsiz variant qidirilmoqda; oyna va pedagogik qulaylik keyin ball bilan yaxshilanadi." },
   loading: { title: "Natijani yuklayapman", text: "Yaratilgan draft, sinf jadvallari va o‘qituvchi haftalik jadvallari olinmoqda." },
   recovery: { title: "Backend natijasini kutyapman", text: "Aloqa uzilgan bo‘lishi mumkin; saqlangan yangi draft xavfsiz tarzda qidirilmoqda." },
 };
@@ -6578,11 +6579,328 @@ function ScheduleRobotProgressV201({ phase, setup }) {
 }
 
 
+function teacherWindowReportNumberV211(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function teacherWindowReportBooleanV211(value, fallback = false) {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  const normalized = String(value).trim().toLocaleLowerCase("uz");
+  if (["true", "1", "ha", "yes"].includes(normalized)) return true;
+  if (["false", "0", "yo‘q", "yo'q", "no"].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeTeacherWindowReportV211(report) {
+  const actualTeachers = Array.isArray(report?.oknoli_oqituvchilar)
+    ? report.oknoli_oqituvchilar.filter(Boolean)
+    : [];
+  const suggestions = Array.isArray(report?.tavsiyalar)
+    ? report.tavsiyalar.filter(Boolean)
+    : [];
+  const fallbackGapCount = actualTeachers.reduce(
+    (sum, row) => sum + Math.max(0, teacherWindowReportNumberV211(row?.okno_soni) || 0),
+    0
+  );
+  const fallbackMinutes = actualTeachers.reduce(
+    (sum, row) => sum + Math.max(0, teacherWindowReportNumberV211(row?.jami_daqiqa) || 0),
+    0
+  );
+  const fallbackInternalGapCount = actualTeachers.reduce(
+    (sum, row) => sum + Math.max(0, teacherWindowReportNumberV211(row?.ichki_okno) || 0),
+    0
+  );
+  const fallbackMaximum = Math.max(
+    0,
+    ...actualTeachers.map(row => Math.max(0, teacherWindowReportNumberV211(row?.eng_katta_daqiqa) || 0))
+  );
+  const limitedValue = report?.cheklangan;
+  const retryFirstValue = report?.avval_qayta_yaratish;
+  const limited = teacherWindowReportBooleanV211(limitedValue, false);
+  const complete = teacherWindowReportBooleanV211(report?.hisobot_toliq, !limited) && !limited;
+  const reportedTeacherCount = teacherWindowReportNumberV211(report?.oknoli_oqituvchi_soni);
+  return {
+    actualTeachers: [...actualTeachers].sort((left, right) =>
+      (teacherWindowReportNumberV211(right?.jami_daqiqa) || 0) -
+        (teacherWindowReportNumberV211(left?.jami_daqiqa) || 0) ||
+      (teacherWindowReportNumberV211(right?.okno_soni) || 0) -
+        (teacherWindowReportNumberV211(left?.okno_soni) || 0) ||
+      (teacherWindowReportNumberV211(right?.ichki_okno) || 0) -
+        (teacherWindowReportNumberV211(left?.ichki_okno) || 0)
+    ),
+    suggestions: [...suggestions].sort((left, right) =>
+      (teacherWindowReportNumberV211(right?.daqiqa_kamayishi) || 0) -
+        (teacherWindowReportNumberV211(left?.daqiqa_kamayishi) || 0) ||
+      (teacherWindowReportNumberV211(right?.kamayish) || 0) -
+        (teacherWindowReportNumberV211(left?.kamayish) || 0) ||
+      ((teacherWindowReportNumberV211(right?.oldin_ichki_okno) || 0) -
+        (teacherWindowReportNumberV211(right?.keyin_ichki_okno) || 0)) -
+      ((teacherWindowReportNumberV211(left?.oldin_ichki_okno) || 0) -
+        (teacherWindowReportNumberV211(left?.keyin_ichki_okno) || 0))
+    ),
+    gapCount: Math.max(0, teacherWindowReportNumberV211(report?.jami_okno_oldin) ?? fallbackGapCount),
+    internalGapCount: Math.max(0, teacherWindowReportNumberV211(report?.jami_ichki_okno_oldin) ?? fallbackInternalGapCount),
+    totalMinutes: Math.max(0, teacherWindowReportNumberV211(report?.jami_okno_daqiqa_oldin) ?? fallbackMinutes),
+    maximumMinutes: Math.max(0, teacherWindowReportNumberV211(report?.eng_katta_okno_daqiqa) ?? fallbackMaximum),
+    teacherCount: Math.max(0, reportedTeacherCount ?? actualTeachers.length),
+    teacherCountKnown: complete || reportedTeacherCount > 0 || actualTeachers.length > 0,
+    checkedVariants: teacherWindowReportNumberV211(report?.tekshirilgan_variantlar),
+    limited,
+    complete,
+    retryFirst: teacherWindowReportBooleanV211(retryFirstValue, false),
+    note: String(report?.izoh || "").trim(),
+  };
+}
+
+function teacherWindowDayLabelV211(value) {
+  if (value && typeof value === "object") {
+    const direct = value.kun_nomi || value.nomi || value.name;
+    if (direct) return String(direct);
+    value = value.kun ?? value.hafta_kuni;
+  }
+  const number = teacherWindowReportNumberV211(value);
+  return smartDays.find(([day]) => Number(day) === Number(number))?.[1] || String(value || "").trim();
+}
+
+function teacherWindowTypeLabelV211(value) {
+  const key = String(value || "").toLocaleLowerCase("uz");
+  if (key.includes("metod_va_qizil")) return "METOD + QIZIL";
+  if (key.includes("metod") && key.includes("qizil")) return "METOD + QIZIL";
+  if (key.includes("metod")) return "METOD KUNI";
+  if (key.includes("qizil") || key.includes("band") || key.includes("qattiq")) return "QIZIL VAQT";
+  return "VAQT TAVSIYASI";
+}
+
+function teacherWindowNoSuggestionMessageV211(summary, hasGaps) {
+  if (!summary.complete) {
+    return summary.limited
+      ? "Qidiruv to‘liq tugamadi; tekshirilmagan variantlar bor. Tekshirilgan variantlarda aniq foydali yumshatish topilmadi. Hozirgi jadval saqlangan; keyingi qidiruv natijasi boshqa bo‘lishi mumkin."
+      : hasGaps
+        ? "Qidiruv yakunlanmadi; tekshirilmagan variantlar bor. Tekshirilgan variantlarda aniq foydali yumshatish topilmadi, lekin qat’iy xulosa chiqarish uchun ma’lumot yetarli emas."
+        : "Qidiruv yakunlanmadi; tekshirilmagan variantlar bor. Shuning uchun oyna yo‘qligi haqida qat’iy xulosa berilmaydi va joriy jadval o‘zgartirilmagan.";
+  }
+  return hasGaps
+    ? "Barcha tekshirilgan variantlarda aniq foyda beradigan vaqt yumshatishi topilmadi; qizil yoki metod vaqtini bekorga ochmang."
+    : "Haqiqiy jadvalda ichki bo‘sh dars yoki 25 daqiqadan uzun kutish topilmadi; vaqt qoidasini yumshatish shart emas.";
+}
+
+function teacherWindowCountLabelV211(summary) {
+  if (summary.complete) return String(summary.teacherCount);
+  if (summary.teacherCountKnown && summary.teacherCount > 0) return `kamida ${summary.teacherCount}`;
+  if (summary.actualTeachers.length > 0) return `kamida ${summary.actualTeachers.length}`;
+  return "—";
+}
+
+function TeacherWindowSummaryV211({ report, runId }) {
+  if (!report || typeof report !== "object") return null;
+  const summary = normalizeTeacherWindowReportV211(report);
+  const hasGaps = summary.internalGapCount > 0 || summary.gapCount > 0 || summary.totalMinutes > 0 || summary.teacherCount > 0;
+  const teacherCountLabel = teacherWindowCountLabelV211(summary);
+  return <Card className="p-3.5">
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>HAQIQIY · JORIY DRAFT{runId ? ` #${runId}` : ""}</div>
+        <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>O‘qituvchi oynalari</h3>
+      </div>
+      <div className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: hasGaps ? palette.amberBg : palette.greenBg, color: hasGaps ? palette.amber : palette.green }}>
+        {hasGaps ? (teacherCountLabel === "—" ? "Muammo aniqlandi" : `${teacherCountLabel} o‘qituvchi`) : summary.complete ? "Oyna yo‘q" : "Hisobot tugamadi"}
+      </div>
+    </div>
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2.5">
+      <CompactStat value={teacherCountLabel} label="muammoli o‘qituvchi" tone={hasGaps ? "amber" : "green"}/>
+      <CompactStat value={summary.internalGapCount} label="smenada bo‘sh dars" tone={summary.internalGapCount ? "amber" : "green"}/>
+      <CompactStat value={summary.gapCount} label=">25 daq kutish oralig‘i" tone={summary.gapCount ? "amber" : "green"}/>
+      <CompactStat value={scheduleDurationLabel(summary.totalMinutes)} label="jami uzoq kutish" tone={summary.totalMinutes ? "amber" : "green"}/>
+      <CompactStat value={scheduleDurationLabel(summary.maximumMinutes)} label="eng uzun kutish" tone={summary.maximumMinutes > 120 ? "red" : summary.maximumMinutes ? "amber" : "green"}/>
+    </div>
+    {summary.suggestions.length ? <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>
+      {summary.suggestions.length} ta sinov tavsiyasi bor. Ular hali qo‘llanmagan va hech bir qizil yoki metod vaqti avtomatik ochilmagan. Tafsilot “Natijani katta oynada ko‘rish” ichidagi “Oyna hisoboti” bo‘limida.
+    </div> : <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: hasGaps || !summary.complete ? palette.cream : palette.greenBg, color: hasGaps || !summary.complete ? palette.muted : palette.green }}>
+      {teacherWindowNoSuggestionMessageV211(summary, hasGaps)}
+    </div>}
+  </Card>;
+}
+
+function TeacherWindowReportV211({ report, runId }) {
+  if (!report || typeof report !== "object") {
+    return <SmartNotice tone="info">Bu draft uchun o‘qituvchi oyna hisoboti kelmadi. Jadval va vaqt qoidalari o‘zgartirilmagan.</SmartNotice>;
+  }
+  const summary = normalizeTeacherWindowReportV211(report);
+  const hasGaps = summary.internalGapCount > 0 || summary.gapCount > 0 || summary.totalMinutes > 0 || summary.teacherCount > 0;
+  const teacherCountLabel = teacherWindowCountLabelV211(summary);
+  return <div className="space-y-3">
+    <Card className="p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-4xl">
+          <h2 className="text-lg font-black" style={{ color: palette.ink }}>O‘qituvchi oynalarini kamaytirish hisoboti</h2>
+          <p className="text-[11px] leading-relaxed mt-1" style={{ color: palette.muted }}>
+            “HAQIQIY” ko‘rsatkichlar joriy draftdan olingan. “SINOV NATIJASI” hali qo‘llanmagan: tizim qizil yoki metod vaqtini o‘zi ochmagan va jadvalni o‘zgartirmagan.
+          </p>
+          <p className="text-[10px] leading-relaxed mt-1" style={{ color: palette.muted }}>“Smenada bo‘sh dars” — bir smena ichidagi bo‘sh dars raqami. “&gt;25 daq kutish” — o‘qituvchining kun vaqt chizig‘idagi uzun kutish oralig‘i. Ular alohida hisoblanadi.</p>
+        </div>
+        <span className="px-3 py-1.5 rounded-full text-[10px] font-black" style={{ background: hasGaps ? palette.amberBg : palette.greenBg, color: hasGaps ? palette.amber : palette.green }}>
+          {hasGaps ? (teacherCountLabel === "—" ? "Muammo aniqlandi · ro‘yxat tugamadi" : `${teacherCountLabel} o‘qituvchida muammo`) : summary.complete ? "Oyna topilmadi" : "Hisobot tugamadi"}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mt-3">
+        <CompactStat value={teacherCountLabel} label="muammoli o‘qituvchi" tone={hasGaps ? "amber" : "green"}/>
+        <CompactStat value={summary.internalGapCount} label="smenada bo‘sh dars" tone={summary.internalGapCount ? "amber" : "green"}/>
+        <CompactStat value={summary.gapCount} label=">25 daq kutish oralig‘i" tone={summary.gapCount ? "amber" : "green"}/>
+        <CompactStat value={scheduleDurationLabel(summary.totalMinutes)} label="jami uzoq kutish" tone={summary.totalMinutes ? "amber" : "green"}/>
+        <CompactStat value={scheduleDurationLabel(summary.maximumMinutes)} label="eng uzun kutish" tone={summary.maximumMinutes > 120 ? "red" : summary.maximumMinutes ? "amber" : "green"}/>
+        <CompactStat value={summary.checkedVariants ?? "—"} label="tekshirilgan variant" tone="blue"/>
+      </div>
+      {summary.note && summary.complete && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed" style={{ background: palette.sky, color: palette.blue }}>{summary.note}</div>}
+      {summary.retryFirst && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.greenBg, color: palette.green }}>Birinchi qadam: qizil/metod vaqtini o‘zgartirmasdan “Dars jadvalini yaratish”ni yana bosing. Barcha rejalangan qidiruv urinishlari bajarilmagan; boshqa qonuniy tartib yaxshiroq natija berishi mumkin. Pastdagi tavsiya faqat shu holat yana takrorlansa ikkinchi qadam bo‘ladi.</div>}
+      {!summary.complete && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{summary.limited ? "Hisobot vaqt yoki variant chegarasi sabab qisman yakunlandi. Barcha kataklar tekshirilmagan; tavsiyalar faqat tekshirilgan variantlar ichidan." : "Qo‘shimcha tahlil to‘liq yakunlanmadi. Natijadagi jadval saqlangan, lekin tavsiya ro‘yxatini qat’iy yakuniy xulosa deb olmang."}</div>}
+    </Card>
+
+    <Card className="p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>HAQIQIY · JORIY DRAFT{runId ? ` #${runId}` : ""}</div>
+          <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>Bo‘sh darsi yoki uzoq kutishi bor o‘qituvchilar</h3>
+        </div>
+        <span className="text-[10px] font-black" style={{ color: palette.muted }}>{summary.actualTeachers.length} ta qator</span>
+      </div>
+      {summary.actualTeachers.length ? <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2 max-h-[360px] overflow-auto pr-1">
+        {summary.actualTeachers.map((teacher, index) => {
+          const days = [...new Set((Array.isArray(teacher?.kunlar) ? teacher.kunlar : [])
+            .map(row => {
+              const day = teacherWindowDayLabelV211(row);
+              const phase = String(row?.hafta_turi || "");
+              return day ? `${day}${phase && phase !== "har_hafta" ? ` (${phase.toUpperCase()})` : ""}` : "";
+            }).filter(Boolean))];
+          const gapCount = teacherWindowReportNumberV211(teacher?.okno_soni);
+          const internalGapCount = teacherWindowReportNumberV211(teacher?.ichki_okno);
+          const totalMinutes = teacherWindowReportNumberV211(teacher?.jami_daqiqa);
+          const maximumMinutes = teacherWindowReportNumberV211(teacher?.eng_katta_daqiqa);
+          return <div key={`actual-window-${teacher?.oqituvchi_id ?? index}`} className="rounded-xl border p-3" style={{ borderColor: "#BBD7E7", background: palette.sky }}>
+            <div className="font-black text-sm" style={{ color: palette.ink }}>{teacher?.full_name || `O‘qituvchi ID ${teacher?.oqituvchi_id ?? "—"}`}</div>
+            <div className="flex flex-wrap gap-1.5 mt-2 text-[10px] font-black">
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{internalGapCount ?? "—"} ta smenadagi bo‘sh dars</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{gapCount ?? "—"} ta &gt;25 daq kutish</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{totalMinutes == null ? "—" : scheduleDurationLabel(totalMinutes)} uzoq kutish jami</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: maximumMinutes > 120 ? palette.red : palette.amber }}>eng uzuni {maximumMinutes == null ? "—" : scheduleDurationLabel(maximumMinutes)}</span>
+            </div>
+            {days.length > 0 && <div className="text-[9px] leading-relaxed mt-2" style={{ color: palette.muted }}>Muammo qayd etilgan kunlar: {days.join(", ")}</div>}
+          </div>;
+        })}
+      </div> : <SmartNotice tone={hasGaps || !summary.complete ? "warning" : "success"}>{hasGaps ? "Oyna soni qayd etilgan, lekin qo‘shimcha tahlil o‘qituvchilar ro‘yxatini tugata olmadi. Joriy jadval o‘zgarmagan." : summary.complete ? "Haqiqiy jadvalda smena ichidagi bo‘sh dars yoki 25 daqiqadan uzun kutish topilmadi." : "O‘qituvchilar ro‘yxati bo‘yicha qo‘shimcha tahlil to‘liq yakunlanmadi."}</SmartNotice>}
+    </Card>
+
+    <Card className="p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.amber }}>SINOV NATIJASI · HALI QO‘LLANMAGAN</div>
+          <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>Qaysi aniq vaqtni yumshatish foyda berishi mumkin?</h3>
+          <p className="text-[10px] mt-1" style={{ color: palette.muted }}>Bu tavsiyalar faqat o‘qish uchun. Hech qanday vaqt qoidasi avtomatik saqlanmaydi yoki o‘zgartirilmaydi.</p>
+        </div>
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>{summary.suggestions.length} ta tavsiya</span>
+      </div>
+      {summary.suggestions.length ? <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
+        {summary.suggestions.map((suggestion, index) => {
+          const dayName = suggestion?.kun_nomi || teacherWindowDayLabelV211(suggestion?.kun);
+          const rawExceptionSlots = Array.isArray(suggestion?.istisno_kataklari)
+            ? suggestion.istisno_kataklari.filter(Boolean)
+            : [];
+          const fallbackShift = teacherWindowReportNumberV211(suggestion?.smena);
+          const fallbackPeriod = teacherWindowReportNumberV211(suggestion?.dars_raqami);
+          const parsedExceptionSlots = rawExceptionSlots.map(slot => ({
+            smena: teacherWindowReportNumberV211(slot?.smena),
+            dars_raqami: teacherWindowReportNumberV211(slot?.dars_raqami),
+          })).filter(slot => slot.smena != null && slot.dars_raqami != null);
+          const numberedPeriods = Array.isArray(suggestion?.dars_raqamlari)
+            ? suggestion.dars_raqamlari.map(teacherWindowReportNumberV211).filter(period => period != null)
+            : [];
+          const exceptionSlots = parsedExceptionSlots.length
+            ? parsedExceptionSlots
+            : fallbackShift != null && numberedPeriods.length
+              ? numberedPeriods.map(period => ({ smena: fallbackShift, dars_raqami: period }))
+              : fallbackShift != null && fallbackPeriod != null
+              ? [{ smena: fallbackShift, dars_raqami: fallbackPeriod }]
+              : [];
+          const uniqueExceptionSlots = [...new Map(exceptionSlots.map(slot => [
+            `${slot.smena}-${slot.dars_raqami}`,
+            slot,
+          ])).values()];
+          const reportedExceptionCount = teacherWindowReportNumberV211(suggestion?.istisno_soati);
+          const exceptionCount = Math.max(1, reportedExceptionCount ?? uniqueExceptionSlots.length);
+          const exceptionVariantLabel = exceptionCount >= 2
+            ? "2 SOATLIK VARIANT · 2 SOATLIK ISTISNO"
+            : "1 SOATLIK VARIANT · 1 SOATLIK ISTISNO";
+          const slotText = [
+            dayName,
+            uniqueExceptionSlots.length
+              ? uniqueExceptionSlots.map(slot => `${slot.smena}-smena ${slot.dars_raqami}-dars`).join(" va ")
+              : "",
+          ].filter(Boolean).join(" · ") || "Aniq katak ko‘rsatilmagan";
+          const beforeGap = teacherWindowReportNumberV211(suggestion?.oldin_okno);
+          const afterGap = teacherWindowReportNumberV211(suggestion?.keyin_okno);
+          const gapReduction = teacherWindowReportNumberV211(suggestion?.kamayish);
+          const beforeInternalGap = teacherWindowReportNumberV211(suggestion?.oldin_ichki_okno);
+          const afterInternalGap = teacherWindowReportNumberV211(suggestion?.keyin_ichki_okno);
+          const internalGapReduction = beforeInternalGap != null && afterInternalGap != null
+            ? Math.max(0, beforeInternalGap - afterInternalGap)
+            : null;
+          const beforeMinutes = teacherWindowReportNumberV211(suggestion?.oldin_daqiqa);
+          const afterMinutes = teacherWindowReportNumberV211(suggestion?.keyin_daqiqa);
+          const minuteReduction = teacherWindowReportNumberV211(suggestion?.daqiqa_kamayishi);
+          const hasExpectedNumbers = beforeInternalGap != null || afterInternalGap != null || beforeGap != null || afterGap != null || beforeMinutes != null || afterMinutes != null;
+          const provenValue = suggestion?.isbotlangan;
+          const proven = provenValue === true || provenValue === 1 || String(provenValue || "").toLocaleLowerCase("uz") === "true";
+          const mustRegenerate = teacherWindowReportBooleanV211(suggestion?.qayta_yaratish_shart, true);
+          return <div key={`window-suggestion-${suggestion?.oqituvchi_id ?? "x"}-${suggestion?.kun ?? "x"}-${uniqueExceptionSlots.map(slot => `${slot.smena}-${slot.dars_raqami}`).join("_") || "x"}-${index}`} className="rounded-xl border p-3" style={{ borderColor: proven ? "#E1C16E" : palette.line, background: "#FFFCF2" }}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <div className="font-black text-sm" style={{ color: palette.ink }}>{suggestion?.full_name || `O‘qituvchi ID ${suggestion?.oqituvchi_id ?? "—"}`}</div>
+                <div className="text-[10px] font-black mt-1" style={{ color: palette.amber }}>{teacherWindowTypeLabelV211(suggestion?.turi)} · {exceptionVariantLabel} · {slotText}</div>
+              </div>
+              <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: proven ? palette.greenBg : palette.amberBg, color: proven ? palette.green : palette.amber }}>
+                {proven ? "MAHALLIY ALMASHUVDA ISBOTLANDI" : "QAYTA QIDIRUVGA BOG‘LIQ"}
+              </span>
+            </div>
+            {(suggestion?.sinf || suggestion?.fan) && <div className="mt-2 text-[10px] font-bold" style={{ color: palette.blue }}>{[suggestion.sinf, suggestion.fan].filter(Boolean).join(" · ")}</div>}
+            <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>
+              {suggestion?.amal_matni || "Ko‘rsatilgan vaqt qoidasini faqat administrator tekshirib, zarur bo‘lsa qo‘lda yumshatishi mumkin."}
+            </div>
+            <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed" style={{ background: "#fff", color: palette.ink }}>
+              <b>Mahalliy sinovdagi yaxshilanish:</b>{" "}
+              {hasExpectedNumbers
+                ? <>
+                    {beforeInternalGap != null || afterInternalGap != null ? <>Smenadagi bo‘sh dars {beforeInternalGap ?? "—"} → {afterInternalGap ?? "—"}{internalGapReduction != null ? ` (−${internalGapReduction})` : ""}</> : null}
+                    {(beforeInternalGap != null || afterInternalGap != null) && (beforeGap != null || afterGap != null) ? <> · </> : null}
+                    {beforeGap != null || afterGap != null ? <>&gt;25 daq kutish {beforeGap ?? "—"} → {afterGap ?? "—"}{gapReduction != null ? ` (−${Math.max(0, gapReduction)})` : ""}</> : null}
+                    {(beforeInternalGap != null || afterInternalGap != null || beforeGap != null || afterGap != null) && (beforeMinutes != null || afterMinutes != null) ? <> · </> : null}
+                    {beforeMinutes != null || afterMinutes != null ? <>Uzoq kutish {beforeMinutes == null ? "—" : scheduleDurationLabel(beforeMinutes)} → {afterMinutes == null ? "—" : scheduleDurationLabel(afterMinutes)}{minuteReduction != null ? ` (−${scheduleDurationLabel(Math.max(0, minuteReduction))})` : ""}</> : null}
+                  </>
+                : "Aniq kamayish soni hisoblanmagan."}
+            </div>
+            {mustRegenerate && <div className="mt-2 text-[10px] leading-relaxed font-bold" style={{ color: palette.red }}>Bu mahalliy sinov jadvalga qo‘llanmagan. Katakni tahrirlagach jadvalni qayta yaratish shart; yangi global natija aynan shu sonni kafolatlamaydi.</div>}
+            <div className="mt-2 text-[10px] leading-relaxed" style={{ color: palette.muted }}><b style={{ color: palette.ink }}>Sabab:</b> {suggestion?.sabab || "Bu katak boshqa qat’iy qoidalarni buzmasdan o‘qituvchi kutishini kamaytirishi mumkin."}</div>
+          </div>;
+        })}
+      </div> : <SmartNotice tone={hasGaps || !summary.complete ? "warning" : "success"}>{teacherWindowNoSuggestionMessageV211(summary, hasGaps)}</SmartNotice>}
+      <div className="mt-3 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.cream, color: palette.muted }}>
+        {summary.complete ? "Tavsiya jadvalni o‘zgartirmaydi. Tavsiya bo‘lmasa qizil yoki metod vaqtini bekorga ochmang. Zarur bo‘lsa 2-bosqichda vaqtni qo‘lda tahrirlab saqlang, keyin 4-bosqichdagi mavjud yagona “Dars jadvalini yaratish” tugmasidan foydalaning." : "Tavsiya jadvalni o‘zgartirmaydi. Qo‘shimcha tahlil tugamagan; ko‘rsatilgan natijani qat’iy yakuniy xulosa deb olmang va jadvalni o‘zgartirishdan oldin qidiruvni yana ishga tushiring."}
+      </div>
+    </Card>
+  </div>;
+}
+
+
 function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClass, setSelectedClass, onClose, onRoomChanged }) {
   const [view, setView] = useState("classes");
   const [downloading, setDownloading] = useState("");
   const [downloadError, setDownloadError] = useState("");
   const color = "#155A7A";
+  const teacherWindowReport = detail?.urinish?.diagnostika?.oqituvchi_okno_hisoboti || null;
+  const teacherWindowSummary = normalizeTeacherWindowReportV211(teacherWindowReport);
+  const teacherWindowCountForTab = teacherWindowCountLabelV211(teacherWindowSummary);
   useEffect(() => registerPhoneBackHandler("school-smart-generator-result", () => {
     onClose?.();
     return true;
@@ -6604,7 +6922,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
         </div>
         <div className="rounded-2xl border bg-white p-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: palette.line }}>
           <div className="flex flex-wrap gap-1.5">
-            {[["classes","Sinf jadvallari"],["teachers","O‘qituvchi haftalik jadvali"]].map(([key,label]) => <button key={key} type="button" onClick={() => setView(key)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: view === key ? color : palette.cream, color: view === key ? "#fff" : palette.ink }}>{label}</button>)}
+            {[["classes","Sinf jadvallari"],["teachers","O‘qituvchi haftalik jadvali"],["windows",`Oyna hisoboti (${teacherWindowCountForTab})`]].map(([key,label]) => <button key={key} type="button" onClick={() => setView(key)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: view === key ? color : palette.cream, color: view === key ? "#fff" : palette.ink }}>{label}</button>)}
           </div>
           <div className="flex gap-1.5">
             <button type="button" onClick={() => download("sinflar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={14}/>{downloading === "sinflar" ? "..." : "Sinflar XLSX"}</button>
@@ -6614,6 +6932,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
         {downloadError && <SmartNotice tone="error">{downloadError}</SmartNotice>}
         {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged}/>} 
         {view === "teachers" && <TeacherWeeklySchedule detail={detail} setup={setup}/>} 
+        {view === "windows" && <TeacherWindowReportV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
       </div>
     </div>
   </WorkspacePortal>;
@@ -6733,8 +7052,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        // generator_rejimi faqat eski backend so'rov formati bilan moslik uchun.
-        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 4, generator_rejimi: 1 }),
+        // qidiruv_nonce bir xil manbada qayta bosilganda boshqa legal tartibni
+        // ko‘radi; qat’iy qoidalar va mustaqil validator o‘zgarmaydi.
+        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 4, generator_rejimi: 1, qidiruv_nonce: Date.now() }),
       });
       setGenerationPhase("loading");
       const match = data.moslik?.xulosa || {};
@@ -6755,6 +7075,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (["JADVALGA_SIGMADI", "HISOBLASH_VAQTI_TUGADI", "TOLIQ_VARIANT_TOPILMADI"].includes(structuredFailure?.code)) {
         setGenerationFailure(structuredFailure);
       }
+      const searchUnknown = structuredFailure?.solver_status === "UNKNOWN";
       const networkFailure = /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
       if (networkFailure) {
         setGenerationPhase("recovery");
@@ -6763,10 +7084,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         if (recovered) return;
       }
       setMessage({
-        tone: "error",
+        tone: searchUnknown ? "warning" : "error",
         text: networkFailure
           ? "Backend javobi uzildi. Oldingi jadval o‘chirilmagan. Railway backendining deploy va healthcheck holatini tekshirib, yana bir marta yarating."
-          : rawMessage || "Jadvalni yaratib bo‘lmadi.",
+          : structuredFailure?.message || rawMessage || "Jadvalni yaratib bo‘lmadi.",
       });
       if (!networkFailure) await checkSources(true);
     } finally {
@@ -6797,9 +7118,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   const diagnostics = detail?.urinish?.diagnostika || {};
   const comfort = diagnostics.qulaylik_strategiyasi || {};
+  const teacherWindowReport = diagnostics.oqituvchi_okno_hisoboti || null;
   const problems = diagnostics.muammolar || [];
   const warnings = diagnostics.ogohlantirishlar || [];
   const failureProblems = generationFailure?.muammolar || [];
+  const generationUnknown = generationFailure?.solver_status === "UNKNOWN";
+  const failureAccent = generationUnknown ? palette.amber : palette.red;
+  const failureBackground = generationUnknown ? palette.amberBg : palette.redBg;
   const match = diagnostics.jadval_mosligi || {};
   const canApprove = Boolean(diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
@@ -6820,7 +7145,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>BITTA TUGMA</div>
           <h2 className="text-lg font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Moslik qayta tekshiriladi; yagona generator eng ko‘pi 4 ichki urinishda eng to‘liq va ixcham natijani tanlaydi. To‘liq yechim erta topilsa hisoblash darhol tugaydi. Guruh xonasi yozilmagan bo‘lsa jadval “Xona yo‘q” bilan yaratiladi.</p>
+          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Manba tekshiriladi; yagona generator eng ko‘pi 4 xil global tartibda avval barcha darsni sig‘dirishga urinadi. To‘liq yechim topilgach qulaylik yaxshilanadi. Guruh xonasi yozilmagan bo‘lsa jadval “Xona yo‘q” bilan yaratiladi.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {detail && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani katta oynada ko‘rish</button>}
@@ -6831,28 +7156,30 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       <div className="mt-3 rounded-xl border p-3" style={{ borderColor: palette.blue, background: palette.sky }}>
         <div className="text-sm font-black" style={{ color: palette.blue }}>{ONE_GENERATOR_POLICY_V210.nomi}</div>
         <div className="text-[10px] leading-relaxed mt-1" style={{ color: palette.ink }}>{ONE_GENERATOR_POLICY_V210.izoh}</div>
-        <div className="text-[10px] font-bold mt-2" style={{ color: palette.teal }}>Avval aniq darslar va cheklangan o‘qituvchilar, keyin og‘ir fanlar, undan so‘ng qolgan yuklama joylashtiriladi.</div>
+        <div className="text-[10px] font-bold mt-2" style={{ color: palette.teal }}>Avval aniq darslar va cheklangan o‘qituvchilar, keyin asosiy fanlar 1–5-darsga, undan so‘ng qolgan yuklama joylashtiriladi; 6-dars asosiy fan uchun faqat zaxira va haftasiga ko‘pi bilan 2 kun.</div>
       </div>
-      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Qizil vaqt, metod kuni, sinf/o‘qituvchi/xona parallelligi, smena va guruh sinxronligi hech qachon buzilmaydi.</div>
+      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Generator saqlangan qizil va metod vaqtini hech qachon buzmaydi. Hisobot faqat administratorga qaysi bitta katakni tahrirlash foyda berishini tavsiya qiladi.</div>
 
       <div className="grid grid-cols-4 gap-1.5 mt-2.5">
-        <CompactStat value={preflight?.tayyor ? "100%" : preflight ? "—" : "…"} label="avtomatik moslik" tone={preflight?.tayyor ? "green" : "amber"}/>
+        <CompactStat value={preflight?.tayyor ? "Tekshirildi" : preflight ? "Xato" : "…"} label="manba holati" tone={preflight?.tayyor ? "green" : "amber"}/>
         <CompactStat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label="sinf" tone="blue"/>
         <CompactStat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label="o‘qituvchi" tone="teal"/>
         <CompactStat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
       </div>
 
       {(preflight?.xatolar || []).length > 0 && <div className="space-y-1 mt-2 max-h-48 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}</div>}
-      {preflight?.tayyor && <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={{ background: palette.greenBg, color: palette.green }}>Moslik tayyor · xona yetishmasligi jadvalni to‘xtatmaydi.</div>}
+      {preflight?.tayyor && <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={{ background: palette.greenBg, color: palette.green }}>Manba xatolari topilmadi · bu global yechim topilganini hali anglatmaydi; generator va validator keyingi bosqichda tekshiradi.</div>}
     </Card>
 
-    {generationFailure && <Card className="p-3.5" style={{ borderColor: palette.red }}>
+    {detail && teacherWindowReport && <TeacherWindowSummaryV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
+
+    {generationFailure && <Card className="p-3.5" style={{ borderColor: failureAccent }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>JADVALGA SIG‘MAGAN DARSLAR</div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: failureAccent }}>{generationUnknown ? "QIDIRUV VAQTI TUGADI — IMKONSIZLIK ISBOTLANMADI" : "TO‘LIQ VARIANT TOPILMADI"}</div>
           <h3 className="text-base font-black" style={{ color: palette.ink }}>{generationFailure.message}</h3>
         </div>
-        <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>{failureProblems.length} ta</span>
+        <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length} ta</span>
       </div>
       <div className="mt-3 space-y-2">
         {failureProblems.map((problem, index) => {
@@ -6869,8 +7196,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           return <div key={`failure-${problem.raqam || index}`} className="rounded-xl border p-3" style={{ background: "#fff", borderColor: "#E9B5B5" }}>
             <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} sinf · {problem.fan}</div>
             <div className="mt-2 grid md:grid-cols-3 gap-2 text-[11px] leading-snug">
-              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>Nima joylashmadi?</b><br/>{problem.smena ? `${problem.smena}-smenadagi ` : ""}{problem.takror_raqami || 1}-dars soati · {teacherText}</div>
-              <div className="rounded-lg p-2" style={{ background: palette.redBg, color: palette.red }}><b>Nega joylashmadi?</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
+              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>Nima joylashmadi?</b><br/>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</div>
+              <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>Qaysi to‘siqlar ko‘p uchradi?</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? ` · ${reason.rad_etilgan_katak_soni} ta katak` : ""}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
               <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>Nima qilish kerak?</b><br/>{mainReason.yechim || "O‘qituvchining qizil vaqtini, aniq darslar to‘qnashuvini yoki sinfning haftalik sig‘imini tekshiring."}</div>
             </div>
           </div>;
@@ -6887,7 +7214,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           <CompactStat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashdi" tone="green"/>
           <CompactStat value={detail?.urinish?.joylashtirilmadi ?? 0} label="qoldi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
           <CompactStat value={diagnostics.sinf_oknolari ?? "—"} label="sinf oknosi" tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
-          <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label="ustoz oknosi" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
+          <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label="smenadagi bo‘sh dars" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
           <CompactStat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
         {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
