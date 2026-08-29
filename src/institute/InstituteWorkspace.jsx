@@ -19,6 +19,50 @@ const ROLE_OPTIONS = [
   ["professor_oqituvchi", "Professor-o‘qituvchi"], ["tyutor", "Tyutor"],
 ];
 
+const FACULTY_WIDE_ROLES = new Set(["dekan", "zam_dekan", "manaviyatchi", "fakultet_admin"]);
+const DEPARTMENT_WIDE_ROLES = new Set(["kafedra_mudiri"]);
+const structureKey = value => String(value || "").normalize("NFKD").replace(/[’‘`´]/g, "'").replace(/[^\p{L}\p{N}]+/gu, "").toLocaleLowerCase("uz");
+
+function canonicalizeInstituteStructure(payload) {
+  const data = { ...(payload || {}), fakultetlar: [] };
+  data.fakultetlar = (payload?.fakultetlar || []).map(faculty => {
+    const departmentGroups = new Map();
+    (faculty.kafedralar || []).forEach(department => {
+      const key = structureKey(department.nomi);
+      const current = departmentGroups.get(key);
+      if (!current) departmentGroups.set(key, { ...department, yonalishlar: [...(department.yonalishlar || [])], alias_ids: [department.id] });
+      else {
+        current.alias_ids = [...new Set([...(current.alias_ids || []), department.id])];
+        current.yonalishlar.push(...(department.yonalishlar || []));
+        if (!current.mudir && department.mudir) current.mudir = department.mudir;
+      }
+    });
+    const departments = [...departmentGroups.values()];
+    const programGroups = new Map();
+    departments.forEach(department => {
+      (department.yonalishlar || []).forEach(program => {
+        const key = structureKey(program.nomi);
+        const entry = { department, program };
+        if (!programGroups.has(key)) programGroups.set(key, []);
+        programGroups.get(key).push(entry);
+      });
+      department.yonalishlar = [];
+    });
+    programGroups.forEach(variants => {
+      const chosen = [...variants].sort((a, b) => Number(b.program.talaba_soni || 0) - Number(a.program.talaba_soni || 0) || Number(b.program.id || 0) - Number(a.program.id || 0))[0];
+      const merged = { ...chosen.program };
+      merged.alias_ids = [...new Set(variants.flatMap(x => x.program.alias_ids || [x.program.id]).map(Number))];
+      merged.talaba_soni = variants.reduce((sum, x) => sum + Number(x.program.talaba_soni || 0), 0);
+      merged.talim_shakllari = [...new Set(variants.flatMap(x => x.program.talim_shakllari || []).filter(Boolean))];
+      merged.talim_tillari = [...new Set(variants.flatMap(x => x.program.talim_tillari || []).filter(Boolean))];
+      chosen.department.yonalishlar.push(merged);
+    });
+    departments.forEach(department => department.yonalishlar.sort((a, b) => String(a.nomi).localeCompare(String(b.nomi), "uz")));
+    return { ...faculty, kafedralar: departments, kafedra_soni: departments.length, yonalish_soni: programGroups.size };
+  });
+  return data;
+}
+
 function Card({ children, className = "", style = {}, ...props }) {
   return <section {...props} className={`rounded-3xl border bg-white ${className}`} style={{ borderColor: COLORS.line, boxShadow: "0 12px 36px rgba(23,50,71,.06)", ...style }}>{children}</section>;
 }
@@ -244,7 +288,7 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [archiveItems, setArchiveItems] = useState([]);
-  const load = useCallback(async () => { try { setData(await api(`/api/institut/v20/tuzilma?universitet_id=${universityId}&token=${encodeURIComponent(token)}`)); } catch (e) { setError(e.message); } }, [api, token, universityId]);
+  const load = useCallback(async () => { try { setData(canonicalizeInstituteStructure(await api(`/api/institut/v20/tuzilma?universitet_id=${universityId}&token=${encodeURIComponent(token)}`))); } catch (e) { setError(e.message); } }, [api, token, universityId]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     if (!data || !initialFacultyId || selectedFaculty) return;
@@ -271,15 +315,43 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
   if (!data) return <div className="py-16 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: COLORS.blue }} /></div>;
   if (selectedFaculty && selectedProgram) return <div className="space-y-4">
     <button onClick={() => setSelectedProgram(null)} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> {selectedFaculty.nomi} yo‘nalishlariga qaytish</button>
-    <Card className="p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}><div className="flex flex-wrap items-start justify-between gap-3"><div><Pill tone="green">TA’LIM YO‘NALISHI</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedProgram.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{selectedProgram.daraja} · {selectedProgram.kafedra_nomi} · {selectedProgram.talaba_soni || 0} talaba</p><div className="mt-2 flex flex-wrap gap-1">{(selectedProgram.talim_shakllari || []).map(x => <Pill key={`s-${x}`} tone="blue">{x}</Pill>)}{(selectedProgram.talim_tillari || []).map(x => <Pill key={`t-${x}`} tone="violet">{x}</Pill>)}</div></div>{canManage && <button onClick={() => archiveStructure("yonalish", selectedProgram)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }}>…</button>}</div></Card>
+    <Card className="overflow-hidden"><div className="flex flex-wrap items-start justify-between gap-3 p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}><div><Pill tone="green">TA’LIM YO‘NALISHI</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedProgram.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{selectedProgram.daraja || "Daraja belgilanmagan"} · {selectedProgram.kafedra_nomi}</p></div>{canManage && <button onClick={() => archiveStructure("yonalish", selectedProgram)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Yo‘nalishni arxivlash">…</button>}</div><div className="grid gap-3 p-5 sm:grid-cols-3"><div className="rounded-2xl p-4" style={{ background: "#EAF6EF" }}><div className="text-2xl font-black" style={{ color: COLORS.green }}>{selectedProgram.talaba_soni || 0}</div><div className="text-xs font-bold" style={{ color: COLORS.muted }}>Jami talaba</div></div><div className="rounded-2xl p-4" style={{ background: COLORS.sky }}><div className="flex flex-wrap gap-1">{(selectedProgram.talim_shakllari || []).length ? selectedProgram.talim_shakllari.map(x => <Pill key={`s-${x}`} tone="blue">{x}</Pill>) : <Pill tone="gray">Shakl belgilanmagan</Pill>}</div><div className="mt-2 text-xs font-bold" style={{ color: COLORS.muted }}>Ta’lim shakllari</div></div><div className="rounded-2xl p-4" style={{ background: "#F2EEFB" }}><div className="flex flex-wrap gap-1">{(selectedProgram.talim_tillari || []).length ? selectedProgram.talim_tillari.map(x => <Pill key={`t-${x}`} tone="violet">{x}</Pill>) : <Pill tone="gray">Til belgilanmagan</Pill>}</div><div className="mt-2 text-xs font-bold" style={{ color: COLORS.muted }}>Ta’lim tillari</div></div></div></Card>
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-lg font-black" style={{ color: COLORS.ink }}>Talabalar va qabul holati</h3><p className="text-xs" style={{ color: COLORS.muted }}>Quyida faqat shu yo‘nalishga biriktirilgan talabalar ko‘rsatiladi.</p></div><Pill tone="green">Yo‘nalish filtri yoqilgan</Pill></div>
     <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={universityId} structure={data} permissions={permissions} onCredentials={onCredentials} startMode="list" lockedFacultyId={selectedFaculty.id} lockedProgramId={selectedProgram.id} lockedProgramIds={selectedProgram.alias_ids || null} />
   </div>;
-  if (selectedFaculty) return <div className="space-y-4">
-    <button onClick={() => setSelectedFaculty(null)} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Fakultetlar ro‘yxatiga qaytish</button>
-    <Card className="p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}><div className="flex items-start justify-between gap-3"><div><Pill tone="blue">FAKULTET</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedFaculty.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{selectedFaculty.kafedra_soni} kafedra · {selectedFaculty.yonalish_soni} yo‘nalish</p></div>{canManage && <button onClick={() => archiveStructure("fakultet", selectedFaculty)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Fakultet amallari">…</button>}</div></Card>
-    <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><div><Pill tone="green">YO‘NALISHLAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Yo‘nalishni bosing — faqat shu yo‘nalish talabalari ochiladi</h3></div><Pill tone="blue">{selectedFaculty.yonalish_soni || 0} ta</Pill></div><div className="mt-4 grid gap-3 md:grid-cols-2">{selectedFaculty.kafedralar.flatMap(d => d.yonalishlar.map(y => <button type="button" key={y.id} onClick={() => setSelectedProgram({ ...y, kafedra_nomi: d.nomi })} className="rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: COLORS.line, background: "#fff" }}><div className="flex items-start justify-between gap-3"><div><div className="font-black" style={{ color: COLORS.blue }}>{y.nomi}</div><div className="mt-1 text-xs" style={{ color: COLORS.muted }}>{y.daraja} · {d.nomi}</div></div><ChevronRight size={18} style={{ color: COLORS.blue }} /></div><div className="mt-3 flex flex-wrap gap-1"><Pill tone={Number(y.talaba_soni) ? "green" : "gray"}>{y.talaba_soni || 0} talaba</Pill>{(y.talim_shakllari || []).map(x => <Pill key={`${y.id}-s-${x}`} tone="blue">{x}</Pill>)}{(y.talim_tillari || []).map(x => <Pill key={`${y.id}-t-${x}`} tone="violet">{x}</Pill>)}</div></button>))}{!selectedFaculty.yonalish_soni && <Empty>Hali yo‘nalish yo‘q. Talabalarni import qilish tugmasidan Excel kiriting.</Empty>}</div></Card>
-    <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={universityId} structure={data} permissions={permissions} onCredentials={onCredentials} startMode="list" lockedFacultyId={selectedFaculty.id} />
-  </div>;
+  if (selectedFaculty) {
+    const facultyPrograms = selectedFaculty.kafedralar.flatMap(department =>
+      department.yonalishlar.map(program => ({ ...program, kafedra_nomi: department.nomi }))
+    );
+    const facultyStudents = facultyPrograms.reduce((sum, program) => sum + Number(program.talaba_soni || 0), 0);
+    return <div className="space-y-4">
+      <button onClick={() => setSelectedFaculty(null)} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Fakultetlar ro‘yxatiga qaytish</button>
+
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-start justify-between gap-3 p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}>
+          <div><Pill tone="blue">FAKULTET</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedFaculty.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>Fakultet tarkibi va ta’lim yo‘nalishlari</p></div>
+          {canManage && <button onClick={() => archiveStructure("fakultet", selectedFaculty)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Fakultet amallari">…</button>}
+        </div>
+        <div className="grid gap-3 p-5 sm:grid-cols-3">
+          {[[selectedFaculty.kafedra_soni || 0, "Kafedra"], [selectedFaculty.yonalish_soni || 0, "Ta’lim yo‘nalishi"], [facultyStudents, "Jami talaba"]].map(([value, label]) => <div key={label} className="rounded-2xl p-4" style={{ background: COLORS.sky }}><div className="text-2xl font-black" style={{ color: COLORS.blue }}>{value}</div><div className="text-xs font-bold" style={{ color: COLORS.muted }}>{label}</div></div>)}
+        </div>
+        <div className="border-t px-5 py-4" style={{ borderColor: COLORS.line }}>
+          <div className="text-xs font-black" style={{ color: COLORS.muted }}>FAKULTET RAHBARIYATI</div>
+          <div className="mt-2 flex flex-wrap gap-2">{(selectedFaculty.rahbariyat || []).length ? selectedFaculty.rahbariyat.map(person => <Pill key={person.id || `${person.rol}-${person.user_id}`} tone="violet">{ROLE_OPTIONS.find(role => role[0] === person.rol)?.[1] || person.rol}: {person.full_name}</Pill>) : <Pill tone="amber">Rahbariyat kiritilmagan</Pill>}</div>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2"><div><Pill tone="green">YO‘NALISHLAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Yo‘nalishni tanlang</h3><p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Qidiruv va talabalar ro‘yxati faqat yo‘nalish ichiga kirganda ochiladi.</p></div><Pill tone="blue">{facultyPrograms.length} ta</Pill></div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">{facultyPrograms.map(program => <button type="button" key={program.id} onClick={() => setSelectedProgram(program)} className="rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: COLORS.line, background: "#fff" }}><div className="flex items-start justify-between gap-3"><div><div className="font-black" style={{ color: COLORS.blue }}>{program.nomi}</div><div className="mt-1 text-xs" style={{ color: COLORS.muted }}>{program.daraja || "Daraja belgilanmagan"} · {program.kafedra_nomi}</div></div><ChevronRight size={18} style={{ color: COLORS.blue }} /></div><div className="mt-3 flex flex-wrap gap-1"><Pill tone={Number(program.talaba_soni) ? "green" : "gray"}>{program.talaba_soni || 0} talaba</Pill>{(program.talim_shakllari || []).map(x => <Pill key={`${program.id}-s-${x}`} tone="blue">{x}</Pill>)}{(program.talim_tillari || []).map(x => <Pill key={`${program.id}-t-${x}`} tone="violet">{x}</Pill>)}</div></button>)}{!facultyPrograms.length && <Empty>Hali yo‘nalish kiritilmagan.</Empty>}</div>
+      </Card>
+
+      <Card className="p-5">
+        <div><Pill tone="violet">KAFEDRALAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Fakultetning qolgan ma’lumotlari</h3></div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">{selectedFaculty.kafedralar.map(department => <div key={department.id} className="rounded-2xl border p-4" style={{ borderColor: COLORS.line }}><div className="flex items-start justify-between gap-2"><div><div className="font-black" style={{ color: COLORS.teal }}>{department.nomi}</div><div className="mt-1 text-xs font-bold" style={{ color: department.mudir ? COLORS.green : COLORS.red }}>{department.mudir ? `Mudir: ${department.mudir.full_name}` : "Mudir kiritilmagan"}</div></div>{canManage && <button onClick={() => archiveStructure("kafedra", department)} className="rounded-lg border px-2 py-1 font-black" style={{ borderColor: COLORS.line }} title="Kafedra amallari">…</button>}</div><div className="mt-3 text-xs" style={{ color: COLORS.muted }}>{department.yonalishlar.length} ta yo‘nalish</div></div>)}</div>
+      </Card>
+    </div>;
+  }
   return <div className="space-y-4">
     <div className="flex flex-wrap gap-2"><Button onClick={() => setMode("view")} kind={mode === "view" ? "primary" : "secondary"}>Tuzilma</Button>{canManage && <><Button onClick={() => setMode("manual")} kind={mode === "manual" ? "primary" : "secondary"}><Plus size={16} /> Qo‘lda kiritish</Button><Button onClick={() => setMode("import")} kind={mode === "import" ? "primary" : "secondary"}><FileSpreadsheet size={16} /> Shablon orqali import</Button><Button onClick={openArchive} kind={mode === "archive" ? "primary" : "secondary"}>1 yillik arxiv</Button></>}</div>
     {mode === "archive" && <Card className="p-5"><h3 className="font-black" style={{ color: COLORS.ink }}>Tuzilma arxivi</h3><p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Arxivlangan fakultet, kafedra va yo‘nalishlar 1 yil ichida qaytariladi.</p><div className="mt-4 space-y-2">{archiveItems.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: COLORS.line }}><div><div className="font-black">{item.nomi}</div><div className="text-xs" style={{ color: COLORS.muted }}>{item.obyekt_turi} · {(item.hisoblar || {}).talaba || 0} talaba · {(item.hisoblar || {}).xodim || 0} xodim</div></div><Button onClick={() => restoreArchive(item)} kind="secondary">Qaytarish</Button></div>)}{!archiveItems.length && <Empty>Arxiv bo‘sh</Empty>}</div></Card>}
@@ -302,10 +374,17 @@ function StaffPanel({ api, token, universityId, structure, canManage, canManageA
   const departments = faculties.flatMap(f => (f.kafedralar || []).map(d => ({ ...d, fakultet_id: f.id, fakultet_nomi: f.nomi })));
   const programs = departments.flatMap(d => (d.yonalishlar || []).map(y => ({ ...y, kafedra_id: d.id, fakultet_id: d.fakultet_id })));
   const roleOptions = ROLE_OPTIONS.filter(([value]) => canManageAdmins || !["institut_admin", "fakultet_admin"].includes(value));
+  const facultyWide = FACULTY_WIDE_ROLES.has(form.rol);
+  const departmentWide = DEPARTMENT_WIDE_ROLES.has(form.rol);
+  const scopeText = facultyWide
+    ? "Bu lavozim tanlangan fakultetdagi barcha kafedra, yo‘nalish va talabalarni vakolati doirasida ko‘radi. Kafedra yoki yo‘nalishni alohida tanlash shart emas."
+    : departmentWide
+      ? "Bu lavozim tanlangan kafedradagi barcha yo‘nalishlarni ko‘radi."
+      : "Kerak bo‘lsa xodim vakolatini aniq kafedra yoki yo‘nalish bilan cheklashingiz mumkin.";
   const save = async () => {
     setBusy(true); setError("");
     try {
-      const payload = { token, universitet_id: universityId, fish: form.fish, rol: form.rol, fakultet_id: form.fakultet_id ? Number(form.fakultet_id) : undefined, kafedra_id: form.kafedra_id ? Number(form.kafedra_id) : undefined, yonalish_id: form.yonalish_id ? Number(form.yonalish_id) : undefined };
+      const payload = { token, universitet_id: universityId, fish: form.fish, rol: form.rol, fakultet_id: form.fakultet_id ? Number(form.fakultet_id) : undefined, kafedra_id: !facultyWide && form.kafedra_id ? Number(form.kafedra_id) : undefined, yonalish_id: !facultyWide && !departmentWide && form.yonalish_id ? Number(form.yonalish_id) : undefined };
       const data = editingId ? await api(`/api/institut/v20/xodim/${editingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, faol: true }) }) : await api("/api/institut/v20/xodim/manual", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, telefon: form.telefon || undefined }) });
       if (!editingId) onCredentials([data]); setEditingId(null); setForm({ fish: "", telefon: "", rol: "dekan", fakultet_id: "", kafedra_id: "", yonalish_id: "" }); load();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
@@ -323,7 +402,7 @@ function StaffPanel({ api, token, universityId, structure, canManage, canManageA
   };
   return <div className="space-y-4">
     {canManageAdmins && <Card className="p-5" style={{ background: "linear-gradient(135deg,#EEF3FC,#FBF8FF)" }}><div className="flex flex-wrap items-center justify-between gap-3"><div><Pill tone="violet">SUPER ADMIN</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Administrator qo‘shish sizga ochiq</h3><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>Institut administratori butun institutni, fakultet administratori esa tanlangan fakultetni boshqaradi.</p></div><ShieldCheck style={{ color: COLORS.violet }} /></div></Card>}
-    {canManage && <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-black" style={{ color: COLORS.ink }}>Xodim va rolni qo‘lda biriktirish</h3>{isSuperAdmin && <Pill tone="violet">Super administrator</Pill>}</div><div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3"><Field label="F.I.Sh."><input className={inputClass} value={form.fish} onChange={e => setForm({ ...form, fish: e.target.value })} style={{ borderColor: COLORS.line }} /></Field><Field label="Telefon"><input className={inputClass} value={form.telefon} onChange={e => setForm({ ...form, telefon: e.target.value })} placeholder="+998901234567" style={{ borderColor: COLORS.line }} /></Field><Field label="Lavozim"><select className={inputClass} value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value, fakultet_id: "", kafedra_id: "", yonalish_id: "" })} style={{ borderColor: COLORS.line }}>{roleOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field><Field label="Fakultet"><select className={inputClass} value={form.fakultet_id} onChange={e => setForm({ ...form, fakultet_id: e.target.value, kafedra_id: "", yonalish_id: "" })} style={{ borderColor: COLORS.line }}><option value="">—</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.nomi}</option>)}</select></Field><Field label="Kafedra"><select className={inputClass} value={form.kafedra_id} onChange={e => setForm({ ...form, kafedra_id: e.target.value, yonalish_id: "" })} style={{ borderColor: COLORS.line }}><option value="">—</option>{departments.filter(d => !form.fakultet_id || String(d.fakultet_id) === String(form.fakultet_id)).map(d => <option key={d.id} value={d.id}>{d.nomi}</option>)}</select></Field><Field label="Yo‘nalish"><select className={inputClass} value={form.yonalish_id} onChange={e => setForm({ ...form, yonalish_id: e.target.value })} style={{ borderColor: COLORS.line }}><option value="">—</option>{programs.filter(y => !form.kafedra_id || String(y.kafedra_id) === String(form.kafedra_id)).map(y => <option key={y.id} value={y.id}>{y.nomi}</option>)}</select></Field></div><div className="mt-4"><ErrorBox text={error} /></div><Button onClick={save} disabled={busy || !form.fish.trim()} className="mt-4">{busy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />} Biriktirish va 2 oylik parol yaratish</Button></Card>}
+    {canManage && <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-black" style={{ color: COLORS.ink }}>Xodim va vakolatini biriktirish</h3>{isSuperAdmin && <Pill tone="violet">Super administrator</Pill>}</div><div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3"><Field label="F.I.Sh."><input className={inputClass} value={form.fish} onChange={e => setForm({ ...form, fish: e.target.value })} style={{ borderColor: COLORS.line }} /></Field><Field label="Telefon"><input className={inputClass} value={form.telefon} onChange={e => setForm({ ...form, telefon: e.target.value })} placeholder="+998901234567" style={{ borderColor: COLORS.line }} /></Field><Field label="Lavozim"><select className={inputClass} value={form.rol} onChange={e => setForm({ ...form, rol: e.target.value, fakultet_id: "", kafedra_id: "", yonalish_id: "" })} style={{ borderColor: COLORS.line }}>{roleOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field><Field label="Fakultet" hint={facultyWide ? "Majburiy: butun fakultet qamrovi" : undefined}><select className={inputClass} value={form.fakultet_id} onChange={e => setForm({ ...form, fakultet_id: e.target.value, kafedra_id: "", yonalish_id: "" })} style={{ borderColor: COLORS.line }}><option value="">—</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.nomi}</option>)}</select></Field><Field label={facultyWide ? "Kafedra — barchasi" : "Kafedra"}><select disabled={facultyWide} className={inputClass} value={facultyWide ? "" : form.kafedra_id} onChange={e => setForm({ ...form, kafedra_id: e.target.value, yonalish_id: "" })} style={{ borderColor: COLORS.line }}><option value="">{facultyWide ? "Barcha kafedralar" : "—"}</option>{departments.filter(d => !form.fakultet_id || String(d.fakultet_id) === String(form.fakultet_id)).map(d => <option key={d.id} value={d.id}>{d.nomi}</option>)}</select></Field><Field label={facultyWide || departmentWide ? "Yo‘nalish — barchasi" : "Yo‘nalish"}><select disabled={facultyWide || departmentWide} className={inputClass} value={facultyWide || departmentWide ? "" : form.yonalish_id} onChange={e => setForm({ ...form, yonalish_id: e.target.value })} style={{ borderColor: COLORS.line }}><option value="">{facultyWide || departmentWide ? "Barcha yo‘nalishlar" : "—"}</option>{programs.filter(y => !form.kafedra_id || String(y.kafedra_id) === String(form.kafedra_id)).map(y => <option key={y.id} value={y.id}>{y.nomi}</option>)}</select></Field></div><div className="mt-3 rounded-2xl p-3 text-xs font-bold" style={{ background: COLORS.sky, color: COLORS.blue }}><ShieldCheck className="mr-2 inline" size={15} />{scopeText}</div><div className="mt-4"><ErrorBox text={error} /></div><Button onClick={save} disabled={busy || !form.fish.trim() || (facultyWide && !form.fakultet_id) || (departmentWide && !form.kafedra_id)} className="mt-4">{busy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />} {editingId ? "O‘zgarishni saqlash" : "Biriktirish va 2 oylik parol yaratish"}</Button></Card>}
     <Card className="overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b p-5" style={{ borderColor: COLORS.line }}><div><h3 className="font-black" style={{ color: COLORS.ink }}>{archiveMode ? "Xodimlar arxivi" : "Institut xodimlari"}</h3><p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Mas’ulni bosing: tahrirlash, kirish kodi, arxivlash va tiklash ishlaydi.</p></div>{canManage && <Button kind="secondary" onClick={() => setArchiveMode(v => !v)}>{archiveMode ? "Faol xodimlar" : "Arxiv"}</Button>}</div>{!staff.length ? <div className="p-5"><Empty>{archiveMode ? "Arxiv bo‘sh" : "Xodim yo‘q"}</Empty></div> : <div className="divide-y" style={{ borderColor: COLORS.line }}>{staff.map(x => <div key={x.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><div className="font-black" style={{ color: COLORS.ink }}>{x.full_name}</div><div className="text-xs" style={{ color: COLORS.muted }}>{x.fakultet_nomi || "Institut"}{x.yonalish_nomi ? ` · ${x.yonalish_nomi}` : x.kafedra_nomi ? ` · ${x.kafedra_nomi}` : ""}</div></div><div className="flex flex-wrap gap-2">{canManage && !archiveMode && <><button onClick={() => { setEditingId(x.id); setForm({ fish: x.full_name, telefon: "", rol: x.rol, fakultet_id: x.fakultet_id ? String(x.fakultet_id) : "", kafedra_id: x.kafedra_id ? String(x.kafedra_id) : "", yonalish_id: x.yonalish_id ? String(x.yonalish_id) : "" }); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg border px-2 py-1 text-xs font-black" style={{ borderColor: COLORS.line, color: COLORS.blue }}>Tahrirlash</button><button onClick={() => revealCode(x)} className="rounded-lg border px-2 py-1 text-xs font-black" style={{ borderColor: COLORS.line, color: COLORS.violet }}>Kirish kodi</button><button onClick={() => setActive(x, false)} className="rounded-lg border px-2 py-1 text-xs font-black" style={{ borderColor: "#E8BABA", color: COLORS.red }}>Arxivlash</button></>}{canManage && archiveMode && <button onClick={() => setActive(x, true)} className="rounded-lg border px-2 py-1 text-xs font-black" style={{ borderColor: COLORS.line, color: COLORS.green }}>Qayta tiklash</button>}<Pill tone="violet">{x.lavozim_nomi}</Pill><Pill tone={x.kirish_holati === "ulangan" ? "green" : "amber"}>{x.kirish_holati || "Hisob mavjud"}</Pill></div></div>)}</div>}</Card>
   </div>;
 }
@@ -510,4 +589,3 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
     <CredentialsModal items={credentials} onClose={() => setCredentials([])} />
   </main>;
 }
-//
