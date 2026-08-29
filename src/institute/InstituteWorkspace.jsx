@@ -4,6 +4,7 @@ import {
   Eye, FileSpreadsheet, GraduationCap, KeyRound, Loader2, MessageCircle,
   Phone, Plus, RefreshCcw, Search, Send, ShieldCheck, Upload, UserPlus, Users, X,
 } from "lucide-react";
+import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const COLORS = {
   ink: "#173247", blue: "#175A7A", teal: "#0D7A77", sky: "#EAF5F8",
@@ -283,7 +284,7 @@ function StructureEntryChoices({ onManual, onImport }) {
   </div>;
 }
 
-function StructurePanel({ api, apiBase, token, universityId, canManage, permissions, onChanged, onCredentials, onNextAdmission, onOpenStaff, startMode, onStartModeConsumed, initialFacultyId = null }) {
+function StructurePanel({ api, apiBase, token, universityId, canManage, permissions, onChanged, onCredentials, onNextAdmission, onOpenStaff, onBackToWorkspace, startMode, onStartModeConsumed, initialFacultyId = null }) {
   const [data, setData] = useState(null); const [mode, setMode] = useState("view"); const [error, setError] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [selectedProgram, setSelectedProgram] = useState(null);
@@ -300,6 +301,22 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
     setMode(startMode);
     onStartModeConsumed?.();
   }, [startMode, onStartModeConsumed]);
+  useEffect(() => registerPhoneBackHandler("institute-structure", () => {
+    if (selectedProgram) {
+      setSelectedProgram(null);
+      return true;
+    }
+    if (selectedFaculty) {
+      setSelectedFaculty(null);
+      return true;
+    }
+    if (mode !== "view") {
+      setMode("view");
+      return true;
+    }
+    onBackToWorkspace?.();
+    return true;
+  }), [mode, onBackToWorkspace, selectedFaculty, selectedProgram]);
   const committed = result => { onCredentials(result.kirish_kodlari || []); setMode("view"); load(); onChanged(); if (result.keyingi_bosqich === "qabul_importi") onNextAdmission?.(); };
   const archiveStructure = async (kind, item) => {
     try {
@@ -319,39 +336,12 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
     <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="text-lg font-black" style={{ color: COLORS.ink }}>Talabalar va qabul holati</h3><p className="text-xs" style={{ color: COLORS.muted }}>Quyida faqat shu yo‘nalishga biriktirilgan talabalar ko‘rsatiladi.</p></div><Pill tone="green">Yo‘nalish filtri yoqilgan</Pill></div>
     <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={universityId} structure={data} permissions={permissions} onCredentials={onCredentials} startMode="list" lockedFacultyId={selectedFaculty.id} lockedProgramId={selectedProgram.id} lockedProgramIds={selectedProgram.alias_ids || null} />
   </div>;
-  if (selectedFaculty) {
-    const facultyPrograms = selectedFaculty.kafedralar.flatMap(department =>
-      department.yonalishlar.map(program => ({ ...program, kafedra_nomi: department.nomi }))
-    );
-    const facultyStudents = facultyPrograms.reduce((sum, program) => sum + Number(program.talaba_soni || 0), 0);
-    return <div className="space-y-4">
-      <button onClick={() => setSelectedFaculty(null)} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Fakultetlar ro‘yxatiga qaytish</button>
-
-      <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-3 p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}>
-          <div><Pill tone="blue">FAKULTET</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedFaculty.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>Fakultet tarkibi va ta’lim yo‘nalishlari</p></div>
-          {canManage && <button onClick={() => archiveStructure("fakultet", selectedFaculty)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Fakultet amallari">…</button>}
-        </div>
-        <div className="grid gap-3 p-5 sm:grid-cols-3">
-          {[[selectedFaculty.kafedra_soni || 0, "Kafedra"], [selectedFaculty.yonalish_soni || 0, "Ta’lim yo‘nalishi"], [facultyStudents, "Jami talaba"]].map(([value, label]) => <div key={label} className="rounded-2xl p-4" style={{ background: COLORS.sky }}><div className="text-2xl font-black" style={{ color: COLORS.blue }}>{value}</div><div className="text-xs font-bold" style={{ color: COLORS.muted }}>{label}</div></div>)}
-        </div>
-        <div className="border-t px-5 py-4" style={{ borderColor: COLORS.line }}>
-          <div className="text-xs font-black" style={{ color: COLORS.muted }}>FAKULTET RAHBARIYATI</div>
-          <div className="mt-2 flex flex-wrap gap-2">{(selectedFaculty.rahbariyat || []).length ? selectedFaculty.rahbariyat.map(person => <Pill key={person.id || `${person.rol}-${person.user_id}`} tone="violet">{ROLE_OPTIONS.find(role => role[0] === person.rol)?.[1] || person.rol}: {person.full_name}</Pill>) : <Pill tone="amber">Rahbariyat kiritilmagan</Pill>}</div>
-        </div>
-      </Card>
-
-      <Card className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2"><div><Pill tone="green">YO‘NALISHLAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Yo‘nalishni tanlang</h3><p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Qidiruv va talabalar ro‘yxati faqat yo‘nalish ichiga kirganda ochiladi.</p></div><Pill tone="blue">{facultyPrograms.length} ta</Pill></div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">{facultyPrograms.map(program => <button type="button" key={program.id} onClick={() => setSelectedProgram(program)} className="rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: COLORS.line, background: "#fff" }}><div className="flex items-start justify-between gap-3"><div><div className="font-black" style={{ color: COLORS.blue }}>{program.nomi}</div><div className="mt-1 text-xs" style={{ color: COLORS.muted }}>{program.daraja || "Daraja belgilanmagan"} · {program.kafedra_nomi}</div></div><ChevronRight size={18} style={{ color: COLORS.blue }} /></div><div className="mt-3 flex flex-wrap gap-1"><Pill tone={Number(program.talaba_soni) ? "green" : "gray"}>{program.talaba_soni || 0} talaba</Pill>{(program.talim_shakllari || []).map(x => <Pill key={`${program.id}-s-${x}`} tone="blue">{x}</Pill>)}{(program.talim_tillari || []).map(x => <Pill key={`${program.id}-t-${x}`} tone="violet">{x}</Pill>)}</div></button>)}{!facultyPrograms.length && <Empty>Hali yo‘nalish kiritilmagan.</Empty>}</div>
-      </Card>
-
-      <Card className="p-5">
-        <div><Pill tone="violet">KAFEDRALAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Fakultetning qolgan ma’lumotlari</h3></div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">{selectedFaculty.kafedralar.map(department => <div key={department.id} className="rounded-2xl border p-4" style={{ borderColor: COLORS.line }}><div className="flex items-start justify-between gap-2"><div><div className="font-black" style={{ color: COLORS.teal }}>{department.nomi}</div><div className="mt-1 text-xs font-bold" style={{ color: department.mudir ? COLORS.green : COLORS.red }}>{department.mudir ? `Mudir: ${department.mudir.full_name}` : "Mudir kiritilmagan"}</div></div>{canManage && <button onClick={() => archiveStructure("kafedra", department)} className="rounded-lg border px-2 py-1 font-black" style={{ borderColor: COLORS.line }} title="Kafedra amallari">…</button>}</div><div className="mt-3 text-xs" style={{ color: COLORS.muted }}>{department.yonalishlar.length} ta yo‘nalish</div></div>)}</div>
-      </Card>
-    </div>;
-  }
+  if (selectedFaculty) return <div className="space-y-4">
+    <button onClick={() => setSelectedFaculty(null)} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Fakultetlar ro‘yxatiga qaytish</button>
+    <Card className="p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}><div className="flex items-start justify-between gap-3"><div><Pill tone="blue">FAKULTET</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedFaculty.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{selectedFaculty.kafedra_soni} kafedra · {selectedFaculty.yonalish_soni} yo‘nalish</p></div>{canManage && <button onClick={() => archiveStructure("fakultet", selectedFaculty)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Fakultet amallari">…</button>}</div></Card>
+    <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><div><Pill tone="green">YO‘NALISHLAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Yo‘nalishni bosing — faqat shu yo‘nalish talabalari ochiladi</h3></div><Pill tone="blue">{selectedFaculty.yonalish_soni || 0} ta</Pill></div><div className="mt-4 grid gap-3 md:grid-cols-2">{selectedFaculty.kafedralar.flatMap(d => d.yonalishlar.map(y => <button type="button" key={y.id} onClick={() => setSelectedProgram({ ...y, kafedra_nomi: d.nomi })} className="rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: COLORS.line, background: "#fff" }}><div className="flex items-start justify-between gap-3"><div><div className="font-black" style={{ color: COLORS.blue }}>{y.nomi}</div><div className="mt-1 text-xs" style={{ color: COLORS.muted }}>{y.daraja} · {d.nomi}</div></div><ChevronRight size={18} style={{ color: COLORS.blue }} /></div><div className="mt-3 flex flex-wrap gap-1"><Pill tone={Number(y.talaba_soni) ? "green" : "gray"}>{y.talaba_soni || 0} talaba</Pill>{(y.talim_shakllari || []).map(x => <Pill key={`${y.id}-s-${x}`} tone="blue">{x}</Pill>)}{(y.talim_tillari || []).map(x => <Pill key={`${y.id}-t-${x}`} tone="violet">{x}</Pill>)}</div></button>))}{!selectedFaculty.yonalish_soni && <Empty>Hali yo‘nalish yo‘q. Talabalarni import qilish tugmasidan Excel kiriting.</Empty>}</div></Card>
+    <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={universityId} structure={data} permissions={permissions} onCredentials={onCredentials} startMode="list" lockedFacultyId={selectedFaculty.id} />
+  </div>;
   return <div className="space-y-4">
     <div className="flex flex-wrap gap-2"><Button onClick={() => setMode("view")} kind={mode === "view" ? "primary" : "secondary"}>Tuzilma</Button>{canManage && <><Button onClick={() => setMode("manual")} kind={mode === "manual" ? "primary" : "secondary"}><Plus size={16} /> Qo‘lda kiritish</Button><Button onClick={() => setMode("import")} kind={mode === "import" ? "primary" : "secondary"}><FileSpreadsheet size={16} /> Shablon orqali import</Button><Button onClick={openArchive} kind={mode === "archive" ? "primary" : "secondary"}>1 yillik arxiv</Button></>}</div>
     {mode === "archive" && <Card className="p-5"><h3 className="font-black" style={{ color: COLORS.ink }}>Tuzilma arxivi</h3><p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Arxivlangan fakultet, kafedra va yo‘nalishlar 1 yil ichida qaytariladi.</p><div className="mt-4 space-y-2">{archiveItems.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3" style={{ borderColor: COLORS.line }}><div><div className="font-black">{item.nomi}</div><div className="text-xs" style={{ color: COLORS.muted }}>{item.obyekt_turi} · {(item.hisoblar || {}).talaba || 0} talaba · {(item.hisoblar || {}).xodim || 0} xodim</div></div><Button onClick={() => restoreArchive(item)} kind="secondary">Qaytarish</Button></div>)}{!archiveItems.length && <Empty>Arxiv bo‘sh</Empty>}</div></Card>}
@@ -551,6 +541,21 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
   }, [api, token, workspaceId, legacyUniversityId, manualUniversityId, initialFacultyId, initialWorkspace?.nomi]);
   useEffect(() => { load(); }, [load]);
   const refreshStructure = async () => { if (!bootstrap) return; try { setStructure(await api(`/api/institut/v20/tuzilma?universitet_id=${bootstrap.universitet.id}&token=${encodeURIComponent(token)}`)); } catch {} };
+  const returnToDashboard = useCallback(() => { setTab("dashboard"); }, []);
+  useEffect(() => registerPhoneBackHandler("institute-workspace", () => {
+    if (showInstituteCreate) {
+      setShowInstituteCreate(false);
+      return true;
+    }
+    // Tuzilma ichidagi fakultet/yo'nalish bosqichlarini StructurePanel yopadi.
+    if (tab === "structure") return false;
+    if (tab !== "dashboard") {
+      setTab("dashboard");
+      return true;
+    }
+    onBack?.();
+    return true;
+  }), [onBack, showInstituteCreate, tab]);
   if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><Loader2 size={30} className="animate-spin" style={{ color: COLORS.blue }} /></div>;
   if (!bootstrap && initialFacultyId) return <main className="mx-auto max-w-2xl p-6"><button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> Kafedralarga qaytish</button><ErrorBox text={error || "Tanlangan fakultetning import ma’lumoti yuklanmadi."} /></main>;
   if (!bootstrap) {
@@ -580,7 +585,7 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
       <nav className="mb-4 flex gap-2 overflow-x-auto pb-1">{tabs.map(([key, label, Icon]) => <button key={key} onClick={() => setTab(key)} className="inline-flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black" style={{ background: tab === key ? COLORS.blue : "#fff", color: tab === key ? "#fff" : COLORS.ink, borderColor: tab === key ? COLORS.blue : COLORS.line }}><Icon size={16} />{label}</button>)}</nav>
       {error && <div className="mb-4"><ErrorBox text={error} /></div>}
       {tab === "dashboard" && <div className="space-y-4">{permissions.tuzilma_boshqarish && <Card className="p-5 md:p-6"><Pill tone="violet">TUZILMANI KIRITISH</Pill><h2 className="mt-3 text-xl font-black" style={{ color: COLORS.ink }}>Fakultet, kafedra va yo‘nalishlar</h2><p className="mb-5 mt-1 text-sm" style={{ color: COLORS.muted }}>Bu institut tuzilmasi. Talabalar alohida “1-kurs qabuli” bo‘limidan import qilinadi.</p><StructureEntryChoices onManual={() => openStructure("manual")} onImport={() => openStructure("import")} /></Card>}<Card className="p-5"><h2 className="text-xl font-black" style={{ color: COLORS.ink }}>Tizim tayyorligi</h2><div className="mt-4 grid gap-3 md:grid-cols-3">{[["Fakultet va kafedralar", bootstrap.sonlar.fakultet > 0], ["Ta’lim yo‘nalishlari", bootstrap.sonlar.yonalish > 0], ["Import qilingan talabalar", bootstrap.sonlar.talaba > 0]].map(([l, ok]) => <div key={l} className="rounded-2xl p-4" style={{ background: ok ? "#ECF7F0" : "#FFF6E8" }}><div className="flex items-center gap-2 font-black" style={{ color: ok ? COLORS.green : COLORS.amber }}>{ok ? <CheckCircle2 size={18} /> : <RefreshCcw size={18} />}{l}</div></div>)}</div><div className="mt-5 rounded-2xl border p-4 text-sm" style={{ borderColor: COLORS.line, color: COLORS.muted }}>Ketma-ketlik: <b>1) Institut tuzilmasi</b> → <b>2) Xodim va rollar</b> → <b>3) Talabalarni import qilish</b> → <b>4) Tyutorlarni biriktirish</b>.</div></Card></div>}
-      {tab === "structure" && <StructurePanel api={api} apiBase={apiBase} token={token} universityId={id} canManage={permissions.tuzilma_boshqarish} permissions={permissions} onChanged={() => load()} onCredentials={setCredentials} onOpenStaff={() => setTab("staff")} onNextAdmission={() => { setAdmissionStartMode("import"); setTab("admission"); }} startMode={structureStartMode} onStartModeConsumed={() => setStructureStartMode(null)} initialFacultyId={initialFacultyId} />}
+      {tab === "structure" && <StructurePanel api={api} apiBase={apiBase} token={token} universityId={id} canManage={permissions.tuzilma_boshqarish} permissions={permissions} onChanged={() => load()} onCredentials={setCredentials} onOpenStaff={() => setTab("staff")} onBackToWorkspace={returnToDashboard} onNextAdmission={() => { setAdmissionStartMode("import"); setTab("admission"); }} startMode={structureStartMode} onStartModeConsumed={() => setStructureStartMode(null)} initialFacultyId={initialFacultyId} />}
       {tab === "staff" && <StaffPanel api={api} token={token} universityId={id} structure={structure} canManage={permissions.xodim_boshqarish} canManageAdmins={permissions.admin_boshqarish} isSuperAdmin={permissions.super_admin} onCredentials={setCredentials} />}
       {tab === "admission" && <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={id} structure={structure} permissions={permissions} onCredentials={setCredentials} startMode={admissionStartMode} onStartModeConsumed={() => setAdmissionStartMode(null)} lockedFacultyId={initialFacultyId} />}
       {tab === "tutors" && <TutorPanel api={api} token={token} universityId={id} structure={structure} canManage={permissions.tyutor_boshqarish} />}
