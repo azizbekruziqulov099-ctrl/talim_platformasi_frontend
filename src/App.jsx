@@ -2134,8 +2134,13 @@ function AdminMuassasaSozlamalari({ token, onOrtga }) {
     ["maktab", "🏫", "Maktab", "1–11-sinf fanlari, o‘quv reja va metod kunlari"],
     ["bogcha", "🧸", "Bog‘cha", "Bog‘cha uchun alohida markaziy andoza"],
     ["markaz", "🎓", "O‘quv markazi", "Markazlar uchun alohida markaziy andoza"],
-    ["universitet", "🏛️", "Institut / universitet", "Oliy ta’lim uchun alohida markaziy andoza"],
+    ["universitet", "🏛️", "Institut / universitet", "Oliy ta‘lim uchun alohida markaziy andoza"],
   ];
+  useEffect(() => registerPhoneBackHandler("admin-muassasa-settings", () => {
+    if (!type) return false;
+    setType(null);
+    return true;
+  }, 110), [type]);
   if (type === "maktab") return <AdminMaktabMarkaziySozlamalari token={token} onOrtga={() => setType(null)} />;
   return <div className="px-5 pt-6 pb-8"><button type="button" onClick={onOrtga} className="flex items-center gap-2 mb-4"><ChevronLeft size={16}/> Muassasalar</button><div className="rounded-3xl border bg-white p-5"><span className="premium-eyebrow">ADMIN MARKAZI</span><h1 className="text-2xl font-black mt-1">Muassasa sozlamalari</h1><p className="text-sm mt-1" style={{ color: "#6F777B" }}>Muassasa turini tanlang. Har bir tur o‘z sozlamasiga ega; ma’lumotlar bir-biriga aralashmaydi.</p><div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">{types.map(([key, icon, title, text]) => <button key={key} onClick={() => setType(key)} className="text-left p-5 rounded-2xl border"><span className="text-2xl">{icon}</span><b className="block mt-2">{title}</b><small style={{ color: "#6F777B" }}>{text}</small></button>)}</div>{type && type !== "maktab" && <div className="mt-4 p-4 rounded-xl" style={{ background: "#FFF6E7", color: "#8A5A1C" }}>Bu muassasa turi uchun sozlama alohida yaratiladi. Hozir Maktab sozlamasi faol.</div>}</div></div>;
 }
@@ -2160,6 +2165,18 @@ function AdminMuassasalarTab({ token }) {
     { kalit: "markaz", nom: "O'quv markazlari", ikon: "🎓", izoh: "Mavjud markazlar ro'yxati va boshqaruvi" },
     { kalit: "universitet", nom: "Universitetlar", ikon: "🏛️", izoh: "Mavjud oliy ta'lim muassasalari" },
   ];
+
+  useEffect(() => registerPhoneBackHandler("admin-muassasalar-section", () => {
+    if (yangiOchiq) {
+      setYangiOchiq(false);
+      return true;
+    }
+    if (bolim) {
+      setBolim(null);
+      return true;
+    }
+    return false;
+  }, 90), [bolim, yangiOchiq]);
 
   const hamyonMaydoniOzgardi = (setter) => (event) => {
     setter(event.target.value);
@@ -3913,7 +3930,15 @@ function UniversitetlarBolimi({ token }) {
   };
 
   const universitetOch = (u) => { setTUniversitet(u); setHolat("fakultet"); formniTozala(); fakultetlarniYukla(u.id); };
-  const fakultetOch = (f) => { setTFakultet(f); setHolat("kafedra"); formniTozala(); yonalishlarniYukla(f.id); };
+  const fakultetOch = (f) => {
+    setTFakultet(f);
+    setHolat("fakultet");
+    formniTozala();
+    // Fakultetdan institut ish maydoniga to'g'ridan-to'g'ri kiriladi.
+    // `holat` ataylab "fakultet" bo'lib qoladi: institutdan qaytilganda
+    // foydalanuvchi aynan o'zi kirgan fakultetlar ro'yxatini ko'radi.
+    setWorkspaceUniversity({ ...tUniversitet, importFacultyId: f.id });
+  };
   const kafedraOch = (k) => { setTKafedra(k); setHolat("guruh"); formniTozala(); guruhlarniYukla(k.id); };
 
   const universitetSaqla = async () => {
@@ -3984,6 +4009,23 @@ function UniversitetlarBolimi({ token }) {
     else if (holat === "kafedra") { setHolat("fakultet"); formniTozala(); }
     else if (holat === "fakultet") { setHolat("universitet"); formniTozala(); universitetlarniYukla(); }
   };
+
+  useEffect(() => registerPhoneBackHandler("admin-universitetlar-tree", () => {
+    // Institut ish maydoni ochiq bo'lsa hodisani uning ichki handlerlariga
+    // beramiz. Uning onBack'i workspaceUniversity'ni yopib, shu komponent
+    // saqlab turgan fakultetlar ro'yxatiga qaytaradi.
+    if (workspaceUniversity) return false;
+    if (formOchiq) {
+      formniTozala();
+      return true;
+    }
+    if (holat !== "universitet") {
+      ortgaQaytish();
+      return true;
+    }
+    // Universitetlar ildizida Kabinet o'zining real tab tarixiga qaytadi.
+    return false;
+  }), [formOchiq, holat, workspaceUniversity]);
 
   if (workspaceUniversity) {
     return (
@@ -13235,19 +13277,45 @@ function Kabinet({ token, onSessionExpired }) {
   const [testDavomida, setTestDavomida] = useState(false);
   const [talimYoliTestNishoni, setTalimYoliTestNishoni] = useState(null);
   const [talimYoliDarsNishoni, setTalimYoliDarsNishoni] = useState(null);
+  const kabinetHistoryRef = useRef([]);
+  const kabinetBackInProgressRef = useRef(false);
 
-  const kabinetAsosiyTabi = foydalanuvchi?.is_admin
-    ? (adminKorinish === "admin" ? "admin" : adminKorinish === "oqituvchi" ? "oqituvchi" : adminKorinish === "ota-ona" ? "farzand" : "bilim")
-    : (foydalanuvchi?.role === "oqituvchi" ? "oqituvchi" : foydalanuvchi?.role === "ota-ona" ? "farzand" : "bilim");
+  useEffect(() => {
+    if (!tab) return;
+    if (kabinetBackInProgressRef.current) {
+      kabinetBackInProgressRef.current = false;
+      return;
+    }
+    const history = kabinetHistoryRef.current;
+    const last = history[history.length - 1];
+    if (
+      !last ||
+      last.tab !== tab ||
+      last.adminKorinish !== adminKorinish ||
+      last.oqituvchiBoshlanishKorinishi !== oqituvchiBoshlanishKorinishi
+    ) {
+      history.push({ tab, adminKorinish, oqituvchiBoshlanishKorinishi });
+    }
+  }, [adminKorinish, oqituvchiBoshlanishKorinishi, tab]);
+
+  const kabinetTarixdanQayt = useCallback(() => {
+    const history = kabinetHistoryRef.current;
+    if (history.length <= 1) return false;
+    history.pop();
+    const previous = history[history.length - 1];
+    kabinetBackInProgressRef.current = true;
+    setAdminKorinish(previous.adminKorinish);
+    setOqituvchiBoshlanishKorinishi(previous.oqituvchiBoshlanishKorinishi);
+    setTab(previous.tab);
+    return true;
+  }, []);
 
   useEffect(() => registerPhoneBackHandler("kabinet-tab", () => {
     // Test ketayotgan paytda tasodifiy telefon "orqaga" tugmasi testni
     // tashlab yubormaydi. Test o'zining To'xtatish/Yakunlash amali bilan yopiladi.
     if (testDavomida) return true;
-    if (!tab || !foydalanuvchi || tab === kabinetAsosiyTabi) return false;
-    setTab(kabinetAsosiyTabi);
-    return true;
-  }), [foydalanuvchi, kabinetAsosiyTabi, tab, testDavomida]);
+    return kabinetTarixdanQayt();
+  }), [kabinetTarixdanQayt, testDavomida]);
 
   useEffect(() => {
     async function yukla() {
@@ -13483,7 +13551,7 @@ function Kabinet({ token, onSessionExpired }) {
         <TeacherAnalyticsPanel
           token={token}
           initialWorkplace={birinchiMuassasa}
-          onBack={() => setTab("oqituvchi")}
+          onBack={() => { if (!kabinetTarixdanQayt()) setTab("oqituvchi"); }}
         />
       )}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
