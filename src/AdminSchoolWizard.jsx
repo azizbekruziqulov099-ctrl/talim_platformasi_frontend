@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+// Release: SAMTM-ADMIN-SCHOOL-WIZARD-V21.0-PLAN-SAFE
 const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
 const CLASS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({
@@ -20,8 +21,8 @@ const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
 });
 
 export function normalizeSchoolClassName(value) {
-  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ0-9]{1,6})$/u);
-  return match ? `${match[1]}-${match[2].toLocaleUpperCase("uz")}` : "";
+  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-z])$/);
+  return match ? `${match[1]}-${match[2].toUpperCase()}` : "";
 }
 
 function classNameOf(item) { return normalizeSchoolClassName(`${item.grade}-${item.letter}`); }
@@ -31,6 +32,41 @@ function roomPoolKey(buildingKey, roomNumber) {
 }
 function isTeachingRoom(room) {
   return Boolean(room) && room.darsga_yaroqli !== false && room.turi !== "non_teaching";
+}
+
+export function validateSchoolClassSequence(items, shiftCount) {
+  const rows = (items || []).map((item) => ({
+    item,
+    name: classNameOf(item),
+  }));
+  if (rows.some((row) => !row.name)) return "Sinf parallelini bitta lotin harfi bilan kiriting: A–Z";
+  if (new Set(rows.map((row) => row.name)).size !== rows.length) return "Bir xil sinf ikki marta kiritilgan";
+
+  const byGrade = new Map();
+  rows.forEach((row) => {
+    const [grade, letter] = row.name.split("-");
+    if (!byGrade.has(grade)) byGrade.set(grade, []);
+    byGrade.get(grade).push({ ...row, grade, letter, shift: Number(row.item.shift) });
+  });
+  for (const [grade, gradeRows] of [...byGrade.entries()].sort((a, b) => Number(a[0]) - Number(b[0]))) {
+    const ordered = [...gradeRows].sort((a, b) => a.letter.localeCompare(b.letter));
+    const expected = CLASS_LETTERS.slice(0, ordered.length);
+    const actual = ordered.map((row) => row.letter);
+    if (actual.some((letter, index) => letter !== expected[index])) {
+      return `${grade}-sinf parallellari A dan boshlab uzluksiz bo‘lishi kerak: ${expected.join(", ")}.`;
+    }
+    let secondShiftStarted = false;
+    for (const row of ordered) {
+      if (![1, 2].includes(row.shift) || (Number(shiftCount) === 1 && row.shift !== 1)) {
+        return `${row.name} uchun smena maktab sozlamasiga mos emas.`;
+      }
+      if (row.shift === 2) secondShiftStarted = true;
+      else if (secondShiftStarted) {
+        return `${grade}-sinfda avval 1-smena parallellari, keyin 2-smena parallellari kelishi kerak.`;
+      }
+    }
+  }
+  return "";
 }
 
 function generateRooms(building) {
@@ -113,6 +149,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [buildings, setBuildings] = useState([emptyBuilding(0)]);
   const [gradeConfig, setGradeConfig] = useState(DEFAULT_GRADE_CONFIG);
   const [classes, setClasses] = useState([]);
+  const [classesPlanDirty, setClassesPlanDirty] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -161,12 +198,16 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   };
   const validateClasses = () => {
     if (!classes.length) return "Kamida bitta haqiqiy sinf yarating";
-    const normalized = classes.map(classNameOf);
-    if (normalized.some((item) => !item)) return "Sinf darajasi va parallelini tanlang";
-    if (new Set(normalized).size !== normalized.length) return "Bir xil sinf ikki marta kiritilgan";
+    if (classesPlanDirty) {
+      return "Smena yoki parallel sonlari o‘zgargan. Yangilangan ro‘yxatni qo‘llash uchun ‘Sinflarni qayta hisoblash va yaratish’ tugmasini bosing.";
+    }
+    const sequenceError = validateSchoolClassSequence(classes, shiftCount);
+    if (sequenceError) return sequenceError;
     const occupiedRooms = new Map();
     for (const item of sortedClasses(classes)) {
-      if (item.roomNumber && !item.buildingKey) return `${classNameOf(item)} uchun binoni tanlang`;
+      if (Boolean(item.buildingKey) !== Boolean(item.roomNumber)) {
+        return `${classNameOf(item)} uchun bino va xona birga tanlanishi kerak yoki ikkalasi ham bo‘sh qoldirilishi kerak.`;
+      }
       if (item.buildingKey && !buildingByKey.has(item.buildingKey)) return `${classNameOf(item)} uchun tanlangan bino topilmadi`;
       if (!item.roomNumber) continue;
       const building = buildingByKey.get(item.buildingKey);
@@ -222,6 +263,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         [field]: Math.max(0, Math.min(maxCount, Number.parseInt(rawCount, 10) || 0)),
       };
     }));
+    setClassesPlanDirty(true);
     setError("");
   };
   const applyParallelPreset = (count) => {
@@ -231,6 +273,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       firstShiftCount: perShift,
       secondShiftCount: shiftCount === 2 ? perShift : 0,
     })));
+    setClassesPlanDirty(true);
     setError("");
     setNotice(shiftCount === 2
       ? `Har bir darajaga 1-smenada ${perShift} ta va 2-smenada ${perShift} ta parallel belgilandi.`
@@ -278,7 +321,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       });
     });
     const result = assignRooms(desired);
-    setClasses(result.items); setError("");
+    setClasses(result.items); setClassesPlanDirty(false); setError("");
     setNotice(result.unassigned
       ? `Xona yetmadi: ${result.unassigned} ta sinf xonasiz qoldi. Yangi o‘quv xonasi yarating yoki sinfni xonasiz saqlang.`
       : `Jami ${result.items.length} ta sinf yaratildi${roomPool.length ? " va har biriga alohida o‘quv xonasi biriktirildi" : ""}.`);
@@ -359,6 +402,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Tuman/shahar *<select value={district} onChange={(event) => setDistrict(event.target.value)} disabled={!region} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: region ? 1 : 0.55 }}><option value="">Tanlang</option>{((districtsByRegion || {})[region] || []).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       </div>
       <div><p className="text-xs font-semibold mb-1.5" style={{ color: "#5A5648" }}>Maktabdagi smena soni *</p><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} onClick={() => {
+        if (number === shiftCount) return;
         setShiftCount(number);
         setGradeConfig((current) => current.map((item) => number === 1 ? {
           ...item,
@@ -366,6 +410,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           secondShiftCount: 0,
         } : item));
         if (number === 1) setClasses((current) => current.map((item) => ({ ...item, shift: 1 })));
+        setClassesPlanDirty(true);
       }} className="py-2.5 rounded-xl border text-sm font-bold" style={shiftCount === number ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#E5E1D8" }}>{number} smenali</button>)}</div></div>
       <label className="text-xs font-semibold block" style={{ color: "#5A5648" }}>Direktor · ixtiyoriy<div className="mt-1.5"><PersonPicker token={token} apiBase={apiBase} value={director} onChange={setDirector} placeholder="Mavjud foydalanuvchidan direktor tanlang..." /></div></label>
       <div className="rounded-xl px-3.5 py-3 text-xs" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Admin yaratmoqda: platforma to‘lovi, balans va sinov muddati so‘ralmaydi.</div>
@@ -421,10 +466,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
             <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *<select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
-              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf harfi yoki belgisi *<input value={item.letter} maxLength={6} onChange={(event) => updateClass(item.key, { letter: event.target.value })} placeholder="A, Б, V yoki Z1" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<input value={item.letter} maxLength={1} pattern="[A-Za-z]" onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1).toUpperCase() })} placeholder="A, B yoki C" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
-              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
-              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · ixtiyoriy<select value={item.roomNumber} onChange={(event) => assignClassRoom(item, event.target.value)} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => {
+              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · xona bilan birga ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
+              {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · bino bilan birga ixtiyoriy<select value={item.roomNumber} onChange={(event) => assignClassRoom(item, event.target.value)} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => {
                 const owner = roomOwners.get(roomPoolKey(selectedBuilding.key, room.number));
                 const usedByAnotherClass = owner && owner.key !== item.key;
                 const unavailable = !isTeachingRoom(room) || usedByAnotherClass;
