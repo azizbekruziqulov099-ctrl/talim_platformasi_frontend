@@ -10017,7 +10017,7 @@ function MuassasaV17Markazi({ token, onBack, onWorkspaceOpen }) {
   );
 }
 
-function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
+function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
   const [togarakKvota, setTogarakKvota] = useState(null);
@@ -10035,6 +10035,8 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
   const [muassasalar, setMuassasalar] = useState([]);
   const [muassasalarYuklanmoqda, setMuassasalarYuklanmoqda] = useState(true);
   const [aktivMuassasaIdx, setAktivMuassasaIdx] = useState(0);
+  const mahalliyBirInstitutAvtoOchishRef = useRef(true);
+  const avtoOchishRef = birInstitutAvtoOchishRef || mahalliyBirInstitutAvtoOchishRef;
 
   // Pastki menyudan ("Maktabim"/"Bog'cham"/"Universitetim"/"Markazim")
   // to'g'ridan-to'g'ri kelgan bo'lsa — o'sha ekranga o'tamiz. "vaqt"
@@ -10169,6 +10171,25 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi }) {
       .catch(() => {})
       .finally(() => setMuassasalarYuklanmoqda(false));
   }, [token]);
+
+  // Kabinet birinchi marta ochilganda ulangan ish joylari to'liq kelishini
+  // kutamiz. Faqat yagona ish joyi institut bo'lsa uni bir marta avtomatik
+  // ochamiz. Guard natija kelishi bilan sarflanadi: foydalanuvchi shu orada
+  // boshqa ekran tanlasa yoki institutdan ortga qaytsa, effekt uni qayta
+  // ichkariga majburan kiritmaydi. Ref Kabinetda saqlangani uchun OqituvchiTab
+  // qayta mount bo'lsa ham bu bir martalik qoida takrorlanmaydi.
+  useEffect(() => {
+    if (muassasalarYuklanmoqda || !avtoOchishRef.current) return;
+    avtoOchishRef.current = false;
+    if (
+      foydalanuvchi?.is_admin
+      || korinish !== "togarak"
+      || muassasalar.length !== 1
+      || muassasalar[0]?.turi !== "universitet"
+    ) return;
+    setAktivMuassasaIdx(0);
+    setKorinish("institut_workspace");
+  }, [avtoOchishRef, foydalanuvchi?.is_admin, korinish, muassasalar, muassasalarYuklanmoqda]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/oqituvchi/mening_fanlarim?token=${encodeURIComponent(token)}`)
@@ -13279,6 +13300,7 @@ function Kabinet({ token, onSessionExpired }) {
   const [talimYoliDarsNishoni, setTalimYoliDarsNishoni] = useState(null);
   const kabinetHistoryRef = useRef([]);
   const kabinetBackInProgressRef = useRef(false);
+  const birInstitutAvtoOchishRef = useRef(true);
 
   useEffect(() => {
     if (!tab) return;
@@ -13545,7 +13567,12 @@ function Kabinet({ token, onSessionExpired }) {
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
-        <OqituvchiTab token={token} foydalanuvchi={foydalanuvchi} boshlanishKorinishi={oqituvchiBoshlanishKorinishi} />
+        <OqituvchiTab
+          token={token}
+          foydalanuvchi={foydalanuvchi}
+          boshlanishKorinishi={oqituvchiBoshlanishKorinishi}
+          birInstitutAvtoOchishRef={birInstitutAvtoOchishRef}
+        />
       )}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi_analitika" && (
         <TeacherAnalyticsPanel
