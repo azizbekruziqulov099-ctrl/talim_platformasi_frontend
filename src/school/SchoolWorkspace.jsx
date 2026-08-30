@@ -7173,13 +7173,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         return;
       }
       if (
-        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V21.8" ||
-        capability?.diagnostics_contract !== "exact-failure-v21.8" ||
+        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V21.9" ||
+        capability?.diagnostics_contract !== "exact-failure-v21.9" ||
         capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V21.8 feasibility-first backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
+          text: `Backend va frontend versiyasi bir xil emas. V21.9 strict-daily backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
         });
         return;
       }
@@ -7256,10 +7256,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const failureStatus = normalizeSolverStatusV215(structuredFailure || {});
       const exactFailure = ["UNKNOWN", "INFEASIBLE"].includes(failureStatus);
       const knownFailureCode = ["JADVALGA_SIGMADI", "HISOBLASH_VAQTI_TUGADI", "TOLIQ_VARIANT_TOPILMADI"].includes(structuredFailure?.code);
+      const validationFailure = structuredFailure?.asl_code === "JADVAL_MOSLIGI_XATOSI";
       if (structuredFailure && (exactFailure || knownFailureCode)) {
         setGenerationFailure({
           ...structuredFailure,
-          solver_status: exactFailure ? failureStatus : "UNKNOWN",
+          solver_status: validationFailure
+            ? "MODEL_INVALID"
+            : exactFailure ? failureStatus : "UNKNOWN",
         });
       }
       const searchUnknown = failureStatus === "UNKNOWN";
@@ -7272,9 +7275,11 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         if (recovered) return;
       }
       setMessage({
-        tone: searchUnknown || (failureStatus === "INFEASIBLE" && !provenInfeasible) ? "warning" : "error",
+        tone: !validationFailure && (searchUnknown || (failureStatus === "INFEASIBLE" && !provenInfeasible)) ? "warning" : "error",
         text: networkFailure
           ? "Backend javobi uzildi. Oldingi jadval o‘chirilmagan. Railway backendining deploy va healthcheck holatini tekshirib, yana bir marta yarating."
+          : validationFailure
+            ? "Generator to‘liq draft topdi, ammo yakuniy validator undan qat’iy qoida farqini topdi. Bu qidiruv timeouti emas; draft saqlanmadi."
           : searchUnknown
             ? "Qidiruv vaqti tugadi, ammo imkonsizlik isbotlanmadi. Yarim draft ko‘rsatilmaydi; qizil/BAND avtomatik ochilmadi."
             : provenInfeasible
@@ -7318,6 +7323,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const generationStatus = normalizeSolverStatusV215(generationFailure || {});
   const generationProofComplete = teacherWindowReportBooleanV211(generationFailure?.proof_complete, false);
   const generationInfeasible = generationStatus === "INFEASIBLE" && generationProofComplete;
+  const generationValidationFailed = generationStatus === "MODEL_INVALID" || generationFailure?.asl_code === "JADVAL_MOSLIGI_XATOSI";
   const generationUnknown = generationStatus === "UNKNOWN" || (generationStatus === "INFEASIBLE" && !generationProofComplete);
   const failureProblemSources = [
     generationFailure?.muammolar,
@@ -7350,11 +7356,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           raqam: 1,
           scope: "global",
           sinf: "Butun jadval",
-          fan: generationInfeasible ? "Global resurs ziddiyati" : "Qidiruv diagnostikasi",
+          fan: generationInfeasible ? "Global resurs ziddiyati" : generationValidationFailed ? "Yakuniy validator" : "Qidiruv diagnostikasi",
           sabablar: [{
-            sabab: generationInfeasible ? "global qattiq ziddiyat" : "qidiruv yakunlanmadi",
+            sabab: generationInfeasible ? "global qattiq ziddiyat" : generationValidationFailed ? "generator va validator kontrakti farqi" : "qidiruv yakunlanmadi",
             izoh: generationInfeasible
               ? "Solver to‘liq yechim yo‘qligini isbotladi, ammo eski backend aniq sabab kartasini yubormadi."
+              : generationValidationFailed
+                ? "To‘liq draft topildi, lekin yakuniy mustaqil tekshiruv uni qabul qilmadi."
               : "Qidiruv vaqt chegarasida tugadi; bu jadval imkonsiz degan isbot emas.",
             yechim: generationInfeasible
               ? "Faqat isbotlangan ziddiyatni tahrirlang; qizil/BAND vaqtni ochmang."
@@ -7365,8 +7373,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const recoverableSearchFailure = Boolean(
     generationUnknown || (!generationInfeasible && generationFailure?.qayta_urinish_mumkin)
   );
-  const failureAccent = generationInfeasible ? palette.red : palette.amber;
-  const failureBackground = generationInfeasible ? palette.redBg : palette.amberBg;
+  const failureAccent = generationInfeasible || generationValidationFailed ? palette.red : palette.amber;
+  const failureBackground = generationInfeasible || generationValidationFailed ? palette.redBg : palette.amberBg;
   const match = diagnostics.jadval_mosligi || {};
   const canApprove = Boolean(displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
@@ -7418,7 +7426,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     {generationFailure && <Card className="p-3.5" style={{ borderColor: failureAccent }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: failureAccent }}>{generationInfeasible ? "INFEASIBLE — QAT’IY ZIDDIYAT ISBOTLANDI" : "UNKNOWN — QIDIRUV TUGADI, IMKONSIZLIK ISBOTLANMADI"}</div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: failureAccent }}>{generationInfeasible ? "INFEASIBLE — QAT’IY ZIDDIYAT ISBOTLANDI" : generationValidationFailed ? "YAKUNIY VALIDATOR DRAFTNI RAD ETDI" : "UNKNOWN — QIDIRUV TUGADI, IMKONSIZLIK ISBOTLANMADI"}</div>
           <h3 className="text-base font-black" style={{ color: palette.ink }}>{generationFailure.message}</h3>
         </div>
         <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length} ta</span>
