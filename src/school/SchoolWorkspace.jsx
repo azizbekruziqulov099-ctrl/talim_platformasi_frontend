@@ -5493,8 +5493,8 @@ function TeacherWeeklySchedule({ detail, setup }) {
   const methodDayErrors = methodDayLessons.filter(slot => !isFixedClassHourLesson(slot));
   const methodDayExceptions = methodDayLessons.filter(isFixedClassHourLesson);
   const unavailableDayLessons = selectedSlots.filter(slot => teacherUnavailableDays.has(Number(slot.hafta_kuni)));
-  const unavailableDayErrors = unavailableDayLessons.filter(slot => !isFixedClassHourLesson(slot));
-  const unavailableDayExceptions = unavailableDayLessons.filter(isFixedClassHourLesson);
+  const unavailableDayErrors = unavailableDayLessons;
+  const unavailableDayExceptions = [];
   const gapProfiles = [1, 2].flatMap(shift => smartDays.slice(0, weekdays).map(([day, name]) => {
     const periods = [...new Set(selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift).map(slot => Number(slot.dars_raqami)))].sort((a, b) => a - b);
     return { shift, day, name, gap: periods.length > 1 ? periods[periods.length - 1] - periods[0] + 1 - periods.length : 0 };
@@ -5536,7 +5536,7 @@ function TeacherWeeklySchedule({ detail, setup }) {
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
         {preferredWorkDays && <span title={`${scheduleHourLabel(plannedWeeklyHours)} soat uchun avval ${preferredWorkDays} kun, faqat zaruratda ${fallbackWorkDays} kun ishlatiladi.`} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: activeDays <= preferredWorkDays ? palette.greenBg : activeDays <= fallbackWorkDays ? palette.amberBg : palette.redBg, color: activeDays <= preferredWorkDays ? palette.green : activeDays <= fallbackWorkDays ? palette.amber : palette.red }}>Kun maqsadi {preferredWorkDays} · amalda {activeDays}</span>}
         {!!teacherMethodDays.size && <span title="Metod kuni oddiy darslar uchun yopiq. Faqat administrator qat‘iy belgilagan KELAJAK SOATI qonuniy istisno." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: methodDayErrors.length ? palette.redBg : methodDayExceptions.length ? palette.amberBg : palette.greenBg, color: methodDayErrors.length ? palette.red : methodDayExceptions.length ? palette.amber : palette.green }}>{teacherMethodDays.size} metod kuni{methodDayErrors.length ? ` · XATO ${methodDayErrors.length} oddiy dars` : methodDayExceptions.length ? ` · ${methodDayExceptions.length} KELAJAK istisnosi` : " · yopiq"}</span>}
-        {!!teacherUnavailableDays.size && <span title="To‘liq qizil kun oddiy darslar uchun yopiq. Faqat qat‘iy KELAJAK SOATI istisno." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unavailableDayErrors.length ? palette.redBg : unavailableDayExceptions.length ? palette.amberBg : palette.sky, color: unavailableDayErrors.length ? palette.red : unavailableDayExceptions.length ? palette.amber : palette.blue }}>{teacherUnavailableDays.size} qizil kun{unavailableDayErrors.length ? ` · XATO ${unavailableDayErrors.length}` : unavailableDayExceptions.length ? ` · ${unavailableDayExceptions.length} KELAJAK istisnosi` : ""}</span>}
+        {!!teacherUnavailableDays.size && <span title="To‘liq qizil/BAND kun barcha darslar, jumladan KELAJAK SOATI uchun ham yopiq." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unavailableDayErrors.length ? palette.redBg : palette.sky, color: unavailableDayErrors.length ? palette.red : palette.blue }}>{teacherUnavailableDays.size} qizil kun{unavailableDayErrors.length ? ` · XATO ${unavailableDayErrors.length}` : ""}</span>}
         <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
         <span title={gapCount ? `${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}` : "Smena ichida bo‘sh dars yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}{gapShiftDays ? ` · ${gapShiftDays} kun` : ""}</span>
         <span title={unifiedGapCount ? `Ikki smena bitta ish kuni sifatida: jami ${scheduleDurationLabel(unifiedGapMinutes)} · ${unifiedDayGaps.filter(row => row.gaps.length).map(row => `${row.name}: ${row.gaps.map(scheduleDurationLabel).join(", ")}`).join("; ")}` : "1- va 2-smena birga hisoblanganda ortiqcha kutish yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unifiedMaxGap > 120 ? palette.redBg : unifiedMaxGap > 60 ? palette.amberBg : palette.greenBg, color: unifiedMaxGap > 120 ? palette.red : unifiedMaxGap > 60 ? palette.amber : palette.green }}>{unifiedGapCount ? `Kun bo‘shlig‘i ${unifiedGapCount} · max ${scheduleDurationLabel(unifiedMaxGap)}` : "Kun bo‘shlig‘i yo‘q"}</span>
@@ -5557,8 +5557,8 @@ function TeacherWeeklySchedule({ detail, setup }) {
               const methodDay = teacherMethodDays.get(Number(day));
               const unavailableDay = teacherUnavailableDays.get(Number(day));
               const cell = selectedSlots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.smena) === shift && Number(slot.dars_raqami) === period);
-              const ordinaryBlockedLessons = cell.filter(slot => !isFixedClassHourLesson(slot));
-              const fixedClassHours = cell.filter(isFixedClassHourLesson);
+              const ordinaryBlockedLessons = cell.filter(slot => Boolean(unavailableDay) || (Boolean(methodDay) && !isFixedClassHourLesson(slot)));
+              const fixedClassHours = cell.filter(slot => Boolean(methodDay) && !unavailableDay && isFixedClassHourLesson(slot));
               const blockedDay = Boolean(methodDay || unavailableDay);
               const cellBackground = ordinaryBlockedLessons.length
                 ? palette.redBg
@@ -5572,9 +5572,9 @@ function TeacherWeeklySchedule({ detail, setup }) {
                 : fixedClassHours.length ? "#E7C477" : palette.line;
               return <td key={day} className="align-top p-0"><div className="min-h-[32px] rounded-md border px-1 py-0.5 overflow-hidden" style={{ borderColor: cellBorder, background: cellBackground }}>
                 {!cell.length && blockedDay && <div className="text-[7px] font-black text-center pt-2" style={{ color: methodDay ? palette.amber : palette.blue }}>{methodDay ? "METOD" : "QIZIL"}</div>}
-                {cell.map(slot => <div key={slot.id} className="grid grid-cols-[auto_1fr] items-start gap-1 text-[9px] leading-[1.05] min-w-0" title={blockedDay && isFixedClassHourLesson(slot) ? "Qat‘iy KELAJAK SOATI: metod/to‘liq qizil kun uchun qonuniy istisno" : blockedDay ? "XATO: oddiy dars yopiq kunga tushgan" : ""}>
+                {cell.map(slot => <div key={slot.id} className="grid grid-cols-[auto_1fr] items-start gap-1 text-[9px] leading-[1.05] min-w-0" title={methodDay && !unavailableDay && isFixedClassHourLesson(slot) ? "Qat‘iy KELAJAK SOATI: faqat metod kuni uchun qonuniy istisno" : blockedDay ? "XATO: dars qizil/BAND yoki yopiq kunga tushgan" : ""}>
                   <span className="shrink-0 px-1 py-0.5 rounded font-black" style={{ background: slot.guruh_kaliti !== "whole" ? palette.greenBg : "#fff", color: slot.guruh_kaliti !== "whole" ? palette.green : palette.ink }}>{slot.sinf}-{slot.harf}{slot.guruh_kaliti !== "whole" ? ` · ${scheduleGroupShortLabel(slot.guruh_kaliti)}` : ""}{slot.hafta_turi && slot.hafta_turi !== "har_hafta" ? ` · ${slot.hafta_turi === "toq" ? "T" : "J"}` : ""}</span>
-                  <span className="font-black" title={`${slot.sinf}-${slot.harf} · ${subjectDisplayNameV201(slot.fan_nomi)}`} style={{ color: ordinaryBlockedLessons.includes(slot) ? palette.red : fixedClassHours.includes(slot) ? palette.amber : palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{subjectDisplayNameV201(slot.fan_nomi)}{blockedDay && isFixedClassHourLesson(slot) ? " · ISTISNO" : ""}</span>
+                  <span className="font-black" title={`${slot.sinf}-${slot.harf} · ${subjectDisplayNameV201(slot.fan_nomi)}`} style={{ color: ordinaryBlockedLessons.includes(slot) ? palette.red : fixedClassHours.includes(slot) ? palette.amber : palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{subjectDisplayNameV201(slot.fan_nomi)}{methodDay && !unavailableDay && isFixedClassHourLesson(slot) ? " · ISTISNO" : ""}</span>
                 </div>)}
               </div></td>;
             })}
@@ -6688,11 +6688,12 @@ function methodExceptionRecommendationsV215(failure) {
 
 function MethodDayExceptionRecommendationsV215({ failure }) {
   const recommendations = methodExceptionRecommendationsV215(failure);
-  if (!recommendations.length) return null;
+  const analysisText = String(failure?.metod_kuni_tavsiya_izohi || "").trim();
+  if (!recommendations.length && !analysisText) return null;
   return <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "#E1C16E", background: "#FFFCF2" }}>
-    <div className="text-xs font-black uppercase tracking-[.1em]" style={{ color: palette.amber }}>Ixtiyoriy metod-kuni istisnolari</div>
+    <div className="text-xs font-black uppercase tracking-[.1em]" style={{ color: palette.amber }}>{recommendations.length ? "Ixtiyoriy metod-kuni istisnolari" : "Metod-kuni bo‘yicha alohida tekshiruv"}</div>
     <div className="mt-1 text-[11px] leading-relaxed font-bold" style={{ color: palette.ink }}>
-      Qizil/BAND vaqt hech qachon ochilmaydi. Quyidagi 1–2 soatlik metod-kuni tavsiyalari avtomatik qo‘llanmagan; faqat administrator tekshirib, qo‘lda tasdiqlashi mumkin.
+      {analysisText || "Qizil/BAND vaqt hech qachon ochilmaydi. Quyidagi 1–2 soatlik metod-kuni tavsiyalari avtomatik qo‘llanmagan; faqat administrator tekshirib, qo‘lda tasdiqlashi mumkin."}
     </div>
     <div className="mt-2 space-y-2">
       {recommendations.map((row, index) => <div key={`method-exception-${row?.oqituvchi_id ?? "x"}-${row?.kun ?? "x"}-${row?.dars ?? index}`} className="rounded-xl border bg-white p-2.5" style={{ borderColor: palette.line }}>
@@ -7171,6 +7172,16 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         });
         return;
       }
+      if (
+        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V21.7" ||
+        capability?.diagnostics_contract !== "exact-failure-v21.7"
+      ) {
+        setMessage({
+          tone: "error",
+          text: `Backend va frontend versiyasi bir xil emas. V21.7 backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
+        });
+        return;
+      }
       if (capability?.exact_engine_ready !== true) {
         setMessage({
           tone: "error",
@@ -7303,16 +7314,50 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const teacherWindowReport = diagnostics.oqituvchi_okno_hisoboti || null;
   const problems = diagnostics.muammolar || [];
   const warnings = diagnostics.ogohlantirishlar || [];
-  const rawFailureProblems = generationFailure?.muammolar || generationFailure?.ziddiyatlar || generationFailure?.conflicts || [];
-  const failureProblems = (Array.isArray(rawFailureProblems) ? rawFailureProblems : []).map((problem, index) =>
-    typeof problem === "string"
-      ? { raqam: index + 1, sinf: "Qoida", fan: "Ziddiyat", sabablar: [{ sabab: problem, izoh: problem }] }
-      : problem
-  );
   const generationStatus = normalizeSolverStatusV215(generationFailure || {});
   const generationProofComplete = teacherWindowReportBooleanV211(generationFailure?.proof_complete, false);
   const generationInfeasible = generationStatus === "INFEASIBLE" && generationProofComplete;
   const generationUnknown = generationStatus === "UNKNOWN" || (generationStatus === "INFEASIBLE" && !generationProofComplete);
+  const failureProblemSources = [
+    generationFailure?.muammolar,
+    generationFailure?.ziddiyatlar,
+    generationFailure?.conflicts,
+    generationFailure?.diagnostika?.muammolar,
+    generationFailure?.diagnostika?.empty_domains,
+    generationFailure?.diagnostika?.hard_conflicts,
+  ];
+  const rawFailureProblems = failureProblemSources.find(source => Array.isArray(source) && source.length) || [];
+  const normalizedFailureProblems = rawFailureProblems.map((problem, index) => {
+    if (typeof problem === "string") {
+      return { raqam: index + 1, sinf: "Qoida", fan: "Ziddiyat", sabablar: [{ sabab: problem, izoh: problem }] };
+    }
+    const row = problem && typeof problem === "object" ? problem : {};
+    if (Array.isArray(row.sabablar) && row.sabablar.length) return row;
+    const detailText = String(row.message || row.izoh || row.sabab || "Qattiq resurs ziddiyati aniqlandi.");
+    return {
+      ...row,
+      raqam: row.raqam || index + 1,
+      sinf: row.sinf || row.class_name || "Butun jadval",
+      fan: row.fan || row.kind || "Diagnostika",
+      sabablar: [{ sabab: row.kind || "diagnostika", izoh: detailText, yechim: row.solution || row.yechim }],
+    };
+  });
+  const failureProblems = normalizedFailureProblems.length
+    ? normalizedFailureProblems
+    : generationFailure
+      ? [{
+          raqam: 1,
+          sinf: "Butun jadval",
+          fan: generationInfeasible ? "Global resurs ziddiyati" : "Qidiruv diagnostikasi",
+          sabablar: [{
+            sabab: generationInfeasible ? "global qattiq ziddiyat" : "qidiruv yakunlanmadi",
+            izoh: generationInfeasible
+              ? "Solver to‘liq yechim yo‘qligini isbotladi, ammo eski backend aniq sabab kartasini yubormadi."
+              : "Qidiruv vaqt chegarasida tugadi; bu jadval imkonsiz degan isbot emas.",
+            yechim: "Backend va frontendning V21.7 paketini birga deploy qiling.",
+          }],
+        }]
+      : [];
   const recoverableSearchFailure = Boolean(
     generationUnknown || (!generationInfeasible && generationFailure?.qayta_urinish_mumkin)
   );
@@ -7351,7 +7396,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="text-[10px] leading-relaxed mt-1" style={{ color: palette.ink }}>{ONE_GENERATOR_POLICY_V210.izoh}</div>
         <div className="text-[10px] font-bold mt-2" style={{ color: palette.teal }}>Avval aniq darslar va cheklangan o‘qituvchilar, keyin asosiy fanlar 1–5-darsga, undan so‘ng qolgan yuklama joylashtiriladi; 6-dars asosiy fan uchun faqat zaxira va haftasiga ko‘pi bilan 2 kun.</div>
       </div>
-      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Qizil/BAND vaqt oddiy darslar uchun qat’iy yopiq. Faqat administrator oldindan aniq kun-soatga biriktirgan Kelajak/Sinf soati o‘z sinf rahbari bilan maxsus istisno; boshqa hech bir fan qizilga qo‘yilmaydi. Zarur bo‘lsa metod kunining 1–2 aniq soati bo‘yicha tavsiya beriladi va u avtomatik qo‘llanmaydi.</div>
+      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Qizil/BAND vaqt barcha darslar uchun qat’iy yopiq. Administrator oldindan aniq kun-soatga biriktirgan Kelajak/Sinf soati faqat o‘z rahbarining metod kunidan maxsus o‘tishi mumkin; qizil vaqtni u ham buzmaydi. Zarur bo‘lsa boshqa o‘qituvchilar uchun metod kunining 1–2 aniq soati bo‘yicha tavsiya beriladi va u avtomatik qo‘llanmaydi.</div>
 
       <div className="grid grid-cols-4 gap-1.5 mt-2.5">
         <CompactStat value={preflight?.tayyor ? "Tekshirildi" : preflight ? "Xato" : "…"} label="manba holati" tone={preflight?.tayyor ? "green" : "amber"}/>
@@ -7375,7 +7420,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length} ta</span>
       </div>
       {recoverableSearchFailure && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Bu holat jadval imkonsizligini isbotlamaydi. Yarim draft yashirildi, oldingi tasdiqlangan jadval saqlandi va qizil/BAND vaqt ochilmadi.</div>}
-      {generationInfeasible && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.redBg, color: palette.red }}>Exact solver qattiq qoidalar ichida to‘liq yechim yo‘qligini isbotladi. Faqat pastdagi isbotlangan ziddiyatni tahrirlang; qizil/BAND vaqt avtomatik yumshatilmaydi.</div>}
+      {generationInfeasible && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.redBg, color: palette.red }}>Exact solver xavfsizlik qoidalari ichida to‘liq yechim yo‘qligini isbotladi. Pastda kamida bitta aniq sig‘im yoki global resurs ziddiyati doim ko‘rsatiladi; qizil/BAND vaqt avtomatik yumshatilmaydi.</div>}
       {(generationInfeasible || generationUnknown) && <MethodDayExceptionRecommendationsV215 failure={generationFailure}/>} 
       <div className="mt-3 space-y-2">
         {failureProblems.map((problem, index) => {
@@ -7390,13 +7435,17 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
               ? teacher
               : teacher?.full_name || teacher?.oqituvchi_ismi || teacher?.user_id || "o‘qituvchi"
             ).join(", ")
-            : problem.fan === "Sinf jadvalidagi ichki bo‘shliq" || problem.fan === "Jadval mosligi"
+            : problem.fan === "Sinf jadvalidagi ichki bo‘shliq" || problem.fan === "Jadval mosligi" || problem.fan === "Haftalik sig'im" || problem.fan === "Global resurs ziddiyati" || problem.fan === "Qat'iy vaqt to'qnashuvi"
               ? "o‘qituvchi bilan bog‘liq emas"
               : "o‘qituvchi biriktirilmagan";
+          const proof = problem.isbot || {};
+          const proofText = proof.required_lessons != null && proof.available_lessons != null
+            ? `${proof.required_lessons} ta majburiy dars / ${proof.available_lessons} ta legal sig‘im${proof.shortage ? ` · ${proof.shortage} ta yetishmaydi` : ""}`
+            : null;
           return <div key={`failure-${problem.raqam || index}`} className="rounded-xl border p-3" style={{ background: "#fff", borderColor: "#E9B5B5" }}>
-            <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} sinf · {problem.fan}</div>
+            <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sarlavha || `${problem.sinf} sinf · ${problem.fan}`}</div>
             <div className="mt-2 grid md:grid-cols-3 gap-2 text-[11px] leading-snug">
-              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>Nima joylashmadi?</b><br/>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</div>
+              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>Nima ziddiyat qildi?</b><br/>{proofText || <>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</>}</div>
               <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>{recoverableSearchFailure ? "Qidiruvda qaysi kataklar band ko‘rindi?" : "Qaysi to‘siqlar ko‘p uchradi?"}</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? ` · ${reason.rad_etilgan_katak_soni} ta katak` : ""}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
               <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>{recoverableSearchFailure ? "Administrator nima qiladi?" : "Nima qilish kerak?"}</b><br/>{recoverableSearchFailure ? "Hozircha qoidani tahrirlamang. ‘Sinf band’ yoki ‘o‘qituvchi band’ — joriy joylashuv simptomi; u qaysi qoidani yumshatish kerakligini isbotlamaydi." : safeExactSolution}</div>
             </div>
