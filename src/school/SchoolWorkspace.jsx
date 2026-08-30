@@ -7173,12 +7173,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         return;
       }
       if (
-        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V21.7" ||
-        capability?.diagnostics_contract !== "exact-failure-v21.7"
+        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V21.8" ||
+        capability?.diagnostics_contract !== "exact-failure-v21.8" ||
+        capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V21.7 backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
+          text: `Backend va frontend versiyasi bir xil emas. V21.8 feasibility-first backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
         });
         return;
       }
@@ -7198,7 +7199,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi.${exactErrors ? ` ${exactErrors}.` : ""} O‘quv yili, xona, sinf rahbari va Kelajak soati hali belgilanmagani jadvalni bloklamaydi — ularni keyin tahrirlash mumkin.` });
         return;
       }
-      setGenerationPhase("completion");
+      setGenerationPhase("calculating");
       const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
@@ -7347,6 +7348,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     : generationFailure
       ? [{
           raqam: 1,
+          scope: "global",
           sinf: "Butun jadval",
           fan: generationInfeasible ? "Global resurs ziddiyati" : "Qidiruv diagnostikasi",
           sabablar: [{
@@ -7354,7 +7356,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
             izoh: generationInfeasible
               ? "Solver to‘liq yechim yo‘qligini isbotladi, ammo eski backend aniq sabab kartasini yubormadi."
               : "Qidiruv vaqt chegarasida tugadi; bu jadval imkonsiz degan isbot emas.",
-            yechim: "Backend va frontendning V21.7 paketini birga deploy qiling.",
+            yechim: generationInfeasible
+              ? "Faqat isbotlangan ziddiyatni tahrirlang; qizil/BAND vaqtni ochmang."
+              : "Qoidani o‘zgartirmang. Feasibility-first qidiruvni qayta boshlang yoki server qidiruv vaqtini uzaytiring.",
           }],
         }]
       : [];
@@ -7426,6 +7430,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         {failureProblems.map((problem, index) => {
           const reasons = problem.sabablar || [];
           const mainReason = reasons[0] || {};
+          const globalProblem = problem.scope === "global" || (
+            generationUnknown && problem.sinf === "Butun jadval"
+          );
           const proposedSolution = String(mainReason.yechim || "").trim();
           const safeExactSolution = /qizil|band/i.test(proposedSolution)
             ? "Isbotlangan fan, smena yoki yuklama ziddiyatini tahrirlang; qizil/BAND vaqtni ochmang. Metod kuni uchun foydali aniq katak bo‘lsa, u yuqorida alohida tavsiya qilinadi."
@@ -7445,7 +7452,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           return <div key={`failure-${problem.raqam || index}`} className="rounded-xl border p-3" style={{ background: "#fff", borderColor: "#E9B5B5" }}>
             <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sarlavha || `${problem.sinf} sinf · ${problem.fan}`}</div>
             <div className="mt-2 grid md:grid-cols-3 gap-2 text-[11px] leading-snug">
-              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>Nima ziddiyat qildi?</b><br/>{proofText || <>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</>}</div>
+              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>{globalProblem ? "Qidiruv holati" : "Nima ziddiyat qildi?"}</b><br/>{globalProblem ? (mainReason.izoh || generationFailure?.message || "Butun jadval bo‘yicha qidiruv vaqt chegarasida tugadi.") : proofText || <>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</>}</div>
               <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>{recoverableSearchFailure ? "Qidiruvda qaysi kataklar band ko‘rindi?" : "Qaysi to‘siqlar ko‘p uchradi?"}</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? ` · ${reason.rad_etilgan_katak_soni} ta katak` : ""}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
               <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>{recoverableSearchFailure ? "Administrator nima qiladi?" : "Nima qilish kerak?"}</b><br/>{recoverableSearchFailure ? "Hozircha qoidani tahrirlamang. ‘Sinf band’ yoki ‘o‘qituvchi band’ — joriy joylashuv simptomi; u qaysi qoidani yumshatish kerakligini isbotlamaydi." : safeExactSolution}</div>
             </div>
