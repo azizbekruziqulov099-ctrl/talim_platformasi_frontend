@@ -4738,9 +4738,6 @@ function TeacherFirstLoadEditorV192({
 
       <div className="grid xl:grid-cols-[380px_minmax(0,1fr)] gap-3 mt-4 items-start">
         <div id="teacher-selector-panel" className="rounded-2xl p-3 border xl:sticky xl:top-3" style={{ background: palette.cream, borderColor: fieldIsInvalidV199("teacher-selector-panel") ? palette.red : "transparent" }}>
-          {!creatingNew && <button onClick={startNewTeacher} className="w-full px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
-            + Yangi o‘qituvchini qo‘lda kiritish
-          </button>}
           {creatingNew ? <div id="new-teacher-form" className="grid grid-cols-2 gap-2 scroll-mt-4">
             <div className="col-span-2">
               <div className="text-sm font-black" style={{ color: palette.ink }}>Yangi o‘qituvchi</div>
