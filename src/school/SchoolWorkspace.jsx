@@ -6541,7 +6541,8 @@ const ONE_GENERATOR_POLICY_V210 = {
 const GENERATION_PHASES_V210 = {
   capability: { title: "Generatorni tekshiryapman", text: "Backendda yagona kuchli generator yoqilganini tekshiryapman." },
   preflight: { title: "Manbalarni tekshiryapman", text: "Fan–sinf–o‘qituvchi birikmalari va qat’iy vaqt qoidalari solishtirilmoqda." },
-  calculating: { title: "Jadval hisoblanmoqda", text: "Avval to‘liq va to‘qnashuvsiz variant qidirilmoqda; oyna va pedagogik qulaylik keyin ball bilan yaxshilanadi." },
+  calculating: { title: "To‘liq variant qidirilmoqda", text: "Barcha majburiy darslar qizil va metod vaqtini, smena hamda parallellik qoidalarini buzmasdan joylashtirilmoqda." },
+  completion: { title: "Qolgan darslar qayta joylashtirilmoqda", text: "Generator oldin qo‘yilgan darslarni xavfsiz ko‘chirib, qolgan yuklamani sig‘diradi; faqat yumshoq qulaylik mezonlari keyin yaxshilanadi." },
   loading: { title: "Natijani yuklayapman", text: "Yaratilgan draft, sinf jadvallari va o‘qituvchi haftalik jadvallari olinmoqda." },
   recovery: { title: "Backend natijasini kutyapman", text: "Aloqa uzilgan bo‘lishi mumkin; saqlangan yangi draft xavfsiz tarzda qidirilmoqda." },
 };
@@ -6570,7 +6571,7 @@ function ScheduleRobotProgressV201({ phase, setup }) {
       <div className="grid grid-cols-3 gap-1.5 mt-3">
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.greenBg }}><div className="text-[11px] font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>sinf manbasi</div></div>
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.sky }}><div className="text-[11px] font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>o‘qituvchi manbasi</div></div>
-        <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.amber }}>4 gacha</div><div className="text-[8px]" style={{ color: palette.muted }}>ichki urinish</div></div>
+        <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.amber }}>Avtomatik</div><div className="text-[8px]" style={{ color: palette.muted }}>qayta joylash</div></div>
       </div>
       <div className="mt-2 flex items-center gap-1 text-[9px] font-bold" style={{ color: palette.muted }}><span className="animate-bounce">●</span><span className="animate-bounce" style={{ animationDelay: "120ms" }}>●</span><span className="animate-bounce" style={{ animationDelay: "240ms" }}>●</span><span className="ml-1">Oynani yopmang. Eski tasdiqlangan jadval yangi natija tayyor bo‘lguncha saqlanadi.</span></div>
     </div>
@@ -7030,6 +7031,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setGenerationPhase("capability");
     setMessage(null);
     setGenerationFailure(null);
+    setResultWindowOpen(false);
     try {
       const capability = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/soat_imkoniyatlari`);
       if (capability?.single_generator !== true) {
@@ -7048,21 +7050,25 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi.${exactErrors ? ` ${exactErrors}.` : ""} O‘quv yili, xona, sinf rahbari va Kelajak soati hali belgilanmagani jadvalni bloklamaydi — ularni keyin tahrirlash mumkin.` });
         return;
       }
-      setGenerationPhase("calculating");
+      setGenerationPhase("completion");
       const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        // qidiruv_nonce bir xil manbada qayta bosilganda boshqa legal tartibni
-        // ko‘radi; qat’iy qoidalar va mustaqil validator o‘zgarmaydi.
-        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 4, generator_rejimi: 1, qidiruv_nonce: Date.now() }),
+        // Backend bitta bosishda deterministik completion va mustaqil
+        // validatorni bajaradi. Tasodifiy nonce bir xil manbaning ishlagan
+        // natijasini keyingi bosishda o'zgartirib yubormasligi kerak.
+        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 4, generator_rejimi: 1 }),
       });
       setGenerationPhase("loading");
       const match = data.moslik?.xulosa || {};
+      const completionCount = Number(
+        data?.diagnostika?.avtomatik_qayta_joylashtirish?.qoldiq || 0
+      );
       setGenerationFailure(null);
       setMessage({
         tone: data.tasdiqlash_mumkin ? "success" : "warning",
         text: data.tasdiqlash_mumkin
-          ? `Jadval 100% mos yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat. Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}.`
+          ? `Jadval 100% mos yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat.${completionCount ? ` ${completionCount} ta qolgan dars avtomatik zanjirli qayta joylashtirildi.` : ""} Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}.`
           : `Draft yaratildi, lekin tasdiqlanmaydi: ${data.joylashtirildi}/${data.jami_soat} soat. Diagnostikadagi farqlarni tuzating.`,
       });
       await reload();
@@ -7123,6 +7129,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const warnings = diagnostics.ogohlantirishlar || [];
   const failureProblems = generationFailure?.muammolar || [];
   const generationUnknown = generationFailure?.solver_status === "UNKNOWN";
+  const recoverableSearchFailure = Boolean(
+    generationUnknown || generationFailure?.qayta_urinish_mumkin
+  );
   const failureAccent = generationUnknown ? palette.amber : palette.red;
   const failureBackground = generationUnknown ? palette.amberBg : palette.redBg;
   const match = diagnostics.jadval_mosligi || {};
@@ -7145,10 +7154,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>BITTA TUGMA</div>
           <h2 className="text-lg font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Manba tekshiriladi; yagona generator eng ko‘pi 4 xil global tartibda avval barcha darsni sig‘dirishga urinadi. To‘liq yechim topilgach qulaylik yaxshilanadi. Guruh xonasi yozilmagan bo‘lsa jadval “Xona yo‘q” bilan yaratiladi.</p>
+          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Manba tekshiriladi; yagona generator avval barcha darsni qattiq qoidalar ichida sig‘diradi, zarur bo‘lsa oldingi darslarni avtomatik qayta joylashtiradi. To‘liq yechim topilgach qulaylik yaxshilanadi. Guruh xonasi yozilmagan bo‘lsa jadval “Xona yo‘q” bilan yaratiladi.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {detail && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani katta oynada ko‘rish</button>}
+          {detail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani katta oynada ko‘rish</button>}
           <button onClick={generate} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2" style={{ background: generating ? "linear-gradient(90deg,#0F7C82,#155A7A)" : palette.blue, boxShadow: generating ? "0 0 0 4px rgba(15,124,130,.14)" : "none", cursor: generating || checking ? "wait" : "pointer" }}><WandSparkles size={15} className={generating ? "animate-pulse" : ""}/>{generating ? (GENERATION_PHASES_V210[generationPhase]?.title || "Jadval hisoblanmoqda") : "Dars jadvalini yaratish"}</button>
         </div>
       </div>
@@ -7171,7 +7180,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       {preflight?.tayyor && <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={{ background: palette.greenBg, color: palette.green }}>Manba xatolari topilmadi · bu global yechim topilganini hali anglatmaydi; generator va validator keyingi bosqichda tekshiradi.</div>}
     </Card>
 
-    {detail && teacherWindowReport && <TeacherWindowSummaryV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
+    {detail && !generationFailure && teacherWindowReport && <TeacherWindowSummaryV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
 
     {generationFailure && <Card className="p-3.5" style={{ borderColor: failureAccent }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -7181,6 +7190,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         </div>
         <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length} ta</span>
       </div>
+      {recoverableSearchFailure && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Bu ro‘yxat manba xatolari yoki imkonsizlik isboti emas — completion qidiruvi vaqt chegarasida tugamagan paytdagi bandliklar. Qizil/metod vaqtini ochmang va sinf sig‘imini taxmin bilan o‘zgartirmang.</div>}
       <div className="mt-3 space-y-2">
         {failureProblems.map((problem, index) => {
           const reasons = problem.sabablar || [];
@@ -7197,15 +7207,20 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
             <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} sinf · {problem.fan}</div>
             <div className="mt-2 grid md:grid-cols-3 gap-2 text-[11px] leading-snug">
               <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>Nima joylashmadi?</b><br/>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</div>
-              <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>Qaysi to‘siqlar ko‘p uchradi?</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? ` · ${reason.rad_etilgan_katak_soni} ta katak` : ""}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
-              <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>Nima qilish kerak?</b><br/>{mainReason.yechim || "O‘qituvchining qizil vaqtini, aniq darslar to‘qnashuvini yoki sinfning haftalik sig‘imini tekshiring."}</div>
+              <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>{recoverableSearchFailure ? "Qidiruvda qaysi kataklar band ko‘rindi?" : "Qaysi to‘siqlar ko‘p uchradi?"}</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? ` · ${reason.rad_etilgan_katak_soni} ta katak` : ""}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
+              <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>{recoverableSearchFailure ? "Administrator nima qiladi?" : "Nima qilish kerak?"}</b><br/>{recoverableSearchFailure ? "Hozircha qoidani tahrirlamang. ‘Sinf band’ yoki ‘o‘qituvchi band’ — joriy joylashuv simptomi; u qaysi qoidani yumshatish kerakligini isbotlamaydi." : mainReason.yechim || "O‘qituvchining qizil vaqtini, aniq darslar to‘qnashuvini yoki sinfning haftalik sig‘imini tekshiring."}</div>
             </div>
           </div>;
         })}
       </div>
     </Card>}
 
-    <div className="grid lg:grid-cols-[.9fr_1.1fr] gap-3">
+    {generationFailure && detail && <Card className="p-3.5" style={{ background: palette.cream }}>
+      <div className="text-xs font-black" style={{ color: palette.ink }}>Oldingi saqlangan jadval #{detail?.urinish?.id}</div>
+      <div className="text-[11px] leading-relaxed mt-1" style={{ color: palette.muted }}>Bu jadval yangi qidiruv natijasi emas. U o‘chirilmagan, lekin yangi hisoblash muvaffaqiyatli tugamaguncha pastdagi natija va tasdiqlash oynalari ataylab yashirildi.</div>
+    </Card>}
+
+    {!generationFailure && <div className="grid lg:grid-cols-[.9fr_1.1fr] gap-3">
       <Card className="p-3.5">
         <h2 className="text-base font-black leading-tight" style={{ color: palette.ink }}>Yaratilgan jadval va tasdiqlash</h2>
         <p className="text-[10px] leading-tight mt-0.5" style={{ color: palette.muted }}>Eski jadval yangi draft 100% mos tasdiqlanmaguncha saqlanadi.</p>
@@ -7239,10 +7254,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">Sinf, fan va o‘qituvchi soatlari 100% mos.</SmartNotice>}
         </div>
       </Card>
-    </div>
+    </div>}
 
-    {detail && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
-    {detail && <SmartSwapPanelV192
+    {detail && !generationFailure && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
+    {detail && !generationFailure && <SmartSwapPanelV192
       token={token}
       apiBase={apiBase}
       maktabId={maktabId}
