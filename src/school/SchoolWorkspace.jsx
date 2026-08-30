@@ -6528,8 +6528,8 @@ const ONE_GENERATOR_POLICY_V210 = {
   nomi: "Yagona kuchli generator",
   izoh: "Avval barcha majburiy darsni qattiq qoidalar ichida sig‘diradi; keyin oyna, fan vaqti va kun taqsimotini yaxshilaydi. Asosiy fanlar 1–5-darsda, faqat zaruratda 6-darsda turadi.",
   qoidalar: [
-    "KELAJAK SOATI va boshqa aniq mashg‘ulotlar tanlangan kun-darsga avval qo‘yiladi. Administrator saqlagan qizil/BAND katak generator tomonidan ochilmaydi; metod kunidan 1–2 aniq soat istisnosi zarur bo‘lsa, u faqat tavsiya qilinadi.",
-    "Qizil vaqti 20 foizdan ko‘p o‘qituvchilarning darslari qolgan yuklamadan oldin joylashtiriladi; metod kuni yopiq qoladi.",
+    "KELAJAK SOATI va boshqa aniq mashg‘ulotlar tanlangan kun-darsga avval qo‘yiladi. Administrator saqlagan qizil/BAND katak hech qachon ochilmaydi. Qat’iy jadval isbotlangan tarzda sig‘masa, faqat 1–4-sinf o‘qituvchisi uchun Shanbadan boshqa metod kunidagi ko‘pi bilan 2 aniq katak ikkinchi exact modelda tekshiriladi.",
+    "Qizil vaqti 20 foizdan ko‘p o‘qituvchilarning darslari qolgan yuklamadan oldin joylashtiriladi. Metod kuni qat’iy yopiq; faqat to‘liq jadvalni bergan va yakuniy validator tasdiqlagan boshlang‘ich sinf istisnosi avtomatik qo‘llanishi mumkin.",
     "Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi; boshqa legal katak qolmasa 6-darsga tushadi, lekin har bir sinfda haftasiga ko‘pi bilan 2 kun. J/T va texnologiya iloji boricha 3–6-darslarda joylashadi.",
     "Sinfda ichki okno bo‘lmaydi; o‘qituvchi kunlari ixcham qilinadi va uzoq kutish imkon qadar kamaytiriladi.",
     "Haftasiga 2 soat darsi bor bir smenali o‘qituvchi uchun 1-dars va smenaning oxirgi darsi imkon qadar tanlanmaydi.",
@@ -6539,18 +6539,43 @@ const ONE_GENERATOR_POLICY_V210 = {
 };
 
 const GENERATION_PHASES_V210 = {
-  capability: { title: "Generatorni tekshiryapman", text: "Backendda yagona kuchli generator yoqilganini tekshiryapman." },
-  preflight: { title: "Manbalarni tekshiryapman", text: "Fan–sinf–o‘qituvchi birikmalari va qat’iy vaqt qoidalari solishtirilmoqda." },
-  calculating: { title: "To‘liq variant qidirilmoqda", text: "Barcha majburiy darslar qizil va metod vaqtini, smena hamda parallellik qoidalarini buzmasdan joylashtirilmoqda." },
-  completion: { title: "Qolgan darslar qayta joylashtirilmoqda", text: "Generator oldin qo‘yilgan darslarni xavfsiz ko‘chirib, qolgan yuklamani sig‘diradi; faqat yumshoq qulaylik mezonlari keyin yaxshilanadi." },
-  loading: { title: "Natijani yuklayapman", text: "Yaratilgan draft, sinf jadvallari va o‘qituvchi haftalik jadvallari olinmoqda." },
-  recovery: { title: "Backend natijasini kutyapman", text: "Aloqa uzilgan bo‘lishi mumkin; saqlangan yangi draft xavfsiz tarzda qidirilmoqda." },
+  capability: { title: "Generatorni tekshiryapman" },
+  preflight: { title: "Manbalarni tekshiryapman" },
+  calculating: { title: "To‘liq variant qidirilmoqda" },
+  completion: { title: "Qolgan darslar qayta joylashtirilmoqda" },
+  loading: { title: "Natijani yuklayapman" },
+  recovery: { title: "Backend natijasini kutyapman" },
 };
 
-function ScheduleRobotProgressV201({ phase, setup }) {
+const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 24;
+
+function normalizeGenerationBudgetSecondsV219(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0
+    ? Math.max(1, Math.min(300, parsed))
+    : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
+}
+
+function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, searchFinishedAt, budgetSeconds }) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    setClock(Date.now());
+    const timer = window.setInterval(() => setClock(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [startedAt, searchStartedAt, searchFinishedAt]);
+  const normalizedBudget = normalizeGenerationBudgetSecondsV219(budgetSeconds);
+  const totalElapsedSeconds = Math.max(0, (clock - Number(startedAt || clock)) / 1000);
+  const searchClock = Number(searchFinishedAt || clock);
+  const searchElapsedSeconds = searchStartedAt
+    ? Math.max(0, (searchClock - Number(searchStartedAt)) / 1000)
+    : 0;
+  const timeBudgetPercent = Math.max(
+    0,
+    Math.min(100, Math.round((searchElapsedSeconds / normalizedBudget) * 100)),
+  );
   const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[430px]" role="status" aria-live="polite" aria-label={stage.title}>
     <div className="rounded-3xl border bg-white p-4" style={{ borderColor: "#8BC9C8", boxShadow: "0 22px 70px rgba(24,50,75,.28)" }}>
       <div className="flex items-start gap-3">
@@ -6562,12 +6587,16 @@ function ScheduleRobotProgressV201({ phase, setup }) {
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Yagona generator ishlayapti</div>
           <div className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>{stage.title}</div>
-          <div className="text-[10px] leading-relaxed mt-1" style={{ color: palette.muted }}>{stage.text}</div>
         </div>
       </div>
-      <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: palette.sky }}>
-        <div className="h-full w-full animate-pulse" style={{ background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C,#0F7C82)" }}/>
+      <div className="flex items-center justify-between gap-3 mt-3 text-[10px] font-black" style={{ color: palette.ink }}>
+        <span>Qidiruv vaqt byudjeti</span>
+        <span>{searchElapsedSeconds.toFixed(1)} / {normalizedBudget.toFixed(0)} soniya · {timeBudgetPercent}%</span>
       </div>
+      <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: palette.sky }}>
+        <div className="h-full transition-[width] duration-300" style={{ width: `${timeBudgetPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
+      </div>
+      <div className="mt-1 text-[9px] leading-relaxed" style={{ color: palette.muted }}>Umumiy o‘tgan vaqt: {totalElapsedSeconds.toFixed(1)} soniya. Bu yechim tayyorligi foizi emas.</div>
       <div className="grid grid-cols-3 gap-1.5 mt-3">
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.greenBg }}><div className="text-[11px] font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>sinf manbasi</div></div>
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.sky }}><div className="text-[11px] font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>o‘qituvchi manbasi</div></div>
@@ -7063,6 +7092,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationPhase, setGenerationPhase] = useState("capability");
+  const [generationBudgetSeconds, setGenerationBudgetSeconds] = useState(DEFAULT_GENERATION_BUDGET_SECONDS_V219);
+  const [generationStartedAt, setGenerationStartedAt] = useState(null);
+  const [searchStartedAt, setSearchStartedAt] = useState(null);
+  const [searchFinishedAt, setSearchFinishedAt] = useState(null);
   const [generationFailure, setGenerationFailure] = useState(null);
   const [resultWindowOpen, setResultWindowOpen] = useState(false);
   const [message, setMessage] = useState(null);
@@ -7090,6 +7123,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         const fresh = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);
         const newest = fresh?.urinishlar?.[0];
         if (newest?.id && String(newest.id) !== String(previousId || "")) {
+          setSearchFinishedAt(Date.now());
           setRunId(String(newest.id));
           const recoveredDetail = await loadRun(newest.id);
           await reload();
@@ -7158,13 +7192,23 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   const generate = async () => {
     const previousRunId = runs[0]?.id || runId || null;
+    const generationStart = Date.now();
+    const searchNonce = generationStart;
+    let solverRequestStartedAt = null;
     setGenerating(true);
     setGenerationPhase("capability");
+    setGenerationBudgetSeconds(DEFAULT_GENERATION_BUDGET_SECONDS_V219);
+    setGenerationStartedAt(generationStart);
+    setSearchStartedAt(null);
+    setSearchFinishedAt(null);
     setMessage(null);
     setGenerationFailure(null);
     setResultWindowOpen(false);
     try {
       const capability = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/soat_imkoniyatlari`);
+      setGenerationBudgetSeconds(
+        normalizeGenerationBudgetSecondsV219(capability?.generation_budget_seconds),
+      );
       if (capability?.single_generator !== true) {
         setMessage({
           tone: "error",
@@ -7173,13 +7217,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         return;
       }
       if (
-        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V21.9" ||
+        capability?.exact_jadval_release !== "SAMTM-EXACT-CP-SAT-V22.0" ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
         capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V21.9 strict-daily backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
+          text: `Backend va frontend versiyasi bir xil emas. V22.0 bounded-repeat backendni to‘liq deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; diagnostika: ${capability?.diagnostics_contract || "eski"}. Eski backend bilan jadval yaratish boshlanmaydi.`,
         });
         return;
       }
@@ -7199,6 +7243,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         setMessage({ tone: "error", text: `${errorCount} ta haqiqiy moslik xatosi topildi.${exactErrors ? ` ${exactErrors}.` : ""} O‘quv yili, xona, sinf rahbari va Kelajak soati hali belgilanmagani jadvalni bloklamaydi — ularni keyin tahrirlash mumkin.` });
         return;
       }
+      solverRequestStartedAt = Date.now();
+      setSearchStartedAt(solverRequestStartedAt);
       setGenerationPhase("calculating");
       const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
         method: "POST",
@@ -7206,8 +7252,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         // Eski "deterministik completion" kontrakti endi exact completion va
         // mustaqil hard-validator bilan kuchaytirildi. Qisman natija
         // frontendga jadval sifatida qabul qilinmaydi.
-        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 4, generator_rejimi: 1 }),
+        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 1, generator_rejimi: 1, qidiruv_nonce: searchNonce }),
       });
+      setSearchFinishedAt(Date.now());
       setGenerationPhase("loading");
       const solverResult = solverResultSummaryV215(data);
       if (!solverResult.complete) {
@@ -7239,10 +7286,15 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const completionCount = Number(
         data?.diagnostika?.avtomatik_qayta_joylashtirish?.qoldiq || 0
       );
+      const appliedMethodExceptions = Array.isArray(
+        data?.diagnostika?.qat_iy_qoidalar?.metod_kuni_istisnolari_qollanildi,
+      )
+        ? data.diagnostika.qat_iy_qoidalar.metod_kuni_istisnolari_qollanildi
+        : [];
       setGenerationFailure(null);
       setMessage({
         tone: "success",
-        text: `${solverResult.status} — ${solverResult.status === "OPTIMAL" ? "optimal" : "to‘liq"} jadval yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat.${completionCount ? ` ${completionCount} ta qolgan dars avtomatik zanjirli qayta joylashtirildi.` : ""} Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}.`,
+        text: `${solverResult.status} — ${solverResult.status === "OPTIMAL" ? "optimal" : "to‘liq"} jadval yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat.${completionCount ? ` ${completionCount} ta qolgan dars avtomatik zanjirli qayta joylashtirildi.` : ""}${appliedMethodExceptions.length ? ` Boshlang‘ich sinf o‘qituvchisi uchun ${appliedMethodExceptions.length} ta aniq metod-kuni katagi ishlatildi; qizil/BAND ochilmadi.` : ""} Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}.`,
       });
       await reload();
       setRunId(String(data.urinish_id));
@@ -7268,6 +7320,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const searchUnknown = failureStatus === "UNKNOWN";
       const provenInfeasible = failureStatus === "INFEASIBLE" && teacherWindowReportBooleanV211(structuredFailure?.proof_complete, false);
       const networkFailure = /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
+      if (!networkFailure && solverRequestStartedAt) setSearchFinishedAt(Date.now());
       if (networkFailure) {
         setGenerationPhase("recovery");
         setMessage({ tone: "warning", text: "Aloqa uzildi, lekin backend hisoblashni davom ettirishi mumkin. Yangi draft avtomatik qidirilmoqda…" });
@@ -7375,6 +7428,23 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   );
   const failureAccent = generationInfeasible || generationValidationFailed ? palette.red : palette.amber;
   const failureBackground = generationInfeasible || generationValidationFailed ? palette.redBg : palette.amberBg;
+  const failureSolverStats = {
+    seconds: teacherWindowReportNumberV211(
+      generationFailure?.hisoblash_soniya ?? generationFailure?.diagnostika?.solver_wall_time_seconds,
+    ),
+    candidates: teacherWindowReportNumberV211(
+      generationFailure?.kandidat_soni ?? generationFailure?.diagnostika?.candidates,
+    ),
+    branches: teacherWindowReportNumberV211(
+      generationFailure?.solver_branches ?? generationFailure?.diagnostika?.branches,
+    ),
+    conflicts: teacherWindowReportNumberV211(
+      generationFailure?.solver_conflicts ?? generationFailure?.diagnostika?.conflicts,
+    ),
+    methodSeconds: teacherWindowReportNumberV211(
+      generationFailure?.metod_qidiruv_soniya ?? generationFailure?.metod_kuni_tahlili?.wall_time_seconds,
+    ),
+  };
   const match = diagnostics.jadval_mosligi || {};
   const canApprove = Boolean(displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
@@ -7388,7 +7458,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   return <div className="space-y-3">
     {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
-    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup}/>} 
+    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} searchStartedAt={searchStartedAt} searchFinishedAt={searchFinishedAt} budgetSeconds={generationBudgetSeconds}/>} 
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     <Card className="p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -7408,7 +7478,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="text-[10px] leading-relaxed mt-1" style={{ color: palette.ink }}>{ONE_GENERATOR_POLICY_V210.izoh}</div>
         <div className="text-[10px] font-bold mt-2" style={{ color: palette.teal }}>Avval aniq darslar va cheklangan o‘qituvchilar, keyin asosiy fanlar 1–5-darsga, undan so‘ng qolgan yuklama joylashtiriladi; 6-dars asosiy fan uchun faqat zaxira va haftasiga ko‘pi bilan 2 kun.</div>
       </div>
-      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Qizil/BAND vaqt barcha darslar uchun qat’iy yopiq. Administrator oldindan aniq kun-soatga biriktirgan Kelajak/Sinf soati faqat o‘z rahbarining metod kunidan maxsus o‘tishi mumkin; qizil vaqtni u ham buzmaydi. Zarur bo‘lsa boshqa o‘qituvchilar uchun metod kunining 1–2 aniq soati bo‘yicha tavsiya beriladi va u avtomatik qo‘llanmaydi.</div>
+      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Qizil/BAND vaqt barcha darslar uchun qat’iy yopiq. Administrator oldindan aniq kun-soatga biriktirgan Kelajak/Sinf soati faqat o‘z rahbarining metod kunidan maxsus o‘tishi mumkin; qizil vaqtni u ham buzmaydi. Qat’iy jadval sig‘masligi isbotlansa, faqat boshlang‘ich sinf o‘qituvchisining Shanbadan boshqa metod kunidagi ko‘pi bilan 2 aniq katak ikkinchi exact modelda tekshiriladi; to‘liq jadval va yakuniy validator tasdiqlasa avtomatik qo‘llanadi va hisobotda nomma-nom ko‘rsatiladi.</div>
 
       <div className="grid grid-cols-4 gap-1.5 mt-2.5">
         <CompactStat value={preflight?.tayyor ? "Tekshirildi" : preflight ? "Xato" : "…"} label="manba holati" tone={preflight?.tayyor ? "green" : "amber"}/>
@@ -7433,6 +7503,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </div>
       {recoverableSearchFailure && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Bu holat jadval imkonsizligini isbotlamaydi. Yarim draft yashirildi, oldingi tasdiqlangan jadval saqlandi va qizil/BAND vaqt ochilmadi.</div>}
       {generationInfeasible && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.redBg, color: palette.red }}>Exact solver xavfsizlik qoidalari ichida to‘liq yechim yo‘qligini isbotladi. Pastda kamida bitta aniq sig‘im yoki global resurs ziddiyati doim ko‘rsatiladi; qizil/BAND vaqt avtomatik yumshatilmaydi.</div>}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2">
+        <CompactStat value={failureSolverStats.seconds == null ? "—" : `${failureSolverStats.seconds.toFixed(2)} s`} label="jami exact qidiruv" tone="blue"/>
+        <CompactStat value={failureSolverStats.candidates ?? "—"} label="legal kandidat" tone="blue"/>
+        <CompactStat value={failureSolverStats.branches ?? "—"} label="CP-SAT branch" tone="amber"/>
+        <CompactStat value={failureSolverStats.conflicts ?? "—"} label="CP-SAT conflict" tone="amber"/>
+        <CompactStat value={failureSolverStats.methodSeconds == null ? "—" : `${failureSolverStats.methodSeconds.toFixed(2)} s`} label="metod fallback" tone="teal"/>
+      </div>
       {(generationInfeasible || generationUnknown) && <MethodDayExceptionRecommendationsV215 failure={generationFailure}/>} 
       <div className="mt-3 space-y-2">
         {failureProblems.map((problem, index) => {
