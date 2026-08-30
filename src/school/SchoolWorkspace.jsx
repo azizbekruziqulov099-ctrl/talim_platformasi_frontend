@@ -2765,6 +2765,7 @@ function TeacherFirstLoadEditorV192({
   const [allocationInspectorClassId, setAllocationInspectorClassId] = useState("");
   const [allocationInspectorSubjectKey, setAllocationInspectorSubjectKey] = useState("");
   const [allocationOverviewOpen, setAllocationOverviewOpen] = useState(false);
+  const [excelBusy, setExcelBusy] = useState(false);
   const birthDateMaxV195 = new Date().toISOString().slice(0, 10);
   const specialtySubjectChoices = useMemo(() => {
     const unique = new Map();
@@ -2811,6 +2812,44 @@ function TeacherFirstLoadEditorV192({
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadTeacherTemplateV205 = async () => {
+    setExcelBusy(true); setMessage(null);
+    try {
+      const response = await fetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_shablon?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&yangilanish=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.detail || `Shablon yuklanmadi (${response.status})`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = "SAMTM_OQITUVCHI_AQLLI_SHABLON.xlsx";
+      document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+      setMessage({ tone: "success", text: "Eng yangi Excel yuklandi. OQITUVCHILAR varag‘ida har o‘qituvchi bir marta, OQITUVCHI_YUKLAMASI varag‘ida esa barcha sinf–fan qatorlari alohida ko‘rsatilgan." });
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setExcelBusy(false); }
+  };
+
+  const importTeacherTemplateV205 = async event => {
+    const file = event.target.files?.[0]; event.target.value = "";
+    if (!file) return;
+    if (!/\.xlsx$/i.test(file.name)) return setMessage({ tone: "error", text: "Faqat .xlsx aqlli shablonini tanlang." });
+    setExcelBusy(true); setMessage(null);
+    try {
+      const response = await fetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_shablon_import?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, {
+        method: "POST", headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }, body: file,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.detail || `Excel import qilinmadi (${response.status})`);
+      setData(result.matritsa); setSelectedTeacher(""); setCreatingNew(false); setRows([]);
+      const codes = (result.yangi_oqituvchilar || []).map(item => `${item.oqituvchi}: ${item.kirish_kodi}`).join("; ");
+      const warnings = (result.ogohlantirishlar || []).slice(0, 5).join("; ");
+      setMessage({ tone: warnings ? "warning" : "success", text: `${result.oqituvchi_soni} ta o‘qituvchi, ${result.qator_soni} ta yuklama qatori import qilindi.${codes ? ` Yangi kirish kodlari: ${codes}.` : ""}${warnings ? ` ${warnings}` : ""}` });
+      await onChanged?.();
+    } catch (error) { setMessage({ tone: "error", text: String(error.message || "Excel importida xato").replaceAll("\n", " · ") }); }
+    finally { setExcelBusy(false); }
   };
 
   useEffect(() => { load(); }, [maktabId, token, apiBase]);
@@ -4425,6 +4464,13 @@ function TeacherFirstLoadEditorV192({
   }
 
   return <div className="space-y-4">
+    {!planOnly && <Card className="p-4 border-2" style={{ borderColor: "#8BC8C2", background: "linear-gradient(135deg,#F2FBFA,#F4F8FC)" }}>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[240px]"><div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchilarni aqlli Excel orqali kiritish</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>1. Saytdagi eng yangi ro‘yxatni Excelga chiqaring. Bitta o‘qituvchi ko‘p sinfga kirsa, F.I.Sh. har bir sinf–fan qatorida takrorlanadi va importda bitta o‘qituvchiga birlashadi. 2. Excelni to‘ldiring. 3. Import qiling.</div></div>
+        <button type="button" onClick={downloadTeacherTemplateV205} disabled={excelBusy} className="px-4 py-3 rounded-xl text-xs font-black border disabled:opacity-50" style={{ background: "#fff", color: palette.blue, borderColor: palette.line }}>{excelBusy ? "Kutilmoqda..." : "1. Barcha o‘qituvchilarni Excelga chiqarish"}</button>
+        <label className={`px-4 py-3 rounded-xl text-xs font-black text-white cursor-pointer ${excelBusy ? "opacity-50 pointer-events-none" : ""}`} style={{ background: palette.teal }}>2. Excelni import qilish<input type="file" accept=".xlsx" className="hidden" onChange={importTeacherTemplateV205}/></label>
+      </div>
+    </Card>}
     {validationDialog && <div className="fixed inset-0 z-[10050] flex items-center justify-center p-4" style={{ background: "rgba(15,35,50,.72)" }}>
       <div role="alertdialog" aria-modal="true" aria-labelledby="teacher-validation-title" className="w-full max-w-md rounded-3xl border bg-white p-5" style={{ borderColor: "#E5AAAA", boxShadow: "0 25px 90px rgba(0,0,0,.30)" }}>
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: palette.redBg, color: palette.red }}><AlertTriangle size={24}/></div>
@@ -6546,20 +6592,21 @@ const ONE_GENERATOR_POLICY_V210 = {
 };
 
 const GENERATION_PHASES_V210 = {
-  capability: { title: "Generatorni tekshiryapman" },
-  preflight: { title: "Manbalarni tekshiryapman" },
-  calculating: { title: "To‘liq variant qidirilmoqda" },
+  capability: { title: "Generator ishga tayyorligini tekshiryapti" },
+  preflight: { title: "Sinf, fan va o‘qituvchi ma’lumotlari tekshirilmoqda" },
+  calculating: { title: "Barcha darslar to‘liq jadvalga joylashtirilmoqda" },
+  improving: { title: "Jadval yaratildi — o‘qituvchilar uchun yaxshilanmoqda" },
   completion: { title: "Qolgan darslar qayta joylashtirilmoqda" },
-  loading: { title: "Natijani yuklayapman" },
+  loading: { title: "To‘liq jadval tekshirilib saqlanmoqda" },
   recovery: { title: "Backend natijasini kutyapman" },
 };
 
-const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 24;
+const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 600;
 
 function normalizeGenerationBudgetSecondsV219(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0
-    ? Math.max(1, Math.min(300, parsed))
+    ? Math.max(1, Math.min(600, parsed))
     : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
 }
 
@@ -6583,8 +6630,8 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, s
     0,
     Math.min(100, Math.round((searchElapsedSeconds / normalizedBudget) * 100)),
   );
-  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[430px]" role="status" aria-live="polite" aria-label={stage.title}>
-    <div className="rounded-3xl border bg-white p-4" style={{ borderColor: "#8BC9C8", boxShadow: "0 22px 70px rgba(24,50,75,.28)" }}>
+  const panel = <div className="fixed z-[120] inset-0 flex items-center justify-center p-4" style={{ background: "rgba(15,35,50,.58)" }} role="status" aria-live="polite" aria-label={stage.title}>
+    <div className="w-full max-w-3xl rounded-3xl border bg-white p-6 md:p-8" style={{ borderColor: "#8BC9C8", boxShadow: "0 28px 100px rgba(15,35,50,.38)" }}>
       <div className="flex items-start gap-3">
         <div className="relative shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
           <Bot size={30}/>
@@ -6592,18 +6639,19 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, s
           <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Yagona generator ishlayapti</div>
-          <div className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>{stage.title}</div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>YAGONA JADVAL GENERATORI ISHLAYAPTI</div>
+          <div className="text-xl md:text-2xl font-black mt-1" style={{ color: palette.ink }}>{stage.title}</div>
+          <div className="text-sm mt-2 leading-relaxed" style={{ color: palette.muted }}>{phase === "improving" ? "To‘liq variant himoyalandi. Endi o‘qituvchi oynalari kamaytirilmoqda, kam-soatli o‘qituvchilar kamroq kunga yig‘ilmoqda va ruxsat etilgan fanlar 2+2+1 ko‘rinishida joylashtirilmoqda. Bir fan bir kunda 3 soat bo‘lmaydi." : "Birinchi vazifa — barcha darslarni haqiqiy qizil/BAND va majburiy qoidalarni buzmasdan to‘liq joylashtirish. To‘liq variant topilgach yaxshilash avtomatik boshlanadi."}</div>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 mt-3 text-[10px] font-black" style={{ color: palette.ink }}>
-        <span>Qidiruv vaqt byudjeti</span>
-        <span>{searchElapsedSeconds.toFixed(1)} / {normalizedBudget.toFixed(0)} soniya · {timeBudgetPercent}%</span>
+      <div className="flex items-center justify-between gap-3 mt-5 text-sm font-black" style={{ color: palette.ink }}>
+        <span>Qidiruv vaqti</span>
+        <span className="text-base">{searchElapsedSeconds.toFixed(0)} / {normalizedBudget.toFixed(0)} soniya · {timeBudgetPercent}%</span>
       </div>
-      <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: palette.sky }}>
+      <div className="h-4 rounded-full overflow-hidden mt-3" style={{ background: palette.sky }}>
         <div className="h-full transition-[width] duration-300" style={{ width: `${timeBudgetPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
       </div>
-      <div className="mt-1 text-[9px] leading-relaxed" style={{ color: palette.muted }}>Umumiy o‘tgan vaqt: {totalElapsedSeconds.toFixed(1)} soniya. Bu yechim tayyorligi foizi emas.</div>
+      <div className="mt-2 text-xs leading-relaxed" style={{ color: palette.muted }}>Umumiy o‘tgan vaqt: {totalElapsedSeconds.toFixed(0)} soniya. Foiz — 10 daqiqalik maksimal qidiruv vaqtining qancha qismi o‘tganini ko‘rsatadi. Jadval ertaroq topilsa darhol yakunlanadi.</div>
       <div className="grid grid-cols-3 gap-1.5 mt-3">
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.greenBg }}><div className="text-[11px] font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>sinf manbasi</div></div>
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.sky }}><div className="text-[11px] font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>o‘qituvchi manbasi</div></div>
@@ -7189,7 +7237,15 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   useEffect(() => {
     if (runs[0]?.id && !runId) setRunId(String(runs[0].id));
   }, [runs, runId]);
-
+  useEffect(() => {
+    if (!generating || !searchStartedAt) return undefined;
+    const timer = window.setInterval(() => {
+      if (Date.now() - Number(searchStartedAt) >= 60000) {
+        setGenerationPhase(current => current === "calculating" ? "improving" : current);
+      }
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [generating, searchStartedAt]);
   const openResultWindow = async () => {
     const id = detail?.urinish?.id || runId || runs[0]?.id;
     if (!id) return;
@@ -7483,7 +7539,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATISH</div>
           <h2 className="text-lg font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-[11px] mt-0.5" style={{ color: palette.muted }}>Barcha darslar joylashtiriladi, so‘ng o‘qituvchi oknolari va smenalararo kutish kamaytiriladi.</p>
+          <p className="text-[11px] mt-0.5" style={{ color: palette.muted }}>Avval to‘liq jadval yaratiladi; keyin oyna, ish kuni va 2+2+1 taqsimoti yaxshilanadi. Umumiy qidiruv 5–10 daqiqagacha ishlashi mumkin.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani ochish</button>}
@@ -7493,8 +7549,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
       <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black">
         <span className="px-3 py-2 rounded-xl" style={{ background: palette.greenBg, color: palette.green }}>To‘liq jadval birinchi</span>
-        <span className="px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>Oknolar kamaytiriladi</span>
-        <span className="px-3 py-2 rounded-xl" style={{ background: palette.redBg, color: palette.red }}>Qizil/BAND yopiq</span>
+        <span className="px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>Keyin oyna va ish kuni yaxshilanadi</span>
+        <span className="px-3 py-2 rounded-xl" style={{ background: palette.redBg, color: palette.red }}>Oldindan qo‘yilgan qizil/BAND o‘zgarmaydi</span>
       </div>
 
       <div className="grid grid-cols-4 gap-1.5 mt-2.5">
