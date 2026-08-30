@@ -7380,6 +7380,17 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const teacherWindowReport = diagnostics.oqituvchi_okno_hisoboti || null;
   const problems = diagnostics.muammolar || [];
   const warnings = diagnostics.ogohlantirishlar || [];
+  const systemInfoWarnings = warnings.filter(warning => /profili faol|pedagogik strategiya faol|algoritm|generator|qattiq qoida:|A\/B hafta/i.test(String(warning)));
+  const adviceWarnings = warnings.filter(warning => /qulaylik|kunlik max=2\+|oyna|kutish/i.test(String(warning)) && !systemInfoWarnings.includes(warning));
+  const fixableWarnings = warnings.filter(warning => !systemInfoWarnings.includes(warning) && !adviceWarnings.includes(warning));
+  const compactFixableWarnings = (() => {
+    const splitRoom = fixableWarnings.filter(warning => /bo['‘’]?linishga xona topilmadi/i.test(String(warning)));
+    const classHour = fixableWarnings.filter(warning => /KELAJAK SOATI.*o['‘’]?qituvchisiz/i.test(String(warning)));
+    const remaining = fixableWarnings.filter(warning => !splitRoom.includes(warning) && !classHour.includes(warning));
+    if (splitRoom.length) remaining.push(`${splitRoom.length} ta guruhli fan uchun alohida xona yozilmagan. Jadval yaratildi; kerak bo‘lsa xonalarni keyin kiriting.`);
+    if (classHour.length) remaining.push(`${classHour.length} ta sinfda Kelajak soati o‘qituvchisiz joylashdi. Sinf rahbarlarini keyin biriktiring.`);
+    return remaining;
+  })();
   const generationStatus = normalizeSolverStatusV215(generationFailure || {});
   const generationProofComplete = teacherWindowReportBooleanV211(generationFailure?.proof_complete, false);
   const generationInfeasible = generationStatus === "INFEASIBLE" && generationProofComplete;
@@ -7605,7 +7616,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           </div>)}
           {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
           {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-snug" style={{ background: palette.redBg }}><div className="font-black" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} · {problem.fan}</div><div className="mt-1 font-bold" style={{ color: palette.red }}>{problem.sabab || (problem.sabablar || []).map(row => row.sabab).join("; ")}</div>{problem.sabab_izohi && <div className="mt-0.5" style={{ color: palette.ink }}>{problem.sabab_izohi}</div>}{problem.yechim && <div className="mt-0.5" style={{ color: palette.green }}>Yechim: {problem.yechim}</div>}</div>)}
-          {warnings.map((warning, index) => <div key={`w-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.amberBg, color: palette.amber }}>Ogohlantirish {index + 1}: {warning}</div>)}
+          {!!compactFixableWarnings.length && <div className="rounded-xl p-2.5" style={{ background: palette.amberBg }}><div className="text-xs font-black mb-1.5" style={{ color: palette.amber }}>Keyin tahrirlanadigan ma’lumotlar · {compactFixableWarnings.length} guruh</div><div className="space-y-1">{compactFixableWarnings.map((warning, index) => <div key={`w-${index}`} className="rounded-lg bg-white/70 px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ color: palette.amber }}>{warning}</div>)}</div></div>}
+          {!!adviceWarnings.length && <details className="rounded-xl p-2.5" style={{ background: palette.greenBg }}><summary className="text-xs font-black cursor-pointer" style={{ color: palette.green }}>Sifatni yaxshilash maslahatlari · {adviceWarnings.length} ta</summary><div className="space-y-1 mt-1.5">{adviceWarnings.map((warning, index) => <div key={`a-${index}`} className="text-[11px] leading-snug" style={{ color: palette.green }}>{warning}</div>)}</div></details>}
+          {!!systemInfoWarnings.length && <details className="rounded-xl p-2.5" style={{ background: palette.sky }}><summary className="text-xs font-black cursor-pointer" style={{ color: palette.blue }}>Tizim ma’lumoti · {systemInfoWarnings.length} ta</summary><div className="space-y-1 mt-1.5">{systemInfoWarnings.map((warning, index) => <div key={`i-${index}`} className="text-[11px] leading-snug" style={{ color: palette.blue }}>{warning}</div>)}</div></details>}
           {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">Sinf, fan va o‘qituvchi soatlari 100% mos.</SmartNotice>}
         </div>
       </Card>
