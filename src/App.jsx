@@ -2799,7 +2799,12 @@ function MaktablarBolimi({ token }) {
             nomi: tanlanganMaktab.nomi,
             lavozim: "direktor",
           }}
-          onBack={() => { setTanlanganMaktab(null); setSozlamalarOchiq(false); maktablarniYukla(); }}
+          onBack={() => {
+            setFormOchiq(false);
+            setTanlanganMaktab(null);
+            setSozlamalarOchiq(false);
+            maktablarniYukla();
+          }}
           onLegacy={() => setSozlamalarOchiq(true)}
           adminPreview={true}
           initialView="dashboard"
@@ -2842,7 +2847,13 @@ function MaktablarBolimi({ token }) {
       ) : (
         <div className="space-y-2.5">
           {maktablar.map((m) => (
-            <button key={m.id} onClick={() => { setSozlamalarOchiq(false); setTanlanganMaktab(m); }}
+            <button key={m.id} onClick={() => {
+              // Mavjud maktab kartasi hech qachon yaratish wizardini ochmaydi.
+              // Eski ochiq forma holatini avval yopib, so'ng dashboardga o'tamiz.
+              setFormOchiq(false);
+              setSozlamalarOchiq(false);
+              setTanlanganMaktab(m);
+            }}
               className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.maktab_raqami ? `${m.maktab_raqami}-sonli ${m.nomi}` : m.nomi}</p>
