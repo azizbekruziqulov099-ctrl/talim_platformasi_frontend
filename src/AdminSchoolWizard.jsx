@@ -8,6 +8,7 @@
 // SamTM V19.5 — saqlash xatolarini modal, avtomatik scroll, fokus va qizil maydon bilan ko‘rsatadi.
 // SamTM V19.2 — o‘qituvchi + fan + sinf + guruh + soat bitta aniq qatorda.
 // SAMTM V19.0 — teacher matrix is paginated to prevent DOM freezes.
+//01
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
