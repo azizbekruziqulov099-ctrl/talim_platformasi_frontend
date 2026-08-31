@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V22.48 ROUTE-AND-PROGRESS-SAFE — mavjud maktab va generator holati uzilmaydi.
+// SAMTM FRONTEND V22.50 STABLE-DAYS — kichik panel, stoppable search va faol-kun balansi.
 // SamTM V19.8 REV52 — metod kuni qattiq blok va 10–19 soatli ustozlar ixcham kunlarda.
 // SamTM V19.8 REV48 — mavjud maktab ID birinchi; eski selected_id frontend bilan ham mos.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -21,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.40-DAILY-BALANCE";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.50-STABLE-DAYS";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -6591,6 +6591,8 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onSt
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
   const [clock, setClock] = useState(() => Date.now());
+  const [collapsed, setCollapsed] = useState(false);
+  const autoCollapsedRunRef = useRef("");
   useEffect(() => {
     setClock(Date.now());
     const timer = window.setInterval(() => setClock(Date.now()), 250);
@@ -6609,30 +6611,54 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onSt
     : rawProcessMessage == null
       ? stage.title
       : String(rawProcessMessage);
-  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[720px]" role="status" aria-live="polite" aria-label={processMessage}>
-    <div className="rounded-[28px] border-2 bg-white p-5 md:p-6" style={{ borderColor: "#49A9A5", boxShadow: "0 24px 80px rgba(24,50,75,.30)" }}>
-      <div className="flex items-start gap-3">
-        <div className="relative shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
-          <Bot size={34}/>
-          <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .7 }}/>
-          <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
+  const progressStage = String(liveProgress?.bosqich || "");
+  const stopping = progressStage === "toxtatish_soraldi";
+  const baseScheduleAvailable = progressStage === "asosiy_tayyor"
+    || progressStage.startsWith("yaxshilash")
+    || ["global_yaxshilandi", "ustozlar_yaxshilandi"].includes(progressStage);
+  useEffect(() => {
+    const runKey = String(liveProgress?.jadval_raqami || "");
+    if (baseScheduleAvailable && runKey && autoCollapsedRunRef.current !== runKey) {
+      autoCollapsedRunRef.current = runKey;
+      setCollapsed(true);
+    }
+  }, [baseScheduleAvailable, liveProgress?.jadval_raqami]);
+  const stop = event => {
+    event?.stopPropagation?.();
+    if (!stopping && typeof onStop === "function") onStop();
+  };
+  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-5 md:bottom-5 md:w-[460px]" role="status" aria-live="polite" aria-label={processMessage}>
+    <div className={`border-2 bg-white overflow-hidden ${collapsed ? "rounded-2xl" : "rounded-[24px]"}`} style={{ borderColor: "#49A9A5", boxShadow: "0 18px 55px rgba(24,50,75,.26)" }}>
+      <button type="button" onClick={() => setCollapsed(value => !value)} aria-expanded={!collapsed} className="w-full text-left p-3.5 flex items-center gap-3" title={collapsed ? "Jarayon oynasini ochish" : "Jarayon oynasini yig‘ish"}>
+        <div className="relative shrink-0 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
+          <Bot size={23}/>
+          <span className="absolute -right-1 -top-1 w-3.5 h-3.5 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .65 }}/>
+          <span className="absolute -right-1 -top-1 w-3.5 h-3.5 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
-          <div className="text-2xl md:text-3xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
-          <div className="text-base md:text-lg font-black mt-1 leading-snug" style={{ color: palette.blue }}>{processMessage}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] font-black uppercase tracking-[.11em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
+            <ChevronRight size={16} className={`transition-transform ${collapsed ? "rotate-0" : "rotate-90"}`} style={{ color: palette.muted }}/>
+          </div>
+          <div className="text-xl font-black leading-tight" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
+          <div className={`text-xs font-black mt-0.5 leading-snug ${collapsed ? "truncate" : ""}`} style={{ color: palette.blue }}>{processMessage}</div>
         </div>
-        <div className="shrink-0 text-4xl md:text-5xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
-      </div>
-      <div className="h-4 rounded-full overflow-hidden mt-5" style={{ background: palette.sky }}>
+        <div className="shrink-0 text-3xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
+      </button>
+      <div className="h-2 overflow-hidden mx-3.5 rounded-full" style={{ background: palette.sky }}>
         <div className="h-full transition-[width] duration-500" style={{ width: `${processPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.greenBg }}><div className="text-xl font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
-        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.sky }}><div className="text-xl font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
-        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
-      </div>
-      <button type="button" onClick={onStop} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>Yaxshilashni to‘xtatish va eng yaxshi natijani olish</button>
+      {collapsed ? <div className="p-2.5 pt-2 flex items-center justify-between gap-2">
+        <div className="text-[11px] font-bold truncate" style={{ color: palette.muted }}>{Math.floor(totalElapsedSeconds)} s · jadvalni ko‘rish mumkin</div>
+        <button type="button" onClick={stop} disabled={stopping} className="shrink-0 px-3 py-2 rounded-lg text-xs font-black text-white" style={{ background: stopping ? "#9BA8B2" : palette.red }}>{stopping ? "To‘xtatilmoqda…" : "To‘xtatish"}</button>
+      </div> : <div className="p-3.5 pt-3">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl px-2.5 py-2 text-center" style={{ background: palette.greenBg }}><div className="text-lg font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
+          <div className="rounded-xl px-2.5 py-2 text-center" style={{ background: palette.sky }}><div className="text-lg font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
+          <div className="rounded-xl px-2.5 py-2 text-center" style={{ background: palette.amberBg }}><div className="text-lg font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
+        </div>
+        <button type="button" onClick={stop} disabled={stopping} className="w-full mt-3 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: stopping ? "#9BA8B2" : palette.red }}>{stopping ? "To‘xtatilmoqda — eng yaxshi natija saqlanadi…" : "To‘xtatish va eng yaxshi natijani olish"}</button>
+      </div>}
     </div>
   </div>;
   // GenerateStep allaqachon yuqori z-indexli WorkspacePortal ichida. Panelni
@@ -7096,7 +7122,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
     <div className="min-h-screen p-3 md:p-5" style={{ background: "linear-gradient(180deg,#F5FAFC,#F7F4ED)" }}>
       <div className="max-w-[1580px] mx-auto space-y-3">
         <div className="rounded-2xl px-4 py-3 text-white flex flex-wrap items-center justify-between gap-3" style={{ background: color }}>
-          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{ONE_GENERATOR_POLICY_V210.izoh}</div></div>
+          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}{Number(detail?.urinish?.diagnostika?.yaxshilanish || 0) > 0 ? `.${Number(detail.urinish.diagnostika.yaxshilanish)}` : ""}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{ONE_GENERATOR_POLICY_V210.izoh}</div></div>
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white text-sm font-black" style={{ color }}>Yopish ×</button>
         </div>
         <div className="rounded-2xl border bg-white p-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: palette.line }}>
@@ -7280,12 +7306,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.40-DAILY-BALANCE"].includes(
           capability?.exact_jadval_release
         ) ||
+        capability?.exact_internal_release !== "SAMTM-EXACT-CP-SAT-V22.50-STABLE-DAYS" ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
         capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V22.40 DAILY-BALANCE paketini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V22.50 STABLE-DAYS paketining backend va frontend qismini birga deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
         });
         return;
       }
@@ -7357,6 +7384,11 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (finalProgress?.bosqich === "toxtatildi") {
         setMessage({ tone: "warning", text: finalProgress.xabar || "Yaxshilash foydalanuvchi tomonidan to‘xtatildi. Oldingi eng yaxshi jadval saqlandi." });
         await reload();
+        if (Number(finalProgress?.jadval_raqami || 0) > 0) {
+          setRunId(String(finalProgress.jadval_raqami));
+          const stoppedBest = await loadRun(finalProgress.jadval_raqami);
+          if (stoppedBest) setResultWindowOpen(true);
+        }
         return;
       }
       if (finalProgress?.bosqich === "xato") {
@@ -7608,10 +7640,14 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="text-sm mt-2 font-black leading-snug" style={{ color: palette.ink }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
       </div>}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {runs.slice(0, 4).map((run, index) => <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
-          <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
-          <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
-        </button>)}
+        {runs.slice(0, 4).map((run, index) => {
+          const revision = Number(run.yaxshilanish ?? run.diagnostika?.yaxshilanish ?? 0);
+          const displayNumber = revision > 0 ? `${run.id}.${revision}` : String(run.id);
+          return <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
+            <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{displayNumber}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
+            <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
+          </button>;
+        })}
       </div>
     </Card>}
     <Card className="p-5">
@@ -7622,7 +7658,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
+          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
           {generating
             ? <button type="button" onClick={stopGeneration} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={17}/> To‘xtatish</button>
             : <button type="button" onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> Jadval yaratish</button>}
