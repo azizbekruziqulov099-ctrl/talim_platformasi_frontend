@@ -2754,11 +2754,13 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved, ochiq = false,
   );
 }
 
+// SAMTM APP V22.41 — maktab kartasi va yangi yaratilgan maktab avval dashboardni ochadi.
 function MaktablarBolimi({ token }) {
   const [maktablar, setMaktablar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [formOchiq, setFormOchiq] = useState(false);
   const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
+  const [sozlamalarOchiq, setSozlamalarOchiq] = useState(false);
 
   const maktablarniYukla = () => {
     setYuklanmoqda(true);
@@ -2777,7 +2779,33 @@ function MaktablarBolimi({ token }) {
   }, [token]);
 
   if (tanlanganMaktab) {
-    return <MaktabTafsiloti token={token} maktab={tanlanganMaktab} onOrtga={() => { setTanlanganMaktab(null); maktablarniYukla(); }} />;
+    if (sozlamalarOchiq) {
+      return <MaktabTafsiloti
+        token={token}
+        maktab={tanlanganMaktab}
+        onOrtga={() => { setSozlamalarOchiq(false); maktablarniYukla(); }}
+      />;
+    }
+    return (
+      <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+        <SchoolWorkspace
+          token={token}
+          apiBase={API_BASE}
+          initialWorkspace={{
+            turi: "maktab",
+            muassasa_id: tanlanganMaktab.id,
+            maktab_id: tanlanganMaktab.id,
+            muassasa_nomi: tanlanganMaktab.nomi,
+            nomi: tanlanganMaktab.nomi,
+            lavozim: "direktor",
+          }}
+          onBack={() => { setTanlanganMaktab(null); setSozlamalarOchiq(false); maktablarniYukla(); }}
+          onLegacy={() => setSozlamalarOchiq(true)}
+          adminPreview={true}
+          initialView="dashboard"
+        />
+      </React.Suspense>
+    );
   }
 
   return (
@@ -2800,7 +2828,7 @@ function MaktablarBolimi({ token }) {
             regions={VILOYATLAR}
             districtsByRegion={HUDUDLAR}
             onCancel={() => setFormOchiq(false)}
-            onCreated={(school) => { setFormOchiq(false); setTanlanganMaktab(school); maktablarniYukla(); }}
+            onCreated={(school) => { setFormOchiq(false); setSozlamalarOchiq(false); setTanlanganMaktab(school); maktablarniYukla(); }}
           />
         </React.Suspense>
       )}
@@ -2814,7 +2842,7 @@ function MaktablarBolimi({ token }) {
       ) : (
         <div className="space-y-2.5">
           {maktablar.map((m) => (
-            <button key={m.id} onClick={() => setTanlanganMaktab(m)}
+            <button key={m.id} onClick={() => { setSozlamalarOchiq(false); setTanlanganMaktab(m); }}
               className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.maktab_raqami ? `${m.maktab_raqami}-sonli ${m.nomi}` : m.nomi}</p>
@@ -3198,7 +3226,7 @@ function MaktabTafsiloti({ token, maktab, onOrtga }) {
 
   return (
     <div>
-      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Maktablar</button>
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Maktab bosh sahifasiga qaytish</button>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
           <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{maktab.maktab_raqami ? `${maktab.maktab_raqami}-sonli ${maktab.nomi}` : maktab.nomi}</h1>
