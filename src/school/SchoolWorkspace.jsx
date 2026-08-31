@@ -7341,7 +7341,30 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     }
   };
 
+  const attachActiveGeneration = async () => {
+    try {
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`, { timeoutMs: 5000 });
+      if (!data?.faol || !data?.qidiruv_nonce) return false;
+      setGenerationNonce(Number(data.qidiruv_nonce));
+      setGenerating(true);
+      setGenerationStartedAt(Date.now());
+      setSearchStartedAt(Date.now());
+      setGenerationPhase("calculating");
+      setLiveProgress(data);
+      setMessage({ tone: "success", text: "Davom etayotgan jadval jarayoniga qayta ulandingiz. Oynani yopish yoki boshqa menyuga o‘tish hisoblashni to‘xtatmaydi." });
+      if (Number(data.jadval_raqami || 0) > 0) {
+        setRunId(String(data.jadval_raqami));
+        setSelectedRevision(null);
+        await loadRun(data.jadval_raqami, null);
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
   useEffect(() => { checkSources(true); }, [maktabId, token, apiBase]);
+  useEffect(() => { attachActiveGeneration(); }, [maktabId, token, apiBase]);
   useEffect(() => { if (runId) loadRun(runId, selectedRevision); }, [runId, selectedRevision]);
   useEffect(() => {
     if (runs[0]?.id && !runId) {
@@ -7357,7 +7380,19 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     const poll = async () => {
       try {
         const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { timeoutMs: 5000 });
-        if (!stopped && data && typeof data === "object" && data?.jadval_raqami) setLiveProgress(data);
+        if (!stopped && data && typeof data === "object") {
+          setLiveProgress(data);
+          if (["tayyor", "xato", "toxtatildi"].includes(data?.bosqich)) {
+            setGenerating(false);
+            setSearchFinishedAt(Date.now());
+            await reload();
+            if (Number(data?.jadval_raqami || 0) > 0) {
+              setRunId(String(data.jadval_raqami));
+              setSelectedRevision(null);
+              await loadRun(data.jadval_raqami, null);
+            }
+          }
+        }
       } catch (_) {
         // Asosiy POST ishlashda davom etadi; keyingi polling yana urinadi.
       }
@@ -7375,6 +7410,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const generate = async () => {
+    if (await attachActiveGeneration()) return;
     const previousRunId = runs[0]?.id || runId || null;
     const generationStart = Date.now();
     const searchNonce = generationStart;
@@ -7450,7 +7486,14 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const started = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/boshlash?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 1, generator_rejimi: 1, qidiruv_nonce: searchNonce }),
+        body: JSON.stringify({
+          maktab_id: maktabId,
+          urinishlar_soni: 1,
+          generator_rejimi: 1,
+          qidiruv_nonce: searchNonce,
+          asosiy_jadval_id: previousRunId ? Number(previousRunId) : null,
+          yaxshilash_bosqichi: Boolean(previousRunId),
+        }),
       });
       if (!started?.qabul_qilindi) throw new Error(started?.xabar || "Backend jadval ishini boshlamadi.");
       setMessage({ tone: "success", text: "Jadval backendda mustaqil yaratila boshladi. Sahifa yopilsa ham davom etadi; faqat “To‘xtatish” tugmasi to‘xtatadi." });
@@ -7793,13 +7836,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>AQILLI GENERATOR</div>
           <h2 className="text-2xl font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi.</p>
+          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>{runs[0]?.id ? `Mavjud #${runs[0].id} saqlanadi; yangi qoidalar shu jadvalning keyingi .N versiyasiga yoziladi.` : "Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi."}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
           {generating
             ? <button type="button" onClick={stopGeneration} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={17}/> To‘xtatish</button>
-            : <button type="button" onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> Jadval yaratish</button>}
+            : <button type="button" onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> {runs[0]?.id ? `#${runs[0].id} ni yaxshilash` : "Jadval yaratish"}</button>}
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
