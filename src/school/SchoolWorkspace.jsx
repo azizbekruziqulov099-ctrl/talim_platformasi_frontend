@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V22.40 DAILY-BALANCE — sinf kunlari teng taqsimlanadi.
+// SAMTM FRONTEND V22.55 — clean logic + draggable/closable live generator progress.
 // SamTM V19.8 REV52 — metod kuni qattiq blok va 10–19 soatli ustozlar ixcham kunlarda.
 // SamTM V19.8 REV48 — mavjud maktab ID birinchi; eski selected_id frontend bilan ham mos.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -21,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.51-GENERATOR-WHITE-SCREEN-FIX";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.55-LIVE-PROGRESS";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -1054,419 +1054,6 @@ function ClassHourPanel({ token, apiBase, maktabId, setup, reload, setStep }) {
 }
 
 
-function AutoMethodDayPanelV1871({
-  token, apiBase, maktabId, subjects, selectedSubjects, weekdays, reload
-}) {
-  const [enabled, setEnabled] = useState(false);
-  const [rules, setRules] = useState([]);
-  const [report, setReport] = useState([]);
-  const [subject, setSubject] = useState("");
-  const [day, setDay] = useState(1);
-  const [hard, setHard] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
-
-  const normalize = value =>
-    String(value || "").trim().toLocaleLowerCase("uz");
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v2/metod_avto_sozlama?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
-      );
-      setEnabled(Boolean(data.yoqilgan));
-      setRules((data.qoidalar || []).map(row => ({
-        fan_nomi: row.fan_nomi,
-        hafta_kuni: Number(row.hafta_kuni),
-        qattiq: Boolean(row.qattiq),
-      })));
-      setReport(data.hisobot || []);
-    } catch (error) {
-      setMessage({ tone: "error", text: error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, [token, apiBase, maktabId]);
-
-  useEffect(() => {
-    if (!subject && subjects.length) setSubject(subjects[0]);
-  }, [subjects, subject]);
-
-  const addSubjects = () => {
-    const targets = selectedSubjects.length
-      ? selectedSubjects
-      : subject
-        ? [subject]
-        : [];
-
-    if (!targets.length) {
-      return setMessage({
-        tone: "error",
-        text: "Avval fan tanlang.",
-      });
-    }
-
-    setRules(previous => {
-      const map = new Map(
-        previous.map(rule => [normalize(rule.fan_nomi), rule])
-      );
-      targets.forEach(fan => {
-        map.set(normalize(fan), {
-          fan_nomi: fan,
-          hafta_kuni: Number(day),
-          qattiq: Boolean(hard),
-        });
-      });
-      return [...map.values()];
-    });
-
-    const dayName =
-      smartDays.find(([value]) => Number(value) === Number(day))?.[1] ||
-      String(day);
-
-    setMessage({
-      tone: "warning",
-      text: (
-        `${targets.length} ta fan uchun ${dayName} qoidasi tayyorlandi. ` +
-        "Hali bazaga saqlanmadi."
-      ),
-    });
-  };
-
-  const updateRule = (index, field, value) =>
-    setRules(previous =>
-      previous.map((rule, i) =>
-        i === index ? { ...rule, [field]: value } : rule
-      )
-    );
-
-  const removeRule = index =>
-    setRules(previous => previous.filter((_, i) => i !== index));
-
-  const save = async nextEnabled => {
-    const state =
-      typeof nextEnabled === "boolean" ? nextEnabled : enabled;
-
-    if (state && !rules.length) {
-      return setMessage({
-        tone: "error",
-        text: (
-          "Avto metod kunini yoqish uchun kamida bitta " +
-          "fan → kun qoidasi qo‘shing."
-        ),
-      });
-    }
-
-    setSaving(true);
-    setMessage(null);
-
-    try {
-      const data = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v2/metod_avto_sozlama?token=${encodeURIComponent(token)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            maktab_id: maktabId,
-            yoqilgan: state,
-            qoidalar: rules,
-          }),
-        }
-      );
-
-      setEnabled(Boolean(data.yoqilgan));
-      setReport(data.hisobot || []);
-
-      const conflicts =
-        (data.bir_necha_fan_kuni_ziddiyati || []).length;
-      const manual =
-        (data.qolda_metod_borligi_uchun_otkazildi || []).length;
-
-      setMessage({
-        tone: conflicts || manual ? "warning" : "success",
-        text: state
-          ? (
-              `Avto metod kuni YOQILDI. ` +
-              `${data.avto_belgilangan || 0} ta o‘qituvchiga qo‘llandi.` +
-              (
-                manual
-                  ? ` ${manual} ta o‘qituvchida qo‘lda metod kuni borligi uchun tegilmadi.`
-                  : ""
-              ) +
-              (
-                conflicts
-                  ? ` ${conflicts} ta ko‘p fanli o‘qituvchida ro‘yxatdagi birinchi qoida tanlandi.`
-                  : ""
-              )
-            )
-          : (
-              "Avto metod kuni O‘CHIRILDI. Avtomatik belgilar " +
-              "olib tashlandi; qo‘lda belgilangan kunlar saqlandi."
-            ),
-      });
-
-      await reload();
-    } catch (error) {
-      setMessage({ tone: "error", text: error.message });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const openAutoSetup = () => {
-    setEnabled(true);
-    setMessage({
-      tone: "info",
-      text: (
-        "Avto sozlash oynasi ochildi. Fan → kun qoidalarini " +
-        "qo‘shib, “Qoidalarni saqlash va avto qo‘llash”ni bosing."
-      ),
-    });
-  };
-
-  return (
-    <Card className="p-5">
-      {message && (
-        <div className="mb-3">
-          <SmartNotice tone={message.tone}>{message.text}</SmartNotice>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2
-            className="text-xl font-black"
-            style={{ color: palette.ink }}
-          >
-            Avto metod kuni
-          </h2>
-          <p
-            className="text-xs mt-1"
-            style={{ color: palette.muted }}
-          >
-            Standart holat O‘CHIQ. Tizim o‘zi fanlarga kun o‘ylab
-            topmaydi. YOQILSA faqat siz saqlagan aniq fan → kun
-            qoidasi ishlaydi.
-          </p>
-        </div>
-
-        <button
-          onClick={() => enabled ? save(false) : openAutoSetup()}
-          disabled={saving || loading}
-          className="px-4 py-2.5 rounded-xl text-sm font-black"
-          style={{
-            background: enabled ? palette.greenBg : palette.cream,
-            color: enabled ? palette.green : palette.muted,
-          }}
-        >
-          {saving
-            ? "Saqlanmoqda..."
-            : enabled
-              ? "AVTO: YOQ — O‘CHIRISH"
-              : "AVTO: O‘CHIQ — SOZLASH/YOQISH"}
-        </button>
-      </div>
-
-      {enabled && (
-        <>
-          <div className="grid lg:grid-cols-[1.5fr_1fr_1fr_auto] gap-2 mt-4">
-            {selectedSubjects.length ? (
-              <div
-                className="p-2.5 rounded-xl border text-xs font-bold"
-                style={{ borderColor: palette.line, background: palette.sky, color: palette.blue }}
-              >
-                Asosiy filtr: {selectedSubjects.join(", ")}
-              </div>
-            ) : (
-              <select
-                value={subject}
-                onChange={event => setSubject(event.target.value)}
-                className="p-2.5 rounded-xl border bg-white"
-              >
-                <option value="">Fanni tanlang</option>
-                {subjects.map(fan => (
-                  <option key={fan} value={fan}>{fan}</option>
-                ))}
-              </select>
-            )}
-
-            <select
-              value={day}
-              onChange={event => setDay(Number(event.target.value))}
-              className="p-2.5 rounded-xl border bg-white"
-            >
-              {smartDays.slice(0, weekdays).map(([value, name]) => (
-                <option key={value} value={value}>{name}</option>
-              ))}
-            </select>
-
-            <select
-              value={hard ? "hard" : "soft"}
-              onChange={event => setHard(event.target.value === "hard")}
-              className="p-2.5 rounded-xl border bg-white"
-            >
-              <option value="hard">
-                Qattiq — dars qo‘yilmasin
-              </option>
-              <option value="soft">
-                Yumshoq — iloji bo‘lsa bo‘sh
-              </option>
-            </select>
-
-            <button
-              onClick={addSubjects}
-              className="px-4 py-2.5 rounded-xl text-sm font-black text-white"
-              style={{ background: palette.teal }}
-            >
-              {selectedSubjects.length
-                ? `Qoida qo‘shish (${selectedSubjects.length})`
-                : "Qoida qo‘shish"}
-            </button>
-          </div>
-
-          <div
-            className="mt-3 rounded-xl p-3 text-xs"
-            style={{ background: palette.sky, color: palette.blue }}
-          >
-            Masalan: O‘ZBEKISTON TARIXI → Dushanba → Qattiq.
-            Saqlanganda faqat aynan shu fan o‘qituvchilari Dushanba
-            metod kuni bo‘ladi; TARBIYA yoki boshqa fan aralashmaydi.
-          </div>
-
-          <div className="space-y-2 mt-4 max-h-72 overflow-auto pr-1">
-            {rules.map((rule, index) => (
-              <div
-                key={`${rule.fan_nomi}-${index}`}
-                className="grid md:grid-cols-[1.5fr_1fr_1fr_auto] gap-2 items-center rounded-2xl border p-3"
-                style={{ borderColor: palette.line }}
-              >
-                <div
-                  className="text-sm font-black"
-                  style={{ color: palette.ink }}
-                >
-                  {rule.fan_nomi}
-                </div>
-
-                <select
-                  value={rule.hafta_kuni}
-                  onChange={event =>
-                    updateRule(
-                      index,
-                      "hafta_kuni",
-                      Number(event.target.value)
-                    )
-                  }
-                  className="p-2 rounded-xl border bg-white"
-                >
-                  {smartDays.slice(0, weekdays).map(([value, name]) => (
-                    <option key={value} value={value}>{name}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={rule.qattiq ? "hard" : "soft"}
-                  onChange={event =>
-                    updateRule(
-                      index,
-                      "qattiq",
-                      event.target.value === "hard"
-                    )
-                  }
-                  className="p-2 rounded-xl border bg-white"
-                >
-                  <option value="hard">Qattiq</option>
-                  <option value="soft">Yumshoq</option>
-                </select>
-
-                <button
-                  onClick={() => removeRule(index)}
-                  className="px-3 py-2 rounded-xl text-xs font-black"
-                  style={{
-                    background: palette.redBg,
-                    color: palette.red,
-                  }}
-                >
-                  Olib tashlash
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={() => save(true)}
-              disabled={saving}
-              className="px-5 py-3 rounded-xl text-sm font-black text-white"
-              style={{ background: palette.blue }}
-            >
-              Qoidalarni saqlash va avto qo‘llash
-            </button>
-          </div>
-        </>
-      )}
-
-      <div className="mt-4">
-        <div
-          className="text-sm font-black"
-          style={{ color: palette.ink }}
-        >
-          Fan → metod kuni hisoboti
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-          {report.map(row => (
-            <div
-              key={row.fan_nomi}
-              className="rounded-xl p-3"
-              style={{
-                background: row.qattiq
-                  ? palette.redBg
-                  : palette.amberBg,
-              }}
-            >
-              <div
-                className="text-sm font-black"
-                style={{ color: palette.ink }}
-              >
-                {row.fan_nomi}
-              </div>
-              <div
-                className="text-xs mt-1"
-                style={{
-                  color: row.qattiq
-                    ? palette.red
-                    : palette.amber,
-                }}
-              >
-                {row.kun_nomi} · {row.qattiq ? "Qattiq" : "Yumshoq"}
-                {" · "}
-                {row.oqituvchi_soni} o‘qituvchi
-              </div>
-            </div>
-          ))}
-
-          {!report.length && (
-            <div
-              className="text-xs"
-              style={{ color: palette.muted }}
-            >
-              Avto fan → kun qoidasi yo‘q.
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-
-
 function OfficialMethodPresetPanelV1873({ token, apiBase, maktabId, reload }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2484,28 +2071,6 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
       </div> : <SmartNotice tone="info">O‘qituvchini tanlang.</SmartNotice>}
     </Card>
   </div>;
-}
-
-
-function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep }) {
-  const [classId,setClassId]=useState(String(setup?.sinflar?.[0]?.id||""));
-  const [rows,setRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [roomType,setRoomType]=useState("reserve"); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
-  const assignments=useMemo(()=> (setup?.birikmalar||[]).filter(x=>String(x.sinf_id)===String(classId)),[setup,classId]);
-  useEffect(()=>{
-    if(!classId){setRows([]);return;}
-    const existing=(setup?.fan_soatlari||[]).filter(x=>String(x.sinf_id)===String(classId));
-    const subjects=[...new Set([...existing.map(x=>x.fan_nomi),...assignments.map(x=>x.fan_nomi)])];
-    setRows(subjects.map(subject=>{const old=existing.find(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase());return old?{...old}:{fan_nomi:subject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}}));
-  },[classId,setup,assignments]);
-  const update=(index,field,value)=>setRows(prev=>prev.map((r,i)=>i===index?{...r,[field]:value}:r));
-  const addSubject=()=>{if(!newSubject||rows.some(r=>r.fan_nomi===newSubject))return;setRows([...rows,{fan_nomi:newSubject,haftalik_soat:0,kunlik_max:1,ketma_ket_mumkin:false,afzal_oxirgi_dars:5,asosiy_oqituvchi_user_id:null,xona_id:null,nazorat_soni:0,nazoratdan_keyin_tahlil:true,mustahkamlash_soni:0,ogirlik:2}]);setNewSubject("");};
-  const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});setMessage({tone:"success",text:"Haftalik fan soatlari saqlandi. Guruh o‘qituvchilari “Jadval yaratish” bosqichidagi bitta tasdiqlash oynasida boshqariladi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
-  const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
-  const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:roomType})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
-  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Ingliz tili zaxira xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold min-w-[210px]" style={{color:palette.ink}}>Xona turi<select value={roomType} onChange={e=>setRoomType(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="reserve">Zaxira / guruh xonasi</option><option value="sport">Sport zal</option><option value="classroom">Oddiy dars xonasi</option><option value="non_teaching">Dars o‘tilmaydigan xona</option></select></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
-  <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" title="0,5 = har ikki haftada 1 dars (A/B hafta)" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
-  <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini “Jadval yaratish” bosqichidagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
-  </Card></div>;
 }
 
 
@@ -5317,7 +4882,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const [assignments, setAssignments] = useState({});
   const [leaders, setLeaders] = useState({});
   const [showTeacherList, setShowTeacherList] = useState(true);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const load = async (preserveDraft = false) => {
     setLoading(true);
@@ -5557,7 +5121,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <select value={selectedClassId} onChange={event => setSelectedClassId(event.target.value)} className="p-2.5 rounded-xl border bg-white text-sm font-black" style={{ borderColor: palette.line, color: palette.ink }}>
             {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
           </select>
-          <button onClick={() => setShowAdvanced(true)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Batafsil tahrir</button>
         </div>
       </div>
 
@@ -5594,38 +5157,24 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       </div>
     </Card>
 
-    {showAdvanced && <div className="space-y-3">
-      <Card className="p-4 flex items-center justify-between gap-3"><div><div className="text-sm font-black" style={{ color: palette.ink }}>Batafsil tahrir</div><div className="text-xs mt-1" style={{ color: palette.muted }}>Staj, toifa, maqsad soat, fan–sinf–guruh va boshqa eski aniq maydonlar shu yerda qoladi.</div></div><button onClick={() => setShowAdvanced(false)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Yopish</button></Card>
-      <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/>
-    </div>}
   </div>;
 }
 
 
 
-function LoadsStep(props) {
-  const [mode, setMode] = useState("skeleton");
-  const { token, apiBase, maktabId, setup, reload, setStep } = props;
-  return <div className="space-y-4">
-    <Card className="p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-black" style={{ color: palette.ink }}>Sinf skeleti + o‘qituvchi raqami</div>
-          <div className="text-xs mt-1" style={{ color: palette.muted }}>O‘qituvchi F.I.Sh.lari oldin “O‘qituvchi qo‘shish”da raqamlangan. Bu bosqichda faqat fan/guruhga # raqam biriktiriladi.</div>
+function LoadsStep({ token, apiBase, maktabId, setup, reload, setStep }) {
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="text-sm font-black" style={{ color: palette.ink }}>Sinf skeleti + o‘qituvchi raqami</div>
+        <div className="text-xs mt-1" style={{ color: palette.muted }}>
+          O‘qituvchi F.I.Sh. “O‘qituvchi qo‘shish”da # raqam oladi. Bu bosqichda faqat fan/guruhga shu raqam biriktiriladi.
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setMode("skeleton")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "skeleton" ? palette.green : palette.greenBg, color: mode === "skeleton" ? "#fff" : palette.green }}>Sinf skeleti + o‘qituvchi raqami</button>
-          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "teacher" ? palette.blue : palette.sky, color: mode === "teacher" ? "#fff" : palette.blue }}>Keyingi tahrir · staj/toifa</button>
-          <button onClick={() => setMode("legacy")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "legacy" ? palette.blue : palette.cream, color: mode === "legacy" ? "#fff" : palette.ink }}>Eski sinf/Excel</button>
-        </div>
-      </div>
-    </Card>
-    {mode === "skeleton"
-      ? <><ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><ClassSkeletonLoadEditorV204 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload} setStep={setStep}/></>
-      : mode === "teacher"
-        ? <><ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/></>
-        : <LegacyLoadsStepV191 {...props}/>}
-  </div>;
+      </Card>
+      <ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>
+      <ClassSkeletonLoadEditorV204 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload} setStep={setStep}/>
+    </div>
+  );
 }
 
 function scheduleGroupLabel(value) {
@@ -6066,28 +5615,6 @@ function TeacherScheduleStep({ token, apiBase, setup }) {
 }
 
 
-function SanitaryScheduleRulesV1874() {
-  return <Card className="p-5">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 className="text-xl font-black" style={{color:palette.ink}}>Jadval qanday yaratiladi?</h2>
-        <p className="text-xs mt-1" style={{color:palette.muted}}>Qizil vaqt va to‘qnashuv hech qachon buzilmaydi. Qolgan talablar barcha darsni to‘liq joylab, eng ixcham variantni tanlaydi.</p>
-      </div>
-      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>QATTIQ + QULAY STRATEGIYA</span>
-    </div>
-    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
-      <div className="rounded-2xl p-3" style={{background:palette.redBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Qizil vaqt — yopiq</div><div className="text-xs mt-1" style={{color:palette.muted}}>O‘qituvchining qizil kuni yoki soatiga dars qo‘yilmaydi. Bir o‘qituvchi ikki joyda bir vaqtda bo‘lmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Barcha soat aniq</div><div className="text-xs mt-1" style={{color:palette.muted}}>Birorta dars qolmaydi, ortiqcha qo‘shilmaydi. Sinf, fan, guruh va o‘qituvchi jami qayta tekshiriladi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Ixcham ish kunlari</div><div className="text-xs mt-1" style={{color:palette.muted}}>2–6 soat: 2 kun (zaruratda 3); 7–10: 3 kun (4); 11–15: 4 kun (5). Bir soatli o‘qituvchi — 1 kun.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Ikki smena yaqin</div><div className="text-xs mt-1" style={{color:palette.muted}}>1- va 2-smena oralig‘i 1 soat, ko‘pi bilan 2 soat afzal. 3 soat faqat boshqa qattiq cheklovlar majbur qilsa qoladi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>J/T va texnologiya</div><div className="text-xs mt-1" style={{color:palette.muted}}>Asosan 3–6-dars. Mumkin bo‘lsa ketma-ket juft qo‘yiladi; J/Tdan keyin og‘ir yozma fan qo‘yilmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Asosiy fanlar 1–5</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi. Faqat boshqa legal katak qolmasa 6-dars ishlatiladi; bir sinfda haftasiga ko‘pi bilan 2 kun.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinfda okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>Sinf kuni 1-darsdan boshlanadi va uzluksiz ketadi. Og‘ir hamda yengil fanlar imkon qadar almashadi.</div></div>
-    </div>
-  </Card>;
-}
-
-
 function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
   const movableSlots = useMemo(
     () => (detail?.slotlar || []).filter(
@@ -6252,726 +5779,6 @@ function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
 }
 
 
-function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, onSaved }) {
-  const [report, setReport] = useState(null);
-  const [drafts, setDrafts] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [grade, setGrade] = useState("all");
-  const [onlyProblems, setOnlyProblems] = useState(false);
-
-  const keyOf = pair => `${pair.sinf_id}|${pair.fan_kaliti}`;
-  const makeDraft = pair => ({
-    sinf_id: Number(pair.sinf_id),
-    fan_nomi: pair.fan_nomi,
-    turi: pair.turi || "group",
-    tizim_id: pair.tizim_id ? Number(pair.tizim_id) : null,
-    asosiy_oqituvchi_user_id: pair.asosiy_oqituvchi_user_id
-      ? Number(pair.asosiy_oqituvchi_user_id)
-      : null,
-    guruhlar: (pair.guruhlar || []).map((group, index) => ({
-      guruh_kaliti: group.guruh_kaliti,
-      guruh_nomi: group.guruh_nomi,
-      oqituvchi_user_id: group.oqituvchi_user_id
-        ? Number(group.oqituvchi_user_id)
-        : null,
-      xona_id: index === 0 ? null : (group.xona_id ? Number(group.xona_id) : null),
-    })),
-  });
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tasdiqlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
-      );
-      setReport(data);
-      const next = {};
-      (data.fanlar || []).forEach(pair => {
-        next[keyOf(pair)] = makeDraft(pair);
-      });
-      setDrafts(next);
-      onReadyChange?.(Boolean(data.tayyor));
-    } catch (error) {
-      setMessage({ tone: "error", text: error.message });
-      onReadyChange?.(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, [token, apiBase, maktabId]);
-
-  const updateDraft = (pair, patch) => {
-    const key = keyOf(pair);
-    setDrafts(previous => ({
-      ...previous,
-      [key]: { ...(previous[key] || makeDraft(pair)), ...patch },
-    }));
-  };
-
-  const selectSystem = (pair, systemId) => {
-    const system = (pair.tizimlar || []).find(
-      row => String(row.id) === String(systemId)
-    );
-    const current = drafts[keyOf(pair)] || makeDraft(pair);
-    const oldByKey = new Map(
-      (current.guruhlar || []).map(group => [group.guruh_kaliti, group])
-    );
-    const imported = pair.import_oqituvchilari || [];
-
-    updateDraft(pair, {
-      turi: "group",
-      tizim_id: system ? Number(system.id) : null,
-      guruhlar: (system?.guruhlar || []).map((group, index) => {
-        const old = oldByKey.get(group.guruh_kaliti);
-        const suggested = pair.guruhlar?.[index];
-        const importedTeacher = imported[index];
-        return {
-          guruh_kaliti: group.guruh_kaliti,
-          guruh_nomi: group.guruh_nomi,
-          oqituvchi_user_id:
-            old?.oqituvchi_user_id ||
-            suggested?.oqituvchi_user_id ||
-            importedTeacher?.user_id ||
-            null,
-          xona_id: index === 0 ? null : (old?.xona_id || suggested?.xona_id || null),
-        };
-      }),
-    });
-  };
-
-  const updateGroupTeacher = (pair, groupKey, teacherId) => {
-    const key = keyOf(pair);
-    const current = drafts[key] || makeDraft(pair);
-    updateDraft(pair, {
-      guruhlar: (current.guruhlar || []).map(group =>
-        group.guruh_kaliti === groupKey
-          ? {
-              ...group,
-              oqituvchi_user_id: teacherId ? Number(teacherId) : null,
-            }
-          : group
-      ),
-    });
-  };
-
-  const updateGroupRoom = (pair, groupKey, roomId) => {
-    const key = keyOf(pair);
-    const current = drafts[key] || makeDraft(pair);
-    updateDraft(pair, {
-      guruhlar: (current.guruhlar || []).map(group =>
-        group.guruh_kaliti === groupKey
-          ? { ...group, xona_id: roomId ? Number(roomId) : null }
-          : group
-      ),
-    });
-  };
-
-  const roomOptionsFor = pair => {
-    const subject = String(pair.fan_nomi || "").toLocaleLowerCase("uz");
-    const sportSubject = /jismoniy|sport|fizkultura/.test(subject);
-    return [...(report?.xonalar || [])].sort((left, right) => {
-      const leftPreferred = sportSubject ? left.turi === "sport" : left.turi === "reserve";
-      const rightPreferred = sportSubject ? right.turi === "sport" : right.turi === "reserve";
-      return Number(rightPreferred) - Number(leftPreferred) || String(left.nomi).localeCompare(String(right.nomi));
-    });
-  };
-
-  const validateDraft = (pair, draft) => {
-    if (!draft) return "Taqsimot topilmadi";
-    if (!Number(pair.haftalik_soat || 0)) {
-      return "Avval bu sinf–fan uchun haftalik soatni kiriting";
-    }
-    if (draft.turi === "whole") {
-      return draft.asosiy_oqituvchi_user_id
-        ? null
-        : "Butun sinf uchun o‘qituvchi tanlang";
-    }
-    if (!draft.tizim_id) return "Guruhlash tizimini tanlang";
-    if (!(draft.guruhlar || []).length) return "Guruhlar topilmadi";
-    const ids = draft.guruhlar.map(
-      group => Number(group.oqituvchi_user_id || 0)
-    );
-    if (ids.some(id => !id)) return "Har bir guruhga o‘qituvchi tanlang";
-    if (new Set(ids).size !== ids.length) {
-      return "Parallel guruhlarga turli o‘qituvchi tanlang";
-    }
-    return null;
-  };
-
-  const savePairs = async pairs => {
-    const payload = [];
-    for (const pair of pairs) {
-      const draft = drafts[keyOf(pair)] || makeDraft(pair);
-      const error = validateDraft(pair, draft);
-      if (error) {
-        setMessage({
-          tone: "error",
-          text: `${pair.sinf} · ${pair.fan_nomi}: ${error}`,
-        });
-        return;
-      }
-      payload.push({
-        sinf_id: Number(draft.sinf_id),
-        fan_nomi: draft.fan_nomi,
-        turi: draft.turi,
-        tizim_id:
-          draft.turi === "group" ? Number(draft.tizim_id) : null,
-        asosiy_oqituvchi_user_id:
-          draft.turi === "whole"
-            ? Number(draft.asosiy_oqituvchi_user_id)
-            : null,
-        guruhlar:
-          draft.turi === "group"
-            ? draft.guruhlar.map(group => ({
-                guruh_kaliti: group.guruh_kaliti,
-                oqituvchi_user_id: Number(group.oqituvchi_user_id),
-                xona_id: group.xona_id ? Number(group.xona_id) : null,
-              }))
-            : [],
-      });
-    }
-
-    if (!payload.length) return;
-    setSaving(true);
-    setMessage(null);
-    try {
-      const data = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tasdiqlash?token=${encodeURIComponent(token)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            maktab_id: maktabId,
-            birikmalar: payload,
-          }),
-        }
-      );
-      const pending = data.hisobot?.xulosa?.tasdiqlanmagan || 0;
-      setMessage({
-        tone: pending ? "warning" : "success",
-        text: pending
-          ? `${data.tasdiqlangan_soni || payload.length} ta taqsimot saqlandi. Yana ${pending} ta guruhli fan tasdiqlanishi kerak.`
-          : "Barcha guruhli fanlar tasdiqlandi va jadval manbasi qayta sinxronlandi.",
-      });
-      await load();
-      await onSaved?.();
-    } catch (error) {
-      setMessage({ tone: "error", text: error.message });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const createSystem = async (pair, type) => {
-    setSaving(true);
-    setMessage(null);
-    try {
-      await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tizimi_tez?token=${encodeURIComponent(token)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            maktab_id: maktabId,
-            sinf_id: Number(pair.sinf_id),
-            fan_nomi: pair.fan_nomi,
-            turi: type,
-          }),
-        }
-      );
-      setMessage({
-        tone: "success",
-        text:
-          type === "alphabet"
-            ? `${pair.sinf} uchun 1-guruh / 2-guruh tizimi tayyorlandi.`
-            : `${pair.sinf} uchun O‘g‘il / Qiz guruh tizimi tayyorlandi.`,
-      });
-      await load();
-    } catch (error) {
-      setMessage({ tone: "error", text: error.message });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const visibleClasses = (report?.sinflar || []).filter(cls => {
-    if (grade !== "all" && String(cls.sinf_daraja) !== String(grade)) {
-      return false;
-    }
-    if (!onlyProblems) return true;
-    return (cls.fanlar || []).some(pair => !pair.tasdiqlangan);
-  });
-  const visiblePairs = visibleClasses.flatMap(cls => cls.fanlar || []);
-  const unresolvedVisible = visiblePairs.filter(pair => !pair.tasdiqlangan);
-  const summary = report?.xulosa || {};
-
-  return (
-    <Card className="p-5">
-      {message && (
-        <div className="mb-3">
-          <SmartNotice tone={message.tone}>{message.text}</SmartNotice>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-black" style={{ color: palette.ink }}>
-            1. Sinf guruhlari va o‘qituvchilarini tasdiqlash
-          </h2>
-          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
-            Sinf yaratishda saqlangan 1/2-guruh, o‘g‘il/qiz yoki mustaqil
-            guruhlar Excel importidagi o‘qituvchilar bilan solishtiriladi.
-            Masalan 5-A Ingliz tiliga 2 ta o‘qituvchi yozilgan bo‘lsa,
-            tizim ularni 1-guruh va 2-guruhga taklif qiladi. Shu oynada
-            o‘qituvchilarni almashtirib, jadvaldan oldin tasdiqlaysiz.
-          </p>
-        </div>
-        <div className="grid grid-cols-4 gap-2 min-w-[420px]">
-          <Stat value={summary.sinf_soni || 0} label="jami sinf" tone="blue" />
-          <Stat
-            value={summary.guruh_tizimli_sinf_soni || 0}
-            label="guruhli sinf"
-            tone="teal"
-          />
-          <Stat
-            value={summary.tasdiqlangan || 0}
-            label="tasdiqlangan"
-            tone="green"
-          />
-          <Stat
-            value={summary.tasdiqlanmagan || 0}
-            label="qolgan"
-            tone={summary.tasdiqlanmagan ? "red" : "green"}
-          />
-        </div>
-      </div>
-
-      <div
-        className="mt-4 rounded-xl p-3 text-xs leading-relaxed"
-        style={{ background: palette.sky, color: palette.blue }}
-      >
-        Guruhli fan sinf rejasida guruhlar soniga ko‘paymaydi. Masalan
-        Ingliz tili haftasiga 1 soat va 2 guruh bo‘lsa: sinf rejasida 1 soat,
-        1-guruh o‘qituvchisida 1 soat, 2-guruh o‘qituvchisida 1 soat,
-        jadvalda esa ikkala guruh bir vaqtda turadigan 1 parallel slot bo‘ladi.
-      </div>
-
-      <div className="flex flex-wrap gap-2 mt-4">
-        <select
-          value={grade}
-          onChange={event => setGrade(event.target.value)}
-          className="p-2.5 rounded-xl border bg-white"
-        >
-          <option value="all">Barcha parallellar</option>
-          {Array.from({ length: 11 }, (_, index) => index + 1).map(value => (
-            <option key={value} value={value}>
-              {value}-sinflar
-            </option>
-          ))}
-        </select>
-        <label
-          className="px-3 py-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold"
-          style={{ borderColor: palette.line }}
-        >
-          <input
-            type="checkbox"
-            checked={onlyProblems}
-            onChange={event => setOnlyProblems(event.target.checked)}
-          />
-          Faqat tasdiqlanmagan/xato fanlar
-        </label>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="px-3 py-2.5 rounded-xl text-xs font-black"
-          style={{ background: palette.sky, color: palette.blue }}
-        >
-          {loading ? "Yuklanmoqda..." : "Qayta tekshirish"}
-        </button>
-        <button
-          onClick={() => savePairs(unresolvedVisible)}
-          disabled={saving || !unresolvedVisible.length}
-          className="px-4 py-2.5 rounded-xl text-xs font-black text-white"
-          style={{
-            background: unresolvedVisible.length ? palette.teal : "#9BA8B2",
-          }}
-        >
-          Ko‘rinayotganlarni saqlash va tasdiqlash
-        </button>
-      </div>
-
-      {report?.tayyor && (
-        <div
-          className="mt-4 rounded-xl p-3 text-xs font-bold"
-          style={{ background: palette.greenBg, color: palette.green }}
-        >
-          Barcha guruhli fanlarda guruhlar, o‘qituvchilar va haftalik soatlar
-          tasdiqlangan. Endi shablon/reja mosligini tekshirish mumkin.
-        </div>
-      )}
-
-      <div className="space-y-4 mt-4 max-h-[780px] overflow-auto pr-1">
-        {visibleClasses.map(cls => (
-          <div
-            key={cls.sinf_id}
-            className="rounded-2xl border p-4"
-            style={{ borderColor: palette.line, background: "#FCFDFE" }}
-          >
-            <div className="flex flex-wrap justify-between gap-2">
-              <div>
-                <div className="text-lg font-black" style={{ color: palette.ink }}>
-                  {cls.sinf} · {cls.smena}-smena
-                </div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {(cls.tizimlar || []).map(system => (
-                    <span
-                      key={system.id}
-                      className="px-2 py-1 rounded-full text-[10px] font-black"
-                      style={{ background: palette.sky, color: palette.blue }}
-                    >
-                      {system.nomi} · {(system.guruhlar || [])
-                        .map(group => `${group.guruh_nomi} (${group.oquvchi_soni ?? group.soni ?? 0})`)
-                        .join(" / ")}
-                    </span>
-                  ))}
-                  {!(cls.tizimlar || []).length && (
-                    <span className="text-xs" style={{ color: palette.muted }}>
-                      Guruhlash tizimi yaratilmagan
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="text-xs font-bold" style={{ color: palette.muted }}>
-                {(cls.fanlar || []).length} ta guruh tekshiruvi
-              </div>
-            </div>
-
-            {!(cls.fanlar || []).length ? (
-              <div
-                className="mt-3 rounded-xl p-3 text-xs"
-                style={{ background: palette.cream, color: palette.muted }}
-              >
-                Bu sinfda hozircha ikki o‘qituvchili yoki guruh tizimiga
-                biriktirilgan fan topilmadi.
-              </div>
-            ) : (
-              <div className="space-y-3 mt-3">
-                {(cls.fanlar || []).map(pair => {
-                  const draft = drafts[keyOf(pair)] || makeDraft(pair);
-                  const pairError = validateDraft(pair, draft);
-                  const hasAlphabet = (pair.tizimlar || []).some(
-                    system => system.turi === "alphabet"
-                  );
-                  const hasGender = (pair.tizimlar || []).some(
-                    system => system.turi === "gender"
-                  );
-
-                  return (
-                    <div
-                      key={keyOf(pair)}
-                      className="rounded-2xl border p-3"
-                      style={{
-                        borderColor: pair.tasdiqlangan
-                          ? "#B9DFC5"
-                          : pair.xatolar?.length
-                            ? "#E9B7B7"
-                            : "#E8CF91",
-                        background: pair.tasdiqlangan
-                          ? palette.greenBg
-                          : pair.xatolar?.length
-                            ? palette.redBg
-                            : palette.amberBg,
-                      }}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="text-sm font-black" style={{ color: palette.ink }}>
-                            {pair.fan_nomi}
-                          </div>
-                          <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                            Import:
-                            {" "}
-                            {(pair.import_oqituvchilari || [])
-                              .map(row =>
-                                `${row.full_name}${row.guruh_kaliti !== "whole" ? ` (${row.guruh_kaliti})` : ""}`
-                              )
-                              .join(", ") || "o‘qituvchi yo‘q"}
-                          </div>
-                          <div className="grid grid-cols-3 gap-1.5 mt-2 max-w-xl">
-                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
-                              Sinf rejasi: {pair.sinf_reja_soati ?? pair.haftalik_soat ?? "—"} soat
-                            </div>
-                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>
-                              Jadval: {pair.jadval_parallel_slot_soni ?? pair.haftalik_soat ?? "—"} parallel slot
-                            </div>
-                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>
-                              O‘qituvchi jami: {pair.oqituvchi_soat_jami ?? "—"} soat
-                            </div>
-                          </div>
-                        </div>
-                        <span
-                          className="px-2 py-1 rounded-full text-[10px] font-black"
-                          style={{
-                            background: pair.tasdiqlangan
-                              ? "#D7F0DF"
-                              : pair.xatolar?.length
-                                ? "#F7D8D8"
-                                : "#FFF0C7",
-                            color: pair.tasdiqlangan
-                              ? palette.green
-                              : pair.xatolar?.length
-                                ? palette.red
-                                : palette.amber,
-                          }}
-                        >
-                          {pair.tasdiqlangan
-                            ? "TASDIQLANGAN"
-                            : pair.xatolar?.length
-                              ? "TUZATISH KERAK"
-                              : "TEKSHIRIB TASDIQLANG"}
-                        </span>
-                      </div>
-
-                      <div className="grid md:grid-cols-[180px_1fr] gap-2 mt-3">
-                        <label className="text-xs font-bold" style={{ color: palette.ink }}>
-                          Dars turi
-                          <select
-                            value={draft.turi}
-                            onChange={event =>
-                              updateDraft(pair, { turi: event.target.value })
-                            }
-                            className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
-                          >
-                            <option value="group">Guruhlarga bo‘lingan</option>
-                            <option value="whole">Butun sinf</option>
-                          </select>
-                        </label>
-
-                        {draft.turi === "group" ? (
-                          <label className="text-xs font-bold" style={{ color: palette.ink }}>
-                            Qaysi guruhlash tizimi?
-                            <select
-                              value={draft.tizim_id || ""}
-                              onChange={event => selectSystem(pair, event.target.value)}
-                              className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
-                            >
-                              <option value="">Tizimni tanlang</option>
-                              {(pair.tizimlar || []).map(system => (
-                                <option key={system.id} value={system.id}>
-                                  {system.nomi}
-                                  {system.fan_biriktirilgan
-                                    ? " · fan avval biriktirilgan"
-                                    : " · tanlansa fanga biriktiriladi"}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        ) : (
-                          <label className="text-xs font-bold" style={{ color: palette.ink }}>
-                            Butun sinf o‘qituvchisi
-                            <select
-                              value={draft.asosiy_oqituvchi_user_id || ""}
-                              onChange={event =>
-                                updateDraft(pair, {
-                                  asosiy_oqituvchi_user_id: event.target.value
-                                    ? Number(event.target.value)
-                                    : null,
-                                })
-                              }
-                              className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
-                            >
-                              <option value="">O‘qituvchini tanlang</option>
-                              {(pair.kandidat_oqituvchilar || []).map(teacher => (
-                                <option key={teacher.user_id} value={teacher.user_id}>
-                                  {teacher.full_name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        )}
-                      </div>
-
-                      {draft.turi === "group" && !(pair.tizimlar || []).length && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <button
-                            onClick={() => createSystem(pair, "alphabet")}
-                            disabled={saving}
-                            className="px-3 py-2 rounded-xl text-xs font-black"
-                            style={{ background: palette.sky, color: palette.blue }}
-                          >
-                            + 1-guruh / 2-guruh yaratish
-                          </button>
-                          <button
-                            onClick={() => createSystem(pair, "gender")}
-                            disabled={saving}
-                            className="px-3 py-2 rounded-xl text-xs font-black"
-                            style={{ background: palette.cream, color: palette.ink }}
-                          >
-                            + O‘g‘il / Qiz guruhini yaratish
-                          </button>
-                        </div>
-                      )}
-
-                      {draft.turi === "group" && (pair.tizimlar || []).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {!hasAlphabet && (
-                            <button
-                              onClick={() => createSystem(pair, "alphabet")}
-                              disabled={saving}
-                              className="px-3 py-2 rounded-xl text-[11px] font-black"
-                              style={{ background: palette.sky, color: palette.blue }}
-                            >
-                              Boshqa variant: 1/2-guruh
-                            </button>
-                          )}
-                          {!hasGender && (
-                            <button
-                              onClick={() => createSystem(pair, "gender")}
-                              disabled={saving}
-                              className="px-3 py-2 rounded-xl text-[11px] font-black"
-                              style={{ background: palette.cream, color: palette.ink }}
-                            >
-                              Boshqa variant: O‘g‘il/Qiz
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {draft.turi === "group" && (
-                        <div className="grid md:grid-cols-2 gap-2 mt-3">
-                          {(draft.guruhlar || []).map((group, groupIndex) => (
-                            <label
-                              key={group.guruh_kaliti}
-                              className="rounded-xl border p-3 text-xs font-bold"
-                              style={{
-                                borderColor: groupIndex > 0 && !group.xona_id ? "#E4B7AE" : palette.line,
-                                background: groupIndex > 0 && !group.xona_id ? "#FFF8F6" : "#fff",
-                                color: palette.ink,
-                              }}
-                            >
-                              {group.guruh_nomi}
-                              <select
-                                value={group.oqituvchi_user_id || ""}
-                                onChange={event =>
-                                  updateGroupTeacher(
-                                    pair,
-                                    group.guruh_kaliti,
-                                    event.target.value
-                                  )
-                                }
-                                className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
-                              >
-                                <option value="">O‘qituvchini tanlang</option>
-                                {(pair.kandidat_oqituvchilar || []).map(teacher => (
-                                  <option key={teacher.user_id} value={teacher.user_id}>
-                                    {teacher.full_name} · reja {teacher.haftalik_dars_soati ?? "—"}
-                                  </option>
-                                ))}
-                              </select>
-                              {groupIndex === 0 ? <div className="w-full mt-2 p-2.5 rounded-xl border font-normal" style={{ borderColor: "#B9DFC5", background: palette.greenBg, color: palette.green }}>Xona: sinfning o‘z xonasi</div> : <select
-                                value={group.xona_id || ""}
-                                onChange={event => updateGroupRoom(pair, group.guruh_kaliti, event.target.value)}
-                                className="w-full mt-2 p-2.5 rounded-xl border bg-white"
-                                style={{ borderColor: group.xona_id ? palette.line : "#E4B7AE" }}
-                              >
-                                <option value="">Bo‘linishga xona topilmadi</option>
-                                {roomOptionsFor(pair).map(room => <option key={room.id} value={room.id}>{room.nomi} · {room.turi === "sport" ? "sport zal" : room.turi === "reserve" ? "zaxira/guruh" : "dars xonasi"}</option>)}
-                              </select>}
-                              {groupIndex > 0 && !group.xona_id && <div className="mt-1.5 text-[10px] font-normal" style={{ color: "#B0553A" }}>Bo‘linishga xona topilmadi. Sport zal yoki zaxira xona yarating; zarur bo‘lsa jadvalda xonani qo‘lda yozasiz.</div>}
-                              <div className="mt-1 font-normal" style={{ color: palette.muted }}>
-                                O‘quvchi: {group.oquvchi_soni ?? 0} · shu guruh
-                                o‘qituvchisiga haftasiga {pair.haftalik_soat || "—"} soat
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {(pair.xatolar || []).map((error, index) => (
-                        <div key={`e-${index}`} className="text-xs mt-2" style={{ color: palette.red }}>
-                          {error}
-                        </div>
-                      ))}
-                      {(pair.ogohlantirishlar || []).map((warning, index) => (
-                        <div key={`w-${index}`} className="text-xs mt-2" style={{ color: palette.amber }}>
-                          {warning}
-                        </div>
-                      ))}
-                      {pairError && (
-                        <div className="text-xs mt-2 font-bold" style={{ color: palette.red }}>
-                          {pairError}
-                        </div>
-                      )}
-
-                      <div className="flex justify-end mt-3">
-                        <button
-                          onClick={() => savePairs([pair])}
-                          disabled={saving || Boolean(pairError)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-black text-white"
-                          style={{ background: pairError ? "#9BA8B2" : palette.blue }}
-                        >
-                          Saqlash va tasdiqlash
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {!loading && !visibleClasses.length && (
-          <div className="p-7 text-center text-sm" style={{ color: palette.muted }}>
-            Bu filtr bo‘yicha sinf topilmadi.
-          </div>
-        )}
-      </div>
-
-      <div
-        className="mt-4 rounded-xl p-3 text-xs"
-        style={{ background: palette.cream, color: palette.muted }}
-      >
-        Mustaqil guruh a’zolarini o‘zgartirish kerak bo‘lsa, “Asosiy sahifaga
-        qaytish”ni bosing va sinf kartasidagi “Ko‘p guruhli boshqaruv”dan
-        o‘quvchilar tarkibini tuzating. Bu oynada esa fan va o‘qituvchi
-        taqsimoti tasdiqlanadi.
-      </div>
-    </Card>
-  );
-}
-
-
-const ONE_GENERATOR_POLICY_V210 = {
-  nomi: "Yagona kuchli generator",
-  izoh: "Avval barcha majburiy darsni qattiq qoidalar ichida sig‘diradi; keyin oyna, fan vaqti va kun taqsimotini yaxshilaydi. Asosiy fanlar 1–5-darsda, faqat zaruratda 6-darsda turadi.",
-  qoidalar: [
-    "KELAJAK SOATI va boshqa aniq mashg‘ulotlar tanlangan kun-darsga avval qo‘yiladi. Administrator saqlagan qizil/BAND katak hech qachon ochilmaydi. Qat’iy jadval isbotlangan tarzda sig‘masa, faqat 1–4-sinf o‘qituvchisi uchun Shanbadan boshqa metod kunidagi ko‘pi bilan 2 aniq katak ikkinchi exact modelda tekshiriladi.",
-    "Qizil vaqti 20 foizdan ko‘p o‘qituvchilarning darslari qolgan yuklamadan oldin joylashtiriladi. Metod kuni qat’iy yopiq; faqat to‘liq jadvalni bergan va yakuniy validator tasdiqlagan boshlang‘ich sinf istisnosi avtomatik qo‘llanishi mumkin.",
-    "Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi; boshqa legal katak qolmasa 6-darsga tushadi, lekin har bir sinfda haftasiga ko‘pi bilan 2 kun. J/T va texnologiya iloji boricha 3–6-darslarda joylashadi.",
-    "Sinfda ichki okno bo‘lmaydi; o‘qituvchi kunlari ixcham qilinadi va uzoq kutish imkon qadar kamaytiriladi.",
-    "Haftasiga 2 soat darsi bor bir smenali o‘qituvchi uchun 1-dars va smenaning oxirgi darsi imkon qadar tanlanmaydi.",
-    "Sinf, o‘qituvchi va xona parallelligi, smena, guruh sinxronligi hamda aniq haftalik soatlar buzilmaydi.",
-    "Fan yoki guruhning maxsus xonasi ustun; u bo‘lmasa sinfning biriktirilgan xonasi chiqadi, hech biri bo‘lmasa ‘Xona yo‘q’ ko‘rsatiladi.",
-  ],
-};
-
-const GENERATION_PHASES_V210 = {
-  capability: { title: "Generatorni tekshiryapman" },
-  preflight: { title: "Manbalarni tekshiryapman" },
-  calculating: { title: "To‘liq variant qidirilmoqda" },
-  completion: { title: "Qolgan darslar qayta joylashtirilmoqda" },
-  loading: { title: "Natijani yuklayapman" },
-  recovery: { title: "Backend natijasini kutyapman" },
-};
-
-const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 600;
-
 function normalizeGenerationBudgetSecondsV219(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0
@@ -6979,48 +5786,150 @@ function normalizeGenerationBudgetSecondsV219(value) {
     : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
 }
 
-function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, searchFinishedAt, liveProgress, onStop }) {
+function ScheduleRobotProgressV201({
+  phase, setup, startedAt, liveProgress, onStop, onClose,
+}) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
   const [clock, setClock] = useState(() => Date.now());
+  const [position, setPosition] = useState(() => ({ x: null, y: null }));
+  const dragRef = useRef(null);
+
   useEffect(() => {
     setClock(Date.now());
     const timer = window.setInterval(() => setClock(Date.now()), 250);
     return () => window.clearInterval(timer);
-  }, [startedAt, searchStartedAt, searchFinishedAt]);
+  }, [startedAt]);
+
+  useEffect(() => {
+    const move = event => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const point = event.touches?.[0] || event;
+      const width = Math.min(720, Math.max(320, window.innerWidth - 24));
+      const maxX = Math.max(8, window.innerWidth - width - 8);
+      const maxY = Math.max(8, window.innerHeight - 160);
+      setPosition({
+        x: Math.max(8, Math.min(maxX, drag.left + point.clientX - drag.clientX)),
+        y: Math.max(8, Math.min(maxY, drag.top + point.clientY - drag.clientY)),
+      });
+    };
+    const up = () => { dragRef.current = null; };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    window.addEventListener("touchmove", move, { passive: false });
+    window.addEventListener("touchend", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      window.removeEventListener("touchmove", move);
+      window.removeEventListener("touchend", up);
+    };
+  }, []);
+
+  const beginDrag = event => {
+    if (event.target?.closest?.("button")) return;
+    const point = event.touches?.[0] || event;
+    const rect = event.currentTarget.closest("[data-progress-window]")?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = {
+      clientX: point.clientX,
+      clientY: point.clientY,
+      left: rect.left,
+      top: rect.top,
+    };
+    if (event.cancelable) event.preventDefault();
+  };
+
   const totalElapsedSeconds = Math.max(0, (clock - Number(startedAt || clock)) / 1000);
   const processPercent = Number.isFinite(Number(liveProgress?.foiz))
     ? Math.max(0, Math.min(100, Number(liveProgress.foiz)))
     : 0;
   const scheduleNumber = liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || "—";
   const processMessage = liveProgress?.xabar || stage.title;
-  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[720px]" role="status" aria-live="polite" aria-label={processMessage}>
-    <div className="rounded-[28px] border-2 bg-white p-5 md:p-6" style={{ borderColor: "#49A9A5", boxShadow: "0 24px 80px rgba(24,50,75,.30)" }}>
-      <div className="flex items-start gap-3">
-        <div className="relative shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
-          <Bot size={34}/>
-          <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .7 }}/>
-          <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
+  const fixedStyle = position.x === null
+    ? { right: 24, bottom: 24 }
+    : { left: position.x, top: position.y };
+
+  const panel = (
+    <div
+      data-progress-window
+      className="fixed z-[120] w-[calc(100vw-24px)] max-w-[720px]"
+      style={fixedStyle}
+      role="status"
+      aria-live="polite"
+      aria-label={processMessage}
+    >
+      <div className="rounded-[28px] border-2 bg-white p-4 md:p-5" style={{ borderColor: "#49A9A5", boxShadow: "0 24px 80px rgba(24,50,75,.30)" }}>
+        <div
+          className="flex items-center gap-3 pb-3 mb-3 border-b select-none cursor-move"
+          style={{ borderColor: palette.line }}
+          onMouseDown={beginDrag}
+          onTouchStart={beginDrag}
+          title="Ushlab suring"
+        >
+          <div className="text-lg font-black tracking-[-.2em]" style={{ color: palette.muted }}>⠿</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>
+              JADVAL YARATISH / YAXSHILASH
+            </div>
+            <div className="text-xs font-bold truncate" style={{ color: palette.muted }}>
+              Oynani ushlab istalgan joyga surish mumkin
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl border text-xl font-black"
+            style={{ borderColor: palette.line, color: palette.ink, background: "#fff" }}
+            title="Oynani yopish — hisoblash davom etadi"
+          >
+            ×
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
-          <div className="text-2xl md:text-3xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
-          <div className="text-base md:text-lg font-black mt-1 leading-snug" style={{ color: palette.blue }}>{processMessage}</div>
+
+        <div className="flex items-start gap-3">
+          <div className="relative shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
+            <Bot size={30}/>
+            <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .7 }}/>
+            <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xl md:text-2xl font-black" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
+            <div className="text-sm md:text-base font-black mt-1 leading-snug" style={{ color: palette.blue }}>{processMessage}</div>
+          </div>
+          <div className="shrink-0 text-3xl md:text-4xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
         </div>
-        <div className="shrink-0 text-4xl md:text-5xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
+
+        <div className="h-3 rounded-full overflow-hidden mt-4" style={{ background: palette.sky }}>
+          <div className="h-full transition-[width] duration-500" style={{ width: `${processPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          <div className="rounded-xl px-3 py-2 text-center" style={{ background: palette.greenBg }}>
+            <div className="text-lg font-black" style={{ color: palette.green }}>{classCount || "—"}</div>
+            <div className="text-[10px] font-bold" style={{ color: palette.muted }}>sinf</div>
+          </div>
+          <div className="rounded-xl px-3 py-2 text-center" style={{ background: palette.sky }}>
+            <div className="text-lg font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div>
+            <div className="text-[10px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div>
+          </div>
+          <div className="rounded-xl px-3 py-2 text-center" style={{ background: palette.amberBg }}>
+            <div className="text-lg font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div>
+            <div className="text-[10px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div>
+          </div>
+        </div>
+
+        <button type="button" onClick={onStop} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>
+          Yaxshilashni to‘xtatish va eng yaxshi natijani olish
+        </button>
+        <div className="text-[10px] font-bold text-center mt-2" style={{ color: palette.muted }}>
+          × faqat oynani yopadi. Hisoblash backendda davom etadi.
+        </div>
       </div>
-      <div className="h-4 rounded-full overflow-hidden mt-5" style={{ background: palette.sky }}>
-        <div className="h-full transition-[width] duration-500" style={{ width: `${processPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
-      </div>
-      <div className="grid grid-cols-3 gap-2 mt-4">
-        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.greenBg }}><div className="text-xl font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
-        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.sky }}><div className="text-xl font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
-        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
-      </div>
-      <button type="button" onClick={onStop} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>Yaxshilashni to‘xtatish va eng yaxshi natijani olish</button>
     </div>
-  </div>;
+  );
   return typeof document === "undefined" ? panel : createPortal(panel, document.body);
 }
 
@@ -7515,6 +6424,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [generationFailure, setGenerationFailure] = useState(null);
   const [generationNonce, setGenerationNonce] = useState(null);
   const [liveProgress, setLiveProgress] = useState(null);
+  const [progressWindowOpen, setProgressWindowOpen] = useState(true);
   const [resultWindowOpen, setResultWindowOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
@@ -7629,6 +6539,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     const searchNonce = generationStart;
     let solverRequestStartedAt = null;
     setGenerating(true);
+    setProgressWindowOpen(true);
     setGenerationPhase("capability");
     setGenerationBudgetSeconds(DEFAULT_GENERATION_BUDGET_SECONDS_V219);
     setGenerationStartedAt(generationStart);
@@ -7958,7 +6869,24 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   return <div className="space-y-3">
     {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
-    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} searchStartedAt={searchStartedAt} searchFinishedAt={searchFinishedAt} liveProgress={liveProgress} onStop={stopGeneration}/>} 
+    {generating && progressWindowOpen && <ScheduleRobotProgressV201
+      phase={generationPhase}
+      setup={setup}
+      startedAt={generationStartedAt}
+      liveProgress={liveProgress}
+      onStop={stopGeneration}
+      onClose={() => setProgressWindowOpen(false)}
+    />}
+    {generating && !progressWindowOpen && (
+      <button
+        type="button"
+        onClick={() => setProgressWindowOpen(true)}
+        className="fixed z-[119] right-4 bottom-4 rounded-2xl px-4 py-3 text-sm font-black text-white"
+        style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", boxShadow: "0 16px 45px rgba(24,50,75,.28)" }}
+      >
+        Jadval #{liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || "—"} · {Number(liveProgress?.foiz || 0)}% · Jarayonni ochish
+      </button>
+    )} 
     {message && <div className="rounded-2xl border-2 px-5 py-4 text-base font-black leading-snug" style={{ background: message.tone === "error" ? palette.redBg : message.tone === "warning" ? palette.amberBg : palette.greenBg, borderColor: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green, color: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green }}>{message.text}</div>}
     {(!!runs.length || generating) && <Card className="p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -8567,7 +7495,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                 <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
                 <div className="space-y-2">
                   <QuickAction icon={<BookOpen size={18}/>} title={`O‘quv reja · ${curriculumApproved ? "tasdiqlangan" : "tasdiqlanmagan"}`} desc="Avval fan–sinf–haftalik soatlarni tekshiring va tasdiqlang." onClick={() => setCurriculumOpen(true)}/>
-                  <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc={curriculumApproved ? "F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." : "Ochiq: soatni qo‘lda yozing. Reja tasdiqlansa soat avtomatik chiqadi."} onClick={openTeacherEditor}/>
+                  <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi qo‘shish" desc="Faqat F.I.Sh. kiriting — tizim avtomatik # raqam beradi. Fan/guruh keyin sinf skeletida biriktiriladi." onClick={openTeacherEditor}/>
                   <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → o‘qituvchi vaqti → fan-soat → jadval yaratish → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
                   <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
                   <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
