@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V22.37 ONE-DOUBLE-DAY — asosiy fan haftada bir kun juft.
+// SAMTM FRONTEND V22.38 ADAPTIVE-DOUBLE — bir juft afzal, zarur bo'lsa 2+2+1.
 // SamTM V19.8 REV52 — metod kuni qattiq blok va 10–19 soatli ustozlar ixcham kunlarda.
 // SamTM V19.8 REV48 — mavjud maktab ID birinchi; eski selected_id frontend bilan ham mos.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -21,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.37-ONE-DOUBLE-DAY";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.38-ADAPTIVE-DOUBLE";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -7219,7 +7219,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         return;
       }
       if (
-        !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.37-ONE-DOUBLE-DAY"].includes(
+        !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.38-ADAPTIVE-DOUBLE"].includes(
           capability?.exact_jadval_release
         ) ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
@@ -7227,7 +7227,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V22.37 ONE-DOUBLE-DAY paketini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V22.38 ADAPTIVE-DOUBLE paketini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
         });
         return;
       }
