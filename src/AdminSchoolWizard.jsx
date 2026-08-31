@@ -18,7 +18,7 @@ import {
   Eye, ShieldCheck, UserCog, Stethoscope, Brain, LockKeyhole, X, Search,
   Download, Bot
 } from "lucide-react";
-import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
+import { registerPhoneBackHandler } from "./pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
 const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.40-DAILY-BALANCE";
