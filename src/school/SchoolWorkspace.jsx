@@ -6586,7 +6586,7 @@ function normalizeGenerationBudgetSecondsV219(value) {
     : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
 }
 
-function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, searchFinishedAt, budgetSeconds, liveProgress }) {
+function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onStop }) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
@@ -6596,49 +6596,36 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, s
     const timer = window.setInterval(() => setClock(Date.now()), 250);
     return () => window.clearInterval(timer);
   }, [startedAt, searchStartedAt, searchFinishedAt]);
-  const normalizedBudget = normalizeGenerationBudgetSecondsV219(budgetSeconds);
   const totalElapsedSeconds = Math.max(0, (clock - Number(startedAt || clock)) / 1000);
-  const searchClock = Number(searchFinishedAt || clock);
-  const searchElapsedSeconds = searchStartedAt
-    ? Math.max(0, (searchClock - Number(searchStartedAt)) / 1000)
-    : 0;
-  const timeBudgetPercent = Math.max(
-    0,
-    Math.min(100, Math.round((searchElapsedSeconds / normalizedBudget) * 100)),
-  );
   const processPercent = Number.isFinite(Number(liveProgress?.foiz))
     ? Math.max(0, Math.min(100, Number(liveProgress.foiz)))
-    : timeBudgetPercent;
+    : 0;
   const scheduleNumber = liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || "—";
   const processMessage = liveProgress?.xabar || stage.title;
-  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[620px]" role="status" aria-live="polite" aria-label={processMessage}>
-    <div className="rounded-3xl border bg-white p-4" style={{ borderColor: "#8BC9C8", boxShadow: "0 22px 70px rgba(24,50,75,.28)" }}>
+  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[720px]" role="status" aria-live="polite" aria-label={processMessage}>
+    <div className="rounded-[28px] border-2 bg-white p-5 md:p-6" style={{ borderColor: "#49A9A5", boxShadow: "0 24px 80px rgba(24,50,75,.30)" }}>
       <div className="flex items-start gap-3">
-        <div className="relative shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
-          <Bot size={30}/>
+        <div className="relative shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
+          <Bot size={34}/>
           <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .7 }}/>
           <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Yagona generator ishlayapti</div>
-          <div className="text-xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber} · {processPercent}%</div>
-          <div className="text-sm font-bold mt-1 leading-relaxed" style={{ color: palette.blue }}>{processMessage}</div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
+          <div className="text-2xl md:text-3xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
+          <div className="text-base md:text-lg font-black mt-1 leading-snug" style={{ color: palette.blue }}>{processMessage}</div>
         </div>
+        <div className="shrink-0 text-4xl md:text-5xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
       </div>
-      <div className="flex items-center justify-between gap-3 mt-3 text-[10px] font-black" style={{ color: palette.ink }}>
-        <span>Jadval yaratish va yaxshilash jarayoni</span>
-        <span>{processPercent}%</span>
-      </div>
-      <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: palette.sky }}>
+      <div className="h-4 rounded-full overflow-hidden mt-5" style={{ background: palette.sky }}>
         <div className="h-full transition-[width] duration-500" style={{ width: `${processPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
       </div>
-      <div className="mt-1 text-[10px] leading-relaxed" style={{ color: palette.muted }}>O‘tgan vaqt: {totalElapsedSeconds.toFixed(1)} soniya · ajratilgan qidiruv vaqti: {searchElapsedSeconds.toFixed(1)}/{normalizedBudget.toFixed(0)} soniya. Foiz backend tasdiqlagan bosqichni ko‘rsatadi.</div>
-      <div className="grid grid-cols-3 gap-1.5 mt-3">
-        <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.greenBg }}><div className="text-[11px] font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>sinf manbasi</div></div>
-        <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.sky }}><div className="text-[11px] font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>o‘qituvchi manbasi</div></div>
-        <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.amber }}>Avtomatik</div><div className="text-[8px]" style={{ color: palette.muted }}>qayta joylash</div></div>
+      <div className="grid grid-cols-3 gap-2 mt-4">
+        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.greenBg }}><div className="text-xl font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
+        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.sky }}><div className="text-xl font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
+        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
       </div>
-      <div className="mt-2 flex items-center gap-1 text-[9px] font-bold" style={{ color: palette.muted }}><span className="animate-bounce">●</span><span className="animate-bounce" style={{ animationDelay: "120ms" }}>●</span><span className="animate-bounce" style={{ animationDelay: "240ms" }}>●</span><span className="ml-1">Oynani yopmang. Eski tasdiqlangan jadval yangi natija tayyor bo‘lguncha saqlanadi.</span></div>
+      <button type="button" onClick={onStop} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>Yaxshilashni to‘xtatish va eng yaxshi natijani olish</button>
     </div>
   </div>;
   return typeof document === "undefined" ? panel : createPortal(panel, document.body);
@@ -7319,6 +7306,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (!started?.qabul_qilindi) throw new Error(started?.xabar || "Backend jadval ishini boshlamadi.");
       setMessage({ tone: "success", text: "Jadval backendda mustaqil yaratila boshladi. Sahifa yopilsa ham davom etadi; faqat “To‘xtatish” tugmasi to‘xtatadi." });
       let finalProgress = null;
+      let baseScheduleLoaded = false;
       while (true) {
         await new Promise(resolve => window.setTimeout(resolve, 1000));
         let progress;
@@ -7330,6 +7318,17 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         }
         if (!progress?.jadval_raqami) continue;
         setLiveProgress(progress);
+        if (progress.bosqich === "asosiy_tayyor" && !baseScheduleLoaded) {
+          baseScheduleLoaded = true;
+          await reload();
+          setRunId(String(progress.jadval_raqami));
+          await loadRun(progress.jadval_raqami);
+          setResultWindowOpen(true);
+          setMessage({
+            tone: "success",
+            text: progress.xabar || `Jadval #${progress.jadval_raqami} yaratildi va saqlandi. Endi shu jadval buzilmasdan yaxshilanmoqda.`,
+          });
+        }
         if (["tayyor", "xato", "toxtatildi"].includes(progress.bosqich)) {
           finalProgress = progress;
           break;
@@ -7578,76 +7577,68 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   return <div className="space-y-3">
     {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
-    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} searchStartedAt={searchStartedAt} searchFinishedAt={searchFinishedAt} budgetSeconds={generationBudgetSeconds} liveProgress={liveProgress}/>} 
-    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} liveProgress={liveProgress} onStop={stopGeneration}/>} 
+    {message && <div className="rounded-2xl border-2 px-5 py-4 text-base font-black leading-snug" style={{ background: message.tone === "error" ? palette.redBg : message.tone === "warning" ? palette.amberBg : palette.greenBg, borderColor: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green, color: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green }}>{message.text}</div>}
     {(!!runs.length || generating) && <Card className="p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h2 className="text-sm font-black" style={{ color: palette.ink }}>Oxirgi 4 ta yaratilgan jadval</h2>
-        <span className="text-[10px] font-black" style={{ color: palette.muted }}>Har biri raqam bilan saqlanadi</span>
+        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Jadvallar</h2>
+        <span className="text-xs font-black" style={{ color: palette.muted }}>Oxirgi 4 ta saqlangan natija</span>
       </div>
+      {generating && liveProgress?.jadval_raqami && <div className="mb-3 rounded-2xl border-2 p-4" style={{ borderColor: palette.amber, background: palette.amberBg }}>
+        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>YANGI ALMASHINUVCHI NATIJA</div><div className="text-2xl font-black" style={{ color: palette.ink }}>Jadval #{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami}</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{Number(liveProgress.foiz || 0)}%</div></div>
+        <div className="text-sm mt-2 font-black leading-snug" style={{ color: palette.ink }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
+      </div>}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {generating && liveProgress?.jadval_raqami && <div className="text-left rounded-xl border p-2.5" style={{ borderColor: palette.amber, background: palette.amberBg }}>
-          <div className="text-sm font-black" style={{ color: palette.ink }}>Jadval #{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami} · {Number(liveProgress.foiz || 0)}%</div>
-          <div className="text-[9px] mt-1 font-bold leading-relaxed" style={{ color: palette.amber }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
-        </div>}
-        {runs.slice(0, 4).map(run => <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-xl border p-2.5" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
-          <div className="text-sm font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>
-          <div className="text-[9px] mt-1 font-bold" style={{ color: palette.muted }}>{run.holat} · {run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
+        {runs.slice(0, 4).map((run, index) => <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
+          <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
+          <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
         </button>)}
       </div>
     </Card>}
-    <Card className="p-3.5">
+    <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>BITTA TUGMA</div>
-          <h2 className="text-lg font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Manba tekshiriladi; yagona generator avval barcha darsni qattiq qoidalar ichida sig‘diradi, zarur bo‘lsa oldingi darslarni avtomatik qayta joylashtiradi. To‘liq yechim topilgach qulaylik yaxshilanadi. Maxsus xona bo‘lmasa sinf xonasi, u ham bo‘lmasa “Xona yo‘q” ko‘rsatiladi.</p>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>AQILLI GENERATOR</div>
+          <h2 className="text-2xl font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
+          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani katta oynada ko‘rish</button>}
+          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
           {generating
-            ? <button onClick={stopGeneration} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={15}/> Yaxshilashni to‘xtatish</button>
-            : <button onClick={generate} disabled={checking} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={15}/> Dars jadvalini yaratish</button>}
+            ? <button onClick={stopGeneration} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={17}/> To‘xtatish</button>
+            : <button onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> Jadval yaratish</button>}
         </div>
       </div>
-
-      <div className="mt-3 rounded-xl border p-3" style={{ borderColor: palette.blue, background: palette.sky }}>
-        <div className="text-sm font-black" style={{ color: palette.blue }}>{ONE_GENERATOR_POLICY_V210.nomi}</div>
-        <div className="text-[10px] leading-relaxed mt-1" style={{ color: palette.ink }}>{ONE_GENERATOR_POLICY_V210.izoh}</div>
-        <div className="text-[10px] font-bold mt-2" style={{ color: palette.teal }}>Avval aniq darslar va cheklangan o‘qituvchilar, keyin asosiy fanlar 1–5-darsga, undan so‘ng qolgan yuklama joylashtiriladi; 6-dars asosiy fan uchun faqat zaxira va haftasiga ko‘pi bilan 2 kun.</div>
-      </div>
-      <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[10px] font-bold" style={{ background: palette.redBg, color: palette.red }}>Qizil/BAND vaqt barcha darslar uchun qat’iy yopiq. Administrator oldindan aniq kun-soatga biriktirgan Kelajak/Sinf soati faqat o‘z rahbarining metod kunidan maxsus o‘tishi mumkin; qizil vaqtni u ham buzmaydi. Qat’iy jadval sig‘masligi isbotlansa, faqat boshlang‘ich sinf o‘qituvchisining Shanbadan boshqa metod kunidagi ko‘pi bilan 2 aniq katak ikkinchi exact modelda tekshiriladi; to‘liq jadval va yakuniy validator tasdiqlasa avtomatik qo‘llanadi va hisobotda nomma-nom ko‘rsatiladi.</div>
-
-      <div className="grid grid-cols-4 gap-1.5 mt-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
         <CompactStat value={preflight?.tayyor ? "Tekshirildi" : preflight ? "Xato" : "…"} label="manba holati" tone={preflight?.tayyor ? "green" : "amber"}/>
         <CompactStat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label="sinf" tone="blue"/>
         <CompactStat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label="o‘qituvchi" tone="teal"/>
         <CompactStat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
       </div>
 
-      {(preflight?.xatolar || []).length > 0 && <div className="space-y-1 mt-2 max-h-48 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}</div>}
-      {preflight?.tayyor && <div className="mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={{ background: palette.greenBg, color: palette.green }}>Manba xatolari topilmadi · bu global yechim topilganini hali anglatmaydi; generator va validator keyingi bosqichda tekshiradi.</div>}
+      {(preflight?.xatolar || []).length > 0 && <div className="space-y-2 mt-3 max-h-64 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-xl border-2 px-4 py-3 text-sm font-black leading-snug whitespace-normal break-words" style={{ background: palette.redBg, borderColor: palette.red, color: palette.red }}>Xato {index + 1}: {error}</div>)}</div>}
+      {preflight?.tayyor && <div className="mt-3 rounded-xl px-4 py-3 text-sm font-black" style={{ background: palette.greenBg, color: palette.green }}>✓ Ma’lumotlar tayyor — jadval yaratish mumkin</div>}
     </Card>
 
     {displayDetail && !generationFailure && teacherWindowReport && <TeacherWindowSummaryV211 report={teacherWindowReport} runId={displayDetail?.urinish?.id}/>} 
 
-    {generationFailure && <Card className="p-3.5" style={{ borderColor: failureAccent }}>
+    {generationFailure && <Card className="p-5" style={{ borderColor: failureAccent, borderWidth: 2 }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: failureAccent }}>{generationInfeasible ? "INFEASIBLE — QAT’IY ZIDDIYAT ISBOTLANDI" : generationValidationFailed ? "YAKUNIY VALIDATOR DRAFTNI RAD ETDI" : "UNKNOWN — QIDIRUV TUGADI, IMKONSIZLIK ISBOTLANMADI"}</div>
-          <h3 className="text-base font-black" style={{ color: palette.ink }}>{generationFailure.message}</h3>
+          <div className="text-sm font-black uppercase tracking-[.08em]" style={{ color: failureAccent }}>JADVAL YARATILMADI</div>
+          <h3 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{generationFailure.message}</h3>
         </div>
         <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length} ta</span>
       </div>
       {recoverableSearchFailure && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Bu holat jadval imkonsizligini isbotlamaydi. Yarim draft yashirildi, oldingi tasdiqlangan jadval saqlandi va qizil/BAND vaqt ochilmadi.</div>}
       {generationInfeasible && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.redBg, color: palette.red }}>Exact solver xavfsizlik qoidalari ichida to‘liq yechim yo‘qligini isbotladi. Pastda kamida bitta aniq sig‘im yoki global resurs ziddiyati doim ko‘rsatiladi; qizil/BAND vaqt avtomatik yumshatilmaydi.</div>}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2">
+      <details className="mt-3"><summary className="cursor-pointer text-sm font-black" style={{ color: palette.blue }}>Texnik tekshiruv raqamlarini ko‘rish</summary><div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2">
         <CompactStat value={failureSolverStats.seconds == null ? "—" : `${failureSolverStats.seconds.toFixed(2)} s`} label="jami exact qidiruv" tone="blue"/>
         <CompactStat value={failureSolverStats.candidates ?? "—"} label="legal kandidat" tone="blue"/>
         <CompactStat value={failureSolverStats.branches ?? "—"} label="CP-SAT branch" tone="amber"/>
         <CompactStat value={failureSolverStats.conflicts ?? "—"} label="CP-SAT conflict" tone="amber"/>
         <CompactStat value={failureSolverStats.methodSeconds == null ? "—" : `${failureSolverStats.methodSeconds.toFixed(2)} s`} label="metod fallback" tone="teal"/>
-      </div>
+      </div></details>
       {(generationInfeasible || generationUnknown) && <MethodDayExceptionRecommendationsV215 failure={generationFailure}/>} 
       <div className="mt-3 space-y-2">
         {failureProblems.map((problem, index) => {
@@ -8232,4 +8223,3 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     </WorkspacePortal>
   );
 }
-//
