@@ -2754,13 +2754,45 @@ function SinfGuruhBoshqaruvi({ token, sinf, fanlar = [], onSaved, ochiq = false,
   );
 }
 
-// SAMTM APP V22.41 — maktab kartasi va yangi yaratilgan maktab avval dashboardni ochadi.
+// SAMTM APP V22.48 — mavjud maktab va yangi maktab oqimlari qat'iy ajratilgan.
+function v2248AdminMaktabniNormallashtir(maktab) {
+  if (!maktab || typeof maktab !== "object") return null;
+  const id = [
+    maktab.id,
+    maktab.maktab_id,
+    maktab.school_id,
+    maktab.legacy_maktab_id,
+    maktab.external_id,
+  ].map((value) => Number(value)).find((value) => Number.isInteger(value) && value > 0);
+  if (!id) return null;
+  return {
+    ...maktab,
+    id,
+    maktab_id: id,
+    nomi: maktab.nomi || maktab.maktab_nomi || maktab.muassasa_nomi || `Maktab #${id}`,
+  };
+}
+
 function MaktablarBolimi({ token }) {
   const [maktablar, setMaktablar] = useState([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [formOchiq, setFormOchiq] = useState(false);
   const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
   const [sozlamalarOchiq, setSozlamalarOchiq] = useState(false);
+  const [maktabOchishXatosi, setMaktabOchishXatosi] = useState("");
+
+  const mavjudMaktabniOch = (maktab) => {
+    const tozaMaktab = v2248AdminMaktabniNormallashtir(maktab);
+    setFormOchiq(false);
+    setSozlamalarOchiq(false);
+    if (!tozaMaktab) {
+      setTanlanganMaktab(null);
+      setMaktabOchishXatosi("Mavjud maktabning haqiqiy ID raqami serverdan kelmadi. Yangi maktab oynasi ochilmadi; sahifani yangilab yana tanlang.");
+      return;
+    }
+    setMaktabOchishXatosi("");
+    setTanlanganMaktab(tozaMaktab);
+  };
 
   const maktablarniYukla = () => {
     setYuklanmoqda(true);
@@ -2789,17 +2821,25 @@ function MaktablarBolimi({ token }) {
     return (
       <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
         <SchoolWorkspace
+          key={`admin-school-${tanlanganMaktab.id}`}
           token={token}
           apiBase={API_BASE}
           initialWorkspace={{
+            ...tanlanganMaktab,
             turi: "maktab",
             muassasa_id: tanlanganMaktab.id,
             maktab_id: tanlanganMaktab.id,
+            existing_only: true,
             muassasa_nomi: tanlanganMaktab.nomi,
             nomi: tanlanganMaktab.nomi,
             lavozim: "direktor",
           }}
-          onBack={() => { setTanlanganMaktab(null); setSozlamalarOchiq(false); maktablarniYukla(); }}
+          onBack={() => {
+            setFormOchiq(false);
+            setTanlanganMaktab(null);
+            setSozlamalarOchiq(false);
+            maktablarniYukla();
+          }}
           onLegacy={() => setSozlamalarOchiq(true)}
           adminPreview={true}
           initialView="dashboard"
@@ -2813,14 +2853,21 @@ function MaktablarBolimi({ token }) {
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>🏫 Maktablar</p>
-          <button type="button" onClick={() => setFormOchiq((ochiq) => !ochiq)} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
+          <button type="button" onClick={() => {
+            setTanlanganMaktab(null);
+            setSozlamalarOchiq(false);
+            setMaktabOchishXatosi("");
+            setFormOchiq((ochiq) => !ochiq);
+          }} className="text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
             {formOchiq ? "✕ Yopish" : "+ Yangi maktab"}
           </button>
         </div>
         <p className="text-xs" style={{ color: "#8A8578" }}>Bino va xonalarni ommaviy yarating, so‘ng 1–11-sinflarning parallel sonini alohida kiriting. 50–100 ta sinf bir bosishda hisoblanadi.</p>
       </div>
 
-      {formOchiq && (
+      {maktabOchishXatosi && <div className="rounded-xl border px-4 py-3 mb-3 text-sm font-semibold" style={{ borderColor: "#D67A72", backgroundColor: "#FCECEC", color: "#A54242" }}>{maktabOchishXatosi}</div>}
+
+      {formOchiq && !tanlanganMaktab && (
         <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
           <AdminSchoolWizard
             token={token}
@@ -2828,7 +2875,22 @@ function MaktablarBolimi({ token }) {
             regions={VILOYATLAR}
             districtsByRegion={HUDUDLAR}
             onCancel={() => setFormOchiq(false)}
-            onCreated={(school) => { setFormOchiq(false); setSozlamalarOchiq(false); setTanlanganMaktab(school); maktablarniYukla(); }}
+            onCreated={(school, response) => {
+              const yangiMaktab = v2248AdminMaktabniNormallashtir(school)
+                || v2248AdminMaktabniNormallashtir(response?.school)
+                || v2248AdminMaktabniNormallashtir(response?.maktab)
+                || v2248AdminMaktabniNormallashtir(response);
+              setFormOchiq(false);
+              setSozlamalarOchiq(false);
+              if (yangiMaktab) {
+                setMaktabOchishXatosi("");
+                setTanlanganMaktab(yangiMaktab);
+              } else {
+                setTanlanganMaktab(null);
+                setMaktabOchishXatosi("Maktab yaratildi, ammo server uning ID raqamini qaytarmadi. Ro‘yxat yangilandi; mavjud maktabni qayta tanlang.");
+              }
+              maktablarniYukla();
+            }}
           />
         </React.Suspense>
       )}
@@ -2842,7 +2904,7 @@ function MaktablarBolimi({ token }) {
       ) : (
         <div className="space-y-2.5">
           {maktablar.map((m) => (
-            <button key={m.id} onClick={() => { setSozlamalarOchiq(false); setTanlanganMaktab(m); }}
+            <button type="button" key={m.id ?? m.maktab_id ?? m.external_id ?? m.nomi} onClick={() => mavjudMaktabniOch(m)}
               className="w-full text-left rounded-xl p-4 bg-white border" style={{ borderColor: "#E5E1D8" }}>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{m.maktab_raqami ? `${m.maktab_raqami}-sonli ${m.nomi}` : m.nomi}</p>
