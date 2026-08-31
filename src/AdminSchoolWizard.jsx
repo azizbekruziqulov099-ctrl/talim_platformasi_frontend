@@ -1,3 +1,4 @@
+// SAMTM SCHOOL WIZARD V22.42 — bir xona 1- va 2-smenada navbat bilan ishlatiladi.
 import React, { useEffect, useMemo, useState } from "react";
 
 // Release: SAMTM-ADMIN-SCHOOL-WIZARD-V21.0-PLAN-SAFE
@@ -171,7 +172,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     const owners = new Map();
     sortedClasses(classes).forEach((item) => {
       if (!item.buildingKey || !item.roomNumber) return;
-      const key = roomPoolKey(item.buildingKey, item.roomNumber);
+      const key = `${Number(item.shift) || 1}:${roomPoolKey(item.buildingKey, item.roomNumber)}`;
       if (!owners.has(key)) owners.set(key, item);
     });
     return owners;
@@ -216,10 +217,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       if (!isTeachingRoom(room)) {
         return `${classNameOf(item)} uchun “${room.number}” o‘quv xonasi emas. Sinfga faqat darsga yaroqli xona biriktiriladi.`;
       }
-      const key = roomPoolKey(item.buildingKey, item.roomNumber);
+      const key = `${Number(item.shift) || 1}:${roomPoolKey(item.buildingKey, item.roomNumber)}`;
       const owner = occupiedRooms.get(key);
       if (owner) {
-        return `Xona takror biriktirilgan: ${building.name}, ${room.number}. Bitta xona faqat bitta sinfga biriktiriladi (${classNameOf(owner)} va ${classNameOf(item)}).`;
+        return `Xona bir smenada takror biriktirilgan: ${building.name}, ${room.number}. Bitta smenada xona faqat bitta sinfga beriladi (${classNameOf(owner)} va ${classNameOf(item)}).`;
       }
       occupiedRooms.set(key, item);
     }
@@ -285,20 +286,22 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       return { items: items.map((item) => ({ ...item, buildingKey: "", roomNumber: "" })), unassigned: 0 };
     }
     const teachingRooms = new Map(roomPool.map((room) => [room.poolKey, room]));
-    const used = new Set();
+    const used = { 1: new Set(), 2: new Set() };
     const prepared = sortedClasses(items).map((item) => {
       if (reset || !item.buildingKey || !item.roomNumber) return { ...item, buildingKey: "", roomNumber: "" };
       const key = roomPoolKey(item.buildingKey, item.roomNumber);
-      if (!teachingRooms.has(key) || used.has(key)) return { ...item, buildingKey: "", roomNumber: "" };
-      used.add(key);
+      const shiftUsed = used[Number(item.shift) === 2 ? 2 : 1];
+      if (!teachingRooms.has(key) || shiftUsed.has(key)) return { ...item, buildingKey: "", roomNumber: "" };
+      shiftUsed.add(key);
       return item;
     });
     let unassigned = 0;
     const assigned = prepared.map((item) => {
       if (item.buildingKey && item.roomNumber) return item;
-      const room = roomPool.find((candidate) => !used.has(candidate.poolKey));
+      const shiftUsed = used[Number(item.shift) === 2 ? 2 : 1];
+      const room = roomPool.find((candidate) => !shiftUsed.has(candidate.poolKey));
       if (!room) { unassigned += 1; return { ...item, buildingKey: "", roomNumber: "" }; }
-      used.add(room.poolKey);
+      shiftUsed.add(room.poolKey);
       return { ...item, buildingKey: room.buildingKey, roomNumber: room.number };
     });
     return { items: assigned, unassigned };
@@ -331,15 +334,15 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     setClasses(result.items); setError("");
     setNotice(result.unassigned
       ? `Xona yetmadi: ${result.unassigned} ta sinf xonasiz qoldi. Yangi o‘quv xonasi yarating yoki sinfni xonasiz saqlang.`
-      : "Barcha sinflarga smenadan qat’i nazar takrorlanmaydigan alohida xonalar biriktirildi.");
+      : "Har bir smena ichida xonalar takrorlanmaydi; 1- va 2-smena bir xil xonadan navbat bilan foydalanishi mumkin.");
   };
   const updateClass = (key, patch) => { setClasses((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item)); setError(""); };
   const assignClassRoom = (item, roomNumber) => {
     if (!roomNumber) { updateClass(item.key, { roomNumber: "" }); return; }
-    const key = roomPoolKey(item.buildingKey, roomNumber);
+    const key = `${Number(item.shift) || 1}:${roomPoolKey(item.buildingKey, roomNumber)}`;
     const owner = roomOwners.get(key);
     if (owner && owner.key !== item.key) {
-      setError(`“${roomNumber}” xona allaqachon ${classNameOf(owner)} ga biriktirilgan. Bitta xona boshqa sinfga tanlanmaydi.`);
+      setError(`“${roomNumber}” xona shu smenada allaqachon ${classNameOf(owner)} ga biriktirilgan. Boshqa smenadagi sinf undan navbat bilan foydalanishi mumkin.`);
       return;
     }
     const room = buildingByKey.get(item.buildingKey)?.rooms.find((candidate) => candidate.number === roomNumber);
@@ -459,7 +462,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
       </section>
       {classes.length > 0 && <>
-        {!skipBuildings && roomPool.length > 0 && <button type="button" onClick={autoAssignAllRooms} className="w-full py-2.5 rounded-xl text-sm font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>🏫 Har bir sinfga alohida xona biriktirish</button>}
+        {!skipBuildings && roomPool.length > 0 && <button type="button" onClick={autoAssignAllRooms} className="w-full py-2.5 rounded-xl text-sm font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>🏫 Xonalarni smena bo‘yicha biriktirish</button>}
         <div className="flex items-center justify-between gap-2"><div><b className="text-sm" style={{ color: "#21384C" }}>Yaratiladigan sinflar</b><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>Kerakli sinfni bosing: uning smena, bino, xona, rahbar va psixologi alohida ochiladi.</p></div><button type="button" onClick={() => { setClasses([]); setNotice(""); }} className="text-xs whitespace-nowrap" style={{ color: "#B0553A" }}>Ro‘yxatni tozalash</button></div>
         <div className="space-y-2">{sortedClasses(classes).map((item) => {
           const selectedBuilding = buildingByKey.get(item.buildingKey);
@@ -470,7 +473,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · xona bilan birga ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · bino bilan birga ixtiyoriy<select value={item.roomNumber} onChange={(event) => assignClassRoom(item, event.target.value)} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => {
-                const owner = roomOwners.get(roomPoolKey(selectedBuilding.key, room.number));
+                const owner = roomOwners.get(`${Number(item.shift) || 1}:${roomPoolKey(selectedBuilding.key, room.number)}`);
                 const usedByAnotherClass = owner && owner.key !== item.key;
                 const unavailable = !isTeachingRoom(room) || usedByAnotherClass;
                 return <option key={room.number} value={room.number} disabled={unavailable}>{room.number}-xona{!isTeachingRoom(room) ? " · dars o‘tilmaydi" : usedByAnotherClass ? ` · ${classNameOf(owner)} band` : ""}</option>;
