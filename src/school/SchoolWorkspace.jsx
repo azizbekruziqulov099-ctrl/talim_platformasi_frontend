@@ -7542,6 +7542,8 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
   const teacherWindowReport = detail?.urinish?.diagnostika?.oqituvchi_okno_hisoboti || null;
   const teacherWindowSummary = normalizeTeacherWindowReportV211(teacherWindowReport);
   const teacherWindowCountForTab = teacherWindowCountLabelV211(teacherWindowSummary);
+  const openedRevision = Number(detail?.urinish?.yaxshilanish || 0);
+  const improvementSummary = detail?.urinish?.diagnostika?.yaxshilanish?.xulosa || "";
   useEffect(() => registerPhoneBackHandler("school-smart-generator-result", () => {
     onClose?.();
     return true;
@@ -7558,7 +7560,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
     <div className="min-h-screen p-3 md:p-5" style={{ background: "linear-gradient(180deg,#F5FAFC,#F7F4ED)" }}>
       <div className="max-w-[1580px] mx-auto space-y-3">
         <div className="rounded-2xl px-4 py-3 text-white flex flex-wrap items-center justify-between gap-3" style={{ background: color }}>
-          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{ONE_GENERATOR_POLICY_V210.izoh}</div></div>
+          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}{openedRevision ? `.${openedRevision}` : ""}</div><div className="text-xl font-black">{openedRevision ? improvementSummary || "Tekshirilgan yaxshilanish" : "Birinchi 100% yaratilgan jadval"}</div><div className="text-xs opacity-85 mt-0.5">{openedRevision ? "Oldingi variantdan yaxshiroq natija alohida saqlandi. Sinflarning kunlik dars sonlari o‘zgarmadi." : "Bu variant darhol saqlangan. Keyingi o‘qituvchi yaxshilanishlari alohida .1, .2… ko‘rinishida turadi."}</div></div>
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white text-sm font-black" style={{ color }}>Yopish ×</button>
         </div>
         <div className="rounded-2xl border bg-white p-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: palette.line }}>
@@ -7808,7 +7810,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           checkpointOpened = true;
           await reload();
           setRunId(String(progress.jadval_raqami));
-          await loadRun(progress.jadval_raqami);
+          await loadRun(progress.jadval_raqami, Number(progress.yaxshilanish || 0));
+          setResultWindowOpen(true);
           setMessage({ tone: "success", text: progress.xabar || `Jadval #${progress.jadval_raqami} saqlandi va hozir ochish mumkin. O‘qituvchilar yaxshilanmoqda.` });
         }
         if (["tayyor", "xato", "toxtatildi"].includes(progress.bosqich)) {
@@ -7820,7 +7823,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (finalProgress?.bosqich === "toxtatildi") {
         await reload();
         const stoppedRunId = finalProgress?.jadval_raqami;
-        const stoppedDetail = stoppedRunId ? await loadRun(stoppedRunId) : null;
+        const stoppedDetail = stoppedRunId ? await loadRun(stoppedRunId, Number(finalProgress?.yaxshilanish || 0)) : null;
         if (stoppedDetail?.urinish?.id) {
           setRunId(String(stoppedDetail.urinish.id));
           setGenerationFailure(null);
@@ -7836,7 +7839,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       }
       await reload();
       setRunId(String(finalProgress.jadval_raqami));
-      await loadRun(finalProgress.jadval_raqami);
+      await loadRun(finalProgress.jadval_raqami, Number(finalProgress?.yaxshilanish || 0));
       setMessage({ tone: "success", text: finalProgress.xabar || `Jadval #${finalProgress.ko_rinish_raqami || finalProgress.jadval_raqami} tayyor. Eng yaxshi variant saqlandi.` });
       setResultWindowOpen(true);
       return;
@@ -8104,7 +8107,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
         </button>)}
       </div>
-      {!!revisions.length && <div className="mt-3"><div className="text-xs font-black mb-2" style={{ color: palette.muted }}>Yaxshilanishlar — bosib sinf va o‘qituvchi jadvalini oching</div><div className="flex gap-2 overflow-x-auto pb-1">{revisions.map(revision => <button key={revision.revision} type="button" onClick={async () => { await loadRun(runId, revision.revision); setResultWindowOpen(true); }} className="shrink-0 rounded-xl border-2 px-3 py-2 text-xs font-black" style={{ borderColor: selectedRevision === Number(revision.revision) ? palette.teal : palette.line, background: selectedRevision === Number(revision.revision) ? palette.greenBg : "#fff", color: palette.ink }}>#{runId}{Number(revision.revision) ? `.${revision.revision}` : ""}<span className="block mt-1 text-[10px]" style={{ color: palette.muted }}>{revision.yaratilgan_at ? new Date(revision.yaratilgan_at).toLocaleString() : ""}</span></button>)}</div></div>}
+      {!!revisions.length && <div className="mt-3"><div className="text-xs font-black mb-2" style={{ color: palette.muted }}>Birinchi jadval va barcha yaxshilanishlar — xohlaganingizni bosib sinf/o‘qituvchi jadvalini oching</div><div className="flex gap-2 overflow-x-auto pb-1">{revisions.map(revision => <button key={revision.revision} type="button" title={revision.yaxshilanish?.xulosa || (Number(revision.revision) ? "Saqlangan yaxshilanish" : "Birinchi 100% jadval")} onClick={async () => { await loadRun(runId, revision.revision); setResultWindowOpen(true); }} className="shrink-0 rounded-xl border-2 px-3 py-2 text-left text-xs font-black max-w-[290px]" style={{ borderColor: selectedRevision === Number(revision.revision) ? palette.teal : palette.line, background: selectedRevision === Number(revision.revision) ? palette.greenBg : "#fff", color: palette.ink }}>#{runId}{Number(revision.revision) ? `.${revision.revision}` : ""}<span className="block mt-1 text-[10px] font-bold whitespace-normal" style={{ color: Number(revision.revision) ? palette.green : palette.blue }}>{revision.yaxshilanish?.xulosa || (Number(revision.revision) ? "Tekshirilgan yaxshilanish saqlandi" : "Birinchi 100% jadval")}</span><span className="block mt-1 text-[10px]" style={{ color: palette.muted }}>{revision.yaratilgan_at ? new Date(revision.yaratilgan_at).toLocaleString() : ""}</span></button>)}</div></div>}
     </Card>}
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
