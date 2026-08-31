@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V22.51 — immutable jadval reviziyalari va stabil asosiy jadval.
+// SAMTM FRONTEND V22.40 DAILY-BALANCE — sinf kunlari teng taqsimlanadi.
 // SamTM V19.8 REV52 — metod kuni qattiq blok va 10–19 soatli ustozlar ixcham kunlarda.
 // SamTM V19.8 REV48 — mavjud maktab ID birinchi; eski selected_id frontend bilan ham mos.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -8,7 +8,6 @@
 // SamTM V19.5 — saqlash xatolarini modal, avtomatik scroll, fokus va qizil maydon bilan ko‘rsatadi.
 // SamTM V19.2 — o‘qituvchi + fan + sinf + guruh + soat bitta aniq qatorda.
 // SAMTM V19.0 — teacher matrix is paginated to prevent DOM freezes.
-//
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -22,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.51-IMMUTABLE-REVISIONS";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.48-CLASS-SKELETON";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -618,7 +617,7 @@ function SmartNotice({ tone = "info", children }) {
 function SmartStepNav({ step, setStep, teacherOnly }) {
   const steps = teacherOnly
     ? [[2, "1. Bo‘sh vaqt"], [5, "2. Mavzu rejasi"]]
-    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. O‘qituvchi + fan-soat"], [4, "4. Jadval yaratish"], [45, "5. O‘qituvchi jadvali"], [5, "6. Mavzu rejasi"]];
+    : [[1, "1. Kalendar"], [2, "2. O‘qituvchi vaqti"], [3, "3. Sinf skeleti + o‘qituvchi"], [4, "4. Jadval yaratish"], [45, "5. O‘qituvchi jadvali"], [5, "6. Mavzu rejasi"]];
   return (
     <div className="sticky top-[77px] z-30 border-b" style={{ background: "rgba(247,250,252,.96)", borderColor: palette.line }}>
       <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 overflow-x-auto">
@@ -5205,34 +5204,359 @@ function TeacherFirstLoadEditorV192({
 }
 
 
+
+function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [teacherName, setTeacherName] = useState("");
+  const [addingTeacher, setAddingTeacher] = useState(false);
+  const [entryCode, setEntryCode] = useState("");
+  const [assignments, setAssignments] = useState({});
+  const [leaders, setLeaders] = useState({});
+  const [showTeacherList, setShowTeacherList] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const load = async (preserveDraft = false) => {
+    setLoading(true);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
+      );
+      setData(result);
+      const classes = result?.sinflar || [];
+      setSelectedClassId(current => current || String(classes[0]?.id || ""));
+      if (!preserveDraft) {
+        const nextAssignments = {};
+        (result?.birikmalar || []).forEach(row => {
+          const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${String(row.guruh_kaliti || "whole")}`;
+          nextAssignments[key] = String(row.user_id || "");
+        });
+        setAssignments(nextAssignments);
+        const nextLeaders = {};
+        classes.forEach(cls => { nextLeaders[String(cls.id)] = cls.rahbar_user_id == null ? "" : String(cls.rahbar_user_id); });
+        setLeaders(nextLeaders);
+      }
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(false); }, [token, apiBase, maktabId]);
+
+  const teachers = useMemo(() => [...(data?.oqituvchilar || [])]
+    .sort((a, b) => Number(b.user_id || 0) - Number(a.user_id || 0)), [data]);
+  const teacherNumber = useMemo(() => {
+    const map = new Map();
+    teachers.forEach((teacher, index) => map.set(String(teacher.user_id), index + 1));
+    return map;
+  }, [teachers]);
+  const teacherById = useMemo(() => new Map(teachers.map(item => [String(item.user_id), item])), [teachers]);
+
+  const planRows = useMemo(() => {
+    const saved = data?.oquv_reja?.qatorlar || [];
+    const template = data?.oquv_reja?.andoza_qatorlar || [];
+    return saved.length ? saved : template;
+  }, [data]);
+
+  const classHourByClass = useMemo(() => {
+    const map = new Map();
+    (data?.oquv_reja?.sinf_jami || []).forEach(row => map.set(String(row.sinf_id), Number(row.sinf_soati || 0)));
+    return map;
+  }, [data]);
+
+  const classRoomId = classId => {
+    const cls = (data?.sinflar || []).find(item => String(item.id) === String(classId));
+    const direct = cls?.xona_id ?? cls?.room_id ?? cls?.biriktirilgan_xona_id;
+    if (direct) return Number(direct);
+    const roomText = subjectKeyV193(cls?.xona || cls?.xona_nomi || "");
+    const room = (data?.xonalar || []).find(item => subjectKeyV193(item.nomi || "") === roomText);
+    return room?.id ? Number(room.id) : null;
+  };
+
+  const groupVariantsFor = (classId, subject) => {
+    const variants = (data?.guruh_variantlari || []).filter(item =>
+      String(item.sinf_id) === String(classId) && String(item.guruh_kaliti || "whole") !== "whole"
+    );
+    const linked = variants.filter(variant =>
+      (variant.fanlar || []).some(item => subjectKeyV193(item) === subjectKeyV193(subject))
+    );
+    return linked.length ? linked : [];
+  };
+
+  const allocationKeysFor = (classId, subject) => {
+    const groups = groupVariantsFor(classId, subject);
+    if (groups.length) return groups.map(group => ({
+      key: String(group.guruh_kaliti),
+      label: group.guruh_nomi || group.qisqa || scheduleGroupLabel(group.guruh_kaliti),
+    }));
+    return [{ key: "whole", label: "Butun sinf" }];
+  };
+
+  const classPlanRows = classId => planRows
+    .filter(row => String(row.sinf_id) === String(classId) && Number(row.haftalik_soat || 0) > 0 && !isClassHourSubjectV199(row.fan_nomi))
+    .sort((a, b) => Number(b.haftalik_soat || 0) - Number(a.haftalik_soat || 0)
+      || String(a.fan_nomi || "").localeCompare(String(b.fan_nomi || ""), "uz"));
+
+  const skeletonForClass = classId => {
+    const rows = classPlanRows(classId);
+    const cells = [];
+    rows.forEach(row => {
+      let remaining = Number(row.haftalik_soat || 0);
+      let sequence = 0;
+      while (remaining > 0.001) {
+        const amount = Math.min(1, remaining);
+        cells.push({
+          type: "fan", fan_nomi: row.fan_nomi, amount,
+          weekly: Number(row.haftalik_soat || 0), sequence,
+        });
+        sequence += 1;
+        remaining = Math.round((remaining - amount) * 10) / 10;
+      }
+    });
+    const classHour = Number(classHourByClass.get(String(classId)) || 0);
+    if (classHour > 0) {
+      let remaining = classHour;
+      while (remaining > 0.001) {
+        const amount = Math.min(1, remaining);
+        cells.push({ type: "classHour", fan_nomi: data?.oquv_reja?.sinf_soati_nomi || "KELAJAK SOATI", amount, weekly: classHour });
+        remaining = Math.round((remaining - amount) * 10) / 10;
+      }
+    }
+    const weekdays = Math.max(5, Number(data?.oquv_reja?.hafta_kunlari || data?.hafta_kunlari || 6));
+    const periods = cells.length <= weekdays * 5 ? 5 : cells.length <= weekdays * 6 ? 6 : 7;
+    return { cells, weekdays, periods };
+  };
+
+  const updateAssignment = (classId, subject, groupKey, userId) => {
+    const key = `${classId}|${subjectKeyV193(subject)}|${groupKey}`;
+    setAssignments(current => ({ ...current, [key]: String(userId || "") }));
+  };
+
+  const addTeacher = async () => {
+    const fullName = teacherName.replace(/\s+/g, " ").trim();
+    if (fullName.length < 3) {
+      setMessage({ tone: "error", text: "O‘qituvchi F.I.Sh. kamida 3 ta belgidan iborat bo‘lsin." });
+      return;
+    }
+    setAddingTeacher(true);
+    setMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_qoshish?token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ maktab_id: maktabId, full_name: fullName, qatorlar: [] }),
+        }
+      );
+      setTeacherName("");
+      setEntryCode(result.kirish_kodi || "");
+      setData(result.matritsa);
+      setMessage({ tone: "success", text: `${fullName} ro‘yxatga qo‘shildi. Endi jadval kataklarida uning raqamini tanlang.` });
+      await reload?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setAddingTeacher(false);
+    }
+  };
+
+  const workloadPreview = useMemo(() => {
+    const totals = new Map(teachers.map(teacher => [String(teacher.user_id), 0]));
+    planRows.forEach(row => {
+      if (isClassHourSubjectV199(row.fan_nomi)) return;
+      allocationKeysFor(row.sinf_id, row.fan_nomi).forEach(group => {
+        const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${group.key}`;
+        const teacherId = String(assignments[key] || "");
+        if (teacherId) totals.set(teacherId, Number(totals.get(teacherId) || 0) + Number(row.haftalik_soat || 0));
+      });
+    });
+    Object.entries(leaders).forEach(([classId, teacherId]) => {
+      if (!teacherId) return;
+      totals.set(String(teacherId), Number(totals.get(String(teacherId)) || 0) + Number(classHourByClass.get(String(classId)) || 0));
+    });
+    return totals;
+  }, [teachers, planRows, assignments, leaders, data, classHourByClass]);
+
+  const saveAll = async () => {
+    const payloadRows = [];
+    let missing = 0;
+    planRows.forEach(row => {
+      if (isClassHourSubjectV199(row.fan_nomi) || Number(row.haftalik_soat || 0) <= 0) return;
+      const allocations = allocationKeysFor(row.sinf_id, row.fan_nomi);
+      allocations.forEach(group => {
+        const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${group.key}`;
+        const teacherId = String(assignments[key] || "");
+        if (!teacherId) {
+          missing += 1;
+          return;
+        }
+        const weekly = Number(row.haftalik_soat || 0);
+        payloadRows.push({
+          user_id: Number(teacherId), sinf_id: Number(row.sinf_id), fan_nomi: row.fan_nomi,
+          guruh_kaliti: group.key, haftalik_soat: weekly,
+          kunlik_max: weekly >= 4 ? 2 : 1, xona_id: classRoomId(row.sinf_id),
+        });
+      });
+    });
+    if (missing) {
+      setMessage({ tone: "error", text: `${missing} ta fan/guruhda o‘qituvchi raqami tanlanmagan. Avval ularni to‘ldiring.` });
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/sinf_skeleti_yuklama?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maktab_id: maktabId,
+            qatorlar: payloadRows,
+            rahbarlar: (data?.sinflar || []).map(cls => ({
+              sinf_id: Number(cls.id),
+              user_id: leaders[String(cls.id)] ? Number(leaders[String(cls.id)]) : null,
+            })),
+          }),
+        }
+      );
+      setData(result.matritsa);
+      const warnings = result.ogohlantirishlar || [];
+      setMessage({
+        tone: warnings.length ? "warning" : "success",
+        text: `${result.oqituvchi_soni || 0} ta o‘qituvchi, ${result.qator_soni || 0} ta fan–sinf–guruh qatori saqlandi.${warnings.length ? ` ${warnings.slice(0, 2).join("; ")}` : " Endi jadval yaratishga o‘tishingiz mumkin."}`,
+      });
+      await reload?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <Card className="p-8 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></Card>;
+  if (!data) return <SmartNotice tone="error">Sinf skeleti ma’lumotlari yuklanmadi.</SmartNotice>;
+
+  const selectedClass = (data.sinflar || []).find(cls => String(cls.id) === String(selectedClassId));
+  const skeleton = selectedClass ? skeletonForClass(selectedClass.id) : { cells: [], weekdays: 6, periods: 5 };
+  const dayNames = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
+  const assignedCount = planRows.reduce((sum, row) => sum + allocationKeysFor(row.sinf_id, row.fan_nomi).filter(group => assignments[`${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${group.key}`]).length, 0);
+  const requiredCount = planRows.reduce((sum, row) => sum + (isClassHourSubjectV199(row.fan_nomi) ? 0 : allocationKeysFor(row.sinf_id, row.fan_nomi).length), 0);
+
+  return <div className="space-y-4">
+    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    <Card className="p-5">
+      <div className="flex flex-col xl:flex-row xl:items-start gap-5">
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>1-bosqich · O‘qituvchini raqamlash</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Avval F.I.Sh. kiriting — tizim avtomatik raqam beradi</h2>
+          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>Staj, toifa va boshqa ma’lumotlar hozir majburiy emas. Ularni keyin “Batafsil tahrir”dan to‘ldirasiz. Raqam faqat ekranda qulay tanlash uchun; bazada haqiqiy teacher_id saqlanadi.</p>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <input value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder="Masalan: Raxmonova Mohina Anvar qizi" className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
+            <button onClick={addTeacher} disabled={addingTeacher} className="px-5 py-3 rounded-xl text-sm font-black disabled:opacity-60" style={{ background: palette.blue, color: "#fff" }}>{addingTeacher ? "Qo‘shilmoqda..." : "F.I.Sh. qo‘shish"}</button>
+          </div>
+          {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Yangi o‘qituvchi kirish kodi: <span className="font-black text-base">{entryCode}</span> · kodni saqlab qo‘ying.</div>}
+        </div>
+        <div className="grid grid-cols-3 gap-2 xl:w-[360px]">
+          <CompactStat value={teachers.length} label="o‘qituvchi" tone="blue"/>
+          <CompactStat value={`${assignedCount}/${requiredCount}`} label="biriktirilgan" tone={assignedCount === requiredCount ? "green" : "amber"}/>
+          <CompactStat value={(data.sinflar || []).length} label="sinf" tone="teal"/>
+        </div>
+      </div>
+      <button onClick={() => setShowTeacherList(value => !value)} className="mt-4 text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "O‘qituvchilar ro‘yxatini yopish" : "O‘qituvchilar raqamini ko‘rsatish"}</button>
+      {showTeacherList && <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
+        {teachers.map(teacher => <div key={teacher.user_id} className="rounded-xl border px-3 py-2 flex items-center gap-2" style={{ borderColor: palette.line, background: "#fff" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacherNumber.get(String(teacher.user_id))}</div>
+          <div className="min-w-0 flex-1"><div className="text-xs font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>skelet: {scheduleHourLabel(workloadPreview.get(String(teacher.user_id)) || 0)} soat</div></div>
+        </div>)}
+      </div>}
+    </Card>
+
+    <Card className="p-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>2-bosqich · Sinf skeleti</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Fanlar eng ko‘p soatdan boshlab ketma-ket joylashtirildi</h2>
+          <p className="text-xs mt-1.5" style={{ color: palette.muted }}>Bu yakuniy jadval emas. 5 darsga sig‘masa 6-dars, zarurat bo‘lsa 7-dars faqat skelet uchun ochiladi. Keyingi generator kunlarni va o‘qituvchi oynolarini qayta to‘g‘rilaydi.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select value={selectedClassId} onChange={event => setSelectedClassId(event.target.value)} className="p-2.5 rounded-xl border bg-white text-sm font-black" style={{ borderColor: palette.line, color: palette.ink }}>
+            {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
+          </select>
+          <button onClick={() => setShowAdvanced(true)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Batafsil tahrir</button>
+        </div>
+      </div>
+
+      {selectedClass && <div className="mt-4 rounded-2xl border overflow-hidden" style={{ borderColor: palette.line }}>
+        <div className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: palette.sky }}>
+          <div><div className="text-base font-black" style={{ color: palette.ink }}>{selectedClass.sinf}-{selectedClass.harf} sinf · {scheduleHourLabel(classPlanRows(selectedClass.id).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0))} fan soati</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{skeleton.periods} tagacha vaqtinchalik dars katagi · xona: {selectedClass.xona || selectedClass.xona_nomi || "biriktirilmagan"}</div></div>
+          <label className="flex items-center gap-2 text-xs font-black"><span style={{ color: palette.ink }}>Sinf rahbari</span><select value={leaders[String(selectedClass.id)] || ""} onChange={event => setLeaders(current => ({ ...current, [String(selectedClass.id)]: event.target.value }))} className="p-2 rounded-lg border bg-white" style={{ borderColor: palette.line }}><option value="">Tanlanmagan</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></label>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-[1050px] w-full border-collapse">
+            <thead><tr><th className="p-2 text-[10px] font-black text-left" style={{ background: palette.cream, color: palette.muted }}>Dars</th>{Array.from({ length: skeleton.weekdays }, (_, day) => <th key={day} className="p-2 text-[10px] font-black text-center" style={{ background: palette.cream, color: palette.muted }}>{dayNames[day]}</th>)}</tr></thead>
+            <tbody>{Array.from({ length: skeleton.periods }, (_, periodIndex) => <tr key={periodIndex}><td className="p-2 text-xs font-black text-center border-t" style={{ borderColor: palette.line, color: palette.ink }}>{periodIndex + 1}</td>{Array.from({ length: skeleton.weekdays }, (_, dayIndex) => {
+              const flatIndex = dayIndex * skeleton.periods + periodIndex;
+              const cell = skeleton.cells[flatIndex];
+              if (!cell) return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line, background: "#FBFCFD" }}><div className="min-h-[82px] rounded-xl border-2 border-dashed" style={{ borderColor: "#EEF2F5" }}/></td>;
+              if (cell.type === "classHour") {
+                const leaderId = leaders[String(selectedClass.id)] || "";
+                return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.amber }}>{leaderId ? `#${teacherNumber.get(String(leaderId))} · ${teacherById.get(String(leaderId))?.full_name || "Rahbar"}` : "Rahbar tanlanmagan"}</div></div></td>;
+              }
+              const allocations = allocationKeysFor(selectedClass.id, cell.fan_nomi);
+              return <td key={dayIndex} className="p-1.5 border-t border-l align-top" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: allocations.length > 1 ? palette.mint : "#fff" }}><div className="flex items-start justify-between gap-1"><div className="text-[11px] leading-tight font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><span className="text-[9px] font-black" style={{ color: palette.muted }}>{cell.amount < 1 ? "0,5" : ""}</span></div><div className="space-y-1 mt-2">{allocations.map(group => {
+                const key = `${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|${group.key}`;
+                const teacherId = assignments[key] || "";
+                return <div key={group.key} className="flex items-center gap-1"><span className="text-[8px] font-black w-11 truncate" title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><select value={teacherId} onChange={event => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, event.target.value)} className="min-w-0 flex-1 p-1 rounded-lg border bg-white text-[10px] font-black" style={{ borderColor: teacherId ? palette.green : palette.line, color: palette.ink }}><option value=""># —</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></div>;
+              })}</div></div></td>;
+            })}</tr>)}</tbody>
+          </table>
+        </div>
+      </div>}
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
+        <div className="text-xs" style={{ color: palette.muted }}>Guruhga bo‘lingan fan katagi avtomatik 2 yoki undan ko‘p qismga chiqadi. Har bir guruhga alohida o‘qituvchi raqami tanlanadi.</div>
+        <div className="flex gap-2 shrink-0"><button onClick={() => load(false)} disabled={saving} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Qayta yuklash</button><button onClick={saveAll} disabled={saving || !requiredCount} className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-60" style={{ background: palette.green, color: "#fff" }}>{saving ? "Hammasi saqlanmoqda..." : "Skelet + o‘qituvchilarni saqlash"}</button>{setStep && <button onClick={() => setStep(4)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.blue, color: "#fff" }}>Jadval yaratishga o‘tish →</button>}</div>
+      </div>
+    </Card>
+
+    {showAdvanced && <div className="space-y-3">
+      <Card className="p-4 flex items-center justify-between gap-3"><div><div className="text-sm font-black" style={{ color: palette.ink }}>Batafsil tahrir</div><div className="text-xs mt-1" style={{ color: palette.muted }}>Staj, toifa, maqsad soat, fan–sinf–guruh va boshqa eski aniq maydonlar shu yerda qoladi.</div></div><button onClick={() => setShowAdvanced(false)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Yopish</button></Card>
+      <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/>
+    </div>}
+  </div>;
+}
+
+
+
 function LoadsStep(props) {
-  const [mode, setMode] = useState("teacher");
+  const [mode, setMode] = useState("skeleton");
   const { token, apiBase, maktabId, setup, reload, setStep } = props;
   return <div className="space-y-4">
     <Card className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-black" style={{ color: palette.ink }}>Yuklama kiritish usuli</div>
-          <div className="text-xs mt-1" style={{ color: palette.muted }}>O‘qituvchi bo‘yicha kiritish tezroq; eski sinf/Excel usuli ham saqlangan.</div>
+          <div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchi + fan-soat kiritish</div>
+          <div className="text-xs mt-1" style={{ color: palette.muted }}>Yangi asosiy usul: F.I.Sh. → raqam → sinf skeletidagi fan/guruh katagiga o‘qituvchi raqami.</div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{
-            background: mode === "teacher" ? palette.blue : palette.sky,
-            color: mode === "teacher" ? "#fff" : palette.blue,
-          }}>O‘qituvchi qo‘shish / yuklama</button>
-          <button onClick={() => setMode("legacy")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{
-            background: mode === "legacy" ? palette.blue : palette.cream,
-            color: mode === "legacy" ? "#fff" : palette.ink,
-          }}>Eski sinf/Excel usuli</button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setMode("skeleton")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "skeleton" ? palette.green : palette.greenBg, color: mode === "skeleton" ? "#fff" : palette.green }}>Sinf skeleti + raqam</button>
+          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "teacher" ? palette.blue : palette.sky, color: mode === "teacher" ? "#fff" : palette.blue }}>Batafsil o‘qituvchi</button>
+          <button onClick={() => setMode("legacy")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "legacy" ? palette.blue : palette.cream, color: mode === "legacy" ? "#fff" : palette.ink }}>Eski sinf/Excel</button>
         </div>
       </div>
     </Card>
-    {mode === "teacher"
-      ? <>
-          <ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>
-          <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/>
-        </>
-      : <LegacyLoadsStepV191 {...props}/>} 
+    {mode === "skeleton"
+      ? <><ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><ClassSkeletonLoadEditorV204 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload} setStep={setStep}/></>
+      : mode === "teacher"
+        ? <><ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/></>
+        : <LegacyLoadsStepV191 {...props}/>}
   </div>;
 }
 
@@ -5294,8 +5618,7 @@ function scheduleHourLabel(value) {
   return Number.isInteger(number) ? String(number) : number.toFixed(1).replace(".", ",");
 }
 
-function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged, readOnly = false }) {
-  const effectiveReadOnly = Boolean(readOnly || detail?.faqat_oqish || detail?.tarixiy);
+function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged }) {
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
   const [roomEditor, setRoomEditor] = useState(null);
@@ -5317,10 +5640,6 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
   const [downloading, setDownloading] = useState(false);
 
   const downloadClasses = async () => {
-    if (effectiveReadOnly) {
-      setRoomMessage({ tone: "warning", text: "Tarixiy nusxa faqat ko‘rish uchun. XLSX joriy saqlangan jadvaldan olinadi." });
-      return;
-    }
     setDownloading(true);
     setRoomMessage(null);
     try {
@@ -5371,15 +5690,15 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
       {roomMessage && <div className="mb-1.5"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
         <div className="min-w-0">
-          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Jadval #{detail?.ko_rinish_raqami || detail?.korinish_raqami || detail?.urinish?.id || "—"} · Haftalik dars jadvali</h3>
+          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Jadval #{detail?.urinish?.id || "—"} · Haftalik dars jadvali</h3>
           <div className="flex flex-wrap items-center gap-1 mt-1 text-[8px] font-black">
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>A/B · 0,5 + 0,5</span>
-            <span style={{ color: palette.muted }}>{effectiveReadOnly ? "Saqlangan nusxa · faqat ko‘rish" : "Xona ustiga bosib tahrirlang."}</span>
+            <span style={{ color: palette.muted }}>Xona ustiga bosib tahrirlang.</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={downloadClasses} disabled={downloading || effectiveReadOnly} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: effectiveReadOnly ? "#9BA8B2" : palette.green }}><Download size={13}/>{effectiveReadOnly ? "Faqat ko‘rish" : downloading ? "Tayyorlanmoqda..." : "Sinflar XLSX"}</button>
+          <button type="button" onClick={downloadClasses} disabled={downloading} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={13}/>{downloading ? "Tayyorlanmoqda..." : "Sinflar XLSX"}</button>
           <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
             {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
           </select>
@@ -5417,11 +5736,9 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                       </div>
                       <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[8px] leading-tight">
                         <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
-                        {effectiveReadOnly
-                          ? <span title={`Xona: ${roomName}`} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName}</span>
-                          : <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>}
+                        <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>
                       </div>
-                      {!effectiveReadOnly && Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
+                      {Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
                     </div>;
                   })}
                 </div></td>;
@@ -6594,130 +6911,49 @@ function normalizeGenerationBudgetSecondsV219(value) {
     : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
 }
 
-function parseSavedScheduleReferenceV2251(value) {
-  const normalized = String(value ?? "").trim().replace(/^#\s*/, "");
-  const match = normalized.match(/^(\d+)(?:\.(\d+))?$/);
-  if (!match) return null;
-  const runId = Number(match[1]);
-  // Foydalanuvchi yozgan yalang‘och raqam aynan saqlangan asosiy (0)
-  // nusxani anglatadi. `null` faqat ichki kodda joriy/canonical holat uchun.
-  const revision = match[2] == null ? 0 : Number(match[2]);
-  if (!Number.isSafeInteger(runId) || runId <= 0) return null;
-  if (revision != null && (!Number.isSafeInteger(revision) || revision < 0)) return null;
-  return {
-    runId,
-    revision,
-    key: revision != null && revision > 0 ? `${runId}.${revision}` : String(runId),
-  };
-}
-
-function savedScheduleReferenceV2251(runId, revision) {
-  const safeRevision = Number(revision || 0);
-  return safeRevision > 0 ? `${Number(runId)}.${safeRevision}` : String(Number(runId));
-}
-
-function savedScheduleOptionsV2251(runs) {
-  return (Array.isArray(runs) ? runs : []).flatMap(run => {
-    const hasPersistedRevisionList = Array.isArray(run?.reviziyalar);
-    const revisions = hasPersistedRevisionList ? run.reviziyalar : [];
-    const latestRevision = Number(run?.yaxshilanish ?? run?.diagnostika?.yaxshilanish ?? 0);
-    const revisionSource = hasPersistedRevisionList
-      ? revisions
-      : [Number.isSafeInteger(latestRevision) && latestRevision >= 0 ? latestRevision : 0];
-    const uniqueRevisions = [...new Set(
-      revisionSource.map(value => Number(value)).filter(value => Number.isSafeInteger(value) && value >= 0),
-    )].sort((left, right) => right - left);
-    return uniqueRevisions.map(revision => ({
-      runId: Number(run.id),
-      revision,
-      key: savedScheduleReferenceV2251(run.id, revision),
-      latest: revision === latestRevision,
-    }));
-  });
-}
-
 function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onStop }) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
   const [clock, setClock] = useState(() => Date.now());
-  const [collapsed, setCollapsed] = useState(false);
-  const autoCollapsedRunRef = useRef("");
   useEffect(() => {
     setClock(Date.now());
     const timer = window.setInterval(() => setClock(Date.now()), 250);
     return () => window.clearInterval(timer);
-  }, [startedAt]);
+  }, [startedAt, searchStartedAt, searchFinishedAt]);
   const totalElapsedSeconds = Math.max(0, (clock - Number(startedAt || clock)) / 1000);
   const processPercent = Number.isFinite(Number(liveProgress?.foiz))
     ? Math.max(0, Math.min(100, Number(liveProgress.foiz)))
     : 0;
-  const baseScheduleNumber = Number(liveProgress?.jadval_raqami || 0);
-  const savedRevision = Number(liveProgress?.saqlangan_yaxshilanish ?? liveProgress?.yaxshilanish ?? 0);
-  const scheduleNumber = baseScheduleNumber > 0
-    ? savedScheduleReferenceV2251(baseScheduleNumber, savedRevision)
-    : "—";
-  const candidateCount = Math.max(0, Number(liveProgress?.kandidat_soni || 0));
-  const rawProcessMessage = liveProgress?.xabar;
-  const processMessage = typeof rawProcessMessage === "string"
-    ? rawProcessMessage
-    : rawProcessMessage == null
-      ? stage.title
-      : String(rawProcessMessage);
-  const progressStage = String(liveProgress?.bosqich || "");
-  const stopping = progressStage === "toxtatish_soraldi";
-  const baseScheduleAvailable = progressStage === "asosiy_tayyor"
-    || progressStage.startsWith("yaxshilash")
-    || ["global_yaxshilandi", "ustozlar_yaxshilandi"].includes(progressStage);
-  useEffect(() => {
-    const runKey = String(liveProgress?.jadval_raqami || "");
-    if (baseScheduleAvailable && runKey && autoCollapsedRunRef.current !== runKey) {
-      autoCollapsedRunRef.current = runKey;
-      setCollapsed(true);
-    }
-  }, [baseScheduleAvailable, liveProgress?.jadval_raqami]);
-  const stop = event => {
-    event?.stopPropagation?.();
-    if (!stopping && typeof onStop === "function") onStop();
-  };
-  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-5 md:bottom-5 md:w-[460px]" role="status" aria-live="polite" aria-label={processMessage}>
-    <div className={`border-2 bg-white overflow-hidden ${collapsed ? "rounded-2xl" : "rounded-[24px]"}`} style={{ borderColor: "#49A9A5", boxShadow: "0 18px 55px rgba(24,50,75,.26)" }}>
-      <button type="button" onClick={() => setCollapsed(value => !value)} aria-expanded={!collapsed} className="w-full text-left p-3.5 flex items-center gap-3" title={collapsed ? "Jarayon oynasini ochish" : "Jarayon oynasini yig‘ish"}>
-        <div className="relative shrink-0 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
-          <Bot size={23}/>
-          <span className="absolute -right-1 -top-1 w-3.5 h-3.5 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .65 }}/>
-          <span className="absolute -right-1 -top-1 w-3.5 h-3.5 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
+  const scheduleNumber = liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || "—";
+  const processMessage = liveProgress?.xabar || stage.title;
+  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[720px]" role="status" aria-live="polite" aria-label={processMessage}>
+    <div className="rounded-[28px] border-2 bg-white p-5 md:p-6" style={{ borderColor: "#49A9A5", boxShadow: "0 24px 80px rgba(24,50,75,.30)" }}>
+      <div className="flex items-start gap-3">
+        <div className="relative shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
+          <Bot size={34}/>
+          <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full animate-ping" style={{ background: "#55C98B", opacity: .7 }}/>
+          <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="text-[10px] font-black uppercase tracking-[.11em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
-            <ChevronRight size={16} className={`transition-transform ${collapsed ? "rotate-0" : "rotate-90"}`} style={{ color: palette.muted }}/>
-          </div>
-          <div className="text-xl font-black leading-tight" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
-          <div className={`text-xs font-black mt-0.5 leading-snug ${collapsed ? "truncate" : ""}`} style={{ color: palette.blue }}>{candidateCount > 0 ? `${candidateCount} ta nomzod tekshirildi · ` : ""}{processMessage}</div>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
+          <div className="text-2xl md:text-3xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
+          <div className="text-base md:text-lg font-black mt-1 leading-snug" style={{ color: palette.blue }}>{processMessage}</div>
         </div>
-        <div className="shrink-0 text-3xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
-      </button>
-      <div className="h-2 overflow-hidden mx-3.5 rounded-full" style={{ background: palette.sky }}>
+        <div className="shrink-0 text-4xl md:text-5xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
+      </div>
+      <div className="h-4 rounded-full overflow-hidden mt-5" style={{ background: palette.sky }}>
         <div className="h-full transition-[width] duration-500" style={{ width: `${processPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
       </div>
-      {collapsed ? <div className="p-2.5 pt-2 flex items-center justify-between gap-2">
-        <div className="text-[11px] font-bold truncate" style={{ color: palette.muted }}>{Math.floor(totalElapsedSeconds)} s · jadvalni ko‘rish mumkin</div>
-        <button type="button" onClick={stop} disabled={stopping} className="shrink-0 px-3 py-2 rounded-lg text-xs font-black text-white" style={{ background: stopping ? "#9BA8B2" : palette.red }}>{stopping ? "To‘xtatilmoqda…" : "To‘xtatish"}</button>
-      </div> : <div className="p-3.5 pt-3">
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl px-2.5 py-2 text-center" style={{ background: palette.greenBg }}><div className="text-lg font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
-          <div className="rounded-xl px-2.5 py-2 text-center" style={{ background: palette.sky }}><div className="text-lg font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
-          <div className="rounded-xl px-2.5 py-2 text-center" style={{ background: palette.amberBg }}><div className="text-lg font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
-        </div>
-        <button type="button" onClick={stop} disabled={stopping} className="w-full mt-3 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: stopping ? "#9BA8B2" : palette.red }}>{stopping ? "To‘xtatilmoqda — eng yaxshi natija saqlanadi…" : "To‘xtatish va eng yaxshi natijani olish"}</button>
-      </div>}
+      <div className="grid grid-cols-3 gap-2 mt-4">
+        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.greenBg }}><div className="text-xl font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
+        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.sky }}><div className="text-xl font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
+        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
+      </div>
+      <button type="button" onClick={onStop} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>Yaxshilashni to‘xtatish va eng yaxshi natijani olish</button>
     </div>
   </div>;
-  // GenerateStep allaqachon yuqori z-indexli WorkspacePortal ichida. Panelni
-  // document.body ga qayta portal qilish uni maktab oynasining orqasiga
-  // yashirib qo'yar edi; shu daraxtda qoldirilsa fixed panel doimo ko'rinadi.
-  return panel;
+  return typeof document === "undefined" ? panel : createPortal(panel, document.body);
 }
 
 
@@ -7159,16 +7395,11 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
   const teacherWindowReport = detail?.urinish?.diagnostika?.oqituvchi_okno_hisoboti || null;
   const teacherWindowSummary = normalizeTeacherWindowReportV211(teacherWindowReport);
   const teacherWindowCountForTab = teacherWindowCountLabelV211(teacherWindowSummary);
-  const readOnly = Boolean(detail?.faqat_oqish || detail?.tarixiy);
   useEffect(() => registerPhoneBackHandler("school-smart-generator-result", () => {
     onClose?.();
     return true;
   }, 340), [onClose]);
   const download = async kind => {
-    if (readOnly) {
-      setDownloadError("Saqlangan nusxa faqat ko‘rish uchun. Eksport joriy jadvalda ishlaydi.");
-      return;
-    }
     setDownloading(kind);
     setDownloadError("");
     try { await downloadScheduleWorkbookV200(apiBase, token, detail?.urinish?.id, kind); }
@@ -7180,7 +7411,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
     <div className="min-h-screen p-3 md:p-5" style={{ background: "linear-gradient(180deg,#F5FAFC,#F7F4ED)" }}>
       <div className="max-w-[1580px] mx-auto space-y-3">
         <div className="rounded-2xl px-4 py-3 text-white flex flex-wrap items-center justify-between gap-3" style={{ background: color }}>
-          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.ko_rinish_raqami || detail?.korinish_raqami || detail?.urinish?.id || "—"}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{readOnly ? "Saqlangan nusxa · faqat ko‘rish" : ONE_GENERATOR_POLICY_V210.izoh}</div></div>
+          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{ONE_GENERATOR_POLICY_V210.izoh}</div></div>
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white text-sm font-black" style={{ color }}>Yopish ×</button>
         </div>
         <div className="rounded-2xl border bg-white p-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: palette.line }}>
@@ -7188,13 +7419,12 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
             {[["classes","Sinf jadvallari"],["teachers","O‘qituvchi haftalik jadvali"],["windows",`Oyna hisoboti (${teacherWindowCountForTab})`]].map(([key,label]) => <button key={key} type="button" onClick={() => setView(key)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: view === key ? color : palette.cream, color: view === key ? "#fff" : palette.ink }}>{label}</button>)}
           </div>
           <div className="flex gap-1.5">
-            <button type="button" onClick={() => download("sinflar")} disabled={!!downloading || readOnly} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: readOnly ? "#9BA8B2" : palette.green }}><Download size={14}/>{readOnly ? "Faqat ko‘rish" : downloading === "sinflar" ? "..." : "Sinflar XLSX"}</button>
-            <button type="button" onClick={() => download("oqituvchilar")} disabled={!!downloading || readOnly} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: readOnly ? "#9BA8B2" : palette.teal }}><Download size={14}/>{readOnly ? "Faqat ko‘rish" : downloading === "oqituvchilar" ? "..." : "O‘qituvchilar XLSX"}</button>
+            <button type="button" onClick={() => download("sinflar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={14}/>{downloading === "sinflar" ? "..." : "Sinflar XLSX"}</button>
+            <button type="button" onClick={() => download("oqituvchilar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.teal }}><Download size={14}/>{downloading === "oqituvchilar" ? "..." : "O‘qituvchilar XLSX"}</button>
           </div>
         </div>
         {downloadError && <SmartNotice tone="error">{downloadError}</SmartNotice>}
-        {readOnly && <SmartNotice tone="info">Bu saqlangan jadval #{detail?.ko_rinish_raqami || detail?.korinish_raqami} faqat ko‘rish uchun. Xona, dars va tasdiqlash holati o‘zgartirilmaydi.</SmartNotice>}
-        {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged} readOnly={readOnly}/>} 
+        {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged}/>} 
         {view === "teachers" && <TeacherWeeklySchedule detail={detail} setup={setup}/>} 
         {view === "windows" && <TeacherWindowReportV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
       </div>
@@ -7203,15 +7433,8 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
 }
 
 function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
-  const runs = Array.isArray(setup?.urinishlar) ? setup.urinishlar : [];
-  const scheduleOptions = useMemo(() => savedScheduleOptionsV2251(runs), [runs]);
-  const initialRevision = Number(runs[0]?.yaxshilanish ?? runs[0]?.diagnostika?.yaxshilanish ?? 0);
+  const runs = setup?.urinishlar || [];
   const [runId, setRunId] = useState(String(runs[0]?.id || ""));
-  // `null` = joriy/canonical jadval. Son = foydalanuvchi aynan tanlagan
-  // o‘zgarmas saqlangan nusxa; u doim faqat ko‘rish uchun ochiladi.
-  const [selectedRevision, setSelectedRevision] = useState(null);
-  const [scheduleQuery, setScheduleQuery] = useState(runs[0]?.id ? savedScheduleReferenceV2251(runs[0].id, initialRevision) : "");
-  const [openingSchedule, setOpeningSchedule] = useState(false);
   const [detail, setDetail] = useState(null);
   const [preflight, setPreflight] = useState(null);
   const [checking, setChecking] = useState(false);
@@ -7228,52 +7451,15 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [message, setMessage] = useState(null);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
 
-  const loadRun = async (id, revision = null) => {
+  const loadRun = async id => {
     if (!id) { setDetail(null); return null; }
     try {
-      const revisionQuery = revision == null ? "" : `&yaxshilanish=${encodeURIComponent(revision)}`;
-      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${encodeURIComponent(id)}${revisionQuery}`);
-      const resolvedRevision = Number(data?.tanlangan_yaxshilanish ?? data?.urinish?.diagnostika?.yaxshilanish ?? 0);
-      if (revision != null && (
-        data?.faqat_oqish !== true
-        || !Array.isArray(data?.reviziyalar)
-        || resolvedRevision !== Number(revision)
-      )) {
-        throw new Error("Backend aniq saqlangan reviziya tarixini qo‘llamaydi. V22.51 backendning 1–2-kodini birga deploy qiling.");
-      }
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${id}`);
       setDetail(data);
-      setRunId(String(data?.urinish?.id || id));
-      setSelectedRevision(revision == null ? null : (Number.isSafeInteger(resolvedRevision) ? resolvedRevision : revision));
-      setScheduleQuery(data?.ko_rinish_raqami || data?.korinish_raqami || savedScheduleReferenceV2251(id, resolvedRevision));
       return data;
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
       return null;
-    }
-  };
-
-  const openSavedSchedule = async referenceValue => {
-    const parsed = parseSavedScheduleReferenceV2251(referenceValue);
-    if (!parsed) {
-      setMessage({ tone: "error", text: "Jadval raqamini 56 yoki 56.3 ko‘rinishida yozing." });
-      return null;
-    }
-    setOpeningSchedule(true);
-    setGenerationFailure(null);
-    try {
-      const loaded = await loadRun(parsed.runId, parsed.revision);
-      if (!loaded) return null;
-      setResultWindowOpen(true);
-      const loadedReadOnly = Boolean(loaded?.faqat_oqish || loaded?.tarixiy);
-      setMessage({
-        tone: loadedReadOnly ? "warning" : "success",
-        text: loadedReadOnly
-          ? `Jadval #${loaded.ko_rinish_raqami || loaded.korinish_raqami || parsed.key} ochildi. Bu saqlangan nusxa — faqat ko‘rish mumkin.`
-          : `Jadval #${loaded?.ko_rinish_raqami || loaded?.korinish_raqami || parsed.key} ochildi.`,
-      });
-      return loaded;
-    } finally {
-      setOpeningSchedule(false);
     }
   };
 
@@ -7289,8 +7475,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         if (newest?.id && String(newest.id) !== String(previousId || "")) {
           setSearchFinishedAt(Date.now());
           setRunId(String(newest.id));
-          setSelectedRevision(null);
-          const recoveredDetail = await loadRun(newest.id, null);
+          const recoveredDetail = await loadRun(newest.id);
           await reload();
           const recovered = solverResultSummaryV215(recoveredDetail || newest);
           setGenerationPhase("loading");
@@ -7342,38 +7527,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     }
   };
 
-  const attachActiveGeneration = async () => {
-    try {
-      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`, { timeoutMs: 5000 });
-      if (!data?.faol || !data?.qidiruv_nonce) return false;
-      setGenerationNonce(Number(data.qidiruv_nonce));
-      setGenerating(true);
-      setGenerationStartedAt(Date.now());
-      setSearchStartedAt(Date.now());
-      setGenerationPhase("calculating");
-      setLiveProgress(data);
-      setMessage({ tone: "success", text: "Davom etayotgan jadval jarayoniga qayta ulandingiz. Oynani yopish yoki boshqa menyuga o‘tish hisoblashni to‘xtatmaydi." });
-      if (Number(data.jadval_raqami || 0) > 0) {
-        setRunId(String(data.jadval_raqami));
-        setSelectedRevision(null);
-        await loadRun(data.jadval_raqami, null);
-      }
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
-
   useEffect(() => { checkSources(true); }, [maktabId, token, apiBase]);
-  useEffect(() => { attachActiveGeneration(); }, [maktabId, token, apiBase]);
-  useEffect(() => { if (runId) loadRun(runId, selectedRevision); }, [runId, selectedRevision]);
+  useEffect(() => { if (runId) loadRun(runId); }, [runId]);
   useEffect(() => {
-    if (runs[0]?.id && !runId) {
-      const revision = Number(runs[0]?.yaxshilanish ?? runs[0]?.diagnostika?.yaxshilanish ?? 0);
-      setRunId(String(runs[0].id));
-      setSelectedRevision(null);
-      setScheduleQuery(savedScheduleReferenceV2251(runs[0].id, revision));
-    }
+    if (runs[0]?.id && !runId) setRunId(String(runs[0].id));
   }, [runs, runId]);
   useEffect(() => {
     if (!generating || !generationNonce) return undefined;
@@ -7381,19 +7538,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     const poll = async () => {
       try {
         const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { timeoutMs: 5000 });
-        if (!stopped && data && typeof data === "object") {
-          setLiveProgress(data);
-          if (["tayyor", "xato", "toxtatildi"].includes(data?.bosqich)) {
-            setGenerating(false);
-            setSearchFinishedAt(Date.now());
-            await reload();
-            if (Number(data?.jadval_raqami || 0) > 0) {
-              setRunId(String(data.jadval_raqami));
-              setSelectedRevision(null);
-              await loadRun(data.jadval_raqami, null);
-            }
-          }
-        }
+        if (!stopped && data?.jadval_raqami) setLiveProgress(data);
       } catch (_) {
         // Asosiy POST ishlashda davom etadi; keyingi polling yana urinadi.
       }
@@ -7406,12 +7551,11 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const openResultWindow = async () => {
     const id = detail?.urinish?.id || runId || runs[0]?.id;
     if (!id) return;
-    if (String(detail?.urinish?.id || "") !== String(id)) await loadRun(id, selectedRevision);
+    if (String(detail?.urinish?.id || "") !== String(id)) await loadRun(id);
     setResultWindowOpen(true);
   };
 
   const generate = async () => {
-    if (await attachActiveGeneration()) return;
     const previousRunId = runs[0]?.id || runId || null;
     const generationStart = Date.now();
     const searchNonce = generationStart;
@@ -7426,10 +7570,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setGenerationFailure(null);
     setGenerationNonce(searchNonce);
     setLiveProgress({
-      // Jadval ID global PostgreSQL sequence'dan keladi; uni taxmin qilib
-      // yolg'on raqam ko'rsatmaymiz. Polling haqiqiy band qilingan IDni beradi.
-      jadval_raqami: 0,
-      ko_rinish_raqami: "",
+      jadval_raqami: Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1,
+      ko_rinish_raqami: String(Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1),
       yaxshilanish: 0,
       foiz: 2,
       bosqich: "boshlanish",
@@ -7453,15 +7595,12 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.40-DAILY-BALANCE"].includes(
           capability?.exact_jadval_release
         ) ||
-        capability?.exact_internal_release !== "SAMTM-EXACT-CP-SAT-V22.50-STABLE-DAYS" ||
-        capability?.exact_solver_release !== "SAMTM-EXACT-SOLVER-V22.50-STABLE-DAYS" ||
-        capability?.revision_history_contract !== "immutable-saved-revisions-v22.51" ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
         capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V22.51 paketining backend 1–2-kodini va frontend 3-kodini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; reviziya tarixi: ${capability?.revision_history_contract || "eski"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V22.40 DAILY-BALANCE paketini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
         });
         return;
       }
@@ -7487,19 +7626,11 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const started = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/boshlash?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          maktab_id: maktabId,
-          urinishlar_soni: 1,
-          generator_rejimi: 1,
-          qidiruv_nonce: searchNonce,
-          asosiy_jadval_id: previousRunId ? Number(previousRunId) : null,
-          yaxshilash_bosqichi: Boolean(previousRunId),
-        }),
+        body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 1, generator_rejimi: 1, qidiruv_nonce: searchNonce }),
       });
       if (!started?.qabul_qilindi) throw new Error(started?.xabar || "Backend jadval ishini boshlamadi.");
       setMessage({ tone: "success", text: "Jadval backendda mustaqil yaratila boshladi. Sahifa yopilsa ham davom etadi; faqat “To‘xtatish” tugmasi to‘xtatadi." });
       let finalProgress = null;
-      let baseScheduleLoaded = false;
       while (true) {
         await new Promise(resolve => window.setTimeout(resolve, 1000));
         let progress;
@@ -7509,44 +7640,17 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           setMessage({ tone: "warning", text: "Holatni olishda aloqa uzildi. Backend hisoblashda davom etmoqda; ekran avtomatik qayta ulanadi." });
           continue;
         }
-        if (!progress || typeof progress !== "object") {
-          setMessage({ tone: "warning", text: "Backend jarayon holatini noto‘g‘ri formatda qaytardi. Hisoblash davom etmoqda; holat yana olinadi." });
-          continue;
-        }
+        if (!progress?.jadval_raqami) continue;
         setLiveProgress(progress);
         if (["tayyor", "xato", "toxtatildi"].includes(progress.bosqich)) {
           finalProgress = progress;
           break;
-        }
-        if (!progress?.jadval_raqami) continue;
-        const baseScheduleAvailable = progress.bosqich === "asosiy_tayyor"
-          || String(progress.bosqich || "").startsWith("yaxshilash")
-          || ["global_yaxshilandi", "ustozlar_yaxshilandi"].includes(progress.bosqich);
-        if (baseScheduleAvailable && !baseScheduleLoaded) {
-          await reload();
-          setRunId(String(progress.jadval_raqami));
-          setSelectedRevision(0);
-          const loadedBaseSchedule = await loadRun(progress.jadval_raqami, 0);
-          if (loadedBaseSchedule) {
-            baseScheduleLoaded = true;
-            setResultWindowOpen(true);
-            setMessage({
-              tone: "success",
-              text: progress.xabar || `Jadval #${progress.jadval_raqami} yaratildi va saqlandi. Endi shu jadval buzilmasdan yaxshilanmoqda.`,
-            });
-          }
         }
       }
       setSearchFinishedAt(Date.now());
       if (finalProgress?.bosqich === "toxtatildi") {
         setMessage({ tone: "warning", text: finalProgress.xabar || "Yaxshilash foydalanuvchi tomonidan to‘xtatildi. Oldingi eng yaxshi jadval saqlandi." });
         await reload();
-        if (Number(finalProgress?.jadval_raqami || 0) > 0) {
-          setRunId(String(finalProgress.jadval_raqami));
-          setSelectedRevision(null);
-          const stoppedBest = await loadRun(finalProgress.jadval_raqami, null);
-          if (stoppedBest) setResultWindowOpen(true);
-        }
         return;
       }
       if (finalProgress?.bosqich === "xato") {
@@ -7554,8 +7658,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       }
       await reload();
       setRunId(String(finalProgress.jadval_raqami));
-      setSelectedRevision(null);
-      await loadRun(finalProgress.jadval_raqami, null);
+      await loadRun(finalProgress.jadval_raqami);
       setMessage({ tone: "success", text: finalProgress.xabar || `Jadval #${finalProgress.ko_rinish_raqami || finalProgress.jadval_raqami} tayyor. Eng yaxshi variant saqlandi.` });
       setResultWindowOpen(true);
       return;
@@ -7616,8 +7719,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       });
       await reload();
       setRunId(String(data.urinish_id));
-      setSelectedRevision(null);
-      await loadRun(data.urinish_id, null);
+      await loadRun(data.urinish_id);
       setResultWindowOpen(true);
     } catch (error) {
       const rawMessage = String(error?.message || "");
@@ -7676,9 +7778,6 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const approve = async () => {
-    if (detail?.faqat_oqish || detail?.tarixiy) {
-      return setMessage({ tone: "warning", text: "Saqlangan nusxa faqat ko‘rish uchun; uni tasdiqlash yoki o‘zgartirish mumkin emas." });
-    }
     const id = detail?.urinish?.id;
     if (!id) return;
     const diagnostics = detail?.urinish?.diagnostika || {};
@@ -7700,7 +7799,6 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const diagnostics = detail?.urinish?.diagnostika || {};
-  const detailReadOnly = Boolean(detail?.faqat_oqish || detail?.tarixiy);
   const detailResult = solverResultSummaryV215(detail || {});
   const displayDetail = detailResult.complete ? detail : null;
   const comfort = diagnostics.qulaylik_strategiyasi || {};
@@ -7780,7 +7878,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     ),
   };
   const match = diagnostics.jadval_mosligi || {};
-  const canApprove = Boolean(!detailReadOnly && displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
+  const canApprove = Boolean(displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
   const matchSummary = match.xulosa || {};
 
@@ -7789,47 +7887,25 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     ...(match.oqituvchilar || []).filter(row => !row.mos).map(row => ({ type: "O‘qituvchi", name: row.full_name, plan: row.reja, actual: row.jadval, fanLoad: row.fan_yuklama, classHourPlan: row.sinf_soati_reja })),
     ...(match.fanlar || []).filter(row => !row.mos).map(row => ({ type: "Fan", name: `${row.sinf} · ${row.fan}`, plan: row.reja, actual: row.jadval })),
   ];
-  const selectedScheduleKey = detail?.ko_rinish_raqami || detail?.korinish_raqami || savedScheduleReferenceV2251(runId || 0, selectedRevision);
-  const liveSavedRevision = Number(liveProgress?.saqlangan_yaxshilanish ?? liveProgress?.yaxshilanish ?? 0);
-  const liveSavedNumber = Number(liveProgress?.jadval_raqami || 0) > 0
-    ? savedScheduleReferenceV2251(liveProgress.jadval_raqami, liveSavedRevision)
-    : "—";
-  const liveCandidateCount = Math.max(0, Number(liveProgress?.kandidat_soni || 0));
 
   return <div className="space-y-3">
-    {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) { setSelectedRevision(null); await loadRun(id, null); } }}/>} 
+    {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
     {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} liveProgress={liveProgress} onStop={stopGeneration}/>} 
     {message && <div className="rounded-2xl border-2 px-5 py-4 text-base font-black leading-snug" style={{ background: message.tone === "error" ? palette.redBg : message.tone === "warning" ? palette.amberBg : palette.greenBg, borderColor: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green, color: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green }}>{message.text}</div>}
     {(!!runs.length || generating) && <Card className="p-3.5">
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
-        <div>
-          <h2 className="text-xl font-black" style={{ color: palette.ink }}>Saqlangan jadvallar</h2>
-          <span className="text-xs font-black" style={{ color: palette.muted }}>Raqamni yozib yoki saqlangan versiyani tanlab aynan o‘sha jadvalni oching.</span>
-        </div>
-        <form onSubmit={event => { event.preventDefault(); openSavedSchedule(scheduleQuery); }} className="flex flex-wrap items-center gap-2">
-          <input value={scheduleQuery} onChange={event => setScheduleQuery(event.target.value)} placeholder="56 yoki 56.3" inputMode="decimal" aria-label="Jadval raqami" className="w-36 px-3 py-2.5 rounded-xl border-2 text-sm font-black bg-white" style={{ borderColor: palette.line, color: palette.ink }}/>
-          <button type="submit" disabled={openingSchedule} className="px-4 py-2.5 rounded-xl text-sm font-black text-white flex items-center gap-1.5" style={{ background: openingSchedule ? "#9BA8B2" : palette.blue }}><Search size={15}/>{openingSchedule ? "Ochilmoqda…" : "Ochish"}</button>
-          <select value={scheduleOptions.some(option => option.key === scheduleQuery) ? scheduleQuery : ""} onChange={event => { const value = event.target.value; if (value) { setScheduleQuery(value); openSavedSchedule(value); } }} aria-label="Saqlangan jadval versiyalari" className="min-w-[210px] px-3 py-2.5 rounded-xl border-2 bg-white text-sm font-black" style={{ borderColor: palette.line, color: palette.ink }}>
-            <option value="">Saqlangan versiyani tanlang</option>
-            {scheduleOptions.map(option => <option key={`${option.runId}:${option.revision}`} value={option.key}>#{option.key}{option.latest ? " · eng yangi" : " · tarixiy"}</option>)}
-          </select>
-        </form>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Jadvallar</h2>
+        <span className="text-xs font-black" style={{ color: palette.muted }}>Oxirgi 4 ta saqlangan natija</span>
       </div>
       {generating && liveProgress?.jadval_raqami && <div className="mb-3 rounded-2xl border-2 p-4" style={{ borderColor: palette.amber, background: palette.amberBg }}>
-        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>YAXSHILASH JARAYONI</div><div className="text-2xl font-black" style={{ color: palette.ink }}>Eng yaxshi saqlangan: Jadval #{liveSavedNumber}</div><div className="text-sm mt-1 font-black" style={{ color: palette.teal }}>{liveCandidateCount} ta ichki nomzod tekshirildi</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{Number(liveProgress.foiz || 0)}%</div></div>
+        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>YANGI ALMASHINUVCHI NATIJA</div><div className="text-2xl font-black" style={{ color: palette.ink }}>Jadval #{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami}</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{Number(liveProgress.foiz || 0)}%</div></div>
         <div className="text-sm mt-2 font-black leading-snug" style={{ color: palette.ink }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
       </div>}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {runs.slice(0, 4).map((run, index) => {
-          const revision = Number(run.yaxshilanish ?? run.diagnostika?.yaxshilanish ?? 0);
-          const displayNumber = revision > 0 ? `${run.id}.${revision}` : String(run.id);
-          const selected = selectedScheduleKey === displayNumber;
-          return <button key={`${run.id}:${revision}`} type="button" onClick={() => openSavedSchedule(displayNumber)} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: selected ? palette.teal : palette.line, background: selected ? palette.greenBg : "#fff" }}>
-            <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{displayNumber}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
-            <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
-            <div className="text-[10px] mt-1 font-bold" style={{ color: palette.muted }}>{Array.isArray(run.reviziyalar) ? `${run.reviziyalar.length} ta saqlangan versiya` : "Saqlangan natija"}</div>
-          </button>;
-        })}
+        {runs.slice(0, 4).map((run, index) => <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
+          <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
+          <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
+        </button>)}
       </div>
     </Card>}
     <Card className="p-5">
@@ -7837,13 +7913,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>AQILLI GENERATOR</div>
           <h2 className="text-2xl font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>{runs[0]?.id ? `Mavjud #${runs[0].id} saqlanadi; yangi qoidalar shu jadvalning keyingi .N versiyasiga yoziladi.` : "Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi."}</p>
+          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
+          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
           {generating
-            ? <button type="button" onClick={stopGeneration} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={17}/> To‘xtatish</button>
-            : <button type="button" onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> {runs[0]?.id ? `#${runs[0].id} ni yaxshilash` : "Jadval yaratish"}</button>}
+            ? <button onClick={stopGeneration} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={17}/> To‘xtatish</button>
+            : <button onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> Jadval yaratish</button>}
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
@@ -7931,7 +8007,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label="smenadagi bo‘sh dars" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
           <CompactStat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
-        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{detailReadOnly ? "Saqlangan nusxa · faqat ko‘rish" : canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
+        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
 
         {detail && <div className="mt-1.5 grid grid-cols-3 gap-1.5">
           <CompactStat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label="sinf mos" tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
@@ -7955,9 +8031,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </Card>
     </div>}
 
-    {displayDetail && !generationFailure && detailReadOnly && <SmartNotice tone="info">Jadval #{displayDetail?.ko_rinish_raqami || displayDetail?.korinish_raqami} saqlangan nusxa. Dars, xona, tasdiqlash, eksport va almashtirish tugmalari o‘chirildi.</SmartNotice>}
-    {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} readOnly={detailReadOnly} onRoomChanged={async result => { setRunId(String(result.urinish_id)); setSelectedRevision(null); await reload(); await loadRun(result.urinish_id, null); }}/>} 
-    {displayDetail && !generationFailure && !detailReadOnly && <SmartSwapPanelV192
+    {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
+    {displayDetail && !generationFailure && <SmartSwapPanelV192
       token={token}
       apiBase={apiBase}
       maktabId={maktabId}
@@ -7965,8 +8040,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       onApplied={async id => {
         await reload();
         setRunId(String(id));
-        setSelectedRevision(null);
-        await loadRun(id, null);
+        await loadRun(id);
       }}
     />}
   </div>;
@@ -7994,64 +8068,11 @@ function TopicsStep({ token, apiBase, maktabId, setup, teacherOnly }) {
   return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<Card className="p-5"><div className="grid md:grid-cols-[1fr_1.4fr_120px_auto_auto] gap-2 items-end"><label className="text-xs font-bold" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{allowedClasses.map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>Fan<select value={fan} onChange={e=>setFan(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{subjects.map(f=><option key={f}>{f}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>Chorak<select value={quarter} onChange={e=>setQuarter(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{[1,2,3,4].map(q=><option key={q} value={q}>{q}</option>)}</select></label><button onClick={importDts} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>DTSdan olish</button><button onClick={distribute} className="px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>Sanalarga joylash</button></div></Card><div className="grid xl:grid-cols-[1fr_1fr] gap-4"><Card className="p-5"><div className="flex items-center justify-between mb-3"><div><h3 className="text-lg font-black" style={{color:palette.ink}}>Chorak mavzulari</h3><p className="text-xs" style={{color:palette.muted}}>O‘qituvchi nom, soat va tartibni o‘zgartira oladi.</p></div><div className="flex gap-2"><button onClick={()=>setPlan([...plan,{mavzu:"Yangi mavzu",soat:1,turi:"mavzu",manba:"qolda"}])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.ink}}>+ Mavzu</button><button onClick={save} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>Rejani saqlash</button></div></div><div className="space-y-2 max-h-[600px] overflow-auto pr-1">{plan.map((x,i)=><div key={i} className="rounded-2xl border p-3" style={{borderColor:palette.line}}><div className="grid grid-cols-[auto_1fr_70px_135px_auto] gap-2 items-center"><div className="text-xs font-black">{i+1}</div><input value={x.mavzu||""} onChange={e=>update(i,"mavzu",e.target.value)} className="p-2 rounded-xl border"/><input type="number" min="1" max="10" value={x.soat||1} onChange={e=>update(i,"soat",e.target.value)} className="p-2 rounded-xl border"/><select value={x.turi||"mavzu"} onChange={e=>update(i,"turi",e.target.value)} className="p-2 rounded-xl border bg-white"><option value="mavzu">Mavzu</option><option value="nazorat">Nazorat</option><option value="xato_tahlil">Xatolar tahlili</option><option value="mustahkamlash">Mustahkamlash</option><option value="masala">Masala</option></select><div className="flex gap-1"><button onClick={()=>move(i,-1)}>↑</button><button onClick={()=>move(i,1)}>↓</button><button onClick={()=>setPlan(plan.filter((_,n)=>n!==i))} style={{color:palette.red}}>×</button></div></div></div>)}{!plan.length&&!loading&&<SmartNotice tone="warning">Mavzu rejasi bo‘sh. DTSdan oling yoki qo‘lda kiriting.</SmartNotice>}</div></Card><Card className="p-5"><h3 className="text-lg font-black mb-1" style={{color:palette.ink}}>Real dars sanalari</h3><p className="text-xs mb-3" style={{color:palette.muted}}>Dam olish kuni qo‘shilsa avtomatik yozuvlar siljiydi; o‘qituvchi qulflagan yozuv saqlanadi.</p><div className="space-y-2 max-h-[650px] overflow-auto pr-1">{calendar.map(row=><TopicCalendarRow key={row.id} row={row} token={token} apiBase={apiBase} maktabId={maktabId} onSaved={load}/>)}{!calendar.length&&<SmartNotice tone="info">Avval tasdiqlangan jadval va mavzu rejasi bo‘lishi kerak.</SmartNotice>}</div></Card></div></div>;
 }
 
-class TimetableGenerationErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { error };
-  }
-
-  componentDidUpdate(previousProps) {
-    if (previousProps.resetKey !== this.props.resetKey && this.state.error) {
-      this.setState({ error: null });
-    }
-  }
-
-  componentDidCatch(error) {
-    console.error("Jadval yaratish oynasi xatosi:", error);
-  }
-
-  render() {
-    if (!this.state.error) return this.props.children;
-    return <Card className="p-5" style={{ borderColor: palette.red, borderWidth: 2 }}>
-      <div className="text-xl font-black" style={{ color: palette.red }}>Jadval oynasida xato yuz berdi</div>
-      <div className="text-sm font-bold mt-2" style={{ color: palette.ink }}>Sahifa oqarmadi. Oldingi jadval saqlangan; oynani qayta yuklab davom eting.</div>
-      <div className="text-xs mt-2 break-words" style={{ color: palette.muted }}>{String(this.state.error?.message || "Noma’lum frontend xatosi")}</div>
-      <button type="button" onClick={() => this.setState({ error: null })} className="mt-4 px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>Jadval oynasini qayta ochish</button>
-    </Card>;
-  }
-}
-
 function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = false, initialStep = 1 }) {
   const [step,setStep]=useState(teacherOnly?(initialStep===5?5:2):initialStep);const [setup,setSetup]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [selectedTeacher,setSelectedTeacher]=useState("");
   const stepHistoryRef=useRef([teacherOnly?(initialStep===5?5:2):initialStep]);
   const phoneBackInProgressRef=useRef(false);
-  const load=async()=>{
-    if(!maktabId){setError("Maktab ID topilmadi");setLoading(false);return null;}
-    // Birinchi ochilishdagina butun panel loaderga o'tadi. Generator ishlayotgan
-    // paytdagi reload fon rejimida bajariladi; GenerateStep unmount bo'lmaydi,
-    // foiz, to'xtatish tugmasi va yaratilgan jadval oynasi yo'qolmaydi.
-    const blocking=!setup;
-    if(blocking){setLoading(true);setError("");}
-    try{
-      const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);
-      d.maktab_id=maktabId;
-      setSetup(d);
-      setError("");
-      setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));
-      return d;
-    }catch(e){
-      // Eski setup mavjud bo'lsa vaqtinchalik reload xatosi butun jadval
-      // ekranini o'chirmaydi. Keyingi polling/reload yana urinadi.
-      if(blocking)setError(e.message);
-      return null;
-    }finally{
-      if(blocking)setLoading(false);
-    }
-  };
+  const load=async()=>{if(!maktabId){setError("Maktab ID topilmadi");setLoading(false);return;}setLoading(true);setError("");try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));}catch(e){setError(e.message);}finally{setLoading(false);}};
   useEffect(()=>{load();},[maktabId,token,apiBase]);
   useEffect(()=>{
     if(phoneBackInProgressRef.current){phoneBackInProgressRef.current=false;return;}
@@ -8069,7 +8090,7 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
     onClose?.();
     return true;
   }),[onClose]);
-  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, fan-soat, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<TimetableGenerationErrorBoundary resetKey={`${maktabId}:${step}`}><GenerateStep key={`generate:${maktabId}`} token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/></TimetableGenerationErrorBoundary>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
+  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, sinf skeleti + o‘qituvchi, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
 }
 
 
@@ -8084,7 +8105,6 @@ function v198PositiveSchoolId(...values) {
 export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
   const organizationV17Id = initialWorkspace?.organization_v17_id || null;
   const contextId = initialWorkspace?.context_id || null;
-  const existingOnly = initialWorkspace?.existing_only === true;
   // Mavjud maktablar ro'yxati haqiqiy IDni ko'pincha ``maktab_id`` bilan
   // yuboradi. Avval bu maydon o'qilmagani uchun eski maktab "yangi" deb
   // ochilardi. V17 context ID bilan legacy maktab ID hech qachon aralashmaydi.
@@ -8100,13 +8120,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       : v198PositiveSchoolId(initialWorkspace?.muassasa_id, initialWorkspace?.id)
   );
   const workspaceNameHint = initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || null;
-  // Mavjud maktab tanlovi ID vaqtincha yo'qolsa ham hech qachon yaratish
-  // formasiga aylanmaydi. Yaratish faqat aniq yangi-maktab oqimida ochiladi.
-  const isNewSchoolFlow = !existingOnly && !organizationV17Id && !contextId && !linkedInitialId;
+  const isNewSchoolFlow = !organizationV17Id && !contextId && !linkedInitialId;
   const [maktabId, setMaktabId] = useState(linkedInitialId || null);
   const [newSchoolMode, setNewSchoolMode] = useState(isNewSchoolFlow);
   const [workspaceRetry, setWorkspaceRetry] = useState(0);
-  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId || (existingOnly && !linkedInitialId)));
+  const [workspaceResolving, setWorkspaceResolving] = useState(Boolean(organizationV17Id || contextId));
   const [workspaceLinkError, setWorkspaceLinkError] = useState("");
   const [newSchoolName, setNewSchoolName] = useState(initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || "");
   const [newSchoolRegion, setNewSchoolRegion] = useState(initialWorkspace?.viloyat || initialWorkspace?.region || "");
@@ -8131,19 +8149,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [curriculumStatus, setCurriculumStatus] = useState(null);
 
   useEffect(() => {
-    // Komponent eski state bilan qayta ishlatilsa ham mavjud maktab kelgan
-    // zahoti yopishib qolgan "Yangi maktab" holatini bekor qilamiz.
-    if (existingOnly || linkedInitialId || organizationV17Id || contextId) {
-      setNewSchoolMode(false);
-      setNewSchoolError("");
-    }
-  }, [existingOnly, linkedInitialId, organizationV17Id, contextId]);
-
-  useEffect(() => {
     let active = true;
-    const mustResolve = Boolean(
-      !linkedInitialId && (organizationV17Id || contextId || existingOnly)
-    );
+    const mustResolve = Boolean((organizationV17Id || contextId) && !linkedInitialId);
     if (!mustResolve) {
       // REV60: muassasalarim javobida external_id/maktab_id bo'lsa
       // V17 bog'lash so'rovini kutmay haqiqiy eski maktabni ochamiz.
@@ -8166,7 +8173,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         // REV48 backend eski deploy qilingan frontenddagi shu nomni ham
         // taniydi. Ikkalasini yuborish aralash deploy paytida xavfsiz.
         selected_id: directLegacySchoolId || linkedInitialId,
-        existing_only: existingOnly,
         nomi: workspaceNameHint,
       }),
     }).then(result => {
@@ -8202,7 +8208,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       if (active) setWorkspaceResolving(false);
     });
     return () => { active = false; };
-  }, [token, apiBase, organizationV17Id, contextId, existingOnly, linkedInitialId, directLegacySchoolId, workspaceNameHint, workspaceRetry]);
+  }, [token, apiBase, organizationV17Id, contextId, linkedInitialId, directLegacySchoolId, workspaceNameHint, workspaceRetry]);
 
   const openNewSchoolForm = () => {
     // Eski maktab ID si va a'zoligi yaratish muvaffaqiyatli tugaguncha
