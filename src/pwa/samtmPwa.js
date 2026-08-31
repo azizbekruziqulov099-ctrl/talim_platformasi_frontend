@@ -1,6 +1,6 @@
 const BACK_HANDLERS = new Map();
 const GUARD_KEY = "__samtm_phone_back_guard__";
-export const SAMTM_PWA_RELEASE = "samtm-pwa-back-install-v2.4.0";
+export const SAMTM_PWA_RELEASE = "samtm-pwa-route-progress-safe-v2.5.0";
 let initialized = false;
 let installPrompt = null;
 let backHandlerOrder = 0;
@@ -280,8 +280,9 @@ export function initializeSamtmPwa() {
   }
   if ("serviceWorker" in navigator) {
     const registerWorker = () => {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" })
-        .then(registration => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" })
+        .then(async registration => {
+          await registration.update().catch(() => {});
           dispatchPwaStatus("service-worker-ready", { scope: registration.scope || "/" });
         })
         .catch(error => {
