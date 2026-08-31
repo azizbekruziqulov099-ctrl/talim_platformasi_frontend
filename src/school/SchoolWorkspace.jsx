@@ -8039,7 +8039,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
             {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
             <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
-            {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Boshlang‘ich sozlamalar</button>}
+            {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Maktab sozlamalari</button>}
           </div>
 
           <Card className="p-5 md:p-7 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
