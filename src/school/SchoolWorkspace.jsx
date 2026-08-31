@@ -5317,7 +5317,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const [assignments, setAssignments] = useState({});
   const [leaders, setLeaders] = useState({});
   const [showTeacherList, setShowTeacherList] = useState(true);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const load = async (preserveDraft = false) => {
     setLoading(true);
@@ -5557,7 +5556,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <select value={selectedClassId} onChange={event => setSelectedClassId(event.target.value)} className="p-2.5 rounded-xl border bg-white text-sm font-black" style={{ borderColor: palette.line, color: palette.ink }}>
             {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
           </select>
-          <button onClick={() => setShowAdvanced(true)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Batafsil tahrir</button>
         </div>
       </div>
 
@@ -5594,10 +5592,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       </div>
     </Card>
 
-    {showAdvanced && <div className="space-y-3">
-      <Card className="p-4 flex items-center justify-between gap-3"><div><div className="text-sm font-black" style={{ color: palette.ink }}>Batafsil tahrir</div><div className="text-xs mt-1" style={{ color: palette.muted }}>Staj, toifa, maqsad soat, fan–sinf–guruh va boshqa eski aniq maydonlar shu yerda qoladi.</div></div><button onClick={() => setShowAdvanced(false)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Yopish</button></Card>
-      <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/>
-    </div>}
   </div>;
 }
 
@@ -5611,20 +5605,17 @@ function LoadsStep(props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm font-black" style={{ color: palette.ink }}>Sinf skeleti + o‘qituvchi raqami</div>
-          <div className="text-xs mt-1" style={{ color: palette.muted }}>O‘qituvchi F.I.Sh.lari oldin “O‘qituvchi qo‘shish”da raqamlangan. Bu bosqichda faqat fan/guruhga # raqam biriktiriladi.</div>
+          <div className="text-xs mt-1" style={{ color: palette.muted }}>Bu yerda yangi o‘qituvchi qo‘shilmaydi. Boshqa bo‘limda yaratilgan o‘qituvchilardan fan/guruh uchun kerakli # raqam tanlanadi.</div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setMode("skeleton")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "skeleton" ? palette.green : palette.greenBg, color: mode === "skeleton" ? "#fff" : palette.green }}>Sinf skeleti + o‘qituvchi raqami</button>
-          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "teacher" ? palette.blue : palette.sky, color: mode === "teacher" ? "#fff" : palette.blue }}>Keyingi tahrir · staj/toifa</button>
           <button onClick={() => setMode("legacy")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "legacy" ? palette.blue : palette.cream, color: mode === "legacy" ? "#fff" : palette.ink }}>Eski sinf/Excel</button>
         </div>
       </div>
     </Card>
     {mode === "skeleton"
       ? <><ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><ClassSkeletonLoadEditorV204 token={token} apiBase={apiBase} maktabId={maktabId} reload={reload} setStep={setStep}/></>
-      : mode === "teacher"
-        ? <><ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} onChanged={reload} showPlan={false}/></>
-        : <LegacyLoadsStepV191 {...props}/>}
+      : <LegacyLoadsStepV191 {...props}/>} 
   </div>;
 }
 
