@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V22.50 STABLE-DAYS — kichik panel, stoppable search va faol-kun balansi.
+// SAMTM FRONTEND V22.51 — immutable jadval reviziyalari va stabil asosiy jadval.
 // SamTM V19.8 REV52 — metod kuni qattiq blok va 10–19 soatli ustozlar ixcham kunlarda.
 // SamTM V19.8 REV48 — mavjud maktab ID birinchi; eski selected_id frontend bilan ham mos.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -21,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.50-STABLE-DAYS";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.51-IMMUTABLE-REVISIONS";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -5293,7 +5293,8 @@ function scheduleHourLabel(value) {
   return Number.isInteger(number) ? String(number) : number.toFixed(1).replace(".", ",");
 }
 
-function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged }) {
+function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged, readOnly = false }) {
+  const effectiveReadOnly = Boolean(readOnly || detail?.faqat_oqish || detail?.tarixiy);
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
   const [roomEditor, setRoomEditor] = useState(null);
@@ -5315,6 +5316,10 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
   const [downloading, setDownloading] = useState(false);
 
   const downloadClasses = async () => {
+    if (effectiveReadOnly) {
+      setRoomMessage({ tone: "warning", text: "Tarixiy nusxa faqat ko‘rish uchun. XLSX joriy saqlangan jadvaldan olinadi." });
+      return;
+    }
     setDownloading(true);
     setRoomMessage(null);
     try {
@@ -5365,15 +5370,15 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
       {roomMessage && <div className="mb-1.5"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
         <div className="min-w-0">
-          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Jadval #{detail?.urinish?.id || "—"} · Haftalik dars jadvali</h3>
+          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Jadval #{detail?.ko_rinish_raqami || detail?.korinish_raqami || detail?.urinish?.id || "—"} · Haftalik dars jadvali</h3>
           <div className="flex flex-wrap items-center gap-1 mt-1 text-[8px] font-black">
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>A/B · 0,5 + 0,5</span>
-            <span style={{ color: palette.muted }}>Xona ustiga bosib tahrirlang.</span>
+            <span style={{ color: palette.muted }}>{effectiveReadOnly ? "Saqlangan nusxa · faqat ko‘rish" : "Xona ustiga bosib tahrirlang."}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={downloadClasses} disabled={downloading} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={13}/>{downloading ? "Tayyorlanmoqda..." : "Sinflar XLSX"}</button>
+          <button type="button" onClick={downloadClasses} disabled={downloading || effectiveReadOnly} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: effectiveReadOnly ? "#9BA8B2" : palette.green }}><Download size={13}/>{effectiveReadOnly ? "Faqat ko‘rish" : downloading ? "Tayyorlanmoqda..." : "Sinflar XLSX"}</button>
           <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
             {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
           </select>
@@ -5411,9 +5416,11 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                       </div>
                       <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[8px] leading-tight">
                         <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
-                        <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>
+                        {effectiveReadOnly
+                          ? <span title={`Xona: ${roomName}`} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName}</span>
+                          : <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>}
                       </div>
-                      {Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
+                      {!effectiveReadOnly && Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
                     </div>;
                   })}
                 </div></td>;
@@ -6586,6 +6593,48 @@ function normalizeGenerationBudgetSecondsV219(value) {
     : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
 }
 
+function parseSavedScheduleReferenceV2251(value) {
+  const normalized = String(value ?? "").trim().replace(/^#\s*/, "");
+  const match = normalized.match(/^(\d+)(?:\.(\d+))?$/);
+  if (!match) return null;
+  const runId = Number(match[1]);
+  // Foydalanuvchi yozgan yalang‘och raqam aynan saqlangan asosiy (0)
+  // nusxani anglatadi. `null` faqat ichki kodda joriy/canonical holat uchun.
+  const revision = match[2] == null ? 0 : Number(match[2]);
+  if (!Number.isSafeInteger(runId) || runId <= 0) return null;
+  if (revision != null && (!Number.isSafeInteger(revision) || revision < 0)) return null;
+  return {
+    runId,
+    revision,
+    key: revision != null && revision > 0 ? `${runId}.${revision}` : String(runId),
+  };
+}
+
+function savedScheduleReferenceV2251(runId, revision) {
+  const safeRevision = Number(revision || 0);
+  return safeRevision > 0 ? `${Number(runId)}.${safeRevision}` : String(Number(runId));
+}
+
+function savedScheduleOptionsV2251(runs) {
+  return (Array.isArray(runs) ? runs : []).flatMap(run => {
+    const hasPersistedRevisionList = Array.isArray(run?.reviziyalar);
+    const revisions = hasPersistedRevisionList ? run.reviziyalar : [];
+    const latestRevision = Number(run?.yaxshilanish ?? run?.diagnostika?.yaxshilanish ?? 0);
+    const revisionSource = hasPersistedRevisionList
+      ? revisions
+      : [Number.isSafeInteger(latestRevision) && latestRevision >= 0 ? latestRevision : 0];
+    const uniqueRevisions = [...new Set(
+      revisionSource.map(value => Number(value)).filter(value => Number.isSafeInteger(value) && value >= 0),
+    )].sort((left, right) => right - left);
+    return uniqueRevisions.map(revision => ({
+      runId: Number(run.id),
+      revision,
+      key: savedScheduleReferenceV2251(run.id, revision),
+      latest: revision === latestRevision,
+    }));
+  });
+}
+
 function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onStop }) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
@@ -6602,9 +6651,12 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onSt
   const processPercent = Number.isFinite(Number(liveProgress?.foiz))
     ? Math.max(0, Math.min(100, Number(liveProgress.foiz)))
     : 0;
-  const scheduleNumber = Number(liveProgress?.jadval_raqami || 0) > 0
-    ? (liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami)
+  const baseScheduleNumber = Number(liveProgress?.jadval_raqami || 0);
+  const savedRevision = Number(liveProgress?.saqlangan_yaxshilanish ?? liveProgress?.yaxshilanish ?? 0);
+  const scheduleNumber = baseScheduleNumber > 0
+    ? savedScheduleReferenceV2251(baseScheduleNumber, savedRevision)
     : "—";
+  const candidateCount = Math.max(0, Number(liveProgress?.kandidat_soni || 0));
   const rawProcessMessage = liveProgress?.xabar;
   const processMessage = typeof rawProcessMessage === "string"
     ? rawProcessMessage
@@ -6641,7 +6693,7 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, liveProgress, onSt
             <ChevronRight size={16} className={`transition-transform ${collapsed ? "rotate-0" : "rotate-90"}`} style={{ color: palette.muted }}/>
           </div>
           <div className="text-xl font-black leading-tight" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
-          <div className={`text-xs font-black mt-0.5 leading-snug ${collapsed ? "truncate" : ""}`} style={{ color: palette.blue }}>{processMessage}</div>
+          <div className={`text-xs font-black mt-0.5 leading-snug ${collapsed ? "truncate" : ""}`} style={{ color: palette.blue }}>{candidateCount > 0 ? `${candidateCount} ta nomzod tekshirildi · ` : ""}{processMessage}</div>
         </div>
         <div className="shrink-0 text-3xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
       </button>
@@ -7106,11 +7158,16 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
   const teacherWindowReport = detail?.urinish?.diagnostika?.oqituvchi_okno_hisoboti || null;
   const teacherWindowSummary = normalizeTeacherWindowReportV211(teacherWindowReport);
   const teacherWindowCountForTab = teacherWindowCountLabelV211(teacherWindowSummary);
+  const readOnly = Boolean(detail?.faqat_oqish || detail?.tarixiy);
   useEffect(() => registerPhoneBackHandler("school-smart-generator-result", () => {
     onClose?.();
     return true;
   }, 340), [onClose]);
   const download = async kind => {
+    if (readOnly) {
+      setDownloadError("Saqlangan nusxa faqat ko‘rish uchun. Eksport joriy jadvalda ishlaydi.");
+      return;
+    }
     setDownloading(kind);
     setDownloadError("");
     try { await downloadScheduleWorkbookV200(apiBase, token, detail?.urinish?.id, kind); }
@@ -7122,7 +7179,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
     <div className="min-h-screen p-3 md:p-5" style={{ background: "linear-gradient(180deg,#F5FAFC,#F7F4ED)" }}>
       <div className="max-w-[1580px] mx-auto space-y-3">
         <div className="rounded-2xl px-4 py-3 text-white flex flex-wrap items-center justify-between gap-3" style={{ background: color }}>
-          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}{Number(detail?.urinish?.diagnostika?.yaxshilanish || 0) > 0 ? `.${Number(detail.urinish.diagnostika.yaxshilanish)}` : ""}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{ONE_GENERATOR_POLICY_V210.izoh}</div></div>
+          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.ko_rinish_raqami || detail?.korinish_raqami || detail?.urinish?.id || "—"}</div><div className="text-xl font-black">{ONE_GENERATOR_POLICY_V210.nomi}</div><div className="text-xs opacity-85 mt-0.5">{readOnly ? "Saqlangan nusxa · faqat ko‘rish" : ONE_GENERATOR_POLICY_V210.izoh}</div></div>
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white text-sm font-black" style={{ color }}>Yopish ×</button>
         </div>
         <div className="rounded-2xl border bg-white p-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: palette.line }}>
@@ -7130,12 +7187,13 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
             {[["classes","Sinf jadvallari"],["teachers","O‘qituvchi haftalik jadvali"],["windows",`Oyna hisoboti (${teacherWindowCountForTab})`]].map(([key,label]) => <button key={key} type="button" onClick={() => setView(key)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: view === key ? color : palette.cream, color: view === key ? "#fff" : palette.ink }}>{label}</button>)}
           </div>
           <div className="flex gap-1.5">
-            <button type="button" onClick={() => download("sinflar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={14}/>{downloading === "sinflar" ? "..." : "Sinflar XLSX"}</button>
-            <button type="button" onClick={() => download("oqituvchilar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.teal }}><Download size={14}/>{downloading === "oqituvchilar" ? "..." : "O‘qituvchilar XLSX"}</button>
+            <button type="button" onClick={() => download("sinflar")} disabled={!!downloading || readOnly} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: readOnly ? "#9BA8B2" : palette.green }}><Download size={14}/>{readOnly ? "Faqat ko‘rish" : downloading === "sinflar" ? "..." : "Sinflar XLSX"}</button>
+            <button type="button" onClick={() => download("oqituvchilar")} disabled={!!downloading || readOnly} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: readOnly ? "#9BA8B2" : palette.teal }}><Download size={14}/>{readOnly ? "Faqat ko‘rish" : downloading === "oqituvchilar" ? "..." : "O‘qituvchilar XLSX"}</button>
           </div>
         </div>
         {downloadError && <SmartNotice tone="error">{downloadError}</SmartNotice>}
-        {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged}/>} 
+        {readOnly && <SmartNotice tone="info">Bu saqlangan jadval #{detail?.ko_rinish_raqami || detail?.korinish_raqami} faqat ko‘rish uchun. Xona, dars va tasdiqlash holati o‘zgartirilmaydi.</SmartNotice>}
+        {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged} readOnly={readOnly}/>} 
         {view === "teachers" && <TeacherWeeklySchedule detail={detail} setup={setup}/>} 
         {view === "windows" && <TeacherWindowReportV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
       </div>
@@ -7145,7 +7203,14 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
 
 function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const runs = Array.isArray(setup?.urinishlar) ? setup.urinishlar : [];
+  const scheduleOptions = useMemo(() => savedScheduleOptionsV2251(runs), [runs]);
+  const initialRevision = Number(runs[0]?.yaxshilanish ?? runs[0]?.diagnostika?.yaxshilanish ?? 0);
   const [runId, setRunId] = useState(String(runs[0]?.id || ""));
+  // `null` = joriy/canonical jadval. Son = foydalanuvchi aynan tanlagan
+  // o‘zgarmas saqlangan nusxa; u doim faqat ko‘rish uchun ochiladi.
+  const [selectedRevision, setSelectedRevision] = useState(null);
+  const [scheduleQuery, setScheduleQuery] = useState(runs[0]?.id ? savedScheduleReferenceV2251(runs[0].id, initialRevision) : "");
+  const [openingSchedule, setOpeningSchedule] = useState(false);
   const [detail, setDetail] = useState(null);
   const [preflight, setPreflight] = useState(null);
   const [checking, setChecking] = useState(false);
@@ -7162,15 +7227,52 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [message, setMessage] = useState(null);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
 
-  const loadRun = async id => {
+  const loadRun = async (id, revision = null) => {
     if (!id) { setDetail(null); return null; }
     try {
-      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${id}`);
+      const revisionQuery = revision == null ? "" : `&yaxshilanish=${encodeURIComponent(revision)}`;
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/urinish?token=${encodeURIComponent(token)}&urinish_id=${encodeURIComponent(id)}${revisionQuery}`);
+      const resolvedRevision = Number(data?.tanlangan_yaxshilanish ?? data?.urinish?.diagnostika?.yaxshilanish ?? 0);
+      if (revision != null && (
+        data?.faqat_oqish !== true
+        || !Array.isArray(data?.reviziyalar)
+        || resolvedRevision !== Number(revision)
+      )) {
+        throw new Error("Backend aniq saqlangan reviziya tarixini qo‘llamaydi. V22.51 backendning 1–2-kodini birga deploy qiling.");
+      }
       setDetail(data);
+      setRunId(String(data?.urinish?.id || id));
+      setSelectedRevision(revision == null ? null : (Number.isSafeInteger(resolvedRevision) ? resolvedRevision : revision));
+      setScheduleQuery(data?.ko_rinish_raqami || data?.korinish_raqami || savedScheduleReferenceV2251(id, resolvedRevision));
       return data;
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
       return null;
+    }
+  };
+
+  const openSavedSchedule = async referenceValue => {
+    const parsed = parseSavedScheduleReferenceV2251(referenceValue);
+    if (!parsed) {
+      setMessage({ tone: "error", text: "Jadval raqamini 56 yoki 56.3 ko‘rinishida yozing." });
+      return null;
+    }
+    setOpeningSchedule(true);
+    setGenerationFailure(null);
+    try {
+      const loaded = await loadRun(parsed.runId, parsed.revision);
+      if (!loaded) return null;
+      setResultWindowOpen(true);
+      const loadedReadOnly = Boolean(loaded?.faqat_oqish || loaded?.tarixiy);
+      setMessage({
+        tone: loadedReadOnly ? "warning" : "success",
+        text: loadedReadOnly
+          ? `Jadval #${loaded.ko_rinish_raqami || loaded.korinish_raqami || parsed.key} ochildi. Bu saqlangan nusxa — faqat ko‘rish mumkin.`
+          : `Jadval #${loaded?.ko_rinish_raqami || loaded?.korinish_raqami || parsed.key} ochildi.`,
+      });
+      return loaded;
+    } finally {
+      setOpeningSchedule(false);
     }
   };
 
@@ -7186,7 +7288,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         if (newest?.id && String(newest.id) !== String(previousId || "")) {
           setSearchFinishedAt(Date.now());
           setRunId(String(newest.id));
-          const recoveredDetail = await loadRun(newest.id);
+          setSelectedRevision(null);
+          const recoveredDetail = await loadRun(newest.id, null);
           await reload();
           const recovered = solverResultSummaryV215(recoveredDetail || newest);
           setGenerationPhase("loading");
@@ -7239,9 +7342,14 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   useEffect(() => { checkSources(true); }, [maktabId, token, apiBase]);
-  useEffect(() => { if (runId) loadRun(runId); }, [runId]);
+  useEffect(() => { if (runId) loadRun(runId, selectedRevision); }, [runId, selectedRevision]);
   useEffect(() => {
-    if (runs[0]?.id && !runId) setRunId(String(runs[0].id));
+    if (runs[0]?.id && !runId) {
+      const revision = Number(runs[0]?.yaxshilanish ?? runs[0]?.diagnostika?.yaxshilanish ?? 0);
+      setRunId(String(runs[0].id));
+      setSelectedRevision(null);
+      setScheduleQuery(savedScheduleReferenceV2251(runs[0].id, revision));
+    }
   }, [runs, runId]);
   useEffect(() => {
     if (!generating || !generationNonce) return undefined;
@@ -7262,7 +7370,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const openResultWindow = async () => {
     const id = detail?.urinish?.id || runId || runs[0]?.id;
     if (!id) return;
-    if (String(detail?.urinish?.id || "") !== String(id)) await loadRun(id);
+    if (String(detail?.urinish?.id || "") !== String(id)) await loadRun(id, selectedRevision);
     setResultWindowOpen(true);
   };
 
@@ -7281,8 +7389,10 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setGenerationFailure(null);
     setGenerationNonce(searchNonce);
     setLiveProgress({
-      jadval_raqami: Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1,
-      ko_rinish_raqami: String(Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1),
+      // Jadval ID global PostgreSQL sequence'dan keladi; uni taxmin qilib
+      // yolg'on raqam ko'rsatmaymiz. Polling haqiqiy band qilingan IDni beradi.
+      jadval_raqami: 0,
+      ko_rinish_raqami: "",
       yaxshilanish: 0,
       foiz: 2,
       bosqich: "boshlanish",
@@ -7307,12 +7417,14 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           capability?.exact_jadval_release
         ) ||
         capability?.exact_internal_release !== "SAMTM-EXACT-CP-SAT-V22.50-STABLE-DAYS" ||
+        capability?.exact_solver_release !== "SAMTM-EXACT-SOLVER-V22.50-STABLE-DAYS" ||
+        capability?.revision_history_contract !== "immutable-saved-revisions-v22.51" ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
         capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V22.50 STABLE-DAYS paketining backend va frontend qismini birga deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V22.51 paketining backend 1–2-kodini va frontend 3-kodini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; reviziya tarixi: ${capability?.revision_history_contract || "eski"}.`,
         });
         return;
       }
@@ -7369,7 +7481,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         if (baseScheduleAvailable && !baseScheduleLoaded) {
           await reload();
           setRunId(String(progress.jadval_raqami));
-          const loadedBaseSchedule = await loadRun(progress.jadval_raqami);
+          setSelectedRevision(0);
+          const loadedBaseSchedule = await loadRun(progress.jadval_raqami, 0);
           if (loadedBaseSchedule) {
             baseScheduleLoaded = true;
             setResultWindowOpen(true);
@@ -7386,7 +7499,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         await reload();
         if (Number(finalProgress?.jadval_raqami || 0) > 0) {
           setRunId(String(finalProgress.jadval_raqami));
-          const stoppedBest = await loadRun(finalProgress.jadval_raqami);
+          setSelectedRevision(null);
+          const stoppedBest = await loadRun(finalProgress.jadval_raqami, null);
           if (stoppedBest) setResultWindowOpen(true);
         }
         return;
@@ -7396,7 +7510,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       }
       await reload();
       setRunId(String(finalProgress.jadval_raqami));
-      await loadRun(finalProgress.jadval_raqami);
+      setSelectedRevision(null);
+      await loadRun(finalProgress.jadval_raqami, null);
       setMessage({ tone: "success", text: finalProgress.xabar || `Jadval #${finalProgress.ko_rinish_raqami || finalProgress.jadval_raqami} tayyor. Eng yaxshi variant saqlandi.` });
       setResultWindowOpen(true);
       return;
@@ -7457,7 +7572,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       });
       await reload();
       setRunId(String(data.urinish_id));
-      await loadRun(data.urinish_id);
+      setSelectedRevision(null);
+      await loadRun(data.urinish_id, null);
       setResultWindowOpen(true);
     } catch (error) {
       const rawMessage = String(error?.message || "");
@@ -7516,6 +7632,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const approve = async () => {
+    if (detail?.faqat_oqish || detail?.tarixiy) {
+      return setMessage({ tone: "warning", text: "Saqlangan nusxa faqat ko‘rish uchun; uni tasdiqlash yoki o‘zgartirish mumkin emas." });
+    }
     const id = detail?.urinish?.id;
     if (!id) return;
     const diagnostics = detail?.urinish?.diagnostika || {};
@@ -7537,6 +7656,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const diagnostics = detail?.urinish?.diagnostika || {};
+  const detailReadOnly = Boolean(detail?.faqat_oqish || detail?.tarixiy);
   const detailResult = solverResultSummaryV215(detail || {});
   const displayDetail = detailResult.complete ? detail : null;
   const comfort = diagnostics.qulaylik_strategiyasi || {};
@@ -7616,7 +7736,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     ),
   };
   const match = diagnostics.jadval_mosligi || {};
-  const canApprove = Boolean(displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
+  const canApprove = Boolean(!detailReadOnly && displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
   const matchSummary = match.xulosa || {};
 
@@ -7625,27 +7745,45 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     ...(match.oqituvchilar || []).filter(row => !row.mos).map(row => ({ type: "O‘qituvchi", name: row.full_name, plan: row.reja, actual: row.jadval, fanLoad: row.fan_yuklama, classHourPlan: row.sinf_soati_reja })),
     ...(match.fanlar || []).filter(row => !row.mos).map(row => ({ type: "Fan", name: `${row.sinf} · ${row.fan}`, plan: row.reja, actual: row.jadval })),
   ];
+  const selectedScheduleKey = detail?.ko_rinish_raqami || detail?.korinish_raqami || savedScheduleReferenceV2251(runId || 0, selectedRevision);
+  const liveSavedRevision = Number(liveProgress?.saqlangan_yaxshilanish ?? liveProgress?.yaxshilanish ?? 0);
+  const liveSavedNumber = Number(liveProgress?.jadval_raqami || 0) > 0
+    ? savedScheduleReferenceV2251(liveProgress.jadval_raqami, liveSavedRevision)
+    : "—";
+  const liveCandidateCount = Math.max(0, Number(liveProgress?.kandidat_soni || 0));
 
   return <div className="space-y-3">
-    {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
+    {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) { setSelectedRevision(null); await loadRun(id, null); } }}/>} 
     {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} liveProgress={liveProgress} onStop={stopGeneration}/>} 
     {message && <div className="rounded-2xl border-2 px-5 py-4 text-base font-black leading-snug" style={{ background: message.tone === "error" ? palette.redBg : message.tone === "warning" ? palette.amberBg : palette.greenBg, borderColor: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green, color: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green }}>{message.text}</div>}
     {(!!runs.length || generating) && <Card className="p-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Jadvallar</h2>
-        <span className="text-xs font-black" style={{ color: palette.muted }}>Oxirgi 4 ta saqlangan natija</span>
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+        <div>
+          <h2 className="text-xl font-black" style={{ color: palette.ink }}>Saqlangan jadvallar</h2>
+          <span className="text-xs font-black" style={{ color: palette.muted }}>Raqamni yozib yoki saqlangan versiyani tanlab aynan o‘sha jadvalni oching.</span>
+        </div>
+        <form onSubmit={event => { event.preventDefault(); openSavedSchedule(scheduleQuery); }} className="flex flex-wrap items-center gap-2">
+          <input value={scheduleQuery} onChange={event => setScheduleQuery(event.target.value)} placeholder="56 yoki 56.3" inputMode="decimal" aria-label="Jadval raqami" className="w-36 px-3 py-2.5 rounded-xl border-2 text-sm font-black bg-white" style={{ borderColor: palette.line, color: palette.ink }}/>
+          <button type="submit" disabled={openingSchedule} className="px-4 py-2.5 rounded-xl text-sm font-black text-white flex items-center gap-1.5" style={{ background: openingSchedule ? "#9BA8B2" : palette.blue }}><Search size={15}/>{openingSchedule ? "Ochilmoqda…" : "Ochish"}</button>
+          <select value={scheduleOptions.some(option => option.key === scheduleQuery) ? scheduleQuery : ""} onChange={event => { const value = event.target.value; if (value) { setScheduleQuery(value); openSavedSchedule(value); } }} aria-label="Saqlangan jadval versiyalari" className="min-w-[210px] px-3 py-2.5 rounded-xl border-2 bg-white text-sm font-black" style={{ borderColor: palette.line, color: palette.ink }}>
+            <option value="">Saqlangan versiyani tanlang</option>
+            {scheduleOptions.map(option => <option key={`${option.runId}:${option.revision}`} value={option.key}>#{option.key}{option.latest ? " · eng yangi" : " · tarixiy"}</option>)}
+          </select>
+        </form>
       </div>
       {generating && liveProgress?.jadval_raqami && <div className="mb-3 rounded-2xl border-2 p-4" style={{ borderColor: palette.amber, background: palette.amberBg }}>
-        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>YANGI ALMASHINUVCHI NATIJA</div><div className="text-2xl font-black" style={{ color: palette.ink }}>Jadval #{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami}</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{Number(liveProgress.foiz || 0)}%</div></div>
+        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>YAXSHILASH JARAYONI</div><div className="text-2xl font-black" style={{ color: palette.ink }}>Eng yaxshi saqlangan: Jadval #{liveSavedNumber}</div><div className="text-sm mt-1 font-black" style={{ color: palette.teal }}>{liveCandidateCount} ta ichki nomzod tekshirildi</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{Number(liveProgress.foiz || 0)}%</div></div>
         <div className="text-sm mt-2 font-black leading-snug" style={{ color: palette.ink }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
       </div>}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {runs.slice(0, 4).map((run, index) => {
           const revision = Number(run.yaxshilanish ?? run.diagnostika?.yaxshilanish ?? 0);
           const displayNumber = revision > 0 ? `${run.id}.${revision}` : String(run.id);
-          return <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
+          const selected = selectedScheduleKey === displayNumber;
+          return <button key={`${run.id}:${revision}`} type="button" onClick={() => openSavedSchedule(displayNumber)} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: selected ? palette.teal : palette.line, background: selected ? palette.greenBg : "#fff" }}>
             <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{displayNumber}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
             <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
+            <div className="text-[10px] mt-1 font-bold" style={{ color: palette.muted }}>{Array.isArray(run.reviziyalar) ? `${run.reviziyalar.length} ta saqlangan versiya` : "Saqlangan natija"}</div>
           </button>;
         })}
       </div>
@@ -7749,7 +7887,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label="smenadagi bo‘sh dars" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
           <CompactStat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
-        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
+        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{detailReadOnly ? "Saqlangan nusxa · faqat ko‘rish" : canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
 
         {detail && <div className="mt-1.5 grid grid-cols-3 gap-1.5">
           <CompactStat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label="sinf mos" tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
@@ -7773,8 +7911,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </Card>
     </div>}
 
-    {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
-    {displayDetail && !generationFailure && <SmartSwapPanelV192
+    {displayDetail && !generationFailure && detailReadOnly && <SmartNotice tone="info">Jadval #{displayDetail?.ko_rinish_raqami || displayDetail?.korinish_raqami} saqlangan nusxa. Dars, xona, tasdiqlash, eksport va almashtirish tugmalari o‘chirildi.</SmartNotice>}
+    {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} readOnly={detailReadOnly} onRoomChanged={async result => { setRunId(String(result.urinish_id)); setSelectedRevision(null); await reload(); await loadRun(result.urinish_id, null); }}/>} 
+    {displayDetail && !generationFailure && !detailReadOnly && <SmartSwapPanelV192
       token={token}
       apiBase={apiBase}
       maktabId={maktabId}
@@ -7782,7 +7921,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       onApplied={async id => {
         await reload();
         setRunId(String(id));
-        await loadRun(id);
+        setSelectedRevision(null);
+        await loadRun(id, null);
       }}
     />}
   </div>;
@@ -7885,7 +8025,7 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
     onClose?.();
     return true;
   }),[onClose]);
-  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, fan-soat, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<TimetableGenerationErrorBoundary resetKey={`${maktabId}:${step}`}><GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/></TimetableGenerationErrorBoundary>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
+  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, fan-soat, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<TimetableGenerationErrorBoundary resetKey={`${maktabId}:${step}`}><GenerateStep key={`generate:${maktabId}`} token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/></TimetableGenerationErrorBoundary>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
 }
 
 
