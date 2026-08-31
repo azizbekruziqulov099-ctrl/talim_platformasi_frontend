@@ -449,23 +449,51 @@ function WorkspacePortal({ children }) {
 }
 
 async function smartFetch(url, options = {}) {
-  const method = String(options.method || "GET").toUpperCase();
+  const { timeoutMs: requestedTimeoutMs, ...requestOptions } = options;
+  const timeoutMs = Number(requestedTimeoutMs) > 0 ? Number(requestedTimeoutMs) : 0;
+  const method = String(requestOptions.method || "GET").toUpperCase();
   const maximumAttempts = method === "GET" ? 3 : 1;
+  const deadline = timeoutMs ? Date.now() + timeoutMs : 0;
   let response;
   let networkError;
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    const remainingMs = deadline ? deadline - Date.now() : 0;
+    if (deadline && remainingMs <= 0) break;
+    const timeoutController = timeoutMs ? new AbortController() : null;
+    const externalSignal = requestOptions.signal;
+    const forwardAbort = () => timeoutController?.abort(externalSignal?.reason);
+    if (externalSignal && timeoutController) {
+      if (externalSignal.aborted) forwardAbort();
+      else externalSignal.addEventListener("abort", forwardAbort, { once: true });
+    }
+    const timer = timeoutController
+      ? window.setTimeout(() => timeoutController.abort(), Math.max(1, remainingMs))
+      : null;
     try {
-      response = await fetch(url, method === "GET" ? { ...options, cache: "no-store" } : options);
+      const fetchOptions = method === "GET"
+        ? { ...requestOptions, cache: "no-store" }
+        : { ...requestOptions };
+      if (timeoutController) fetchOptions.signal = timeoutController.signal;
+      response = await fetch(url, fetchOptions);
       break;
     } catch (error) {
       networkError = error;
-      if (attempt < maximumAttempts) {
+      if (deadline && Date.now() >= deadline) break;
+      if (attempt < maximumAttempts && !externalSignal?.aborted) {
         await new Promise(resolve => setTimeout(resolve, 650 * attempt));
       }
+    } finally {
+      if (timer !== null) window.clearTimeout(timer);
+      externalSignal?.removeEventListener?.("abort", forwardAbort);
     }
   }
   if (!response) {
     const endpoint = (() => { try { return new URL(url).pathname; } catch (_) { return String(url); } })();
+    if (deadline && Date.now() >= deadline) {
+      const timeoutError = new Error(`Backend ${Math.ceil(timeoutMs / 1000)} soniyada javob bermadi (${endpoint}). Tugma qotib qolmadi: Railway backend holatini tekshirib, qayta urinib ko‘ring.`);
+      timeoutError.code = "FETCH_TIMEOUT";
+      throw timeoutError;
+    }
     throw new Error(`Serverga ulanib bo‘lmadi (${endpoint}). Backend deploy holatini va VITE_API_BASE manzilini tekshiring: ${networkError?.message || "tarmoq xatosi"}`);
   }
   const responseText = await response.text();
@@ -6554,11 +6582,11 @@ const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 600;
 function normalizeGenerationBudgetSecondsV219(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0
-    ? Math.max(1, Math.min(300, parsed))
+    ? Math.max(1, Math.min(600, parsed))
     : DEFAULT_GENERATION_BUDGET_SECONDS_V219;
 }
 
-function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, searchFinishedAt, budgetSeconds }) {
+function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, searchFinishedAt, budgetSeconds, liveProgress }) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
@@ -6578,7 +6606,12 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, s
     0,
     Math.min(100, Math.round((searchElapsedSeconds / normalizedBudget) * 100)),
   );
-  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[430px]" role="status" aria-live="polite" aria-label={stage.title}>
+  const processPercent = Number.isFinite(Number(liveProgress?.foiz))
+    ? Math.max(0, Math.min(100, Number(liveProgress.foiz)))
+    : timeBudgetPercent;
+  const scheduleNumber = liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || "—";
+  const processMessage = liveProgress?.xabar || stage.title;
+  const panel = <div className="fixed z-[120] left-3 right-3 bottom-3 md:left-auto md:right-6 md:bottom-6 md:w-[620px]" role="status" aria-live="polite" aria-label={processMessage}>
     <div className="rounded-3xl border bg-white p-4" style={{ borderColor: "#8BC9C8", boxShadow: "0 22px 70px rgba(24,50,75,.28)" }}>
       <div className="flex items-start gap-3">
         <div className="relative shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", color: "#fff" }}>
@@ -6588,17 +6621,18 @@ function ScheduleRobotProgressV201({ phase, setup, startedAt, searchStartedAt, s
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Yagona generator ishlayapti</div>
-          <div className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>{stage.title}</div>
+          <div className="text-xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber} · {processPercent}%</div>
+          <div className="text-sm font-bold mt-1 leading-relaxed" style={{ color: palette.blue }}>{processMessage}</div>
         </div>
       </div>
       <div className="flex items-center justify-between gap-3 mt-3 text-[10px] font-black" style={{ color: palette.ink }}>
-        <span>Qidiruv vaqt byudjeti</span>
-        <span>{searchElapsedSeconds.toFixed(1)} / {normalizedBudget.toFixed(0)} soniya · {timeBudgetPercent}%</span>
+        <span>Jadval yaratish va yaxshilash jarayoni</span>
+        <span>{processPercent}%</span>
       </div>
       <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: palette.sky }}>
-        <div className="h-full transition-[width] duration-300" style={{ width: `${timeBudgetPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
+        <div className="h-full transition-[width] duration-500" style={{ width: `${processPercent}%`, background: "linear-gradient(90deg,#0F7C82,#3DAA8B,#E4A72C)" }}/>
       </div>
-      <div className="mt-1 text-[9px] leading-relaxed" style={{ color: palette.muted }}>Umumiy o‘tgan vaqt: {totalElapsedSeconds.toFixed(1)} soniya. Bu yechim tayyorligi foizi emas.</div>
+      <div className="mt-1 text-[10px] leading-relaxed" style={{ color: palette.muted }}>O‘tgan vaqt: {totalElapsedSeconds.toFixed(1)} soniya · ajratilgan qidiruv vaqti: {searchElapsedSeconds.toFixed(1)}/{normalizedBudget.toFixed(0)} soniya. Foiz backend tasdiqlagan bosqichni ko‘rsatadi.</div>
       <div className="grid grid-cols-3 gap-1.5 mt-3">
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.greenBg }}><div className="text-[11px] font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>sinf manbasi</div></div>
         <div className="rounded-lg px-2 py-1.5 text-center" style={{ background: palette.sky }}><div className="text-[11px] font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[8px]" style={{ color: palette.muted }}>o‘qituvchi manbasi</div></div>
@@ -7099,6 +7133,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [searchStartedAt, setSearchStartedAt] = useState(null);
   const [searchFinishedAt, setSearchFinishedAt] = useState(null);
   const [generationFailure, setGenerationFailure] = useState(null);
+  const [generationNonce, setGenerationNonce] = useState(null);
+  const [liveProgress, setLiveProgress] = useState(null);
   const [resultWindowOpen, setResultWindowOpen] = useState(false);
   const [message, setMessage] = useState(null);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
@@ -7160,7 +7196,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setChecking(true);
     if (!silent) setMessage(null);
     try {
-      const report = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/moslik?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST" });
+      const report = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/moslik?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST", timeoutMs: 20000 });
       setPreflight(report);
       if (!silent) {
         setMessage({
@@ -7184,6 +7220,21 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   useEffect(() => {
     if (runs[0]?.id && !runId) setRunId(String(runs[0].id));
   }, [runs, runId]);
+  useEffect(() => {
+    if (!generating || !generationNonce) return undefined;
+    let stopped = false;
+    const poll = async () => {
+      try {
+        const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { timeoutMs: 5000 });
+        if (!stopped && data?.jadval_raqami) setLiveProgress(data);
+      } catch (_) {
+        // Asosiy POST ishlashda davom etadi; keyingi polling yana urinadi.
+      }
+    };
+    poll();
+    const timer = window.setInterval(poll, 1000);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [generating, generationNonce, apiBase, token, maktabId]);
 
   const openResultWindow = async () => {
     const id = detail?.urinish?.id || runId || runs[0]?.id;
@@ -7205,12 +7256,22 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setSearchFinishedAt(null);
     setMessage(null);
     setGenerationFailure(null);
+    setGenerationNonce(searchNonce);
+    setLiveProgress({
+      jadval_raqami: Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1,
+      ko_rinish_raqami: String(Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1),
+      yaxshilanish: 0,
+      foiz: 2,
+      bosqich: "boshlanish",
+      xabar: "Yangi jadval raqami band qilinmoqda va manbalar tayyorlanmoqda.",
+    });
     setResultWindowOpen(false);
     try {
-      const capability = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/soat_imkoniyatlari`);
-      setGenerationBudgetSeconds(
-        normalizeGenerationBudgetSecondsV219(capability?.generation_budget_seconds),
+      const capability = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/soat_imkoniyatlari`, { timeoutMs: 12000 });
+      const activeGenerationBudgetSeconds = normalizeGenerationBudgetSecondsV219(
+        capability?.generation_budget_seconds,
       );
+      setGenerationBudgetSeconds(activeGenerationBudgetSeconds);
       if (capability?.single_generator !== true) {
         setMessage({
           tone: "error",
@@ -7239,7 +7300,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         return;
       }
       setGenerationPhase("preflight");
-      const currentReport = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/moslik?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST" });
+      const currentReport = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/moslik?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST", timeoutMs: 20000 });
       setPreflight(currentReport);
       if (!currentReport?.tayyor) {
         const errorCount = currentReport?.xulosa?.xato_soni || currentReport?.xatolar?.length || 0;
@@ -7250,14 +7311,49 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       solverRequestStartedAt = Date.now();
       setSearchStartedAt(solverRequestStartedAt);
       setGenerationPhase("calculating");
-      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/yaratish?token=${encodeURIComponent(token)}`, {
+      const started = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/boshlash?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        // Eski "deterministik completion" kontrakti endi exact completion va
-        // mustaqil hard-validator bilan kuchaytirildi. Qisman natija
-        // frontendga jadval sifatida qabul qilinmaydi.
         body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 1, generator_rejimi: 1, qidiruv_nonce: searchNonce }),
       });
+      if (!started?.qabul_qilindi) throw new Error(started?.xabar || "Backend jadval ishini boshlamadi.");
+      setMessage({ tone: "success", text: "Jadval backendda mustaqil yaratila boshladi. Sahifa yopilsa ham davom etadi; faqat “To‘xtatish” tugmasi to‘xtatadi." });
+      let finalProgress = null;
+      while (true) {
+        await new Promise(resolve => window.setTimeout(resolve, 1000));
+        let progress;
+        try {
+          progress = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(searchNonce)}`, { timeoutMs: 5000 });
+        } catch (_) {
+          setMessage({ tone: "warning", text: "Holatni olishda aloqa uzildi. Backend hisoblashda davom etmoqda; ekran avtomatik qayta ulanadi." });
+          continue;
+        }
+        if (!progress?.jadval_raqami) continue;
+        setLiveProgress(progress);
+        if (["tayyor", "xato", "toxtatildi"].includes(progress.bosqich)) {
+          finalProgress = progress;
+          break;
+        }
+      }
+      setSearchFinishedAt(Date.now());
+      if (finalProgress?.bosqich === "toxtatildi") {
+        setMessage({ tone: "warning", text: finalProgress.xabar || "Yaxshilash foydalanuvchi tomonidan to‘xtatildi. Oldingi eng yaxshi jadval saqlandi." });
+        await reload();
+        return;
+      }
+      if (finalProgress?.bosqich === "xato") {
+        throw new Error(finalProgress.xabar || "Backend jadvalni yakunlay olmadi. Oldingi jadval saqlandi.");
+      }
+      await reload();
+      setRunId(String(finalProgress.jadval_raqami));
+      await loadRun(finalProgress.jadval_raqami);
+      setMessage({ tone: "success", text: finalProgress.xabar || `Jadval #${finalProgress.ko_rinish_raqami || finalProgress.jadval_raqami} tayyor. Eng yaxshi variant saqlandi.` });
+      setResultWindowOpen(true);
+      return;
+
+      /* Eski sinxron javobni qayta ishlash kodi eski backend mosligi uchun
+         saqlanadi, ammo V22.44 mustaqil jarayonda bu nuqtaga kelinmaydi. */
+      const data = started;
       setSearchFinishedAt(Date.now());
       setGenerationPhase("loading");
       const solverResult = solverResultSummaryV215(data);
@@ -7296,9 +7392,18 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         ? data.diagnostika.qat_iy_qoidalar.metod_kuni_istisnolari_qollanildi
         : [];
       setGenerationFailure(null);
+      setLiveProgress(current => ({
+        ...(current || {}),
+        jadval_raqami: data.urinish_id,
+        ko_rinish_raqami: data.yaxshilanish ? `${data.urinish_id}.${data.yaxshilanish}` : String(data.urinish_id),
+        yaxshilanish: Number(data.yaxshilanish || 0),
+        foiz: 100,
+        bosqich: "tayyor",
+        xabar: `Jadval #${data.urinish_id}${data.yaxshilanish ? `.${data.yaxshilanish}` : ""} tayyor. Eng yaxshi variant saqlandi.`,
+      }));
       setMessage({
         tone: "success",
-        text: `${solverResult.status} — ${solverResult.status === "OPTIMAL" ? "optimal" : "to‘liq"} jadval yaratildi: ${data.joylashtirildi}/${data.jami_soat} soat.${completionCount ? ` ${completionCount} ta qolgan dars avtomatik zanjirli qayta joylashtirildi.` : ""}${appliedMethodExceptions.length ? ` Boshlang‘ich sinf o‘qituvchisi uchun ${appliedMethodExceptions.length} ta aniq metod-kuni katagi ishlatildi; qizil/BAND ochilmadi.` : ""} Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}.`,
+        text: `Jadval #${data.urinish_id}${data.yaxshilanish ? `.${data.yaxshilanish}` : ""} tayyor — ${solverResult.status === "OPTIMAL" ? "optimal" : "to‘liq"}: ${data.joylashtirildi}/${data.jami_soat} soat.${completionCount ? ` ${completionCount} ta qolgan dars avtomatik zanjirli qayta joylashtirildi.` : ""}${appliedMethodExceptions.length ? ` Boshlang‘ich sinf o‘qituvchisi uchun ${appliedMethodExceptions.length} ta aniq metod-kuni katagi ishlatildi; qizil/BAND ochilmadi.` : ""} Sinf ${match.sinf_mos}/${match.sinf_jami}, o‘qituvchi ${match.oqituvchi_mos}/${match.oqituvchi_jami}, fan ${match.fan_mos}/${match.fan_jami}. Eng yaxshi variant saqlandi.`,
       });
       await reload();
       setRunId(String(data.urinish_id));
@@ -7323,7 +7428,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       }
       const searchUnknown = failureStatus === "UNKNOWN";
       const provenInfeasible = failureStatus === "INFEASIBLE" && teacherWindowReportBooleanV211(structuredFailure?.proof_complete, false);
-      const networkFailure = /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
+      const networkFailure = error?.code === "FETCH_TIMEOUT" || /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
       if (!networkFailure && solverRequestStartedAt) setSearchFinishedAt(Date.now());
       if (networkFailure) {
         setGenerationPhase("recovery");
@@ -7346,6 +7451,17 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (!networkFailure) await checkSources(true);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const stopGeneration = async () => {
+    if (!generating || !generationNonce) return;
+    try {
+      await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/toxtatish?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { method: "POST", timeoutMs: 12000 });
+      setMessage({ tone: "warning", text: "To‘xtatish so‘rovi qabul qilindi. Solver xavfsiz to‘xtab, oldingi eng yaxshi jadvalni saqlamoqda." });
+      setLiveProgress(current => ({ ...(current || {}), bosqich: "toxtatish_soraldi", xabar: "To‘xtatish so‘rovi qabul qilindi. Xavfsiz yakunlanmoqda." }));
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
     }
   };
 
@@ -7462,14 +7578,18 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 
   return <div className="space-y-3">
     {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
-    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} searchStartedAt={searchStartedAt} searchFinishedAt={searchFinishedAt} budgetSeconds={generationBudgetSeconds}/>} 
+    {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} searchStartedAt={searchStartedAt} searchFinishedAt={searchFinishedAt} budgetSeconds={generationBudgetSeconds} liveProgress={liveProgress}/>} 
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-    {!!runs.length && <Card className="p-3.5">
+    {(!!runs.length || generating) && <Card className="p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <h2 className="text-sm font-black" style={{ color: palette.ink }}>Oxirgi 4 ta yaratilgan jadval</h2>
         <span className="text-[10px] font-black" style={{ color: palette.muted }}>Har biri raqam bilan saqlanadi</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        {generating && liveProgress?.jadval_raqami && <div className="text-left rounded-xl border p-2.5" style={{ borderColor: palette.amber, background: palette.amberBg }}>
+          <div className="text-sm font-black" style={{ color: palette.ink }}>Jadval #{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami} · {Number(liveProgress.foiz || 0)}%</div>
+          <div className="text-[9px] mt-1 font-bold leading-relaxed" style={{ color: palette.amber }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
+        </div>}
         {runs.slice(0, 4).map(run => <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-xl border p-2.5" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
           <div className="text-sm font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>
           <div className="text-[9px] mt-1 font-bold" style={{ color: palette.muted }}>{run.holat} · {run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
@@ -7485,7 +7605,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani katta oynada ko‘rish</button>}
-          <button onClick={generate} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2" style={{ background: generating ? "linear-gradient(90deg,#0F7C82,#155A7A)" : palette.blue, boxShadow: generating ? "0 0 0 4px rgba(15,124,130,.14)" : "none", cursor: generating || checking ? "wait" : "pointer" }}><WandSparkles size={15} className={generating ? "animate-pulse" : ""}/>{generating ? (GENERATION_PHASES_V210[generationPhase]?.title || "Jadval hisoblanmoqda") : "Dars jadvalini yaratish"}</button>
+          {generating
+            ? <button onClick={stopGeneration} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={15}/> Yaxshilashni to‘xtatish</button>
+            : <button onClick={generate} disabled={checking} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={15}/> Dars jadvalini yaratish</button>}
         </div>
       </div>
 
