@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V22.38 ADAPTIVE-DOUBLE — bir juft afzal, zarur bo'lsa 2+2+1.
+// SAMTM FRONTEND V22.40 DAILY-BALANCE — sinf kunlari teng taqsimlanadi.
 // SamTM V19.8 REV52 — metod kuni qattiq blok va 10–19 soatli ustozlar ixcham kunlarda.
 // SamTM V19.8 REV48 — mavjud maktab ID birinchi; eski selected_id frontend bilan ham mos.
 // SamTM V19.6 — 0,5 fan A/B haftada aniq ko'rinadi; sinf yoshi, fan og'irligi va o'qituvchi oknosi bo'yicha qulay jadval.
@@ -21,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.38-ADAPTIVE-DOUBLE";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.40-DAILY-BALANCE";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -5337,7 +5337,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
       {roomMessage && <div className="mb-1.5"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
         <div className="min-w-0">
-          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Haftalik dars jadvali</h3>
+          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Jadval #{detail?.urinish?.id || "—"} · Haftalik dars jadvali</h3>
           <div className="flex flex-wrap items-center gap-1 mt-1 text-[8px] font-black">
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>A/B · 0,5 + 0,5</span>
@@ -6536,7 +6536,7 @@ const ONE_GENERATOR_POLICY_V210 = {
     "Sinfda ichki okno bo‘lmaydi; o‘qituvchi kunlari ixcham qilinadi va uzoq kutish imkon qadar kamaytiriladi.",
     "Haftasiga 2 soat darsi bor bir smenali o‘qituvchi uchun 1-dars va smenaning oxirgi darsi imkon qadar tanlanmaydi.",
     "Sinf, o‘qituvchi va xona parallelligi, smena, guruh sinxronligi hamda aniq haftalik soatlar buzilmaydi.",
-    "Sinfning biriktirilgan xonasi ustun; mos xona topilmasa dars ‘Xona yo‘q’ deb ko‘rsatiladi va keyin tahrirlanadi.",
+    "Fan yoki guruhning maxsus xonasi ustun; u bo‘lmasa sinfning biriktirilgan xonasi chiqadi, hech biri bo‘lmasa ‘Xona yo‘q’ ko‘rsatiladi.",
   ],
 };
 
@@ -6549,7 +6549,7 @@ const GENERATION_PHASES_V210 = {
   recovery: { title: "Backend natijasini kutyapman" },
 };
 
-const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 24;
+const DEFAULT_GENERATION_BUDGET_SECONDS_V219 = 600;
 
 function normalizeGenerationBudgetSecondsV219(value) {
   const parsed = Number(value);
@@ -7219,7 +7219,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         return;
       }
       if (
-        !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.38-ADAPTIVE-DOUBLE"].includes(
+        !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.40-DAILY-BALANCE"].includes(
           capability?.exact_jadval_release
         ) ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
@@ -7227,7 +7227,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       ) {
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V22.38 ADAPTIVE-DOUBLE paketini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V22.40 DAILY-BALANCE paketini deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
         });
         return;
       }
@@ -7464,12 +7464,24 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
     {generating && <ScheduleRobotProgressV201 phase={generationPhase} setup={setup} startedAt={generationStartedAt} searchStartedAt={searchStartedAt} searchFinishedAt={searchFinishedAt} budgetSeconds={generationBudgetSeconds}/>} 
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    {!!runs.length && <Card className="p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 className="text-sm font-black" style={{ color: palette.ink }}>Oxirgi 4 ta yaratilgan jadval</h2>
+        <span className="text-[10px] font-black" style={{ color: palette.muted }}>Har biri raqam bilan saqlanadi</span>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        {runs.slice(0, 4).map(run => <button key={run.id} type="button" onClick={() => { setGenerationFailure(null); setRunId(String(run.id)); }} className="text-left rounded-xl border p-2.5" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
+          <div className="text-sm font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>
+          <div className="text-[9px] mt-1 font-bold" style={{ color: palette.muted }}>{run.holat} · {run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
+        </button>)}
+      </div>
+    </Card>}
     <Card className="p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>BITTA TUGMA</div>
           <h2 className="text-lg font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Manba tekshiriladi; yagona generator avval barcha darsni qattiq qoidalar ichida sig‘diradi, zarur bo‘lsa oldingi darslarni avtomatik qayta joylashtiradi. To‘liq yechim topilgach qulaylik yaxshilanadi. Guruh xonasi yozilmagan bo‘lsa jadval “Xona yo‘q” bilan yaratiladi.</p>
+          <p className="text-[11px] leading-tight mt-0.5 max-w-3xl" style={{ color: palette.muted }}>Manba tekshiriladi; yagona generator avval barcha darsni qattiq qoidalar ichida sig‘diradi, zarur bo‘lsa oldingi darslarni avtomatik qayta joylashtiradi. To‘liq yechim topilgach qulaylik yaxshilanadi. Maxsus xona bo‘lmasa sinf xonasi, u ham bo‘lmasa “Xona yo‘q” ko‘rsatiladi.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={generating || checking} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Natijani katta oynada ko‘rish</button>}
