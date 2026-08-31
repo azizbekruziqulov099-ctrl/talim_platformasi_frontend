@@ -21,7 +21,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.48-CLASS-SKELETON";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V22.49-CLASS-SKELETON";
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -5205,15 +5205,115 @@ function TeacherFirstLoadEditorV192({
 
 
 
+function TeacherQuickRegistryV2249({ token, apiBase, maktabId, onChanged, onContinue }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [teacherName, setTeacherName] = useState("");
+  const [message, setMessage] = useState(null);
+  const [entryCode, setEntryCode] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);
+      setData(result);
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, [token, apiBase, maktabId]);
+
+  const teachers = useMemo(() => [...(data?.oqituvchilar || [])].sort((a, b) =>
+    Number(a.jadval_raqami || 999999) - Number(b.jadval_raqami || 999999)
+      || String(a.full_name || "").localeCompare(String(b.full_name || ""), "uz")
+  ), [data]);
+
+  const addTeacher = async () => {
+    const fullName = teacherName.replace(/\s+/g, " ").trim();
+    if (fullName.length < 3) {
+      setMessage({ tone: "error", text: "O‘qituvchi F.I.Sh.ni kiriting." });
+      return;
+    }
+    setSaving(true); setMessage(null); setEntryCode("");
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_qoshish?token=${encodeURIComponent(token)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maktab_id: Number(maktabId), full_name: fullName, qatorlar: [] }),
+      });
+      setTeacherName("");
+      setEntryCode(result.kirish_kodi || "");
+      setData(result.matritsa);
+      setMessage({ tone: "success", text: `#${result.jadval_raqami || "?"} · ${fullName} qo‘shildi. Endi navbatdagi o‘qituvchini kiriting.` });
+      await onChanged?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error.message });
+    } finally { setSaving(false); }
+  };
+
+  const removeTeacher = async teacher => {
+    if (!window.confirm(`#${teacher.jadval_raqami || "?"} · ${teacher.full_name} o‘qituvchini o‘chirasizmi?`)) return;
+    setSaving(true); setMessage(null);
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_ochirish?token=${encodeURIComponent(token)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maktab_id: Number(maktabId), user_id: Number(teacher.user_id), tasdiq: true }),
+      });
+      setData(result.matritsa);
+      setMessage({ tone: "success", text: `${teacher.full_name} o‘chirildi. Qolgan o‘qituvchilarning raqamlari o‘zgarmaydi.` });
+      await onChanged?.();
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return <Card className="p-10 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></Card>;
+  return <div className="space-y-4">
+    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    <Card className="p-5">
+      <div className="flex flex-col xl:flex-row xl:items-start gap-5">
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>O‘QITUVCHILARNI OLDINDAN RAQAMLASH</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Faqat F.I.Sh. kiriting — raqam avtomatik beriladi</h2>
+          <p className="text-xs mt-1.5 leading-relaxed max-w-3xl" style={{ color: palette.muted }}>Bu oynada fan, sinf, guruh, haftalik soat, staj yoki toifa kiritilmaydi. Avval barcha o‘qituvchilarni ro‘yxatga kiriting. Keyingi “Sinf skeleti + o‘qituvchi raqami” oynasida har bir fan/guruh katagiga shu raqamlar tanlanadi. Raqam bir marta beriladi va keyin o‘zgarmaydi.</p>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <input autoFocus value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder="Masalan: Aliyeva Dilnoza Anvarovna" className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
+            <button onClick={addTeacher} disabled={saving} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-60" style={{ background: palette.teal }}>{saving ? "Saqlanmoqda..." : "+ O‘qituvchi qo‘shish"}</button>
+          </div>
+          {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Oxirgi qo‘shilgan o‘qituvchi kirish kodi: <span className="font-black text-base">{entryCode}</span></div>}
+        </div>
+        <div className="grid grid-cols-2 gap-2 xl:w-[300px]">
+          <CompactStat value={teachers.length} label="raqamlangan o‘qituvchi" tone="blue"/>
+          <CompactStat value={teachers.length ? `#${Math.max(...teachers.map(t => Number(t.jadval_raqami || 0)))}` : "—"} label="oxirgi raqam" tone="teal"/>
+        </div>
+      </div>
+    </Card>
+
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h3 className="text-lg font-black" style={{ color: palette.ink }}>O‘qituvchilar ro‘yxati</h3><div className="text-xs mt-1" style={{ color: palette.muted }}># raqam skeletda tanlash uchun. F.I.Sh. bo‘yicha fan yuklamasi keyingi bosqichda biriktiriladi.</div></div>
+        <button onClick={onContinue} disabled={!teachers.length} className="px-5 py-3 rounded-xl text-xs font-black text-white disabled:opacity-40" style={{ background: palette.blue }}>Sinf skeleti + o‘qituvchi raqamiga o‘tish →</button>
+      </div>
+      {!teachers.length ? <div className="mt-4"><SmartNotice tone="warning">Hali o‘qituvchi kiritilmagan. Avval kamida bitta F.I.Sh. kiriting.</SmartNotice></div> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-4">
+        {teachers.map(teacher => <div key={teacher.user_id} className="rounded-2xl border p-3 flex items-center gap-3" style={{ borderColor: palette.line, background: "#fff" }}>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacher.jadval_raqami || "—"}</div>
+          <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{teacher.dars_birikma_soni ? `${teacher.dars_birikma_soni} ta fan/guruh birikmasi` : "skelet hali biriktirilmagan"}</div></div>
+          <button onClick={() => removeTeacher(teacher)} disabled={saving} className="w-8 h-8 rounded-lg text-xs font-black shrink-0" title="O‘qituvchini o‘chirish" style={{ background: palette.redBg, color: palette.red }}>×</button>
+        </div>)}
+      </div>}
+      <div className="mt-4 rounded-xl p-3 text-[11px]" style={{ background: palette.cream, color: palette.muted }}><b>Keyin tahrirlash mumkin:</b> staj, toifa, tug‘ilgan sana, mutaxassislik, metod kuni va boshqa qo‘shimcha ma’lumotlar o‘qituvchi yaratilishiga to‘sqinlik qilmaydi.</div>
+    </Card>
+  </div>;
+}
+
+
 function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [teacherName, setTeacherName] = useState("");
-  const [addingTeacher, setAddingTeacher] = useState(false);
-  const [entryCode, setEntryCode] = useState("");
   const [assignments, setAssignments] = useState({});
   const [leaders, setLeaders] = useState({});
   const [showTeacherList, setShowTeacherList] = useState(true);
@@ -5249,10 +5349,11 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   useEffect(() => { load(false); }, [token, apiBase, maktabId]);
 
   const teachers = useMemo(() => [...(data?.oqituvchilar || [])]
-    .sort((a, b) => Number(b.user_id || 0) - Number(a.user_id || 0)), [data]);
+    .sort((a, b) => Number(a.jadval_raqami || 999999) - Number(b.jadval_raqami || 999999)
+      || String(a.full_name || "").localeCompare(String(b.full_name || ""), "uz")), [data]);
   const teacherNumber = useMemo(() => {
     const map = new Map();
-    teachers.forEach((teacher, index) => map.set(String(teacher.user_id), index + 1));
+    teachers.forEach((teacher, index) => map.set(String(teacher.user_id), Number(teacher.jadval_raqami || index + 1)));
     return map;
   }, [teachers]);
   const teacherById = useMemo(() => new Map(teachers.map(item => [String(item.user_id), item])), [teachers]);
@@ -5335,35 +5436,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const updateAssignment = (classId, subject, groupKey, userId) => {
     const key = `${classId}|${subjectKeyV193(subject)}|${groupKey}`;
     setAssignments(current => ({ ...current, [key]: String(userId || "") }));
-  };
-
-  const addTeacher = async () => {
-    const fullName = teacherName.replace(/\s+/g, " ").trim();
-    if (fullName.length < 3) {
-      setMessage({ tone: "error", text: "O‘qituvchi F.I.Sh. kamida 3 ta belgidan iborat bo‘lsin." });
-      return;
-    }
-    setAddingTeacher(true);
-    setMessage(null);
-    try {
-      const result = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_qoshish?token=${encodeURIComponent(token)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ maktab_id: maktabId, full_name: fullName, qatorlar: [] }),
-        }
-      );
-      setTeacherName("");
-      setEntryCode(result.kirish_kodi || "");
-      setData(result.matritsa);
-      setMessage({ tone: "success", text: `${fullName} ro‘yxatga qo‘shildi. Endi jadval kataklarida uning raqamini tanlang.` });
-      await reload?.();
-    } catch (error) {
-      setMessage({ tone: "error", text: error.message });
-    } finally {
-      setAddingTeacher(false);
-    }
   };
 
   const workloadPreview = useMemo(() => {
@@ -5454,14 +5526,9 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     <Card className="p-5">
       <div className="flex flex-col xl:flex-row xl:items-start gap-5">
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>1-bosqich · O‘qituvchini raqamlash</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Avval F.I.Sh. kiriting — tizim avtomatik raqam beradi</h2>
-          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>Staj, toifa va boshqa ma’lumotlar hozir majburiy emas. Ularni keyin “Batafsil tahrir”dan to‘ldirasiz. Raqam faqat ekranda qulay tanlash uchun; bazada haqiqiy teacher_id saqlanadi.</p>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
-            <input value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder="Masalan: Raxmonova Mohina Anvar qizi" className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
-            <button onClick={addTeacher} disabled={addingTeacher} className="px-5 py-3 rounded-xl text-sm font-black disabled:opacity-60" style={{ background: palette.blue, color: "#fff" }}>{addingTeacher ? "Qo‘shilmoqda..." : "F.I.Sh. qo‘shish"}</button>
-          </div>
-          {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Yangi o‘qituvchi kirish kodi: <span className="font-black text-base">{entryCode}</span> · kodni saqlab qo‘ying.</div>}
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>O‘QITUVCHI RAQAMLARI TAYYOR</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Sinf skeletida F.I.Sh. emas, o‘qituvchi raqami tanlanadi</h2>
+          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>O‘qituvchilar “O‘qituvchi qo‘shish” oynasida oldindan raqamlangan. Bu yerda yangi o‘qituvchi yaratilmaydi. Faqat sinf → fan → guruh katagiga kerakli # raqam biriktiriladi.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 xl:w-[360px]">
           <CompactStat value={teachers.length} label="o‘qituvchi" tone="blue"/>
@@ -5469,8 +5536,9 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <CompactStat value={(data.sinflar || []).length} label="sinf" tone="teal"/>
         </div>
       </div>
-      <button onClick={() => setShowTeacherList(value => !value)} className="mt-4 text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "O‘qituvchilar ro‘yxatini yopish" : "O‘qituvchilar raqamini ko‘rsatish"}</button>
-      {showTeacherList && <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
+      {!teachers.length && <div className="mt-4"><SmartNotice tone="error">O‘qituvchi ro‘yxati bo‘sh. Asosiy sahifaga qaytib “O‘qituvchi qo‘shish”dan avval F.I.Sh.larni kiriting.</SmartNotice></div>}
+      <button onClick={() => setShowTeacherList(value => !value)} className="mt-4 text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "O‘qituvchi raqamlarini yopish" : "O‘qituvchi raqamlarini ko‘rsatish"}</button>
+      {showTeacherList && teachers.length > 0 && <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
         {teachers.map(teacher => <div key={teacher.user_id} className="rounded-xl border px-3 py-2 flex items-center gap-2" style={{ borderColor: palette.line, background: "#fff" }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacherNumber.get(String(teacher.user_id))}</div>
           <div className="min-w-0 flex-1"><div className="text-xs font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>skelet: {scheduleHourLabel(workloadPreview.get(String(teacher.user_id)) || 0)} soat</div></div>
@@ -5481,7 +5549,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     <Card className="p-5">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>2-bosqich · Sinf skeleti</div>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>SINF SKELETI · FAN → O‘QITUVCHI RAQAMI</div>
           <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Fanlar eng ko‘p soatdan boshlab ketma-ket joylashtirildi</h2>
           <p className="text-xs mt-1.5" style={{ color: palette.muted }}>Bu yakuniy jadval emas. 5 darsga sig‘masa 6-dars, zarurat bo‘lsa 7-dars faqat skelet uchun ochiladi. Keyingi generator kunlarni va o‘qituvchi oynolarini qayta to‘g‘rilaydi.</p>
         </div>
@@ -5542,12 +5610,12 @@ function LoadsStep(props) {
     <Card className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchi + fan-soat kiritish</div>
-          <div className="text-xs mt-1" style={{ color: palette.muted }}>Yangi asosiy usul: F.I.Sh. → raqam → sinf skeletidagi fan/guruh katagiga o‘qituvchi raqami.</div>
+          <div className="text-sm font-black" style={{ color: palette.ink }}>Sinf skeleti + o‘qituvchi raqami</div>
+          <div className="text-xs mt-1" style={{ color: palette.muted }}>O‘qituvchi F.I.Sh.lari oldin “O‘qituvchi qo‘shish”da raqamlangan. Bu bosqichda faqat fan/guruhga # raqam biriktiriladi.</div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setMode("skeleton")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "skeleton" ? palette.green : palette.greenBg, color: mode === "skeleton" ? "#fff" : palette.green }}>Sinf skeleti + raqam</button>
-          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "teacher" ? palette.blue : palette.sky, color: mode === "teacher" ? "#fff" : palette.blue }}>Batafsil o‘qituvchi</button>
+          <button onClick={() => setMode("skeleton")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "skeleton" ? palette.green : palette.greenBg, color: mode === "skeleton" ? "#fff" : palette.green }}>Sinf skeleti + o‘qituvchi raqami</button>
+          <button onClick={() => setMode("teacher")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "teacher" ? palette.blue : palette.sky, color: mode === "teacher" ? "#fff" : palette.blue }}>Keyingi tahrir · staj/toifa</button>
           <button onClick={() => setMode("legacy")} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: mode === "legacy" ? palette.blue : palette.cream, color: mode === "legacy" ? "#fff" : palette.ink }}>Eski sinf/Excel</button>
         </div>
       </div>
@@ -8410,11 +8478,12 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (teacherEditorOpen) {
     return <WorkspacePortal>
       <div className="min-h-screen">
-        <SmartHeader title={`${schoolName} · O‘qituvchi qo‘shish`} subtitle="F.I.Sh. → fan → sinf yoki guruh → haftalik soat → jadval yuklamasi" onClose={() => setTeacherEditorOpen(false)}/>
+        <SmartHeader title={`${schoolName} · O‘qituvchi qo‘shish`} subtitle="F.I.Sh. → avtomatik # raqam → keyin sinf skeleti" onClose={() => setTeacherEditorOpen(false)}/>
         <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
-          <TeacherFirstLoadEditorV192
+          <TeacherQuickRegistryV2249
             token={token} apiBase={apiBase} maktabId={maktabId}
-            startWithNew showPlan={false} onChanged={loadManager}
+            onChanged={loadManager}
+            onContinue={() => { setTeacherEditorOpen(false); setSmartOpen(3); }}
           />
         </main>
       </div>
