@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v2";
+const CACHE = "samtm-shell-v3-route-progress-safe";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -12,6 +12,17 @@ function mayStore(response) {
   return response.ok
     && response.type === "basic"
     && !/no-store|private/i.test(cacheControl);
+}
+
+function matchesAssetType(url, response) {
+  const contentType = String(response.headers.get("Content-Type") || "").toLowerCase();
+  if (/\.(?:m?js)$/i.test(url.pathname)) {
+    return contentType.includes("javascript") || contentType.includes("ecmascript");
+  }
+  if (/\.css$/i.test(url.pathname)) return contentType.includes("text/css");
+  // Rasm, shrift, manifest va boshqa statik fayllarda HTML fallbackni
+  // keshlamaslikning o'zi yetarli.
+  return !contentType.includes("text/html");
 }
 
 self.addEventListener("install", event => {
@@ -40,20 +51,41 @@ self.addEventListener("fetch", event => {
       fetch(request).then(async response => {
         const contentType = response.headers.get("Content-Type") || "";
         if (mayStore(response) && contentType.includes("text/html")) {
-          await caches.open(CACHE).then(cache => cache.put("/", response.clone()));
+          await caches.open(CACHE).then(cache => cache.put("/", response.clone())).catch(() => {});
         }
         return response;
-      }).catch(() => caches.match("/"))
+      }).catch(async () => {
+        const cached = await caches.match("/");
+        return cached || new Response("Ilova qobig‘ini yuklab bo‘lmadi. Internetni tekshirib qayta urinib ko‘ring.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      })
     );
     return;
   }
   if (!isStaticAsset(url) || request.headers.has("Authorization")) return;
   event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(async response => {
+    fetch(request).then(async response => {
+      if (!matchesAssetType(url, response)) {
+        const cached = await caches.match(request);
+        return cached || new Response("Statik fayl o‘rniga HTML javobi keldi; qayta yuklang.", {
+          status: 502,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
       if (mayStore(response)) {
-        await caches.open(CACHE).then(cache => cache.put(request, response.clone()));
+        // Kesh kvotasi yoki eski WebView cache xatosi haqiqiy network
+        // javobini yo'qotmasligi kerak.
+        await caches.open(CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
       }
       return response;
-    }))
+    }).catch(async () => {
+      const cached = await caches.match(request);
+      return cached || new Response("Statik faylni yuklab bo‘lmadi.", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    })
   );
 });
