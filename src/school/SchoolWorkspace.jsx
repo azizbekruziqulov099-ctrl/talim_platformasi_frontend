@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V23.5 — editable teacher, strict presence bands, persistent revisions.
+// SAMTM FRONTEND V23.6 — live generator reattach and all-teacher continuation.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -12,13 +12,13 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.5-DUAL-SHIFT-REVISION-STOP";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.6-LIVE-PROGRESS-REATTACH";
 const SAMTM_REQUIRED_TIMETABLE_RELEASES = Object.freeze({
-  jadval_release: "JADVAL-ONE-V23.5-EDIT-PRESENCE-REVISION",
-  exact_module_release: "SAMTM-EXACT-SOLVER-V23.5-BALANCED-OPEN-DAYS",
-  exact_internal_release: "SAMTM-EXACT-CP-SAT-V23.5-DUAL-SHIFT-OKNO-ROUND-ROBIN",
-  timetable_engine_release: "SAMTM-TIMETABLE-ENGINE-V23.5-STRICT",
-  schedule_runtime_release: "SAMTM-SCHEDULE-RUNTIME-V23.5-BEST-REVISION-PROMOTION",
+  jadval_release: "JADVAL-ONE-V23.6-LIVE-REATTACH-ALL-TEACHERS",
+  exact_module_release: "SAMTM-EXACT-SOLVER-V23.6-BALANCED-OPEN-DAYS",
+  exact_internal_release: "SAMTM-EXACT-CP-SAT-V23.6-DUAL-SHIFT-WEEK-ROUND-ROBIN",
+  timetable_engine_release: "SAMTM-TIMETABLE-ENGINE-V23.6-DUAL-SHIFT-WEEK",
+  schedule_runtime_release: "SAMTM-SCHEDULE-RUNTIME-V23.6-DIAGNOSTIC-CONTINUE",
 });
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
@@ -5678,7 +5678,7 @@ function scheduleHourLabel(value) {
   return Number.isInteger(number) ? String(number) : number.toFixed(1).replace(".", ",");
 }
 
-function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged }) {
+function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged, readOnly = false }) {
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
   const [roomEditor, setRoomEditor] = useState(null);
@@ -5699,6 +5699,10 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
     .find(row => String(row.sinf_id) === String(selectedClass));
   const [downloading, setDownloading] = useState(false);
 
+  useEffect(() => {
+    if (readOnly) setRoomEditor(null);
+  }, [readOnly]);
+
   const downloadClasses = async () => {
     setDownloading(true);
     setRoomMessage(null);
@@ -5711,14 +5715,17 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
     }
   };
 
-  const openRoomEditor = slot => setRoomEditor({
-    slotId: Number(slot.id),
-    catalogId: slot.xona_id ? String(slot.xona_id) : "",
-    customName: slot.xona_id ? "" : String(slot.xona_nomi || slot.xona_matni || ""),
-  });
+  const openRoomEditor = slot => {
+    if (readOnly) return;
+    setRoomEditor({
+      slotId: Number(slot.id),
+      catalogId: slot.xona_id ? String(slot.xona_id) : "",
+      customName: slot.xona_id ? "" : String(slot.xona_nomi || slot.xona_matni || ""),
+    });
+  };
 
   const saveRoom = async slot => {
-    if (!roomEditor || Number(roomEditor.slotId) !== Number(slot.id)) return;
+    if (readOnly || !roomEditor || Number(roomEditor.slotId) !== Number(slot.id)) return;
     setSavingRoom(true);
     setRoomMessage(null);
     try {
@@ -5754,7 +5761,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
           <div className="flex flex-wrap items-center gap-1 mt-1 text-[8px] font-black">
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
             <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>A/B · 0,5 + 0,5</span>
-            <span style={{ color: palette.muted }}>Xona ustiga bosib tahrirlang.</span>
+            <span style={{ color: readOnly ? palette.amber : palette.muted }}>{readOnly ? "Jarayon tugaguncha xona tahriri yopiq." : "Xona ustiga bosib tahrirlang."}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -5796,9 +5803,9 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                       </div>
                       <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[8px] leading-tight">
                         <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
-                        <button type="button" title={`Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold" style={{ color: roomExists ? palette.blue : palette.red }}>{roomName} ✎</button>
+                        <button type="button" disabled={readOnly} title={readOnly ? `Xona: ${roomName} · jadval yaratilayotganda tahrir yopiq` : `Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold disabled:cursor-not-allowed" style={{ color: readOnly ? palette.muted : roomExists ? palette.blue : palette.red }}>{roomName}{readOnly ? "" : " ✎"}</button>
                       </div>
-                      {Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
+                      {!readOnly && Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
                     </div>;
                   })}
                 </div></td>;
@@ -6972,7 +6979,7 @@ function normalizeGenerationBudgetSecondsV219(value) {
 }
 
 function ScheduleRobotProgressV201({
-  phase, setup, startedAt, searchStartedAt, searchFinishedAt, liveProgress, onStop, onClose,
+  phase, setup, startedAt, searchStartedAt, searchFinishedAt, liveProgress, onStop, onClose, stopPending = false,
 }) {
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
@@ -7094,8 +7101,8 @@ function ScheduleRobotProgressV201({
           <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
         </div>
 
-        <button type="button" onClick={onStop} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>
-          Yaxshilashni to‘xtatish va eng yaxshi natijani olish
+        <button type="button" onClick={onStop} disabled={stopPending} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white disabled:cursor-wait disabled:opacity-75" style={{ background: palette.red }}>
+          {stopPending ? "To‘xtatilmoqda… eng yaxshi natija xavfsiz saqlanmoqda" : "Yaxshilashni to‘xtatish va eng yaxshi natijani olish"}
         </button>
         <div className="text-[10px] font-bold text-center mt-2" style={{ color: palette.muted }}>× faqat oynani yopadi. Hisoblash davom etadi.</div>
       </div>
@@ -7535,7 +7542,7 @@ function TeacherWindowReportV211({ report, runId }) {
 }
 
 
-function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClass, setSelectedClass, onClose, onRoomChanged }) {
+function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClass, setSelectedClass, onClose, onRoomChanged, readOnly = false }) {
   const [view, setView] = useState("classes");
   const [downloading, setDownloading] = useState("");
   const [downloadError, setDownloadError] = useState("");
@@ -7574,7 +7581,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
           </div>
         </div>
         {downloadError && <SmartNotice tone="error">{downloadError}</SmartNotice>}
-        {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged}/>} 
+        {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged} readOnly={readOnly}/>} 
         {view === "teachers" && <TeacherWeeklySchedule detail={detail} setup={setup}/>} 
         {view === "windows" && <TeacherWindowReportV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
       </div>
@@ -7589,6 +7596,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [preflight, setPreflight] = useState(null);
   const [checking, setChecking] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generationProbePending, setGenerationProbePending] = useState(true);
+  const [stopPending, setStopPending] = useState(false);
   const [generationPhase, setGenerationPhase] = useState("capability");
   const [generationBudgetSeconds, setGenerationBudgetSeconds] = useState(DEFAULT_GENERATION_BUDGET_SECONDS_V219);
   const [generationStartedAt, setGenerationStartedAt] = useState(null);
@@ -7603,7 +7612,12 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   const [selectedRevision, setSelectedRevision] = useState(null);
   const [message, setMessage] = useState(null);
   const [selectedClass, setSelectedClass] = useState(String(setup?.sinflar?.[0]?.id || ""));
-  const stopRequestedRef = useRef(false);
+  const mountedRef = useRef(true);
+  const generationSessionRef = useRef({ serial: 0, nonce: null, active: false });
+  const stopPendingRef = useRef(false);
+  const reloadRef = useRef(reload);
+  const loadRunRef = useRef(null);
+  reloadRef.current = reload;
 
   const loadRun = async (id, revision = null) => {
     if (!id) { setDetail(null); return null; }
@@ -7618,46 +7632,259 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       return null;
     }
   };
+  loadRunRef.current = loadRun;
 
-  const recoverGeneratedDraft = async previousId => {
-    // Railway/proksi POST javobini brauzerdan oldin yopsa ham backend jadvalni
-    // tugatib bazaga saqlaydi. Yolg'on "yaratilmadi" xabari bermasdan, yangi
-    // draftni sozlamalar endpointidan topib ochamiz.
-    for (let attempt = 0; attempt < 15; attempt += 1) {
-      if (attempt) await new Promise(resolve => window.setTimeout(resolve, 2000));
+  const waitForGenerationV236 = milliseconds => new Promise(
+    resolve => window.setTimeout(resolve, milliseconds)
+  );
+  const validGenerationNonceV236 = value => {
+    const nonce = Number(value);
+    return Number.isSafeInteger(nonce) && nonce > 0 ? nonce : null;
+  };
+  const ownsGenerationSessionV236 = (serial, nonce) => {
+    const current = generationSessionRef.current;
+    return Boolean(
+      current.active
+      && current.serial === serial
+      && Number(current.nonce) === Number(nonce)
+    );
+  };
+  const claimGenerationSessionV236 = nonceValue => {
+    const nonce = validGenerationNonceV236(nonceValue);
+    if (!nonce) return null;
+    const serial = Number(generationSessionRef.current.serial || 0) + 1;
+    generationSessionRef.current = { serial, nonce, active: true };
+    stopPendingRef.current = false;
+    if (mountedRef.current) {
+      setGenerating(true);
+      setGenerationNonce(nonce);
+      setStopPending(false);
+    }
+    return serial;
+  };
+  const switchGenerationSessionV236 = (serial, previousNonce, nextNonceValue) => {
+    const nextNonce = validGenerationNonceV236(nextNonceValue);
+    if (!nextNonce || !ownsGenerationSessionV236(serial, previousNonce)) return null;
+    const nextSerial = Number(generationSessionRef.current.serial || 0) + 1;
+    generationSessionRef.current = { serial: nextSerial, nonce: nextNonce, active: true };
+    stopPendingRef.current = false;
+    if (mountedRef.current) {
+      setGenerating(true);
+      setGenerationNonce(nextNonce);
+      setStopPending(false);
+    }
+    return { serial: nextSerial, nonce: nextNonce };
+  };
+  const releaseGenerationSessionV236 = (serial, nonce) => {
+    if (!ownsGenerationSessionV236(serial, nonce)) return false;
+    generationSessionRef.current = { serial, nonce: null, active: false };
+    stopPendingRef.current = false;
+    if (mountedRef.current) {
+      setGenerating(false);
+      setGenerationNonce(null);
+      setStopPending(false);
+    }
+    return true;
+  };
+  const markStopPendingV236 = value => {
+    stopPendingRef.current = Boolean(value);
+    if (mountedRef.current) setStopPending(Boolean(value));
+  };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const current = generationSessionRef.current;
+      generationSessionRef.current = {
+        serial: Number(current.serial || 0) + 1,
+        nonce: null,
+        active: false,
+      };
+    };
+  }, []);
+
+  const fetchLatestGenerationV236 = async (attempts = 3) => {
+    let lastError = null;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (attempt) await waitForGenerationV236(Math.min(1800, 450 * attempt));
       try {
-        const fresh = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);
-        const newest = fresh?.urinishlar?.[0];
-        if (newest?.id && String(newest.id) !== String(previousId || "")) {
-          setSearchFinishedAt(Date.now());
-          setRunId(String(newest.id));
-          const recoveredDetail = await loadRun(newest.id);
-          await reload();
-          const recovered = solverResultSummaryV215(recoveredDetail || newest);
-          setGenerationPhase("loading");
-          if (!recovered.complete) {
-            const failure = recoveredDetail?.urinish?.diagnostika || recoveredDetail?.diagnostika || recoveredDetail || newest;
-            setGenerationFailure({
-              ...failure,
-              solver_status: recovered.status,
-              message: recovered.status === "INFEASIBLE"
-                ? "Qattiq qoidalar ichida to‘liq jadval mavjud emasligi isbotlandi. Pastdagi ziddiyatlarni tekshiring."
-                : "Hisoblash yakunida tasdiqlanadigan to‘liq jadval olinmadi. Yarim draft ko‘rsatilmaydi.",
-            });
-            setResultWindowOpen(false);
-            setMessage({ tone: recovered.status === "INFEASIBLE" ? "error" : "warning", text: "Yangi natija to‘liq va tasdiqlangan emas; yarim draft yashirildi. Oldingi tasdiqlangan jadval o‘zgarmadi." });
-            return true;
-          }
-          setGenerationFailure(null);
-          setResultWindowOpen(true);
-          setMessage({ tone: "success", text: `Jadval backendda yaratildi va qayta olindi: ${recovered.placed}/${recovered.total} soat to‘liq joylashdi. Aloqa uzilishi natijani yo‘qotmadi.` });
-          return true;
-        }
-      } catch (_) {
-        // Backend hisoblayotgan paytda tekshiruv muvaffaqiyatsiz bo'lishi mumkin.
+        const progress = await smartFetch(
+          `${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`,
+          { timeoutMs: 5000 }
+        );
+        return { reachable: true, progress };
+      } catch (error) {
+        lastError = error;
       }
     }
-    return false;
+    return { reachable: false, progress: null, error: lastError };
+  };
+
+  const watchGenerationV236 = async ({ nonce, sessionSerial, initialProgress = null, reattached = false }) => {
+    let progress = initialProgress;
+    let loadedCheckpointKey = "";
+    let runListLoaded = false;
+    let missingResponses = 0;
+
+    while (ownsGenerationSessionV236(sessionSerial, nonce)) {
+      if (!progress) {
+        try {
+          progress = await smartFetch(
+            `${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(nonce)}`,
+            { timeoutMs: 5000 }
+          );
+        } catch (_) {
+          if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+          setMessage({ tone: "warning", text: "Holat aloqasi uzildi. Backend hisoblashda davom etmoqda; ekran avtomatik qayta ulanmoqda." });
+          await waitForGenerationV236(1200);
+          continue;
+        }
+      }
+      if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+
+      const stage = String(progress?.bosqich || "");
+      const terminal = ["tayyor", "xato", "toxtatildi"].includes(stage);
+      const activeRunId = Number(progress?.jadval_raqami || 0);
+      const activeRevision = Number(progress?.yaxshilanish || 0);
+      const reportedNonce = validGenerationNonceV236(progress?.qidiruv_nonce);
+
+      if (terminal) {
+        setLiveProgress(progress);
+        setSearchFinishedAt(Date.now());
+        markStopPendingV236(false);
+        setGenerationPhase("loading");
+        await reloadRef.current?.({ silent: true });
+        if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+
+        let finalDetail = null;
+        if (activeRunId > 0 && stage !== "xato") {
+          finalDetail = await loadRunRef.current?.(activeRunId);
+        }
+        if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+        if (finalDetail?.urinish?.id) {
+          setRunId(String(activeRunId));
+          setGenerationFailure(null);
+          setResultWindowOpen(true);
+        }
+        setMessage({
+          tone: stage === "xato" ? "error" : finalDetail?.urinish?.id ? "success" : "warning",
+          text: progress?.xabar || (
+            stage === "xato"
+              ? "Jadval jarayoni xato bilan tugadi. Oldingi jadval o‘chirilmagan."
+              : stage === "toxtatildi"
+                ? finalDetail?.urinish?.id
+                  ? `To‘xtatildi. Eng yaxshi Jadval #${activeRunId} saqlandi va ochildi.`
+                  : "To‘xtatildi. Hali yangi 100% jadval saqlanmagan edi; oldingi jadval o‘zgarmadi."
+                : `Jadval #${activeRunId} yakunlandi va eng yaxshi variant ochildi.`
+          ),
+        });
+        releaseGenerationSessionV236(sessionSerial, nonce);
+        return { status: "terminal", stage, progress, detail: finalDetail };
+      }
+
+      const nonceMismatch = reportedNonce && Number(reportedNonce) !== Number(nonce);
+      if (progress?.faol === false || nonceMismatch) {
+        missingResponses += 1;
+        if (missingResponses < 5) {
+          progress = null;
+          await waitForGenerationV236(1000);
+          continue;
+        }
+
+        const latestResult = await fetchLatestGenerationV236(3);
+        if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+        if (!latestResult.reachable) {
+          setMessage({ tone: "warning", text: "Backend holatini tasdiqlab bo‘lmadi. Tugma tiklanmadi; aloqa qaytganda jarayon avtomatik tekshiriladi." });
+          progress = null;
+          missingResponses = 0;
+          await waitForGenerationV236(1500);
+          continue;
+        }
+
+        const latest = latestResult.progress;
+        const latestNonce = validGenerationNonceV236(latest?.qidiruv_nonce);
+        const latestStage = String(latest?.bosqich || "");
+        if (latestNonce && ["tayyor", "xato", "toxtatildi"].includes(latestStage)) {
+          if (latestNonce === Number(nonce)) {
+            progress = latest;
+            missingResponses = 0;
+            continue;
+          }
+          const terminalSerial = claimGenerationSessionV236(latestNonce);
+          if (!terminalSerial) break;
+          return watchGenerationV236({
+            nonce: latestNonce,
+            sessionSerial: terminalSerial,
+            initialProgress: latest,
+            reattached: true,
+          });
+        }
+        if (latest?.faol && latestNonce) {
+          const nextSerial = latestNonce === Number(nonce)
+            ? sessionSerial
+            : claimGenerationSessionV236(latestNonce);
+          if (!nextSerial) break;
+          setGenerationPhase("calculating");
+          setGenerationStartedAt(Date.now());
+          setSearchStartedAt(Date.now());
+          setSearchFinishedAt(null);
+          setProgressWindowOpen(true);
+          setLiveProgress(latest);
+          markStopPendingV236(
+            Boolean(latest?.toxtatish_soraldi) || String(latest?.bosqich || "") === "toxtatish_soraldi"
+          );
+          setMessage({ tone: "success", text: `Faol Jadval #${latest.ko_rinish_raqami || latest.jadval_raqami || "—"} jarayoniga qayta ulandi.` });
+          if (nextSerial === sessionSerial) {
+            progress = latest;
+            missingResponses = 0;
+            continue;
+          }
+          return watchGenerationV236({
+            nonce: latestNonce,
+            sessionSerial: nextSerial,
+            initialProgress: latest,
+            reattached: true,
+          });
+        }
+
+        releaseGenerationSessionV236(sessionSerial, nonce);
+        setMessage({ tone: "warning", text: "Backendda bu qidiruv faol emas. Jarayon tugmasi xavfsiz tiklandi; oldingi jadval o‘zgarmadi." });
+        return { status: "inactive" };
+      }
+
+      missingResponses = 0;
+      setLiveProgress(progress);
+      if (stage === "toxtatish_soraldi" || progress?.toxtatish_soraldi) {
+        markStopPendingV236(true);
+      }
+      const checkpointAvailable = activeRunId > 0 && Number(progress?.foiz || 0) >= 55
+        && ["toliq_saqlandi", "revision_saqlandi", "oqituvchi_yaxshilanmoqda", "yaxshilanmoqda", "toxtatish_soraldi"].includes(stage);
+      const checkpointKey = `${activeRunId}.${activeRevision}`;
+      if (checkpointAvailable && checkpointKey !== loadedCheckpointKey) {
+        loadedCheckpointKey = checkpointKey;
+        if (!runListLoaded) {
+          await reloadRef.current?.({ silent: true });
+          runListLoaded = true;
+        }
+        if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+        setRunId(String(activeRunId));
+        const checkpointDetail = await loadRunRef.current?.(activeRunId, activeRevision);
+        if (!ownsGenerationSessionV236(sessionSerial, nonce)) return { status: "superseded" };
+        if (checkpointDetail?.urinish?.id) {
+          setResultWindowOpen(true);
+          if (!reattached) {
+            setMessage({ tone: "success", text: progress?.xabar || `Jadval #${activeRunId} saqlandi. O‘qituvchilar navbatma-navbat yaxshilanmoqda.` });
+          }
+        } else {
+          loadedCheckpointKey = "";
+        }
+      }
+
+      await waitForGenerationV236(1000);
+      progress = null;
+    }
+    return { status: "superseded" };
   };
 
   const checkSources = async silent => {
@@ -7699,6 +7926,102 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       loadRun(runs[0].id);
     }
   }, [runs, runId]);
+  useEffect(() => {
+    // V23.6 ACTIVE GENERATION REATTACH: sahifa yoki 4-bosqich qayta ochilsa,
+    // backenddagi faol nonce'ga ulanib bitta egali polling sessiyasini davom
+    // ettiramiz. Birinchi tekshiruv tugamaguncha yangi generator tugmasi yopiq.
+    let disposed = false;
+    let probing = false;
+    let retryTimer = null;
+
+    const scheduleProbeRetry = () => {
+      if (disposed || retryTimer || generationSessionRef.current.active) return;
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null;
+        probeAndAttach(true);
+      }, 2000);
+    };
+
+    const probeAndAttach = async (showChecking = true) => {
+      if (disposed || probing) return;
+      if (generationSessionRef.current.active) {
+        setGenerationProbePending(false);
+        return;
+      }
+      probing = true;
+      if (showChecking) setGenerationProbePending(true);
+      let probeCompleted = false;
+      try {
+        const result = await fetchLatestGenerationV236(3);
+        if (disposed || generationSessionRef.current.active) return;
+        if (!result.reachable) {
+          setMessage({ tone: "warning", text: "Faol jadval jarayonini tekshirishda aloqa uzildi. Yangi qidiruv ochilmaydi; tekshiruv avtomatik takrorlanmoqda…" });
+          scheduleProbeRetry();
+          return;
+        }
+        probeCompleted = true;
+        if (retryTimer) {
+          window.clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+        const progress = result.progress;
+        const attachedNonce = validGenerationNonceV236(progress?.qidiruv_nonce);
+        if (!progress?.faol || !attachedNonce) return;
+
+        const sessionSerial = claimGenerationSessionV236(attachedNonce);
+        if (!sessionSerial || disposed) return;
+        setGenerationPhase("calculating");
+        setGenerationStartedAt(Date.now());
+        setSearchStartedAt(Date.now());
+        setSearchFinishedAt(null);
+        setProgressWindowOpen(true);
+        setLiveProgress(progress);
+        markStopPendingV236(
+          Boolean(progress?.toxtatish_soraldi) || String(progress?.bosqich || "") === "toxtatish_soraldi"
+        );
+        setMessage({ tone: "success", text: `Oldin boshlangan Jadval #${progress.ko_rinish_raqami || progress.jadval_raqami || "—"} jarayoniga qayta ulandi. O‘qituvchi oknolari jonli kuzatilmoqda.` });
+        watchGenerationV236({
+          nonce: attachedNonce,
+          sessionSerial,
+          initialProgress: progress,
+          reattached: true,
+        }).catch(error => {
+          if (!ownsGenerationSessionV236(sessionSerial, attachedNonce)) return;
+          releaseGenerationSessionV236(sessionSerial, attachedNonce);
+          if (mountedRef.current) setMessage({ tone: "error", text: error?.message || "Jarayon kuzatuvi kutilmagan xato bilan to‘xtadi." });
+        });
+      } finally {
+        probing = false;
+        if (!disposed && (probeCompleted || generationSessionRef.current.active)) {
+          setGenerationProbePending(false);
+        }
+      }
+    };
+
+    const reprobe = () => {
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+      probeAndAttach(true);
+    };
+    const onFocus = () => { reprobe(); };
+    const onOnline = () => { reprobe(); };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") reprobe();
+    };
+    probeAndAttach(true);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      disposed = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [maktabId, token, apiBase]);
   const openResultWindow = async () => {
     const id = detail?.urinish?.id || runId || runs[0]?.id;
     if (!id) return;
@@ -7707,13 +8030,13 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   };
 
   const generate = async () => {
-    const previousRunId = runs[0]?.id || runId || null;
+    if (generationProbePending || generationSessionRef.current.active) return;
     const generationStart = Date.now();
     const searchNonce = generationStart;
+    let ownedNonce = searchNonce;
+    let ownedSessionSerial = claimGenerationSessionV236(ownedNonce);
+    if (!ownedSessionSerial) return;
     let solverRequestStartedAt = null;
-    let checkpointOpened = false;
-    stopRequestedRef.current = false;
-    setGenerating(true);
     setProgressWindowOpen(true);
     setGenerationPhase("capability");
     setGenerationBudgetSeconds(DEFAULT_GENERATION_BUDGET_SECONDS_V219);
@@ -7722,10 +8045,9 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     setSearchFinishedAt(null);
     setMessage(null);
     setGenerationFailure(null);
-    setGenerationNonce(searchNonce);
     setLiveProgress({
-      jadval_raqami: Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1,
-      ko_rinish_raqami: String(Math.max(0, ...runs.map(item => Number(item.id) || 0)) + 1),
+      jadval_raqami: 0,
+      ko_rinish_raqami: "—",
       yaxshilanish: 0,
       foiz: 2,
       bosqich: "boshlanish",
@@ -7761,7 +8083,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           .join(", ");
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V23.5 paketidagi barcha 5 faylni birga deploy qiling. Eski yoki yetishmagan modullar: ${mixedModules || "exact/diagnostika"}. Frontend: ${SAMTM_TIMETABLE_FRONTEND_RELEASE}; backend: ${capability?.jadval_release || "noma’lum"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V23.6 paketidagi barcha 5 faylni birga deploy qiling. Eski yoki yetishmagan modullar: ${mixedModules || "exact/diagnostika"}. Frontend: ${SAMTM_TIMETABLE_FRONTEND_RELEASE}; backend: ${capability?.jadval_release || "noma’lum"}.`,
         });
         return;
       }
@@ -7787,73 +8109,44 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const started = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/boshlash?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        // Date.now nonce faqat start so‘rovini bog‘laydi. Polling va Stop
+        // backend qaytargan canonical lease nonce bilan ishlaydi.
         body: JSON.stringify({ maktab_id: maktabId, urinishlar_soni: 1, generator_rejimi: 1, qidiruv_nonce: searchNonce }),
       });
       if (!started?.qabul_qilindi) throw new Error(started?.xabar || "Backend jadval ishini boshlamadi.");
+      const acceptedNonce = validGenerationNonceV236(started?.qidiruv_nonce);
+      const reservedRunId = Number(started?.jadval_raqami || 0);
+      if (!acceptedNonce || !Number.isSafeInteger(reservedRunId) || reservedRunId < 1) {
+        const contractError = new Error("Backend start javobida canonical qidiruv nonce yoki band qilingan jadval raqami yo‘q.");
+        contractError.code = "GENERATION_CLAIM_INVALID";
+        throw contractError;
+      }
+      const acceptedSession = switchGenerationSessionV236(
+        ownedSessionSerial,
+        ownedNonce,
+        acceptedNonce,
+      );
+      if (!acceptedSession) return;
+      ownedSessionSerial = acceptedSession.serial;
+      ownedNonce = acceptedSession.nonce;
+      setLiveProgress(current => ({
+        ...(current || {}),
+        qidiruv_nonce: acceptedNonce,
+        jadval_raqami: reservedRunId,
+        ko_rinish_raqami: String(reservedRunId),
+        yaxshilanish: 0,
+        foiz: Math.max(1, Number(current?.foiz || 0)),
+        bosqich: started?.bosqich || "navbatda",
+        xabar: started?.xabar || "Jadval backendda navbatga olindi.",
+      }));
       setMessage({ tone: "success", text: "Jadval backendda mustaqil yaratila boshladi. Sahifa yopilsa ham davom etadi; faqat “To‘xtatish” tugmasi to‘xtatadi." });
-      let finalProgress = null;
-      while (true) {
-        await new Promise(resolve => window.setTimeout(resolve, 1000));
-        if (stopRequestedRef.current) return;
-        let progress;
-        try {
-          progress = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(searchNonce)}`, { timeoutMs: 5000 });
-        } catch (_) {
-          if (stopRequestedRef.current) return;
-          setMessage({ tone: "warning", text: "Holatni olishda aloqa uzildi. Backend hisoblashda davom etmoqda; ekran avtomatik qayta ulanadi." });
-          continue;
-        }
-        if (stopRequestedRef.current) return;
-        if (!progress?.jadval_raqami) continue;
-        setLiveProgress(progress);
-        const checkpointAvailable = Number(progress.foiz || 0) >= 55
-          && [
-            "toliq_saqlandi", "revision_saqlandi",
-            "oqituvchi_yaxshilanmoqda", "yaxshilanmoqda",
-            "tayyor", "toxtatish_soraldi",
-          ].includes(progress.bosqich);
-        if (!checkpointOpened && checkpointAvailable) {
-          checkpointOpened = true;
-          await reload();
-          setRunId(String(progress.jadval_raqami));
-          const checkpointDetail = await loadRun(progress.jadval_raqami, Number(progress.yaxshilanish || 0));
-          if (checkpointDetail?.urinish?.id) {
-            setResultWindowOpen(true);
-            setMessage({ tone: "success", text: progress.xabar || `Jadval #${progress.jadval_raqami} saqlandi va hozir ochish mumkin. O‘qituvchilar yaxshilanmoqda.` });
-          } else {
-            checkpointOpened = false;
-          }
-        }
-        if (["tayyor", "xato", "toxtatildi"].includes(progress.bosqich)) {
-          finalProgress = progress;
-          break;
-        }
-      }
-      setSearchFinishedAt(Date.now());
-      if (finalProgress?.bosqich === "toxtatildi") {
-        await reload();
-        const stoppedRunId = finalProgress?.jadval_raqami;
-        const stoppedDetail = stoppedRunId ? await loadRun(stoppedRunId, Number(finalProgress?.yaxshilanish || 0)) : null;
-        if (stoppedDetail?.urinish?.id) {
-          setRunId(String(stoppedDetail.urinish.id));
-          setGenerationFailure(null);
-          setResultWindowOpen(true);
-          setMessage({ tone: "success", text: finalProgress.xabar || `To‘xtatildi. Shu paytgacha topilgan eng yaxshi Jadval #${stoppedDetail.urinish.id} saqlandi va ochildi.` });
-        } else {
-          setMessage({ tone: "warning", text: finalProgress.xabar || "To‘xtatildi. Hali 100% to‘liq natija topilmagan edi; oldingi jadval o‘chirilmagan." });
-        }
-        return;
-      }
-      if (finalProgress?.bosqich === "xato") {
-        throw new Error(finalProgress.xabar || "Backend jadvalni yakunlay olmadi. Oldingi jadval saqlandi.");
-      }
-      await reload();
-      setRunId(String(finalProgress.jadval_raqami));
-      await loadRun(finalProgress.jadval_raqami, Number(finalProgress?.yaxshilanish || 0));
-      setMessage({ tone: "success", text: finalProgress.xabar || `Jadval #${finalProgress.ko_rinish_raqami || finalProgress.jadval_raqami} tayyor. Eng yaxshi variant saqlandi.` });
-      setResultWindowOpen(true);
+      await watchGenerationV236({
+        nonce: ownedNonce,
+        sessionSerial: ownedSessionSerial,
+      });
       return;
     } catch (error) {
+      if (!ownsGenerationSessionV236(ownedSessionSerial, ownedNonce)) return;
       const rawMessage = String(error?.message || "");
       const structuredFailure = error?.data?.detail && typeof error.data.detail === "object"
         ? error.data.detail
@@ -7873,13 +8166,65 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       const searchUnknown = failureStatus === "UNKNOWN";
       const provenInfeasible = failureStatus === "INFEASIBLE" && teacherWindowReportBooleanV211(structuredFailure?.proof_complete, false);
       const networkFailure = error?.code === "FETCH_TIMEOUT" || /failed to fetch|networkerror|load failed|network request failed/i.test(rawMessage);
-      if (!networkFailure && solverRequestStartedAt) setSearchFinishedAt(Date.now());
-      if (networkFailure) {
+      const duplicateStart = Number(error?.status || 0) === 409;
+      const invalidStartClaim = error?.code === "GENERATION_CLAIM_INVALID";
+
+      if ((duplicateStart || invalidStartClaim) && solverRequestStartedAt && ownsGenerationSessionV236(ownedSessionSerial, ownedNonce)) {
         setGenerationPhase("recovery");
-        setMessage({ tone: "warning", text: "Aloqa uzildi, lekin backend hisoblashni davom ettirishi mumkin. Yangi draft avtomatik qidirilmoqda…" });
-        const recovered = await recoverGeneratedDraft(previousRunId);
-        if (recovered) return;
+        setMessage({
+          tone: "warning",
+          text: duplicateStart
+            ? "Backendda avval boshlangan jadval topildi. Yangi jarayon ochilmaydi; mavjud jarayonga ulanmoqda…"
+            : "Start javobidagi lease to‘liq emas. Backenddagi haqiqiy faol jarayonga xavfsiz ulanmoqda…",
+        });
+        let confirmedInactive = 0;
+        while (ownsGenerationSessionV236(ownedSessionSerial, ownedNonce) && confirmedInactive < 3) {
+          const latestResult = await fetchLatestGenerationV236(5);
+          if (!ownsGenerationSessionV236(ownedSessionSerial, ownedNonce)) return;
+          if (!latestResult.reachable) {
+            setMessage({ tone: "warning", text: "Mavjud jarayonga ulanishda aloqa uzildi. Tugma tiklanmaydi; ulanish avtomatik takrorlanmoqda…" });
+            await waitForGenerationV236(1500);
+            continue;
+          }
+          const latest = latestResult.progress;
+          const latestNonce = validGenerationNonceV236(latest?.qidiruv_nonce);
+          const latestStage = String(latest?.bosqich || "");
+          if (latestNonce && (latest?.faol || ["tayyor", "xato", "toxtatildi"].includes(latestStage))) {
+            const attachedSerial = latestNonce === Number(ownedNonce)
+              ? ownedSessionSerial
+              : claimGenerationSessionV236(latestNonce);
+            if (!attachedSerial) return;
+            ownedSessionSerial = attachedSerial;
+            ownedNonce = latestNonce;
+            setGenerationPhase("calculating");
+            setGenerationStartedAt(Date.now());
+            setSearchStartedAt(Date.now());
+            setSearchFinishedAt(null);
+            setProgressWindowOpen(true);
+            setLiveProgress(latest);
+            markStopPendingV236(
+              Boolean(latest?.toxtatish_soraldi) || latestStage === "toxtatish_soraldi"
+            );
+            await watchGenerationV236({
+              nonce: ownedNonce,
+              sessionSerial: ownedSessionSerial,
+              initialProgress: latest,
+              reattached: true,
+            });
+            return;
+          }
+          confirmedInactive += 1;
+          if (confirmedInactive < 3) await waitForGenerationV236(1000);
+        }
       }
+
+      if (networkFailure && solverRequestStartedAt && ownsGenerationSessionV236(ownedSessionSerial, ownedNonce)) {
+        setGenerationPhase("recovery");
+        setMessage({ tone: "warning", text: "Boshlash javobi uzildi. Backenddagi aynan shu qidiruv topilguncha tugma tiklanmaydi va holat avtomatik tekshiriladi…" });
+        const watched = await watchGenerationV236({ nonce: ownedNonce, sessionSerial: ownedSessionSerial });
+        if (watched?.status !== "inactive") return;
+      }
+      if (!networkFailure && solverRequestStartedAt) setSearchFinishedAt(Date.now());
       setMessage({
         tone: !validationFailure && (searchUnknown || (failureStatus === "INFEASIBLE" && !provenInfeasible)) ? "warning" : "error",
         text: networkFailure
@@ -7894,12 +8239,14 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       });
       if (!networkFailure) await checkSources(true);
     } finally {
-      setGenerating(false);
+      releaseGenerationSessionV236(ownedSessionSerial, ownedNonce);
     }
   };
 
   const stopGeneration = async () => {
-    if (!generating || !generationNonce) return;
+    if (!generating || !generationNonce || stopPendingRef.current) return;
+    const current = generationSessionRef.current;
+    if (!current.active || Number(current.nonce) !== Number(generationNonce)) return;
     try {
       let stopResponse = null;
       for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -7910,57 +8257,20 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       if (!stopResponse?.qabul_qilindi) {
         throw new Error("To‘xtatish signali backend tomonidan qabul qilinmadi. Jarayon holatini yangilab yana bosing.");
       }
-
-      stopRequestedRef.current = true;
+      markStopPendingV236(true);
       setLiveProgress(current => ({
         ...(current || {}),
         bosqich: "toxtatish_soraldi",
         xabar: "To‘xtatish qabul qilindi. Eng oxirgi 100% variant xavfsiz ochilmoqda…",
       }));
-      let progress = liveProgress;
-      // Backend cancel watcher odatda bir soniyadan tez javob beradi. Terminal
-      // holatni qisqa kutib, lokal eski NN.n emas, bazadagi eng oxirgi
-      // promoted #NNni ochamiz.
-      for (let attempt = 0; attempt < 16; attempt += 1) {
-        try {
-          const fresh = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { timeoutMs: 5000 });
-          if (fresh?.jadval_raqami) progress = fresh;
-          if (["toxtatildi", "tayyor", "xato"].includes(String(fresh?.bosqich || ""))) break;
-        } catch (_) {
-          break;
-        }
-        await new Promise(resolve => window.setTimeout(resolve, 250));
-      }
-      const stoppedProgress = {
-        ...(progress || {}),
-        bosqich: progress?.bosqich || "toxtatish_soraldi",
-        xabar: "To‘xtatildi. Oxirgi saqlangan 100% jadval ochilmoqda.",
-      };
-      setLiveProgress(stoppedProgress);
-      setSearchFinishedAt(Date.now());
-      setGenerating(false);
-      setGenerationNonce(null);
-
-      const savedRunId = stoppedProgress?.jadval_raqami || stopResponse?.jadval_raqami;
-      if (savedRunId && Number(stoppedProgress?.foiz || 0) >= 55) {
-        await reload();
-        const stoppedDetail = await loadRun(savedRunId);
-        if (stoppedDetail?.urinish?.id) {
-          const savedRevision = Number(stoppedDetail.urinish.yaxshilanish || stoppedProgress?.yaxshilanish || 0);
-          setRunId(String(stoppedDetail.urinish.id));
-          setGenerationFailure(null);
-          setResultWindowOpen(true);
-          setMessage({ tone: "success", text: `To‘xtatildi. Eng yaxshi ${savedRevision ? `#${savedRunId}.${savedRevision}` : `#${savedRunId}`} varianti asosiy Jadval #${savedRunId}ga qo‘yildi va ochildi.` });
-          return;
-        }
-      }
-      setMessage({ tone: "warning", text: "To‘xtatildi. Yangi 100% checkpoint hali saqlanmagan edi; oldingi jadval o‘zgarmadi." });
+      setMessage({ tone: "warning", text: "To‘xtatish qabul qilindi. Backend eng yaxshi 100% natijani xavfsiz yakunlamaguncha kuzatuv davom etadi." });
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
     }
   };
 
   const approve = async () => {
+    if (generating) return setMessage({ tone: "warning", text: "Jadval yaratilayotgan paytda tasdiqlash yopiq. Jarayon yakunlanishini kuting." });
     const id = detail?.urinish?.id;
     if (!id) return;
     const diagnostics = detail?.urinish?.diagnostika || {};
@@ -7974,7 +8284,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         body: JSON.stringify({ urinish_id: id, majburan: false }),
       });
       setMessage({ tone: "success", text: `Jadval 100% moslik bilan tasdiqlandi. ${data.qayta_taqsimlandi || 0} ta mavzu taqvimi yangilandi.` });
-      await reload();
+      await reload({ silent: true });
       await loadRun(id);
     } catch (error) {
       setMessage({ tone: "error", text: error.message });
@@ -8061,7 +8371,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     ),
   };
   const match = diagnostics.jadval_mosligi || {};
-  const canApprove = Boolean(displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
+  const canApprove = Boolean(!generating && displayDetail && diagnostics.tasdiqlash_mumkin && detail?.urinish?.holat === "draft");
   const pre = preflight?.xulosa || {};
   const matchSummary = match.xulosa || {};
 
@@ -8072,7 +8382,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
   ];
 
   return <div className="space-y-3">
-    {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload(); if (id) await loadRun(id); }}/>} 
+    {resultWindowOpen && displayDetail && <GeneratorResultWindowV208 detail={displayDetail} setup={setup} token={token} apiBase={apiBase} selectedClass={selectedClass} setSelectedClass={setSelectedClass} onClose={() => setResultWindowOpen(false)} onRoomChanged={async result => { const id = result?.urinish_id || displayDetail?.urinish?.id; await reload({ silent: true }); if (id) await loadRun(id); }} readOnly={generating}/>} 
     {generating && progressWindowOpen && <ScheduleRobotProgressV201
       phase={generationPhase}
       setup={setup}
@@ -8082,6 +8392,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       liveProgress={liveProgress}
       onStop={stopGeneration}
       onClose={() => setProgressWindowOpen(false)}
+      stopPending={stopPending}
     />}
     {generating && !progressWindowOpen && (
       <button
@@ -8121,8 +8432,8 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         <div className="flex flex-wrap gap-2">
           {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
           {generating
-            ? <button onClick={stopGeneration} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.red }}><X size={17}/> To‘xtatish</button>
-            : <button onClick={generate} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2" style={{ background: palette.blue, cursor: checking ? "wait" : "pointer" }}><WandSparkles size={17}/> Jadval yaratish</button>}
+            ? <button onClick={stopGeneration} disabled={stopPending} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:cursor-wait disabled:opacity-75" style={{ background: palette.red }}><X size={17}/> {stopPending ? "To‘xtatilmoqda…" : "To‘xtatish"}</button>
+            : <button onClick={generate} disabled={checking || generationProbePending} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:opacity-65" style={{ background: palette.blue, cursor: checking || generationProbePending ? "wait" : "pointer" }}>{generationProbePending ? <Loader2 size={17} className="animate-spin"/> : <WandSparkles size={17}/>} {generationProbePending ? "Faol jarayon tekshirilmoqda…" : "Jadval yaratish"}</button>}
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
@@ -8234,14 +8545,15 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       </Card>
     </div>}
 
-    {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload(); await loadRun(result.urinish_id); }}/>} 
-    {displayDetail && !generationFailure && <SmartSwapPanelV192
+    {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} readOnly={generating} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload({ silent: true }); await loadRun(result.urinish_id); }}/>} 
+    {displayDetail && !generationFailure && generating && <SmartNotice tone="info">Jadval yaratilayotgan yoki yaxshilanayotgan paytda xona, qo‘lda almashtirish va tasdiqlash faqat o‘qish rejimida. Jarayon tugagach tahrir ochiladi.</SmartNotice>}
+    {displayDetail && !generationFailure && !generating && <SmartSwapPanelV192
       token={token}
       apiBase={apiBase}
       maktabId={maktabId}
       detail={displayDetail}
       onApplied={async id => {
-        await reload();
+        await reload({ silent: true });
         setRunId(String(id));
         await loadRun(id);
       }}
@@ -8275,7 +8587,7 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
   const [step,setStep]=useState(teacherOnly?(initialStep===5?5:2):initialStep);const [setup,setSetup]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [selectedTeacher,setSelectedTeacher]=useState("");
   const stepHistoryRef=useRef([teacherOnly?(initialStep===5?5:2):initialStep]);
   const phoneBackInProgressRef=useRef(false);
-  const load=async()=>{if(!maktabId){setError("Maktab ID topilmadi");setLoading(false);return;}setLoading(true);setError("");try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));}catch(e){setError(e.message);}finally{setLoading(false);}};
+  const load=async(options={})=>{const silent=options?.silent===true;if(!maktabId){if(!silent)setError("Maktab ID topilmadi");if(!silent)setLoading(false);return null;}if(!silent){setLoading(true);setError("");}try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));return d;}catch(e){if(!silent)setError(e.message);return null;}finally{if(!silent)setLoading(false);}};
   useEffect(()=>{load();},[maktabId,token,apiBase]);
   useEffect(()=>{
     if(phoneBackInProgressRef.current){phoneBackInProgressRef.current=false;return;}
