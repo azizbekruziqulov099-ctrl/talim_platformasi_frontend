@@ -604,11 +604,92 @@ const V237_CLASS_ALPHABET_LABELS = Object.freeze({
   uzbek_kiril: "O‘zbek kirill (А, Б, В… Ў, Қ…)",
 });
 
+// V23.8: every class owns its education language.  The value is deliberately
+// short and stable because the same key travels through class settings,
+// curriculum, teacher load and timetable skeleton payloads.
+const V238_EDUCATION_LANGUAGES = Object.freeze({
+  uz: Object.freeze({ label: "O‘zbek sinfi", short: "O‘zbek", badge: "UZ" }),
+  ru: Object.freeze({ label: "Rus sinfi", short: "Rus", badge: "RU" }),
+  en: Object.freeze({ label: "Ingliz sinfi", short: "Ingliz", badge: "EN" }),
+});
+const V238_EDUCATION_LANGUAGE_ORDER = Object.freeze(["uz", "ru", "en"]);
+
+function v238NormalizeEducationLanguage(value) {
+  const key = String(value || "").trim().toLocaleLowerCase("uz");
+  if (["ru", "rus", "russian", "рус", "русский"].includes(key)) return "ru";
+  if (["en", "eng", "english", "ingliz", "английский"].includes(key)) return "en";
+  return "uz";
+}
+
+function v238ClassEducationLanguage(row) {
+  return v238NormalizeEducationLanguage(
+    row?.talim_tili ?? row?.ta_lim_tili ?? row?.oquv_tili ?? row?.education_language
+  );
+}
+
+function v238EducationLanguageMeta(value) {
+  return V238_EDUCATION_LANGUAGES[v238NormalizeEducationLanguage(value)];
+}
+
+function v238RowMatchesClassLanguage(row, classRow) {
+  const explicit = row?.talim_tili ?? row?.ta_lim_tili ?? row?.oquv_tili ?? row?.education_language;
+  return explicit == null || explicit === ""
+    || v238NormalizeEducationLanguage(explicit) === v238ClassEducationLanguage(classRow);
+}
+
 const v237EmptySchoolClassPlan = () => Array.from({ length: 11 }, (_, index) => ({
   sinf: index + 1,
   birinchi_smena: 0,
   ikkinchi_smena: 0,
 }));
+
+const v238EmptyLanguageClassPlan = () => Array.from({ length: 11 }, (_, index) => ({
+  sinf: index + 1,
+  tillar: Object.fromEntries(V238_EDUCATION_LANGUAGE_ORDER.map(talim_tili => [
+    talim_tili,
+    { birinchi_smena: 0, ikkinchi_smena: 0 },
+  ])),
+}));
+
+// V23.8_PREVIEW_SHIFT_FIRST_ORDER: this must mirror
+// `_v237_materialize_class_plan` exactly. For each grade the backend spends
+// letters on every language's 1st shift (UZ -> RU -> EN) before it starts the
+// same language order for the 2nd shift. Keeping this pure also makes the
+// preview contract easy to regression-test without rendering the workspace.
+function v238BuildNewSchoolPlanPreviewRow(row, alphabetRows, shiftCount) {
+  const alphabet = Array.isArray(alphabetRows) ? alphabetRows : [];
+  const hasSecondShift = Number(shiftCount) === 2;
+  const tillar = {};
+  let cursor = 0;
+
+  V238_EDUCATION_LANGUAGE_ORDER.forEach(talim_tili => {
+    const source = row?.tillar?.[talim_tili] || {};
+    const firstCount = Math.max(0, Number(source.birinchi_smena || 0));
+    const secondCount = hasSecondShift
+      ? Math.max(0, Number(source.ikkinchi_smena || 0)) : 0;
+    tillar[talim_tili] = {
+      ...source,
+      birinchi_smena: firstCount,
+      ikkinchi_smena: secondCount,
+      birinchi_harflar: [],
+      ikkinchi_harflar: [],
+      jami: firstCount + secondCount,
+    };
+  });
+
+  ["birinchi", "ikkinchi"].forEach(shiftName => {
+    if (shiftName === "ikkinchi" && !hasSecondShift) return;
+    const countKey = `${shiftName}_smena`;
+    const lettersKey = `${shiftName}_harflar`;
+    V238_EDUCATION_LANGUAGE_ORDER.forEach(talim_tili => {
+      const count = Number(tillar[talim_tili][countKey] || 0);
+      tillar[talim_tili][lettersKey] = alphabet.slice(cursor, cursor + count);
+      cursor += count;
+    });
+  });
+
+  return { ...row, tillar, jami: cursor };
+}
 
 const V237_CLASS_COLLATOR = typeof Intl !== "undefined"
   ? new Intl.Collator(["uz", "ru"], { numeric: true, sensitivity: "base" })
@@ -2828,6 +2909,8 @@ function TeacherFirstLoadEditorV192({
   planOnly = false, showPlan = true, refreshKey = 0,
 }) {
   const [data, setData] = useState(null);
+  const [educationLanguage, setEducationLanguage] = useState("uz");
+  const [teacherClassLanguageFilter, setTeacherClassLanguageFilter] = useState("all");
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2894,8 +2977,10 @@ function TeacherFirstLoadEditorV192({
   const load = async () => {
     setLoading(true);
     try {
+      const languageQuery = planOnly
+        ? `&talim_tili=${encodeURIComponent(educationLanguage)}` : "";
       const result = await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`
+        `${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}${languageQuery}`
       );
       setData(result);
       if (startWithNew) {
@@ -2914,7 +2999,7 @@ function TeacherFirstLoadEditorV192({
     }
   };
 
-  useEffect(() => { load(); }, [maktabId, token, apiBase, refreshKey]);
+  useEffect(() => { load(); }, [maktabId, token, apiBase, refreshKey, planOnly, educationLanguage]);
 
   useEffect(() => {
     if (!planReferenceOpen && !allocationInspectorClassId) return undefined;
@@ -2935,8 +3020,13 @@ function TeacherFirstLoadEditorV192({
 
   useEffect(() => {
     if (!data) return;
-    const templateRows = data.oquv_reja?.andoza_qatorlar || [];
-    const savedRows = data.oquv_reja?.qatorlar || [];
+    const classById = new Map((data?.sinflar || []).map(row => [String(row.id), row]));
+    const languageRows = rows => (rows || []).filter(row => !planOnly || (
+      v238NormalizeEducationLanguage(row?.talim_tili ?? classById.get(String(row.sinf_id))?.talim_tili)
+        === educationLanguage
+    ));
+    const templateRows = languageRows(data.oquv_reja?.andoza_qatorlar || []);
+    const savedRows = languageRows(data.oquv_reja?.qatorlar || []);
     const centralTemplate = Boolean(data.oquv_reja?.markaziy_andoza);
     const displayRows = centralTemplate ? templateRows : [...templateRows, ...savedRows];
     const subjectMap = new Map();
@@ -2953,13 +3043,13 @@ function TeacherFirstLoadEditorV192({
     setPlanCells(nextCells);
     setClassHourName(data.oquv_reja?.sinf_soati_nomi || "KELAJAK SOATI");
     const nextClassHours = {};
-    (data.oquv_reja?.sinf_jami || []).forEach(item => {
+    languageRows(data.oquv_reja?.sinf_jami || []).forEach(item => {
       const cls = (data.sinflar || []).find(row => String(row.id) === String(item.sinf_id));
       const grade = Number(String(cls?.sinf || "").match(/\d+/)?.[0] || 0);
       if (grade && nextClassHours[grade] == null) nextClassHours[grade] = Number(item.sinf_soati || 0);
     });
     setClassHourGradeHours(nextClassHours);
-  }, [data]);
+  }, [data, planOnly, educationLanguage]);
 
   useEffect(() => {
     if (!data || creatingNew) {
@@ -3425,6 +3515,10 @@ function TeacherFirstLoadEditorV192({
     });
   };
 
+  const visiblePlanClasses = (data?.sinflar || []).filter(cls =>
+    !planOnly || v238ClassEducationLanguage(cls) === educationLanguage
+  );
+
   const planPayloadRows = () => {
     const seenSubjects = new Set();
     const rows = [];
@@ -3433,7 +3527,7 @@ function TeacherFirstLoadEditorV192({
       const subjectKey = subjectKeyV193(cleanSubject);
       if (!subjectKey || isClassHourSubjectV199(cleanSubject) || seenSubjects.has(subjectKey)) return;
       seenSubjects.add(subjectKey);
-      (data?.sinflar || []).forEach(cls => {
+      visiblePlanClasses.forEach(cls => {
         const hours = Number(planCells[planCellKey(cls.id, cleanSubject)] || 0);
         if (hours > 0) rows.push({
           sinf_id: Number(cls.id),
@@ -3461,7 +3555,7 @@ function TeacherFirstLoadEditorV192({
     if (!qatorlar.length) {
       return setPlanMessage({ tone: "error", text: "Hech bir sinf–fan kesishmasiga haftalik soat yozilmagan." });
     }
-    const emptyClasses = (data?.sinflar || []).filter(cls =>
+    const emptyClasses = visiblePlanClasses.filter(cls =>
       !qatorlar.some(row => String(row.sinf_id) === String(cls.id))
     );
     if (approve && emptyClasses.length) {
@@ -3478,7 +3572,11 @@ function TeacherFirstLoadEditorV192({
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ maktab_id: maktabId, qatorlar }),
+          body: JSON.stringify({
+            maktab_id: maktabId,
+            talim_tili: planOnly ? educationLanguage : undefined,
+            qatorlar,
+          }),
         }
       );
       const classHourRows = [];
@@ -3492,7 +3590,11 @@ function TeacherFirstLoadEditorV192({
       });
       await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oquv_reja/sinf_soati?token=${encodeURIComponent(token)}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maktab_id: maktabId, qatorlar: classHourRows }),
+        body: JSON.stringify({
+          maktab_id: maktabId,
+          talim_tili: planOnly ? educationLanguage : undefined,
+          qatorlar: classHourRows,
+        }),
       });
       let nextMatrix = saved.matritsa;
       let approvalWarnings = [];
@@ -3502,7 +3604,10 @@ function TeacherFirstLoadEditorV192({
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ maktab_id: maktabId }),
+            body: JSON.stringify({
+              maktab_id: maktabId,
+              talim_tili: planOnly ? educationLanguage : undefined,
+            }),
           }
         );
         nextMatrix = approved.matritsa;
@@ -3512,8 +3617,8 @@ function TeacherFirstLoadEditorV192({
       setPlanMessage({
         tone: "success",
         text: approve
-          ? `${data?.sinflar?.length || 0} ta sinfning fan–soat rejasi va ${classHourName || "KELAJAK SOATI"} sozlamasi saqlandi, reja tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
-          : `Barcha sinflarning ${qatorlar.length} ta fan–soat kesishmasi va ${classHourName || "KELAJAK SOATI"} sozlamasi vaqtincha saqlandi. Reja hali tasdiqlanmadi.`,
+          ? `${visiblePlanClasses.length} ta ${planOnly ? v238EducationLanguageMeta(educationLanguage).short + " " : ""}sinfning fan–soat rejasi va ${classHourName || "KELAJAK SOATI"} sozlamasi saqlandi, reja tasdiqlandi.${approvalWarnings.length ? ` ${approvalWarnings.join("; ")}` : ""}`
+          : `${visiblePlanClasses.length} ta sinfning ${qatorlar.length} ta fan–soat kesishmasi va ${classHourName || "KELAJAK SOATI"} sozlamasi vaqtincha saqlandi. Boshqa ta’lim tillari o‘zgarmadi.`,
       });
       await onChanged?.();
       await load();
@@ -3740,7 +3845,12 @@ function TeacherFirstLoadEditorV192({
     changeSpecialty(next.join(";"), specialtyOptions, nextMap, nextActive);
   };
 
-  const specialtyClassIdsForQuickRange = range => (data?.sinflar || [])
+  const teacherLanguageClasses = (data?.sinflar || []).filter(cls =>
+    teacherClassLanguageFilter === "all"
+      || v238ClassEducationLanguage(cls) === teacherClassLanguageFilter
+  );
+
+  const specialtyClassIdsForQuickRange = range => teacherLanguageClasses
     .filter(cls => {
       if (range.all) return true;
       const grade = Number(String(cls.sinf || "").match(/\d+/)?.[0] || 0);
@@ -4254,16 +4364,28 @@ function TeacherFirstLoadEditorV192({
   // bo'lib, maqsaddan oshish xatosini bermaydi va jadvalda alohida +1 turadi.
   const draftWeeklyTotal = draftFanTotal;
   const targetDifference = targetHours ? targetHours - draftFanTotal : 0;
+  // A multilingual plan has an independent approval lifecycle per language.
+  // The global status remains the legacy/non-plan editor source, while the
+  // plan-only screen follows the currently selected language tab.
+  const selectedLanguagePlanState = planOnly
+    ? data?.oquv_reja?.til_holatlari?.[educationLanguage]
+    : null;
+  const activePlanStatus = selectedLanguagePlanState?.holat
+    || data?.oquv_reja?.holat
+    || "draft";
+  const activePlanVersion = Number(
+    selectedLanguagePlanState?.versiya ?? data?.oquv_reja?.versiya ?? 1
+  );
   const planDraftRows = planPayloadRows();
   const planAcademicTotal = planDraftRows.reduce(
     (sum, row) => sum + Number(row.haftalik_soat || 0), 0
   );
-  const planClassHourTotal = (data?.sinflar || []).reduce((sum, cls) => {
+  const planClassHourTotal = visiblePlanClasses.reduce((sum, cls) => {
     const grade = Number(String(cls?.sinf || "").match(/\d+/)?.[0] || 0);
     return sum + Number(classHourGradeHours[grade] || 0);
   }, 0);
   const planSchoolTotal = planAcademicTotal + planClassHourTotal;
-  const planGradeRows = Object.values((data?.sinflar || []).reduce((result, cls) => {
+  const planGradeRows = Object.values(visiblePlanClasses.reduce((result, cls) => {
     const match = String(cls.sinf || "").match(/\d+/);
     const grade = match ? Number(match[0]) : 0;
     if (grade < 1 || grade > 11) return result;
@@ -4710,14 +4832,26 @@ function TeacherFirstLoadEditorV192({
         </div>
         <div className="flex items-center gap-2">
           <span className="px-3 py-2 rounded-xl text-xs font-black" style={{
-            background: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.greenBg : palette.amberBg,
-            color: data?.oquv_reja?.holat === "tasdiqlangan" ? palette.green : palette.amber,
+            background: activePlanStatus === "tasdiqlangan" ? palette.greenBg : palette.amberBg,
+            color: activePlanStatus === "tasdiqlangan" ? palette.green : palette.amber,
           }}>
-            {data?.oquv_reja?.holat === "tasdiqlangan" ? "✓ TASDIQLANGAN" : "VAQTINCHA · TASDIQLANMAGAN"}
+            {activePlanStatus === "tasdiqlangan" ? "✓ TASDIQLANGAN" : "VAQTINCHA · TASDIQLANMAGAN"}
           </span>
-          <span className="text-[11px]" style={{ color: palette.muted }}>V{data?.oquv_reja?.versiya || 1}</span>
+          <span className="text-[11px]" style={{ color: palette.muted }}>V{activePlanVersion}</span>
         </div>
       </div>
+
+      {planOnly && <div className="mt-4 rounded-2xl border p-3" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
+        <div className="text-xs font-black mb-2" style={{ color: palette.ink }}>O‘quv reja tili</div>
+        <div className="grid sm:grid-cols-3 gap-2">
+          {V238_EDUCATION_LANGUAGE_ORDER.map(value => {
+            const active = educationLanguage === value;
+            const meta = V238_EDUCATION_LANGUAGES[value];
+            return <button type="button" key={value} onClick={() => { setEducationLanguage(value); setPlanMessage(null); }} disabled={planSaving || loading} className="px-4 py-3 rounded-xl border text-xs font-black disabled:opacity-50" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>{meta.badge} · {meta.label}</button>;
+          })}
+        </div>
+        <div className="text-[10px] mt-2" style={{ color: palette.muted }}>Har til alohida saqlanadi. Bir tilni tahrirlash boshqa tildagi fan va soatlarni o‘chirmaydi.</div>
+      </div>}
 
       {planMessage && <div className="mt-4"><SmartNotice tone={planMessage.tone}>{planMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center gap-3 mt-4">
@@ -4795,7 +4929,7 @@ function TeacherFirstLoadEditorV192({
       </>}
     </Card>}
 
-    {data?.oquv_reja?.holat !== "tasdiqlangan" && <SmartNotice tone="warning">
+    {activePlanStatus !== "tasdiqlangan" && <SmartNotice tone="warning">
       {planOnly
         ? "Rejani tekshirib tasdiqlasangiz, o‘qituvchi qatorlaridagi haftalik soat avtomatik chiqadi. O‘qituvchini qo‘lda qo‘shish esa hozir ham ochiq."
         : "O‘quv reja tasdiqlanmagan: fan, sinf/guruh va haftalik soatni qo‘lda kiritib saqlashingiz mumkin. Faqat avtomatik soat va jadval manbasi reja tasdiqlanguncha ishlamaydi."}
@@ -5022,6 +5156,13 @@ function TeacherFirstLoadEditorV192({
                 {data?.oquv_reja?.holat === "tasdiqlangan" ? "Reja tasdiqlangan · avto tayyor" : "Reja tasdiqlanmagan · faqat qo‘lda"}
               </span>
             </div>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {[['all','Barcha tillar'], ...V238_EDUCATION_LANGUAGE_ORDER.map(value => [value, V238_EDUCATION_LANGUAGES[value].label])].map(([value,label]) => {
+                const active = teacherClassLanguageFilter === value;
+                return <button type="button" key={value} onClick={() => setTeacherClassLanguageFilter(value)} className="px-3 py-1.5 rounded-lg border text-[9px] font-black" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : '#fff', color: active ? '#fff' : palette.muted }}>{label}</button>;
+              })}
+              <span className="px-2 py-1.5 text-[9px]" style={{ color: palette.muted }}>Sinf tanlansa, fanlar avtomatik shu sinf tilidagi rejadan olinadi.</span>
+            </div>
             <div className="mt-2 rounded-xl border px-2.5 py-2" style={{ borderColor: activeSpecialtyTone.line, background: activeSpecialtyTone.soft }}>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[9px] font-black uppercase mr-1" style={{ color: activeSpecialtyTone.strong }}>Tezkor:</span>
@@ -5040,7 +5181,7 @@ function TeacherFirstLoadEditorV192({
               </div>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
-              {(data?.sinflar || []).map(cls => {
+              {teacherLanguageClasses.map(cls => {
                 const active = specialtyClassIds.includes(String(cls.id));
                 const groupSchemes = new Set(
                   configuredGroupVariantsForClassV198(cls.id)
@@ -5054,7 +5195,7 @@ function TeacherFirstLoadEditorV192({
                   background: active ? activeSpecialtyTone.strong : "#fff",
                   color: active ? "#fff" : palette.ink,
                   borderColor: active ? activeSpecialtyTone.strong : palette.line,
-                }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}<span className="block text-[8px] mt-0.5 opacity-75">{groupHint}</span></button>;
+                }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}<span className="block text-[8px] mt-0.5 opacity-75">{v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge} · {groupHint}</span></button>;
               })}
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -5120,7 +5261,7 @@ function TeacherFirstLoadEditorV192({
                       xona_id: assignedRoomForClassV200(classId)?.id ? String(assignedRoomForClassV200(classId).id) : "",
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white" style={invalidFieldStyleV199(`teacher-row-${index}-class`)}>
-                    {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
+                    {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge}</option>)}
                   </select>
                 </label>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan <span style={{ color: palette.red }}>*</span>
@@ -5712,7 +5853,12 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const planRows = useMemo(() => {
     const saved = data?.oquv_reja?.qatorlar || [];
     const template = data?.oquv_reja?.andoza_qatorlar || [];
-    return saved.length ? saved : template;
+    const source = saved.length ? saved : template;
+    const classById = new Map((data?.sinflar || []).map(cls => [String(cls.id), cls]));
+    return source.filter(row => {
+      const cls = classById.get(String(row.sinf_id));
+      return !cls || v238RowMatchesClassLanguage(row, cls);
+    });
   }, [data]);
 
   const classHourByClass = useMemo(() => {
@@ -5802,7 +5948,13 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   };
 
   const classPlanRows = classId => planRows
-    .filter(row => String(row.sinf_id) === String(classId) && Number(row.haftalik_soat || 0) > 0 && !isClassHourSubjectV199(row.fan_nomi))
+    .filter(row => {
+      const cls = (data?.sinflar || []).find(item => String(item.id) === String(classId));
+      return String(row.sinf_id) === String(classId)
+        && (!cls || v238RowMatchesClassLanguage(row, cls))
+        && Number(row.haftalik_soat || 0) > 0
+        && !isClassHourSubjectV199(row.fan_nomi);
+    })
     .sort((a, b) => Number(b.haftalik_soat || 0) - Number(a.haftalik_soat || 0)
       || String(a.fan_nomi || "").localeCompare(String(b.fan_nomi || ""), "uz"));
 
@@ -5867,6 +6019,8 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
             sinf_id: Number(classId),
             fan_nomi: subject,
             turi: type,
+            additive: true,
+            oldingi_tizimlarni_saqlash: true,
           }),
         }
       );
@@ -6160,14 +6314,14 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         </div>
         <div className="flex flex-wrap gap-2">
           <select value={selectedClassId} onChange={event => setSelectedClassId(event.target.value)} disabled={stepBusy} className="p-2.5 rounded-xl border bg-white text-sm font-black disabled:opacity-50" style={{ borderColor: palette.line, color: palette.ink }}>
-            {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf}</option>)}
+            {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge}</option>)}
           </select>
         </div>
       </div>
 
       {selectedClass && <div className="mt-4 rounded-2xl border overflow-hidden" style={{ borderColor: palette.line }}>
         <div className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: palette.sky }}>
-          <div><div className="text-base font-black" style={{ color: palette.ink }}>{selectedClass.sinf}-{selectedClass.harf} sinf · {scheduleHourLabel(classPlanRows(selectedClass.id).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0))} fan soati</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{skeleton.periods} tagacha vaqtinchalik dars katagi · xona: {selectedClass.xona || selectedClass.xona_nomi || "biriktirilmagan"}</div></div>
+          <div><div className="text-base font-black" style={{ color: palette.ink }}>{selectedClass.sinf}-{selectedClass.harf} sinf · {v238EducationLanguageMeta(v238ClassEducationLanguage(selectedClass)).label} · {scheduleHourLabel(classPlanRows(selectedClass.id).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0))} fan soati</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{skeleton.periods} tagacha vaqtinchalik dars katagi · faqat shu ta’lim tilidagi fanlar · xona: {selectedClass.xona || selectedClass.xona_nomi || "biriktirilmagan"}</div></div>
           <label className="flex items-center gap-2 text-xs font-black"><span style={{ color: palette.ink }}>Sinf rahbari</span><select value={leaders[String(selectedClass.id)] || ""} onChange={event => { setLeaders(current => ({ ...current, [String(selectedClass.id)]: event.target.value })); setSaveMessage(null); }} disabled={stepBusy} className="p-2 rounded-lg border bg-white disabled:opacity-50" style={{ borderColor: palette.line }}><option value="">Tanlanmagan</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></label>
         </div>
         <div className="p-3 border-t" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
@@ -6178,15 +6332,17 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-2 mt-3 max-h-[250px] overflow-auto pr-1">
             {classPlanRows(selectedClass.id).map(row => {
               const linkedGroups = groupVariantsFor(selectedClass.id, row.fan_nomi);
-              const linkedType = linkedGroups[0]?.turi || "";
+              const activeTypes = new Set(linkedGroups.map(item => item.turi || (
+                groupedVariantSchemeV196(item) === "numbered" ? "alphabet" : groupedVariantSchemeV196(item)
+              )).filter(Boolean));
               const alphabetKey = `${selectedClass.id}|${subjectKeyV193(row.fan_nomi)}|alphabet`;
               const genderKey = `${selectedClass.id}|${subjectKeyV193(row.fan_nomi)}|gender`;
-              return <div key={`${selectedClass.id}-${subjectKeyV193(row.fan_nomi)}`} className="rounded-xl border p-2.5" style={{ borderColor: linkedType ? "#B9DFC5" : palette.line, background: linkedType ? palette.greenBg : "#fff" }}>
+              return <div key={`${selectedClass.id}-${subjectKeyV193(row.fan_nomi)}`} className="rounded-xl border p-2.5" style={{ borderColor: activeTypes.size ? "#B9DFC5" : palette.line, background: activeTypes.size ? palette.greenBg : "#fff" }}>
                 <div className="flex items-start justify-between gap-2"><div className="text-[11px] font-black leading-tight" style={{ color: palette.ink }}>{row.fan_nomi}</div><span className="text-[9px] font-black shrink-0" style={{ color: palette.muted }}>{scheduleHourLabel(row.haftalik_soat)} s.</span></div>
-                {linkedType ? <div className="mt-2 text-[10px] font-black" style={{ color: palette.green }}>{linkedType === "alphabet" ? "✓ 1-guruh / 2-guruh" : linkedType === "gender" ? "✓ O‘g‘il / Qiz" : "✓ Guruhlarga bo‘lingan"}</div> : <div className="flex flex-wrap gap-1.5 mt-2">
-                  <button type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, "alphabet")} disabled={stepBusy} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-50" style={{ background: palette.sky, color: palette.blue }}>{groupSavingKey === alphabetKey ? "Yaratilmoqda..." : "+ 1/2 guruh"}</button>
-                  <button type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, "gender")} disabled={stepBusy} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-50" style={{ background: palette.cream, color: palette.ink }}>{groupSavingKey === genderKey ? "Yaratilmoqda..." : "+ O‘g‘il/Qiz"}</button>
-                </div>}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  <button type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, "alphabet")} disabled={stepBusy || activeTypes.has("alphabet")} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-70" style={{ background: activeTypes.has("alphabet") ? palette.green : palette.sky, color: activeTypes.has("alphabet") ? "#fff" : palette.blue }}>{activeTypes.has("alphabet") ? "✓ 1/2 guruh" : groupSavingKey === alphabetKey ? "Yaratilmoqda..." : "+ 1/2 guruh"}</button>
+                  <button type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, "gender")} disabled={stepBusy || activeTypes.has("gender")} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-70" style={{ background: activeTypes.has("gender") ? palette.green : palette.cream, color: activeTypes.has("gender") ? "#fff" : palette.ink }}>{activeTypes.has("gender") ? "✓ O‘g‘il/Qiz" : groupSavingKey === genderKey ? "Yaratilmoqda..." : "+ O‘g‘il/Qiz"}</button>
+                </div>
               </div>;
             })}
           </div>
@@ -9242,6 +9398,106 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
   return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, sinf skeleti + o‘qituvchi, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
 }
 
+function CentralLanguageCurriculumEditorV238({ token, apiBase, onClose }) {
+  const [language, setLanguage] = useState("uz");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const load = async () => {
+    setLoading(true); setMessage(null);
+    try {
+      const result = await smartFetch(`${apiBase}/api/admin/maktab_markaziy_sozlamalari?token=${encodeURIComponent(token)}&talim_tili=${encodeURIComponent(language)}`);
+      const languageBlock = result?.til_boyicha?.[language] || result?.til_boyicha || {};
+      const source = result?.qatorlar || languageBlock?.qatorlar || [];
+      setRows(source.map(item => ({
+        sinf_darajasi: Number(item.sinf_darajasi ?? item.sinf_daraja ?? item.sinf ?? item.grade ?? 1),
+        fan_nomi: String(item.fan_nomi ?? item.fan ?? item.subject ?? ""),
+        haftalik_soat: Number(item.haftalik_soat ?? item.soat ?? item.weekly_hours ?? 1),
+        kunlik_max: Number(item.kunlik_max ?? item.daily_max ?? 1),
+      })));
+    } catch (error) { setRows([]); setMessage({ tone: "error", text: error.message }); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [language, token, apiBase]);
+  const update = (index, field, value) => setRows(current => current.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+  const save = async () => {
+    const qatorlar = rows.map(row => ({
+      sinf_darajasi: Number(row.sinf_darajasi),
+      fan_nomi: String(row.fan_nomi || "").replace(/\s+/g, " ").trim(),
+      haftalik_soat: Number(row.haftalik_soat),
+      kunlik_max: Number(row.kunlik_max),
+    }));
+    if (qatorlar.some(row => row.sinf_darajasi < 1 || row.sinf_darajasi > 11 || !row.fan_nomi || row.haftalik_soat <= 0 || row.kunlik_max <= 0)) return setMessage({ tone: "error", text: "Har qatorda 1–11 sinf, fan nomi, musbat haftalik soat va kunlik maksimum bo‘lishi shart." });
+    setSaving(true); setMessage(null);
+    try {
+      await smartFetch(`${apiBase}/api/admin/maktab_markaziy_sozlamalari?token=${encodeURIComponent(token)}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ talim_tili: language, qatorlar }),
+      });
+      await load();
+      setMessage({ tone: "success", text: `${v238EducationLanguageMeta(language).label} uchun ${qatorlar.length} ta fan–soat qatori saqlandi. Boshqa ikki til o‘zgarmadi.` });
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setSaving(false); }
+  };
+  return <div className="min-h-screen"><SmartHeader title="3 til uchun markaziy o‘quv reja" subtitle="O‘zbek · Rus · Ingliz andozalari bir-biridan mustaqil" onClose={onClose} badge="ADMIN SOZLAMALARI"/><main className="max-w-6xl mx-auto px-4 md:px-7 py-5 space-y-4">
+    <Card className="p-4"><div className="grid sm:grid-cols-3 gap-2">{V238_EDUCATION_LANGUAGE_ORDER.map(value => {const active=language===value;const meta=V238_EDUCATION_LANGUAGES[value];return <button type="button" key={value} onClick={() => setLanguage(value)} disabled={saving} className="px-4 py-3 rounded-xl border text-sm font-black" style={{borderColor:active?palette.blue:palette.line,background:active?palette.blue:'#fff',color:active?'#fff':palette.ink}}>{meta.badge} · {meta.label}</button>;})}</div><div className="text-xs mt-3" style={{color:palette.muted}}>Har tab alohida GET/PUT qilinadi. Shu sabab Rus rejasini saqlash O‘zbek yoki Ingliz rejasini o‘chirmaydi.</div></Card>
+    {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{v238EducationLanguageMeta(language).label} fanlari</h2><div className="text-xs mt-1" style={{color:palette.muted}}>Sinf darajasi · fan · haftalik soat · bir kunda maksimum</div></div><div className="flex gap-2"><button type="button" onClick={() => setRows(current => [...current,{sinf_darajasi:1,fan_nomi:'',haftalik_soat:1,kunlik_max:1}])} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan qatori</button><button type="button" onClick={save} disabled={saving||loading} className="px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{background:palette.green}}>{saving?'Saqlanmoqda...':'Faqat shu tilni saqlash'}</button></div></div>
+      {loading ? <div className="py-16 flex justify-center"><Loader2 className="animate-spin"/></div> : <div className="space-y-2 max-h-[65vh] overflow-auto">{rows.map((row,index)=><div key={`${index}-${row.fan_nomi}`} className="grid grid-cols-[85px_1fr_120px_120px_38px] gap-2 items-end rounded-xl border p-2" style={{borderColor:palette.line}}><label className="text-[10px] font-black">Sinf<input type="number" min="1" max="11" value={row.sinf_darajasi} onChange={event=>update(index,'sinf_darajasi',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">Fan nomi<input value={row.fan_nomi} onChange={event=>update(index,'fan_nomi',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">Haftalik soat<input type="number" min="0.5" step="0.5" value={row.haftalik_soat} onChange={event=>update(index,'haftalik_soat',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">Kunlik max<input type="number" min="1" max="4" value={row.kunlik_max} onChange={event=>update(index,'kunlik_max',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><button type="button" onClick={()=>setRows(current=>current.filter((_,i)=>i!==index))} className="h-9 rounded-lg font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rows.length&&<SmartNotice tone="warning">Bu til uchun andoza hali yo‘q. “+ Fan qatori” orqali kiriting.</SmartNotice>}</div>}
+    </Card>
+  </main></div>;
+}
+
+function ClassBulkGroupSettingsV238({ token, apiBase, maktabId, classes = [], variants = [], onChanged }) {
+  const [selectedClassIds, setSelectedClassIds] = useState([]);
+  const [systems, setSystems] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const activeSystemsFor = classId => {
+    const active = new Set();
+    variants.filter(item => String(item.sinf_id) === String(classId)).forEach(item => {
+      const scheme = item.turi || groupedVariantSchemeV196(item);
+      if (scheme === "alphabet" || scheme === "numbered") active.add("alphabet");
+      if (scheme === "gender") active.add("gender");
+    });
+    return active;
+  };
+  const toggleValue = (setter, value) => setter(current => current.includes(String(value))
+    ? current.filter(item => item !== String(value)) : [...current, String(value)]);
+  const save = async () => {
+    if (!selectedClassIds.length) return setMessage({ tone: "error", text: "Kamida bitta sinfni tanlang." });
+    if (!systems.length) return setMessage({ tone: "error", text: "1/2 guruh yoki O‘g‘il/Qiz tizimidan kamida bittasini tanlang." });
+    setSaving(true); setMessage(null);
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/sinf_guruh_tizimlari?token=${encodeURIComponent(token)}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maktab_id: Number(maktabId),
+          sinf_idlar: selectedClassIds.map(Number),
+          tizimlar: systems,
+        }),
+      });
+      setMessage({ tone: "success", text: `${result?.sinf_soni || selectedClassIds.length} ta sinfga tanlangan guruh tizimi qo‘shildi. Oldingi guruhlar, fanlar va a’zolar o‘chmadi.` });
+      await onChanged?.();
+    } catch (error) { setMessage({ tone: "error", text: error.message }); }
+    finally { setSaving(false); }
+  };
+  return <Card className="p-5 mb-5">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>SINF SOZLAMALARI · GURUHLAR</div><h2 className="text-lg font-black mt-1" style={{ color: palette.ink }}>Sinflarga guruh tizimini qo‘shish</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Bu qo‘shish amali: keyin O‘g‘il/Qiz ni qo‘shsangiz, oldingi 1/2 guruh o‘chmaydi. Fan bilan bog‘lash Step 3 setkada qilinadi.</p></div><div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{selectedClassIds.length} ta sinf tanlandi</div></div>
+    {message && <div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}
+    <div className="flex flex-wrap gap-2 mt-4">
+      {[['alphabet','1/2 guruh'],['gender','O‘g‘il/Qiz']].map(([value,label]) => <button type="button" key={value} onClick={() => toggleValue(setSystems, value)} className="px-4 py-2.5 rounded-xl border text-xs font-black" style={{ borderColor: systems.includes(value) ? palette.green : palette.line, background: systems.includes(value) ? palette.greenBg : '#fff', color: systems.includes(value) ? palette.green : palette.ink }}>{systems.includes(value) ? '✓ ' : ''}{label}</button>)}
+      <button type="button" onClick={() => setSelectedClassIds(classes.map(row => String(row.id)))} className="px-3 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Barcha sinflar</button>
+      <button type="button" onClick={() => setSelectedClassIds([])} className="px-3 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.muted }}>Tanlovni tozalash</button>
+    </div>
+    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-11 gap-2 mt-3 max-h-48 overflow-auto">
+      {classes.map(cls => { const active=activeSystemsFor(cls.id); const selected=selectedClassIds.includes(String(cls.id)); return <button type="button" key={cls.id} onClick={() => toggleValue(setSelectedClassIds, cls.id)} className="rounded-xl border px-2 py-2 text-xs font-black" style={{ borderColor:selected?palette.blue:palette.line,background:selected?palette.sky:'#fff',color:selected?palette.blue:palette.ink }}>{selected?'✓ ':''}{cls.sinf}-{cls.harf}<span className="block mt-1 text-[8px]" style={{color:palette.muted}}>{v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge}{active.has('alphabet')?' · 1/2':''}{active.has('gender')?' · O‘/Q':''}</span></button>; })}
+    </div>
+    <div className="flex justify-end mt-4"><button type="button" onClick={save} disabled={saving || !selectedClassIds.length || !systems.length} className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-45" style={{ background: palette.teal }}>{saving ? 'Qo‘shilmoqda...' : 'Tanlangan sinflarga qo‘shish'}</button></div>
+  </Card>;
+}
+
 
 function v198PositiveSchoolId(...values) {
   for (const value of values) {
@@ -9282,7 +9538,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [newSchoolAlphabet, setNewSchoolAlphabet] = useState(
     V237_CLASS_ALPHABETS[initialWorkspace?.alifbo_turi] ? initialWorkspace.alifbo_turi : "latin_xalqaro"
   );
-  const [newSchoolClassPlan, setNewSchoolClassPlan] = useState(v237EmptySchoolClassPlan);
+  const [newSchoolClassPlan, setNewSchoolClassPlan] = useState(v238EmptyLanguageClassPlan);
+  const [newSchoolPlanLanguage, setNewSchoolPlanLanguage] = useState("uz");
   const [newSchoolCreating, setNewSchoolCreating] = useState(false);
   const [newSchoolError, setNewSchoolError] = useState("");
   const [createdSchoolName, setCreatedSchoolName] = useState("");
@@ -9301,9 +9558,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [teacherEditorMode, setTeacherEditorMode] = useState("manual");
   const [teacherDataRevision, setTeacherDataRevision] = useState(0);
   const [curriculumOpen, setCurriculumOpen] = useState(initialView === "curriculum");
+  const [centralCurriculumOpen, setCentralCurriculumOpen] = useState(false);
   const [curriculumStatus, setCurriculumStatus] = useState(null);
   const [classCatalog, setClassCatalog] = useState([]);
   const [classRooms, setClassRooms] = useState([]);
+  const [classGroupVariants, setClassGroupVariants] = useState([]);
   const [classCatalogReady, setClassCatalogReady] = useState(false);
   const [schoolAlphabet, setSchoolAlphabet] = useState(
     V237_CLASS_ALPHABETS[initialWorkspace?.alifbo_turi] ? initialWorkspace.alifbo_turi : "latin_xalqaro"
@@ -9380,35 +9639,46 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   }, [token, apiBase, organizationV17Id, contextId, linkedInitialId, directLegacySchoolId, workspaceNameHint, workspaceRetry]);
 
   const newSchoolAlphabetRows = V237_CLASS_ALPHABETS[newSchoolAlphabet] || V237_CLASS_ALPHABETS.latin_xalqaro;
-  const newSchoolPlanPreview = useMemo(() => newSchoolClassPlan.map(row => {
-    const firstCount = Math.max(0, Number(row.birinchi_smena || 0));
-    const secondCount = Number(newSchoolShifts) === 2 ? Math.max(0, Number(row.ikkinchi_smena || 0)) : 0;
-    return {
-      ...row,
-      birinchi_harflar: newSchoolAlphabetRows.slice(0, firstCount),
-      ikkinchi_harflar: newSchoolAlphabetRows.slice(firstCount, firstCount + secondCount),
-      jami: firstCount + secondCount,
-    };
-  }), [newSchoolClassPlan, newSchoolAlphabet, newSchoolShifts]);
-  const newSchoolClassTotal = newSchoolPlanPreview.reduce((sum, row) => sum + row.jami, 0);
+  const newSchoolPlanPreview = useMemo(() => newSchoolClassPlan.map(row =>
+    v238BuildNewSchoolPlanPreviewRow(row, newSchoolAlphabetRows, newSchoolShifts)
+  ), [newSchoolClassPlan, newSchoolAlphabetRows, newSchoolShifts]);
+  const newSchoolClassTotal = newSchoolPlanPreview.reduce((sum, row) => sum + Number(row.jami || 0), 0);
 
-  const updateNewSchoolClassCount = (grade, field, rawValue) => {
+  const updateNewSchoolClassCount = (grade, field, rawValue, talimTili = newSchoolPlanLanguage) => {
     const maximum = newSchoolAlphabetRows.length;
     const requested = Math.max(0, Math.min(maximum, Number.parseInt(rawValue || "0", 10) || 0));
     setNewSchoolClassPlan(current => current.map(row => {
       if (Number(row.sinf) !== Number(grade)) return row;
+      const language = v238NormalizeEducationLanguage(talimTili);
+      const currentLanguage = row?.tillar?.[language] || { birinchi_smena: 0, ikkinchi_smena: 0 };
+      const otherCount = V238_EDUCATION_LANGUAGE_ORDER
+        .filter(item => item !== language)
+        .reduce((sum, item) => {
+          const values = row?.tillar?.[item] || {};
+          return sum + Number(values.birinchi_smena || 0)
+            + (Number(newSchoolShifts) === 2 ? Number(values.ikkinchi_smena || 0) : 0);
+        }, 0);
+      const available = Math.max(0, maximum - otherCount);
       if (field === "birinchi_smena") {
-        const first = requested;
+        const first = Math.min(requested, available);
         const second = Number(newSchoolShifts) === 2
-          ? Math.min(Number(row.ikkinchi_smena || 0), maximum - first)
+          ? Math.min(Number(currentLanguage.ikkinchi_smena || 0), available - first)
           : 0;
-        return { ...row, birinchi_smena: first, ikkinchi_smena: second };
+        return {
+          ...row,
+          tillar: { ...row.tillar, [language]: { birinchi_smena: first, ikkinchi_smena: second } },
+        };
       }
-      const first = Math.min(Number(row.birinchi_smena || 0), maximum);
+      const first = Math.min(Number(currentLanguage.birinchi_smena || 0), available);
       return {
         ...row,
-        birinchi_smena: first,
-        ikkinchi_smena: Number(newSchoolShifts) === 2 ? Math.min(requested, maximum - first) : 0,
+        tillar: {
+          ...row.tillar,
+          [language]: {
+            birinchi_smena: first,
+            ikkinchi_smena: Number(newSchoolShifts) === 2 ? Math.min(requested, available - first) : 0,
+          },
+        },
       };
     }));
     setNewSchoolError("");
@@ -9418,7 +9688,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     const shiftCount = Number(value) === 2 ? 2 : 1;
     setNewSchoolShifts(shiftCount);
     if (shiftCount === 1) {
-      setNewSchoolClassPlan(current => current.map(row => ({ ...row, ikkinchi_smena: 0 })));
+      setNewSchoolClassPlan(current => current.map(row => ({
+        ...row,
+        tillar: Object.fromEntries(V238_EDUCATION_LANGUAGE_ORDER.map(talim_tili => [
+          talim_tili,
+          { ...(row?.tillar?.[talim_tili] || {}), ikkinchi_smena: 0 },
+        ])),
+      })));
     }
     setNewSchoolError("");
   };
@@ -9427,11 +9703,31 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     const alphabet = V237_CLASS_ALPHABETS[value] || V237_CLASS_ALPHABETS.latin_xalqaro;
     setNewSchoolAlphabet(V237_CLASS_ALPHABETS[value] ? value : "latin_xalqaro");
     setNewSchoolClassPlan(current => current.map(row => {
-      const first = Math.min(Number(row.birinchi_smena || 0), alphabet.length);
-      const second = Number(newSchoolShifts) === 2
-        ? Math.min(Number(row.ikkinchi_smena || 0), alphabet.length - first)
-        : 0;
-      return { ...row, birinchi_smena: first, ikkinchi_smena: second };
+      let remaining = alphabet.length;
+      const tillar = Object.fromEntries(V238_EDUCATION_LANGUAGE_ORDER.map(talim_tili => [
+        talim_tili,
+        {
+          ...(row?.tillar?.[talim_tili] || {}),
+          birinchi_smena: 0,
+          ikkinchi_smena: 0,
+        },
+      ]));
+      // Truncation uses the same shift-first order as preview and backend, so a
+      // shorter alphabet never removes a RU/EN 1st-shift class in favour of a
+      // UZ 2nd-shift class.
+      V238_EDUCATION_LANGUAGE_ORDER.forEach(talim_tili => {
+        const source = row?.tillar?.[talim_tili] || {};
+        const first = Math.min(Number(source.birinchi_smena || 0), remaining);
+        remaining -= first;
+        tillar[talim_tili].birinchi_smena = first;
+      });
+      if (Number(newSchoolShifts) === 2) V238_EDUCATION_LANGUAGE_ORDER.forEach(talim_tili => {
+        const source = row?.tillar?.[talim_tili] || {};
+        const second = Math.min(Number(source.ikkinchi_smena || 0), remaining);
+        remaining -= second;
+        tillar[talim_tili].ikkinchi_smena = second;
+      });
+      return { ...row, tillar };
     }));
     setNewSchoolError("");
   };
@@ -9445,7 +9741,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     setNewSchoolDistrict("");
     setNewSchoolShifts(1);
     setNewSchoolAlphabet("latin_xalqaro");
-    setNewSchoolClassPlan(v237EmptySchoolClassPlan());
+    setNewSchoolClassPlan(v238EmptyLanguageClassPlan());
+    setNewSchoolPlanLanguage("uz");
     setNewSchoolError("");
     setNewSchoolMode(true);
   };
@@ -9484,11 +9781,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           smena_soni: Number(newSchoolShifts) === 2 ? 2 : 1,
           alifbo_turi: newSchoolAlphabet,
           sinf_rejasi: newSchoolClassPlan
-            .map(row => ({
+            .flatMap(row => V238_EDUCATION_LANGUAGE_ORDER.map(talim_tili => ({
               sinf: Number(row.sinf),
-              birinchi_smena: Number(row.birinchi_smena || 0),
-              ikkinchi_smena: Number(newSchoolShifts) === 2 ? Number(row.ikkinchi_smena || 0) : 0,
-            }))
+              talim_tili,
+              birinchi_smena: Number(row?.tillar?.[talim_tili]?.birinchi_smena || 0),
+              ikkinchi_smena: Number(newSchoolShifts) === 2
+                ? Number(row?.tillar?.[talim_tili]?.ikkinchi_smena || 0) : 0,
+            })))
             .filter(row => row.birinchi_smena + row.ikkinchi_smena > 0),
         }),
       });
@@ -9511,12 +9810,12 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setLoading(true); setError(""); return;
     }
     if (workspaceLinkError) {
-      setDashboard(null); setYuklama([]); setHolatlar([]); setClassCatalog([]); setClassRooms([]);
+      setDashboard(null); setYuklama([]); setHolatlar([]); setClassCatalog([]); setClassRooms([]); setClassGroupVariants([]);
       setClassCatalogReady(false);
       setError(`Maktab ish maydoniga ulanmayapti: ${workspaceLinkError}`); setLoading(false); return;
     }
     if (!maktabId) {
-      setDashboard(null); setYuklama([]); setHolatlar([]); setClassCatalog([]); setClassRooms([]);
+      setDashboard(null); setYuklama([]); setHolatlar([]); setClassCatalog([]); setClassRooms([]); setClassGroupVariants([]);
       setClassCatalogReady(false);
       setError("Maktab ID topilmadi. Yangi maktabni yaratish yoki tanlash yakunlanmagan."); setLoading(false); return;
     }
@@ -9556,11 +9855,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         setCurriculumStatus(curriculumResult.value.oquv_reja?.holat || "draft");
         setClassCatalog(curriculumResult.value.sinflar || []);
         setClassRooms((curriculumResult.value.xonalar || []).filter(room => room.faol !== false && room.darsga_yaroqli !== false && String(room.turi || "") !== "non_teaching"));
+        setClassGroupVariants(curriculumResult.value.guruh_variantlari || []);
         setClassCatalogReady(true);
       } else {
         setCurriculumStatus("draft");
         setClassCatalog([]);
         setClassRooms([]);
+        setClassGroupVariants([]);
         setClassCatalogReady(false);
         warnings.push(`O‘quv reja holati yuklanmadi: ${curriculumResult.reason?.message || "server xatosi"}`);
       }
@@ -9584,6 +9885,9 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       ...(catalogById.get(String(row.id)) || {}),
       ...row,
       smena: row?.smena ?? catalogById.get(String(row.id))?.smena,
+      talim_tili: v238NormalizeEducationLanguage(
+        row?.talim_tili ?? catalogById.get(String(row.id))?.talim_tili
+      ),
       alifbo_turi: row?.alifbo_turi ?? catalogById.get(String(row.id))?.alifbo_turi ?? configuredAlphabet,
     })));
   }, [dashboard, classCatalog, initialWorkspace?.alifbo_turi, schoolAlphabet]);
@@ -9602,7 +9906,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setClassEditNotice({ tone: "error", text: "Sinf va xona katalogi to‘liq yuklanmadi. Ma’lumot yo‘qolmasligi uchun avval Yangilashni bosing." });
       return;
     }
-    setClassCreateDraft({ sinf: "", harf: "", smena: 1, xona_id: "" });
+    setClassCreateDraft({ sinf: "", harf: "", smena: 1, xona_id: "", talim_tili: "uz" });
     setClassCreateError("");
     setClassEditNotice(null);
   };
@@ -9633,6 +9937,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     const grade = Number(classCreateDraft?.sinf || 0);
     const suffix = String(classCreateDraft?.harf || "").replace(/\s+/g, " ").trim();
     const shift = Number(classCreateDraft?.smena || 0);
+    const talimTili = v238NormalizeEducationLanguage(classCreateDraft?.talim_tili);
     if (!Number.isInteger(grade) || grade < 1 || grade > 11) return setClassCreateError("Sinf darajasini 1–11 oralig‘ida tanlang.");
     if (!suffix) return setClassCreateError("Sinf harfi yoki erkin nomini kiriting.");
     if (![1, 2].includes(shift)) return setClassCreateError("Smenani tanlang.");
@@ -9646,11 +9951,12 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           maktab_id: Number(maktabId), sinf: grade, harf: suffix, smena: shift,
+          talim_tili: talimTili,
           xona_id: classCreateDraft?.xona_id ? Number(classCreateDraft.xona_id) : null,
         }),
       });
       setClassCreateDraft(null);
-      setClassEditNotice({ tone: "success", text: `${result?.sinf?.name || `${grade}-${suffix}`} yaratildi. O‘quv reja qatorlari ham qo‘shildi; reja qayta tasdiqlanishi kerak.` });
+      setClassEditNotice({ tone: "success", text: `${result?.sinf?.name || `${grade}-${suffix}`} · ${v238EducationLanguageMeta(talimTili).label} yaratildi. Shu tilning o‘quv reja qatorlari qo‘shildi; reja qayta tasdiqlanishi kerak.` });
       loadManager();
     } catch (error) {
       setClassCreateError(error?.message || "Yangi sinf yaratilmadi.");
@@ -9672,6 +9978,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       harf: String(row?.harf ?? catalogRow?.harf ?? ""),
       smena: currentShift === 1 || currentShift === 2 ? currentShift : "",
       xona_id: row?.xona_id ?? catalogRow?.xona_id ?? "",
+      talim_tili: v238ClassEducationLanguage(row || catalogRow),
     });
     setClassEditError("");
     setClassEditNotice(null);
@@ -9681,6 +9988,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     event?.preventDefault?.();
     const suffix = String(classEditDraft?.harf || "").replace(/\s+/g, " ").trim();
     const shift = Number(classEditDraft?.smena || 0);
+    const talimTili = v238NormalizeEducationLanguage(classEditDraft?.talim_tili);
     if (!classEditDraft?.id) return setClassEditError("Sinf ID topilmadi. Sahifani yangilab qayta oching.");
     if (!suffix) return setClassEditError("Sinfning harfi yoki erkin nomini kiriting.");
     if (![1, 2].includes(shift)) return setClassEditError("Sinfning joriy smenasini tanlang.");
@@ -9695,16 +10003,17 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           sinf_id: Number(classEditDraft.id),
           harf: suffix,
           smena: shift,
+          talim_tili: talimTili,
           xona_id: classEditDraft?.xona_id ? Number(classEditDraft.xona_id) : null,
           xona_yangilansin: true,
         }),
       });
       const applyChange = rows => (rows || []).map(row => String(row.id) === String(classEditDraft.id)
-        ? { ...row, harf: suffix, smena: shift, xona_id: classEditDraft?.xona_id ? Number(classEditDraft.xona_id) : null }
+        ? { ...row, harf: suffix, smena: shift, talim_tili: talimTili, xona_id: classEditDraft?.xona_id ? Number(classEditDraft.xona_id) : null }
         : row);
       setDashboard(current => current ? { ...current, sinflar: applyChange(current.sinflar) } : current);
       setClassCatalog(current => applyChange(current));
-      setClassEditNotice({ tone: "success", text: `${classEditDraft.sinf}-${suffix} saqlandi. Sinfning barcha o‘quvchi, rahbar, yuklama va jadval bog‘lanishlari o‘z joyida qoldi.` });
+      setClassEditNotice({ tone: "success", text: `${classEditDraft.sinf}-${suffix} · ${v238EducationLanguageMeta(talimTili).label} saqlandi. Sinfning barcha o‘quvchi, rahbar, yuklama va jadval bog‘lanishlari o‘z joyida qoldi.` });
       setClassEditDraft(null);
       loadManager();
     } catch (error) {
@@ -9740,6 +10049,10 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       loadManager();
       return true;
     }
+    if (centralCurriculumOpen) {
+      setCentralCurriculumOpen(false);
+      return true;
+    }
     if (newSchoolMode || (isNewSchoolFlow && !maktabId)) {
       if (isNewSchoolFlow && !maktabId) {
         if (onBack) {
@@ -9758,7 +10071,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     }
     return false;
   }), [
-    classCreateDraft, classEditDraft, adminPreviewOpen, smartOpen, teacherEditorOpen, curriculumOpen,
+    classCreateDraft, classEditDraft, adminPreviewOpen, smartOpen, teacherEditorOpen, curriculumOpen, centralCurriculumOpen,
     newSchoolMode, isNewSchoolFlow, maktabId, onBack, loadManager,
   ]);
 
@@ -9794,19 +10107,30 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               </div>
               <div className="rounded-3xl border overflow-hidden" style={{ borderColor: palette.line, background: "#fff" }}>
                 <div className="p-4 flex flex-wrap items-start justify-between gap-3" style={{ background: palette.sky }}>
-                  <div><div className="text-sm font-black" style={{ color: palette.ink }}>Har sinfda nechta parallel bor?</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>1-smena harflari avval beriladi. 2-smena o‘sha sinfdagi qolgan keyingi harfdan davom etadi; qaytadan A dan boshlanmaydi.</div></div>
+                  <div><div className="text-sm font-black" style={{ color: palette.ink }}>Har ta’lim tilida nechta parallel sinf bor?</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>Avval O‘zbek, keyin Rus, so‘ng Ingliz sinflarini kiriting. Sinf harflari til va smenalar orasida takrorlanmay, keyingi harfdan davom etadi.</div></div>
                   <div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: newSchoolClassTotal ? palette.green : palette.amber }}>{newSchoolClassTotal} ta sinf</div>
+                </div>
+                <div className="p-3 border-t flex flex-wrap gap-2" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
+                  {V238_EDUCATION_LANGUAGE_ORDER.map(talim_tili => {
+                    const meta = V238_EDUCATION_LANGUAGES[talim_tili];
+                    const count = newSchoolPlanPreview.reduce((sum, row) => sum + Number(row?.tillar?.[talim_tili]?.jami || 0), 0);
+                    const active = newSchoolPlanLanguage === talim_tili;
+                    return <button type="button" key={talim_tili} onClick={() => setNewSchoolPlanLanguage(talim_tili)} className="px-4 py-2.5 rounded-xl border text-xs font-black" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>{meta.badge} · {meta.label} ({count})</button>;
+                  })}
                 </div>
                 <div className="overflow-auto max-h-[500px]">
                   <table className="w-full min-w-[760px] text-xs">
                     <thead className="sticky top-0 z-10" style={{ background: palette.cream, color: palette.muted }}><tr><th className="p-2.5 text-left w-24">Sinf</th><th className="p-2.5 text-left w-32">1-smena soni</th><th className="p-2.5 text-left">1-smena nomlari</th><th className="p-2.5 text-left w-32">2-smena soni</th><th className="p-2.5 text-left">2-smena nomlari</th></tr></thead>
-                    <tbody>{newSchoolPlanPreview.map(row => <tr key={row.sinf} className="border-t" style={{ borderColor: palette.line, background: row.jami ? "#fff" : "#FCFDFE" }}>
-                      <td className="p-2.5"><span className="inline-flex w-10 h-9 rounded-xl items-center justify-center font-black" style={{ background: row.jami ? palette.sky : palette.cream, color: row.jami ? palette.blue : palette.muted }}>{row.sinf}</span></td>
-                      <td className="p-2.5"><input type="number" min="0" max={newSchoolAlphabetRows.length} value={row.birinchi_smena} onChange={event => updateNewSchoolClassCount(row.sinf, "birinchi_smena", event.target.value)} className="w-24 rounded-xl border px-3 py-2 text-center font-black" style={{ borderColor: Number(row.birinchi_smena) ? palette.blue : palette.line }}/></td>
-                      <td className="p-2.5 font-bold" style={{ color: row.birinchi_harflar.length ? palette.blue : palette.muted }}>{row.birinchi_harflar.length ? row.birinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
-                      <td className="p-2.5"><input type="number" min="0" max={Math.max(0, newSchoolAlphabetRows.length - Number(row.birinchi_smena || 0))} value={Number(newSchoolShifts) === 2 ? row.ikkinchi_smena : 0} disabled={Number(newSchoolShifts) !== 2} onChange={event => updateNewSchoolClassCount(row.sinf, "ikkinchi_smena", event.target.value)} className="w-24 rounded-xl border px-3 py-2 text-center font-black disabled:opacity-40" style={{ borderColor: Number(row.ikkinchi_smena) ? palette.teal : palette.line }}/></td>
-                      <td className="p-2.5 font-bold" style={{ color: row.ikkinchi_harflar.length ? palette.teal : palette.muted }}>{Number(newSchoolShifts) !== 2 ? "2-smena o‘chirilgan" : row.ikkinchi_harflar.length ? row.ikkinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
-                    </tr>)}</tbody>
+                    <tbody>{newSchoolPlanPreview.map(row => {
+                      const languageRow = row?.tillar?.[newSchoolPlanLanguage] || {};
+                      return <tr key={`${newSchoolPlanLanguage}-${row.sinf}`} className="border-t" style={{ borderColor: palette.line, background: languageRow.jami ? "#fff" : "#FCFDFE" }}>
+                        <td className="p-2.5"><span className="inline-flex w-10 h-9 rounded-xl items-center justify-center font-black" style={{ background: languageRow.jami ? palette.sky : palette.cream, color: languageRow.jami ? palette.blue : palette.muted }}>{row.sinf}</span></td>
+                        <td className="p-2.5"><input type="number" min="0" max={newSchoolAlphabetRows.length} value={languageRow.birinchi_smena || 0} onChange={event => updateNewSchoolClassCount(row.sinf, "birinchi_smena", event.target.value, newSchoolPlanLanguage)} className="w-24 rounded-xl border px-3 py-2 text-center font-black" style={{ borderColor: Number(languageRow.birinchi_smena) ? palette.blue : palette.line }}/></td>
+                        <td className="p-2.5 font-bold" style={{ color: languageRow.birinchi_harflar?.length ? palette.blue : palette.muted }}>{languageRow.birinchi_harflar?.length ? languageRow.birinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
+                        <td className="p-2.5"><input type="number" min="0" max={newSchoolAlphabetRows.length} value={Number(newSchoolShifts) === 2 ? (languageRow.ikkinchi_smena || 0) : 0} disabled={Number(newSchoolShifts) !== 2} onChange={event => updateNewSchoolClassCount(row.sinf, "ikkinchi_smena", event.target.value, newSchoolPlanLanguage)} className="w-24 rounded-xl border px-3 py-2 text-center font-black disabled:opacity-40" style={{ borderColor: Number(languageRow.ikkinchi_smena) ? palette.teal : palette.line }}/></td>
+                        <td className="p-2.5 font-bold" style={{ color: languageRow.ikkinchi_harflar?.length ? palette.teal : palette.muted }}>{Number(newSchoolShifts) !== 2 ? "2-smena o‘chirilgan" : languageRow.ikkinchi_harflar?.length ? languageRow.ikkinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
+                      </tr>;
+                    })}</tbody>
                   </table>
                 </div>
               </div>
@@ -9831,6 +10155,10 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         </main>
       </div>
     </WorkspacePortal>;
+  }
+
+  if (centralCurriculumOpen) {
+    return <WorkspacePortal><CentralLanguageCurriculumEditorV238 token={token} apiBase={apiBase} onClose={() => setCentralCurriculumOpen(false)}/></WorkspacePortal>;
   }
 
   if (teacherEditorOpen) {
@@ -9905,13 +10233,14 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         {classCreateDraft && <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 2147483100, background: "rgba(16,35,52,.58)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true" aria-label="Yangi sinf qo‘shish">
           <form onSubmit={saveClassCreate} className="w-full max-w-xl rounded-3xl border bg-white p-5 md:p-6" style={{ borderColor: palette.line, boxShadow: "0 28px 90px rgba(11,35,50,.28)" }}>
             <div className="flex items-start justify-between gap-3">
-              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>YANGI SINF</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Sinf, harf, smena va xonani kiriting</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Lotin, kirill yoki xohlagan qisqa nom qabul qilinadi. Yangi sinfning o‘quv reja qatorlari avtomatik yaratiladi.</p></div>
+              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>YANGI SINF</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Sinf, ta’lim tili, smena va xonani kiriting</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Ta’lim tili fanlar, o‘quv reja, yuklama va jadval setkasini shu sinfga moslaydi.</p></div>
               <button type="button" onClick={() => { setClassCreateDraft(null); setClassCreateError(""); }} disabled={classCreateSaving} className="w-9 h-9 rounded-xl font-black" style={{ background: palette.cream, color: palette.ink }}>×</button>
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mt-5">
               <label className="text-xs font-black" style={{ color: palette.ink }}>Sinf darajasi *<select autoFocus value={classCreateDraft.sinf} onChange={event => { setClassCreateDraft(current => ({ ...current, sinf: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">1–11 dan tanlang</option>{Array.from({ length: 11 }, (_, index) => index + 1).map(grade => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
               <label className="text-xs font-black" style={{ color: palette.ink }}>Harf yoki erkin nom *<input list="v237-class-label-suggestions" value={classCreateDraft.harf} onChange={event => { setClassCreateDraft(current => ({ ...current, harf: event.target.value })); setClassCreateError(""); }} placeholder="A, Б, Rus, A-1" className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: palette.line }}/><datalist id="v237-class-label-suggestions">{(V237_CLASS_ALPHABETS[schoolAlphabet] || []).map(label => <option key={label} value={label}/>)}</datalist></label>
               <label className="text-xs font-black" style={{ color: palette.ink }}>Smena *<select value={classCreateDraft.smena} onChange={event => { setClassCreateDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value={1}>1-smena</option>{configuredSchoolShiftCount !== 1 && <option value={2}>2-smena</option>}</select></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>Ta’lim tili *<select value={classCreateDraft.talim_tili || "uz"} onChange={event => { setClassCreateDraft(current => ({ ...current, talim_tili: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}>{V238_EDUCATION_LANGUAGE_ORDER.map(value => <option key={value} value={value}>{V238_EDUCATION_LANGUAGES[value].label}</option>)}</select></label>
               <label className="text-xs font-black" style={{ color: palette.ink }}>Sinf xonasi<select value={classCreateDraft.xona_id} onChange={event => { setClassCreateDraft(current => ({ ...current, xona_id: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Xonasiz</option>{classRooms.map(room => <option key={room.id} value={room.id}>{room.nomi}{room.xona_raqami ? ` · ${room.xona_raqami}` : ""}</option>)}</select></label>
             </div>
             <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>Joriy taklif alifbosi: {V237_CLASS_ALPHABET_LABELS[schoolAlphabet]}. Bu majburiy cheklov emas — maydonga xohlagan lotin/kirill nomni yozishingiz mumkin.</div>
@@ -9930,6 +10259,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <label className="text-xs font-black" style={{ color: palette.ink }}>Harf yoki erkin nom *<input autoFocus value={classEditDraft.harf} onChange={event => { setClassEditDraft(current => ({ ...current, harf: event.target.value })); setClassEditError(""); }} placeholder="Masalan: A, Б, Rus, A-1" className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: classEditError && !String(classEditDraft.harf || "").trim() ? palette.red : palette.line }}/></label>
             </div>
             <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Smena *<select value={classEditDraft.smena} onChange={event => { setClassEditDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Joriy smenani tanlang</option><option value={1}>1-smena</option>{classEditAllowsSecondShift && <option value={2}>2-smena</option>}</select></label>
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Ta’lim tili *<select value={classEditDraft.talim_tili || "uz"} onChange={event => { setClassEditDraft(current => ({ ...current, talim_tili: event.target.value })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}>{V238_EDUCATION_LANGUAGE_ORDER.map(value => <option key={value} value={value}>{V238_EDUCATION_LANGUAGES[value].label}</option>)}</select></label>
+            <div className="mt-2 rounded-xl px-3 py-2 text-[11px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Muhim: sinfda o‘quv reja, o‘qituvchi, guruh yoki jadval bog‘lanishi bo‘lsa server ta’lim tilini jim almashtirmaydi. Bunday holatda yangi sinf yarating yoki ma’lumotni alohida ko‘chiring.</div>
             <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Sinf xonasi<select value={classEditDraft.xona_id ?? ""} onChange={event => { setClassEditDraft(current => ({ ...current, xona_id: event.target.value })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Xonasiz</option>{classRooms.map(room => <option key={room.id} value={room.id}>{room.nomi}{room.xona_raqami ? ` · ${room.xona_raqami}` : ""}</option>)}</select></label>
             <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>Bu tahrirda alfavit majburiy emas: lotin, kirill yoki xohlagan qisqa nom qabul qilinadi. Faqat shu sinf darajasida aynan bir xil nom takrorlanmasin.</div>
             {classEditError && <div className="mt-3"><SmartNotice tone="error">{classEditError}</SmartNotice></div>}
@@ -9939,6 +10270,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
           <div className="flex flex-wrap justify-end gap-2 mb-5">
             {canCreateAnotherSchool && <button onClick={openNewSchoolForm} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><School size={16}/> Yangi maktab</button>}
+            {adminPreview && <button onClick={() => setCentralCurriculumOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.sky, color: palette.blue }}><BookOpen size={16}/> 3 til andozasi</button>}
             <button onClick={() => setCurriculumOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: curriculumApproved ? palette.green : palette.amber, color: "#fff" }}>
               <BookOpen size={16}/> O‘quv reja {curriculumApproved ? "✓" : "· tasdiqlanmagan"}
             </button>
@@ -9966,6 +10298,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <Stat icon={<ClipboardCheck size={18}/>} value={dashboard?.bugungi_davomat?.sinflar_belgilamagan ?? 0} label="davomat kiritmagan sinf" tone={dashboard?.bugungi_davomat?.sinflar_belgilamagan ? "amber" : "green"}/>
               <Stat icon={<BellRing size={18}/>} value={holatlar.length} label="ochiq aqlli holat" tone={holatlar.length ? "red" : "green"}/>
             </div>
+
+            <ClassBulkGroupSettingsV238 token={token} apiBase={apiBase} maktabId={maktabId} classes={dashboardClasses} variants={classGroupVariants} onChanged={loadManager}/>
 
             <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-4 mb-5">
               <Card className="p-5">
@@ -10019,7 +10353,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                   <label className="text-[10px] font-black" style={{ color: palette.muted }}>Yangi sinflar uchun harf tartibi<select value={schoolAlphabet} disabled={alphabetSaving} onChange={event => saveSchoolAlphabet(event.target.value)} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-xs bg-white disabled:opacity-60" style={{ borderColor: palette.line, color: palette.ink }}>{Object.entries(V237_CLASS_ALPHABET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
                 </div>
                 {!classCatalogReady && <div className="mb-3"><SmartNotice tone="warning">Sinf/xona katalogi yuklanmaguncha tahrirlash bloklandi; “Yangilash”ni bosing.</SmartNotice></div>}
-                <div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{dashboardClasses.map(s=><button type="button" onClick={() => openClassEditor(s)} disabled={!classCatalogReady} key={s.id} className="rounded-2xl p-3.5 text-left border hover:shadow-md disabled:opacity-55" style={{ background:palette.cream, borderColor: palette.line }}><div className="flex items-start justify-between gap-2"><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background: s.smena ? palette.sky : palette.amberBg, color: s.smena ? palette.blue : palette.amber }}>{s.smena ? `${s.smena}-smena` : "Smena noma’lum"}</div></div><div className="text-xs mt-1" style={{ color:palette.muted }}>{Number(s.oquvchi_soni || 0)} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color: s.xona ? palette.blue : palette.muted }}>Xona: {s.xona || s.xona_nomi || "biriktirilmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>Rahbar: {s.rahbar_ismi||"belgilanmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>Psixolog: {s.psixolog_ismi||"belgilanmagan"}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.blue }}>Tahrirlash →</div></button>)}</div>
+                <div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{dashboardClasses.map(s=>{const language=v238EducationLanguageMeta(v238ClassEducationLanguage(s));return <button type="button" onClick={() => openClassEditor(s)} disabled={!classCatalogReady} key={s.id} className="rounded-2xl p-3.5 text-left border hover:shadow-md disabled:opacity-55" style={{ background:palette.cream, borderColor: palette.line }}><div className="flex items-start justify-between gap-2"><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="flex gap-1"><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background:palette.greenBg,color:palette.green }}>{language.badge}</div><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background: s.smena ? palette.sky : palette.amberBg, color: s.smena ? palette.blue : palette.amber }}>{s.smena ? `${s.smena}-smena` : "Smena noma’lum"}</div></div></div><div className="text-[10px] mt-1 font-black" style={{ color:palette.teal }}>{language.label}</div><div className="text-xs mt-1" style={{ color:palette.muted }}>{Number(s.oquvchi_soni || 0)} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color: s.xona ? palette.blue : palette.muted }}>Xona: {s.xona || s.xona_nomi || "biriktirilmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>Rahbar: {s.rahbar_ismi||"belgilanmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>Psixolog: {s.psixolog_ismi||"belgilanmagan"}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.blue }}>Tahrirlash →</div></button>;})}</div>
               </Card>
             </div>
           </>}
