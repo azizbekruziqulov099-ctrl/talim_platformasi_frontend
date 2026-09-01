@@ -20,6 +20,11 @@ const SAMTM_REQUIRED_TIMETABLE_RELEASES = Object.freeze({
   timetable_engine_release: "SAMTM-TIMETABLE-ENGINE-V23.6-DUAL-SHIFT-WEEK",
   schedule_runtime_release: "SAMTM-SCHEDULE-RUNTIME-V23.6-DIAGNOSTIC-CONTINUE",
 });
+const V241_SKELETON_XLSX_ENDPOINTS = Object.freeze({
+  template: "sinf_skeleti_xlsx_shablon",
+  preview: "sinf_skeleti_xlsx_preview",
+  commit: "sinf_skeleti_xlsx_commit",
+});
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -2190,6 +2195,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   };
 
   const toggleSubject = subject => {
+    if (saving) return;
     const nextSubjects = selectedSubjects.includes(subject)
       ? selectedSubjects.filter(value => value !== subject)
       : [...selectedSubjects, subject];
@@ -2199,6 +2205,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   };
 
   const clearSubjectFilter = () => {
+    if (saving) return;
     setSubjectSearch("");
     setSelectedSubjects([]);
     setSelectedIds([]);
@@ -2345,21 +2352,21 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
 
-    {false && <Card className="p-5">
+    {!teacherOnly && <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-black" style={{ color: palette.ink }}>
-            Fanlarni aniq tanlash
+            Fan bo‘yicha o‘qituvchilarni birga tanlash
           </h2>
           <p className="text-xs mt-1" style={{ color: palette.muted }}>
-            Fanlarni ptichka bilan belgilang. Mos o‘qituvchilar avtomatik tanlanadi;
-            qatoridagi ptichkani olib, ayrim o‘qituvchini istisno qilishingiz mumkin.
+            Fanlarni belgilang — shu fan o‘qituvchilari avtomatik tanlanadi.
+            Pastdagi ro‘yxatda istagan o‘qituvchini qo‘shish yoki tanlovdan chiqarish mumkin.
           </p>
         </div>
         <div className="px-3 py-2 rounded-xl text-xs font-black"
              style={{ background: palette.sky, color: palette.blue }}>
           {selectedSubjects.length
-            ? `${selectedSubjects.length} fan · ${selectedVisibleIds.length} o‘qituvchi`
+            ? `${selectedSubjects.length} fan · ${selectedIds.length} o‘qituvchi tanlandi`
             : "Fan tanlanmagan"}
         </div>
       </div>
@@ -2368,13 +2375,15 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         <input
           value={subjectSearch}
           onChange={event => setSubjectSearch(event.target.value)}
+          disabled={saving}
           placeholder="Fanni qidiring..."
-          className="min-w-[230px] flex-1 p-2.5 rounded-xl border"
+          className="min-w-[230px] flex-1 p-2.5 rounded-xl border disabled:opacity-50"
           style={{ borderColor: palette.line }}
         />
         {(subjectSearch || selectedSubjects.length > 0) && <button
           onClick={clearSubjectFilter}
-          className="px-3 py-2 rounded-xl text-xs font-black"
+          disabled={saving}
+          className="px-3 py-2 rounded-xl text-xs font-black disabled:opacity-50"
           style={{ background: palette.cream, color: palette.ink }}
         >
           Tozalash
@@ -2394,6 +2403,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
             type="checkbox"
             checked={selectedSubjects.includes(subject)}
             onChange={() => toggleSubject(subject)}
+            disabled={saving}
           />
           <span className="font-bold"
                 style={{ color: selectedSubjects.includes(subject) ? palette.blue : palette.ink }}>
@@ -2478,7 +2488,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
       {!teacherOnly && <div className="mt-3 rounded-xl border p-3" style={{ borderColor: palette.line, background: palette.greenBg }}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div><div className="text-sm font-black" style={{ color: palette.ink }}>Metod kunini birga saqlash</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>O‘qituvchilarni ptichka bilan tanlang, kunni belgilang va bir marta saqlang.</div></div>
+          <div><div className="text-sm font-black" style={{ color: palette.ink }}>Tanlangan o‘qituvchilarga metod kunini birga saqlash</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{selectedSubjects.length ? `${selectedSubjects.length} ta fan ustozlari avtomatik belgilandi. ` : ""}Pastdagi ptichkalar bilan tanlovni to‘g‘rilang, bitta kunni tanlang va bir marta saqlang.</div></div>
           <div className="px-3 py-1.5 rounded-lg text-xs font-black" style={{ background: "#fff", color: selectedIds.length ? palette.green : palette.muted }}>{selectedIds.length} ta tanlandi</div>
         </div>
         <div className="grid sm:grid-cols-[1fr_auto_auto_auto] gap-2 mt-3">
@@ -5939,9 +5949,16 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const [splitAssignmentConflicts, setSplitAssignmentConflicts] = useState([]);
   const [orphanGroupConflicts, setOrphanGroupConflicts] = useState([]);
   const [groupSavingKey, setGroupSavingKey] = useState("");
+  const skeletonImportInputRef = useRef(null);
+  const [xlsxAction, setXlsxAction] = useState("");
+  const [xlsxPayload, setXlsxPayload] = useState(null);
+  const [xlsxPreview, setXlsxPreview] = useState(null);
+  const [xlsxCreatedTeachers, setXlsxCreatedTeachers] = useState([]);
 
   const applyMatrix = (result, preserveDraft = false) => {
     setData(result);
+    setXlsxPayload(null);
+    setXlsxPreview(null);
     const classes = result?.sinflar || [];
     setSelectedClassId(current => current || String(classes[0]?.id || ""));
     const nextAssignments = {};
@@ -6160,7 +6177,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
 
   // Step 3 has two deliberately different save modes:
   // 1) this list is diffed for a small, safe autosave-like PATCH;
-  // 2) saveAll below remains the strict, complete-school finalization.
+  // 2) saveAll sends a complete-school snapshot, including explicit blanks.
   const allocationRows = () => {
     const rows = [];
     planRows.forEach(row => {
@@ -6188,6 +6205,153 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       .map(cls => String(cls.id))
       .filter(classId => String(leaders[classId] || "") !== String(baselineLeaders[classId] || ""));
     return { assignmentRows, changedAssignments, changedLeaderClassIds };
+  };
+
+  const xlsxResponseErrorV241 = async (response, fallback) => {
+    try {
+      const payload = await response.json();
+      return typeof payload?.detail === "string"
+        ? payload.detail : payload?.message || payload?.error || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  };
+
+  const xlsxFileBase64V241 = async file => {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const chunkSize = 0x8000;
+    let binary = "";
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return window.btoa(binary);
+  };
+
+  const downloadSkeletonTemplateV241 = async () => {
+    if (xlsxAction || saving || groupSavingKey) return;
+    setXlsxAction("template");
+    setSaveMessage(null);
+    try {
+      const response = await fetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.template}?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`
+      );
+      if (!response.ok) {
+        throw new Error(await xlsxResponseErrorV241(response, `Sinf skeleti shabloni yuklanmadi (HTTP ${response.status}).`));
+      }
+      const disposition = response.headers.get("content-disposition") || "";
+      const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+      const filename = encodedName
+        ? decodeURIComponent(encodedName)
+        : plainName || "SAMTM_sinf_skeleti_shabloni.xlsx";
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setSaveMessage({ tone: "success", text: "XLSX shablon yuklandi. Uni to‘ldirib, shu oynaga qayta import qiling." });
+    } catch (error) {
+      setSaveMessage({ tone: "error", text: error?.message || "Sinf skeleti shabloni yuklanmadi." });
+    } finally {
+      setXlsxAction("");
+    }
+  };
+
+  const previewSkeletonXlsxV241 = async event => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || xlsxAction || saving || groupSavingKey) return;
+    const draft = dirtySnapshot();
+    if (draft.changedAssignments.length || draft.changedLeaderClassIds.length) {
+      setSaveMessage({ tone: "warning", text: "Avval ekrandagi joriy o‘zgarishlarni saqlang yoki qayta yuklang. Shundan keyin XLSX import qiling." });
+      return;
+    }
+    if (!/\.xlsx$/i.test(file.name || "")) {
+      setSaveMessage({ tone: "error", text: "Faqat .xlsx formatdagi to‘ldirilgan skelet shablonini tanlang." });
+      return;
+    }
+    if (Number(file.size || 0) > 3 * 1024 * 1024) {
+      setSaveMessage({ tone: "error", text: "XLSX fayli 3 MB dan katta. Faqat shu maktab uchun olingan skelet shablonini yuklang." });
+      return;
+    }
+    setXlsxAction("preview");
+    setXlsxPayload(null);
+    setXlsxPreview(null);
+    setXlsxCreatedTeachers([]);
+    setSaveMessage({ tone: "info", text: "XLSX tekshirilmoqda; hozircha hech narsa saqlanmaydi..." });
+    try {
+      const payload = {
+        maktab_id: Number(maktabId),
+        fayl_nomi: file.name,
+        xlsx_base64: await xlsxFileBase64V241(file),
+      };
+      const preview = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.preview}?token=${encodeURIComponent(token)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+      );
+      setXlsxPayload(payload);
+      setXlsxPreview(preview);
+      const errors = Array.isArray(preview?.xatolar) ? preview.xatolar : [];
+      const warnings = Array.isArray(preview?.ogohlantirishlar) ? preview.ogohlantirishlar : [];
+      setSaveMessage({
+        tone: preview?.commit_mumkin ? (warnings.length ? "warning" : "success") : "error",
+        text: preview?.commit_mumkin
+          ? `XLSX tekshirildi. ${Number(preview?.jami?.sinf_soni ?? preview?.jami?.sinflar ?? preview?.sinflar?.length ?? 0)} ta sinf varag‘i importga tayyor.${warnings.length ? ` ${warnings.slice(0, 2).join("; ")}` : ""}`
+          : `XLSXda ${errors.length || ""} ta xato bor. Faylni tuzatib, qayta yuklang.`,
+      });
+    } catch (error) {
+      setSaveMessage({ tone: "error", text: error?.message || "XLSX tekshirilmadi." });
+    } finally {
+      setXlsxAction("");
+    }
+  };
+
+  const commitSkeletonXlsxV241 = async () => {
+    if (xlsxAction || saving || groupSavingKey) return;
+    if (!xlsxPayload || xlsxPreview?.commit_mumkin !== true) {
+      setSaveMessage({ tone: "error", text: "Avval to‘ldirilgan XLSXni xatosiz tekshirtiring." });
+      return;
+    }
+    const draft = dirtySnapshot();
+    if (draft.changedAssignments.length || draft.changedLeaderClassIds.length) {
+      setSaveMessage({ tone: "warning", text: "Ekranda saqlanmagan o‘zgarish bor. XLSX importidan oldin uni saqlang yoki qayta yuklang." });
+      return;
+    }
+    setXlsxAction("commit");
+    setSaveMessage({ tone: "info", text: "Tekshirilgan XLSX atomar import qilinmoqda..." });
+    try {
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.commit}?token=${encodeURIComponent(token)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(xlsxPayload) }
+      );
+      if (result?.matritsa) applyMatrix(result.matritsa, false);
+      else await load(false);
+      const created = Array.isArray(result?.yangi_oqituvchilar) ? result.yangi_oqituvchilar : [];
+      const warnings = Array.isArray(result?.ogohlantirishlar) ? result.ogohlantirishlar : [];
+      setXlsxCreatedTeachers(created);
+      setXlsxPayload(null);
+      setXlsxPreview(null);
+      setSaveMessage({
+        tone: warnings.length ? "warning" : "success",
+        text: `${Number(result?.sinf_soni || 0)} ta sinf, ${Number(result?.qator_soni || 0)} ta fan/guruh qatori import qilindi.${created.length ? ` ${created.length} ta yangi o‘qituvchi yaratildi; kirish kodlarini hozir saqlab oling.` : ""}${warnings.length ? ` ${warnings.slice(0, 2).join("; ")}` : ""}`,
+      });
+      await reload?.({ silent: true });
+    } catch (error) {
+      setSaveMessage({ tone: "error", text: error?.message || "XLSX import qilinmadi." });
+    } finally {
+      setXlsxAction("");
+    }
+  };
+
+  const xlsxIssueTextV241 = item => {
+    if (typeof item === "string") return item;
+    const sheet = item?.varaq || item?.sheet || item?.sahifa;
+    const row = item?.qator || item?.row || item?.excel_qatori;
+    const detail = item?.xato || item?.sabab || item?.detail || item?.message || "Noto‘g‘ri ma’lumot";
+    return `${sheet ? `${sheet}${row ? ` · ${row}-qator` : ""}: ` : row ? `${row}-qator: ` : ""}${detail}`;
   };
 
   const classPlanRows = classId => planRows
@@ -6485,7 +6649,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         tone: warnings.length ? "warning" : "success",
         text: `${savedCount} ta fan/guruh birikmasi${clearedCount ? `, ${clearedCount} ta olib tashlash` : ""}${changedLeaders.length ? `, ${changedLeaders.length} ta sinf rahbari` : ""} saqlandi. O‘qituvchi yuklamasi ham yangilandi.${warnings.length ? ` ${warnings.slice(0, 2).join("; ")}` : ""}`,
       });
-      await reload?.();
+      await reload?.({ silent: true });
     } catch (error) {
       setSaveMessage({ tone: "error", text: error.message });
     } finally {
@@ -6510,7 +6674,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       return;
     }
     const payloadRows = [];
-    let missing = 0;
+    const blankKeys = [];
     planRows.forEach(row => {
       if (isClassHourSubjectV199(row.fan_nomi) || Number(row.haftalik_soat || 0) <= 0) return;
       const allocations = allocationKeysFor(row.sinf_id, row.fan_nomi);
@@ -6518,7 +6682,11 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${group.key}`;
         const teacherId = String(assignments[key] || "");
         if (!teacherId) {
-          missing += 1;
+          blankKeys.push({
+            sinf_id: Number(row.sinf_id),
+            fan_nomi: row.fan_nomi,
+            guruh_kaliti: group.key,
+          });
           return;
         }
         const weekly = Number(row.haftalik_soat || 0);
@@ -6530,8 +6698,8 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         });
       });
     });
-    if (missing) {
-      setSaveMessage({ tone: "error", text: `${missing} ta fan/guruhda o‘qituvchi raqami tanlanmagan. Avval ularni to‘ldiring.` });
+    if (continueToGenerator && blankKeys.length) {
+      setSaveMessage({ tone: "warning", text: `${blankKeys.length} ta fan/guruhda o‘qituvchi tanlanmagan. Skeletni saqlash mumkin, lekin jadval yaratishdan oldin barcha ustozlarni biriktiring.` });
       return;
     }
     const repeatedGroupTeachers = planRows.filter(row => {
@@ -6547,18 +6715,14 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       setSaveMessage({ tone: "error", text: `${repeatedGroupTeachers.length} ta guruhli fanda bitta o‘qituvchi ikki guruhga tanlangan. Har bir guruhga alohida o‘qituvchi raqamini tanlang.` });
       return;
     }
-    if (!payloadRows.length) {
-      setSaveMessage({ tone: "error", text: "Bo‘sh skelet yakunlanmaydi. Avval o‘quv reja va o‘qituvchi birikmalarini to‘ldiring." });
-      return;
-    }
     if (!data?.yuklama_revision) {
       setSaveMessage({ tone: "error", text: "Xavfsiz saqlash revisioni topilmadi. Backendni ushbu paket bilan yangilang va sahifani qayta oching." });
       return;
     }
     setSaving(true);
-    setSavingAction("finalize");
+    setSavingAction("skeleton");
     setMessage(null);
-    setSaveMessage({ tone: "info", text: "To‘liq skelet tekshirilib, yakunlanmoqda..." });
+    setSaveMessage({ tone: "info", text: "Skelet, guruh turlari va mavjud o‘qituvchi tanlovlari saqlanmoqda..." });
     try {
       const result = await smartFetch(
         `${apiBase}/api/maktab/aqlli_jadval/v3/sinf_skeleti_yuklama?token=${encodeURIComponent(token)}`,
@@ -6570,6 +6734,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
             toliq_snapshot: true,
             kutilgan_yuklama_revision: data.yuklama_revision,
             qatorlar: payloadRows,
+            bo_sh_kalitlar: blankKeys,
             rahbarlar: (data?.sinflar || []).map(cls => ({
               sinf_id: Number(cls.id),
               user_id: leaders[String(cls.id)] ? Number(leaders[String(cls.id)]) : null,
@@ -6581,9 +6746,9 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       const warnings = result.ogohlantirishlar || [];
       setSaveMessage({
         tone: warnings.length ? "warning" : "success",
-        text: `${result.oqituvchi_soni || 0} ta o‘qituvchi, ${result.qator_soni || 0} ta fan–sinf–guruh qatori saqlandi.${warnings.length ? ` ${warnings.slice(0, 2).join("; ")}` : " Endi jadval yaratishga o‘tishingiz mumkin."}`,
+        text: `${result.oqituvchi_soni || 0} ta o‘qituvchi, ${result.qator_soni || 0} ta fan–sinf–guruh qatori saqlandi.${blankKeys.length ? ` ${blankKeys.length} ta katakka o‘qituvchini keyin biriktirish mumkin.` : " Barcha ustozlar biriktirilgan; jadval yaratishga o‘tishingiz mumkin."}${warnings.length ? ` ${warnings.slice(0, 2).join("; ")}` : ""}`,
       });
-      await reload?.();
+      await reload?.({ silent: true });
       if (continueToGenerator && setStep) setStep(4);
     } catch (error) {
       setSaveMessage({ tone: "error", text: error.message });
@@ -6603,27 +6768,30 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const currentAllocationRows = currentDirty.assignmentRows;
   const assignedCount = currentAllocationRows.filter(row => String(assignments[row.key] || "")).length;
   const requiredCount = currentAllocationRows.length;
+  const blankTeacherCount = Math.max(0, requiredCount - assignedCount);
   const dirtyCount = currentDirty.changedAssignments.length + currentDirty.changedLeaderClassIds.length;
   const isComplete = requiredCount > 0 && assignedCount === requiredCount;
   const hasUnsafeConflicts = splitAssignmentConflicts.length > 0 || orphanGroupConflicts.length > 0;
-  const canFinalize = isComplete && dirtyCount === 0 && !hasUnsafeConflicts;
-  const canOpenGenerator = isComplete && dirtyCount === 0 && !hasUnsafeConflicts;
-  const stepBusy = saving || Boolean(groupSavingKey);
+  const canSaveSkeleton = requiredCount > 0 && !hasUnsafeConflicts;
+  const canOpenGenerator = isComplete && !hasUnsafeConflicts;
+  const stepBusy = saving || Boolean(groupSavingKey) || Boolean(xlsxAction);
+  const xlsxErrors = Array.isArray(xlsxPreview?.xatolar) ? xlsxPreview.xatolar : [];
+  const xlsxWarnings = Array.isArray(xlsxPreview?.ogohlantirishlar) ? xlsxPreview.ogohlantirishlar : [];
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     {!!orphanGroupConflicts.length && <SmartNotice tone="error">
-      {orphanGroupConflicts.length} ta saqlangan guruh qatori joriy guruh tizimiga ulanmagan. Eski yuklama yo‘qolmasligi uchun faqat “Skeletni yakunlash” bloklandi; joriy boshqa o‘zgarishlarni alohida saqlash mumkin. Muammoli qatorlar: {orphanGroupConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}`).join("; ")}.
+      {orphanGroupConflicts.length} ta saqlangan guruh qatori joriy guruh tizimiga ulanmagan. Eski yuklama yo‘qolmasligi uchun “Skeletni saqlash” bloklandi; joriy boshqa o‘zgarishlarni alohida saqlash mumkin. Muammoli qatorlar: {orphanGroupConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}`).join("; ")}.
     </SmartNotice>}
     {!!splitAssignmentConflicts.length && <SmartNotice tone="error">
-      {splitAssignmentConflicts.length} ta aniq fan–sinf–guruh qatori ikki yoki undan ko‘p o‘qituvchiga bo‘lingan. Skelet faqat bitta ustozni tanlaydi; shuning uchun eski ma’lumotni jim o‘chirib yubormaslik maqsadida faqat “Skeletni yakunlash” bloklandi. Muammoli qatorlar: {splitAssignmentConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}${item.oqituvchilar.length ? ` (${item.oqituvchilar.join(", ")})` : ""}`).join("; ")}.
+      {splitAssignmentConflicts.length} ta aniq fan–sinf–guruh qatori ikki yoki undan ko‘p o‘qituvchiga bo‘lingan. Skelet faqat bitta ustozni tanlaydi; shuning uchun eski ma’lumotni jim o‘chirib yubormaslik maqsadida “Skeletni saqlash” bloklandi. Muammoli qatorlar: {splitAssignmentConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}${item.oqituvchilar.length ? ` (${item.oqituvchilar.join(", ")})` : ""}`).join("; ")}.
     </SmartNotice>}
     <Card className="p-5">
       <div className="flex flex-col xl:flex-row xl:items-start gap-5">
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>O‘QITUVCHI RAQAMLARI TAYYOR</div>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>SINF SKELETI VA O‘QITUVCHI RAQAMLARI</div>
           <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Sinf skeletida F.I.Sh. emas, o‘qituvchi raqami tanlanadi</h2>
-          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>O‘qituvchilar “O‘qituvchi qo‘shish” oynasida oldindan raqamlangan. Bu yerda yangi o‘qituvchi yaratilmaydi. Faqat sinf → fan → guruh katagiga kerakli # raqam biriktiriladi.</p>
+          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>Guruh turini va skeletni hozir saqlashingiz mumkin. O‘qituvchi hali ma’lum bo‘lmasa katakni bo‘sh qoldiring — # raqamni keyin biriktirasiz. Jadval yaratishdan oldin esa barcha ustozlar tanlangan bo‘lishi shart.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 xl:w-[360px]">
           <CompactStat value={teachers.length} label="o‘qituvchi" tone="blue"/>
@@ -6631,13 +6799,50 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <CompactStat value={(data.sinflar || []).length} label="sinf" tone="teal"/>
         </div>
       </div>
-      {!teachers.length && <div className="mt-4"><SmartNotice tone="error">O‘qituvchi ro‘yxati bo‘sh. Asosiy sahifaga qaytib “O‘qituvchi qo‘shish”dan avval F.I.Sh.larni kiriting.</SmartNotice></div>}
+      {!teachers.length && <div className="mt-4"><SmartNotice tone="warning">O‘qituvchi ro‘yxati hozircha bo‘sh. Skelet va guruh turlarini saqlang; o‘qituvchilarni keyin qo‘shib, kataklarga # raqamni biriktiring.</SmartNotice></div>}
       <button onClick={() => setShowTeacherList(value => !value)} className="mt-4 text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "O‘qituvchi raqamlarini yopish" : "O‘qituvchi raqamlarini ko‘rsatish"}</button>
       {showTeacherList && teachers.length > 0 && <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
         {teachers.map(teacher => <div key={teacher.user_id} className="rounded-xl border px-3 py-2 flex items-center gap-2" style={{ borderColor: palette.line, background: "#fff" }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacherNumber.get(String(teacher.user_id))}</div>
           <div className="min-w-0 flex-1"><div className="text-xs font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>skelet: {scheduleHourLabel(workloadPreview.get(String(teacher.user_id)) || 0)} soat</div></div>
         </div>)}
+      </div>}
+    </Card>
+
+    <Card className="p-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>XLSX ORQALI TEZ TO‘LDIRISH</div>
+          <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>Shablonni yuklash yoki to‘ldirilgan XLSXni import qilish</div>
+          <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>Birinchi <b>Oqituvchilar</b> varag‘ida ustoz kodi, F.I.Sh. va fanlar yoziladi. Keyin har bir sinf uchun alohida varaqda fan, guruh turi va o‘qituvchi kodi tanlanadi. O‘qituvchi katagi bo‘sh qolishi mumkin.</div>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <button type="button" onClick={downloadSkeletonTemplateV241} disabled={stepBusy} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 disabled:opacity-50" style={{ background: palette.sky, color: palette.blue }}>
+            {xlsxAction === "template" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {xlsxAction === "template" ? "Yuklanmoqda..." : "Shablonni yuklash"}
+          </button>
+          <button type="button" onClick={() => skeletonImportInputRef.current?.click()} disabled={stepBusy || dirtyCount > 0} className="px-3.5 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-50" title={dirtyCount ? "Avval ekrandagi joriy o‘zgarishlarni saqlang yoki qayta yuklang" : "To‘ldirilgan skelet XLSX faylini tanlang"} style={{ background: palette.teal }}>
+            {xlsxAction === "preview" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {xlsxAction === "preview" ? "Tekshirilmoqda..." : "To‘ldirilgan XLSX import"}
+          </button>
+          <input ref={skeletonImportInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={previewSkeletonXlsxV241} className="hidden"/>
+        </div>
+      </div>
+      {xlsxPreview && <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: xlsxPreview.commit_mumkin ? "#A7D3B8" : "#E7AFAF", background: xlsxPreview.commit_mumkin ? palette.greenBg : palette.redBg }}>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs font-black" style={{ color: palette.ink }}>{xlsxPayload?.fayl_nomi || "Tanlangan XLSX"}</div>
+            <div className="text-[10px] mt-1" style={{ color: palette.muted }}>{Number(xlsxPreview?.jami?.sinf_soni ?? xlsxPreview?.jami?.sinflar ?? xlsxPreview?.sinflar?.length ?? 0)} ta sinf varag‘i · {Number(xlsxPreview?.jami?.qator_soni ?? xlsxPreview?.jami?.qatorlar ?? 0)} ta qator · yangi o‘qituvchi {Number(xlsxPreview?.oqituvchilar?.yangi || 0)}</div>
+            {!!xlsxErrors.length && <div className="mt-2 space-y-1">{xlsxErrors.slice(0, 4).map((item, index) => <div key={`${xlsxIssueTextV241(item)}-${index}`} className="text-[10px] font-bold" style={{ color: palette.red }}>{xlsxIssueTextV241(item)}</div>)}</div>}
+            {!!xlsxWarnings.length && <div className="mt-2 space-y-1">{xlsxWarnings.slice(0, 3).map((item, index) => <div key={`${xlsxIssueTextV241(item)}-${index}`} className="text-[10px] font-bold" style={{ color: palette.amber }}>{xlsxIssueTextV241(item)}</div>)}</div>}
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <button type="button" onClick={() => { setXlsxPreview(null); setXlsxPayload(null); }} disabled={Boolean(xlsxAction)} className="px-3 py-2 rounded-xl text-xs font-black disabled:opacity-50" style={{ background: "#fff", color: palette.ink }}>Bekor qilish</button>
+            <button type="button" onClick={commitSkeletonXlsxV241} disabled={Boolean(xlsxAction) || xlsxPreview.commit_mumkin !== true || dirtyCount > 0} className="px-4 py-2 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-45" style={{ background: palette.green }}>{xlsxAction === "commit" && <Loader2 size={14} className="animate-spin"/>}{xlsxAction === "commit" ? "Import qilinmoqda..." : "Tekshirilgan XLSXni saqlash"}</button>
+          </div>
+        </div>
+      </div>}
+      {!!xlsxCreatedTeachers.length && <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "#E7C77B", background: palette.amberBg }}>
+        <div className="text-xs font-black" style={{ color: palette.amber }}>Yangi o‘qituvchilar kirish kodlari — hozir saqlab oling</div>
+        <div className="grid md:grid-cols-2 gap-1.5 mt-2">{xlsxCreatedTeachers.map((teacher, index) => <div key={`${teacher.user_id || teacher.full_name}-${index}`} className="rounded-lg bg-white px-2.5 py-2 text-[10px] font-bold" style={{ color: palette.ink }}>#{teacher.jadval_raqami || "?"} · {teacher.full_name}: <span className="font-black">{teacher.kirish_kodi || "kod qaytarilmadi"}</span></div>)}</div>
       </div>}
     </Card>
 
@@ -6659,24 +6864,6 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         <div className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: palette.sky }}>
           <div><div className="text-base font-black" style={{ color: palette.ink }}>{selectedClass.sinf}-{selectedClass.harf} sinf · {v238EducationLanguageMeta(v238ClassEducationLanguage(selectedClass)).label} · {scheduleHourLabel(classPlanRows(selectedClass.id).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0))} fan soati</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{skeleton.periods} tagacha vaqtinchalik dars katagi · faqat shu ta’lim tilidagi fanlar · xona: {selectedClass.xona || selectedClass.xona_nomi || "biriktirilmagan"}</div></div>
           <label className="flex items-center gap-2 text-xs font-black"><span style={{ color: palette.ink }}>Sinf rahbari</span><select value={leaders[String(selectedClass.id)] || ""} onChange={event => { setLeaders(current => ({ ...current, [String(selectedClass.id)]: event.target.value })); setSaveMessage(null); }} disabled={stepBusy} className="p-2 rounded-lg border bg-white disabled:opacity-50" style={{ borderColor: palette.line }}><option value="">Tanlanmagan</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></label>
-        </div>
-        <div className="p-3 border-t" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <div><div className="text-xs font-black" style={{ color: palette.ink }}>Shu sinf fanlarini guruhga bo‘lish</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>Har bir fan istalgan payt Butun sinf, 1/2 guruh yoki O‘g‘il/Qiz turiga o‘tkaziladi. O‘zgartirganda joriy o‘qituvchi tanlovlari o‘chmaydi — yangi kataklarga moslab ko‘chiriladi.</div></div>
-            <div className="text-[10px] font-black px-2.5 py-1.5 rounded-lg" style={{ background: palette.cream, color: palette.muted }}>{classPlanRows(selectedClass.id).length} ta fan</div>
-          </div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-2 mt-3 max-h-[250px] overflow-auto pr-1">
-            {classPlanRows(selectedClass.id).map(row => {
-              const activeType = subjectGroupTypeFor(selectedClass.id, row.fan_nomi);
-              const busyForSubject = groupSavingKey.startsWith(`${selectedClass.id}|${subjectKeyV193(row.fan_nomi)}|`);
-              return <div key={`${selectedClass.id}-${subjectKeyV193(row.fan_nomi)}`} className="rounded-xl border p-2.5" style={{ borderColor: activeType !== "whole" ? "#B9DFC5" : palette.line, background: activeType !== "whole" ? palette.greenBg : "#fff" }}>
-                <div className="flex items-start justify-between gap-2"><div className="text-[11px] font-black leading-tight" style={{ color: palette.ink }}>{row.fan_nomi}</div><span className="text-[9px] font-black shrink-0" style={{ color: palette.muted }}>{scheduleHourLabel(row.haftalik_soat)} s.</span></div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[["whole", "Butun sinf"], ["alphabet", "1/2 guruh"], ["gender", "O‘g‘il/Qiz"]].map(([type, label]) => <button key={type} type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, type)} disabled={stepBusy || activeType === type} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-70" style={{ background: activeType === type ? palette.green : type === "alphabet" ? palette.sky : palette.cream, color: activeType === type ? "#fff" : type === "alphabet" ? palette.blue : palette.ink }}>{activeType === type ? `✓ ${label}` : busyForSubject ? "Saqlanmoqda..." : type === "alphabet" ? "+ 1/2 guruh" : type === "gender" ? "+ O‘g‘il/Qiz" : label}</button>)}
-                </div>
-              </div>;
-            })}
-          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-[1050px] w-full border-collapse">
@@ -6713,17 +6900,19 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <div className="text-xs" style={{ color: dirtyCount ? palette.amber : palette.muted }}>
             {dirtyCount
               ? `${dirtyCount} ta saqlanmagan joriy o‘zgarish bor. Ular uchun barcha sinflarni to‘ldirish shart emas.`
-              : "Guruhga bo‘lingan fan katagida har bir guruhga alohida o‘qituvchi raqami tanlanadi."}
+              : blankTeacherCount
+                ? `${blankTeacherCount} ta fan/guruhda o‘qituvchi keyin tanlanadi. Skelet va guruh turlarini hozir saqlash mumkin.`
+                : "Barcha fan/guruhlarga o‘qituvchi biriktirilgan. Jadval yaratishga o‘tish mumkin."}
           </div>
           <div className="flex flex-wrap justify-end gap-2 shrink-0">
             <button onClick={() => load(false, true)} disabled={stepBusy} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" style={{ background: palette.cream, color: palette.ink }}>Qayta yuklash</button>
             <button onClick={saveCurrentChanges} disabled={stepBusy || dirtyCount === 0} className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title="Faqat o‘zgargan fan/guruh va sinf rahbarlarini saqlaydi" style={{ background: palette.green, color: "#fff" }}>
               {savingAction === "current" ? "Joriy o‘zgarishlar saqlanmoqda..." : `Joriy o‘zgarishlarni saqlash${dirtyCount ? ` (${dirtyCount})` : ""}`}
             </button>
-            <button onClick={saveAll} disabled={stepBusy || !canFinalize} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title={!isComplete ? `${Math.max(0, requiredCount - assignedCount)} ta fan/guruh hali biriktirilmagan` : dirtyCount ? "Avval joriy o‘zgarishlarni saqlang" : hasUnsafeConflicts ? "Xavfsiz ko‘rsatilmaydigan eski yuklama bor" : "To‘liq maktab skeletini tekshiradi va yakunlaydi"} style={{ background: palette.sky, color: palette.blue }}>
-              {savingAction === "finalize" ? "Yakunlanmoqda..." : "Skeletni yakunlash"}
+            <button onClick={saveAll} disabled={stepBusy || !canSaveSkeleton} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title={hasUnsafeConflicts ? "Avval eski yuklama ziddiyatlarini to‘g‘rilang" : "Guruh turlari, o‘qituvchi tanlovlari va bo‘sh kataklarni saqlaydi"} style={{ background: palette.sky, color: palette.blue }}>
+              {savingAction === "skeleton" ? "Skelet saqlanmoqda..." : "Skeletni saqlash"}
             </button>
-            {setStep && <button onClick={() => canOpenGenerator && saveAll({ continueToGenerator: true })} disabled={stepBusy || !canOpenGenerator} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-40" title={!isComplete ? "Avval barcha fan/guruhlarga o‘qituvchi tanlang" : dirtyCount ? "Avval joriy o‘zgarishlarni saqlang" : hasUnsafeConflicts ? "Avval eski yuklama ziddiyatlarini to‘g‘rilang" : "Avval strict skeletni yakunlaydi, keyin generatorni ochadi"} style={{ background: palette.blue, color: "#fff" }}>Jadval yaratishga o‘tish →</button>}
+            {setStep && <button onClick={() => canOpenGenerator && saveAll({ continueToGenerator: true })} disabled={stepBusy || !canOpenGenerator} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-40" title={!isComplete ? `Avval ${blankTeacherCount} ta fan/guruhga o‘qituvchi tanlang. Skeletni ustozsiz ham alohida saqlashingiz mumkin.` : hasUnsafeConflicts ? "Avval eski yuklama ziddiyatlarini to‘g‘rilang" : "To‘liq skeletni saqlaydi va generatorni ochadi"} style={{ background: palette.blue, color: "#fff" }}>Jadval yaratishga o‘tish →</button>}
           </div>
         </div>
       </div>
