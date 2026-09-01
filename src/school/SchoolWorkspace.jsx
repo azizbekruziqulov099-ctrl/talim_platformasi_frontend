@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V23.4 — immutable checkpoint, immediate stop, persistent revisions.
+// SAMTM FRONTEND V23.5 — editable teacher, strict presence bands, persistent revisions.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -12,7 +12,14 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.4-CHECKPOINT-STOP";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.5-DUAL-SHIFT-REVISION-STOP";
+const SAMTM_REQUIRED_TIMETABLE_RELEASES = Object.freeze({
+  jadval_release: "JADVAL-ONE-V23.5-EDIT-PRESENCE-REVISION",
+  exact_module_release: "SAMTM-EXACT-SOLVER-V23.5-BALANCED-OPEN-DAYS",
+  exact_internal_release: "SAMTM-EXACT-CP-SAT-V23.5-DUAL-SHIFT-OKNO-ROUND-ROBIN",
+  timetable_engine_release: "SAMTM-TIMETABLE-ENGINE-V23.5-STRICT",
+  schedule_runtime_release: "SAMTM-SCHEDULE-RUNTIME-V23.5-BEST-REVISION-PROMOTION",
+});
 const teacherCategoriesV192 = [
   "O'ta maxsus mutaxassis (oliy ma'lumotli)",
   "2-toifali", "1-toifali", "Oliy toifali",
@@ -2764,7 +2771,7 @@ function TeacherFirstLoadEditorV192({
     tugilgan_sana: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
   });
   const [existingProfile, setExistingProfile] = useState({
-    mutaxassisligi: "", haftalik_maqsad_soat: "",
+    full_name: "", mutaxassisligi: "", haftalik_maqsad_soat: "",
     tugilgan_sana: "", tugilgan_yili: "", ish_staji: "", toifasi: "", rahbar_sinf_id: "",
   });
   const [autoSpecialty, setAutoSpecialty] = useState(true);
@@ -2946,6 +2953,7 @@ function TeacherFirstLoadEditorV192({
       ...canonicalBaseValues.flatMap(subject => pairedTeachingSubjectsV196(subject, specialtySubjectChoices)),
     ].map(subject => [teacherSubjectKeyV203(subject), subject])).values()];
     setExistingProfile({
+      full_name: String(current?.full_name || ""),
       mutaxassisligi: values.join(";"),
       haftalik_maqsad_soat: current?.haftalik_maqsad_soat == null
         ? "" : String(current.haftalik_maqsad_soat),
@@ -3885,6 +3893,12 @@ function TeacherFirstLoadEditorV192({
     if (!creatingNew && !selectedTeacher) {
       return showValidationErrorV199("Avval o‘qituvchini tanlang.", "teacher-selector-panel");
     }
+    if (!creatingNew && existingProfile.full_name.trim().length < 3) {
+      return showValidationErrorV199(
+        "O‘qituvchining F.I.Sh.ni kiriting.",
+        "existing-teacher-full-name"
+      );
+    }
     if (creatingNew && newTeacher.full_name.trim().length < 3) {
       return showValidationErrorV199("Yangi o‘qituvchining F.I.Sh.ni kiriting.", "new-teacher-full-name");
     }
@@ -4038,6 +4052,7 @@ function TeacherFirstLoadEditorV192({
       } : {
         maktab_id: maktabId,
         user_id: Number(selectedTeacher),
+        full_name: existingProfile.full_name.trim(),
         mutaxassisligi: effectiveExistingTeacherSpecialty || null,
         otadigan_fanlari: existingTeacherSubjects,
         haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
@@ -4151,7 +4166,7 @@ function TeacherFirstLoadEditorV192({
         haftalik_soat: "hours", kunlik_max: "hours", xona_id: "hours",
       };
       const profileFieldMap = {
-        full_name: "new-teacher-full-name",
+        full_name: creatingNew ? "new-teacher-full-name" : "existing-teacher-full-name",
         mutaxassisligi: creatingNew ? "teacher-subject-picker" : "existing-teacher-subject-picker",
         otadigan_fanlari: creatingNew ? "teacher-subject-picker" : "existing-teacher-subject-picker",
         haftalik_maqsad_soat: creatingNew ? "new-teacher-weekly-target" : "existing-teacher-weekly-target",
@@ -4878,6 +4893,9 @@ function TeacherFirstLoadEditorV192({
               </button>
             </div>
             <div className="grid md:grid-cols-2 gap-3">
+              <label className="order-1 block text-xs font-black md:col-span-2" style={{ color: palette.ink }}>F.I.Sh.
+                <input id="existing-teacher-full-name" value={existingProfile.full_name} onChange={event => { clearInvalidFieldV199("existing-teacher-full-name"); setExistingProfile(current => ({ ...current, full_name: event.target.value })); }} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-full-name")}/>
+              </label>
               {renderSpecialtyPicker(false)}
               <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
                 <input id="existing-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={existingProfile.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("existing-teacher-weekly-target"); setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-weekly-target")}/>
@@ -7731,12 +7749,19 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         !["SAMTM-EXACT-CP-SAT-V22.0", "SAMTM-EXACT-CP-SAT-V22.40-DAILY-BALANCE"].includes(
           capability?.exact_jadval_release
         ) ||
+        Object.entries(SAMTM_REQUIRED_TIMETABLE_RELEASES).some(
+          ([key, expected]) => capability?.[key] !== expected
+        ) ||
         capability?.diagnostics_contract !== "exact-failure-v21.9" ||
         capability?.solver_pipeline !== "hard-feasibility-first"
       ) {
+        const mixedModules = Object.entries(SAMTM_REQUIRED_TIMETABLE_RELEASES)
+          .filter(([key, expected]) => capability?.[key] !== expected)
+          .map(([key]) => key)
+          .join(", ");
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V23.4 CHECKPOINT-STOP paketidagi barcha faylni birga deploy qiling. Hozirgi backend: ${capability?.exact_jadval_release || "noma’lum"}; ichki versiya: ${capability?.exact_internal_release || "eski"}; diagnostika: ${capability?.diagnostics_contract || "eski"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V23.5 paketidagi barcha 5 faylni birga deploy qiling. Eski yoki yetishmagan modullar: ${mixedModules || "exact/diagnostika"}. Frontend: ${SAMTM_TIMETABLE_FRONTEND_RELEASE}; backend: ${capability?.jadval_release || "noma’lum"}.`,
         });
         return;
       }
@@ -7887,16 +7912,28 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       }
 
       stopRequestedRef.current = true;
+      setLiveProgress(current => ({
+        ...(current || {}),
+        bosqich: "toxtatish_soraldi",
+        xabar: "To‘xtatish qabul qilindi. Eng oxirgi 100% variant xavfsiz ochilmoqda…",
+      }));
       let progress = liveProgress;
-      try {
-        const fresh = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { timeoutMs: 5000 });
-        if (fresh?.jadval_raqami) progress = fresh;
-      } catch (_) {
-        // Stop qabul qilingan; oxirgi lokal checkpoint bilan davom etamiz.
+      // Backend cancel watcher odatda bir soniyadan tez javob beradi. Terminal
+      // holatni qisqa kutib, lokal eski NN.n emas, bazadagi eng oxirgi
+      // promoted #NNni ochamiz.
+      for (let attempt = 0; attempt < 16; attempt += 1) {
+        try {
+          const fresh = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/jarayon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}&qidiruv_nonce=${encodeURIComponent(generationNonce)}`, { timeoutMs: 5000 });
+          if (fresh?.jadval_raqami) progress = fresh;
+          if (["toxtatildi", "tayyor", "xato"].includes(String(fresh?.bosqich || ""))) break;
+        } catch (_) {
+          break;
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 250));
       }
       const stoppedProgress = {
         ...(progress || {}),
-        bosqich: "toxtatish_soraldi",
+        bosqich: progress?.bosqich || "toxtatish_soraldi",
         xabar: "To‘xtatildi. Oxirgi saqlangan 100% jadval ochilmoqda.",
       };
       setLiveProgress(stoppedProgress);
@@ -7905,15 +7942,15 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
       setGenerationNonce(null);
 
       const savedRunId = stoppedProgress?.jadval_raqami || stopResponse?.jadval_raqami;
-      const savedRevision = Number(stoppedProgress?.yaxshilanish || 0);
       if (savedRunId && Number(stoppedProgress?.foiz || 0) >= 55) {
         await reload();
-        const stoppedDetail = await loadRun(savedRunId, savedRevision);
+        const stoppedDetail = await loadRun(savedRunId);
         if (stoppedDetail?.urinish?.id) {
+          const savedRevision = Number(stoppedDetail.urinish.yaxshilanish || stoppedProgress?.yaxshilanish || 0);
           setRunId(String(stoppedDetail.urinish.id));
           setGenerationFailure(null);
           setResultWindowOpen(true);
-          setMessage({ tone: "success", text: `To‘xtatildi. Eng yaxshi saqlangan Jadval #${savedRunId}${savedRevision ? `.${savedRevision}` : ""} ochildi.` });
+          setMessage({ tone: "success", text: `To‘xtatildi. Eng yaxshi ${savedRevision ? `#${savedRunId}.${savedRevision}` : `#${savedRunId}`} varianti asosiy Jadval #${savedRunId}ga qo‘yildi va ochildi.` });
           return;
         }
       }
