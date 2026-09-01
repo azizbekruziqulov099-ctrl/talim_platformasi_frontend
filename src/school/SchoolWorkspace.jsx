@@ -2791,6 +2791,41 @@ function groupedSubjectMatchesV195(left, right) {
   return leftKey === rightKey || groupedSubjectFamilyV195(leftKey) === groupedSubjectFamilyV195(rightKey);
 }
 
+function groupedSubjectMatchesInClassPlanV239(planSubjects, left, right) {
+  const leftKey = subjectKeyV193(left);
+  const rightKey = subjectKeyV193(right);
+  if (!leftKey || !rightKey) return false;
+  // Exact fan har doim ustun. Family alias faqat shu sinf rejasida mazkur
+  // oilaning bitta o'zi bo'lsa ishlaydi; Chet/Ingliz/Nemis yonma-yon turganda
+  // bittasining guruh sozlamasi boshqasiga sizib o'tmaydi.
+  if (leftKey === rightKey) return true;
+  const family = groupedSubjectFamilyV195(rightKey);
+  if (groupedSubjectFamilyV195(leftKey) !== family) return false;
+  const familyPlanKeys = new Set((planSubjects || [])
+    .map(subjectKeyV193)
+    .filter(key => key && groupedSubjectFamilyV195(key) === family));
+  return familyPlanKeys.size === 1 && familyPlanKeys.has(rightKey);
+}
+
+function carrySubjectDraftV239(sourceDraft, mappedValue, currentValue) {
+  // Dirty qiymat `""` bo'lsa ham ongli tozalash hisoblanadi; truthy fallback
+  // eski server o'qituvchisini qayta tiriltirmasligi shart.
+  if (sourceDraft?.dirty) return String(sourceDraft.value ?? "");
+  if (mappedValue !== undefined && mappedValue !== null) return String(mappedValue);
+  if (sourceDraft) return String(sourceDraft.value ?? "");
+  return String(currentValue ?? "");
+}
+
+function restoreTargetModeDraftV239(draftCache, targetKey, sourceDraft, mappedValue) {
+  // Oldin shu mode'da tahrirlangan exact target key assignments ichida yashirin
+  // draft sifatida qoladi. Hatto qiymat `""` bo'lsa ham server/arxiv mappingi
+  // uning ustidan yozmasligi kerak.
+  if (Object.prototype.hasOwnProperty.call(draftCache || {}, targetKey)) {
+    return String(draftCache[targetKey] ?? "");
+  }
+  return carrySubjectDraftV239(sourceDraft, mappedValue, undefined);
+}
+
 function sameSubjectV196(left, right) {
   const leftKey = subjectKeyV193(left);
   const rightKey = subjectKeyV193(right);
@@ -5882,14 +5917,67 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       : classRoomId(classId)
   );
 
-  const groupVariantsFor = (classId, subject) => {
-    const variants = (data?.guruh_variantlari || []).filter(item =>
+  const classPlanSubjectsForMatrixV239 = (matrix, classId) => {
+    const saved = matrix?.oquv_reja?.qatorlar || [];
+    const template = matrix?.oquv_reja?.andoza_qatorlar || [];
+    const source = saved.length ? saved : template;
+    return source
+      .filter(row =>
+        String(row.sinf_id) === String(classId)
+        && Number(row.haftalik_soat || 0) > 0
+        && !isClassHourSubjectV199(row.fan_nomi)
+      )
+      .map(row => row.fan_nomi);
+  };
+
+  const subjectMatchesForMatrixV239 = (matrix, classId, left, right) => (
+    groupedSubjectMatchesInClassPlanV239(
+      classPlanSubjectsForMatrixV239(matrix, classId), left, right
+    )
+  );
+
+  const groupVariantsForMatrix = (matrix, classId, subject) => {
+    const variants = (matrix?.guruh_variantlari || []).filter(item =>
       String(item.sinf_id) === String(classId) && String(item.guruh_kaliti || "whole") !== "whole"
     );
-    const linked = variants.filter(variant =>
-      (variant.fanlar || []).some(item => groupedSubjectMatchesV195(item, subject))
+    const subjectKey = subjectKeyV193(subject);
+    const exactLinked = variants.filter(variant =>
+      (variant.fanlar || []).some(item => subjectKeyV193(item) === subjectKey)
     );
-    return linked.length ? linked : [];
+    if (exactLinked.length) return exactLinked;
+    const safelyAliased = variants.filter(variant =>
+      (variant.fanlar || []).some(item =>
+        subjectMatchesForMatrixV239(matrix, classId, item, subject)
+      )
+    );
+    return safelyAliased.length ? safelyAliased : [];
+  };
+
+  const groupVariantsFor = (classId, subject) => (
+    groupVariantsForMatrix(data, classId, subject)
+  );
+
+  const subjectGroupTypeFor = (classId, subject, matrix = data) => {
+    const schemes = [...new Set(groupVariantsForMatrix(matrix, classId, subject)
+      .map(variant => {
+        const direct = String(variant?.turi || "").trim().toLowerCase();
+        if (direct === "alphabet" || direct === "gender") return direct;
+        return groupedVariantSchemeV196(variant) === "numbered"
+          ? "alphabet"
+          : groupedVariantSchemeV196(variant);
+      })
+      .filter(value => value === "alphabet" || value === "gender"))];
+    if (!schemes.length) return "whole";
+    return schemes.length === 1 ? schemes[0] : "mixed";
+  };
+
+  const allocationKeysForMatrix = (matrix, classId, subject) => {
+    const groups = groupVariantsForMatrix(matrix, classId, subject);
+    if (groups.length) return groups.map(group => ({
+      key: String(group.guruh_kaliti),
+      label: group.guruh_nomi || group.qisqa || scheduleGroupLabel(group.guruh_kaliti),
+    }));
+    return [{ key: "whole", label: "Butun sinf" }];
   };
 
   const teacherChoicesFor = (subject, currentTeacherId) => [...teachers].sort((left, right) => {
@@ -5907,12 +5995,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   });
 
   const allocationKeysFor = (classId, subject) => {
-    const groups = groupVariantsFor(classId, subject);
-    if (groups.length) return groups.map(group => ({
-      key: String(group.guruh_kaliti),
-      label: group.guruh_nomi || group.qisqa || scheduleGroupLabel(group.guruh_kaliti),
-    }));
-    return [{ key: "whole", label: "Butun sinf" }];
+    return allocationKeysForMatrix(data, classId, subject);
   };
 
   // Step 3 has two deliberately different save modes:
@@ -5997,41 +6080,134 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   };
 
   const configureSubjectGroups = async (classId, subject, type) => {
-    const pending = dirtySnapshot();
-    if (pending.changedAssignments.length || pending.changedLeaderClassIds.length) {
+    if (!["whole", "alphabet", "gender"].includes(type)) return;
+    if (subjectGroupTypeFor(classId, subject) === type) {
+      setSaveMessage({ tone: "info", text: `${subject}: tanlangan dars turi allaqachon faol.` });
+      return;
+    }
+    if (!data?.yuklama_revision) {
       setSaveMessage({
         tone: "error",
-        text: "Guruh turini o‘zgartirishdan oldin joriy o‘qituvchi tanlovlarini saqlang.",
+        text: "Xavfsiz o‘zgartirish revisioni topilmadi. Backendni shu paket bilan yangilang va sahifani qayta yuklang.",
       });
       return;
     }
+    const touchedSplitConflict = splitAssignmentConflicts.some(item =>
+      String(item.sinf_id) === String(classId)
+      && subjectMatchesForMatrixV239(data, classId, item.fan_nomi, subject)
+    );
+    const touchedOrphanConflict = orphanGroupConflicts.some(item =>
+      String(item.sinf_id) === String(classId)
+      && subjectMatchesForMatrixV239(data, classId, item.fan_nomi, subject)
+    );
+    if (touchedSplitConflict || touchedOrphanConflict) {
+      setSaveMessage({
+        tone: "error",
+        text: `${subject}: shu sinf-fanda eski ziddiyatli yoki joriy guruh tizimiga ulanmagan yuklama bor. Faqat shu muammoni O‘qituvchi va yuklama oynasida to‘g‘rilagandan keyin guruh turini almashtiring.`,
+      });
+      return;
+    }
+
+    // Katakdagi saqlanmagan o'qituvchi tanlovlari mode-switch paytida ham
+    // yo'qolmaydi. Yangi matritsa kelgach exact kalit, so'ng oldingi tartib,
+    // so'ng backendning xavfsiz mapping taklifi bo'yicha qayta qo'yiladi.
+    const previousAllocations = allocationKeysFor(classId, subject);
+    const previousDrafts = previousAllocations.map(group => {
+      const key = `${classId}|${subjectKeyV193(subject)}|${group.key}`;
+      const value = String(assignments[key] || "");
+      return {
+        key,
+        value,
+        // Bo'sh qiymat ham ongli draft bo'lishi mumkin. Truthy tekshiruv
+        // serverdagi eski ustozni qayta tiriltirib yubormasligi kerak.
+        dirty: value !== String(baselineAssignments[key] || ""),
+      };
+    });
+    const draftBeforeSwitch = { ...assignments };
     const actionKey = `${classId}|${subjectKeyV193(subject)}|${type}`;
     setGroupSavingKey(actionKey);
-    setSaveMessage({ tone: "info", text: `${subject} uchun guruh tizimi yaratilmoqda...` });
+    setSaveMessage({ tone: "info", text: `${subject}: dars turi xavfsiz o‘zgartirilmoqda...` });
     try {
-      await smartFetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v2/guruh_tizimi_tez?token=${encodeURIComponent(token)}`,
+      // Legacy `guruh_tizimi_tez` faqat yangi sxema qo'sha olardi. Bu atomik
+      // route uchala yo'nalishni ham eski o'qituvchi tanlovlarini saqlab bajaradi.
+      const result = await smartFetch(
+        `${apiBase}/api/maktab/aqlli_jadval/v3/sinf_fan_guruh_turi?token=${encodeURIComponent(token)}`,
         {
-          method: "POST",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             maktab_id: Number(maktabId),
             sinf_id: Number(classId),
             fan_nomi: subject,
             turi: type,
-            additive: true,
-            oldingi_tizimlarni_saqlash: true,
+            kutilgan_yuklama_revision: data.yuklama_revision,
           }),
         }
       );
-      await load(false);
-      setSaveMessage({
-        tone: "success",
-        text: type === "alphabet"
-          ? `${subject}: 1-guruh va 2-guruh setkada ochildi. Endi har biriga alohida o‘qituvchi tanlang.`
-          : `${subject}: O‘g‘il va Qiz guruhlari setkada ochildi. Endi har biriga alohida o‘qituvchi tanlang.`,
+      const matrix = result?.matritsa;
+      if (!matrix?.yuklama_revision) {
+        throw new Error("Backend yangi guruh matritsasi va revisionini qaytarmadi.");
+      }
+      const targetAllocations = allocationKeysForMatrix(matrix, classId, subject);
+      const matrixClassRows = (matrix?.birikmalar || []).filter(row =>
+        String(row.sinf_id) === String(classId)
+      );
+      const exactMatrixRows = matrixClassRows.filter(row =>
+        subjectKeyV193(row.fan_nomi) === subjectKeyV193(subject)
+      );
+      const returnedPairRows = exactMatrixRows.length
+        ? exactMatrixRows
+        : matrixClassRows.filter(row =>
+          subjectMatchesForMatrixV239(matrix, classId, row.fan_nomi, subject)
+        );
+      const mappedRows = [
+        ...(result?.saqlangan_tanlovlar || []),
+        ...returnedPairRows,
+      ];
+      const mappedByGroup = new Map();
+      mappedRows.forEach(row => {
+        const groupKey = String(row.guruh_kaliti || "whole");
+        const mappedTeacherId = row.user_id ?? row.oqituvchi_user_id;
+        if (!mappedByGroup.has(groupKey) && mappedTeacherId) {
+          mappedByGroup.set(groupKey, String(mappedTeacherId));
+        }
       });
-      await reload?.();
+      const nextPairAssignments = {};
+      targetAllocations.forEach((group, index) => {
+        const key = `${classId}|${subjectKeyV193(subject)}|${group.key}`;
+        const sourceDraft = targetAllocations.length === 1
+          ? previousDrafts[0]
+          : previousDrafts[index];
+        // carrySubjectDraftV239 avval sourceDraft?.dirty ni tekshiradi;
+        // shuning uchun ongli bo'sh qiymat mapped/server qiymatidan ustun.
+        nextPairAssignments[key] = restoreTargetModeDraftV239(
+          draftBeforeSwitch,
+          key,
+          sourceDraft,
+          mappedByGroup.has(String(group.key))
+            ? mappedByGroup.get(String(group.key))
+            : undefined
+        );
+      });
+
+      // Unrelated dirty teacher/leader drafts stay in React state. applyMatrix
+      // only refreshes server baseline/conflict metadata for the new scheme.
+      applyMatrix(matrix, true);
+      setAssignments(current => ({ ...current, ...nextPairAssignments }));
+
+      const missing = targetAllocations.filter(group => !nextPairAssignments[
+        `${classId}|${subjectKeyV193(subject)}|${group.key}`
+      ]).length;
+      const typeLabel = type === "whole"
+        ? "Butun sinf"
+        : type === "alphabet" ? "1/2 guruh" : "O‘g‘il/Qiz";
+      setSaveMessage({
+        tone: missing ? "warning" : "success",
+        text: `${subject}: ${typeLabel} tanlandi. Oldingi o‘qituvchi tanlovlari saqlandi va mos kataklarga ko‘chirildi.${missing ? ` ${missing} ta yangi guruhga o‘qituvchi raqamini tanlang.` : ""}`,
+      });
+      // Parent sozlamalarini yangilaymiz, lekin Step-3 komponentini unmount
+      // qilmaymiz: oddiy reload saqlanmagan ustoz/rahbar draftlarini yo'qotar edi.
+      await reload?.({ silent: true });
     } catch (error) {
       setSaveMessage({ tone: "error", text: error.message });
     } finally {
@@ -6326,22 +6502,17 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         </div>
         <div className="p-3 border-t" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <div><div className="text-xs font-black" style={{ color: palette.ink }}>Shu sinf fanlarini guruhga bo‘lish</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>Barcha fanlar ko‘rinadi. Faqat guruhda o‘tiladigan fan uchun 1/2 yoki O‘g‘il/Qiz ni bosing; setka darhol ikki tanlovga ajraladi.</div></div>
+            <div><div className="text-xs font-black" style={{ color: palette.ink }}>Shu sinf fanlarini guruhga bo‘lish</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>Har bir fan istalgan payt Butun sinf, 1/2 guruh yoki O‘g‘il/Qiz turiga o‘tkaziladi. O‘zgartirganda joriy o‘qituvchi tanlovlari o‘chmaydi — yangi kataklarga moslab ko‘chiriladi.</div></div>
             <div className="text-[10px] font-black px-2.5 py-1.5 rounded-lg" style={{ background: palette.cream, color: palette.muted }}>{classPlanRows(selectedClass.id).length} ta fan</div>
           </div>
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-2 mt-3 max-h-[250px] overflow-auto pr-1">
             {classPlanRows(selectedClass.id).map(row => {
-              const linkedGroups = groupVariantsFor(selectedClass.id, row.fan_nomi);
-              const activeTypes = new Set(linkedGroups.map(item => item.turi || (
-                groupedVariantSchemeV196(item) === "numbered" ? "alphabet" : groupedVariantSchemeV196(item)
-              )).filter(Boolean));
-              const alphabetKey = `${selectedClass.id}|${subjectKeyV193(row.fan_nomi)}|alphabet`;
-              const genderKey = `${selectedClass.id}|${subjectKeyV193(row.fan_nomi)}|gender`;
-              return <div key={`${selectedClass.id}-${subjectKeyV193(row.fan_nomi)}`} className="rounded-xl border p-2.5" style={{ borderColor: activeTypes.size ? "#B9DFC5" : palette.line, background: activeTypes.size ? palette.greenBg : "#fff" }}>
+              const activeType = subjectGroupTypeFor(selectedClass.id, row.fan_nomi);
+              const busyForSubject = groupSavingKey.startsWith(`${selectedClass.id}|${subjectKeyV193(row.fan_nomi)}|`);
+              return <div key={`${selectedClass.id}-${subjectKeyV193(row.fan_nomi)}`} className="rounded-xl border p-2.5" style={{ borderColor: activeType !== "whole" ? "#B9DFC5" : palette.line, background: activeType !== "whole" ? palette.greenBg : "#fff" }}>
                 <div className="flex items-start justify-between gap-2"><div className="text-[11px] font-black leading-tight" style={{ color: palette.ink }}>{row.fan_nomi}</div><span className="text-[9px] font-black shrink-0" style={{ color: palette.muted }}>{scheduleHourLabel(row.haftalik_soat)} s.</span></div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  <button type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, "alphabet")} disabled={stepBusy || activeTypes.has("alphabet")} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-70" style={{ background: activeTypes.has("alphabet") ? palette.green : palette.sky, color: activeTypes.has("alphabet") ? "#fff" : palette.blue }}>{activeTypes.has("alphabet") ? "✓ 1/2 guruh" : groupSavingKey === alphabetKey ? "Yaratilmoqda..." : "+ 1/2 guruh"}</button>
-                  <button type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, "gender")} disabled={stepBusy || activeTypes.has("gender")} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-70" style={{ background: activeTypes.has("gender") ? palette.green : palette.cream, color: activeTypes.has("gender") ? "#fff" : palette.ink }}>{activeTypes.has("gender") ? "✓ O‘g‘il/Qiz" : groupSavingKey === genderKey ? "Yaratilmoqda..." : "+ O‘g‘il/Qiz"}</button>
+                  {[["whole", "Butun sinf"], ["alphabet", "1/2 guruh"], ["gender", "O‘g‘il/Qiz"]].map(([type, label]) => <button key={type} type="button" onClick={() => configureSubjectGroups(selectedClass.id, row.fan_nomi, type)} disabled={stepBusy || activeType === type} className="px-2 py-1.5 rounded-lg text-[9px] font-black disabled:opacity-70" style={{ background: activeType === type ? palette.green : type === "alphabet" ? palette.sky : palette.cream, color: activeType === type ? "#fff" : type === "alphabet" ? palette.blue : palette.ink }}>{activeType === type ? `✓ ${label}` : busyForSubject ? "Saqlanmoqda..." : type === "alphabet" ? "+ 1/2 guruh" : type === "gender" ? "+ O‘g‘il/Qiz" : label}</button>)}
                 </div>
               </div>;
             })}
@@ -6359,7 +6530,14 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
                 return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.amber }}>{leaderId ? `#${teacherNumber.get(String(leaderId))} · ${teacherById.get(String(leaderId))?.full_name || "Rahbar"}` : "Rahbar tanlanmagan"}</div></div></td>;
               }
               const allocations = allocationKeysFor(selectedClass.id, cell.fan_nomi);
-              return <td key={dayIndex} className="p-1.5 border-t border-l align-top" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: allocations.length > 1 ? palette.mint : "#fff" }}><div className="flex items-start justify-between gap-1"><div className="text-[11px] leading-tight font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><span className="text-[9px] font-black" style={{ color: palette.muted }}>{cell.amount < 1 ? "0,5" : ""}</span></div><div className="space-y-1 mt-2">{allocations.map(group => {
+              const activeGroupType = subjectGroupTypeFor(selectedClass.id, cell.fan_nomi);
+              const subjectSwitchBusy = groupSavingKey.startsWith(`${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|`);
+              return <td key={dayIndex} className="p-1.5 border-t border-l align-top" style={{ borderColor: palette.line }}><div className="min-h-[112px] rounded-xl p-2" style={{ background: allocations.length > 1 ? palette.mint : "#fff" }}><div className="flex items-start justify-between gap-1"><div className="text-[11px] leading-tight font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><span className="text-[9px] font-black" style={{ color: palette.muted }}>{cell.amount < 1 ? "0,5" : ""}</span></div><label className="block mt-1.5"><span className="sr-only">{cell.fan_nomi} dars turi</span><select aria-label={`${cell.fan_nomi} dars turi`} value={activeGroupType} onChange={event => configureSubjectGroups(selectedClass.id, cell.fan_nomi, event.target.value)} disabled={stepBusy} className="w-full p-1 rounded-lg border bg-white text-[9px] font-black disabled:opacity-50" style={{ borderColor: activeGroupType === "whole" ? palette.line : palette.green, color: palette.ink }}>
+                {activeGroupType === "mixed" && <option value="mixed" disabled>Aralash — turini tanlang</option>}
+                <option value="whole">Butun sinf</option>
+                <option value="alphabet">1/2 guruh</option>
+                <option value="gender">O‘g‘il/Qiz</option>
+              </select></label>{subjectSwitchBusy && <div className="text-[8px] mt-1 font-black" style={{ color: palette.amber }}>Tanlovlar ko‘chirilmoqda...</div>}<div className="space-y-1 mt-2">{allocations.map(group => {
                 const key = `${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|${group.key}`;
                 const teacherId = assignments[key] || "";
                 return <div key={group.key} className="flex items-center gap-1"><span className="text-[8px] font-black w-11 truncate" title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><select value={teacherId} onChange={event => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, event.target.value)} disabled={stepBusy} className="min-w-0 flex-1 p-1 rounded-lg border bg-white text-[10px] font-black disabled:opacity-50" style={{ borderColor: teacherId ? palette.green : palette.line, color: palette.ink }}><option value=""># —</option>{teacherChoicesFor(cell.fan_nomi, teacherId).map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></div>;
