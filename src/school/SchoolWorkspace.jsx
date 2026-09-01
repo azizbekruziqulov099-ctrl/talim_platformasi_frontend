@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V23.6 — live generator reattach and all-teacher continuation.
+// SAMTM FRONTEND V23.7 — teacher XLSX import and shift-aware class setup.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -12,7 +12,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.6-LIVE-PROGRESS-REATTACH";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.7.1-TEACHER-FULL-LOAD-EXACT-GROUP";
 const SAMTM_REQUIRED_TIMETABLE_RELEASES = Object.freeze({
   jadval_release: "JADVAL-ONE-V23.6-LIVE-REATTACH-ALL-TEACHERS",
   exact_module_release: "SAMTM-EXACT-SOLVER-V23.6-BALANCED-OPEN-DAYS",
@@ -585,6 +585,78 @@ const defaultShift = (smena) => ({
   dars_daqiqa: 45, tanaffus_daqiqa: 5, katta_tanaffus_darsdan_keyin: 3,
   katta_tanaffus_daqiqa: 15,
 });
+
+const V237_CLASS_ALPHABETS = Object.freeze({
+  latin_xalqaro: Object.freeze("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")),
+  uzbek_lotin: Object.freeze([
+    "A", "B", "D", "E", "F", "G", "G‘", "H", "I", "J", "K", "L", "M", "N",
+    "O", "O‘", "P", "Q", "R", "S", "T", "U", "V", "X", "Y", "Z", "Sh", "Ch", "Ng",
+  ]),
+  uzbek_kiril: Object.freeze([
+    "А", "Б", "В", "Г", "Д", "Е", "Ё", "Ж", "З", "И", "Й", "К", "Л", "М", "Н", "О",
+    "П", "Р", "С", "Т", "У", "Ф", "Х", "Ц", "Ч", "Ш", "Ъ", "Ь", "Э", "Ю", "Я", "Ў", "Қ", "Ғ", "Ҳ",
+  ]),
+});
+
+const V237_CLASS_ALPHABET_LABELS = Object.freeze({
+  latin_xalqaro: "Xalqaro lotin (A, B, C…)",
+  uzbek_lotin: "O‘zbek lotin (A, B, D… O‘, G‘…)",
+  uzbek_kiril: "O‘zbek kirill (А, Б, В… Ў, Қ…)",
+});
+
+const v237EmptySchoolClassPlan = () => Array.from({ length: 11 }, (_, index) => ({
+  sinf: index + 1,
+  birinchi_smena: 0,
+  ikkinchi_smena: 0,
+}));
+
+const V237_CLASS_COLLATOR = typeof Intl !== "undefined"
+  ? new Intl.Collator(["uz", "ru"], { numeric: true, sensitivity: "base" })
+  : null;
+
+function v237ClassGradeNumber(row) {
+  const parsed = Number(String(row?.sinf ?? row?.grade ?? "").match(/\d+/)?.[0] || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function v237ClassSuffix(row) {
+  return String(row?.harf ?? row?.letter ?? row?.suffix ?? "").trim();
+}
+
+function v237ClassSuffixKey(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/[ʻʼ’‘`´ʹ＇]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("uz");
+}
+
+function v237CompareClasses(left, right) {
+  const gradeDifference = v237ClassGradeNumber(left) - v237ClassGradeNumber(right);
+  if (gradeDifference) return gradeDifference;
+  const leftSuffix = v237ClassSuffix(left);
+  const rightSuffix = v237ClassSuffix(right);
+  const alphabetType = V237_CLASS_ALPHABETS[left?.alifbo_turi]
+    ? left.alifbo_turi
+    : V237_CLASS_ALPHABETS[right?.alifbo_turi] ? right.alifbo_turi : "latin_xalqaro";
+  const alphabetIndexes = new Map(V237_CLASS_ALPHABETS[alphabetType].map((label, index) => [v237ClassSuffixKey(label), index]));
+  const leftIndex = alphabetIndexes.get(v237ClassSuffixKey(leftSuffix));
+  const rightIndex = alphabetIndexes.get(v237ClassSuffixKey(rightSuffix));
+  if (leftIndex != null || rightIndex != null) {
+    const alphabetDifference = (leftIndex ?? alphabetIndexes.size) - (rightIndex ?? alphabetIndexes.size);
+    if (alphabetDifference) return alphabetDifference;
+  }
+  const naturalDifference = V237_CLASS_COLLATOR
+    ? V237_CLASS_COLLATOR.compare(leftSuffix, rightSuffix)
+    : leftSuffix.localeCompare(rightSuffix);
+  if (naturalDifference) return naturalDifference;
+  return Number(left?.smena || left?.shift || 1) - Number(right?.smena || right?.shift || 1);
+}
+
+function v237SortClasses(rows) {
+  return [...(rows || [])].sort(v237CompareClasses);
+}
 
 function SmartHeader({ title, subtitle, onClose, badge = "AQILLI JADVAL 2.0" }) {
   return (
@@ -2753,7 +2825,7 @@ function teacherBirthProfileV195(teacher) {
 
 function TeacherFirstLoadEditorV192({
   token, apiBase, maktabId, onChanged, startWithNew = false,
-  planOnly = false, showPlan = true,
+  planOnly = false, showPlan = true, refreshKey = 0,
 }) {
   const [data, setData] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState("");
@@ -2793,6 +2865,7 @@ function TeacherFirstLoadEditorV192({
   const [allocationInspectorClassId, setAllocationInspectorClassId] = useState("");
   const [allocationInspectorSubjectKey, setAllocationInspectorSubjectKey] = useState("");
   const [allocationOverviewOpen, setAllocationOverviewOpen] = useState(false);
+  const saveInFlightRef = useRef(false);
   const birthDateMaxV195 = new Date().toISOString().slice(0, 10);
   const specialtySubjectChoices = useMemo(() => {
     const unique = new Map();
@@ -2841,7 +2914,7 @@ function TeacherFirstLoadEditorV192({
     }
   };
 
-  useEffect(() => { load(); }, [maktabId, token, apiBase]);
+  useEffect(() => { load(); }, [maktabId, token, apiBase, refreshKey]);
 
   useEffect(() => {
     if (!planReferenceOpen && !allocationInspectorClassId) return undefined;
@@ -2989,9 +3062,6 @@ function TeacherFirstLoadEditorV192({
       variant => variant.guruh_kaliti !== "whole"
     );
     if (!variants.length) return [];
-    // Server bu yerga faqat sinfda avval yaratilgan haqiqiy guruhlarni beradi.
-    // Qo‘shimcha flagni kutish guruhlarni noto‘g‘ri ravishda yashirgan.
-    return variants;
     // Backend faqat sinfga amalda yaratilgan guruh tizimlarini variant sifatida
     // qaytaradi. Shuning uchun fan nomiga qaramay shu sinfning barcha mavjud
     // guruhlari qo'lda tanlanishi kerak; fanlar ro'yxati faqat avto tavsiyadir.
@@ -3867,6 +3937,7 @@ function TeacherFirstLoadEditorV192({
   };
 
   const save = async () => {
+    if (saveInFlightRef.current) return;
     const profile = creatingNew ? newTeacher : existingProfile;
     const profileFieldPrefix = creatingNew ? "new-teacher" : "existing-teacher";
     const leaderClassForSave = (data?.sinflar || []).find(item =>
@@ -3944,6 +4015,19 @@ function TeacherFirstLoadEditorV192({
         ? [] : groupedVariantsForSubjectV196(row.sinf_id, row.fan_nomi);
       return grouped.length > 0 && String(row.guruh_kaliti || "whole") === "whole";
     });
+    const teacherGroupPairs = new Map();
+    saveRows.filter(row => String(row.guruh_kaliti || "whole") !== "whole").forEach(row => {
+      const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}`;
+      const groups = teacherGroupPairs.get(key) || new Set();
+      groups.add(String(row.guruh_kaliti));
+      teacherGroupPairs.set(key, groups);
+    });
+    if ([...teacherGroupPairs.values()].some(groups => groups.size > 1)) {
+      return showValidationErrorV199(
+        "Bitta o‘qituvchiga shu sinfdagi guruhli fanning faqat bitta aniq guruhini tanlang.",
+        "teacher-load-top-actions"
+      );
+    }
     if (groupedWholeRows.length && !window.confirm(
       `${groupedWholeRows.length} ta guruhli fan “Butun sinf” holatida turibdi. OK bossangiz avtomatik o‘zgartirilmaydi va aynan shu holatda saqlanadi.`
     )) {
@@ -3991,6 +4075,7 @@ function TeacherFirstLoadEditorV192({
     if (mergedRows.length !== saveRows.length) {
       setRows(mergedRows);
     }
+    saveInFlightRef.current = true;
     setSaving(true);
     setMessage(null);
     try {
@@ -4035,7 +4120,11 @@ function TeacherFirstLoadEditorV192({
           throw migrationError;
         }
       }
-      const fullPayload = compactApiPayloadV200(creatingNew ? {
+      // Profil maydonlaridagi ``null`` qiymatlar ham ma'noli: foydalanuvchi
+      // avvalgi staj/toifa/rahbarlikni tozalayotgan bo'lishi mumkin. Shu sabab
+      // o'qituvchi saqlash payloadi compact qilinmaydi va serverga aynan bir
+      // marta yuboriladi.
+      const fullPayload = creatingNew ? {
         maktab_id: maktabId,
         full_name: newTeacher.full_name.trim(),
         mutaxassisligi: effectiveNewTeacherSpecialty,
@@ -4065,56 +4154,15 @@ function TeacherFirstLoadEditorV192({
         toifasi: existingProfile.toifasi || null,
         rahbar_sinf_id: existingProfile.rahbar_sinf_id ? Number(existingProfile.rahbar_sinf_id) : null,
         qatorlar,
-      });
-      const compatibilityPayload = compactApiPayloadV200(creatingNew ? {
-        maktab_id: maktabId,
-        full_name: newTeacher.full_name.trim(),
-        mutaxassisligi: effectiveNewTeacherSpecialty,
-        haftalik_maqsad_soat: Number(newTeacher.haftalik_maqsad_soat),
-        qatorlar: qatorlar.map(({ sinf_id, fan_nomi, guruh_kaliti, haftalik_soat }) => ({
-          sinf_id, fan_nomi, guruh_kaliti, haftalik_soat,
-        })),
-      } : {
-        maktab_id: maktabId,
-        user_id: Number(selectedTeacher),
-        mutaxassisligi: effectiveExistingTeacherSpecialty || null,
-        haftalik_maqsad_soat: existingProfile.haftalik_maqsad_soat === ""
-          ? null : Number(existingProfile.haftalik_maqsad_soat),
-        qatorlar: qatorlar.map(({ sinf_id, fan_nomi, guruh_kaliti, haftalik_soat }) => ({
-          sinf_id, fan_nomi, guruh_kaliti, haftalik_soat,
-        })),
-      });
+      };
       const saveUrl = `${apiBase}/api/maktab/aqlli_jadval/v3/${creatingNew ? "oqituvchi_qoshish" : "oqituvchi_yuklamasi"}?token=${encodeURIComponent(token)}`;
-      const submitTeacherPayload = payload => smartFetch(saveUrl, {
+      const result = await smartFetch(saveUrl, {
         method: creatingNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(fullPayload),
       });
-      let compatibilityRetryUsed = false;
-      let result;
-      try {
-        result = await submitTeacherPayload(fullPayload);
-      } catch (firstError) {
-        const retryableCompatibilityError = firstError?.status === 422
-          || Number(firstError?.status || 0) >= 500
-          || /amal bajarilmadi|database_error|server xatosi/i.test(String(firstError?.message || ""));
-        if (!retryableCompatibilityError) throw firstError;
-        compatibilityRetryUsed = true;
-        try {
-          result = await submitTeacherPayload(compatibilityPayload);
-        } catch (compatibilityError) {
-          if (hasFractionalHours && compatibilityError?.status === 422) {
-            const fractionError = new Error(
-              "0,5 yoki 1,5 soatli fan serverda eski butun-son formatida qolgan. Railway BACKEND xizmatidagi backend/samtm_school.py faylini ushbu paketdagi 1-kod bilan to‘liq almashtirib deploy qiling."
-            );
-            fractionError.status = 422;
-            fractionError.validationPath = compatibilityError.validationPath || [];
-            throw fractionError;
-          }
-          throw compatibilityError;
-        }
-      }
-      setData(result.matritsa);
+      if (result?.matritsa) setData(result.matritsa);
+      else await load();
       setValidationDialog(null);
       setInvalidFieldIds([]);
       if (creatingNew) {
@@ -4139,9 +4187,6 @@ function TeacherFirstLoadEditorV192({
       const warnings = [...(result.ogohlantirishlar || [])];
       if (groupedWholeRows.length) {
         warnings.push(`${groupedWholeRows.length} ta guruhli fan siz tanlagandek “Butun sinf” holatida saqlandi.`);
-      }
-      if (compatibilityRetryUsed) {
-        warnings.push("Server eski saqlash formatini qabul qildi; asosiy o‘qituvchi va yuklama ma’lumotlari saqlandi.");
       }
       setMessage({
         tone: warnings.length ? "warning" : "success",
@@ -4183,6 +4228,7 @@ function TeacherFirstLoadEditorV192({
         errorFieldId
       );
     } finally {
+      saveInFlightRef.current = false;
       setSaving(false);
     }
   };
@@ -5101,7 +5147,7 @@ function TeacherFirstLoadEditorV192({
                     })}
                   </select>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Guruh / butun sinf <span style={{ color: palette.red }}>*</span>
+                <label className="text-[11px] font-black" style={{ color: row.guruh_kaliti !== "whole" ? palette.teal : palette.muted }}>Aniq guruh / butun sinf <span style={{ color: palette.red }}>*</span>
                   <select id={`teacher-row-${index}-group`} value={row.guruh_kaliti} onChange={event => {
                     clearInvalidFieldV199(`teacher-row-${index}-group`);
                     const nextKey = event.target.value;
@@ -5112,7 +5158,7 @@ function TeacherFirstLoadEditorV192({
                       guruh_kaliti: nextKey,
                       fan_nomi: subject,
                     });
-                  }} className="w-full mt-1 p-2 rounded-lg border bg-white" style={invalidFieldStyleV199(`teacher-row-${index}-group`)}>
+                  }} className="w-full mt-1 p-2 rounded-lg border font-black" style={{ ...invalidFieldStyleV199(`teacher-row-${index}-group`), background: row.guruh_kaliti !== "whole" ? palette.mint : "#fff", color: row.guruh_kaliti !== "whole" ? palette.teal : palette.ink }}>
                     {!variants.some(variant => String(variant.guruh_kaliti) === String(row.guruh_kaliti)) && (
                       <option value={row.guruh_kaliti || "whole"} disabled>
                         {groupedRequired ? "Guruh tanlanmagan — bu fan guruhli" : "Joriy guruh"}
@@ -5126,6 +5172,7 @@ function TeacherFirstLoadEditorV192({
                     })}
                   </select>
                   {fieldIsInvalidV199(`teacher-row-${index}-group`) && <span className="block mt-1 text-[9px]" style={{ color: palette.red }}>Mos guruhni tanlang.</span>}
+                  {row.guruh_kaliti !== "whole" && <span className="block mt-1 text-[9px] font-black" style={{ color: palette.teal }}>✓ Faqat {variantFor(row)?.guruh_nomi || scheduleGroupLabel(row.guruh_kaliti)} o‘qituvchiga biriktiriladi.</span>}
                 </label>
                 <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik soat <span style={{ color: palette.red }}>*</span>
                   <input id={`teacher-row-${index}-hours`} type="number" min="0.5" max={allocation.approved ? Math.max(0.5, allocation.maxForRow) : 20} step="0.5" value={row.haftalik_soat} placeholder="Masalan: 0,5" onChange={event => {
@@ -5214,13 +5261,22 @@ function TeacherFirstLoadEditorV192({
 
 
 
-function TeacherQuickRegistryV2249({ token, apiBase, maktabId, onChanged, onContinue }) {
+function TeacherQuickRegistryV2249({
+  token, apiBase, maktabId, onChanged, onContinue, importOnly = false,
+}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [teacherName, setTeacherName] = useState("");
   const [message, setMessage] = useState(null);
   const [entryCode, setEntryCode] = useState("");
+  const importInputRef = useRef(null);
+  const [templateDownloading, setTemplateDownloading] = useState(false);
+  const [importPreviewing, setImportPreviewing] = useState(false);
+  const [importCommitting, setImportCommitting] = useState(false);
+  const [importPayload, setImportPayload] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importCodes, setImportCodes] = useState([]);
 
   const load = async () => {
     setLoading(true);
@@ -5234,6 +5290,164 @@ function TeacherQuickRegistryV2249({ token, apiBase, maktabId, onChanged, onCont
     }
   };
   useEffect(() => { load(); }, [token, apiBase, maktabId]);
+
+  const responseError = async (response, fallback) => {
+    let detail = fallback;
+    try {
+      const payload = await response.json();
+      detail = typeof payload?.detail === "string" ? payload.detail : payload?.message || payload?.error || fallback;
+    } catch (_) {}
+    return detail;
+  };
+
+  const downloadImportTemplate = async () => {
+    setTemplateDownloading(true); setMessage(null);
+    try {
+      const response = await fetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_import_shablon?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`);
+      if (!response.ok) throw new Error(await responseError(response, `O‘qituvchi shabloni yuklanmadi (HTTP ${response.status}).`));
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      const disposition = response.headers.get("content-disposition") || "";
+      const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+      let blob;
+      let filename = encodedName
+        ? decodeURIComponent(encodedName)
+        : plainName || "SAMTM_oqituvchilar_import_shabloni.xlsx";
+      if (contentType.includes("application/json")) {
+        const payload = await response.json();
+        if (!payload?.xlsx_base64) throw new Error(payload?.detail || payload?.message || "Server shablon faylini qaytarmadi.");
+        const binary = window.atob(payload.xlsx_base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+        blob = new Blob([bytes], { type: payload.mime || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        filename = payload.fayl_nomi || filename;
+      } else {
+        blob = await response.blob();
+      }
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage({ tone: "success", text: "Shablon yuklandi. “O‘qituvchilar” varag‘ini to‘ldirib, shu yerga qayta yuklang; namuna varag‘i import qilinmaydi." });
+    } catch (error) {
+      setMessage({ tone: "error", text: error?.message || "O‘qituvchi shabloni yuklanmadi." });
+    } finally { setTemplateDownloading(false); }
+  };
+
+  const fileAsBase64 = async file => {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const chunkSize = 0x8000;
+    let binary = "";
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return window.btoa(binary);
+  };
+
+  const previewImportFile = async event => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setMessage(null); setImportPreview(null); setImportPayload(null); setImportCodes([]);
+    if (!/\.xlsx$/i.test(file.name || "")) {
+      setMessage({ tone: "error", text: "Faqat .xlsx formatdagi to‘ldirilgan shablonni tanlang." });
+      return;
+    }
+    if (Number(file.size || 0) > 3 * 1024 * 1024) {
+      setMessage({ tone: "error", text: "Excel fayli 3 MB dan katta. Faqat o‘qituvchilar shablonini yuklang." });
+      return;
+    }
+    setImportPreviewing(true);
+    try {
+      const payload = {
+        maktab_id: Number(maktabId),
+        fayl_nomi: file.name,
+        xlsx_base64: await fileAsBase64(file),
+      };
+      const rawPreview = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_import_preview?token=${encodeURIComponent(token)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
+      const rawErrors = Array.isArray(rawPreview?.xato_qatorlar)
+        ? rawPreview.xato_qatorlar
+        : Array.isArray(rawPreview?.xatolar) ? rawPreview.xatolar : [];
+      const normalizedRows = (rawPreview?.qatorlar || []).map(row => ({
+        ...row,
+        excel_qatori: row?.excel_qatori ?? row?.qator,
+        haftalik_maqsad_soat: row?.haftalik_maqsad_soat ?? row?.skelet_soati ?? null,
+      }));
+      const preview = {
+        ...rawPreview,
+        qatorlar: normalizedRows,
+        jami: rawPreview?.jami ?? normalizedRows.length,
+        yaroqli: rawPreview?.yaroqli ?? rawPreview?.yangi_soni ?? (rawErrors.length ? 0 : normalizedRows.length),
+        xato_qatorlar: rawErrors,
+        xatolar: Array.isArray(rawPreview?.xatolar) ? rawPreview.xatolar.length : Number(rawPreview?.xatolar || rawErrors.length),
+      };
+      setImportPayload(payload);
+      setImportPreview(preview);
+      const invalidCount = Array.isArray(preview?.xato_qatorlar)
+        ? preview.xato_qatorlar.length
+        : Number(preview?.xatolar || 0);
+      setMessage({
+        tone: Number(preview?.yaroqli || 0) > 0 && !invalidCount ? "success" : "error",
+        text: invalidCount
+          ? `${preview?.jami || 0} ta qator o‘qildi: ${invalidCount} ta xato bor. Hech biri import qilinmadi; xatolarni Excelda tuzatib, faylni qayta yuklang.`
+          : `${preview?.jami || 0} ta qator o‘qildi: ${preview?.yaroqli || 0} tasi yaroqli. Pastdagi natijani tekshirib, keyin importni tasdiqlang.`,
+      });
+    } catch (error) {
+      setMessage({ tone: "error", text: error?.message || "Excel fayli tekshirilmadi." });
+    } finally { setImportPreviewing(false); }
+  };
+
+  const commitTeacherImport = async () => {
+    if (!importPayload || Number(importPreview?.yaroqli || 0) <= 0) {
+      setMessage({ tone: "error", text: "Import uchun yaroqli o‘qituvchi topilmadi." });
+      return;
+    }
+    const invalidCount = Array.isArray(importPreview?.xato_qatorlar)
+      ? importPreview.xato_qatorlar.length
+      : Number(importPreview?.xatolar || 0);
+    if (invalidCount > 0) {
+      setMessage({ tone: "error", text: `${invalidCount} ta xato bor. Atomar import uchun barcha qatorlarni tuzatib, faylni qayta yuklang.` });
+      return;
+    }
+    if (!window.confirm(`${importPreview.yaroqli} ta o‘qituvchining barchasi ro‘yxatga qo‘shilsinmi?`)) return;
+    setImportCommitting(true); setMessage(null);
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_import_commit?token=${encodeURIComponent(token)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(importPayload),
+      });
+      if (result?.matritsa) setData(result.matritsa);
+      else await load();
+      setImportCodes(Array.isArray(result?.kirish_kodlari)
+        ? result.kirish_kodlari
+        : Array.isArray(result?.kodlar) ? result.kodlar : []);
+      setImportPreview(null); setImportPayload(null);
+      setMessage({ tone: "success", text: `${result?.yaratildi || 0} ta o‘qituvchi import qilindi. Raqamlar avtomatik va o‘zgarmas berildi.` });
+      await onChanged?.();
+    } catch (error) {
+      setMessage({ tone: "error", text: error?.message || "O‘qituvchilar import qilinmadi." });
+    } finally { setImportCommitting(false); }
+  };
+
+  const importErrorText = item => {
+    if (typeof item === "string") return item;
+    const row = item?.excel_qatori ?? item?.qator ?? item?.row;
+    const reason = item?.xato || item?.sabab || item?.message || item?.detail || "Noto‘g‘ri qator";
+    return `${row ? `${row}-qator: ` : ""}${reason}`;
+  };
+
+  const importCodeText = item => {
+    if (typeof item === "string") return item;
+    const name = item?.full_name || item?.oqituvchi || item?.fish || "O‘qituvchi";
+    const number = item?.jadval_raqami ? `#${item.jadval_raqami} · ` : "";
+    const code = item?.kirish_kodi || item?.kod || "kod qaytarilmadi";
+    return `${number}${name}: ${code}`;
+  };
 
   const teachers = useMemo(() => [...(data?.oqituvchilar || [])].sort((a, b) =>
     Number(a.jadval_raqami || 999999) - Number(b.jadval_raqami || 999999)
@@ -5277,20 +5491,52 @@ function TeacherQuickRegistryV2249({ token, apiBase, maktabId, onChanged, onCont
     finally { setSaving(false); }
   };
 
+  const previewErrors = importPreview
+    ? (Array.isArray(importPreview.xato_qatorlar)
+      ? importPreview.xato_qatorlar
+      : Array.isArray(importPreview.xatolar) ? importPreview.xatolar : [])
+    : [];
+  const previewInvalidCount = previewErrors.length || (
+    Number.isFinite(Number(importPreview?.xatolar)) ? Number(importPreview?.xatolar) : 0
+  );
+
   if (loading) return <Card className="p-10 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></Card>;
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     <Card className="p-5">
       <div className="flex flex-col xl:flex-row xl:items-start gap-5">
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>O‘QITUVCHILARNI OLDINDAN RAQAMLASH</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Faqat F.I.Sh. kiriting — raqam avtomatik beriladi</h2>
-          <p className="text-xs mt-1.5 leading-relaxed max-w-3xl" style={{ color: palette.muted }}>Bu oynada fan, sinf, guruh, haftalik soat, staj yoki toifa kiritilmaydi. Avval barcha o‘qituvchilarni ro‘yxatga kiriting. Keyingi “Sinf skeleti + o‘qituvchi raqami” oynasida har bir fan/guruh katagiga shu raqamlar tanlanadi. Raqam bir marta beriladi va keyin o‘zgarmaydi.</p>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
-            <input autoFocus value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder="Masalan: Aliyeva Dilnoza Anvarovna" className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
-            <button onClick={addTeacher} disabled={saving} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-60" style={{ background: palette.teal }}>{saving ? "Saqlanmoqda..." : "+ O‘qituvchi qo‘shish"}</button>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>{importOnly ? "EXCEL SHABLON ORQALI O‘QITUVCHI YUKLASH" : "O‘QITUVCHILARNI OLDINDAN RAQAMLASH"}</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{importOnly ? "Tayyor shablonni yuklab, ko‘p o‘qituvchini bir martada kiriting" : "F.I.Sh.ni qo‘lda yoki Excel orqali kiriting — raqam avtomatik beriladi"}</h2>
+          <p className="text-xs mt-1.5 leading-relaxed max-w-3xl" style={{ color: palette.muted }}>{importOnly ? "Shablonda 4 ta to‘ldirilgan namuna bor. “O‘qituvchilar” varag‘iga F.I.Sh. va haftalik maqsad soatini yozing; “Namuna” varag‘i import qilinmaydi. Importdan keyin har bir ustozning fan–sinf–aniq guruh yuklamasini “Qo‘lda to‘liq kiritish” bo‘limida tekshirib yoki tahrirlab olasiz." : "Qo‘lda to‘liq kiritish uchun F.I.Sh., fan, staj, sinf/guruh va soat maydonlaridan foydalaning. Ko‘p o‘qituvchi bo‘lsa Excel shabloni ham mavjud. Raqam bir marta beriladi va keyin o‘zgarmaydi."}</p>
+          {!importOnly && <>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <input autoFocus value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder="Masalan: Aliyeva Dilnoza Anvarovna" className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
+              <button onClick={addTeacher} disabled={saving} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-60" style={{ background: palette.teal }}>{saving ? "Saqlanmoqda..." : "+ O‘qituvchi qo‘shish"}</button>
+            </div>
+            {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Oxirgi qo‘shilgan o‘qituvchi kirish kodi: <span className="font-black text-base">{entryCode}</span></div>}
+          </>}
+          <div className="rounded-2xl border p-3 mt-4" style={{ borderColor: palette.line, background: palette.cream }}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-black" style={{ color: palette.ink }}>Ko‘p o‘qituvchini Excel orqali yuklash</div>
+                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>1) Shablonni oling. 2) “O‘qituvchilar” varag‘ini to‘ldiring. 3) Faylni yuklab, natijani tasdiqlang. Maksimum 3 MB.</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={downloadImportTemplate} disabled={templateDownloading || importPreviewing || importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 disabled:opacity-50" style={{ background: palette.sky, color: palette.blue }}>
+                  {templateDownloading ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {templateDownloading ? "Yuklanmoqda..." : "Shablonni yuklab olish"}
+                </button>
+                <button type="button" onClick={() => importInputRef.current?.click()} disabled={importPreviewing || importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>
+                  {importPreviewing ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {importPreviewing ? "Tekshirilmoqda..." : "To‘ldirilgan Excelni yuklash"}
+                </button>
+                <input ref={importInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={previewImportFile} className="hidden"/>
+              </div>
+            </div>
           </div>
-          {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Oxirgi qo‘shilgan o‘qituvchi kirish kodi: <span className="font-black text-base">{entryCode}</span></div>}
+          {!!importCodes.length && <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "#E7C77B", background: palette.amberBg }}>
+            <div className="text-xs font-black" style={{ color: palette.amber }}>Yangi o‘qituvchilarning kirish kodlari — hozir saqlab oling</div>
+            <div className="grid md:grid-cols-2 gap-1.5 mt-2">{importCodes.map((item, index) => <div key={`${importCodeText(item)}-${index}`} className="rounded-lg bg-white px-2.5 py-2 text-[11px] font-bold" style={{ color: palette.ink }}>{importCodeText(item)}</div>)}</div>
+          </div>}
         </div>
         <div className="grid grid-cols-2 gap-2 xl:w-[300px]">
           <CompactStat value={teachers.length} label="raqamlangan o‘qituvchi" tone="blue"/>
@@ -5299,7 +5545,30 @@ function TeacherQuickRegistryV2249({ token, apiBase, maktabId, onChanged, onCont
       </div>
     </Card>
 
-    <Card className="p-5">
+    {importPreview && <Card className="p-5" style={{ borderColor: previewInvalidCount ? "#E7C77B" : "#A7D3B8" }}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>EXCELNI IMPORTDAN OLDIN TEKSHIRISH</div>
+          <h3 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{importPayload?.fayl_nomi || "Tanlangan shablon"}</h3>
+          <div className="text-xs mt-1" style={{ color: palette.muted }}>Jami {importPreview.jami || 0} · yaroqli {importPreview.yaroqli || 0} · xatoli {previewInvalidCount}</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => { setImportPreview(null); setImportPayload(null); }} disabled={importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
+          <button type="button" onClick={commitTeacherImport} disabled={importCommitting || previewInvalidCount > 0 || Number(importPreview.yaroqli || 0) <= 0} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-40" style={{ background: palette.green }}>
+            {importCommitting && <Loader2 size={15} className="animate-spin"/>}{importCommitting ? "Import qilinmoqda..." : `${importPreview.yaroqli || 0} ta o‘qituvchini tasdiqlab import qilish`}
+          </button>
+        </div>
+      </div>
+      <div className="overflow-auto mt-4 max-h-[360px] rounded-2xl border" style={{ borderColor: palette.line }}>
+        <table className="w-full min-w-[620px] text-xs">
+          <thead className="sticky top-0" style={{ background: palette.sky, color: palette.blue }}><tr><th className="p-2.5 text-left w-24">Excel qatori</th><th className="p-2.5 text-left">F.I.Sh.</th><th className="p-2.5 text-left w-36">Skelet soati</th><th className="p-2.5 text-left w-24">Holat</th></tr></thead>
+          <tbody>{(importPreview.qatorlar || []).map((row, index) => <tr key={`${row.excel_qatori || index}-${row.full_name || ""}`} className="border-t" style={{ borderColor: palette.line }}><td className="p-2.5 font-black">{row.excel_qatori || index + 1}</td><td className="p-2.5 font-bold">{row.full_name}</td><td className="p-2.5">{row.haftalik_maqsad_soat ?? "—"}</td><td className="p-2.5 font-black" style={{ color: palette.green }}>Yaroqli</td></tr>)}</tbody>
+        </table>
+      </div>
+      {!!previewErrors.length && <div className="mt-3 rounded-2xl p-3" style={{ background: palette.redBg }}><div className="text-xs font-black" style={{ color: palette.red }}>Tuzatilishi kerak bo‘lgan qatorlar — xato bor ekan, hech biri import qilinmaydi</div><div className="space-y-1 mt-2">{previewErrors.map((item, index) => <div key={`${importErrorText(item)}-${index}`} className="text-[11px] font-bold" style={{ color: palette.red }}>{importErrorText(item)}</div>)}</div></div>}
+    </Card>}
+
+    {!importOnly && <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h3 className="text-lg font-black" style={{ color: palette.ink }}>O‘qituvchilar ro‘yxati</h3><div className="text-xs mt-1" style={{ color: palette.muted }}># raqam skeletda tanlash uchun. F.I.Sh. bo‘yicha fan yuklamasi keyingi bosqichda biriktiriladi.</div></div>
         <button onClick={onContinue} disabled={!teachers.length} className="px-5 py-3 rounded-xl text-xs font-black text-white disabled:opacity-40" style={{ background: palette.blue }}>Sinf skeleti + o‘qituvchi raqamiga o‘tish →</button>
@@ -5307,12 +5576,12 @@ function TeacherQuickRegistryV2249({ token, apiBase, maktabId, onChanged, onCont
       {!teachers.length ? <div className="mt-4"><SmartNotice tone="warning">Hali o‘qituvchi kiritilmagan. Avval kamida bitta F.I.Sh. kiriting.</SmartNotice></div> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-4">
         {teachers.map(teacher => <div key={teacher.user_id} className="rounded-2xl border p-3 flex items-center gap-3" style={{ borderColor: palette.line, background: "#fff" }}>
           <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacher.jadval_raqami || "—"}</div>
-          <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{teacher.dars_birikma_soni ? `${teacher.dars_birikma_soni} ta fan/guruh birikmasi` : "skelet hali biriktirilmagan"}</div></div>
+          <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{teacher.haftalik_maqsad_soat != null ? `Skelet soati: ${teacher.haftalik_maqsad_soat}` : "Skelet soati kiritilmagan"} · {teacher.dars_birikma_soni ? `${teacher.dars_birikma_soni} ta fan/guruh birikmasi` : "birikma yo‘q"}</div></div>
           <button onClick={() => removeTeacher(teacher)} disabled={saving} className="w-8 h-8 rounded-lg text-xs font-black shrink-0" title="O‘qituvchini o‘chirish" style={{ background: palette.redBg, color: palette.red }}>×</button>
         </div>)}
       </div>}
       <div className="mt-4 rounded-xl p-3 text-[11px]" style={{ background: palette.cream, color: palette.muted }}><b>Keyin tahrirlash mumkin:</b> staj, toifa, tug‘ilgan sana, mutaxassislik, metod kuni va boshqa qo‘shimcha ma’lumotlar o‘qituvchi yaratilishiga to‘sqinlik qilmaydi.</div>
-    </Card>
+    </Card>}
   </div>;
 }
 
@@ -5326,6 +5595,8 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   const [assignments, setAssignments] = useState({});
   const [leaders, setLeaders] = useState({});
   const [showTeacherList, setShowTeacherList] = useState(true);
+  const [splitAssignmentConflicts, setSplitAssignmentConflicts] = useState([]);
+  const [orphanGroupConflicts, setOrphanGroupConflicts] = useState([]);
 
   const load = async (preserveDraft = false) => {
     setLoading(true);
@@ -5338,10 +5609,58 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       setSelectedClassId(current => current || String(classes[0]?.id || ""));
       if (!preserveDraft) {
         const nextAssignments = {};
+        const rowsByCanonicalKey = new Map();
+        const savedPlanRows = result?.oquv_reja?.qatorlar || [];
+        const templatePlanRows = result?.oquv_reja?.andoza_qatorlar || [];
+        const canonicalPlanRows = savedPlanRows.length ? savedPlanRows : templatePlanRows;
         (result?.birikmalar || []).forEach(row => {
-          const key = `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${String(row.guruh_kaliti || "whole")}`;
-          nextAssignments[key] = String(row.user_id || "");
+          const sameClassPlan = canonicalPlanRows.filter(item =>
+            String(item.sinf_id) === String(row.sinf_id)
+          );
+          const exactPlan = sameClassPlan.find(item =>
+            subjectKeyV193(item.fan_nomi) === subjectKeyV193(row.fan_nomi)
+          );
+          const aliasPlans = sameClassPlan.filter(item =>
+            groupedSubjectMatchesV195(item.fan_nomi, row.fan_nomi)
+          );
+          // Masalan reja "Chet tili", eski birikma "Ingliz tili" bo'lsa,
+          // ikkalasi skeletda bitta aniq fan kalitiga tushadi. Bir sinfda shu
+          // oilaga mansub bir nechta alohida fan bo'lsa, faqat exact nom olinadi.
+          const canonicalSubject = exactPlan?.fan_nomi
+            || (aliasPlans.length === 1 ? aliasPlans[0].fan_nomi : row.fan_nomi);
+          const key = `${row.sinf_id}|${subjectKeyV193(canonicalSubject)}|${String(row.guruh_kaliti || "whole")}`;
+          const bucket = rowsByCanonicalKey.get(key) || [];
+          bucket.push({ ...row, canonicalSubject });
+          rowsByCanonicalKey.set(key, bucket);
+          if (!nextAssignments[key]) nextAssignments[key] = String(row.user_id || "");
         });
+        setSplitAssignmentConflicts([...rowsByCanonicalKey.entries()]
+          .filter(([, bucket]) => new Set(bucket.map(row => String(row.user_id))).size > 1)
+          .map(([key, bucket]) => ({
+            key,
+            sinf_id: bucket[0]?.sinf_id,
+            fan_nomi: bucket[0]?.canonicalSubject || bucket[0]?.fan_nomi,
+            guruh_kaliti: bucket[0]?.guruh_kaliti || "whole",
+            oqituvchilar: [...new Set(bucket.map(row => row.full_name).filter(Boolean))],
+          })));
+        setOrphanGroupConflicts([...rowsByCanonicalKey.values()]
+          .map(bucket => bucket[0])
+          .filter(row => {
+            const groupKey = String(row?.guruh_kaliti || "whole");
+            if (groupKey === "whole") return false;
+            const variant = (result?.guruh_variantlari || []).find(item =>
+              String(item.sinf_id) === String(row.sinf_id)
+              && String(item.guruh_kaliti || "whole") === groupKey
+            );
+            return !variant || !(variant.fanlar || []).some(item =>
+              groupedSubjectMatchesV195(item, row.canonicalSubject || row.fan_nomi)
+            );
+          })
+          .map(row => ({
+            sinf_id: row.sinf_id,
+            fan_nomi: row.canonicalSubject || row.fan_nomi,
+            guruh_kaliti: row.guruh_kaliti || "whole",
+          })));
         setAssignments(nextAssignments);
         const nextLeaders = {};
         classes.forEach(cls => { nextLeaders[String(cls.id)] = cls.rahbar_user_id == null ? "" : String(cls.rahbar_user_id); });
@@ -5392,10 +5711,24 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       String(item.sinf_id) === String(classId) && String(item.guruh_kaliti || "whole") !== "whole"
     );
     const linked = variants.filter(variant =>
-      (variant.fanlar || []).some(item => subjectKeyV193(item) === subjectKeyV193(subject))
+      (variant.fanlar || []).some(item => groupedSubjectMatchesV195(item, subject))
     );
     return linked.length ? linked : [];
   };
+
+  const teacherChoicesFor = (subject, currentTeacherId) => [...teachers].sort((left, right) => {
+    const score = teacher => {
+      if (String(teacher.user_id) === String(currentTeacherId || "")) return 0;
+      const subjects = teacher.fanlar_royxati || specialtyValuesV195(teacher.mutaxassisligi);
+      if (subjects.some(item => groupedSubjectMatchesV195(item, subject))) return 1;
+      // Excel orqali endi kirgan, fani hali biriktirilmagan ustoz yashirilmaydi.
+      if (!subjects.length) return 2;
+      return 3;
+    };
+    return score(left) - score(right)
+      || Number(left.jadval_raqami || 999999) - Number(right.jadval_raqami || 999999)
+      || String(left.full_name || "").localeCompare(String(right.full_name || ""), "uz");
+  });
 
   const allocationKeysFor = (classId, subject) => {
     const groups = groupVariantsFor(classId, subject);
@@ -5464,6 +5797,20 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   }, [teachers, planRows, assignments, leaders, data, classHourByClass]);
 
   const saveAll = async () => {
+    if (orphanGroupConflicts.length) {
+      setMessage({
+        tone: "error",
+        text: `${orphanGroupConflicts.length} ta eski guruh yuklamasi hozirgi guruh sozlamasiga ulanmagan. Ma’lumot yo‘qolmasligi uchun saqlash bloklandi; avval shu sinfdagi guruh tizimiga fanni qayta biriktiring.`,
+      });
+      return;
+    }
+    if (splitAssignmentConflicts.length) {
+      setMessage({
+        tone: "error",
+        text: `${splitAssignmentConflicts.length} ta fan–sinf–guruh yuklamasi bir nechta o‘qituvchi orasida bo‘lingan. Ma’lumot yo‘qolmasligi uchun skeletdan ommaviy saqlash bloklandi; “O‘qituvchi qo‘shish” oynasida shu qatorlarni bitta ustozga birlashtiring yoki alohida guruhlarga ajrating.`,
+      });
+      return;
+    }
     const payloadRows = [];
     let missing = 0;
     planRows.forEach(row => {
@@ -5488,6 +5835,27 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       setMessage({ tone: "error", text: `${missing} ta fan/guruhda o‘qituvchi raqami tanlanmagan. Avval ularni to‘ldiring.` });
       return;
     }
+    const repeatedGroupTeachers = planRows.filter(row => {
+      if (isClassHourSubjectV199(row.fan_nomi) || Number(row.haftalik_soat || 0) <= 0) return false;
+      const groups = allocationKeysFor(row.sinf_id, row.fan_nomi);
+      if (groups.length < 2) return false;
+      const selected = groups.map(group => String(assignments[
+        `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}|${group.key}`
+      ] || "")).filter(Boolean);
+      return selected.length !== new Set(selected).size;
+    });
+    if (repeatedGroupTeachers.length) {
+      setMessage({ tone: "error", text: `${repeatedGroupTeachers.length} ta guruhli fanda bitta o‘qituvchi ikki guruhga tanlangan. Har bir guruhga alohida o‘qituvchi raqamini tanlang.` });
+      return;
+    }
+    if (!payloadRows.length) {
+      setMessage({ tone: "error", text: "Bo‘sh skelet saqlanmaydi. Avval o‘quv reja va o‘qituvchi birikmalarini to‘ldiring." });
+      return;
+    }
+    if (!data?.yuklama_revision) {
+      setMessage({ tone: "error", text: "Xavfsiz saqlash revisioni topilmadi. Backendni ushbu paket bilan yangilang va sahifani qayta oching." });
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
@@ -5498,6 +5866,8 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             maktab_id: maktabId,
+            toliq_snapshot: true,
+            kutilgan_yuklama_revision: data.yuklama_revision,
             qatorlar: payloadRows,
             rahbarlar: (data?.sinflar || []).map(cls => ({
               sinf_id: Number(cls.id),
@@ -5507,6 +5877,8 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         }
       );
       setData(result.matritsa);
+      setSplitAssignmentConflicts([]);
+      setOrphanGroupConflicts([]);
       const warnings = result.ogohlantirishlar || [];
       setMessage({
         tone: warnings.length ? "warning" : "success",
@@ -5531,6 +5903,12 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
+    {!!orphanGroupConflicts.length && <SmartNotice tone="error">
+      {orphanGroupConflicts.length} ta saqlangan guruh qatori joriy guruh tizimiga ulanmagan. Eski yuklama yo‘qolmasligi uchun “Saqlash” bloklandi. Muammoli qatorlar: {orphanGroupConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}`).join("; ")}.
+    </SmartNotice>}
+    {!!splitAssignmentConflicts.length && <SmartNotice tone="error">
+      {splitAssignmentConflicts.length} ta aniq fan–sinf–guruh qatori ikki yoki undan ko‘p o‘qituvchiga bo‘lingan. Skelet faqat bitta ustozni tanlaydi; shuning uchun eski ma’lumotni jim o‘chirib yubormaslik maqsadida “Saqlash” bloklandi. Muammoli qatorlar: {splitAssignmentConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}${item.oqituvchilar.length ? ` (${item.oqituvchilar.join(", ")})` : ""}`).join("; ")}.
+    </SmartNotice>}
     <Card className="p-5">
       <div className="flex flex-col xl:flex-row xl:items-start gap-5">
         <div className="flex-1 min-w-0">
@@ -5588,7 +5966,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
               return <td key={dayIndex} className="p-1.5 border-t border-l align-top" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: allocations.length > 1 ? palette.mint : "#fff" }}><div className="flex items-start justify-between gap-1"><div className="text-[11px] leading-tight font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><span className="text-[9px] font-black" style={{ color: palette.muted }}>{cell.amount < 1 ? "0,5" : ""}</span></div><div className="space-y-1 mt-2">{allocations.map(group => {
                 const key = `${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|${group.key}`;
                 const teacherId = assignments[key] || "";
-                return <div key={group.key} className="flex items-center gap-1"><span className="text-[8px] font-black w-11 truncate" title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><select value={teacherId} onChange={event => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, event.target.value)} className="min-w-0 flex-1 p-1 rounded-lg border bg-white text-[10px] font-black" style={{ borderColor: teacherId ? palette.green : palette.line, color: palette.ink }}><option value=""># —</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></div>;
+                return <div key={group.key} className="flex items-center gap-1"><span className="text-[8px] font-black w-11 truncate" title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><select value={teacherId} onChange={event => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, event.target.value)} className="min-w-0 flex-1 p-1 rounded-lg border bg-white text-[10px] font-black" style={{ borderColor: teacherId ? palette.green : palette.line, color: palette.ink }}><option value=""># —</option>{teacherChoicesFor(cell.fan_nomi, teacherId).map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></div>;
               })}</div></div></td>;
             })}</tr>)}</tbody>
           </table>
@@ -5597,7 +5975,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
         <div className="text-xs" style={{ color: palette.muted }}>Guruhga bo‘lingan fan katagi avtomatik 2 yoki undan ko‘p qismga chiqadi. Har bir guruhga alohida o‘qituvchi raqami tanlanadi.</div>
-        <div className="flex gap-2 shrink-0"><button onClick={() => load(false)} disabled={saving} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Qayta yuklash</button><button onClick={saveAll} disabled={saving || !requiredCount} className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-60" style={{ background: palette.green, color: "#fff" }}>{saving ? "Hammasi saqlanmoqda..." : "Skelet + o‘qituvchilarni saqlash"}</button>{setStep && <button onClick={() => setStep(4)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.blue, color: "#fff" }}>Jadval yaratishga o‘tish →</button>}</div>
+        <div className="flex gap-2 shrink-0"><button onClick={() => load(false)} disabled={saving} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Qayta yuklash</button><button onClick={saveAll} disabled={saving || !requiredCount || splitAssignmentConflicts.length > 0 || orphanGroupConflicts.length > 0} className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-60" title={splitAssignmentConflicts.length || orphanGroupConflicts.length ? "Xavfsiz ko‘rsatilmaydigan eski yuklama bor: saqlash bloklangan" : "Skelet va o‘qituvchilarni saqlash"} style={{ background: palette.green, color: "#fff" }}>{saving ? "Hammasi saqlanmoqda..." : "Skelet + o‘qituvchilarni saqlash"}</button>{setStep && <button onClick={() => setStep(4)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.blue, color: "#fff" }}>Jadval yaratishga o‘tish →</button>}</div>
       </div>
     </Card>
 
@@ -8083,7 +8461,7 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
           .join(", ");
         setMessage({
           tone: "error",
-          text: `Backend va frontend versiyasi bir xil emas. V23.6 paketidagi barcha 5 faylni birga deploy qiling. Eski yoki yetishmagan modullar: ${mixedModules || "exact/diagnostika"}. Frontend: ${SAMTM_TIMETABLE_FRONTEND_RELEASE}; backend: ${capability?.jadval_release || "noma’lum"}.`,
+          text: `Backend va frontend versiyasi bir xil emas. V23.7 paketidagi barcha 5 faylni birga deploy qiling. Eski yoki yetishmagan modullar: ${mixedModules || "exact/diagnostika"}. Frontend: ${SAMTM_TIMETABLE_FRONTEND_RELEASE}; backend: ${capability?.jadval_release || "noma’lum"}.`,
         });
         return;
       }
@@ -8645,6 +9023,10 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [newSchoolRegion, setNewSchoolRegion] = useState(initialWorkspace?.viloyat || initialWorkspace?.region || "");
   const [newSchoolDistrict, setNewSchoolDistrict] = useState(initialWorkspace?.tuman || initialWorkspace?.district || "");
   const [newSchoolShifts, setNewSchoolShifts] = useState(Number(initialWorkspace?.smena_soni) === 2 ? 2 : 1);
+  const [newSchoolAlphabet, setNewSchoolAlphabet] = useState(
+    V237_CLASS_ALPHABETS[initialWorkspace?.alifbo_turi] ? initialWorkspace.alifbo_turi : "latin_xalqaro"
+  );
+  const [newSchoolClassPlan, setNewSchoolClassPlan] = useState(v237EmptySchoolClassPlan);
   const [newSchoolCreating, setNewSchoolCreating] = useState(false);
   const [newSchoolError, setNewSchoolError] = useState("");
   const [createdSchoolName, setCreatedSchoolName] = useState("");
@@ -8660,8 +9042,15 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
   const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
+  const [teacherEditorMode, setTeacherEditorMode] = useState("manual");
+  const [teacherDataRevision, setTeacherDataRevision] = useState(0);
   const [curriculumOpen, setCurriculumOpen] = useState(initialView === "curriculum");
   const [curriculumStatus, setCurriculumStatus] = useState(null);
+  const [classCatalog, setClassCatalog] = useState([]);
+  const [classEditDraft, setClassEditDraft] = useState(null);
+  const [classEditSaving, setClassEditSaving] = useState(false);
+  const [classEditError, setClassEditError] = useState("");
+  const [classEditNotice, setClassEditNotice] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -8725,6 +9114,63 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     return () => { active = false; };
   }, [token, apiBase, organizationV17Id, contextId, linkedInitialId, directLegacySchoolId, workspaceNameHint, workspaceRetry]);
 
+  const newSchoolAlphabetRows = V237_CLASS_ALPHABETS[newSchoolAlphabet] || V237_CLASS_ALPHABETS.latin_xalqaro;
+  const newSchoolPlanPreview = useMemo(() => newSchoolClassPlan.map(row => {
+    const firstCount = Math.max(0, Number(row.birinchi_smena || 0));
+    const secondCount = Number(newSchoolShifts) === 2 ? Math.max(0, Number(row.ikkinchi_smena || 0)) : 0;
+    return {
+      ...row,
+      birinchi_harflar: newSchoolAlphabetRows.slice(0, firstCount),
+      ikkinchi_harflar: newSchoolAlphabetRows.slice(firstCount, firstCount + secondCount),
+      jami: firstCount + secondCount,
+    };
+  }), [newSchoolClassPlan, newSchoolAlphabet, newSchoolShifts]);
+  const newSchoolClassTotal = newSchoolPlanPreview.reduce((sum, row) => sum + row.jami, 0);
+
+  const updateNewSchoolClassCount = (grade, field, rawValue) => {
+    const maximum = newSchoolAlphabetRows.length;
+    const requested = Math.max(0, Math.min(maximum, Number.parseInt(rawValue || "0", 10) || 0));
+    setNewSchoolClassPlan(current => current.map(row => {
+      if (Number(row.sinf) !== Number(grade)) return row;
+      if (field === "birinchi_smena") {
+        const first = requested;
+        const second = Number(newSchoolShifts) === 2
+          ? Math.min(Number(row.ikkinchi_smena || 0), maximum - first)
+          : 0;
+        return { ...row, birinchi_smena: first, ikkinchi_smena: second };
+      }
+      const first = Math.min(Number(row.birinchi_smena || 0), maximum);
+      return {
+        ...row,
+        birinchi_smena: first,
+        ikkinchi_smena: Number(newSchoolShifts) === 2 ? Math.min(requested, maximum - first) : 0,
+      };
+    }));
+    setNewSchoolError("");
+  };
+
+  const changeNewSchoolShiftCount = value => {
+    const shiftCount = Number(value) === 2 ? 2 : 1;
+    setNewSchoolShifts(shiftCount);
+    if (shiftCount === 1) {
+      setNewSchoolClassPlan(current => current.map(row => ({ ...row, ikkinchi_smena: 0 })));
+    }
+    setNewSchoolError("");
+  };
+
+  const changeNewSchoolAlphabet = value => {
+    const alphabet = V237_CLASS_ALPHABETS[value] || V237_CLASS_ALPHABETS.latin_xalqaro;
+    setNewSchoolAlphabet(V237_CLASS_ALPHABETS[value] ? value : "latin_xalqaro");
+    setNewSchoolClassPlan(current => current.map(row => {
+      const first = Math.min(Number(row.birinchi_smena || 0), alphabet.length);
+      const second = Number(newSchoolShifts) === 2
+        ? Math.min(Number(row.ikkinchi_smena || 0), alphabet.length - first)
+        : 0;
+      return { ...row, birinchi_smena: first, ikkinchi_smena: second };
+    }));
+    setNewSchoolError("");
+  };
+
   const openNewSchoolForm = () => {
     // Eski maktab ID si va a'zoligi yaratish muvaffaqiyatli tugaguncha
     // o'zgarmaydi. Formani eski maktab nomi bilan to'ldirib dublikat
@@ -8733,6 +9179,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     setNewSchoolRegion("");
     setNewSchoolDistrict("");
     setNewSchoolShifts(1);
+    setNewSchoolAlphabet("latin_xalqaro");
+    setNewSchoolClassPlan(v237EmptySchoolClassPlan());
     setNewSchoolError("");
     setNewSchoolMode(true);
   };
@@ -8753,6 +9201,10 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setNewSchoolError("Maktab nomini kiriting.");
       return;
     }
+    if (newSchoolClassTotal <= 0) {
+      setNewSchoolError("Kamida bitta sinf kiriting: 1-smena yoki 2-smena ustunida parallel sonini belgilang.");
+      return;
+    }
     setNewSchoolCreating(true);
     setNewSchoolError("");
     try {
@@ -8765,6 +9217,14 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           viloyat: String(newSchoolRegion || "").trim() || null,
           tuman: String(newSchoolDistrict || "").trim() || null,
           smena_soni: Number(newSchoolShifts) === 2 ? 2 : 1,
+          alifbo_turi: newSchoolAlphabet,
+          sinf_rejasi: newSchoolClassPlan
+            .map(row => ({
+              sinf: Number(row.sinf),
+              birinchi_smena: Number(row.birinchi_smena || 0),
+              ikkinchi_smena: Number(newSchoolShifts) === 2 ? Number(row.ikkinchi_smena || 0) : 0,
+            }))
+            .filter(row => row.birinchi_smena + row.ikkinchi_smena > 0),
         }),
       });
       if (!result?.maktab_id) throw new Error("Server yangi maktab ID sini qaytarmadi.");
@@ -8786,11 +9246,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setLoading(true); setError(""); return;
     }
     if (workspaceLinkError) {
-      setDashboard(null); setYuklama([]); setHolatlar([]);
+      setDashboard(null); setYuklama([]); setHolatlar([]); setClassCatalog([]);
       setError(`Maktab ish maydoniga ulanmayapti: ${workspaceLinkError}`); setLoading(false); return;
     }
     if (!maktabId) {
-      setDashboard(null); setYuklama([]); setHolatlar([]);
+      setDashboard(null); setYuklama([]); setHolatlar([]); setClassCatalog([]);
       setError("Maktab ID topilmadi. Yangi maktabni yaratish yoki tanlash yakunlanmagan."); setLoading(false); return;
     }
     setLoading(true); setError(""); setLoadWarnings([]);
@@ -8824,8 +9284,10 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       }
       if (curriculumResult.status === "fulfilled") {
         setCurriculumStatus(curriculumResult.value.oquv_reja?.holat || "draft");
+        setClassCatalog(curriculumResult.value.sinflar || []);
       } else {
         setCurriculumStatus("draft");
+        setClassCatalog([]);
         warnings.push(`O‘quv reja holati yuklanmadi: ${curriculumResult.reason?.message || "server xatosi"}`);
       }
       setLoadWarnings([...new Set(warnings.filter(Boolean))]);
@@ -8833,7 +9295,84 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   };
   useEffect(loadManager, [token, apiBase, maktabId, teacherMode, workspaceResolving, workspaceLinkError]);
 
+  const dashboardClasses = useMemo(() => {
+    const catalogById = new Map((classCatalog || []).map(row => [String(row.id), row]));
+    const dashboardRows = dashboard?.sinflar || [];
+    const source = dashboardRows.length ? dashboardRows : classCatalog;
+    const configuredAlphabet = V237_CLASS_ALPHABETS[dashboard?.alifbo_turi]
+      ? dashboard.alifbo_turi
+      : V237_CLASS_ALPHABETS[initialWorkspace?.alifbo_turi]
+        ? initialWorkspace.alifbo_turi
+        : "latin_xalqaro";
+    return v237SortClasses(source.map(row => ({
+      ...(catalogById.get(String(row.id)) || {}),
+      ...row,
+      smena: row?.smena ?? catalogById.get(String(row.id))?.smena,
+      alifbo_turi: row?.alifbo_turi ?? catalogById.get(String(row.id))?.alifbo_turi ?? configuredAlphabet,
+    })));
+  }, [dashboard, classCatalog, initialWorkspace?.alifbo_turi]);
+
+  const configuredSchoolShiftCount = Number(
+    dashboard?.smena_soni ?? initialWorkspace?.smena_soni ?? 0
+  );
+  const classEditAllowsSecondShift = configuredSchoolShiftCount === 2 || (
+    configuredSchoolShiftCount !== 1 && (
+      Number(classEditDraft?.smena) === 2 || dashboardClasses.some(row => Number(row?.smena) === 2)
+    )
+  );
+
+  const openClassEditor = row => {
+    const catalogRow = classCatalog.find(item => String(item.id) === String(row?.id));
+    const currentShift = Number(row?.smena ?? catalogRow?.smena ?? 0);
+    setClassEditDraft({
+      id: Number(row?.id),
+      sinf: row?.sinf ?? catalogRow?.sinf ?? "",
+      harf: String(row?.harf ?? catalogRow?.harf ?? ""),
+      smena: currentShift === 1 || currentShift === 2 ? currentShift : "",
+    });
+    setClassEditError("");
+    setClassEditNotice(null);
+  };
+
+  const saveClassEdit = async event => {
+    event?.preventDefault?.();
+    const suffix = String(classEditDraft?.harf || "").replace(/\s+/g, " ").trim();
+    const shift = Number(classEditDraft?.smena || 0);
+    if (!classEditDraft?.id) return setClassEditError("Sinf ID topilmadi. Sahifani yangilab qayta oching.");
+    if (!suffix) return setClassEditError("Sinfning harfi yoki erkin nomini kiriting.");
+    if (![1, 2].includes(shift)) return setClassEditError("Sinfning joriy smenasini tanlang.");
+    if (shift === 2 && !classEditAllowsSecondShift) return setClassEditError("Bu maktab 1-smenali. Sinfni 2-smenaga o‘tkazib bo‘lmaydi.");
+    setClassEditSaving(true); setClassEditError("");
+    try {
+      await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/sinf_tahrirlash?token=${encodeURIComponent(token)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maktab_id: Number(maktabId),
+          sinf_id: Number(classEditDraft.id),
+          harf: suffix,
+          smena: shift,
+        }),
+      });
+      const applyChange = rows => (rows || []).map(row => String(row.id) === String(classEditDraft.id)
+        ? { ...row, harf: suffix, smena: shift }
+        : row);
+      setDashboard(current => current ? { ...current, sinflar: applyChange(current.sinflar) } : current);
+      setClassCatalog(current => applyChange(current));
+      setClassEditNotice({ tone: "success", text: `${classEditDraft.sinf}-${suffix} saqlandi. Sinfning barcha o‘quvchi, rahbar, yuklama va jadval bog‘lanishlari o‘z joyida qoldi.` });
+      setClassEditDraft(null);
+      loadManager();
+    } catch (error) {
+      setClassEditError(error?.message || "Sinf tahriri saqlanmadi.");
+    } finally { setClassEditSaving(false); }
+  };
+
   useEffect(() => registerPhoneBackHandler("school-workspace", () => {
+    if (classEditDraft) {
+      setClassEditDraft(null);
+      setClassEditError("");
+      return true;
+    }
     if (adminPreviewOpen) {
       setAdminPreviewOpen(false);
       return true;
@@ -8869,7 +9408,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     }
     return false;
   }), [
-    adminPreviewOpen, smartOpen, teacherEditorOpen, curriculumOpen,
+    classEditDraft, adminPreviewOpen, smartOpen, teacherEditorOpen, curriculumOpen,
     newSchoolMode, isNewSchoolFlow, maktabId, onBack, loadManager,
   ]);
 
@@ -8879,6 +9418,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const schoolName = dashboard?.maktab_nomi || createdSchoolName || initialWorkspace?.muassasa_nomi || initialWorkspace?.nomi || (maktabId ? `Maktab #${maktabId}` : "Maktab");
   const curriculumApproved = curriculumStatus === "tasdiqlangan";
   const openTeacherEditor = () => {
+    setTeacherEditorMode("manual");
     setTeacherEditorOpen(true);
   };
 
@@ -8886,7 +9426,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     return <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
         <SmartHeader title="Yangi maktab" subtitle="Maktabni yaratish va ish maydonini ochish" onClose={closeNewSchoolForm} badge="MAKTAB WORKSPACE"/>
-        <main className="max-w-2xl mx-auto px-4 md:px-7 py-7 md:py-10">
+        <main className="max-w-5xl mx-auto px-4 md:px-7 py-7 md:py-10">
           <Card className="p-5 md:p-7">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.greenBg, color: palette.teal }}><School size={25}/></div>
@@ -8898,7 +9438,28 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                 <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Viloyat</span><input value={newSchoolRegion} onChange={e=>setNewSchoolRegion(e.target.value)} placeholder="Viloyat" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}/></label>
                 <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Tuman / shahar</span><input value={newSchoolDistrict} onChange={e=>setNewSchoolDistrict(e.target.value)} placeholder="Tuman yoki shahar" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}/></label>
               </div>
-              <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Smena soni</span><select value={newSchoolShifts} onChange={e=>setNewSchoolShifts(Number(e.target.value))} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value={1}>1 smena</option><option value={2}>2 smena</option></select></label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Smena soni</span><select value={newSchoolShifts} onChange={event => changeNewSchoolShiftCount(event.target.value)} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value={1}>1 smena</option><option value={2}>2 smena</option></select></label>
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Sinf harflari alifbosi</span><select value={newSchoolAlphabet} onChange={event => changeNewSchoolAlphabet(event.target.value)} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}>{Object.entries(V237_CLASS_ALPHABET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              </div>
+              <div className="rounded-3xl border overflow-hidden" style={{ borderColor: palette.line, background: "#fff" }}>
+                <div className="p-4 flex flex-wrap items-start justify-between gap-3" style={{ background: palette.sky }}>
+                  <div><div className="text-sm font-black" style={{ color: palette.ink }}>Har sinfda nechta parallel bor?</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>1-smena harflari avval beriladi. 2-smena o‘sha sinfdagi qolgan keyingi harfdan davom etadi; qaytadan A dan boshlanmaydi.</div></div>
+                  <div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: newSchoolClassTotal ? palette.green : palette.amber }}>{newSchoolClassTotal} ta sinf</div>
+                </div>
+                <div className="overflow-auto max-h-[500px]">
+                  <table className="w-full min-w-[760px] text-xs">
+                    <thead className="sticky top-0 z-10" style={{ background: palette.cream, color: palette.muted }}><tr><th className="p-2.5 text-left w-24">Sinf</th><th className="p-2.5 text-left w-32">1-smena soni</th><th className="p-2.5 text-left">1-smena nomlari</th><th className="p-2.5 text-left w-32">2-smena soni</th><th className="p-2.5 text-left">2-smena nomlari</th></tr></thead>
+                    <tbody>{newSchoolPlanPreview.map(row => <tr key={row.sinf} className="border-t" style={{ borderColor: palette.line, background: row.jami ? "#fff" : "#FCFDFE" }}>
+                      <td className="p-2.5"><span className="inline-flex w-10 h-9 rounded-xl items-center justify-center font-black" style={{ background: row.jami ? palette.sky : palette.cream, color: row.jami ? palette.blue : palette.muted }}>{row.sinf}</span></td>
+                      <td className="p-2.5"><input type="number" min="0" max={newSchoolAlphabetRows.length} value={row.birinchi_smena} onChange={event => updateNewSchoolClassCount(row.sinf, "birinchi_smena", event.target.value)} className="w-24 rounded-xl border px-3 py-2 text-center font-black" style={{ borderColor: Number(row.birinchi_smena) ? palette.blue : palette.line }}/></td>
+                      <td className="p-2.5 font-bold" style={{ color: row.birinchi_harflar.length ? palette.blue : palette.muted }}>{row.birinchi_harflar.length ? row.birinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
+                      <td className="p-2.5"><input type="number" min="0" max={Math.max(0, newSchoolAlphabetRows.length - Number(row.birinchi_smena || 0))} value={Number(newSchoolShifts) === 2 ? row.ikkinchi_smena : 0} disabled={Number(newSchoolShifts) !== 2} onChange={event => updateNewSchoolClassCount(row.sinf, "ikkinchi_smena", event.target.value)} className="w-24 rounded-xl border px-3 py-2 text-center font-black disabled:opacity-40" style={{ borderColor: Number(row.ikkinchi_smena) ? palette.teal : palette.line }}/></td>
+                      <td className="p-2.5 font-bold" style={{ color: row.ikkinchi_harflar.length ? palette.teal : palette.muted }}>{Number(newSchoolShifts) !== 2 ? "2-smena o‘chirilgan" : row.ikkinchi_harflar.length ? row.ikkinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
+                    </tr>)}</tbody>
+                  </table>
+                </div>
+              </div>
               {newSchoolError && <SmartNotice tone="error">{newSchoolError}</SmartNotice>}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
                 <button type="button" onClick={closeNewSchoolForm} disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
@@ -8925,13 +9486,33 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (teacherEditorOpen) {
     return <WorkspacePortal>
       <div className="min-h-screen">
-        <SmartHeader title={`${schoolName} · O‘qituvchi qo‘shish`} subtitle="F.I.Sh. → avtomatik # raqam → keyin sinf skeleti" onClose={() => setTeacherEditorOpen(false)}/>
-        <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
-          <TeacherQuickRegistryV2249
+        <SmartHeader title={`${schoolName} · O‘qituvchi va yuklama`} subtitle="F.I.Sh. + staj + fan + sinf/guruh + haftalik soat → bitta saqlash" onClose={() => setTeacherEditorOpen(false)}/>
+        <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5 space-y-5">
+          <Card className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchini qanday kiritasiz?</div>
+              <div className="text-[11px] mt-1" style={{ color: palette.muted }}>Qo‘lda rejimida profil va aniq sinf/guruh yuklamasi birga saqlanadi. Excel ko‘p o‘qituvchi uchun.</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 min-w-[360px]">
+              <button type="button" onClick={() => setTeacherEditorMode("manual")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: teacherEditorMode === "manual" ? palette.blue : palette.sky, color: teacherEditorMode === "manual" ? "#fff" : palette.blue }}>Qo‘lda to‘liq kiritish</button>
+              <button type="button" onClick={() => setTeacherEditorMode("excel")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: teacherEditorMode === "excel" ? palette.teal : palette.mint, color: teacherEditorMode === "excel" ? "#fff" : palette.teal }}>Excel shablon</button>
+            </div>
+          </Card>
+          {teacherEditorMode === "manual" ? <TeacherFirstLoadEditorV192
             token={token} apiBase={apiBase} maktabId={maktabId}
+            startWithNew showPlan={false} refreshKey={teacherDataRevision}
             onChanged={loadManager}
-            onContinue={() => { setTeacherEditorOpen(false); setSmartOpen(3); }}
-          />
+          /> : <TeacherQuickRegistryV2249
+            token={token} apiBase={apiBase} maktabId={maktabId} importOnly
+            onChanged={async () => {
+              setTeacherDataRevision(value => value + 1);
+              await loadManager();
+            }}
+          />}
+          <Card className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: palette.sky }}>
+            <div><div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchilar tayyormi?</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>Yangi ustoz saqlanishi bilan uning o‘zgarmas # raqami va fan–sinf–guruh yuklamasi keyingi oynada darhol ko‘rinadi.</div></div>
+            <button type="button" onClick={() => { setTeacherEditorOpen(false); setSmartOpen(3); }} className="px-5 py-3 rounded-xl text-xs font-black text-white shrink-0" style={{ background: palette.blue }}>Sinf skeleti + guruh o‘qituvchilariga o‘tish →</button>
+          </Card>
         </main>
       </div>
     </WorkspacePortal>;
@@ -8971,6 +9552,22 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
         <SmartHeader title={schoolName} subtitle="Maktab boshqaruv markazi" onClose={onBack} badge="MAKTAB WORKSPACE"/>
+        {classEditDraft && <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 2147483100, background: "rgba(16,35,52,.58)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true" aria-label="Sinfni tahrirlash">
+          <form onSubmit={saveClassEdit} className="w-full max-w-lg rounded-3xl border bg-white p-5 md:p-6" style={{ borderColor: palette.line, boxShadow: "0 28px 90px rgba(11,35,50,.28)" }}>
+            <div className="flex items-start justify-between gap-3">
+              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>SINFNI TAHRIRLASH</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{classEditDraft.sinf}-{classEditDraft.harf}</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Sinf ID si saqlanadi; o‘quvchi, rahbar, fan yuklamasi va jadval bog‘lanishlari o‘chmaydi.</p></div>
+              <button type="button" onClick={() => { setClassEditDraft(null); setClassEditError(""); }} disabled={classEditSaving} className="w-9 h-9 rounded-xl font-black" style={{ background: palette.cream, color: palette.ink }}>×</button>
+            </div>
+            <div className="grid sm:grid-cols-[120px_1fr] gap-3 mt-5">
+              <label className="text-xs font-black" style={{ color: palette.ink }}>Sinf darajasi<input value={classEditDraft.sinf} readOnly className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm font-black" style={{ borderColor: palette.line, background: palette.cream, color: palette.muted }}/></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>Harf yoki erkin nom *<input autoFocus value={classEditDraft.harf} onChange={event => { setClassEditDraft(current => ({ ...current, harf: event.target.value })); setClassEditError(""); }} placeholder="Masalan: A, Б, Rus, A-1" className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: classEditError && !String(classEditDraft.harf || "").trim() ? palette.red : palette.line }}/></label>
+            </div>
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Smena *<select value={classEditDraft.smena} onChange={event => { setClassEditDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Joriy smenani tanlang</option><option value={1}>1-smena</option>{classEditAllowsSecondShift && <option value={2}>2-smena</option>}</select></label>
+            <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>Bu tahrirda alfavit majburiy emas: lotin, kirill yoki xohlagan qisqa nom qabul qilinadi. Faqat shu sinf darajasida aynan bir xil nom takrorlanmasin.</div>
+            {classEditError && <div className="mt-3"><SmartNotice tone="error">{classEditError}</SmartNotice></div>}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5"><button type="button" onClick={() => { setClassEditDraft(null); setClassEditError(""); }} disabled={classEditSaving} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button><button type="submit" disabled={classEditSaving} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>{classEditSaving && <Loader2 size={16} className="animate-spin"/>}{classEditSaving ? "Saqlanmoqda..." : "Sinfni saqlash"}</button></div>
+          </form>
+        </div>}
         <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
           <div className="flex flex-wrap justify-end gap-2 mb-5">
             {canCreateAnotherSchool && <button onClick={openNewSchoolForm} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><School size={16}/> Yangi maktab</button>}
@@ -8991,11 +9588,12 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </div>
           </Card>
 
+          {classEditNotice && <div className="mb-4"><SmartNotice tone={classEditNotice.tone}>{classEditNotice.text}</SmartNotice></div>}
           {loadWarnings.length > 0 && !loading && <div className="mb-4 space-y-2">{loadWarnings.slice(0,5).map((warning, index)=><SmartNotice key={`${warning}-${index}`} tone="warning">{warning}</SmartNotice>)}</div>}
           {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <div className="space-y-3"><SmartNotice tone="error">{error}</SmartNotice>{workspaceLinkError && <div className="flex flex-wrap gap-2"><button onClick={() => setWorkspaceRetry(value => value + 1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><RefreshCw size={15}/> Maktabni qayta bog'lash</button><button onClick={onBack} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Muassasani qayta tanlash</button></div>}</div> : <>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
               <Stat icon={<GraduationCap size={18}/>} value={jamiOquvchi} label="o‘quvchi" tone="blue"/>
-              <Stat icon={<School size={18}/>} value={dashboard?.sinflar?.length ?? 0} label="sinf" tone="teal"/>
+              <Stat icon={<School size={18}/>} value={dashboardClasses.length} label="sinf" tone="teal"/>
               <Stat icon={<UserRoundCheck size={18}/>} value={dashboard?.bugungi_davomat?.kelgan ?? 0} label="bugun kelgan" tone="green"/>
               <Stat icon={<ClipboardCheck size={18}/>} value={dashboard?.bugungi_davomat?.sinflar_belgilamagan ?? 0} label="davomat kiritmagan sinf" tone={dashboard?.bugungi_davomat?.sinflar_belgilamagan ? "amber" : "green"}/>
               <Stat icon={<BellRing size={18}/>} value={holatlar.length} label="ochiq aqlli holat" tone={holatlar.length ? "red" : "green"}/>
@@ -9044,7 +9642,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                   </div>}
                 </div>
               </Card>
-              <Card className="p-5"><div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Sinflar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Maktab xaritasi</div></div><BookOpen size={21} style={{ color: palette.blue }}/></div><div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{(dashboard?.sinflar||[]).map(s=><div key={s.id} className="rounded-2xl p-3.5" style={{ background:palette.cream }}><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="text-xs mt-1" style={{ color:palette.muted }}>{s.oquvchi_soni} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>Rahbar: {s.rahbar_ismi||"belgilanmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>Psixolog: {s.psixolog_ismi||"belgilanmagan"}</div></div>)}</div></Card>
+              <Card className="p-5"><div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Sinflar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Maktab xaritasi</div><div className="text-[10px] mt-1" style={{ color: palette.muted }}>Sinfni bosib harfi yoki smenasini tahrirlang.</div></div><BookOpen size={21} style={{ color: palette.blue }}/></div><div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{dashboardClasses.map(s=><button type="button" onClick={() => openClassEditor(s)} key={s.id} className="rounded-2xl p-3.5 text-left border hover:shadow-md" style={{ background:palette.cream, borderColor: palette.line }}><div className="flex items-start justify-between gap-2"><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background: s.smena ? palette.sky : palette.amberBg, color: s.smena ? palette.blue : palette.amber }}>{s.smena ? `${s.smena}-smena` : "Smena noma’lum"}</div></div><div className="text-xs mt-1" style={{ color:palette.muted }}>{Number(s.oquvchi_soni || 0)} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>Rahbar: {s.rahbar_ismi||"belgilanmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>Psixolog: {s.psixolog_ismi||"belgilanmagan"}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.blue }}>Tahrirlash →</div></button>)}</div></Card>
             </div>
           </>}
         </main>
