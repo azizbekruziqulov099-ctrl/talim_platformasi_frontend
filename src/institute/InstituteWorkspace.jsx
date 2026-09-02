@@ -5194,10 +5194,15 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     const nextAssignmentRooms = {};
     const rowsByCanonicalKey = new Map();
     const canonicalPlanRows = v242EffectivePlanRows(result?.oquv_reja);
+    const planRowsByClass = new Map();
+    canonicalPlanRows.forEach(item => {
+      const classKey = String(item.sinf_id);
+      const rows = planRowsByClass.get(classKey) || [];
+      rows.push(item);
+      planRowsByClass.set(classKey, rows);
+    });
     (result?.birikmalar || []).forEach(row => {
-      const sameClassPlan = canonicalPlanRows.filter(item =>
-        String(item.sinf_id) === String(row.sinf_id)
-      );
+      const sameClassPlan = planRowsByClass.get(String(row.sinf_id)) || [];
       const exactPlan = sameClassPlan.find(item =>
         subjectKeyV193(item.fan_nomi) === subjectKeyV193(row.fan_nomi)
       );
@@ -5288,6 +5293,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     return map;
   }, [teachers]);
   const teacherById = useMemo(() => new Map(teachers.map(item => [String(item.user_id), item])), [teachers]);
+  const teacherChoicesCache = useMemo(() => new Map(), [teachers]);
 
   const planRows = useMemo(() => {
     const source = v242EffectivePlanRows(data?.oquv_reja);
@@ -5379,7 +5385,10 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     return [{ key: "whole", label: "Butun sinf" }];
   };
 
-  const teacherChoicesFor = (subject, currentTeacherId) => [...teachers].sort((left, right) => {
+  const teacherChoicesFor = (subject, currentTeacherId) => {
+    const cacheKey = `${subjectKeyV193(subject)}|${String(currentTeacherId || "")}`;
+    if (teacherChoicesCache.has(cacheKey)) return teacherChoicesCache.get(cacheKey);
+    const choices = [...teachers].sort((left, right) => {
     const score = teacher => {
       if (String(teacher.user_id) === String(currentTeacherId || "")) return 0;
       const subjects = teacher.fanlar_royxati || specialtyValuesV195(teacher.mutaxassisligi);
@@ -5391,7 +5400,10 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     return score(left) - score(right)
       || Number(left.jadval_raqami || 999999) - Number(right.jadval_raqami || 999999)
       || String(left.full_name || "").localeCompare(String(right.full_name || ""), "uz");
-  });
+    });
+    teacherChoicesCache.set(cacheKey, choices);
+    return choices;
+  };
 
   const allocationKeysFor = (classId, subject) => {
     return allocationKeysForMatrix(data, classId, subject);
@@ -5439,23 +5451,29 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     }
   };
 
-  const xlsxFileBase64V241 = async file => {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const chunkSize = 0x8000;
-    let binary = "";
-    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
-    }
-    return window.btoa(binary);
-  };
+  const xlsxFileBase64V241 = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const separator = result.indexOf(",");
+      if (separator < 0) reject(new Error("XLSX faylini o‘qib bo‘lmadi."));
+      else resolve(result.slice(separator + 1));
+    };
+    reader.onerror = () => reject(new Error("XLSX faylini o‘qib bo‘lmadi."));
+    reader.onabort = () => reject(new Error("XLSX faylini o‘qish bekor qilindi."));
+    reader.readAsDataURL(file);
+  });
 
   const downloadSkeletonTemplateV241 = async () => {
     if (xlsxAction || saving || groupSavingKey) return;
     setXlsxAction("template");
     setSaveMessage(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch(
-        `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.template}?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`
+        `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.template}?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`,
+        { signal: controller.signal }
       );
       if (!response.ok) {
         throw new Error(await xlsxResponseErrorV241(response, `Sinf skeleti shabloni yuklanmadi (HTTP ${response.status}).`));
@@ -5476,8 +5494,14 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       setSaveMessage({ tone: "success", text: "XLSX shablon yuklandi. Uni to‘ldirib, shu oynaga qayta import qiling." });
     } catch (error) {
-      setSaveMessage({ tone: "error", text: error?.message || "Sinf skeleti shabloni yuklanmadi." });
+      setSaveMessage({
+        tone: "error",
+        text: error?.name === "AbortError"
+          ? "Excel eksporti 60 soniyada tugamadi. Tugma bo‘shatildi; backend holatini tekshirib qayta urinib ko‘ring."
+          : error?.message || "Sinf skeleti shabloni yuklanmadi.",
+      });
     } finally {
+      window.clearTimeout(timeout);
       setXlsxAction("");
     }
   };
@@ -5512,7 +5536,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       };
       const preview = await smartFetch(
         `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.preview}?token=${encodeURIComponent(token)}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), timeoutMs: 60000 }
       );
       setXlsxPayload(payload);
       setXlsxPreview(preview);
@@ -5547,7 +5571,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     try {
       const result = await smartFetch(
         `${apiBase}/api/maktab/aqlli_jadval/v3/${V241_SKELETON_XLSX_ENDPOINTS.commit}?token=${encodeURIComponent(token)}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(xlsxPayload) }
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(xlsxPayload), timeoutMs: 120000 }
       );
       if (result?.matritsa) applyMatrix(result.matritsa, false);
       else await load(false);
@@ -6083,15 +6107,15 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>EXCEL ORQALI TO‘LDIRISH</div>
-            <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>Shu jadvalning shablonini oling yoki to‘ldirilgan faylni qabul qiling</div>
-            <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>Birinchi <b>O‘qituvchilar</b> varag‘iga faqat F.I.Sh. yoziladi; fan va haftalik jami sinf varaqlaridan avtomatik yig‘iladi. Har bir sinf alohida varaqda bo‘ladi. Bitta fan haftasiga 5 soat bo‘lsa, 5 qator emas, <b>bitta qator va “Haftalik soat = 5”</b> ko‘rinishida yoziladi. Guruh turi va o‘qituvchi shu qatorda tanlanadi; o‘qituvchi bo‘sh qolishi ham mumkin.</div>
+            <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>Joriy skeletni Excelga eksport qiling yoki to‘ldirilgan faylni import qiling</div>
+            <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>Yuklangan shablonda hozirgi sinflar, fanlar, guruh turi va saqlangan o‘qituvchi tanlovlari chiqadi. Birinchi <b>O‘qituvchilar</b> varag‘iga faqat F.I.Sh. yoziladi; fan va haftalik jami sinf varaqlaridan avtomatik yig‘iladi. Har bir sinf alohida varaqda bo‘ladi. Bitta fan haftasiga 5 soat bo‘lsa, 5 qator emas, <b>bitta qator va “Haftalik soat = 5”</b> ko‘rinishida yoziladi. Guruh turi va o‘qituvchi shu qatorda tanlanadi; o‘qituvchi bo‘sh qolishi ham mumkin.</div>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button type="button" onClick={downloadSkeletonTemplateV241} disabled={stepBusy} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 disabled:opacity-50" style={{ background: palette.sky, color: palette.blue }}>
-              {xlsxAction === "template" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {xlsxAction === "template" ? "Yuklanmoqda..." : "Excel shablonni yuklab olish"}
+              {xlsxAction === "template" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {xlsxAction === "template" ? "Yuklanmoqda..." : "Excel shablonni yuklab olish / eksport"}
             </button>
             <button type="button" onClick={() => skeletonImportInputRef.current?.click()} disabled={stepBusy || dirtyCount > 0} className="px-3.5 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-50" title={dirtyCount ? "Avval ekrandagi joriy o‘zgarishlarni saqlang yoki qayta yuklang" : "To‘ldirilgan skelet Excel faylini tanlang"} style={{ background: palette.teal }}>
-              {xlsxAction === "preview" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {xlsxAction === "preview" ? "Tekshirilmoqda..." : "To‘ldirilgan Excelni qabul qilish"}
+              {xlsxAction === "preview" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {xlsxAction === "preview" ? "Tekshirilmoqda..." : "To‘ldirilgan Excelni qabul qilish / import"}
             </button>
             <input ref={skeletonImportInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={previewSkeletonXlsxV241} className="hidden"/>
           </div>
