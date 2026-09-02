@@ -1,4 +1,4 @@
-// SAMTM FRONTEND V24.5 — V23.7-compatible Step-3 XLSX, three languages and non-blocking dashboard.
+// SAMTM FRONTEND V23.7 — teacher XLSX import and shift-aware class setup.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -12,9 +12,8 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
-const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V24.5-STEP3-XLSX-THREE-LANGUAGE";
+const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.7.2-GRID-PARTIAL-GROUP-CLASS";
 const SAMTM_REQUIRED_TIMETABLE_RELEASES = Object.freeze({
-  school_workspace_contract: "school-step3-xlsx-three-language-v24.5",
   jadval_release: "JADVAL-ONE-V23.6-LIVE-REATTACH-ALL-TEACHERS",
   exact_module_release: "SAMTM-EXACT-SOLVER-V23.6-BALANCED-OPEN-DAYS",
   exact_internal_release: "SAMTM-EXACT-CP-SAT-V23.6-DUAL-SHIFT-WEEK-ROUND-ROBIN",
@@ -3805,12 +3804,10 @@ function TeacherFirstLoadEditorV192({
     ? data?.oquv_reja?.til_holatlari?.[educationLanguage]
     : null;
   const activePlanStatus = selectedLanguagePlanState?.holat
-    || (planOnly && educationLanguage !== "uz" ? "draft" : data?.oquv_reja?.holat)
+    || data?.oquv_reja?.holat
     || "draft";
   const activePlanVersion = Number(
-    selectedLanguagePlanState?.versiya
-      ?? (planOnly && educationLanguage !== "uz" ? 1 : data?.oquv_reja?.versiya)
-      ?? 1
+    selectedLanguagePlanState?.versiya ?? data?.oquv_reja?.versiya ?? 1
   );
   const planDraftRows = planPayloadRows();
   const planAcademicTotal = planDraftRows.reduce(
@@ -9414,7 +9411,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [classEditSaving, setClassEditSaving] = useState(false);
   const [classEditError, setClassEditError] = useState("");
   const [classEditNotice, setClassEditNotice] = useState(null);
-  const managerLoadSequenceRef = useRef(0);
 
   useEffect(() => {
     if (!newSchoolMode && !(isNewSchoolFlow && !maktabId)) return undefined;
@@ -9695,8 +9691,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   };
 
   const loadManager = () => {
-    const requestId = managerLoadSequenceRef.current + 1;
-    managerLoadSequenceRef.current = requestId;
     if (teacherMode) return;
     if (workspaceResolving) {
       setLoading(true); setError(""); return;
@@ -9711,37 +9705,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setClassCatalogReady(false);
       setError("Maktab ID topilmadi. Yangi maktabni yaratish yoki tanlash yakunlanmagan."); setLoading(false); return;
     }
-    setLoading(true); setError(""); setLoadWarnings([]);
-    setCurriculumStatus(null); setClassCatalog([]); setClassRooms([]); setClassGroupVariants([]); setClassCatalogReady(false);
-    const mergeWarnings = values => {
-      if (managerLoadSequenceRef.current !== requestId) return;
-      setLoadWarnings(current => [...new Set([...current, ...(values || [])].filter(Boolean))]);
-    };
-
-    // Og'ir yuklama matritsasi sahifaning asosiy kartalarini ushlab turmaydi.
-    // U parallel yuklanadi va tayyor bo'lgach sinf/guruh sozlamalarini boyitadi.
-    smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`)
-      .then(curriculum => {
-        if (managerLoadSequenceRef.current !== requestId) return;
-        setCurriculumStatus(curriculum.oquv_reja?.holat || "draft");
-        setClassCatalog(curriculum.sinflar || []);
-        setClassRooms((curriculum.xonalar || []).filter(room => room.faol !== false && room.darsga_yaroqli !== false && String(room.turi || "") !== "non_teaching"));
-        setClassGroupVariants(curriculum.guruh_variantlari || []);
-        setClassCatalogReady(true);
-      })
-      .catch(reason => {
-        if (managerLoadSequenceRef.current !== requestId) return;
-        setCurriculumStatus("draft");
-        setClassCatalogReady(false);
-        mergeWarnings([`O‘quv reja holati vaqtincha yuklanmadi: ${reason?.message || "server xatosi"}`]);
-      });
-
+    setLoading(true); setError(""); setLoadWarnings([]); setClassCatalogReady(false);
     Promise.allSettled([
       smartFetch(`${apiBase}/api/maktab/dashboard_xavfsiz?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
       smartFetch(`${apiBase}/api/maktab/yuklama_xulosasi_xavfsiz?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
       smartFetch(`${apiBase}/api/maktab/aqlli_holatlar_xavfsiz?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
-    ]).then(([dashboardResult, workloadResult, casesResult]) => {
-      if (managerLoadSequenceRef.current !== requestId) return;
+      smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/yuklama_matritsasi?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`),
+    ]).then(([dashboardResult, workloadResult, casesResult, curriculumResult]) => {
       const warnings = [];
       if (dashboardResult.status === "fulfilled") {
         setDashboard(dashboardResult.value);
@@ -9767,15 +9737,24 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
         setHolatlar([]);
         warnings.push(`Aqlli holatlar vaqtincha yuklanmadi: ${casesResult.reason?.message || "server xatosi"}`);
       }
-      mergeWarnings(warnings);
-    }).finally(() => {
-      if (managerLoadSequenceRef.current === requestId) setLoading(false);
-    });
+      if (curriculumResult.status === "fulfilled") {
+        setCurriculumStatus(curriculumResult.value.oquv_reja?.holat || "draft");
+        setClassCatalog(curriculumResult.value.sinflar || []);
+        setClassRooms((curriculumResult.value.xonalar || []).filter(room => room.faol !== false && room.darsga_yaroqli !== false && String(room.turi || "") !== "non_teaching"));
+        setClassGroupVariants(curriculumResult.value.guruh_variantlari || []);
+        setClassCatalogReady(true);
+      } else {
+        setCurriculumStatus("draft");
+        setClassCatalog([]);
+        setClassRooms([]);
+        setClassGroupVariants([]);
+        setClassCatalogReady(false);
+        warnings.push(`O‘quv reja holati yuklanmadi: ${curriculumResult.reason?.message || "server xatosi"}`);
+      }
+      setLoadWarnings([...new Set(warnings.filter(Boolean))]);
+    }).finally(() => setLoading(false));
   };
-  useEffect(() => {
-    loadManager();
-    return () => { managerLoadSequenceRef.current += 1; };
-  }, [token, apiBase, maktabId, teacherMode, workspaceResolving, workspaceLinkError]);
+  useEffect(loadManager, [token, apiBase, maktabId, teacherMode, workspaceResolving, workspaceLinkError]);
 
   const dashboardClasses = useMemo(() => {
     const catalogById = new Map((classCatalog || []).map(row => [String(row.id), row]));
@@ -10221,9 +10200,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <Stat icon={<BellRing size={18}/>} value={holatlar.length} label="ochiq aqlli holat" tone={holatlar.length ? "red" : "green"}/>
             </div>
 
-            {classCatalogReady
-              ? <ClassBulkGroupSettingsV238 token={token} apiBase={apiBase} maktabId={maktabId} classes={dashboardClasses} variants={classGroupVariants} onChanged={loadManager}/>
-              : <Card className="p-4 mb-5"><div className="flex items-center gap-2 text-xs font-black" style={{ color: palette.muted }}><Loader2 size={15} className="animate-spin"/> Sinf va guruh sozlamalari yuklanmoqda...</div></Card>}
+            <ClassBulkGroupSettingsV238 token={token} apiBase={apiBase} maktabId={maktabId} classes={dashboardClasses} variants={classGroupVariants} onChanged={loadManager}/>
 
             <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-4 mb-5">
               <Card className="p-5">
