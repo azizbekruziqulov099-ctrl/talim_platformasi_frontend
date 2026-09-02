@@ -9356,7 +9356,9 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       : v198PositiveSchoolId(initialWorkspace?.muassasa_id, initialWorkspace?.id)
   );
   const workspaceNameHint = initialWorkspace?.muassasa_nomi || initialWorkspace?.display_name || initialWorkspace?.nomi || null;
-  const isNewSchoolFlow = !organizationV17Id && !contextId && !linkedInitialId;
+  // Maktab yaratish faqat umumiy Administrator markazida bajariladi.
+  // SchoolWorkspace ichida ikkinchi "Yangi maktab" oynasi ochilmaydi.
+  const isNewSchoolFlow = false;
   const [maktabId, setMaktabId] = useState(linkedInitialId || null);
   const [newSchoolMode, setNewSchoolMode] = useState(isNewSchoolFlow);
   const [workspaceRetry, setWorkspaceRetry] = useState(0);
@@ -9980,6 +9982,22 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
 
   if (centralCurriculumOpen) {
     return <WorkspacePortal><CentralLanguageCurriculumEditorV238 token={token} apiBase={apiBase} onClose={closeCentralCurriculum}/></WorkspacePortal>;
+  }
+
+  if (!maktabId && !organizationV17Id && !contextId) {
+    return <WorkspacePortal>
+      <div className="min-h-screen" style={{ background: "linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
+        <SmartHeader title="Maktab ish maydoni" subtitle="Mavjud maktabni tanlab kiring" onClose={onBack} badge="MAKTAB WORKSPACE"/>
+        <main className="max-w-xl mx-auto px-4 py-10">
+          <Card className="p-6 text-center">
+            <School size={34} className="mx-auto" style={{ color: palette.blue }}/>
+            <h1 className="text-xl font-black mt-3" style={{ color: palette.ink }}>Maktab tanlanmagan</h1>
+            <p className="text-sm mt-2" style={{ color: palette.muted }}>Yangi maktab bu sahifada yaratilmaydi. Administrator markazidan mavjud maktabni tanlang yoki yangi muassasa oching.</p>
+            <button type="button" onClick={onBack} className="mt-5 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>Muassasalarga qaytish</button>
+          </Card>
+        </main>
+      </div>
+    </WorkspacePortal>;
   }
 
   if (newSchoolMode || (isNewSchoolFlow && !maktabId)) {
