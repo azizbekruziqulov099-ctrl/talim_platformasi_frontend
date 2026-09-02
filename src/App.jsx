@@ -4123,7 +4123,9 @@ function UniversitetlarBolimi({ token }) {
         <InstituteWorkspace
           token={token}
           apiBase={API_BASE}
-          initialWorkspace={{ turi: "universitet", muassasa_id: workspaceUniversity.id, nomi: workspaceUniversity.nomi }}
+          initialWorkspace={workspaceUniversity?.turi === "universitet" || !workspaceUniversity?.turi
+            ? { turi: "universitet", muassasa_id: workspaceUniversity.id, nomi: workspaceUniversity.nomi }
+            : null}
           initialFacultyId={workspaceUniversity.importFacultyId || null}
           onBack={() => setWorkspaceUniversity(null)}
           assignedOnly={false}
@@ -10107,6 +10109,32 @@ function MuassasaV17Markazi({ token, onBack, onWorkspaceOpen }) {
   );
 }
 
+function muassasaBarqarorKaliti(item) {
+  if (!item?.turi) return "";
+  const id = item.muassasa_id ?? item.context_id ?? item.organization_v17_id;
+  return id == null ? "" : `${item.turi}:${id}`;
+}
+
+function faolMuassasalarRoyxati(muassasalar = []) {
+  return muassasalar.filter((item) => {
+    const holat = String(item?.lifecycle_status || "").toLowerCase();
+    return muassasaBarqarorKaliti(item)
+      && item?.faol !== false
+      && !item?.archived_at
+      && !item?.arxiv_at
+      && !["archived", "deleted", "inactive"].includes(holat);
+  });
+}
+
+function faolMuassasaniTanla({ muassasalar = [], tanlanganKalit = "", kerakliTuri = "" }) {
+  const faol = faolMuassasalarRoyxati(muassasalar);
+  const turdagilar = kerakliTuri ? faol.filter((item) => item.turi === kerakliTuri) : faol;
+  return turdagilar.find((item) => muassasaBarqarorKaliti(item) === tanlanganKalit)
+    || turdagilar[0]
+    || (!kerakliTuri ? faol[0] : null)
+    || null;
+}
+
 function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
@@ -10124,9 +10152,10 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   const [korinish, setKorinish] = useState("togarak"); // "togarak" | to'garak guruhlarimi yoki maxsus ekranmi
   const [muassasalar, setMuassasalar] = useState([]);
   const [muassasalarYuklanmoqda, setMuassasalarYuklanmoqda] = useState(true);
-  const [aktivMuassasaIdx, setAktivMuassasaIdx] = useState(0);
-  const mahalliyBirInstitutAvtoOchishRef = useRef(true);
-  const avtoOchishRef = birInstitutAvtoOchishRef || mahalliyBirInstitutAvtoOchishRef;
+  const [muassasalarJavobiOlindi, setMuassasalarJavobiOlindi] = useState(false);
+  const [muassasalarXato, setMuassasalarXato] = useState("");
+  const [muassasalarQaytaYuklash, setMuassasalarQaytaYuklash] = useState(0);
+  const [aktivMuassasaKaliti, setAktivMuassasaKaliti] = useState("");
 
   // Pastki menyudan ("Maktabim"/"Bog'cham"/"Universitetim"/"Markazim")
   // to'g'ridan-to'g'ri kelgan bo'lsa — o'sha ekranga o'tamiz. "vaqt"
@@ -10134,6 +10163,8 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   // ishga tushishi uchun (aks holda useEffect qayta chaqirilmas edi).
   useEffect(() => {
     if (boshlanishKorinishi?.korinish) setKorinish(boshlanishKorinishi.korinish);
+    const requestedKey = muassasaBarqarorKaliti(boshlanishKorinishi?.muassasa);
+    if (requestedKey) setAktivMuassasaKaliti(requestedKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boshlanishKorinishi?.vaqt]);
 
@@ -10255,31 +10286,26 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   }, [token]);
 
   useEffect(() => {
+    setMuassasalarYuklanmoqda(true);
+    setMuassasalarJavobiOlindi(false);
+    setMuassasalarXato("");
     fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((d) => setMuassasalar(d.muassasalar || []))
-      .catch(() => {})
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || "Muassasalar yuklanmadi");
+        return data;
+      })
+      .then((d) => {
+        setMuassasalar(d.muassasalar || []);
+        setMuassasalarJavobiOlindi(true);
+      })
+      .catch((error) => {
+        setMuassasalar([]);
+        setMuassasalarJavobiOlindi(true);
+        setMuassasalarXato(error?.message || "Muassasalar ro'yxati yuklanmadi");
+      })
       .finally(() => setMuassasalarYuklanmoqda(false));
-  }, [token]);
-
-  // Kabinet birinchi marta ochilganda ulangan ish joylari to'liq kelishini
-  // kutamiz. Faqat yagona ish joyi institut bo'lsa uni bir marta avtomatik
-  // ochamiz. Guard natija kelishi bilan sarflanadi: foydalanuvchi shu orada
-  // boshqa ekran tanlasa yoki institutdan ortga qaytsa, effekt uni qayta
-  // ichkariga majburan kiritmaydi. Ref Kabinetda saqlangani uchun OqituvchiTab
-  // qayta mount bo'lsa ham bu bir martalik qoida takrorlanmaydi.
-  useEffect(() => {
-    if (muassasalarYuklanmoqda || !avtoOchishRef.current) return;
-    avtoOchishRef.current = false;
-    if (
-      foydalanuvchi?.is_admin
-      || korinish !== "togarak"
-      || muassasalar.length !== 1
-      || muassasalar[0]?.turi !== "universitet"
-    ) return;
-    setAktivMuassasaIdx(0);
-    setKorinish("institut_workspace");
-  }, [avtoOchishRef, foydalanuvchi?.is_admin, korinish, muassasalar, muassasalarYuklanmoqda]);
+  }, [token, muassasalarQaytaYuklash]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/oqituvchi/mening_fanlarim?token=${encodeURIComponent(token)}`)
@@ -10459,23 +10485,32 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
               || (item.turi === membership.turi && Number(item.muassasa_id) === Number(membership.muassasa_id))
             )),
           ]);
-          setAktivMuassasaIdx(0);
+          setMuassasalarJavobiOlindi(true);
+          setAktivMuassasaKaliti(muassasaBarqarorKaliti(membership));
           setKorinish(workspace || "togarak");
         }}
       />
     );
   }
 
-  // Fetch hali qaytmagan bo'lsa ham, profildan (foydalanuvchi) darhol
-  // BITTA muassasa ko'rsatiladi — shu bilan ekran "yalang'och" ochilmaydi.
-  const samariMuassasalar = muassasalar.length > 0 ? muassasalar : (
-    foydalanuvchi?.maktab_id ? [{ turi: "maktab", muassasa_id: foydalanuvchi.maktab_id, muassasa_nomi: foydalanuvchi.maktab_nomi, lavozim: foydalanuvchi.lavozim }]
-    : foydalanuvchi?.markaz_id ? [{ turi: "markaz", muassasa_id: foydalanuvchi.markaz_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
-    : foydalanuvchi?.bogcha_id ? [{ turi: "bogcha", muassasa_id: foydalanuvchi.bogcha_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
-    : foydalanuvchi?.universitet_id ? [{ turi: "universitet", muassasa_id: foydalanuvchi.universitet_id, muassasa_nomi: null, lavozim: foydalanuvchi.lavozim }]
-    : []
-  );
-  const aktivMuassasa = samariMuassasalar[aktivMuassasaIdx] || samariMuassasalar[0] || null;
+  const profilMuassasalar = [
+    foydalanuvchi?.universitet_id && { turi: "universitet", muassasa_id: foydalanuvchi.universitet_id, muassasa_nomi: foydalanuvchi.universitet_nomi, lavozim: foydalanuvchi.lavozim },
+    foydalanuvchi?.maktab_id && { turi: "maktab", muassasa_id: foydalanuvchi.maktab_id, muassasa_nomi: foydalanuvchi.maktab_nomi, lavozim: foydalanuvchi.lavozim },
+    foydalanuvchi?.markaz_id && { turi: "markaz", muassasa_id: foydalanuvchi.markaz_id, muassasa_nomi: foydalanuvchi.markaz_nomi, lavozim: foydalanuvchi.lavozim },
+    foydalanuvchi?.bogcha_id && { turi: "bogcha", muassasa_id: foydalanuvchi.bogcha_id, muassasa_nomi: foydalanuvchi.bogcha_nomi, lavozim: foydalanuvchi.lavozim },
+  ].filter(Boolean);
+  const samariMuassasalar = muassasalarJavobiOlindi ? muassasalar : profilMuassasalar;
+  const faolSamariMuassasalar = faolMuassasalarRoyxati(samariMuassasalar);
+  const kerakliTuri = ({ institut_workspace: "universitet", universitet: "universitet", universitet_legacy: "universitet",
+    maktab_rahbariyat: "maktab", maktab_workspace: "maktab", maktab_legacy: "maktab",
+    markaz: "markaz", markaz_workspace: "markaz", markaz_legacy: "markaz",
+    bogcha: "bogcha", bogcha_workspace: "bogcha", bogcha_legacy: "bogcha",
+  })[korinish] || "";
+  const aktivMuassasa = faolMuassasaniTanla({
+    muassasalar: faolSamariMuassasalar,
+    tanlanganKalit: aktivMuassasaKaliti,
+    kerakliTuri,
+  });
   const kvotaBloklangan = Boolean(
     !freeClubAvailable(togarakKvota) &&
     !foydalanuvchi?.is_admin &&
@@ -10492,7 +10527,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     universitet: ["rektor", "prorektor"],
   };
   const muassasagaRuxsatBor = (turi) => Boolean(
-    foydalanuvchi?.is_admin || samariMuassasalar.some((m) => m.turi === turi)
+    foydalanuvchi?.is_admin || faolSamariMuassasalar.some((m) => m.turi === turi)
   );
   const himoyalanganMuassasaKorinishi = {
     markaz: "markaz",
@@ -10509,8 +10544,17 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     universitet_legacy: "universitet",
   }[korinish];
 
-  if (himoyalanganMuassasaKorinishi && muassasalarYuklanmoqda && !foydalanuvchi?.is_admin) {
+  if (himoyalanganMuassasaKorinishi && muassasalarYuklanmoqda) {
     return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  }
+
+  if (himoyalanganMuassasaKorinishi && muassasalarXato) {
+    return <div className="px-5 pt-6 pb-4"><div className="mx-auto max-w-xl rounded-3xl border bg-white p-7 text-center" style={{ borderColor: "#E8BABA" }}>
+      <AlertTriangle size={30} className="mx-auto mb-3" style={{ color: "#B42318" }} />
+      <h2 className="text-lg font-bold mb-2">Muassasalar ro'yxati yuklanmadi</h2>
+      <p className="text-sm leading-relaxed" style={{ color: "#6F6859" }}>{muassasalarXato}</p>
+      <button onClick={() => setMuassasalarQaytaYuklash((value) => value + 1)} className="mt-4 rounded-xl px-4 py-2 text-sm font-bold text-white" style={{ backgroundColor: "#1B6B83" }}>Qayta urinish</button>
+    </div></div>;
   }
 
   if (himoyalanganMuassasaKorinishi && !muassasagaRuxsatBor(himoyalanganMuassasaKorinishi)) {
@@ -10569,23 +10613,11 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
           <SchoolWorkspace
             token={token}
             apiBase={API_BASE}
-            initialWorkspace={
-              aktivMuassasa?.turi === "maktab"
-                ? aktivMuassasa
-                : aktivMaktabId
-                  ? {
-                      turi: "maktab",
-                      muassasa_id: aktivMaktabId,
-                      muassasa_nomi: foydalanuvchi?.maktab_nomi || "Maktab",
-                      lavozim: foydalanuvchi?.lavozim || (foydalanuvchi?.is_admin ? "direktor" : ""),
-                    }
-                  : null
-            }
+            initialWorkspace={aktivMuassasa?.turi === "maktab" ? aktivMuassasa : null}
             onBack={() => setKorinish("togarak")}
             onLegacy={() => setKorinish("maktab_legacy")}
             assignedOnly={!foydalanuvchi?.is_admin}
             canCreateInstitution={Boolean(foydalanuvchi?.is_admin)}
-            adminPreview={Boolean(foydalanuvchi?.is_admin)}
           />
         </React.Suspense>
       </div>
@@ -11121,15 +11153,16 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
         </button>
       </div>
 
-      {samariMuassasalar.length > 1 && (
+      {faolSamariMuassasalar.length > 1 && (
         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-          {samariMuassasalar.map((m, idx) => (
-            <button key={`${m.turi}-${m.muassasa_id}`} onClick={() => setAktivMuassasaIdx(idx)}
+          {faolSamariMuassasalar.map((m) => {
+            const itemKey = muassasaBarqarorKaliti(m);
+            return <button key={itemKey} onClick={() => setAktivMuassasaKaliti(itemKey)}
               className="shrink-0 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap"
-              style={idx === aktivMuassasaIdx ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+              style={itemKey === muassasaBarqarorKaliti(aktivMuassasa) ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
               {MUASSASA_IKONKA[m.turi] || "📍"} {m.muassasa_nomi || (m.turi === "maktab" ? "Maktabim" : m.turi === "markaz" ? "Markazim" : m.turi === "bogcha" ? "Bog'cham" : "Institutim")}
-            </button>
-          ))}
+            </button>;
+          })}
         </div>
       )}
 
