@@ -13811,12 +13811,15 @@ function _boshlangichYolniOl() {
     ism: q.get("ism"),
     oauthTicket: fragment.get("oauth_ticket"),
     oauthXato: fragment.get("oauth_xato"),
+    // Admin “ko'rish rejimi”: #korish_token=... — faqat shu oyna uchun, saqlanmaydi.
+    korishToken: fragment.get("korish_token"),
+    korishIsm: fragment.get("korish_ism"),
   };
   // 60 soniyalik OAuth ticket fragmenti (va eski oqimdan qolishi mumkin
   // bo'lgan sezgir query'lar) birinchi render boshlanishidayoq tarixdan o'chadi.
   if (
     ["token", "email", "ism"].some((key) => q.has(key))
-    || ["oauth_ticket", "oauth_xato"].some((key) => fragment.has(key))
+    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism"].some((key) => fragment.has(key))
   ) {
     window.history.replaceState({}, document.title, p);
   }
@@ -13837,7 +13840,8 @@ function _saqlanganTokenniOl() {
 
 export default function App() {
   const [yol] = useState(_boshlangichYolniOl);
-  const [token, setToken] = useState(() => yol.token || _saqlanganTokenniOl());
+  const korishRejimi = Boolean(yol.korishToken);
+  const [token, setToken] = useState(() => yol.korishToken || yol.token || _saqlanganTokenniOl());
   const [oauthYuklanmoqda, setOauthYuklanmoqda] = useState(Boolean(yol.oauthTicket));
   const [oauthProfil, setOauthProfil] = useState(null);
   const oauthAlmashinuviBoshlandi = useRef(false);
@@ -13849,6 +13853,7 @@ export default function App() {
 
   useEffect(() => {
     try {
+      if (korishRejimi) return; // ko'rish rejimi tokeni admin sessiyasini bosib qo'ymasin
       if (token) window.localStorage.setItem(SAMTM_TOKEN_STORAGE_KEY, token);
       else window.localStorage.removeItem(SAMTM_TOKEN_STORAGE_KEY);
     } catch {
@@ -13883,6 +13888,17 @@ export default function App() {
       .finally(() => setOauthYuklanmoqda(false));
   }, [yol.oauthTicket]);
 
+  if (token && korishRejimi) {
+    return (
+      <div style={{ paddingTop: 42 }}>
+        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: "linear-gradient(90deg,#B42318,#8A5A1C)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
+          <span>👁 ADMIN KO‘RISH REJIMI{yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: interfeys shu foydalanuvchi ko‘zi bilan ko‘rinmoqda. O‘zgartirishlar bloklangan, 90 daqiqadan keyin yopiladi.</span>
+          <button type="button" onClick={() => { try { window.close(); } catch { /* noop */ } window.location.replace("/"); }} className="shrink-0 rounded-lg px-3 py-1" style={{ background: "rgba(255,255,255,.18)" }}>Yopish</button>
+        </div>
+        <Kabinet token={token} onSessionExpired={sessiyaniTozala} />
+      </div>
+    );
+  }
   if (token) return <Kabinet token={token} onSessionExpired={sessiyaniTozala} />;
   if (oauthYuklanmoqda) {
     return (
