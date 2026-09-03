@@ -739,10 +739,12 @@ function AdmissionsPanel({ api, apiBase, token, universityId, structure, permiss
     }
     return false;
   }, 260), [compactProgram, detail, mode]);
-  const load = useCallback(async () => {
+  const load = useCallback(async (options = {}) => {
     if (!permissions.qabul_korish) return;
+    const silent = options && options.silent === true;
     const requestId = ++loadRequestRef.current;
-    setBusy(true); setError("");
+    if (!silent) setBusy(true);
+    setError("");
     try {
       const qs = new URLSearchParams({ universitet_id: universityId, token, page: String(page), page_size: "50", sort: filters.sort });
       if (selectedFacultyId) qs.set("fakultet_id", selectedFacultyId);
@@ -758,12 +760,19 @@ function AdmissionsPanel({ api, apiBase, token, universityId, structure, permiss
       else if (requestedProgramIds.length === 1) qs.set("yonalish_id", String(requestedProgramIds[0]));
       const d = await api(`/api/institut/v20/qabul/talabalar?${qs}`);
       if (requestId !== loadRequestRef.current) return;
-      setItems(d.talabalar || []); setCounts(d.hisoblar || {}); setPages(d.sahifa_soni || 0); setFilterOptions(d.filtrlar || { shakllar: [], tillar: [], hududlar: [] });
-    } catch (e) { if (requestId === loadRequestRef.current) setError(e.message); } finally { if (requestId === loadRequestRef.current) setBusy(false); }
+      setCounts(d.hisoblar || {}); setPages(d.sahifa_soni || 0); setFilterOptions(d.filtrlar || { shakllar: [], tillar: [], hududlar: [] });
+      if (silent) {
+        // Belgilashdan keyin: mavjud qatorlar joyida yangilanadi, ro'yxat sakramaydi.
+        const fresh = new Map((d.talabalar || []).map(item => [String(item.id), item]));
+        setItems(old => old.map(item => fresh.get(String(item.id)) || item));
+      } else {
+        setItems(d.talabalar || []);
+      }
+    } catch (e) { if (requestId === loadRequestRef.current) setError(e.message); } finally { if (requestId === loadRequestRef.current && !silent) setBusy(false); }
   }, [api, universityId, token, tab, page, filters, selectedFacultyId, lockedProgramId, lockedProgramIds, permissions.qabul_korish, programs, fullStatuses, compactProgram]);
   useEffect(() => {
     if (mode !== "list" && !compactProgram) return undefined;
-    const timer = setTimeout(load, filters.q.trim() ? 350 : 0);
+    const timer = setTimeout(() => load(), filters.q.trim() ? 350 : 0);
     return () => clearTimeout(timer);
   }, [compactProgram, filters.q, load, mode]);
   const showDetail = async id => { try { setDetail(await api(`/api/institut/v20/qabul/talaba/${id}?universitet_id=${universityId}&token=${encodeURIComponent(token)}`)); } catch (e) { setError(e.message); } };
@@ -774,7 +783,16 @@ function AdmissionsPanel({ api, apiBase, token, universityId, structure, permiss
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, bosqich }),
       });
-      load();
+      // Qator joyida yangilanadi — qidiruv, filtr va joylashuv o'zgarmaydi.
+      setItems(old => old.map(item => String(item.id) !== String(id) ? item : {
+        ...item,
+        hujjat_topshirgan: bosqich >= 2 ? true : item.hujjat_topshirgan,
+        bazaga_kiritilgan: bosqich >= 3 ? true : item.bazaga_kiritilgan,
+        saytga_kirgan: bosqich >= 4 ? true : item.saytga_kirgan,
+        bazaga_belgilash_mumkin: bosqich === 2 ? true : bosqich >= 3 ? false : item.bazaga_belgilash_mumkin,
+        qabul_bosqichi: Math.max(Number(item.qabul_bosqichi || 1), bosqich),
+      }));
+      load({ silent: true });
     } catch (e) { setError(e.message); }
   };
   const revealPassword = async id => { try { const d = await api(`/api/institut/v20/qabul/talaba/${id}/kirish_kodi?token=${encodeURIComponent(token)}`); onCredentials([{ fish: d.fish, lavozim: "Talaba", kirish_kodi: d.kirish_kodi }]); } catch (e) { setError(e.message); } };
