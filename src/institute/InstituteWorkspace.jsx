@@ -351,7 +351,7 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
   const restoreArchive = async item => { try { await api(`/api/institut/v20/tuzilma/arxiv/${item.id}/tiklash`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, universitet_id: universityId }) }); await openArchive(); await load(); onChanged?.(); } catch (e) { setError(e.message); } };
   if (!data) return <div className="py-16 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: COLORS.blue }} /></div>;
   if (selectedFaculty && selectedDepartment && selectedProgram) return <div className="space-y-4">
-    <button onClick={() => setSelectedProgram(null)} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> {selectedDepartment.nomi} yo‘nalishlariga qaytish</button>
+    <button onClick={() => { setSelectedProgram(null); if (selectedProgram?.fakultetdan_ochildi) setSelectedDepartment(null); }} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> {selectedProgram?.fakultetdan_ochildi ? `${selectedFaculty.nomi} yo‘nalishlariga qaytish` : `${selectedDepartment.nomi} yo‘nalishlariga qaytish`}</button>
     <DirectionWorkspace api={api} apiBase={apiBase} token={token} universityId={universityId} structure={data} permissions={permissions} onCredentials={onCredentials} faculty={selectedFaculty} program={selectedProgram} />
   </div>;
   if (selectedFaculty && selectedDepartment) return <div className="space-y-4">
@@ -362,7 +362,7 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
           <Pill tone="green">KAFEDRA</Pill>
           <h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedDepartment.nomi}</h2>
           <p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{selectedFaculty.nomi} · {(selectedDepartment.yonalishlar || []).length} yo‘nalish</p>
-          <div className="mt-2 text-xs font-bold" style={{ color: selectedDepartment.mudir ? COLORS.green : COLORS.red }}>{selectedDepartment.mudir ? `Mudir: ${selectedDepartment.mudir.full_name}` : "Mudir kiritilmagan"}</div>
+          <div className="mt-2 text-xs font-bold" style={{ color: selectedDepartment.mudir ? COLORS.green : COLORS.amber }}>{selectedDepartment.mudir ? `Mudir: ${selectedDepartment.mudir.full_name}` : "⚠ Mudir belgilanmagan"}</div>
         </div>
         {canManage && <button onClick={() => archiveStructure("kafedra", selectedDepartment)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Kafedra amallari">…</button>}
       </div>
@@ -394,12 +394,47 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
       </div>
     </Card>
   </div>;
+  const facultyPrograms = selectedFaculty
+    ? (selectedFaculty.kafedralar || []).flatMap(department => (department.yonalishlar || []).map(y => ({ ...y, kafedra_nomi: department.nomi, kafedra_id: department.id })))
+        .sort((a, b) => String(a.nomi || "").localeCompare(String(b.nomi || ""), "uz"))
+    : [];
+  const openProgramFromFaculty = y => {
+    const department = (selectedFaculty?.kafedralar || []).find(item => String(item.id) === String(y.kafedra_id)) || null;
+    setSelectedDepartment(department);
+    setSelectedProgram({ ...y, fakultetdan_ochildi: true });
+  };
   if (selectedFaculty) return <div className="space-y-4">
     <button onClick={() => { setSelectedProgram(null); setSelectedDepartment(null); if (facultyContextLocked) onInitialFacultyBack?.(); else { setSelectedFaculty(null); onFacultyContextChange?.(null); } }} className="inline-flex items-center gap-2 text-sm font-black" style={{ color: COLORS.blue }}><ArrowLeft size={17} /> {facultyContextLocked ? "Oldingi bo‘limga qaytish" : "Fakultetlar ro‘yxatiga qaytish"}</button>
     <Card className="p-5" style={{ background: "linear-gradient(135deg,#EAF5F8,#FBF7EE)" }}><div className="flex items-start justify-between gap-3"><div><Pill tone="blue">FAKULTET</Pill><h2 className="mt-2 text-2xl font-black" style={{ color: COLORS.ink }}>{selectedFaculty.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{selectedFaculty.kafedra_soni} kafedra · {selectedFaculty.yonalish_soni} yo‘nalish</p></div>{canManage && <button onClick={() => archiveStructure("fakultet", selectedFaculty)} className="rounded-xl border px-3 py-2 font-black" style={{ borderColor: COLORS.line }} title="Fakultet amallari">…</button>}</div></Card>
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div><Pill tone="green">KAFEDRALAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Kafedrani tanlang — yo‘nalishlar kafedra ichida ochiladi</h3></div>
+        <div><Pill tone="blue">YO‘NALISHLAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Yo‘nalishni tanlang — talaba, o‘qituvchi va tyutorlar o‘sha yerda ochiladi</h3></div>
+        <Pill tone="blue">{facultyPrograms.length} ta</Pill>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {facultyPrograms.map((y, index) => <div key={y.id} className="rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: COLORS.line, background: "#fff" }}>
+          <div className="flex items-start justify-between gap-3">
+            <button type="button" onClick={() => openProgramFromFaculty(y)} className="min-w-0 flex-1 text-left">
+              <div className="flex items-center gap-2 font-black" style={{ color: COLORS.blue }}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs" style={{ background: COLORS.sky }}>{index + 1}</span>{y.nomi}</div>
+              <div className="mt-1 text-xs" style={{ color: COLORS.muted }}>{y.daraja || "Daraja belgilanmagan"} · {y.kafedra_nomi}</div>
+            </button>
+            <div className="flex items-center gap-2">
+              {canManage && <button type="button" onClick={() => archiveStructure("yonalish", y)} className="rounded-lg border px-2 py-1 font-black" style={{ borderColor: COLORS.line }} title="Yo‘nalish amallari">…</button>}
+              <ChevronRight size={18} style={{ color: COLORS.blue }} />
+            </div>
+          </div>
+          <button type="button" onClick={() => openProgramFromFaculty(y)} className="mt-3 flex w-full flex-wrap gap-1 text-left">
+            <Pill tone={Number(y.talaba_soni) ? "green" : "gray"}>{y.talaba_soni || 0} talaba</Pill>
+            {(y.talim_shakllari || []).map(x => <Pill key={`${y.id}-s-${x}`} tone="blue">{x}</Pill>)}
+            {(y.talim_tillari || []).map(x => <Pill key={`${y.id}-t-${x}`} tone="violet">{x}</Pill>)}
+          </button>
+        </div>)}
+        {!facultyPrograms.length && <Empty>Bu fakultetda hali yo‘nalish yo‘q. Avval kafedra va yo‘nalish kiriting.</Empty>}
+      </div>
+    </Card>
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div><Pill tone="green">KAFEDRALAR</Pill><h3 className="mt-2 font-black" style={{ color: COLORS.ink }}>Kafedralar — mudir va yo‘nalishlar taqsimoti</h3></div>
         <Pill tone="blue">{(selectedFaculty.kafedralar || []).length} ta</Pill>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -407,7 +442,7 @@ function StructurePanel({ api, apiBase, token, universityId, canManage, permissi
           <div className="flex items-start justify-between gap-3">
             <button type="button" onClick={() => { setSelectedProgram(null); setSelectedDepartment(department); }} className="min-w-0 flex-1 text-left">
               <div className="font-black" style={{ color: COLORS.teal }}>{department.nomi}</div>
-              <div className="mt-1 text-xs font-bold" style={{ color: department.mudir ? COLORS.green : COLORS.red }}>{department.mudir ? `Mudir: ${department.mudir.full_name}` : "Mudir kiritilmagan"}</div>
+              <div className="mt-1 text-xs font-bold" style={{ color: department.mudir ? COLORS.green : COLORS.amber }}>{department.mudir ? `Mudir: ${department.mudir.full_name}` : "⚠ Mudir belgilanmagan"}</div>
               <div className="mt-2 text-xs" style={{ color: COLORS.muted }}>{(department.yonalishlar || []).length} ta yo‘nalish</div>
             </button>
             <div className="flex items-center gap-2">
