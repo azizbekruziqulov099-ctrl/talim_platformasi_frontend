@@ -22,14 +22,15 @@ const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({
 }));
 // Daraja rejasi. O‘zbek va ingliz sinflari lotin harflarini ketma-ket oladi (A, B, C...),
 // rus sinflari alohida kirill qatorini oladi (А, Б, В...). Har alifboda avval 1-smena, keyin 2-smena.
-function gradePlan(item, shiftCount) {
+function gradePlan(item, shiftCount, cyrillicForRussian = false) {
   const latin = [];
   const cyrillic = [];
   [1, 2].forEach((shift) => {
     if (shift === 2 && shiftCount !== 2) return;
     CLASS_LANGUAGES.forEach((lang) => {
       const count = Math.max(0, Number(item?.counts?.[shift]?.[lang.code]) || 0);
-      for (let i = 0; i < count; i += 1) (lang.code === "ru" ? cyrillic : latin).push({ shift, language: lang.code });
+      const bucket = cyrillicForRussian && lang.code === "ru" ? cyrillic : latin;
+      for (let i = 0; i < count; i += 1) bucket.push({ shift, language: lang.code });
     });
   });
   const withLetters = (list, letters) => list.slice(0, letters.length).map((entry, index) => ({ ...entry, letter: letters[index] }));
@@ -185,6 +186,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [buildings, setBuildings] = useState([emptyBuilding(0)]);
   const [gradeConfig, setGradeConfig] = useState(DEFAULT_GRADE_CONFIG);
   const [presetLanguage, setPresetLanguage] = useState("uz");
+  const [cyrillicForRussian, setCyrillicForRussian] = useState(false);
   const [classes, setClasses] = useState([]);
   const [classesPlanDirty, setClassesPlanDirty] = useState(false);
   const [notice, setNotice] = useState("");
@@ -201,7 +203,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     }))), [buildings, skipBuildings]);
   const buildingByKey = useMemo(() => new Map(buildings.map((item) => [item.key, item])), [buildings]);
   const requestedClassCount = useMemo(() => gradeConfig.reduce(
-    (total, item) => total + gradePlan(item, shiftCount).length,
+    (total, item) => total + gradePlan(item, shiftCount, cyrillicForRussian).length,
     0,
   ), [gradeConfig, shiftCount]);
   const roomOwners = useMemo(() => {
@@ -295,10 +297,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       if (item.grade !== grade) return item;
       const next = { 1: { ...item.counts[1] }, 2: { ...item.counts[2] } };
       const wanted = Math.max(0, Number.parseInt(rawCount, 10) || 0);
-      const sameAlphabet = (code) => (code === "ru") === (language === "ru");
-      const othersTotal = gradePlan({ counts: next }, shiftCount).filter((entry) => sameAlphabet(entry.language) && entry.language !== language).length
+      const sameAlphabet = (code) => !cyrillicForRussian || ((code === "ru") === (language === "ru"));
+      const othersTotal = gradePlan({ counts: next }, shiftCount, cyrillicForRussian).filter((entry) => sameAlphabet(entry.language) && entry.language !== language).length
         + [1, 2].filter((other) => other !== shift && (other === 1 || shiftCount === 2)).reduce((sum, other) => sum + (Number(next[other]?.[language]) || 0), 0);
-      const limit = (language === "ru" ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS).length;
+      const limit = (cyrillicForRussian && language === "ru" ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS).length;
       next[shift][language] = Math.min(wanted, Math.max(0, limit - othersTotal));
       return { ...item, counts: next };
     }));
@@ -353,7 +355,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     const desired = [];
     gradeConfig.forEach((item) => {
       const { grade } = item;
-      gradePlan(item, shiftCount).forEach(({ shift, language, letter }) => {
+      gradePlan(item, shiftCount, cyrillicForRussian).forEach(({ shift, language, letter }) => {
         const normalized = `${grade}-${letter}`;
         const oldItem = existing.get(normalized);
         if (!oldItem) { desired.push(emptyClass({ grade, letter, shift, language })); return; }
@@ -483,14 +485,15 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
 
     {step === 3 && <div className="space-y-4">
       <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
-        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Har smena uchun o‘zbek (UZ), rus (RU) va ingliz (EN) sinflari sonini alohida yozing. Harflar A dan uzluksiz davom etadi." : "Har daraja uchun o‘zbek (UZ), rus (RU) va ingliz (EN) sinflari sonini yozing. 0 bo‘lsa, yaratilmaydi."}</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
+        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har daraja uchun nechta o‘zbek (UZ), rus (RU) va ingliz (EN) sinf bo‘lishini yozing. Sinflar A, B, C, D... tartibda nomlanadi, tili yonida ko‘rinadi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
         <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>{shiftCount === 2 ? "Har smenaga tez qo‘yish:" : "Barchasiga tez qo‘yish:"}</span><select value={presetLanguage} onChange={(event) => setPresetLanguage(event.target.value)} className="px-2 py-1.5 rounded-lg border text-[11px] font-bold" style={{ borderColor: "#D9D4C8", color: "#21384C" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label} sinfi</option>)}</select>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count, presetLanguage)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
+        <label className="flex items-start gap-2 mb-3 text-[11px] cursor-pointer" style={{ color: "#5A5648" }}><input type="checkbox" checked={cyrillicForRussian} onChange={(event) => { setCyrillicForRussian(event.target.checked); setClassesPlanDirty(true); }} className="mt-0.5" /><span><b>Rus sinflariga kirill harf berish</b> (1-А, 1-Б, 1-В). Belgilanmasa, hamma sinf bitta A, B, C... tartibida nomlanadi.</span></label>
         <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-1">DARAJA</span><span className="col-span-3 grid grid-cols-3 gap-1 text-center"><span className="col-span-3">1-SMENA</span>{CLASS_LANGUAGES.map((lang) => <span key={lang.code}>{lang.short}</span>)}</span>{shiftCount === 2 && <span className="col-span-3 grid grid-cols-3 gap-1 text-center"><span className="col-span-3">2-SMENA</span>{CLASS_LANGUAGES.map((lang) => <span key={lang.code}>{lang.short}</span>)}</span>}<span className={shiftCount === 2 ? "col-span-5" : "col-span-8"}>YARATILADIGAN SINFLAR</span></div>
           {gradeConfig.map((item) => {
-            const plan = gradePlan(item, shiftCount);
+            const plan = gradePlan(item, shiftCount, cyrillicForRussian);
             const totalCount = plan.length;
-            const preview = plan.map(({ shift, language, letter }) => `${item.grade}-${letter} ${language}${shiftCount === 2 ? `·${shift}sm` : ""}`).join(", ");
+            const preview = plan.map(({ shift, language, letter }) => `${item.grade}-${letter} (${language}${shiftCount === 2 ? `, ${shift}-sm` : ""})`).join(", ");
             const countInput = (shift, lang, color) => <input key={`${shift}-${lang.code}`} aria-label={`${item.grade}-sinf ${shift}-smena ${lang.label} sinflari soni`} title={`${shift}-smena · ${lang.label} sinflari`} type="number" min="0" max={CLASS_LETTERS.length} value={item.counts[shift][lang.code]} onChange={(event) => updateGradeCount(item.grade, shift, lang.code, event.target.value)} className="min-w-0 px-1 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color, background: Number(item.counts[shift][lang.code]) ? "white" : "#FAF9F6" }} />;
             return <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: totalCount ? "white" : "#FAF9F6" }}>
               <b className="col-span-1 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
@@ -500,7 +503,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
             </div>;
           })}
         </div>
-        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Masalan: 1-smenada UZ 2, RU 1, EN 1 va 2-smenada UZ 1 yozilsa: 1-A, 1-B — o‘zbek; 1-C — ingliz; 1-D — o‘zbek (2-smena); 1-А (kirill) — rus." : "Masalan: UZ 2, RU 1, EN 1 yozilsa: 1-A, 1-B — o‘zbek; 1-C — ingliz; 1-А (kirill) — rus. Rus sinflari kirill harf oladi, shuning uchun 1-A (lotin) va 1-А (kirill) aralashmaydi."}</p>
+        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>Masalan: UZ 2, RU 1, EN 1 yozilsa → 1-A (uz), 1-B (uz), 1-C (ru), 1-D (en). Kerak bo‘lsa pastdagi ro‘yxatda istalgan sinfning harfini yoki tilini alohida o‘zgartirish mumkin.</p>
         <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
       </section>
       {classes.length > 0 && <>
@@ -508,7 +511,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <div className="flex items-center justify-between gap-2"><div><b className="text-sm" style={{ color: "#21384C" }}>Yaratiladigan sinflar</b><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>Kerakli sinfni bosing: uning smena, bino, xona, rahbar va psixologi alohida ochiladi.</p></div><button type="button" onClick={() => { setClasses([]); setNotice(""); }} className="text-xs whitespace-nowrap" style={{ color: "#B0553A" }}>Ro‘yxatni tozalash</button></div>
         <div className="space-y-2">{sortedClasses(classes).map((item) => {
           const selectedBuilding = buildingByKey.get(item.buildingKey);
-          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{languageLabel(item.language)}</span><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
+          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-8 text-sm" style={{ color: "#21384C" }}>{item.grade}-</b><input aria-label="Sinf harfi" value={item.letter} maxLength={1} onClick={(event) => event.preventDefault()} onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-zА-Яа-яЁё]/g, "").slice(0, 1).toUpperCase() })} className="w-10 px-1.5 py-1 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#21384C" }} title="Harfni o‘zgartirish" /><select aria-label="Ta‘lim tili" value={item.language || "uz"} onClick={(event) => event.preventDefault()} onChange={(event) => updateClass(item.key, { language: event.target.value })} className="px-1.5 py-1 rounded-lg border text-[11px] font-bold" style={{ borderColor: "#D9D4C8", color: "#1B4B7A", background: "#EAF1F7" }} title="Ta‘lim tilini o‘zgartirish">{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
             <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *<select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<input value={item.letter} maxLength={1} onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-zА-Яа-яЁё]/g, "").slice(0, 1).toUpperCase() })} placeholder={item.language === "ru" ? "А, Б yoki В" : "A, B yoki C"} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
