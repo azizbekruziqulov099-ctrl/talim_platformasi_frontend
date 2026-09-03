@@ -2053,7 +2053,10 @@ function AdminTab({ token, oldindanTanlangan }) {
   );
 }
 
+const ADMIN_ANDOZA_TILLARI = [["uz", "UZ · O‘zbek sinflari"], ["ru", "RU · Rus sinflari"], ["en", "EN · Ingliz sinflari"]];
 function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
+  const [language, setLanguage] = useState("uz");
+  const [approvalsByLanguage, setApprovalsByLanguage] = useState({});
   const [rows, setRows] = useState([]);
   const [grade, setGrade] = useState(1);
   const [section, setSection] = useState("fanlar");
@@ -2066,22 +2069,23 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
   const load = async () => {
     setLoading(true); setError("");
     try {
-      const response = await fetch(`${API_BASE}/api/admin/maktab_markaziy_sozlamalari?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+      const response = await fetch(`${API_BASE}/api/admin/maktab_markaziy_sozlamalari?token=${encodeURIComponent(token)}&talim_tili=${encodeURIComponent(language)}`, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "Markaziy sozlamani yuklab bo‘lmadi");
       setRows((data.qatorlar || []).map(item => ({ ...item, haftalik_soat: Number(item.haftalik_soat || 0) })));
       setApprovals(data.tasdiqlar || {});
+      setApprovalsByLanguage(data.tasdiqlar_til_boyicha || {});
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, [token]);
+  useEffect(() => { setMessage(""); load(); }, [token, language]);
   const current = rows.map((row, index) => ({ row, index })).filter(item => Number(item.row.sinf_darajasi) === grade);
   const update = (index, field, value) => setRows(old => old.map((row, i) => i === index ? { ...row, [field]: value } : row));
   const updateSubjectRule = (subject, field, value) => {
     const key = String(subject || "").trim().toLocaleLowerCase("uz");
     setRows(old => old.map(row => String(row.fan_nomi || "").trim().toLocaleLowerCase("uz") === key ? { ...row, [field]: value } : row));
   };
-  const add = () => setRows(old => [...old, { sinf_darajasi: grade, fan_nomi: "Yangi fan", haftalik_soat: 1, metod_kuni: null, kunlik_max: 1 }]);
+  const add = () => setRows(old => [...old, { sinf_darajasi: grade, fan_nomi: language === "ru" ? "Новый предмет" : language === "en" ? "New subject" : "Yangi fan", haftalik_soat: 1, metod_kuni: null, kunlik_max: 1 }]);
   const remove = index => setRows(old => old.filter((_, i) => i !== index));
   const save = async () => {
     setSaving(true); setMessage(""); setError("");
@@ -2092,11 +2096,11 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
         kunlik_max: Number(row.kunlik_max || 1),
       }));
       const response = await fetch(`${API_BASE}/api/admin/maktab_markaziy_sozlamalari?token=${encodeURIComponent(token)}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ qatorlar, bolim: section, tasdiqlash: true }),
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ talim_tili: language, qatorlar, bolim: section === "metod" ? "metod" : "fanlar", tasdiqlash: true }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "Saqlab bo‘lmadi");
-      setMessage(`✅ ${section === "fanlar" ? "Fanlar" : section === "yuklama" ? "O‘quv reja" : "Metod kunlari"} tasdiqlandi va maktablarga ulanishga tayyor.`);
+      setMessage(`✅ ${ADMIN_ANDOZA_TILLARI.find(([k]) => k === language)?.[1] || language}: ${section === "fanlar" ? "fanlar va o‘quv reja" : section === "yuklama" ? "o‘quv reja" : "metod kunlari"} tasdiqlandi. Shu tildagi sinflari bor maktablar avtomatik oladi.`);
       await load();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
@@ -2107,13 +2111,25 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
     ["metod", "3. Metod kunlari", "Fan o‘qituvchilarining metod kuni"],
   ];
   const uniqueSubjects = Array.from(new Map(rows.map(row => [String(row.fan_nomi || "").trim().toLocaleLowerCase("uz"), row])).values()).sort((a, b) => String(a.fan_nomi).localeCompare(String(b.fan_nomi), "uz"));
-  const approved = Boolean(approvals?.[section]?.tasdiqlangan);
+  const approved = Boolean(approvals?.[section === "yuklama" ? "fanlar" : section]?.tasdiqlangan);
   return <div className="px-5 pt-6 pb-8">
     <button type="button" onClick={onOrtga} className="flex items-center gap-2 mb-4" style={{ color: "#5A5648" }}><ChevronLeft size={16}/> Muassasa turlari</button>
     <div className="rounded-3xl border bg-white p-5" style={{ borderColor: "#D8E2E8" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><span className="premium-eyebrow">MUASSASA SOZLAMALARI · MAKTAB</span><h1 className="text-2xl font-black mt-1">Maktablar uchun yagona andoza</h1><p className="text-sm mt-1" style={{ color: "#6F777B" }}>Fanlar, o‘quv reja va metod kunlari bir-biriga bog‘langan. Maktab alohida o‘zgartirmagan bo‘lsa, tasdiqlangan andozani avtomatik oladi.</p></div>
         <span className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: approved ? "#EAF7EF" : "#FFF2DB", color: approved ? "#28734B" : "#9A6718" }}>{approved ? "✓ Tasdiqlangan" : "Tasdiqlanmagan"}</span>
+      </div>
+      <div className="mt-5 p-3 rounded-2xl border" style={{ borderColor: "#D8E2E8", background: "#FBFCFD" }}>
+        <p className="text-xs font-black mb-2" style={{ color: "#38505E" }}>Andoza tili · har til alohida saqlanadi va tasdiqlanadi</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">{ADMIN_ANDOZA_TILLARI.map(([key, label]) => {
+          const active = language === key;
+          const ok = Boolean(approvalsByLanguage?.[key]?.fanlar?.tasdiqlangan);
+          return <button key={key} type="button" disabled={saving} onClick={() => setLanguage(key)} className="text-left px-4 py-3 rounded-xl border" style={{ borderColor: active ? "#1B4B7A" : "#D8E2E8", background: active ? "#1B4B7A" : "#fff", color: active ? "#fff" : "#38505E" }}>
+            <b className="block text-sm">{label}</b>
+            <small style={{ opacity: 0.85 }}>{ok ? "✓ tasdiqlangan" : "tasdiqlanmagan"}</small>
+          </button>;
+        })}</div>
+        <p className="text-[11px] mt-2" style={{ color: "#6F777B" }}>Rus yoki ingliz sinfi bor maktab uchun jadval chiqishi shu tildagi fanlar va soatlar tasdiqlanishiga bog‘liq. Bir tilni tahrirlash boshqasini o‘zgartirmaydi.</p>
       </div>
       {error && <div className="mt-4 rounded-xl p-3 text-sm" style={{ background: "#FDECEC", color: "#B83C3C" }}>{error}</div>}
       {message && <div className="mt-4 rounded-xl p-3 text-sm" style={{ background: "#EAF7EF", color: "#28734B" }}>{message}</div>}
