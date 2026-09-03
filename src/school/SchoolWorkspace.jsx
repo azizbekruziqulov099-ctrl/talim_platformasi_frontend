@@ -47,6 +47,40 @@ const palette = {
   muted: "#6D7B87",
 };
 
+
+function TeacherPickerV2251({ value, options, numberOf, onChange, disabled, placeholder = "# — ustozni izlang", accentColor, borderColor, textColor }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = event => { if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+  const selected = options.find(item => String(item.user_id) === String(value || ""));
+  const normalized = query.replace(/\s+/g, " ").trim().toLocaleLowerCase("uz");
+  const filtered = normalized
+    ? options.filter(item => {
+        const number = String(numberOf.get(String(item.user_id)) || "");
+        const name = String(item.full_name || "").toLocaleLowerCase("uz");
+        return name.includes(normalized) || number === normalized.replace(/^#/, "") || `#${number}`.includes(normalized);
+      })
+    : options;
+  const label = selected ? `#${numberOf.get(String(selected.user_id))} · ${selected.full_name}` : placeholder;
+  return <div ref={rootRef} className="relative min-w-0 flex-1">
+    <button type="button" disabled={disabled} onClick={() => { setOpen(current => !current); setQuery(""); }} title={label} className="w-full p-1 rounded-lg border bg-white text-[10px] font-black text-left truncate disabled:opacity-50" style={{ borderColor: selected ? accentColor : borderColor, color: selected ? textColor : "#8A8578" }}>{label}</button>
+    {open && <div className="absolute z-40 left-0 right-0 mt-1 rounded-xl border bg-white shadow-lg" style={{ borderColor, minWidth: 220 }}>
+      <input autoFocus value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setOpen(false); if (event.key === "Enter" && filtered.length) { onChange(String(filtered[0].user_id)); setOpen(false); } }} placeholder="Familiya yoki # raqam..." className="w-full p-2 rounded-t-xl border-b text-[11px]" style={{ borderColor }}/>
+      <div className="max-h-56 overflow-auto">
+        <button type="button" onClick={() => { onChange(""); setOpen(false); }} className="w-full text-left px-2 py-1.5 text-[10px] font-black" style={{ color: "#8A8578" }}># — bo‘sh qoldirish</button>
+        {filtered.map(item => <button type="button" key={item.user_id} onClick={() => { onChange(String(item.user_id)); setOpen(false); }} className="w-full text-left px-2 py-1.5 text-[10px] font-black hover:bg-slate-50 truncate" style={{ color: textColor, background: String(item.user_id) === String(value || "") ? "#EAF1F7" : undefined }}>#{numberOf.get(String(item.user_id))} · {item.full_name}</button>)}
+        {!filtered.length && <div className="px-2 py-2 text-[10px]" style={{ color: "#8A8578" }}>Topilmadi</div>}
+      </div>
+    </div>}
+  </div>;
+}
+
 function Card({ children, style, className = "" }) {
   return (
     <div className={`rounded-3xl border bg-white ${className}`} style={{ borderColor: palette.line, boxShadow: "0 10px 35px rgba(23,50,75,.06)", ...style }}>
@@ -5284,6 +5318,17 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
 
   useEffect(() => { load(false); }, [token, apiBase, maktabId]);
 
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const renumberTeachers = async () => {
+    if (!window.confirm("O‘qituvchi raqamlari F.I.Sh. alfavit tartibida 1 dan qayta beriladi. Skelet va tayyor jadval o‘zgarmaydi. Davom etamizmi?")) return;
+    setLoading(true);
+    try {
+      const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_raqamlarini_alfavit_tartibla?token=${encodeURIComponent(token)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ maktab_id: maktabId }) });
+      await load(true);
+      setSaveMessage({ tone: "success", text: `${result?.soni || 0} ta o‘qituvchi raqami alfavit tartibida qayta berildi.` });
+    } catch (error) { setMessage({ tone: "error", text: error.message }); setLoading(false); }
+  };
+
   const teachers = useMemo(() => [...(data?.oqituvchilar || [])]
     .sort((a, b) => Number(a.jadval_raqami || 999999) - Number(b.jadval_raqami || 999999)
       || String(a.full_name || "").localeCompare(String(b.full_name || ""), "uz")), [data]);
@@ -6046,9 +6091,9 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         </div>
       </div>
       {!teachers.length && <div className="mt-4"><SmartNotice tone="warning">O‘qituvchi ro‘yxati hozircha bo‘sh. Skelet va guruh turlarini saqlang; o‘qituvchilarni keyin qo‘shib, kataklarga # raqamni biriktiring.</SmartNotice></div>}
-      <button onClick={() => setShowTeacherList(value => !value)} className="mt-4 text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "O‘qituvchi raqamlarini yopish" : "O‘qituvchi raqamlarini ko‘rsatish"}</button>
+      <div className="mt-4 flex flex-wrap items-center gap-2"><button onClick={() => setShowTeacherList(value => !value)} className="text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "O‘qituvchi raqamlarini yopish" : "O‘qituvchi raqamlarini ko‘rsatish"}</button>{teachers.length > 0 && <button type="button" onClick={renumberTeachers} disabled={loading || stepBusy} className="text-xs font-black px-3 py-2 rounded-xl disabled:opacity-50" style={{ background: palette.mint, color: palette.green }} title="Raqamlar familiya bo‘yicha A dan Z gacha 1, 2, 3... bo‘lib qayta beriladi">🔤 Raqamlarni alfavit bo‘yicha tartiblash</button>}{showTeacherList && teachers.length > 0 && <input value={teacherSearch} onChange={event => setTeacherSearch(event.target.value)} placeholder="Familiya yoki # raqam bo‘yicha izlash..." className="flex-1 min-w-[180px] p-2 rounded-xl border text-xs" style={{ borderColor: palette.line }}/>}</div>
       {showTeacherList && teachers.length > 0 && <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
-        {teachers.map(teacher => <div key={teacher.user_id} className="rounded-xl border px-3 py-2 flex items-center gap-2" style={{ borderColor: palette.line, background: "#fff" }}>
+        {teachers.filter(teacher => { const q = teacherSearch.trim().toLocaleLowerCase("uz"); if (!q) return true; return String(teacher.full_name || "").toLocaleLowerCase("uz").includes(q) || String(teacherNumber.get(String(teacher.user_id))) === q.replace(/^#/, ""); }).map(teacher => <div key={teacher.user_id} className="rounded-xl border px-3 py-2 flex items-center gap-2" style={{ borderColor: palette.line, background: "#fff" }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacherNumber.get(String(teacher.user_id))}</div>
           <div className="min-w-0 flex-1"><div className="text-xs font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>skelet: {scheduleHourLabel(workloadPreview.get(String(teacher.user_id)) || 0)} soat</div></div>
         </div>)}
@@ -6075,9 +6120,9 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
           <label className="flex items-center gap-2 text-xs font-black"><span style={{ color: palette.ink }}>Sinf rahbari</span><select value={leaders[String(selectedClass.id)] || ""} onChange={event => { setLeaders(current => ({ ...current, [String(selectedClass.id)]: event.target.value })); setSaveMessage(null); }} disabled={stepBusy} className="p-2 rounded-lg border bg-white disabled:opacity-50" style={{ borderColor: palette.line }}><option value="">Tanlanmagan</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></label>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-[1050px] w-full border-collapse">
-            <thead><tr><th className="p-2 text-[10px] font-black text-left" style={{ background: palette.cream, color: palette.muted }}>Dars</th>{Array.from({ length: skeleton.weekdays }, (_, day) => <th key={day} className="p-2 text-[10px] font-black text-center" style={{ background: palette.cream, color: palette.muted }}>{dayNames[day]}</th>)}</tr></thead>
-            <tbody>{Array.from({ length: skeleton.periods }, (_, periodIndex) => <tr key={periodIndex}><td className="p-2 text-xs font-black text-center border-t" style={{ borderColor: palette.line, color: palette.ink }}>{periodIndex + 1}</td>{Array.from({ length: skeleton.weekdays }, (_, dayIndex) => {
+          <table className="min-w-[720px] w-full border-collapse" style={{ tableLayout: "fixed" }}>
+            <thead><tr><th className="p-2 text-[10px] font-black text-left sticky left-0 z-10" style={{ background: palette.cream, color: palette.muted, width: 44 }}>Dars</th>{Array.from({ length: skeleton.weekdays }, (_, day) => <th key={day} className="p-2 text-[10px] font-black text-center" style={{ background: palette.cream, color: palette.muted }}>{dayNames[day]}</th>)}</tr></thead>
+            <tbody>{Array.from({ length: skeleton.periods }, (_, periodIndex) => <tr key={periodIndex}><td className="p-2 text-xs font-black text-center border-t sticky left-0 z-10 bg-white" style={{ borderColor: palette.line, color: palette.ink }}>{periodIndex + 1}</td>{Array.from({ length: skeleton.weekdays }, (_, dayIndex) => {
               const flatIndex = dayIndex * skeleton.periods + periodIndex;
               const cell = skeleton.cells[flatIndex];
               if (!cell) return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line, background: "#FBFCFD" }}><div className="min-h-[82px] rounded-xl border-2 border-dashed" style={{ borderColor: "#EEF2F5" }}/></td>;
@@ -6096,7 +6141,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
               </select></label>{subjectSwitchBusy && <div className="text-[8px] mt-1 font-black" style={{ color: palette.amber }}>Tanlovlar ko‘chirilmoqda...</div>}<div className="space-y-1 mt-2">{allocations.map(group => {
                 const key = `${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|${group.key}`;
                 const teacherId = assignments[key] || "";
-                return <div key={group.key} className="flex items-center gap-1"><span className="text-[8px] font-black w-11 truncate" title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><select value={teacherId} onChange={event => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, event.target.value)} disabled={stepBusy} className="min-w-0 flex-1 p-1 rounded-lg border bg-white text-[10px] font-black disabled:opacity-50" style={{ borderColor: teacherId ? palette.green : palette.line, color: palette.ink }}><option value=""># —</option>{teacherChoicesFor(cell.fan_nomi, teacherId).map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></div>;
+                return <div key={group.key} className="flex items-center gap-1"><span className="text-[8px] font-black w-11 truncate" title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><TeacherPickerV2251 value={teacherId} options={teacherChoicesFor(cell.fan_nomi, teacherId)} numberOf={teacherNumber} onChange={next => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, next)} disabled={stepBusy} accentColor={palette.green} borderColor={palette.line} textColor={palette.ink}/></div>;
               })}</div></div></td>;
             })}</tr>)}</tbody>
           </table>
