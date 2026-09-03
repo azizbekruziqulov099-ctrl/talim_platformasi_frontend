@@ -4,37 +4,39 @@ import React, { useEffect, useMemo, useState } from "react";
 // Release: SAMTM-ADMIN-SCHOOL-WIZARD-V21.0-PLAN-SAFE
 const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
 const CLASS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-// Rus sinflari kirill harflari bilan: 1-А, 1-Б, 1-В ... (Ё, Й, Ъ, Ы, Ь tashlab ketiladi)
-const CYRILLIC_CLASS_LETTERS = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ".split("");
-const isCyrillicLetter = (letter) => /^[А-Яа-яЁё]$/.test(String(letter || ""));
-const alphabetOf = (letterOrLanguage) => (letterOrLanguage === "ru" || isCyrillicLetter(letterOrLanguage) ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS);
-const letterIndex = (letter) => alphabetOf(letter).indexOf(String(letter || "").toUpperCase());
+// Har til o‘z alifbosida: o‘zbek lotin, rus kirill, ingliz — ingliz alifbosi.
 export const CLASS_LANGUAGES = [
-  { code: "uz", label: "O‘zbek", short: "UZ" },
-  { code: "ru", label: "Rus", short: "RU" },
-  { code: "en", label: "Ingliz", short: "EN" },
+  { code: "uz", label: "O‘zbek", short: "UZ", tab: "O‘zbek sinflari", letters: "ABDEFGHIJKLMNOPQRSTUVXYZ".split(""), suffix: "" },
+  { code: "ru", label: "Rus", short: "RU", tab: "Rus sinflari", letters: "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ".split(""), suffix: "" },
+  { code: "en", label: "Ingliz", short: "EN", tab: "Ingliz sinflari", letters: CLASS_LETTERS, suffix: "-EN" },
 ];
-const languageLabel = (code) => (CLASS_LANGUAGES.find((item) => item.code === code) || CLASS_LANGUAGES[0]).label;
+const languageOf = (code) => CLASS_LANGUAGES.find((item) => item.code === code) || CLASS_LANGUAGES[0];
+const languageLabel = (code) => languageOf(code).label;
+const lettersOf = (code) => languageOf(code).letters;
+const letterIndex = (letter, code) => lettersOf(code).indexOf(String(letter || "").toUpperCase());
+const isCyrillicLetter = (letter) => /^[А-Яа-яЁё]$/.test(String(letter || ""));
 const emptyLanguageCounts = (uz = 0) => ({ uz, ru: 0, en: 0 });
 const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({
   grade,
   counts: { 1: emptyLanguageCounts(1), 2: emptyLanguageCounts(0) },
 }));
-// Daraja rejasi. O‘zbek va ingliz sinflari lotin harflarini ketma-ket oladi (A, B, C...),
-// rus sinflari alohida kirill qatorini oladi (А, Б, В...). Har alifboda avval 1-smena, keyin 2-smena.
-function gradePlan(item, shiftCount, cyrillicForRussian = false) {
-  const latin = [];
-  const cyrillic = [];
-  [1, 2].forEach((shift) => {
-    if (shift === 2 && shiftCount !== 2) return;
-    CLASS_LANGUAGES.forEach((lang) => {
+// Daraja rejasi: har til o‘z alifbosidan boshlanadi (uz: A, B, D...; ru: А, Б, В...; en: A, B, C...).
+// Har tilda avval 1-smena, keyin 2-smena.
+const DEFAULT_START_LETTERS = { uz: "A", ru: "А", en: "A" };
+function gradePlan(item, shiftCount, startLetters = DEFAULT_START_LETTERS) {
+  const plan = [];
+  CLASS_LANGUAGES.forEach((lang) => {
+    const entries = [];
+    [1, 2].forEach((shift) => {
+      if (shift === 2 && shiftCount !== 2) return;
       const count = Math.max(0, Number(item?.counts?.[shift]?.[lang.code]) || 0);
-      const bucket = cyrillicForRussian && lang.code === "ru" ? cyrillic : latin;
-      for (let i = 0; i < count; i += 1) bucket.push({ shift, language: lang.code });
+      for (let i = 0; i < count; i += 1) entries.push({ shift, language: lang.code });
     });
+    const startIndex = Math.max(0, lang.letters.indexOf(startLetters?.[lang.code] || lang.letters[0]));
+    const available = lang.letters.slice(startIndex);
+    entries.slice(0, available.length).forEach((entry, index) => plan.push({ ...entry, letter: available[index] }));
   });
-  const withLetters = (list, letters) => list.slice(0, letters.length).map((entry, index) => ({ ...entry, letter: letters[index] }));
-  return [...withLetters(latin, CLASS_LETTERS), ...withLetters(cyrillic, CYRILLIC_CLASS_LETTERS)];
+  return plan;
 }
 const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`;
 
@@ -44,20 +46,22 @@ const emptyBuilding = (index = 0) => ({
 });
 
 const emptyClass = ({ grade = "", letter = "A", shift = 1, language = "uz" } = {}) => ({
-  key: uniqueKey("class", `${grade}-${letter}`), grade, letter, shift, language,
+  key: uniqueKey("class", `${grade}-${letter}-${language}`), grade, letter, shift, language,
   leader: null, psychologist: null, buildingKey: "", roomNumber: "",
 });
 
+// Sinf nomi: o‘zbek `1-A`, rus `1-А` (kirill), ingliz `1-A-EN` — bazada nomlar to‘qnashmasligi uchun.
 export function normalizeSchoolClassName(value) {
-  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-яЁё])$/);
-  return match ? `${match[1]}-${match[2].toUpperCase()}` : "";
+  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-яЁё])(\s*[-–—_ ]?\s*EN)?$/i);
+  return match ? `${match[1]}-${match[2].toUpperCase()}${match[3] ? "-EN" : ""}` : "";
 }
 
-function classNameOf(item) { return normalizeSchoolClassName(`${item.grade}-${item.letter}`); }
+function classNameOf(item) { return normalizeSchoolClassName(`${item.grade}-${item.letter}${languageOf(item.language).suffix}`); }
 function sortedClasses(items) {
+  const order = { uz: 0, ru: 1, en: 2 };
   return [...items].sort((a, b) => Number(a.grade) - Number(b.grade)
-    || Number(isCyrillicLetter(a.letter)) - Number(isCyrillicLetter(b.letter))
-    || letterIndex(a.letter) - letterIndex(b.letter));
+    || (order[a.language] ?? 9) - (order[b.language] ?? 9)
+    || letterIndex(a.letter, a.language) - letterIndex(b.letter, b.language));
 }
 function roomPoolKey(buildingKey, roomNumber) {
   return `${buildingKey}|${String(roomNumber || "").trim().toLocaleLowerCase("uz")}`;
@@ -67,30 +71,29 @@ function isTeachingRoom(room) {
 }
 
 export function validateSchoolClassSequence(items, shiftCount) {
-  const rows = (items || []).map((item) => ({
-    item,
-    name: classNameOf(item),
-  }));
-  if (rows.some((row) => !row.name)) return "Sinf parallelini bitta harf bilan kiriting: lotin A–Z (o‘zbek/ingliz) yoki kirill А–Я (rus)";
+  const rows = (items || []).map((item) => ({ item, name: classNameOf(item), language: item.language || "uz" }));
+  if (rows.some((row) => !row.name)) return "Sinf parallelini bitta harf bilan kiriting";
   if (new Set(rows.map((row) => row.name)).size !== rows.length) return "Bir xil sinf ikki marta kiritilgan";
-
-  const byGrade = new Map();
+  for (const row of rows) {
+    if (letterIndex(row.item.letter, row.language) < 0) {
+      return `${row.name}: ${languageLabel(row.language)} sinfi uchun harf ${lettersOf(row.language).slice(0, 6).join(", ")}... alifbosidan bo‘lishi kerak.`;
+    }
+  }
+  const groups = new Map();
   rows.forEach((row) => {
-    const [grade, letter] = row.name.split("-");
-    if (!byGrade.has(grade)) byGrade.set(grade, []);
-    byGrade.get(grade).push({ ...row, grade, letter, shift: Number(row.item.shift) });
+    const key = `${row.item.grade}|${row.language}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ ...row, grade: row.item.grade, letter: String(row.item.letter).toUpperCase(), shift: Number(row.item.shift) });
   });
-  for (const [grade, gradeRows] of [...byGrade.entries()].sort((a, b) => Number(a[0]) - Number(b[0]))) {
-    for (const cyrillic of [false, true]) {
-      const alphabetRows = gradeRows.filter((row) => isCyrillicLetter(row.letter) === cyrillic);
-      if (!alphabetRows.length) continue;
-      const letters = cyrillic ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS;
-      const ordered = [...alphabetRows].sort((a, b) => letterIndex(a.letter) - letterIndex(b.letter));
-      const expected = letters.slice(0, ordered.length);
-      const actual = ordered.map((row) => row.letter);
-      if (actual.some((letter, index) => letter !== expected[index])) {
-        return `${grade}-sinf ${cyrillic ? "rus (kirill)" : "lotin"} parallellari ${letters[0]} dan boshlab uzluksiz bo‘lishi kerak: ${expected.join(", ")}.`;
-      }
+  for (const [key, groupRows] of groups.entries()) {
+    const [grade, language] = key.split("|");
+    const letters = lettersOf(language);
+    const ordered = [...groupRows].sort((a, b) => letterIndex(a.letter, language) - letterIndex(b.letter, language));
+    const startIndex = letterIndex(ordered[0].letter, language);
+    const expected = letters.slice(startIndex, startIndex + ordered.length);
+    if (ordered.some((row, index) => row.letter !== expected[index])) {
+      return `${grade}-sinf ${languageLabel(language)} sinflari ${ordered[0].letter} dan boshlab uzluksiz bo‘lishi kerak: ${expected.join(", ")}.`;
+    }
     let secondShiftStarted = false;
     for (const row of ordered) {
       if (![1, 2].includes(row.shift) || (Number(shiftCount) === 1 && row.shift !== 1)) {
@@ -98,14 +101,12 @@ export function validateSchoolClassSequence(items, shiftCount) {
       }
       if (row.shift === 2) secondShiftStarted = true;
       else if (secondShiftStarted) {
-        return `${grade}-sinfda avval 1-smena parallellari, keyin 2-smena parallellari kelishi kerak.`;
+        return `${grade}-sinf ${languageLabel(language)} sinflarida avval 1-smena, keyin 2-smena kelishi kerak.`;
       }
-    }
     }
   }
   return "";
 }
-
 function generateRooms(building) {
   const floors = Math.max(1, Math.min(20, Number(building.floors) || 1));
   const floorRoomCounts = Array.from({ length: floors }, (_, index) => Math.max(0, Math.min(100,
@@ -186,7 +187,8 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [buildings, setBuildings] = useState([emptyBuilding(0)]);
   const [gradeConfig, setGradeConfig] = useState(DEFAULT_GRADE_CONFIG);
   const [presetLanguage, setPresetLanguage] = useState("uz");
-  const [cyrillicForRussian, setCyrillicForRussian] = useState(false);
+  const [languageTab, setLanguageTab] = useState("uz");
+  const [startLetters, setStartLetters] = useState(DEFAULT_START_LETTERS);
   const [classes, setClasses] = useState([]);
   const [classesPlanDirty, setClassesPlanDirty] = useState(false);
   const [notice, setNotice] = useState("");
@@ -203,7 +205,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     }))), [buildings, skipBuildings]);
   const buildingByKey = useMemo(() => new Map(buildings.map((item) => [item.key, item])), [buildings]);
   const requestedClassCount = useMemo(() => gradeConfig.reduce(
-    (total, item) => total + gradePlan(item, shiftCount, cyrillicForRussian).length,
+    (total, item) => total + gradePlan(item, shiftCount, startLetters).length,
     0,
   ), [gradeConfig, shiftCount]);
   const roomOwners = useMemo(() => {
@@ -297,27 +299,24 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       if (item.grade !== grade) return item;
       const next = { 1: { ...item.counts[1] }, 2: { ...item.counts[2] } };
       const wanted = Math.max(0, Number.parseInt(rawCount, 10) || 0);
-      const sameAlphabet = (code) => !cyrillicForRussian || ((code === "ru") === (language === "ru"));
-      const othersTotal = gradePlan({ counts: next }, shiftCount, cyrillicForRussian).filter((entry) => sameAlphabet(entry.language) && entry.language !== language).length
-        + [1, 2].filter((other) => other !== shift && (other === 1 || shiftCount === 2)).reduce((sum, other) => sum + (Number(next[other]?.[language]) || 0), 0);
-      const limit = (cyrillicForRussian && language === "ru" ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS).length;
-      next[shift][language] = Math.min(wanted, Math.max(0, limit - othersTotal));
+      const othersTotal = [1, 2].filter((other) => other !== shift && (other === 1 || shiftCount === 2)).reduce((sum, other) => sum + (Number(next[other]?.[language]) || 0), 0);
+      const available = lettersOf(language).length - Math.max(0, lettersOf(language).indexOf(startLetters[language] || lettersOf(language)[0]));
+      next[shift][language] = Math.min(wanted, Math.max(0, available - othersTotal));
       return { ...item, counts: next };
     }));
     setClassesPlanDirty(true);
     setError("");
   };
-  const applyParallelPreset = (count, language = "uz") => {
+  const applyParallelPreset = (count, language = languageTab) => {
     setGradeConfig((current) => current.map((item) => {
-      if (count === 0) return { ...item, counts: { 1: emptyLanguageCounts(0), 2: emptyLanguageCounts(0) } };
-      const next = { 1: { ...item.counts[1], [language]: count }, 2: { ...item.counts[2] } };
+      const next = { 1: { ...item.counts[1], [language]: count }, 2: { ...item.counts[2], [language]: 0 } };
       if (shiftCount === 2) next[2][language] = count;
       return { ...item, counts: next };
     }));
     setClassesPlanDirty(true);
     setError("");
     setNotice(count === 0
-      ? "Barcha darajalar tozalandi."
+      ? `${languageLabel(language)} sinflari barcha darajada tozalandi.`
       : shiftCount === 2
         ? `Har bir darajaga ${languageLabel(language)} sinfi: 1-smenada ${count} ta, 2-smenada ${count} ta belgilandi.`
         : `Har bir darajaga ${count} ta ${languageLabel(language)} sinfi belgilandi.`);
@@ -355,8 +354,8 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     const desired = [];
     gradeConfig.forEach((item) => {
       const { grade } = item;
-      gradePlan(item, shiftCount, cyrillicForRussian).forEach(({ shift, language, letter }) => {
-        const normalized = `${grade}-${letter}`;
+      gradePlan(item, shiftCount, startLetters).forEach(({ shift, language, letter }) => {
+        const normalized = classNameOf({ grade, letter, language });
         const oldItem = existing.get(normalized);
         if (!oldItem) { desired.push(emptyClass({ grade, letter, shift, language })); return; }
         const shiftChanged = Number(oldItem.shift) !== shift;
@@ -485,25 +484,29 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
 
     {step === 3 && <div className="space-y-4">
       <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
-        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Har daraja uchun nechta o‘zbek (UZ), rus (RU) va ingliz (EN) sinf bo‘lishini yozing. Sinflar A, B, C, D... tartibda nomlanadi, tili yonida ko‘rinadi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
-        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>{shiftCount === 2 ? "Har smenaga tez qo‘yish:" : "Barchasiga tez qo‘yish:"}</span><select value={presetLanguage} onChange={(event) => setPresetLanguage(event.target.value)} className="px-2 py-1.5 rounded-lg border text-[11px] font-bold" style={{ borderColor: "#D9D4C8", color: "#21384C" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label} sinfi</option>)}</select>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count, presetLanguage)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
-        <label className="flex items-start gap-2 mb-3 text-[11px] cursor-pointer" style={{ color: "#5A5648" }}><input type="checkbox" checked={cyrillicForRussian} onChange={(event) => { setCyrillicForRussian(event.target.checked); setClassesPlanDirty(true); }} className="mt-0.5" /><span><b>Rus sinflariga kirill harf berish</b> (1-А, 1-Б, 1-В). Belgilanmasa, hamma sinf bitta A, B, C... tartibida nomlanadi.</span></label>
+        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ Sinflarni tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>Tilni tanlang, har darajaga nechta sinf bo‘lishini yozing. Har til o‘z alifbosida nomlanadi.</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
+        <div className="grid grid-cols-3 gap-2 mb-3">{CLASS_LANGUAGES.map((lang) => {
+          const total = gradeConfig.reduce((sum, item) => sum + gradePlan(item, shiftCount, startLetters).filter((entry) => entry.language === lang.code).length, 0);
+          const active = languageTab === lang.code;
+          return <button type="button" key={lang.code} onClick={() => setLanguageTab(lang.code)} className="py-2.5 rounded-xl border text-sm font-bold" style={active ? { background: "#1B4B7A", color: "white", borderColor: "#1B4B7A" } : { background: "white", color: "#5A5648", borderColor: "#E5E1D8" }}>{lang.tab}<span className="block text-[10px] font-semibold mt-0.5" style={{ opacity: 0.85 }}>{total ? `${total} ta sinf` : "yo‘q"} · {lang.letters.slice(0, 3).join(", ")}...</span></button>;
+        })}</div>
+        <div className="flex flex-wrap items-center gap-2 mb-3"><span className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Harflar qaysi harfdan boshlansin:</span><select value={startLetters[languageTab]} onChange={(event) => { const letter = event.target.value; setStartLetters((current) => ({ ...current, [languageTab]: letter })); setClassesPlanDirty(true); }} className="px-2 py-1.5 rounded-lg border text-sm font-bold" style={{ borderColor: "#D9D4C8", color: "#21384C" }} title="Boshlang‘ich harf">{lettersOf(languageTab).map((letter) => <option key={letter} value={letter}>{letter}{languageOf(languageTab).suffix}</option>)}</select><span className="text-[10px]" style={{ color: "#8A8578" }}>Masalan rus sinflari В dan boshlansin desangiz — В ni tanlang.</span></div>
+        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>Barcha darajaga {languageLabel(languageTab).toLocaleLowerCase("uz")} sinfi:</span>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
         <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-1">DARAJA</span><span className="col-span-3 grid grid-cols-3 gap-1 text-center"><span className="col-span-3">1-SMENA</span>{CLASS_LANGUAGES.map((lang) => <span key={lang.code}>{lang.short}</span>)}</span>{shiftCount === 2 && <span className="col-span-3 grid grid-cols-3 gap-1 text-center"><span className="col-span-3">2-SMENA</span>{CLASS_LANGUAGES.map((lang) => <span key={lang.code}>{lang.short}</span>)}</span>}<span className={shiftCount === 2 ? "col-span-5" : "col-span-8"}>YARATILADIGAN SINFLAR</span></div>
+          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2 text-center">1-SMENA</span>{shiftCount === 2 && <span className="col-span-2 text-center">2-SMENA</span>}<span className={shiftCount === 2 ? "col-span-6" : "col-span-8"}>YARATILADIGAN SINFLAR</span></div>
           {gradeConfig.map((item) => {
-            const plan = gradePlan(item, shiftCount, cyrillicForRussian);
-            const totalCount = plan.length;
-            const preview = plan.map(({ shift, language, letter }) => `${item.grade}-${letter} (${language}${shiftCount === 2 ? `, ${shift}-sm` : ""})`).join(", ");
-            const countInput = (shift, lang, color) => <input key={`${shift}-${lang.code}`} aria-label={`${item.grade}-sinf ${shift}-smena ${lang.label} sinflari soni`} title={`${shift}-smena · ${lang.label} sinflari`} type="number" min="0" max={CLASS_LETTERS.length} value={item.counts[shift][lang.code]} onChange={(event) => updateGradeCount(item.grade, shift, lang.code, event.target.value)} className="min-w-0 px-1 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color, background: Number(item.counts[shift][lang.code]) ? "white" : "#FAF9F6" }} />;
-            return <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: totalCount ? "white" : "#FAF9F6" }}>
-              <b className="col-span-1 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
-              <div className="col-span-3 grid grid-cols-3 gap-1">{CLASS_LANGUAGES.map((lang) => countInput(1, lang, "#1B4B7A"))}</div>
-              {shiftCount === 2 && <div className="col-span-3 grid grid-cols-3 gap-1">{CLASS_LANGUAGES.map((lang) => countInput(2, lang, "#8A5A1C"))}</div>}
-              <span className={`${shiftCount === 2 ? "col-span-5" : "col-span-8"} text-[11px] truncate`} title={preview} style={{ color: totalCount ? "#5A5648" : "#A8A397" }}>{totalCount ? preview : "Yaratilmaydi"}</span>
+            const plan = gradePlan(item, shiftCount, startLetters).filter((entry) => entry.language === languageTab);
+            const preview = plan.map(({ shift, letter }) => `${item.grade}-${letter}${languageOf(languageTab).suffix}${shiftCount === 2 ? ` (${shift}-sm)` : ""}`).join(", ");
+            const countInput = (shift, color) => <input key={shift} aria-label={`${item.grade}-sinf ${shift}-smena ${languageLabel(languageTab)} sinflari soni`} type="number" min="0" max={lettersOf(languageTab).length} value={item.counts[shift][languageTab]} onChange={(event) => updateGradeCount(item.grade, shift, languageTab, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color }} />;
+            return <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: plan.length ? "white" : "#FAF9F6" }}>
+              <b className="col-span-2 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
+              {countInput(1, "#1B4B7A")}
+              {shiftCount === 2 && countInput(2, "#8A5A1C")}
+              <span className={`${shiftCount === 2 ? "col-span-6" : "col-span-8"} text-[11px] truncate`} title={preview} style={{ color: plan.length ? "#5A5648" : "#A8A397" }}>{plan.length ? preview : "Yaratilmaydi"}</span>
             </div>;
           })}
         </div>
-        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>Masalan: UZ 2, RU 1, EN 1 yozilsa → 1-A (uz), 1-B (uz), 1-C (ru), 1-D (en). Kerak bo‘lsa pastdagi ro‘yxatda istalgan sinfning harfini yoki tilini alohida o‘zgartirish mumkin.</p>
+        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>O‘zbek sinflari: 1-A, 1-B, 1-D... · Rus sinflari: 1-А, 1-Б, 1-В (kirill) · Ingliz sinflari: 1-A-EN, 1-B-EN... Pastdagi ro‘yxatda istalgan sinfning harfini o‘zgartirish mumkin.</p>
         <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
       </section>
       {classes.length > 0 && <>
@@ -511,10 +514,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <div className="flex items-center justify-between gap-2"><div><b className="text-sm" style={{ color: "#21384C" }}>Yaratiladigan sinflar</b><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>Kerakli sinfni bosing: uning smena, bino, xona, rahbar va psixologi alohida ochiladi.</p></div><button type="button" onClick={() => { setClasses([]); setNotice(""); }} className="text-xs whitespace-nowrap" style={{ color: "#B0553A" }}>Ro‘yxatni tozalash</button></div>
         <div className="space-y-2">{sortedClasses(classes).map((item) => {
           const selectedBuilding = buildingByKey.get(item.buildingKey);
-          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-8 text-sm" style={{ color: "#21384C" }}>{item.grade}-</b><input aria-label="Sinf harfi" value={item.letter} maxLength={1} onClick={(event) => event.preventDefault()} onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-zА-Яа-яЁё]/g, "").slice(0, 1).toUpperCase() })} className="w-10 px-1.5 py-1 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#21384C" }} title="Harfni o‘zgartirish" /><select aria-label="Ta‘lim tili" value={item.language || "uz"} onClick={(event) => event.preventDefault()} onChange={(event) => updateClass(item.key, { language: event.target.value })} className="px-1.5 py-1 rounded-lg border text-[11px] font-bold" style={{ borderColor: "#D9D4C8", color: "#1B4B7A", background: "#EAF1F7" }} title="Ta‘lim tilini o‘zgartirish">{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
+          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-8 text-sm" style={{ color: "#21384C" }}>{item.grade}-</b><select aria-label="Sinf harfi" value={String(item.letter || "").toUpperCase()} onClick={(event) => event.preventDefault()} onChange={(event) => updateClass(item.key, { letter: event.target.value })} className="w-16 px-1 py-1 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#21384C" }} title="Harfni o‘zgartirish">{lettersOf(item.language).map((letter) => <option key={letter} value={letter}>{letter}{languageOf(item.language).suffix}</option>)}</select><select aria-label="Ta‘lim tili" value={item.language || "uz"} onClick={(event) => event.preventDefault()} onChange={(event) => { const nextLanguage = event.target.value; const index = Math.max(0, letterIndex(item.letter, item.language)); updateClass(item.key, { language: nextLanguage, letter: lettersOf(nextLanguage)[Math.min(index, lettersOf(nextLanguage).length - 1)] }); }} className="px-1.5 py-1 rounded-lg border text-[11px] font-bold" style={{ borderColor: "#D9D4C8", color: "#1B4B7A", background: "#EAF1F7" }} title="Ta‘lim tilini o‘zgartirish">{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
             <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *<select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
-              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<input value={item.letter} maxLength={1} onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-zА-Яа-яЁё]/g, "").slice(0, 1).toUpperCase() })} placeholder={item.language === "ru" ? "А, Б yoki В" : "A, B yoki C"} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<select value={String(item.letter || "").toUpperCase()} onChange={(event) => updateClass(item.key, { letter: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{lettersOf(item.language).map((letter) => <option key={letter} value={letter}>{letter}{languageOf(item.language).suffix}</option>)}</select></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Ta‘lim tili *<select value={item.language || "uz"} onChange={(event) => updateClass(item.key, { language: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select></label>
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · xona bilan birga ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
