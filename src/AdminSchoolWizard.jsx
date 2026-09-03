@@ -4,6 +4,11 @@ import React, { useEffect, useMemo, useState } from "react";
 // Release: SAMTM-ADMIN-SCHOOL-WIZARD-V21.0-PLAN-SAFE
 const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
 const CLASS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+// Rus sinflari kirill harflari bilan: 1-А, 1-Б, 1-В ... (Ё, Й, Ъ, Ы, Ь tashlab ketiladi)
+const CYRILLIC_CLASS_LETTERS = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ".split("");
+const isCyrillicLetter = (letter) => /^[А-Яа-яЁё]$/.test(String(letter || ""));
+const alphabetOf = (letterOrLanguage) => (letterOrLanguage === "ru" || isCyrillicLetter(letterOrLanguage) ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS);
+const letterIndex = (letter) => alphabetOf(letter).indexOf(String(letter || "").toUpperCase());
 export const CLASS_LANGUAGES = [
   { code: "uz", label: "O‘zbek", short: "UZ" },
   { code: "ru", label: "Rus", short: "RU" },
@@ -15,17 +20,20 @@ const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({
   grade,
   counts: { 1: emptyLanguageCounts(1), 2: emptyLanguageCounts(0) },
 }));
-// Daraja rejasi: 1-smena (uz, ru, en) keyin 2-smena (uz, ru, en). Harflar A dan uzluksiz.
+// Daraja rejasi. O‘zbek va ingliz sinflari lotin harflarini ketma-ket oladi (A, B, C...),
+// rus sinflari alohida kirill qatorini oladi (А, Б, В...). Har alifboda avval 1-smena, keyin 2-smena.
 function gradePlan(item, shiftCount) {
-  const plan = [];
+  const latin = [];
+  const cyrillic = [];
   [1, 2].forEach((shift) => {
     if (shift === 2 && shiftCount !== 2) return;
     CLASS_LANGUAGES.forEach((lang) => {
       const count = Math.max(0, Number(item?.counts?.[shift]?.[lang.code]) || 0);
-      for (let i = 0; i < count; i += 1) plan.push({ shift, language: lang.code });
+      for (let i = 0; i < count; i += 1) (lang.code === "ru" ? cyrillic : latin).push({ shift, language: lang.code });
     });
   });
-  return plan.slice(0, CLASS_LETTERS.length);
+  const withLetters = (list, letters) => list.slice(0, letters.length).map((entry, index) => ({ ...entry, letter: letters[index] }));
+  return [...withLetters(latin, CLASS_LETTERS), ...withLetters(cyrillic, CYRILLIC_CLASS_LETTERS)];
 }
 const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`;
 
@@ -40,12 +48,16 @@ const emptyClass = ({ grade = "", letter = "A", shift = 1, language = "uz" } = {
 });
 
 export function normalizeSchoolClassName(value) {
-  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-z])$/);
+  const match = String(value || "").trim().match(/^(1[01]|[1-9])\s*[-–—_ ]?\s*([A-Za-zА-Яа-яЁё])$/);
   return match ? `${match[1]}-${match[2].toUpperCase()}` : "";
 }
 
 function classNameOf(item) { return normalizeSchoolClassName(`${item.grade}-${item.letter}`); }
-function sortedClasses(items) { return [...items].sort((a, b) => Number(a.grade) - Number(b.grade) || a.letter.localeCompare(b.letter)); }
+function sortedClasses(items) {
+  return [...items].sort((a, b) => Number(a.grade) - Number(b.grade)
+    || Number(isCyrillicLetter(a.letter)) - Number(isCyrillicLetter(b.letter))
+    || letterIndex(a.letter) - letterIndex(b.letter));
+}
 function roomPoolKey(buildingKey, roomNumber) {
   return `${buildingKey}|${String(roomNumber || "").trim().toLocaleLowerCase("uz")}`;
 }
@@ -58,7 +70,7 @@ export function validateSchoolClassSequence(items, shiftCount) {
     item,
     name: classNameOf(item),
   }));
-  if (rows.some((row) => !row.name)) return "Sinf parallelini bitta lotin harfi bilan kiriting: A–Z";
+  if (rows.some((row) => !row.name)) return "Sinf parallelini bitta harf bilan kiriting: lotin A–Z (o‘zbek/ingliz) yoki kirill А–Я (rus)";
   if (new Set(rows.map((row) => row.name)).size !== rows.length) return "Bir xil sinf ikki marta kiritilgan";
 
   const byGrade = new Map();
@@ -68,12 +80,16 @@ export function validateSchoolClassSequence(items, shiftCount) {
     byGrade.get(grade).push({ ...row, grade, letter, shift: Number(row.item.shift) });
   });
   for (const [grade, gradeRows] of [...byGrade.entries()].sort((a, b) => Number(a[0]) - Number(b[0]))) {
-    const ordered = [...gradeRows].sort((a, b) => a.letter.localeCompare(b.letter));
-    const expected = CLASS_LETTERS.slice(0, ordered.length);
-    const actual = ordered.map((row) => row.letter);
-    if (actual.some((letter, index) => letter !== expected[index])) {
-      return `${grade}-sinf parallellari A dan boshlab uzluksiz bo‘lishi kerak: ${expected.join(", ")}.`;
-    }
+    for (const cyrillic of [false, true]) {
+      const alphabetRows = gradeRows.filter((row) => isCyrillicLetter(row.letter) === cyrillic);
+      if (!alphabetRows.length) continue;
+      const letters = cyrillic ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS;
+      const ordered = [...alphabetRows].sort((a, b) => letterIndex(a.letter) - letterIndex(b.letter));
+      const expected = letters.slice(0, ordered.length);
+      const actual = ordered.map((row) => row.letter);
+      if (actual.some((letter, index) => letter !== expected[index])) {
+        return `${grade}-sinf ${cyrillic ? "rus (kirill)" : "lotin"} parallellari ${letters[0]} dan boshlab uzluksiz bo‘lishi kerak: ${expected.join(", ")}.`;
+      }
     let secondShiftStarted = false;
     for (const row of ordered) {
       if (![1, 2].includes(row.shift) || (Number(shiftCount) === 1 && row.shift !== 1)) {
@@ -83,6 +99,7 @@ export function validateSchoolClassSequence(items, shiftCount) {
       else if (secondShiftStarted) {
         return `${grade}-sinfda avval 1-smena parallellari, keyin 2-smena parallellari kelishi kerak.`;
       }
+    }
     }
   }
   return "";
@@ -278,8 +295,11 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       if (item.grade !== grade) return item;
       const next = { 1: { ...item.counts[1] }, 2: { ...item.counts[2] } };
       const wanted = Math.max(0, Number.parseInt(rawCount, 10) || 0);
-      const othersTotal = gradePlan({ counts: next }, shiftCount).length - Math.max(0, Number(next[shift]?.[language]) || 0);
-      next[shift][language] = Math.min(wanted, Math.max(0, CLASS_LETTERS.length - othersTotal));
+      const sameAlphabet = (code) => (code === "ru") === (language === "ru");
+      const othersTotal = gradePlan({ counts: next }, shiftCount).filter((entry) => sameAlphabet(entry.language) && entry.language !== language).length
+        + [1, 2].filter((other) => other !== shift && (other === 1 || shiftCount === 2)).reduce((sum, other) => sum + (Number(next[other]?.[language]) || 0), 0);
+      const limit = (language === "ru" ? CYRILLIC_CLASS_LETTERS : CLASS_LETTERS).length;
+      next[shift][language] = Math.min(wanted, Math.max(0, limit - othersTotal));
       return { ...item, counts: next };
     }));
     setClassesPlanDirty(true);
@@ -333,8 +353,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     const desired = [];
     gradeConfig.forEach((item) => {
       const { grade } = item;
-      gradePlan(item, shiftCount).forEach(({ shift, language }, index) => {
-        const letter = CLASS_LETTERS[index];
+      gradePlan(item, shiftCount).forEach(({ shift, language, letter }) => {
         const normalized = `${grade}-${letter}`;
         const oldItem = existing.get(normalized);
         if (!oldItem) { desired.push(emptyClass({ grade, letter, shift, language })); return; }
@@ -471,7 +490,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           {gradeConfig.map((item) => {
             const plan = gradePlan(item, shiftCount);
             const totalCount = plan.length;
-            const preview = plan.map(({ shift, language }, index) => `${item.grade}-${CLASS_LETTERS[index]} (${(CLASS_LANGUAGES.find((lang) => lang.code === language) || CLASS_LANGUAGES[0]).short}${shiftCount === 2 ? `·${shift}sm` : ""})`).join(", ");
+            const preview = plan.map(({ shift, language, letter }) => `${item.grade}-${letter} ${language}${shiftCount === 2 ? `·${shift}sm` : ""}`).join(", ");
             const countInput = (shift, lang, color) => <input key={`${shift}-${lang.code}`} aria-label={`${item.grade}-sinf ${shift}-smena ${lang.label} sinflari soni`} title={`${shift}-smena · ${lang.label} sinflari`} type="number" min="0" max={CLASS_LETTERS.length} value={item.counts[shift][lang.code]} onChange={(event) => updateGradeCount(item.grade, shift, lang.code, event.target.value)} className="min-w-0 px-1 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color, background: Number(item.counts[shift][lang.code]) ? "white" : "#FAF9F6" }} />;
             return <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: totalCount ? "white" : "#FAF9F6" }}>
               <b className="col-span-1 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
@@ -481,7 +500,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
             </div>;
           })}
         </div>
-        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Masalan: 1-smenada UZ 2, RU 1 va 2-smenada UZ 1 yozilsa: A, B — o‘zbek (1-smena); C — rus (1-smena); D — o‘zbek (2-smena) bo‘ladi." : "Masalan: UZ 2, RU 1, EN 1 yozilsa: A, B — o‘zbek; C — rus; D — ingliz bo‘ladi. Har bir sinfning tilini pastdagi ro‘yxatda alohida ham o‘zgartirsa bo‘ladi."}</p>
+        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Masalan: 1-smenada UZ 2, RU 1, EN 1 va 2-smenada UZ 1 yozilsa: 1-A, 1-B — o‘zbek; 1-C — ingliz; 1-D — o‘zbek (2-smena); 1-А (kirill) — rus." : "Masalan: UZ 2, RU 1, EN 1 yozilsa: 1-A, 1-B — o‘zbek; 1-C — ingliz; 1-А (kirill) — rus. Rus sinflari kirill harf oladi, shuning uchun 1-A (lotin) va 1-А (kirill) aralashmaydi."}</p>
         <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
       </section>
       {classes.length > 0 && <>
@@ -492,7 +511,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{languageLabel(item.language)}</span><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
             <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *<select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
-              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<input value={item.letter} maxLength={1} pattern="[A-Za-z]" onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1).toUpperCase() })} placeholder="A, B yoki C" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<input value={item.letter} maxLength={1} onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-zА-Яа-яЁё]/g, "").slice(0, 1).toUpperCase() })} placeholder={item.language === "ru" ? "А, Б yoki В" : "A, B yoki C"} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Ta‘lim tili *<select value={item.language || "uz"} onChange={(event) => updateClass(item.key, { language: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select></label>
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · xona bilan birga ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
