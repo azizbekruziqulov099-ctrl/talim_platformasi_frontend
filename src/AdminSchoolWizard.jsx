@@ -10,12 +10,23 @@ export const CLASS_LANGUAGES = [
   { code: "en", label: "Ingliz", short: "EN" },
 ];
 const languageLabel = (code) => (CLASS_LANGUAGES.find((item) => item.code === code) || CLASS_LANGUAGES[0]).label;
+const emptyLanguageCounts = (uz = 0) => ({ uz, ru: 0, en: 0 });
 const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({
   grade,
-  firstShiftCount: 1,
-  secondShiftCount: 0,
-  language: "uz",
+  counts: { 1: emptyLanguageCounts(1), 2: emptyLanguageCounts(0) },
 }));
+// Daraja rejasi: 1-smena (uz, ru, en) keyin 2-smena (uz, ru, en). Harflar A dan uzluksiz.
+function gradePlan(item, shiftCount) {
+  const plan = [];
+  [1, 2].forEach((shift) => {
+    if (shift === 2 && shiftCount !== 2) return;
+    CLASS_LANGUAGES.forEach((lang) => {
+      const count = Math.max(0, Number(item?.counts?.[shift]?.[lang.code]) || 0);
+      for (let i = 0; i < count; i += 1) plan.push({ shift, language: lang.code });
+    });
+  });
+  return plan.slice(0, CLASS_LETTERS.length);
+}
 const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`;
 
 const emptyBuilding = (index = 0) => ({
@@ -156,6 +167,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [skipBuildings, setSkipBuildings] = useState(false);
   const [buildings, setBuildings] = useState([emptyBuilding(0)]);
   const [gradeConfig, setGradeConfig] = useState(DEFAULT_GRADE_CONFIG);
+  const [presetLanguage, setPresetLanguage] = useState("uz");
   const [classes, setClasses] = useState([]);
   const [classesPlanDirty, setClassesPlanDirty] = useState(false);
   const [notice, setNotice] = useState("");
@@ -172,7 +184,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     }))), [buildings, skipBuildings]);
   const buildingByKey = useMemo(() => new Map(buildings.map((item) => [item.key, item])), [buildings]);
   const requestedClassCount = useMemo(() => gradeConfig.reduce(
-    (total, item) => total + item.firstShiftCount + (shiftCount === 2 ? item.secondShiftCount : 0),
+    (total, item) => total + gradePlan(item, shiftCount).length,
     0,
   ), [gradeConfig, shiftCount]);
   const roomOwners = useMemo(() => {
@@ -261,44 +273,32 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   };
   const createRooms = (key) => { setBuildings((current) => current.map((item) => item.key === key ? { ...item, rooms: generateRooms(item) } : item)); setNotice("Xonalar tayyorlandi. Kerak bo‘lsa parametrlarni o‘zgartirib qayta yarating."); setError(""); };
   const removeBuilding = (key) => { setBuildings((current) => current.filter((item) => item.key !== key)); setClasses((current) => current.map((item) => item.buildingKey === key ? { ...item, buildingKey: "", roomNumber: "" } : item)); };
-  const updateGradeShiftCount = (grade, field, rawCount) => {
+  const updateGradeCount = (grade, shift, language, rawCount) => {
     setGradeConfig((current) => current.map((item) => {
       if (item.grade !== grade) return item;
-      const otherField = field === "firstShiftCount" ? "secondShiftCount" : "firstShiftCount";
-      const otherCount = shiftCount === 1 && otherField === "secondShiftCount" ? 0 : Number(item[otherField]) || 0;
-      const maxCount = Math.max(0, CLASS_LETTERS.length - otherCount);
-      return {
-        ...item,
-        [field]: Math.max(0, Math.min(maxCount, Number.parseInt(rawCount, 10) || 0)),
-      };
+      const next = { 1: { ...item.counts[1] }, 2: { ...item.counts[2] } };
+      const wanted = Math.max(0, Number.parseInt(rawCount, 10) || 0);
+      const othersTotal = gradePlan({ counts: next }, shiftCount).length - Math.max(0, Number(next[shift]?.[language]) || 0);
+      next[shift][language] = Math.min(wanted, Math.max(0, CLASS_LETTERS.length - othersTotal));
+      return { ...item, counts: next };
     }));
     setClassesPlanDirty(true);
     setError("");
   };
-  const updateGradeLanguage = (grade, language) => {
-    setGradeConfig((current) => current.map((item) => item.grade === grade ? { ...item, language } : item));
-    setClasses((current) => current.map((item) => item.grade === grade ? { ...item, language } : item));
-    setError("");
-  };
-  const applyLanguageToAll = (language) => {
-    setGradeConfig((current) => current.map((item) => ({ ...item, language })));
-    setClasses((current) => current.map((item) => ({ ...item, language })));
-    setError("");
-    setNotice(`Barcha sinflar uchun ta‘lim tili: ${languageLabel(language)}.`);
-  };
-  const applyParallelPreset = (count) => {
-    const perShift = shiftCount === 2 ? Math.min(count, Math.floor(CLASS_LETTERS.length / 2)) : count;
-    setGradeConfig((current) => CLASS_GRADES.map((grade) => ({
-      grade,
-      firstShiftCount: perShift,
-      secondShiftCount: shiftCount === 2 ? perShift : 0,
-      language: current.find((item) => item.grade === grade)?.language || "uz",
-    })));
+  const applyParallelPreset = (count, language = "uz") => {
+    setGradeConfig((current) => current.map((item) => {
+      if (count === 0) return { ...item, counts: { 1: emptyLanguageCounts(0), 2: emptyLanguageCounts(0) } };
+      const next = { 1: { ...item.counts[1], [language]: count }, 2: { ...item.counts[2] } };
+      if (shiftCount === 2) next[2][language] = count;
+      return { ...item, counts: next };
+    }));
     setClassesPlanDirty(true);
     setError("");
-    setNotice(shiftCount === 2
-      ? `Har bir darajaga 1-smenada ${perShift} ta va 2-smenada ${perShift} ta parallel belgilandi.`
-      : `Har bir darajaga ${perShift} ta parallel belgilandi.`);
+    setNotice(count === 0
+      ? "Barcha darajalar tozalandi."
+      : shiftCount === 2
+        ? `Har bir darajaga ${languageLabel(language)} sinfi: 1-smenada ${count} ta, 2-smenada ${count} ta belgilandi.`
+        : `Har bir darajaga ${count} ta ${languageLabel(language)} sinfi belgilandi.`);
   };
 
   const assignRooms = (items, reset = false) => {
@@ -331,16 +331,15 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     if (!requestedClassCount) { setError("Kamida bitta sinf darajasiga parallel sonini kiriting"); return; }
     const existing = new Map(classes.map((item) => [classNameOf(item), item]));
     const desired = [];
-    gradeConfig.forEach(({ grade, firstShiftCount, secondShiftCount, language }) => {
-      const firstCount = Math.max(0, Math.min(CLASS_LETTERS.length, Number(firstShiftCount) || 0));
-      const secondCount = shiftCount === 2
-        ? Math.max(0, Math.min(CLASS_LETTERS.length - firstCount, Number(secondShiftCount) || 0))
-        : 0;
-      CLASS_LETTERS.slice(0, firstCount + secondCount).forEach((letter, index) => {
+    gradeConfig.forEach((item) => {
+      const { grade } = item;
+      gradePlan(item, shiftCount).forEach(({ shift, language }, index) => {
+        const letter = CLASS_LETTERS[index];
         const normalized = `${grade}-${letter}`;
-        const shift = index < firstCount ? 1 : 2;
         const oldItem = existing.get(normalized);
-        desired.push(oldItem ? (Number(oldItem.shift) === shift ? oldItem : { ...oldItem, shift, buildingKey: "", roomNumber: "" }) : emptyClass({ grade, letter, shift, language: language || "uz" }));
+        if (!oldItem) { desired.push(emptyClass({ grade, letter, shift, language })); return; }
+        const shiftChanged = Number(oldItem.shift) !== shift;
+        desired.push({ ...oldItem, shift, language, ...(shiftChanged ? { buildingKey: "", roomNumber: "" } : {}) });
       });
     });
     const result = assignRooms(desired);
@@ -430,8 +429,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         setShiftCount(number);
         setGradeConfig((current) => current.map((item) => number === 1 ? {
           ...item,
-          firstShiftCount: Math.min(CLASS_LETTERS.length, item.firstShiftCount + item.secondShiftCount),
-          secondShiftCount: 0,
+          counts: {
+            1: Object.fromEntries(CLASS_LANGUAGES.map((lang) => [lang.code, (Number(item.counts[1][lang.code]) || 0) + (Number(item.counts[2][lang.code]) || 0)])),
+            2: emptyLanguageCounts(0),
+          },
         } : item));
         if (number === 1) setClasses((current) => current.map((item) => ({ ...item, shift: 1 })));
         setClassesPlanDirty(true);
@@ -463,25 +464,24 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
 
     {step === 3 && <div className="space-y-4">
       <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
-        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "1-smena va 2-smena parallel sonini alohida yozing. Harflar A dan uzluksiz davom etadi." : "Har bir darajaning parallel sonini yozing. 0 bo‘lsa, o‘sha daraja yaratilmaydi."}</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
-        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>{shiftCount === 2 ? "Har smenaga tez qo‘yish:" : "Barchasiga tez qo‘yish:"}</span>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
-        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>Barchasiga ta‘lim tili:</span>{CLASS_LANGUAGES.map((lang) => <button type="button" key={lang.code} onClick={() => applyLanguageToAll(lang.code)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>{lang.label}</button>)}<span className="text-[10px]" style={{ color: "#8A8578" }}>Har daraja yoki har bir sinf uchun tilni alohida ham o‘zgartirish mumkin.</span></div>
+        <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Har smena uchun o‘zbek (UZ), rus (RU) va ingliz (EN) sinflari sonini alohida yozing. Harflar A dan uzluksiz davom etadi." : "Har daraja uchun o‘zbek (UZ), rus (RU) va ingliz (EN) sinflari sonini yozing. 0 bo‘lsa, yaratilmaydi."}</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
+        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>{shiftCount === 2 ? "Har smenaga tez qo‘yish:" : "Barchasiga tez qo‘yish:"}</span><select value={presetLanguage} onChange={(event) => setPresetLanguage(event.target.value)} className="px-2 py-1.5 rounded-lg border text-[11px] font-bold" style={{ borderColor: "#D9D4C8", color: "#21384C" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label} sinfi</option>)}</select>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count, presetLanguage)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
         <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2">1-SMENA</span>{shiftCount === 2 && <span className="col-span-2">2-SMENA</span>}<span className="col-span-2">TA‘LIM TILI</span><span className={shiftCount === 2 ? "col-span-4" : "col-span-6"}>YARATILADIGAN SINFLAR</span></div>
+          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-1">DARAJA</span><span className="col-span-3 grid grid-cols-3 gap-1 text-center"><span className="col-span-3">1-SMENA</span>{CLASS_LANGUAGES.map((lang) => <span key={lang.code}>{lang.short}</span>)}</span>{shiftCount === 2 && <span className="col-span-3 grid grid-cols-3 gap-1 text-center"><span className="col-span-3">2-SMENA</span>{CLASS_LANGUAGES.map((lang) => <span key={lang.code}>{lang.short}</span>)}</span>}<span className={shiftCount === 2 ? "col-span-5" : "col-span-8"}>YARATILADIGAN SINFLAR</span></div>
           {gradeConfig.map((item) => {
-            const totalCount = item.firstShiftCount + (shiftCount === 2 ? item.secondShiftCount : 0);
-            const firstNames = CLASS_LETTERS.slice(0, item.firstShiftCount).map((letter) => `${item.grade}-${letter}`);
-            const secondNames = CLASS_LETTERS.slice(item.firstShiftCount, totalCount).map((letter) => `${item.grade}-${letter}`);
+            const plan = gradePlan(item, shiftCount);
+            const totalCount = plan.length;
+            const preview = plan.map(({ shift, language }, index) => `${item.grade}-${CLASS_LETTERS[index]} (${(CLASS_LANGUAGES.find((lang) => lang.code === language) || CLASS_LANGUAGES[0]).short}${shiftCount === 2 ? `·${shift}sm` : ""})`).join(", ");
+            const countInput = (shift, lang, color) => <input key={`${shift}-${lang.code}`} aria-label={`${item.grade}-sinf ${shift}-smena ${lang.label} sinflari soni`} title={`${shift}-smena · ${lang.label} sinflari`} type="number" min="0" max={CLASS_LETTERS.length} value={item.counts[shift][lang.code]} onChange={(event) => updateGradeCount(item.grade, shift, lang.code, event.target.value)} className="min-w-0 px-1 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color, background: Number(item.counts[shift][lang.code]) ? "white" : "#FAF9F6" }} />;
             return <div key={item.grade} className="grid grid-cols-12 gap-2 items-center px-3 py-2 border-t" style={{ borderColor: "#F0ECE3", background: totalCount ? "white" : "#FAF9F6" }}>
-              <b className="col-span-2 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
-              <input aria-label={`${item.grade}-sinf 1-smena parallel soni`} type="number" min="0" max={CLASS_LETTERS.length - (shiftCount === 2 ? item.secondShiftCount : 0)} value={item.firstShiftCount} onChange={(event) => updateGradeShiftCount(item.grade, "firstShiftCount", event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#1B4B7A" }} />
-              {shiftCount === 2 && <input aria-label={`${item.grade}-sinf 2-smena parallel soni`} type="number" min="0" max={CLASS_LETTERS.length - item.firstShiftCount} value={item.secondShiftCount} onChange={(event) => updateGradeShiftCount(item.grade, "secondShiftCount", event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#8A5A1C" }} />}
-              <select aria-label={`${item.grade}-sinf ta‘lim tili`} value={item.language || "uz"} onChange={(event) => updateGradeLanguage(item.grade, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-xs font-bold" style={{ borderColor: "#D9D4C8", color: "#21384C" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select>
-              <span className={`${shiftCount === 2 ? "col-span-4" : "col-span-6"} text-[11px] truncate`} style={{ color: totalCount ? "#5A5648" : "#A8A397" }}>{totalCount ? (shiftCount === 2 ? `1-smena: ${firstNames.join(", ") || "yo‘q"} · 2-smena: ${secondNames.join(", ") || "yo‘q"}` : firstNames.join(", ")) : "Yaratilmaydi"}</span>
+              <b className="col-span-1 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
+              <div className="col-span-3 grid grid-cols-3 gap-1">{CLASS_LANGUAGES.map((lang) => countInput(1, lang, "#1B4B7A"))}</div>
+              {shiftCount === 2 && <div className="col-span-3 grid grid-cols-3 gap-1">{CLASS_LANGUAGES.map((lang) => countInput(2, lang, "#8A5A1C"))}</div>}
+              <span className={`${shiftCount === 2 ? "col-span-5" : "col-span-8"} text-[11px] truncate`} title={preview} style={{ color: totalCount ? "#5A5648" : "#A8A397" }}>{totalCount ? preview : "Yaratilmaydi"}</span>
             </div>;
           })}
         </div>
-        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Masalan: 1-smenaga 2 ta, 2-smenaga 2 ta yozilsa A va B — 1-smena; C va D — 2-smena bo‘ladi." : "Har bir qatordagi sonni xohlagan payt o‘zgartirib, ro‘yxatni qayta hisoblash mumkin."}</p>
+        <p className="text-[11px] mb-3" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "Masalan: 1-smenada UZ 2, RU 1 va 2-smenada UZ 1 yozilsa: A, B — o‘zbek (1-smena); C — rus (1-smena); D — o‘zbek (2-smena) bo‘ladi." : "Masalan: UZ 2, RU 1, EN 1 yozilsa: A, B — o‘zbek; C — rus; D — ingliz bo‘ladi. Har bir sinfning tilini pastdagi ro‘yxatda alohida ham o‘zgartirsa bo‘ladi."}</p>
         <button type="button" onClick={generateClasses} className="w-full py-3 rounded-xl text-sm font-bold text-white" style={{ background: "#1B4B7A" }}>⚡ {requestedClassCount} ta sinfni qayta hisoblash va yaratish</button>
       </section>
       {classes.length > 0 && <>
