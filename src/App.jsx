@@ -4267,17 +4267,17 @@ function UniversitetlarBolimi({ token }) {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {holat === "universitet" && universitetlar.filter((u) => eskiKorsat || !(u.eski_yozuv || (!Number(u.fakultet_soni) && !u.rektor_ismi))).map((u) => (
+          {holat === "universitet" && universitetlar.filter((u) => eskiKorsat || Number(u.fakultet_soni) > 0 || u.rektor_ismi).map((u) => (
             <button key={u.id} onClick={() => universitetOch(u)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
               <div>
-                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{u.nomi}{u.eski_yozuv && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#F1EFE9", color: "#8A8578" }}>eski yozuv</span>}</p>
+                <p className="text-sm font-semibold mb-1" style={{ color: "#2B2B2B" }}>{u.nomi}{!Number(u.fakultet_soni) && !u.rektor_ismi && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#F1EFE9", color: "#8A8578" }}>bo‘sh</span>}</p>
                 <p className="text-xs" style={{ color: "#8A8578" }}>{[u.viloyat, u.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {u.fakultet_soni} fakultet</p>
                 <p className="text-xs mt-1" style={{ color: u.rektor_ismi ? "#3B6D11" : "#B0553A" }}>{u.rektor_ismi ? `👤 Rektor: ${u.rektor_ismi}` : "⚠️ Rektor belgilanmagan"}</p>
               </div>
               <ChevronRight size={16} style={{ color: "#8A8578" }} />
             </button>
           ))}
-          {holat === "universitet" && universitetlar.some((u) => u.eski_yozuv || (!Number(u.fakultet_soni) && !u.rektor_ismi)) && <button type="button" onClick={() => setEskiKorsat((v) => !v)} className="w-full text-xs font-semibold py-2 rounded-xl border" style={{ borderColor: "#E5E1D8", color: "#8A8578", background: "#FAF9F6" }}>{eskiKorsat ? "Eski / bo‘sh yozuvlarni yashirish" : `Eski / bo‘sh yozuvlarni ko‘rsatish (${universitetlar.filter((u) => u.eski_yozuv || (!Number(u.fakultet_soni) && !u.rektor_ismi)).length})`}</button>}
+          {holat === "universitet" && universitetlar.some((u) => !Number(u.fakultet_soni) && !u.rektor_ismi) && <button type="button" onClick={() => setEskiKorsat((v) => !v)} className="w-full text-xs font-semibold py-2 rounded-xl border" style={{ borderColor: "#E5E1D8", color: "#8A8578", background: "#FAF9F6" }}>{eskiKorsat ? "Bo‘sh yozuvlarni yashirish" : `Bo‘sh yozuvlarni ko‘rsatish — fakultetsiz va rektorsiz (${universitetlar.filter((u) => !Number(u.fakultet_soni) && !u.rektor_ismi).length})`}</button>}
           {holat === "fakultet" && fakultetlar.map((f) => (
             <button key={f.id} onClick={() => fakultetOch(f)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "#E5E1D8" }}>
               <div>
