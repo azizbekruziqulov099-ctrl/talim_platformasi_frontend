@@ -1360,6 +1360,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   const [saving, setSaving] = useState(false);
 
   const [teacherPage, setTeacherPage] = useState(1);
+  const [allowModeIds, setAllowModeIds] = useState([]);
   const TEACHERS_PER_PAGE = 12;
 
   const normalizeSubject = value => String(value || "").trim().toLocaleLowerCase("uz");
@@ -1610,6 +1611,59 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     teacherState.slots = {};
   });
 
+  // "Faqat shu vaqtlarda dars" rejimi: avval hamma vaqt yopiladi (qizil),
+  // keyin bosilgan kun / smena / dars ochiladi (yashil). Yumshoq daraja yo'q.
+  const isAllowMode = uid => allowModeIds.includes(String(uid));
+  const allDayKeys = day => shifts.flatMap(shift => Array.from({ length: Number(shift.dars_soni || 7) }, (_, index) => `${day}-${shift.smena}-${index + 1}`));
+  const toggleAllowMode = uid => {
+    const key = String(uid);
+    if (isAllowMode(key)) { setAllowModeIds(previous => previous.filter(item => item !== key)); return; }
+    setAllowModeIds(previous => [...previous, key]);
+    updateTeacherState(key, teacherState => {
+      teacherState.methods = {};
+      teacherState.methodKinds = {};
+      teacherState.slots = {};
+      smartDays.slice(0, weekdays).forEach(([day]) => allDayKeys(day).forEach(slotKey => { teacherState.slots[slotKey] = "hard"; }));
+    });
+  };
+  const allowDay = (uid, day) => updateTeacherState(uid, teacherState => {
+    const keys = allDayKeys(day);
+    const closed = keys.every(slotKey => teacherState.slots[slotKey] === "hard");
+    keys.forEach(slotKey => { if (closed) delete teacherState.slots[slotKey]; else teacherState.slots[slotKey] = "hard"; });
+  });
+  const allowShift = (uid, day, shift) => updateTeacherState(uid, teacherState => {
+    const count = Number(shiftByNumber.get(Number(shift))?.dars_soni || 7);
+    const keys = Array.from({ length: count }, (_, index) => `${day}-${shift}-${index + 1}`);
+    const closed = keys.every(slotKey => teacherState.slots[slotKey] === "hard");
+    keys.forEach(slotKey => { if (closed) delete teacherState.slots[slotKey]; else teacherState.slots[slotKey] = "hard"; });
+  });
+  const allowSlot = (uid, day, shift, period) => updateTeacherState(uid, teacherState => {
+    const slotKey = `${day}-${shift}-${period}`;
+    if (teacherState.slots[slotKey] === "hard") delete teacherState.slots[slotKey]; else teacherState.slots[slotKey] = "hard";
+  });
+
+  // Barcha (filtrdagi) o'qituvchilarga bir bosishda metod kuni.
+  const setMethodDayForAll = day => {
+    if (saving) return;
+    const ids = visibleTeachers.map(teacher => String(teacher.user_id));
+    if (!ids.length) return;
+    const allSet = ids.every(uid => (states[uid]?.methods || {})[day]);
+    setStates(previous => {
+      const next = { ...previous };
+      ids.forEach(uid => {
+        const teacherState = cloneTeacherState(previous[uid] || emptyState());
+        if (allSet) { delete teacherState.methods[day]; delete teacherState.methodKinds[day]; }
+        else { teacherState.methods[day] = "hard"; teacherState.methodKinds[day] = teacherState.methodKinds[day] || "method"; clearDaySlots(teacherState, day); }
+        next[uid] = teacherState;
+      });
+      return next;
+    });
+    markDirty(ids);
+    setMessage({ tone: "success", text: allSet
+      ? `${smartDays[day - 1]?.[1]} — ${ids.length} ta o‘qituvchidan metod kuni olib tashlandi. “Saqlash”ni bosing.`
+      : `${smartDays[day - 1]?.[1]} — ${ids.length} ta o‘qituvchiga metod kuni qo‘yildi. “Saqlash”ni bosing.` });
+  };
+
   const shiftAggregate = (teacherState, day, shift) => {
     const shiftRow = shiftByNumber.get(Number(shift)) || { dars_soni: 7 };
     const levels = Array.from(
@@ -1750,8 +1804,16 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
             O‘qituvchining dars qo‘yilmaydigan vaqtlarini belgilang
           </h2>
           <p className="text-xs mt-1" style={{ color: palette.muted }}>
-            O‘qituvchini lupa bilan toping. Kun tugmasini bossangiz o‘sha kuni dars qo‘yilmaydi; smena yoki dars raqamini bossangiz faqat tanlangan vaqt o‘zgaradi.
+            O‘qituvchini lupa bilan toping. Kun tugmasini bossangiz o‘sha kuni dars qo‘yilmaydi; smena yoki dars raqamini bossangiz faqat tanlangan vaqt o‘zgaradi. “🎯 Faqat shu vaqtlarda dars” — teskari rejim: hamma vaqt yopiladi, siz ochgan vaqtlar (yashil) ga dars qo‘yiladi.
           </p>
+          {!teacherOnly && <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            <span className="text-[10px] font-black" style={{ color: palette.muted }}>Barcha o‘qituvchiga ({visibleTeachers.length} ta) metod kuni:</span>
+            {smartDays.slice(0, weekdays).map(([day, label]) => {
+              const ids = visibleTeachers.map(teacher => String(teacher.user_id));
+              const allSet = ids.length > 0 && ids.every(item => (states[item]?.methods || {})[day]);
+              return <button key={day} type="button" disabled={saving} onClick={() => setMethodDayForAll(day)} className="px-2 py-1 rounded-md border text-[9px] font-black disabled:opacity-50" style={allSet ? { background: "#FDE2E2", color: "#B42318", borderColor: "#E7AFAF" } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={allSet ? "Barchadan olib tashlash" : "Barchaga metod kuni qo‘yish"}>{label}</button>;
+            })}
+          </div>}
         </div>
         <button
           onClick={() => saveTeachers(dirtyIds)}
@@ -1879,6 +1941,15 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
                         >
                           Vaqtlarini tozalash
                         </button>
+                        <button
+                          onClick={() => toggleAllowMode(uid)}
+                          disabled={saving}
+                          className="px-1.5 py-0.5 rounded-md text-[8px] font-black disabled:opacity-45"
+                          style={isAllowMode(uid) ? { background: palette.green, color: "#fff" } : { background: palette.mint, color: palette.green }}
+                          title="Hamma vaqt yopiladi, keyin dars qo‘yiladigan kun / smena / soatlarni bosib ochasiz (yashil)"
+                        >
+                          {isAllowMode(uid) ? "✓ Faqat yashil vaqtlarda dars · rejimdan chiqish" : "🎯 Faqat shu vaqtlarda dars"}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1902,7 +1973,15 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
                       borderLeft: `1px solid ${palette.line}`,
                     }}
                   >
-                    <button
+                    {isAllowMode(uid) ? <button
+                      onClick={() => allowDay(uid, day)}
+                      disabled={saving}
+                      className="w-full h-6 rounded-md border text-[8px] font-black disabled:opacity-55"
+                      style={levelStyle(allDayKeys(day).every(slotKey => teacherState.slots[slotKey] === "hard") ? "hard" : allDayKeys(day).some(slotKey => teacherState.slots[slotKey] === "hard") ? "mixed" : undefined)}
+                      title="Bosing: shu kun butunlay ochiladi / yopiladi"
+                    >
+                      KUN · {allDayKeys(day).every(slotKey => teacherState.slots[slotKey] === "hard") ? "YOPIQ" : allDayKeys(day).some(slotKey => teacherState.slots[slotKey] === "hard") ? "QISMAN" : "DARS QO‘YILADI"}
+                    </button> : <button
                       onClick={() => cycleMethod(uid, day)}
                       disabled={saving}
                       className="w-full h-6 rounded-md border text-[8px] font-black disabled:opacity-55"
@@ -1910,7 +1989,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
                       title={`${methodLabel}: BO‘SH → DARS QO‘YILMAYDI → BO‘SH`}
                     >
                       {methodLabel} · {levelText(methodLevel)}
-                    </button>
+                    </button>}
 
                     <div className="space-y-1 mt-1">
                       {shifts.map(shift => {
@@ -1926,7 +2005,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
                           style={{ borderColor: palette.line, background: "#FFFFFF" }}
                         >
                           <button
-                            onClick={() => cycleShift(uid, day, Number(shift.smena))}
+                            onClick={() => (isAllowMode(uid) ? allowShift : cycleShift)(uid, day, Number(shift.smena))}
                             disabled={saving}
                             className="w-full h-5 rounded border text-[7px] font-black disabled:opacity-55"
                             style={levelStyle(aggregate)}
@@ -1955,7 +2034,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
                               return <button
                                 key={period}
                                 onClick={() =>
-                                  cycleSlot(
+                                  (isAllowMode(uid) ? allowSlot : cycleSlot)(
                                     uid,
                                     day,
                                     Number(shift.smena),
