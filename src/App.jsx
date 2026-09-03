@@ -13547,7 +13547,7 @@ function Kabinet({ token, onSessionExpired }) {
               const faol = list.filter((m) => KORINISH[m.turi]);
               if (faol.length === 1) {
                 // Bitta ishxona — kirishdan keyin to'g'ridan-to'g'ri o'sha ishxona ochiladi.
-                setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[faol[0].turi], vaqt: Date.now() });
+                setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[faol[0].turi], muassasa: faol[0], vaqt: Date.now() });
                 setTab("oqituvchi");
               } else if (faol.length > 1) {
                 setIshxonaTanlash(faol);
@@ -13586,9 +13586,9 @@ function Kabinet({ token, onSessionExpired }) {
       <h2 className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>Ishxonani tanlang</h2>
       <p className="text-sm mb-5" style={{ color: "#8A8578" }}>Siz bir necha muassasada ishlaysiz. Qaysi biriga kirmoqchisiz?</p>
       <div className="space-y-2">
-        {ishxonaTanlash.map((m, i) => <button key={`${m.turi}-${m.muassasa_id}-${i}`} type="button" onClick={() => { setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[m.turi], vaqt: Date.now() }); setTab("oqituvchi"); setIshxonaTanlash(null); }} className="w-full flex items-center gap-3 rounded-2xl border bg-white p-4 text-left hover:shadow-md" style={{ borderColor: "#E5E1D8" }}>
+        {ishxonaTanlash.map((m, i) => <button key={`${m.turi}-${m.muassasa_id}-${i}`} type="button" onClick={() => { setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[m.turi], muassasa: m, vaqt: Date.now() }); setTab("oqituvchi"); setIshxonaTanlash(null); }} className="w-full flex items-center gap-3 rounded-2xl border bg-white p-4 text-left hover:shadow-md" style={{ borderColor: "#E5E1D8" }}>
           <span className="text-2xl">{IKON[m.turi] || "🏢"}</span>
-          <span className="min-w-0 flex-1"><span className="block font-bold truncate" style={{ color: "#2B2B2B" }}>{m.nomi || TUR[m.turi]}</span><span className="block text-xs" style={{ color: "#8A8578" }}>{TUR[m.turi]}{m.lavozim ? ` · ${m.lavozim}` : ""}</span></span>
+          <span className="min-w-0 flex-1"><span className="block font-bold truncate" style={{ color: "#2B2B2B" }}>{m.muassasa_nomi || m.display_name || m.nomi || TUR[m.turi]}</span><span className="block text-xs" style={{ color: "#8A8578" }}>{TUR[m.turi]}{m.lavozim ? ` · ${m.lavozim}` : ""}</span></span>
           <ChevronRight size={18} style={{ color: "#1B4B7A" }} />
         </button>)}
         <button type="button" onClick={() => setIshxonaTanlash(null)} className="w-full rounded-2xl border p-3 text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#5A5648", background: "#FAF9F6" }}>Umumiy ish maydoni (to‘garaklar)</button>
