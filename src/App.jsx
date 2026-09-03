@@ -13447,6 +13447,7 @@ function Kabinet({ token, onSessionExpired }) {
   const [xatoMatn, setXatoMatn] = useState("");
   const [muassasalarim, setMuassasalarim] = useState([]);
   const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
+  const [ishxonaTanlash, setIshxonaTanlash] = useState(null); // bir necha ishxona bo'lsa kirishda tanlash
   const [oyinProfil, setOyinProfil] = useState(null);
   const [kunlikMukofot, setKunlikMukofot] = useState(0);
   // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
@@ -13539,7 +13540,19 @@ function Kabinet({ token, onSessionExpired }) {
         if (u.role === "oqituvchi" && !u.is_admin) {
           fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
             .then((r) => r.json())
-            .then((d) => setMuassasalarim(d.muassasalar || []))
+            .then((d) => {
+              const list = d.muassasalar || [];
+              setMuassasalarim(list);
+              const KORINISH = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
+              const faol = list.filter((m) => KORINISH[m.turi]);
+              if (faol.length === 1) {
+                // Bitta ishxona — kirishdan keyin to'g'ridan-to'g'ri o'sha ishxona ochiladi.
+                setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[faol[0].turi], vaqt: Date.now() });
+                setTab("oqituvchi");
+              } else if (faol.length > 1) {
+                setIshxonaTanlash(faol);
+              }
+            })
             .catch(() => {});
         }
 
@@ -13564,6 +13577,23 @@ function Kabinet({ token, onSessionExpired }) {
   }
   if (holat === "xato") {
     return <Qobiq><div className="text-center"><WifiOff size={28} className="mx-auto mb-3" style={{ color: "#B0553A" }} /><p className="text-sm" style={{ color: "#B0553A" }}>{xatoMatn}</p></div></Qobiq>;
+  }
+  if (ishxonaTanlash && ishxonaTanlash.length > 1) {
+    const IKON = { maktab: "🏫", bogcha: "🧸", universitet: "🎓", markaz: "📚" };
+    const TUR = { maktab: "Maktab", bogcha: "Bog‘cha", universitet: "Institut / universitet", markaz: "O‘quv markazi" };
+    const KORINISH = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
+    return <Qobiq><div className="w-full max-w-lg">
+      <h2 className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>Ishxonani tanlang</h2>
+      <p className="text-sm mb-5" style={{ color: "#8A8578" }}>Siz bir necha muassasada ishlaysiz. Qaysi biriga kirmoqchisiz?</p>
+      <div className="space-y-2">
+        {ishxonaTanlash.map((m, i) => <button key={`${m.turi}-${m.muassasa_id}-${i}`} type="button" onClick={() => { setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[m.turi], vaqt: Date.now() }); setTab("oqituvchi"); setIshxonaTanlash(null); }} className="w-full flex items-center gap-3 rounded-2xl border bg-white p-4 text-left hover:shadow-md" style={{ borderColor: "#E5E1D8" }}>
+          <span className="text-2xl">{IKON[m.turi] || "🏢"}</span>
+          <span className="min-w-0 flex-1"><span className="block font-bold truncate" style={{ color: "#2B2B2B" }}>{m.nomi || TUR[m.turi]}</span><span className="block text-xs" style={{ color: "#8A8578" }}>{TUR[m.turi]}{m.lavozim ? ` · ${m.lavozim}` : ""}</span></span>
+          <ChevronRight size={18} style={{ color: "#1B4B7A" }} />
+        </button>)}
+        <button type="button" onClick={() => setIshxonaTanlash(null)} className="w-full rounded-2xl border p-3 text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#5A5648", background: "#FAF9F6" }}>Umumiy ish maydoni (to‘garaklar)</button>
+      </div>
+    </div></Qobiq>;
   }
 
   // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
