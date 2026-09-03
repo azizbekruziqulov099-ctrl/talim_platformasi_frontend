@@ -274,6 +274,31 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [error, setError] = useState("");
   const [roleSearch, setRoleSearch] = useState("");
+  const [liveUser, setLiveUser] = useState("");
+  const [liveSearch, setLiveSearch] = useState("");
+  const [liveBusy, setLiveBusy] = useState(false);
+  const [liveError, setLiveError] = useState("");
+
+  // Haqiqiy interfeysni o'sha odam ko'zi bilan yangi oynada ochish (faqat o'qish).
+  const openPreviewWindow = async url => {
+    setLiveBusy(true); setLiveError("");
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      if (!r.ok || d.detail) throw new Error(d.detail || "Ko'rish tokeni olinmadi");
+      const name = d.user?.full_name || "";
+      const target = `${window.location.origin}/#korish_token=${encodeURIComponent(d.token)}&korish_ism=${encodeURIComponent(name)}`;
+      const win = window.open(target, "_blank", "noopener");
+      if (!win) window.location.assign(target);
+      if (d.sinov_yaratildi) setLiveError(`ℹ Bu rolda odam yo‘q edi — “${name}” nomli sinov xodimi yaratildi. Keyin xodimlar ro‘yxatidan o‘chirib yuborsangiz bo‘ladi.`);
+    } catch (e) {
+      setLiveError(e.message || "Ko'rish oynasi ochilmadi");
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+  const openLivePreview = () => liveUser && openPreviewWindow(`${apiBase}/api/admin/rol_sifatida_kirish_tokeni?token=${encodeURIComponent(token)}&user_id=${encodeURIComponent(liveUser)}`);
+  const openRolePreview = rol => openPreviewWindow(`${apiBase}/api/admin/sinov_rol_tokeni?token=${encodeURIComponent(token)}&turi=maktab&muassasa_id=${encodeURIComponent(maktabId)}&rol=${encodeURIComponent(rol)}`);
 
   useEffect(() => {
     setLoadingCatalog(true);
@@ -354,6 +379,41 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
 
       <div className="max-w-7xl mx-auto px-4 md:px-7 py-5 grid xl:grid-cols-[340px_1fr] gap-5">
         <div className="space-y-4">
+          <Card className="p-4" style={{ borderColor: palette.red }}>
+            <div className="flex items-center gap-2 mb-1"><Eye size={18} style={{ color: palette.red }}/><div className="font-black" style={{ color: palette.ink }}>Haqiqiy interfeysni ochish</div></div>
+            <p className="text-[11px] mb-3" style={{ color: palette.muted }}>Xodim yoki o‘quvchini tanlang — platforma <b>aynan u ko‘rgan holda</b> yangi oynada ochiladi (dizayn, menyular, jadval). Hech narsa o‘zgartirib bo‘lmaydi, 90 daqiqadan keyin yopiladi. Admin sessiyangiz o‘zgarmaydi.</p>
+            {(() => {
+              const roleLabels = { direktor: "Direktor", zam_direktor_uquv: "Zavuch (o‘quv)", zam_direktor_tarbiya: "Zavuch (tarbiya)", zavuch: "Zavuch", manaviyatchi: "Ma’naviyatchi", psixolog: "Psixolog", kotib: "Kotib", metodist: "Metodist", kutubxonachi: "Kutubxonachi", fan_oqituvchisi: "O‘qituvchi", oqituvchi: "O‘qituvchi", sinf_rahbari: "Sinf rahbari" };
+              const staff = catalog?.xodimlar || [];
+              const baseRoles = ["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "psixolog", "kotib", "fan_oqituvchisi"];
+              const roles = [...new Set([...baseRoles, ...staff.map(x => x.lavozim).filter(Boolean)])];
+              return <div className="flex flex-wrap gap-1.5 mb-2">
+                <span className="text-[10px] font-black self-center" style={{ color: palette.muted }}>Lavozim bo‘yicha:</span>
+                {roles.map(role => {
+                  const holders = staff.filter(x => x.lavozim === role);
+                  const active = holders.some(x => String(x.user_id) === String(liveUser));
+                  if (!holders.length) return <button key={role} type="button" disabled={liveBusy} onClick={() => openRolePreview(role)} className="px-2 py-1 rounded-lg border border-dashed text-[10px] font-black disabled:opacity-50" style={{ background: "#FFF8EE", color: "#8A5A1C", borderColor: "#E3C78F" }} title="Bu rolda odam yo‘q — sinov xodimi yaratilib, darhol ochiladi">{roleLabels[role] || role} · sinov ↗</button>;
+                  return <button key={role} type="button" onClick={() => { setLiveSearch(""); setLiveUser(String(holders[0].user_id)); }} className="px-2 py-1 rounded-lg border text-[10px] font-black" style={active ? { background: palette.red, color: "#fff", borderColor: palette.red } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={holders.map(x => x.full_name).join(", ")}>{roleLabels[role] || role}{holders.length > 1 ? ` (${holders.length})` : ""}</button>;
+                })}
+              </div>;
+            })()}
+            <input value={liveSearch} onChange={e => setLiveSearch(e.target.value)} placeholder="Familiya bo‘yicha izlang..." className="w-full px-3 py-2 rounded-xl border text-sm outline-none mb-2" style={{ borderColor: palette.line }}/>
+            <select value={liveUser} onChange={e => setLiveUser(e.target.value)} className="w-full px-3 py-2 rounded-xl border text-sm bg-white mb-2" style={{ borderColor: palette.line }} size={8}>
+              {(() => {
+                const q = liveSearch.trim().toLocaleLowerCase("uz");
+                const match = name => !q || String(name || "").toLocaleLowerCase("uz").includes(q);
+                const classNameOfId = id => { const c = (catalog?.sinflar || []).find(item => String(item.id) === String(id)); return c ? `${c.sinf}-${c.harf}` : ""; };
+                const staff = (catalog?.xodimlar || []).filter(x => match(x.full_name));
+                const pupils = (catalog?.oquvchilar || []).filter(x => match(x.full_name));
+                return <>
+                  <optgroup label={`Xodimlar (${staff.length})`}>{staff.map(x => <option key={`x-${x.user_id}`} value={x.user_id}>{x.full_name} · {x.lavozim_nomi || x.lavozim || ""}{x.fanlari ? ` · ${x.fanlari}` : ""}</option>)}</optgroup>
+                  <optgroup label={`O‘quvchilar (${pupils.length})`}>{pupils.map(x => <option key={`o-${x.user_id}`} value={x.user_id}>{x.full_name} · {classNameOfId(x.sinf_id)} sinf</option>)}</optgroup>
+                </>;
+              })()}
+            </select>
+            <button type="button" onClick={openLivePreview} disabled={!liveUser || liveBusy} className="w-full py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.red }}>{liveBusy ? "Ochilmoqda..." : "👁 Shu odam ko‘zi bilan ochish (yangi oyna)"}</button>
+            {liveError && <div className="mt-2 text-[11px] font-bold" style={{ color: palette.red }}>{liveError}</div>}
+          </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3"><UserCog size={18} style={{ color: palette.blue }}/><div className="font-black" style={{ color: palette.ink }}>Kim bo'lib ko'ramiz?</div></div>
             <div className="relative mb-3">
