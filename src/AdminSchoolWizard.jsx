@@ -4,10 +4,17 @@ import React, { useEffect, useMemo, useState } from "react";
 // Release: SAMTM-ADMIN-SCHOOL-WIZARD-V21.0-PLAN-SAFE
 const CLASS_GRADES = Array.from({ length: 11 }, (_, index) => String(index + 1));
 const CLASS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+export const CLASS_LANGUAGES = [
+  { code: "uz", label: "O‘zbek", short: "UZ" },
+  { code: "ru", label: "Rus", short: "RU" },
+  { code: "en", label: "Ingliz", short: "EN" },
+];
+const languageLabel = (code) => (CLASS_LANGUAGES.find((item) => item.code === code) || CLASS_LANGUAGES[0]).label;
 const DEFAULT_GRADE_CONFIG = CLASS_GRADES.map((grade) => ({
   grade,
   firstShiftCount: 1,
   secondShiftCount: 0,
+  language: "uz",
 }));
 const uniqueKey = (prefix, index = 0) => `${prefix}-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`;
 
@@ -16,8 +23,8 @@ const emptyBuilding = (index = 0) => ({
   floors: 2, roomsPerFloor: 10, floorRoomCounts: [10, 10], scheme: "floor", customRooms: "", rooms: [],
 });
 
-const emptyClass = ({ grade = "", letter = "A", shift = 1 } = {}) => ({
-  key: uniqueKey("class", `${grade}-${letter}`), grade, letter, shift,
+const emptyClass = ({ grade = "", letter = "A", shift = 1, language = "uz" } = {}) => ({
+  key: uniqueKey("class", `${grade}-${letter}`), grade, letter, shift, language,
   leader: null, psychologist: null, buildingKey: "", roomNumber: "",
 });
 
@@ -179,7 +186,8 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   }, [classes]);
 
   const validateSchool = () => {
-    if (name.trim().length < 2) return "Maktab nomini kiriting";
+    if (!/^\d+$/.test(schoolNumber.trim())) return "Maktab raqamini faqat raqam bilan kiriting (masalan: 21)";
+    if (name.trim() && name.trim().length < 2) return "Maktab nomi juda qisqa";
     if (!region) return "Viloyatni tanlang";
     if (!district) return "Tumanni tanlang";
     return "";
@@ -267,12 +275,24 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     setClassesPlanDirty(true);
     setError("");
   };
+  const updateGradeLanguage = (grade, language) => {
+    setGradeConfig((current) => current.map((item) => item.grade === grade ? { ...item, language } : item));
+    setClasses((current) => current.map((item) => item.grade === grade ? { ...item, language } : item));
+    setError("");
+  };
+  const applyLanguageToAll = (language) => {
+    setGradeConfig((current) => current.map((item) => ({ ...item, language })));
+    setClasses((current) => current.map((item) => ({ ...item, language })));
+    setError("");
+    setNotice(`Barcha sinflar uchun ta‘lim tili: ${languageLabel(language)}.`);
+  };
   const applyParallelPreset = (count) => {
     const perShift = shiftCount === 2 ? Math.min(count, Math.floor(CLASS_LETTERS.length / 2)) : count;
-    setGradeConfig(CLASS_GRADES.map((grade) => ({
+    setGradeConfig((current) => CLASS_GRADES.map((grade) => ({
       grade,
       firstShiftCount: perShift,
       secondShiftCount: shiftCount === 2 ? perShift : 0,
+      language: current.find((item) => item.grade === grade)?.language || "uz",
     })));
     setClassesPlanDirty(true);
     setError("");
@@ -311,7 +331,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     if (!requestedClassCount) { setError("Kamida bitta sinf darajasiga parallel sonini kiriting"); return; }
     const existing = new Map(classes.map((item) => [classNameOf(item), item]));
     const desired = [];
-    gradeConfig.forEach(({ grade, firstShiftCount, secondShiftCount }) => {
+    gradeConfig.forEach(({ grade, firstShiftCount, secondShiftCount, language }) => {
       const firstCount = Math.max(0, Math.min(CLASS_LETTERS.length, Number(firstShiftCount) || 0));
       const secondCount = shiftCount === 2
         ? Math.max(0, Math.min(CLASS_LETTERS.length - firstCount, Number(secondShiftCount) || 0))
@@ -320,7 +340,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         const normalized = `${grade}-${letter}`;
         const shift = index < firstCount ? 1 : 2;
         const oldItem = existing.get(normalized);
-        desired.push(oldItem ? (Number(oldItem.shift) === shift ? oldItem : { ...oldItem, shift, buildingKey: "", roomNumber: "" }) : emptyClass({ grade, letter, shift }));
+        desired.push(oldItem ? (Number(oldItem.shift) === shift ? oldItem : { ...oldItem, shift, buildingKey: "", roomNumber: "" }) : emptyClass({ grade, letter, shift, language: language || "uz" }));
       });
     });
     const result = assignRooms(desired);
@@ -361,7 +381,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       const response = await fetch(`${apiBase}/api/admin/maktab-yaratish-v2`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, name: name.trim(), school_number: schoolNumber.trim() || null, region, district,
+          token, name: name.trim() || `${schoolNumber.trim()}-maktab`, school_number: schoolNumber.trim(), region, district,
           shift_count: shiftCount, director_user_id: director?.user_id || null,
           buildings: skipBuildings ? [] : buildings.map((building) => ({
             key: building.key,
@@ -376,6 +396,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
           })),
           classes: sortedClasses(classes).map((item) => ({
             name: classNameOf(item), shift: shiftCount === 1 ? 1 : Number(item.shift),
+            talim_tili: item.language || "uz",
             leader_user_id: item.leader?.user_id || null, psychologist_user_id: item.psychologist?.user_id || null,
             building_key: item.buildingKey || null, room_number: item.roomNumber || null,
           })),
@@ -397,8 +418,8 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
 
     {step === 1 && <div className="space-y-3">
       <div className="grid md:grid-cols-2 gap-3">
-        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab nomi *<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: Ziyo maktabi" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
-        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab raqami · ixtiyoriy<input value={schoolNumber} onChange={(event) => setSchoolNumber(event.target.value)} placeholder="Masalan: 21" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab nomi · ixtiyoriy<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: Alisher Navoiy nomidagi / Prezident ixtisoslashgan" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+        <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab raqami *<input value={schoolNumber} inputMode="numeric" onChange={(event) => setSchoolNumber(event.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="Masalan: 21" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
       </div>
       <div className="grid md:grid-cols-2 gap-3">
         <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Viloyat *<select value={region} onChange={(event) => { setRegion(event.target.value); setDistrict(""); }} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlang</option>{(regions || []).map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
@@ -444,8 +465,9 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
       <section className="rounded-2xl border p-4" style={{ borderColor: "#D9D4C8", background: "#FCFBF8" }}>
         <div className="flex items-start justify-between gap-3 mb-3"><div><b className="text-sm" style={{ color: "#21384C" }}>⚡ 11 ta daraja bo‘yicha tez yaratish</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{shiftCount === 2 ? "1-smena va 2-smena parallel sonini alohida yozing. Harflar A dan uzluksiz davom etadi." : "Har bir darajaning parallel sonini yozing. 0 bo‘lsa, o‘sha daraja yaratilmaydi."}</p></div><span className="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{requestedClassCount} ta reja</span></div>
         <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>{shiftCount === 2 ? "Har smenaga tez qo‘yish:" : "Barchasiga tez qo‘yish:"}</span>{[1, 2, 3, 5, 8].map((count) => <button type="button" key={count} onClick={() => applyParallelPreset(count)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{count} tadan</button>)}<button type="button" onClick={() => applyParallelPreset(0)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style={{ background: "#FFF0EC", color: "#B0553A" }}>Tozalash</button></div>
+        <div className="flex flex-wrap items-center gap-1.5 mb-3"><span className="text-[11px] font-semibold mr-1" style={{ color: "#5A5648" }}>Barchasiga ta‘lim tili:</span>{CLASS_LANGUAGES.map((lang) => <button type="button" key={lang.code} onClick={() => applyLanguageToAll(lang.code)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>{lang.label}</button>)}<span className="text-[10px]" style={{ color: "#8A8578" }}>Har daraja yoki har bir sinf uchun tilni alohida ham o‘zgartirish mumkin.</span></div>
         <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: "#E5E1D8" }}>
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2">1-SMENA</span>{shiftCount === 2 && <span className="col-span-2">2-SMENA</span>}<span className={shiftCount === 2 ? "col-span-6" : "col-span-8"}>YARATILADIGAN SINFLAR</span></div>
+          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-bold" style={{ background: "#F1F7FB", color: "#5A5648" }}><span className="col-span-2">DARAJA</span><span className="col-span-2">1-SMENA</span>{shiftCount === 2 && <span className="col-span-2">2-SMENA</span>}<span className="col-span-2">TA‘LIM TILI</span><span className={shiftCount === 2 ? "col-span-4" : "col-span-6"}>YARATILADIGAN SINFLAR</span></div>
           {gradeConfig.map((item) => {
             const totalCount = item.firstShiftCount + (shiftCount === 2 ? item.secondShiftCount : 0);
             const firstNames = CLASS_LETTERS.slice(0, item.firstShiftCount).map((letter) => `${item.grade}-${letter}`);
@@ -454,7 +476,8 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
               <b className="col-span-2 text-xs" style={{ color: "#21384C" }}>{item.grade}-sinf</b>
               <input aria-label={`${item.grade}-sinf 1-smena parallel soni`} type="number" min="0" max={CLASS_LETTERS.length - (shiftCount === 2 ? item.secondShiftCount : 0)} value={item.firstShiftCount} onChange={(event) => updateGradeShiftCount(item.grade, "firstShiftCount", event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#1B4B7A" }} />
               {shiftCount === 2 && <input aria-label={`${item.grade}-sinf 2-smena parallel soni`} type="number" min="0" max={CLASS_LETTERS.length - item.firstShiftCount} value={item.secondShiftCount} onChange={(event) => updateGradeShiftCount(item.grade, "secondShiftCount", event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-sm font-bold text-center" style={{ borderColor: "#D9D4C8", color: "#8A5A1C" }} />}
-              <span className={`${shiftCount === 2 ? "col-span-6" : "col-span-8"} text-[11px] truncate`} style={{ color: totalCount ? "#5A5648" : "#A8A397" }}>{totalCount ? (shiftCount === 2 ? `1-smena: ${firstNames.join(", ") || "yo‘q"} · 2-smena: ${secondNames.join(", ") || "yo‘q"}` : firstNames.join(", ")) : "Yaratilmaydi"}</span>
+              <select aria-label={`${item.grade}-sinf ta‘lim tili`} value={item.language || "uz"} onChange={(event) => updateGradeLanguage(item.grade, event.target.value)} className="col-span-2 min-w-0 px-2 py-1.5 rounded-lg border text-xs font-bold" style={{ borderColor: "#D9D4C8", color: "#21384C" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select>
+              <span className={`${shiftCount === 2 ? "col-span-4" : "col-span-6"} text-[11px] truncate`} style={{ color: totalCount ? "#5A5648" : "#A8A397" }}>{totalCount ? (shiftCount === 2 ? `1-smena: ${firstNames.join(", ") || "yo‘q"} · 2-smena: ${secondNames.join(", ") || "yo‘q"}` : firstNames.join(", ")) : "Yaratilmaydi"}</span>
             </div>;
           })}
         </div>
@@ -466,10 +489,11 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         <div className="flex items-center justify-between gap-2"><div><b className="text-sm" style={{ color: "#21384C" }}>Yaratiladigan sinflar</b><p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>Kerakli sinfni bosing: uning smena, bino, xona, rahbar va psixologi alohida ochiladi.</p></div><button type="button" onClick={() => { setClasses([]); setNotice(""); }} className="text-xs whitespace-nowrap" style={{ color: "#B0553A" }}>Ro‘yxatni tozalash</button></div>
         <div className="space-y-2">{sortedClasses(classes).map((item) => {
           const selectedBuilding = buildingByKey.get(item.buildingKey);
-          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
+          return <details key={item.key} className="rounded-xl border bg-white overflow-visible" style={{ borderColor: "#E5E1D8" }}><summary className="px-3.5 py-3 flex items-center gap-3 cursor-pointer [&::-webkit-details-marker]:hidden" style={{ listStyle: "none" }}><b className="w-12 text-sm" style={{ color: "#21384C" }}>{classNameOf(item)}</b><span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{languageLabel(item.language)}</span><span className="flex-1 text-xs truncate" style={{ color: "#8A8578" }}>{item.shift}-smena · {selectedBuilding ? `${selectedBuilding.name}, ${item.roomNumber || "xona tanlanmagan"}` : "bino/xona tanlanmagan"}</span><span style={{ color: "#8A8578" }}>⌄</span></summary>
             <div className="border-t p-3.5 grid md:grid-cols-3 gap-3" style={{ borderColor: "#F0ECE3" }}>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf darajasi *<select value={item.grade} onChange={(event) => updateClass(item.key, { grade: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_GRADES.map((grade) => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
               <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Sinf parallel harfi *<input value={item.letter} maxLength={1} pattern="[A-Za-z]" onChange={(event) => updateClass(item.key, { letter: event.target.value.replace(/[^A-Za-z]/g, "").slice(0, 1).toUpperCase() })} placeholder="A, B yoki C" className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
+              <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Ta‘lim tili *<select value={item.language || "uz"} onChange={(event) => updateClass(item.key, { language: event.target.value })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}>{CLASS_LANGUAGES.map((lang) => <option key={lang.code} value={lang.code}>{lang.label}</option>)}</select></label>
               {shiftCount === 2 && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Smena *<select value={item.shift} onChange={(event) => updateClass(item.key, { shift: Number(event.target.value), buildingKey: "", roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value={1}>1-smena</option><option value={2}>2-smena</option></select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Bino · xona bilan birga ixtiyoriy<select value={item.buildingKey} onChange={(event) => updateClass(item.key, { buildingKey: event.target.value, roomNumber: "" })} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="">Tanlanmagan</option>{buildings.map((building) => <option key={building.key} value={building.key}>{building.name}</option>)}</select></label>}
               {!skipBuildings && <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Xona · bino bilan birga ixtiyoriy<select value={item.roomNumber} onChange={(event) => assignClassRoom(item, event.target.value)} disabled={!selectedBuilding} className="block w-full mt-1.5 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8", opacity: selectedBuilding ? 1 : 0.55 }}><option value="">Tanlanmagan</option>{(selectedBuilding?.rooms || []).map((room) => {
@@ -487,10 +511,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     </div>}
 
     {step === 4 && <div className="space-y-4">
-      <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{schoolNumber.trim() ? `${schoolNumber.trim()}-sonli ` : ""}{name.trim()}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
+      <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{name.trim() ? `${schoolNumber.trim()}-sonli ${name.trim()}` : `${schoolNumber.trim()}-maktab`}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
       <div className="grid grid-cols-3 gap-2"><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{skipBuildings ? 0 : buildings.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>bino</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{roomPool.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>xona</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#FDF3E0" }}><b className="block text-lg" style={{ color: "#8A5A1C" }}>{classes.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>sinf</span></div></div>
       {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p><p className="text-[11px] mt-1" style={{ color: "#5A5648" }}>{Array.from({ length: Number(building.floors) || 1 }, (_, floorIndex) => `${floorIndex + 1}-qavat: ${building.rooms.filter((room) => room.floor === floorIndex + 1).length} xona`).join(" · ")}</p></div>)}
-      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
+      <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{languageLabel(item.language)} · {item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>
       <div className="rounded-xl px-3.5 py-3 text-xs font-semibold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Maktab, binolar, xonalar va sinflar bitta xavfsiz amalda yaratiladi. Platforma to‘lovi: 0 so‘m.</div>
     </div>}
 
