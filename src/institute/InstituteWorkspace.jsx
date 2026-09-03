@@ -999,6 +999,49 @@ function StudentHome({ api, token, universityId }) {
   return <div className="space-y-4"><Card className="overflow-hidden"><div className="p-6" style={{ background: "linear-gradient(135deg,#E9F7F7,#F7F1E8)" }}><Pill tone="violet">MENING YO‘NALISHIM</Pill><h2 className="mt-3 text-2xl font-black" style={{ color: COLORS.ink }}>{data.yonalish.nomi}</h2><p className="mt-1 text-sm" style={{ color: COLORS.muted }}>{data.yonalish.fakultet_nomi} · {data.yonalish.kafedra_nomi}</p></div></Card><div className="grid gap-4 lg:grid-cols-2"><Card className="p-5"><h3 className="font-black" style={{ color: COLORS.ink }}>Dekan, admin va tyutorlar</h3><div className="mt-3 space-y-2">{data.masullar.map((x, i) => <div key={i} className="flex items-center justify-between rounded-xl p-3" style={{ background: COLORS.cream }}><span className="font-bold">{x.fish}</span><Pill tone="violet">{x.lavozim_nomi}</Pill></div>)}</div></Card><Card className="p-5"><h3 className="font-black" style={{ color: COLORS.ink }}>Yo‘nalish talabalari</h3><p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Shaxsiy ma’lumot, ball va telefon ko‘rsatilmaydi.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{data.talabalar.map(x => <div key={x.id} className="rounded-xl p-3 text-sm font-bold" style={{ background: COLORS.sky }}>{x.fish}</div>)}</div></Card></div></div>;
 }
 
+function AdminInstitutePreviewPanel({ apiBase, token, universityId, structure }) {
+  const [facultyId, setFacultyId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const faculties = structure?.fakultetlar || [];
+  const departments = (faculties.find(f => String(f.id) === String(facultyId))?.kafedralar) || [];
+  const open = async rol => {
+    setBusy(true); setError(""); setNote("");
+    try {
+      const qs = new URLSearchParams({ token, turi: "institut", muassasa_id: String(universityId), rol });
+      if (facultyId) qs.set("fakultet_id", facultyId);
+      if (departmentId) qs.set("kafedra_id", departmentId);
+      const r = await fetch(`${apiBase}/api/admin/sinov_rol_tokeni?${qs}`);
+      const d = await r.json();
+      if (!r.ok || d.detail) throw new Error(d.detail || "Ko‘rish tokeni olinmadi");
+      const name = d.user?.full_name || "";
+      const url = `${window.location.origin}/#korish_token=${encodeURIComponent(d.token)}&korish_ism=${encodeURIComponent(name)}`;
+      const win = window.open(url, "_blank", "noopener");
+      if (!win) window.location.assign(url);
+      if (d.sinov_yaratildi) setNote(`ℹ Bu rolda odam yo‘q edi — “${name}” nomli sinov xodimi yaratildi. Keyin “Xodimlar” bo‘limidan o‘chirsangiz bo‘ladi.`);
+      else setNote(`“${name}” ko‘zi bilan yangi oynada ochildi.`);
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  };
+  return <div className="space-y-4">
+    <Card className="p-5" style={{ borderColor: COLORS.red }}>
+      <div className="flex items-center gap-2"><Eye size={18} style={{ color: COLORS.red }} /><h3 className="font-black" style={{ color: COLORS.ink }}>Institut interfeysini rol ko‘zi bilan ochish</h3></div>
+      <p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Rolni bosing — platforma o‘sha rol ko‘rgan holda <b>yangi oynada</b> ochiladi (faqat ko‘rish, 90 daqiqa). Rolda odam bo‘lmasa, “SINOV · Rol” nomli sinov xodimi yaratiladi — sinov uchun yetarli, keyin o‘chirsangiz bo‘ladi.</p>
+      <div className="mt-4 grid gap-2 md:grid-cols-2">
+        <label className="text-xs font-bold" style={{ color: COLORS.muted }}>Fakultet (dekan, tyutor va h.k. uchun)<select value={facultyId} onChange={e => { setFacultyId(e.target.value); setDepartmentId(""); }} className="mt-1 w-full rounded-xl border p-2.5 text-sm" style={{ borderColor: COLORS.line }}><option value="">Avtomatik (birinchi fakultet)</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.nomi}</option>)}</select></label>
+        <label className="text-xs font-bold" style={{ color: COLORS.muted }}>Kafedra (mudir, o‘qituvchi uchun)<select value={departmentId} onChange={e => setDepartmentId(e.target.value)} className="mt-1 w-full rounded-xl border p-2.5 text-sm" style={{ borderColor: COLORS.line }} disabled={!facultyId}><option value="">Avtomatik (birinchi kafedra)</option>{departments.map(k => <option key={k.id} value={k.id}>{k.nomi}</option>)}</select></label>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {[...ROLE_OPTIONS, ["qabul_operator", "Qabul operatori"]].map(([rol, label]) => <button key={rol} type="button" disabled={busy} onClick={() => open(rol)} className="rounded-xl border px-3 py-2 text-sm font-black disabled:opacity-50" style={{ borderColor: COLORS.line, color: COLORS.ink, background: "#fff" }}>👁 {label}</button>)}
+      </div>
+      <p className="mt-3 text-[11px]" style={{ color: COLORS.muted }}>Talaba ko‘rinishi uchun “Talaba qabuli” bo‘limida real talabani tanlab, uning parolini ko‘ring — talaba sinov xodimi bilan yaratilmaydi.</p>
+      {note && <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: "#EAF7EF", color: "#28734B" }}>{note}</div>}
+      <ErrorBox text={error} />
+    </Card>
+  </div>;
+}
+
 export default function InstituteWorkspace({ token, apiBase, initialWorkspace, onBack, canCreateInstitution = false, initialFacultyId = null }) {
   const api = useApi(apiBase, token); const [bootstrap, setBootstrap] = useState(null); const [structure, setStructure] = useState(null);
   // Fakultetga tashqaridan kirilganda avval barqaror fakultet bosh sahifasini
@@ -1133,7 +1176,9 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
     ["staff", "Xodimlar", Users], ["admission", "Talaba qabuli", ClipboardCheck],
     ["tutors", "Tyutorlar", ShieldCheck],
     ["audit", "Faoliyat jurnali", Eye],
+    ["preview", "Rol sifatida ko‘rish", Eye],
   ].filter(([key]) => {
+    if (key === "preview") return Boolean(permissions.super_admin);
     if (key === "structure") return permissions.tuzilma_korish;
     if (key === "staff") return permissions.xodim_korish;
     if (key === "admission") return permissions.qabul_korish;
@@ -1178,6 +1223,7 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
       {tab === "admission" && <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={id} structure={structure} permissions={permissions} onCredentials={setCredentials} startMode={admissionStartMode} onStartModeConsumed={() => setAdmissionStartMode(null)} lockedFacultyId={activeFacultyId} />}
       {tab === "tutors" && <TutorPanel api={api} token={token} universityId={id} structure={structure} canManage={permissions.tyutor_boshqarish} facultyId={activeFacultyId} />}
       {tab === "audit" && <AuditPanel api={api} token={token} universityId={id} />}
+      {tab === "preview" && permissions.super_admin && <AdminInstitutePreviewPanel apiBase={apiBase} token={token} universityId={id} structure={structure} />}
     </div>
     <CredentialsModal items={credentials} onClose={() => setCredentials([])} />
   </main>;
