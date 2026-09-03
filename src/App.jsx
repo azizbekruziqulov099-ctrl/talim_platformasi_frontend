@@ -2057,6 +2057,8 @@ const ADMIN_ANDOZA_TILLARI = [["uz", "UZ · O‘zbek sinflari"], ["ru", "RU · R
 function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
   const [language, setLanguage] = useState("uz");
   const [approvalsByLanguage, setApprovalsByLanguage] = useState({});
+  const [rowsByLanguage, setRowsByLanguage] = useState({});
+  const [canonicalBySubject, setCanonicalBySubject] = useState({});
   const [rows, setRows] = useState([]);
   const [grade, setGrade] = useState(1);
   const [section, setSection] = useState("fanlar");
@@ -2075,12 +2077,31 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
       setRows((data.qatorlar || []).map(item => ({ ...item, haftalik_soat: Number(item.haftalik_soat || 0) })));
       setApprovals(data.tasdiqlar || {});
       setApprovalsByLanguage(data.tasdiqlar_til_boyicha || {});
+      setRowsByLanguage(data.til_boyicha || {});
+      setCanonicalBySubject(data.fan_kanonik || {});
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { setMessage(""); load(); }, [token, language]);
   const current = rows.map((row, index) => ({ row, index })).filter(item => Number(item.row.sinf_darajasi) === grade);
   const update = (index, field, value) => setRows(old => old.map((row, i) => i === index ? { ...row, [field]: value } : row));
+  const normalizeSubjectName = value => String(value || "").trim().toLocaleLowerCase("uz");
+  const canonicalOf = subject => normalizeSubjectName(canonicalBySubject[subject] || canonicalBySubject[String(subject || "").trim()] || subject);
+  const autoMethodDaysFromUz = () => {
+    const uzRows = rowsByLanguage.uz || [];
+    if (!uzRows.length) { setError("O‘zbek andozasi topilmadi — avval UZ metod kunlarini belgilang."); return; }
+    const uzDayByCanonical = {};
+    uzRows.forEach(row => { if (row.metod_kuni) uzDayByCanonical[canonicalOf(row.fan_nomi)] = Number(row.metod_kuni); });
+    let matched = 0; let missed = [];
+    const seen = new Set();
+    setRows(old => old.map(row => {
+      const day = uzDayByCanonical[canonicalOf(row.fan_nomi)];
+      if (!seen.has(row.fan_nomi)) { seen.add(row.fan_nomi); if (day) matched += 1; else missed.push(row.fan_nomi); }
+      return day ? { ...row, metod_kuni: day } : row;
+    }));
+    setError("");
+    setMessage(`✅ ${matched} ta fanga o‘zbek andozasidagi metod kuni qo‘yildi${missed.length ? `; mos topilmagan: ${missed.slice(0, 5).join(", ")}${missed.length > 5 ? "..." : ""}` : ""}. Tekshirib “Saqlash va tasdiqlash”ni bosing.`);
+  };
   const updateSubjectRule = (subject, field, value) => {
     const key = String(subject || "").trim().toLocaleLowerCase("uz");
     setRows(old => old.map(row => String(row.fan_nomi || "").trim().toLocaleLowerCase("uz") === key ? { ...row, [field]: value } : row));
@@ -2137,6 +2158,7 @@ function AdminMaktabMarkaziySozlamalari({ token, onOrtga }) {
       {section !== "metod" && <div className="flex flex-wrap gap-2 mt-5">{Array.from({ length: 11 }, (_, i) => i + 1).map(item => <button key={item} onClick={() => setGrade(item)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: grade === item ? "#1B4B7A" : "#EEF4F7", color: grade === item ? "#fff" : "#38505E" }}>{item}-sinf</button>)}</div>}
       {section === "fanlar" && <><div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">{current.map(({ row, index }) => <div key={`${grade}-${index}`} className="flex gap-2 p-3 rounded-xl border"><input value={row.fan_nomi} onChange={e => update(index, "fan_nomi", e.target.value)} className="min-w-0 flex-1 p-2 rounded-lg border"/><button onClick={() => remove(index)} className="px-3 rounded-lg font-black" style={{ color: "#B83C3C", background: "#FDECEC" }}>×</button></div>)}</div><button onClick={add} className="mt-4 px-4 py-2.5 rounded-xl font-black" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>+ {grade}-sinfga fan qo‘shish</button></>}
       {section === "yuklama" && <div className="mt-4 overflow-auto"><table className="min-w-[620px] w-full text-sm"><thead><tr className="text-left"><th className="p-3">Tasdiqlangan fan</th><th>Haftalik soat</th></tr></thead><tbody>{current.map(({ row, index }) => <tr key={`${grade}-${row.fan_nomi}`} className="border-t"><td className="p-3 font-bold">{row.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" value={row.haftalik_soat} onChange={e => update(index, "haftalik_soat", e.target.value)} className="w-32 p-2 rounded-lg border"/></td></tr>)}</tbody><tfoot><tr className="border-t"><td className="p-3 font-black">Jami</td><td className="font-black">{current.reduce((sum, item) => sum + Number(item.row.haftalik_soat || 0), 0)} soat</td></tr></tfoot></table></div>}
+      {section === "metod" && language !== "uz" && <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border p-3" style={{ borderColor: "#D8E2E8", background: "#F7FAFC" }}><button type="button" onClick={autoMethodDaysFromUz} disabled={saving || loading} className="px-3 py-2 rounded-lg text-xs font-black text-white disabled:opacity-50" style={{ background: "#1B4B7A" }}>⚡ O‘zbek andozasiga moslab avto tanlash</button><span className="text-xs" style={{ color: "#6F777B" }}>Har fan uchun o‘zbek andozasidagi metod kuni olinadi (Алгебра ↔ Algebra, Mathematics ↔ Matematika). Keyin “Saqlash va tasdiqlash”ni bosing.</span></div>}
       {section === "metod" && <div className="mt-4 overflow-auto"><table className="min-w-[620px] w-full text-sm"><thead><tr className="text-left"><th className="p-3">Tasdiqlangan fan</th><th>Metod kuni</th></tr></thead><tbody>{uniqueSubjects.map(row => <tr key={row.fan_nomi} className="border-t"><td className="p-3 font-bold">{row.fan_nomi}</td><td><select value={row.metod_kuni || ""} onChange={e => updateSubjectRule(row.fan_nomi, "metod_kuni", e.target.value || null)} className="w-44 p-2 rounded-lg border bg-white"><option value="">Belgilanmagan</option>{days.slice(1).map((day, i) => <option key={day} value={i + 1}>{day}</option>)}</select></td></tr>)}</tbody></table></div>}
       {!loading && section !== "metod" && !current.length && <div className="rounded-xl p-4 mt-3" style={{ background: "#FFF6E7", color: "#8A5A1C" }}>Bu sinf uchun tasdiqlangan fan yo‘q.</div>}
       <div className="mt-5 p-4 rounded-2xl" style={{ background: "#F4F8FA" }}><p className="text-sm mb-3">Tasdiqlashdan keyin bu bo‘lim alohida sozlama qilmagan barcha maktablarga ulanadi.</p><button onClick={save} disabled={saving || loading} className="px-5 py-3 rounded-xl text-white font-black" style={{ background: "#176B75" }}>{saving ? "Saqlanmoqda…" : "Saqlash va tasdiqlash"}</button></div>
