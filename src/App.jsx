@@ -12355,10 +12355,12 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     ];
   }
   if (rol === "oqituvchi") {
+    // Muassasasi bor xodim (dekan, direktor, o'qituvchi...) uchun asosiy ish joyi — muassasasi.
+    // Umumiy "Ish maydoni" (to'garak, repetitorlik, AI vositalari) qo'shimcha bo'lib pastda turadi.
     return [
-      { kalit: "oqituvchi", nom: "Ish maydoni", ikon: Users },
-      { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       ...(qoshimchaBand ? [qoshimchaBand] : []),
+      { kalit: "oqituvchi", nom: qoshimchaBand ? "To‘garak va AI vositalari" : "Ish maydoni", ikon: Users },
+      { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
       { kalit: "profil", nom: "Profil", ikon: User },
     ];
