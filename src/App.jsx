@@ -10539,7 +10539,12 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     foydalanuvchi?.markaz_id && { turi: "markaz", muassasa_id: foydalanuvchi.markaz_id, muassasa_nomi: foydalanuvchi.markaz_nomi, lavozim: foydalanuvchi.lavozim },
     foydalanuvchi?.bogcha_id && { turi: "bogcha", muassasa_id: foydalanuvchi.bogcha_id, muassasa_nomi: foydalanuvchi.bogcha_nomi, lavozim: foydalanuvchi.lavozim },
   ].filter(Boolean);
-  const samariMuassasalar = muassasalarJavobiOlindi ? muassasalar : profilMuassasalar;
+  const samariMuassasalarAsos = muassasalarJavobiOlindi ? muassasalar : profilMuassasalar;
+  // Kirishda aniqlangan ishxona (masalan institut bootstrap orqali) ro'yxatda bo'lmasa — qo'shamiz.
+  const boshlanishMuassasasi = boshlanishKorinishi?.muassasa;
+  const samariMuassasalar = boshlanishMuassasasi && !samariMuassasalarAsos.some((m) => muassasaBarqarorKaliti(m) === muassasaBarqarorKaliti(boshlanishMuassasasi))
+    ? [...samariMuassasalarAsos, boshlanishMuassasasi]
+    : samariMuassasalarAsos;
   const faolSamariMuassasalar = faolMuassasalarRoyxati(samariMuassasalar);
   const kerakliTuri = ({ institut_workspace: "universitet", universitet: "universitet", universitet_legacy: "universitet",
     maktab_rahbariyat: "maktab", maktab_workspace: "maktab", maktab_legacy: "maktab",
@@ -13540,10 +13545,20 @@ function Kabinet({ token, onSessionExpired }) {
         if (u.role === "oqituvchi" && !u.is_admin) {
           fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
             .then((r) => r.json())
-            .then((d) => {
-              const list = d.muassasalar || [];
-              setMuassasalarim(list);
+            .then(async (d) => {
+              let list = d.muassasalar || [];
               const KORINISH = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
+              if (!list.some((m) => m.turi === "universitet")) {
+                // Zaxira: institut roli bor, lekin ro'yxatga tushmagan bo'lsa — institut o'zi aytadi.
+                try {
+                  const rb = await fetch(`${API_BASE}/api/institut/v20/bootstrap?token=${encodeURIComponent(token)}`);
+                  const bd = await rb.json();
+                  if (rb.ok && bd?.universitet?.id) {
+                    list = [...list, { turi: "universitet", muassasa_id: bd.universitet.id, muassasa_nomi: bd.universitet.nomi, lavozim: bd.asosiy_rol || "", faol: true }];
+                  }
+                } catch { /* institutga a'zo bo'lmasa — jim */ }
+              }
+              setMuassasalarim(list);
               const faol = list.filter((m) => KORINISH[m.turi]);
               if (faol.length === 1) {
                 // Bitta ishxona — kirishdan keyin to'g'ridan-to'g'ri o'sha ishxona ochiladi.
