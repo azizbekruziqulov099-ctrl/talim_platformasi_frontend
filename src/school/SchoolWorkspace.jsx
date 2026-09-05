@@ -281,6 +281,18 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
   const [liveSearch, setLiveSearch] = useState("");
   const [liveBusy, setLiveBusy] = useState(false);
   const [liveError, setLiveError] = useState("");
+  const [liveWrite, setLiveWrite] = useState(true); // sinov: amallar haqiqiy bajariladi
+  const [cleanBusy, setCleanBusy] = useState(false);
+  const cleanSinov = async () => {
+    if (!window.confirm("Bu maktabdagi barcha “SINOV ·” xodimlari va ularning izlari (xabarlar, biriktirishlar, rollar) o‘chiriladi. Real odamlarga tegilmaydi. Davom etamizmi?")) return;
+    setCleanBusy(true); setLiveError("");
+    try {
+      const r = await fetch(`${apiBase}/api/admin/sinov_izlarini_tozalash?token=${encodeURIComponent(token)}&turi=maktab&muassasa_id=${encodeURIComponent(maktabId)}`, { method: "POST" });
+      const d = await r.json();
+      if (!r.ok || d.detail) throw new Error(d.detail || "Tozalanmadi");
+      setLiveError(`✅ Tozalandi: ${d.topilgan_sinov_xodimlari || 0} sinov xodimi, ${d.xabarlar || 0} xabar, ${d.dars_birikmalari || 0} biriktirish.`);
+    } catch (e) { setLiveError(e.message); } finally { setCleanBusy(false); }
+  };
 
   // Haqiqiy interfeysni o'sha odam ko'zi bilan yangi oynada ochish (faqat o'qish).
   const openPreviewWindow = async url => {
@@ -290,7 +302,7 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
       const d = await r.json();
       if (!r.ok || d.detail) throw new Error(d.detail || "Ko'rish tokeni olinmadi");
       const name = d.user?.full_name || "";
-      const target = `${window.location.origin}/#korish_token=${encodeURIComponent(d.token)}&korish_ism=${encodeURIComponent(name)}`;
+      const target = `${window.location.origin}/#korish_token=${encodeURIComponent(d.token)}&korish_ism=${encodeURIComponent(name)}${d.read_only === false ? "&korish_yozish=1" : ""}`;
       const win = window.open(target, "_blank", "noopener");
       if (!win) window.location.assign(target);
       if (d.sinov_yaratildi) setLiveError(`ℹ Bu rolda odam yo‘q edi — “${name}” nomli sinov xodimi yaratildi. Keyin xodimlar ro‘yxatidan o‘chirib yuborsangiz bo‘ladi.`);
@@ -300,8 +312,8 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
       setLiveBusy(false);
     }
   };
-  const openLivePreview = () => liveUser && openPreviewWindow(`${apiBase}/api/admin/rol_sifatida_kirish_tokeni?token=${encodeURIComponent(token)}&user_id=${encodeURIComponent(liveUser)}`);
-  const openRolePreview = rol => openPreviewWindow(`${apiBase}/api/admin/sinov_rol_tokeni?token=${encodeURIComponent(token)}&turi=maktab&muassasa_id=${encodeURIComponent(maktabId)}&rol=${encodeURIComponent(rol)}`);
+  const openLivePreview = () => liveUser && openPreviewWindow(`${apiBase}/api/admin/rol_sifatida_kirish_tokeni?token=${encodeURIComponent(token)}&user_id=${encodeURIComponent(liveUser)}&yozish=${liveWrite ? 1 : 0}`);
+  const openRolePreview = rol => openPreviewWindow(`${apiBase}/api/admin/sinov_rol_tokeni?token=${encodeURIComponent(token)}&turi=maktab&muassasa_id=${encodeURIComponent(maktabId)}&rol=${encodeURIComponent(rol)}&yozish=${liveWrite ? 1 : 0}`);
 
   useEffect(() => {
     setLoadingCatalog(true);
@@ -384,7 +396,8 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
         <div className="space-y-4">
           <Card className="p-4" style={{ borderColor: palette.red }}>
             <div className="flex items-center gap-2 mb-1"><Eye size={18} style={{ color: palette.red }}/><div className="font-black" style={{ color: palette.ink }}>Haqiqiy interfeysni ochish</div></div>
-            <p className="text-[11px] mb-3" style={{ color: palette.muted }}>Xodim yoki o‘quvchini tanlang — platforma <b>aynan u ko‘rgan holda</b> yangi oynada ochiladi (dizayn, menyular, jadval). Hech narsa o‘zgartirib bo‘lmaydi, 90 daqiqadan keyin yopiladi. Admin sessiyangiz o‘zgarmaydi.</p>
+            <p className="text-[11px] mb-2" style={{ color: palette.muted }}>Xodim yoki o‘quvchini tanlang — platforma <b>aynan u ko‘rgan holda</b> yangi oynada ochiladi. Admin sessiyangiz o‘zgarmaydi.</p>
+            <label className="flex items-start gap-2 mb-3 p-2 rounded-xl cursor-pointer" style={{ background: liveWrite ? palette.mint : palette.cream }}><input type="checkbox" checked={liveWrite} onChange={e => setLiveWrite(e.target.checked)} className="mt-0.5"/><span className="text-[11px]" style={{ color: palette.ink }}><b>{liveWrite ? "🧪 Sinov rejimi — amallar haqiqiy bajariladi" : "👁 Faqat ko‘rish — hech narsa o‘zgarmaydi"}</b><br/><span style={{ color: palette.muted }}>{liveWrite ? "O‘sha rol qila oladigan hamma ishni qilib sinaysiz (xabar, belgilash, jadval...). Keyin pastdagi tugma bilan izlarini tozalaysiz." : "Dizayn va menyularni ko‘rish uchun."}</span></span></label>
             {(() => {
               const roleLabels = { direktor: "Direktor", zam_direktor_uquv: "Zavuch (o‘quv)", zam_direktor_tarbiya: "Zavuch (tarbiya)", zavuch: "Zavuch", manaviyatchi: "Ma’naviyatchi", psixolog: "Psixolog", kotib: "Kotib", metodist: "Metodist", kutubxonachi: "Kutubxonachi", fan_oqituvchisi: "O‘qituvchi", oqituvchi: "O‘qituvchi", sinf_rahbari: "Sinf rahbari" };
               const staff = catalog?.xodimlar || [];
@@ -415,7 +428,8 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
               })()}
             </select>
             <button type="button" onClick={openLivePreview} disabled={!liveUser || liveBusy} className="w-full py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.red }}>{liveBusy ? "Ochilmoqda..." : "👁 Shu odam ko‘zi bilan ochish (yangi oyna)"}</button>
-            {liveError && <div className="mt-2 text-[11px] font-bold" style={{ color: palette.red }}>{liveError}</div>}
+            {liveError && <div className="mt-2 text-[11px] font-bold" style={{ color: liveError.startsWith("✅") ? palette.green : palette.red }}>{liveError}</div>}
+            <button type="button" onClick={cleanSinov} disabled={cleanBusy} className="mt-3 w-full py-2 rounded-xl text-xs font-black border disabled:opacity-50" style={{ borderColor: palette.line, color: palette.muted, background: "#fff" }}>{cleanBusy ? "Tozalanmoqda..." : "🧹 Sinov izlarini tozalash — SINOV xodimlari va ularning hamma amallari o‘chiriladi"}</button>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-3"><UserCog size={18} style={{ color: palette.blue }}/><div className="font-black" style={{ color: palette.ink }}>Kim bo'lib ko'ramiz?</div></div>
