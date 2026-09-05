@@ -1068,29 +1068,42 @@ function AdminInstitutePreviewPanel({ apiBase, token, universityId, structure })
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const [write, setWrite] = useState(true);
+  const [cleanBusy, setCleanBusy] = useState(false);
+  const cleanSinov = async () => {
+    if (!window.confirm("Bu institutdagi barcha “SINOV ·” xodimlari va ularning izlari o‘chiriladi. Real odamlarga tegilmaydi. Davom etamizmi?")) return;
+    setCleanBusy(true); setError(""); setNote("");
+    try {
+      const r = await fetch(`${apiBase}/api/admin/sinov_izlarini_tozalash?token=${encodeURIComponent(token)}&turi=institut&muassasa_id=${universityId}`, { method: "POST" });
+      const d = await r.json();
+      if (!r.ok || d.detail) throw new Error(d.detail || "Tozalanmadi");
+      setNote(`✅ Tozalandi: ${d.topilgan_sinov_xodimlari || 0} sinov xodimi, ${d.xabarlar || 0} xabar, ${d.institut_rollari || 0} rol.`);
+    } catch (e) { setError(e.message); } finally { setCleanBusy(false); }
+  };
   const faculties = structure?.fakultetlar || [];
   const departments = (faculties.find(f => String(f.id) === String(facultyId))?.kafedralar) || [];
   const open = async rol => {
     setBusy(true); setError(""); setNote("");
     try {
-      const qs = new URLSearchParams({ token, turi: "institut", muassasa_id: String(universityId), rol });
+      const qs = new URLSearchParams({ token, turi: "institut", muassasa_id: String(universityId), rol, yozish: write ? "1" : "0" });
       if (facultyId) qs.set("fakultet_id", facultyId);
       if (departmentId) qs.set("kafedra_id", departmentId);
       const r = await fetch(`${apiBase}/api/admin/sinov_rol_tokeni?${qs}`);
       const d = await r.json();
       if (!r.ok || d.detail) throw new Error(d.detail || "Ko‘rish tokeni olinmadi");
       const name = d.user?.full_name || "";
-      const url = `${window.location.origin}/#korish_token=${encodeURIComponent(d.token)}&korish_ism=${encodeURIComponent(name)}`;
+      const url = `${window.location.origin}/#korish_token=${encodeURIComponent(d.token)}&korish_ism=${encodeURIComponent(name)}${d.read_only === false ? "&korish_yozish=1" : ""}`;
       const win = window.open(url, "_blank", "noopener");
       if (!win) window.location.assign(url);
-      if (d.sinov_yaratildi) setNote(`ℹ Bu rolda odam yo‘q edi — “${name}” nomli sinov xodimi yaratildi. Keyin “Xodimlar” bo‘limidan o‘chirsangiz bo‘ladi.`);
+      if (d.sinov_yaratildi) setNote(`ℹ Bu rolda odam yo‘q edi — “${name}” nomli sinov xodimi yaratildi. Sinovdan keyin “Sinov izlarini tozalash” bilan o‘chirasiz.`);
       else setNote(`“${name}” ko‘zi bilan yangi oynada ochildi.`);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
   return <div className="space-y-4">
     <Card className="p-5" style={{ borderColor: COLORS.red }}>
       <div className="flex items-center gap-2"><Eye size={18} style={{ color: COLORS.red }} /><h3 className="font-black" style={{ color: COLORS.ink }}>Institut interfeysini rol ko‘zi bilan ochish</h3></div>
-      <p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Rolni bosing — platforma o‘sha rol ko‘rgan holda <b>yangi oynada</b> ochiladi (faqat ko‘rish, 90 daqiqa). Rolda odam bo‘lmasa, “SINOV · Rol” nomli sinov xodimi yaratiladi — sinov uchun yetarli, keyin o‘chirsangiz bo‘ladi.</p>
+      <p className="mt-1 text-xs" style={{ color: COLORS.muted }}>Rolni bosing — platforma o‘sha rol ko‘rgan holda <b>yangi oynada</b> ochiladi. Rolda odam bo‘lmasa, “SINOV · Rol” nomli sinov xodimi yaratiladi.</p>
+      <label className="mt-3 flex items-start gap-2 rounded-xl p-3 cursor-pointer" style={{ background: write ? "#EEF6F1" : COLORS.cream }}><input type="checkbox" checked={write} onChange={e => setWrite(e.target.checked)} className="mt-0.5" /><span className="text-xs" style={{ color: COLORS.ink }}><b>{write ? "🧪 Sinov rejimi — amallar haqiqiy bajariladi (4 soat)" : "👁 Faqat ko‘rish — hech narsa o‘zgarmaydi (90 daqiqa)"}</b><br /><span style={{ color: COLORS.muted }}>{write ? "Rol qila oladigan hamma ishni qilib sinaysiz. Keyin pastdagi tugma bilan izlarini tozalaysiz." : "Dizayn va menyularni ko‘rish uchun."}</span></span></label>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         <label className="text-xs font-bold" style={{ color: COLORS.muted }}>Fakultet (dekan, tyutor va h.k. uchun)<select value={facultyId} onChange={e => { setFacultyId(e.target.value); setDepartmentId(""); }} className="mt-1 w-full rounded-xl border p-2.5 text-sm" style={{ borderColor: COLORS.line }}><option value="">Avtomatik (birinchi fakultet)</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.nomi}</option>)}</select></label>
         <label className="text-xs font-bold" style={{ color: COLORS.muted }}>Kafedra (mudir, o‘qituvchi uchun)<select value={departmentId} onChange={e => setDepartmentId(e.target.value)} className="mt-1 w-full rounded-xl border p-2.5 text-sm" style={{ borderColor: COLORS.line }} disabled={!facultyId}><option value="">Avtomatik (birinchi kafedra)</option>{departments.map(k => <option key={k.id} value={k.id}>{k.nomi}</option>)}</select></label>
@@ -1101,6 +1114,7 @@ function AdminInstitutePreviewPanel({ apiBase, token, universityId, structure })
       <p className="mt-3 text-[11px]" style={{ color: COLORS.muted }}>Talaba ko‘rinishi uchun “Talaba qabuli” bo‘limida real talabani tanlab, uning parolini ko‘ring — talaba sinov xodimi bilan yaratilmaydi.</p>
       {note && <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: "#EAF7EF", color: "#28734B" }}>{note}</div>}
       <ErrorBox text={error} />
+      <button type="button" onClick={cleanSinov} disabled={cleanBusy} className="mt-4 w-full rounded-xl border py-2.5 text-xs font-black disabled:opacity-50" style={{ borderColor: COLORS.line, color: COLORS.muted, background: "#fff" }}>{cleanBusy ? "Tozalanmoqda..." : "🧹 Sinov izlarini tozalash — SINOV xodimlari va ularning hamma amallari o‘chiriladi"}</button>
     </Card>
   </div>;
 }
