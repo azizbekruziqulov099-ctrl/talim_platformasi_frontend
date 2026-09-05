@@ -13867,12 +13867,13 @@ function _boshlangichYolniOl() {
     // Admin “ko'rish rejimi”: #korish_token=... — faqat shu oyna uchun, saqlanmaydi.
     korishToken: fragment.get("korish_token"),
     korishIsm: fragment.get("korish_ism"),
+    korishYozish: fragment.get("korish_yozish") === "1",
   };
   // 60 soniyalik OAuth ticket fragmenti (va eski oqimdan qolishi mumkin
   // bo'lgan sezgir query'lar) birinchi render boshlanishidayoq tarixdan o'chadi.
   if (
     ["token", "email", "ism"].some((key) => q.has(key))
-    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism"].some((key) => fragment.has(key))
+    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism", "korish_yozish"].some((key) => fragment.has(key))
   ) {
     window.history.replaceState({}, document.title, p);
   }
@@ -13944,8 +13945,8 @@ export default function App() {
   if (token && korishRejimi) {
     return (
       <div style={{ paddingTop: 42 }}>
-        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: "linear-gradient(90deg,#B42318,#8A5A1C)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
-          <span>👁 ADMIN KO‘RISH REJIMI{yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: interfeys shu foydalanuvchi ko‘zi bilan ko‘rinmoqda. O‘zgartirishlar bloklangan, 90 daqiqadan keyin yopiladi.</span>
+        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: yol.korishYozish ? "linear-gradient(90deg,#2E6C55,#1B4B7A)" : "linear-gradient(90deg,#B42318,#8A5A1C)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
+          <span>{yol.korishYozish ? `🧪 SINOV REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: siz shu rol sifatida ishlayapsiz, amallar HAQIQIY bajariladi. Sinovdan keyin “Sinov izlarini tozalash” bilan hammasi o‘chiriladi. 4 soat.` : `👁 ADMIN KO‘RISH REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: interfeys shu foydalanuvchi ko‘zi bilan ko‘rinmoqda. O‘zgartirishlar bloklangan, 90 daqiqadan keyin yopiladi.`}</span>
           <button type="button" onClick={() => { try { window.close(); } catch { /* noop */ } window.location.replace("/"); }} className="shrink-0 rounded-lg px-3 py-1" style={{ background: "rgba(255,255,255,.18)" }}>Yopish</button>
         </div>
         <Kabinet token={token} onSessionExpired={sessiyaniTozala} />
