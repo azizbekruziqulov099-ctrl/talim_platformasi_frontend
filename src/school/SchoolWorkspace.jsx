@@ -1,5 +1,5 @@
 // SAMTM FRONTEND V23.7 — teacher XLSX import and shift-aware class setup.
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft, BarChart3, BellRing, BookOpen, CalendarDays, CheckCircle2,
@@ -10,6 +10,7 @@ import {
   Download, Bot
 } from "lucide-react";
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
+import KabutarPanel from "../kabutar/KabutarPanel.jsx";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
 const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.7.2-GRID-PARTIAL-GROUP-CLASS";
@@ -46,6 +47,8 @@ const palette = {
   line: "#DDE6EC",
   muted: "#6D7B87",
 };
+
+
 
 
 function TeacherPickerV2251({ value, options, numberOf, onChange, disabled, placeholder = "# — ustozni izlang", accentColor, borderColor, textColor }) {
@@ -9573,6 +9576,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [error, setError] = useState("");
   const [loadWarnings, setLoadWarnings] = useState([]);
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
+  const [kabutarOpen, setKabutarOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
   const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
   const [teacherEditorMode, setTeacherEditorMode] = useState("manual");
@@ -10308,6 +10312,9 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (adminPreview && adminPreviewOpen) {
     return <WorkspacePortal><AdminRolePreview token={token} apiBase={apiBase} maktabId={maktabId} schoolName={schoolName} onClose={() => setAdminPreviewOpen(false)}/></WorkspacePortal>;
   }
+  if (kabutarOpen) {
+    return <WorkspacePortal><KabutarPanel token={token} apiBase={apiBase} maktabId={maktabId} title={schoolName} onClose={() => setKabutarOpen(false)}/></WorkspacePortal>;
+  }
 
   if (teacherMode) {
     return (
@@ -10379,6 +10386,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </button>
             <button onClick={openTeacherEditor} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title={curriculumApproved ? "Reja soati avtomatik chiqadi" : "Qo‘lda fan–sinf–guruh–soat kiritish ochiq; avtomatik soat reja tasdiqlanganda ishlaydi"}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
             <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
+            <button onClick={() => setKabutarOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.sky, color: palette.blue }}><MessageCircle size={16}/> Kabutar</button>
             {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
             <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
             {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Maktab sozlamalari</button>}
