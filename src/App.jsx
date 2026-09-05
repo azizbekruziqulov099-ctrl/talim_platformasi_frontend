@@ -37,7 +37,7 @@ import {
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
   Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search, Baby,
-  UserRoundPlus,
+  UserRoundPlus, MessageCircle,
 } from "lucide-react";
 
 const lazyAnalytics = (exportName) =>
@@ -182,6 +182,7 @@ const LearningCenterWorkspace = React.lazy(
 const InstituteWorkspace = React.lazy(
   () => import("./institute/InstituteWorkspace.jsx"),
 );
+const KabutarPanel = React.lazy(() => import("./kabutar/KabutarPanel.jsx"));
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -12350,6 +12351,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
+      { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
       { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
       { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
     ];
@@ -12361,6 +12363,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       ...(qoshimchaBand ? [qoshimchaBand] : []),
       { kalit: "oqituvchi", nom: qoshimchaBand ? "To‘garak va AI vositalari" : "Ish maydoni", ikon: Users },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
+      { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
       { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
       { kalit: "profil", nom: "Profil", ikon: User },
     ];
@@ -12368,6 +12371,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   if (rol === "ota-ona") {
     return [
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
+      { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
       { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
       { kalit: "profil", nom: "Profil", ikon: User },
     ];
@@ -12376,7 +12380,8 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "test", nom: "Test", ikon: PencilLine },
-    { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
+    { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
+      { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
     { kalit: "profil", nom: "Profil", ikon: User },
   ];
 }
@@ -13824,6 +13829,7 @@ function Kabinet({ token, onSessionExpired }) {
         />
       )}
       {tab === "xabar" && <XabarlarTab token={token} />}
+      {tab === "kabutar" && <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}><KabutarPanel token={token} apiBase={API_BASE} title="Rasmiy aloqa" onClose={() => setTab("profil")} /></React.Suspense>}
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
