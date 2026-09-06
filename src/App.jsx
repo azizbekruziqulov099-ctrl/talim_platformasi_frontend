@@ -4401,6 +4401,9 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
   const [tahrirlanayotganSlot, setTahrirlanayotganSlot] = useState(null);
   const [slotFan, setSlotFan] = useState("");
   const [slotXona, setSlotXona] = useState("");
+  const [slotDavri, setSlotDavri] = useState("haftalik");
+  const [slotSana, setSlotSana] = useState(new Date().toISOString().slice(0, 10));
+  const [slotChorak, setSlotChorak] = useState("1");
 
   const tadbirlarniYukla = () => {
     setTadbirYuklanmoqda(true);
@@ -4456,6 +4459,9 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
     setTahrirlanayotganSlot({ kun, dars_raqami: darsRaqami });
     setSlotFan(mavjudSlot ? mavjudSlot.fan : "");
     setSlotXona(mavjudSlot ? mavjudSlot.xona || "" : "");
+    setSlotDavri(mavjudSlot?.amal_turi || "haftalik");
+    setSlotSana(mavjudSlot?.amal_sana || new Date().toISOString().slice(0, 10));
+    setSlotChorak(String(mavjudSlot?.chorak || 1));
   };
 
   const slotSaqla = async () => {
@@ -4465,6 +4471,9 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
       body: JSON.stringify({
         token, sinf_id: tanlanganSinf.id, kun: tahrirlanayotganSlot.kun,
         dars_raqami: tahrirlanayotganSlot.dars_raqami, fan: slotFan.trim(), xona: slotXona || undefined,
+        amal_turi: slotDavri,
+        amal_sana: slotDavri === "kunlik" ? slotSana : undefined,
+        chorak: slotDavri === "choraklik" ? Number(slotChorak) : undefined,
       }),
     });
     setTahrirlanayotganSlot(null);
@@ -4492,6 +4501,12 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
               className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-2.5" style={{ borderColor: "#E5E1D8" }} />
             <input type="text" value={slotXona} onChange={(e) => setSlotXona(e.target.value)} placeholder="Xona (ixtiyoriy)"
               className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />
+            <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>Dars qancha muddat ko‘rinsin?</p>
+            <div className="grid grid-cols-3 gap-1.5 mb-3">
+              {[["kunlik","Bir kun"],["haftalik","Har hafta"],["choraklik","Chorak"]].map(([k,n]) => <button key={k} type="button" onClick={() => setSlotDavri(k)} className="rounded-lg py-2 text-xs font-semibold" style={slotDavri === k ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>{slotDavri === k ? "✓ " : ""}{n}</button>)}
+            </div>
+            {slotDavri === "kunlik" && <input type="date" value={slotSana} onChange={(e) => setSlotSana(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3" style={{ borderColor: "#E5E1D8" }} />}
+            {slotDavri === "choraklik" && <select value={slotChorak} onChange={(e) => setSlotChorak(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3 bg-white" style={{ borderColor: "#E5E1D8" }}><option value="1">1-chorak</option><option value="2">2-chorak</option><option value="3">3-chorak</option><option value="4">4-chorak</option></select>}
             <div className="flex gap-2">
               <button onClick={slotSaqla} className="flex-1 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A" }}>Saqlash</button>
               <button onClick={slotOchir} className="px-4 py-2.5 rounded-xl font-medium text-sm" style={{ backgroundColor: "#fff", color: "#A32D2D", border: "1px solid #E5E1D8" }}>Tozalash</button>
@@ -4516,7 +4531,7 @@ function RejalashtirishBolimi({ token, maktabId, onOrtga }) {
                         style={{ backgroundColor: slot ? "#EAF1F7" : "#F7F5F0" }}>
                         <span className="text-xs font-bold w-4 shrink-0" style={{ color: "#8A8578" }}>{darsRaqami}</span>
                         <span className="text-xs" style={{ color: slot ? "#1B4B7A" : "#8A8578" }}>
-                          {slot ? `${slot.fan}${slot.xona ? ` · ${slot.xona}` : ""}` : "— bo'sh —"}
+                          {slot ? `${slot.fan}${slot.xona ? ` · ${slot.xona}` : ""} · ${slot.amal_turi === "kunlik" ? slot.amal_sana : slot.amal_turi === "choraklik" ? `${slot.chorak}-chorak` : "har hafta"}` : "— bo'sh —"}
                         </span>
                       </button>
                     );
@@ -10190,6 +10205,7 @@ function faolMuassasaniTanla({ muassasalar = [], tanlanganKalit = "", kerakliTur
     || null;
 }
 
+
 function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
@@ -10204,7 +10220,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
-  const [korinish, setKorinish] = useState("togarak"); // "togarak" | to'garak guruhlarimi yoki maxsus ekranmi
+  const [korinish, setKorinish] = useState("togarak");
   const [muassasalar, setMuassasalar] = useState([]);
   const [muassasalarYuklanmoqda, setMuassasalarYuklanmoqda] = useState(true);
   const [muassasalarJavobiOlindi, setMuassasalarJavobiOlindi] = useState(false);
@@ -10664,6 +10680,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   }
 
   const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
+
 
   if (korinish === "maktab_rahbariyat" || korinish === "maktab_workspace") {
     return (
