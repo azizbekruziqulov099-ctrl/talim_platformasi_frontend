@@ -13495,13 +13495,17 @@ function Kabinet({ token, onSessionExpired }) {
   const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
   const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
   // To'liq ekran ish maydonlari (portal) tepadagi "Ta'lim maydoni | Kabutar" qatorini yopmasin
-  const topSwitchRef = useRef(null);
-  useEffect(() => {
-    const el = topSwitchRef.current; if (!el) return undefined;
+  // Tepadagi qator balandligi -> --samtm-portal-top (to'liq ekran oynalar shu yerdan boshlanadi).
+  // Callback-ref: qator DOMga kelgan zahoti o'lchanadi (yuklanish holatidan keyin ham).
+  const topSwitchObsRef = useRef(null);
+  const topSwitchRef = useCallback((el) => {
+    if (topSwitchObsRef.current) { topSwitchObsRef.current.disconnect(); topSwitchObsRef.current = null; }
+    if (!el) { document.documentElement.style.setProperty("--samtm-portal-top", "0px"); return; }
     const apply = () => { const base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--samtm-top-offset")) || 0; document.documentElement.style.setProperty("--samtm-portal-top", `${Math.round(el.getBoundingClientRect().height + base)}px`); };
-    apply(); const ro = new ResizeObserver(apply); ro.observe(el); window.addEventListener("resize", apply);
-    return () => { ro.disconnect(); window.removeEventListener("resize", apply); document.documentElement.style.removeProperty("--samtm-portal-top"); };
+    apply();
+    const ro = new ResizeObserver(apply); ro.observe(el); topSwitchObsRef.current = ro;
   }, []);
+  useEffect(() => () => { document.documentElement.style.setProperty("--samtm-portal-top", "0px"); if (topSwitchObsRef.current) topSwitchObsRef.current.disconnect(); }, []);
   const [tanlanganMuassasa, setTanlanganMuassasa] = useState(null); // {turi, muassasa_id, muassasa_nomi, lavozim}
   const mavjudMuassasalar = (muassasalarim || []).filter((m) => MUASSASA_TURI_RANG[m.turi]);
   const faolMuassasa = tanlanganMuassasa || mavjudMuassasalar[0] || null;
