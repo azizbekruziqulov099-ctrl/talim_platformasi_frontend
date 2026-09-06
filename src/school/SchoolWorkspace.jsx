@@ -98,7 +98,7 @@ function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenAvailabilit
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Bugun · {data.kun_nomi} · {data.sana} · {data.hafta_turi} hafta</div><h3 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{bugun.metod_kuni ? "Bugun sizning metod kuningiz" : !bugun.oquv_kuni ? (bugun.kalendar?.nomi || "Bugun dam kuni") : bugun.darslar.length ? `Bugun ${bugun.darslar.length} ta darsingiz bor` : "Bugun darsingiz yo‘q"}</h3></div>
-        <div className="flex flex-wrap gap-2"><button onClick={onOpenAvailability} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Bo‘sh vaqt / metod kuni</button><button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Mavzu rejasi</button></div>
+        <div className="flex flex-wrap gap-2"><button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Mavzu rejasi</button></div>
       </div>
       {bugun.hozirgi && <div className="mt-4"><Lesson dz={bugun.hozirgi} hozirgi/></div>}
       {!bugun.hozirgi && bugun.keyingi && <div className="mt-4 rounded-2xl p-3 flex items-center gap-3" style={{ background: palette.cream }}><Clock3 size={18} style={{ color: palette.blue }}/><div className="text-sm" style={{ color: palette.ink }}><b>Keyingi dars:</b> {bugun.keyingi.dars_raqami}-dars · {bugun.keyingi.sinf_nomi} · {bugun.keyingi.fan} · {bugun.keyingi.boshlanish_vaqti}{bugun.keyingi.mavzu ? ` · ${bugun.keyingi.mavzu}` : ""}</div></div>}
@@ -116,7 +116,7 @@ function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenAvailabilit
 
     {/* HAFTALIK JADVAL */}
     <Card className="p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3"><div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Haftalik jadvalim</div><h3 className="text-lg font-black" style={{ color: palette.ink }}>{data.haftalik_soat} soat / hafta{metod_kunlari.length ? ` · metod kuni: ${metod_kunlari.map(d => TH_KUN[d]).join(", ")}` : ""}</h3></div><span className="text-[11px]" style={{ color: palette.muted }}>Bugun yashil ustunda</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3"><div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Haftalik jadvalim</div><h3 className="text-lg font-black" style={{ color: palette.ink }}>{data.haftalik_soat} soat / hafta{metod_kunlari.length ? ` · metod kuni: ${metod_kunlari.map(d => TH_KUN[d]).join(", ")}` : ""}</h3></div><span className="text-[11px]" style={{ color: palette.muted }}>Bugun yashil ustunda · metod kuni va bo‘sh vaqtni rahbariyat belgilaydi</span></div>
       <div className="overflow-x-auto"><table className="w-full text-xs" style={{ minWidth: 560 }}>
         <thead><tr><th className="p-2 text-left w-10" style={{ color: palette.muted }}>№</th>{kunlar.map(d => <th key={d} className="p-2 text-center rounded-t-xl" style={{ background: d === bugunKun ? palette.mint : metod_kunlari.includes(d) ? "#FFF8EE" : palette.cream, color: d === bugunKun ? palette.green : palette.ink }}>{TH_KUN[d]}{metod_kunlari.includes(d) && <div className="text-[9px] font-black" style={{ color: "#8A5A1C" }}>metod</div>}</th>)}</tr></thead>
         <tbody>{Array.from({ length: maxDars }, (_, i) => i + 1).map(p => <tr key={p}>
@@ -641,7 +641,7 @@ function WorkspacePortal({ children }) {
   return createPortal(
     <div
       style={{
-        position: "fixed", inset: 0, zIndex: 2147483000, overflow: "auto",
+        position: "fixed", left: 0, right: 0, bottom: 0, top: "var(--samtm-portal-top, 0px)", zIndex: 2147483000, overflow: "auto",
         background: "linear-gradient(180deg,#F5FAFC 0%,#F7F4ED 100%)",
       }}
     >
@@ -10429,7 +10429,6 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div><div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Mening maktabim</div><h2 className="text-2xl md:text-3xl font-black mt-1">{schoolName}</h2><p className="text-sm mt-1 opacity-80">Bugungi darslar, bo‘sh vaqt va mavzu rejasi bir joyda.</p></div>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setSmartOpen(2)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "rgba(255,255,255,.16)" }}>Bo‘sh vaqt / metod kuni</button>
                   <button onClick={() => setSmartOpen(5)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "#fff", color: palette.blue }}>Mavzu rejasi</button>
                 </div>
               </div>
