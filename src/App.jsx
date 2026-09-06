@@ -12351,9 +12351,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
-      { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
-      { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
-      { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
+            { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
     ];
   }
   if (rol === "oqituvchi") {
@@ -12363,26 +12361,20 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       ...(qoshimchaBand ? [qoshimchaBand] : []),
       { kalit: "oqituvchi", nom: qoshimchaBand ? "To‘garak va AI vositalari" : "Ish maydoni", ikon: Users },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
-      { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
-      { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
-      { kalit: "profil", nom: "Profil", ikon: User },
+            { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   if (rol === "ota-ona") {
     return [
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
-      { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
-      { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
-      { kalit: "profil", nom: "Profil", ikon: User },
+            { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   return [
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "test", nom: "Test", ikon: PencilLine },
-    { kalit: "kabutar", nom: "Kabutar", ikon: MessageCircle },
-      { kalit: "xabar", nom: "Xabarlar", ikon: Bell },
-    { kalit: "profil", nom: "Profil", ikon: User },
+        { kalit: "profil", nom: "Profil", ikon: User },
   ];
 }
 
@@ -13460,6 +13452,22 @@ function Kabinet({ token, onSessionExpired }) {
   const [muassasalarim, setMuassasalarim] = useState([]);
   const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
   const [ishxonaTanlash, setIshxonaTanlash] = useState(null); // bir necha ishxona bo'lsa kirishda tanlash
+  // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
+  const [kabutarOchiq, setKabutarOchiq] = useState(() => { try { return window.sessionStorage.getItem("samtm_kabutar_ochiq") === "1"; } catch { return false; } });
+  const [kabutarYuklangan, setKabutarYuklangan] = useState(kabutarOchiq);
+  const [kabutarOqilmagan, setKabutarOqilmagan] = useState(0);
+  const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
+  const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
+  const ishJoyiNomi = (() => {
+    const IKON = { maktab: "🏫", universitet: "🎓", markaz: "📚", bogcha: "🧸" };
+    const NOM = { maktab: "Maktabim", universitet: "Institutim", markaz: "Markazim", bogcha: "Bog‘cham" };
+    const birinchi = (muassasalarim || []).find((m) => NOM[m.turi]);
+    if (foydalanuvchi?.is_admin) return "🛠 Boshqaruv";
+    if (birinchi) return `${IKON[birinchi.turi]} ${NOM[birinchi.turi]}`;
+    if (foydalanuvchi?.role === "ota_ona") return "👨‍👩‍👧 Farzandim";
+    if (foydalanuvchi?.role === "oquvchi") return "🎒 Kabinetim";
+    return "🧭 Ish maydonim";
+  })();
   const [oyinProfil, setOyinProfil] = useState(null);
   const [kunlikMukofot, setKunlikMukofot] = useState(0);
   // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
@@ -13754,6 +13762,23 @@ function Kabinet({ token, onSessionExpired }) {
           button:not(:disabled):active { transform: none; }
         }
       `}</style>
+      <style>{`
+        .samtm-top-switch{position:sticky;top:var(--samtm-top-offset,0px);z-index:80;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
+        .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
+        .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
+        .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+        .samtm-kabutar-full{min-height:calc(100vh - 60px)}
+      `}</style>
+      <div className="samtm-top-switch">
+        <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ish joyimga qaytish — turgan joyingiz saqlanadi">{ishJoyiNomi}</button>
+        <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title="Kabutar — rasmiy aloqa"><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+      </div>
+      {kabutarYuklangan && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
+        <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
+          <KabutarPanel token={token} apiBase={API_BASE} title="Rasmiy aloqa" onClose={() => kabutarniOch(false)} onUnread={kabutarOqilmaganniOl} />
+        </React.Suspense>
+      </div>}
+      <div style={{ display: kabutarOchiq ? "none" : "block" }}>
       <div className="premium-app-shell" style={{ "--role-accent": joriyRang }}>
         <main className="premium-app-main">
           <header className="premium-topbar">
@@ -13828,8 +13853,7 @@ function Kabinet({ token, onSessionExpired }) {
           initialTarget={talimYoliTestNishoni}
         />
       )}
-      {tab === "xabar" && <XabarlarTab token={token} />}
-      {tab === "kabutar" && <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}><KabutarPanel token={token} apiBase={API_BASE} title="Rasmiy aloqa" onClose={() => setTab("profil")} /></React.Suspense>}
+
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
@@ -13839,6 +13863,7 @@ function Kabinet({ token, onSessionExpired }) {
       <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : tab}
         onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida}
         qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} />
+      </div>
       </div>
     </div>
   );
@@ -13944,7 +13969,7 @@ export default function App() {
 
   if (token && korishRejimi) {
     return (
-      <div style={{ paddingTop: 42 }}>
+      <div style={{ paddingTop: 42, "--samtm-top-offset": "42px" }}>
         <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: yol.korishYozish ? "linear-gradient(90deg,#2E6C55,#1B4B7A)" : "linear-gradient(90deg,#B42318,#8A5A1C)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
           <span>{yol.korishYozish ? `🧪 SINOV REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: siz shu rol sifatida ishlayapsiz, amallar HAQIQIY bajariladi. Sinovdan keyin “Sinov izlarini tozalash” bilan hammasi o‘chiriladi. 4 soat.` : `👁 ADMIN KO‘RISH REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: interfeys shu foydalanuvchi ko‘zi bilan ko‘rinmoqda. O‘zgartirishlar bloklangan, 90 daqiqadan keyin yopiladi.`}</span>
           <button type="button" onClick={() => { try { window.close(); } catch { /* noop */ } window.location.replace("/"); }} className="shrink-0 rounded-lg px-3 py-1" style={{ background: "rgba(255,255,255,.18)" }}>Yopish</button>
