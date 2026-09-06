@@ -20,7 +20,7 @@ const KABUTAR_GROUPS = [
 const kabutarInitials = name => String(name || "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "•";
 const kabutarTime = iso => { if (!iso) return ""; const d = new Date(iso); const today = new Date(); const same = d.toDateString() === today.toDateString(); return same ? d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }); };
 
-export default function KabutarPanel({ token, apiBase, maktabId = null, title = "Kabutar", onClose }) {
+export default function KabutarPanel({ token, apiBase, maktabId = null, title = "Kabutar", onClose, docked = false, onUnread = null }) {
   const [directory, setDirectory] = useState(null);
   const [dirError, setDirError] = useState("");
   const [query, setQuery] = useState("");
@@ -57,8 +57,9 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
       if (!r.ok || d.detail) throw new Error(d.detail || "Aloqalar yuklanmadi");
       if (maktabId && Array.isArray(d.muassasalar)) d.muassasalar.sort((a, b) => Number(b.turi === "maktab" && String(b.muassasa_id) === String(maktabId)) - Number(a.turi === "maktab" && String(a.muassasa_id) === String(maktabId)));
       setDirectory(d); setDirError("");
+      if (onUnread) onUnread(Number(d.jami_oqilmagan || 0));
     } catch (e) { setDirError(e.message); }
-  }, [apiBase, token, maktabId]);
+  }, [apiBase, token, maktabId, onUnread]);
   useEffect(() => { loadDirectory(); const t = setInterval(loadDirectory, 20000); return () => clearInterval(t); }, [loadDirectory]);
 
   const markSeen = useCallback(async (peerId, lastId) => {
@@ -135,16 +136,16 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const totalUnread = directory?.jami_oqilmagan || 0;
   const meName = directory?.men?.full_name || "";
 
-  return <div className="min-h-screen" style={{ background: palette.cream }}>
-    <div className="px-4 md:px-7 py-4 flex items-center justify-between gap-3 border-b bg-white" style={{ borderColor: palette.line }}>
+  return <div className={docked ? "h-full flex flex-col" : "min-h-screen"} style={{ background: palette.cream }}>
+    <div className={`${docked ? "px-3 py-2.5" : "px-4 md:px-7 py-4"} flex items-center justify-between gap-3 border-b bg-white shrink-0`} style={{ borderColor: palette.line }}>
       <div className="flex items-center gap-3 min-w-0">
-        <button onClick={onClose} className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: palette.sky, color: palette.blue }}><ArrowLeft size={18}/></button>
-        <div className="min-w-0"><div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>Kabutar · rasmiy aloqa</div><div className="text-lg font-black truncate" style={{ color: palette.ink }}>{title}</div></div>
+        <button onClick={onClose} title={docked ? "Yig‘ish" : "Yopish"} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: palette.sky, color: palette.blue }}>{docked ? "▾" : <ArrowLeft size={18}/>}</button>
+        <div className="min-w-0"><div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>🕊 Kabutar · rasmiy aloqa</div>{!docked && <div className="text-lg font-black truncate" style={{ color: palette.ink }}>{title}</div>}</div>
       </div>
       <div className="flex items-center gap-2">{totalUnread > 0 && <span className="px-2.5 py-1 rounded-full text-xs font-black text-white" style={{ background: palette.red }}>{totalUnread} yangi</span>}{directory?.men && <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: palette.sky }}><div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white" style={{ background: palette.blue }}>{kabutarInitials(meName)}</div><div className="text-xs"><div className="font-black" style={{ color: palette.ink }}>{meName}</div><div className="max-w-[260px] truncate" style={{ color: palette.muted }}>{directory.men.qisqa}</div></div><button onClick={copyMyId} title="Mening Kabutar ID — nusxalash. Boshqalar sizni shu ID bilan topadi" className="ml-2 px-2.5 py-1.5 rounded-lg text-[11px] font-black" style={{ background: palette.blue, color: "#fff" }}>{copied ? "Nusxalandi ✓" : directory.men.kabutar_id || "ID"}</button></div>}</div>
     </div>
-    <div className="grid md:grid-cols-[340px_1fr] gap-0 md:h-[calc(100vh-73px)]">
-      <aside className={`border-r bg-white overflow-y-auto ${peer ? "hidden md:block" : ""}`} style={{ borderColor: palette.line }}>
+    <div className={docked ? "flex-1 min-h-0 flex flex-col" : "grid md:grid-cols-[340px_1fr] gap-0 md:h-[calc(100vh-73px)]"}>
+      <aside className={`bg-white overflow-y-auto ${docked ? (peer ? "hidden" : "flex-1 min-h-0") : `border-r ${peer ? "hidden md:block" : ""}`}`} style={{ borderColor: palette.line }}>
         <div className="p-3 sticky top-0 bg-white z-10 border-b" style={{ borderColor: palette.line }}><div className="relative"><Search size={15} className="absolute left-3 top-2.5" style={{ color: palette.muted }}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Ism, lavozim yoki sinf..." className="w-full pl-9 pr-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/></div></div>
         {dirError && <div className="m-3 p-3 rounded-xl text-xs" style={{ background: palette.redBg, color: palette.red }}>{dirError}</div>}
         {!directory && !dirError && <div className="p-6 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></div>}
@@ -175,11 +176,11 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         </div>; })}
         {directory && !(directory.suhbatlar || []).length && !(directory.muassasalar || []).some(m => (m.azolar || []).length) && <div className="p-6 text-center text-xs" style={{ color: palette.muted }}>Hozircha aloqalar yo‘q — yuqorida ID bo‘yicha toping.</div>}
       </aside>
-      <section className={`flex flex-col ${peer ? "" : "hidden md:flex"}`} style={{ minHeight: 420 }}>
+      <section className={`flex flex-col ${docked ? (peer ? "flex-1 min-h-0" : "hidden") : (peer ? "" : "hidden md:flex")}`} style={{ minHeight: docked ? 0 : 420 }}>
         {!peer && <div className="flex-1 flex items-center justify-center p-8 text-center"><div><div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-3" style={{ background: palette.sky }}><MessageCircle size={28} style={{ color: palette.blue }}/></div><div className="font-black" style={{ color: palette.ink }}>Suhbatdoshni tanlang</div><p className="text-xs mt-1 max-w-xs" style={{ color: palette.muted }}>Ro‘yxatda muassasalaringiz bo‘yicha rasmiy suhbatdoshlar. Boshqa odamni — uning Kabutar ID si bilan toping. Xabar yuboruvchining kimligi (ism, lavozim, muassasa) har doim ko‘rinadi.</p></div></div>}
         {peer && <>
           <div className="px-4 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: palette.line }}>
-            <button onClick={() => { setPeer(null); peerRef.current = null; }} className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: palette.sky, color: palette.blue }}><ArrowLeft size={16}/></button>
+            <button onClick={() => { setPeer(null); peerRef.current = null; }} className={`${docked ? "" : "md:hidden"} w-9 h-9 rounded-xl flex items-center justify-center`} style={{ background: palette.sky, color: palette.blue }}><ArrowLeft size={16}/></button>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: peer.rol === "tashqi" ? "#5A5648" : (KABUTAR_GROUPS.find(g => g[0] === peer.rol) || [])[2] || palette.blue }}>{kabutarInitials(peer.full_name)}</div>
             <div className="min-w-0"><div className="font-black truncate" style={{ color: palette.ink }}>{peer.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ rasmiy profil</span></div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{peer.izoh}</div></div>
           </div>
