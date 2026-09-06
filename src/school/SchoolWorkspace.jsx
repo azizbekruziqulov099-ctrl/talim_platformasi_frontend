@@ -51,6 +51,95 @@ const palette = {
 
 
 
+// =============================================================================
+// O'QITUVCHI BOSH EKRANI (V2260): haftalik jadval doim ko'zda, bugun/ertaga mavzular,
+// hozirgi dars, metod kuni, sinf rahbarligi. Ma'lumot bitta so'rovda keladi.
+// =============================================================================
+const TH_KUN = ["", "Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"];
+function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenAvailability, onOpenClass }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(true);
+  const [tick, setTick] = useState(0);
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`${apiBase}/api/oqituvchi/bosh_ekran?token=${encodeURIComponent(token)}${maktabId ? `&maktab_id=${maktabId}` : ""}`);
+      const d = await r.json();
+      if (!r.ok || d.detail) throw new Error(d.detail || "Yuklanmadi");
+      setData(d); setError("");
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }, [apiBase, token, maktabId]);
+  useEffect(() => { load(); const t = setInterval(() => { load(); setTick(x => x + 1); }, 60000); return () => clearInterval(t); }, [load]);
+
+  if (busy && !data) return <Card className="p-8 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></Card>;
+  if (error && !data) return <Card className="p-5"><SmartNotice tone="error">{error}</SmartNotice></Card>;
+  if (!data) return null;
+
+  const { hafta = [], bugun, ertaga, metod_kunlari = [], rahbar_sinflar = [], jadval_tasdiqlangan } = data;
+  const kunlar = [1, 2, 3, 4, 5, 6].filter(d => hafta.some(h => Number(h.hafta_kuni) === d) || d <= 5);
+  const darsRaqamlari = [...new Set(hafta.map(h => Number(h.dars_raqami)))].sort((a, b) => a - b);
+  const maxDars = darsRaqamlari.length ? Math.max(...darsRaqamlari) : 6;
+  const bugunKun = Number(data.kun);
+  const cell = (d, p) => hafta.filter(h => Number(h.hafta_kuni) === d && Number(h.dars_raqami) === p);
+  const haftaTuriMos = h => h.hafta_turi === "har_hafta" || h.hafta_turi === data.hafta_turi;
+
+  const Lesson = ({ dz, hozirgi }) => <div className="flex items-start gap-3 rounded-2xl border p-3" style={{ borderColor: hozirgi ? palette.green : palette.line, background: hozirgi ? palette.mint : "#fff", boxShadow: hozirgi ? "0 8px 24px rgba(46,108,85,.15)" : undefined }}>
+    <div className="w-12 shrink-0 text-center"><div className="text-lg font-black" style={{ color: hozirgi ? palette.green : palette.blue }}>{dz.dars_raqami}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>{dz.boshlanish_vaqti || ""}</div></div>
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2"><b className="text-sm" style={{ color: palette.ink }}>{dz.sinf_nomi}</b><span className="text-sm font-black" style={{ color: palette.blue }}>{dz.fan}</span>{dz.guruh_kaliti && dz.guruh_kaliti !== "butun" && <span className="text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: palette.sky, color: palette.blue }}>{dz.guruh_kaliti}</span>}{dz.xona && <span className="text-[11px]" style={{ color: palette.muted }}>· {dz.xona}-xona</span>}{hozirgi && <span className="text-[10px] font-black px-1.5 py-0.5 rounded text-white" style={{ background: palette.green }}>HOZIR</span>}</div>
+      <div className="mt-1 text-xs" style={{ color: dz.mavzu ? palette.ink : palette.muted }}>{dz.mavzu ? <>📖 <b>Mavzu:</b> {dz.mavzu}{dz.mavzu_tartib ? <span style={{ color: palette.muted }}> · {dz.mavzu_tartib}-mavzu</span> : null}</> : <button type="button" onClick={onOpenTopics} className="underline">Mavzu belgilanmagan — mavzu rejasini tuzing</button>}</div>
+    </div>
+  </div>;
+
+  return <div className="space-y-5">
+    {!jadval_tasdiqlangan && <SmartNotice tone="warning">Maktabda tasdiqlangan dars jadvali hali yo‘q — jadval tasdiqlangach bu ekran avtomatik to‘ladi.</SmartNotice>}
+
+    {/* BUGUN */}
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Bugun · {data.kun_nomi} · {data.sana} · {data.hafta_turi} hafta</div><h3 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{bugun.metod_kuni ? "Bugun sizning metod kuningiz" : !bugun.oquv_kuni ? (bugun.kalendar?.nomi || "Bugun dam kuni") : bugun.darslar.length ? `Bugun ${bugun.darslar.length} ta darsingiz bor` : "Bugun darsingiz yo‘q"}</h3></div>
+        <div className="flex flex-wrap gap-2"><button onClick={onOpenAvailability} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Bo‘sh vaqt / metod kuni</button><button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Mavzu rejasi</button></div>
+      </div>
+      {bugun.hozirgi && <div className="mt-4"><Lesson dz={bugun.hozirgi} hozirgi/></div>}
+      {!bugun.hozirgi && bugun.keyingi && <div className="mt-4 rounded-2xl p-3 flex items-center gap-3" style={{ background: palette.cream }}><Clock3 size={18} style={{ color: palette.blue }}/><div className="text-sm" style={{ color: palette.ink }}><b>Keyingi dars:</b> {bugun.keyingi.dars_raqami}-dars · {bugun.keyingi.sinf_nomi} · {bugun.keyingi.fan} · {bugun.keyingi.boshlanish_vaqti}{bugun.keyingi.mavzu ? ` · ${bugun.keyingi.mavzu}` : ""}</div></div>}
+      {bugun.darslar.length > 0 && <div className="mt-4 grid gap-2 md:grid-cols-2">{bugun.darslar.filter(dz => !bugun.hozirgi || dz.slot_id !== bugun.hozirgi.slot_id).map(dz => <Lesson key={dz.slot_id} dz={dz}/>)}</div>}
+    </Card>
+
+    {/* ERTAGA */}
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Ertaga · {ertaga.kun_nomi} · {ertaga.sana}</div><h3 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{ertaga.metod_kuni ? "Ertaga metod kuni — dars yo‘q" : ertaga.darslar.length ? `Ertaga ${ertaga.darslar.length} ta dars — tayyorlaning` : "Ertaga darsingiz yo‘q"}</h3></div>
+        {ertaga.darslar.some(dz => dz.mavzu) && <button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.mint, color: palette.green }}>📚 Ertangi materialni ko‘rish</button>}
+      </div>
+      {ertaga.darslar.length > 0 && <div className="mt-4 grid gap-2 md:grid-cols-2">{ertaga.darslar.map(dz => <Lesson key={dz.slot_id} dz={dz}/>)}</div>}
+    </Card>
+
+    {/* HAFTALIK JADVAL */}
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3"><div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Haftalik jadvalim</div><h3 className="text-lg font-black" style={{ color: palette.ink }}>{data.haftalik_soat} soat / hafta{metod_kunlari.length ? ` · metod kuni: ${metod_kunlari.map(d => TH_KUN[d]).join(", ")}` : ""}</h3></div><span className="text-[11px]" style={{ color: palette.muted }}>Bugun yashil ustunda</span></div>
+      <div className="overflow-x-auto"><table className="w-full text-xs" style={{ minWidth: 560 }}>
+        <thead><tr><th className="p-2 text-left w-10" style={{ color: palette.muted }}>№</th>{kunlar.map(d => <th key={d} className="p-2 text-center rounded-t-xl" style={{ background: d === bugunKun ? palette.mint : metod_kunlari.includes(d) ? "#FFF8EE" : palette.cream, color: d === bugunKun ? palette.green : palette.ink }}>{TH_KUN[d]}{metod_kunlari.includes(d) && <div className="text-[9px] font-black" style={{ color: "#8A5A1C" }}>metod</div>}</th>)}</tr></thead>
+        <tbody>{Array.from({ length: maxDars }, (_, i) => i + 1).map(p => <tr key={p}>
+          <td className="p-2 font-black text-center" style={{ color: palette.muted }}>{p}</td>
+          {kunlar.map(d => { const items = cell(d, p); return <td key={d} className="p-1 align-top border-t" style={{ borderColor: palette.line, background: d === bugunKun ? "rgba(238,246,241,.5)" : undefined }}>{items.map(h => <div key={h.slot_id} className="mb-1 rounded-lg px-2 py-1" style={{ background: haftaTuriMos(h) ? palette.sky : "#F3F1EC", opacity: haftaTuriMos(h) ? 1 : .6 }} title={`${h.fan} · ${h.xona || ""} ${h.hafta_turi !== "har_hafta" ? `· ${h.hafta_turi} hafta` : ""}`}><div className="font-black" style={{ color: palette.blue }}>{h.sinf_nomi}</div><div className="truncate" style={{ color: palette.ink }}>{h.fan}</div>{h.xona && <div className="text-[10px]" style={{ color: palette.muted }}>{h.xona}</div>}</div>)}</td>; })}
+        </tr>)}</tbody>
+      </table></div>
+    </Card>
+
+    {/* KUNDALIK ESLATMASI */}
+    <Card className="p-4 flex flex-wrap items-center justify-between gap-3" style={{ background: data.kundalik_eslatma ? "#FFF8EE" : "#fff" }}>
+      <div className="text-sm" style={{ color: palette.ink }}>{data.kundalik_eslatma ? <b>⏰ Bugungi darslar bo‘yicha Kundalik.com da baholarni kiritishni unutmadingizmi?</b> : <span><b>Kundalik eslatmasi</b> — soat 15:00 dan keyin bugungi darslar uchun baho eslatmasi</span>}</div>
+      <button type="button" onClick={async () => { const next = !data.kundalik_eslatma_yoqilgan; try { await fetch(`${apiBase}/api/oqituvchi/kundalik-baho-eslatmasi?token=${encodeURIComponent(token)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ yoqilgan: next }) }); setData(d => ({ ...d, kundalik_eslatma_yoqilgan: next, kundalik_eslatma: next && d.kundalik_eslatma })); } catch { /* jim */ } }} className="px-3 py-2 rounded-xl text-xs font-black" style={data.kundalik_eslatma_yoqilgan ? { background: palette.green, color: "#fff" } : { background: palette.cream, color: palette.ink }}>{data.kundalik_eslatma_yoqilgan ? "Yoqilgan ✓" : "Yoqish"}</button>
+    </Card>
+
+    {/* SINF RAHBARLIGI */}
+    {rahbar_sinflar.length > 0 && <Card className="p-5">
+      <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Sinf rahbarligi — alohida ish maydoni</div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{rahbar_sinflar.map(c => <button key={c.id} type="button" onClick={() => onOpenClass && onOpenClass(c)} className="rounded-2xl border p-4 text-left hover:shadow-md" style={{ borderColor: palette.line, background: "#fff" }}><div className="text-xl font-black" style={{ color: palette.ink }}>{c.sinf_nomi}</div><div className="text-xs mt-1" style={{ color: palette.muted }}>{c.oquvchilar} o‘quvchi · {c.smena}-smena</div><div className="text-[11px] mt-2 font-black" style={{ color: palette.blue }}>Davomat, o‘quvchilar, ota-onalar ›</div></button>)}</div>
+    </Card>}
+  </div>;
+}
+
 function TeacherPickerV2251({ value, options, numberOf, onChange, disabled, placeholder = "# — ustozni izlang", accentColor, borderColor, textColor }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -10345,7 +10434,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                 </div>
               </div>
             </Card>
-            <TeacherToday token={token} apiBase={apiBase}/>
+            <TeacherHome token={token} apiBase={apiBase} maktabId={maktabId} onOpenTopics={() => setSmartOpen(5)} onOpenAvailability={() => setSmartOpen(2)} onOpenClass={null}/>
           </main>
         </div>
       </WorkspacePortal>
