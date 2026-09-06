@@ -183,6 +183,12 @@ const InstituteWorkspace = React.lazy(
   () => import("./institute/InstituteWorkspace.jsx"),
 );
 const KabutarPanel = React.lazy(() => import("./kabutar/KabutarPanel.jsx"));
+const MUASSASA_TURI_RANG = {
+  maktab: { ikon: "🏫", nom: "Maktab", rang: "#1B4B7A", yengil: "#EAF1F7", korinish: "maktab_rahbariyat" },
+  universitet: { ikon: "🎓", nom: "Institut", rang: "#5B4B8A", yengil: "#F1EEF8", korinish: "institut_workspace" },
+  bogcha: { ikon: "🧸", nom: "Bog‘cha", rang: "#B0553A", yengil: "#FFF0EC", korinish: "bogcha" },
+  markaz: { ikon: "📚", nom: "Ta’lim markazi", rang: "#0D7A77", yengil: "#E8F5F4", korinish: "markaz_workspace" },
+};
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -13458,16 +13464,15 @@ function Kabinet({ token, onSessionExpired }) {
   const [kabutarOqilmagan, setKabutarOqilmagan] = useState(0);
   const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
   const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
-  const ishJoyiNomi = (() => {
-    const IKON = { maktab: "🏫", universitet: "🎓", markaz: "📚", bogcha: "🧸" };
-    const NOM = { maktab: "Maktabim", universitet: "Institutim", markaz: "Markazim", bogcha: "Bog‘cham" };
-    const birinchi = (muassasalarim || []).find((m) => NOM[m.turi]);
-    if (foydalanuvchi?.is_admin) return "🛠 Boshqaruv";
-    if (birinchi) return `${IKON[birinchi.turi]} ${NOM[birinchi.turi]}`;
-    if (foydalanuvchi?.role === "ota_ona") return "👨‍👩‍👧 Farzandim";
-    if (foydalanuvchi?.role === "oquvchi") return "🎒 Kabinetim";
-    return "🧭 Ish maydonim";
-  })();
+  const [tanlanganMuassasa, setTanlanganMuassasa] = useState(null); // {turi, muassasa_id, muassasa_nomi, lavozim}
+  const mavjudMuassasalar = (muassasalarim || []).filter((m) => MUASSASA_TURI_RANG[m.turi]);
+  const faolMuassasa = tanlanganMuassasa || mavjudMuassasalar[0] || null;
+  const muassasaniTanla = useCallback((m) => {
+    setTanlanganMuassasa(m);
+    setOqituvchiBoshlanishKorinishi({ korinish: MUASSASA_TURI_RANG[m.turi].korinish, muassasa: m, vaqt: Date.now() });
+    setTab("oqituvchi");
+    kabutarniOch(false);
+  }, [kabutarniOch]);
   const [oyinProfil, setOyinProfil] = useState(null);
   const [kunlikMukofot, setKunlikMukofot] = useState(0);
   // Admin uchun — bazadagi haqiqiy `role`ga TEGMAYDIGAN, faqat shu qurilmada
@@ -13578,6 +13583,7 @@ function Kabinet({ token, onSessionExpired }) {
               if (faol.length === 1) {
                 // Bitta ishxona — kirishdan keyin to'g'ridan-to'g'ri o'sha ishxona ochiladi.
                 setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[faol[0].turi], muassasa: faol[0], vaqt: Date.now() });
+                setTanlanganMuassasa(faol[0]);
                 setTab("oqituvchi");
               } else if (faol.length > 1) {
                 setIshxonaTanlash(faol);
@@ -13616,7 +13622,7 @@ function Kabinet({ token, onSessionExpired }) {
       <h2 className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>Ishxonani tanlang</h2>
       <p className="text-sm mb-5" style={{ color: "#8A8578" }}>Siz bir necha muassasada ishlaysiz. Qaysi biriga kirmoqchisiz?</p>
       <div className="space-y-2">
-        {ishxonaTanlash.map((m, i) => <button key={`${m.turi}-${m.muassasa_id}-${i}`} type="button" onClick={() => { setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[m.turi], muassasa: m, vaqt: Date.now() }); setTab("oqituvchi"); setIshxonaTanlash(null); }} className="w-full flex items-center gap-3 rounded-2xl border bg-white p-4 text-left hover:shadow-md" style={{ borderColor: "#E5E1D8" }}>
+        {ishxonaTanlash.map((m, i) => <button key={`${m.turi}-${m.muassasa_id}-${i}`} type="button" onClick={() => { setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[m.turi], muassasa: m, vaqt: Date.now() }); setTanlanganMuassasa(m); setTab("oqituvchi"); setIshxonaTanlash(null); }} className="w-full flex items-center gap-3 rounded-2xl border bg-white p-4 text-left hover:shadow-md" style={{ borderColor: "#E5E1D8" }}>
           <span className="text-2xl">{IKON[m.turi] || "🏢"}</span>
           <span className="min-w-0 flex-1"><span className="block font-bold truncate" style={{ color: "#2B2B2B" }}>{m.muassasa_nomi || m.display_name || m.nomi || TUR[m.turi]}</span><span className="block text-xs" style={{ color: "#8A8578" }}>{TUR[m.turi]}{m.lavozim ? ` · ${m.lavozim}` : ""}</span></span>
           <ChevronRight size={18} style={{ color: "#1B4B7A" }} />
@@ -13768,9 +13774,20 @@ function Kabinet({ token, onSessionExpired }) {
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
         .samtm-kabutar-full{min-height:calc(100vh - 60px)}
+        .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 10px 4px;overflow-x:auto;align-items:stretch}
+        .samtm-muassasa-card{display:flex;align-items:stretch;flex:0 0 auto;min-width:140px;max-width:220px;border-radius:16px;border:1px solid #E5E1D8;background:#fff;transition:all .18s;overflow:hidden}
+        .samtm-muassasa-card.on{flex:1 1 320px;max-width:none;background:var(--m-rang);border-color:var(--m-rang);color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px)}
+        .samtm-muassasa-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:10px 12px;text-align:left;background:transparent;border:0;color:inherit}
+        .samtm-muassasa-ikon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--m-yengil);flex-shrink:0}
+        .samtm-muassasa-card.on .samtm-muassasa-ikon{background:rgba(255,255,255,.18)}
+        .samtm-muassasa-matn{display:flex;flex-direction:column;min-width:0}
+        .samtm-muassasa-matn b{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit}
+        .samtm-muassasa-matn small{font-size:10px;font-weight:700;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .samtm-muassasa-card:not(.on) .samtm-muassasa-matn b{color:#21384C}.samtm-muassasa-card:not(.on) .samtm-muassasa-matn small{color:#7A8794}
+
       `}</style>
       <div className="samtm-top-switch">
-        <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ish joyimga qaytish — turgan joyingiz saqlanadi">{ishJoyiNomi}</button>
+        <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ta’lim maydoni — turgan joyingiz saqlanadi">🧭 Ta’lim maydoni</button>
         <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title="Kabutar — rasmiy aloqa"><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
       </div>
       {kabutarYuklangan && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
@@ -13779,7 +13796,15 @@ function Kabinet({ token, onSessionExpired }) {
         </React.Suspense>
       </div>}
       <div style={{ display: kabutarOchiq ? "none" : "block" }}>
-      <div className="premium-app-shell" style={{ "--role-accent": joriyRang }}>
+      {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className="samtm-muassasa-strip">
+        {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
+          <button type="button" className="samtm-muassasa-main" onClick={() => muassasaniTanla(m)} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
+            <span className="samtm-muassasa-ikon">{meta.ikon}</span>
+            <span className="samtm-muassasa-matn"><b>{m.muassasa_nomi || m.display_name || meta.nom}</b><small>{meta.nom}{m.lavozim ? ` · ${m.lavozim}` : ""}{on ? " · siz shu yerdasiz" : ""}</small></span>
+          </button>
+        </div>; })}
+      </div>}
+      <div className="premium-app-shell" style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
         <main className="premium-app-main">
           <header className="premium-topbar">
             <div>
