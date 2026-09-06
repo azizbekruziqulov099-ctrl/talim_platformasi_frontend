@@ -2832,6 +2832,7 @@ function MaktablarBolimi({ token }) {
   const [formOchiq, setFormOchiq] = useState(false);
   const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
   const [sozlamalarOchiq, setSozlamalarOchiq] = useState(false);
+  const [rejaOchiq, setRejaOchiq] = useState(false); // admin: kalendar bo'yicha dars jadvali (Rejalashtirish)
   const [maktabOchishXatosi, setMaktabOchishXatosi] = useState("");
 
   const mavjudMaktabniOch = (maktab) => {
@@ -2864,6 +2865,9 @@ function MaktablarBolimi({ token }) {
   }, [token]);
 
   if (tanlanganMaktab) {
+    if (rejaOchiq) {
+      return <RejalashtirishBolimi token={token} maktabId={tanlanganMaktab.id} onOrtga={() => setRejaOchiq(false)} />;
+    }
     if (sozlamalarOchiq) {
       return <MaktabTafsiloti
         token={token}
@@ -2894,6 +2898,7 @@ function MaktablarBolimi({ token }) {
             maktablarniYukla();
           }}
           onLegacy={() => setSozlamalarOchiq(true)}
+          onRejalashtirish={() => setRejaOchiq(true)}
           adminPreview={true}
           initialView="dashboard"
         />
@@ -13806,8 +13811,11 @@ function Kabinet({ token, onSessionExpired }) {
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
-        .samtm-kabutar-full{min-height:calc(100vh - 60px)}
         .samtm-top-spacer{height:64px}
+        /* Tepadagi qator hech narsani yopmasin: yon menyu va sticky sarlavha uning tagidan boshlanadi */
+        .premium-sidebar{top:var(--samtm-portal-top,64px) !important;height:calc(100vh - var(--samtm-portal-top,64px));inset:auto auto 0 0 !important}
+        .premium-topbar{top:var(--samtm-portal-top,64px) !important}
+        .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px))}
         .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 10px 4px;overflow-x:auto;align-items:stretch}
         .samtm-muassasa-card{display:flex;align-items:stretch;flex:0 0 auto;min-width:140px;max-width:220px;border-radius:16px;border:1px solid #E5E1D8;background:#fff;transition:all .18s;overflow:hidden}
         .samtm-muassasa-card.on{flex:1 1 320px;max-width:none;background:var(--m-rang);border-color:var(--m-rang);color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px)}
