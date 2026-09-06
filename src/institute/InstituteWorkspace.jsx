@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import KabutarPanel from "../kabutar/KabutarPanel.jsx";
 import {
   ArrowLeft, Building2, CheckCircle2, ChevronRight, ClipboardCheck, Download,
   Eye, FileSpreadsheet, GraduationCap, KeyRound, Loader2, MessageCircle,
@@ -1256,7 +1255,6 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
     ["staff", "Xodimlar", Users], ["admission", "Talaba qabuli", ClipboardCheck],
     ["tutors", "Tyutorlar", ShieldCheck],
     ["audit", "Faoliyat jurnali", Eye],
-    ["kabutar", "Kabutar", MessageCircle],
     ["preview", "Rol sifatida ko‘rish", Eye],
   ].filter(([key]) => {
     if (key === "preview") return Boolean(permissions.super_admin);
@@ -1306,7 +1304,6 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
       {tab === "admission" && <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={id} structure={structure} permissions={permissions} onCredentials={setCredentials} startMode={admissionStartMode} onStartModeConsumed={() => setAdmissionStartMode(null)} lockedFacultyId={activeFacultyId} />}
       {tab === "tutors" && <TutorPanel api={api} token={token} universityId={id} structure={structure} canManage={permissions.tyutor_boshqarish} facultyId={activeFacultyId} />}
       {tab === "audit" && <AuditPanel api={api} token={token} universityId={id} />}
-      {tab === "kabutar" && <KabutarPanel token={token} apiBase={apiBase} title={bootstrap?.universitet?.nomi || "Kabutar"} onClose={() => navigateTab("dashboard")} />}
       {tab === "preview" && permissions.super_admin && <AdminInstitutePreviewPanel apiBase={apiBase} token={token} universityId={id} structure={structure} />}
     </div>
     <CredentialsModal items={credentials} onClose={() => setCredentials([])} />
