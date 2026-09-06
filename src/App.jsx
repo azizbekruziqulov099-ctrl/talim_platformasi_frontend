@@ -10225,7 +10225,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
-  const [korinish, setKorinish] = useState("togarak");
+  const [korinish, setKorinish] = useState(() => boshlanishKorinishi?.korinish || "togarak");
   const [muassasalar, setMuassasalar] = useState([]);
   const [muassasalarYuklanmoqda, setMuassasalarYuklanmoqda] = useState(true);
   const [muassasalarJavobiOlindi, setMuassasalarJavobiOlindi] = useState(false);
@@ -10242,7 +10242,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     const requestedKey = muassasaBarqarorKaliti(boshlanishKorinishi?.muassasa);
     if (requestedKey) setAktivMuassasaKaliti(requestedKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boshlanishKorinishi?.vaqt]);
+  }, [boshlanishKorinishi?.vaqt, boshlanishKorinishi?.korinish]);
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiTuri, setYangiTuri] = useState("oddiy"); // "oddiy" | "avto"
@@ -13488,6 +13488,9 @@ function Kabinet({ token, onSessionExpired }) {
   const [muassasalarim, setMuassasalarim] = useState([]);
   const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
   const [ishxonaTanlash, setIshxonaTanlash] = useState(null); // bir necha ishxona bo'lsa kirishda tanlash
+  const [ishJoyiAniqlandi, setIshJoyiAniqlandi] = useState(false); // muassasalarim javobi keldi (yoki kerak emas)
+  const [yonMenyuOchiq, setYonMenyuOchiq] = useState(() => { try { return window.localStorage.getItem("samtm_yon_menyu") !== "0"; } catch { return true; } });
+  const yonMenyuniAlmashtir = useCallback(() => setYonMenyuOchiq((v) => { const n = !v; try { window.localStorage.setItem("samtm_yon_menyu", n ? "1" : "0"); } catch { /* jim */ } return n; }), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
   const [kabutarOchiq, setKabutarOchiq] = useState(() => { try { return window.sessionStorage.getItem("samtm_kabutar_ochiq") === "1"; } catch { return false; } });
   const [kabutarYuklangan, setKabutarYuklangan] = useState(kabutarOchiq);
@@ -13630,8 +13633,11 @@ function Kabinet({ token, onSessionExpired }) {
               } else if (faol.length > 1) {
                 setIshxonaTanlash(faol);
               }
+              setIshJoyiAniqlandi(true);
             })
-            .catch(() => {});
+            .catch(() => setIshJoyiAniqlandi(true));
+        } else {
+          setIshJoyiAniqlandi(true);
         }
 
         // Har rol o'ziga mos boshlang'ich sahifadan boshlaydi
@@ -13820,7 +13826,15 @@ function Kabinet({ token, onSessionExpired }) {
         .premium-sidebar{top:var(--samtm-portal-top,64px) !important;height:calc(100vh - var(--samtm-portal-top,64px));inset:auto auto 0 0 !important}
         .premium-topbar{top:var(--samtm-portal-top,64px) !important}
         .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px))}
-        .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 10px 4px;overflow-x:auto;align-items:stretch}
+        .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 12px 4px;overflow-x:auto;align-items:stretch;margin-left:264px}
+        .samtm-muassasa-strip.yon-yopiq{margin-left:0}
+        @media (max-width:1120px) and (min-width:821px){.samtm-muassasa-strip{margin-left:92px}}
+        @media (max-width:820px){.samtm-muassasa-strip{margin-left:0}}
+        .samtm-muassasa-matn b{color:inherit !important}.samtm-muassasa-card.on .samtm-muassasa-matn b,.samtm-muassasa-card.on .samtm-muassasa-matn small{color:#fff !important}
+        /* Yon menyu yopiq: sidebar yashirin, main to'liq kenglik */
+        .samtm-yon-yopiq .premium-sidebar{display:none !important}.samtm-yon-yopiq .premium-app-main{margin-left:0 !important}
+        .samtm-yon-toggle{position:fixed;left:8px;bottom:14px;z-index:2147483050;width:40px;height:40px;border-radius:12px;border:1px solid #E5E1D8;background:#fff;color:#1B4B7A;font-weight:900;box-shadow:0 6px 20px rgba(23,50,75,.15)}
+        @media (max-width:820px){.samtm-yon-toggle{display:none}}
         .samtm-muassasa-card{display:flex;align-items:stretch;flex:0 0 auto;min-width:140px;max-width:220px;border-radius:16px;border:1px solid #E5E1D8;background:#fff;transition:all .18s;overflow:hidden}
         .samtm-muassasa-card.on{flex:1 1 320px;max-width:none;background:var(--m-rang);border-color:var(--m-rang);color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px)}
         .samtm-muassasa-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:10px 12px;text-align:left;background:transparent;border:0;color:inherit}
@@ -13843,7 +13857,7 @@ function Kabinet({ token, onSessionExpired }) {
         </React.Suspense>
       </div>}
       <div style={{ display: kabutarOchiq ? "none" : "block" }}>
-      {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className="samtm-muassasa-strip">
+      {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
           <button type="button" className="samtm-muassasa-main" onClick={() => muassasaniTanla(m)} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
             <span className="samtm-muassasa-ikon">{meta.ikon}</span>
@@ -13851,7 +13865,8 @@ function Kabinet({ token, onSessionExpired }) {
           </button>
         </div>; })}
       </div>}
-      <div className="premium-app-shell" style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
+      <button type="button" className="samtm-yon-toggle" onClick={yonMenyuniAlmashtir} title={yonMenyuOchiq ? "Yon menyuni yopish — kengroq ish maydoni" : "Yon menyuni ochish"}>{yonMenyuOchiq ? "‹" : "›"}</button>
+      <div className={`premium-app-shell ${yonMenyuOchiq ? "" : "samtm-yon-yopiq"}`} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
         <main className="premium-app-main">
           <header className="premium-topbar">
             <div>
@@ -13879,12 +13894,13 @@ function Kabinet({ token, onSessionExpired }) {
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
-        <OqituvchiTab
+        (ishJoyiAniqlandi ? <OqituvchiTab
+          key={oqituvchiBoshlanishKorinishi?.korinish || "togarak"}
           token={token}
           foydalanuvchi={foydalanuvchi}
           boshlanishKorinishi={oqituvchiBoshlanishKorinishi}
           birInstitutAvtoOchishRef={birInstitutAvtoOchishRef}
-        />
+        /> : <div className="py-16 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /><p className="text-sm mt-3" style={{ color: "#8A8578" }}>Ish joyingiz aniqlanmoqda…</p></div>)
       )}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi_analitika" && (
         <TeacherAnalyticsPanel
