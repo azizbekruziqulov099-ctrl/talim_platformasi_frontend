@@ -40,8 +40,16 @@ import {
   UserRoundPlus, MessageCircle,
 } from "lucide-react";
 
+// Yangi deploydan keyin brauzerdagi eski sahifa yo'q bo'lgan chunk'ni so'rasa — oq ekran o'rniga
+// sahifa bir marta o'zi yangilanadi (keyin bayroq tozalanadi).
+const _samtmLazyRetry = (loader) => React.lazy(() => loader().then((mod) => { try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ } return mod; }).catch((err) => {
+  let already = false;
+  try { already = window.sessionStorage.getItem("samtm_chunk_reload") === "1"; if (!already) window.sessionStorage.setItem("samtm_chunk_reload", "1"); } catch { /* jim */ }
+  if (!already) { window.location.reload(); return new Promise(() => {}); }
+  throw err;
+}));
 const lazyAnalytics = (exportName) =>
-  React.lazy(() =>
+  _samtmLazyRetry(() =>
     import("./Analytics.jsx").then((module) => ({
       default: module[exportName],
     })),
@@ -50,9 +58,9 @@ const AdminStatisticsTab = lazyAnalytics("AdminStatisticsTab");
 const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
-const LazyTestTab = React.lazy(() => import("./TestTab.jsx"));
+const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
 const lazyAdminTestTool = (exportName) =>
-  React.lazy(() =>
+  _samtmLazyRetry(() =>
     import("./AdminTestTools.jsx").then((module) => ({ default: module[exportName] })),
   );
 const LazyTopikMavzularTab = lazyAdminTestTool("TopikMavzularTab");
@@ -168,21 +176,21 @@ function KitobMiyaBolimi(props) { return lazyPanel(LazyKitobMiyaBolimi, props); 
 function TestShablonBolimi(props) { return lazyPanel(LazyTestShablonBolimi, props); }
 function TopikShablonBolimi(props) { return lazyPanel(LazyTopikShablonBolimi, props); }
 function TushuntirishBolimi(props) { return lazyPanel(LazyTushuntirishBolimi, props); }
-const AdminInstitutionSecurity = React.lazy(() => import("./AdminInstitutionSecurity.jsx"));
-const AdminSchoolWizard = React.lazy(() => import("./AdminSchoolWizard.jsx"));
-const KindergartenWorkspace = React.lazy(
+const AdminInstitutionSecurity = _samtmLazyRetry(() => import("./AdminInstitutionSecurity.jsx"));
+const AdminSchoolWizard = _samtmLazyRetry(() => import("./AdminSchoolWizard.jsx"));
+const KindergartenWorkspace = _samtmLazyRetry(
   () => import("./kindergarten/KindergartenWorkspace.jsx"),
 );
-const SchoolWorkspace = React.lazy(
+const SchoolWorkspace = _samtmLazyRetry(
   () => import("./school/SchoolWorkspace.jsx"),
 );
-const LearningCenterWorkspace = React.lazy(
+const LearningCenterWorkspace = _samtmLazyRetry(
   () => import("./center/LearningCenterWorkspace.jsx"),
 );
-const InstituteWorkspace = React.lazy(
+const InstituteWorkspace = _samtmLazyRetry(
   () => import("./institute/InstituteWorkspace.jsx"),
 );
-const KabutarPanel = React.lazy(() => import("./kabutar/KabutarPanel.jsx"));
+const KabutarPanel = _samtmLazyRetry(() => import("./kabutar/KabutarPanel.jsx"));
 const MUASSASA_TURI_RANG = {
   maktab: { ikon: "🏫", nom: "Maktab", rang: "#1B4B7A", yengil: "#EAF1F7", korinish: "maktab_rahbariyat" },
   universitet: { ikon: "🎓", nom: "Institut", rang: "#5B4B8A", yengil: "#F1EEF8", korinish: "institut_workspace" },
