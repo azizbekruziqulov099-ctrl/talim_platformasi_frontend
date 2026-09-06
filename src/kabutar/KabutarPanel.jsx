@@ -37,8 +37,8 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const [idQuery, setIdQuery] = useState("");
   const [idResult, setIdResult] = useState(null); const [idBusy, setIdBusy] = useState(false); const [idError, setIdError] = useState("");
   const searchById = async () => {
-    const key = idQuery.replace(/[^0-9]/g, "").slice(-6);
-    if (key.length !== 6) { setIdError("ID 6 xonali bo‘ladi: KB-123456"); return; }
+    const key = idQuery.replace(/[^0-9]/g, "");
+    if (key.length < 6 || key.length > 10) { setIdError("ID 6–10 xonali raqam: masalan KB-12345678"); return; }
     setIdBusy(true); setIdError(""); setIdResult(null);
     try {
       const r = await fetch(`${apiBase}/api/kabutar/izla?token=${encodeURIComponent(token)}&kabutar_id=KB-${key}`);
@@ -175,7 +175,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         </div>}
         {directory && <div className="p-3 border-b" style={{ borderColor: palette.line, background: "#FBFAF7" }}>
           <div className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: palette.muted }}>ID bo‘yicha topish</div>
-          <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-123456" className="flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
+          <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-12345678" className="flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
           {idError && <div className="mt-1.5 text-[11px] font-bold" style={{ color: palette.red }}>{idError}</div>}
           {idResult && <button onClick={() => { openPeer({ user_id: idResult.user_id, full_name: idResult.full_name, izoh: idResult.qisqa, rol: "tashqi", kabutar_id: idResult.kabutar_id }); setIdResult(null); setIdQuery(""); }} className="mt-2 w-full text-left rounded-xl border p-2.5" style={{ borderColor: palette.green, background: palette.mint }}><div className="text-sm font-black" style={{ color: palette.ink }}>{idResult.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ {idResult.kabutar_id}</span></div>{idResult.rollar.map((r, i) => <div key={i} className="text-[11px]" style={{ color: palette.muted }}>{r.rol}{r.muassasa ? ` — ${r.muassasa}` : ""}</div>)}<div className="text-[10px] mt-1 font-black" style={{ color: palette.blue }}>Xabar yozish ›</div></button>}
         </div>}
