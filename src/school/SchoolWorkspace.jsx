@@ -56,6 +56,56 @@ const palette = {
 // hozirgi dars, metod kuni, sinf rahbarligi. Ma'lumot bitta so'rovda keladi.
 // =============================================================================
 const TH_KUN = ["", "Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"];
+// =============================================================================
+// DIREKTOR / RAHBARIYAT BOSH EKRANI (V2261) — "Bugun maktab": kim keldi, kim yo'q,
+// metod kunidagilar, qoplanmagan darslar, tasdiq kutayotganlar. Admin ko'rinishida yo'q.
+// =============================================================================
+const DH_HOLAT = {
+  keldi: ["Keldi", "#2E6C55", "#EEF6F1"], kelmadi: ["Kelmadi", "#B0553A", "#FFF0EC"], kasal: ["Kasal", "#B0553A", "#FFF0EC"],
+  sababli: ["Sababli", "#8A5A1C", "#FFF8EE"], sababsiz: ["Sababsiz", "#B0553A", "#FFF0EC"], metod_kuni: ["Metod kuni", "#8A5A1C", "#FFF8EE"],
+  dars_bor: ["Belgilanmagan", "#7A8794", "#F3F1EC"], belgilanmagan: ["Belgilanmagan", "#7A8794", "#F3F1EC"],
+};
+function DirectorHome({ token, apiBase, maktabId, onOpenStaff, onOpenTimetable, onOpenRequests, onOpenStates, onMarkAttendance }) {
+  const [data, setData] = useState(null); const [error, setError] = useState(""); const [filter, setFilter] = useState("hammasi"); const [open, setOpen] = useState(true);
+  const load = useCallback(async () => {
+    try { const r = await fetch(`${apiBase}/api/maktab/rahbariyat_bosh_ekran?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`); const d = await r.json(); if (!r.ok || d.detail) throw new Error(d.detail || "Yuklanmadi"); setData(d); setError(""); } catch (e) { setError(e.message); }
+  }, [apiBase, token, maktabId]);
+  useEffect(() => { load(); const t = setInterval(load, 90000); return () => clearInterval(t); }, [load]);
+  if (error) return <Card className="p-4 mb-5"><SmartNotice tone="error">{error}</SmartNotice></Card>;
+  if (!data) return <Card className="p-6 mb-5 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></Card>;
+  const x = data.xulosa;
+  const staff = data.xodimlar.filter(s => filter === "hammasi" ? true : filter === "kelmagan" ? ["kelmadi", "kasal", "sababli", "sababsiz"].includes(s.bugun) : filter === "metod" ? s.bugun === "metod_kuni" : filter === "belgilanmagan" ? ["belgilanmagan", "dars_bor"].includes(s.bugun) : s.bugun === "keldi");
+  const Stat = ({ n, label, tone, onClick, warn }) => <button type="button" onClick={onClick} disabled={!onClick} className="rounded-2xl p-3 text-left transition hover:-translate-y-0.5 disabled:hover:translate-y-0" style={{ background: warn && n > 0 ? "#FFF0EC" : palette.cream, border: `1px solid ${warn && n > 0 ? "#F1C2C2" : palette.line}` }}><div className="text-2xl font-black" style={{ color: warn && n > 0 ? palette.red : tone || palette.ink }}>{n}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>{label}{onClick ? " ›" : ""}</div></button>;
+  return <Card className="p-5 mb-5" style={{ borderColor: palette.teal }}>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Bugun maktab · {data.kun_nomi} · {data.sana} · {data.hozir}</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{x.qoplanmagan_darslar > 0 ? `⚠ ${x.qoplanmagan_darslar} ta dars qoplanmagan — o‘rinbosar kerak` : x.kelmagan > 0 ? `${x.kelmagan} ta xodim bugun yo‘q, darslar joyida` : "Maktabda hammasi joyida"}</h2></div>
+      <button type="button" onClick={() => setOpen(v => !v)} className="text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{open ? "Yig‘ish" : "Ochish"}</button>
+    </div>
+    {open && <>
+      {!data.jadval_tasdiqlangan && <div className="mt-3"><SmartNotice tone="warning">Tasdiqlangan dars jadvali yo‘q — "Aqlli dars jadvali"da yarating va tasdiqlang.</SmartNotice></div>}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        <Stat n={x.kelgan} label="Xodim keldi" tone={palette.green} onClick={() => setFilter("keldi")}/>
+        <Stat n={x.kelmagan} label="Xodim kelmagan" warn onClick={() => setFilter("kelmagan")}/>
+        <Stat n={x.metod_kuni} label="Metod kunida" tone="#8A5A1C" onClick={() => setFilter("metod")}/>
+        <Stat n={x.belgilanmagan} label="Davomat belgilanmagan" onClick={() => setFilter("belgilanmagan")}/>
+        <Stat n={x.qoplanmagan_darslar} label="Qoplanmagan dars" warn onClick={onOpenTimetable}/>
+        <Stat n={x.bugungi_darslar} label="Bugungi darslar" onClick={onOpenTimetable}/>
+      </div>
+      <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        <Stat n={x.ozgartirish_sorovlari} label="O‘zgartirish so‘rovi" warn onClick={onOpenRequests}/>
+        <Stat n={x.qoralama_jadvallar} label="Tasdiq kutgan jadval" warn onClick={onOpenTimetable}/>
+        <Stat n={x.ochiq_holatlar} label="Ochiq aqlli holat" warn onClick={onOpenStates}/>
+        <Stat n={x.rahbarsiz_sinflar} label="Rahbarsiz sinf" warn/>
+        <Stat n={x.sinflar} label="Sinflar"/>
+        <Stat n={x.oquvchilar} label="O‘quvchilar"/>
+      </div>
+      {data.qoplanmagan.length > 0 && <div className="mt-4 rounded-2xl p-3" style={{ background: "#FFF0EC", border: "1px solid #F1C2C2" }}><div className="text-xs font-black mb-2" style={{ color: palette.red }}>Bugun qoplanmagan darslar — o‘qituvchi kelmagan:</div><div className="grid gap-1 sm:grid-cols-2">{data.qoplanmagan.map((d, i) => <div key={i} className="text-xs rounded-lg bg-white px-2 py-1.5" style={{ color: palette.ink }}><b>{d.dars_raqami}-dars</b> · {d.sinf_nomi} · {d.fan_nomi} · <span style={{ color: palette.muted }}>{d.oqituvchi}</span></div>)}</div></div>}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><div className="text-xs font-black" style={{ color: palette.ink }}>Xodimlar bugun {filter !== "hammasi" && <button type="button" onClick={() => setFilter("hammasi")} className="ml-2 underline" style={{ color: palette.blue }}>hammasini ko‘rsat</button>}</div>{onMarkAttendance && <button type="button" onClick={onMarkAttendance} className="text-xs font-black px-3 py-2 rounded-xl text-white" style={{ background: palette.green }}>✓ Davomat belgilash</button>}</div>
+      <div className="mt-2 max-h-72 overflow-auto rounded-2xl border" style={{ borderColor: palette.line }}>{staff.map(sx => { const [label, color, bg] = DH_HOLAT[sx.bugun] || DH_HOLAT.belgilanmagan; return <div key={sx.user_id} className="flex items-center justify-between gap-2 px-3 py-2 border-t text-xs" style={{ borderColor: palette.line }}><div className="min-w-0"><b style={{ color: palette.ink }}>{sx.full_name}</b><span style={{ color: palette.muted }}> · {sx.fanlari || sx.lavozim}{sx.bugungi_dars ? ` · ${sx.bugungi_dars} dars` : ""}</span>{sx.izoh && <span style={{ color: palette.muted }}> · {sx.izoh}</span>}</div><span className="shrink-0 px-2 py-0.5 rounded-lg font-black" style={{ background: bg, color }}>{label}</span></div>; })}{!staff.length && <div className="p-4 text-center text-xs" style={{ color: palette.muted }}>Bu holatda xodim yo‘q</div>}</div>
+    </>}
+  </Card>;
+}
+
 function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenAvailability, onOpenClass }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -9628,7 +9678,7 @@ function v198PositiveSchoolId(...values) {
   return null;
 }
 
-export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
+export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, onRejalashtirish = null, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
   const organizationV17Id = initialWorkspace?.organization_v17_id || null;
   const contextId = initialWorkspace?.context_id || null;
   // Mavjud maktablar ro'yxati haqiqiy IDni ko'pincha ``maktab_id`` bilan
@@ -10488,6 +10538,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </button>
             <button onClick={openTeacherEditor} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title={curriculumApproved ? "Reja soati avtomatik chiqadi" : "Qo‘lda fan–sinf–guruh–soat kiritish ochiq; avtomatik soat reja tasdiqlanganda ishlaydi"}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
             <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
+            {onRejalashtirish && <button onClick={onRejalashtirish} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#FFF8EE", color: "#8A5A1C" }} title="Kalendar bo‘yicha dars qo‘yish: bir kun / har hafta / chorak"><CalendarDays size={16}/> Kalendar jadvali</button>}
             {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
             <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
             {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Maktab sozlamalari</button>}
@@ -10500,6 +10551,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </div>
           </Card>
 
+          {!adminPreview && <DirectorHome token={token} apiBase={apiBase} maktabId={maktabId} onOpenTimetable={() => setSmartOpen(4)} onOpenRequests={() => setSmartOpen(45)} onOpenStates={null} onMarkAttendance={null}/>}
           {classEditNotice && <div className="mb-4"><SmartNotice tone={classEditNotice.tone}>{classEditNotice.text}</SmartNotice></div>}
           {loadWarnings.length > 0 && !loading && <div className="mb-4 space-y-2">{loadWarnings.slice(0,5).map((warning, index)=><SmartNotice key={`${warning}-${index}`} tone="warning">{warning}</SmartNotice>)}</div>}
           {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <div className="space-y-3"><SmartNotice tone="error">{error}</SmartNotice>{workspaceLinkError && <div className="flex flex-wrap gap-2"><button onClick={() => setWorkspaceRetry(value => value + 1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><RefreshCw size={15}/> Maktabni qayta bog'lash</button><button onClick={onBack} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Muassasani qayta tanlash</button></div>}</div> : <>
