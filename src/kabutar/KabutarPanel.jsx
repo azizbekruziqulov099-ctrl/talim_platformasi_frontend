@@ -20,7 +20,17 @@ const KABUTAR_GROUPS = [
 const kabutarInitials = name => String(name || "").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "•";
 const kabutarTime = iso => { if (!iso) return ""; const d = new Date(iso); const today = new Date(); const same = d.toDateString() === today.toDateString(); return same ? d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }); };
 
-export default function KabutarPanel({ token, apiBase, maktabId = null, title = "Kabutar", onClose, docked = false, onUnread = null }) {
+export const KABUTAR_TURI = {
+  maktab: { ikon: "🏫", nom: "Maktab", rang: "#1B4B7A", yengil: "#EAF1F7" },
+  universitet: { ikon: "🎓", nom: "Institut", rang: "#5B4B8A", yengil: "#F1EEF8" },
+  institut: { ikon: "🎓", nom: "Institut", rang: "#5B4B8A", yengil: "#F1EEF8" },
+  bogcha: { ikon: "🧸", nom: "Bog‘cha", rang: "#B0553A", yengil: "#FFF0EC" },
+  markaz: { ikon: "📚", nom: "Ta’lim markazi", rang: "#0D7A77", yengil: "#E8F5F4" },
+};
+export default function KabutarPanel({ token, apiBase, maktabId = null, title = "Kabutar", onClose, docked = false, onUnread = null, scope = null, showScopeStrip = true }) {
+  // scope: { turi, muassasa_id } — faqat shu muassasa Kabutari; null — hammasi
+  const [scopeKey, setScopeKey] = useState(scope ? `${scope.turi}:${scope.muassasa_id}` : "all");
+  useEffect(() => { if (scope) setScopeKey(`${scope.turi}:${scope.muassasa_id}`); }, [scope?.turi, scope?.muassasa_id]);
   const [directory, setDirectory] = useState(null);
   const [dirError, setDirError] = useState("");
   const [query, setQuery] = useState("");
@@ -132,6 +142,14 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   };
 
   const q = query.trim().toLocaleLowerCase("uz");
+  const allMuassasalar = directory?.muassasalar || [];
+  const scopeList = allMuassasalar.map(m => ({ key: `${m.turi}:${m.muassasa_id}`, ...m }));
+  const activeScope = scopeKey === "all" ? null : scopeList.find(m => m.key === scopeKey) || null;
+  const scopedMuassasalar = activeScope ? [activeScope] : allMuassasalar;
+  const scopedIds = activeScope ? new Set((activeScope.azolar || []).map(a => String(a.user_id))) : null;
+  const scopedSuhbatlar = (directory?.suhbatlar || []).filter(x => !scopedIds || scopedIds.has(String(x.user_id)) || x.tashqi);
+  const scopeMeta = activeScope ? (KABUTAR_TURI[activeScope.turi] || KABUTAR_TURI.maktab) : null;
+  const accent = scopeMeta ? scopeMeta.rang : palette.blue;
 
   const totalUnread = directory?.jami_oqilmagan || 0;
   const meName = directory?.men?.full_name || "";
@@ -140,7 +158,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
     <div className={`${docked ? "px-3 py-2.5" : "px-4 md:px-7 py-4"} flex items-center justify-between gap-3 border-b bg-white shrink-0`} style={{ borderColor: palette.line }}>
       <div className="flex items-center gap-3 min-w-0">
         <button onClick={onClose} title={docked ? "Yig‘ish" : "Yopish"} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: palette.sky, color: palette.blue }}>{docked ? "▾" : <ArrowLeft size={18}/>}</button>
-        <div className="min-w-0"><div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>🕊 Kabutar · rasmiy aloqa</div>{!docked && <div className="text-lg font-black truncate" style={{ color: palette.ink }}>{title}</div>}</div>
+        <div className="min-w-0"><div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: accent }}>🕊 {activeScope ? `${scopeMeta.ikon} ${activeScope.muassasa} Kabutari` : "Kabutar · barcha muassasalar"}</div>{!docked && <div className="text-lg font-black truncate" style={{ color: palette.ink }}>{activeScope ? `${scopeMeta.nom} — rasmiy aloqa` : title}</div>}</div>
       </div>
       <div className="flex items-center gap-2">{totalUnread > 0 && <span className="px-2.5 py-1 rounded-full text-xs font-black text-white" style={{ background: palette.red }}>{totalUnread} yangi</span>}{directory?.men && <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: palette.sky }}><div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white" style={{ background: palette.blue }}>{kabutarInitials(meName)}</div><div className="text-xs"><div className="font-black" style={{ color: palette.ink }}>{meName}</div><div className="max-w-[260px] truncate" style={{ color: palette.muted }}>{directory.men.qisqa}</div></div><button onClick={copyMyId} title="Mening Kabutar ID — nusxalash. Boshqalar sizni shu ID bilan topadi" className="ml-2 px-2.5 py-1.5 rounded-lg text-[11px] font-black" style={{ background: palette.blue, color: "#fff" }}>{copied ? "Nusxalandi ✓" : directory.men.kabutar_id || "ID"}</button></div>}</div>
     </div>
@@ -149,13 +167,19 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         <div className="p-3 sticky top-0 bg-white z-10 border-b" style={{ borderColor: palette.line }}><div className="relative"><Search size={15} className="absolute left-3 top-2.5" style={{ color: palette.muted }}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Ism, lavozim yoki sinf..." className="w-full pl-9 pr-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/></div></div>
         {dirError && <div className="m-3 p-3 rounded-xl text-xs" style={{ background: palette.redBg, color: palette.red }}>{dirError}</div>}
         {!directory && !dirError && <div className="p-6 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></div>}
+        {directory && showScopeStrip && scopeList.length > 0 && <div className="p-3 border-b" style={{ borderColor: palette.line, background: "#fff" }}>
+          <div className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: palette.muted }}>Qaysi muassasa Kabutari</div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {[{ key: "all", turi: null, muassasa: "Hammasi" }, ...scopeList].map(m => { const meta = m.turi ? (KABUTAR_TURI[m.turi] || KABUTAR_TURI.maktab) : { ikon: "🕊", rang: palette.ink, yengil: palette.cream }; const on = scopeKey === m.key; const unread = m.turi ? (m.azolar || []).reduce((sum, a) => sum + Number(a.oqilmagan || 0), 0) : (directory.jami_oqilmagan || 0); return <button key={m.key} type="button" onClick={() => { setScopeKey(m.key); setPeer(null); peerRef.current = null; }} className="shrink-0 rounded-xl border px-2.5 py-1.5 text-left transition" style={on ? { background: meta.rang, borderColor: meta.rang, color: "#fff", transform: "scale(1.04)" } : { background: meta.yengil, borderColor: palette.line, color: palette.ink }} title={m.muassasa}><div className="text-[11px] font-black whitespace-nowrap max-w-[150px] truncate">{meta.ikon} {m.muassasa}{unread > 0 && <span className="ml-1 inline-flex min-w-[16px] h-4 px-1 rounded-full text-[9px] items-center justify-center" style={{ background: on ? "rgba(255,255,255,.25)" : palette.red, color: "#fff" }}>{unread}</span>}</div></button>; })}
+          </div>
+        </div>}
         {directory && <div className="p-3 border-b" style={{ borderColor: palette.line, background: "#FBFAF7" }}>
           <div className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: palette.muted }}>ID bo‘yicha topish</div>
           <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-123456" className="flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
           {idError && <div className="mt-1.5 text-[11px] font-bold" style={{ color: palette.red }}>{idError}</div>}
           {idResult && <button onClick={() => { openPeer({ user_id: idResult.user_id, full_name: idResult.full_name, izoh: idResult.qisqa, rol: "tashqi", kabutar_id: idResult.kabutar_id }); setIdResult(null); setIdQuery(""); }} className="mt-2 w-full text-left rounded-xl border p-2.5" style={{ borderColor: palette.green, background: palette.mint }}><div className="text-sm font-black" style={{ color: palette.ink }}>{idResult.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ {idResult.kabutar_id}</span></div>{idResult.rollar.map((r, i) => <div key={i} className="text-[11px]" style={{ color: palette.muted }}>{r.rol}{r.muassasa ? ` — ${r.muassasa}` : ""}</div>)}<div className="text-[10px] mt-1 font-black" style={{ color: palette.blue }}>Xabar yozish ›</div></button>}
         </div>}
-        {directory && (() => { const list = (directory.suhbatlar || []).filter(x => !q || String(x.full_name).toLocaleLowerCase("uz").includes(q) || String(x.izoh || "").toLocaleLowerCase("uz").includes(q)); if (!list.length) return null; return <div>
+        {directory && (() => { const list = scopedSuhbatlar.filter(x => !q || String(x.full_name).toLocaleLowerCase("uz").includes(q) || String(x.izoh || "").toLocaleLowerCase("uz").includes(q)); if (!list.length) return null; return <div>
           <div className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.ink }}>Suhbatlarim</div>
           {list.map(item => <button key={`s-${item.user_id}`} onClick={() => openPeer({ ...item, rol: item.tashqi ? "tashqi" : "suhbat" })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.user_id === item.user_id ? palette.sky : undefined }}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0" style={{ background: item.tashqi ? "#5A5648" : palette.blue }}>{kabutarInitials(item.full_name)}</div>
@@ -163,8 +187,8 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
             {item.oqilmagan > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center" style={{ background: palette.red }}>{item.oqilmagan}</span>}
           </button>)}
         </div>; })()}
-        {directory && (directory.muassasalar || []).map(m => { const groupsHere = KABUTAR_GROUPS.map(([key, label, color]) => [key, label, color, (m.azolar || []).filter(a => a.guruh === key && (!q || String(a.full_name).toLocaleLowerCase("uz").includes(q) || String(a.izoh || "").toLocaleLowerCase("uz").includes(q)))]).filter(g => g[3].length); if (!groupsHere.length) return null; return <div key={`${m.turi}-${m.muassasa_id}`}>
-          <div className="px-4 pt-4 pb-1 text-[11px] font-black flex items-center gap-2" style={{ color: palette.ink }}><span>{({ maktab: "🏫", institut: "🎓", markaz: "📚", bogcha: "🧸" })[m.turi] || "🏢"}</span><span className="truncate">{m.muassasa}</span></div>
+        {directory && scopedMuassasalar.map(m => { const groupsHere = KABUTAR_GROUPS.map(([key, label, color]) => [key, label, color, (m.azolar || []).filter(a => a.guruh === key && (!q || String(a.full_name).toLocaleLowerCase("uz").includes(q) || String(a.izoh || "").toLocaleLowerCase("uz").includes(q)))]).filter(g => g[3].length); if (!groupsHere.length) return null; return <div key={`${m.turi}-${m.muassasa_id}`}>
+          <div className="px-4 pt-4 pb-1 text-[11px] font-black flex items-center gap-2" style={{ color: (KABUTAR_TURI[m.turi] || KABUTAR_TURI.maktab).rang }}><span>{(KABUTAR_TURI[m.turi] || KABUTAR_TURI.maktab).ikon}</span><span className="truncate">{m.muassasa}</span><span className="text-[10px] font-semibold" style={{ color: palette.muted }}>· {(KABUTAR_TURI[m.turi] || KABUTAR_TURI.maktab).nom} Kabutari</span></div>
           {groupsHere.map(([key, label, color, items]) => <div key={key}>
             <div className="px-4 pt-2 pb-1 text-[10px] font-black uppercase tracking-[.12em] flex items-center justify-between" style={{ color }}>{label}<span style={{ color: palette.muted }}>{items.length}</span></div>
             {items.map(item => <button key={item.user_id} onClick={() => openPeer({ ...item, rol: key })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.user_id === item.user_id ? palette.sky : undefined }}>
@@ -174,12 +198,12 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
             </button>)}
           </div>)}
         </div>; })}
-        {directory && !(directory.suhbatlar || []).length && !(directory.muassasalar || []).some(m => (m.azolar || []).length) && <div className="p-6 text-center text-xs" style={{ color: palette.muted }}>Hozircha aloqalar yo‘q — yuqorida ID bo‘yicha toping.</div>}
+        {directory && !scopedSuhbatlar.length && !scopedMuassasalar.some(m => (m.azolar || []).length) && <div className="p-6 text-center text-xs" style={{ color: palette.muted }}>Bu muassasada hozircha aloqalar yo‘q — yuqorida ID bo‘yicha toping.</div>}
       </aside>
       <section className={`flex flex-col ${docked ? (peer ? "flex-1 min-h-0" : "hidden") : (peer ? "" : "hidden md:flex")}`} style={{ minHeight: docked ? 0 : 420 }}>
         {!peer && <div className="flex-1 flex items-center justify-center p-8 text-center"><div><div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-3" style={{ background: palette.sky }}><MessageCircle size={28} style={{ color: palette.blue }}/></div><div className="font-black" style={{ color: palette.ink }}>Suhbatdoshni tanlang</div><p className="text-xs mt-1 max-w-xs" style={{ color: palette.muted }}>Ro‘yxatda muassasalaringiz bo‘yicha rasmiy suhbatdoshlar. Boshqa odamni — uning Kabutar ID si bilan toping. Xabar yuboruvchining kimligi (ism, lavozim, muassasa) har doim ko‘rinadi.</p></div></div>}
         {peer && <>
-          <div className="px-4 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: palette.line }}>
+          <div className="px-4 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: palette.line, borderTop: `3px solid ${accent}` }}>
             <button onClick={() => { setPeer(null); peerRef.current = null; }} className={`${docked ? "" : "md:hidden"} w-9 h-9 rounded-xl flex items-center justify-center`} style={{ background: palette.sky, color: palette.blue }}><ArrowLeft size={16}/></button>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: peer.rol === "tashqi" ? "#5A5648" : (KABUTAR_GROUPS.find(g => g[0] === peer.rol) || [])[2] || palette.blue }}>{kabutarInitials(peer.full_name)}</div>
             <div className="min-w-0"><div className="font-black truncate" style={{ color: palette.ink }}>{peer.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ rasmiy profil</span></div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{peer.izoh}</div></div>
