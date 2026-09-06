@@ -13464,6 +13464,14 @@ function Kabinet({ token, onSessionExpired }) {
   const [kabutarOqilmagan, setKabutarOqilmagan] = useState(0);
   const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
   const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
+  // To'liq ekran ish maydonlari (portal) tepadagi "Ta'lim maydoni | Kabutar" qatorini yopmasin
+  const topSwitchRef = useRef(null);
+  useEffect(() => {
+    const el = topSwitchRef.current; if (!el) return undefined;
+    const apply = () => { const base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--samtm-top-offset")) || 0; document.documentElement.style.setProperty("--samtm-portal-top", `${Math.round(el.getBoundingClientRect().height + base)}px`); };
+    apply(); const ro = new ResizeObserver(apply); ro.observe(el); window.addEventListener("resize", apply);
+    return () => { ro.disconnect(); window.removeEventListener("resize", apply); document.documentElement.style.removeProperty("--samtm-portal-top"); };
+  }, []);
   const [tanlanganMuassasa, setTanlanganMuassasa] = useState(null); // {turi, muassasa_id, muassasa_nomi, lavozim}
   const mavjudMuassasalar = (muassasalarim || []).filter((m) => MUASSASA_TURI_RANG[m.turi]);
   const faolMuassasa = tanlanganMuassasa || mavjudMuassasalar[0] || null;
@@ -13769,11 +13777,12 @@ function Kabinet({ token, onSessionExpired }) {
         }
       `}</style>
       <style>{`
-        .samtm-top-switch{position:sticky;top:var(--samtm-top-offset,0px);z-index:80;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
+        .samtm-top-switch{position:fixed;left:0;right:0;top:var(--samtm-top-offset,0px);z-index:2147483100;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
         .samtm-kabutar-full{min-height:calc(100vh - 60px)}
+        .samtm-top-spacer{height:64px}
         .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 10px 4px;overflow-x:auto;align-items:stretch}
         .samtm-muassasa-card{display:flex;align-items:stretch;flex:0 0 auto;min-width:140px;max-width:220px;border-radius:16px;border:1px solid #E5E1D8;background:#fff;transition:all .18s;overflow:hidden}
         .samtm-muassasa-card.on{flex:1 1 320px;max-width:none;background:var(--m-rang);border-color:var(--m-rang);color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px)}
@@ -13786,7 +13795,8 @@ function Kabinet({ token, onSessionExpired }) {
         .samtm-muassasa-card:not(.on) .samtm-muassasa-matn b{color:#21384C}.samtm-muassasa-card:not(.on) .samtm-muassasa-matn small{color:#7A8794}
 
       `}</style>
-      <div className="samtm-top-switch">
+      <div className="samtm-top-spacer" aria-hidden="true" />
+      <div className="samtm-top-switch" ref={topSwitchRef}>
         <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ta’lim maydoni — turgan joyingiz saqlanadi">🧭 Ta’lim maydoni</button>
         <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title="Kabutar — rasmiy aloqa"><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
       </div>
@@ -13994,7 +14004,7 @@ export default function App() {
 
   if (token && korishRejimi) {
     return (
-      <div style={{ paddingTop: 42, "--samtm-top-offset": "42px" }}>
+      <div style={{ paddingTop: 42 }} ref={(el) => { if (el) document.documentElement.style.setProperty("--samtm-top-offset", "42px"); }}>
         <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: yol.korishYozish ? "linear-gradient(90deg,#2E6C55,#1B4B7A)" : "linear-gradient(90deg,#B42318,#8A5A1C)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
           <span>{yol.korishYozish ? `🧪 SINOV REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: siz shu rol sifatida ishlayapsiz, amallar HAQIQIY bajariladi. Sinovdan keyin “Sinov izlarini tozalash” bilan hammasi o‘chiriladi. 4 soat.` : `👁 ADMIN KO‘RISH REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: interfeys shu foydalanuvchi ko‘zi bilan ko‘rinmoqda. O‘zgartirishlar bloklangan, 90 daqiqadan keyin yopiladi.`}</span>
           <button type="button" onClick={() => { try { window.close(); } catch { /* noop */ } window.location.replace("/"); }} className="shrink-0 rounded-lg px-3 py-1" style={{ background: "rgba(255,255,255,.18)" }}>Yopish</button>
