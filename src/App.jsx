@@ -362,7 +362,7 @@ const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) 
       })}
     </p>
   );
-}
+});
 
 // LaTeX ifodani OVOZLI O'QISH uchun, tabiiy o'zbekcha gapga aylantiradi.
 // Eng ko'p uchraydigan naqshlarni (kasr, daraja, ildiz, asosiy amallar)
@@ -10570,7 +10570,7 @@ function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
       {malumot.kundalik_eslatma && <div className="rounded-2xl p-4 mt-4" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><b>Kundalik eslatmasi</b><p className="text-sm">Bugungi darslaringiz bo‘yicha baholarni kiritishni unutmadingizmi?</p></div>}
     </div>
   );
-});
+}
 
 function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
@@ -14214,6 +14214,8 @@ function Kabinet({ token, onSessionExpired }) {
         .premium-topbar{top:var(--samtm-portal-top,64px) !important}
         .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px))}
         .samtm-top-spacer{height:64px}
+        .samtm-test-active .samtm-top-switch,.samtm-test-active .samtm-top-spacer{display:none!important}
+        .samtm-test-active{--samtm-portal-top:0px!important}
         .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 12px 4px;overflow-x:auto;align-items:stretch;margin-left:264px}
         .samtm-muassasa-strip.yon-yopiq{margin-left:0}
         @media (max-width:1120px) and (min-width:821px){.samtm-muassasa-strip{margin-left:92px}}
