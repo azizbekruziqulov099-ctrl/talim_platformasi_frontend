@@ -2,22 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
 import "./testGamesLight.css";
-import avatarAdultBoy from "./assets/game-avatars/adult_boy.webp";
-import avatarAdultGirl from "./assets/game-avatars/adult_girl.webp";
-import avatarChildBoy from "./assets/game-avatars/child_boy.webp";
-import avatarChildGirl from "./assets/game-avatars/child_girl.webp";
-import avatarPreteenBoy from "./assets/game-avatars/preteen_boy.webp";
-import avatarPreteenGirl from "./assets/game-avatars/preteen_girl.webp";
-import avatarTeenBoy from "./assets/game-avatars/teen_boy.webp";
-import avatarTeenGirl from "./assets/game-avatars/teen_girl.webp";
-import avatarAdultBoySheet from "./assets/game-avatar-sprites/adult_boy_sheet.webp";
-import avatarAdultGirlSheet from "./assets/game-avatar-sprites/adult_girl_sheet.webp";
-import avatarChildBoySheet from "./assets/game-avatar-sprites/child_boy_sheet.webp";
-import avatarChildGirlSheet from "./assets/game-avatar-sprites/child_girl_sheet.webp";
-import avatarPreteenBoySheet from "./assets/game-avatar-sprites/preteen_boy_sheet.webp";
-import avatarPreteenGirlSheet from "./assets/game-avatar-sprites/preteen_girl_sheet.webp";
-import avatarTeenBoySheet from "./assets/game-avatar-sprites/teen_boy_sheet.webp";
-import avatarTeenGirlSheet from "./assets/game-avatar-sprites/teen_girl_sheet.webp";
 import {
   AGE_BANDS,
   GAME_AUTO_READ_MAX_WAIT_MS,
@@ -39,24 +23,24 @@ import {
 } from "./testGameRules.js";
 
 
+// Katta WEBP avatar va sprite fayllari ataylab yuklanmaydi. Bir vaqtda minglab
+// test ishlansa ham har savol faqat matn, formula va kichik CSS holatini chizadi.
 const GAME_AVATAR_ASSETS = {
-  child: {
-    boy: { preview: avatarChildBoy, sprite: avatarChildBoySheet },
-    girl: { preview: avatarChildGirl, sprite: avatarChildGirlSheet },
-  },
-  preteen: {
-    boy: { preview: avatarPreteenBoy, sprite: avatarPreteenBoySheet },
-    girl: { preview: avatarPreteenGirl, sprite: avatarPreteenGirlSheet },
-  },
-  teen: {
-    boy: { preview: avatarTeenBoy, sprite: avatarTeenBoySheet },
-    girl: { preview: avatarTeenGirl, sprite: avatarTeenGirlSheet },
-  },
-  adult: {
-    boy: { preview: avatarAdultBoy, sprite: avatarAdultBoySheet },
-    girl: { preview: avatarAdultGirl, sprite: avatarAdultGirlSheet },
-  },
+  child: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
+  preteen: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
+  teen: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
+  adult: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
 };
+
+async function gameFetch(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 
 function gameProfileAge(profile = {}, today = new Date()) {
@@ -191,7 +175,7 @@ export function GameModePicker({ value, onChange, gradeBand, accent, profile, pl
     <div className={`game-picker-wrap game-age-${gradeBand}`} style={{ "--game-accent": accent || "#1B4B7A" }}>
       <GameProfileStrip profile={profile} accent={accent} />
       <div className="game-avatar-choice">
-        <img src={avatar.src} alt="O'yindagi qahramon" />
+        <span className="game-light-avatar" aria-hidden="true">{gradeBand.includes("1_4") || gradeBand.includes("1_5") ? "🌱" : gradeBand.includes("10_11") ? "🚀" : "🧭"}</span>
         <div>
           <strong>Sizning o'yin qahramoningiz</strong>
           <small>{avatar.label} · yosh va sinfga mos</small>
@@ -201,31 +185,14 @@ export function GameModePicker({ value, onChange, gradeBand, accent, profile, pl
           <button type="button" className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O'g'il</button>
         </div>
       </div>
-      <div className="game-age-note">
-        <span>{age.label}</span>
-        <p>{age.helper}. Har beshinchi savol 4 variantli {age.bossName} bo'ladi va har savolda bitta urinish beriladi.</p>
-      </div>
-      <div className="game-mode-grid" aria-label="O'yin turini tanlang">
-        {GAME_MODES.map((mode) => {
-          const active = value === mode.id;
-          return (
-            <button
-              type="button"
-              key={mode.id}
-              aria-pressed={active}
-              className={`game-mode-card game-mode-card-${mode.id} ${active ? "is-active" : ""}`}
-              style={{ "--mode-dark": mode.colors[0], "--mode-light": mode.colors[1] }}
-              onClick={() => onChange(mode.id)}
-            >
-              <span className="game-mode-icon">{mode.icon}</span>
-              <span className="game-mode-copy">
-                <strong>{modeNameForBand(mode.id, gradeBand)}</strong>
-                <small>{mode.short}</small>
-              </span>
-              <span className="game-mode-check">{active ? "✓" : "›"}</span>
-            </button>
-          );
-        })}
+      <div className="game-age-note game-one-path">
+        <span>{age.label} · Bilim yo‘li</span>
+        <p>{gradeBand.includes("1_4") || gradeBand.includes("1_5")
+          ? "Har javob bilan bilim bog‘i o‘sadi: Nihol → Daraxt → Bilim bog‘i."
+          : gradeBand.includes("10_11")
+            ? "Har javob loyiha bosqichini ochadi: Muammo → Dalil → Yechim → Natija."
+            : "Har javob ekspeditsiyani oldinga olib boradi: Signal → Dalil → Kashfiyot."}</p>
+        <small>Har 5-savol — nazorat nuqtasi. Foiz bilim darajasini, ketma-ket to‘g‘ri javob strategik seriyani oshiradi.</small>
       </div>
     </div>
   );
@@ -241,11 +208,11 @@ function sceneStateClass(feedback) {
 
 
 const GAME_SCENE_FEEDBACK_COPY = {
-  bridge: { success: "OYNA MUSTAHKAM!", fail: "OYNA SINIB TUSHDI" },
-  millionaire: { success: "POG'ONA OCHILDI!", fail: "JAVOB QABUL QILINMADI" },
-  space: { success: "ORBITAGA O'TILDI!", fail: "ENERGIYA KAMAYDI" },
-  detective: { success: "DALIL TOPILDI!", fail: "IZ YO'QOLDI" },
-  city: { success: "BINO QURILDI!", fail: "LOYIHA TO'XTADI" },
+  bridge: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
+  millionaire: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
+  space: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
+  detective: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
+  city: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
 };
 
 
@@ -860,7 +827,7 @@ export default function TestGameArena({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/api/oyin/${isTimeout ? "vaqt-tugadi" : "javob"}`, {
+      const response = await gameFetch(`${apiBase}/api/oyin/${isTimeout ? "vaqt-tugadi" : "javob"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(isTimeout
@@ -1040,7 +1007,7 @@ export default function TestGameArena({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/api/oyin/yordam`, {
+      const response = await gameFetch(`${apiBase}/api/oyin/yordam`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1072,7 +1039,7 @@ export default function TestGameArena({
     timerStoppedRef.current = true;
     setError("");
     try {
-      const response = await fetch(`${apiBase}/api/oyin/yakunlash`, {
+      const response = await gameFetch(`${apiBase}/api/oyin/yakunlash`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, session_id: session.session_id }),
@@ -1176,7 +1143,7 @@ export default function TestGameArena({
           throw new Error("O'yin tayyorligi pauza qilindi");
         }
         record.sent = true;
-        const response = await fetch(`${apiBase}/api/oyin/tayyor`, {
+        const response = await gameFetch(`${apiBase}/api/oyin/tayyor`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1461,7 +1428,7 @@ export default function TestGameArena({
       <header className="game-topbar">
         <div>
           <small>{age.label} · {avatarProfile.gender === "girl" ? "qiz" : "o'g'il"} qahramon · {question.round}-raund</small>
-          <strong>{modeNameForBand(mode, gradeBand)}</strong>
+          <strong>Bilim yo‘li</strong>
         </div>
         <div className="game-top-stats">
           <span>✓ {session.correct_count || 0}</span>
