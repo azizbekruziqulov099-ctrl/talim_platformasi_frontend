@@ -1,5 +1,6 @@
-export const TEACHER_FREE_CLUB_LIMIT = 1;
-export const SECOND_CLUB_PRICE_UZS = 50_000;
+// To'lovlar hozircha o'chirilgan: to'garaklar cheksiz va bepul (organizationTrialRules.PAYMENTS_ENABLED bilan birga yoqiladi)
+export const TEACHER_FREE_CLUB_LIMIT = Number.POSITIVE_INFINITY;
+export const SECOND_CLUB_PRICE_UZS = 0;
 export const CLUB_STUDENT_LIMIT = 25;
 
 export function apiErrorMessage(detail, fallback = "Xato yuz berdi") {
@@ -55,6 +56,8 @@ export function formatTopicTitle(index, topic) {
 }
 
 export function freeClubAvailable(quota) {
+  // To'lov o'chirilgan davrda hamma uchun ochiq; yoqilganda quota mantiqi qaytadi
+  if (!Number.isFinite(TEACHER_FREE_CLUB_LIMIT)) return true;
   if (!quota) return true;
   if (quota.admin) return true;
   return Boolean(quota.bepul_yarata_oladi);
