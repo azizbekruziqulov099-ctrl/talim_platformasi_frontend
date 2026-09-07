@@ -40,16 +40,8 @@ import {
   UserRoundPlus, MessageCircle,
 } from "lucide-react";
 
-// Yangi deploydan keyin brauzerdagi eski sahifa yo'q bo'lgan chunk'ni so'rasa — oq ekran o'rniga
-// sahifa bir marta o'zi yangilanadi (keyin bayroq tozalanadi).
-const _samtmLazyRetry = (loader) => React.lazy(() => loader().then((mod) => { try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ } return mod; }).catch((err) => {
-  let already = false;
-  try { already = window.sessionStorage.getItem("samtm_chunk_reload") === "1"; if (!already) window.sessionStorage.setItem("samtm_chunk_reload", "1"); } catch { /* jim */ }
-  if (!already) { window.location.reload(); return new Promise(() => {}); }
-  throw err;
-}));
 const lazyAnalytics = (exportName) =>
-  _samtmLazyRetry(() =>
+  React.lazy(() =>
     import("./Analytics.jsx").then((module) => ({
       default: module[exportName],
     })),
@@ -58,9 +50,9 @@ const AdminStatisticsTab = lazyAnalytics("AdminStatisticsTab");
 const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
-const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
+const LazyTestTab = React.lazy(() => import("./TestTab.jsx"));
 const lazyAdminTestTool = (exportName) =>
-  _samtmLazyRetry(() =>
+  React.lazy(() =>
     import("./AdminTestTools.jsx").then((module) => ({ default: module[exportName] })),
   );
 const LazyTopikMavzularTab = lazyAdminTestTool("TopikMavzularTab");
@@ -176,21 +168,21 @@ function KitobMiyaBolimi(props) { return lazyPanel(LazyKitobMiyaBolimi, props); 
 function TestShablonBolimi(props) { return lazyPanel(LazyTestShablonBolimi, props); }
 function TopikShablonBolimi(props) { return lazyPanel(LazyTopikShablonBolimi, props); }
 function TushuntirishBolimi(props) { return lazyPanel(LazyTushuntirishBolimi, props); }
-const AdminInstitutionSecurity = _samtmLazyRetry(() => import("./AdminInstitutionSecurity.jsx"));
-const AdminSchoolWizard = _samtmLazyRetry(() => import("./AdminSchoolWizard.jsx"));
-const KindergartenWorkspace = _samtmLazyRetry(
+const AdminInstitutionSecurity = React.lazy(() => import("./AdminInstitutionSecurity.jsx"));
+const AdminSchoolWizard = React.lazy(() => import("./AdminSchoolWizard.jsx"));
+const KindergartenWorkspace = React.lazy(
   () => import("./kindergarten/KindergartenWorkspace.jsx"),
 );
-const SchoolWorkspace = _samtmLazyRetry(
+const SchoolWorkspace = React.lazy(
   () => import("./school/SchoolWorkspace.jsx"),
 );
-const LearningCenterWorkspace = _samtmLazyRetry(
+const LearningCenterWorkspace = React.lazy(
   () => import("./center/LearningCenterWorkspace.jsx"),
 );
-const InstituteWorkspace = _samtmLazyRetry(
+const InstituteWorkspace = React.lazy(
   () => import("./institute/InstituteWorkspace.jsx"),
 );
-const KabutarPanel = _samtmLazyRetry(() => import("./kabutar/KabutarPanel.jsx"));
+const KabutarPanel = React.lazy(() => import("./kabutar/KabutarPanel.jsx"));
 const MUASSASA_TURI_RANG = {
   maktab: { ikon: "🏫", nom: "Maktab", rang: "#1B4B7A", yengil: "#EAF1F7", korinish: "maktab_rahbariyat" },
   universitet: { ikon: "🎓", nom: "Institut", rang: "#5B4B8A", yengil: "#F1EEF8", korinish: "institut_workspace" },
@@ -1898,6 +1890,194 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
   );
 }
 
+const TAXMINIY_REJA_KUNLARI = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
+
+function TaxminiyHaftalikReja({ foydalanuvchi, bilimData, rang, onTest }) {
+  const profilSinfi = Number.parseInt(
+    foydalanuvchi?.sinf || foydalanuvchi?.class || foydalanuvchi?.grade || "",
+    10,
+  );
+  const [sinf, setSinf] = useState(profilSinfi >= 1 && profilSinfi <= 11 ? profilSinfi : 5);
+  const [yoqilgan, setYoqilgan] = useState(true);
+  const [fanlar, setFanlar] = useState([]);
+  const [reja, setReja] = useState([]);
+  const [sozlash, setSozlash] = useState(false);
+  const [yuklanmoqda, setYuklanmoqda] = useState(true);
+  const [xato, setXato] = useState("");
+  const userKey = foydalanuvchi?.user_id || foydalanuvchi?.id || "guest";
+  const storageKey = `samtm-taxminiy-reja:${userKey}:${sinf}`;
+
+  const rejaTuz = useCallback((mavjudFanlar) => {
+    if (!mavjudFanlar.length) return [];
+    const natijalar = Array.isArray(bilimData?.fanlar) ? bilimData.fanlar : [];
+    const foiz = (nom) => Number(natijalar.find((f) =>
+      String(f.nom || f.fan || "").toLocaleLowerCase("uz").includes(String(nom).toLocaleLowerCase("uz")),
+    )?.foiz ?? 101);
+    const saralangan = [...mavjudFanlar].sort((a, b) => foiz(a.nom) - foiz(b.nom));
+    const hafta = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 1)) / 604800000);
+    return TAXMINIY_REJA_KUNLARI.flatMap((kun, kunIndex) => {
+      const slotSoni = kunIndex === 5 ? 1 : 2;
+      return Array.from({ length: slotSoni }, (_, slotIndex) => {
+        const fan = saralangan[(kunIndex * 2 + slotIndex) % saralangan.length];
+        const mavzular = fan.mavzular || [];
+        const mavzu = mavzular[(hafta + kunIndex + slotIndex) % Math.max(1, mavzular.length)];
+        return {
+          id: `${kunIndex}-${slotIndex}-${Date.now()}`,
+          kun,
+          vaqt: slotIndex === 0 ? "17:00" : "18:00",
+          davomiylik: sinf <= 4 ? 25 : sinf <= 7 ? 35 : 45,
+          fan: fan.nom,
+          mavzu: mavzu?.nomi || "Erkin takrorlash",
+          bajarildi: false,
+        };
+      });
+    });
+  }, [bilimData, sinf]);
+
+  useEffect(() => {
+    let bekor = false;
+    setYuklanmoqda(true);
+    setXato("");
+    fetch(`${API_BASE}/api/mavzular?sinf=${sinf}&turi=oddiy&faqat_testli=false`, { cache: "no-store" })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "O‘quv rejasi olinmadi");
+        return (data.fanlar || []).map((fan) => ({
+          nom: fan.nom,
+          mavzular: (fan.sinflar || []).flatMap((qism) => qism.mavzular || []),
+        }));
+      })
+      .then((yangiFanlar) => {
+        if (bekor) return;
+        setFanlar(yangiFanlar);
+        const saqlangan = localStorage.getItem(storageKey);
+        if (saqlangan) {
+          let holat = null;
+          try { holat = JSON.parse(saqlangan); } catch { localStorage.removeItem(storageKey); }
+          if (!holat) { setReja(rejaTuz(yangiFanlar)); return; }
+          setYoqilgan(holat.yoqilgan !== false);
+          setReja(Array.isArray(holat.reja) ? holat.reja : rejaTuz(yangiFanlar));
+        } else setReja(rejaTuz(yangiFanlar));
+      })
+      .catch((err) => !bekor && setXato(err.message))
+      .finally(() => !bekor && setYuklanmoqda(false));
+    return () => { bekor = true; };
+  }, [sinf, storageKey, rejaTuz]);
+
+  useEffect(() => {
+    if (!yuklanmoqda && reja.length) {
+      try { localStorage.setItem(storageKey, JSON.stringify({ yoqilgan, reja })); } catch { /* private mode */ }
+    }
+  }, [yoqilgan, reja, storageKey, yuklanmoqda]);
+
+  const qatorYangila = (id, key, value) => setReja((old) => old.map((qator) => {
+    if (qator.id !== id) return qator;
+    if (key !== "fan") return { ...qator, [key]: value };
+    const fan = fanlar.find((item) => item.nom === value);
+    return { ...qator, fan: value, mavzu: fan?.mavzular?.[0]?.nomi || "Erkin takrorlash" };
+  }));
+  const yangiQator = () => {
+    const fan = fanlar[0];
+    setReja((old) => [...old, {
+      id: `custom-${Date.now()}`, kun: "Dushanba", vaqt: "19:00", davomiylik: 30,
+      fan: fan?.nom || "Mustaqil ta’lim", mavzu: fan?.mavzular?.[0]?.nomi || "Erkin takrorlash", bajarildi: false,
+    }]);
+    setSozlash(true);
+  };
+
+  return <section className="mt-4 rounded-3xl border bg-white overflow-hidden" style={{ borderColor: "#DDE5EA" }}>
+    <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: "#F6F9FB" }}>
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-black text-lg" style={{ color: "#21384C" }}>Taxminiy haftalik o‘qish rejasi</h3>
+          <span className="px-2 py-1 rounded-full text-[10px] font-black" style={{ background: "#FFF1D6", color: "#8A5A1C" }}>Rasmiy jadval emas</span>
+        </div>
+        <p className="text-xs mt-1" style={{ color: "#687987" }}>Saytdagi {sinf}-sinf o‘quv mavzularidan tuzildi. Istagan paytingiz o‘zgartiring yoki o‘chirib qo‘ying.</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <select aria-label="Sinf" value={sinf} onChange={(e) => setSinf(Number(e.target.value))} className="rounded-xl border px-3 py-2 text-sm font-bold bg-white">
+          {Array.from({ length: 11 }, (_, i) => i + 1).map((q) => <option key={q} value={q}>{q}-sinf</option>)}
+        </select>
+        <button type="button" aria-pressed={yoqilgan} onClick={() => setYoqilgan((v) => !v)} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: yoqilgan ? rang : "#8A96A0" }}>{yoqilgan ? "Yoqilgan" : "O‘chirilgan"}</button>
+        <button type="button" onClick={() => setSozlash((v) => !v)} className="px-3 py-2 rounded-xl border bg-white text-xs font-black" style={{ color: rang, borderColor: rang }}>{sozlash ? "Tayyor" : "Sozlash"}</button>
+      </div>
+    </div>
+
+    {!yoqilgan ? <div className="p-6 text-center text-sm" style={{ color: "#7A8794" }}>Shaxsiy reja o‘chirilgan. Qayta yoqsangiz, saqlangan rejangiz ochiladi.</div>
+      : yuklanmoqda ? <div className="p-8 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: rang }} /><p className="text-xs mt-2">O‘quv reja tayyorlanmoqda…</p></div>
+      : xato ? <div className="p-5 text-sm" style={{ color: "#A32D2D" }}>{xato}</div>
+      : <div className="p-3 md:p-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {TAXMINIY_REJA_KUNLARI.map((kun) => <div key={kun} className="rounded-2xl border p-3" style={{ borderColor: "#E5E9EC" }}>
+            <div className="font-black text-sm mb-2" style={{ color: "#21384C" }}>{kun}</div>
+            <div className="space-y-2">
+              {reja.filter((q) => q.kun === kun).map((qator) => <div key={qator.id} className="rounded-xl p-3" style={{ background: qator.bajarildi ? "#EDF8F1" : "#F7F8FA", opacity: qator.bajarildi ? .72 : 1 }}>
+                {sozlash ? <div className="space-y-2">
+                  <div className="flex gap-2"><input type="time" value={qator.vaqt} onChange={(e) => qatorYangila(qator.id, "vaqt", e.target.value)} className="min-w-0 flex-1 rounded-lg border px-2 py-1 text-xs" /><input type="number" min="10" max="120" value={qator.davomiylik} onChange={(e) => qatorYangila(qator.id, "davomiylik", Number(e.target.value))} className="w-16 rounded-lg border px-2 py-1 text-xs" title="Daqiqa" /></div>
+                  <select value={qator.fan} onChange={(e) => qatorYangila(qator.id, "fan", e.target.value)} className="w-full rounded-lg border px-2 py-1.5 text-xs">{fanlar.map((f) => <option key={f.nom}>{f.nom}</option>)}</select>
+                  <select value={qator.kun} onChange={(e) => qatorYangila(qator.id, "kun", e.target.value)} className="w-full rounded-lg border px-2 py-1.5 text-xs">{TAXMINIY_REJA_KUNLARI.map((k) => <option key={k}>{k}</option>)}</select>
+                  <button onClick={() => setReja((old) => old.filter((q) => q.id !== qator.id))} className="text-[11px] font-bold" style={{ color: "#A32D2D" }}>Olib tashlash</button>
+                </div> : <>
+                  <div className="flex items-start justify-between gap-2"><div><div className="text-[10px] font-bold" style={{ color: rang }}>{qator.vaqt} · {qator.davomiylik} daqiqa</div><div className="text-sm font-black mt-0.5" style={{ color: "#21384C" }}>{qator.fan}</div></div><input aria-label="Bajarildi" type="checkbox" checked={qator.bajarildi} onChange={(e) => qatorYangila(qator.id, "bajarildi", e.target.checked)} /></div>
+                  <p className="text-[11px] mt-1 line-clamp-2" style={{ color: "#687987" }}>{qator.mavzu}</p>
+                  <button onClick={onTest} className="mt-2 text-[11px] font-black" style={{ color: rang }}>O‘qishni boshlash →</button>
+                </>}
+              </div>)}
+              {!reja.some((q) => q.kun === kun) && <div className="text-xs py-3 text-center" style={{ color: "#9AA4AC" }}>Dam olish</div>}
+            </div>
+          </div>)}
+        </div>
+        {sozlash && <div className="flex flex-wrap gap-2 mt-3">
+          <button onClick={yangiQator} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: rang }}>+ Mashg‘ulot qo‘shish</button>
+          <button onClick={() => setReja(rejaTuz(fanlar))} className="px-3 py-2 rounded-xl text-xs font-black border bg-white" style={{ color: rang, borderColor: rang }}>Qayta avtomatik tuzish</button>
+        </div>}
+      </div>}
+  </section>;
+}
+
+function TashkilotsizOquvchiBoshSahifa({ foydalanuvchi, bilimData, rang, onTest, onProfil }) {
+  const fanlar = Array.isArray(bilimData?.fanlar) ? bilimData.fanlar : [];
+  const urinishlar = Number(bilimData?.otilgan_mavzu || 0);
+  const jamiMavzu = Number(bilimData?.jami_mavzu || 0);
+  const umumiy = Number(bilimData?.umumiy_foiz || 0);
+  const ism = String(foydalanuvchi?.full_name || "O‘quvchi").trim().split(/\s+/)[0];
+  return <div className="px-4 md:px-6 py-5 max-w-5xl mx-auto">
+    <section className="rounded-3xl p-5 md:p-7 text-white overflow-hidden relative" style={{ background: `linear-gradient(135deg,${rang},#183B5B)` }}>
+      <div className="relative z-10 max-w-2xl">
+        <div className="text-[11px] font-black uppercase tracking-[.14em] opacity-80">Mustaqil ta’lim maydoni</div>
+        <h2 className="text-2xl md:text-3xl font-black mt-2">Salom, {ism}. Bilimingiz yo‘qolmaydi.</h2>
+        <p className="text-sm mt-2 opacity-90">Hali maktab yoki markaz ulanmagan. Siz hozirdanoq sinfingizni tanlab mavzularni takrorlashingiz, test yechishingiz va shaxsiy bilim xaritangizni yaratishingiz mumkin.</p>
+        <div className="flex flex-wrap gap-2 mt-5">
+          <button onClick={onTest} className="px-4 py-2.5 rounded-xl bg-white font-black text-sm" style={{ color: rang }}>Bilimni tekshirish</button>
+          <button onClick={onProfil} className="px-4 py-2.5 rounded-xl border border-white/40 bg-white/10 font-black text-sm text-white">Sinf va profilni sozlash</button>
+        </div>
+      </div>
+      <div className="absolute -right-10 -bottom-16 w-52 h-52 rounded-full bg-white/10" />
+    </section>
+
+    <div className="grid grid-cols-3 gap-2 md:gap-4 mt-4">
+      {[["Bilim darajasi", `${umumiy}%`], ["O‘tilgan mavzu", urinishlar], ["Fanlar", fanlar.length]].map(([label,value]) => <div key={label} className="rounded-2xl border bg-white p-3 md:p-4" style={{ borderColor: "#E5E1D8" }}><div className="text-lg md:text-2xl font-black" style={{ color: rang }}>{value}</div><div className="text-[10px] md:text-xs mt-1" style={{ color: "#7A8794" }}>{label}</div></div>)}
+    </div>
+
+    <section className="mt-4 rounded-3xl border bg-white p-4 md:p-5" style={{ borderColor: "#E5E1D8" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div><h3 className="font-black" style={{ color: "#21384C" }}>Tashkilotga ulanish</h3><p className="text-xs mt-1" style={{ color: "#7A8794" }}>Maktab yoki markaz bergan rasmiy taklif kodini Profil bo‘limida kiriting. Ulangach jadval, o‘qituvchi topshiriqlari va tashkilot natijalari shu yerga qo‘shiladi.</p></div>
+        <span className="text-2xl">🔗</span>
+      </div>
+      <button onClick={onProfil} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: rang }}>Ulanish kodini kiritish</button>
+    </section>
+
+    <TaxminiyHaftalikReja foydalanuvchi={foydalanuvchi} bilimData={bilimData} rang={rang} onTest={onTest} />
+
+    <div className="grid md:grid-cols-2 gap-3 mt-4">
+      <button onClick={onTest} className="rounded-2xl border bg-white p-4 text-left" style={{ borderColor: "#E5E1D8" }}><div className="text-xl">🧠</div><div className="font-black mt-2" style={{ color: "#21384C" }}>Boshlang‘ich diagnostika</div><div className="text-xs mt-1" style={{ color: "#7A8794" }}>Sinf va fan bo‘yicha qisqa test. Natijadan zaif mavzular aniqlanadi.</div></button>
+      <button onClick={onTest} className="rounded-2xl border bg-white p-4 text-left" style={{ borderColor: "#E5E1D8" }}><div className="text-xl">🔁</div><div className="font-black mt-2" style={{ color: "#21384C" }}>Bugungi takrorlash</div><div className="text-xs mt-1" style={{ color: "#7A8794" }}>{urinishlar ? `${urinishlar} ta o‘tilgan mavzudan navbatdagi takrorlashni boshlang.` : "Birinchi testni ishlang — tizim keyingi takrorlashlarni o‘zi rejalaydi."}</div></button>
+    </div>
+
+    {jamiMavzu > 0 && <div className="mt-4 rounded-2xl p-3 text-xs font-bold" style={{ background: "#EEF6F1", color: "#2E6C55" }}>Natijalar shu hisobda saqlanadi. Keyin maktab yoki markazga ulansangiz ham avvalgi {jamiMavzu} ta mavzu tarixi yo‘qolmaydi.</div>}
+  </div>;
+}
+
 function BilimMarkazi({
   token,
   data,
@@ -2832,7 +3012,6 @@ function MaktablarBolimi({ token }) {
   const [formOchiq, setFormOchiq] = useState(false);
   const [tanlanganMaktab, setTanlanganMaktab] = useState(null); // maktab obyekti | null
   const [sozlamalarOchiq, setSozlamalarOchiq] = useState(false);
-  const [rejaOchiq, setRejaOchiq] = useState(false); // admin: kalendar bo'yicha dars jadvali (Rejalashtirish)
   const [maktabOchishXatosi, setMaktabOchishXatosi] = useState("");
 
   const mavjudMaktabniOch = (maktab) => {
@@ -2865,9 +3044,6 @@ function MaktablarBolimi({ token }) {
   }, [token]);
 
   if (tanlanganMaktab) {
-    if (rejaOchiq) {
-      return <RejalashtirishBolimi token={token} maktabId={tanlanganMaktab.id} onOrtga={() => setRejaOchiq(false)} />;
-    }
     if (sozlamalarOchiq) {
       return <MaktabTafsiloti
         token={token}
@@ -2898,7 +3074,6 @@ function MaktablarBolimi({ token }) {
             maktablarniYukla();
           }}
           onLegacy={() => setSozlamalarOchiq(true)}
-          onRejalashtirish={() => setRejaOchiq(true)}
           adminPreview={true}
           initialView="dashboard"
         />
@@ -10210,6 +10385,68 @@ function faolMuassasaniTanla({ muassasalar = [], tanlanganKalit = "", kerakliTur
     || null;
 }
 
+function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
+  const [malumot, setMalumot] = useState(null);
+  const [xato, setXato] = useState("");
+  const [tasdiqlandi, setTasdiqlandi] = useState(true); // jadvalni admin belgilaydi; o'qituvchi faqat ko'radi
+  const [tanlanganKunlar, setTanlanganKunlar] = useState([]);
+  const [davomatSinfi, setDavomatSinfi] = useState(null);
+  const kunNomlari = ["", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
+
+  useEffect(() => {
+    setMalumot(null); setXato(""); setTasdiqlandi(true);
+    fetch(`${API_BASE}/api/oqituvchi/bosh_ekran?token=${encodeURIComponent(token)}${maktabId ? `&maktab_id=${maktabId}` : ""}`)
+      .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.detail || "O‘qituvchi ma’lumoti yuklanmadi"); return d; })
+      .then((d) => {
+        setMalumot(d);
+        setTanlanganKunlar([...new Set((d.hafta || []).map((x) => Number(x.hafta_kuni)))].sort());
+      })
+      .catch((e) => setXato(e.message));
+  }, [token, maktabId]);
+
+  const kunniAlmashtir = (kun) => setTanlanganKunlar((old) => old.includes(kun) ? old.filter((x) => x !== kun) : [...old, kun].sort());
+  const kunDarslari = (kun) => (malumot?.hafta || []).filter((x) => Number(x.hafta_kuni) === kun);
+  const rahbarSinfmi = (sinfId) => (malumot?.rahbar_sinflar || []).some((x) => Number(x.id) === Number(sinfId));
+
+  if (davomatSinfi) return <DavomatBelgilash token={token} sinfId={davomatSinfi.id} onOrtga={() => setDavomatSinfi(null)} />;
+  if (xato) return <div className="px-5 pt-6"><button onClick={onOrtga} className="mb-4 text-sm font-semibold">← Ortga</button><div className="rounded-2xl border p-5 bg-white" style={{ borderColor: "#E8A0A0", color: "#A32D2D" }}>{xato}</div></div>;
+  if (!malumot) return <div className="px-5 pt-16 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+
+  if (!tasdiqlandi) return (
+    <div className="px-5 pt-6 pb-5">
+      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 text-sm font-semibold" style={{ color: "#5A5648" }}>← Dars guruhlarimga qaytish</button>
+      <div className="rounded-3xl p-5 text-white" style={{ background: "linear-gradient(135deg,#173247,#1B6B83)" }}>
+        <p className="text-xs font-bold tracking-wider mb-1" style={{ color: "#9EDDE0" }}>MAKTAB JADVALIDAN AVTOMATIK</p>
+        <h1 className="text-2xl font-bold mb-1">Haftalik darslaringizni tasdiqlang</h1>
+        <p className="text-sm mb-5" style={{ color: "#D9E9ED" }}>{malumot.maktab?.nomi} · {malumot.oqituvchi?.full_name} · {malumot.haftalik_soat} soat</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
+          {[1,2,3,4,5,6].map((kun) => {
+            const darslar = kunDarslari(kun); const tanlangan = tanlanganKunlar.includes(kun); const metod = (malumot.metod_kunlari || []).includes(kun);
+            return <button key={kun} onClick={() => kunniAlmashtir(kun)} className="rounded-2xl p-3 text-left border-2" style={tanlangan ? { backgroundColor: "#FFFFFF", color: "#173247", borderColor: "#FFFFFF" } : { backgroundColor: "#FFFFFF12", color: "#FFFFFF", borderColor: "#FFFFFF35" }}>
+              <span className="float-right font-black">{tanlangan ? "✓" : "○"}</span><b className="block">{kunNomlari[kun]}</b><small className="block mt-2 opacity-75">{metod ? "Metod kuni" : `${darslar.length} dars`}</small>
+            </button>;
+          })}
+        </div>
+        <div className="grid md:grid-cols-3 gap-2 mb-4 text-sm"><div className="rounded-xl p-3 bg-white/10"><small className="block opacity-70">FANLAR</small><b>{malumot.oqituvchi?.fanlari || "Biriktirilgan fanlar"}</b></div><div className="rounded-xl p-3 bg-white/10"><small className="block opacity-70">SINF RAHBARLIGI</small><b>{(malumot.rahbar_sinflar || []).map((x) => x.sinf_nomi).join(", ") || "Biriktirilmagan"}</b></div><div className="rounded-xl p-3 bg-white/10"><small className="block opacity-70">JADVAL HOLATI</small><b>{malumot.jadval_tasdiqlangan ? "✓ Tasdiqlangan" : "Jadval tasdiqlanmagan"}</b></div></div>
+        <button disabled={!tanlanganKunlar.length || !malumot.jadval_tasdiqlangan} onClick={() => setTasdiqlandi(true)} className="w-full rounded-xl py-3 font-bold disabled:opacity-50" style={{ backgroundColor: "#55D6A7", color: "#083B32" }}>Tasdiqlash va Ta’lim maydonini ochish →</button>
+      </div>
+    </div>
+  );
+
+  const hozirgi = malumot.bugun?.hozirgi || malumot.bugun?.keyingi;
+  return (
+    <div className="px-5 pt-6 pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4"><div><button onClick={onOrtga} className="text-sm font-semibold mb-2" style={{ color: "#5A5648" }}>← Dars guruhlarim</button><h1 className="text-2xl font-bold" style={{ color: "#21384C" }}>O‘qituvchining Ta’lim maydoni</h1><p className="text-sm" style={{ color: "#7A8794" }}>{malumot.maktab?.nomi} · {malumot.kun_nomi} · {malumot.hozir}</p></div><span className="rounded-xl px-4 py-2.5 text-sm font-bold border bg-white" style={{ borderColor: "#DCE6EA", color: "#1B4B7A" }}>Admin belgilagan jadval</span></div>
+      {hozirgi ? <section className="rounded-3xl p-5 mb-4 text-white" style={{ background: "linear-gradient(135deg,#1B4B7A,#0D7A77)" }}><span className="text-xs font-bold">{malumot.bugun?.hozirgi ? "HOZIRGI DARS" : "KEYINGI DARS"}</span><h2 className="text-2xl font-bold mt-1">{hozirgi.sinf_nomi} · {hozirgi.fan}</h2><p className="text-sm opacity-80">{hozirgi.boshlanish_vaqti}–{hozirgi.tugash_vaqti} · {hozirgi.xona || "Xona ko‘rsatilmagan"}</p><div className="mt-4 rounded-2xl p-4 bg-white/10"><small className="block opacity-70">MAVZU</small><b>{hozirgi.mavzu || "Taqvim-mavzu rejasida mavzu biriktirilmagan"}</b></div><div className="flex flex-wrap gap-2 mt-4"><button className="rounded-xl bg-white px-4 py-2.5 font-bold" style={{ color: "#1B4B7A" }}>Sinf maydonini ochish</button>{rahbarSinfmi(hozirgi.sinf_id) && <button onClick={() => setDavomatSinfi({ id: hozirgi.sinf_id })} className="rounded-xl px-4 py-2.5 font-bold border border-white/40">Davomat</button>}</div></section> : <div className="rounded-2xl border bg-white p-5 mb-4"><b>Hozir dars yo‘q</b><p className="text-sm text-gray-500">Keyingi dars jadvaldan avtomatik chiqadi.</p></div>}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}><div className="flex justify-between mb-3"><h2 className="font-bold">Bugungi jadvalim</h2><span className="text-xs font-semibold">{malumot.bugun?.darslar?.length || 0} dars</span></div><div className="space-y-2">{(malumot.bugun?.darslar || []).map((d) => <div key={d.slot_id} className="rounded-xl p-3 flex justify-between gap-3" style={{ backgroundColor: "#F7F5F0" }}><div><b className="text-sm">{d.boshlanish_vaqti} · {d.sinf_nomi} · {d.fan}</b><small className="block" style={{ color: "#7A8794" }}>{d.xona || "Xona yo‘q"} · {d.mavzu || "Mavzu biriktirilmagan"}</small></div><span className="text-xs">{d.smena}-smena</span></div>)}</div></section>
+        <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}><div className="flex justify-between mb-3"><h2 className="font-bold">Ertangi darslar</h2><span className="text-xs font-semibold">{malumot.ertaga?.kun_nomi}</span></div><div className="space-y-2">{(malumot.ertaga?.darslar || []).map((d) => <div key={d.slot_id} className="rounded-xl p-3" style={{ backgroundColor: "#EAF1F7" }}><b className="text-sm">{d.boshlanish_vaqti} · {d.sinf_nomi} · {d.fan}</b><small className="block" style={{ color: "#7A8794" }}>{d.mavzu || "Mavzu rejasidan kutilmoqda"}</small></div>)}</div></section>
+      </div>
+      {(malumot.rahbar_sinflar || []).length > 0 && <section className="rounded-2xl border bg-white p-4 mt-4" style={{ borderColor: "#DCE6EA" }}><h2 className="font-bold mb-3">Sinf rahbarligi</h2>{malumot.rahbar_sinflar.map((s) => <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl p-3" style={{ backgroundColor: "#EEF6F1" }}><div><b>{s.sinf_nomi} sinf</b><small className="block" style={{ color: "#6E7F89" }}>{s.oquvchilar} o‘quvchi · {s.smena}-smena</small></div><button onClick={() => setDavomatSinfi(s)} className="rounded-lg px-3 py-2 text-sm font-bold text-white" style={{ backgroundColor: "#2E6C55" }}>Davomatni ochish</button></div>)}</section>}
+      {malumot.kundalik_eslatma && <div className="rounded-2xl p-4 mt-4" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><b>Kundalik eslatmasi</b><p className="text-sm">Bugungi darslaringiz bo‘yicha baholarni kiritishni unutmadingizmi?</p></div>}
+    </div>
+  );
+}
 
 function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
@@ -10225,7 +10462,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   const [izohQiymati, setIzohQiymati] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
-  const [korinish, setKorinish] = useState(() => boshlanishKorinishi?.korinish || "togarak");
+  const [korinish, setKorinish] = useState(() => foydalanuvchi?.maktab_id ? "oqituvchi_bosh_ekran" : "togarak"); // maktab o'qituvchisi avval bugungi Ta'lim maydoniga kiradi
   const [muassasalar, setMuassasalar] = useState([]);
   const [muassasalarYuklanmoqda, setMuassasalarYuklanmoqda] = useState(true);
   const [muassasalarJavobiOlindi, setMuassasalarJavobiOlindi] = useState(false);
@@ -10242,7 +10479,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     const requestedKey = muassasaBarqarorKaliti(boshlanishKorinishi?.muassasa);
     if (requestedKey) setAktivMuassasaKaliti(requestedKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boshlanishKorinishi?.vaqt, boshlanishKorinishi?.korinish]);
+  }, [boshlanishKorinishi?.vaqt]);
 
   const [yangiNomi, setYangiNomi] = useState("");
   const [yangiTuri, setYangiTuri] = useState("oddiy"); // "oddiy" | "avto"
@@ -10686,6 +10923,9 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
 
   const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
 
+  if (korinish === "oqituvchi_bosh_ekran") {
+    return <OqituvchiBoshEkran token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+  }
 
   if (korinish === "maktab_rahbariyat" || korinish === "maktab_workspace") {
     return (
@@ -11256,6 +11496,9 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
           bogcha: { kalit: "bogcha_workspace", nom: "Bog‘cha ish maydoni", ikon: Baby, fon: "#FFF0F4", rang: "#B53B67" },
           universitet: { kalit: "institut_workspace", nom: "Institut ish maydoni", ikon: GraduationCap, fon: "#F1EEFF", rang: "#6146A5" },
         }[aktivMuassasa?.turi];
+        if (aktivMuassasa?.turi === "maktab") {
+          bandlar.push({ kalit: "oqituvchi_bosh_ekran", nom: "Bugungi ta’lim maydoni", ikon: CalendarCheck, fon: "#EAF1F7", rang: "#1B4B7A" });
+        }
         if (muassasaBandi) bandlar.push(muassasaBandi);
 
         if (aktivMuassasa?.turi === "maktab" && MUASSASA_BOSHQARUVCHI_LAVOZIM.maktab.includes(aktivMuassasa.lavozim)) {
@@ -13486,11 +13729,9 @@ function Kabinet({ token, onSessionExpired }) {
   const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
   const [xatoMatn, setXatoMatn] = useState("");
   const [muassasalarim, setMuassasalarim] = useState([]);
+  const [muassasalarYuklandi, setMuassasalarYuklandi] = useState(false);
   const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
   const [ishxonaTanlash, setIshxonaTanlash] = useState(null); // bir necha ishxona bo'lsa kirishda tanlash
-  const [ishJoyiAniqlandi, setIshJoyiAniqlandi] = useState(false); // muassasalarim javobi keldi (yoki kerak emas)
-  const [yonMenyuOchiq, setYonMenyuOchiq] = useState(() => { try { return window.localStorage.getItem("samtm_yon_menyu") !== "0"; } catch { return true; } });
-  const yonMenyuniAlmashtir = useCallback(() => setYonMenyuOchiq((v) => { const n = !v; try { window.localStorage.setItem("samtm_yon_menyu", n ? "1" : "0"); } catch { /* jim */ } return n; }), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
   const [kabutarOchiq, setKabutarOchiq] = useState(() => { try { return window.sessionStorage.getItem("samtm_kabutar_ochiq") === "1"; } catch { return false; } });
   const [kabutarYuklangan, setKabutarYuklangan] = useState(kabutarOchiq);
@@ -13498,17 +13739,13 @@ function Kabinet({ token, onSessionExpired }) {
   const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
   const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
   // To'liq ekran ish maydonlari (portal) tepadagi "Ta'lim maydoni | Kabutar" qatorini yopmasin
-  // Tepadagi qator balandligi -> --samtm-portal-top (to'liq ekran oynalar shu yerdan boshlanadi).
-  // Callback-ref: qator DOMga kelgan zahoti o'lchanadi (yuklanish holatidan keyin ham).
-  const topSwitchObsRef = useRef(null);
-  const topSwitchRef = useCallback((el) => {
-    if (topSwitchObsRef.current) { topSwitchObsRef.current.disconnect(); topSwitchObsRef.current = null; }
-    if (!el) { document.documentElement.style.setProperty("--samtm-portal-top", "0px"); return; }
+  const topSwitchRef = useRef(null);
+  useEffect(() => {
+    const el = topSwitchRef.current; if (!el) return undefined;
     const apply = () => { const base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--samtm-top-offset")) || 0; document.documentElement.style.setProperty("--samtm-portal-top", `${Math.round(el.getBoundingClientRect().height + base)}px`); };
-    apply();
-    const ro = new ResizeObserver(apply); ro.observe(el); topSwitchObsRef.current = ro;
+    apply(); const ro = new ResizeObserver(apply); ro.observe(el); window.addEventListener("resize", apply);
+    return () => { ro.disconnect(); window.removeEventListener("resize", apply); document.documentElement.style.removeProperty("--samtm-portal-top"); };
   }, []);
-  useEffect(() => () => { document.documentElement.style.setProperty("--samtm-portal-top", "0px"); if (topSwitchObsRef.current) topSwitchObsRef.current.disconnect(); }, []);
   const [tanlanganMuassasa, setTanlanganMuassasa] = useState(null); // {turi, muassasa_id, muassasa_nomi, lavozim}
   const mavjudMuassasalar = (muassasalarim || []).filter((m) => MUASSASA_TURI_RANG[m.turi]);
   const faolMuassasa = tanlanganMuassasa || mavjudMuassasalar[0] || null;
@@ -13607,6 +13844,16 @@ function Kabinet({ token, onSessionExpired }) {
           .then(setBilimData)
           .catch(() => setBilimData(null));
 
+        // Muassasa holati faqat o‘qituvchiga emas, o‘quvchi va ota-onaga ham
+        // kerak: bosh sahifa aynan ulangan/ulanmagan holatga qarab quriladi.
+        if (u.role !== "oqituvchi" || u.is_admin) {
+          fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
+            .then((response) => response.ok ? response.json() : Promise.reject(new Error("Muassasalar yuklanmadi")))
+            .then((payload) => setMuassasalarim(payload.muassasalar || []))
+            .catch(() => setMuassasalarim([]))
+            .finally(() => setMuassasalarYuklandi(true));
+        }
+
         if (u.role === "oqituvchi" && !u.is_admin) {
           fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
             .then((r) => r.json())
@@ -13624,6 +13871,7 @@ function Kabinet({ token, onSessionExpired }) {
                 } catch { /* institutga a'zo bo'lmasa — jim */ }
               }
               setMuassasalarim(list);
+              setMuassasalarYuklandi(true);
               const faol = list.filter((m) => KORINISH[m.turi]);
               if (faol.length === 1) {
                 // Bitta ishxona — kirishdan keyin to'g'ridan-to'g'ri o'sha ishxona ochiladi.
@@ -13633,11 +13881,8 @@ function Kabinet({ token, onSessionExpired }) {
               } else if (faol.length > 1) {
                 setIshxonaTanlash(faol);
               }
-              setIshJoyiAniqlandi(true);
             })
-            .catch(() => setIshJoyiAniqlandi(true));
-        } else {
-          setIshJoyiAniqlandi(true);
+            .catch(() => setMuassasalarYuklandi(true));
         }
 
         // Har rol o'ziga mos boshlang'ich sahifadan boshlaydi
@@ -13821,20 +14066,9 @@ function Kabinet({ token, onSessionExpired }) {
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+        .samtm-kabutar-full{min-height:calc(100vh - 60px)}
         .samtm-top-spacer{height:64px}
-        /* Tepadagi qator hech narsani yopmasin: yon menyu va sticky sarlavha uning tagidan boshlanadi */
-        .premium-sidebar{top:var(--samtm-portal-top,64px) !important;height:calc(100vh - var(--samtm-portal-top,64px));inset:auto auto 0 0 !important}
-        .premium-topbar{top:var(--samtm-portal-top,64px) !important}
-        .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px))}
-        .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 12px 4px;overflow-x:auto;align-items:stretch;margin-left:264px}
-        .samtm-muassasa-strip.yon-yopiq{margin-left:0}
-        @media (max-width:1120px) and (min-width:821px){.samtm-muassasa-strip{margin-left:92px}}
-        @media (max-width:820px){.samtm-muassasa-strip{margin-left:0}}
-        .samtm-muassasa-matn b{color:inherit !important}.samtm-muassasa-card.on .samtm-muassasa-matn b,.samtm-muassasa-card.on .samtm-muassasa-matn small{color:#fff !important}
-        /* Yon menyu yopiq: sidebar yashirin, main to'liq kenglik */
-        .samtm-yon-yopiq .premium-sidebar{display:none !important}.samtm-yon-yopiq .premium-app-main{margin-left:0 !important}
-        .samtm-yon-toggle{position:fixed;left:8px;bottom:14px;z-index:2147483050;width:40px;height:40px;border-radius:12px;border:1px solid #E5E1D8;background:#fff;color:#1B4B7A;font-weight:900;box-shadow:0 6px 20px rgba(23,50,75,.15)}
-        @media (max-width:820px){.samtm-yon-toggle{display:none}}
+        .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 10px 4px;overflow-x:auto;align-items:stretch}
         .samtm-muassasa-card{display:flex;align-items:stretch;flex:0 0 auto;min-width:140px;max-width:220px;border-radius:16px;border:1px solid #E5E1D8;background:#fff;transition:all .18s;overflow:hidden}
         .samtm-muassasa-card.on{flex:1 1 320px;max-width:none;background:var(--m-rang);border-color:var(--m-rang);color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.14);transform:translateY(-2px)}
         .samtm-muassasa-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:10px 12px;text-align:left;background:transparent;border:0;color:inherit}
@@ -13853,11 +14087,19 @@ function Kabinet({ token, onSessionExpired }) {
       </div>
       {kabutarYuklangan && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
         <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
-          <KabutarPanel token={token} apiBase={API_BASE} title="Rasmiy aloqa" onClose={() => kabutarniOch(false)} onUnread={kabutarOqilmaganniOl} />
+          <KabutarPanel
+            token={token}
+            apiBase={API_BASE}
+            title="Rasmiy aloqa"
+            maktabId={faolMuassasa?.turi === "maktab" ? faolMuassasa.muassasa_id : null}
+            scope={faolMuassasa ? { turi: faolMuassasa.turi, muassasa_id: faolMuassasa.muassasa_id } : null}
+            onClose={() => kabutarniOch(false)}
+            onUnread={kabutarOqilmaganniOl}
+          />
         </React.Suspense>
       </div>}
       <div style={{ display: kabutarOchiq ? "none" : "block" }}>
-      {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
+      {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className="samtm-muassasa-strip">
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
           <button type="button" className="samtm-muassasa-main" onClick={() => muassasaniTanla(m)} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
             <span className="samtm-muassasa-ikon">{meta.ikon}</span>
@@ -13865,8 +14107,7 @@ function Kabinet({ token, onSessionExpired }) {
           </button>
         </div>; })}
       </div>}
-      <button type="button" className="samtm-yon-toggle" onClick={yonMenyuniAlmashtir} title={yonMenyuOchiq ? "Yon menyuni yopish — kengroq ish maydoni" : "Yon menyuni ochish"}>{yonMenyuOchiq ? "‹" : "›"}</button>
-      <div className={`premium-app-shell ${yonMenyuOchiq ? "" : "samtm-yon-yopiq"}`} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
+      <div className="premium-app-shell" style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
         <main className="premium-app-main">
           <header className="premium-topbar">
             <div>
@@ -13894,13 +14135,12 @@ function Kabinet({ token, onSessionExpired }) {
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
-        (ishJoyiAniqlandi ? <OqituvchiTab
-          key={oqituvchiBoshlanishKorinishi?.korinish || "togarak"}
+        <OqituvchiTab
           token={token}
           foydalanuvchi={foydalanuvchi}
           boshlanishKorinishi={oqituvchiBoshlanishKorinishi}
           birInstitutAvtoOchishRef={birInstitutAvtoOchishRef}
-        /> : <div className="py-16 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /><p className="text-sm mt-3" style={{ color: "#8A8578" }}>Ish joyingiz aniqlanmoqda…</p></div>)
+        />
       )}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi_analitika" && (
         <TeacherAnalyticsPanel
@@ -13911,20 +14151,28 @@ function Kabinet({ token, onSessionExpired }) {
       )}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && (
-        <BilimMarkazi
-          token={token}
-          data={bilimData}
-          bolaId={foydalanuvchi?.user_id}
-          rang={joriyRang}
-          onOpenTest={(topic) => {
-            setTalimYoliTestNishoni({ ...topic, nonce: Date.now() });
-            setTab("test");
-          }}
-          onOpenLesson={(topic) => {
-            setTalimYoliDarsNishoni({ ...topic, nonce: Date.now() });
-            setTab("ai_ustoz");
-          }}
-        />
+        !muassasalarYuklandi ? <div className="py-12 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: joriyRang }}/><p className="text-xs mt-2" style={{ color: "#7A8794" }}>Ta’lim holati aniqlanmoqda…</p></div>
+        : mavjudMuassasalar.length === 0 ? <TashkilotsizOquvchiBoshSahifa
+            foydalanuvchi={foydalanuvchi}
+            bilimData={bilimData}
+            rang={joriyRang}
+            onTest={() => setTab("test")}
+            onProfil={() => setTab("profil")}
+          />
+        : <BilimMarkazi
+            token={token}
+            data={bilimData}
+            bolaId={foydalanuvchi?.user_id}
+            rang={joriyRang}
+            onOpenTest={(topic) => {
+              setTalimYoliTestNishoni({ ...topic, nonce: Date.now() });
+              setTab("test");
+            }}
+            onOpenLesson={(topic) => {
+              setTalimYoliDarsNishoni({ ...topic, nonce: Date.now() });
+              setTab("ai_ustoz");
+            }}
+          />
       )}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
         <AiOquvchiUstozBolimi token={token} initialTarget={talimYoliDarsNishoni} />
