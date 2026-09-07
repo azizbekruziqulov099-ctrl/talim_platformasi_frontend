@@ -362,7 +362,7 @@ const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) 
       })}
     </p>
   );
-}
+});
 
 // LaTeX ifodani OVOZLI O'QISH uchun, tabiiy o'zbekcha gapga aylantiradi.
 // Eng ko'p uchraydigan naqshlarni (kasr, daraja, ildiz, asosiy amallar)
