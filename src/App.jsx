@@ -362,7 +362,7 @@ const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) 
       })}
     </p>
   );
-});
+}
 
 // LaTeX ifodani OVOZLI O'QISH uchun, tabiiy o'zbekcha gapga aylantiradi.
 // Eng ko'p uchraydigan naqshlarni (kasr, daraja, ildiz, asosiy amallar)
@@ -10570,7 +10570,7 @@ function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
       {malumot.kundalik_eslatma && <div className="rounded-2xl p-4 mt-4" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><b>Kundalik eslatmasi</b><p className="text-sm">Bugungi darslaringiz bo‘yicha baholarni kiritishni unutmadingizmi?</p></div>}
     </div>
   );
-}
+});
 
 function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
