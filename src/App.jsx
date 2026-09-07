@@ -66,6 +66,7 @@ const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
 const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
+const StudentScheduleWorkspace = _samtmLazyRetry(() => import("./student/StudentScheduleWorkspace.jsx"));
 const lazyAdminTestTool = (exportName) =>
   _samtmLazyRetry(() =>
     import("./AdminTestTools.jsx").then((module) => ({ default: module[exportName] })),
@@ -14309,7 +14310,17 @@ function Kabinet({ token, onSessionExpired }) {
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && (
         !muassasalarYuklandi ? <div className="py-12 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: joriyRang }}/><p className="text-xs mt-2" style={{ color: "#7A8794" }}>Ta’lim holati aniqlanmoqda…</p></div>
-        : mavjudMuassasalar.length === 0 ? <TashkilotsizOquvchiBoshSahifa
+        : <>
+          <StudentScheduleWorkspace
+            token={token}
+            student={foydalanuvchi}
+            apiBase={API_BASE}
+            onOpenTest={(topic) => {
+              setTalimYoliTestNishoni({ ...topic, nonce: Date.now() });
+              setTab("test");
+            }}
+          />
+          {mavjudMuassasalar.length === 0 ? <TashkilotsizOquvchiBoshSahifa
             foydalanuvchi={foydalanuvchi}
             bilimData={bilimData}
             rang={joriyRang}
@@ -14330,6 +14341,8 @@ function Kabinet({ token, onSessionExpired }) {
               setTab("ai_ustoz");
             }}
           />
+          }
+        </>
       )}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
         <AiOquvchiUstozBolimi token={token} initialTarget={talimYoliDarsNishoni} />
