@@ -534,8 +534,13 @@ export default function TestTab({
   // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi (test tugatilishi
   // yoki to'xtatilishi kerak).
   useEffect(() => {
-    if (onTestFaollik) onTestFaollik(holat === "savollar" || holat === "oyin");
-    return () => { if (onTestFaollik) onTestFaollik(false); };
+    const faol = holat === "savollar" || holat === "oyin";
+    if (onTestFaollik) onTestFaollik(faol);
+    document.documentElement.classList.toggle("samtm-test-active", faol);
+    return () => {
+      document.documentElement.classList.remove("samtm-test-active");
+      if (onTestFaollik) onTestFaollik(false);
+    };
   }, [holat, onTestFaollik]);
 
   useEffect(() => {
@@ -912,8 +917,10 @@ export default function TestTab({
     audio.preload = "auto";
     audio.playbackRate = ovozTezligi;
     ovozRef.current = audio;
+    let audioTimeoutId = null;
     const tugatish = (status) => {
       if (ovozRef.current !== audio) return;
+      if (audioTimeoutId) clearTimeout(audioTimeoutId);
       audio.onplaying = null;
       audio.onended = null;
       audio.onerror = null;
@@ -930,6 +937,10 @@ export default function TestTab({
     audio.onplaying = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
     audio.onended = () => tugatish("ended");
     audio.onerror = () => tugatish("error");
+    audioTimeoutId = setTimeout(() => {
+      try { audio.pause(); } catch { /* jim */ }
+      tugatish("error");
+    }, 2500);
     audio.play().catch(() => tugatish("blocked"));
     return audio.__samTmPromise;
   }, [foydalanuvchi?.asosiy_til, foydalanuvchi?.jins, foydalanuvchi?.ovoz_jinsi, ovozTezligi, ovozniToxtat]);
