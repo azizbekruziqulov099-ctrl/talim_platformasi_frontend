@@ -14235,7 +14235,7 @@ function Kabinet({ token, onSessionExpired }) {
         .samtm-muassasa-card:not(.on) .samtm-muassasa-matn b{color:#21384C}.samtm-muassasa-card:not(.on) .samtm-muassasa-matn small{color:#7A8794}
 
       `}</style>
-      {!testDavomida && <>
+      {tab !== "test" && !testDavomida && <>
         <div className="samtm-top-spacer" aria-hidden="true" />
         <div className="samtm-top-switch" ref={topSwitchRef}>
           <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ta’lim maydoni — turgan joyingiz saqlanadi">🧭 Ta’lim maydoni</button>
