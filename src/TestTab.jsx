@@ -7,6 +7,8 @@ import {
   gameQuestionOptions,
   gradeBandForClass,
 } from "./testGameRules.js";
+import LearningQuest from "./test/LearningQuest.jsx";
+import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
 const TestGameArena = React.lazy(() => import("./TestGameArena.jsx"));
 const GameModePicker = React.lazy(() =>
@@ -22,34 +24,6 @@ const API_BASE =
 
 const MAVZULAR_XOTIRA_KESHI = new Map();
 const MAVZULAR_KESH_MS = 5 * 60 * 1000;
-
-// TestGameArena'ning eski versiyasi javob natijasini ko'rsatgandan keyin
-// keyingi savolga o'tishni 4.5 soniya ushlab turadi. Bu modul endi faqat
-// o'yin ochilganda yuklanadi; uning aniq 4500 ms kutishi qisqartiriladi.
-const OYIN_ESKI_JAVOB_KUTISH_MS = 4500;
-const OYIN_TEZ_JAVOB_KUTISH_MS = 1200;
-
-function _oyinJavobKutishiniTezlashtir() {
-  if (typeof window === "undefined" || window.__samTmOyinTezTaymer) return;
-  const aslSetTimeout = window.setTimeout.bind(window);
-  window.setTimeout = (callback, delay, ...args) => {
-    const haqiqiyKutish = Number(delay) === OYIN_ESKI_JAVOB_KUTISH_MS
-      ? OYIN_TEZ_JAVOB_KUTISH_MS
-      : delay;
-    return aslSetTimeout(callback, haqiqiyKutish, ...args);
-  };
-  window.__samTmOyinTezTaymer = true;
-
-  // Arena ichidagi eski 5 soniyalik raqam yangi tez o'tishga mos emas.
-  // Natija va "Keyingi savolga o'tiladi" matni ko'rinishda qoladi.
-  const style = document.createElement("style");
-  style.dataset.samtmOyinTezTaymer = "true";
-  style.textContent = ".scene-feedback-countdown{display:none!important}";
-  document.head.appendChild(style);
-}
-
-_oyinJavobKutishiniTezlashtir();
-
 
 function haqiqiyRasmKodimi(qiymat) {
   if (!qiymat) return false;
@@ -74,19 +48,23 @@ function _tokenDanUserIdOl(token) {
 }
 
 function SavolFormulasi({ ifoda }) {
+  const qiymat = String(ifoda || "");
+  const aralash = /\[lat\]|\$|\\\(|\\\[/.test(qiymat);
   const html = useMemo(() => {
+    if (aralash) return null;
     try {
-      return katex.renderToString(ifoda, { throwOnError: false, output: "html", displayMode: true });
+      return katex.renderToString(qiymat, { throwOnError: false, output: "html", displayMode: true });
     } catch {
       return null;
     }
-  }, [ifoda]);
+  }, [aralash, qiymat]);
 
-  if (!html) return null;
   return (
     <div className="w-full rounded-xl mb-4 flex items-center justify-center py-6 px-4"
       style={{ backgroundColor: "#F1EFE8", border: "1px solid #E5E1D8" }}>
-      <span dangerouslySetInnerHTML={{ __html: html }} style={{ fontSize: "1.3rem", color: "#2B2B2B" }} />
+      {aralash ? <AralashMatn matn={qiymat} className="m-0 text-lg" style={{ color: "#2B2B2B" }} />
+        : html ? <span dangerouslySetInnerHTML={{ __html: html }} style={{ fontSize: "1.3rem", color: "#2B2B2B" }} />
+        : <span style={{ color: "#2B2B2B" }}>{qiymat}</span>}
     </div>
   );
 }
@@ -101,17 +79,19 @@ function SavolFormulasi({ ifoda }) {
 // belgisiz XOM LaTeX buyrug'i (\tfrac{a}{b}, \sqrt{a}, \times va h.k.) —
 // AI ba'zan teglarni butunlay unutib qo'yadi, shuning uchun buyruqning
 // o'zini ham (belgisiz holda) tanib, chizadi.
-const _LATEX_QISM_NAQSHI = "\\$[^$]+\\$|\\[lat\\][^]*?\\[\\/lat\\]|\\\\(?:tfrac|dfrac|frac)\\{[^{}]*\\}\\{[^{}]*\\}|\\\\sqrt\\{[^{}]*\\}|\\\\(?:times|div|cdot|pm|leq|geq|neq|infty|approx)(?![a-zA-Z])";
+const _LATEX_QISM_NAQSHI = "\\[lat\\][^]*?\\[\\/lat\\]|\\$[^$]+\\$|\\\\\\([^]*?\\\\\\)|\\\\\\[[^]*?\\\\\\]|\\\\(?:tfrac|dfrac|frac)\\{[^{}]*\\}\\{[^{}]*\\}|\\\\sqrt\\{[^{}]*\\}|\\\\(?:lim|sum|prod|int)(?:_\\{[^{}]*\\})?(?:\\^\\{[^{}]*\\})?|\\\\(?:to|times|div|cdot|pm|leq|geq|neq|infty|approx)(?![a-zA-Z])";
 const _LATEX_BOLISH_REGEX = new RegExp(`(${_LATEX_QISM_NAQSHI})`, "g");
 
 function _latexMatniniAjrat(qism) {
   if (qism.startsWith("$") && qism.endsWith("$") && qism.length > 2) return qism.slice(1, -1);
   if (qism.startsWith("[lat]") && qism.endsWith("[/lat]")) return qism.slice(5, -6);
+  if (qism.startsWith("\\(") && qism.endsWith("\\)")) return qism.slice(2, -2);
+  if (qism.startsWith("\\[") && qism.endsWith("\\]")) return qism.slice(2, -2);
   if (qism.startsWith("\\")) return qism; // xom LaTeX buyrug'i — belgisiz, to'g'ridan-to'g'ri KaTeX'ga beriladi
   return null;
 }
 
-function AralashMatn({ matn, className, style }) {
+const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) {
   // $...$ , [lat]...[/lat] VA belgisiz xom LaTeX buyrug'i — uchalasi ham
   // xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
   const qismlar = useMemo(() => (matn || "").split(_LATEX_BOLISH_REGEX), [matn]);
@@ -131,7 +111,7 @@ function AralashMatn({ matn, className, style }) {
       })}
     </p>
   );
-}
+});
 
 // LaTeX ifodani OVOZLI O'QISH uchun, tabiiy o'zbekcha gapga aylantiradi.
 // Eng ko'p uchraydigan naqshlarni (kasr, daraja, ildiz, asosiy amallar)
@@ -457,8 +437,10 @@ function SavolRasmi({ rasmId }) {
 function tegsizKorsat(matn) {
   // Ko'rsatishda [ru]so'z[/ru] kabi teglarni yashiradi (faqat ichidagi matnni qoldiradi) —
   // ovozga esa XOM matn (teg bilan) beriladi, shunda mos tilda o'qiladi.
+  // [lat] esa til tegi EMAS, formula chegarasi. Uni olib tashlasak parser
+  // formulani bo'laklab, `\\lim` va `-\\frac14`ni xom matn qilib chiqaradi.
   if (!matn) return matn;
-  return matn.replace(/\[\/?[a-zA-Z]+\]/g, "");
+  return displayTextKeepingLatex(matn);
 }
 
 function Matn({ matn, latex }) {
@@ -1243,6 +1225,15 @@ export default function TestTab({
     const rangi = natija.foiz >= 85 ? "#C89B3C" : natija.foiz >= 65 ? "#2D8B8B" : natija.foiz >= 45 ? "#B0553A" : "#8A8578";
     return (
       <div className="px-5 pt-10 pb-6">
+        <div className="max-w-3xl mx-auto mb-5">
+          <LearningQuest
+            grade={tanlanganMavzu?.sinf || sinf || tanlanganSinf}
+            totalQuestions={natija.jami}
+            answeredCount={natija.jami}
+            correctCount={natija.togri}
+            finished
+          />
+        </div>
         <div className="text-center">
           <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${rangi}1A` }}>
             <span className="text-2xl font-bold" style={{ color: rangi }}>{natija.foiz}%</span>
@@ -1438,6 +1429,14 @@ export default function TestTab({
 
     return (
       <div className="px-5 pt-6 pb-4">
+        <div className="max-w-3xl mx-auto mb-4">
+          <LearningQuest
+            grade={tanlanganMavzu?.sinf || sinf || tanlanganSinf}
+            totalQuestions={savollar.length}
+            answeredCount={joriySavol + (joriyNatija ? 1 : 0)}
+            correctCount={toGriSoni}
+          />
+        </div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <p className="text-xs font-medium" style={{ color: "#8A8578" }}>{joriySavol + 1} / {savollar.length}</p>
@@ -1611,6 +1610,14 @@ export default function TestTab({
 
     return (
       <div className="pb-24">
+        <div className="px-5 pt-4">
+          <LearningQuest
+            grade={tanlanganMavzu?.sinf || sinf || tanlanganSinf}
+            totalQuestions={savollar.length}
+            answeredCount={jamiJavoblangan}
+            correctCount={0}
+          />
+        </div>
         {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
         <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
           <div className="flex items-center justify-between mb-2.5">
@@ -2015,5 +2022,4 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
     </div>
   );
 }
-
 
