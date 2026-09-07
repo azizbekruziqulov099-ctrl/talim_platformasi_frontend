@@ -1,141 +1,24 @@
-export const ORGANIZATION_TRIAL_DAYS = 30;
-export const ORGANIZATION_ACTIVATION_PRICE_UZS = 200_000;
-export const ADMIN_WALLET_CREDIT_MAX_UZS = 100_000_000;
+export const PAYMENTS_ENABLED = false;
 export const PRIVATE_OWNERSHIP_TYPE = "private";
-
+export const ORGANIZATION_TRIAL_DAYS = 0;
+export const ORGANIZATION_ACTIVATION_PRICE_UZS = 0;
+export const ADMIN_WALLET_CREDIT_MAX_UZS = 100_000_000;
 export const ORGANIZATION_TYPES = Object.freeze([
-  {
-    value: "kindergarten",
-    label: "Bog'cha",
-    icon: "🧸",
-    legacyType: "bogcha",
-    workspace: "bogcha_workspace",
-  },
-  {
-    value: "school",
-    label: "Maktab",
-    icon: "🏫",
-    legacyType: "maktab",
-    workspace: "maktab_workspace",
-  },
-  {
-    value: "learning_center",
-    label: "O'quv markazi",
-    icon: "🎓",
-    legacyType: "markaz",
-    workspace: "markaz_workspace",
-  },
-  {
-    value: "institute",
-    label: "Institut",
-    icon: "🏛️",
-    legacyType: "universitet",
-    workspace: "institut_workspace",
-  },
+  { value: "kindergarten", label: "Bog'cha", icon: "🧸", legacyType: "bogcha", workspace: "bogcha_workspace" },
+  { value: "school", label: "Maktab", icon: "🏫", legacyType: "maktab", workspace: "maktab_workspace" },
+  { value: "learning_center", label: "O'quv markazi", icon: "🎓", legacyType: "markaz", workspace: "markaz_workspace" },
+  { value: "institute", label: "Institut", icon: "🏛️", legacyType: "universitet", workspace: "institut_workspace" },
 ]);
-
-const TYPE_BY_VALUE = new Map(ORGANIZATION_TYPES.map((item) => [item.value, item]));
-
-export function organizationTypeMeta(value) {
-  return TYPE_BY_VALUE.get(value) || {
-    value,
-    label: "Muassasa",
-    icon: "🏢",
-    legacyType: null,
-    workspace: null,
-  };
-}
-
-export function formatUzs(value) {
-  const amount = Number.isFinite(Number(value))
-    ? Number(value)
-    : ORGANIZATION_ACTIVATION_PRICE_UZS;
-  return `${Math.max(0, amount).toLocaleString("uz-UZ")} UZS`;
-}
-
-export function organizationIsReadOnly(organization) {
-  return organization?.access_mode === "read_only" || organization?.lifecycle_status === "read_only";
-}
-
-export function organizationCanActivate(organization) {
-  if (!organization || organization.lifecycle_status === "active") return false;
-  if (typeof organization.can_activate === "boolean") return organization.can_activate;
-  return organization.lifecycle_status === "trial" || organizationIsReadOnly(organization);
-}
-
-export function organizationTrialState(organization) {
-  if (organization?.lifecycle_status === "active") {
-    return {
-      key: "active",
-      label: "Faol",
-      detail: "Muassasa bir martalik to'lov bilan faollashtirilgan.",
-    };
-  }
-  if (organizationIsReadOnly(organization)) {
-    return {
-      key: "read_only",
-      label: "Faqat ko'rish",
-      detail: "Sinov tugagan. Ma'lumotlar saqlangan, lekin tahrirlash faollashtirilguncha yopiq.",
-    };
-  }
-  const days = Math.max(0, Number.parseInt(organization?.days_remaining, 10) || 0);
-  return {
-    key: "trial",
-    label: "Bepul sinov",
-    detail: `${days} kun qoldi`,
-  };
-}
-
-export function formatTrialEnd(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("uz-UZ", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
-}
-
-export function makeOrganizationIdempotencyKey(scope = "organization") {
-  const uuid = globalThis.crypto?.randomUUID?.();
-  if (uuid) return `${scope}:${uuid}`;
-  return `${scope}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
-}
-
-export function buildTrialStartPayload({ organizationType, name, idempotencyKey }) {
-  if (!TYPE_BY_VALUE.has(organizationType)) {
-    throw new Error("Muassasa turini tanlang");
-  }
-  const normalizedName = String(name || "").trim();
-  if (normalizedName.length < 2) {
-    throw new Error("Muassasa nomini kiriting");
-  }
-  if (!idempotencyKey) {
-    throw new Error("So'rov kaliti yaratilmagan");
-  }
-  return {
-    organization_type: organizationType,
-    name: normalizedName,
-    ownership_type: PRIVATE_OWNERSHIP_TYPE,
-    confirm_start: true,
-    idempotency_key: idempotencyKey,
-  };
-}
-
-export function buildActivationPayload({ confirmed, idempotencyKey }) {
-  if (!confirmed) {
-    throw new Error("200 000 UZS yechilishini tasdiqlang");
-  }
-  if (!idempotencyKey) {
-    throw new Error("So'rov kaliti yaratilmagan");
-  }
-  return {
-    confirm_charge: true,
-    idempotency_key: idempotencyKey,
-  };
-}
-
+const TYPE_BY_VALUE = new Map(ORGANIZATION_TYPES.map(item => [item.value, item]));
+export const organizationTypeMeta = value => TYPE_BY_VALUE.get(value) || { value, label: "Muassasa", icon: "🏢", legacyType: null, workspace: null };
+export const formatUzs = value => `${Math.max(0, Number(value) || 0).toLocaleString("uz-UZ")} UZS`;
+export const organizationIsReadOnly = () => false;
+export const organizationCanActivate = () => false;
+export const organizationTrialState = () => ({ key: "active", label: "Faol · bepul", detail: "Barcha imkoniyatlar hozircha bepul ochilgan." });
+export function formatTrialEnd() { return "Muddatsiz"; }
+export function makeOrganizationIdempotencyKey(scope = "organization") { return `${scope}:${globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`; }
+export function buildTrialStartPayload({ organizationType, name, idempotencyKey }) { const normalizedName = String(name || "").trim(); if (!TYPE_BY_VALUE.has(organizationType)) throw new Error("Muassasa turini tanlang"); if (normalizedName.length < 2) throw new Error("Muassasa nomini kiriting"); return { organization_type: organizationType, name: normalizedName, ownership_type: "private", confirm_start: true, free_mode: true, idempotency_key: idempotencyKey || makeOrganizationIdempotencyKey("free") }; }
+export function buildActivationPayload() { return { confirm_charge: false, free_mode: true }; }
 export function buildAdminWalletCreditPayload({
   userId,
   amountUzs,
@@ -176,35 +59,5 @@ export function buildAdminWalletCreditPayload({
     idempotency_key: idempotencyKey,
   };
 }
-
-export function organizationTrialErrorMessage(detail, fallback = "Amalni bajarib bo'lmadi") {
-  const source = detail?.detail ?? detail;
-  const code = source?.code || detail?.code;
-  if (code === "INSUFFICIENT_WALLET_BALANCE") {
-    return `Hamyon mablag'i yetarli emas. Kerak: ${formatUzs(source.required_uzs)}, mavjud: ${formatUzs(source.balance_uzs)}.`;
-  }
-  if (code === "TRIAL_READ_ONLY" || code === "ORGANIZATION_READ_ONLY") {
-    return "Sinov muddati tugagan. Ma'lumotlar saqlangan, hozir faqat ko'rish mumkin.";
-  }
-  if (typeof source === "string" && source.trim()) return source;
-  if (typeof source?.message === "string" && source.message.trim()) return source.message;
-  if (typeof detail?.message === "string" && detail.message.trim()) return detail.message;
-  return fallback;
-}
-
-export function organizationToLegacyMembership(organization) {
-  const meta = organizationTypeMeta(organization?.organization_type);
-  if (!organization || !meta.legacyType) return null;
-  return {
-    turi: meta.legacyType,
-    muassasa_id: organization.context_id || organization.id,
-    muassasa_nomi: organization.name,
-    lavozim: "owner",
-    context_id: organization.context_id,
-    organization_v17_id: organization.id,
-    lifecycle_status: organization.lifecycle_status,
-    access_mode: organization.access_mode,
-    trial_ends_at: organization.trial_ends_at,
-    days_remaining: organization.days_remaining,
-  };
-}
+export const organizationTrialErrorMessage = (detail, fallback = "Amalni bajarib bo'lmadi") => typeof (detail?.detail ?? detail) === "string" ? (detail?.detail ?? detail) : detail?.message || fallback;
+export function organizationToLegacyMembership(organization) { const meta = organizationTypeMeta(organization?.organization_type); if (!organization || !meta.legacyType) return null; return { turi: meta.legacyType, muassasa_id: organization.context_id || organization.id, muassasa_nomi: organization.name, lavozim: "owner", context_id: organization.context_id, organization_v17_id: organization.id, lifecycle_status: "active", access_mode: "full", days_remaining: null }; }
