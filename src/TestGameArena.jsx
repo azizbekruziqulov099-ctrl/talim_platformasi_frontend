@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
+import "./testGamesLight.css";
 import avatarAdultBoy from "./assets/game-avatars/adult_boy.webp";
 import avatarAdultGirl from "./assets/game-avatars/adult_girl.webp";
 import avatarChildBoy from "./assets/game-avatars/child_boy.webp";
@@ -114,12 +115,18 @@ export function resolveGameAvatarProfile(profile = {}, gradeBand = "applicant", 
 
 
 function GameText({ value }) {
-  const text = String(value || "").replace(/\[\/?(?:lat|ru|en|uz)\]/gi, "");
-  const parts = text.split(/(\$[^$]+\$|\\(?:tfrac|dfrac|cfrac|frac)\{[^{}]*\}\{[^{}]*\}|\\sqrt\{[^{}]*\}|\\(?:times|div|cdot|pm|leq|geq|neq|infty|approx))/g);
+  const text = String(value || "")
+    .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "\$$1\$")
+    .replace(/\[\/?(?:ru|en|uz)\]/gi, "");
+  const rawMathStart = text.search(/\\(?:lim|sum|prod|int|tfrac|dfrac|cfrac|frac|sqrt|begin|left|sin|cos|tan|log|ln)\b/);
+  const normalized = !text.includes("$") && rawMathStart >= 0
+    ? `${text.slice(0, rawMathStart)}$${text.slice(rawMathStart).trim()}$`
+    : text;
+  const parts = normalized.split(/(\$[^$]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/g);
   return parts.map((part, index) => {
-    const looksMath = /^\$[^$]+\$$/.test(part) || /^\\/.test(part);
+    const looksMath = /^\$[^$]+\$$/.test(part) || /^\\\([\s\S]*\\\)$/.test(part) || /^\\\[[\s\S]*\\\]$/.test(part);
     if (!looksMath) return <React.Fragment key={index}>{part}</React.Fragment>;
-    const expression = part.startsWith("$") ? part.slice(1, -1) : part;
+    const expression = part.startsWith("$") ? part.slice(1, -1) : part.slice(2, -2);
     try {
       const html = katex.renderToString(expression, { throwOnError: false, output: "html" });
       return <span key={index} className="game-math" dangerouslySetInnerHTML={{ __html: html }} />;
@@ -710,7 +717,9 @@ export default function TestGameArena({
       .join(". ");
     return `${question.question || ""}${options ? `. ${options}` : ""}`;
   }, [question]);
-  const autoRead = shouldAutoReadGameQuestion(session, question || {});
+  // Ovoz tarmoqdan kechiksa ham savol va taymer hech qachon uni kutmaydi.
+  // Ovoz faqat foydalanuvchi karnayni bosganda, mustaqil ishlaydi.
+  const autoRead = false;
   const stopReadRef = useRef(onStopRead);
   const readRef = useRef(onRead);
   const mountedRef = useRef(false);
@@ -1463,9 +1472,14 @@ export default function TestGameArena({
       </header>
       <div className="game-overall-track" role="progressbar" aria-label="O'yin jarayoni" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
 
-      <div className={`game-stage game-stage-${mode} ${sceneStateClass(feedback)}`}>
-        <GameScene mode={mode} question={question} feedback={feedback} avatarProfile={avatarProfile} />
-        <GameLivesHud mode={mode} livesRemaining={livesRemaining} feedback={feedback} />
+      <div className={`game-stage game-stage-${mode} game-stage-light ${sceneStateClass(feedback)}`}>
+        <div className="game-light-journey" aria-label="Bilim bosqichlari">
+          {[1, 2, 3, 4, 5].map((step) => {
+            const currentStep = Math.max(1, Math.min(5, Number(question.round_step || 1)));
+            return <span key={step} className={step < currentStep ? "is-done" : step === currentStep ? "is-current" : ""}>{step < currentStep ? "✓" : step}</span>;
+          })}
+          <strong>{isBoss ? age.bossName : "Bilim yo‘li"}</strong>
+        </div>
 
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
@@ -1508,12 +1522,6 @@ export default function TestGameArena({
           style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%" } : undefined}
           aria-label={isBoss ? "Boss javob variantlari" : "Javob variantlari"}
         >
-          {mode === "bridge" && (
-            <>
-              <i className="bridge-golden-path" aria-hidden="true" />
-              <div className="bridge-choice-runner" aria-hidden="true"><GameAvatar variant="runner" profile={avatarProfile} /></div>
-            </>
-          )}
           {(question.options || []).map((option) => (
             <button
               type="button"
@@ -1548,15 +1556,6 @@ export default function TestGameArena({
         </div>
           </main>
         </div>
-        <SceneFeedbackFX
-          key={`${feedbackTransitionKey || questionKey}:${stopConfirm ? "paused" : "active"}`}
-          feedback={feedback}
-          mode={mode}
-          transition={feedbackTransition}
-          countdown={feedbackCountdown}
-          paused={stopConfirm}
-          bossName={age.bossName}
-        />
       </div>
 
       {stopConfirm && (
