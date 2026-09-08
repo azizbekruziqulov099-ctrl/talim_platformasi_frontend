@@ -44,7 +44,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const [idResult, setIdResult] = useState(null); const [idBusy, setIdBusy] = useState(false); const [idError, setIdError] = useState("");
   const searchById = async () => {
     const key = normalizeKabutarId(idQuery);
-    if (!key) { setIdError("ID 6 xonali raqam: masalan KB-123456"); return; }
+    if (!key) { setIdError("ID 6–10 xonali raqam: masalan KB-56928957"); return; }
     if (key === directory?.men?.kabutar_id) { setAccountView({ page: "profile" }); return; }
     setIdBusy(true); setIdError(""); setIdResult(null);
     try {
