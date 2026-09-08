@@ -1,9 +1,9 @@
-// REV27: account-local presentation settings; server permissions still govern contacts.
+// REV28: ID search accepts 6–10 digits; account-local presentation settings; server permissions still govern contacts.
 export const DEFAULT_KABUTAR_SETTINGS = Object.freeze({ textSize: 15, enterToSend: false, showPreviews: true });
 
 export function normalizeKabutarId(value) {
   const compact = String(value || "").trim().replace(/^KB[\s-]*/i, "");
-  return /^\d{6}$/.test(compact) ? `KB-${compact}` : "";
+  return /^\d{6,10}$/.test(compact) ? `KB-${compact}` : "";
 }
 
 export function normalizeSettings(value) {
