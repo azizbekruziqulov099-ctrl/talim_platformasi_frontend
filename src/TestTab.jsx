@@ -936,12 +936,40 @@ export default function TestTab({
     audio.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
     audio.onplaying = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
     audio.onended = () => tugatish("ended");
-    audio.onerror = () => tugatish("error");
-    audioTimeoutId = setTimeout(() => {
+    const brauzerZaxiraOvozi = () => {
+      if (!SpeechUtterance || !speech || ovozRef.current !== audio) {
+        tugatish("error");
+        return;
+      }
+      if (audioTimeoutId) clearTimeout(audioTimeoutId);
+      audio.onplaying = null; audio.onended = null; audio.onerror = null;
       try { audio.pause(); } catch { /* jim */ }
-      tugatish("error");
-    }, 2500);
-    audio.play().catch(() => tugatish("blocked"));
+      ovozRef.current = null;
+      const utterance = new SpeechUtterance(tozaMatn);
+      utterance.lang = OVOZ_TIL_LANG[asosiyTil] || "uz-UZ";
+      utterance.rate = ovozTezligi;
+      utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
+      const yakun = (status) => {
+        if (ovozNutqRef.current !== utterance) return;
+        ovozNutqRef.current = null; ovozMatniRef.current = null; ovozKorinadiganMatnRef.current = null;
+        setOvozHolati("bosh");
+        if (status === "error") setOvozXatosi("Ovoz ishga tushmadi. Karnayni qayta bosing.");
+        const resolveCurrent = ovozPromiseRef.current; ovozPromiseRef.current = null;
+        if (resolveCurrent) resolveCurrent({ status, fallback: true });
+      };
+      utterance.onstart = () => setOvozHolati("oynamoqda");
+      utterance.onend = () => yakun("ended");
+      utterance.onerror = () => yakun("error");
+      ovozNutqRef.current = utterance;
+      speech.cancel(); speech.speak(utterance);
+      setOvozHolati("oynamoqda");
+    };
+    audio.onerror = brauzerZaxiraOvozi;
+    const kutishMs = Math.min(45000, Math.max(10000, 8000 + xomMatn.length * 45));
+    audioTimeoutId = setTimeout(() => {
+      brauzerZaxiraOvozi();
+    }, kutishMs);
+    audio.play().catch(brauzerZaxiraOvozi);
     return audio.__samTmPromise;
   }, [foydalanuvchi?.asosiy_til, foydalanuvchi?.jins, foydalanuvchi?.ovoz_jinsi, ovozTezligi, ovozniToxtat]);
 
@@ -1117,14 +1145,17 @@ export default function TestTab({
     else yakunla();
   };
 
-  // Javob ko'rsatilgach (to'g'ri/noto'g'ri chiqqach), 1.2 soniyadan keyin
-  // AVTOMATIK keyingi savolga o'tadi — foydalanuvchi tugma bosishi shart emas
-  // (faqat "bir_bir" rejimida ishlaydi).
+  // Oddiy testda izoh 4 soniya ko'rinadi va keyin avtomatik o'tadi.
+  // O'quvchi kutishni xohlamasa tugmani bosib darhol o'tishi mumkin.
   useEffect(() => {
     if (!joriyNatija) { setAvtoQoldi(null); return; }
-    setAvtoQoldi(1);
-    avtoRef.current = setTimeout(keyingiSavolga, 1200);
-    return () => clearTimeout(avtoRef.current);
+    setAvtoQoldi(4);
+    const sanoqId = setInterval(() => setAvtoQoldi((oldingi) => Math.max(0, (oldingi || 1) - 1)), 1000);
+    avtoRef.current = setTimeout(keyingiSavolga, 4000);
+    return () => {
+      clearInterval(sanoqId);
+      clearTimeout(avtoRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joriyNatija]);
 
@@ -1568,21 +1599,24 @@ export default function TestTab({
         )}
 
         {javobBerilgan && (
-          <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }}>
+          <div className="rounded-xl p-5 mb-4 border-2" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB", borderColor: joriyNatija.togrimi ? "#639922" : "#C64040" }}>
             {joriyNatija.togrimi ? (
-              <p className="text-sm font-semibold" style={{ color: "#3B6D11" }}>✓ To'g'ri!</p>
+              <p className="text-lg font-bold" style={{ color: "#285B0B" }}>✓ To‘g‘ri javob: {joriyNatija.togri_javob}</p>
             ) : (
-              <AralashMatn matn={`✗ Noto'g'ri — to'g'ri javob: ${joriyNatija.togri_javob}`} className="text-sm font-semibold" style={{ color: "#A32D2D" }} />
+              <AralashMatn matn={`✗ Noto‘g‘ri. To‘g‘ri javob: ${joriyNatija.togri_javob}`} className="text-lg font-bold" style={{ color: "#8F2020" }} />
             )}
             {joriyNatija.tushuntirish && (
-              <AralashMatn matn={joriyNatija.tushuntirish} className="text-sm mt-1" style={{ color: joriyNatija.togrimi ? "#3B6D11" : "#A32D2D" }} />
+              <div className="mt-3 pt-3 border-t" style={{ borderColor: joriyNatija.togrimi ? "#B9D39F" : "#E3B5B5" }}>
+                <b className="block text-sm mb-1" style={{ color: "#27394A" }}>Izoh:</b>
+                <AralashMatn matn={joriyNatija.tushuntirish} className="text-base leading-7 font-medium" style={{ color: "#27394A" }} />
+              </div>
             )}
           </div>
         )}
 
         {javobBerilgan ? (
           <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-            {(oxirgi ? "Yakunlash" : "Keyingi savol")}{avtoQoldi ? ` (${avtoQoldi})` : ""}
+            {oxirgi ? `Yakunlash${avtoQoldi ? ` (${avtoQoldi})` : ""}` : `Keyingi savol${avtoQoldi ? ` (${avtoQoldi})` : ""}`}
           </button>
         ) : (
           <p className="text-center text-xs" style={{ color: "#B0AA98" }}>
