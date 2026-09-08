@@ -1509,6 +1509,15 @@ export default function TestGameArena({
         </div>
 
         <div className="game-feedback" aria-live="polite">
+          {feedback?.finalized && (
+            <div className={feedback.correct ? "is-correct" : "is-error"} style={{ padding: "18px", borderRadius: "16px", border: `2px solid ${feedback.correct ? "#238665" : "#B43B3B"}`, background: feedback.correct ? "#EAF7F1" : "#FFF0F0", color: "#21384C" }}>
+              <strong style={{ display: "block", fontSize: "20px", lineHeight: 1.35, color: feedback.correct ? "#176B4E" : "#942828" }}>
+                {feedback.correct ? `✓ To‘g‘ri javob: ${feedback.correctAnswer || selectedOption || "—"}` : `✗ To‘g‘ri javob: ${feedback.correctAnswer || "—"}`}
+              </strong>
+              {feedback.explanation && <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #CAD8D2", fontSize: "16px", lineHeight: 1.7 }}><b style={{ display: "block", marginBottom: "4px" }}>Izoh:</b><GameText value={feedback.explanation} /></div>}
+              {pendingNext && <button type="button" onClick={moveNext} style={{ marginTop: "14px", padding: "11px 16px", borderRadius: "11px", border: 0, background: "#1B4B7A", color: "white", fontWeight: 800 }}>Izohni o‘qidim — keyingi savol</button>}
+            </div>
+          )}
           {feedback?.type === "lifeline" && <div className="is-help"><strong>Yordam ishladi</strong><p>{feedback.text}</p></div>}
           {feedback?.type === "timeout" && feedback?.retryable && (
             <div className="is-timeout">
