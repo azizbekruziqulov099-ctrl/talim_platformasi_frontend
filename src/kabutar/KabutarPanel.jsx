@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Copy, Download, Forward, Loader2, MessageCircle, Pencil, Reply, Search, Smile, Trash2, Video } from "lucide-react";
+import KabutarAccount, { KabutarAccountButton, useKabutarPreferences } from "./KabutarAccount.jsx";
+import { kabutarRequest, normalizeKabutarId } from "./kabutarAccountRules.js";
 
 // Ranglar — maktab ish maydoni palitrasi bilan bir xil
 const palette = {
@@ -32,6 +34,8 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const [scopeKey, setScopeKey] = useState(scope ? `${scope.turi}:${scope.muassasa_id}` : "all");
   useEffect(() => { if (scope) setScopeKey(`${scope.turi}:${scope.muassasa_id}`); }, [scope?.turi, scope?.muassasa_id]);
   const [directory, setDirectory] = useState(null);
+  const [accountView, setAccountView] = useState(null);
+  const preferences = useKabutarPreferences(directory?.men?.user_id, apiBase);
   const [chatDirectory, setChatDirectory] = useState({ guruhlar: [], shaxsiylar: [] });
   const [listTab, setListTab] = useState("all");
   const [dirError, setDirError] = useState("");
@@ -39,18 +43,15 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const [idQuery, setIdQuery] = useState("");
   const [idResult, setIdResult] = useState(null); const [idBusy, setIdBusy] = useState(false); const [idError, setIdError] = useState("");
   const searchById = async () => {
-    const key = idQuery.replace(/[^0-9]/g, "");
-    if (key.length < 6 || key.length > 10) { setIdError("ID 6–10 xonali raqam: masalan KB-12345678"); return; }
+    const key = normalizeKabutarId(idQuery);
+    if (!key) { setIdError("ID 6 xonali raqam: masalan KB-123456"); return; }
+    if (key === directory?.men?.kabutar_id) { setAccountView({ page: "profile" }); return; }
     setIdBusy(true); setIdError(""); setIdResult(null);
     try {
-      const r = await fetch(`${apiBase}/api/kabutar/izla?token=${encodeURIComponent(token)}&kabutar_id=KB-${key}`);
-      const d = await r.json();
-      if (!r.ok || d.detail) throw new Error(d.detail || "Topilmadi");
+      const d = await kabutarRequest(apiBase, `/api/kabutar/izla?kabutar_id=${encodeURIComponent(key)}`, token);
       setIdResult(d);
     } catch (e) { setIdError(e.message); } finally { setIdBusy(false); }
   };
-  const [copied, setCopied] = useState(false);
-  const copyMyId = async () => { try { await navigator.clipboard.writeText(directory?.men?.kabutar_id || ""); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* jim */ } };
   const [peer, setPeer] = useState(null);
   const [messages, setMessages] = useState([]);
   const [peerSeenId, setPeerSeenId] = useState(null);
@@ -67,22 +68,24 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const fileRef = useRef(null); const bodyRef = useRef(null);
   const lastIdRef = useRef(0); const peerRef = useRef(null);
 
-  const loadDirectory = useCallback(async () => {
+  useEffect(() => { setAccountView(null); setDirectory(null); setChatDirectory({ guruhlar: [], shaxsiylar: [] }); setPeer(null); peerRef.current = null; setMessages([]); }, [apiBase, token]);
+
+  const loadDirectory = useCallback(async ({ signal } = {}) => {
     try {
-      const [r, chatResponse] = await Promise.all([
-        fetch(`${apiBase}/api/kabutar/aloqalar_umumiy?token=${encodeURIComponent(token)}`),
-        fetch(`${apiBase}/api/chat/guruhlarim?token=${encodeURIComponent(token)}`),
+      const [people, chats] = await Promise.allSettled([
+        kabutarRequest(apiBase, "/api/kabutar/aloqalar_umumiy", token, { signal }),
+        kabutarRequest(apiBase, "/api/chat/guruhlarim", token, { signal }),
       ]);
-      const d = await r.json();
-      const chats = await chatResponse.json();
-      if (!r.ok || d.detail) throw new Error(d.detail || "Aloqalar yuklanmadi");
-      if (chatResponse.ok && !chats.detail) setChatDirectory(chats);
+      if (signal?.aborted) return;
+      if (people.status === "rejected") throw people.reason;
+      const d = people.value;
+      if (chats.status === "fulfilled") setChatDirectory(chats.value);
       if (maktabId && Array.isArray(d.muassasalar)) d.muassasalar.sort((a, b) => Number(b.turi === "maktab" && String(b.muassasa_id) === String(maktabId)) - Number(a.turi === "maktab" && String(a.muassasa_id) === String(maktabId)));
       setDirectory(d); setDirError("");
       if (onUnread) onUnread(Number(d.jami_oqilmagan || 0));
-    } catch (e) { setDirError(e.message); }
+    } catch (e) { if (!signal?.aborted) setDirError(e.message); }
   }, [apiBase, token, maktabId, onUnread]);
-  useEffect(() => { loadDirectory(); const t = setInterval(loadDirectory, 20000); return () => clearInterval(t); }, [loadDirectory]);
+  useEffect(() => { const controller = new AbortController(); const refresh = () => loadDirectory({ signal: controller.signal }); refresh(); const t = setInterval(refresh, 20000); return () => { clearInterval(t); controller.abort(); }; }, [loadDirectory]);
 
   const markSeen = useCallback(async (peerId, lastId, groupId = null) => {
     if (!lastId) return;
@@ -102,7 +105,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
       const r = await fetch(`${apiBase}${groupId ? "/api/chat/xabarlar" : "/api/kabutar/xabarlar"}?${qs}`);
       const d = await r.json();
       if (!r.ok || d.detail) throw new Error(d.detail || "Xabarlar yuklanmadi");
-      if (!peerRef.current || (!groupId && Number(peerRef.current.user_id) !== Number(peerId))) return;
+      if (!peerRef.current || (groupId ? String(peerRef.current.guruh_id) !== String(groupId) : peerRef.current.guruh_id || Number(peerRef.current.user_id) !== Number(peerId))) return;
       const rows = d.xabarlar || [];
         setPeerSeenId(d.boshqa_tomon_korgan_id || d.qarshi_tomon_korgan_id || null);
       if (rows.length) {
@@ -241,15 +244,14 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   });
 
   const totalUnread = directory?.jami_oqilmagan || 0;
-  const meName = directory?.men?.full_name || "";
 
-  return <div className={docked ? "h-full flex flex-col" : "min-h-screen"} style={{ background: palette.cream }}>
-    <div className={`${docked ? "px-3 py-2.5" : "px-4 md:px-7 py-4"} flex items-center justify-between gap-3 border-b bg-white shrink-0`} style={{ borderColor: palette.line }}>
+  return <div className={`kb-panel ${docked ? "h-full flex flex-col" : "min-h-screen"}`} style={{ background: palette.cream }}>
+    <div className={`kb-panel-header ${docked ? "px-3 py-2.5" : "px-4 md:px-7 py-4"} flex items-center justify-between gap-3 border-b bg-white shrink-0`} style={{ borderColor: palette.line }}>
       <div className="flex items-center gap-3 min-w-0">
         <button onClick={onClose} title={docked ? "Yig‘ish" : "Yopish"} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: palette.sky, color: palette.blue }}>{docked ? "▾" : <ArrowLeft size={18}/>}</button>
         <div className="min-w-0"><div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: accent }}>🕊 {activeScope ? `${scopeMeta.ikon} ${activeScope.muassasa} Kabutari` : "Kabutar · barcha muassasalar"}</div>{!docked && <div className="text-lg font-black truncate" style={{ color: palette.ink }}>{activeScope ? `${scopeMeta.nom} — rasmiy aloqa` : title}</div>}</div>
       </div>
-      <div className="flex items-center gap-2">{totalUnread > 0 && <span className="px-2.5 py-1 rounded-full text-xs font-black text-white" style={{ background: palette.red }}>{totalUnread} yangi</span>}{directory?.men && <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: palette.sky }}><div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white" style={{ background: palette.blue }}>{kabutarInitials(meName)}</div><div className="text-xs"><div className="font-black" style={{ color: palette.ink }}>{meName}</div><div className="max-w-[260px] truncate" style={{ color: palette.muted }}>{directory.men.qisqa}</div></div><button onClick={copyMyId} title="Mening Kabutar ID — nusxalash. Boshqalar sizni shu ID bilan topadi" className="ml-2 px-2.5 py-1.5 rounded-lg text-[11px] font-black" style={{ background: palette.blue, color: "#fff" }}>{copied ? "Nusxalandi ✓" : directory.men.kabutar_id || "ID"}</button></div>}</div>
+      <div className="kb-header-account flex items-center gap-2"><KabutarAccountButton me={directory?.men} apiBase={apiBase} onProfile={() => setAccountView({ page: "profile" })} onSettings={() => setAccountView({ page: "settings" })}/>{totalUnread > 0 && <span className="px-2.5 py-1 rounded-full text-xs font-black text-white shrink-0" style={{ background: palette.red }}>{totalUnread} yangi</span>}</div>
     </div>
     {forwarding && <div className="px-4 py-2 flex items-center justify-between gap-3 text-xs font-bold text-white" style={{ background: palette.teal }}><span><Forward size={14} className="inline mr-1"/>Xabarni uzatish uchun guruh yoki odamni tanlang</span><button onClick={() => setForwarding(null)} className="px-2 py-1 rounded-lg bg-white/20">Bekor qilish</button></div>}
     <div className={docked ? "flex-1 min-h-0 flex flex-col" : "grid md:grid-cols-[340px_1fr] gap-0 md:h-[calc(100vh-73px)]"}>
@@ -265,15 +267,15 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         </div>}
         {directory && <div className="p-3 border-b" style={{ borderColor: palette.line, background: "#FBFAF7" }}>
           <div className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: palette.muted }}>ID bo‘yicha topish</div>
-          <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-12345678" className="flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
+          <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-123456" className="min-w-0 flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
           {idError && <div className="mt-1.5 text-[11px] font-bold" style={{ color: palette.red }}>{idError}</div>}
-          {idResult && <button onClick={() => { openPeer({ user_id: idResult.user_id, full_name: idResult.full_name, izoh: idResult.qisqa, rol: "tashqi", kabutar_id: idResult.kabutar_id }); setIdResult(null); setIdQuery(""); }} className="mt-2 w-full text-left rounded-xl border p-2.5" style={{ borderColor: palette.green, background: palette.mint }}><div className="text-sm font-black" style={{ color: palette.ink }}>{idResult.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ {idResult.kabutar_id}</span></div>{idResult.rollar.map((r, i) => <div key={i} className="text-[11px]" style={{ color: palette.muted }}>{r.rol}{r.muassasa ? ` — ${r.muassasa}` : ""}</div>)}<div className="text-[10px] mt-1 font-black" style={{ color: palette.blue }}>Xabar yozish ›</div></button>}
+          {idResult && <button onClick={() => { setAccountView({ page: "profile", person: { ...idResult, izoh: idResult.qisqa, rol: "tashqi" } }); setIdResult(null); setIdQuery(""); }} className="mt-2 w-full text-left rounded-xl border p-2.5" style={{ borderColor: palette.green, background: palette.mint }}><div className="text-sm font-black" style={{ color: palette.ink }}>{idResult.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ {idResult.kabutar_id}</span></div>{(idResult.rollar || []).map((r, i) => <div key={i} className="text-[11px]" style={{ color: palette.muted }}>{r.rol}{r.muassasa ? ` — ${r.muassasa}` : ""}</div>)}<div className="text-[10px] mt-1 font-black" style={{ color: palette.blue }}>Profilini ko‘rish ›</div></button>}
         </div>}
         {directory && visibleGroups.length > 0 && <div className="border-b" style={{ borderColor: palette.line }}>
           <div className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: accent }}>Avtomatik guruhlar</div>
           {visibleGroups.map(group => <button key={`g-${group.id}`} onClick={() => openPeer({ guruh_id: group.id, full_name: group.nomi, izoh: `${group.turi} · rasmiy guruh`, rol: "guruh" })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.guruh_id === group.id ? palette.sky : undefined }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg text-white shrink-0" style={{ background: accent }}>👥</div>
-            <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{group.nomi}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{group.oxirgi_matn || (group.oxirgi_fayl_turi ? "Media xabar" : "Hali xabar yo‘q")}</div></div>
+            <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{group.nomi}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{preferences.settings.showPreviews ? (group.oxirgi_matn || (group.oxirgi_fayl_turi ? "Media xabar" : "Hali xabar yo‘q")) : "Guruh xabarlari"}</div></div>
             {Number(group.okilmagan_soni || 0) > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center" style={{ background: palette.red }}>{group.okilmagan_soni}</span>}
           </button>)}
         </div>}
@@ -281,7 +283,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
           <div className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.ink }}>Suhbatlarim</div>
           {list.map(item => <button key={`s-${item.user_id}`} onClick={() => openPeer({ ...item, rol: item.tashqi ? "tashqi" : "suhbat" })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.user_id === item.user_id ? palette.sky : undefined }}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0" style={{ background: item.tashqi ? "#5A5648" : palette.blue }}>{kabutarInitials(item.full_name)}</div>
-            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{item.full_name}</div>{item.oxirgi_xabar_at && <span className="text-[10px] shrink-0" style={{ color: palette.muted }}>{kabutarTime(item.oxirgi_xabar_at)}</span>}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{item.izoh ? item.izoh + " · " : ""}{item.oxirgi_meniki ? "Siz: " : ""}{item.oxirgi_matn}</div></div>
+            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{item.full_name}</div>{item.oxirgi_xabar_at && <span className="text-[10px] shrink-0" style={{ color: palette.muted }}>{kabutarTime(item.oxirgi_xabar_at)}</span>}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{preferences.settings.showPreviews ? `${item.izoh ? item.izoh + " · " : ""}${item.oxirgi_meniki ? "Siz: " : ""}${item.oxirgi_matn || ""}` : "Shaxsiy suhbat"}</div></div>
             {item.oqilmagan > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center" style={{ background: palette.red }}>{item.oqilmagan}</span>}
           </button>)}
         </div>; })()}
@@ -303,15 +305,14 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         {peer && <>
           <div className="px-4 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: palette.line, borderTop: `3px solid ${accent}` }}>
             <button onClick={() => { setPeer(null); peerRef.current = null; }} className={`${docked ? "" : "md:hidden"} w-9 h-9 rounded-xl flex items-center justify-center`} style={{ background: palette.sky, color: palette.blue }}><ArrowLeft size={16}/></button>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white" style={{ background: peer.rol === "tashqi" ? "#5A5648" : (KABUTAR_GROUPS.find(g => g[0] === peer.rol) || [])[2] || palette.blue }}>{kabutarInitials(peer.full_name)}</div>
-            <div className="min-w-0"><div className="font-black truncate" style={{ color: palette.ink }}>{peer.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ rasmiy profil</span></div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{peer.izoh}</div></div>
+            <button type="button" className="kb-peer-profile" onClick={() => setAccountView({ page: "profile", person: peer })} aria-label={`${peer.full_name} profilini ko‘rish`}><span className="kb-avatar" style={{ background: peer.rol === "tashqi" ? "#5A5648" : (KABUTAR_GROUPS.find(g => g[0] === peer.rol) || [])[2] || palette.blue }}>{kabutarInitials(peer.full_name)}</span><span><strong>{peer.full_name}</strong><small>{peer.guruh_id ? "Guruh ma’lumotini ko‘rish" : "Profilini ko‘rish"}{peer.izoh ? ` · ${peer.izoh}` : ""}</small></span></button>
           </div>
           <div ref={bodyRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2" style={{ background: "linear-gradient(180deg,#F7F5F0,#FBFAF7)" }}>
             {!messages.length && <div className="text-center text-xs py-10" style={{ color: palette.muted }}>Hali xabar yo‘q — birinchisini yozing.</div>}
             {messages.map(m => <div key={m.id} className={`relative flex ${m.meniki ? "justify-end" : "justify-start"}`}>
               <div onDoubleClick={() => setReplyTo(m)} onContextMenu={event => { event.preventDefault(); setMenuMessage(menuMessage?.id === m.id ? null : m); }} className="max-w-[78%] rounded-2xl px-3.5 py-2.5 shadow-sm cursor-context-menu" style={m.meniki ? { background: palette.blue, color: "#fff", borderBottomRightRadius: 6 } : { background: "#fff", color: palette.ink, borderBottomLeftRadius: 6, border: `1px solid ${palette.line}` }}>
                 {m.javob_xabar_id && <div className="mb-1.5 pl-2 border-l-2 text-[11px] opacity-75"><b>{m.javob_yuboruvchi_ismi || "Xabar"}</b><div className="truncate">{m.javob_matn_qisqa || "Media"}</div></div>}
-                {m.matn && <div className="text-sm whitespace-pre-wrap break-words">{m.matn}</div>}
+                {m.matn && <div className="whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}
                 {m.fayl_turi === "audio" && <audio controls preload="none" className="mt-1 w-56 max-w-full" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {m.fayl_turi === "video" && <video controls preload="metadata" className="mt-1 w-64 max-w-full rounded-lg" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {m.fayl_turi === "video_doira" && <video controls playsInline preload="metadata" className="mt-1 w-48 h-48 max-w-full rounded-full object-cover border-4 border-white/40" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
@@ -331,16 +332,17 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
           </div>
           {sendError && <div className="mx-4 mb-2 p-2 rounded-xl text-xs" style={{ background: palette.redBg, color: palette.red }}>{sendError}</div>}
           {(replyTo || editing) && <div className="px-4 py-2 bg-white border-t flex items-center justify-between gap-2 text-xs" style={{ borderColor: palette.line }}><div className="truncate" style={{ color: palette.blue }}><b>{editing ? "O‘zgartirilmoqda" : "Javob"}:</b> {(editing || replyTo)?.matn || "Media xabar"}</div><button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setText(""); }} className="font-black">✕</button></div>}
-          <div className="p-3 bg-white border-t flex items-end gap-2" style={{ borderColor: palette.line }}>
+          <div className="kb-composer p-3 bg-white border-t flex items-end gap-2" style={{ borderColor: palette.line }}>
             <input ref={fileRef} type="file" accept="audio/*,video/*,.pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx" className="hidden" onChange={onPickFile}/>
             <button onClick={() => fileRef.current?.click()} disabled={sending} title="Fayl: hujjat, rasm, video, audio" className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: palette.sky, color: palette.blue }}>📎</button>
             <button onClick={toggleRecord} disabled={sending} title={recording ? "To‘xtatish va yuborish" : "Ovozli xabar"} className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: recording ? palette.red : palette.sky, color: recording ? "#fff" : palette.blue }}>{recording ? "■" : "🎙"}</button>
             <button onClick={toggleVideoRecord} disabled={sending || recording} title={videoRecording ? "Dumaloq videoni yuborish" : "Dumaloq video"} className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: videoRecording ? palette.red : palette.sky, color: videoRecording ? "#fff" : palette.blue }}>{videoRecording ? "■" : <Video size={17}/>}</button>
-            <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} placeholder={`${peer.full_name.split(" ")[0]}ga rasmiy xabar... (Enter — yuborish)`} className="flex-1 resize-none px-3 py-2.5 rounded-xl border text-sm outline-none max-h-32" style={{ borderColor: palette.line }}/>
-            <button onClick={() => send()} disabled={sending || !text.trim()} className="h-10 px-4 rounded-xl text-sm font-black text-white shrink-0 disabled:opacity-50" style={{ background: palette.blue }}>{sending ? "..." : "Yuborish"}</button>
+            <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent?.isComposing && preferences.settings.enterToSend) { e.preventDefault(); send(); } }} rows={1} placeholder={preferences.settings.enterToSend ? "Xabar yozing… Enter — yuborish" : "Xabar yozing…"} aria-label="Xabar matni" className="flex-1 resize-none px-3 py-2.5 rounded-xl border text-sm outline-none max-h-32" style={{ borderColor: palette.line }}/>
+            <button onClick={() => send()} disabled={sending || !text.trim()} className="kb-send-button h-10 px-4 rounded-xl text-sm font-black text-white shrink-0 disabled:opacity-50" style={{ background: palette.blue }}>{sending ? "..." : "Yuborish"}</button>
           </div>
         </>}
       </section>
     </div>
+    {accountView && <KabutarAccount token={token} apiBase={apiBase} directory={directory} initialPage={accountView.page} person={accountView.person || null} preferences={preferences} onClose={() => setAccountView(null)} onOpenContact={item => { setAccountView(null); openPeer(item); }} onMeUpdated={card => setDirectory(current => current ? { ...current, men: { ...current.men, ...card } } : { men: card, muassasalar: [], suhbatlar: [] })}/>}
   </div>;
 }
