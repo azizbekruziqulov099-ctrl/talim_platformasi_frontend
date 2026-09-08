@@ -11860,15 +11860,26 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
       ) : xato ? (
         <p className="px-5 text-sm" style={{ color: "#B0553A" }}>{xato}</p>
       ) : tanlanganBola ? (
-        <BilimMarkazi
-          token={token}
-          data={bilimData}
-          bolaId={tanlanganBola}
-          viewer="parent"
-          rang={rang}
-          otaOnaUchun
-          analyticsCompact
-        />
+        <>
+          <div className="px-3 sm:px-5 pt-3">
+            <StudentScheduleWorkspace
+              token={token}
+              student={farzandlar.find((bola) => Number(bola.user_id) === Number(tanlanganBola)) || { user_id: tanlanganBola }}
+              apiBase={API_BASE}
+              readOnly
+              compactTitle
+            />
+          </div>
+          <BilimMarkazi
+            token={token}
+            data={bilimData}
+            bolaId={tanlanganBola}
+            viewer="parent"
+            rang={rang}
+            otaOnaUchun
+            analyticsCompact
+          />
+        </>
       ) : null}
     </div>
   );
