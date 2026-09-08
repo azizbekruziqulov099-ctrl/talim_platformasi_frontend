@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft, Building2, CheckCircle2, ChevronRight, ClipboardCheck, Download,
+  ArrowLeft, BookOpen, Building2, CheckCircle2, ChevronRight, ClipboardCheck, Download,
   Eye, FileSpreadsheet, GraduationCap, KeyRound, Loader2, MessageCircle,
   Phone, Plus, RefreshCcw, Search, Send, ShieldCheck, Upload, UserPlus, Users, X,
 } from "lucide-react";
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
+import InstituteVirtualLibrary from "./InstituteVirtualLibrary.jsx";
 
 const COLORS = {
   ink: "#173247", blue: "#175A7A", teal: "#0D7A77", sky: "#EAF5F8",
@@ -1254,6 +1255,7 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
     ["dashboard", "Asosiy", GraduationCap], ["structure", "Tuzilma", Building2],
     ["staff", "Xodimlar", Users], ["admission", "Talaba qabuli", ClipboardCheck],
     ["tutors", "Tyutorlar", ShieldCheck],
+    ["library", "Virtual kutubxona", BookOpen],
     ["audit", "Faoliyat jurnali", Eye],
     ["preview", "Rol sifatida ko‘rish", Eye],
   ].filter(([key]) => {
@@ -1303,6 +1305,7 @@ export default function InstituteWorkspace({ token, apiBase, initialWorkspace, o
       {tab === "staff" && <StaffPanel api={api} apiBase={apiBase} token={token} universityId={id} structure={structure} canManage={permissions.xodim_boshqarish} canManageAdmins={permissions.admin_boshqarish} isSuperAdmin={permissions.super_admin} onCredentials={setCredentials} facultyId={activeFacultyId} />}
       {tab === "admission" && <AdmissionsPanel api={api} apiBase={apiBase} token={token} universityId={id} structure={structure} permissions={permissions} onCredentials={setCredentials} startMode={admissionStartMode} onStartModeConsumed={() => setAdmissionStartMode(null)} lockedFacultyId={activeFacultyId} />}
       {tab === "tutors" && <TutorPanel api={api} token={token} universityId={id} structure={structure} canManage={permissions.tyutor_boshqarish} facultyId={activeFacultyId} />}
+      {tab === "library" && <InstituteVirtualLibrary apiBase={apiBase} token={token} universityId={id} structure={structure} staff={staffRows} permissions={permissions} />}
       {tab === "audit" && <AuditPanel api={api} token={token} universityId={id} />}
       {tab === "preview" && permissions.super_admin && <AdminInstitutePreviewPanel apiBase={apiBase} token={token} universityId={id} structure={structure} />}
     </div>
