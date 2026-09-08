@@ -136,7 +136,7 @@ export default function KabutarAccount({ token, apiBase, directory, initialPage 
   const lookup = async event => {
     event.preventDefault();
     const id = normalizeKabutarId(lookupId);
-    if (!id) { setLookupError("Kabutar ID 6 xonali: masalan KB-123456."); return; }
+    if (!id) { setLookupError("Kabutar ID 6–10 xonali: masalan KB-56928957."); return; }
     if (id === me?.kabutar_id) { switchPage("profile"); return; }
     lookupController.current?.abort();
     const controller = new AbortController(); lookupController.current = controller;
