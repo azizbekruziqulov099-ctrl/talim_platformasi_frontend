@@ -3,7 +3,7 @@ import "./student-schedule.css";
 
 const DAYS = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
 const SUBJECTS = {
-  1: ["Ona tili", "O‘qish savodxonligi", "Matematika", "Tarbiya", "Tabiiy fan", "Jismoniy tarbiya", "Tasviriy san’at", "Musiqa"],
+  1: ["Ona tili", "O‘qish savodxonligi", "Chet tili", "Matematika", "Tarbiya", "Tabiiy fan", "Informatika va axborot texnologiyalari", "Jismoniy tarbiya", "Tasviriy san’at", "Musiqa", "Texnologiya", "Kelajak soati"],
   5: ["Ona tili", "Adabiyot", "Matematika", "Ingliz tili", "Rus tili", "Tarix", "Geografiya", "Biologiya", "Informatika", "Texnologiya", "Jismoniy tarbiya"],
   10: ["Ona tili", "Adabiyot", "Algebra", "Geometriya", "Ingliz tili", "Rus tili", "O‘zbekiston tarixi", "Jahon tarixi", "Fizika", "Kimyo", "Biologiya", "Informatika", "Tarbiya", "Jismoniy tarbiya"],
 };
@@ -25,15 +25,25 @@ function lessonTimes(shift) {
 }
 function generatedSchedule(grade, shift) {
   const subjects = subjectList(grade);
-  const count = grade <= 4 ? 5 : 6;
+  const gradeOneHours = { "Ona tili": 4, "O‘qish savodxonligi": 4, "Chet tili": 1, "Tarbiya": 1, "Matematika": 5, "Informatika va axborot texnologiyalari": 1, "Tabiiy fan": 1, "Musiqa": 1, "Tasviriy san’at": 1, "Texnologiya": 1, "Jismoniy tarbiya": 1, "Kelajak soati": 1 };
+  const pool = grade === 1
+    ? Object.entries(gradeOneHours).flatMap(([name, hours]) => Array(hours).fill(name))
+    : [...subjects, "Kelajak soati"];
   const times = lessonTimes(shift);
-  return DAYS.map((day, dayIndex) => ({
+  const dayCount = grade <= 4 ? 5 : 6;
+  const placed = Array.from({ length: dayCount }, () => []);
+  pool.forEach((subject) => {
+    const candidates = placed.map((items, index) => ({ items, index })).filter(({ items }) => !items.includes(subject));
+    const target = (candidates.length ? candidates : placed.map((items, index) => ({ items, index }))).sort((a, b) => a.items.length - b.items.length || a.index - b.index)[0];
+    target.items.push(subject);
+  });
+  return DAYS.slice(0, dayCount).map((day, dayIndex) => ({
     day,
-    lessons: Array.from({ length: count }, (_, lessonIndex) => ({
+    lessons: placed[dayIndex].map((subject, lessonIndex) => ({
       id: `${dayIndex}-${lessonIndex}`,
       order: lessonIndex + 1,
       time: times[lessonIndex],
-      subject: subjects[(dayIndex * count + lessonIndex * 3) % subjects.length],
+      subject,
       topic: "",
       split_group: null,
     })),
