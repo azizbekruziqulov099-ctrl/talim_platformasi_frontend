@@ -1,6 +1,6 @@
 /* Yengil o'yin: katta fon, sprite, video/canvas va doimiy animatsiya yo'q. */
 .test-game-arena{background:#f5f8fb!important;background-image:none!important;min-height:auto!important;padding:14px!important;overflow:visible!important}
-.game-light-avatar{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:#eaf4f7;font-size:30px;flex:0 0 auto}.game-one-path{border:1px solid #dce6ea!important;background:linear-gradient(135deg,#f7fbff,#f4fffb)!important}.game-one-path small{display:block;margin-top:7px;color:#66798a;font-size:11px}.game-mode-grid{display:none!important}
+.game-light-avatar{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:#eaf4f7;font-size:30px;flex:0 0 auto}.game-one-path{border:1px solid #dce6ea!important;background:linear-gradient(135deg,#f7fbff,#f4fffb)!important}.game-one-path small{display:block;margin-top:7px;color:#66798a;font-size:11px}
 .test-game-arena,.test-game-arena *{animation:none!important;transition:none!important}
 .test-game-arena .game-stage-light{background:#fff!important;background-image:none!important;min-height:auto!important;border:1px solid #dce6ea!important;border-radius:22px!important;box-shadow:0 8px 24px rgba(23,50,75,.08)!important;overflow:visible!important;padding:14px!important}
 .test-game-arena .game-stage-light::before,.test-game-arena .game-stage-light::after{display:none!important;content:none!important}
@@ -23,3 +23,333 @@
 .test-game-arena .game-question-image{max-height:230px!important;object-fit:contain!important}
 @media(max-width:700px){.test-game-arena{padding:8px!important}.test-game-arena .game-stage-light{padding:8px!important;border-radius:16px!important}.test-game-arena .game-options{grid-template-columns:1fr!important}.test-game-arena .game-question-card{border-radius:14px!important}.test-game-arena .game-light-journey{gap:5px}.test-game-arena .game-light-journey span{width:27px;height:27px}}
 @media(prefers-reduced-motion:reduce){.test-game-arena,.test-game-arena *{scroll-behavior:auto!important}}
+
+/* REV37: five educational worlds, shared readable questions, no scene assets. */
+.edu-game-picker,
+.edu-mission,
+.edu-study-tools,
+.edu-game-review {
+  --edu-color: #175778;
+  --edu-tint: #eef7fb;
+  box-sizing: border-box;
+  min-width: 0;
+  color: #17324b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.edu-game-picker *,
+.edu-mission *,
+.edu-study-tools *,
+.edu-game-review * { box-sizing: border-box; }
+.edu-game-picker { width: 100%; }
+.edu-game-head,
+.edu-mission-head,
+.edu-game-detail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.edu-game-head h2,
+.edu-mission-head h2,
+.edu-game-review h2 { margin: 0; color: #17324b; font-size: 19px; line-height: 1.35; }
+.edu-game-head p,
+.edu-mission-head p { margin: 5px 0 0; color: #526579; font-size: 13px; }
+.edu-game-badge,
+.edu-game-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #d1e3ea;
+  border-radius: 999px;
+  background: #f4fafc;
+  color: #205671;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+.edu-game-badge { flex-shrink: 0; max-width: 100%; }
+.edu-game-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.edu-game-picker .edu-game-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  min-height: 218px;
+  padding: 15px 12px 13px;
+  border: 2px solid #dfe7eb;
+  border-radius: 18px;
+  background: #fff;
+  color: #17324b;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  overflow-wrap: anywhere;
+  box-shadow: 0 3px 9px #183c5205;
+}
+.edu-game-picker .edu-game-card:hover {
+  border-color: var(--edu-color);
+  background: var(--edu-tint);
+}
+.edu-game-picker .edu-game-card.is-selected,
+.edu-game-picker .edu-game-card[aria-pressed="true"] {
+  border-color: var(--edu-color);
+  background: var(--edu-tint);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--edu-color);
+}
+.edu-game-picker .edu-game-card strong { display: block; color: #17324b; font-size: 14px; line-height: 1.35; }
+.edu-game-picker .edu-game-card p { margin: 0; color: #455d70; font-size: 12px; line-height: 1.5; }
+.edu-game-picker .edu-game-card small { margin-top: auto; color: #405768; font-size: 11px; line-height: 1.5; }
+.edu-game-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border: 1px solid #d7e3e9;
+  border-radius: 15px;
+  background: #fff;
+  font-size: 25px;
+  line-height: 1;
+}
+.edu-game-card .edu-game-tag { margin-top: auto; padding: 4px 7px; background: #fff; }
+.edu-game-mechanic { display: block; font-weight: 650; }
+.edu-game-detail {
+  margin-top: 17px;
+  padding: 18px;
+  border: 1px solid #d8e7ec;
+  border-left: 4px solid var(--edu-color);
+  border-radius: 14px;
+  background: var(--edu-tint);
+}
+.edu-game-detail > header { align-items: center; margin-bottom: 8px; }
+.edu-game-detail strong { color: #17324b; font-size: 15px; }
+.edu-game-detail p { margin: 7px 0; color: #405a70; font-size: 13px; }
+.edu-game-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 24px; margin: 13px 0 0; padding-left: 22px; color: #385468; font-size: 12px; }
+.edu-game-steps li { padding-left: 3px; }
+.edu-game-steps li::marker { color: var(--edu-color); font-weight: 800; }
+.edu-game-topic { display: inline-block; max-width: 100%; margin-top: 8px; color: #405b6d; font-size: 12px; overflow-wrap: anywhere; }
+
+.edu-mission {
+  max-width: 880px;
+  margin: 0 auto 16px;
+  padding: 16px;
+  border: 1px solid #dce6ec;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+.edu-mission-head { margin-bottom: 12px; }
+.edu-mission-head h2 { font-size: 16px; }
+.edu-mission-head strong { color: #17324b; font-size: 16px; }
+.edu-mission-world { position: relative; isolation: isolate; min-width: 0; padding: 18px 12px; border-radius: 14px; }
+.edu-mission-route { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; align-items: center; }
+.edu-mission .edu-mission-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  min-height: 102px;
+  padding: 10px 5px;
+  border: 2px solid #bfcfda;
+  border-radius: 12px;
+  background: #fff;
+  color: #294b63;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.edu-mission .edu-mission-tile > span { font-size: 26px; line-height: 1.2; }
+.edu-mission .edu-mission-tile strong { color: inherit; font-size: 12px; line-height: 1.3; }
+.edu-mission .edu-mission-tile small { color: inherit; font-size: 10px; line-height: 1.35; }
+.edu-mission .edu-mission-tile.is-cleared { border-color: #2a805e; background: #edf8f1; color: #22553e; }
+.edu-mission .edu-mission-tile.is-missed { border-color: #b37236; border-style: dashed; background: #fff5e8; color: #805125; }
+.edu-mission .edu-mission-tile.is-current { border-color: #245eb5; outline: 3px solid #c1dafa; outline-offset: 2px; }
+.edu-mission .edu-mission-tile:disabled { cursor: default; opacity: 1; }
+.edu-mission-caption { margin: 12px 0 0; color: #405a70; font-size: 12px; }
+.edu-mission-evidence { margin-top: 9px; padding: 9px 12px; border: 1px solid #d6e3ea; border-radius: 10px; background: #fff; color: #345366; font-size: 12px; overflow-wrap: anywhere; }
+
+/* Bridge: the stones retain failed answers so review remains visible. */
+.edu-mission-bridge .edu-mission-world {
+  background: linear-gradient(180deg, #edf9f3 0 22%, #dcf0f4 22% 78%, #edf9f3 78%);
+  border: 1px solid #c8e5e8;
+}
+.edu-mission-bridge .edu-mission-route { gap: 8px; }
+.edu-mission-bridge .edu-mission-tile {
+  min-height: 92px;
+  border-color: #a5b9bd;
+  border-radius: 15px 12px 10px 13px;
+  background: #f6f7f0;
+  box-shadow: 0 5px 0 #b5c7c5;
+}
+.edu-mission-bridge .edu-mission-tile:nth-child(even) { margin-top: 12px; }
+.edu-mission-bridge .edu-mission-tile.is-cleared { box-shadow: 0 5px 0 #a3c9b6; }
+.edu-mission-bridge .edu-mission-tile.is-missed { box-shadow: 0 5px 0 #d9c4a4; }
+
+/* Millionaire: the highest knowledge checkpoint is at the top. */
+.edu-mission-millionaire .edu-mission-world { background: #f0edf8; border: 1px solid #dfd6ee; }
+.edu-mission-millionaire .edu-mission-route { display: flex; flex-direction: column-reverse; gap: 6px; max-width: 570px; margin: auto; }
+.edu-mission-millionaire .edu-mission-tile { flex-direction: row; justify-content: flex-start; min-height: 44px; padding: 8px 14px; border-radius: 999px; border-color: #c9bbdf; color: #55406f; gap: 12px; }
+.edu-mission-millionaire .edu-mission-tile > span { font-size: 20px; }
+.edu-mission-millionaire .edu-mission-tile strong { flex: 1; text-align: left; }
+.edu-mission-millionaire .edu-mission-tile small { text-align: right; }
+.edu-mission-millionaire .edu-mission-tile:nth-child(5) { background: #fff7d9; border-color: #cab465; color: #6b541c; }
+.edu-mission-millionaire .edu-mission-tile.is-cleared { background: #edf8f1; border-color: #2a805e; color: #22553e; }
+.edu-mission-millionaire .edu-mission-tile.is-missed { background: #fff5e8; border-color: #b37236; color: #805125; }
+
+/* Space: lightweight planets, readable white mission labels. */
+.edu-mission-space .edu-mission-world {
+  background-color: #152e4c;
+  background-image: radial-gradient(circle at 12% 19%, #a0c3df 0 1px, transparent 2px), radial-gradient(circle at 45% 76%, #a0c3df 0 1px, transparent 2px), radial-gradient(circle at 79% 15%, #a0c3df 0 1px, transparent 2px);
+  border: 1px solid #2a4f75;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+.edu-mission-space .edu-mission-tile { min-height: 109px; border-radius: 45% 45% 15px 15px; border-color: #809bb8; background: #e8f1fa; color: #284a6a; }
+.edu-mission-space .edu-mission-tile:nth-child(even) { margin-top: 16px; }
+.edu-mission-space .edu-mission-tile > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #fff; }
+.edu-mission-space .edu-mission-tile.is-current { outline-color: #adcef5; }
+
+/* Detective: a paper evidence board with individually revisitable clues. */
+.edu-mission-detective .edu-mission-world { background: #eee5d5; border: 1px solid #d8c6a9; }
+.edu-mission-detective .edu-mission-tile { min-height: 114px; padding-top: 17px; border-color: #bca989; border-radius: 3px 3px 12px 3px; background: #fffdf4; color: #5b4930; box-shadow: 0 3px 0 #d3c6ae; }
+.edu-mission-detective .edu-mission-tile::before { content: ""; position: absolute; top: 6px; left: calc(50% - 4px); width: 8px; height: 8px; border-radius: 50%; background: #ad624d; }
+.edu-mission-detective .edu-mission-tile.is-cleared::before { background: #2a805e; }
+
+/* City: completed subject buildings grow from a common baseline. */
+.edu-mission-city .edu-mission-world { background: linear-gradient(#edf7fc 0 82%, #d3e9d4 82%); border: 1px solid #d3e4e7; padding-bottom: 12px; }
+.edu-mission-city .edu-mission-route { align-items: end; padding-top: 17px; border-bottom: 5px solid #a2b7bd; }
+.edu-mission-city .edu-mission-tile { justify-content: flex-end; min-height: calc(var(--building-height, 72px) + 52px); border-color: #b6c9d2; border-radius: 6px 6px 0 0; background: #f6fbfe; padding-bottom: 12px; }
+.edu-mission-city .edu-mission-tile > span { display: grid; place-items: center; min-height: 36px; }
+.edu-mission-city .edu-mission-tile.is-cleared { background: #d7f1df; border-color: #468769; }
+.edu-mission-city .edu-mission-tile.is-missed { background: #fff4e3; border-color: #b37236; }
+
+.edu-study-tools { max-width: 880px; margin: 12px auto; padding: 14px; border: 1px solid #d7e4eb; border-radius: 14px; background: #f5fafd; }
+.edu-study-tools p { margin: 4px 0 10px; font-size: 12px; color: #405a70; }
+.edu-study-tools strong { font-size: 13px; color: #254c66; }
+.edu-tool-options,
+.edu-confidence,
+.edu-detective-strikes,
+.edu-feedback-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.edu-tool-options { margin-top: 8px; }
+.edu-study-tools button,
+.edu-feedback-actions button,
+.edu-game-review button {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 9px 13px;
+  border: 1px solid #bbcdd9;
+  border-radius: 10px;
+  background: #fff;
+  color: #244c68;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.edu-study-tools button:hover:not(:disabled),
+.edu-game-review button:hover:not(:disabled) { background: #eaf3fc; border-color: #5988b5; }
+.edu-confidence button[aria-pressed="true"],
+.edu-tool-options button[aria-pressed="true"],
+.edu-detective-strikes button[aria-pressed="true"] { border-color: #245eb5; background: #e4efff; color: #194e98; box-shadow: inset 0 0 0 1px #245eb5; }
+.edu-study-tools button:disabled,
+.edu-feedback-actions button:disabled,
+.edu-game-review button:disabled { color: #637585; background: #f0f3f6; cursor: default; }
+.edu-feedback-actions { margin-top: 14px; }
+.edu-feedback-actions button { background: #1e5879; color: #fff; border-color: #1e5879; }
+.edu-feedback-actions button:hover:not(:disabled) { background: #174862; }
+.test-game-arena .game-options button.is-ruled-out {
+  border: 2px dashed #658fbd!important;
+  background: #f0f5fb!important;
+  color: #37556f!important;
+  opacity: 1!important;
+}
+.test-game-arena .game-options button.is-ruled-out > b { color: #37556f!important; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #6e8cac; }
+.test-game-arena .game-options button.is-ruled-out > span { background: #5c7895; }
+.edu-study-note { margin: 9px 0 0; color: #536a7c; font-size: 12px; line-height: 1.6; }
+
+.edu-game-review { max-width: 880px; margin: 16px auto 0; padding: 18px; border: 1px solid #cbdde9; border-radius: 16px; background: #f7fbfe; }
+.edu-review-question { margin: 14px 0; color: #17324b; font-size: 15px; font-weight: 650; line-height: 1.6; overflow-wrap: anywhere; }
+.edu-review-question img { display: block; max-width: 100%; max-height: 220px; margin: 10px auto; object-fit: contain; }
+.edu-review-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.edu-review-options button { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 54px; text-align: left; }
+.edu-review-options button[aria-pressed="true"],
+.edu-review-options button.is-selected { border-color: #245eb5; background: #e4efff; box-shadow: inset 0 0 0 1px #245eb5; }
+.edu-review-options button.is-correct { border-color: #2a805e; background: #edf8f1; color: #22553e; }
+.edu-review-options button.is-wrong { border-color: #b0553a; background: #fff0ed; color: #8a3b2b; }
+.edu-review-result { margin-top: 13px; padding: 11px 13px; border: 1px solid #c9dce8; border-radius: 10px; background: #fff; color: #294f68; font-size: 13px; line-height: 1.65; }
+.edu-result-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 18px; padding: 12px 14px; border: 1px solid #d1e2d8; border-radius: 12px; background: #f1f9f4; color: #285c45; font-size: 13px; }
+.edu-result-summary p { margin: 0; }
+
+.edu-game-picker button:focus-visible,
+.edu-mission button:focus-visible,
+.edu-study-tools button:focus-visible,
+.edu-study-tools summary:focus-visible,
+.edu-study-tools textarea:focus-visible,
+.edu-feedback-actions button:focus-visible,
+.edu-game-review button:focus-visible,
+.test-game-arena .game-options button:focus-visible { outline: 3px solid #245eb5!important; outline-offset: 3px; }
+
+@media (max-width: 1100px) {
+  .edu-game-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .edu-game-picker .edu-game-card { min-height: 192px; }
+}
+@media (max-width: 700px) {
+  .edu-game-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .edu-game-picker .edu-game-card { min-height: 185px; padding: 13px 11px; gap: 7px; }
+  .edu-game-head,
+  .edu-mission-head { flex-wrap: wrap; }
+  .edu-game-head h2 { font-size: 18px; }
+  .edu-game-detail { padding: 14px; }
+  .edu-game-steps { grid-template-columns: 1fr; gap: 8px; }
+  .edu-mission { padding: 12px 10px; border-radius: 14px; }
+  .edu-mission-world { padding: 16px 7px; }
+  .edu-mission-route { gap: 6px; }
+  .edu-mission .edu-mission-tile { min-height: 97px; padding: 9px 3px; }
+  .edu-mission .edu-mission-tile > span { font-size: 23px; }
+  .edu-mission .edu-mission-tile strong { font-size: 11px; }
+  .edu-mission .edu-mission-tile small { font-size: 10px; }
+  .edu-mission-millionaire .edu-mission-tile { min-height: 44px; padding: 8px 12px; }
+  .edu-mission-city .edu-mission-tile { min-height: calc(var(--building-height, 72px) + 50px); }
+  .edu-study-tools { padding: 12px; }
+  .edu-game-review { padding: 14px; }
+  .edu-review-options { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .edu-game-cards { gap: 9px; }
+  .edu-game-picker .edu-game-card { min-height: 190px; padding: 12px 9px; }
+  .edu-game-card strong { font-size: 13px; }
+  .edu-game-detail > header { flex-wrap: wrap; }
+  .edu-mission-route { gap: 5px; }
+  .edu-mission .edu-mission-tile { border-width: 1px; }
+  .edu-mission .edu-mission-tile strong { font-size: 11px; }
+  .edu-mission .edu-mission-tile small { font-size: 10px; }
+  .edu-mission-millionaire .edu-mission-tile strong { font-size: 12px; }
+  .edu-mission-millionaire .edu-mission-tile small { font-size: 10px; }
+  .edu-feedback-actions button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .edu-game-picker *, .edu-mission *, .edu-study-tools *, .edu-game-review * { animation: none!important; transition: none!important; scroll-behavior: auto!important; }
+}
+
+/* Match the native details and drafting controls used by the learning tools. */
+.edu-game-topic strong, .edu-game-topic span { display: block; }
+.edu-game-topic span { margin-top: 3px; }
+.edu-study-tools summary { min-height: 44px; padding: 10px 0; color: #254c66; font-weight: 750; cursor: pointer; }
+.edu-study-tools[open] summary { margin-bottom: 8px; border-bottom: 1px solid #d7e4eb; }
+.edu-study-tools label { display: block; color: #254c66; font-weight: 650; }
+.edu-study-tools textarea { display: block; width: 100%; min-height: 90px; margin: 8px 0; padding: 12px; resize: vertical; border: 1px solid #bbcdd9; border-radius: 10px; background: #fff; color: #17324b; font: inherit; font-size: 16px; line-height: 1.5; }
+.edu-study-tools textarea:disabled { background: #f0f3f6; color: #637585; }
+.edu-study-tools label small { display: block; font-size: 12px; font-weight: 400; }

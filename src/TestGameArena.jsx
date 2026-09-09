@@ -164,38 +164,106 @@ export function GameProfileStrip({ profile, accent = "#1B4B7A", compact = false 
 }
 
 
-export function GameModePicker({ value, onChange, gradeBand, accent, profile, playerGender, onPlayerGenderChange }) {
+const EDUCATIONAL_GAMES = {
+  bridge: { icon: "🌉", goal: "Bilim bilan ko‘prik quring", mechanic: "O‘qi → reja tuz → javobni tanla", description: "Har to‘g‘ri javob bitta tayanchni mustahkamlaydi. Xato joylar qayta mashq uchun belgilanadi.", steps: ["Poydevor", "Tayanch", "Oraliq", "Mustahkamlik", "Darvoza"], tip: "Avval nima berilgani va nimani topish kerakligini ajrating." },
+  millionaire: { icon: "🏆", goal: "Bilim pog‘onalariga ko‘tariling", mechanic: "Ishonchni bahola · 50/50 yordam", description: "Javobdan oldin ishonchingizni baholang. Zarur bo‘lsa, mavjud 50/50 yordamidan foydalaning. Yutuq — bilim ochkolari.", steps: ["1-pog‘ona", "2-pog‘ona", "3-pog‘ona", "4-pog‘ona", "Yakuniy pog‘ona"], tip: "Yordam ishlatishdan oldin variantlarni o‘zingiz solishtiring." },
+  space: { icon: "🚀", goal: "Kashfiyot stansiyasiga yetib boring", mechanic: "Usul tanla → yech → tekshir", description: "To‘g‘ri javoblar parvoz yo‘lini ochadi. Qaysi usul bilan yechganingizni kuzating va nazorat bekatlaridan o‘ting.", steps: ["Uchish", "Orbita", "Oy bekati", "Mars yo‘li", "Stansiya"], tip: "Javobni topgach, shartga mos kelishini yana bir tekshiring." },
+  detective: { icon: "🔎", goal: "Dalillar bilan sirni oching", mechanic: "Mos kelmaydigan variantlarni belgilash", description: "Avval taxminiy xato variantlarni belgilang. Javob berilgach, haqiqiy savol va izoh dalillar doskasida saqlanadi.", steps: ["Birinchi iz", "Tekshiruv", "Bog‘lanish", "Dalil", "Xulosa"], tip: "Taxminni dalildan ajrating: nima sababdan bu variant mos kelmaydi?" },
+  city: { icon: "🏙️", goal: "O‘z bilim shahringizni quring", mechanic: "Javobni o‘z so‘zing bilan asoslash", description: "To‘g‘ri javob maktab, kutubxona yoki laboratoriyani quradi. Xato javob — mustahkamlash kerak bo‘lgan bilim joyi.", steps: ["Maktab", "Kutubxona", "Ustaxona", "Laboratoriya", "Bilim markazi"], tip: "Javobingizning sababini bitta gap bilan tushuntirishga urinib ko‘ring." },
+};
+
+function learningSteps(subjectName = "") {
+  const subject = String(subjectName).toLowerCase();
+  if (/matem|algebra|geometr|fizika|kimyo/.test(subject)) return ["Berilganlarni ajratdim", "Usul yoki formulani tanladim", "Hisobni tekshirdim"];
+  if (/tili|adabiyot|english|language|рус/.test(subject)) return ["Matnni o‘qidim", "Ma’no yoki qoidani tekshirdim", "Variantlarni solishtirdim"];
+  return ["Savolni tushundim", "Kerakli bilimni esladim", "Variantlarni tekshirdim"];
+}
+
+export function GameModePicker({ value, onChange, gradeBand = "applicant", accent, profile, playerGender, onPlayerGenderChange, subjectName = "", topicName = "", availableQuestions = null, grade }) {
   const age = AGE_BANDS[gradeBand] || AGE_BANDS.applicant;
-  const avatar = resolveGameAvatarProfile({
-    ...profile,
-    jins: playerGender || profile?.jins,
-    class: profile?.class,
-  }, gradeBand);
-  return (
-    <div className={`game-picker-wrap game-age-${gradeBand}`} style={{ "--game-accent": accent || "#1B4B7A" }}>
-      <GameProfileStrip profile={profile} accent={accent} />
-      <div className="game-avatar-choice">
-        <span className="game-light-avatar" aria-hidden="true">{gradeBand.includes("1_4") || gradeBand.includes("1_5") ? "🌱" : gradeBand.includes("10_11") ? "🚀" : "🧭"}</span>
-        <div>
-          <strong>Sizning o'yin qahramoningiz</strong>
-          <small>{avatar.label} · yosh va sinfga mos</small>
-        </div>
-        <div className="game-avatar-gender" aria-label="Qahramon jinsini tanlang">
-          <button type="button" className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>Qiz</button>
-          <button type="button" className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O'g'il</button>
-        </div>
-      </div>
-      <div className="game-age-note game-one-path">
-        <span>{age.label} · Bilim yo‘li</span>
-        <p>{gradeBand.includes("1_4") || gradeBand.includes("1_5")
-          ? "Har javob bilan bilim bog‘i o‘sadi: Nihol → Daraxt → Bilim bog‘i."
-          : gradeBand.includes("10_11")
-            ? "Har javob loyiha bosqichini ochadi: Muammo → Dalil → Yechim → Natija."
-            : "Har javob ekspeditsiyani oldinga olib boradi: Signal → Dalil → Kashfiyot."}</p>
-        <small>Har 5-savol — nazorat nuqtasi. Foiz bilim darajasini, ketma-ket to‘g‘ri javob strategik seriyani oshiradi.</small>
-      </div>
+  const chosen = modeForId(value);
+  const plan = EDUCATIONAL_GAMES[chosen.id];
+  const avatar = resolveGameAvatarProfile({ ...profile, jins: playerGender || profile?.jins, class: grade || profile?.class }, gradeBand);
+  return <section className="game-picker-wrap edu-game-picker" style={{ "--game-accent": accent || "#1B4B7A" }} aria-label="Ta’limiy o‘yin tanlash">
+    <GameProfileStrip profile={profile} accent={accent} />
+    <header className="edu-game-head"><div><small>BILIM BILAN SARGUZASHT</small><h2>Bugun qaysi o‘yinni tanlaysiz?</h2><p>Bir mavzu, beshta usul. Har bir javobdan nimadir o‘rganing.</p></div><span className="edu-game-badge">5 ta o‘yin</span></header>
+    {(subjectName || topicName) ? <p className="edu-game-topic"><strong>{subjectName || "Tanlangan mavzular"}</strong><span>{topicName}</span></p> : null}
+    <div className="edu-game-cards" role="group" aria-label="Beshta o‘yin">
+      {GAME_MODES.map(mode => <button type="button" key={mode.id} className={`edu-game-card ${chosen.id === mode.id ? "is-selected" : ""}`} aria-pressed={chosen.id === mode.id} onClick={() => onChange?.(mode.id)} style={{ "--edu-color": mode.colors[0], "--edu-tint": `${mode.colors[1]}35` }}>
+        <span className="edu-game-icon" aria-hidden="true">{EDUCATIONAL_GAMES[mode.id].icon}</span><strong>{mode.name}</strong><p>{EDUCATIONAL_GAMES[mode.id].goal}</p><small className="edu-game-mechanic">{EDUCATIONAL_GAMES[mode.id].mechanic}</small><span className="edu-game-tag">{chosen.id === mode.id ? "✓ Tanlandi" : "Tanlash →"}</span>
+      </button>)}
     </div>
-  );
+    <div className="edu-game-detail" style={{ "--edu-color": chosen.colors[0], "--edu-tint": `${chosen.colors[1]}28` }}>
+      <header><strong>{plan.icon} {chosen.name}</strong><span>{age.label}</span></header><p>{plan.description}</p>
+      <ol className="edu-game-steps">{learningSteps(subjectName).map(step => <li key={step}>{step}</li>)}</ol>
+      <small>Har 5-savol — nazorat savoli. Savollar tanlangan fan va mavzu bazasidan olinadi.</small>
+      {availableQuestions !== null && Number(availableQuestions) < 25 ? <p className="edu-study-note">Hozir {Math.max(0, Number(availableQuestions) || 0)} ta mos savol bor. Pastda shu songa yetadigan o‘yin uzunliklari ko‘rinadi.</p> : null}
+    </div>
+    <div className="game-avatar-choice"><span className="game-light-avatar" aria-hidden="true">{plan.icon}</span><div><strong>Sizning qahramoningiz</strong><small>{avatar.label}</small></div><div className="game-avatar-gender" aria-label="Qahramon tanlash"><button type="button" aria-pressed={avatar.gender === "girl"} className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>Qiz</button><button type="button" aria-pressed={avatar.gender === "boy"} className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O‘g‘il</button></div></div>
+  </section>;
+}
+
+function EducationalMission({ mode, question, learningLog, subjectName, topicName }) {
+  const [opened, setOpened] = useState(null);
+  useEffect(() => setOpened(null), [question.question_key]);
+  const plan = EDUCATIONAL_GAMES[mode] || EDUCATIONAL_GAMES.bridge;
+  const position = Math.max(1, Number(question.position) || 1);
+  const roundStart = Math.floor((position - 1) / 5) * 5 + 1;
+  const record = learningLog.find(item => item.position === opened);
+  const roundLog = learningLog.filter(item => item.position >= roundStart && item.position < roundStart + 5);
+  return <section className={`edu-mission edu-mission-${mode}`} aria-label={plan.goal}>
+    <header className="edu-mission-head"><div><small>{subjectName || "BILIM MISSIYASI"}</small><h2>{plan.icon} {plan.goal}</h2><p>{topicName || plan.tip}</p></div><span>{roundLog.filter(item => item.correct).length}/5 to‘g‘ri</span></header>
+    <div className="edu-mission-world"><div className="edu-mission-route">
+      {plan.steps.map((title, index) => {
+        const number = roundStart + index;
+        const answer = learningLog.find(item => item.position === number);
+        const state = answer ? answer.correct ? "is-cleared" : "is-missed" : number === position ? "is-current" : "";
+        const status = answer ? answer.correct ? "O‘zlashtirildi" : "Takrorlash kerak" : number === position ? "Hozirgi savol" : "Navbatda";
+        const icon = answer ? answer.correct ? "✓" : "↻" : number === position ? plan.icon : "○";
+        return <button type="button" key={number} className={`edu-mission-tile ${state}`} disabled={!answer} onClick={() => setOpened(opened === number ? null : number)} aria-expanded={opened === number} aria-label={`${title}: ${status}`} style={{ "--building-height": `${54 + index * 13}px` }}><span aria-hidden="true">{icon}</span><strong>{title}</strong><small>{status}</small></button>;
+      })}
+    </div></div>
+    <p className="edu-mission-caption">{plan.tip} {roundLog.length > 0 ? "O‘tilgan joyni bosib, savol va izohni yana ko‘ring." : ""}</p>
+    {record ? <div className="edu-mission-evidence"><strong>{record.position}-savol · {record.correct ? "To‘g‘ri yechildi" : "Mustahkamlash uchun"}</strong><p><GameText value={record.question} /></p><p>To‘g‘ri javob: <GameText value={record.correctText || record.correctAnswer || "Server izohiga qarang"} /></p>{record.explanation ? <p><GameText value={record.explanation} /></p> : null}</div> : null}
+  </section>;
+}
+
+function LearningTools({ mode, subjectName, question, locked, ruledOut, onRuleOut }) {
+  const [checks, setChecks] = useState([]);
+  const [confidence, setConfidence] = useState("");
+  const [method, setMethod] = useState("");
+  const [note, setNote] = useState("");
+  const toggle = step => setChecks(current => current.includes(step) ? current.filter(item => item !== step) : [...current, step]);
+  return <details className="edu-study-tools" open={mode === "detective" || undefined}>
+    <summary>{EDUCATIONAL_GAMES[mode]?.icon} {mode === "detective" ? "Detektiv vositasi: variantlarni tekshiring" : "O‘ylash vositasi — ixtiyoriy"}</summary>
+    {mode === "detective" ? <><p>Mos kelmaydi deb o‘ylagan variantni belgilang. Bu sizning taxminingiz; yana bosib belgini olib tashlaysiz.</p><div className="edu-detective-strikes">{(question.options || []).filter(option => !option.hidden).map(option => <button type="button" key={option.key} disabled={locked} aria-pressed={ruledOut.includes(option.key)} onClick={() => onRuleOut(option.key)}>{ruledOut.includes(option.key) ? "↶" : "×"} {option.key}</button>)}</div></> : null}
+    {mode === "bridge" ? <><p>Ko‘prikdan o‘tishdan oldin uch qadamni tekshiring.</p><div className="edu-tool-options">{learningSteps(subjectName).map(step => <button type="button" key={step} disabled={locked} aria-pressed={checks.includes(step)} onClick={() => toggle(step)}>{checks.includes(step) ? "✓ " : "○ "}{step}</button>)}</div></> : null}
+    {mode === "millionaire" ? <><p>Javobingizga qanchalik ishonasiz? Natijadan keyin taxminingiz bilan solishtiring.</p><div className="edu-confidence">{["Ishonaman", "Ikkilanayapman", "Yordam kerak"].map(item => <button type="button" key={item} disabled={locked} aria-pressed={confidence === item} onClick={() => setConfidence(item)}>{item}</button>)}</div>{confidence ? <small>Sizning bahoyingiz: {confidence}</small> : null}</> : null}
+    {mode === "space" ? <><p>Qaysi usul bilan javob topmoqchisiz?</p><div className="edu-tool-options">{["Eslab topaman", "Hisoblab topaman", "Solishtirib topaman"].map(item => <button type="button" key={item} disabled={locked} aria-pressed={method === item} onClick={() => setMethod(item)}>{item}</button>)}</div></> : null}
+    {mode === "city" ? <label>Javobimning sababi…<textarea value={note} disabled={locked} maxLength={500} onChange={event => setNote(event.target.value)} placeholder="O‘z fikringizni bitta gap bilan yozing (ixtiyoriy)."/><small>Bu qoralama avtomatik baholanmaydi va keyingi savolda tozalanadi.</small></label> : null}
+  </details>;
+}
+
+function LearningReview({ entries, apiBase }) {
+  const [active, setActive] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [mastered, setMastered] = useState([]);
+  const mistakes = entries.filter(item => !item.correct);
+  const current = mistakes[index];
+  if (!mistakes.length) return entries.length ? <p className="edu-result-summary">Bu o‘yinda tekshirilgan javoblaringiz orasida xato qolmadi. Keyingi mavzuga o‘tishingiz mumkin.</p> : null;
+  const checked = Boolean(answer);
+  const correct = checked && answer === current?.correctAnswer;
+  const canPractice = Boolean(current?.correctAnswer && current?.options?.some(option => option.key === current.correctAnswer));
+  return <section className="edu-game-review">
+    <h2>Xatoni bilimga aylantiring</h2><p>{mistakes.length} ta savolni mustahkamlash mumkin. Bu mashq yangi reyting ochkosi bermaydi.</p>
+    {!active ? <button type="button" onClick={() => setActive(true)}>↻ Xatolar ustida ishlash</button> : current ? <div className="edu-review-question">
+      <small>{index + 1}/{mistakes.length} · {mastered.length} tasi qayta to‘g‘ri yechildi</small><GameImage value={current.image} apiBase={apiBase}/><p><GameText value={current.question}/></p>
+      {canPractice ? <div className="edu-review-options">{current.options.map(option => <button type="button" key={option.key} disabled={checked} className={checked && option.key === current.correctAnswer ? "is-correct" : answer === option.key ? "is-wrong" : ""} onClick={() => { setAnswer(option.key); if (option.key === current.correctAnswer) setMastered(items => items.includes(current.questionKey) ? items : [...items, current.questionKey]); }}>{option.key}. <GameText value={option.text}/></button>)}</div> : <p>Bu savol uchun qayta tanlash javobi mavjud emas. Mavzuni izoh orqali takrorlang.</p>}
+      {(checked || !canPractice) ? <div className="edu-review-result" role="status"><strong>{checked ? correct ? "✓ Endi to‘g‘ri!" : "Yechimni yana ko‘rib chiqing." : "Takrorlash"}</strong>{current.correctText ? <p>To‘g‘ri javob: <GameText value={current.correctText}/></p> : null}{current.explanation ? <p><GameText value={current.explanation}/></p> : <p>Izoh mavjud emas. Shu mavzudagi qoida yoki yechimni qayta ko‘rib chiqing.</p>}</div> : null}
+      <div className="edu-feedback-actions">{checked && !correct ? <button type="button" onClick={() => setAnswer("")}>Yana urinaman</button> : null}<button type="button" onClick={() => { setIndex(index + 1); setAnswer(""); }}>{index + 1 < mistakes.length ? "Keyingi xato" : "Mashqni yakunlash"}</button></div>
+    </div> : <div className="edu-review-result" role="status"><strong>Mashq yakunlandi</strong><p>{mastered.length}/{mistakes.length} savol qayta to‘g‘ri yechildi.</p><button type="button" onClick={() => { setIndex(0); setAnswer(""); }}>Yana takrorlash</button></div>}
+  </section>;
 }
 
 
@@ -551,7 +619,7 @@ function isFailureTerminal(payload = {}) {
 }
 
 
-function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics }) {
+function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics, learningLog = [], apiBase }) {
   const meta = modeForId(mode);
   const lives = gameLivesRemaining(terminal, terminal?.result);
   const terminalResult = terminal?.result;
@@ -578,6 +646,7 @@ function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics }) {
             <GameProfileStrip profile={terminalResult.profile} accent={meta.colors[0]} compact />
           </>
         )}
+        <LearningReview entries={learningLog} apiBase={apiBase} />
         <div className="game-result-actions">
           <button type="button" onClick={onSetup}>Qayta urinish</button>
           <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
@@ -588,7 +657,7 @@ function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics }) {
 }
 
 
-function ResultScreen({ result, mode, gradeBand, onSetup, onTopics }) {
+function ResultScreen({ result, mode, gradeBand, onSetup, onTopics, learningLog = [], apiBase }) {
   const meta = modeForId(mode);
   const color = result.score_1000 >= 850 ? "#C58B19" : result.score_1000 >= 600 ? meta.colors[0] : "#9A3412";
   return (
@@ -603,7 +672,7 @@ function ResultScreen({ result, mode, gradeBand, onSetup, onTopics }) {
         <p>{result.correct_count || 0} / {result.total || 0} to'g'ri · {result.percent || 0}% bilim natijasi</p>
         <div className="game-result-breakdown">
           <span><b>{result.regular_points || 0}</b> test</span>
-          <span><b>{result.boss_points || 0}</b> Boss</span>
+          <span><b>{result.boss_points || 0}</b> nazorat</span>
           <span><b>{result.completion_points || 0}</b> yakun</span>
           <span><b>{result.mastery_bonus || 0}</b> bonus</span>
         </div>
@@ -614,6 +683,7 @@ function ResultScreen({ result, mode, gradeBand, onSetup, onTopics }) {
           {result.awarded_points === 0 && result.completed && <small>Bu natija avvalgi rekordingizdan oshmadi; bilim foizi baribir saqlandi.</small>}
         </div>
         <GameProfileStrip profile={result.profile} accent={meta.colors[0]} compact />
+        <LearningReview entries={learningLog} apiBase={apiBase} />
         <div className="game-result-actions">
           <button type="button" onClick={onSetup}>Shu mavzuda yana</button>
           <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
@@ -638,10 +708,15 @@ export default function TestGameArena({
   readError = "",
   onFinished,
   playerProfile,
+  subjectName = "",
+  topicName = "",
 }) {
   const initialFailure = isFailureTerminal(initialSession) ? initialSession : null;
   const [session, setSession] = useState(initialSession);
   const [selectedOption, setSelectedOption] = useState("");
+  const [learningLog, setLearningLog] = useState([]);
+  const [ruledOut, setRuledOut] = useState([]);
+  const [holdExplanation, setHoldExplanation] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [pendingNext, setPendingNext] = useState(null);
@@ -675,6 +750,7 @@ export default function TestGameArena({
     class: playerProfile?.class || session?.grade || question?.grade,
   }, gradeBand), [playerProfile, session?.player_gender, session?.jins, session?.grade, question?.grade, gradeBand]);
   const questionKey = question?.question_key || "";
+  useEffect(() => { setRuledOut([]); setHoldExplanation(false); }, [questionKey]);
   const isBoss = Boolean(question?.is_boss);
   const readText = useMemo(() => {
     if (!question) return "";
@@ -958,6 +1034,21 @@ export default function TestGameArena({
             ...lifeChange,
           };
       setFeedback(finalFeedback);
+      // Only server-confirmed outcomes become route progress or practice cards.
+      const correctAnswer = String(finalFeedback.correctAnswer || "").trim().toUpperCase();
+      const optionsForReview = (question.options || []).map(option => ({ key: String(option.key).toUpperCase(), text: String(option.text ?? "") }));
+      const learningRecord = {
+        questionKey: question.question_key,
+        position: Number(question.position),
+        question: String(question.question || ""),
+        image: question.rasm_id,
+        options: optionsForReview,
+        correct: finalFeedback.correct === true,
+        correctAnswer,
+        correctText: optionsForReview.find(option => option.key === correctAnswer)?.text || finalFeedback.correctAnswer || "",
+        explanation: String(finalFeedback.explanation || ""),
+      };
+      setLearningLog(current => [...current.filter(item => item.questionKey !== learningRecord.questionKey), learningRecord].sort((a, b) => a.position - b.position));
       if (terminal) {
         queueTerminal(data);
       } else {
@@ -1286,7 +1377,7 @@ export default function TestGameArena({
       setFeedbackCountdown(null);
       return undefined;
     }
-    if (stopConfirm) return undefined;
+    if (stopConfirm || holdExplanation) return undefined;
 
     if (transitionCommittedRef.current !== feedbackTransitionKey) {
       transitionCommittedRef.current = "";
@@ -1349,12 +1440,14 @@ export default function TestGameArena({
     };
     // Transition payloadining o'zi shu kalit yaratilgan paytdagi stabil snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedbackTransitionKey, stopConfirm]);
+  }, [feedbackTransitionKey, stopConfirm, holdExplanation]);
 
   if (result) {
     return (
       <ResultScreen
         result={result}
+        learningLog={learningLog}
+        apiBase={apiBase}
         mode={mode}
         gradeBand={gradeBand}
         onSetup={() => { if (stopReadRef.current) stopReadRef.current(); onBackToSetup(); }}
@@ -1366,6 +1459,8 @@ export default function TestGameArena({
     return (
       <GameTerminalScreen
         terminal={terminalFailure}
+        learningLog={learningLog}
+        apiBase={apiBase}
         mode={mode}
         gradeBand={gradeBand}
         onSetup={() => { if (stopReadRef.current) stopReadRef.current(); onBackToSetup(); }}
@@ -1428,7 +1523,7 @@ export default function TestGameArena({
       <header className="game-topbar">
         <div>
           <small>{age.label} · {avatarProfile.gender === "girl" ? "qiz" : "o'g'il"} qahramon · {question.round}-raund</small>
-          <strong>Bilim yo‘li</strong>
+          <strong>{meta.name}</strong>
         </div>
         <div className="game-top-stats">
           <span>✓ {session.correct_count || 0}</span>
@@ -1440,13 +1535,7 @@ export default function TestGameArena({
       <div className="game-overall-track" role="progressbar" aria-label="O'yin jarayoni" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
 
       <div className={`game-stage game-stage-${mode} game-stage-light ${sceneStateClass(feedback)}`}>
-        <div className="game-light-journey" aria-label="Bilim bosqichlari">
-          {[1, 2, 3, 4, 5].map((step) => {
-            const currentStep = Math.max(1, Math.min(5, Number(question.round_step || 1)));
-            return <span key={step} className={step < currentStep ? "is-done" : step === currentStep ? "is-current" : ""}>{step < currentStep ? "✓" : step}</span>;
-          })}
-          <strong>{isBoss ? age.bossName : "Bilim yo‘li"}</strong>
-        </div>
+        <EducationalMission mode={mode} question={question} learningLog={learningLog} subjectName={subjectName} topicName={topicName} />
 
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
@@ -1463,7 +1552,7 @@ export default function TestGameArena({
             className={`game-question-card game-question-in-scene ${isBoss ? "is-boss" : ""} ${feedback?.correct === true ? "is-answer-correct" : ""} ${feedback?.correct === false || feedback?.type === "timeout" ? "is-answer-wrong" : ""} ${feedbackTransition ? "is-advancing" : ""}`}
           >
         <div className="game-question-label">
-          <span>{isBoss ? `★ ${age.bossName}` : `${question.round_step}-savol`}</span>
+          <span>{isBoss ? "★ Nazorat savoli" : `${question.round_step}-savol`}</span>
           {isBoss && <small>4 variantdan birini tanlang</small>}
         </div>
         <GameImage value={question.rasm_id} apiBase={apiBase} />
@@ -1483,11 +1572,12 @@ export default function TestGameArena({
           )}
         </div>
         {readError && <div className="game-voice-error" role="alert">Ovoz ishga tushmadi. Karnayni yana bosing.</div>}
+        <LearningTools key={questionKey} mode={mode} subjectName={subjectName} question={question} locked={interactionLocked} ruledOut={ruledOut} onRuleOut={key => setRuledOut(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key])} />
 
         <div
           className={`game-options ${mode === "bridge" ? `bridge-answer-course is-${bridgeOutcome}` : ""}`}
           style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%" } : undefined}
-          aria-label={isBoss ? "Boss javob variantlari" : "Javob variantlari"}
+          aria-label={isBoss ? "Nazorat savoli variantlari" : "Javob variantlari"}
         >
           {(question.options || []).map((option) => (
             <button
@@ -1497,6 +1587,7 @@ export default function TestGameArena({
               className={[
                 option.hidden ? "is-hidden-option" : "",
                 selectedOption === option.key ? "is-selected-option" : "",
+                mode === "detective" && !feedbackFinal && ruledOut.includes(option.key) ? "is-ruled-out" : "",
                 feedback?.correct === true && selectedOption === option.key ? "is-correct-option is-bridge-safe" : "",
                 feedback?.correct === false && selectedOption === option.key ? "is-wrong-option is-bridge-broken" : "",
               ].filter(Boolean).join(" ")}
@@ -1519,6 +1610,8 @@ export default function TestGameArena({
             </div>
           )}
           {feedback?.type === "lifeline" && <div className="is-help"><strong>Yordam ishladi</strong><p>{feedback.text}</p></div>}
+          {feedback?.type === "retry" && feedback.text ? <div className="is-help"><p><GameText value={feedback.text}/></p></div> : null}
+          {feedbackTransition ? <div className="edu-feedback-actions"><button type="button" aria-pressed={holdExplanation} onClick={() => setHoldExplanation(current => !current)}>{holdExplanation ? "▶ Avtomatik davomni yoqish" : "⏸ Izohni o‘qish uchun to‘xtatish"}</button><small role="status">{holdExplanation ? "Izohni shoshilmay o‘qing. Keyingi savol hali boshlanmagan." : `${feedbackCountdown ?? 5} soniyadan so‘ng ${pendingResult || pendingTerminal ? "natija ochiladi" : "davom etiladi"}.`}</small></div> : null}
           {feedback?.type === "timeout" && feedback?.retryable && (
             <div className="is-timeout">
               <strong>Server bilan aloqa uzildi</strong>

@@ -661,11 +661,15 @@ export default function TestTab({
 
   const aralashTestBoshlandi = () => {
     if (tanlanganKodlar.length === 0) return;
+    const mavzuKodlari = new Set(tanlanganKodlar.flatMap((k) => k.topic_codes || []));
+    const fanNomlari = (joriySinfMalumoti?.fanlar || [])
+      .filter((fan) => fan.mavzular.some((mavzu) => (mavzu.topic_codes || []).some((kod) => mavzuKodlari.has(kod))))
+      .map((fan) => fan.nom);
     setTanlanganMavzu({
       aralash: true,
       kodlar: tanlanganKodlar.flatMap((k) => k.topic_codes),
       nomi: `Aralash test (${tanlanganKodlar.length} mavzu)`,
-      fanNomi: joriySinfMalumoti ? `${joriySinfMalumoti.sinf}-sinf` : "",
+      fanNomi: [...new Set(fanNomlari)].join(", "),
       savol_soni: tanlanganKodlar.reduce((s, k) => s + (k.savol_soni || 0), 0),
       sinf: joriySinfMalumoti?.sinf || sinf || tanlanganSinf,
     });
@@ -1248,6 +1252,8 @@ export default function TestTab({
           token={token}
           apiBase={API_BASE}
           initialSession={oyinSessiya}
+          subjectName={tanlanganMavzu?.fanNomi || ""}
+          topicName={tanlanganMavzu?.nomi || ""}
           playerProfile={{ ...foydalanuvchi, jins: oyinQahramonJinsi, class: sinf || foydalanuvchi?.class }}
           accent={rang}
           onRead={ovozniOqi}
@@ -1332,8 +1338,10 @@ export default function TestTab({
   }
 
   if (holat === "songi") {
-    const jami = mosSoni ?? 0;
-    const oddiyVariantlar = (tanlanganMavzu.aralash ? [10, 15, 20, 25, 30, 35, 40, 45, 50] : [5, 10, 15]).filter((n) => n < jami);
+    const jami = Math.max(0, Math.floor(Number(mosSoni) || 0));
+    // Mavjud bankdan ko'p savol so'ramaymiz; bitta oddiy urinish 100 tagacha.
+    // Qisqa banklar va 100 tagacha qolgan miqdor uchun "Hammasi" tugmasi bor.
+    const oddiyVariantlar = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].filter((n) => n < jami);
     const oyinVariantlar = gameQuestionOptions(jami);
     const variantlar = testRejimi === "oyin" ? oyinVariantlar : oddiyVariantlar;
     const oyinYoshBosqichi = gradeBandForClass(
@@ -1364,7 +1372,7 @@ export default function TestTab({
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "oyin" ? { borderColor: rang, backgroundColor: `${rang}12` } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
               <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>🎮 O'yinli test</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Har 5-savol 4 variantli Boss, 3 jon, ochko va kunlik seriya</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>5 xil o'yin, har 5-savolda nazorat, 3 jon va bilim ochkolari</p>
             </button>
           </div>
         </div>
@@ -1375,6 +1383,10 @@ export default function TestTab({
               value={oyinRejimi}
               onChange={setOyinRejimi}
               gradeBand={oyinYoshBosqichi}
+              grade={tanlanganMavzu?.sinf || sinf || tanlanganSinf || joriySinfMalumoti?.sinf}
+              subjectName={tanlanganMavzu.fanNomi}
+              topicName={tanlanganMavzu.nomi}
+              availableQuestions={mosSoni}
               accent={rang}
               profile={oyinProfil}
               playerGender={oyinQahramonJinsi}
@@ -1431,16 +1443,21 @@ export default function TestTab({
                     className="py-3.5 rounded-xl border font-semibold text-center text-sm"
                     style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
                     <span className="block">{n} ta</span>
-                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5} Boss</span>}
+                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5} ta nazorat savoli</span>}
                   </button>
                 ))}
               </div>
-              {testRejimi !== "oyin" && (
+              {testRejimi !== "oyin" && jami <= 100 && (
                 <button onClick={() => testniBoshlash(jami)}
                   className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
                   style={{ backgroundColor: "#1B4B7A" }}>
                   🚀 Hammasi ({jami} ta)
                 </button>
+              )}
+              {testRejimi !== "oyin" && jami > 100 && (
+                <p className="text-xs mt-3" style={{ color: "#5A5648" }}>
+                  Bankda {jami} ta mos savol bor. Bitta urinishda 100 tagacha savol ishlaysiz.
+                </p>
               )}
             </>
           )}
