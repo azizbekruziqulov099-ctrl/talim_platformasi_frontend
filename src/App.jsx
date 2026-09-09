@@ -2,6 +2,13 @@
 // SAMTM V19.0 — clean-scale frontend; lazy workspaces preserved.
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
+import KabutarLogin from "./auth/KabutarLogin.jsx";
+import KabutarRegistration from "./auth/KabutarRegistration.jsx";
+import EducationSetup from "./workspace/EducationSetup.jsx";
+import AccountSecurity from "./workspace/AccountSecurity.jsx";
+import AudiencePanel, { useAudiencePresence } from "./workspace/AudiencePanel.jsx";
+import { workspaceRequest } from "./workspace/kabutarWorkspaceClient.js";
+import "./workspace/workspace.css";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import {
   CLUB_STUDENT_LIMIT,
@@ -12847,7 +12854,7 @@ function PastkiMenyu({
         <div className="premium-side-brand">
           <Logotip compact light />
           <div>
-            <strong>TA‘LIM AI</strong>
+            <strong>KABUTAR</strong>
             <span>Ta’lim ekotizimi</span>
           </div>
         </div>
@@ -13858,7 +13865,13 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   );
 }
 
-function Kabinet({ token, onSessionExpired }) {
+function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false }) {
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [profileReload, setProfileReload] = useState(0);
+  const [educationLoadError, setEducationLoadError] = useState("");
+  const [educationReload, setEducationReload] = useState(0);
+  const [talimYuklangan, setTalimYuklangan] = useState(false);
+  useAudiencePresence(API_BASE, token, !readOnly);
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
   const [bilimData, setBilimData] = useState(null);
@@ -13878,10 +13891,10 @@ function Kabinet({ token, onSessionExpired }) {
     return yangi;
   }), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
-  const [kabutarOchiq, setKabutarOchiq] = useState(() => { try { return window.sessionStorage.getItem("samtm_kabutar_ochiq") === "1"; } catch { return false; } });
+  const [kabutarOchiq, setKabutarOchiq] = useState(true);
   const [kabutarYuklangan, setKabutarYuklangan] = useState(kabutarOchiq);
   const [kabutarOqilmagan, setKabutarOqilmagan] = useState(0);
-  const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
+  const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); else setTalimYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
   const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
   // To'liq ekran ish maydonlari (portal) tepadagi "Ta'lim maydoni | Kabutar" qatorini yopmasin
   const topSwitchObsRef = useRef(null);
@@ -13966,104 +13979,62 @@ function Kabinet({ token, onSessionExpired }) {
   }), [kabinetTarixdanQayt, testDavomida]);
 
   useEffect(() => {
-    async function yukla() {
-      try {
-        const resU = await fetch(`${API_BASE}/auth/men?token=${encodeURIComponent(token)}`);
-        if (!resU.ok) {
-          if (resU.status === 401 || resU.status === 403) onSessionExpired?.();
-          throw new Error("Sessiya eskirgan");
-        }
-        const u = await resU.json();
+    const controller = new AbortController();
+    setHolat("yuklanmoqda");
+    workspaceRequest(API_BASE, "/auth/men", token, { signal: controller.signal })
+      .then((u) => {
+        if (controller.signal.aborted) return;
         setFoydalanuvchi(u);
-
-        // V18.2: Tashkent sanasi bo'yicha kunlik kirish ochkosi backendda
-        // faqat bir marta beriladi. 015 hali o'rnatilmagan eski serverda
-        // kabinetning qolgan qismini to'xtatmaymiz.
-        fetch(`${API_BASE}/api/oyin/kunlik-kirish`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        })
-          .then(async (response) => ({ ok: response.ok, data: await response.json() }))
-          .then(({ ok, data }) => {
-            if (ok && data.profile) setOyinProfil(data.profile);
-            if (ok && data.awarded_points > 0) {
-              setKunlikMukofot(data.awarded_points);
-              setTimeout(() => setKunlikMukofot(0), 4500);
-            }
-          })
-          .catch(() => {});
-
-        fetch(`${API_BASE}/api/bola/${u.user_id}/bilim`)
-          .then((r) => r.json())
-          .then(setBilimData)
-          .catch(() => setBilimData(null));
-
-        // Muassasa holati faqat o‘qituvchiga emas, o‘quvchi va ota-onaga ham
-        // kerak: bosh sahifa aynan ulangan/ulanmagan holatga qarab quriladi.
-        if (u.role !== "oqituvchi" || u.is_admin) {
-          fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
-            .then((response) => response.ok ? response.json() : Promise.reject(new Error("Muassasalar yuklanmadi")))
-            .then((payload) => setMuassasalarim(payload.muassasalar || []))
-            .catch(() => setMuassasalarim([]))
-            .finally(() => { setMuassasalarYuklandi(true); setIshJoyiAniqlandi(true); });
-        }
-
-        if (u.role === "oqituvchi" && !u.is_admin) {
-          fetch(`${API_BASE}/api/auth/muassasalarim?token=${encodeURIComponent(token)}`)
-            .then((r) => r.json())
-            .then(async (d) => {
-              let list = d.muassasalar || [];
-              const KORINISH = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
-              if (!list.some((m) => m.turi === "universitet")) {
-                // Zaxira: institut roli bor, lekin ro'yxatga tushmagan bo'lsa — institut o'zi aytadi.
-                try {
-                  const rb = await fetch(`${API_BASE}/api/institut/v20/bootstrap?token=${encodeURIComponent(token)}`);
-                  const bd = await rb.json();
-                  if (rb.ok && bd?.universitet?.id) {
-                    list = [...list, { turi: "universitet", muassasa_id: bd.universitet.id, muassasa_nomi: bd.universitet.nomi, lavozim: bd.asosiy_rol || "", faol: true }];
-                  }
-                } catch { /* institutga a'zo bo'lmasa — jim */ }
-              }
-              setMuassasalarim(list);
-              setMuassasalarYuklandi(true);
-              setIshJoyiAniqlandi(true);
-              const faol = list.filter((m) => KORINISH[m.turi]);
-              if (faol.length === 1) {
-                // Bitta ishxona — kirishdan keyin to'g'ridan-to'g'ri o'sha ishxona ochiladi.
-                setOqituvchiBoshlanishKorinishi({ korinish: KORINISH[faol[0].turi], muassasa: faol[0], vaqt: Date.now() });
-                setTanlanganMuassasa(faol[0]);
-                setTab("oqituvchi");
-              } else if (faol.length > 1) {
-                setIshxonaTanlash(faol);
-              }
-            })
-            .catch(() => { setMuassasalarYuklandi(true); setIshJoyiAniqlandi(true); });
-        }
-
-        // Har rol o'ziga mos boshlang'ich sahifadan boshlaydi
-        const korinish = u.is_admin ? "admin" : u.role;
-        if (korinish === "admin") setTab("admin");
-        else if (korinish === "oqituvchi") setTab("oqituvchi");
-        else if (korinish === "ota-ona") setTab("farzand");
-        else setTab("bilim");
-
+        setTab(u.is_admin ? "admin" : u.role === "oqituvchi" ? "oqituvchi" : u.role === "ota-ona" ? "farzand" : "bilim");
         setHolat("tayyor");
-      } catch (e) {
-        setXatoMatn(e.message);
+      }).catch((error) => {
+        if (controller.signal.aborted) return;
+        if (error.status === 401) { onSessionExpired?.(token); return; }
+        setXatoMatn(error.message || "Hisobingizni yuklab bo‘lmadi. Qayta urinib ko‘ring.");
         setHolat("xato");
-      }
-    }
-    yukla();
-  }, [token, onSessionExpired]);
+      });
+    return () => controller.abort();
+  }, [token, onSessionExpired, profileReload]);
+
+  // Ta’lim ma’lumotlari shu bo‘lim ochilgandagina yuklanadi.
+  useEffect(() => {
+    if (kabutarOchiq || !foydalanuvchi || foydalanuvchi.education_ready === false || muassasalarYuklandi) return;
+    const controller = new AbortController();
+    const user = foydalanuvchi;
+    setEducationLoadError("");
+    const get = (path) => workspaceRequest(API_BASE, `${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`, token, { signal: controller.signal });
+    let membershipReady = false;
+    const membership = get("/api/auth/muassasalarim")
+      .then((payload) => {
+        if (controller.signal.aborted) return;
+        membershipReady = true;
+        const list = payload.muassasalar || [];
+        setMuassasalarim(list);
+        if (user.role === "oqituvchi" && !user.is_admin) {
+          const modes = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
+          const available = list.filter((m) => modes[m.turi]);
+          if (available.length === 1) {
+            setOqituvchiBoshlanishKorinishi({ korinish: modes[available[0].turi], muassasa: available[0], vaqt: Date.now() });
+            setTanlanganMuassasa(available[0]);
+          } else if (available.length > 1) setIshxonaTanlash(available);
+        }
+      }).catch((error) => { if (!controller.signal.aborted) setEducationLoadError(error.message || "Ta’lim ma’lumotlarini olib bo‘lmadi."); });
+    const knowledge = get(`/api/bola/${user.user_id}/bilim`).then((data) => { if (!controller.signal.aborted) setBilimData(data); });
+    const reward = readOnly ? Promise.resolve() : workspaceRequest(API_BASE, "/api/oyin/kunlik-kirish", token, { method: "POST", body: { token }, signal: controller.signal })
+      .then((data) => { if (!controller.signal.aborted && data.profile) setOyinProfil(data.profile); });
+    Promise.allSettled([membership, knowledge, reward]).then(() => {
+      if (!controller.signal.aborted && membershipReady) { setMuassasalarYuklandi(true); setIshJoyiAniqlandi(true); }
+    });
+    return () => controller.abort();
+  }, [kabutarOchiq, foydalanuvchi, token, muassasalarYuklandi, readOnly, educationReload]);
 
   if (holat === "yuklanmoqda") {
     return <Qobiq><div className="text-center"><Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} /><p className="text-sm" style={{ color: "#8A8578" }}>Yuklanmoqda...</p></div></Qobiq>;
   }
   if (holat === "xato") {
-    return <Qobiq><div className="text-center"><WifiOff size={28} className="mx-auto mb-3" style={{ color: "#B0553A" }} /><p className="text-sm" style={{ color: "#B0553A" }}>{xatoMatn}</p></div></Qobiq>;
+    return <Qobiq><div className="text-center"><WifiOff size={28} className="mx-auto mb-3" style={{ color: "#B0553A" }} /><p className="text-sm" role="alert" style={{ color: "#B0553A" }}>{xatoMatn}</p><button className="kb-work-primary" onClick={() => setProfileReload((n) => n + 1)}>Qayta urinish</button><button className="mt-3 block mx-auto" onClick={() => setAccountOpen(true)}>Kirish sozlamalari</button>{accountOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} />}</div></Qobiq>;
   }
-  if (ishxonaTanlash && ishxonaTanlash.length > 1) {
+  if (!kabutarOchiq && ishxonaTanlash && ishxonaTanlash.length > 1) {
     const IKON = { maktab: "🏫", bogcha: "🧸", universitet: "🎓", markaz: "📚" };
     const TUR = { maktab: "Maktab", bogcha: "Bog‘cha", universitet: "Institut / universitet", markaz: "O‘quv markazi" };
     const KORINISH = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
@@ -14130,7 +14101,7 @@ function Kabinet({ token, onSessionExpired }) {
     test: ["Test markazi", "Bilimni tekshirish va mustahkamlash"],
     xabar: ["Xabarlar", "Bildirishnoma va suhbatlar"],
     profil: ["Profil", "Shaxsiy ma’lumot va ulanishlar"],
-  }[tab] || ["Ta’lim platformasi", "Yagona ta’lim ekotizimi"];
+  }[tab] || ["Kabutar Ta’lim", "Sizning ta’lim maydoningiz"];
 
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: "#F7F5F0", backgroundImage: "url(\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22260%22%20height%3D%22260%22%20viewBox%3D%220%200%20260%20260%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23E3DECE%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cg%20transform%3D%22translate%2818%2C24%29%20rotate%28-12%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2230%22%20height%3D%2222%22%20rx%3D%222%22/%3E%3Cline%20x1%3D%2215%22%20y1%3D%220%22%20x2%3D%2215%22%20y2%3D%2222%22/%3E%3Cline%20x1%3D%224%22%20y1%3D%226%22%20x2%3D%2212%22%20y2%3D%226%22/%3E%3Cline%20x1%3D%224%22%20y1%3D%2211%22%20x2%3D%2212%22%20y2%3D%2211%22/%3E%3Cline%20x1%3D%2218%22%20y1%3D%226%22%20x2%3D%2226%22%20y2%3D%226%22/%3E%3Cline%20x1%3D%2218%22%20y1%3D%2211%22%20x2%3D%2226%22%20y2%3D%2211%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28160%2C20%29%20rotate%2838%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%227%22%20height%3D%2232%22%20rx%3D%221.5%22/%3E%3Cpath%20d%3D%22M0%2032%20L3.5%2040%20L7%2032%20Z%22/%3E%3Cline%20x1%3D%220%22%20y1%3D%226%22%20x2%3D%227%22%20y2%3D%226%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%2870%2C110%29%20rotate%288%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2246%22%20height%3D%2210%22%20rx%3D%221.5%22/%3E%3Cline%20x1%3D%228%22%20y1%3D%220%22%20x2%3D%228%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2216%22%20y1%3D%220%22%20x2%3D%2216%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2224%22%20y1%3D%220%22%20x2%3D%2224%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2232%22%20y1%3D%220%22%20x2%3D%2232%22%20y2%3D%225%22/%3E%3Cline%20x1%3D%2240%22%20y1%3D%220%22%20x2%3D%2240%22%20y2%3D%225%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28185%2C140%29%22%3E%3Crect%20x%3D%220%22%20y%3D%2210%22%20width%3D%2230%22%20height%3D%2234%22%20rx%3D%227%22/%3E%3Crect%20x%3D%227%22%20y%3D%220%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%223%22/%3E%3Cline%20x1%3D%2215%22%20y1%3D%2220%22%20x2%3D%2215%22%20y2%3D%2234%22/%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2227%22%20r%3D%221.5%22%20fill%3D%22%23E3DECE%22%20stroke%3D%22none%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%2830%2C175%29%20rotate%28-25%29%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%226%22%20height%3D%2228%22%20rx%3D%222%22/%3E%3Cpath%20d%3D%22M0%2028%20L3%2035%20L6%2028%20Z%22/%3E%3Crect%20x%3D%220%22%20y%3D%22-4%22%20width%3D%226%22%20height%3D%225%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate%28120%2C200%29%20rotate%28-10%29%22%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2210%22%20r%3D%2210%22/%3E%3Cline%20x1%3D%2210%22%20y1%3D%224%22%20x2%3D%2210%22%20y2%3D%2210%22/%3E%3Cline%20x1%3D%2210%22%20y1%3D%2210%22%20x2%3D%2214%22%20y2%3D%2213%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")", backgroundRepeat: "repeat", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -14218,7 +14189,7 @@ function Kabinet({ token, onSessionExpired }) {
         }
       `}</style>
       <style>{`
-        .samtm-top-switch{position:fixed;left:0;right:0;top:var(--samtm-top-offset,0px);z-index:2147483100;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
+        .samtm-top-switch{position:fixed;left:0;right:0;top:var(--samtm-top-offset,0px);z-index:2147483100;display:grid;grid-template-columns:1fr 1fr auto;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
@@ -14250,23 +14221,29 @@ function Kabinet({ token, onSessionExpired }) {
         <div className="samtm-top-spacer" aria-hidden="true" />
         <div className="samtm-top-switch" ref={topSwitchRef}>
           <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ta’lim maydoni — turgan joyingiz saqlanadi">🧭 Ta’lim maydoni</button>
-          <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title="Kabutar — rasmiy aloqa"><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+          <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title="Kabutar — suhbatlar"><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+          {!readOnly && <button type="button" className="kb-account-top-button" aria-label="Akkaunt va kirish sozlamalari" title="Akkaunt va kirish" onClick={() => setAccountOpen(true)}><User size={18} /></button>}
         </div>
       </>}
+      {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} />}
       {kabutarYuklangan && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
         <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
           <KabutarPanel
             token={token}
             apiBase={API_BASE}
-            title="Rasmiy aloqa"
-            maktabId={faolMuassasa?.turi === "maktab" ? faolMuassasa.muassasa_id : null}
-            scope={faolMuassasa ? { turi: faolMuassasa.turi, muassasa_id: faolMuassasa.muassasa_id } : null}
+            title="Suhbatlar"
+            active={kabutarOchiq}
+            maktabId={null}
+            scope={null}
             onClose={() => kabutarniOch(false)}
             onUnread={kabutarOqilmaganniOl}
           />
         </React.Suspense>
       </div>}
-      <div style={{ display: kabutarOchiq ? "none" : "block" }}>
+      {talimYuklangan && <div style={{ display: kabutarOchiq ? "none" : "block" }}>
+      {educationLoadError && <div className="kb-app-error" role="alert"><p>{educationLoadError}</p><button className="kb-work-primary" onClick={() => setEducationReload((n) => n + 1)}>Qayta urinish</button></div>}
+      {foydalanuvchi?.education_ready === false && !foydalanuvchi?.is_admin ?
+        <EducationSetup apiBase={API_BASE} token={token} onBack={() => kabutarniOch(true)} onComplete={() => { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
           <button type="button" className="samtm-muassasa-main" onClick={() => muassasaniTanla(m)} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
@@ -14293,14 +14270,14 @@ function Kabinet({ token, onSessionExpired }) {
             </div>
           </header>
           <div className="premium-page-stage">
-      {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}
+      {korinishRoli === "admin" && tab === "admin" && <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} /></>}
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
       )}
       {korinishRoli === "admin" && tab === "admin_statistikalar" && (
-        <AdminStatisticsTab token={token} />
+        <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminStatisticsTab token={token} /></>
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
@@ -14381,7 +14358,8 @@ function Kabinet({ token, onSessionExpired }) {
         onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida}
         qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} />
       </div>
-      </div>
+      </>}
+      </div>}
     </div>
   );
 }
@@ -14401,7 +14379,7 @@ function _boshlangichYolniOl() {
   const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   _boshlangichYolKeshi = {
     p,
-    token: q.get("token"),
+    // Eski query token kirish sifatida qabul qilinmaydi.
     email: q.get("email"),
     ism: q.get("ism"),
     oauthTicket: fragment.get("oauth_ticket"),
@@ -14434,81 +14412,114 @@ function _saqlanganTokenniOl() {
   }
 }
 
+// StrictMode qayta effect boshlasa, bir martalik Google ticket qayta sarflanmaydi.
+const googleExchangePromises = new Map();
+function exchangeGoogleTicket(ticket) {
+  if (googleExchangePromises.has(ticket)) return googleExchangePromises.get(ticket);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  const pending = fetch(`${API_BASE}/auth/google/exchange`, {
+    method: "POST", credentials: "include", signal: controller.signal,
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket }),
+  }).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Google tasdig‘i tugagan. Qayta kiring.");
+    return data;
+  }).catch((error) => {
+    if (error.name === "AbortError") throw new Error("Google javobini kutish tugadi. Qayta kiring.");
+    throw error;
+  }).finally(() => clearTimeout(timer));
+  googleExchangePromises.set(ticket, pending);
+  return pending;
+}
+
 export default function App() {
   const [yol] = useState(_boshlangichYolniOl);
   const korishRejimi = Boolean(yol.korishToken);
-  const [token, setToken] = useState(() => yol.korishToken || yol.token || _saqlanganTokenniOl());
+  const [token, setToken] = useState(() => yol.korishToken || _saqlanganTokenniOl());
   const [oauthYuklanmoqda, setOauthYuklanmoqda] = useState(Boolean(yol.oauthTicket));
   const [oauthProfil, setOauthProfil] = useState(null);
-  const oauthAlmashinuviBoshlandi = useRef(false);
-  const sessiyaniTozala = useCallback(() => setToken(null), []);
-
-  useEffect(() => {
-    initializeSamtmPwa();
-  }, []);
-
-  useEffect(() => {
-    try {
-      if (korishRejimi) return; // ko'rish rejimi tokeni admin sessiyasini bosib qo'ymasin
-      if (token) window.localStorage.setItem(SAMTM_TOKEN_STORAGE_KEY, token);
-      else window.localStorage.removeItem(SAMTM_TOKEN_STORAGE_KEY);
-    } catch {
-      // Saqlash bloklangan qurilmada kirish joriy sahifa ochiq turguncha ishlaydi.
+  const [loginError, setLoginError] = useState(yol.oauthXato || "");
+  const [notice, setNotice] = useState(yol.oauthXato || "");
+  const sessionEpoch = useRef(0);
+  const persistSession = useCallback((value) => {
+    if (korishRejimi) return;
+    try { if (value) window.localStorage.setItem(SAMTM_TOKEN_STORAGE_KEY, value); else window.localStorage.removeItem(SAMTM_TOKEN_STORAGE_KEY); } catch { /* current tab still works */ }
+  }, [korishRejimi]);
+  const sessiyaniTozala = useCallback((expiredToken) => {
+    if (!korishRejimi && expiredToken && _saqlanganTokenniOl() && _saqlanganTokenniOl() !== expiredToken) return;
+    sessionEpoch.current += 1; persistSession(null); setToken(null);
+    setLoginError("Sessiyangiz yakunlandi. Hisobingizga qayta kiring.");
+  }, [korishRejimi, persistSession]);
+  const kirildi = useCallback((nextToken) => {
+    sessionEpoch.current += 1; persistSession(nextToken);
+    setLoginError(""); setOauthProfil(null); setToken(nextToken);
+  }, [persistSession]);
+  const chiqish = useCallback(async (allDevices = false) => {
+    const startedEpoch = sessionEpoch.current;
+    if (token) {
+      try { await workspaceRequest(API_BASE, "/auth/logout", token, { method: "POST", body: { all_devices: allDevices } }); }
+      catch (error) { if (error.status !== 401) throw error; }
     }
-  }, [token]);
+    if (sessionEpoch.current !== startedEpoch || (_saqlanganTokenniOl() && _saqlanganTokenniOl() !== token)) return;
+    try { window.sessionStorage.removeItem("kabutar_google_link_intent"); } catch { /* blocked storage */ }
+    sessionEpoch.current += 1; persistSession(null);
+    setOauthProfil(null); setNotice(""); setLoginError(""); setToken(null);
+  }, [token, persistSession]);
+
+  useEffect(() => { initializeSamtmPwa(); }, []);
+  useEffect(() => {
+    if (korishRejimi) return;
+    const changed = (event) => {
+      if (event.storageArea === window.localStorage && (event.key === SAMTM_TOKEN_STORAGE_KEY || event.key === null)) {
+        sessionEpoch.current += 1;
+        setToken(event.key === null ? null : event.newValue);
+        setOauthProfil(null);
+      }
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, [korishRejimi]);
 
   useEffect(() => {
-    if (!yol.oauthTicket || oauthAlmashinuviBoshlandi.current) return;
-    oauthAlmashinuviBoshlandi.current = true;
-    fetch(`${API_BASE}/auth/google/exchange`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticket: yol.oauthTicket }),
-    })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || "Google orqali kirib bo'lmadi");
-        if (data.holat === "kirdi" && data.token) setToken(data.token);
-        else if (data.holat === "ulash" && data.email && data.oauth_grant) {
-          setOauthProfil({
-            email: data.email,
-            ism: data.ism || "",
-            oauthGrant: data.oauth_grant,
-          });
-        } else throw new Error("Google kirish javobi noto'g'ri");
-      })
-      .catch(() => {
-        // Avvalgi UI xulqi saqlanadi: bekor qilingan/eskirgan kirish Login'ga qaytadi.
-      })
-      .finally(() => setOauthYuklanmoqda(false));
-  }, [yol.oauthTicket]);
+    if (!yol.oauthTicket) return;
+    let cancelled = false;
+    const startedEpoch = sessionEpoch.current;
+    let linkIntent = null;
+    try { linkIntent = JSON.parse(window.sessionStorage.getItem("kabutar_google_link_intent") || "null"); } catch { /* the initiating browser state is required below */ }
+    exchangeGoogleTicket(yol.oauthTicket).then(async (data) => {
+      if (cancelled || sessionEpoch.current !== startedEpoch) return;
+      if (data.intent === "link") {
+        const currentToken = _saqlanganTokenniOl();
+        if (!currentToken || !linkIntent || linkIntent.session !== currentToken || Date.now() - Number(linkIntent.createdAt) > 600000 || !Number.isFinite(Number(linkIntent.createdAt))) throw new Error("Kirish sessiyasi o‘zgargan yoki ulash muddati tugagan. Profil sozlamalaridan Google ulashni qayta boshlang.");
+        if (!data.oauth_grant || !data.email) throw new Error("Google hisobini ulash tasdig‘i olinmadi. Profil sozlamalaridan qayta boshlang.");
+        await workspaceRequest(API_BASE, "/auth/google/link", currentToken, { method: "POST", body: { email: data.email, oauth_grant: data.oauth_grant } });
+        if (!cancelled && sessionEpoch.current === startedEpoch && _saqlanganTokenniOl() === currentToken) setNotice("Google hisobi akkauntingizga ulandi.");
+      } else if (data.holat === "kirdi" && data.token) {
+        kirildi(data.token);
+      } else if (data.holat === "ulash" && data.email && data.oauth_grant) {
+        setOauthProfil({ email: data.email, ism: data.ism || "", oauthGrant: data.oauth_grant });
+      } else throw new Error("Google kirish javobi noto‘g‘ri. Qayta urinib ko‘ring.");
+    }).catch((error) => {
+      if (!cancelled) { setLoginError(error.message); if (_saqlanganTokenniOl()) setNotice(error.message); }
+    }).finally(() => {
+      if (!cancelled) {
+        setOauthYuklanmoqda(false);
+        try { window.sessionStorage.removeItem("kabutar_google_link_intent"); } catch { /* blocked storage */ }
+      }
+    });
+    return () => { cancelled = true; };
+  }, [yol.oauthTicket, kirildi]);
 
-  if (token && korishRejimi) {
-    return (
-      <div style={{ paddingTop: 42 }} ref={(el) => { if (el) document.documentElement.style.setProperty("--samtm-top-offset", "42px"); }}>
-        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: yol.korishYozish ? "linear-gradient(90deg,#2E6C55,#1B4B7A)" : "linear-gradient(90deg,#B42318,#8A5A1C)", boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
-          <span>{yol.korishYozish ? `🧪 SINOV REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: siz shu rol sifatida ishlayapsiz, amallar HAQIQIY bajariladi. Sinovdan keyin “Sinov izlarini tozalash” bilan hammasi o‘chiriladi. 4 soat.` : `👁 ADMIN KO‘RISH REJIMI${yol.korishIsm ? ` — ${yol.korishIsm}` : ""}: interfeys shu foydalanuvchi ko‘zi bilan ko‘rinmoqda. O‘zgartirishlar bloklangan, 90 daqiqadan keyin yopiladi.`}</span>
-          <button type="button" onClick={() => { try { window.close(); } catch { /* noop */ } window.location.replace("/"); }} className="shrink-0 rounded-lg px-3 py-1" style={{ background: "rgba(255,255,255,.18)" }}>Yopish</button>
-        </div>
-        <Kabinet token={token} onSessionExpired={sessiyaniTozala} />
-      </div>
-    );
-  }
-  if (token) return <Kabinet token={token} onSessionExpired={sessiyaniTozala} />;
-  if (oauthYuklanmoqda) {
-    return (
-      <Qobiq>
-        <div className="py-10 text-center">
-          <Loader2 size={26} className="animate-spin mx-auto mb-3" style={{ color: "#1B4B7A" }} />
-          <p className="text-sm" style={{ color: "#5A5648" }}>Google orqali kirilmoqda…</p>
-        </div>
-      </Qobiq>
-    );
-  }
-  if (oauthProfil) {
-    return <UlashEkrani email={oauthProfil.email} ism={oauthProfil.ism} oauthGrant={oauthProfil.oauthGrant} onUlandi={setToken} />;
-  }
-  if (yol.p === "/ulash" && yol.email) return <UlashEkrani email={yol.email} ism={yol.ism} onUlandi={setToken} />;
-  return <LoginEkrani />;
+  if (oauthYuklanmoqda) return <Qobiq><div className="py-10 text-center" role="status"><Loader2 size={26} className="animate-spin mx-auto mb-3" /><p>Google tasdig‘i tekshirilmoqda…</p></div></Qobiq>;
+  if (oauthProfil) return <KabutarRegistration {...oauthProfil} apiBase={API_BASE} onAuthenticated={kirildi} onCancel={() => { setOauthProfil(null); setLoginError(""); }} />;
+  if (token && korishRejimi) return <div style={{ paddingTop: 42 }} ref={(el) => { if (el) document.documentElement.style.setProperty("--samtm-top-offset", "42px"); }}>
+    <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-between gap-3 px-4 text-xs font-black text-white" style={{ height: 42, background: yol.korishYozish ? "#206647" : "#9c332b" }}>
+      <span>{yol.korishYozish ? "SINOV REJIMI: amallar haqiqiy bajariladi." : "ADMIN KO‘RISH REJIMI: o‘zgartirishlar bloklangan."} {yol.korishIsm || ""}</span>
+      <button type="button" onClick={() => window.location.replace("/")}>Yopish</button>
+    </div>
+    <Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} readOnly />
+  </div>;
+  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{notice}</span><button aria-label="Xabarni yopish" onClick={() => setNotice("")}>×</button></div>}<Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
+  return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} />;
 }
