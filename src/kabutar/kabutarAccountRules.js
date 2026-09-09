@@ -16,7 +16,7 @@ export function normalizeSettings(value) {
 
 export function contactRecord(value) {
   const id = Number(value?.user_id);
-  if (!Number.isSafeInteger(id) || id <= 0 || value?.guruh_id) return null;
+  if (!Number.isSafeInteger(id) || id === 0 || value?.guruh_id) return null;
   return {
     user_id: id,
     full_name: String(value.full_name || "Foydalanuvchi").slice(0, 160),
@@ -80,7 +80,7 @@ export function readKabutarLocal(storage, key) {
 }
 
 export async function kabutarRequest(apiBase, path, token, options = {}) {
-  const { signal, ...init } = options;
+  const { signal, authInHeader = false, ...init } = options;
   const controller = new AbortController();
   let timedOut = false;
   const cancel = () => controller.abort();
@@ -88,7 +88,8 @@ export async function kabutarRequest(apiBase, path, token, options = {}) {
   else signal?.addEventListener("abort", cancel, { once: true });
   const timer = setTimeout(() => { timedOut = true; cancel(); }, 12000);
   try {
-    const response = await fetch(`${String(apiBase || "").replace(/\/$/, "")}${path}${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`, { ...init, signal: controller.signal });
+    const target = `${String(apiBase || "").replace(/\/$/, "")}${path}${authInHeader ? "" : `${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`}`;
+    const response = await fetch(target, { ...init, headers: authInHeader ? { ...init.headers, Authorization: `Bearer ${token}` } : init.headers, signal: controller.signal });
     let data;
     try { data = await response.json(); } catch { throw new Error("Server javobi o‘qilmadi. Qayta urinib ko‘ring."); }
     if (!response.ok || data?.detail) {

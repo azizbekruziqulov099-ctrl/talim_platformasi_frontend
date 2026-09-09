@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Copy, Download, Forward, Loader2, MessageCircle, Pencil, Reply, Search, Smile, Trash2, Video } from "lucide-react";
+import { ArrowLeft, Copy, Download, Forward, Loader2, MessageCircle, Pencil, Reply, Search, Trash2 } from "lucide-react";
 import KabutarAccount, { KabutarAccountButton, useKabutarPreferences } from "./KabutarAccount.jsx";
 import { kabutarRequest, normalizeKabutarId } from "./kabutarAccountRules.js";
+import { startKabutarPoll, mergeKabutarMessages } from "./kabutarPolling.js";
+import KabutarMediaComposer from "./KabutarMediaComposer.jsx";
+import { isPhotoMessage } from "./kabutarMediaRules.js";
 
 // Ranglar — maktab ish maydoni palitrasi bilan bir xil
 const palette = {
@@ -29,7 +32,25 @@ export const KABUTAR_TURI = {
   bogcha: { ikon: "🧸", nom: "Bog‘cha", rang: "#B0553A", yengil: "#FFF0EC" },
   markaz: { ikon: "📚", nom: "Ta’lim markazi", rang: "#0D7A77", yengil: "#E8F5F4" },
 };
-export default function KabutarPanel({ token, apiBase, maktabId = null, title = "Kabutar", onClose, docked = false, onUnread = null, scope = null, showScopeStrip = true }) {
+export default function KabutarPanel({ token, apiBase, maktabId = null, title = "Kabutar", onClose, docked = false, onUnread = null, scope = null, showScopeStrip = true, active = true }) {
+  const [pageVisible, setPageVisible] = useState(() => typeof document === "undefined" || document.visibilityState !== "hidden");
+  const foreground = active && pageVisible && Boolean(token);
+  const foregroundRef = useRef(foreground);
+  foregroundRef.current = foreground;
+  const onUnreadRef = useRef(onUnread);
+  onUnreadRef.current = onUnread;
+  const requestsRef = useRef({ directory: null, messages: null });
+  useEffect(() => {
+    const update = () => setPageVisible(document.visibilityState !== "hidden");
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
+  useEffect(() => {
+    if (!foreground) Object.values(requestsRef.current).forEach(entry => entry?.controller.abort());
+  }, [foreground]);
+  useEffect(() => () => {
+    Object.values(requestsRef.current).forEach(entry => entry?.controller.abort());
+  }, [token, apiBase]);
   // scope: { turi, muassasa_id } — faqat shu muassasa Kabutari; null — hammasi
   const [scopeKey, setScopeKey] = useState(scope ? `${scope.turi}:${scope.muassasa_id}` : "all");
   useEffect(() => { if (scope) setScopeKey(`${scope.turi}:${scope.muassasa_id}`); }, [scope?.turi, scope?.muassasa_id]);
@@ -43,13 +64,16 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const [idQuery, setIdQuery] = useState("");
   const [idResult, setIdResult] = useState(null); const [idBusy, setIdBusy] = useState(false); const [idError, setIdError] = useState("");
   const searchById = async () => {
-    const key = normalizeKabutarId(idQuery);
-    if (!key) { setIdError("ID 6–10 xonali raqam: masalan KB-56928957"); return; }
+    if (idBusy) return;
+    const raw = idQuery.trim();
+    const key = normalizeKabutarId(raw) || (/^[@+]/.test(raw) && raw.length <= 80 ? raw : "");
+    if (!key) { setIdError("KB raqami, @nik yoki +998 bilan telefon raqamini kiriting"); return; }
     if (key === directory?.men?.kabutar_id) { setAccountView({ page: "profile" }); return; }
     setIdBusy(true); setIdError(""); setIdResult(null);
     try {
-      const d = await kabutarRequest(apiBase, `/api/kabutar/izla?kabutar_id=${encodeURIComponent(key)}`, token);
-      setIdResult(d);
+      const d = await kabutarRequest(apiBase, `/api/kabutar/find?query=${encodeURIComponent(key)}`, token, { authInHeader: true });
+      if (String(d.user_id) === String(directory?.men?.user_id)) setAccountView({ page: "profile" });
+      else setIdResult(d);
     } catch (e) { setIdError(e.message); } finally { setIdBusy(false); }
   };
   const [peer, setPeer] = useState(null);
@@ -58,64 +82,143 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [messageError, setMessageError] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const [editing, setEditing] = useState(null);
   const [menuMessage, setMenuMessage] = useState(null);
   const [forwarding, setForwarding] = useState(null);
-  const [recording, setRecording] = useState(false);
-  const [videoRecording, setVideoRecording] = useState(false);
-  const recorderRef = useRef(null); const chunksRef = useRef([]);
-  const fileRef = useRef(null); const bodyRef = useRef(null);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const outgoingRef = useRef(null);
+  const bodyRef = useRef(null);
   const lastIdRef = useRef(0); const peerRef = useRef(null);
+  const peerKey = value => value ? (value.guruh_id ? `g:${value.guruh_id}` : `u:${value.user_id}`) : "";
+  const conversationKey = peerKey(peer);
+  useEffect(() => {
+    const entry = outgoingRef.current;
+    if (entry && entry.key !== conversationKey) entry.controller.abort();
+  }, [conversationKey]);
+  useEffect(() => () => { outgoingRef.current?.controller.abort(); }, [token, apiBase]);
 
   useEffect(() => { setAccountView(null); setDirectory(null); setChatDirectory({ guruhlar: [], shaxsiylar: [] }); setPeer(null); peerRef.current = null; setMessages([]); }, [apiBase, token]);
 
-  const loadDirectory = useCallback(async ({ signal } = {}) => {
-    try {
-      const [people, chats] = await Promise.allSettled([
-        kabutarRequest(apiBase, "/api/kabutar/aloqalar_umumiy", token, { signal }),
-        kabutarRequest(apiBase, "/api/chat/guruhlarim", token, { signal }),
-      ]);
-      if (signal?.aborted) return;
-      if (people.status === "rejected") throw people.reason;
-      const d = people.value;
-      if (chats.status === "fulfilled") setChatDirectory(chats.value);
-      if (maktabId && Array.isArray(d.muassasalar)) d.muassasalar.sort((a, b) => Number(b.turi === "maktab" && String(b.muassasa_id) === String(maktabId)) - Number(a.turi === "maktab" && String(a.muassasa_id) === String(maktabId)));
-      setDirectory(d); setDirError("");
-      if (onUnread) onUnread(Number(d.jami_oqilmagan || 0));
-    } catch (e) { if (!signal?.aborted) setDirError(e.message); }
-  }, [apiBase, token, maktabId, onUnread]);
-  useEffect(() => { const controller = new AbortController(); const refresh = () => loadDirectory({ signal: controller.signal }); refresh(); const t = setInterval(refresh, 20000); return () => { clearInterval(t); controller.abort(); }; }, [loadDirectory]);
+  const loadDirectory = useCallback(({ signal } = {}) => {
+    if (!foregroundRef.current || signal?.aborted) return Promise.resolve(false);
+    const existing = requestsRef.current.directory;
+    if (existing && !existing.controller.signal.aborted) return existing.promise;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    const entry = { controller, promise: null };
+    entry.promise = (async () => {
+      try {
+        const [people, chats] = await Promise.allSettled([
+          kabutarRequest(apiBase, "/api/kabutar/aloqalar_umumiy", token, { signal: controller.signal }),
+          kabutarRequest(apiBase, "/api/chat/guruhlarim", token, { signal: controller.signal }),
+        ]);
+        if (controller.signal.aborted || !foregroundRef.current) return false;
+        if (people.status === "rejected") throw people.reason;
+        const d = people.value;
+        if (chats.status === "fulfilled") setChatDirectory(chats.value);
+        if (maktabId && Array.isArray(d.muassasalar)) d.muassasalar.sort((a, b) => Number(b.turi === "maktab" && String(b.muassasa_id) === String(maktabId)) - Number(a.turi === "maktab" && String(a.muassasa_id) === String(maktabId)));
+        setDirectory(d);
+        setDirError(chats.status === "rejected" ? "Guruhlar vaqtincha yuklanmadi. Qayta ulanmoqda…" : "");
+        onUnreadRef.current?.(Number(d.jami_oqilmagan || 0));
+        return chats.status === "fulfilled";
+      } catch (e) {
+        if (!controller.signal.aborted && foregroundRef.current) setDirError(e.message);
+        return false;
+      } finally {
+        signal?.removeEventListener("abort", abort);
+        if (requestsRef.current.directory === entry) requestsRef.current.directory = null;
+      }
+    })();
+    requestsRef.current.directory = entry;
+    return entry.promise;
+  }, [apiBase, token, maktabId]);
+  useEffect(() => {
+    if (!foreground) return undefined;
+    return startKabutarPoll(signal => loadDirectory({ signal }), { interval: 20000 });
+  }, [foreground, loadDirectory]);
 
-  const markSeen = useCallback(async (peerId, lastId, groupId = null) => {
-    if (!lastId) return;
+  const markSeen = useCallback(async (peerId, lastId, groupId = null, signal) => {
+    if (!lastId || !foregroundRef.current) return;
     const target = groupId ? `guruh_id=${groupId}` : `boshqa_user_id=${peerId}`;
-    try { await fetch(`${apiBase}/api/chat/korildi_belgila?token=${encodeURIComponent(token)}&${target}&oxirgi_xabar_id=${lastId}`, { method: "POST" }); } catch { /* jim */ }
+    try {
+      await kabutarRequest(apiBase, `/api/chat/korildi_belgila?${target}&oxirgi_xabar_id=${lastId}`, token, { method: "POST", signal });
+    } catch { /* Reading still works if the receipt is temporarily unavailable. */ }
   }, [apiBase, token]);
 
-  const loadMessages = useCallback(async (peerId, { incremental = false } = {}) => {
-    try {
-      const current = peerRef.current;
-      const groupId = current?.guruh_id;
-      const qs = new URLSearchParams({ token });
-      if (groupId) qs.set("guruh_id", String(groupId));
-      else qs.set("boshqa_user_id", String(peerId));
-      if (maktabId) qs.set("maktab_id", String(maktabId));
-      if (incremental && lastIdRef.current) qs.set("keyingidan", String(lastIdRef.current));
-      const r = await fetch(`${apiBase}${groupId ? "/api/chat/xabarlar" : "/api/kabutar/xabarlar"}?${qs}`);
-      const d = await r.json();
-      if (!r.ok || d.detail) throw new Error(d.detail || "Xabarlar yuklanmadi");
-      if (!peerRef.current || (groupId ? String(peerRef.current.guruh_id) !== String(groupId) : peerRef.current.guruh_id || Number(peerRef.current.user_id) !== Number(peerId))) return;
-      const rows = d.xabarlar || [];
-        setPeerSeenId(d.boshqa_tomon_korgan_id || d.qarshi_tomon_korgan_id || null);
-      if (rows.length) {
-        setMessages(old => incremental ? [...old, ...rows.filter(x => !old.some(o => o.id === x.id))] : rows);
-        lastIdRef.current = Math.max(lastIdRef.current, ...rows.map(x => x.id));
-        const incoming = rows.filter(x => !x.meniki);
-        if (incoming.length) { markSeen(peerId, lastIdRef.current, groupId); loadDirectory(); }
-        requestAnimationFrame(() => { if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; });
-      } else if (!incremental) { setMessages([]); }
-    } catch (e) { setSendError(e.message); }
+  const loadMessages = useCallback(async (peerId, { incremental = false, signal } = {}) => {
+    const current = peerRef.current;
+    if (!current || !foregroundRef.current || signal?.aborted) return false;
+    const groupId = current.guruh_id;
+    const key = groupId ? `g:${groupId}` : `u:${peerId}`;
+    const isCurrent = () => {
+      const next = peerRef.current;
+      return next && (next.guruh_id ? `g:${next.guruh_id}` : `u:${next.user_id}`) === key;
+    };
+    const existing = requestsRef.current.messages;
+    if (existing && !existing.controller.signal.aborted) {
+      if (existing.key === key) {
+        // A reaction/edit refresh requires the complete list after an in-flight
+        // incremental read; otherwise callers share the existing request.
+        if (!incremental && existing.incremental) {
+          await existing.promise;
+          if (!isCurrent() || signal?.aborted) return false;
+          return loadMessages(peerId, { incremental: false, signal });
+        }
+        return existing.promise;
+      }
+      existing.controller.abort();
+    }
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    const entry = { controller, key, incremental, promise: null };
+    entry.promise = (async () => {
+      try {
+        const collected = [];
+        let newest = lastIdRef.current;
+        let seenId = null;
+        // Catch up at most three bounded pages per cycle; never skip unread
+        // rows by moving the cursor to an optimistic outgoing message ID.
+        for (let page = 0; page < 3; page += 1) {
+          const qs = new URLSearchParams();
+          if (groupId) qs.set("guruh_id", String(groupId));
+          else qs.set("boshqa_user_id", String(peerId));
+          if (maktabId) qs.set("maktab_id", String(maktabId));
+          if ((incremental || page > 0) && newest) qs.set("keyingidan", String(newest));
+          const d = await kabutarRequest(apiBase, `${groupId ? "/api/chat/xabarlar" : "/api/kabutar/xabarlar"}?${qs}`, token, { signal: controller.signal });
+          if (controller.signal.aborted || !foregroundRef.current || !isCurrent()) return false;
+          const rows = Array.isArray(d.xabarlar) ? d.xabarlar : [];
+          seenId = d.boshqa_tomon_korgan_id || d.qarshi_tomon_korgan_id || seenId;
+          collected.push(...rows);
+          const previous = newest;
+          newest = Math.max(newest, ...rows.map(x => Number(x.id) || 0));
+          if (!d.yana_bormi || !rows.length || newest <= previous) break;
+        }
+        setMessageError("");
+        setPeerSeenId(seenId);
+        if (collected.length) {
+          setMessages(old => mergeKabutarMessages(incremental ? old : [], collected));
+          lastIdRef.current = newest;
+          if (collected.some(x => !x.meniki)) {
+            await markSeen(peerId, newest, groupId, controller.signal);
+            if (!controller.signal.aborted && isCurrent()) loadDirectory();
+          }
+          requestAnimationFrame(() => { if (foregroundRef.current && isCurrent() && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; });
+        } else if (!incremental) setMessages([]);
+        return true;
+      } catch (e) {
+        if (!controller.signal.aborted && foregroundRef.current && isCurrent()) setMessageError(e.message);
+        return false;
+      } finally {
+        signal?.removeEventListener("abort", abort);
+        if (requestsRef.current.messages === entry) requestsRef.current.messages = null;
+      }
+    })();
+    requestsRef.current.messages = entry;
+    return entry.promise;
   }, [apiBase, token, maktabId, markSeen, loadDirectory]);
 
   const forwardTo = async item => {
@@ -129,44 +232,73 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
   };
   const openPeer = item => {
     if (forwarding) { forwardTo(item).catch(error => setSendError(error.message)); return; }
-    peerRef.current = item; lastIdRef.current = 0; setPeer(item); setMessages([]); setReplyTo(null); setEditing(null); setSendError(""); loadMessages(item.user_id || 0);
+    if (peerKey(peerRef.current) !== peerKey(item)) outgoingRef.current?.controller.abort();
+    peerRef.current = item; lastIdRef.current = 0; setPeer(item); setMessages([]); setPeerSeenId(null); setMessageError(""); setText(""); setReplyTo(null); setEditing(null); setSendError(""); loadMessages(item.user_id || 0);
   };
-  useEffect(() => { if (!peer) return undefined; const t = setInterval(() => loadMessages(peer.user_id || 0, { incremental: true }), 6000); return () => clearInterval(t); }, [peer, loadMessages]);
+  useEffect(() => {
+    if (!foreground || !peer) return undefined;
+    return startKabutarPoll(signal => loadMessages(peer.user_id || 0, { incremental: lastIdRef.current > 0, signal }), { interval: 6000 });
+  }, [foreground, peer, loadMessages]);
 
-  const send = async ({ file = null, fileKind = null } = {}) => {
-    if (!peer || sending) return;
-    const body = text.trim();
-    if (!body && !file) return;
+  const send = async ({ file = null, fileKind = null, caption = "", conversationKey: mediaKey = null, signal } = {}) => {
+    const target = peerRef.current;
+    const targetKey = peerKey(target);
+    if (!target || outgoingRef.current || signal?.aborted || (mediaKey && mediaKey !== targetKey)) return false;
+    const body = file ? String(caption || "").trim() : text.trim();
+    if (!body && !file) return false;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    const entry = { key: targetKey, controller };
+    outgoingRef.current = entry;
+    const timer = setTimeout(abort, file ? 90000 : 20000);
+    const stillHere = () => peerKey(peerRef.current) === targetKey && outgoingRef.current === entry;
     setSending(true); setSendError("");
     try {
       if (editing && !file) {
         const r = await fetch(`${apiBase}/api/chat/xabar_tahrirla`, {
-          method: "PUT", headers: { "Content-Type": "application/json" },
+          method: "PUT", headers: { "Content-Type": "application/json" }, signal: controller.signal,
           body: JSON.stringify({ token, xabar_id: editing.id, yangi_matn: body }),
         });
         const d = await r.json();
         if (!r.ok || d.detail) throw new Error(d.detail || "Xabar o‘zgartirilmadi");
-        setMessages(old => old.map(item => item.id === editing.id ? { ...item, matn: body, tahrirlangan: true } : item));
-        setText(""); setEditing(null); return;
+        if (stillHere()) {
+          setMessages(old => old.map(item => item.id === editing.id ? { ...item, matn: body, tahrirlangan: true } : item));
+          setText(""); setEditing(null);
+        }
+        return true;
       }
       const form = new FormData();
       form.append("token", token);
-      if (peer.guruh_id) form.append("guruh_id", String(peer.guruh_id));
-      else form.append("qabul_qiluvchi_user_id", String(peer.user_id));
-      if (!peer.guruh_id && maktabId) form.append("maktab_id", String(maktabId));
-      if (!peer.guruh_id && peer.kabutar_id) form.append("kabutar_id", peer.kabutar_id);
+      if (target.guruh_id) form.append("guruh_id", String(target.guruh_id));
+      else form.append("qabul_qiluvchi_user_id", String(target.user_id));
+      if (!target.guruh_id && maktabId) form.append("maktab_id", String(maktabId));
+      if (!target.guruh_id && target.kabutar_id) form.append("kabutar_id", target.kabutar_id);
       if (body) form.append("matn", body);
       if (replyTo) form.append("javob_xabar_id", String(replyTo.id));
       if (file) { form.append("fayl_turi", fileKind); form.append("fayl", file, file.name || `${fileKind}.webm`); }
-      const endpoint = peer.guruh_id ? "/api/chat/xabar_yubor" : "/api/kabutar/yubor";
-      const r = await fetch(`${apiBase}${endpoint}`, { method: "POST", body: form });
+      const endpoint = target.guruh_id ? "/api/chat/xabar_yubor" : "/api/kabutar/yubor";
+      const r = await fetch(`${apiBase}${endpoint}`, { method: "POST", body: form, signal: controller.signal });
       const d = await r.json();
       if (!r.ok || d.detail) throw new Error(d.detail || "Yuborilmadi");
-      setText(""); setReplyTo(null);
-      setMessages(old => [...old, { id: d.id, meniki: true, matn: d.matn ?? (body || null), fayl_turi: d.fayl_turi ?? fileKind, fayl_nomi: d.fayl_nomi ?? file?.name, fayl_hajmi_kb: d.fayl_hajmi_kb, yaratilgan_at: d.yaratilgan_at || new Date().toISOString(), yuboruvchi_user_id: directory?.men?.user_id, javob_xabar_id: replyTo?.id, javob_yuboruvchi_ismi: replyTo?.yuboruvchi_ismi, javob_matn_qisqa: replyTo?.matn }]);
-      lastIdRef.current = Math.max(lastIdRef.current, d.id);
-      requestAnimationFrame(() => { if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; });
-    } catch (e) { setSendError(e.message); } finally { setSending(false); }
+      if (stillHere()) {
+        if (!file) setText("");
+        setReplyTo(null);
+        setMessages(old => mergeKabutarMessages(old, [{ id: d.id, meniki: true, matn: d.matn ?? (body || null), fayl_turi: d.fayl_turi ?? fileKind, fayl_nomi: d.fayl_nomi ?? file?.name, fayl_hajmi_kb: d.fayl_hajmi_kb, yaratilgan_at: d.yaratilgan_at || new Date().toISOString(), yuboruvchi_user_id: directory?.men?.user_id, javob_xabar_id: replyTo?.id, javob_yuboruvchi_ismi: replyTo?.yuboruvchi_ismi, javob_matn_qisqa: replyTo?.matn }]));
+        // Only fetched pages advance lastIdRef; own outgoing IDs may be ahead
+        // of incoming messages that have not been fetched yet.
+        requestAnimationFrame(() => { if (stillHere() && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight; });
+      }
+      loadDirectory();
+      return true;
+    } catch (e) {
+      if (stillHere()) setSendError(controller.signal.aborted ? "Yuborish to‘xtadi. Qayta yuborishdan oldin suhbatni tekshiring." : e.message);
+      return false;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      if (outgoingRef.current === entry) { outgoingRef.current = null; setSending(false); }
+    }
   };
 
   const removeMessage = async message => {
@@ -189,40 +321,6 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
       await loadMessages(peer.user_id || 0);
       setMenuMessage(null);
     } catch (e) { setSendError(e.message); }
-  };
-
-  const toggleRecord = async () => {
-    if (recording) { recorderRef.current?.stop(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      chunksRef.current = [];
-      const rec = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : undefined });
-      rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
-      rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); setRecording(false); const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" }); if (blob.size > 800) send({ file: new File([blob], "ovoz.webm", { type: blob.type }), fileKind: "audio" }); };
-      recorderRef.current = rec; rec.start(); setRecording(true);
-    } catch { setSendError("Mikrofon ochilmadi — brauzer ruxsatini tekshiring"); }
-  };
-  const toggleVideoRecord = async () => {
-    if (videoRecording) { recorderRef.current?.stop(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 } } });
-      chunksRef.current = [];
-      const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus") ? "video/webm;codecs=vp8,opus" : "video/webm";
-      const rec = new MediaRecorder(stream, { mimeType: mime });
-      rec.ondataavailable = event => { if (event.data.size) chunksRef.current.push(event.data); };
-      rec.onstop = () => {
-        stream.getTracks().forEach(track => track.stop()); setVideoRecording(false);
-        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "video/webm" });
-        if (blob.size > 1200) send({ file: new File([blob], "video-xabar.webm", { type: blob.type }), fileKind: "video_doira" });
-      };
-      recorderRef.current = rec; rec.start(); setVideoRecording(true);
-    } catch { setSendError("Kamera ochilmadi — HTTPS va brauzer ruxsatini tekshiring"); }
-  };
-  const onPickFile = e => {
-    const f = e.target.files?.[0]; e.target.value = "";
-    if (!f) return;
-    const kind = f.type.startsWith("audio/") ? "audio" : f.type.startsWith("video/") ? "video" : "hujjat";
-    send({ file: f, fileKind: kind });
   };
 
   const q = query.trim().toLocaleLowerCase("uz");
@@ -266,8 +364,8 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
           </div>
         </div>}
         {directory && <div className="p-3 border-b" style={{ borderColor: palette.line, background: "#FBFAF7" }}>
-          <div className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: palette.muted }}>ID bo‘yicha topish</div>
-          <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-123456" className="min-w-0 flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
+          <div className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: palette.muted }}>KB raqami, nik yoki telefon</div>
+          <div className="flex gap-1.5"><input value={idQuery} onChange={e => setIdQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && searchById()} placeholder="KB-123456 · @nik · +998…" className="min-w-0 flex-1 px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/><button onClick={searchById} disabled={idBusy} className="px-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{idBusy ? "..." : "Top"}</button></div>
           {idError && <div className="mt-1.5 text-[11px] font-bold" style={{ color: palette.red }}>{idError}</div>}
           {idResult && <button onClick={() => { setAccountView({ page: "profile", person: { ...idResult, izoh: idResult.qisqa, rol: "tashqi" } }); setIdResult(null); setIdQuery(""); }} className="mt-2 w-full text-left rounded-xl border p-2.5" style={{ borderColor: palette.green, background: palette.mint }}><div className="text-sm font-black" style={{ color: palette.ink }}>{idResult.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ {idResult.kabutar_id}</span></div>{(idResult.rollar || []).map((r, i) => <div key={i} className="text-[11px]" style={{ color: palette.muted }}>{r.rol}{r.muassasa ? ` — ${r.muassasa}` : ""}</div>)}<div className="text-[10px] mt-1 font-black" style={{ color: palette.blue }}>Profilini ko‘rish ›</div></button>}
         </div>}
@@ -301,7 +399,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         {directory && !scopedSuhbatlar.length && !scopedMuassasalar.some(m => (m.azolar || []).length) && <div className="p-6 text-center text-xs" style={{ color: palette.muted }}>Bu muassasada hozircha aloqalar yo‘q — yuqorida ID bo‘yicha toping.</div>}
       </aside>
       <section className={`flex flex-col ${docked ? (peer ? "flex-1 min-h-0" : "hidden") : (peer ? "" : "hidden md:flex")}`} style={{ minHeight: docked ? 0 : 420 }}>
-        {!peer && <div className="flex-1 flex items-center justify-center p-8 text-center"><div><div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-3" style={{ background: palette.sky }}><MessageCircle size={28} style={{ color: palette.blue }}/></div><div className="font-black" style={{ color: palette.ink }}>Suhbatdoshni tanlang</div><p className="text-xs mt-1 max-w-xs" style={{ color: palette.muted }}>Ro‘yxatda muassasalaringiz bo‘yicha rasmiy suhbatdoshlar. Boshqa odamni — uning Kabutar ID si bilan toping. Xabar yuboruvchining kimligi (ism, lavozim, muassasa) har doim ko‘rinadi.</p></div></div>}
+        {!peer && <div className="flex-1 flex items-center justify-center p-8 text-center"><div><div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-3" style={{ background: palette.sky }}><MessageCircle size={28} style={{ color: palette.blue }}/></div><div className="font-black" style={{ color: palette.ink }}>Suhbatdoshni tanlang</div><p className="text-xs mt-1 max-w-xs" style={{ color: palette.muted }}>Ro‘yxatda muassasalaringiz bo‘yicha rasmiy suhbatdoshlar. Boshqa odamni KB raqami yoki @niki bilan toping. Telefon orqali faqat egasi ruxsat bergan profil topiladi. Xabar yuboruvchining kimligi (ism, lavozim, muassasa) har doim ko‘rinadi.</p></div></div>}
         {peer && <>
           <div className="px-4 py-3 bg-white border-b flex items-center gap-3" style={{ borderColor: palette.line, borderTop: `3px solid ${accent}` }}>
             <button onClick={() => { setPeer(null); peerRef.current = null; }} className={`${docked ? "" : "md:hidden"} w-9 h-9 rounded-xl flex items-center justify-center`} style={{ background: palette.sky, color: palette.blue }}><ArrowLeft size={16}/></button>
@@ -312,11 +410,12 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
             {messages.map(m => <div key={m.id} className={`relative flex ${m.meniki ? "justify-end" : "justify-start"}`}>
               <div onDoubleClick={() => setReplyTo(m)} onContextMenu={event => { event.preventDefault(); setMenuMessage(menuMessage?.id === m.id ? null : m); }} className="max-w-[78%] rounded-2xl px-3.5 py-2.5 shadow-sm cursor-context-menu" style={m.meniki ? { background: palette.blue, color: "#fff", borderBottomRightRadius: 6 } : { background: "#fff", color: palette.ink, borderBottomLeftRadius: 6, border: `1px solid ${palette.line}` }}>
                 {m.javob_xabar_id && <div className="mb-1.5 pl-2 border-l-2 text-[11px] opacity-75"><b>{m.javob_yuboruvchi_ismi || "Xabar"}</b><div className="truncate">{m.javob_matn_qisqa || "Media"}</div></div>}
-                {m.matn && <div className="whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}
+                {m.matn && !isPhotoMessage(m) && <div className="whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}
                 {m.fayl_turi === "audio" && <audio controls preload="none" className="mt-1 w-56 max-w-full" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {m.fayl_turi === "video" && <video controls preload="metadata" className="mt-1 w-64 max-w-full rounded-lg" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {m.fayl_turi === "video_doira" && <video controls playsInline preload="metadata" className="mt-1 w-48 h-48 max-w-full rounded-full object-cover border-4 border-white/40" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
-                {m.fayl_turi === "hujjat" && <a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-xs font-black underline"><Download size={14}/> {m.fayl_nomi || "Hujjat"}{m.fayl_hajmi_kb ? ` · ${m.fayl_hajmi_kb} KB` : ""}</a>}
+                {isPhotoMessage(m) && <div className="mt-1"><a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer"><img loading="lazy" decoding="async" alt={m.fayl_nomi || "Yuborilgan rasm"} className="max-w-full max-h-80 rounded-xl object-contain" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/></a>{m.matn && <div className="mt-2 whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}</div>}
+                {m.fayl_turi === "hujjat" && !isPhotoMessage(m) && <a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-xs font-black underline"><Download size={14}/> {m.fayl_nomi || "Hujjat"}{m.fayl_hajmi_kb ? ` · ${m.fayl_hajmi_kb} KB` : ""}</a>}
                 {(m.reaksiyalar || []).length > 0 && <div className="flex flex-wrap gap-1 mt-1">{m.reaksiyalar.map(item => <span key={item.emoji} className="px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: m.meniki ? "rgba(255,255,255,.18)" : palette.sky }}>{item.emoji} {item.soni}</span>)}</div>}
                 <div className="mt-1 text-[10px] text-right" style={{ opacity: .75 }}>{m.tahrirlangan ? "tahrirlangan · " : ""}{kabutarTime(m.yaratilgan_at)}{m.meniki ? (peerSeenId && m.id <= peerSeenId ? " · ✓✓ ko‘rildi" : " · ✓") : ""}</div>
               </div>
@@ -330,15 +429,12 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
               </div>}
             </div>)}
           </div>
-          {sendError && <div className="mx-4 mb-2 p-2 rounded-xl text-xs" style={{ background: palette.redBg, color: palette.red }}>{sendError}</div>}
+          {(sendError || messageError) && <div className="mx-4 mb-2 p-2 rounded-xl text-xs" style={{ background: palette.redBg, color: palette.red }}>{sendError || messageError}</div>}
           {(replyTo || editing) && <div className="px-4 py-2 bg-white border-t flex items-center justify-between gap-2 text-xs" style={{ borderColor: palette.line }}><div className="truncate" style={{ color: palette.blue }}><b>{editing ? "O‘zgartirilmoqda" : "Javob"}:</b> {(editing || replyTo)?.matn || "Media xabar"}</div><button onClick={() => { setReplyTo(null); setEditing(null); if (editing) setText(""); }} className="font-black">✕</button></div>}
           <div className="kb-composer p-3 bg-white border-t flex items-end gap-2" style={{ borderColor: palette.line }}>
-            <input ref={fileRef} type="file" accept="audio/*,video/*,.pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx" className="hidden" onChange={onPickFile}/>
-            <button onClick={() => fileRef.current?.click()} disabled={sending} title="Fayl: hujjat, rasm, video, audio" className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: palette.sky, color: palette.blue }}>📎</button>
-            <button onClick={toggleRecord} disabled={sending} title={recording ? "To‘xtatish va yuborish" : "Ovozli xabar"} className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: recording ? palette.red : palette.sky, color: recording ? "#fff" : palette.blue }}>{recording ? "■" : "🎙"}</button>
-            <button onClick={toggleVideoRecord} disabled={sending || recording} title={videoRecording ? "Dumaloq videoni yuborish" : "Dumaloq video"} className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: videoRecording ? palette.red : palette.sky, color: videoRecording ? "#fff" : palette.blue }}>{videoRecording ? "■" : <Video size={17}/>}</button>
-            <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent?.isComposing && preferences.settings.enterToSend) { e.preventDefault(); send(); } }} rows={1} placeholder={preferences.settings.enterToSend ? "Xabar yozing… Enter — yuborish" : "Xabar yozing…"} aria-label="Xabar matni" className="flex-1 resize-none px-3 py-2.5 rounded-xl border text-sm outline-none max-h-32" style={{ borderColor: palette.line }}/>
-            <button onClick={() => send()} disabled={sending || !text.trim()} className="kb-send-button h-10 px-4 rounded-xl text-sm font-black text-white shrink-0 disabled:opacity-50" style={{ background: palette.blue }}>{sending ? "..." : "Yuborish"}</button>
+            {active && <KabutarMediaComposer key={`${apiBase}:${token}:${conversationKey}`} conversationKey={conversationKey} conversationLabel={peer.full_name} disabled={sending || Boolean(editing)} onSend={send} onBusyChange={setMediaBusy}/>}
+            <textarea value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (!mediaBusy && !sending && e.key === "Enter" && !e.shiftKey && !e.nativeEvent?.isComposing && preferences.settings.enterToSend) { e.preventDefault(); send(); } }} rows={1} placeholder={preferences.settings.enterToSend ? "Xabar yozing… Enter — yuborish" : "Xabar yozing…"} aria-label="Xabar matni" className="flex-1 resize-none px-3 py-2.5 rounded-xl border text-sm outline-none max-h-32" style={{ borderColor: palette.line }}/>
+            <button onClick={() => send()} disabled={sending || mediaBusy || !text.trim()} className="kb-send-button h-10 px-4 rounded-xl text-sm font-black text-white shrink-0 disabled:opacity-50" style={{ background: palette.blue }}>{sending ? "..." : "Yuborish"}</button>
           </div>
         </>}
       </section>
