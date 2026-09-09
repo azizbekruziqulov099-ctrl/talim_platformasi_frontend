@@ -28,6 +28,8 @@ export default defineConfig({
   preview: {
     host: "0.0.0.0",
     allowedHosts: [
+      "talimkabutar.uz",
+      "www.talimkabutar.uz",
       "talimplatformasifrontend-production.up.railway.app",
     ],
   },
