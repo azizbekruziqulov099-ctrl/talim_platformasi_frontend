@@ -1,14 +1,1028 @@
+// REV35: new components included so existing-file uploads keep every dependency.
+import * as __kbRev35_external0 from "react";
+import * as __kbRev35_external1 from "lucide-react";
+import * as __kbRev35_external2 from "react-dom";
+// Included from auth/authClient.js; implementation preserved.
+const __kbRev35_module1 = (() => {
+const AUTH_REQUEST_TIMEOUT = 12000;
+
+function authEndpoint(apiBase, path) {
+  return `${String(apiBase || "").replace(/\/+$/, "")}${path}`;
+}
+
+async function authRequest(apiBase, path, { body, signal, timeout = AUTH_REQUEST_TIMEOUT } = {}) {
+  const controller = new AbortController();
+  let timedOut = false;
+  const abort = () => controller.abort();
+  if (signal?.aborted) abort();
+  else signal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeout);
+  try {
+    const response = await fetch(authEndpoint(apiBase, path), {
+      method: body === undefined ? "GET" : "POST",
+      headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      cache: "no-store",
+      credentials: "omit",
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail = typeof data?.detail === "string" ? data.detail : typeof data?.error === "string" ? data.error : "";
+      const error = new Error(detail || (response.status === 429
+        ? "Urinishlar ko‘payib ketdi. Biroz kutib, qayta urinib ko‘ring."
+        : response.status === 404 ? "Kirish xizmati hali yangilanmagan. Boshqa kirish usulini tanlang."
+          : "Kirish amalga oshmadi. Qayta urinib ko‘ring."));
+      error.status = response.status;
+      throw error;
+    }
+    if (!data || typeof data !== "object") throw new Error("Serverdan kutilmagan javob keldi. Qayta urinib ko‘ring.");
+    return data;
+  } catch (error) {
+    if (timedOut) throw new Error("Server javobi kechikdi. Internetni tekshirib, qayta urinib ko‘ring.");
+    if (error?.name === "AbortError" || signal?.aborted) throw error;
+    if (error instanceof TypeError) throw new Error("Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
+}
+
+function telegramChallenge(data, now = Date.now()) {
+  let url;
+  try { url = new URL(data?.bot_url); } catch { return null; }
+  if (url.protocol !== "https:" || !["t.me", "telegram.me"].includes(url.hostname) || url.username || url.password) return null;
+  if (typeof data?.challenge !== "string" || !data.challenge || typeof data?.browser_secret !== "string" || data.browser_secret.length < 16) return null;
+  const duration = Number(data.expires_in);
+  if (!Number.isFinite(duration) || duration <= 0 || duration > 600) return null;
+  return {
+    challenge: data.challenge,
+    browser_secret: data.browser_secret,
+    bot_url: url.toString(),
+    verification_code: /^\d{6}$/.test(String(data.verification_code || "")) ? String(data.verification_code) : "",
+    expires_at: now + duration * 1000,
+  };
+}
+
+function challengeStorageKey(apiBase) {
+  return `kabutar:telegram:pending:v1:${String(apiBase || "").replace(/\/+$/, "")}`;
+}
+
+function restoreTelegramChallenge(storage, key, now = Date.now()) {
+  try {
+    const saved = JSON.parse(storage.getItem(key) || "null");
+    if (!saved || !Number.isFinite(saved.expires_at)) return null;
+    return telegramChallenge({ ...saved, expires_in: (saved.expires_at - now) / 1000 }, now);
+  } catch { return null; }
+}
+
+function formatAuthCountdown(seconds) {
+  const value = Math.max(0, Math.floor(Number(seconds) || 0));
+  return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+}
+
+return { "AUTH_REQUEST_TIMEOUT": AUTH_REQUEST_TIMEOUT, "authEndpoint": authEndpoint, "authRequest": authRequest, "telegramChallenge": telegramChallenge, "challengeStorageKey": challengeStorageKey, "restoreTelegramChallenge": restoreTelegramChallenge, "formatAuthCountdown": formatAuthCountdown };
+})();
+
+// Included from auth/KabutarLogin.jsx; implementation preserved.
+const __kbRev35_module0 = (() => {
+const React = __kbRev35_external0["default"];
+const useCallback = __kbRev35_external0["useCallback"];
+const useEffect = __kbRev35_external0["useEffect"];
+const useRef = __kbRev35_external0["useRef"];
+const useState = __kbRev35_external0["useState"];
+const ArrowDown = __kbRev35_external1["ArrowDown"];
+const ArrowRight = __kbRev35_external1["ArrowRight"];
+const Bird = __kbRev35_external1["Bird"];
+const BookOpen = __kbRev35_external1["BookOpen"];
+const Check = __kbRev35_external1["Check"];
+const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
+const ChevronRight = __kbRev35_external1["ChevronRight"];
+const Eye = __kbRev35_external1["Eye"];
+const EyeOff = __kbRev35_external1["EyeOff"];
+const GraduationCap = __kbRev35_external1["GraduationCap"];
+const LoaderCircle = __kbRev35_external1["LoaderCircle"];
+const LockKeyhole = __kbRev35_external1["LockKeyhole"];
+const MessageCircle = __kbRev35_external1["MessageCircle"];
+const Send = __kbRev35_external1["Send"];
+const ShieldCheck = __kbRev35_external1["ShieldCheck"];
+const Sparkles = __kbRev35_external1["Sparkles"];
+const X = __kbRev35_external1["X"];
+const authEndpoint = __kbRev35_module1["authEndpoint"];
+const authRequest = __kbRev35_module1["authRequest"];
+const challengeStorageKey = __kbRev35_module1["challengeStorageKey"];
+const formatAuthCountdown = __kbRev35_module1["formatAuthCountdown"];
+const restoreTelegramChallenge = __kbRev35_module1["restoreTelegramChallenge"];
+const telegramChallenge = __kbRev35_module1["telegramChallenge"];
+
+
+function GoogleMark() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.8-1.76-5.6-4.12H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.93a6 6 0 0 1 0-3.86V7.48H3.06a10 10 0 0 0 0 9.04l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.48l3.34 2.59c.8-2.36 3-4.12 5.6-4.12Z"/></svg>;
+}
+
+function safeStorage() {
+  try { return window.sessionStorage; } catch { return null; }
+}
+
+function savePending(key, value) {
+  try {
+    const storage = safeStorage();
+    if (value) storage?.setItem(key, JSON.stringify(value));
+    else storage?.removeItem(key);
+  } catch { /* Private browsing can restrict storage; this tab can still finish sign-in. */ }
+}
+
+// Reused in profile security. Linking never creates a second Kabutar account.
+function TelegramSignIn({ apiBase = "", onAuthenticated, token = "", mode = "login", onCancel }) {
+  const [pending, setPending] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [done, setDone] = useState(false);
+  const current = useRef(null);
+  const polling = useRef(null);
+  const generation = useRef(0);
+  const callback = useRef(onAuthenticated);
+  const isLink = mode === "link";
+  useEffect(() => { callback.current = onAuthenticated; }, [onAuthenticated]);
+  useEffect(() => {
+    setPending(null);
+    setBusy(false);
+    setDone(false);
+    setError("");
+    return () => { generation.current += 1; current.current?.abort(); polling.current?.abort(); };
+  }, [apiBase, token, mode]);
+
+  useEffect(() => {
+    if (!pending) return undefined;
+    const controller = new AbortController();
+    polling.current = controller;
+    let timeout;
+    let failures = 0;
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((pending.expires_at - Date.now()) / 1000));
+      setSeconds(left);
+      if (!left) { controller.abort(); setPending(null); setError("Tasdiqlash vaqti tugadi. Qaytadan boshlang."); }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    const poll = async () => {
+      if (controller.signal.aborted || Date.now() >= pending.expires_at) return;
+      try {
+        const data = await authRequest(apiBase, "/auth/telegram/poll", { body: { challenge: pending.challenge, browser_secret: pending.browser_secret }, signal: controller.signal });
+        if (controller.signal.aborted) return;
+        failures = 0;
+        setError("");
+        if (data.status === "complete" || (isLink && data.status === "linked")) {
+          if (!isLink && !data.token) throw new Error("Kirish tasdiqlanmadi. Qayta urinib ko‘ring.");
+          setPending(null);
+          setDone(true);
+          callback.current?.(isLink ? data : data.token);
+          return;
+        }
+        if (["expired", "cancelled", "rejected", "denied"].includes(data.status)) {
+          setPending(null);
+          setError("So‘rov tugadi yoki bekor qilindi. Qaytadan boshlashingiz mumkin.");
+          return;
+        }
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if ([400, 401, 403, 404, 410].includes(err.status)) { setPending(null); setError(err.message); return; }
+        failures += 1;
+        setError(`${err.message} Tasdiqlash yana tekshiriladi.`);
+      }
+      if (!controller.signal.aborted) timeout = setTimeout(poll, Math.min(8000, 2500 + failures * 1500));
+    };
+    poll();
+    return () => { controller.abort(); if (polling.current === controller) polling.current = null; clearTimeout(timeout); clearInterval(interval); };
+  }, [apiBase, pending, isLink]);
+
+  async function start() {
+    if (busy) return;
+    if (isLink && !token) { setError("Hisobingizga qayta kirib, Telegramni ulang."); return; }
+    const id = ++generation.current;
+    const controller = new AbortController();
+    current.current?.abort();
+    current.current = controller;
+    setBusy(true);
+    setError("");
+    try {
+      const data = await authRequest(apiBase, "/auth/telegram/start", { body: { mode: isLink ? "link" : "login", ...(isLink ? { token } : {}) }, signal: controller.signal });
+      if (controller.signal.aborted || id !== generation.current) return;
+      const next = telegramChallenge(data);
+      if (!next) throw new Error("Telegram kirish havolasi olinmadi. Qayta urinib ko‘ring.");
+      setPending(next);
+    } catch (err) {
+      if (!controller.signal.aborted && id === generation.current) setError(err.message);
+    } finally {
+      if (id === generation.current) setBusy(false);
+    }
+  }
+
+  function cancel() {
+    generation.current += 1;
+    current.current?.abort();
+    polling.current?.abort();
+    setBusy(false);
+    setPending(null);
+    setError("");
+    if (pending) authRequest(apiBase, "/auth/telegram/cancel", { body: { challenge: pending.challenge, browser_secret: pending.browser_secret } }).catch(() => {});
+    onCancel?.();
+  }
+
+  return <section className="kb-login-page kb-login-compact" aria-label={isLink ? "Telegramni ulash" : "Telegram orqali kirish"}>
+    {done ? <div className="kb-login-success" role="status"><CheckCircle2 size={32}/><h3>{isLink ? "Telegram hisobingizga ulandi" : "Kirish tasdiqlandi"}</h3></div> : <>
+      {error && <div className="kb-login-error" role="alert">{error}</div>}
+      {pending ? <div className="kb-login-telegram-pending">
+        <div className="kb-login-pending-heading"><span><LoaderCircle size={16} className="kb-login-spin"/> Tasdiqlashingiz kutilmoqda</span><time>{formatAuthCountdown(seconds)}</time></div>
+        <p className="kb-login-method-copy">Botni oching, Start tugmasini bosing, o‘z telefon raqamingizni ulashib tasdiqlang. So‘ng shu oynaga qayting.</p>
+        {pending.verification_code && <div className="kb-login-verification"><span>Botdagi so‘rov raqami shu bilan bir xil bo‘lsin:</span><strong>{pending.verification_code}</strong></div>}
+        <a className="kb-login-primary" href={pending.bot_url} target="_blank" rel="noopener noreferrer"><Send size={18}/> Telegram botini ochish <ArrowRight size={18}/></a>
+        <p className="kb-login-pending-note">Faqat o‘zingiz boshlagan so‘rovni tasdiqlang.</p>
+      </div> : <>
+        <p className="kb-login-method-copy">{isLink ? "Telegram va telefon raqamingiz shu Kabutar hisobingizga ulanadi. Suhbatlaringiz va KB raqamingiz saqlanadi." : "Telegram botida o‘z telefon raqamingizni tasdiqlab kiring."}</p>
+        <button type="button" className="kb-login-primary" onClick={start} disabled={busy}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <Send size={18}/>} {busy ? "So‘rov tayyorlanmoqda…" : isLink ? "Telegramni ulash" : "Telegram orqali kirish"}</button>
+      </>}
+      {(pending || busy || onCancel) && <button type="button" className="kb-login-text-button" onClick={cancel}>Bekor qilish</button>}
+    </>}
+  </section>;
+}
+
+function KabutarLogin({ apiBase = "", onAuthenticated, initialError = "" }) {
+  const storageKey = challengeStorageKey(apiBase);
+  const [pending, setPending] = useState(() => restoreTelegramChallenge(safeStorage(), storageKey));
+  const [config, setConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState("");
+  const [configAttempt, setConfigAttempt] = useState(0);
+  const [method, setMethod] = useState("telegram");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(initialError);
+  const [pollNotice, setPollNotice] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const mounted = useRef(false);
+  const command = useRef(null);
+  const pollController = useRef(null);
+  const commandId = useRef(0);
+  const pendingRef = useRef(pending);
+  const authenticatedRef = useRef(onAuthenticated);
+  const completed = useRef(false);
+
+  useEffect(() => { authenticatedRef.current = onAuthenticated; }, [onAuthenticated]);
+  useEffect(() => { pendingRef.current = pending; }, [pending]);
+  useEffect(() => { if (initialError) setError(initialError); }, [initialError]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      commandId.current += 1;
+      command.current?.abort();
+      pollController.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setConfigLoading(true);
+    setConfigError("");
+    authRequest(apiBase, "/auth/config", { signal: controller.signal })
+      .then((data) => { if (!controller.signal.aborted) setConfig(data); })
+      .catch((err) => { if (!controller.signal.aborted) setConfigError(err.message); })
+      .finally(() => { if (!controller.signal.aborted) setConfigLoading(false); });
+    return () => controller.abort();
+  }, [apiBase, configAttempt]);
+
+  const finish = useCallback((data) => {
+    if (!mounted.current || completed.current) return;
+    if (typeof data?.token !== "string" || !data.token) throw new Error("Kirish tasdiqlanmadi. Qayta urinib ko‘ring.");
+    completed.current = true;
+    savePending(storageKey, null);
+    setPending(null);
+    setBusy(false);
+    setPassword("");
+    setSuccess(true);
+    authenticatedRef.current?.(data.token);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!pending) return undefined;
+    const controller = new AbortController();
+    pollController.current = controller;
+    let retry;
+    let networkFailures = 0;
+    const expire = (message) => {
+      if (controller.signal.aborted) return;
+      controller.abort();
+      savePending(storageKey, null);
+      setPending(null);
+      setPollNotice("");
+      setError(message);
+    };
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((pending.expires_at - Date.now()) / 1000));
+      setSeconds(remaining);
+      if (!remaining) expire("Tasdiqlash vaqti tugadi. Telegram orqali yangi kirish so‘rovini boshlang.");
+    };
+    tick();
+    const clock = setInterval(tick, 1000);
+    const poll = async () => {
+      if (controller.signal.aborted || Date.now() >= pending.expires_at) return;
+      try {
+        const data = await authRequest(apiBase, "/auth/telegram/poll", {
+          body: { challenge: pending.challenge, browser_secret: pending.browser_secret },
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        networkFailures = 0;
+        setPollNotice("");
+        if (data.status === "complete") { finish(data); return; }
+        if (["expired", "cancelled", "rejected", "denied"].includes(data.status)) {
+          expire(data.status === "expired" ? "Tasdiqlash vaqti tugadi. Yangi kirish so‘rovini boshlang." : "Kirish tasdiqlanmadi. Yangi so‘rov bilan qayta urinishingiz mumkin.");
+          return;
+        }
+        if (!["pending", "waiting", "approved"].includes(data.status)) throw new Error("Tasdiqlash javobi tushunarsiz. Qayta tekshirilmoqda.");
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if ([400, 401, 403, 404, 410].includes(err.status)) { expire(err.message); return; }
+        networkFailures += 1;
+        setPollNotice(`${err.message} Tasdiqlash yana tekshiriladi.`);
+      }
+      if (!controller.signal.aborted) retry = setTimeout(poll, Math.min(8000, 2500 + networkFailures * 1500));
+    };
+    poll();
+    const resume = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", resume);
+    return () => {
+      controller.abort();
+      if (pollController.current === controller) pollController.current = null;
+      clearTimeout(retry);
+      clearInterval(clock);
+      document.removeEventListener("visibilitychange", resume);
+    };
+  }, [apiBase, pending, storageKey, finish]);
+
+  const cancelPending = useCallback(() => {
+    const old = pendingRef.current;
+    commandId.current += 1;
+    command.current?.abort();
+    pollController.current?.abort();
+    setBusy(false);
+    setPending(null);
+    pendingRef.current = null;
+    setPollNotice("");
+    savePending(storageKey, null);
+    if (old) {
+      authRequest(apiBase, "/auth/telegram/cancel", { body: { challenge: old.challenge, browser_secret: old.browser_secret } }).catch(() => {});
+    }
+  }, [apiBase, storageKey]);
+
+  const chooseMethod = (next) => {
+    if (busy || pending) cancelPending();
+    setMethod(next);
+    setError("");
+    setPassword("");
+  };
+
+  const startTelegram = async () => {
+    if (busy) return;
+    const id = ++commandId.current;
+    command.current?.abort();
+    const controller = new AbortController();
+    command.current = controller;
+    setBusy(true);
+    setError("");
+    try {
+      const data = await authRequest(apiBase, "/auth/telegram/start", { body: { mode: "login" }, signal: controller.signal });
+      if (!mounted.current || id !== commandId.current) return;
+      const next = telegramChallenge(data);
+      if (!next) throw new Error("Telegram kirish havolasi olinmadi. Qayta urinib ko‘ring.");
+      savePending(storageKey, next);
+      pendingRef.current = next;
+      setPending(next);
+    } catch (err) {
+      if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
+    } finally {
+      if (mounted.current && id === commandId.current) setBusy(false);
+    }
+  };
+
+  const loginWithPassword = async (event) => {
+    event.preventDefault();
+    if (busy || !identifier.trim() || !password) return;
+    const id = ++commandId.current;
+    command.current?.abort();
+    const controller = new AbortController();
+    command.current = controller;
+    setBusy(true);
+    setError("");
+    try {
+      const data = await authRequest(apiBase, "/auth/password/login", { body: { identifier: identifier.trim(), password }, signal: controller.signal });
+      if (mounted.current && id === commandId.current) finish(data);
+    } catch (err) {
+      if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
+    } finally {
+      if (mounted.current && id === commandId.current) setBusy(false);
+    }
+  };
+
+  const telegramEnabled = config?.telegram?.enabled === true;
+  const passwordEnabled = config?.password?.enabled === true;
+  const googleEnabled = config?.google?.enabled === true;
+
+  return <main className="kb-login-page">
+    <div className="kb-login-shell">
+      <header className="kb-login-header">
+        <a className="kb-login-brand" href="#kabutar-home" aria-label="Kabutar bosh sahifasi">
+          <span className="kb-login-brand-mark"><Bird size={29} strokeWidth={1.8}/></span>
+          <span>Kabutar<span className="kb-login-brand-caption">YAQINROQ BO‘LING. O‘SIB BORING.</span></span>
+        </a>
+        <nav aria-label="Bosh sahifa"><a href="#kabutar-possibilities">Imkoniyatlar <ArrowDown size={14}/></a><a className="kb-login-header-enter" href="#kabutar-signin">Kirish <ArrowRight size={17}/></a></nav>
+      </header>
+
+      <div className="kb-login-main" id="kabutar-home">
+        <section className="kb-login-intro" aria-labelledby="kabutar-title">
+          <span className="kb-login-eyebrow"><span/> SUHBATLARDAN YANGI IMKONIYATLARGA</span>
+          <h1 id="kabutar-title">Yaqinlar bilan <br/>suhbat.<br/><em>O‘zingiz uchun <br/>rivojlanish.</em></h1>
+          <p className="kb-login-lead">Yozing, fikr almashing va o‘rganing. Kabutarda suhbatlar va ta’lim uchun bitta hisob yetarli.</p>
+
+          <div className="kb-login-paths" id="kabutar-possibilities">
+            <article><span className="kb-login-path-icon"><MessageCircle size={23}/></span><div><h2>Kabutar</h2><p>Suhbatlar, ovozli xabarlar va yaqinlaringiz.</p></div><ArrowRight size={19}/></article>
+            <article><span className="kb-login-path-icon kb-login-path-education"><GraduationCap size={24}/></span><div><h2>Kabutar Ta’lim</h2><p>Fanlar, shaxsiy jadval va bilim yo‘lingiz.</p></div><ArrowRight size={19}/></article>
+          </div>
+          <p className="kb-login-intro-note"><Sparkles size={16}/> Avval Kabutarga kiring. Ta’limni o‘zingizga moslab yoqing.</p>
+        </section>
+
+        <section className="kb-login-access" id="kabutar-signin" aria-labelledby="kabutar-signin-title">
+          <div className="kb-login-card">
+            <div className="kb-login-card-top"><span className="kb-login-card-symbol"><Bird size={28}/></span><span>BIR HISOB. IKKI IMKONIYAT.</span></div>
+            <h2 id="kabutar-signin-title">Xush kelibsiz.</h2>
+            <p className="kb-login-card-description">Suhbatingizni davom ettiring<br/>yoki Kabutarda ilk qadamingizni qo‘ying.</p>
+
+            {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3>Kirish tasdiqlandi</h3><p>Kabutaringiz ochilmoqda…</p></div> : <>
+              <div className="kb-login-methods" role="group" aria-label="Kirish usuli">
+                <button type="button" className={method === "telegram" ? "is-selected" : ""} onClick={() => chooseMethod("telegram")} aria-pressed={method === "telegram"}><Send size={16}/> Telegram</button>
+                <button type="button" className={method === "password" ? "is-selected" : ""} onClick={() => chooseMethod("password")} aria-pressed={method === "password"}><LockKeyhole size={16}/> Parol</button>
+              </div>
+
+              {error && <div className="kb-login-error" role="alert">{error}<button type="button" onClick={() => setError("")} aria-label="Xato xabarini yopish"><X size={16}/></button></div>}
+              {configError && <div className="kb-login-service-error" role="status"><p>{configError}</p><button type="button" onClick={() => setConfigAttempt((attempt) => attempt + 1)}>Qayta tekshirish</button></div>}
+
+              {method === "telegram" && (pending ? <div className="kb-login-telegram-pending">
+                <div className="kb-login-pending-heading"><span><LoaderCircle className="kb-login-spin" size={16}/> Tasdiqlashingiz kutilmoqda</span><time aria-label="Qolgan vaqt">{formatAuthCountdown(seconds)}</time></div>
+                <ol><li>Botni oching va <strong>Start</strong> tugmasini bosing.</li><li>O‘z telefon raqamingizni ulashing va kirishni tasdiqlang.</li><li>Shu oynaga qayting — hisobingiz ochiladi.</li></ol>
+                {pending.verification_code && <div className="kb-login-verification"><span>Botdagi so‘rov raqami shu bilan bir xil bo‘lsin:</span><strong>{pending.verification_code}</strong></div>}
+                <a className="kb-login-primary" href={pending.bot_url} target="_blank" rel="noopener noreferrer"><Send size={19}/> Telegram botini ochish <ArrowRight size={18}/></a>
+                <p className="kb-login-pending-note">Faqat o‘zingiz boshlagan kirish so‘rovini tasdiqlang.</p>
+                {pollNotice && <p className="kb-login-poll-notice" role="status">{pollNotice}</p>}
+                <button type="button" className="kb-login-text-button" onClick={cancelPending}>Bekor qilish</button>
+              </div> : <div className="kb-login-telegram-start">
+                <p className="kb-login-method-copy">Telegram orqali telefoningizni tasdiqlab kiring. Hisobingiz bo‘lmasa, avtomatik yaratiladi.</p>
+                <button type="button" className="kb-login-primary" onClick={startTelegram} disabled={busy || configLoading || (!telegramEnabled && !configError)}>{busy || configLoading ? <LoaderCircle size={19} className="kb-login-spin"/> : <Send size={19}/>} {busy ? "So‘rov tayyorlanmoqda…" : configLoading ? "Kirish usullari tekshirilmoqda…" : "Telegram orqali kirish"}{!busy && !configLoading && <ArrowRight size={18}/>}</button>
+                {!configLoading && config && !telegramEnabled && <p className="kb-login-poll-notice">Telegram orqali kirish hali sozlanmagan. Boshqa kirish usulidan foydalaning.</p>}
+                <p className="kb-login-under-button"><ShieldCheck size={15}/> SMS yuborilmaydi. Tasdiqlash Telegram botida.</p>
+              </div>)}
+
+              {method === "password" && <form className="kb-login-password-form" onSubmit={loginWithPassword}>
+                <p className="kb-login-method-copy">Oldindan parol qo‘ygan bo‘lsangiz, shu hisobingizga kiring.</p>
+                <label htmlFor="kabutar-login-identifier">Telefon, KB raqami yoki email</label>
+                <input id="kabutar-login-identifier" name="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="+998… yoki KB-123456" maxLength={254} required disabled={busy}/>
+                <label htmlFor="kabutar-login-password">Parol</label>
+                <div className="kb-login-password-input"><input id="kabutar-login-password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Parolingizni kiriting" maxLength={128} required disabled={busy}/><button type="button" aria-label={showPassword ? "Parolni yashirish" : "Parolni ko‘rsatish"} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={19}/> : <Eye size={19}/>}</button></div>
+                <button className="kb-login-primary" type="submit" disabled={busy || configLoading || !passwordEnabled || !identifier.trim() || !password}>{busy ? <LoaderCircle size={19} className="kb-login-spin"/> : <LockKeyhole size={19}/>} {busy ? "Tekshirilmoqda…" : "Parol orqali kirish"}{!busy && <ArrowRight size={18}/>}</button>
+                {!configLoading && config && !passwordEnabled && <p className="kb-login-poll-notice">Parol orqali kirish hozir mavjud emas.</p>}
+                <button type="button" className="kb-login-text-button" onClick={() => chooseMethod("telegram")}>Parol esingizdan chiqdimi? Telegram orqali kiring</button>
+                <p className="kb-login-recovery-note">Tiklash uchun avval shu hisobga ulangan Telegram yoki Google hisobidan foydalaning.</p>
+              </form>}
+
+              {!pending && <>
+                <div className="kb-login-divider"><span/>yoki<span/></div>
+                <button type="button" className="kb-login-google" disabled={busy || configLoading || (!googleEnabled && !configError)} onClick={() => { window.location.assign(authEndpoint(apiBase, "/auth/google/login")); }}><GoogleMark/><span>Google orqali kirish</span><ChevronRight size={17}/></button>
+                {!configLoading && config && !googleEnabled && <p className="kb-login-poll-notice">Google orqali kirish hozir sozlanmagan.</p>}
+                <p className="kb-login-account-note">Oldin Google orqali kirganmisiz? O‘sha hisob bilan kiring, keyin Telegramni profilingizdan ulang.</p>
+              </>}
+            </>}
+          </div>
+          <div className="kb-login-card-foot"><Check size={15}/><span>Bir marta kirish. Suhbatlar va ta’lim uchun bitta profil.</span></div>
+        </section>
+      </div>
+      <footer className="kb-login-footer"><span>Kabutar <span className="kb-login-footer-dot">·</span> Suhbat va ta’lim maydoni</span><span><BookOpen size={15}/> O‘rganish — har kim uchun.</span></footer>
+    </div>
+  </main>;
+}
+
+return { "TelegramSignIn": TelegramSignIn, "default": KabutarLogin };
+})();
+
+// Included from auth/KabutarRegistration.jsx; implementation preserved.
+const __kbRev35_module2 = (() => {
+const React = __kbRev35_external0["default"];
+const useEffect = __kbRev35_external0["useEffect"];
+const useRef = __kbRev35_external0["useRef"];
+const useState = __kbRev35_external0["useState"];
+const ArrowLeft = __kbRev35_external1["ArrowLeft"];
+const ArrowRight = __kbRev35_external1["ArrowRight"];
+const Bird = __kbRev35_external1["Bird"];
+const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
+const LoaderCircle = __kbRev35_external1["LoaderCircle"];
+const MessageCircle = __kbRev35_external1["MessageCircle"];
+const authRequest = __kbRev35_module1["authRequest"];
+
+
+function KabutarRegistration({ apiBase = "", email = "", ism = "", oauthGrant = "", onAuthenticated, onCancel }) {
+  const [name, setName] = useState(ism || "");
+  const [inviteCode, setInviteCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const mounted = useRef(false);
+  const request = useRef(null);
+  const submitted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; request.current?.abort(); };
+  }, []);
+
+  async function register(event) {
+    event.preventDefault();
+    if (busy || submitted.current) return;
+    const clean = name.trim().replace(/\s+/g, " ");
+    const invite = inviteCode.trim().toUpperCase();
+    setError("");
+    if (!invite && (clean.length < 2 || clean.length > 80)) { setError("Ismingizni 2–80 belgi bilan kiriting."); return; }
+    if (invite && !/^[A-Z0-9]{12,128}$/.test(invite)) { setError("Muassasa taklif kodini to‘liq kiriting: kamida 12 ta lotin harfi yoki raqam."); return; }
+    if (!oauthGrant || !email) { setError("Google tasdig‘i topilmadi. Kirish sahifasiga qaytib, Google orqali qayta kiring."); return; }
+    setBusy(true);
+    const controller = new AbortController();
+    request.current = controller;
+    try {
+      const data = await authRequest(apiBase, invite ? "/auth/invite/claim" : "/auth/royxat", {
+        body: invite ? { email, oauth_grant: oauthGrant, kod: invite } : { email, ism: clean, rol: "kabutar", oauth_grant: oauthGrant },
+        signal: controller.signal,
+      });
+      if (!mounted.current || controller.signal.aborted) return;
+      if (typeof data?.token !== "string" || !data.token) throw new Error("Hisob yaratilgani tasdiqlanmadi. Qayta urinib ko‘ring.");
+      submitted.current = true;
+      onAuthenticated?.(data.token);
+    } catch (err) {
+      if (mounted.current && !controller.signal.aborted) setError(err.message);
+    } finally {
+      if (mounted.current && !controller.signal.aborted) setBusy(false);
+    }
+  }
+
+  return <main className="kb-login-page kb-registration-page"><div className="kb-registration-shell">
+    <div className="kb-login-brand"><span className="kb-login-brand-mark"><Bird size={29}/></span><span>Kabutar<span className="kb-login-brand-caption">YAQINROQ BO‘LING. O‘SIB BORING.</span></span></div>
+    <section className="kb-login-card kb-registration-card" aria-labelledby="kb-registration-heading">
+      <span className="kb-registration-verified"><CheckCircle2 size={16}/> Google hisobingiz tasdiqlandi</span>
+      <h1 id="kb-registration-heading">Sizni qanday chaqiraylik?</h1>
+      <p className="kb-login-method-copy">Bitta Kabutar profili bilan suhbatlarni boshlang. Ta’lim yo‘nalishi va rolingizni keyin tanlaysiz.</p>
+      <div className="kb-registration-email">{email}</div>
+      {error && <div className="kb-login-error" role="alert">{error}</div>}
+      <form className="kb-login-password-form" onSubmit={register}>
+        <details className="kb-registration-invite" onToggle={(event) => { if (!event.currentTarget.open) setInviteCode(""); }}>
+          <summary>Muassasa taklif kodi bormi?</summary>
+          <label htmlFor="kb-registration-invite">Taklif kodi<input id="kb-registration-invite" type="text" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={128} disabled={busy} placeholder="Muassasa bergan kod"/></label>
+          <p>Faqat muassasa bergan rasmiy taklif kodi uchun. Taklif tasdiqlansa, muassasa tayyorlagan profilingiz ochiladi.</p>
+        </details>
+        <label htmlFor="kb-registration-name">Ism va familiyangiz</label>
+        <input id="kb-registration-name" name="name" autoComplete="name" type="text" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={80} required={!inviteCode.trim()} disabled={busy || Boolean(inviteCode.trim())} placeholder="Ism va familiyangiz"/>
+        <p className="kb-registration-note"><MessageCircle size={15}/> Bu ism suhbatlarda profilingizda ko‘rinadi.</p>
+        <button type="submit" className="kb-login-primary" disabled={busy || (!name.trim() && !inviteCode.trim()) || !oauthGrant}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <Bird size={18}/>} {busy ? "Hisob tayyorlanmoqda…" : inviteCode.trim() ? "Taklif orqali kirish" : "Kabutarni boshlash"}<ArrowRight size={17}/></button>
+      </form>
+      <div className="kb-registration-existing"><strong>Telegram orqali allaqachon kirganmisiz?</strong><p>Kirish sahifasiga qayting va o‘sha hisobni oching. Google hisobingizni “Kirish va xavfsizlik” orqali ulang — mavjud suhbatlaringiz bitta hisobda qoladi.</p><button type="button" className="kb-login-text-button" onClick={onCancel} disabled={busy}><ArrowLeft size={14}/> Kirish sahifasiga qaytish</button></div>
+    </section>
+  </div></main>;
+}
+
+return { "default": KabutarRegistration };
+})();
+
+// Included from workspace/kabutarWorkspaceClient.js; implementation preserved.
+const __kbRev35_module4 = (() => {
+async function workspaceRequest(base, path, token, { method = 'GET', body, signal } = {}) {
+  const controller = new AbortController();
+  const abort = () => controller.abort(); signal?.addEventListener('abort', abort, { once: true });
+  if (signal?.aborted) controller.abort();
+  const timer = setTimeout(abort, 15000);
+  try {
+    const response = await fetch(`${base}${path}`, { method, signal: controller.signal, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw Object.assign(new Error(typeof data.detail === 'string' ? data.detail : 'So‘rov bajarilmadi. Qayta urinib ko‘ring.'), { status: response.status });
+    return data;
+  } catch (error) { if (error.name === 'AbortError') throw new Error('Server javobi kechikdi. Internetni tekshirib, qayta urinib ko‘ring.'); throw error; }
+  finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+}
+
+return { "workspaceRequest": workspaceRequest };
+})();
+
+// Included from workspace/EducationSetup.jsx; implementation preserved.
+const __kbRev35_module3 = (() => {
+const React = __kbRev35_external0["default"];
+const useState = __kbRev35_external0["useState"];
+const workspaceRequest = __kbRev35_module4["workspaceRequest"];
+
+const roles = [['oquvchi', 'O‘quvchi', 'Sinfiga mos fanlar, jadval va testlar', '📚'], ['oqituvchi', 'O‘qituvchi', 'Darslar, materiallar va shaxsiy ish maydoni', '✏️'], ['ota-ona', 'Ota-ona', 'Farzandingizning ta’lim yo‘lini kuzatish', '🌱'], ['mustaqil', 'Mustaqil o‘rganaman', 'Qiziqishingizga mos bilim va mashqlar', '✦']];
+function EducationSetup({ apiBase, token, onComplete, onBack }) {
+  const [role, setRole] = useState('oquvchi'), [grade, setGrade] = useState('5'), [language, setLanguage] = useState('uz'), [subject, setSubject] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  async function save(e) { e.preventDefault(); if (busy) return; setBusy(true); setError('');
+    try { await workspaceRequest(apiBase, '/auth/profile/education', token, { method: 'POST', body: { role, class: role === 'oquvchi' ? grade : null, language, subject: subject.trim() || null } }); onComplete(); }
+    catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
+  return <main className="kb-education-setup"><button className="kb-work-back" onClick={onBack}>← Kabutarga qaytish</button><small>KABUTAR TA’LIM</small><h1>Bilim yo‘lingizni tanlang.</h1><p>Bir akkaunt. Suhbatlaringiz saqlanadi, yoniga ta’lim maydoningiz qo‘shiladi.</p>
+    <form onSubmit={save}><div className="kb-education-roles">{roles.map(([id, title, description, icon]) => <button type="button" key={id} aria-pressed={role === id} onClick={() => setRole(id)} className={role === id ? 'selected' : ''}><span>{icon}</span><b>{title}</b><small>{description}</small></button>)}</div>
+      <div className="kb-education-fields">{role === 'oquvchi' && <label>Sinfingiz<select value={grade} onChange={e => setGrade(e.target.value)}>{Array.from({ length: 11 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}-sinf</option>)}</select></label>}<label>Ta’lim tili<select value={language} onChange={e => setLanguage(e.target.value)}><option value="uz">O‘zbekcha</option><option value="ru">Ruscha</option><option value="en">Inglizcha</option></select></label>{role === 'oqituvchi' && <label>Asosiy faningiz<input maxLength={100} value={subject} onChange={e => setSubject(e.target.value)} placeholder="Masalan, matematika" /></label>}</div>
+      <p className="kb-work-note">Bu shaxsiy ta’lim maydonini ochadi. Muassasa ma’lumotlariga kirish muassasa tomonidan, farzand bilan bog‘lanish esa alohida tasdiqlanadi.</p>
+      {error && <p className="kb-work-error" role="alert">{error}</p>}<button className="kb-work-primary" disabled={busy}>{busy ? 'Saqlanmoqda…' : 'Ta’lim maydonini ochish →'}</button>
+    </form>
+  </main>;
+}
+
+return { "default": EducationSetup };
+})();
+
+// Included from workspace/AccountSecurity.jsx; implementation preserved.
+const __kbRev35_module5 = (() => {
+const React = __kbRev35_external0["default"];
+const useEffect = __kbRev35_external0["useEffect"];
+const useRef = __kbRev35_external0["useRef"];
+const useState = __kbRev35_external0["useState"];
+const createPortal = __kbRev35_external2["createPortal"];
+const AtSign = __kbRev35_external1["AtSign"];
+const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
+const ChevronRight = __kbRev35_external1["ChevronRight"];
+const Eye = __kbRev35_external1["Eye"];
+const EyeOff = __kbRev35_external1["EyeOff"];
+const KeyRound = __kbRev35_external1["KeyRound"];
+const LoaderCircle = __kbRev35_external1["LoaderCircle"];
+const LogOut = __kbRev35_external1["LogOut"];
+const Send = __kbRev35_external1["Send"];
+const ShieldCheck = __kbRev35_external1["ShieldCheck"];
+const X = __kbRev35_external1["X"];
+const TelegramSignIn = __kbRev35_module0["TelegramSignIn"];
+const authEndpoint = __kbRev35_module1["authEndpoint"];
+const workspaceRequest = __kbRev35_module4["workspaceRequest"];
+
+
+function AccountSecurity({ apiBase, token, onToken, onClose, onLogout }) {
+  const [profile, setProfile] = useState(null);
+  const [discovery, setDiscovery] = useState(null);
+  const [discoveryError, setDiscoveryError] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [phoneDiscoverable, setPhoneDiscoverable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetPassword, setResetPassword] = useState(false);
+  const [busy, setBusy] = useState("");
+  const panel = useRef(null);
+  const closeButton = useRef(null);
+  const mounted = useRef(false);
+  const request = useRef(null);
+  const close = useRef(onClose);
+  useEffect(() => { close.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    mounted.current = true;
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButton.current?.focus();
+    const keydown = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close.current?.(); return; }
+      if (event.key !== "Tab") return;
+      const elements = [...(panel.current?.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]') || [])].filter((element) => element.getClientRects().length);
+      const first = elements[0], last = elements[elements.length - 1];
+      if (!first) { event.preventDefault(); panel.current?.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || !panel.current?.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !panel.current?.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", keydown, true);
+    return () => {
+      mounted.current = false;
+      request.current?.abort();
+      document.removeEventListener("keydown", keydown, true);
+      document.body.style.overflow = overflow;
+      if (previous?.isConnected) previous.focus?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    request.current?.abort();
+    setBusy("");
+    setCurrentPassword("");
+    setPassword("");
+    setConfirmation("");
+    setResetPassword(false);
+    setTelegramOpen(false);
+    setProfile(null);
+    setDiscovery(null);
+  }, [token]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    setDiscoveryError("");
+    Promise.allSettled([
+      workspaceRequest(apiBase, "/auth/profile/status", token, { signal: controller.signal }),
+      workspaceRequest(apiBase, "/auth/profile/discovery", token, { signal: controller.signal }),
+    ])
+      .then(([accountResult, discoveryResult]) => {
+        if (controller.signal.aborted) return;
+        if (accountResult.status === "fulfilled") setProfile(accountResult.value);
+        else setError(accountResult.reason.message);
+        if (discoveryResult.status === "fulfilled") {
+          const data = discoveryResult.value;
+          setDiscovery(data);
+          setNickname(data.nickname || "");
+          setPhoneDiscoverable(data.phone_discoverable === true);
+        } else setDiscoveryError(discoveryResult.reason.message);
+      })
+      .catch((err) => { if (!controller.signal.aborted) setError(err.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [apiBase, token, retry]);
+
+  async function changePassword(event) {
+    event.preventDefault();
+    if (busy) return;
+    setNotice("");
+    setError("");
+    if (!profile) { setError("Avval hisob ma’lumotlari yuklanishini kuting."); return; }
+    if (password.length < 10 || password.length > 128) { setError("Yangi parol 10–128 belgidan iborat bo‘lsin."); return; }
+    if (password !== confirmation) { setError("Yangi parol va tasdiqlash bir xil emas."); return; }
+    if (profile.has_password && !resetPassword && !currentPassword) { setError("Amaldagi parolingizni kiriting."); return; }
+    const controller = new AbortController();
+    request.current?.abort();
+    request.current = controller;
+    setBusy("password");
+    try {
+      const data = await workspaceRequest(apiBase, "/auth/password/set", token, {
+        method: "POST", signal: controller.signal,
+        body: { password, reset: resetPassword, ...(profile.has_password && !resetPassword ? { current_password: currentPassword } : {}) },
+      });
+      if (!mounted.current || controller.signal.aborted) return;
+      if (!data.ok) throw new Error("Parol saqlangani tasdiqlanmadi. Qayta urinib ko‘ring.");
+      setCurrentPassword(""); setPassword(""); setConfirmation(""); setShowPassword(false);
+      setResetPassword(false);
+      setNotice("Parol saqlandi. Boshqa qurilmalardagi kirish seanslari tugatildi.");
+      setProfile((old) => ({ ...old, has_password: true }));
+      if (data.token) onToken?.(data.token);
+    } catch (err) {
+      if (mounted.current && !controller.signal.aborted) setError(err.message);
+    } finally {
+      if (mounted.current && !controller.signal.aborted) setBusy("");
+    }
+  }
+
+  async function saveDiscovery(event) {
+    event.preventDefault();
+    if (busy || !discovery) return;
+    const clean = nickname.trim().replace(/^@/, "");
+    setNotice(""); setError(""); setDiscoveryError("");
+    if (clean && !/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(clean)) {
+      setDiscoveryError("Nik 5–32 belgidan iborat bo‘lsin: avval lotin harfi, keyin harf, raqam yoki pastki chiziq (_).");
+      return;
+    }
+    if (phoneDiscoverable && !discovery.phone_verified) {
+      setDiscoveryError("Telefon bo‘yicha topilish uchun avval o‘z raqamingizni Telegram orqali tasdiqlang.");
+      return;
+    }
+    const controller = new AbortController();
+    request.current?.abort(); request.current = controller;
+    setBusy("discovery");
+    try {
+      const data = await workspaceRequest(apiBase, "/auth/profile/discovery", token, {
+        method: "POST", signal: controller.signal,
+        body: { nickname: clean || null, phone_discoverable: phoneDiscoverable },
+      });
+      if (!mounted.current || controller.signal.aborted) return;
+      setDiscovery(data); setNickname(data.nickname || ""); setPhoneDiscoverable(data.phone_discoverable === true);
+      setNotice("Qidiruv sozlamalari saqlandi. KB raqamingiz o‘zgarmadi.");
+    } catch (err) {
+      if (mounted.current && !controller.signal.aborted) setDiscoveryError(err.message);
+    } finally {
+      if (mounted.current && !controller.signal.aborted) setBusy("");
+    }
+  }
+
+  function linkGoogle() {
+    setError("");
+    try { window.sessionStorage.setItem("kabutar_google_link_intent", JSON.stringify({ session: token, createdAt: Date.now() })); }
+    catch { setError("Brauzer ulash so‘rovini saqlay olmadi. Brauzerda sayt ma’lumotlarini saqlashga ruxsat bering va qayta urinib ko‘ring."); return; }
+    window.location.assign(authEndpoint(apiBase, "/auth/google/login?intent=link"));
+  }
+
+  async function logout(allDevices) {
+    if (busy) return;
+    setBusy(allDevices ? "logout-all" : "logout"); setError(""); setNotice("");
+    try { await onLogout?.(allDevices); }
+    catch (err) { if (mounted.current) setError(err?.message || "Chiqish tasdiqlanmadi. Qayta urinib ko‘ring."); }
+    finally { if (mounted.current) setBusy(""); }
+  }
+
+  const telegramLinked = profile?.identities?.telegram === true;
+  const googleLinked = profile?.identities?.google === true;
+
+  return createPortal(<div className="kb-security-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose?.(); }}>
+    <div className="kb-security-panel" role="dialog" aria-modal="true" aria-labelledby="kb-security-title" aria-describedby="kb-security-description" tabIndex={-1} ref={panel}>
+      <header><div><span className="kb-security-eyebrow"><ShieldCheck size={15}/> SIZNING HISOBINGIZ</span><h2 id="kb-security-title">Kirish va xavfsizlik</h2></div><button className="kb-security-close" type="button" onClick={onClose} aria-label="Xavfsizlik oynasini yopish" ref={closeButton}><X size={20}/></button></header>
+      <p id="kb-security-description" className="kb-work-note">Kirish usullarini bitta hisobingizga ulang. KB raqamingiz va suhbatlaringiz shu hisobda qoladi.</p>
+      {error && <div className="kb-work-error" role="alert">{error}</div>}
+      {notice && <div className="kb-security-notice" role="status"><CheckCircle2 size={17}/>{notice}</div>}
+      {loading ? <p className="kb-security-loading" role="status"><LoaderCircle size={18} className="kb-login-spin"/> Hisob ma’lumotlari yuklanmoqda…</p> : !profile ? <button type="button" onClick={() => setRetry((value) => value + 1)}>Qayta yuklash</button> : <>
+        <section aria-label="Ulangan kirish usullari">
+          <h3>Ulangan hisoblar</h3>
+          <div className="kb-security-identities">
+            <div><span className="kb-security-provider-icon"><Send size={19}/></span><div><strong>Telegram</strong><small>{telegramLinked ? profile.phone_masked || "Telefon tasdiqlangan" : "Telefon raqamingiz bilan tasdiqlash"}</small></div>{telegramLinked ? <span className="kb-security-linked"><CheckCircle2 size={14}/> Ulangan</span> : <button type="button" onClick={() => setTelegramOpen(true)} disabled={Boolean(busy)}>Ulash <ChevronRight size={14}/></button>}</div>
+            <div><span className="kb-security-provider-icon kb-security-google-mark">G</span><div><strong>Google</strong><small>{googleLinked ? "Google hisobingiz ulangan" : "Google hisobingiz orqali qayta kirish"}</small></div>{googleLinked ? <span className="kb-security-linked"><CheckCircle2 size={14}/> Ulangan</span> : <button type="button" onClick={linkGoogle} disabled={Boolean(busy)}>Ulash <ChevronRight size={14}/></button>}</div>
+          </div>
+          {telegramOpen && <TelegramSignIn apiBase={apiBase} token={token} mode="link" onCancel={() => setTelegramOpen(false)} onAuthenticated={(data) => {
+            setTelegramOpen(false);
+            setNotice("Telegram shu hisobingizga ulandi.");
+            if (data?.token) onToken?.(data.token);
+            setRetry((value) => value + 1);
+          }}/>} 
+          <p className="kb-work-note">Google yoki Telegram boshqa Kabutar hisobiga ulangan bo‘lsa, hisoblar avtomatik birlashtirilmaydi.</p>
+        </section>
+        <section aria-labelledby="kb-discovery-heading">
+          <h3 id="kb-discovery-heading"><AtSign size={18}/> Sizni qanday topishsin?</h3>
+          <p className="kb-work-note">KB raqamingiz doimiy qoladi. Nik qo‘shsangiz, odamlar sizni @nik orqali ham topadi.</p>
+          {discoveryError && <div className="kb-work-error" role="alert">{discoveryError}</div>}
+          {discovery ? <form onSubmit={saveDiscovery}>
+            <label htmlFor="kb-public-nickname">Kabutar niki <span className="kb-security-optional">ixtiyoriy</span><div className="kb-security-nickname-field"><span aria-hidden="true">@</span><input id="kb-public-nickname" type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={33} placeholder="azizustoz" disabled={Boolean(busy)} aria-describedby="kb-nickname-help"/></div></label>
+            <p id="kb-nickname-help" className="kb-work-note">5–32 belgi: lotin harflari, raqamlar va _. Nik harf bilan boshlanadi. Profilingizdagi haqiqiy ism saqlanadi.</p>
+            <label className="kb-security-phone-toggle" htmlFor="kb-phone-discovery"><input id="kb-phone-discovery" type="checkbox" checked={phoneDiscoverable} onChange={(event) => setPhoneDiscoverable(event.target.checked)} disabled={Boolean(busy) || !discovery.phone_verified}/><span><strong>Telefon raqamim orqali topish mumkin</strong><small>{discovery.phone_verified ? `${discovery.phone_masked || "Tasdiqlangan raqam"} ni biladigan odamlar meni Kabutarda topishi mumkin.` : "Buning uchun telefoningizni yuqoridagi Telegram orqali tasdiqlang."}</small></span></label>
+            <button type="submit" className="kb-work-primary" disabled={Boolean(busy)}>{busy === "discovery" ? "Saqlanmoqda…" : "Qidiruv sozlamalarini saqlash"}</button>
+          </form> : <button type="button" onClick={() => setRetry((value) => value + 1)}>Qidiruv sozlamalarini qayta yuklash</button>}
+        </section>
+        <section aria-labelledby="kb-password-heading">
+          <h3 id="kb-password-heading"><KeyRound size={17}/> {resetPassword ? "Unutilgan parolni tiklash" : profile.has_password ? "Parolni o‘zgartirish" : "Kirish uchun parol qo‘yish"}</h3>
+          {profile.has_password && <button type="button" className="kb-security-reset-choice" onClick={() => { setResetPassword((value) => !value); setCurrentPassword(""); setError(""); setNotice(""); }} disabled={Boolean(busy)}>{resetPassword ? "Amaldagi parolimni bilaman" : "Parolimni unutdim"}</button>}
+          {resetPassword && <p className="kb-security-recovery-info">Tiklash uchun oxirgi 10 daqiqa ichida shu hisobga ulangan Telegram yoki Google orqali qayta kirgan bo‘lishingiz kerak. Server tasdiqlasa, eski parolsiz yangisini qo‘yasiz. Faqat parol bilan kirilgan seansda bu amal bajarilmaydi.</p>}
+          <form onSubmit={changePassword}>
+            {profile.has_password && !resetPassword && <label htmlFor="kb-current-password">Amaldagi parol<input id="kb-current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} maxLength={128} required disabled={Boolean(busy)}/></label>}
+            <label htmlFor="kb-new-password">Yangi parol<div className="kb-security-password-field"><input id="kb-new-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} maxLength={128} required aria-describedby="kb-password-help" disabled={Boolean(busy)}/><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Yangi parolni yashirish" : "Yangi parolni ko‘rsatish"} aria-pressed={showPassword}>{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div></label>
+            <label htmlFor="kb-confirm-password">Yangi parolni takrorlang<input id="kb-confirm-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={10} maxLength={128} required disabled={Boolean(busy)}/></label>
+            <p id="kb-password-help" className="kb-work-note">Kamida 10 belgi. Boshqa saytlarda ishlatmaydigan parol tanlang. Parol saqlanganda boshqa qurilmalardagi seanslar tugaydi.</p>
+            <button className="kb-work-primary" type="submit" disabled={Boolean(busy) || !password || !confirmation}>{busy === "password" ? "Saqlanmoqda…" : resetPassword ? "Parolni tiklash" : profile.has_password ? "Parolni yangilash" : "Parolni saqlash"}</button>
+          </form>
+          {!profile.has_password && <p className="kb-work-note">Parolni ilk marta qo‘yish uchun oxirgi 10 daqiqa ichida Telegram yoki Google orqali kirgan bo‘lishingiz kerak.</p>}
+        </section>
+      </>}
+      <section aria-labelledby="kb-sessions-heading"><h3 id="kb-sessions-heading">Qurilmalardagi kirish</h3><p>“Chiqish” bosilganda qayta kirish uchun tasdiqlash yoki parol kerak bo‘ladi.</p><div className="kb-security-logout-actions"><button type="button" onClick={() => logout(false)} disabled={Boolean(busy)}><LogOut size={16}/>{busy === "logout" ? "Chiqilmoqda…" : "Shu qurilmadan chiqish"}</button><button type="button" className="kb-danger" onClick={() => logout(true)} disabled={Boolean(busy)}>{busy === "logout-all" ? "Seanslar tugatilmoqda…" : "Barcha qurilmalardan chiqish"}</button></div></section>
+    </div>
+  </div>, document.body);
+}
+
+return { "default": AccountSecurity };
+})();
+
+// Included from kabutar/kabutarPolling.js; implementation preserved.
+const __kbRev35_module7 = (() => {
+// Serialized foreground polling: next request starts only after the prior one
+// settled. React owns foreground/active gating and calls stop() on hide/logout.
+function startKabutarPoll(task, {
+  interval, maxDelay = 60000, setTimer = setTimeout, clearTimer = clearTimeout,
+} = {}) {
+  if (!(interval > 0) || maxDelay < interval) throw new Error("Polling interval noto‘g‘ri");
+  const controller = new AbortController();
+  let timer = null;
+  let failures = 0;
+  let stopped = false;
+  const run = async () => {
+    if (stopped) return;
+    let succeeded = false;
+    try { succeeded = (await task(controller.signal)) !== false; }
+    catch { /* The request owner exposes the useful error to the UI. */ }
+    if (stopped) return;
+    failures = succeeded ? 0 : Math.min(failures + 1, 8);
+    const delay = Math.min(maxDelay, interval * (2 ** failures));
+    timer = setTimer(run, delay);
+  };
+  run();
+  return () => {
+    stopped = true;
+    if (timer !== null) clearTimer(timer);
+    controller.abort();
+  };
+}
+
+// Merge server refreshes and optimistic sends without duplicate bubbles.
+function mergeKabutarMessages(current, incoming) {
+  const rows = new Map(current.map(message => [String(message.id), message]));
+  incoming.forEach(message => rows.set(String(message.id), { ...rows.get(String(message.id)), ...message }));
+  return [...rows.values()].sort((a, b) => Number(a.id) - Number(b.id));
+}
+
+return { "startKabutarPoll": startKabutarPoll, "mergeKabutarMessages": mergeKabutarMessages };
+})();
+
+// Included from workspace/AudiencePanel.jsx; implementation preserved.
+const __kbRev35_module6 = (() => {
+const React = __kbRev35_external0["default"];
+const useEffect = __kbRev35_external0["useEffect"];
+const useState = __kbRev35_external0["useState"];
+const workspaceRequest = __kbRev35_module4["workspaceRequest"];
+
+const startKabutarPoll = __kbRev35_module7["startKabutarPoll"];
+
+function useVisibleDocument() {
+  const [visible, setVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState !== 'hidden');
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+  return visible;
+}
+
+function useAudiencePresence(apiBase, token, enabled = true) {
+  const visible = useVisibleDocument();
+  useEffect(() => {
+    if (!enabled || !token || !visible) return undefined;
+    return startKabutarPoll(async signal => {
+      try {
+        await workspaceRequest(apiBase, '/api/presence', token, { method: 'POST', body: {}, signal });
+        return true;
+      } catch { return false; /* Presence never blocks the user's work. */ }
+    }, { interval: 60000, maxDelay: 300000 });
+  }, [apiBase, token, enabled, visible]);
+}
+function AudiencePanel({ apiBase, token, active = true }) {
+  const [data, setData] = useState(null), [error, setError] = useState(''), [reload, setReload] = useState(0);
+  const visible = useVisibleDocument();
+  useEffect(() => {
+    if (!active || !visible || !token) return undefined;
+    return startKabutarPoll(async signal => {
+      try {
+        const result = await workspaceRequest(apiBase, '/api/admin/audience?days=14', token, { signal });
+        if (!signal.aborted) { setData(result); setError(''); }
+        return true;
+      } catch (e) {
+        if (!signal.aborted) setError(e.message);
+        return false;
+      }
+    }, { interval: 60000, maxDelay: 300000 });
+  }, [apiBase, token, active, visible, reload]);
+  const format = value => new Intl.NumberFormat('uz-UZ').format(Number(value || 0));
+  return <section className="kb-audience"><header><div><small>KABUTAR · ADMIN</small><h2>Platforma faolligi</h2><p>Kimlar foydalanyapti va bugun qancha kirish bo‘ldi?</p></div><button onClick={() => setReload(n => n + 1)}>Yangilash ↻</button></header>
+    {error && <p role="alert" className="kb-work-error">{error}</p>}
+    {!data && !error ? <p>Statistika olinmoqda…</p> : data && <>
+      <div className="kb-metric-grid">{[['Ro‘yxatdan o‘tganlar', data.summary.registered_users], ['Hozir faol', data.summary.online_users], ['Bugun faol odamlar', data.summary.active_today], ['Bugungi kirishlar', data.summary.logins_today]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{format(value)}</strong></div>)}</div>
+      <p className="kb-work-note">“Hozir faol” — oxirgi {Math.round((data.online_window_seconds || 180) / 60)} daqiqada ochiq sahifadan signal kelgan akkauntlar. Bir odamning qayta kirishi “kirishlar” soniga qo‘shiladi. Sana: Toshkent vaqti.</p>
+      <details><summary>Kunlar bo‘yicha hisob va hozir faol foydalanuvchilar</summary><div className="kb-audience-tables"><table><thead><tr><th>Sana</th><th>Faol odamlar</th><th>Kirishlar</th></tr></thead><tbody>{(data.daily || []).map(day => <tr key={day.date}><td>{day.date}</td><td>{format(day.active_users)}</td><td>{format(day.logins)}</td></tr>)}</tbody></table><div><h3>Hozir faol</h3>{!(data.online || []).length ? <p>Hozircha signal yo‘q.</p> : <ul>{data.online.map(person => <li key={person.user_id}><b>{person.full_name || 'Foydalanuvchi'}</b><small>{new Date(person.last_seen_at).toLocaleTimeString('uz-UZ', { timeZone: 'Asia/Tashkent', hour: '2-digit', minute: '2-digit' })}</small></li>)}</ul>}</div></div></details>
+      <small>Hisob boshlanishi: {data.measurement_started_at ? new Date(data.measurement_started_at).toLocaleDateString('uz-UZ', { timeZone: 'Asia/Tashkent' }) : 'yangi o‘rnatishdan boshlab'}. Oldingi davr uchun sonlar taxmin qilinmaydi.</small>
+    </>}
+  </section>;
+}
+
+return { "useAudiencePresence": useAudiencePresence, "default": AudiencePanel };
+})();
+
+// Install included styles once; refresh their text on a development reload.
+if (typeof document !== "undefined" && document.head) {
+  {
+    const id = "kabutar-rev35-style-auth-kabutar-login-css";
+    let sheet = document.getElementById(id);
+    if (!sheet) { sheet = document.createElement("style"); sheet.id = id; document.head.appendChild(sheet); }
+    sheet.textContent = ".kb-login-page{--kb-ink:#183d42;--kb-muted:#627b7c;--kb-teal:#087b74;--kb-line:#dce7e2;--kb-paper:#fafbf6;color:var(--kb-ink);background:var(--kb-paper);min-height:100dvh;font-family:Inter,Manrope,\"Segoe UI\",sans-serif;isolation:isolate;overflow-x:clip}\n.kb-login-page *{box-sizing:border-box}\n.kb-login-page.kb-login-compact{min-height:0;background:transparent;padding:0;overflow:visible}\n.kb-login-page a{color:inherit;text-decoration:none}\n.kb-login-page button,.kb-login-page input{font:inherit}\n.kb-login-page button{cursor:pointer}\n.kb-login-page button:disabled{cursor:not-allowed;opacity:.55}\n.kb-login-page :is(a,button,input):focus-visible{outline:3px solid #26b6a6;outline-offset:4px}\n.kb-login-page :is(h1,h2,h3,p){margin:0}\n.kb-login-shell{max-width:1320px;padding:0 56px;margin:auto}\n.kb-login-header{height:108px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--kb-line);gap:24px}\n.kb-login-brand{display:flex;align-items:center;gap:12px;font-size:27px;font-weight:800;letter-spacing:-1px;line-height:1.12}\n.kb-login-brand-mark{height:47px;width:47px;display:grid;place-items:center;border-radius:15px 15px 15px 5px;background:var(--kb-teal);color:white;flex:none}\n.kb-login-brand-caption{display:block;margin-top:7px;letter-spacing:1.3px;font-size:8px;font-weight:700;color:var(--kb-muted)}\n.kb-login-header nav{display:flex;align-items:center;gap:31px;font-size:13px;font-weight:600}\n.kb-login-header nav a{display:flex;align-items:center;gap:8px;padding:9px 0}\n.kb-login-header nav .kb-login-header-enter{border:1px solid #c5d7d1;border-radius:30px;padding:11px 20px;transition:background .15s}\n.kb-login-header nav .kb-login-header-enter:hover{background:#e7f0e9}\n.kb-login-main{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(380px,.88fr);gap:68px;align-items:start;padding:68px 0 60px;position:relative}\n.kb-login-intro{padding-top:4px}\n.kb-login-eyebrow{font-size:10px;font-weight:750;letter-spacing:1.6px;display:flex;align-items:center;gap:9px;color:var(--kb-teal);margin-bottom:25px}\n.kb-login-eyebrow>span{width:7px;height:7px;border-radius:50%;background:var(--kb-teal);box-shadow:0 0 0 5px #dceee1}\n.kb-login-intro h1{font-size:clamp(44px,4.25vw,61px);font-weight:650;letter-spacing:-2.9px;line-height:1.09;max-width:620px}\n.kb-login-intro h1 em{font-style:normal;color:var(--kb-teal)}\n.kb-login-lead{font-size:15px;line-height:1.85;color:var(--kb-muted);max-width:405px;margin-top:26px!important}\n.kb-login-paths{margin-top:33px;display:flex;flex-direction:column;max-width:435px}\n.kb-login-paths article{display:flex;align-items:center;gap:15px;padding:19px 0;border-bottom:1px solid var(--kb-line)}\n.kb-login-paths article:first-child{border-top:1px solid var(--kb-line)}\n.kb-login-path-icon{display:grid;place-items:center;width:43px;height:43px;flex:none;color:var(--kb-teal);background:#e4efe5;border-radius:13px}\n.kb-login-path-education{background:#eff0d8;color:#73723d}\n.kb-login-paths article>svg{margin-left:auto;color:#89a49c;flex:none}\n.kb-login-paths h2{font-size:15px;font-weight:750;line-height:1.4}\n.kb-login-paths p{font-size:12px;line-height:1.55;margin-top:4px;color:var(--kb-muted)}\n.kb-login-intro-note{display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.7;color:var(--kb-muted);margin-top:23px!important}\n.kb-login-intro-note svg{flex:none;margin-top:2px;color:#879b70}\n.kb-login-access{position:relative;padding-top:3px;scroll-margin-top:24px}\n.kb-login-access:before{content:\"\";position:absolute;width:250px;height:250px;background:#e5edda;border-radius:50%;right:-60px;top:14px;z-index:-1}\n.kb-login-access:after{content:\"\";position:absolute;width:170px;height:160px;left:-20px;bottom:70px;border-radius:45% 55% 58% 42%;background:#dfebe6;transform:rotate(-18deg);z-index:-1}\n.kb-login-card{background:white;border:1px solid #e3e9e2;border-radius:26px;padding:32px;box-shadow:0 18px 55px #274b3821;position:relative}\n.kb-login-card-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px}\n.kb-login-card-symbol{height:48px;width:48px;border-radius:15px;background:#e9f3ee;color:var(--kb-teal);display:grid;place-items:center}\n.kb-login-card-top>span:last-child{font-size:8px;letter-spacing:1.3px;font-weight:750;color:#708781}\n.kb-login-card h2{font-size:33px;font-weight:700;letter-spacing:-1.2px;line-height:1.3}\n.kb-login-card-description{font-size:12px;line-height:1.9;color:var(--kb-muted);margin-top:9px!important}\n.kb-login-methods{display:flex;gap:5px;background:#f0f4ef;border:1px solid #e8ede6;padding:5px;border-radius:12px;margin-top:24px;margin-bottom:18px}\n.kb-login-methods button{display:flex;gap:8px;align-items:center;justify-content:center;width:50%;padding:10px 6px;border:0;border-radius:8px;color:#68817b;background:none;font-size:12px;font-weight:650;transition:background .15s,color .15s}\n.kb-login-methods button.is-selected{background:white;color:var(--kb-ink);box-shadow:0 2px 6px #142b3212}\n.kb-login-method-copy{font-size:12px;line-height:1.7;color:var(--kb-muted);margin-bottom:18px!important}\n.kb-login-primary{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;padding:14px 17px;background:var(--kb-teal)!important;color:#fff!important;border:1px solid transparent;border-radius:12px;font-size:13px;font-weight:700;line-height:1.35;box-shadow:0 5px 12px #087b7418;transition:background .18s,transform .18s}\n.kb-login-primary:not(:disabled):hover{background:#09665f!important;transform:translateY(-1px)}\n.kb-login-primary>svg:last-child:not(:first-child){margin-left:auto}\n.kb-login-under-button{display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;line-height:1.55;color:var(--kb-muted);text-align:center;margin-top:11px!important}\n.kb-login-under-button svg{flex:none;color:var(--kb-teal)}\n.kb-login-divider{display:flex;align-items:center;gap:13px;font-size:10px;color:#8b9a97;margin:22px 0}\n.kb-login-divider span{height:1px;background:#e6ebe6;flex:1}\n.kb-login-google{display:flex;align-items:center;gap:12px;background:white;border:1px solid #dce5e0;border-radius:12px;padding:13px 17px;min-height:48px;width:100%;font-size:12px;font-weight:650;color:var(--kb-ink);transition:background .15s}\n.kb-login-google:hover:not(:disabled){background:#f5f8f4}\n.kb-login-google span{flex:1;text-align:center}\n.kb-login-google>svg{flex:none}\n.kb-login-account-note{font-size:10px;color:#7f918b;line-height:1.7;text-align:center;margin-top:16px!important}\n.kb-login-card-foot{display:flex;align-items:center;justify-content:center;gap:7px;font-size:10px;color:var(--kb-muted);line-height:1.5;margin:21px 0 0}\n.kb-login-card-foot svg{flex:none;color:var(--kb-teal)}\n.kb-login-error,.kb-login-service-error{padding:12px;border:1px solid #efc5bc;border-radius:10px;background:#fff5ef;color:#a34831;font-size:12px;line-height:1.6;margin:0 0 15px;overflow-wrap:anywhere}\n.kb-login-error{display:flex;align-items:flex-start;gap:7px}\n.kb-login-error button{display:grid;place-items:center;flex:none;background:none;border:0;color:inherit;margin-left:auto;padding:3px}\n.kb-login-service-error button{background:none;border:0;padding:8px 0 0;font-size:12px;color:inherit;text-decoration:underline;font-weight:650}\n.kb-login-pending-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-size:11px;font-weight:650;color:var(--kb-teal);margin-bottom:16px}\n.kb-login-pending-heading>span{display:flex;align-items:center;gap:7px}\n.kb-login-pending-heading time{font-variant-numeric:tabular-nums;flex:none;letter-spacing:.4px;background:#e9f3ee;padding:3px 6px;border-radius:5px}\n.kb-login-telegram-pending ol{margin:0 0 16px;padding:0 0 0 18px;font-size:12px;line-height:1.75;color:var(--kb-muted)}\n.kb-login-telegram-pending li{margin-bottom:7px;padding-left:3px}\n.kb-login-telegram-pending li::marker{color:var(--kb-teal);font-weight:750}\n.kb-login-verification{background:#f4f7ef;border:1px dashed #c5d6c6;border-radius:11px;margin-bottom:15px;padding:12px;text-align:center}\n.kb-login-verification span{display:block;font-size:10px;color:var(--kb-muted);line-height:1.5}\n.kb-login-verification strong{display:block;letter-spacing:6px;padding-left:6px;font-size:26px;font-weight:750;line-height:1.5;margin-top:5px;font-variant-numeric:tabular-nums}\n.kb-login-pending-note,.kb-login-recovery-note{font-size:10px;line-height:1.7;text-align:center;color:var(--kb-muted);margin-top:10px!important}\n.kb-login-poll-notice{font-size:11px;line-height:1.6;color:#986023;margin-top:12px!important}\n.kb-login-text-button{background:none;border:0;color:var(--kb-teal);display:block;font-size:11px;line-height:1.6;text-align:center;margin:14px auto 0;padding:4px 0;text-decoration:underline;text-underline-offset:3px}\n.kb-login-password-form label{font-size:11px;font-weight:650;display:block;margin:15px 0 7px}\n.kb-login-password-form input{width:100%;min-height:46px;padding:12px 13px;font-size:13px;border:1px solid #d6e1da;border-radius:9px;outline:none;background:#fdfefb;color:var(--kb-ink)}\n.kb-login-password-form input::placeholder{color:#95a49e;font-size:12px}\n.kb-login-password-form input:focus{border-color:var(--kb-teal);box-shadow:0 0 0 3px #087b7411}\n.kb-login-password-input{position:relative;margin-bottom:20px}\n.kb-login-password-input input{padding-right:44px}\n.kb-login-password-input button{position:absolute;right:0;top:0;bottom:0;display:grid;place-items:center;width:44px;color:var(--kb-muted);background:none;border:0}\n.kb-login-success{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:55px 10px;color:var(--kb-teal);gap:12px}\n.kb-login-success h3{font-size:19px}.kb-login-success p{font-size:13px;color:var(--kb-muted)}\n.kb-login-footer{padding:25px 0 29px;border-top:1px solid var(--kb-line);display:flex;justify-content:space-between;gap:20px;font-size:11px;color:#7c9189;line-height:1.7}\n.kb-login-footer>span:last-child{display:flex;align-items:center;gap:7px}\n.kb-login-footer-dot{padding:0 8px}\n.kb-login-spin{animation:kb-login-turn 1s linear infinite;flex:none}\n@keyframes kb-login-turn{to{transform:rotate(360deg)}}\n@media(min-width:1450px){.kb-login-main{padding-top:90px;padding-bottom:85px}}\n@media(max-width:1080px){.kb-login-shell{padding:0 34px}.kb-login-main{gap:35px;grid-template-columns:minmax(0,1fr) minmax(355px,1fr);padding-top:48px}.kb-login-intro h1{font-size:49px}.kb-login-card{padding:26px}.kb-login-eyebrow{font-size:9px;letter-spacing:1px}.kb-login-lead{font-size:14px}}\n@media(max-width:790px){.kb-login-shell{padding:0 22px;max-width:620px}.kb-login-header{height:87px}.kb-login-brand{font-size:24px}.kb-login-brand-mark{height:43px;width:43px}.kb-login-brand-caption{font-size:7px;letter-spacing:.9px}.kb-login-header nav>a:first-child{display:none}.kb-login-header nav{gap:0}.kb-login-header nav .kb-login-header-enter{font-size:12px;padding:9px 13px}.kb-login-main{display:flex;flex-direction:column;padding:35px 0 38px;gap:29px}.kb-login-intro{width:100%;padding-top:0}.kb-login-eyebrow{margin-bottom:20px;font-size:8px;letter-spacing:1.2px}.kb-login-intro h1{font-size:43px;letter-spacing:-1.8px;line-height:1.12}.kb-login-intro h1 br:nth-of-type(1),.kb-login-intro h1 em br{display:none}.kb-login-intro h1 em{display:block;margin-top:4px}.kb-login-lead{font-size:13px;line-height:1.8;margin-top:16px!important;max-width:410px}.kb-login-paths{display:none}.kb-login-intro-note{display:none}.kb-login-access{width:100%;padding-top:0}.kb-login-card{padding:27px;border-radius:22px}.kb-login-access:before{width:155px;height:155px;right:-25px;top:-26px}.kb-login-access:after{left:-20px;bottom:30px;width:110px;height:110px}.kb-login-card-top{margin-bottom:19px}.kb-login-card h2{font-size:30px}.kb-login-card-foot{font-size:9px;margin-top:17px}.kb-login-footer{font-size:10px;flex-wrap:wrap;gap:7px;padding:20px 0}.kb-login-footer>span:last-child{display:none}.kb-login-password-form input{font-size:16px}.kb-login-password-form input::placeholder{font-size:13px}}\n@media(max-width:375px){.kb-login-shell{padding:0 16px}.kb-login-card{padding:22px}.kb-login-brand-caption{display:none}.kb-login-intro h1{font-size:37px}.kb-login-card-top>span:last-child{font-size:7px;letter-spacing:1px}.kb-login-primary{font-size:12px}.kb-login-eyebrow{font-size:7px;letter-spacing:.7px}}\n@media(prefers-reduced-motion:reduce){.kb-login-page *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}\n\n.kb-registration-page{display:grid;place-items:center;padding:42px 20px}.kb-registration-shell{width:min(470px,100%)}.kb-registration-shell>.kb-login-brand{justify-content:center;margin-bottom:30px}.kb-registration-card h1{font-size:29px;letter-spacing:-1px;line-height:1.25;margin:15px 0!important;font-weight:750}.kb-registration-verified{display:flex;align-items:center;gap:6px;color:var(--kb-teal);font-size:11px;font-weight:650}.kb-registration-email{overflow-wrap:anywhere;background:#f0f6ef;border-radius:9px;color:#496c60;padding:10px 13px;font-size:12px;margin:16px 0}.kb-registration-note{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--kb-muted);line-height:1.6;margin:10px 0 22px!important}.kb-registration-existing{margin-top:25px;padding-top:21px;border-top:1px solid var(--kb-line)}.kb-registration-existing strong{font-size:11px;color:var(--kb-ink)}.kb-registration-existing p{font-size:11px;line-height:1.75;margin-top:8px;color:var(--kb-muted)}.kb-registration-existing .kb-login-text-button{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;margin-top:15px}@media(max-width:480px){.kb-registration-page{padding:26px 16px}.kb-registration-card h1{font-size:27px}.kb-registration-card{padding:24px}}\n.kb-registration-invite{padding:11px 13px;background:#f7f9f3;border:1px solid #e2e9dc;border-radius:10px;margin:17px 0}.kb-registration-invite summary{font-size:11px;font-weight:650;color:var(--kb-teal);cursor:pointer;line-height:1.6}.kb-registration-invite p{font-size:10px;line-height:1.7;color:var(--kb-muted);margin-top:9px}.kb-registration-invite input{text-transform:uppercase;letter-spacing:.8px}\n";
+  } // auth/kabutar-login.css
+  {
+    const id = "kabutar-rev35-style-workspace-workspace-css";
+    let sheet = document.getElementById(id);
+    if (!sheet) { sheet = document.createElement("style"); sheet.id = id; document.head.appendChild(sheet); }
+    sheet.textContent = ".kb-audience,.kb-education-setup,.kb-security-panel{--kb-ink:#153843;--kb-teal:#087f78;color:var(--kb-ink);font-family:inherit}.kb-audience{padding:24px;border:1px solid #d5e6e2;border-radius:24px;background:#fff;margin:0 0 24px}.kb-audience header{display:flex;justify-content:space-between;gap:16px;align-items:center}.kb-audience h2{font-size:25px;margin:4px 0}.kb-audience p,.kb-education-setup>p{color:#607a80;line-height:1.65}.kb-audience header small,.kb-education-setup>small{color:#087f78;font-size:11px;font-weight:800;letter-spacing:.16em}.kb-audience button,.kb-work-back{padding:10px 14px;border-radius:12px;background:#eaf5f2;border:1px solid #cfe4de;color:#08786f;font-weight:700}.kb-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}.kb-metric-grid>div{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid #e1ece8;border-radius:17px;background:#f5faf8}.kb-metric-grid span{font-size:12px;color:#627c7f}.kb-metric-grid strong{font-size:32px;letter-spacing:-.04em}.kb-work-note{font-size:12px!important;line-height:1.6!important;color:#667e84!important}.kb-work-error{padding:12px;background:#fff1ee;border:1px solid #edb9ad;color:#9b382b!important;border-radius:12px;font-size:13px}.kb-audience details{margin:18px 0}.kb-audience summary{cursor:pointer;font-weight:700}.kb-audience-tables{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin-top:16px;overflow:auto}.kb-audience table{border-collapse:collapse;width:100%;font-size:12px}.kb-audience th,.kb-audience td{text-align:left;border-bottom:1px solid #e2ece8;padding:10px}.kb-audience-tables ul{list-style:none;padding:0}.kb-audience-tables li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2ece8;font-size:12px}.kb-audience>small{font-size:11px;color:#6e8689}.kb-education-setup{max-width:920px;margin:0 auto;padding:30px 22px 80px}.kb-education-setup>.kb-work-back{display:block;margin:0 0 32px}.kb-education-setup h1{font-size:clamp(28px,5vw,45px);letter-spacing:-.04em;margin:10px 0}.kb-education-roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:30px 0}.kb-education-roles button{padding:20px 14px;text-align:left;display:flex;flex-direction:column;gap:9px;border:1px solid #d9e7e4;border-radius:20px;background:#fff;color:#153843;cursor:pointer}.kb-education-roles button.selected{background:#eaf8f1;border:2px solid #087f78;padding:19px 13px;box-shadow:0 10px 30px #0a7e7510}.kb-education-roles button>span{font-size:24px}.kb-education-roles small{font-size:11px;line-height:1.6;color:#617e80}.kb-education-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:20px 0}.kb-education-fields label,.kb-security-panel label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:700}.kb-education-fields select,.kb-education-fields input,.kb-security-panel input{padding:12px;border:1px solid #ccdeda;border-radius:11px;background:white;font:inherit}.kb-work-primary{background:#087f78!important;color:white!important;border:0;border-radius:12px;padding:14px 20px;font-weight:800;cursor:pointer}.kb-education-setup .kb-work-primary{margin-top:20px}.kb-work-primary:disabled{opacity:.5}.kb-security-overlay{position:fixed;inset:0;background:#062e3d88;z-index:1500;padding:20px;display:grid;place-items:center}.kb-security-panel{width:min(540px,100%);max-height:90dvh;overflow:auto;border-radius:24px;background:#fff;padding:24px;box-shadow:0 30px 80px #072e3f40}.kb-security-panel header{display:flex;justify-content:space-between;align-items:center}.kb-security-panel h2{font-size:24px}.kb-security-panel button{border:1px solid #d4e4df;padding:10px 13px;border-radius:12px;background:#edf5f2;color:#1d5156;font-weight:700;cursor:pointer}.kb-security-panel button:disabled{opacity:.5;cursor:wait}.kb-security-panel form{display:grid;gap:14px;margin:20px 0}.kb-security-panel section{margin-top:20px;border-top:1px solid #dfebe6;padding-top:18px}.kb-security-panel section p{font-size:12px;color:#617a7e}.kb-security-panel .kb-danger{background:#fff0eb;color:#9b382b}.kb-security-panel .kb-security-rows{display:grid;gap:10px}.kb-security-rows>div{display:flex;justify-content:space-between;font-size:12px}.kb-account-top-button{flex:0 0 44px!important;max-width:44px!important;min-width:44px!important}.kb-app-error{padding:40px 24px;text-align:center;background:#f1f8f5;min-height:70vh;color:#153843}.kb-app-error button{padding:13px 20px;border:0;border-radius:12px;background:#087f78;color:white;margin:8px}.kb-workspace-brand{letter-spacing:-.02em}@media(max-width:650px){.kb-audience{padding:17px}.kb-metric-grid{grid-template-columns:1fr 1fr}.kb-metric-grid strong{font-size:27px}.kb-audience-tables{grid-template-columns:1fr}.kb-education-roles{grid-template-columns:1fr 1fr}.kb-security-overlay{padding:0;align-items:end}.kb-security-panel{border-radius:24px 24px 0 0;padding:20px 20px max(20px,env(safe-area-inset-bottom))}.kb-audience header{align-items:flex-start}.kb-audience h2{font-size:21px}}\n\n.kb-app-notice{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:min(640px,94vw);display:flex;align-items:center;gap:16px;background:#123843;color:#fff;border-radius:16px;padding:16px 20px;z-index:2147483600;box-shadow:0 10px 50px #09202d33}.kb-app-notice span{flex:1}.kb-app-notice button{font-size:24px;background:none;border:0;color:inherit}\n\n/* Kabutar account security: self-contained dialog content. */\n.kb-security-panel:focus{outline:none}.kb-security-panel :is(button,input,a):focus-visible{outline:3px solid #25a89d;outline-offset:3px}.kb-security-panel header{align-items:flex-start;gap:12px;margin-bottom:12px}.kb-security-panel h2{margin:7px 0 0;letter-spacing:-.6px;line-height:1.25}.kb-security-panel h3{display:flex;align-items:center;gap:8px;margin:0 0 13px;font-size:14px}.kb-security-eyebrow{display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:1.2px;font-weight:800;color:#087f78}.kb-security-panel .kb-security-close{display:grid;place-items:center;padding:9px;flex:none;border:0;background:#eef5f1}.kb-security-panel>.kb-work-error{margin-top:14px}.kb-security-notice{display:flex;align-items:flex-start;gap:8px;padding:12px;border:1px solid #bddfc9;background:#f0faf2;color:#2b6848;border-radius:11px;line-height:1.6;font-size:12px;margin-top:14px}.kb-security-notice svg{flex:none;margin-top:2px}.kb-security-loading{display:flex;align-items:center;gap:9px;margin:23px 0;color:#607a80;font-size:13px}.kb-security-identities{display:grid;gap:10px}.kb-security-identities>div{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #e9efeb}.kb-security-provider-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;background:#edf6f0;border-radius:11px;color:#087f78}.kb-security-google-mark{font-size:20px;font-weight:800;color:#4285f4}.kb-security-identities>div>div{flex:1;min-width:0}.kb-security-identities strong{display:block;font-size:13px;font-weight:750}.kb-security-identities small{display:block;font-size:11px;line-height:1.6;color:#6e8485;margin-top:3px;overflow-wrap:anywhere}.kb-security-identities button{display:flex;align-items:center;gap:3px;padding:8px 10px;flex:none;font-size:11px}.kb-security-linked{display:flex;align-items:center;gap:4px;color:#3d765b;font-size:10px;flex:none}.kb-security-password-field{position:relative}.kb-security-password-field input{width:100%;padding-right:46px}.kb-security-panel .kb-security-password-field button{position:absolute;right:0;top:0;bottom:0;display:grid;place-items:center;background:none;border:0;padding:10px 12px;color:#7b9090}.kb-security-panel input{min-height:44px;font-size:14px}.kb-security-panel form p{margin:0}.kb-security-panel section>p{line-height:1.7;margin:11px 0}.kb-security-panel .kb-login-compact{margin-top:15px;padding-top:15px}.kb-security-panel .kb-login-compact .kb-login-primary{font-size:12px}.kb-security-panel .kb-login-compact .kb-login-text-button{background:none;border:0;color:#087f78;padding:4px}.kb-security-logout-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}.kb-security-logout-actions button{display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;flex:1;white-space:normal;line-height:1.6}.kb-security-panel .kb-work-primary{min-height:46px}.kb-security-panel button:disabled{cursor:not-allowed}@media(max-width:650px){.kb-security-panel input{font-size:16px}.kb-security-panel{max-height:92dvh}.kb-security-logout-actions{flex-direction:column}.kb-security-linked{font-size:9px}}\n.kb-security-optional{font-size:10px;font-weight:400;color:#82958e}.kb-security-nickname-field{position:relative}.kb-security-nickname-field>span{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#81958b;font-size:16px}.kb-security-nickname-field input{width:100%;padding-left:32px}.kb-security-panel label.kb-security-phone-toggle{display:flex;flex-direction:row;align-items:flex-start;gap:11px;padding:13px;border:1px solid #dce8e1;border-radius:12px;background:#f6faf5;cursor:pointer}.kb-security-phone-toggle input{width:18px;height:18px;min-height:18px;padding:0;margin:1px 0 0;flex:none;accent-color:#087f78}.kb-security-phone-toggle strong{display:block;font-size:12px;line-height:1.6}.kb-security-phone-toggle small{display:block;font-size:10px;line-height:1.7;color:#748880;font-weight:400;margin-top:4px}\n.kb-security-panel button.kb-security-reset-choice{border:0;background:none;padding:2px 0;color:#087f78;text-decoration:underline;text-underline-offset:3px;font-size:11px;font-weight:600}.kb-security-panel p.kb-security-recovery-info{padding:12px;border:1px solid #dccfb0;background:#fffbef;color:#816634;border-radius:10px;font-size:11px;line-height:1.7}\n";
+  } // workspace/workspace.css
+}
+
+// Existing application implementation.
 // SamTM V19.2 — 1–14 to‘liq: o‘qituvchi-asosli yuklama va aqlli almashtirish.
 // SAMTM V19.0 — clean-scale frontend; lazy workspaces preserved.
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
-import KabutarLogin from "./auth/KabutarLogin.jsx";
-import KabutarRegistration from "./auth/KabutarRegistration.jsx";
-import EducationSetup from "./workspace/EducationSetup.jsx";
-import AccountSecurity from "./workspace/AccountSecurity.jsx";
-import AudiencePanel, { useAudiencePresence } from "./workspace/AudiencePanel.jsx";
-import { workspaceRequest } from "./workspace/kabutarWorkspaceClient.js";
-import "./workspace/workspace.css";
+const KabutarLogin = __kbRev35_module0["default"];
+const KabutarRegistration = __kbRev35_module2["default"];
+const EducationSetup = __kbRev35_module3["default"];
+const AccountSecurity = __kbRev35_module5["default"];
+const AudiencePanel = __kbRev35_module6["default"];
+const useAudiencePresence = __kbRev35_module6["useAudiencePresence"];
+const workspaceRequest = __kbRev35_module4["workspaceRequest"];
+
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import {
   CLUB_STUDENT_LIMIT,
