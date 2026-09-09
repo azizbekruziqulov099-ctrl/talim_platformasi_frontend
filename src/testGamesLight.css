@@ -1,7 +1,8 @@
-/* Yengil o'yin: katta fon, sprite, video/canvas va doimiy animatsiya yo'q. */
+/* Savol va javoblar uchun o'qilishi oson qatlam; asl sahnalar REV40 da tiklangan. */
 .test-game-arena{background:#f5f8fb!important;background-image:none!important;min-height:auto!important;padding:14px!important;overflow:visible!important}
 .game-light-avatar{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:#eaf4f7;font-size:30px;flex:0 0 auto}.game-one-path{border:1px solid #dce6ea!important;background:linear-gradient(135deg,#f7fbff,#f4fffb)!important}.game-one-path small{display:block;margin-top:7px;color:#66798a;font-size:11px}
-.test-game-arena,.test-game-arena *{animation:none!important;transition:none!important}
+.test-game-arena:not(.game-restored),.test-game-arena:not(.game-restored) *{animation:none!important;transition:none!important}
+.test-game-arena.game-restored .game-stage-content,.test-game-arena.game-restored .game-stage-content *{animation:none!important;transition:none!important}
 .test-game-arena .game-stage-light{background:#fff!important;background-image:none!important;min-height:auto!important;border:1px solid #dce6ea!important;border-radius:22px!important;box-shadow:0 8px 24px rgba(23,50,75,.08)!important;overflow:visible!important;padding:14px!important}
 .test-game-arena .game-stage-light::before,.test-game-arena .game-stage-light::after{display:none!important;content:none!important}
 .test-game-arena .game-stage-content{position:relative!important;inset:auto!important;display:block!important;min-height:auto!important;transform:none!important}
@@ -353,3 +354,425 @@
 .edu-study-tools textarea { display: block; width: 100%; min-height: 90px; margin: 8px 0; padding: 12px; resize: vertical; border: 1px solid #bbcdd9; border-radius: 10px; background: #fff; color: #17324b; font: inherit; font-size: 16px; line-height: 1.5; }
 .edu-study-tools textarea:disabled { background: #f0f3f6; color: #637585; }
 .edu-study-tools label small { display: block; font-size: 12px; font-weight: 400; }
+
+
+/* REV39: the fixed arena owns scrolling; legacy scene CSS cannot tint lesson text. */
+.test-game-arena.game-readable {
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
+  scrollbar-color: #658399 #e5edf3;
+  color: #17324b;
+  background: #f3f7fb !important;
+  scroll-padding-block: 16px;
+}
+.test-game-arena.game-readable::before { display: none !important; }
+.test-game-arena.game-readable::-webkit-scrollbar { width: 10px; }
+.test-game-arena.game-readable::-webkit-scrollbar-track { background: #e5edf3; }
+.test-game-arena.game-readable::-webkit-scrollbar-thumb { background: #658399; border: 2px solid #e5edf3; border-radius: 12px; }
+.test-game-arena.game-readable > .game-topbar,
+.test-game-arena.game-readable > .game-overall-track { width: 100%; max-width: 1180px; box-sizing: border-box; }
+.test-game-arena.game-readable .game-topbar { position: relative; padding: 10px 12px; background: #fff; border-color: #d5e1ec; box-shadow: 0 3px 12px rgba(23,50,75,.06); }
+.test-game-arena.game-readable .game-topbar > div:first-child { min-width: 0; }
+.test-game-arena.game-readable .game-topbar small { color: #536779; line-height: 1.4; }
+.test-game-arena.game-readable .game-topbar strong { max-width: none; color: #17324b; font-size: 18px; line-height: 1.35; }
+.test-game-arena.game-readable .game-top-stats { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.test-game-arena.game-readable .game-top-stats span,
+.test-game-arena.game-readable .game-top-stats button { min-width: 44px; min-height: 44px; height: auto; box-shadow: none; border-color: #dce6ee; color: #234861; }
+.test-game-arena.game-readable .game-overall-track { margin-bottom: 14px; background: #dde7ef; border: 0; }
+.test-game-arena.game-readable .game-question-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 18px !important;
+  align-items: start !important;
+  width: 100% !important;
+  max-width: 1180px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  flex: none !important;
+}
+.test-game-arena.game-readable .game-question-layout > .game-stage-content {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+.test-game-arena.game-readable .game-stage-content > .game-timer { width: 100%; min-width: 0; margin: 0 0 12px; padding: 10px 12px; background: #fff; border: 1px solid #d5e1ec; box-shadow: none; border-radius: 15px; }
+.test-game-arena.game-readable .game-stage-content > .game-timer small { font-size: 11px; }
+.test-game-arena.game-readable .game-stage-content > .game-question-card { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 20px !important; height: auto !important; max-height: none !important; overflow: visible !important; backdrop-filter: none !important; box-shadow: none !important; }
+.test-game-arena.game-readable .game-stage-light .game-question-heading { display: flex !important; align-items: flex-start !important; min-width: 0 !important; min-height: 0 !important; gap: 12px !important; margin: 0 0 16px !important; padding: 0 !important; border: 0 !important; background: transparent !important; clip-path: none !important; box-shadow: none !important; }
+.test-game-arena.game-readable .game-stage-light .game-question-heading > h1,
+.test-game-arena.game-readable .game-stage-light .game-question-heading > h1 * {
+  color: #17324b !important;
+  -webkit-text-fill-color: #17324b !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+.test-game-arena.game-readable .game-stage-light .game-question-heading > h1 { min-width: 0 !important; max-width: 100% !important; margin: 0 !important; font-size: clamp(18px, 1.8vw, 24px) !important; font-weight: 700; line-height: 1.55 !important; text-align: left !important; white-space: pre-wrap; overflow-wrap: anywhere; }
+.test-game-arena.game-readable .game-stage-light .game-question-heading > button { flex: 0 0 44px; width: 44px !important; height: 44px !important; min-width: 44px; color: #fff; background: #1d627b; border: 1px solid #175269; border-radius: 12px; box-shadow: none !important; }
+.test-game-arena.game-readable .game-stage-light .game-question-label { justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.test-game-arena.game-readable .game-stage-light .game-question-label span { color: #fff; background: var(--mode-dark, #1b4b7a); font-size: 11px; }
+.test-game-arena.game-readable .game-stage-light .game-question-image { width: auto; max-width: 100%; max-height: 230px !important; border: 1px solid #d5e1ec; background: #f5f8fb; box-shadow: none; }
+.test-game-arena.game-readable .game-stage-light .game-options {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  perspective: none !important;
+}
+.test-game-arena.game-readable .game-stage-light .game-options > button { display: grid !important; grid-template-columns: 34px minmax(0,1fr) !important; gap: 10px !important; align-items: start !important; min-width: 0 !important; min-height: 64px !important; height: auto !important; max-height: none !important; padding: 13px !important; opacity: 1 !important; transform: none !important; clip-path: none !important; overflow: visible !important; backdrop-filter: none !important; text-align: left !important; }
+.test-game-arena.game-readable .game-stage-light .game-options > button::before,
+.test-game-arena.game-readable .game-stage-light .game-options > button::after { display: none !important; content: none !important; }
+.test-game-arena.game-readable .game-stage-light .game-options > button > b,
+.test-game-arena.game-readable .game-stage-light .game-options > button > b * { color: #17324b !important; -webkit-text-fill-color: #17324b !important; text-shadow: none !important; opacity: 1 !important; }
+.test-game-arena.game-readable .game-stage-light .game-options > button > b { min-width: 0; padding-top: 3px; font-size: 16px !important; line-height: 1.5 !important; white-space: pre-wrap; overflow-wrap: anywhere; font-weight: 650; }
+.test-game-arena.game-readable .game-stage-light .game-options > button > span { width: 34px !important; height: 34px !important; font-size: 14px !important; color: #fff !important; -webkit-text-fill-color: #fff !important; background: #315a79; box-shadow: none !important; }
+.test-game-arena.game-readable .game-stage-light .game-options > button.is-hidden-option { border-style: dashed !important; background: #eef2f5 !important; }
+.test-game-arena.game-readable .game-stage-light .game-options > button.is-hidden-option > b { color: #536779 !important; -webkit-text-fill-color: #536779 !important; }
+.test-game-arena.game-readable .game-stage-light .game-options > button.is-selected-option { outline: 2px solid var(--mode-dark, #1b4b7a); outline-offset: 1px; }
+.test-game-arena.game-readable .game-stage-light .game-options > button.is-correct-option > span { background: #176345; }
+.test-game-arena.game-readable .game-stage-light .game-options > button.is-wrong-option > span { background: #9a332c; }
+.test-game-arena.game-readable .game-stage-light .game-options > button.is-ruled-out > b { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #617b91; }
+.test-game-arena.game-readable .game-stage-light .game-math { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; }
+.test-game-arena.game-readable .game-stage-light .game-lifelines { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px; margin-bottom: 12px; }
+.test-game-arena.game-readable .game-stage-light .game-lifelines button { min-height: 44px; padding: 8px 18px; color: #483666; background: #f4effb; border: 1px solid #bda9d8; font-size: 14px; box-shadow: none; }
+.test-game-arena.game-readable .game-stage-light .game-lifelines button:disabled { color: #6b627a; background: #eeebf2; opacity: .7; cursor: default; }
+.test-game-arena.game-readable .game-stage-light .edu-study-tools { margin: 16px 0 0; padding: 8px 12px; }
+.test-game-arena.game-readable .game-stage-light .game-feedback { overflow-wrap: anywhere; }
+.test-game-arena.game-readable .game-stage-light .game-feedback > div { box-shadow: none; font-size: 14px; }
+.test-game-arena.game-readable .game-stage-light .game-feedback button { min-height: 44px; }
+.test-game-arena.game-readable .game-mission-sidebar { min-width: 0; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission { width: 100%; box-sizing: border-box; padding: 15px; margin: 0; overflow: visible; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-head { display: block; margin-bottom: 12px; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-head h2 { margin: 4px 0; font-size: 17px; line-height: 1.4; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-head > span { display: inline-block; margin-top: 8px; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-world { padding: 12px; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-route { display: flex; flex-direction: column; gap: 8px; align-items: stretch; padding-top: 0; border-bottom: 0; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-millionaire .edu-mission-route { flex-direction: column-reverse; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-tile { flex-direction: row; justify-content: flex-start; min-height: 55px; margin-top: 0; padding: 8px; gap: 8px; border-radius: 10px; box-shadow: none; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-tile > span { flex: 0 0 26px; display: grid; place-items: center; width: 26px; height: 30px; min-height: 0; font-size: 22px; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-tile strong { flex: 1; text-align: left; font-size: 12px; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-tile small { max-width: 65px; text-align: right; font-size: 10px; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-detective .edu-mission-tile::before { display: none; }
+.test-game-arena.game-readable .game-mission-sidebar .edu-mission-caption { line-height: 1.5; }
+.test-game-arena.game-readable .game-modal-backdrop { overflow-y: auto; padding: 20px; }
+.test-game-arena.game-readable .game-modal { margin-block: auto; }
+.test-game-arena.game-readable button:focus-visible { outline: 3px solid #245eb5 !important; outline-offset: 3px; }
+@media (min-width: 1000px) {
+  .test-game-arena.game-readable .game-question-layout { grid-template-columns: minmax(0,1fr) 300px !important; }
+}
+@media (max-width: 700px) {
+  .test-game-arena.game-readable { padding: max(8px, env(safe-area-inset-top)) 8px max(28px, env(safe-area-inset-bottom)) !important; }
+  .test-game-arena.game-readable .game-topbar { flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .test-game-arena.game-readable .game-topbar > div:first-child { flex: 1 1 180px; }
+  .test-game-arena.game-readable .game-top-stats { flex: 1 1 auto; justify-content: flex-end; }
+  .test-game-arena.game-readable .game-stage-content > .game-question-card { padding: 14px !important; }
+  .test-game-arena.game-readable .game-stage-light .game-options { grid-template-columns: minmax(0,1fr) !important; }
+  .test-game-arena.game-readable .game-stage-light .game-options > button { padding: 12px !important; }
+  .test-game-arena.game-readable .game-stage-light .game-question-heading { gap: 8px !important; }
+  .test-game-arena.game-readable .game-stage-light .game-question-heading > h1 { font-size: 18px !important; }
+  .test-game-arena.game-readable .game-stage-content > .game-timer { grid-template-columns: 34px minmax(0,1fr); }
+  .test-game-arena.game-readable .game-stage-content > .game-timer .game-timer-track { grid-column: 1 / -1; }
+}
+
+/* REV40: asl rasmlar va harakatli qahramon qaytdi; savol qatlami mustaqil qoladi. */
+.edu-game-picker .edu-game-card { padding: 0 0 14px; gap: 10px; overflow: hidden; }
+.edu-game-picker .edu-game-card > :not(.edu-game-cover) { margin-left: 12px; margin-right: 12px; }
+.edu-game-picker .edu-game-card > p { margin-top: 0; margin-bottom: 0; }
+.edu-game-picker .edu-game-cover { position: relative; display: block; width: 100%; height: 124px; overflow: hidden; background: #173c5b; border-bottom: 1px solid #dce6ed; }
+.edu-game-picker .edu-game-cover img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.edu-game-picker .edu-game-cover > .edu-game-icon { position: absolute; z-index: 1; left: 9px; bottom: 9px; width: 34px; height: 34px; border-radius: 11px; font-size: 20px; background: rgba(255,255,255,.94); box-shadow: 0 3px 8px rgba(7,26,44,.15); }
+.edu-game-picker .edu-game-cover::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 -20px 25px rgba(8,24,43,.2); }
+.edu-game-picker .edu-game-card.is-selected .edu-game-cover { border-bottom-color: var(--edu-color); }
+.test-game-arena.game-readable.game-restored { background: radial-gradient(ellipse at top right, #deebf6, transparent 65%), #f3f7fb !important; }
+.test-game-arena.game-readable.game-restored .game-question-layout { gap: 18px !important; align-items: start !important; }
+.test-game-arena.game-readable.game-restored .game-visual-panel { position: relative; min-width: 0; padding: 0; border: 1px solid #cadbe9; border-radius: 20px; background: #fff; overflow: hidden; box-shadow: 0 8px 24px rgba(14,41,64,.09); }
+.test-game-arena.game-restored .game-world-heading { display: grid; gap: 4px; padding: 13px 15px; color: #17324b; }
+.test-game-arena.game-restored .game-world-heading > small { color: #50667b; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.test-game-arena.game-restored .game-world-heading > strong { color: #17324b; font-size: 17px; line-height: 1.3; }
+.test-game-arena.game-restored .game-world-viewport { position: relative; isolation: isolate; min-width: 0; }
+.test-game-arena.game-restored .game-world-viewport > .game-scene { position: relative; inset: auto; z-index: 0; display: block; width: 100%; max-width: none; height: 340px; min-height: 0; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; border-radius: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); color: #fff; background-size: cover; background-position: center; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .game-scene::after { box-shadow: inset 0 -35px 45px rgba(0,0,0,.28); }
+.test-game-arena.game-restored .game-world-viewport .scene-hud { top: 10px; left: 10px; min-width: 0; max-width: calc(100% - 20px); min-height: 40px; padding: 6px 8px; grid-template-columns: 29px minmax(0,1fr) auto; gap: 7px; border-radius: 12px; background: rgba(6,19,39,.83); transform: none; }
+.test-game-arena.game-restored .game-world-viewport .scene-hud > span { width: 29px; height: 29px; font-size: 15px; }
+.test-game-arena.game-restored .game-world-viewport .scene-hud div { min-width: 0; }
+.test-game-arena.game-restored .game-world-viewport .scene-hud small { color: #c5d7e9; font-size: 8px; }
+.test-game-arena.game-restored .game-world-viewport .scene-hud strong { color: #fff; font-size: 10px; line-height: 1.35; }
+.test-game-arena.game-restored .game-world-viewport .scene-hud > b { min-width: 28px; padding: 5px; color: #fff4ae; font-size: 10px; }
+.test-game-arena.game-restored .game-world-viewport .scene-caption { bottom: 9px; width: calc(100% - 20px); max-width: none; padding: 7px 10px; color: #fff; background: rgba(6,19,39,.82); border-color: rgba(255,255,255,.22); font-size: 10px; line-height: 1.4; letter-spacing: 0; white-space: normal; text-overflow: clip; overflow: visible; }
+.test-game-arena.game-restored .game-world-viewport .game-avatar { display: block; width: 76px; height: 130px; scale: 1; }
+.test-game-arena.game-restored .game-world-viewport .bridge-runner,
+.test-game-arena.game-restored .game-world-viewport .millionaire-chair,
+.test-game-arena.game-restored .game-world-viewport .space-pilot,
+.test-game-arena.game-restored .game-world-viewport .detective-avatar,
+.test-game-arena.game-restored .game-world-viewport .city-builder { display: block; }
+.test-game-arena.game-restored .game-world-viewport .game-scene.is-scene-correct .avatar-render { background-position: 100% center; animation: avatar-natural-cheer .82s cubic-bezier(.2,1.25,.35,1) both; }
+.test-game-arena.game-restored .game-world-viewport .game-scene.is-scene-wrong .avatar-render,
+.test-game-arena.game-restored .game-world-viewport .game-scene.is-scene-timeout .avatar-render { background-position: 25% center; animation: avatar-natural-recoil .75s ease both; }
+
+/* Oynali ko'prik: profil qahramoni, har savol uchun haqiqiy oyna va darvoza. */
+.test-game-arena.game-restored .game-world-viewport .bridge-tiles { left: 5%; right: 11%; bottom: 59px; gap: 8px; }
+.test-game-arena.game-restored .game-world-viewport .bridge-tiles > span { height: 49px; }
+.test-game-arena.game-restored .game-world-viewport .bridge-runner-track { left: 3%; right: 13%; bottom: 95px; width: auto; height: 135px; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .bridge-runner { width: 76px; height: 130px; bottom: 0; left: calc(var(--runner-index) * 20%); }
+.test-game-arena.game-restored .game-world-viewport .bridge-coins { left: 7%; right: 15%; bottom: 135px; }
+.test-game-arena.game-restored .game-world-viewport .bridge-coins i { width: 17px; height: 17px; font-size: 7px; }
+.test-game-arena.game-restored .game-world-viewport .bridge-portal { right: 1.5%; bottom: 65px; transform: scale(.66); transform-origin: bottom right; }
+.test-game-arena.game-restored .game-world-viewport .game-scene-bridge.is-scene-correct .avatar-render { animation: bridge-sprite-cross .86s steps(1,end) both; }
+.test-game-arena.game-restored .game-world-viewport .game-scene-bridge.is-scene-wrong .avatar-render,
+.test-game-arena.game-restored .game-world-viewport .game-scene-bridge.is-scene-timeout .avatar-render { animation: bridge-sprite-slip 1.45s steps(1,end) both; }
+.test-game-arena.game-restored .game-world-viewport .bridge-tiles > span.is-missed { border-color: #f8b7a7; background: linear-gradient(145deg,rgba(163,64,48,.85),rgba(78,29,24,.8)); }
+
+/* Millioner: sahna va o'yinchi bilan birga o'qiladigan besh pog'ona. */
+.test-game-arena.game-restored .game-world-viewport .millionaire-chair { left: 23%; bottom: 58px; width: 100px; height: 146px; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-chair > i { width: 85px; height: 90px; left: 4px; bottom: 4px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-chair > b { bottom: -5px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-chair .game-avatar { left: 10px; bottom: 19px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-emblem { left: 6%; top: 78px; width: 64px; height: 64px; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-emblem > span { font-size: 25px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-ladder { top: 76px; right: 3%; width: 155px; gap: 6px; padding: 9px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-ladder > span { grid-template-columns: 21px minmax(0,1fr); gap: 5px; min-height: 30px; padding: 4px 6px; font-size: 10px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-ladder > span > i { width: 20px; height: 20px; font-size: 9px; }
+.test-game-arena.game-restored .game-world-viewport .millionaire-ladder > span.is-missed { color: #f5bbb0; text-decoration: line-through; }
+.test-game-arena.game-restored .game-world-viewport .stage-rings { left: 0; right: 24%; bottom: 33px; transform: scale(.7); }
+
+/* Raketa, dalillar va qurilish eski rasm ustida haqiqiy natijani ko'rsatadi. */
+.test-game-arena.game-restored .game-world-viewport .space-pilot { left: 5%; bottom: 66px; scale: .87; }
+.test-game-arena.game-restored .game-world-viewport .space-route { left: 11%; right: 10%; top: 47%; }
+.test-game-arena.game-restored .game-world-viewport .space-route > i.is-correct { background: #86efac; border-color: #dcfce7; box-shadow: 0 0 13px rgba(74,222,128,.7); }
+.test-game-arena.game-restored .game-world-viewport .space-route > i.is-missed { background: #f5a58d; border-color: #ffe5db; box-shadow: 0 0 9px rgba(249,115,86,.5); }
+.test-game-arena.game-restored .game-world-viewport .space-rocket-track { left: 6%; right: 14%; top: 32%; width: auto; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .space-rocket { scale: .78; }
+.test-game-arena.game-restored .game-world-viewport .planet-boss { right: 1%; bottom: 65px; transform: scale(.66); transform-origin: bottom right; }
+.test-game-arena.game-restored .game-world-viewport .space-cockpit { left: auto; right: 9px; bottom: 51px; width: 172px; transform: scale(.85); transform-origin: bottom right; }
+.test-game-arena.game-restored .game-world-viewport .space-cockpit > em { width: 100px; }
+.test-game-arena.game-restored .game-world-viewport .detective-avatar { left: 3%; bottom: 53px; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .detective-board { left: 23%; right: 4%; top: 79px; height: 180px; gap: 5px; padding: 30px 8px 10px; border: 5px solid #6f4325; border-radius: 7px; background: rgba(87,46,21,.67); }
+.test-game-arena.game-restored .game-world-viewport .detective-board::before { left: 9px; top: 9px; font-size: 9px; }
+.test-game-arena.game-restored .game-world-viewport .detective-board > span,
+.test-game-arena.game-restored .game-world-viewport .detective-board > b.detective-verdict { min-width: 0; min-height: 86px !important; padding: 5px 3px; font-size: 7px; }
+.test-game-arena.game-restored .game-world-viewport .detective-board > span > i { width: 22px; height: 22px; font-size: 9px; }
+.test-game-arena.game-restored .game-world-viewport .detective-board > span > b { display: block; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit; margin: 5px 0 2px; font-size: 7px; }
+.test-game-arena.game-restored .game-world-viewport .detective-board > span > em { font-size: 6px; }
+.test-game-arena.game-restored .game-world-viewport .detective-board > span.is-missed { background: #edd0ba; box-shadow: inset 0 0 0 2px #ad6039; }
+.test-game-arena.game-restored .game-world-viewport .detective-board > b.detective-verdict.is-missed { color: #ffe2d1 !important; background: #7c3828 !important; box-shadow: inset 0 0 0 2px #e3a378; }
+.test-game-arena.game-restored .game-world-viewport .city-crane { left: -18px; top: 64px; transform: scale(.65); transform-origin: left top; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline { left: 24%; right: 3%; bottom: 61px; height: 150px; gap: 6px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span { min-width: 22px; padding: 14px 5px 5px; gap: 4px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(1) { height: 63px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(2) { height: 92px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(3) { height: 80px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(4) { height: 122px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(5) { height: 146px; }
+.test-game-arena.game-restored .game-world-viewport .city-skyline > span.is-missed { border-color: #f6c19a; opacity: .55; background: rgba(114,59,36,.7); }
+.test-game-arena.game-restored .game-world-viewport .city-builder { left: 3%; bottom: 52px; transform: none; }
+.test-game-arena.game-restored .game-world-viewport .city-trees { bottom: 53px; transform: scale(.7); transform-origin: bottom right; }
+
+/* Javobdan keyingi izoh rasm ostida oqimda: hech qachon savolni yopmaydi. */
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx { position: relative; left: auto; right: auto; top: auto; bottom: auto; z-index: 1; display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 9px; width: 100%; min-width: 0; max-width: none; max-height: none; margin: 0; padding: 12px; border: 0; border-radius: 0; box-shadow: none; transform: none; color: #fff; animation: none; box-sizing: border-box; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx > span { width: 30px; height: 30px; font-size: 16px; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx > div { min-width: 0; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx strong,
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx p,
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx small { position: static; display: block; margin: 0; color: #fff; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx strong { font-size: 12px; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx p { margin: 4px 0; font-size: 12px; line-height: 1.5; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx small { font-size: 10px; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx > i { display: none; }
+.test-game-arena.game-restored .game-world-viewport > .scene-feedback-fx .scene-feedback-countdown { align-self: start; color: #fff; }
+.test-game-arena.game-restored .game-visual-panel > .game-lives-hud { position: relative; top: auto; right: auto; z-index: auto; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 5px 12px; align-items: center; width: auto; padding: 11px 14px; margin: 0; border: 0; border-radius: 0; background: #173b55; box-shadow: none; }
+.test-game-arena.game-restored .game-visual-panel > .game-lives-hud > strong { color: #fff; text-align: left; font-size: 9px; letter-spacing: .05em; }
+.test-game-arena.game-restored .game-visual-panel > .game-lives-hud > div { grid-row: span 2; margin: 0; gap: 11px; }
+.test-game-arena.game-restored .game-visual-panel > .game-lives-hud > small { display: block; margin: 0; color: #c6d9e7; text-align: left; font-size: 10px; line-height: 1.4; }
+.test-game-arena.game-restored .game-world-progress { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; padding: 11px 14px; color: #31536c; font-size: 12px; line-height: 1.5; }
+
+@media (min-width: 1000px) {
+  .test-game-arena.game-readable.game-restored .game-question-layout { grid-template-columns: minmax(0,1fr) 420px !important; }
+}
+@media (min-width: 701px) and (max-width: 999px) {
+  .test-game-arena.game-readable.game-restored .game-question-layout { grid-template-columns: minmax(0,1fr) !important; }
+  .test-game-arena.game-readable.game-restored .game-visual-panel { max-width: 660px; width: 100%; justify-self: center; }
+}
+@media (max-width: 700px) {
+  .edu-game-picker .edu-game-cover { height: 116px; }
+  .test-game-arena.game-readable.game-restored .game-question-layout { gap: 12px !important; }
+  .test-game-arena.game-readable.game-restored .game-visual-panel { grid-row: 1; border-radius: 15px; }
+  .test-game-arena.game-restored .game-world-heading { padding: 9px 12px; gap: 3px; }
+  .test-game-arena.game-restored .game-world-heading > small { font-size: 10px; }
+  .test-game-arena.game-restored .game-world-heading > strong { font-size: 15px; }
+  .test-game-arena.game-restored .game-world-viewport > .game-scene { height: 230px; }
+  .test-game-arena.game-restored .game-world-viewport .scene-hud { top: 7px; left: 7px; min-height: 32px; padding: 4px 6px; }
+  .test-game-arena.game-restored .game-world-viewport .scene-hud > span { width: 25px; height: 25px; }
+  .test-game-arena.game-restored .game-world-viewport .scene-hud small { display: none; }
+  .test-game-arena.game-restored .game-world-viewport .scene-hud strong { font-size: 9px; }
+  .test-game-arena.game-restored .game-world-viewport .scene-caption { bottom: 7px; font-size: 9px; padding: 5px 7px; }
+  .test-game-arena.game-restored .game-world-viewport .game-avatar { width: 60px; height: 103px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-tiles { bottom: 44px; gap: 5px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-tiles > span { height: 35px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-runner-track { bottom: 69px; height: 104px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-runner { width: 60px; height: 103px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-coins { bottom: 101px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-coins i { width: 14px; height: 14px; font-size: 6px; }
+  .test-game-arena.game-restored .game-world-viewport .bridge-portal { bottom: 48px; transform: scale(.48); }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-chair { left: 23%; bottom: 48px; height: 104px; width: 77px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-chair > i { width: 70px; height: 65px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-chair .game-avatar { left: 7px; bottom: 14px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-emblem { top: 55px; left: 4%; width: 44px; height: 44px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-emblem > span { font-size: 18px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-ladder { top: 49px; width: 132px; padding: 5px; gap: 3px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-ladder > span { min-height: 23px; grid-template-columns: 16px minmax(0,1fr); padding: 2px 4px; font-size: 9px; }
+  .test-game-arena.game-restored .game-world-viewport .millionaire-ladder > span > i { width: 16px; height: 16px; font-size: 8px; }
+  .test-game-arena.game-restored .game-world-viewport .stage-rings { bottom: 18px; transform: scale(.55); }
+  .test-game-arena.game-restored .game-world-viewport .space-rocket-track { top: 29%; }
+  .test-game-arena.game-restored .game-world-viewport .space-rocket { scale: .66; }
+  .test-game-arena.game-restored .game-world-viewport .space-pilot { bottom: 44px; scale: .8; }
+  .test-game-arena.game-restored .game-world-viewport .planet-boss { bottom: 48px; transform: scale(.48); }
+  .test-game-arena.game-restored .game-world-viewport .space-cockpit { bottom: 40px; transform: scale(.65); }
+  .test-game-arena.game-restored .game-world-viewport .detective-avatar { left: 1%; bottom: 44px; }
+  .test-game-arena.game-restored .game-world-viewport .detective-board { left: 22%; right: 3%; top: 50px; height: 124px; padding: 24px 5px 7px; gap: 4px; border-width: 4px; }
+  .test-game-arena.game-restored .game-world-viewport .detective-board > span,
+  .test-game-arena.game-restored .game-world-viewport .detective-board > b.detective-verdict { min-height: 61px !important; font-size: 6px; padding: 3px 2px; }
+  .test-game-arena.game-restored .game-world-viewport .detective-board > span > i { width: 17px; height: 17px; font-size: 8px; }
+  .test-game-arena.game-restored .game-world-viewport .detective-board > span > b { font-size: 6px; margin: 3px 0 1px; }
+  .test-game-arena.game-restored .game-world-viewport .detective-board > span > em { font-size: 5px; }
+  .test-game-arena.game-restored .game-world-viewport .detective-board::before { font-size: 7px; top: 6px; }
+  .test-game-arena.game-restored .game-world-viewport .city-crane { top: 37px; transform: scale(.43); }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline { bottom: 45px; height: 108px; gap: 5px; }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline > span { padding: 10px 4px 4px; gap: 3px; min-width: 16px; }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(1) { height: 44px; }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(2) { height: 62px; }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(3) { height: 55px; }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(4) { height: 80px; }
+  .test-game-arena.game-restored .game-world-viewport .city-skyline > span:nth-child(5) { height: 101px; }
+  .test-game-arena.game-restored .game-world-viewport .city-builder { left: 2%; bottom: 43px; }
+  .test-game-arena.game-restored .game-world-viewport .city-trees { bottom: 41px; transform: scale(.5); }
+  .test-game-arena.game-restored .game-visual-panel > .game-lives-hud { padding: 8px 12px; gap: 3px 8px; }
+  .test-game-arena.game-restored .game-visual-panel > .game-lives-hud > small { font-size: 9px; }
+  .test-game-arena.game-restored .game-world-progress { padding: 8px 12px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .test-game-arena.game-restored *,
+  .test-game-arena.game-restored *::before,
+  .test-game-arena.game-restored *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* REV41: asl rasmlar saqlanadi; kutish vaqtida animatsiya ishlamaydi.
+   Faqat tasdiqlangan javobdan keyin kichik portret bir marta harakatlanadi.
+   Barcha o'zgarishlar game-calm bilan cheklangan; savol va scroll qoidalari saqlanadi. */
+.test-game-arena.game-readable.game-restored.game-calm,
+.test-game-arena.game-readable.game-restored.game-calm::before,
+.test-game-arena.game-readable.game-restored.game-calm::after,
+.test-game-arena.game-readable.game-restored.game-calm *,
+.test-game-arena.game-readable.game-restored.game-calm *::before,
+.test-game-arena.game-readable.game-restored.game-calm *::after {
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  scroll-behavior: auto !important;
+}
+.test-game-arena.game-readable.game-restored.game-calm {
+  background: #f3f7fb !important;
+}
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport,
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport *,
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport *::before,
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Fon fotosida bor bezaklarni yana alohida chizmaslik. */
+.test-game-arena.game-calm .game-world-viewport .stage-beams,
+.test-game-arena.game-calm .game-world-viewport .stage-rings,
+.test-game-arena.game-calm .game-world-viewport .stage-audience,
+.test-game-arena.game-calm .game-world-viewport .space-nebula,
+.test-game-arena.game-calm .game-world-viewport .space-starfield,
+.test-game-arena.game-calm .game-world-viewport .detective-spotlight,
+.test-game-arena.game-calm .game-world-viewport .detective-lamp::after,
+.test-game-arena.game-calm .game-world-viewport .bridge-cloud,
+.test-game-arena.game-calm .game-world-viewport .bridge-water,
+.test-game-arena.game-calm .game-world-viewport .bridge-coins,
+.test-game-arena.game-calm .game-world-viewport .city-cloud,
+.test-game-arena.game-calm .game-world-viewport .city-road > span,
+.test-game-arena.game-calm .game-world-viewport .avatar-aura,
+.test-game-arena.game-calm .game-world-viewport .avatar-shadow,
+.test-game-arena.game-calm .game-world-viewport .avatar-contestant-light,
+.test-game-arena.game-calm .game-world-viewport .bridge-runner::before {
+  display: none !important;
+}
+
+/* 9 kadrli sprite o'rniga to'liq portret. O'lcham ota blokdan olinadi. */
+.test-game-arena.game-calm .game-world-viewport .game-avatar > .avatar-portrait {
+  position: absolute;
+  display: block !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  object-position: center bottom;
+  background: none !important;
+  opacity: 1 !important;
+  transform: none;
+  transform-origin: center bottom;
+}
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport .game-scene.is-scene-correct .avatar-portrait {
+  animation: calm-answer-hop 360ms ease-out 1 !important;
+}
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport .game-scene.is-scene-wrong .avatar-portrait,
+.test-game-arena.game-readable.game-restored.game-calm .game-world-viewport .game-scene.is-scene-timeout .avatar-portrait {
+  animation: calm-answer-shake 280ms ease-out 1 !important;
+}
+@keyframes calm-answer-hop {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-8px); }
+}
+@keyframes calm-answer-shake {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-3px); }
+  65% { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .test-game-arena.game-readable.game-restored.game-calm .game-world-viewport .game-scene.is-scene-correct .avatar-portrait,
+  .test-game-arena.game-readable.game-restored.game-calm .game-world-viewport .game-scene.is-scene-wrong .avatar-portrait,
+  .test-game-arena.game-readable.game-restored.game-calm .game-world-viewport .game-scene.is-scene-timeout .avatar-portrait {
+    animation: none !important;
+  }
+}

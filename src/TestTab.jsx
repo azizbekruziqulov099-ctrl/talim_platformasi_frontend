@@ -191,7 +191,7 @@ function _ovozQismlargaBol(matn, asosiyTil = "uz") {
 function _brauzerOvoziniTanla(til, jins) {
   const voices = globalThis.speechSynthesis?.getVoices?.() || [];
   const lang = OVOZ_TIL_LANG[_ovozTiliniTuzat(til)].toLowerCase();
-  const mosOvozlar = voices.filter((voice) => String(voice.lang || "").toLowerCase().startsWith(lang.slice(0, 2)));
+  const mosOvozlar = voices.filter((voice) => String(voice.lang || "").toLowerCase().replace("_", "-").split("-")[0] === lang.split("-")[0]);
   if (mosOvozlar.length === 0) return null;
   const erkakKalitlari = ["male", "david", "guy", "dmitry", "sardor", "mark"];
   const ayolKalitlari = ["female", "zira", "samantha", "jenny", "svetlana", "madina", "anna"];
@@ -790,11 +790,20 @@ export default function TestTab({
   const ovozMatniRef = useRef(null); // til/jins/matn kaliti — aynan shu audioni pauza/davom ettirish uchun
   const ovozKorinadiganMatnRef = useRef(null); // karnay tugmasining holatini savol matni bilan bog'laydi
   const ovozPromiseRef = useRef(null);
+  const ovozIjroRef = useRef(null);
 
   const ovozniToxtat = useCallback(() => {
+    // Invalidate first: pause/load/cancel may synchronously dispatch old events.
+    const ijro = ovozIjroRef.current;
+    ovozIjroRef.current = null;
+    if (ijro) {
+      ijro.finished = true;
+      if (ijro.timeout != null) clearTimeout(ijro.timeout);
+    }
     const resolveCurrent = ovozPromiseRef.current;
     ovozPromiseRef.current = null;
     const audio = ovozRef.current;
+    ovozRef.current = null;
     if (audio) {
       audio.onplaying = null;
       audio.onended = null;
@@ -802,16 +811,15 @@ export default function TestTab({
       audio.pause();
       audio.removeAttribute("src");
       audio.load();
-      ovozRef.current = null;
     }
     const utterance = ovozNutqRef.current;
+    ovozNutqRef.current = null;
     if (utterance) {
       utterance.onstart = null;
       utterance.onend = null;
       utterance.onerror = null;
-      ovozNutqRef.current = null;
+      globalThis.speechSynthesis?.cancel?.();
     }
-    globalThis.speechSynthesis?.cancel?.();
     if (resolveCurrent) resolveCurrent({ status: "stopped" });
     ovozMatniRef.current = null;
     ovozKorinadiganMatnRef.current = null;
@@ -826,156 +834,167 @@ export default function TestTab({
     const ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
-    const tozaMatn = ovozQismlari.map((qism) => qism.tayyor).join(" ").trim();
     const ovozKaliti = `${asosiyTil}|${ovozJinsi}|${xomMatn}`;
-    if (!tozaMatn) {
+    if (!ovozQismlari.length) {
       setOvozXatosi("O'qiladigan matn topilmadi.");
       return Promise.resolve({ status: "empty" });
     }
-    // Aynan shu matn hozir yuklangan/o'ynalayotgan bo'lsa — pauza/davom ettirish
-    // (yangidan boshlab, boshidan o'qib bermaydi).
-    if (ovozMatniRef.current === ovozKaliti && ovozNutqRef.current && globalThis.speechSynthesis) {
-      if (globalThis.speechSynthesis.paused) {
-        globalThis.speechSynthesis.resume();
-        setOvozHolati("oynamoqda");
-      } else {
-        globalThis.speechSynthesis.pause();
-        setOvozHolati("pauzada");
+
+    const oldingi = ovozIjroRef.current;
+    if (oldingi && !oldingi.finished && ovozMatniRef.current === ovozKaliti) {
+      // A second click while loading must not issue another play() or queue speech.
+      if (oldingi.loading) return oldingi.promise;
+      oldingi.paused = !oldingi.paused;
+      if (ovozRef.current) {
+        if (oldingi.paused) ovozRef.current.pause();
+        else {
+          try { Promise.resolve(ovozRef.current.play()).catch(oldingi.fail); }
+          catch (error) { oldingi.fail(error); }
+        }
+      } else if (ovozNutqRef.current) {
+        if (oldingi.paused) globalThis.speechSynthesis?.pause?.();
+        else globalThis.speechSynthesis?.resume?.();
       }
-      return ovozNutqRef.current.__samTmPromise;
+      if (ovozIjroRef.current === oldingi) setOvozHolati(oldingi.paused ? "pauzada" : "oynamoqda");
+      return oldingi.promise;
     }
-    if (ovozMatniRef.current === ovozKaliti && ovozRef.current) {
-      if (ovozRef.current.paused) { ovozRef.current.play(); setOvozHolati("oynamoqda"); }
-      else { ovozRef.current.pause(); setOvozHolati("pauzada"); }
-      return ovozRef.current.__samTmPromise;
-    }
-    // Boshqa matn (yoki hozircha hech narsa) — avvalgisini TO'XTATIB, yangisini boshlaymiz.
+
     ovozniToxtat();
-    setOvozXatosi("");
-    setOvozHolati("yuklanmoqda");
+    const ijro = { loading: true, paused: false, finished: false, timeout: null };
+    ijro.promise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
+    ovozIjroRef.current = ijro;
     ovozMatniRef.current = ovozKaliti;
     ovozKorinadiganMatnRef.current = xomMatn;
-
-    // Karnay bevosita bosilganda brauzerning o'z nutq dvigateli ishlaydi:
-    // bu foydalanuvchi harakati ichida boshlanadi va autoplay blokiga tushmaydi.
-    // Kichik sinflardagi avtomatik o'qishda ham mavjud bo'lsa shu xavfsiz yo'l
-    // ishlatiladi; qo'llab-quvvatlanmasa server MP3 yo'liga qaytamiz.
-    const SpeechUtterance = globalThis.SpeechSynthesisUtterance;
-    const speech = globalThis.speechSynthesis;
-    // Windows/Chrome'da o'zbek ovozi o'rnatilmagan bo'lsa, voice=null
-    // brauzerning standart (ko'pincha inglizcha) ovozini tanlaydi. Shu
-    // holatda Web Speech ishlatilmaydi — serverdagi uz-UZ ovoziga o'tiladi.
-    const brauzerOvozlari = ovozQismlari.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
-    const barchaTillarBrauzerdaBor = brauzerOvozlari.every(Boolean);
-    if (SpeechUtterance && speech && barchaTillarBrauzerdaBor) {
-      let qismIndeksi = 0;
-      const tugatish = (status) => {
-        const joriyNutq = ovozNutqRef.current;
-        if (joriyNutq) {
-          joriyNutq.onstart = null;
-          joriyNutq.onend = null;
-          joriyNutq.onerror = null;
-        }
-        ovozNutqRef.current = null;
-        ovozMatniRef.current = null;
-        ovozKorinadiganMatnRef.current = null;
-        setOvozHolati("bosh");
-        if (status === "error") setOvozXatosi("Brauzer ovozni o'qiy olmadi. Karnayni qayta bosing.");
-        const resolveCurrent = ovozPromiseRef.current;
-        ovozPromiseRef.current = null;
-        if (resolveCurrent) resolveCurrent({ status });
-      };
-      const zanjirPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
-      const keyingiQismniOqi = () => {
-        if (qismIndeksi >= ovozQismlari.length) {
-          tugatish("ended");
-          return;
-        }
-        const joriyQismIndeksi = qismIndeksi++;
-        const qism = ovozQismlari[joriyQismIndeksi];
-        const utterance = new SpeechUtterance(qism.tayyor);
-        utterance.lang = OVOZ_TIL_LANG[qism.til];
-        utterance.voice = brauzerOvozlari[joriyQismIndeksi];
-        utterance.rate = ovozTezligi;
-        utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
-        utterance.__samTmPromise = zanjirPromise;
-        ovozNutqRef.current = utterance;
-        utterance.onstart = () => {
-          if (ovozNutqRef.current === utterance) setOvozHolati("oynamoqda");
-        };
-        utterance.onend = () => {
-          if (ovozNutqRef.current !== utterance) return;
-          keyingiQismniOqi();
-        };
-        utterance.onerror = (event) => tugatish(event?.error === "canceled" ? "stopped" : "error");
-        speech.speak(utterance);
-      };
-      speech.cancel();
-      keyingiQismniOqi();
-      setOvozHolati("oynamoqda");
-      return zanjirPromise;
-    }
-
-    const ovozQs = new URLSearchParams({ matn: xomMatn, jins: ovozJinsi, asosiy_til: asosiyTil });
-    const audio = new Audio(`${API_BASE}/api/ovoz?${ovozQs.toString()}`);
-    audio.preload = "auto";
-    audio.playbackRate = ovozTezligi;
-    ovozRef.current = audio;
-    let audioTimeoutId = null;
+    setOvozXatosi("");
+    setOvozHolati("yuklanmoqda");
+    const joriymi = () => ovozIjroRef.current === ijro && !ijro.finished;
     const tugatish = (status) => {
-      if (ovozRef.current !== audio) return;
-      if (audioTimeoutId) clearTimeout(audioTimeoutId);
-      audio.onplaying = null;
-      audio.onended = null;
-      audio.onerror = null;
-      ovozRef.current = null;
-      ovozMatniRef.current = null;
-      ovozKorinadiganMatnRef.current = null;
-      setOvozHolati("bosh");
-      if (status === "error" || status === "blocked") setOvozXatosi("Ovoz ishga tushmadi. Karnayni qayta bosing.");
+      if (!joriymi()) return;
+      ovozniToxtat();
+      if (status === "error" || status === "blocked") {
+        setOvozXatosi(status === "blocked"
+          ? "Brauzer ovozni to'xtatdi. Karnayni qayta bosing."
+          : "Tanlangan tildagi ovoz yuklanmadi. Karnayni qayta bosing.");
+      }
+    };
+    const yakunla = (status) => {
+      if (!joriymi()) return;
       const resolveCurrent = ovozPromiseRef.current;
       ovozPromiseRef.current = null;
       if (resolveCurrent) resolveCurrent({ status, manual: Boolean(options.manual) });
+      tugatish(status);
     };
-    audio.__samTmPromise = new Promise((resolve) => { ovozPromiseRef.current = resolve; });
-    audio.onplaying = () => { if (ovozRef.current === audio) setOvozHolati("oynamoqda"); };
-    audio.onended = () => tugatish("ended");
-    const brauzerZaxiraOvozi = () => {
-      if (!SpeechUtterance || !speech || ovozRef.current !== audio) {
-        tugatish("error");
-        return;
-      }
-      if (audioTimeoutId) clearTimeout(audioTimeoutId);
-      audio.onplaying = null; audio.onended = null; audio.onerror = null;
-      try { audio.pause(); } catch { /* jim */ }
-      ovozRef.current = null;
-      const utterance = new SpeechUtterance(tozaMatn);
-      utterance.lang = OVOZ_TIL_LANG[asosiyTil] || "uz-UZ";
-      utterance.rate = ovozTezligi;
-      utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
-      const yakun = (status) => {
-        if (ovozNutqRef.current !== utterance) return;
-        ovozNutqRef.current = null; ovozMatniRef.current = null; ovozKorinadiganMatnRef.current = null;
-        setOvozHolati("bosh");
-        if (status === "error") setOvozXatosi("Ovoz ishga tushmadi. Karnayni qayta bosing.");
-        const resolveCurrent = ovozPromiseRef.current; ovozPromiseRef.current = null;
-        if (resolveCurrent) resolveCurrent({ status, fallback: true });
+    ijro.fail = (error) => yakunla(error?.name === "NotAllowedError" ? "blocked" : "error");
+
+    const SpeechUtterance = globalThis.SpeechSynthesisUtterance;
+    const speech = globalThis.speechSynthesis;
+    const brauzerOvozlari = ovozQismlari.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
+    if (SpeechUtterance && speech && brauzerOvozlari.every(Boolean)) {
+      let qismIndeksi = 0;
+      const keyingiQismniOqi = () => {
+        if (!joriymi()) return;
+        if (qismIndeksi >= ovozQismlari.length) { yakunla("ended"); return; }
+        const indeks = qismIndeksi++;
+        const qism = ovozQismlari[indeks];
+        const utterance = new SpeechUtterance(qism.tayyor);
+        utterance.lang = OVOZ_TIL_LANG[qism.til];
+        utterance.voice = brauzerOvozlari[indeks];
+        utterance.rate = ovozTezligi;
+        utterance.pitch = ovozJinsi === "ogil" ? 0.92 : 1.04;
+        utterance.__samTmPromise = ijro.promise;
+        ovozNutqRef.current = utterance;
+        utterance.onstart = () => {
+          if (!joriymi() || ovozNutqRef.current !== utterance) return;
+          ijro.loading = false;
+          setOvozHolati(ijro.paused ? "pauzada" : "oynamoqda");
+        };
+        utterance.onend = () => {
+          if (!joriymi() || ovozNutqRef.current !== utterance) return;
+          utterance.onstart = null; utterance.onend = null; utterance.onerror = null;
+          ovozNutqRef.current = null;
+          keyingiQismniOqi();
+        };
+        utterance.onerror = (event) => {
+          if (!joriymi() || ovozNutqRef.current !== utterance) return;
+          yakunla(["canceled", "interrupted"].includes(event?.error) ? "stopped" : "error");
+        };
+        try { speech.speak(utterance); } catch (error) { ijro.fail(error); }
       };
-      utterance.onstart = () => setOvozHolati("oynamoqda");
-      utterance.onend = () => yakun("ended");
-      utterance.onerror = () => yakun("error");
-      ovozNutqRef.current = utterance;
-      speech.cancel(); speech.speak(utterance);
-      setOvozHolati("oynamoqda");
+      keyingiQismniOqi();
+      return ijro.promise;
+    }
+
+    // /api/ovoz accepts only the first 1500 characters. Keep every answer by
+    // sending longer text as sequential, explicitly tagged language segments.
+    // Short questions retain the original text (including formula tags).
+    const sorovlar = [];
+    if (xomMatn.length <= 1400) sorovlar.push(xomMatn);
+    else {
+      for (const qism of ovozQismlari) {
+        let qolgan = qism.tayyor.trim();
+        while (qolgan) {
+          let chegara = Math.min(1100, qolgan.length);
+          if (chegara < qolgan.length) {
+            const boshliq = qolgan.lastIndexOf(" ", chegara);
+            if (boshliq > 550) chegara = boshliq;
+          }
+          const parcha = qolgan.slice(0, chegara).trim();
+          if (parcha) sorovlar.push(`[${qism.til}]${parcha}[/${qism.til}]`);
+          qolgan = qolgan.slice(chegara).trim();
+        }
+      }
+    }
+    let audio = null;
+    let sorovIndeksi = 0;
+    ijro.segment = 0;
+    const keyingiAudioniOqi = () => {
+      if (!joriymi()) return;
+      if (sorovIndeksi >= sorovlar.length) { yakunla("ended"); return; }
+      const segment = ++ijro.segment;
+      const segmentJoriymi = () => joriymi() && ijro.segment === segment;
+      const ovozQs = new URLSearchParams({ matn: sorovlar[sorovIndeksi++], jins: ovozJinsi, asosiy_til: asosiyTil });
+      const manzil = `${API_BASE}/api/ovoz?${ovozQs.toString()}`;
+      try {
+        // Reuse one media element so a continued recording keeps the initial
+        // user-gesture permission on mobile browsers.
+        if (!audio) audio = new Audio(manzil);
+        else { audio.onplaying = null; audio.onended = null; audio.onerror = null; audio.src = manzil; }
+      } catch (error) { ijro.fail(error); return; }
+      audio.preload = "auto";
+      if (segment === 1) audio.playbackRate = ovozTezligi;
+      audio.__samTmPromise = ijro.promise;
+      ovozRef.current = audio;
+      ijro.loading = true;
+      setOvozHolati("yuklanmoqda");
+      audio.onplaying = () => {
+        if (!segmentJoriymi()) return;
+        // LOAD watchdog ends once playback starts; long answers keep playing.
+        if (ijro.timeout != null) clearTimeout(ijro.timeout);
+        ijro.timeout = null;
+        ijro.loading = false;
+        setOvozHolati(ijro.paused ? "pauzada" : "oynamoqda");
+      };
+      audio.onended = () => {
+        if (!segmentJoriymi()) return;
+        if (ijro.timeout != null) clearTimeout(ijro.timeout);
+        ijro.timeout = null;
+        keyingiAudioniOqi();
+      };
+      const segmentXatosi = (error) => { if (segmentJoriymi()) ijro.fail(error); };
+      audio.onerror = segmentXatosi;
+      const kutishMs = Math.min(45000, Math.max(10000, 8000 + sorovlar[sorovIndeksi - 1].length * 45));
+      ijro.timeout = setTimeout(() => {
+        if (segmentJoriymi() && ijro.loading) yakunla("error");
+      }, kutishMs);
+      try { Promise.resolve(audio.play()).catch(segmentXatosi); }
+      catch (error) { segmentXatosi(error); }
     };
-    audio.onerror = brauzerZaxiraOvozi;
-    const kutishMs = Math.min(45000, Math.max(10000, 8000 + xomMatn.length * 45));
-    audioTimeoutId = setTimeout(() => {
-      brauzerZaxiraOvozi();
-    }, kutishMs);
-    audio.play().catch(brauzerZaxiraOvozi);
-    return audio.__samTmPromise;
-  }, [foydalanuvchi?.asosiy_til, foydalanuvchi?.jins, foydalanuvchi?.ovoz_jinsi, ovozTezligi, ovozniToxtat]);
+    // No fallback to an unrelated/default browser voice on server failure.
+    keyingiAudioniOqi();
+    return ijro.promise;
+  }, [foydalanuvchi?.jins, foydalanuvchi?.ovoz_jinsi, ovozTezligi, ovozniToxtat]);
+
+  useEffect(() => () => { ovozniToxtat(); }, [ovozniToxtat]);
 
   const ovozTezliginiOzgartir = (tezlik) => {
     setOvozTezligi(tezlik);

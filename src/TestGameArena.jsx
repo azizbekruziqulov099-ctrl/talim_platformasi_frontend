@@ -23,14 +23,28 @@ import {
 } from "./testGameRules.js";
 
 
-// Katta WEBP avatar va sprite fayllari ataylab yuklanmaydi. Bir vaqtda minglab
-// test ishlansa ham har savol faqat matn, formula va kichik CSS holatini chizadi.
+// REV41: original scene art and small static character previews; no sprite sheets.
+import childBoyPreview from "./assets/game-avatars/child_boy.webp";
+import childGirlPreview from "./assets/game-avatars/child_girl.webp";
+import preteenBoyPreview from "./assets/game-avatars/preteen_boy.webp";
+import preteenGirlPreview from "./assets/game-avatars/preteen_girl.webp";
+import teenBoyPreview from "./assets/game-avatars/teen_boy.webp";
+import teenGirlPreview from "./assets/game-avatars/teen_girl.webp";
+import adultBoyPreview from "./assets/game-avatars/adult_boy.webp";
+import adultGirlPreview from "./assets/game-avatars/adult_girl.webp";
+import bridgeCover from "./assets/game-scenes/bridge.webp";
+import millionaireCover from "./assets/game-scenes/millionaire.webp";
+import spaceCover from "./assets/game-scenes/space.webp";
+import detectiveCover from "./assets/game-scenes/detective.webp";
+import cityCover from "./assets/game-scenes/city.webp";
+
 const GAME_AVATAR_ASSETS = {
-  child: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
-  preteen: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
-  teen: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
-  adult: { boy: { preview: null, sprite: null }, girl: { preview: null, sprite: null } },
+  child: { boy: { preview: childBoyPreview }, girl: { preview: childGirlPreview } },
+  preteen: { boy: { preview: preteenBoyPreview }, girl: { preview: preteenGirlPreview } },
+  teen: { boy: { preview: teenBoyPreview }, girl: { preview: teenGirlPreview } },
+  adult: { boy: { preview: adultBoyPreview }, girl: { preview: adultGirlPreview } },
 };
+const GAME_SCENE_COVERS = { bridge: bridgeCover, millionaire: millionaireCover, space: spaceCover, detective: detectiveCover, city: cityCover };
 
 async function gameFetch(url, options = {}) {
   const controller = new AbortController();
@@ -91,14 +105,14 @@ export function resolveGameAvatarProfile(profile = {}, gradeBand = "applicant", 
     age,
     grade,
     src: assets.preview,
-    sprite: assets.sprite,
-    spriteFrameCount: 9,
+    sprite: null,
+    spriteFrameCount: 1,
     label: `${gender === "girl" ? "Qiz" : "O'g'il"} · ${age !== null ? `${age} yosh` : grade !== null ? `${grade}-sinf` : AGE_BANDS[gradeBand]?.label || "O'quvchi"}`,
   };
 }
 
 
-function GameText({ value }) {
+const GameText = React.memo(function GameText({ value }) {
   const text = String(value || "")
     .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "\$$1\$")
     .replace(/\[\/?(?:ru|en|uz)\]/gi, "");
@@ -118,10 +132,9 @@ function GameText({ value }) {
       return <React.Fragment key={index}>{part}</React.Fragment>;
     }
   });
-}
+});
 
-
-function GameImage({ value, apiBase }) {
+const GameImage = React.memo(function GameImage({ value, apiBase }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [value]);
   if (!value || failed) return null;
@@ -137,8 +150,7 @@ function GameImage({ value, apiBase }) {
   }
   const src = raw.startsWith("/api/") ? `${apiBase}${raw}` : /^https?:\/\//i.test(raw) ? raw : `${apiBase}/api/rasm/${raw}`;
   return <img className="game-question-image" src={src} alt="Savol rasmi" onError={() => setFailed(true)} />;
-}
-
+});
 
 export function GameProfileStrip({ profile, accent = "#1B4B7A", compact = false }) {
   if (!profile) return null;
@@ -190,7 +202,7 @@ export function GameModePicker({ value, onChange, gradeBand = "applicant", accen
     {(subjectName || topicName) ? <p className="edu-game-topic"><strong>{subjectName || "Tanlangan mavzular"}</strong><span>{topicName}</span></p> : null}
     <div className="edu-game-cards" role="group" aria-label="Beshta o‘yin">
       {GAME_MODES.map(mode => <button type="button" key={mode.id} className={`edu-game-card ${chosen.id === mode.id ? "is-selected" : ""}`} aria-pressed={chosen.id === mode.id} onClick={() => onChange?.(mode.id)} style={{ "--edu-color": mode.colors[0], "--edu-tint": `${mode.colors[1]}35` }}>
-        <span className="edu-game-icon" aria-hidden="true">{EDUCATIONAL_GAMES[mode.id].icon}</span><strong>{mode.name}</strong><p>{EDUCATIONAL_GAMES[mode.id].goal}</p><small className="edu-game-mechanic">{EDUCATIONAL_GAMES[mode.id].mechanic}</small><span className="edu-game-tag">{chosen.id === mode.id ? "✓ Tanlandi" : "Tanlash →"}</span>
+        <span className="edu-game-cover"><img src={GAME_SCENE_COVERS[mode.id]} alt={`${mode.name} o‘yin sahnasi`} loading="lazy" width="1280" height="720" /><span className="edu-game-icon" aria-hidden="true">{EDUCATIONAL_GAMES[mode.id].icon}</span></span><strong>{mode.name}</strong><p>{EDUCATIONAL_GAMES[mode.id].goal}</p><small className="edu-game-mechanic">{EDUCATIONAL_GAMES[mode.id].mechanic}</small><span className="edu-game-tag">{chosen.id === mode.id ? "✓ Tanlandi" : "Tanlash →"}</span>
       </button>)}
     </div>
     <div className="edu-game-detail" style={{ "--edu-color": chosen.colors[0], "--edu-tint": `${chosen.colors[1]}28` }}>
@@ -199,7 +211,7 @@ export function GameModePicker({ value, onChange, gradeBand = "applicant", accen
       <small>Har 5-savol — nazorat savoli. Savollar tanlangan fan va mavzu bazasidan olinadi.</small>
       {availableQuestions !== null && Number(availableQuestions) < 25 ? <p className="edu-study-note">Hozir {Math.max(0, Number(availableQuestions) || 0)} ta mos savol bor. Pastda shu songa yetadigan o‘yin uzunliklari ko‘rinadi.</p> : null}
     </div>
-    <div className="game-avatar-choice"><span className="game-light-avatar" aria-hidden="true">{plan.icon}</span><div><strong>Sizning qahramoningiz</strong><small>{avatar.label}</small></div><div className="game-avatar-gender" aria-label="Qahramon tanlash"><button type="button" aria-pressed={avatar.gender === "girl"} className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>Qiz</button><button type="button" aria-pressed={avatar.gender === "boy"} className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O‘g‘il</button></div></div>
+    <div className="game-avatar-choice"><img src={avatar.src} alt={`${avatar.label} qahramoni`} width="58" height="76" loading="lazy" /><div><strong>Sizning qahramoningiz</strong><small>{avatar.label}</small></div><div className="game-avatar-gender" aria-label="Qahramon tanlash"><button type="button" aria-pressed={avatar.gender === "girl"} className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>Qiz</button><button type="button" aria-pressed={avatar.gender === "boy"} className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O‘g‘il</button></div></div>
   </section>;
 }
 
@@ -276,11 +288,11 @@ function sceneStateClass(feedback) {
 
 
 const GAME_SCENE_FEEDBACK_COPY = {
-  bridge: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
-  millionaire: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
-  space: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
-  detective: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
-  city: { success: "BOSQICH OCHILDI!", fail: "BU JOYNI TAKRORLAYMIZ" },
+  bridge: { success: "KO‘PRIKDAN O‘TDINGIZ!", fail: "OYNA DARZ KETDI" },
+  millionaire: { success: "POG‘ONA ZABT ETILDI!", fail: "SAVOLNI QAYTA O‘RGANAMIZ" },
+  space: { success: "RAKETA OLDINGA UCHDI!", fail: "YO‘NALISHNI TEKSHIRAMIZ" },
+  detective: { success: "DALIL TOPILDI!", fail: "BU IZNI YANA TEKSHIRAMIZ" },
+  city: { success: "YANGI BINO QURILDI!", fail: "LOYIHANI QAYTA TEKSHIRAMIZ" },
 };
 
 
@@ -309,7 +321,7 @@ function SceneFeedbackFX({ feedback, mode, transition, countdown, paused = false
       <span aria-hidden="true">{correct ? "✓" : "!"}</span>
       <div>
         <strong>{correct ? copy.success : feedback?.type === "timeout" ? "VAQT TUGADI" : copy.fail}</strong>
-        {feedback?.explanation && <p><GameText value={feedback.explanation} /></p>}
+        
         <small>{nextLabel}</small>
       </div>
       {transition && (
@@ -329,10 +341,14 @@ function GameAvatar({ variant = "runner", className = "", profile }) {
     <span className={`game-avatar avatar-${variant} avatar-gender-${avatar.gender} avatar-age-${avatar.ageKey} ${className}`} aria-hidden="true">
       <i className="avatar-aura" />
       <i className="avatar-shadow" />
-      <i
-        className="avatar-render"
-        style={{ backgroundImage: `url(${avatar.sprite})` }}
-        data-sprite-frames={avatar.spriteFrameCount}
+      <img
+        className="avatar-render avatar-portrait"
+        src={avatar.src}
+        alt=""
+        width="320"
+        height="540"
+        decoding="async"
+        draggable={false}
       />
       {variant === "detective" && <><i className="avatar-prop avatar-hat" /><i className="avatar-prop avatar-coat" /></>}
       {variant === "builder" && <><i className="avatar-prop avatar-helmet" /><i className="avatar-prop avatar-vest" /></>}
@@ -405,7 +421,27 @@ function GameLivesHud({ mode, livesRemaining, feedback }) {
 }
 
 
-function BridgeScene({ step, feedback }) {
+// A visited step is not automatically a correct answer. The server-confirmed
+// learning log supplies every world with the same round outcomes.
+function gameRoundStates(question = {}, learningLog = [], feedback) {
+  const position = Math.max(1, Number(question.position) || 1);
+  const roundStart = Math.floor((position - 1) / 5) * 5 + 1;
+  return Array.from({ length: 5 }, (_, index) => {
+    const number = roundStart + index;
+    // A retry can replace the question at the same position. Do not carry the
+    // previous attempt's failure into a new, unanswered question.
+    let record;
+    for (let i = learningLog.length - 1; i >= 0; i -= 1) {
+      const item = learningLog[i];
+      if (Number(item.position) === number && (number !== position || !question.question_key || item.questionKey === question.question_key)) { record = item; break; }
+    }
+    if (record) return record.correct === true ? "correct" : "missed";
+    if (number === position && feedback?.finalized && typeof feedback.correct === "boolean") return feedback.correct ? "correct" : "missed";
+    return number === position ? "current" : "pending";
+  });
+}
+
+function BridgeScene({ step, feedback, avatarProfile, states = [] }) {
   const state = sceneStateClass(feedback);
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   return (
@@ -417,17 +453,21 @@ function BridgeScene({ step, feedback }) {
         <div className="bridge-mountains"><i /><i /><i /></div>
         <div className="bridge-water"><i /><i /><i /></div>
         <div className="bridge-coins">{[1, 2, 3, 4, 5].map((number) => <i key={number}>★</i>)}</div>
-        <div className="bridge-progress-route">
+        <div className="bridge-tiles">
           {[1, 2, 3, 4, 5].map((number) => {
             const classes = [
-              number < safeStep ? "is-done" : "",
+              states[number - 1] === "correct" ? "is-done" : "",
+              states[number - 1] === "missed" ? "is-cracked" : "",
               number === safeStep ? "is-current" : "",
               number === safeStep && feedback?.correct === true ? "is-cleared" : "",
             ].filter(Boolean).join(" ");
             return (
-              <span key={number} className={classes}><b>{number === 5 ? "★" : number}</b></span>
+              <span key={number} className={classes} data-outcome={states[number - 1]}><b>{number === 5 ? "★" : number}</b><i /><em /><u /></span>
             );
           })}
+        </div>
+        <div className="bridge-runner-track" style={{ "--runner-index": feedback?.correct === true ? safeStep - 1 : Math.max(-0.25, safeStep - 1.6) }}>
+          <div className="bridge-runner"><GameAvatar variant="runner" profile={avatarProfile} /></div>
         </div>
         <div className="bridge-portal"><i>★</i><b>BOSS</b></div>
       </div>
@@ -438,7 +478,7 @@ function BridgeScene({ step, feedback }) {
 }
 
 
-function MillionaireScene({ step, feedback, avatarProfile }) {
+function MillionaireScene({ step, feedback, avatarProfile, states = [] }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const prizes = ["1 000 000", "500 000", "250 000", "125 000", "64 000"];
   return (
@@ -452,7 +492,7 @@ function MillionaireScene({ step, feedback, avatarProfile }) {
         <div className="millionaire-ladder">
           {prizes.map((prize, index) => {
             const level = 5 - index;
-            return <span key={prize} className={level === safeStep ? "is-current" : level < safeStep ? "is-done" : ""}><i>{level}</i><b>{prize}</b></span>;
+            return <span key={prize} data-outcome={states[level - 1]} className={[level === safeStep ? "is-current" : "", states[level - 1] === "correct" ? "is-done" : "", states[level - 1] === "missed" ? "is-missed" : ""].filter(Boolean).join(" ")}><i>{states[level - 1] === "correct" ? "✓" : states[level - 1] === "missed" ? "↻" : level}</i><b>{prize}</b></span>;
           })}
         </div>
       </div>
@@ -463,9 +503,10 @@ function MillionaireScene({ step, feedback, avatarProfile }) {
 }
 
 
-function SpaceScene({ step, feedback, avatarProfile }) {
+function SpaceScene({ step, feedback, avatarProfile, states = [] }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
-  const rocketIndex = feedback?.correct === true ? safeStep - 1 : Math.max(-0.2, safeStep - 1.55);
+  const cleared = states.filter(value => value === "correct").length;
+  const rocketIndex = Math.max(-0.2, cleared - 1);
   return (
     <section className={`game-scene game-scene-space ${sceneStateClass(feedback)}`} aria-label={`Kosmik parvoz, ${safeStep}-orbita`}>
       <div className="space-world" aria-hidden="true">
@@ -474,12 +515,12 @@ function SpaceScene({ step, feedback, avatarProfile }) {
         <div className="space-planet planet-one"><i /></div>
         <div className="space-planet planet-two"><i /></div>
         <div className="space-planet planet-boss"><i /><b>BOSS</b></div>
-        <div className="space-route"><i /><i /><i /><i /><i /></div>
+        <div className="space-route">{states.map((state, index) => <i key={index} data-outcome={state} className={`is-${state}`} />)}</div>
         <div className="space-rocket-track" style={{ "--rocket-index": rocketIndex }}>
           <div className="space-rocket"><i className="rocket-flame" /><b /><span /><em /></div>
         </div>
         <div className="space-pilot"><GameAvatar variant="astronaut" profile={avatarProfile} /></div>
-        <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${safeStep * 20}%` }} /></em></div>
+        <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${cleared * 20}%` }} /></em></div>
       </div>
       <SceneHud icon="✦" label={safeStep === 5 ? "Boss sayyorasi" : "Keyingi orbitaga uching"} step={safeStep} />
       <small className="scene-caption">Har to'g'ri javob raketaga yangi quvvat beradi</small>
@@ -488,7 +529,7 @@ function SpaceScene({ step, feedback, avatarProfile }) {
 }
 
 
-function DetectiveScene({ step, feedback, avatarProfile }) {
+function DetectiveScene({ step, feedback, avatarProfile, states = [] }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const clueLabels = ["IZ", "KALIT", "XARITA", "KOD"];
   return (
@@ -502,9 +543,10 @@ function DetectiveScene({ step, feedback, avatarProfile }) {
           <div className="detective-thread"><i /><i /><i /><i /></div>
           {clueLabels.map((label, index) => {
             const number = index + 1;
-            return <span key={label} className={number < safeStep ? "is-found" : number === safeStep ? "is-current" : ""}><i>{number}</i><b>{label}</b><em>{number <= safeStep ? "TOPILDI" : "?"}</em></span>;
+            const outcome = states[index];
+            return <span key={label} data-outcome={outcome} className={[outcome === "correct" ? "is-found" : "", outcome === "missed" ? "is-missed" : "", number === safeStep ? "is-current" : ""].filter(Boolean).join(" ")}><i>{number}</i><b>{label}</b><em>{outcome === "correct" ? "TOPILDI" : outcome === "missed" ? "QAYTA" : "?"}</em></span>;
           })}
-          <b className={`detective-verdict ${safeStep === 5 ? "is-current" : ""}`}>XULOSA<i>★</i></b>
+          <b data-outcome={states[4]} className={`detective-verdict ${safeStep === 5 ? "is-current" : ""} ${states[4] === "correct" ? "is-found" : states[4] === "missed" ? "is-missed" : ""}`}>XULOSA<i>{states[4] === "correct" ? "✓" : "★"}</i></b>
         </div>
         <div className="detective-spotlight" />
       </div>
@@ -515,7 +557,7 @@ function DetectiveScene({ step, feedback, avatarProfile }) {
 }
 
 
-function CityScene({ step, feedback, avatarProfile }) {
+function CityScene({ step, feedback, avatarProfile, states = [] }) {
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   return (
     <section className={`game-scene game-scene-city ${sceneStateClass(feedback)}`} aria-label={`Bilim shahri, ${safeStep}-qurilish`}>
@@ -525,7 +567,7 @@ function CityScene({ step, feedback, avatarProfile }) {
         <div className="city-crane"><i /><b /><em /><u /></div>
         <div className="city-skyline">
           {[1, 2, 3, 4, 5].map((number) => (
-            <span key={number} className={`${number < safeStep ? "is-built" : ""} ${number === safeStep ? "is-current" : ""} ${number === safeStep && feedback?.correct === true ? "is-built-now" : ""}`}>
+            <span key={number} data-outcome={states[number - 1]} className={`${states[number - 1] === "correct" ? "is-built" : ""} ${states[number - 1] === "missed" ? "is-missed" : ""} ${number === safeStep ? "is-current" : ""} ${number === safeStep && feedback?.correct === true ? "is-built-now" : ""}`}>
               <b>{number === 5 ? "★" : ""}</b>{Array.from({ length: Math.min(8, number + 3) }, (_, index) => <i key={index} />)}
             </span>
           ))}
@@ -541,15 +583,16 @@ function CityScene({ step, feedback, avatarProfile }) {
 }
 
 
-function GameScene({ mode, question, feedback, avatarProfile }) {
+const GameScene = React.memo(function GameScene({ mode, question, feedback, avatarProfile, learningLog = [] }) {
   const step = question?.round_step || 1;
-  if (mode === "millionaire") return <MillionaireScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
-  if (mode === "space") return <SpaceScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
-  if (mode === "detective") return <DetectiveScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
-  if (mode === "city") return <CityScene step={step} feedback={feedback} avatarProfile={avatarProfile} />;
-  return <BridgeScene step={step} feedback={feedback} />;
-}
-
+  const states = gameRoundStates(question, learningLog, feedback);
+  const props = { step, feedback, avatarProfile, states };
+  if (mode === "millionaire") return <MillionaireScene {...props} />;
+  if (mode === "space") return <SpaceScene {...props} />;
+  if (mode === "detective") return <DetectiveScene {...props} />;
+  if (mode === "city") return <CityScene {...props} />;
+  return <BridgeScene {...props} />;
+});
 
 function gameClockNow() {
   return globalThis.performance?.now?.() ?? Date.now();
@@ -1342,9 +1385,15 @@ export default function TestGameArena({
       if (!anchor || anchor.activationKey !== timer.activationKey || timerStoppedRef.current) return;
       const elapsed = (gameClockNow() - anchor.startedAtMs) / 1000;
       const remaining = Math.max(0, Number(anchor.initialRemaining || 0) - elapsed);
-      setTimer((current) => current.activationKey === anchor.activationKey
-        ? { ...current, remainingSeconds: remaining, phase: remaining <= 0 ? "expired" : "running" }
-        : current);
+      // Keep the authoritative monotonic deadline; only repaint a displayed
+      // second when it changes instead of rebuilding the whole arena 4x/sec.
+      const displaySeconds = Math.ceil(remaining);
+      const phase = remaining <= 0 ? "expired" : "running";
+      setTimer((current) => {
+        if (current.activationKey !== anchor.activationKey) return current;
+        if (current.remainingSeconds === displaySeconds && current.phase === phase) return current;
+        return { ...current, remainingSeconds: displaySeconds, phase };
+      });
       if (remaining <= 0) {
         timerStoppedRef.current = true;
         if (stopReadRef.current) stopReadRef.current();
@@ -1432,7 +1481,7 @@ export default function TestGameArena({
       completeTerminal(feedbackTransition.payload);
     };
 
-    const intervalId = setInterval(updateCountdown, 100);
+    const intervalId = setInterval(updateCountdown, 250);
     const timeoutId = setTimeout(commitTransition, GAME_FEEDBACK_HOLD_MS);
     return () => {
       clearInterval(intervalId);
@@ -1517,7 +1566,7 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
+      className={`test-game-arena game-readable game-restored game-calm game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
@@ -1534,9 +1583,7 @@ export default function TestGameArena({
       </header>
       <div className="game-overall-track" role="progressbar" aria-label="O'yin jarayoni" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
 
-      <div className={`game-stage game-stage-${mode} game-stage-light ${sceneStateClass(feedback)}`}>
-        <EducationalMission mode={mode} question={question} learningLog={learningLog} subjectName={subjectName} topicName={topicName} />
-
+      <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
@@ -1572,7 +1619,6 @@ export default function TestGameArena({
           )}
         </div>
         {readError && <div className="game-voice-error" role="alert">Ovoz ishga tushmadi. Karnayni yana bosing.</div>}
-        <LearningTools key={questionKey} mode={mode} subjectName={subjectName} question={question} locked={interactionLocked} ruledOut={ruledOut} onRuleOut={key => setRuledOut(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key])} />
 
         <div
           className={`game-options ${mode === "bridge" ? `bridge-answer-course is-${bridgeOutcome}` : ""}`}
@@ -1598,6 +1644,8 @@ export default function TestGameArena({
             </button>
           ))}
         </div>
+
+        <LearningTools key={questionKey} mode={mode} subjectName={subjectName} question={question} locked={interactionLocked} ruledOut={ruledOut} onRuleOut={key => setRuledOut(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key])} />
 
         <div className="game-feedback" aria-live="polite">
           {feedback?.finalized && (
@@ -1625,6 +1673,15 @@ export default function TestGameArena({
         </div>
           </main>
         </div>
+        <aside className="game-mission-sidebar game-visual-panel" aria-label="O‘yin sahnasi va natijalar">
+          <header className="game-world-heading"><small>{subjectName || "BILIM SARGUZASHTI"}{topicName ? ` · ${topicName}` : ""}</small><strong>{meta.name}</strong></header>
+          <div className="game-world-viewport">
+            <GameScene key={questionKey} mode={mode} question={question} feedback={feedback} avatarProfile={avatarProfile} learningLog={learningLog} />
+            <SceneFeedbackFX feedback={feedback} mode={mode} transition={feedbackTransition} countdown={feedbackCountdown} paused={holdExplanation} bossName="Nazorat savoli" />
+          </div>
+          {livesRemaining !== null && <GameLivesHud mode={mode} livesRemaining={livesRemaining} feedback={feedback} />}
+          <div className="game-world-progress"><strong>{question.round}-raund · {question.round_step}/5 savol</strong><span>{gameRoundStates(question, learningLog, feedback).filter(state => state === "correct").length}/5 to‘g‘ri</span></div>
+        </aside>
       </div>
 
       {stopConfirm && (
