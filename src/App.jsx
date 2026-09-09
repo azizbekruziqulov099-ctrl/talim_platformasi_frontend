@@ -1,3 +1,4 @@
+// REV38: archive-filtered institutions and explicit account/activity counts.
 // REV35: new components included so existing-file uploads keep every dependency.
 import * as __kbRev35_external0 from "react";
 import * as __kbRev35_external1 from "lucide-react";
@@ -983,8 +984,8 @@ function AudiencePanel({ apiBase, token, active = true }) {
   return <section className="kb-audience"><header><div><small>KABUTAR · ADMIN</small><h2>Platforma faolligi</h2><p>Kimlar foydalanyapti va bugun qancha kirish bo‘ldi?</p></div><button onClick={() => setReload(n => n + 1)}>Yangilash ↻</button></header>
     {error && <p role="alert" className="kb-work-error">{error}</p>}
     {!data && !error ? <p>Statistika olinmoqda…</p> : data && <>
-      <div className="kb-metric-grid">{[['Ro‘yxatdan o‘tganlar', data.summary.registered_users], ['Hozir faol', data.summary.online_users], ['Bugun faol odamlar', data.summary.active_today], ['Bugungi kirishlar', data.summary.logins_today]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{format(value)}</strong></div>)}</div>
-      <p className="kb-work-note">“Hozir faol” — oxirgi {Math.round((data.online_window_seconds || 180) / 60)} daqiqada ochiq sahifadan signal kelgan akkauntlar. Bir odamning qayta kirishi “kirishlar” soniga qo‘shiladi. Sana: Toshkent vaqti.</p>
+      <div className="kb-metric-grid">{[['Jami akkauntlar', data.summary.registered_users], ['Hozir faol', data.summary.online_users], ['Bugun faol odamlar', data.summary.active_today], ['Bugungi kirishlar', data.summary.logins_today]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{format(value)}</strong></div>)}</div>
+      <p className="kb-work-note">“Jami akkauntlar” bazadagi hisoblar soni, faollik ko‘rsatkichi emas. “Hozir faol” — oxirgi {Math.round((data.online_window_seconds || 180) / 60)} daqiqada kirish yoki ochiq sahifadan signal kelgan odamlar. “Bugun faol”da bir odam kuniga bir marta sanaladi. Arxivdagi muassasa a’zosi saytga kirib ishlatsa, u ham hisoblanadi; shunchaki ro‘yxatda turgani uchun faol bo‘lmaydi. Sana: Toshkent vaqti.</p>
       <details><summary>Kunlar bo‘yicha hisob va hozir faol foydalanuvchilar</summary><div className="kb-audience-tables"><table><thead><tr><th>Sana</th><th>Faol odamlar</th><th>Kirishlar</th></tr></thead><tbody>{(data.daily || []).map(day => <tr key={day.date}><td>{day.date}</td><td>{format(day.active_users)}</td><td>{format(day.logins)}</td></tr>)}</tbody></table><div><h3>Hozir faol</h3>{!(data.online || []).length ? <p>Hozircha signal yo‘q.</p> : <ul>{data.online.map(person => <li key={person.user_id}><b>{person.full_name || 'Foydalanuvchi'}</b><small>{new Date(person.last_seen_at).toLocaleTimeString('uz-UZ', { timeZone: 'Asia/Tashkent', hour: '2-digit', minute: '2-digit' })}</small></li>)}</ul>}</div></div></details>
       <small>Hisob boshlanishi: {data.measurement_started_at ? new Date(data.measurement_started_at).toLocaleDateString('uz-UZ', { timeZone: 'Asia/Tashkent' }) : 'yangi o‘rnatishdan boshlab'}. Oldingi davr uchun sonlar taxmin qilinmaydi.</small>
     </>}
@@ -5277,12 +5278,38 @@ function UniversitetlarBolimi({ token }) {
 
   const formniTozala = () => { setNomi(""); setViloyat(""); setTuman(""); setKurs(""); setYonalish(""); setRahbar(null); setRahbarIsmi(""); setFormOchiq(false); setXato(""); };
 
+  const universitetRequestRef = useRef(0);
   const universitetlarniYukla = () => {
+    const requestId = ++universitetRequestRef.current;
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/universitetlar?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json()).then((d) => { setUniversitetlar(d.universitetlar || []); setYuklanmoqda(false); }).catch(() => setYuklanmoqda(false));
+    setXato("");
+    fetch(`${API_BASE}/api/admin/universitetlar?token=${encodeURIComponent(token)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Muassasalar yuklanmadi. Qayta urinib ko‘ring.");
+        return data;
+      })
+      .then((data) => {
+        if (requestId !== universitetRequestRef.current) return;
+        const rows = Array.isArray(data.universitetlar) ? data.universitetlar : [];
+        const seen = new Set();
+        setUniversitetlar(rows.filter(item => {
+          if (!muassasaFaolmi(item) || item.id == null || seen.has(String(item.id))) return false;
+          seen.add(String(item.id));
+          return true;
+        }));
+      })
+      .catch((error) => {
+        if (requestId !== universitetRequestRef.current) return;
+        setUniversitetlar([]);
+        setXato(error.message || "Muassasalar yuklanmadi");
+      })
+      .finally(() => { if (requestId === universitetRequestRef.current) setYuklanmoqda(false); });
   };
-  useEffect(universitetlarniYukla, [token]);
+  useEffect(() => {
+    universitetlarniYukla();
+    return () => { universitetRequestRef.current += 1; };
+  }, [token]);
 
   const fakultetlarniYukla = (universitetId) => {
     setYuklanmoqda(true);
@@ -5441,7 +5468,7 @@ function UniversitetlarBolimi({ token }) {
             </button>}
           </div>
         </div>
-        {holat === "universitet" && <p className="text-xs" style={{ color: "#8A8578" }}>Rektor → Dekan → Kafedra mudiri → Guruh kuratori tuzilmasi.</p>}
+        {holat === "universitet" && <div className="flex items-center justify-between gap-3 mt-2"><p className="text-xs" style={{ color: "#8A8578" }}>Arxivlanmagan universitet va institutlar. Arxiv ro‘yxati profil sozlamalarida.</p><button type="button" onClick={universitetlarniYukla} disabled={yuklanmoqda} className="text-xs font-semibold px-3 py-2 rounded-xl border" style={{ borderColor: "#DCE6EA", color: "#1B4B7A" }}>Yangilash ↻</button></div>}
       </div>
 
       {formOchiq && (
@@ -5508,9 +5535,10 @@ function UniversitetlarBolimi({ token }) {
 
       {kirishNatija && <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#B8DCC8" }}><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold" style={{ color: "#2E7356" }}>✅ Rahbar biriktirildi</p><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{kirishNatija.fish} · {kirishNatija.lavozim}</p><p className="font-mono font-bold mt-2" style={{ color: "#1B4B7A" }}>Kirish kodi: {kirishNatija.kod}</p><p className="text-xs mt-1" style={{ color: "#B0553A" }}>Kod 2 oy amal qiladi. Hozir nusxalab oling.</p></div><button onClick={() => setKirishNatija(null)} style={{ color: "#8A8578" }}>✕</button></div></div>}
 
+      {!formOchiq && xato && <p role="alert" className="rounded-xl border p-3 mb-3 text-sm" style={{ borderColor: "#E8BABA", color: "#B0553A", backgroundColor: "#FFF5F2" }}>{xato}</p>}
       {yuklanmoqda ? (
         <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
-      ) : royxat.length === 0 ? (
+      ) : xato && !formOchiq ? null : royxat.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>Hali qo'shilmagan.</p>
         </div>
@@ -11511,15 +11539,20 @@ function muassasaBarqarorKaliti(item) {
   return id == null ? "" : `${item.turi}:${id}`;
 }
 
+function muassasaFaolmi(item) {
+  if (!item || typeof item !== "object") return false;
+  const disabled = value => value === false || value === 0 || ["false", "0", "f"].includes(String(value).trim().toLowerCase());
+  const inactiveStatuses = ["archived", "deleted", "inactive", "arxiv", "arxivlangan"];
+  return !disabled(item.faol)
+    && !disabled(item.is_active)
+    && !item.archived_at
+    && !item.arxiv_at
+    && !item.deleted_at
+    && ![item.lifecycle_status, item.status].some(value => inactiveStatuses.includes(String(value || "").trim().toLowerCase()));
+}
+
 function faolMuassasalarRoyxati(muassasalar = []) {
-  return muassasalar.filter((item) => {
-    const holat = String(item?.lifecycle_status || "").toLowerCase();
-    return muassasaBarqarorKaliti(item)
-      && item?.faol !== false
-      && !item?.archived_at
-      && !item?.arxiv_at
-      && !["archived", "deleted", "inactive"].includes(holat);
-  });
+  return muassasalar.filter(item => muassasaBarqarorKaliti(item) && muassasaFaolmi(item));
 }
 
 function faolMuassasaniTanla({ muassasalar = [], tanlanganKalit = "", kerakliTuri = "" }) {

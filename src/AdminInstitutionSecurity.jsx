@@ -349,8 +349,8 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
         summary={`${active.length} faol · ${archived.length} arxiv`}
       >
       <div className="grid grid-cols-2 gap-2 mb-3" role="tablist" aria-label="Muassasa holati">
-        <button type="button" role="tab" aria-selected={tab === "active"} onClick={() => setTab("active")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "active" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Building2 size={15} /> Faol · {active.length}</button>
-        <button type="button" role="tab" aria-selected={tab === "archive"} onClick={() => setTab("archive")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "archive" ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Archive size={15} /> Arxiv · {archived.length}</button>
+        <button type="button" role="tab" aria-selected={tab === "active"} onClick={() => setTab("active")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "active" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Building2 size={15} /> Faol muassasalar · {active.length}</button>
+        <button type="button" role="tab" aria-selected={tab === "archive"} onClick={() => setTab("archive")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "archive" ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Archive size={15} /> Arxivdagi muassasalar · {archived.length}</button>
       </div>
 
       {loading ? (
