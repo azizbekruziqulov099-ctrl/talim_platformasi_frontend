@@ -516,7 +516,7 @@ export default function TestTab({
 
   useEffect(() => {
     if (!initialTarget?.nonce) return;
-    const targetGrade = String(initialTarget.grade || "").trim();
+    const targetGrade = String(initialTarget.grade || initialTarget.sinf || "").trim();
     setHolat("mavzular");
     setFaolTuri("oddiy");
     setTanlanganSinf(targetGrade || sinf || null);
@@ -603,24 +603,33 @@ export default function TestTab({
 
   useEffect(() => {
     if (!initialTarget?.nonce || yuklanmoqda || talimYoliNishoniRef.current === initialTarget.nonce) return;
-    const targetGrade = String(initialTarget.grade || faolSinf || sinf || "");
+    const targetGrade = String(initialTarget.grade || initialTarget.sinf || faolSinf || sinf || "");
     const classInfo = sinflarRoyxati.find((item) => String(item.sinf) === targetGrade);
     if (!classInfo) return;
+    const requestedCodes = new Set((initialTarget.topic_codes || [initialTarget.topic_code]).filter(Boolean).map(String));
     let found = null;
     for (const fanItem of classInfo.fanlar) {
       const topic = fanItem.mavzular.find((item) => (
-        (item.topic_codes || []).includes(initialTarget.topic_code)
-        || item.nomi === initialTarget.topic_name
+        (item.topic_codes || []).some((code) => requestedCodes.has(String(code)))
+        || (!requestedCodes.size && item.nomi === (initialTarget.topic_name || initialTarget.nomi)
+          && (!initialTarget.fan || fanItem.nom === initialTarget.fan))
       ));
       if (topic) {
         found = { fanItem, topic };
         break;
       }
     }
-    if (!found) return;
+    if (!found) {
+      setXato("Bu DTS mavzusi uchun tayyor test hali topilmadi. Boshqa mavzuni tanlashingiz mumkin.");
+      talimYoliNishoniRef.current = initialTarget.nonce;
+      return;
+    }
+    const selectedCodes = Array.isArray(initialTarget.topic_codes) && initialTarget.topic_codes.length
+      ? [...new Set(classInfo.fanlar.flatMap((fanItem) => fanItem.mavzular.flatMap((item) => item.topic_codes || [])))].filter((code) => requestedCodes.has(String(code)))
+      : found.topic.topic_codes;
     setTanlanganMavzu({
       aralash: true,
-      kodlar: found.topic.topic_codes,
+      kodlar: selectedCodes,
       nomi: found.topic.nomi,
       fanNomi: found.fanItem.nom,
       savol_soni: found.topic.savol_soni,
@@ -2103,4 +2112,3 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
     </div>
   );
 }
-

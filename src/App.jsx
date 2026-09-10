@@ -1,8 +1,10 @@
+// REV42: personal curriculum planner and database-grounded assistant.
 // REV38: archive-filtered institutions and explicit account/activity counts.
 // REV35: new components included so existing-file uploads keep every dependency.
 import * as __kbRev35_external0 from "react";
 import * as __kbRev35_external1 from "lucide-react";
 import * as __kbRev35_external2 from "react-dom";
+import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 // Included from auth/authClient.js; implementation preserved.
 const __kbRev35_module1 = (() => {
 const AUTH_REQUEST_TIMEOUT = 12000;
@@ -2938,151 +2940,6 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
   );
 }
 
-const TAXMINIY_REJA_KUNLARI = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
-
-function TaxminiyHaftalikReja({ foydalanuvchi, bilimData, rang, onTest }) {
-  const profilSinfi = Number.parseInt(
-    foydalanuvchi?.sinf || foydalanuvchi?.class || foydalanuvchi?.grade || "",
-    10,
-  );
-  const [sinf, setSinf] = useState(profilSinfi >= 1 && profilSinfi <= 11 ? profilSinfi : 5);
-  const [yoqilgan, setYoqilgan] = useState(true);
-  const [fanlar, setFanlar] = useState([]);
-  const [reja, setReja] = useState([]);
-  const [sozlash, setSozlash] = useState(false);
-  const [yuklanmoqda, setYuklanmoqda] = useState(true);
-  const [xato, setXato] = useState("");
-  const userKey = foydalanuvchi?.user_id || foydalanuvchi?.id || "guest";
-  const storageKey = `samtm-taxminiy-reja:${userKey}:${sinf}`;
-
-  const rejaTuz = useCallback((mavjudFanlar) => {
-    if (!mavjudFanlar.length) return [];
-    const natijalar = Array.isArray(bilimData?.fanlar) ? bilimData.fanlar : [];
-    const foiz = (nom) => Number(natijalar.find((f) =>
-      String(f.nom || f.fan || "").toLocaleLowerCase("uz").includes(String(nom).toLocaleLowerCase("uz")),
-    )?.foiz ?? 101);
-    const saralangan = [...mavjudFanlar].sort((a, b) => foiz(a.nom) - foiz(b.nom));
-    const hafta = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 1)) / 604800000);
-    return TAXMINIY_REJA_KUNLARI.flatMap((kun, kunIndex) => {
-      const slotSoni = kunIndex === 5 ? 1 : 2;
-      return Array.from({ length: slotSoni }, (_, slotIndex) => {
-        const fan = saralangan[(kunIndex * 2 + slotIndex) % saralangan.length];
-        const mavzular = fan.mavzular || [];
-        const mavzu = mavzular[(hafta + kunIndex + slotIndex) % Math.max(1, mavzular.length)];
-        return {
-          id: `${kunIndex}-${slotIndex}-${Date.now()}`,
-          kun,
-          vaqt: slotIndex === 0 ? "17:00" : "18:00",
-          davomiylik: sinf <= 4 ? 25 : sinf <= 7 ? 35 : 45,
-          fan: fan.nom,
-          mavzu: mavzu?.nomi || "Erkin takrorlash",
-          bajarildi: false,
-        };
-      });
-    });
-  }, [bilimData, sinf]);
-
-  useEffect(() => {
-    let bekor = false;
-    setYuklanmoqda(true);
-    setXato("");
-    fetch(`${API_BASE}/api/mavzular?sinf=${sinf}&turi=oddiy&faqat_testli=false`, { cache: "no-store" })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "O‘quv rejasi olinmadi");
-        return (data.fanlar || []).map((fan) => ({
-          nom: fan.nom,
-          mavzular: (fan.sinflar || []).flatMap((qism) => qism.mavzular || []),
-        }));
-      })
-      .then((yangiFanlar) => {
-        if (bekor) return;
-        setFanlar(yangiFanlar);
-        const saqlangan = localStorage.getItem(storageKey);
-        if (saqlangan) {
-          let holat = null;
-          try { holat = JSON.parse(saqlangan); } catch { localStorage.removeItem(storageKey); }
-          if (!holat) { setReja(rejaTuz(yangiFanlar)); return; }
-          setYoqilgan(holat.yoqilgan !== false);
-          setReja(Array.isArray(holat.reja) ? holat.reja : rejaTuz(yangiFanlar));
-        } else setReja(rejaTuz(yangiFanlar));
-      })
-      .catch((err) => !bekor && setXato(err.message))
-      .finally(() => !bekor && setYuklanmoqda(false));
-    return () => { bekor = true; };
-  }, [sinf, storageKey, rejaTuz]);
-
-  useEffect(() => {
-    if (!yuklanmoqda && reja.length) {
-      try { localStorage.setItem(storageKey, JSON.stringify({ yoqilgan, reja })); } catch { /* private mode */ }
-    }
-  }, [yoqilgan, reja, storageKey, yuklanmoqda]);
-
-  const qatorYangila = (id, key, value) => setReja((old) => old.map((qator) => {
-    if (qator.id !== id) return qator;
-    if (key !== "fan") return { ...qator, [key]: value };
-    const fan = fanlar.find((item) => item.nom === value);
-    return { ...qator, fan: value, mavzu: fan?.mavzular?.[0]?.nomi || "Erkin takrorlash" };
-  }));
-  const yangiQator = () => {
-    const fan = fanlar[0];
-    setReja((old) => [...old, {
-      id: `custom-${Date.now()}`, kun: "Dushanba", vaqt: "19:00", davomiylik: 30,
-      fan: fan?.nom || "Mustaqil ta’lim", mavzu: fan?.mavzular?.[0]?.nomi || "Erkin takrorlash", bajarildi: false,
-    }]);
-    setSozlash(true);
-  };
-
-  return <section className="mt-4 rounded-3xl border bg-white overflow-hidden" style={{ borderColor: "#DDE5EA" }}>
-    <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: "#F6F9FB" }}>
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-black text-lg" style={{ color: "#21384C" }}>Taxminiy haftalik o‘qish rejasi</h3>
-          <span className="px-2 py-1 rounded-full text-[10px] font-black" style={{ background: "#FFF1D6", color: "#8A5A1C" }}>Rasmiy jadval emas</span>
-        </div>
-        <p className="text-xs mt-1" style={{ color: "#687987" }}>Saytdagi {sinf}-sinf o‘quv mavzularidan tuzildi. Istagan paytingiz o‘zgartiring yoki o‘chirib qo‘ying.</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <select aria-label="Sinf" value={sinf} onChange={(e) => setSinf(Number(e.target.value))} className="rounded-xl border px-3 py-2 text-sm font-bold bg-white">
-          {Array.from({ length: 11 }, (_, i) => i + 1).map((q) => <option key={q} value={q}>{q}-sinf</option>)}
-        </select>
-        <button type="button" aria-pressed={yoqilgan} onClick={() => setYoqilgan((v) => !v)} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: yoqilgan ? rang : "#8A96A0" }}>{yoqilgan ? "Yoqilgan" : "O‘chirilgan"}</button>
-        <button type="button" onClick={() => setSozlash((v) => !v)} className="px-3 py-2 rounded-xl border bg-white text-xs font-black" style={{ color: rang, borderColor: rang }}>{sozlash ? "Tayyor" : "Sozlash"}</button>
-      </div>
-    </div>
-
-    {!yoqilgan ? <div className="p-6 text-center text-sm" style={{ color: "#7A8794" }}>Shaxsiy reja o‘chirilgan. Qayta yoqsangiz, saqlangan rejangiz ochiladi.</div>
-      : yuklanmoqda ? <div className="p-8 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: rang }} /><p className="text-xs mt-2">O‘quv reja tayyorlanmoqda…</p></div>
-      : xato ? <div className="p-5 text-sm" style={{ color: "#A32D2D" }}>{xato}</div>
-      : <div className="p-3 md:p-5">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {TAXMINIY_REJA_KUNLARI.map((kun) => <div key={kun} className="rounded-2xl border p-3" style={{ borderColor: "#E5E9EC" }}>
-            <div className="font-black text-sm mb-2" style={{ color: "#21384C" }}>{kun}</div>
-            <div className="space-y-2">
-              {reja.filter((q) => q.kun === kun).map((qator) => <div key={qator.id} className="rounded-xl p-3" style={{ background: qator.bajarildi ? "#EDF8F1" : "#F7F8FA", opacity: qator.bajarildi ? .72 : 1 }}>
-                {sozlash ? <div className="space-y-2">
-                  <div className="flex gap-2"><input type="time" value={qator.vaqt} onChange={(e) => qatorYangila(qator.id, "vaqt", e.target.value)} className="min-w-0 flex-1 rounded-lg border px-2 py-1 text-xs" /><input type="number" min="10" max="120" value={qator.davomiylik} onChange={(e) => qatorYangila(qator.id, "davomiylik", Number(e.target.value))} className="w-16 rounded-lg border px-2 py-1 text-xs" title="Daqiqa" /></div>
-                  <select value={qator.fan} onChange={(e) => qatorYangila(qator.id, "fan", e.target.value)} className="w-full rounded-lg border px-2 py-1.5 text-xs">{fanlar.map((f) => <option key={f.nom}>{f.nom}</option>)}</select>
-                  <select value={qator.kun} onChange={(e) => qatorYangila(qator.id, "kun", e.target.value)} className="w-full rounded-lg border px-2 py-1.5 text-xs">{TAXMINIY_REJA_KUNLARI.map((k) => <option key={k}>{k}</option>)}</select>
-                  <button onClick={() => setReja((old) => old.filter((q) => q.id !== qator.id))} className="text-[11px] font-bold" style={{ color: "#A32D2D" }}>Olib tashlash</button>
-                </div> : <>
-                  <div className="flex items-start justify-between gap-2"><div><div className="text-[10px] font-bold" style={{ color: rang }}>{qator.vaqt} · {qator.davomiylik} daqiqa</div><div className="text-sm font-black mt-0.5" style={{ color: "#21384C" }}>{qator.fan}</div></div><input aria-label="Bajarildi" type="checkbox" checked={qator.bajarildi} onChange={(e) => qatorYangila(qator.id, "bajarildi", e.target.checked)} /></div>
-                  <p className="text-[11px] mt-1 line-clamp-2" style={{ color: "#687987" }}>{qator.mavzu}</p>
-                  <button onClick={onTest} className="mt-2 text-[11px] font-black" style={{ color: rang }}>O‘qishni boshlash →</button>
-                </>}
-              </div>)}
-              {!reja.some((q) => q.kun === kun) && <div className="text-xs py-3 text-center" style={{ color: "#9AA4AC" }}>Dam olish</div>}
-            </div>
-          </div>)}
-        </div>
-        {sozlash && <div className="flex flex-wrap gap-2 mt-3">
-          <button onClick={yangiQator} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: rang }}>+ Mashg‘ulot qo‘shish</button>
-          <button onClick={() => setReja(rejaTuz(fanlar))} className="px-3 py-2 rounded-xl text-xs font-black border bg-white" style={{ color: rang, borderColor: rang }}>Qayta avtomatik tuzish</button>
-        </div>}
-      </div>}
-  </section>;
-}
-
 function TashkilotsizOquvchiBoshSahifa({ foydalanuvchi, bilimData, rang, onTest, onProfil }) {
   const fanlar = Array.isArray(bilimData?.fanlar) ? bilimData.fanlar : [];
   const urinishlar = Number(bilimData?.otilgan_mavzu || 0);
@@ -3115,7 +2972,6 @@ function TashkilotsizOquvchiBoshSahifa({ foydalanuvchi, bilimData, rang, onTest,
       <button onClick={onProfil} className="mt-3 px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: rang }}>Ulanish kodini kiritish</button>
     </section>
 
-    <TaxminiyHaftalikReja foydalanuvchi={foydalanuvchi} bilimData={bilimData} rang={rang} onTest={onTest} />
 
     <div className="grid md:grid-cols-2 gap-3 mt-4">
       <button onClick={onTest} className="rounded-2xl border bg-white p-4 text-left" style={{ borderColor: "#E5E1D8" }}><div className="text-xl">🧠</div><div className="font-black mt-2" style={{ color: "#21384C" }}>Boshlang‘ich diagnostika</div><div className="text-xs mt-1" style={{ color: "#7A8794" }}>Sinf va fan bo‘yicha qisqa test. Natijadan zaif mavzular aniqlanadi.</div></button>
@@ -11564,7 +11420,9 @@ function faolMuassasaniTanla({ muassasalar = [], tanlanganKalit = "", kerakliTur
     || null;
 }
 
-function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
+function OqituvchiBoshEkran({ token, maktabId, onOrtga, readOnly = false }) {
+  const personalPlannerRef = useRef(null);
+  const [personalGrade, setPersonalGrade] = useState(null);
   const [malumot, setMalumot] = useState(null);
   const [xato, setXato] = useState("");
   const [tasdiqlandi, setTasdiqlandi] = useState(true); // jadvalni admin belgilaydi; o'qituvchi faqat ko'radi
@@ -11573,14 +11431,21 @@ function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
   const kunNomlari = ["", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
 
   useEffect(() => {
-    setMalumot(null); setXato(""); setTasdiqlandi(true);
-    fetch(`${API_BASE}/api/oqituvchi/bosh_ekran?token=${encodeURIComponent(token)}${maktabId ? `&maktab_id=${maktabId}` : ""}`)
-      .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.detail || "O‘qituvchi ma’lumoti yuklanmadi"); return d; })
+    const controller = new AbortController();
+    let active = true;
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 20000);
+    setMalumot(null); setXato(""); setTasdiqlandi(true); setPersonalGrade(null);
+    fetch(`${API_BASE}/api/oqituvchi/bosh_ekran?token=${encodeURIComponent(token)}${maktabId ? `&maktab_id=${encodeURIComponent(maktabId)}` : ""}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : d.detail?.message || "O‘qituvchi ma’lumoti yuklanmadi"); return d; })
       .then((d) => {
+        if (!active) return;
         setMalumot(d);
         setTanlanganKunlar([...new Set((d.hafta || []).map((x) => Number(x.hafta_kuni)))].sort());
       })
-      .catch((e) => setXato(e.message));
+      .catch((e) => { if (active) setXato(timedOut ? "Jadvalni olish cho‘zildi. Ortga qaytib, yana oching." : e.message); })
+      .finally(() => clearTimeout(timeout));
+    return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [token, maktabId]);
 
   const kunniAlmashtir = (kun) => setTanlanganKunlar((old) => old.includes(kun) ? old.filter((x) => x !== kun) : [...old, kun].sort());
@@ -11616,7 +11481,15 @@ function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
   return (
     <div className="px-5 pt-6 pb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4"><div><button onClick={onOrtga} className="text-sm font-semibold mb-2" style={{ color: "#5A5648" }}>← Dars guruhlarim</button><h1 className="text-2xl font-bold" style={{ color: "#21384C" }}>O‘qituvchining Ta’lim maydoni</h1><p className="text-sm" style={{ color: "#7A8794" }}>{malumot.maktab?.nomi} · {malumot.kun_nomi} · {malumot.hozir}</p></div><span className="rounded-xl px-4 py-2.5 text-sm font-bold border bg-white" style={{ borderColor: "#DCE6EA", color: "#1B4B7A" }}>Admin belgilagan jadval</span></div>
-      {hozirgi ? <section className="rounded-3xl p-5 mb-4 text-white" style={{ background: "linear-gradient(135deg,#1B4B7A,#0D7A77)" }}><span className="text-xs font-bold">{malumot.bugun?.hozirgi ? "HOZIRGI DARS" : "KEYINGI DARS"}</span><h2 className="text-2xl font-bold mt-1">{hozirgi.sinf_nomi} · {hozirgi.fan}</h2><p className="text-sm opacity-80">{hozirgi.boshlanish_vaqti}–{hozirgi.tugash_vaqti} · {hozirgi.xona || "Xona ko‘rsatilmagan"}</p><div className="mt-4 rounded-2xl p-4 bg-white/10"><small className="block opacity-70">MAVZU</small><b>{hozirgi.mavzu || "Taqvim-mavzu rejasida mavzu biriktirilmagan"}</b></div><div className="flex flex-wrap gap-2 mt-4"><button className="rounded-xl bg-white px-4 py-2.5 font-bold" style={{ color: "#1B4B7A" }}>Sinf maydonini ochish</button>{rahbarSinfmi(hozirgi.sinf_id) && <button onClick={() => setDavomatSinfi({ id: hozirgi.sinf_id })} className="rounded-xl px-4 py-2.5 font-bold border border-white/40">Davomat</button>}</div></section> : <div className="rounded-2xl border bg-white p-5 mb-4"><b>Hozir dars yo‘q</b><p className="text-sm text-gray-500">Keyingi dars jadvaldan avtomatik chiqadi.</p></div>}
+      <div ref={personalPlannerRef} style={{ scrollMarginTop: "calc(var(--samtm-portal-top, 64px) + 16px)" }}>
+        <React.Suspense fallback={<OgirBolimYuklanmoqda />}>
+          <StudentScheduleWorkspace token={token} apiBase={API_BASE} mode="teacher" schoolId={maktabId} compactTitle readOnly={readOnly}
+            student={{ full_name: malumot.oqituvchi?.full_name }}
+            initialGrade={personalGrade || Number(String((malumot.rahbar_sinflar || [])[0]?.sinf_nomi || hozirgi?.sinf_nomi || "").match(/(?:^|\D)(1[01]|[1-9])(?:\D|$)/)?.[1]) || undefined}
+          />
+        </React.Suspense>
+      </div>
+      {hozirgi ? <section className="rounded-3xl p-5 mb-4 text-white" style={{ background: "linear-gradient(135deg,#1B4B7A,#0D7A77)" }}><span className="text-xs font-bold">{malumot.bugun?.hozirgi ? "HOZIRGI DARS" : "KEYINGI DARS"}</span><h2 className="text-2xl font-bold mt-1">{hozirgi.sinf_nomi} · {hozirgi.fan}</h2><p className="text-sm opacity-80">{hozirgi.boshlanish_vaqti}–{hozirgi.tugash_vaqti} · {hozirgi.xona || "Xona ko‘rsatilmagan"}</p><div className="mt-4 rounded-2xl p-4 bg-white/10"><small className="block opacity-70">MAVZU</small><b>{hozirgi.mavzu || "Taqvim-mavzu rejasida mavzu biriktirilmagan"}</b></div><div className="flex flex-wrap gap-2 mt-4"><button onClick={() => { const nextGrade = Number(String(hozirgi.sinf_nomi || "").match(/(?:^|\D)(1[01]|[1-9])(?:\D|$)/)?.[1]); if (nextGrade) setPersonalGrade(nextGrade); personalPlannerRef.current?.scrollIntoView({ behavior: "auto", block: "start" }); }} className="rounded-xl bg-white px-4 py-2.5 font-bold" style={{ color: "#1B4B7A" }}>Sinf rejasini moslash</button>{rahbarSinfmi(hozirgi.sinf_id) && <button onClick={() => setDavomatSinfi({ id: hozirgi.sinf_id })} className="rounded-xl px-4 py-2.5 font-bold border border-white/40">Davomat</button>}</div></section> : <div className="rounded-2xl border bg-white p-5 mb-4"><b>Hozir dars yo‘q</b><p className="text-sm text-gray-500">Keyingi dars jadvaldan avtomatik chiqadi.</p></div>}
       <div className="grid lg:grid-cols-2 gap-4">
         <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}><div className="flex justify-between mb-3"><h2 className="font-bold">Bugungi jadvalim</h2><span className="text-xs font-semibold">{malumot.bugun?.darslar?.length || 0} dars</span></div><div className="space-y-2">{(malumot.bugun?.darslar || []).map((d) => <div key={d.slot_id} className="rounded-xl p-3 flex justify-between gap-3" style={{ backgroundColor: "#F7F5F0" }}><div><b className="text-sm">{d.boshlanish_vaqti} · {d.sinf_nomi} · {d.fan}</b><small className="block" style={{ color: "#7A8794" }}>{d.xona || "Xona yo‘q"} · {d.mavzu || "Mavzu biriktirilmagan"}</small></div><span className="text-xs">{d.smena}-smena</span></div>)}</div></section>
         <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}><div className="flex justify-between mb-3"><h2 className="font-bold">Ertangi darslar</h2><span className="text-xs font-semibold">{malumot.ertaga?.kun_nomi}</span></div><div className="space-y-2">{(malumot.ertaga?.darslar || []).map((d) => <div key={d.slot_id} className="rounded-xl p-3" style={{ backgroundColor: "#EAF1F7" }}><b className="text-sm">{d.boshlanish_vaqti} · {d.sinf_nomi} · {d.fan}</b><small className="block" style={{ color: "#7A8794" }}>{d.mavzu || "Mavzu rejasidan kutilmoqda"}</small></div>)}</div></section>
@@ -11627,7 +11500,7 @@ function OqituvchiBoshEkran({ token, maktabId, onOrtga }) {
   );
 }
 
-function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef }) {
+function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef, readOnly = false }) {
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
   const [togarakKvota, setTogarakKvota] = useState(null);
@@ -12103,7 +11976,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   const aktivMaktabId = aktivMuassasa?.turi === "maktab" ? aktivMuassasa.muassasa_id : foydalanuvchi?.maktab_id;
 
   if (korinish === "oqituvchi_bosh_ekran") {
-    return <OqituvchiBoshEkran token={token} maktabId={aktivMaktabId} onOrtga={() => setKorinish("togarak")} />;
+    return <OqituvchiBoshEkran token={token} maktabId={aktivMaktabId} readOnly={readOnly} onOrtga={() => setKorinish("togarak")} />;
   }
 
   if (korinish === "maktab_rahbariyat" || korinish === "maktab_workspace") {
@@ -14913,6 +14786,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
 }
 
 function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false }) {
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [profileReload, setProfileReload] = useState(0);
   const [educationLoadError, setEducationLoadError] = useState("");
@@ -15236,7 +15110,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
         }
       `}</style>
       <style>{`
-        .samtm-top-switch{position:fixed;left:0;right:0;top:var(--samtm-top-offset,0px);z-index:2147483100;display:grid;grid-template-columns:1fr 1fr auto;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
+        .samtm-top-switch{position:fixed;left:0;right:0;top:var(--samtm-top-offset,0px);z-index:2147483100;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
@@ -15268,10 +15142,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
         <div className="samtm-top-spacer" aria-hidden="true" />
         <div className="samtm-top-switch" ref={topSwitchRef}>
           <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title="Ta’lim maydoni — turgan joyingiz saqlanadi">🧭 Ta’lim maydoni</button>
+          <KabutarAssistantButton open={assistantOpen} onClick={() => setAssistantOpen(value => !value)} />
           <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title="Kabutar — suhbatlar"><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
           {!readOnly && <button type="button" className="kb-account-top-button" aria-label="Akkaunt va kirish sozlamalari" title="Akkaunt va kirish" onClick={() => setAccountOpen(true)}><User size={18} /></button>}
         </div>
       </>}
+      <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} />
       {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} />}
       {kabutarYuklangan && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
         <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>}>
@@ -15330,6 +15206,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
         ishJoyiAniqlandi ? <OqituvchiTab
           token={token}
+          readOnly={readOnly}
           foydalanuvchi={foydalanuvchi}
           boshlanishKorinishi={oqituvchiBoshlanishKorinishi}
           birInstitutAvtoOchishRef={birInstitutAvtoOchishRef}
@@ -15350,6 +15227,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
             token={token}
             student={foydalanuvchi}
             apiBase={API_BASE}
+            readOnly={readOnly}
             onOpenTest={(topic) => {
               setTalimYoliTestNishoni({ ...topic, nonce: Date.now() });
               setTab("test");
