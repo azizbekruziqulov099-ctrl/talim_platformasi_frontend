@@ -179,6 +179,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [schoolNumber, setSchoolNumber] = useState("");
+  const [schoolKind, setSchoolKind] = useState("oddiy");
   const [region, setRegion] = useState("");
   const [district, setDistrict] = useState("");
   const [shiftCount, setShiftCount] = useState(1);
@@ -401,7 +402,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token, name: name.trim() || `${schoolNumber.trim()}-maktab`, school_number: schoolNumber.trim(), region, district,
-          shift_count: shiftCount, director_user_id: director?.user_id || null,
+          maktab_turi: schoolKind, shift_count: shiftCount, director_user_id: director?.user_id || null,
           buildings: skipBuildings ? [] : buildings.map((building) => ({
             key: building.key,
             name: building.name.trim(),
@@ -436,6 +437,10 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     <div className="grid grid-cols-4 gap-2 mb-5">{[1, 2, 3, 4].map((number) => <div key={number} className="h-1.5 rounded-full" style={{ background: number <= step ? "#C89B3C" : "#E9E4D8" }} />)}</div>
 
     {step === 1 && <div className="space-y-3">
+      <label className="block text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab turi
+        <select value={schoolKind} onChange={(event) => setSchoolKind(event.target.value)} className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }}><option value="oddiy">Umumta’lim maktabi</option><option value="harbiy">Harbiy maktab</option></select>
+      </label>
+      {schoolKind === "harbiy" && <p className="text-xs rounded-xl p-3" style={{ background: "#EEF7F4", color: "#22594F" }}>Kun tartibini maktab ochilgach rahbariyat bosh sahifasida kiriting. Ota-onalar va o‘quvchilar tasdiqlangan vaqtlarni shu yerda ko‘radi.</p>}
       <div className="grid md:grid-cols-2 gap-3">
         <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab nomi · ixtiyoriy<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Masalan: Alisher Navoiy nomidagi / Prezident ixtisoslashgan" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
         <label className="text-xs font-semibold" style={{ color: "#5A5648" }}>Maktab raqami *<input value={schoolNumber} inputMode="numeric" onChange={(event) => setSchoolNumber(event.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="Masalan: 21" className="block w-full mt-1.5 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} /></label>
@@ -536,7 +541,7 @@ export default function AdminSchoolWizard({ token, apiBase, regions, districtsBy
     </div>}
 
     {step === 4 && <div className="space-y-4">
-      <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{name.trim() ? `${schoolNumber.trim()}-sonli ${name.trim()}` : `${schoolNumber.trim()}-maktab`}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
+      <div className="rounded-2xl p-4" style={{ background: "#F7F5F0" }}><h3 className="font-bold" style={{ color: "#21384C" }}>{name.trim() ? `${schoolNumber.trim()}-sonli ${name.trim()}` : `${schoolNumber.trim()}-maktab`}</h3><p className="text-xs mt-1" style={{ color: "#5A5648" }}>{region}, {district} · {schoolKind === "harbiy" ? "Harbiy maktab" : "Umumta’lim maktabi"} · {shiftCount} smenali · {director ? `Direktor: ${director.full_name}` : "Direktor keyin belgilanadi"}</p></div>
       <div className="grid grid-cols-3 gap-2"><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{skipBuildings ? 0 : buildings.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>bino</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#F1F7FB" }}><b className="block text-lg" style={{ color: "#1B4B7A" }}>{roomPool.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>xona</span></div><div className="rounded-xl p-3 text-center" style={{ background: "#FDF3E0" }}><b className="block text-lg" style={{ color: "#8A5A1C" }}>{classes.length}</b><span className="text-xs" style={{ color: "#5A5648" }}>sinf</span></div></div>
       {!skipBuildings && buildings.map((building) => <div key={building.key} className="rounded-xl border px-3.5 py-3" style={{ borderColor: "#E5E1D8" }}><b className="text-sm">{building.name}</b><p className="text-xs mt-1" style={{ color: "#8A8578" }}>{building.floors} qavat · {building.rooms.length} xona</p><p className="text-[11px] mt-1" style={{ color: "#5A5648" }}>{Array.from({ length: Number(building.floors) || 1 }, (_, floorIndex) => `${floorIndex + 1}-qavat: ${building.rooms.filter((room) => room.floor === floorIndex + 1).length} xona`).join(" · ")}</p></div>)}
       <div className="rounded-xl border max-h-72 overflow-auto" style={{ borderColor: "#E5E1D8" }}>{sortedClasses(classes).map((item) => { const building = buildingByKey.get(item.buildingKey); return <div key={item.key} className="px-3.5 py-2.5 border-b last:border-b-0 flex items-center gap-3" style={{ borderColor: "#F0ECE3" }}><b className="w-12 text-sm">{classNameOf(item)}</b><span className="text-xs flex-1" style={{ color: "#8A8578" }}>{languageLabel(item.language)} · {item.shift}-smena · {building ? `${building.name}, ${item.roomNumber || "xonasiz"}` : "bino/xonasiz"}</span><span className="text-[11px]" style={{ color: "#5A5648" }}>{item.leader?.full_name || "rahbarsiz"}</span></div>; })}</div>

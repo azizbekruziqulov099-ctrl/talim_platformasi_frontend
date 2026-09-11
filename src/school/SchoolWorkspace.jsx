@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 import KabutarPanel from "../kabutar/KabutarPanel.jsx";
+import MilitaryRoutine from "./MilitaryRoutine.jsx";
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
 const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.7.2-GRID-PARTIAL-GROUP-CLASS";
@@ -10714,6 +10715,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </div>
           </Card>
 
+          {maktabId && <MilitaryRoutine token={token} apiBase={apiBase} schoolId={maktabId} />}
           {!adminPreview && <DirectorHome token={token} apiBase={apiBase} maktabId={maktabId} onOpenTimetable={() => setSmartOpen(4)} onOpenRequests={() => setSmartOpen(45)} onOpenStates={null} onMarkAttendance={null}/>}
           {classEditNotice && <div className="mb-4"><SmartNotice tone={classEditNotice.tone}>{classEditNotice.text}</SmartNotice></div>}
           {loadWarnings.length > 0 && !loading && <div className="mb-4 space-y-2">{loadWarnings.slice(0,5).map((warning, index)=><SmartNotice key={`${warning}-${index}`} tone="warning">{warning}</SmartNotice>)}</div>}

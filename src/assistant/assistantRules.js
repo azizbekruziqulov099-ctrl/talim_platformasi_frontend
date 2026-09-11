@@ -88,3 +88,41 @@ export function assistantImageSource(value, apiBase) {
   if (/^\d+(?:-\d+){5,9}$/.test(raw)) return `${apiBase}/api/rasm/${encodeURIComponent(raw)}`;
   return null;
 }
+
+
+export function assistantNextSuggestions(draft, conversation = {}, catalog = {}) {
+  // Buttons are suggestions only. The server resolves every choice against real topics.
+  const supplied = Array.isArray(conversation.suggestions) ? conversation.suggestions : [];
+  const clean = supplied.filter((item) => item && typeof item.message === "string" && item.message.trim())
+    .slice(0, 11).map((item) => ({ label: String(item.label || item.message).slice(0, 100), message: item.message.slice(0, 2000) }));
+  if (clean.length) return [...new Map(clean.map((item) => [item.message, item])).values()];
+  if (conversation.nextField === "grade") {
+    return Array.from({ length: 11 }, (_, i) => ({ label: `${i + 1}-sinf`, message: `${i + 1}-sinf` }));
+  }
+  if (conversation.nextField === "question_count") {
+    return [10, 20, 30, 50].map((count) => ({ label: `${count} ta savol`, message: `${count} ta savol` }));
+  }
+  if (conversation.nextField === "minutes") {
+    return [15, 30, 45, 60].map((minutes) => ({ label: `${minutes} daqiqa`, message: `${minutes} daqiqa` }));
+  }
+  if (conversation.nextField === "difficulty") {
+    return [{ label: "Oson", message: "Oson savollar" }, { label: "O‘rtacha", message: "O‘rtacha qiyinlik" }, { label: "Aralash", message: "Qiyinligi aralash bo‘lsin" }];
+  }
+  if (conversation.nextField === "subject" && draft.grade && catalog.subjects?.length) {
+    return catalog.subjects.slice(0, 8).map((subject) => ({ label: String(subject.name), message: `${draft.grade}-sinf ${subject.name} mavzularini topamiz` }));
+  }
+  return [
+    { label: "Bilimimni sinab ko‘rmoqchiman", message: "Bilimimni test bilan sinab ko‘rmoqchiman" },
+    { label: "Mavzu va test topish", message: "Menga mavzu va unga mos test topishga yordam bering" },
+    { label: "PDF test tayyorlash", message: "Chop etish uchun PDF test tayyorlamoqchiman" },
+  ];
+}
+
+export function assistantResultSummary(result) {
+  const correct = Number(result?.correct);
+  const total = Number(result?.total);
+  if (!Number.isFinite(correct) || !Number.isFinite(total) || total <= 0 || correct < 0 || correct > total) return "Javoblaringizni quyida birga ko‘rib chiqishingiz mumkin.";
+  if (correct === total) return "Bu testdagi barcha savollarga to‘g‘ri javob berdingiz. Keyingi mashqda qiyinroq savollarni sinab ko‘rishingiz mumkin.";
+  const remaining = total - correct;
+  return `${remaining} ta savolni qayta ko‘rib chiqamiz. Quyida javoblaringizni tekshiring, keyin shu mavzulardan yana mashq qilishingiz mumkin.`;
+}

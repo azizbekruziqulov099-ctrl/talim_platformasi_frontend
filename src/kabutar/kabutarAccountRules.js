@@ -1,5 +1,9 @@
-// REV28: ID search accepts 6–10 digits; account-local presentation settings; server permissions still govern contacts.
-export const DEFAULT_KABUTAR_SETTINGS = Object.freeze({ textSize: 15, enterToSend: false, showPreviews: true });
+// Presentation preferences never change the server's contact or message permissions.
+// Keep the same storage key so existing saved contacts and reading preferences survive updates.
+export const DEFAULT_KABUTAR_SETTINGS = Object.freeze({
+  textSize: 15, enterToSend: false, showPreviews: true,
+  messageLayout: "classic", canvasShape: "keyboard", canvasHeight: 30, groupThreads: true,
+});
 
 export function normalizeKabutarId(value) {
   const compact = String(value || "").trim().replace(/^KB[\s-]*/i, "");
@@ -11,6 +15,10 @@ export function normalizeSettings(value) {
     textSize: [15, 17, 19].includes(Number(value?.textSize)) ? Number(value.textSize) : 15,
     enterToSend: value?.enterToSend === true,
     showPreviews: value?.showPreviews !== false,
+    messageLayout: value?.messageLayout === "canvas" ? "canvas" : "classic",
+    canvasShape: ["keyboard", "grid", "heart", "crescent", "edges"].includes(value?.canvasShape) ? value.canvasShape : "keyboard",
+    canvasHeight: [20, 30, 40].includes(Number(value?.canvasHeight)) ? Number(value.canvasHeight) : 30,
+    groupThreads: value?.groupThreads !== false,
   };
 }
 
@@ -91,9 +99,15 @@ export async function kabutarRequest(apiBase, path, token, options = {}) {
     const target = `${String(apiBase || "").replace(/\/$/, "")}${path}${authInHeader ? "" : `${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`}`;
     const response = await fetch(target, { ...init, headers: authInHeader ? { ...init.headers, Authorization: `Bearer ${token}` } : init.headers, signal: controller.signal });
     let data;
-    try { data = await response.json(); } catch { throw new Error("Server javobi o‘qilmadi. Qayta urinib ko‘ring."); }
+    try { data = await response.json(); } catch {
+      const error = new Error("Server javobi o‘qilmadi. Qayta urinib ko‘ring.");
+      error.status = response.status;
+      throw error;
+    }
     if (!response.ok || data?.detail) {
-      throw new Error(typeof data?.detail === "string" ? data.detail : "Ma’lumot olinmadi. Qayta urinib ko‘ring.");
+      const error = new Error(typeof data?.detail === "string" ? data.detail : "Ma’lumot olinmadi. Qayta urinib ko‘ring.");
+      error.status = response.status;
+      throw error;
     }
     return data;
   } catch (error) {

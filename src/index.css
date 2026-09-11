@@ -2156,3 +2156,12 @@ button {
     flex-direction: column-reverse;
   }
 }
+
+/* REV46: calmer navigation with readable labels on compact screens. */
+.premium-side-link { min-height:46px; font-size:12px; font-weight:650; }
+.premium-topbar { min-height:80px; }
+.premium-topbar h1 { line-height:1.2; font-weight:650; }
+.premium-side-link > span:last-child { min-width:0; overflow-wrap:anywhere; }
+.premium-page-stage { scroll-margin-top:160px; }
+.premium-page-stage :is(table,pre) { max-width:100%; }
+@media (max-width:540px) { .premium-topbar { gap:12px; padding-block:14px; } .premium-topbar h1 { font-size:23px; } .premium-role-pill { font-size:10px; } }

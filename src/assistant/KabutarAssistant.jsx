@@ -1,32 +1,33 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
-import { Check, ChevronLeft, ChevronRight, Download, Maximize2, Minimize2, Search, Send, Square, Volume2, X } from "lucide-react";
+import { BookOpen, Check, ChevronLeft, ChevronRight, Download, FileText, Maximize2, MessageCircle, Minimize2, Search, Send, Square, Volume2, X } from "lucide-react";
 import { displayTextKeepingLatex, latexSegments } from "../test/latexTextRules.js";
-import { assistantImageSource, assistantRemainingSeconds, assistantSpeechChunks, draftFingerprint,
+import { assistantImageSource, assistantNextSuggestions, assistantRemainingSeconds, assistantResultSummary, assistantSpeechChunks, draftFingerprint,
   formatAssistantTime, initialAssistantDraft, questionOptions, selectTopic, topicTitle } from "./assistantRules.js";
 import "./kabutarAssistant.css";
 
-const INTRO = "Salom! Bazadagi sinf, fan va DTS mavzularidan test topishga yordam beraman. Masalan: «7-sinf, algebra, 2 ta mavzudan 20 ta savol». Tushunarsiz joyini sizdan aniqlashtiraman. Test rejasini siz tasdiqlaganingizdan keyin boshlaymiz.";
+const INTRO = "Salom! Bugun nimani mashq qilamiz? Mavzu topamiz, bilimingizni test bilan tekshiramiz yoki chop etishga qulay PDF tayyorlaymiz. Oddiy yozavering — kerakli joyini birga aniqlaymiz.";
 const DIFFICULTIES = { mixed: "Aralash", easy: "Oson", medium: "O‘rtacha", hard: "Qiyin", advanced: "Murakkab" };
 let messageSequence = 0;
 const messageItem = (role, text) => ({ id: ++messageSequence, role, text: String(text || "") });
 
 export function KabutarRobot({ small = false }) {
   return <svg className={`ka-robot ${small ? "ka-robot-small" : ""}`} viewBox="0 0 56 56" fill="none" aria-hidden="true">
-    <path d="M28 9V5M24 5h8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    <rect x="8" y="12" width="40" height="34" rx="13" fill="currentColor" opacity=".12" />
-    <rect x="12" y="15" width="32" height="26" rx="10" stroke="currentColor" strokeWidth="2.5" />
-    <path d="M6 25v8M50 25v8M22 46v4M34 46v4" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    <rect x="19" y="23" width="5" height="7" rx="2.5" fill="currentColor" />
-    <rect x="32" y="23" width="5" height="7" rx="2.5" fill="currentColor" />
-    <path d="M23 35c3 2 7 2 10 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M28 12V7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    <circle cx="28" cy="6" r="3" fill="#ebb964" />
+    <path d="M8 28H5v8h5m38-8h3v8h-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    <rect x="9" y="13" width="38" height="34" rx="15" fill="#e8f7f5" stroke="currentColor" strokeWidth="2" />
+    <rect x="15" y="21" width="26" height="17" rx="8" fill="currentColor" />
+    <path d="M21 28v3m14-3v3" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+    <path d="M25 34c1.5 1 4.5 1 6 0" stroke="#8bddd0" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M23 44h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".35" />
   </svg>;
 }
 
 export function KabutarAssistantButton({ open, onClick }) {
   return <button type="button" className={`ka-launch ${open ? "is-open" : ""}`} onClick={onClick}
-    aria-expanded={Boolean(open)} aria-controls="kabutar-assistant-panel" title="AI yordamchi">
-    <KabutarRobot small /><span>AI yordamchi</span>
+    aria-expanded={Boolean(open)} aria-controls="kabutar-assistant-panel" aria-label={open ? "Yordamchini yopish" : "AI yordamchi bilan suhbatlashish"} title="AI yordamchi">
+    <KabutarRobot small /><span>Yordamchi</span>
   </button>;
 }
 
@@ -114,6 +115,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
   const [knownTopics, setKnownTopics] = useState({});
   const [filters, setFilters] = useState({ query: "", subject: "", quarter: "" });
   const [choices, setChoices] = useState([]);
+  const [conversation, setConversation] = useState({});
   const [plan, setPlan] = useState(null);
   const [attempt, setAttempt] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -191,7 +193,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
     requests.current.forEach((controller) => controller.abort());
     operation.current = null;
     setMessages([messageItem("assistant", INTRO)]);
-    setDraft(initialAssistantDraft(user)); setInput(""); setChoices([]); setPlan(null);
+    setDraft(initialAssistantDraft(user)); setInput(""); setChoices([]); setPlan(null); setConversation({});
     setAttempt(null); setAnswers({}); setResult(null); setIndex(0); setError(""); setBusy("");
     setRecoveryChecked(false); queuedSaveRef.current = false; savingRef.current = null;
     setCatalog({ topics: [], subjects: [], capabilities: {} }); setKnownTopics({});
@@ -243,7 +245,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
 
   const editDraft = useCallback((patch) => {
     setDraft((current) => typeof patch === "function" ? patch(current) : { ...current, ...patch });
-    setPlan(null); setError("");
+    setPlan(null); setError(""); setConversation({});
   }, []);
   const toggleTopic = useCallback((topic, checked) => {
     setKnownTopics((current) => ({ ...current, [String(topic.topic_code)]: topic }));
@@ -257,10 +259,11 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
     const op = { kind: "plan" }; operation.current = op; setBusy("plan"); setError(""); setPlan(null);
     if (text) { addMessage("user", text); setInput(""); }
     try {
-      const data = await request("/plan", { method: "POST", body: JSON.stringify({ message: text, draft }) });
+      const data = await request("/plan", { method: "POST", body: JSON.stringify({ message: text, draft, context: conversation.context || {} }) });
       if (operation.current !== op) return;
       const nextDraft = { ...draft, ...(data.draft || {}) };
       setDraft(nextDraft); setChoices(data.choices || []);
+      setConversation({ kind: data.conversation_kind, nextField: data.next_field, suggestions: data.suggestions, engine: data.engine, context: data.context });
       if (nextDraft.grade !== draft.grade) setFilters({ query: "", subject: "", quarter: nextDraft.quarter ? String(nextDraft.quarter) : "" });
       else if (nextDraft.quarter !== draft.quarter) setFilters((current) => ({ ...current, quarter: nextDraft.quarter ? String(nextDraft.quarter) : "" }));
       if (data.message) addMessage("assistant", data.message);
@@ -268,7 +271,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
       setKnownTopics((current) => ({ ...current, ...Object.fromEntries(suppliedTopics.map((topic) => [String(topic.topic_code), topic])) }));
       if (data.ready && data.plan_token) {
         setPlan({ token: data.plan_token, summary: data.summary, fingerprint: draftFingerprint(nextDraft) });
-        setTab("plan");
+        // Keep a typed conversation in view; show its confirmation directly below.
       }
     } catch (err) { if (operation.current === op && err.name !== "AbortError") setError(err.message); }
     finally { if (operation.current === op) { operation.current = null; setBusy(""); } }
@@ -288,6 +291,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
     const op = { kind: "recover" }; operation.current = op; setBusy("recover");
     request("/attempt/latest").then((data) => {
       if (!active || operation.current !== op) return;
+      if (data.capabilities) setCatalog((current) => ({ ...current, capabilities: data.capabilities }));
       if (data.attempt) { applyAttempt({ ...data.attempt, capabilities: data.capabilities || data.attempt.capabilities }); addMessage("assistant", "Tugallanmagan testingiz topildi. Saqlangan javoblar bilan davom etishingiz mumkin."); }
       setRecoveryChecked(true);
     }).catch((err) => {
@@ -393,20 +397,37 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
   const summary = plan?.summary || {};
   const questionImage = assistantImageSource(question?.rasm_id, base);
   const close = () => onClose?.();
+  const suggestions = assistantNextSuggestions(draft, conversation, catalog);
+  const engine = conversation.engine || catalog.capabilities?.engine;
+  const interactionDisabled = Boolean(busy) || readOnly || !recoveryChecked;
+  const newConversation = () => {
+    if (attempt && !result) return;
+    voice.stop(); setAttempt(null); setAnswers({}); setResult(null); setPlan(null); setChoices([]);
+    setConversation({}); setTab("chat"); setError(""); setSaveState("");
+    addMessage("assistant", "Yana mashq qilamizmi? Shu mavzularni qoldirishingiz yoki boshqa fan va mavzuni yozishingiz mumkin.");
+  };
+  const confirmation = plan && <div className="ka-confirm">
+    <div className="ka-section-title"><span className="ka-step"><Check size={16} /></span><div><h3>Shu reja bilan boshlaymizmi?</h3><p>Tasdiqlashdan oldin shartlarni tekshiring.</p></div></div>
+    <dl><div><dt>Sinf</dt><dd>{summary.grade || draft.grade}-sinf</dd></div><div><dt>Chorak</dt><dd>{summary.quarter || draft.quarter ? `${summary.quarter || draft.quarter}-chorak` : "Barcha choraklar"}</dd></div><div><dt>Savollar</dt><dd>{summary.question_count || draft.question_count} ta</dd></div><div><dt>Qiyinlik</dt><dd>{DIFFICULTIES[summary.difficulty || draft.difficulty] || "Aralash"}</dd></div><div><dt>Vaqt</dt><dd>{summary.minutes || draft.minutes} daqiqa</dd></div><div><dt>Rejim</dt><dd>{(summary.mode || draft.mode) === "exam" ? "Imtihon" : "Mashq"}</dd></div><div><dt>Bazada mavjud</dt><dd>{summary.available_count ?? "—"} savol</dd></div></dl>
+    <ul>{(summary.topics || selectedTopics).map((topic) => <li key={topic.topic_code}>{topic.subject_name ? `${topic.subject_name}: ` : ""}{topicTitle(topic)}{summary.allocation?.find((entry) => entry.topic_code === topic.topic_code)?.count != null ? ` — ${summary.allocation.find((entry) => entry.topic_code === topic.topic_code).count} savol` : ""}</li>)}</ul>
+    <p className="ka-hint">{selectedSubjects.map(([code, name]) => `${name}: ${summary.subject_points?.[code] ?? draft.subject_points?.[code] ?? 1} ball`).join(" · ")}</p>
+    <button type="button" className="ka-primary ka-full" disabled={interactionDisabled || plan.fingerprint !== draftFingerprint(draft)} onClick={start}>{busy === "create" ? "Test tayyorlanmoqda…" : "Tasdiqlayman — testni boshlash"}</button>
+    {tab === "chat" && <button type="button" className="ka-link" onClick={() => setTab("plan")}>Shartlarni o‘zgartirish</button>}
+  </div>;
 
   if (!open || !token) return null;
   return <section ref={panelRef} id="kabutar-assistant-panel" className={`ka-panel ${wide ? "ka-wide" : ""}`}
     role="dialog" aria-modal="false" aria-labelledby="ka-title">
     <header className="ka-header">
       <span className="ka-avatar"><KabutarRobot /></span>
-      <div><h2 id="ka-title">Kabutar yordamchi</h2><p>Sinf, mavzu va testlar yoningizda</p></div>
+      <div><h2 id="ka-title">Sizning yordamchingiz</h2><p><span className="ka-presence-dot" />{engine === "guided" ? "Bosqichma-bosqich yordam" : engine === "assisted" ? "Suhbat · mavzu · bilim" : "Birga topamiz, birga mashq qilamiz"}</p></div>
       <button type="button" className="ka-icon-button ka-expand" aria-label={wide ? "Kichraytirish" : "Kengaytirish"} onClick={() => setWide((current) => !current)}>{wide ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button>
       <button ref={closeRef} type="button" className="ka-icon-button" onClick={close} aria-label="Yordamchini yopish; suhbat saqlanadi"><X size={21} /></button>
     </header>
     {readOnly && <p className="ka-readonly">Ko‘rish rejimi: bu profil nomidan test yaratish yoki javob saqlash o‘chirilgan.</p>}
     <nav className="ka-tabs" aria-label="Yordamchi bo‘limlari">
-      <button type="button" aria-pressed={tab === "chat"} onClick={() => setTab("chat")}>Suhbat</button>
-      <button type="button" aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>Test rejasi <span>{draft.topic_codes?.length || 0}</span></button>
+      <button type="button" aria-pressed={tab === "chat"} onClick={() => setTab("chat")}><MessageCircle size={15} />Suhbat</button>
+      <button type="button" aria-pressed={tab === "plan"} onClick={() => setTab("plan")}><BookOpen size={15} />Test rejasi <span>{draft.topic_codes?.length || 0}</span></button>
       {attempt && <button type="button" aria-pressed={tab === "attempt"} onClick={() => setTab("attempt")}>{result ? "Natija" : "Test"}{!result && <span>{formatAssistantTime(seconds)}</span>}</button>}
     </nav>
     {!recoveryChecked && !readOnly && <div className="ka-recovery" role="status">{busy === "recover" ? "Saqlangan test tekshirilmoqda…" : <>Oldingi testni tekshirish uchun <button className="ka-link" type="button" onClick={() => { setError(""); setRecoveryRetry((current) => current + 1); }}>qayta urinib ko‘ring</button>.</>}</div>}
@@ -427,18 +448,20 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
           <button type="button" className="ka-primary" disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={() => ask("")}>Tanlanganlar bilan davom etish</button>
         </div>}
         {busy === "plan" && <p className="ka-status" role="status">So‘rov va bazadagi mavzular tekshirilmoqda…</p>}
-        {!attempt && messages.length === 1 && <div className="ka-suggestions">
-          {["Sinf va mavzu tanlash", "Aralash test tuzish", "Imtihon tayyorlash"].map((label, item) => <button type="button" key={label} onClick={() => { if (item === 2) editDraft({ mode: "exam" }); setTab("plan"); }}>{label}<ChevronRight size={16} /></button>)}
+        {!attempt && !plan && !choices.length && <div className="ka-suggestions" aria-label="Davom etish uchun tanlang">
+          {suggestions.map((item) => <button type="button" key={item.message} disabled={interactionDisabled} onClick={() => ask(item.message)}>{item.label}<ChevronRight size={15} /></button>)}
+          <button type="button" className="ka-browse" disabled={interactionDisabled} onClick={() => setTab("plan")}><Search size={15} />Mavzularni ro‘yxatdan tanlash</button>
         </div>}
-        {attempt && <div className="ka-note">{result ? "Test tugadi. Natijani ko‘rishingiz yoki yangi reja tuzishingiz mumkin." : "Testingiz davom etmoqda. Yordamchini yopish vaqtni to‘xtatmaydi."}<button type="button" className="ka-link" onClick={() => setTab("attempt")}>{result ? "Natijaga o‘tish" : "Testga qaytish"}</button></div>}
+        {!attempt && confirmation}
+        {attempt && <div className="ka-note">{result ? "Test tugadi. Natijani ko‘rishingiz yoki yangi reja tuzishingiz mumkin." : "Testingiz davom etmoqda. Yordamchini yopish vaqtni to‘xtatmaydi."}<button type="button" className="ka-link" onClick={() => setTab("attempt")}>{result ? "Natijaga o‘tish" : "Testga qaytish"}</button>{result && <button type="button" className="ka-primary" onClick={newConversation}>Yangi suhbat va mashq</button>}</div>}
       </div>
       <form className="ka-compose" onSubmit={(event) => { event.preventDefault(); if (input.trim()) ask(); }}>
         <label className="ka-sr-only" htmlFor="ka-message-input">Yordamchiga yozing</label>
-        <textarea id="ka-message-input" value={input} rows={2} maxLength={2000} disabled={Boolean(busy) || Boolean(attempt) || readOnly || !recoveryChecked}
-          placeholder={attempt ? "Avval joriy testni yakunlang" : "Qaysi sinf, fan va mavzulardan test kerak?"} onChange={(event) => setInput(event.target.value)}
+        <textarea id="ka-message-input" value={input} rows={1} maxLength={2000} disabled={Boolean(busy) || Boolean(attempt) || readOnly || !recoveryChecked}
+          placeholder={attempt ? (result ? "Yangi suhbat uchun quyidagi tugmani bosing" : "Testingiz davom etmoqda") : "Yozing… Masalan: kasrlarni mashq qilmoqchiman"} onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (input.trim()) ask(); } }} />
         <button type="submit" className="ka-send" aria-label="Xabarni yuborish" disabled={!input.trim() || Boolean(busy) || Boolean(attempt) || readOnly || !recoveryChecked}><Send size={19} /></button>
-        <small>Noaniq mavzuni o‘zim tanlamayman — sizdan so‘rayman.</small>
+        <small>{engine === "guided" ? "Hozir tayyor savollar va tanlovlar bilan yordam beraman." : "Mavzu noaniq bo‘lsa, birga aniqlashtiramiz."} Shift + Enter — yangi qator.</small>
       </form>
     </>}
     {tab === "plan" && <div className="ka-body">
@@ -468,13 +491,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
         <p className="ka-hint">{draft.mode === "exam" ? "Imtihon vaqti tugaganda javoblar topshiriladi. Natija yakunda ochiladi." : "Mashqda shoshilmasdan ishlaysiz. Javoblar va natija yakunda ochiladi."}</p>
         {selectedSubjects.length > 0 && <details className="ka-details"><summary>Fanlar bo‘yicha ball</summary><p>Har bir to‘g‘ri javob uchun beriladigan ball.</p><div className="ka-fields">{selectedSubjects.map(([code, name]) => <label key={code}>{name}<input type="number" min="0.1" max="10" step="0.1" value={draft.subject_points?.[code] ?? 1} disabled={Boolean(busy) || readOnly || !recoveryChecked} onChange={(event) => editDraft({ subject_points: { ...draft.subject_points, [code]: Number(event.target.value) } })} /></label>)}</div></details>}
         <button type="button" className="ka-primary ka-full" disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={() => ask("")}>{busy === "plan" ? "Tekshirilmoqda…" : "Rejani tekshirish va ko‘rish"}<ChevronRight size={18} /></button>
-        {plan && <div className="ka-confirm">
-          <div className="ka-section-title"><span className="ka-step"><Check size={16} /></span><div><h3>Shu reja bilan boshlaymizmi?</h3><p>Tasdiqlashdan oldin shartlarni tekshiring.</p></div></div>
-          <dl><div><dt>Sinf</dt><dd>{summary.grade || draft.grade}-sinf</dd></div><div><dt>Chorak</dt><dd>{summary.quarter || draft.quarter ? `${summary.quarter || draft.quarter}-chorak` : "Barcha choraklar"}</dd></div><div><dt>Savollar</dt><dd>{summary.question_count || draft.question_count} ta</dd></div><div><dt>Qiyinlik</dt><dd>{DIFFICULTIES[summary.difficulty || draft.difficulty] || "Aralash"}</dd></div><div><dt>Vaqt</dt><dd>{summary.minutes || draft.minutes} daqiqa</dd></div><div><dt>Rejim</dt><dd>{(summary.mode || draft.mode) === "exam" ? "Imtihon" : "Mashq"}</dd></div><div><dt>Bazada mavjud</dt><dd>{summary.available_count ?? "—"} savol</dd></div></dl>
-          <ul>{(summary.topics || selectedTopics).map((topic) => <li key={topic.topic_code}>{topic.subject_name ? `${topic.subject_name}: ` : ""}{topicTitle(topic)}{summary.allocation?.find((entry) => entry.topic_code === topic.topic_code)?.count != null ? ` — ${summary.allocation.find((entry) => entry.topic_code === topic.topic_code).count} savol` : ""}</li>)}</ul>
-          <p className="ka-hint">{selectedSubjects.map(([code, name]) => `${name}: ${summary.subject_points?.[code] ?? draft.subject_points?.[code] ?? 1} ball`).join(" · ")}</p>
-          <button type="button" className="ka-primary ka-full" disabled={Boolean(busy) || readOnly || !recoveryChecked || plan.fingerprint !== draftFingerprint(draft)} onClick={start}>{busy === "create" ? "Test tayyorlanmoqda…" : "Tasdiqlayman — testni boshlash"}</button>
-        </div>}
+        {confirmation}
       </>}
     </div>}
     {tab === "attempt" && attempt && <div className="ka-body">
@@ -493,16 +510,21 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
         {examExpired && <div className="ka-note">Imtihon vaqti tugadi. {busy === "submit" ? "Natija olinmoqda…" : "Natijani olish uchun yakunlash tugmasini bosing."}</div>}
         {!finishConfirm && !examExpired ? <button type="button" className="ka-primary ka-full" disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={() => setFinishConfirm(true)}>Testni yakunlash</button> : <div className="ka-confirm"><h3>{examExpired ? "Natijani olish" : "Testni topshirasizmi?"}</h3><p>{questions.length - answered ? `${questions.length - answered} ta savol javobsiz qoldi. ` : "Barcha savollarga javob berdingiz. "}Topshirilgach javoblarni o‘zgartirib bo‘lmaydi.</p><div className="ka-actions"><button type="button" className="ka-primary" disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={submit}>{busy === "submit" ? "Tekshirilmoqda…" : "Yakunlash va natija"}</button>{!examExpired && <button type="button" className="ka-secondary" disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={() => setFinishConfirm(false)}>Davom etish</button>}</div></div>}
       </> : <>
-        <div className="ka-result"><span className="ka-result-icon"><Check size={28} /></span><span className="ka-eyebrow">TEST YAKUNLANDI</span><h3>{result.score ?? 0} <small>/ {result.max_score ?? questions.length} ball</small></h3><p>{result.correct ?? 0}/{result.total ?? questions.length} ta to‘g‘ri javob</p>{result.message && <p className="ka-hint">{result.message}</p>}</div>
+        <div className="ka-result"><span className="ka-result-icon"><Check size={28} /></span><span className="ka-eyebrow">TEST YAKUNLANDI</span><h3>{result.score ?? 0} <small>/ {result.max_score ?? questions.length} ball</small></h3><p>{result.correct ?? 0}/{result.total ?? questions.length} ta to‘g‘ri javob</p><p className="ka-result-guidance">{assistantResultSummary(result)}</p>{result.message && <p className="ka-hint">{result.message}</p>}</div>
         {result.subjects?.length > 0 && <div className="ka-subject-results"><table><caption>Fanlar bo‘yicha natija</caption><thead><tr><th>Fan</th><th>To‘g‘ri</th><th>Ball</th></tr></thead><tbody>{result.subjects.map((subject, number) => <tr key={subject.subject_code || number}><td>{subject.subject_name}</td><td>{subject.correct}/{subject.total}</td><td>{Number(subject.score || 0).toFixed(1)} / {Number(subject.max_score || 0).toFixed(1)}</td></tr>)}</tbody></table></div>}
         <div className="ka-review">{(result.review || []).map((item, number) => {
           const original = questions.find((entry) => String(entry.id) === String(item.question_id ?? item.id));
           const given = item.given ?? item.answer ?? item.user_answer ?? answers[original?.id];
           return <details key={item.question_id ?? item.id ?? number} className="ka-details"><summary>{item.correct || item.is_correct ? "✓" : "↻"} {number + 1}-savol <span>{item.correct || item.is_correct ? "To‘g‘ri" : "Qayta ko‘rib chiqing"}</span></summary><p><AssistantText text={item.question || original?.question || ""} /></p><p>Sizning javobingiz: <strong>{String(given ?? "").trim() || "Javob berilmagan"}</strong></p>{item.correct_answer != null && <p>To‘g‘ri javob: <strong>{item.correct_answer}</strong></p>}{item.explanation && <p><AssistantText text={item.explanation} /></p>}</details>;
         })}</div>
-        <button type="button" className="ka-primary ka-full" onClick={() => { setAttempt(null); setAnswers({}); setResult(null); setPlan(null); setTab("plan"); setError(""); setSaveState(""); addMessage("assistant", "Yangi test rejasini tanlashingiz mumkin. Oldingi mavzular tanlovi saqlangan."); }}>Yangi test rejasini tuzish</button>
+        <button type="button" className="ka-primary ka-full" onClick={newConversation}><MessageCircle size={17} />Yangi suhbat va mashq</button>
       </>}
-      <details className="ka-details ka-export"><summary>Word va Excel fayllari</summary><p>Test savollari va javob kaliti alohida fayllarda beriladi.</p><div className="ka-actions">{["docx", "xlsx"].map((format) => <button type="button" className="ka-secondary" key={format} disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={() => download(format)}><Download size={16} />{format === "docx" ? "Word — test" : "Excel — test"}</button>)}</div>{keysAllowed ? <div className="ka-actions">{["docx", "xlsx"].map((format) => <button type="button" className="ka-secondary" key={format} disabled={Boolean(busy) || readOnly || !recoveryChecked} onClick={() => download(format, true)}><Download size={16} />{format === "docx" ? "Word — kalit" : "Excel — kalit"}</button>)}</div> : <p className="ka-hint">Alohida javob kalitini yuklash o‘qituvchi yoki administrator huquqiga bog‘liq.</p>}</details>
+      <section className="ka-pdf-export" aria-label="Testni PDF ko‘rinishida yuklash">
+        <div><FileText size={21} /><span><strong>Qog‘ozda ham mashq qiling</strong><small>Savollar va javob kaliti alohida PDF faylda.</small></span></div>
+        <div className="ka-actions"><button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf")}><Download size={16} />{busy === "download-pdf-false" ? "PDF tayyorlanmoqda…" : "PDF — savollar"}</button>
+          {keysAllowed && <button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf", true)}><Download size={16} />{busy === "download-pdf-true" ? "Kalit tayyorlanmoqda…" : "PDF — javob kaliti"}</button>}</div>
+        {!keysAllowed && <p className="ka-hint">Javoblaringizni test yakunida ko‘rasiz. Alohida kalit o‘qituvchi yoki administrator uchun.</p>}
+      </section>
     </div>}
     <footer className="ka-footer">{attempt && !result ? "Yopilganda ham imtihon vaqti davom etadi." : "Yopib-ochsangiz, shu seansdagi suhbat saqlanadi."}</footer>
   </section>;

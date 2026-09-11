@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "katex/dist/katex.min.css";
 import "./index.css";
 import App from "./App.jsx";
+import { InterfaceProvider } from "./interface/InterfacePreferences.jsx";
 
 // Keep the root error screen in the entry module (REV34).
 class AppErrorBoundary extends React.Component {
@@ -29,6 +30,7 @@ class AppErrorBoundary extends React.Component {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
+    <InterfaceProvider>
     <AppErrorBoundary>
       <React.Suspense
         fallback={
@@ -40,5 +42,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <App />
       </React.Suspense>
     </AppErrorBoundary>
+    </InterfaceProvider>
   </React.StrictMode>,
 );

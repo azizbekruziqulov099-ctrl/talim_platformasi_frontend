@@ -1,0 +1,15 @@
+.kb-call-overlay{position:fixed;inset:0;z-index:2147483400;background:#071725c9;display:grid;place-items:center;padding:16px;overflow:auto;overscroll-behavior:contain}
+.kb-call-dialog{width:min(660px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#102c3d;color:#f5fafc;border:1px solid #446172;border-radius:24px;box-shadow:0 20px 60px #00101e60;font-family:inherit}
+.kb-call-dialog header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;color:#d6e7ef;font-size:14px}
+.kb-call-dialog button{font:inherit;cursor:pointer;touch-action:manipulation;color:#f7fbfd;border:1px solid #72909c;background:#244555;border-radius:99px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px}
+.kb-call-dialog button:disabled{opacity:.5;cursor:wait}.kb-call-dialog button:focus-visible{outline:3px solid #66e3e6;outline-offset:3px}
+.kb-call-stage{position:relative;min-height:260px;background:#091f2c;aspect-ratio:4/3;overflow:hidden}
+.kb-call-stage.kb-call-audio{aspect-ratio:auto;min-height:230px}
+.kb-call-remote{display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:contain;background:#091f2c}
+.kb-call-person{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;text-align:center;gap:16px}
+.kb-call-avatar{display:grid;place-items:center;width:84px;height:84px;border-radius:28px;background:#167887;color:#fff;font-size:36px;font-weight:800}
+.kb-call-person h2{margin:0;font-size:24px;line-height:1.3;overflow-wrap:anywhere;color:#fff}
+.kb-call-local{position:absolute;right:12px;bottom:12px;width:24%;max-height:32%;object-fit:cover;background:#193f50;border:1px solid #84b6c7;border-radius:12px;transform:scaleX(-1)}
+.kb-call-status{text-align:center;padding:18px 20px 8px;display:grid;gap:8px}.kb-call-status strong{font-size:16px;color:#fff}.kb-call-status span{font-variant-numeric:tabular-nums;color:#a2eef0;font-size:22px}.kb-call-status p{margin:0;color:#d2e7ef;font-size:14px;line-height:1.6}
+.kb-call-controls{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;padding:18px 20px 22px}.kb-call-dialog .kb-call-accept{background:#087d67;border-color:#4bc5a1}.kb-call-dialog .kb-call-end{background:#b82b3c;border-color:#ec8791}.kb-call-dialog .kb-call-play{margin:10px auto;display:flex;background:#1e5269}.kb-call-hint{font-size:12px;text-align:center;padding:0 22px 18px;margin:0;color:#bdd9e2;line-height:1.6}
+@media(max-width:480px){.kb-call-overlay{padding:8px}.kb-call-dialog{border-radius:18px;max-height:calc(100dvh - 16px)}.kb-call-stage{min-height:210px}.kb-call-person h2{font-size:20px}.kb-call-controls{gap:8px;padding:16px 10px}.kb-call-dialog button{padding:10px 12px}.kb-call-status{padding:14px 16px 6px}}
