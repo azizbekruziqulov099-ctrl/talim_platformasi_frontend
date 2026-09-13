@@ -5,6 +5,7 @@ import * as __kbRev35_external0 from "react";
 import * as __kbRev35_external1 from "lucide-react";
 import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
+const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
 // Included from auth/authClient.js; implementation preserved.
 const __kbRev35_module1 = (() => {
@@ -6952,7 +6953,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga, foy
       </div>
     );
   }
-  if (videolar.length === 0 && misollar.length === 0) {
+  if (videolar.length === 0 && misollar.length === 0 && mustaqilIshlar.length === 0) {
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}><ChevronLeft size={15} style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} strokeWidth={2.5} /></span><InterfaceText text="Ortga"/></button>
@@ -7268,7 +7269,7 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
                     {youtubeIdOl(k.video_havola) ? (
                       <div className="rounded-xl overflow-hidden mb-2" style={{ aspectRatio: "16/9" }}>
                         <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${youtubeIdOl(k.video_havola)}`}
-                          title={k.sarlavha || "video"} allowFullScreen onLoad={() => videoKorildi(k.id)} />
+                          title={k.sarlavha || "video"} allowFullScreen />
                       </div>
                     ) : (
                       <a href={k.video_havola} target="_blank" rel="noreferrer" onClick={() => videoKorildi(k.id)}
@@ -11499,7 +11500,7 @@ function OqituvchiBoshEkran({ token, maktabId, onOrtga, readOnly = false }) {
   );
 }
 
-function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef, readOnly = false }) {
+function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAvtoOchishRef, readOnly = false, onOpenCourses }) {
   const { t: uiT } = useInterface();
   const [holat, setHolat] = useState("togaraklar"); // togaraklar | azolar | yaratish
   const [togaraklar, setTogaraklar] = useState([]);
@@ -12569,7 +12570,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
             ikon: UserRoundPlus,
             fon: "#FFF4DF",
             rang: "#A05A00",
-            amal: () => yaratishniOch({ guruhTuri: "repetitor", guruhMaqsadi: "repetitor" }),
+            amal: () => onOpenCourses ? onOpenCourses("teaching") : yaratishniOch({ guruhTuri: "repetitor", guruhMaqsadi: "repetitor" }),
           },
           { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3, fon: "#EAF1F7", rang: "#1B4B7A" },
           { kalit: "rejalarim", nom: "Rejalarim", ikon: ClipboardList, fon: "#EAF3DE", rang: "#3B6D11" },
@@ -12982,7 +12983,10 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Xato");
-      setTogaraklarim((prev) => [...prev, { id: Date.now(), nomi: data.togarak_nomi, fan: "", tasdiqlangan: false }]);
+      const listResponse = await fetch(`${API_BASE}/api/mening_togaraklarim?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+      const listData = await listResponse.json();
+      if (!listResponse.ok) throw new Error("So‘rov yuborildi, lekin ro‘yxat yangilanmadi. Profilni qayta oching.");
+      setTogaraklarim(Array.isArray(listData.togaraklar) ? listData.togaraklar : []);
       setQoshilishMuvaffaqiyat(`"${data.togarak_nomi}" — so'rovingiz yuborildi, o'qituvchi tasdiqlashini kuting.`);
       setQoshilishParol("");
       setTimeout(() => setQoshilishMuvaffaqiyat(""), 5000);
@@ -13676,6 +13680,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
 function menyuBandlariniOl(rol, qoshimchaBand) {
   if (rol === "admin") {
     return [
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
       { kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 },
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
@@ -13689,6 +13694,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     // Muassasasi bor xodim (dekan, direktor, o'qituvchi...) uchun asosiy ish joyi — muassasasi.
     // Umumiy "Ish maydoni" (to'garak, repetitorlik, AI vositalari) qo'shimcha bo'lib pastda turadi.
     return [
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       ...(qoshimchaBand ? [qoshimchaBand] : []),
       { kalit: "oqituvchi", nom: qoshimchaBand ? "To‘garak va AI vositalari" : "Ish maydoni", ikon: Users },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
@@ -13697,11 +13703,13 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   }
   if (rol === "ota-ona") {
     return [
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
             { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   return [
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "test", nom: "Test", ikon: PencilLine },
@@ -14760,14 +14768,16 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   );
 }
 
-function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false }) {
+function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false, initialCourses = false, initialCourseId = null }) {
   const { t: uiT } = useInterface();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [profileReload, setProfileReload] = useState(0);
   const [educationLoadError, setEducationLoadError] = useState("");
   const [educationReload, setEducationReload] = useState(0);
-  const [talimYuklangan, setTalimYuklangan] = useState(false);
+  const [talimYuklangan, setTalimYuklangan] = useState(Boolean(initialCourses || initialCourseId));
+  const [courseNavigation, setCourseNavigation] = useState({ courseId: initialCourseId, mode: "catalog", nonce: 0 });
+  const [coursesOpened, setCoursesOpened] = useState(Boolean(initialCourses || initialCourseId));
   useAudiencePresence(API_BASE, token, !readOnly);
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
@@ -14788,12 +14798,18 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
     return yangi;
   }), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
-  const [kabutarOchiq, setKabutarOchiq] = useState(true);
+  const [kabutarOchiq, setKabutarOchiq] = useState(!initialCourses && !initialCourseId);
   const [kabutarYuklangan, setKabutarYuklangan] = useState(kabutarOchiq);
   const [kabutarOqilmagan, setKabutarOqilmagan] = useState(0);
   const [kabutarContactRequest, setKabutarContactRequest] = useState(null);
   const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); else setTalimYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
   const kabutarOqilmaganniOl = useCallback((n) => setKabutarOqilmagan(n), []);
+  const openCourses = (mode = "catalog") => {
+    // Returning from chat or another tab keeps the current lesson and draft.
+    if (!coursesOpened) setCourseNavigation({ courseId: null, mode, nonce: 0 });
+    setCoursesOpened(true);
+    setIshxonaTanlash(null); setTab("kurslar"); kabutarniOch(false);
+  };
   useEffect(() => {
     setKabutarContactRequest(null);
     const openContact = (event) => {
@@ -14896,7 +14912,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
       .then((u) => {
         if (controller.signal.aborted) return;
         setFoydalanuvchi(u);
-        setTab(u.is_admin ? "admin" : u.role === "oqituvchi" ? "oqituvchi" : u.role === "ota-ona" ? "farzand" : "bilim");
+        setTab(current => current === "kurslar" || (current == null && (initialCourses || initialCourseId)) ? "kurslar" : u.is_admin ? "admin" : u.role === "oqituvchi" ? "oqituvchi" : u.role === "ota-ona" ? "farzand" : "bilim");
         setHolat("tayyor");
       }).catch((error) => {
         if (controller.signal.aborted) return;
@@ -14909,7 +14925,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
 
   // Ta’lim ma’lumotlari shu bo‘lim ochilgandagina yuklanadi.
   useEffect(() => {
-    if (kabutarOchiq || !foydalanuvchi || foydalanuvchi.education_ready === false || muassasalarYuklandi) return;
+    if (kabutarOchiq || tab === "kurslar" || !foydalanuvchi || foydalanuvchi.education_ready === false || muassasalarYuklandi) return;
     const controller = new AbortController();
     const user = foydalanuvchi;
     setEducationLoadError("");
@@ -14937,7 +14953,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
       if (!controller.signal.aborted && membershipReady) { setMuassasalarYuklandi(true); setIshJoyiAniqlandi(true); }
     });
     return () => controller.abort();
-  }, [kabutarOchiq, foydalanuvchi, token, muassasalarYuklandi, readOnly, educationReload]);
+  }, [kabutarOchiq, tab, foydalanuvchi, token, muassasalarYuklandi, readOnly, educationReload]);
 
   if (holat === "yuklanmoqda") {
     return <Qobiq><div className="text-center"><Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} /><p className="text-sm" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}><InterfaceText text="Yuklanmoqda..."/></p></div></Qobiq>;
@@ -14945,7 +14961,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
   if (holat === "xato") {
     return <Qobiq><div className="text-center"><WifiOff size={28} className="mx-auto mb-3" style={{ color: "#B0553A" }} /><p className="text-sm" role="alert" style={{ color: "#B0553A" }}>{xatoMatn}</p><button className="kb-work-primary" onClick={() => setProfileReload((n) => n + 1)}><InterfaceText text="Qayta urinish"/></button><button className="mt-3 block mx-auto" onClick={() => setAccountOpen(true)}><InterfaceText text="Kirish sozlamalari"/></button>{accountOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} />}</div></Qobiq>;
   }
-  if (!kabutarOchiq && ishxonaTanlash && ishxonaTanlash.length > 1) {
+  if (!kabutarOchiq && tab !== "kurslar" && ishxonaTanlash && ishxonaTanlash.length > 1) {
     const IKON = { maktab: "🏫", bogcha: "🧸", universitet: "🎓", markaz: "📚" };
     const TUR = { maktab: "Maktab", bogcha: "Bog‘cha", universitet: "Institut / universitet", markaz: "O‘quv markazi" };
     const KORINISH = { maktab: "maktab_rahbariyat", bogcha: "bogcha", universitet: "institut_workspace", markaz: "markaz_workspace" };
@@ -14983,6 +14999,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
     : null;
 
   const tabTanlandi = (yangiTab) => {
+    if (yangiTab === "kurslar") { openCourses("catalog"); return; }
     if (yangiTab === "oqituvchi_muassasa" && muassasaBandi) {
       setOqituvchiBoshlanishKorinishi({ korinish: muassasaBandi.korinish, vaqt: Date.now() });
       setTab("oqituvchi");
@@ -14998,6 +15015,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
   };
 
   const tabMalumoti = {
+    kurslar: ["Kurslar va to‘garaklar", "Darslar, mashqlar va mustaqil o‘qish"],
     admin: ["Kontent boshqaruvi", "Shablon va import markazi"],
     admin_muassasalar: ["Muassasalar", "Ro'yxat, yaratish va boshqaruv markazi"],
     admin_testlar: ["Testlar", "Savollar va natijalarni boshqarish"],
@@ -15157,7 +15175,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
       </div>}
       {talimYuklangan && <div style={{ display: kabutarOchiq ? "none" : "block" }}>
       {educationLoadError && <div className="kb-app-error" role="alert"><p>{educationLoadError}</p><button className="kb-work-primary" onClick={() => setEducationReload((n) => n + 1)}><InterfaceText text="Qayta urinish"/></button></div>}
-      {foydalanuvchi?.education_ready === false && !foydalanuvchi?.is_admin ?
+      {tab !== "kurslar" && foydalanuvchi?.education_ready === false && !foydalanuvchi?.is_admin ?
         <EducationSetup apiBase={API_BASE} token={token} onBack={() => kabutarniOch(true)} onComplete={() => { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
@@ -15185,6 +15203,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
             </div>
           </header>
           <div className="premium-page-stage">
+      {coursesOpened && <div style={{ display: tab === "kurslar" ? "block" : "none" }}>
+        {readOnly ? <p className="p-6" role="status">Kurslarni shaxsiy hisobingizdan oching. Ko‘rish rejimida pulli darslar va o‘zgarishlar yopiq.</p> :
+          <React.Suspense fallback={<p className="p-6" role="status">Kurslar yuklanmoqda…</p>}>
+            <CourseWorkspace key={token} apiBase={API_BASE} token={token} user={foydalanuvchi} active={tab === "kurslar" && !kabutarOchiq} initialCourseId={courseNavigation.courseId} initialMode={courseNavigation.mode} onClose={() => { setCoursesOpened(false); setTab(korinishRoli === "oqituvchi" ? "oqituvchi" : korinishRoli === "ota-ona" ? "farzand" : korinishRoli === "admin" ? "admin" : "bilim"); }} />
+          </React.Suspense>}
+      </div>}
       {korinishRoli === "admin" && tab === "admin" && <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} /></>}
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
@@ -15196,7 +15220,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
-        ishJoyiAniqlandi ? <OqituvchiTab
+        ishJoyiAniqlandi ? <OqituvchiTab onOpenCourses={openCourses}
           token={token}
           readOnly={readOnly}
           foydalanuvchi={foydalanuvchi}
@@ -15219,6 +15243,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false 
           <StudentScheduleWorkspace
             token={token}
             student={foydalanuvchi}
+            onFindCourses={() => openCourses("catalog")}
             apiBase={API_BASE}
             readOnly={readOnly}
             onOpenTest={(topic) => {
@@ -15297,6 +15322,8 @@ function _boshlangichYolniOl() {
   const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   _boshlangichYolKeshi = {
     p,
+    courseId: /^[1-9]\d{0,14}$/.test(q.get("kurs") || "") ? Number(q.get("kurs")) : null,
+    courses: q.get("kurslar") === "1" || /^[1-9]\d{0,14}$/.test(q.get("kurs") || ""),
     // Eski query token kirish sifatida qabul qilinmaydi.
     email: q.get("email"),
     ism: q.get("ism"),
@@ -15319,6 +15346,13 @@ function _boshlangichYolniOl() {
 }
 
 const SAMTM_TOKEN_STORAGE_KEY = "samtm_login_token_v1";
+const COURSE_RETURN_KEY = "kabutar:course-return:v47";
+function readCourseReturn() {
+  try { const value = JSON.parse(window.sessionStorage.getItem(COURSE_RETURN_KEY) || "null");
+    if (value && Number.isFinite(value.at) && Date.now() >= value.at && Date.now() - value.at < 600000 && (value.courseId === null || Number.isSafeInteger(value.courseId) && value.courseId > 0)) return value;
+  } catch { /* public route only */ }
+  return null;
+}
 
 function _saqlanganTokenniOl() {
   try {
@@ -15353,6 +15387,13 @@ function exchangeGoogleTicket(ticket) {
 
 export default function App() {
   const [yol] = useState(_boshlangichYolniOl);
+  const [courseReturn, setCourseReturn] = useState(() => yol.courses ? { courseId: yol.courseId, at: Date.now() } : readCourseReturn());
+  const [publicCourses, setPublicCourses] = useState(Boolean(yol.courses));
+  const courseLogin = (courseId) => {
+    const intent = { courseId: Number.isSafeInteger(Number(courseId)) && Number(courseId) > 0 ? Number(courseId) : null, at: Date.now() };
+    setCourseReturn(intent); setPublicCourses(false);
+    try { window.sessionStorage.setItem(COURSE_RETURN_KEY, JSON.stringify(intent)); } catch { /* same-tab login works */ }
+  };
   const korishRejimi = Boolean(yol.korishToken);
   const [token, setToken] = useState(() => yol.korishToken || _saqlanganTokenniOl());
   const [oauthYuklanmoqda, setOauthYuklanmoqda] = useState(Boolean(yol.oauthTicket));
@@ -15372,6 +15413,7 @@ export default function App() {
   const kirildi = useCallback((nextToken) => {
     sessionEpoch.current += 1; persistSession(nextToken);
     setLoginError(""); setOauthProfil(null); setToken(nextToken);
+    try { window.sessionStorage.removeItem(COURSE_RETURN_KEY); } catch { /* optional continuation */ }
   }, [persistSession]);
   const chiqish = useCallback(async (allDevices = false) => {
     const startedEpoch = sessionEpoch.current;
@@ -15438,6 +15480,7 @@ export default function App() {
     </div>
     <Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} readOnly />
   </div>;
-  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{notice}</span><button aria-label="Xabarni yopish" onClick={() => setNotice("")}>×</button></div>}<Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
-  return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} />;
+  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{notice}</span><button aria-label="Xabarni yopish" onClick={() => setNotice("")}>×</button></div>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
+  if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">Kurslar yuklanmoqda…</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
+  return <><KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} /><button type="button" onClick={() => setPublicCourses(true)} style={{ position: "fixed", top: 12, right: 12, zIndex: 40, padding: "10px 16px", borderRadius: 14, background: "var(--ui-surface, #ffffff)", color: "var(--ui-text, #17394b)", border: "1px solid var(--ui-border, #d9e4ea)", fontWeight: 700, boxShadow: "0 4px 20px #17394b15" }}>Kurslarni ko‘rish</button></>;
 }

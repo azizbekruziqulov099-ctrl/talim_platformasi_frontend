@@ -242,7 +242,7 @@ function DirectorHome({ token, apiBase, maktabId, onOpenStaff, onOpenTimetable, 
   </Card>;
 }
 
-function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenAvailability, onOpenClass }) {
+function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenClass }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(true);
@@ -1228,10 +1228,11 @@ function SmartNotice({ tone = "info", children }) {
   return <div className="rounded-2xl p-3.5 text-sm leading-relaxed" style={{ background, color }}>{children}</div>;
 }
 
-function SmartStepNav({ step, setStep, teacherOnly }) {
-  const steps = teacherOnly
-    ? [[2, "1. Bo‘sh vaqt"], [5, "2. Mavzu rejasi"]]
-    : [[1, "1. Smena va sinf kunlari"], [2, "2. O‘qituvchi vaqti"], [3, "3. Sinf skeleti + o‘qituvchi"], [4, "4. Jadval yaratish"], [45, "5. O‘qituvchi jadvali"], [5, "6. Mavzu rejasi"]];
+function SmartStepNav({ step, setStep, teacherOnly, canManageTeacherAvailability = false }) {
+  const steps = (teacherOnly
+    ? [[2, "O‘qituvchi vaqti"], [5, "Mavzu rejasi"]]
+    : [[1, "1. Smena va sinf kunlari"], [2, "2. O‘qituvchi vaqti"], [3, "3. Sinf skeleti + o‘qituvchi"], [4, "4. Jadval yaratish"], [45, "5. O‘qituvchi jadvali"], [5, "6. Mavzu rejasi"]])
+    .filter(([number]) => number !== 2 || canManageTeacherAvailability === true);
   return (
     <div className="sticky top-[77px] z-30 border-b" style={{ background: "rgba(247,250,252,.96)", borderColor: palette.line }}>
       <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 overflow-x-auto">
@@ -1696,7 +1697,16 @@ function ClassHourPanel({ token, apiBase, maktabId, setup, reload, setStep }) {
 }
 
 
-function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teacherOnly, token, apiBase, maktabId, reload }) {
+function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, token, apiBase, maktabId, reload }) {
+  const canEditAvailability = setup?.can_manage_teacher_availability === true;
+  const editScope = `${apiBase}\n${token}\n${maktabId}`;
+  const latestAccessRef = useRef(null);
+  latestAccessRef.current = { scope: editScope, allowed: canEditAvailability };
+  useEffect(() => {
+    latestAccessRef.current = { scope: editScope, allowed: canEditAvailability };
+    return () => { latestAccessRef.current = { scope: editScope, allowed: false }; };
+  }, [editScope, canEditAvailability]);
+  const hasAvailabilityAccess = () => latestAccessRef.current?.scope === editScope && latestAccessRef.current?.allowed === true;
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
   const shifts = useMemo(() => {
     const source = (setup?.smenalar || []).map(row => ({
@@ -1737,11 +1747,10 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   ).join(", ") || "Sinf birikmasi yo‘q";
 
   const teachers = useMemo(() => (setup?.oqituvchilar || []).filter(teacher => {
-    if (teacherOnly) return true;
-    const role = String(teacher?.lavozim || "");
+    const role = String(teacher?.lavozim || "").trim().toLowerCase();
     const classCount = Array.isArray(teacher?.sinflar_royxati) ? teacher.sinflar_royxati.length : 0;
-    return role === "fan_oqituvchisi" || Number(teacher?.dars_birikma_soni || 0) > 0 || classCount > 0;
-  }), [setup, teacherOnly]);
+    return ["fan_oqituvchisi", "oqituvchi", "teacher", "subject_teacher", "sinf_rahbari", "homeroom_teacher"].includes(role) || Number(teacher?.dars_birikma_soni || 0) > 0 || classCount > 0;
+  }), [setup]);
 
   const visibleTeachers = useMemo(() => {
     const query = normalizeSubject(teacherSearch);
@@ -1875,6 +1884,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   });
 
   const markDirty = ids => {
+    if (!hasAvailabilityAccess()) return;
     const values = (Array.isArray(ids) ? ids : [ids]).map(String);
     setDirtyIds(previous => [...new Set([...previous, ...values])]);
   };
@@ -1910,7 +1920,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     !current ? "hard" : current === "hard" ? "soft" : undefined;
 
   const updateTeacherState = (uid, updater) => {
-    if (saving) return;
+    if (!hasAvailabilityAccess() || saving) return;
     const key = String(uid);
     setStates(previous => {
       const next = { ...previous };
@@ -1974,6 +1984,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   const isAllowMode = uid => allowModeIds.includes(String(uid));
   const allDayKeys = day => shifts.flatMap(shift => Array.from({ length: Number(shift.dars_soni || 7) }, (_, index) => `${day}-${shift.smena}-${index + 1}`));
   const toggleAllowMode = uid => {
+    if (!hasAvailabilityAccess() || saving) return;
     const key = String(uid);
     if (isAllowMode(key)) { setAllowModeIds(previous => previous.filter(item => item !== key)); return; }
     setAllowModeIds(previous => [...previous, key]);
@@ -2002,7 +2013,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
   // Barcha (filtrdagi) o'qituvchilarga bir bosishda metod kuni.
   const setMethodDayForAll = day => {
-    if (saving) return;
+    if (!hasAvailabilityAccess() || saving) return;
     const ids = visibleTeachers.map(teacher => String(teacher.user_id));
     if (!ids.length) return;
     const allSet = ids.every(uid => (states[uid]?.methods || {})[day]);
@@ -2095,7 +2106,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   };
 
   const saveTeachers = async ids => {
-    if (saving) return;
+    if (!hasAvailabilityAccess() || saving) return;
     const uniqueIds = [...new Set(ids.map(String))].filter(uid => states[uid]);
     if (!uniqueIds.length) {
       return setMessage({ tone: "error", text: "Saqlash uchun o‘qituvchi tanlanmagan." });
@@ -2108,6 +2119,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
         `${apiBase}/api/maktab/aqlli_jadval/v2/oqituvchi_vaqt_matritsasi?token=${encodeURIComponent(token)}`,
         {
           method: "PUT",
+          timeoutMs: 30000,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             maktab_id: maktabId,
@@ -2122,6 +2134,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
 
       // Server tasdiqlagan holatni darhol qayta o‘qiymiz. Aks holda ekranda
       // eski setup qolib, saqlangan kun yana "SAQLANMAGAN" bo‘lib ko‘rinardi.
+      if (!hasAvailabilityAccess()) return;
       if (typeof reload === "function") await reload();
       setDirtyIds(previous => previous.filter(uid => !uniqueIds.includes(String(uid))));
       setMessage({
@@ -2141,7 +2154,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
   const currentRules = rulesMap[currentRuleTeacher] || defaultRules();
 
   const updateRule = (field, value) => {
-    if (saving || !currentRuleTeacher) return;
+    if (!hasAvailabilityAccess() || saving || !currentRuleTeacher) return;
     setRulesMap(previous => ({
       ...previous,
       [currentRuleTeacher]: {
@@ -2151,6 +2164,8 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
     }));
     markDirty(currentRuleTeacher);
   };
+
+  if (!canEditAvailability) return <SmartNotice tone="info">O‘qituvchi vaqti va metod kunini faqat admin yoki maktabning o‘quv ishlari bo‘yicha direktor o‘rinbosari belgilaydi.</SmartNotice>;
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
@@ -2164,14 +2179,14 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           <p className="text-xs mt-1" style={{ color: palette.muted }}>
             O‘qituvchini lupa bilan toping. Kun tugmasini bossangiz o‘sha kuni dars qo‘yilmaydi; smena yoki dars raqamini bossangiz faqat tanlangan vaqt o‘zgaradi. “🎯 Faqat shu vaqtlarda dars” — teskari rejim: hamma vaqt yopiladi, siz ochgan vaqtlar (yashil) ga dars qo‘yiladi.
           </p>
-          {!teacherOnly && <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
             <span className="text-[10px] font-black" style={{ color: palette.muted }}>Barcha o‘qituvchiga ({visibleTeachers.length} ta) metod kuni:</span>
             {smartDays.slice(0, weekdays).map(([day, label]) => {
               const ids = visibleTeachers.map(teacher => String(teacher.user_id));
               const allSet = ids.length > 0 && ids.every(item => (states[item]?.methods || {})[day]);
               return <button key={day} type="button" disabled={saving} onClick={() => setMethodDayForAll(day)} className="px-2 py-1 rounded-md border text-[9px] font-black disabled:opacity-50" style={allSet ? { background: "#FDE2E2", color: "#B42318", borderColor: "#E7AFAF" } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={allSet ? "Barchadan olib tashlash" : "Barchaga metod kuni qo‘yish"}>{label}</button>;
             })}
-          </div>}
+          </div>
         </div>
         <button
           onClick={() => saveTeachers(dirtyIds)}
@@ -2438,7 +2453,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           </p>
         </div>
 
-        {!teacherOnly && <select
+        <select
           value={currentRuleTeacher}
           onChange={event => setSelectedTeacher(event.target.value)}
           disabled={saving}
@@ -2451,7 +2466,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, teac
           >
             {teacher.full_name} — {splitSubjects(teacher).join(", ")}
           </option>)}
-        </select>}
+        </select>
       </div>
 
       {currentRuleTeacher ? <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-2 mt-4">
@@ -9646,11 +9661,58 @@ function TopicsStep({ token, apiBase, maktabId, setup, teacherOnly }) {
 }
 
 function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = false, initialStep = 1 }) {
-  const [step,setStep]=useState(teacherOnly?(initialStep===5?5:2):initialStep);const [setup,setSetup]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [selectedTeacher,setSelectedTeacher]=useState("");
-  const stepHistoryRef=useRef([teacherOnly?(initialStep===5?5:2):initialStep]);
+  const firstStep = teacherOnly ? (initialStep === 2 ? 2 : 5) : initialStep;
+  const [step, setStep] = useState(firstStep);
+  const [setupResult, setSetupResult] = useState(null);
+  const [requestState, setRequestState] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState("");
+  const requestScope = `${apiBase}\n${token}\n${maktabId}`;
+  const currentScopeRef = useRef(requestScope);
+  currentScopeRef.current = requestScope;
+  const requestIdRef = useRef(0);
+  const requestControllerRef = useRef(null);
+  const setup = setupResult?.scope === requestScope ? setupResult.data : null;
+  const loading = requestState?.scope !== requestScope || requestState.loading;
+  const error = requestState?.scope === requestScope ? requestState.error : "";
+  const canManageTeacherAvailability = !loading && !error && setup?.can_manage_teacher_availability === true;
+  const stepHistoryRef=useRef([firstStep]);
   const phoneBackInProgressRef=useRef(false);
-  const load=async(options={})=>{const silent=options?.silent===true;if(!maktabId){if(!silent)setError("Maktab ID topilmadi");if(!silent)setLoading(false);return null;}if(!silent){setLoading(true);setError("");}try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`);d.maktab_id=maktabId;setSetup(d);setSelectedTeacher(prev=>prev||String(teacherOnly?d.joriy_user_id:d.oqituvchilar?.[0]?.user_id||""));return d;}catch(e){if(!silent)setError(e.message);return null;}finally{if(!silent)setLoading(false);}};
-  useEffect(()=>{load();},[maktabId,token,apiBase]);
+  const load = useCallback(async (options = {}) => {
+    const silent = options?.silent === true;
+    const requestId = ++requestIdRef.current;
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    const isCurrent = () => requestId === requestIdRef.current && requestScope === currentScopeRef.current;
+    if (!silent) {
+      setSetupResult(null);
+      setRequestState({ scope: requestScope, loading: true, error: "" });
+    }
+    try {
+      if (!maktabId) throw new Error("Maktab ID topilmadi. Maktabni qayta tanlang.");
+      const data = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`, { signal: controller.signal, timeoutMs: 20000 });
+      if (!isCurrent()) return null;
+      setSetupResult({ scope: requestScope, data: { ...data, maktab_id: maktabId } });
+      setSelectedTeacher(previous => previous || String(data.can_manage_teacher_availability === true ? data.oqituvchilar?.[0]?.user_id || "" : data.joriy_user_id || ""));
+      setRequestState({ scope: requestScope, loading: false, error: "" });
+      return data;
+    } catch (error) {
+      if (isCurrent()) {
+        setSetupResult(null);
+        setRequestState({ scope: requestScope, loading: false, error: "Jadval sozlamalari yuklanmadi. Qayta urinib ko‘ring." });
+      }
+      return null;
+    }
+  }, [apiBase, token, maktabId, requestScope]);
+  useEffect(() => {
+    load();
+    return () => { requestIdRef.current += 1; requestControllerRef.current?.abort(); };
+  }, [load]);
+  const selectStep = nextStep => {
+    if (nextStep === 2 && !canManageTeacherAvailability) return;
+    if (teacherOnly && ![2, 5].includes(nextStep)) return;
+    setStep(nextStep);
+  };
   useEffect(()=>{
     if(phoneBackInProgressRef.current){phoneBackInProgressRef.current=false;return;}
     const history=stepHistoryRef.current;
@@ -9667,7 +9729,20 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
     onClose?.();
     return true;
   }),[onClose]);
-  return <div className="min-h-screen"><SmartHeader title={teacherOnly?"Mening jadval sozlamalarim":"Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly?"Bo‘sh vaqt, metod kuni va o‘zingiz dars beradigan sinflarning mavzu rejasi":"Kalendar, o‘qituvchi vaqti, sinf skeleti + o‘qituvchi, jadval yaratish va mavzu rejasi"} onClose={onClose}/><SmartStepNav step={step} setStep={setStep} teacherOnly={teacherOnly}/><main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">{loading?<div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{color:palette.blue}}/></div>:error?<SmartNotice tone="error">{error}</SmartNotice>:<>{step===1&&!teacherOnly&&<CalendarStep mode="jadval" token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===2&&<TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} teacherOnly={teacherOnly} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/>} {step===3&&!teacherOnly&&<LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={setStep}/>} {step===4&&!teacherOnly&&<GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>} {step===45&&!teacherOnly&&<TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>} {step===5&&<TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}</>}</main></div>;
+  return <div className="min-h-screen">
+    <SmartHeader title={teacherOnly && !canManageTeacherAvailability ? "Mavzu rejasi" : "Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly && !canManageTeacherAvailability ? "O‘zingiz dars beradigan sinflarning mavzu rejasi" : "Kalendar, o‘qituvchi vaqti, sinf skeleti + o‘qituvchi, jadval yaratish va mavzu rejasi"} onClose={onClose}/>
+    <SmartStepNav step={step} setStep={selectStep} teacherOnly={teacherOnly} canManageTeacherAvailability={canManageTeacherAvailability}/>
+    <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
+      {loading ? <div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <SmartNotice tone="error">{error}<button type="button" onClick={() => load()} className="ml-3 underline font-black">Qayta urinish</button></SmartNotice> : <>
+        {step === 1 && !teacherOnly && <CalendarStep mode="jadval" token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={selectStep}/>}
+        {step === 2 && (canManageTeacherAvailability ? <TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/> : <SmartNotice tone="info">O‘qituvchi vaqti va metod kunini faqat admin yoki maktabning o‘quv ishlari bo‘yicha direktor o‘rinbosari belgilaydi.</SmartNotice>)}
+        {step === 3 && !teacherOnly && <LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={selectStep}/>}
+        {step === 4 && !teacherOnly && <GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>}
+        {step === 45 && !teacherOnly && <TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>}
+        {step === 5 && <TopicsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} teacherOnly={teacherOnly}/>}
+      </>}
+    </main>
+  </div>;
 }
 
 function CentralLanguageCurriculumEditorV238({ token, apiBase, onClose }) {
@@ -9836,6 +9911,39 @@ function v198PositiveSchoolId(...values) {
   return null;
 }
 
+function useTeacherAvailabilityAccess({ token, apiBase, maktabId, enabled = true }) {
+  const [result, setResult] = useState(null);
+  const [retryNumber, setRetryNumber] = useState(0);
+  const scope = `${apiBase}\n${token}\n${maktabId}`;
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setResult(null);
+    if (enabled && token && maktabId) {
+      smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/vaqt_ruxsati?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`, { signal: controller.signal, timeoutMs: 15000 })
+        .then(data => {
+          if (active) setResult({ scope, allowed: data?.can_manage_teacher_availability === true, error: "" });
+        })
+        .catch(() => {
+          if (active) setResult({ scope, allowed: false, error: "O‘qituvchi vaqti bo‘limiga kirish huquqi tekshirilmadi. Qayta urinib ko‘ring." });
+        });
+    }
+    return () => { active = false; controller.abort(); };
+  }, [token, apiBase, maktabId, enabled, scope, retryNumber]);
+  const current = enabled && result?.scope === scope ? result : null;
+  return {
+    canManageTeacherAvailability: current?.allowed === true,
+    error: current?.error || "",
+    retry: () => { setResult(null); setRetryNumber(value => value + 1); },
+  };
+}
+
+function TeacherAvailabilityShortcut({ access, onOpen }) {
+  if (access.canManageTeacherAvailability === true) return <button type="button" onClick={() => { if (access.canManageTeacherAvailability === true) onOpen(); }} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title="O‘qituvchilarning bo‘sh va band vaqti, metod kuni va dars cheklovlarini belgilang"><Clock3 size={16}/> O‘qituvchi vaqti</button>;
+  if (access.error) return <div className="w-full"><SmartNotice tone="warning">{access.error}<button type="button" onClick={access.retry} className="ml-3 underline font-black">Qayta urinish</button></SmartNotice></div>;
+  return null;
+}
+
 export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, onRejalashtirish = null, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
   const organizationV17Id = initialWorkspace?.organization_v17_id || null;
   const contextId = initialWorkspace?.context_id || null;
@@ -9878,8 +9986,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [newSchoolCreating, setNewSchoolCreating] = useState(false);
   const [newSchoolError, setNewSchoolError] = useState("");
   const [createdSchoolName, setCreatedSchoolName] = useState("");
-  const lavozim = String(initialWorkspace?.lavozim || "").toLowerCase();
-  const teacherMode = Boolean(lavozim) && !["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "owner", "admin"].includes(lavozim);
+  const lavozim = String(initialWorkspace?.lavozim || "").trim().toLowerCase();
+  // Role aliases choose navigation only. The server separately grants access
+  // to teacher availability for the selected school.
+  const teacherMode = Boolean(lavozim) && !["direktor", "director", "zam_direktor_uquv", "academic_deputy", "zavuch", "zauh", "zam_direktor_tarbiya", "owner", "admin", "administrator", "maktab_admin", "school_admin", "system_admin"].includes(lavozim);
+  const availabilityAccess = useTeacherAvailabilityAccess({ token, apiBase, maktabId, enabled: !workspaceResolving && !workspaceLinkError });
   const [dashboard, setDashboard] = useState(null);
   const [yuklama, setYuklama] = useState([]);
   const [holatlar, setHolatlar] = useState([]);
@@ -10639,14 +10750,15 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           <main className="max-w-6xl mx-auto px-4 md:px-7 py-5 md:py-8">
             <Card className="p-5 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div><div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Mening maktabim</div><h2 className="text-2xl md:text-3xl font-black mt-1">{schoolName}</h2><p className="text-sm mt-1 opacity-80">Bugungi darslar, bo‘sh vaqt va mavzu rejasi bir joyda.</p></div>
+                <div><div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Mening maktabim</div><h2 className="text-2xl md:text-3xl font-black mt-1">{schoolName}</h2><p className="text-sm mt-1 opacity-80">Bugungi darslar, haftalik jadval va mavzu rejasi bir joyda.</p></div>
                 <div className="flex flex-wrap gap-2">
+                  <TeacherAvailabilityShortcut access={availabilityAccess} onOpen={() => setSmartOpen(2)}/>
                   <button onClick={() => setJournalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "rgba(255,255,255,.16)" }}>📅 Kalendar jurnali</button>
                   <button onClick={() => setSmartOpen(5)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "#fff", color: palette.blue }}>Mavzu rejasi</button>
                 </div>
               </div>
             </Card>
-            <TeacherHome token={token} apiBase={apiBase} maktabId={maktabId} onOpenTopics={() => setSmartOpen(5)} onOpenAvailability={() => setSmartOpen(2)} onOpenClass={null}/>
+            <TeacherHome token={token} apiBase={apiBase} maktabId={maktabId} onOpenTopics={() => setSmartOpen(5)} onOpenClass={null}/>
           </main>
         </div>
       </WorkspacePortal>
@@ -10701,6 +10813,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             </button>
             <button onClick={openTeacherEditor} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title={curriculumApproved ? "Reja soati avtomatik chiqadi" : "Qo‘lda fan–sinf–guruh–soat kiritish ochiq; avtomatik soat reja tasdiqlanganda ishlaydi"}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
             <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
+            <TeacherAvailabilityShortcut access={availabilityAccess} onOpen={() => setSmartOpen(2)}/>
             <button onClick={() => setJournalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.mint, color: palette.green }} title="Tasdiqlangan haftalik jadval haqiqiy kunlarda: hafta / oy / chorak"><CalendarDays size={16}/> Kalendar jurnali</button>
             {onRejalashtirish && <button onClick={onRejalashtirish} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#FFF8EE", color: "#8A5A1C" }} title="Qo‘lda dars qo‘yish / o‘zgartirish: bir kun / har hafta / chorak">Qo‘lda o‘zgartirish</button>}
             {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
