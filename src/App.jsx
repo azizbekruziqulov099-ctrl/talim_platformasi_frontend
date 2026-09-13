@@ -6,6 +6,7 @@ import * as __kbRev35_external1 from "lucide-react";
 import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
+const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
 // Included from auth/authClient.js; implementation preserved.
 const __kbRev35_module1 = (() => {
@@ -13725,10 +13726,12 @@ function PastkiMenyu({
   bloklangan,
   qoshimchaBand,
   foydalanuvchi,
+  taqdimotMavjud = false,
 }) {
   const { t: uiT } = useInterface();
   const aktivRang = rang || "#1B4B7A";
   const bandlar = menyuBandlariniOl(rol, qoshimchaBand);
+  if (taqdimotMavjud) bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
   const profilBandi = bandlar.find((band) => band.kalit === "profil");
   const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
   const rolNomi = rol === "admin"
@@ -14778,9 +14781,24 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const [talimYuklangan, setTalimYuklangan] = useState(Boolean(initialCourses || initialCourseId));
   const [courseNavigation, setCourseNavigation] = useState({ courseId: initialCourseId, mode: "catalog", nonce: 0 });
   const [coursesOpened, setCoursesOpened] = useState(Boolean(initialCourses || initialCourseId));
+  const [presentationsOpened, setPresentationsOpened] = useState(false);
+  const [presentationsAllowed, setPresentationsAllowed] = useState(false);
   useAudiencePresence(API_BASE, token, !readOnly);
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
+  useEffect(() => {
+    setPresentationsAllowed(false);
+    if (!token || !foydalanuvchi?.user_id || readOnly) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    fetch(`${String(API_BASE || "").replace(/\/+$/, "")}/api/taqdimotlar/capabilities`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      signal: controller.signal, cache: "no-store", credentials: "omit",
+    }).then(async (response) => response.ok ? response.json() : null).then((data) => {
+      if (!controller.signal.aborted) setPresentationsAllowed(data?.allowed === true || data?.admin === true);
+    }).catch(() => { /* An older backend may not have this optional module yet. */ }).finally(() => clearTimeout(timer));
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [token, foydalanuvchi?.user_id, readOnly, profileReload]);
   const [bilimData, setBilimData] = useState(null);
   const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
   const [xatoMatn, setXatoMatn] = useState("");
@@ -15000,6 +15018,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
 
   const tabTanlandi = (yangiTab) => {
     if (yangiTab === "kurslar") { openCourses("catalog"); return; }
+    if (yangiTab === "taqdimotlar") {
+      if (!presentationsAllowed || readOnly) return;
+      setPresentationsOpened(true); setIshxonaTanlash(null); setTab("taqdimotlar"); kabutarniOch(false); return;
+    }
     if (yangiTab === "oqituvchi_muassasa" && muassasaBandi) {
       setOqituvchiBoshlanishKorinishi({ korinish: muassasaBandi.korinish, vaqt: Date.now() });
       setTab("oqituvchi");
@@ -15015,6 +15037,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   };
 
   const tabMalumoti = {
+    taqdimotlar: ["Taqdimot yaratish", "Mavzu, dizayn va tayyor slaydlar"],
     kurslar: ["Kurslar va to‘garaklar", "Darslar, mashqlar va mustaqil o‘qish"],
     admin: ["Kontent boshqaruvi", "Shablon va import markazi"],
     admin_muassasalar: ["Muassasalar", "Ro'yxat, yaratish va boshqaruv markazi"],
@@ -15203,6 +15226,13 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
             </div>
           </header>
           <div className="premium-page-stage">
+      {presentationsOpened && !readOnly && <div hidden={tab !== "taqdimotlar"}>
+        <React.Suspense fallback={<p className="p-6" role="status">Taqdimot ustaxonasi yuklanmoqda…</p>}>
+          <PresentationStudio key={token} apiBase={API_BASE} token={token} user={foydalanuvchi}
+            active={tab === "taqdimotlar" && !kabutarOchiq}
+            onClose={() => setTab(korinishRoli === "oqituvchi" ? "oqituvchi" : korinishRoli === "ota-ona" ? "farzand" : korinishRoli === "admin" ? "admin" : "bilim")} />
+        </React.Suspense>
+      </div>}
       {coursesOpened && <div style={{ display: tab === "kurslar" ? "block" : "none" }}>
         {readOnly ? <p className="p-6" role="status">Kurslarni shaxsiy hisobingizdan oching. Ko‘rish rejimida pulli darslar va o‘zgarishlar yopiq.</p> :
           <React.Suspense fallback={<p className="p-6" role="status">Kurslar yuklanmoqda…</p>}>
@@ -15299,7 +15329,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         </main>
       <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : tab}
         onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida}
-        qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} />
+        qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} taqdimotMavjud={presentationsAllowed && !readOnly} />
       </div>
       </>}
       </div>}
