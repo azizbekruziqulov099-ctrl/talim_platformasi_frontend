@@ -1,3 +1,4 @@
+// REV52: live auth and membership modules share one implementation.
 // REV42: personal curriculum planner and database-grounded assistant.
 // REV38: archive-filtered institutions and explicit account/activity counts.
 // REV35: new components included so existing-file uploads keep every dependency.
@@ -8,655 +9,16 @@ import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAss
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
-// Included from auth/authClient.js; implementation preserved.
-const __kbRev35_module1 = (() => {
-const AUTH_REQUEST_TIMEOUT = 12000;
+import * as __kbRev35_module1 from "./auth/authClient.js";
 
-function authEndpoint(apiBase, path) {
-  return `${String(apiBase || "").replace(/\/+$/, "")}${path}`;
-}
+import * as __kbRev35_module0 from "./auth/KabutarLogin.jsx";
 
-async function authRequest(apiBase, path, { body, signal, timeout = AUTH_REQUEST_TIMEOUT } = {}) {
-  const controller = new AbortController();
-  let timedOut = false;
-  const abort = () => controller.abort();
-  if (signal?.aborted) abort();
-  else signal?.addEventListener("abort", abort, { once: true });
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeout);
-  try {
-    const response = await fetch(authEndpoint(apiBase, path), {
-      method: body === undefined ? "GET" : "POST",
-      headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      cache: "no-store",
-      credentials: "omit",
-      signal: controller.signal,
-    });
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      const detail = typeof data?.detail === "string" ? data.detail : typeof data?.error === "string" ? data.error : "";
-      const error = new Error(detail || (response.status === 429
-        ? "Urinishlar ko‘payib ketdi. Biroz kutib, qayta urinib ko‘ring."
-        : response.status === 404 ? "Kirish xizmati hali yangilanmagan. Boshqa kirish usulini tanlang."
-          : "Kirish amalga oshmadi. Qayta urinib ko‘ring."));
-      error.status = response.status;
-      throw error;
-    }
-    if (!data || typeof data !== "object") throw new Error("Serverdan kutilmagan javob keldi. Qayta urinib ko‘ring.");
-    return data;
-  } catch (error) {
-    if (timedOut) throw new Error("Server javobi kechikdi. Internetni tekshirib, qayta urinib ko‘ring.");
-    if (error?.name === "AbortError" || signal?.aborted) throw error;
-    if (error instanceof TypeError) throw new Error("Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.");
-    throw error;
-  } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener("abort", abort);
-  }
-}
+import * as __kbRev35_module2 from "./auth/KabutarRegistration.jsx";
 
-function telegramChallenge(data, now = Date.now()) {
-  let url;
-  try { url = new URL(data?.bot_url); } catch { return null; }
-  if (url.protocol !== "https:" || !["t.me", "telegram.me"].includes(url.hostname) || url.username || url.password) return null;
-  if (typeof data?.challenge !== "string" || !data.challenge || typeof data?.browser_secret !== "string" || data.browser_secret.length < 16) return null;
-  const duration = Number(data.expires_in);
-  if (!Number.isFinite(duration) || duration <= 0 || duration > 600) return null;
-  return {
-    challenge: data.challenge,
-    browser_secret: data.browser_secret,
-    bot_url: url.toString(),
-    verification_code: /^\d{6}$/.test(String(data.verification_code || "")) ? String(data.verification_code) : "",
-    expires_at: now + duration * 1000,
-  };
-}
+import * as __kbRev35_module4 from "./workspace/kabutarWorkspaceClient.js";
 
-function challengeStorageKey(apiBase) {
-  return `kabutar:telegram:pending:v1:${String(apiBase || "").replace(/\/+$/, "")}`;
-}
-
-function restoreTelegramChallenge(storage, key, now = Date.now()) {
-  try {
-    const saved = JSON.parse(storage.getItem(key) || "null");
-    if (!saved || !Number.isFinite(saved.expires_at)) return null;
-    return telegramChallenge({ ...saved, expires_in: (saved.expires_at - now) / 1000 }, now);
-  } catch { return null; }
-}
-
-function formatAuthCountdown(seconds) {
-  const value = Math.max(0, Math.floor(Number(seconds) || 0));
-  return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
-}
-
-return { "AUTH_REQUEST_TIMEOUT": AUTH_REQUEST_TIMEOUT, "authEndpoint": authEndpoint, "authRequest": authRequest, "telegramChallenge": telegramChallenge, "challengeStorageKey": challengeStorageKey, "restoreTelegramChallenge": restoreTelegramChallenge, "formatAuthCountdown": formatAuthCountdown };
-})();
-
-// Included from auth/KabutarLogin.jsx; implementation preserved.
-const __kbRev35_module0 = (() => {
-const React = __kbRev35_external0["default"];
-const useCallback = __kbRev35_external0["useCallback"];
-const useEffect = __kbRev35_external0["useEffect"];
-const useRef = __kbRev35_external0["useRef"];
-const useState = __kbRev35_external0["useState"];
-const ArrowDown = __kbRev35_external1["ArrowDown"];
-const ArrowRight = __kbRev35_external1["ArrowRight"];
-const Bird = __kbRev35_external1["Bird"];
-const BookOpen = __kbRev35_external1["BookOpen"];
-const Check = __kbRev35_external1["Check"];
-const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
-const ChevronRight = __kbRev35_external1["ChevronRight"];
-const Eye = __kbRev35_external1["Eye"];
-const EyeOff = __kbRev35_external1["EyeOff"];
-const GraduationCap = __kbRev35_external1["GraduationCap"];
-const LoaderCircle = __kbRev35_external1["LoaderCircle"];
-const LockKeyhole = __kbRev35_external1["LockKeyhole"];
-const MessageCircle = __kbRev35_external1["MessageCircle"];
-const Send = __kbRev35_external1["Send"];
-const ShieldCheck = __kbRev35_external1["ShieldCheck"];
-const Sparkles = __kbRev35_external1["Sparkles"];
-const X = __kbRev35_external1["X"];
-const authEndpoint = __kbRev35_module1["authEndpoint"];
-const authRequest = __kbRev35_module1["authRequest"];
-const challengeStorageKey = __kbRev35_module1["challengeStorageKey"];
-const formatAuthCountdown = __kbRev35_module1["formatAuthCountdown"];
-const restoreTelegramChallenge = __kbRev35_module1["restoreTelegramChallenge"];
-const telegramChallenge = __kbRev35_module1["telegramChallenge"];
-
-
-function GoogleMark() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.8-1.76-5.6-4.12H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.93a6 6 0 0 1 0-3.86V7.48H3.06a10 10 0 0 0 0 9.04l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.48l3.34 2.59c.8-2.36 3-4.12 5.6-4.12Z"/></svg>;
-}
-
-function safeStorage() {
-  try { return window.sessionStorage; } catch { return null; }
-}
-
-function savePending(key, value) {
-  try {
-    const storage = safeStorage();
-    if (value) storage?.setItem(key, JSON.stringify(value));
-    else storage?.removeItem(key);
-  } catch { /* Private browsing can restrict storage; this tab can still finish sign-in. */ }
-}
-
-// Reused in profile security. Linking never creates a second Kabutar account.
-function TelegramSignIn({ apiBase = "", onAuthenticated, token = "", mode = "login", onCancel }) {
-  const { t: uiT } = useInterface();
-  const [pending, setPending] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [seconds, setSeconds] = useState(0);
-  const [done, setDone] = useState(false);
-  const current = useRef(null);
-  const polling = useRef(null);
-  const generation = useRef(0);
-  const callback = useRef(onAuthenticated);
-  const isLink = mode === "link";
-  useEffect(() => { callback.current = onAuthenticated; }, [onAuthenticated]);
-  useEffect(() => {
-    setPending(null);
-    setBusy(false);
-    setDone(false);
-    setError("");
-    return () => { generation.current += 1; current.current?.abort(); polling.current?.abort(); };
-  }, [apiBase, token, mode]);
-
-  useEffect(() => {
-    if (!pending) return undefined;
-    const controller = new AbortController();
-    polling.current = controller;
-    let timeout;
-    let failures = 0;
-    const tick = () => {
-      const left = Math.max(0, Math.ceil((pending.expires_at - Date.now()) / 1000));
-      setSeconds(left);
-      if (!left) { controller.abort(); setPending(null); setError("Tasdiqlash vaqti tugadi. Qaytadan boshlang."); }
-    };
-    tick();
-    const interval = setInterval(tick, 1000);
-    const poll = async () => {
-      if (controller.signal.aborted || Date.now() >= pending.expires_at) return;
-      try {
-        const data = await authRequest(apiBase, "/auth/telegram/poll", { body: { challenge: pending.challenge, browser_secret: pending.browser_secret }, signal: controller.signal });
-        if (controller.signal.aborted) return;
-        failures = 0;
-        setError("");
-        if (data.status === "complete" || (isLink && data.status === "linked")) {
-          if (!isLink && !data.token) throw new Error("Kirish tasdiqlanmadi. Qayta urinib ko‘ring.");
-          setPending(null);
-          setDone(true);
-          callback.current?.(isLink ? data : data.token);
-          return;
-        }
-        if (["expired", "cancelled", "rejected", "denied"].includes(data.status)) {
-          setPending(null);
-          setError("So‘rov tugadi yoki bekor qilindi. Qaytadan boshlashingiz mumkin.");
-          return;
-        }
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        if ([400, 401, 403, 404, 410].includes(err.status)) { setPending(null); setError(err.message); return; }
-        failures += 1;
-        setError(`${err.message} Tasdiqlash yana tekshiriladi.`);
-      }
-      if (!controller.signal.aborted) timeout = setTimeout(poll, Math.min(8000, 2500 + failures * 1500));
-    };
-    poll();
-    return () => { controller.abort(); if (polling.current === controller) polling.current = null; clearTimeout(timeout); clearInterval(interval); };
-  }, [apiBase, pending, isLink]);
-
-  async function start() {
-    if (busy) return;
-    if (isLink && !token) { setError("Hisobingizga qayta kirib, Telegramni ulang."); return; }
-    const id = ++generation.current;
-    const controller = new AbortController();
-    current.current?.abort();
-    current.current = controller;
-    setBusy(true);
-    setError("");
-    try {
-      const data = await authRequest(apiBase, "/auth/telegram/start", { body: { mode: isLink ? "link" : "login", ...(isLink ? { token } : {}) }, signal: controller.signal });
-      if (controller.signal.aborted || id !== generation.current) return;
-      const next = telegramChallenge(data);
-      if (!next) throw new Error("Telegram kirish havolasi olinmadi. Qayta urinib ko‘ring.");
-      setPending(next);
-    } catch (err) {
-      if (!controller.signal.aborted && id === generation.current) setError(err.message);
-    } finally {
-      if (id === generation.current) setBusy(false);
-    }
-  }
-
-  function cancel() {
-    generation.current += 1;
-    current.current?.abort();
-    polling.current?.abort();
-    setBusy(false);
-    setPending(null);
-    setError("");
-    if (pending) authRequest(apiBase, "/auth/telegram/cancel", { body: { challenge: pending.challenge, browser_secret: pending.browser_secret } }).catch(() => {});
-    onCancel?.();
-  }
-
-  return <section className="kb-login-page kb-login-compact" aria-label={isLink ? "Telegramni ulash" : uiT("Telegram orqali kirish")}>
-    {done ? <div className="kb-login-success" role="status"><CheckCircle2 size={32}/><h3>{isLink ? "Telegram hisobingizga ulandi" : uiT("Kirish tasdiqlandi")}</h3></div> : <>
-      {error && <div className="kb-login-error" role="alert">{error}</div>}
-      {pending ? <div className="kb-login-telegram-pending">
-        <div className="kb-login-pending-heading"><span><LoaderCircle size={16} className="kb-login-spin"/><InterfaceText text=" Tasdiqlashingiz kutilmoqda"/></span><time>{formatAuthCountdown(seconds)}</time></div>
-        <p className="kb-login-method-copy">Botni oching, Start tugmasini bosing, o‘z telefon raqamingizni ulashib tasdiqlang. So‘ng shu oynaga qayting.</p>
-        {pending.verification_code && <div className="kb-login-verification"><span><InterfaceText text="Botdagi so‘rov raqami shu bilan bir xil bo‘lsin:"/></span><strong>{pending.verification_code}</strong></div>}
-        <a className="kb-login-primary" href={pending.bot_url} target="_blank" rel="noopener noreferrer"><Send size={18}/><InterfaceText text=" Telegram botini ochish "/><ArrowRight size={18}/></a>
-        <p className="kb-login-pending-note">Faqat o‘zingiz boshlagan so‘rovni tasdiqlang.</p>
-      </div> : <>
-        <p className="kb-login-method-copy">{isLink ? "Telegram va telefon raqamingiz shu Kabutar hisobingizga ulanadi. Suhbatlaringiz va KB raqamingiz saqlanadi." : "Telegram botida o‘z telefon raqamingizni tasdiqlab kiring."}</p>
-        <button type="button" className="kb-login-primary" onClick={start} disabled={busy}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <Send size={18}/>} {busy ? uiT("So‘rov tayyorlanmoqda…") : isLink ? "Telegramni ulash" : uiT("Telegram orqali kirish")}</button>
-      </>}
-      {(pending || busy || onCancel) && <button type="button" className="kb-login-text-button" onClick={cancel}><InterfaceText text="Bekor qilish"/></button>}
-    </>}
-  </section>;
-}
-
-function KabutarLogin({ apiBase = "", onAuthenticated, initialError = "" }) {
-  const { t: uiT } = useInterface();
-  const storageKey = challengeStorageKey(apiBase);
-  const [pending, setPending] = useState(() => restoreTelegramChallenge(safeStorage(), storageKey));
-  const [config, setConfig] = useState(null);
-  const [configLoading, setConfigLoading] = useState(true);
-  const [configError, setConfigError] = useState("");
-  const [configAttempt, setConfigAttempt] = useState(0);
-  const [method, setMethod] = useState("telegram");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(initialError);
-  const [pollNotice, setPollNotice] = useState("");
-  const [seconds, setSeconds] = useState(0);
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const mounted = useRef(false);
-  const command = useRef(null);
-  const pollController = useRef(null);
-  const commandId = useRef(0);
-  const pendingRef = useRef(pending);
-  const authenticatedRef = useRef(onAuthenticated);
-  const completed = useRef(false);
-
-  useEffect(() => { authenticatedRef.current = onAuthenticated; }, [onAuthenticated]);
-  useEffect(() => { pendingRef.current = pending; }, [pending]);
-  useEffect(() => { if (initialError) setError(initialError); }, [initialError]);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      commandId.current += 1;
-      command.current?.abort();
-      pollController.current?.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setConfigLoading(true);
-    setConfigError("");
-    authRequest(apiBase, "/auth/config", { signal: controller.signal })
-      .then((data) => { if (!controller.signal.aborted) setConfig(data); })
-      .catch((err) => { if (!controller.signal.aborted) setConfigError(err.message); })
-      .finally(() => { if (!controller.signal.aborted) setConfigLoading(false); });
-    return () => controller.abort();
-  }, [apiBase, configAttempt]);
-
-  const finish = useCallback((data) => {
-    if (!mounted.current || completed.current) return;
-    if (typeof data?.token !== "string" || !data.token) throw new Error("Kirish tasdiqlanmadi. Qayta urinib ko‘ring.");
-    completed.current = true;
-    savePending(storageKey, null);
-    setPending(null);
-    setBusy(false);
-    setPassword("");
-    setSuccess(true);
-    authenticatedRef.current?.(data.token);
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!pending) return undefined;
-    const controller = new AbortController();
-    pollController.current = controller;
-    let retry;
-    let networkFailures = 0;
-    const expire = (message) => {
-      if (controller.signal.aborted) return;
-      controller.abort();
-      savePending(storageKey, null);
-      setPending(null);
-      setPollNotice("");
-      setError(message);
-    };
-    const tick = () => {
-      const remaining = Math.max(0, Math.ceil((pending.expires_at - Date.now()) / 1000));
-      setSeconds(remaining);
-      if (!remaining) expire("Tasdiqlash vaqti tugadi. Telegram orqali yangi kirish so‘rovini boshlang.");
-    };
-    tick();
-    const clock = setInterval(tick, 1000);
-    const poll = async () => {
-      if (controller.signal.aborted || Date.now() >= pending.expires_at) return;
-      try {
-        const data = await authRequest(apiBase, "/auth/telegram/poll", {
-          body: { challenge: pending.challenge, browser_secret: pending.browser_secret },
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted) return;
-        networkFailures = 0;
-        setPollNotice("");
-        if (data.status === "complete") { finish(data); return; }
-        if (["expired", "cancelled", "rejected", "denied"].includes(data.status)) {
-          expire(data.status === "expired" ? "Tasdiqlash vaqti tugadi. Yangi kirish so‘rovini boshlang." : "Kirish tasdiqlanmadi. Yangi so‘rov bilan qayta urinishingiz mumkin.");
-          return;
-        }
-        if (!["pending", "waiting", "approved"].includes(data.status)) throw new Error("Tasdiqlash javobi tushunarsiz. Qayta tekshirilmoqda.");
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        if ([400, 401, 403, 404, 410].includes(err.status)) { expire(err.message); return; }
-        networkFailures += 1;
-        setPollNotice(`${err.message} Tasdiqlash yana tekshiriladi.`);
-      }
-      if (!controller.signal.aborted) retry = setTimeout(poll, Math.min(8000, 2500 + networkFailures * 1500));
-    };
-    poll();
-    const resume = () => { if (document.visibilityState === "visible") tick(); };
-    document.addEventListener("visibilitychange", resume);
-    return () => {
-      controller.abort();
-      if (pollController.current === controller) pollController.current = null;
-      clearTimeout(retry);
-      clearInterval(clock);
-      document.removeEventListener("visibilitychange", resume);
-    };
-  }, [apiBase, pending, storageKey, finish]);
-
-  const cancelPending = useCallback(() => {
-    const old = pendingRef.current;
-    commandId.current += 1;
-    command.current?.abort();
-    pollController.current?.abort();
-    setBusy(false);
-    setPending(null);
-    pendingRef.current = null;
-    setPollNotice("");
-    savePending(storageKey, null);
-    if (old) {
-      authRequest(apiBase, "/auth/telegram/cancel", { body: { challenge: old.challenge, browser_secret: old.browser_secret } }).catch(() => {});
-    }
-  }, [apiBase, storageKey]);
-
-  const chooseMethod = (next) => {
-    if (busy || pending) cancelPending();
-    setMethod(next);
-    setError("");
-    setPassword("");
-  };
-
-  const startTelegram = async () => {
-    if (busy) return;
-    const id = ++commandId.current;
-    command.current?.abort();
-    const controller = new AbortController();
-    command.current = controller;
-    setBusy(true);
-    setError("");
-    try {
-      const data = await authRequest(apiBase, "/auth/telegram/start", { body: { mode: "login" }, signal: controller.signal });
-      if (!mounted.current || id !== commandId.current) return;
-      const next = telegramChallenge(data);
-      if (!next) throw new Error("Telegram kirish havolasi olinmadi. Qayta urinib ko‘ring.");
-      savePending(storageKey, next);
-      pendingRef.current = next;
-      setPending(next);
-    } catch (err) {
-      if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
-    } finally {
-      if (mounted.current && id === commandId.current) setBusy(false);
-    }
-  };
-
-  const loginWithPassword = async (event) => {
-    event.preventDefault();
-    if (busy || !identifier.trim() || !password) return;
-    const id = ++commandId.current;
-    command.current?.abort();
-    const controller = new AbortController();
-    command.current = controller;
-    setBusy(true);
-    setError("");
-    try {
-      const data = await authRequest(apiBase, "/auth/password/login", { body: { identifier: identifier.trim(), password }, signal: controller.signal });
-      if (mounted.current && id === commandId.current) finish(data);
-    } catch (err) {
-      if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
-    } finally {
-      if (mounted.current && id === commandId.current) setBusy(false);
-    }
-  };
-
-  const telegramEnabled = config?.telegram?.enabled === true;
-  const passwordEnabled = config?.password?.enabled === true;
-  const googleEnabled = config?.google?.enabled === true;
-
-  return <main className="kb-login-page">
-    <div className="kb-login-shell">
-      <header className="kb-login-header">
-        <a className="kb-login-brand" href="#kabutar-home" aria-label={uiT("Kabutar bosh sahifasi")}>
-          <span className="kb-login-brand-mark"><Bird size={29} strokeWidth={1.8}/></span>
-          <span>Kabutar<span className="kb-login-brand-caption"><InterfaceText text="YAQINROQ BO‘LING. O‘SIB BORING."/></span></span>
-        </a>
-        <nav aria-label={uiT("Bosh sahifa")}><InterfaceSettingsButton/><a href="#kabutar-possibilities"><InterfaceText text="Imkoniyatlar "/><ArrowDown size={14}/></a><a className="kb-login-header-enter" href="#kabutar-signin"><InterfaceText text="Kirish "/><ArrowRight size={17}/></a></nav>
-      </header>
-
-      <div className="kb-login-main" id="kabutar-home">
-        <section className="kb-login-intro" aria-labelledby="kabutar-title">
-          <span className="kb-login-eyebrow"><span/><InterfaceText text=" SUHBATLARDAN YANGI IMKONIYATLARGA"/></span>
-          <h1 id="kabutar-title"><InterfaceText text="Yaqinlar bilan "/><br/><InterfaceText text="suhbat."/><br/><em><InterfaceText text="O‘zingiz uchun "/><br/><InterfaceText text="rivojlanish."/></em></h1>
-          <p className="kb-login-lead"><InterfaceText text="Yozing, fikr almashing va o‘rganing. Kabutarda suhbatlar va ta’lim uchun bitta hisob yetarli."/></p>
-
-          <div className="kb-login-paths" id="kabutar-possibilities">
-            <article><span className="kb-login-path-icon"><MessageCircle size={23}/></span><div><h2>Kabutar</h2><p><InterfaceText text="Suhbatlar, ovozli xabarlar va yaqinlaringiz."/></p></div><ArrowRight size={19}/></article>
-            <article><span className="kb-login-path-icon kb-login-path-education"><GraduationCap size={24}/></span><div><h2>Kabutar Ta’lim</h2><p><InterfaceText text="Fanlar, shaxsiy jadval va bilim yo‘lingiz."/></p></div><ArrowRight size={19}/></article>
-          </div>
-          <p className="kb-login-intro-note"><Sparkles size={16}/><InterfaceText text=" Avval Kabutarga kiring. Ta’limni o‘zingizga moslab yoqing."/></p>
-        </section>
-
-        <section className="kb-login-access" id="kabutar-signin" aria-labelledby="kabutar-signin-title">
-          <div className="kb-login-card">
-            <div className="kb-login-card-top"><span className="kb-login-card-symbol"><Bird size={28}/></span><span><InterfaceText text="BIR HISOB. IKKI IMKONIYAT."/></span></div>
-            <h2 id="kabutar-signin-title"><InterfaceText text="Xush kelibsiz."/></h2>
-            <p className="kb-login-card-description"><InterfaceText text="Suhbatingizni davom ettiring"/><br/><InterfaceText text="yoki Kabutarda ilk qadamingizni qo‘ying."/></p>
-
-            {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text="Kirish tasdiqlandi"/></h3><p><InterfaceText text="Kabutaringiz ochilmoqda…"/></p></div> : <>
-              <div className="kb-login-methods" role="group" aria-label={uiT("Kirish usuli")}>
-                <button type="button" className={method === "telegram" ? "is-selected" : ""} onClick={() => chooseMethod("telegram")} aria-pressed={method === "telegram"}><Send size={16}/> Telegram</button>
-                <button type="button" className={method === "password" ? "is-selected" : ""} onClick={() => chooseMethod("password")} aria-pressed={method === "password"}><LockKeyhole size={16}/><InterfaceText text=" Parol"/></button>
-              </div>
-
-              {error && <div className="kb-login-error" role="alert">{error}<button type="button" onClick={() => setError("")} aria-label={uiT("Xato xabarini yopish")}><X size={16}/></button></div>}
-              {configError && <div className="kb-login-service-error" role="status"><p>{configError}</p><button type="button" onClick={() => setConfigAttempt((attempt) => attempt + 1)}><InterfaceText text="Qayta tekshirish"/></button></div>}
-
-              {method === "telegram" && (pending ? <div className="kb-login-telegram-pending">
-                <div className="kb-login-pending-heading"><span><LoaderCircle className="kb-login-spin" size={16}/><InterfaceText text=" Tasdiqlashingiz kutilmoqda"/></span><time aria-label={uiT("Qolgan vaqt")}>{formatAuthCountdown(seconds)}</time></div>
-                <ol><li><InterfaceText text="Botni oching va "/><strong>Start</strong><InterfaceText text=" tugmasini bosing."/></li><li><InterfaceText text="O‘z telefon raqamingizni ulashing va kirishni tasdiqlang."/></li><li><InterfaceText text="Shu oynaga qayting — hisobingiz ochiladi."/></li></ol>
-                {pending.verification_code && <div className="kb-login-verification"><span><InterfaceText text="Botdagi so‘rov raqami shu bilan bir xil bo‘lsin:"/></span><strong>{pending.verification_code}</strong></div>}
-                <a className="kb-login-primary" href={pending.bot_url} target="_blank" rel="noopener noreferrer"><Send size={19}/><InterfaceText text=" Telegram botini ochish "/><ArrowRight size={18}/></a>
-                <p className="kb-login-pending-note"><InterfaceText text="Faqat o‘zingiz boshlagan kirish so‘rovini tasdiqlang."/></p>
-                {pollNotice && <p className="kb-login-poll-notice" role="status">{pollNotice}</p>}
-                <button type="button" className="kb-login-text-button" onClick={cancelPending}><InterfaceText text="Bekor qilish"/></button>
-              </div> : <div className="kb-login-telegram-start">
-                <p className="kb-login-method-copy"><InterfaceText text="Telegram orqali telefoningizni tasdiqlab kiring. Hisobingiz bo‘lmasa, avtomatik yaratiladi."/></p>
-                <button type="button" className="kb-login-primary" onClick={startTelegram} disabled={busy || configLoading || (!telegramEnabled && !configError)}>{busy || configLoading ? <LoaderCircle size={19} className="kb-login-spin"/> : <Send size={19}/>} {busy ? uiT("So‘rov tayyorlanmoqda…") : configLoading ? uiT("Kirish usullari tekshirilmoqda…") : uiT("Telegram orqali kirish")}{!busy && !configLoading && <ArrowRight size={18}/>}</button>
-                {!configLoading && config && !telegramEnabled && <p className="kb-login-poll-notice"><InterfaceText text="Telegram orqali kirish hali sozlanmagan. Boshqa kirish usulidan foydalaning."/></p>}
-                <p className="kb-login-under-button"><ShieldCheck size={15}/><InterfaceText text=" SMS yuborilmaydi. Tasdiqlash Telegram botida."/></p>
-              </div>)}
-
-              {method === "password" && <form className="kb-login-password-form" onSubmit={loginWithPassword}>
-                <p className="kb-login-method-copy"><InterfaceText text="Oldindan parol qo‘ygan bo‘lsangiz, shu hisobingizga kiring."/></p>
-                <label htmlFor="kabutar-login-identifier"><InterfaceText text="Telefon, KB raqami yoki email"/></label>
-                <input id="kabutar-login-identifier" name="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={uiT("+998… yoki KB-123456")} maxLength={254} required disabled={busy}/>
-                <label htmlFor="kabutar-login-password"><InterfaceText text="Parol"/></label>
-                <div className="kb-login-password-input"><input id="kabutar-login-password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={uiT("Parolingizni kiriting")} maxLength={128} required disabled={busy}/><button type="button" aria-label={showPassword ? uiT("Parolni yashirish") : uiT("Parolni ko‘rsatish")} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={19}/> : <Eye size={19}/>}</button></div>
-                <button className="kb-login-primary" type="submit" disabled={busy || configLoading || !passwordEnabled || !identifier.trim() || !password}>{busy ? <LoaderCircle size={19} className="kb-login-spin"/> : <LockKeyhole size={19}/>} {busy ? uiT("Tekshirilmoqda…") : uiT("Parol orqali kirish")}{!busy && <ArrowRight size={18}/>}</button>
-                {!configLoading && config && !passwordEnabled && <p className="kb-login-poll-notice"><InterfaceText text="Parol orqali kirish hozir mavjud emas."/></p>}
-                <button type="button" className="kb-login-text-button" onClick={() => chooseMethod("telegram")}><InterfaceText text="Parol esingizdan chiqdimi? Telegram orqali kiring"/></button>
-                <p className="kb-login-recovery-note"><InterfaceText text="Tiklash uchun avval shu hisobga ulangan Telegram yoki Google hisobidan foydalaning."/></p>
-              </form>}
-
-              {!pending && <>
-                <div className="kb-login-divider"><span/><InterfaceText text="yoki"/><span/></div>
-                <button type="button" className="kb-login-google" disabled={busy || configLoading || (!googleEnabled && !configError)} onClick={() => { window.location.assign(authEndpoint(apiBase, "/auth/google/login")); }}><GoogleMark/><span><InterfaceText text="Google orqali kirish"/></span><ChevronRight size={17}/></button>
-                {!configLoading && config && !googleEnabled && <p className="kb-login-poll-notice"><InterfaceText text="Google orqali kirish hozir sozlanmagan."/></p>}
-                <p className="kb-login-account-note"><InterfaceText text="Oldin Google orqali kirganmisiz? O‘sha hisob bilan kiring, keyin Telegramni profilingizdan ulang."/></p>
-              </>}
-            </>}
-          </div>
-          <div className="kb-login-card-foot"><Check size={15}/><span><InterfaceText text="Bir marta kirish. Suhbatlar va ta’lim uchun bitta profil."/></span></div>
-        </section>
-      </div>
-      <footer className="kb-login-footer"><span>Kabutar <span className="kb-login-footer-dot">·</span><InterfaceText text=" Suhbat va ta’lim maydoni"/></span><span><BookOpen size={15}/><InterfaceText text=" O‘rganish — har kim uchun."/></span></footer>
-    </div>
-  </main>;
-}
-
-return { "TelegramSignIn": TelegramSignIn, "default": KabutarLogin };
-})();
-
-// Included from auth/KabutarRegistration.jsx; implementation preserved.
-const __kbRev35_module2 = (() => {
-const React = __kbRev35_external0["default"];
-const useEffect = __kbRev35_external0["useEffect"];
-const useRef = __kbRev35_external0["useRef"];
-const useState = __kbRev35_external0["useState"];
-const ArrowLeft = __kbRev35_external1["ArrowLeft"];
-const ArrowRight = __kbRev35_external1["ArrowRight"];
-const Bird = __kbRev35_external1["Bird"];
-const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
-const LoaderCircle = __kbRev35_external1["LoaderCircle"];
-const MessageCircle = __kbRev35_external1["MessageCircle"];
-const authRequest = __kbRev35_module1["authRequest"];
-
-
-function KabutarRegistration({ apiBase = "", email = "", ism = "", oauthGrant = "", onAuthenticated, onCancel }) {
-  const { t: uiT } = useInterface();
-  const [name, setName] = useState(ism || "");
-  const [inviteCode, setInviteCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const mounted = useRef(false);
-  const request = useRef(null);
-  const submitted = useRef(false);
-  useEffect(() => {
-    mounted.current = true;
-    return () => { mounted.current = false; request.current?.abort(); };
-  }, []);
-
-  async function register(event) {
-    event.preventDefault();
-    if (busy || submitted.current) return;
-    const clean = name.trim().replace(/\s+/g, " ");
-    const invite = inviteCode.trim().toUpperCase();
-    setError("");
-    if (!invite && (clean.length < 2 || clean.length > 80)) { setError("Ismingizni 2–80 belgi bilan kiriting."); return; }
-    if (invite && !/^[A-Z0-9]{12,128}$/.test(invite)) { setError("Muassasa taklif kodini to‘liq kiriting: kamida 12 ta lotin harfi yoki raqam."); return; }
-    if (!oauthGrant || !email) { setError("Google tasdig‘i topilmadi. Kirish sahifasiga qaytib, Google orqali qayta kiring."); return; }
-    setBusy(true);
-    const controller = new AbortController();
-    request.current = controller;
-    try {
-      const data = await authRequest(apiBase, invite ? "/auth/invite/claim" : "/auth/royxat", {
-        body: invite ? { email, oauth_grant: oauthGrant, kod: invite } : { email, ism: clean, rol: "kabutar", oauth_grant: oauthGrant },
-        signal: controller.signal,
-      });
-      if (!mounted.current || controller.signal.aborted) return;
-      if (typeof data?.token !== "string" || !data.token) throw new Error("Hisob yaratilgani tasdiqlanmadi. Qayta urinib ko‘ring.");
-      submitted.current = true;
-      onAuthenticated?.(data.token);
-    } catch (err) {
-      if (mounted.current && !controller.signal.aborted) setError(err.message);
-    } finally {
-      if (mounted.current && !controller.signal.aborted) setBusy(false);
-    }
-  }
-
-  return <main className="kb-login-page kb-registration-page"><div className="kb-registration-shell"><div className="kb-registration-interface"><InterfaceSettingsButton/></div>
-    <div className="kb-login-brand"><span className="kb-login-brand-mark"><Bird size={29}/></span><span>Kabutar<span className="kb-login-brand-caption"><InterfaceText text="YAQINROQ BO‘LING. O‘SIB BORING."/></span></span></div>
-    <section className="kb-login-card kb-registration-card" aria-labelledby="kb-registration-heading">
-      <span className="kb-registration-verified"><CheckCircle2 size={16}/><InterfaceText text=" Google hisobingiz tasdiqlandi"/></span>
-      <h1 id="kb-registration-heading"><InterfaceText text="Sizni qanday chaqiraylik?"/></h1>
-      <p className="kb-login-method-copy"><InterfaceText text="Bitta Kabutar profili bilan suhbatlarni boshlang. Ta’lim yo‘nalishi va rolingizni keyin tanlaysiz."/></p>
-      <div className="kb-registration-email">{email}</div>
-      {error && <div className="kb-login-error" role="alert">{error}</div>}
-      <form className="kb-login-password-form" onSubmit={register}>
-        <details className="kb-registration-invite" onToggle={(event) => { if (!event.currentTarget.open) setInviteCode(""); }}>
-          <summary><InterfaceText text="Muassasa taklif kodi bormi?"/></summary>
-          <label htmlFor="kb-registration-invite"><InterfaceText text="Taklif kodi"/><input id="kb-registration-invite" type="text" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={128} disabled={busy} placeholder={uiT("Muassasa bergan kod")}/></label>
-          <p><InterfaceText text="Faqat muassasa bergan rasmiy taklif kodi uchun. Taklif tasdiqlansa, muassasa tayyorlagan profilingiz ochiladi."/></p>
-        </details>
-        <label htmlFor="kb-registration-name"><InterfaceText text="Ism va familiyangiz"/></label>
-        <input id="kb-registration-name" name="name" autoComplete="name" type="text" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={80} required={!inviteCode.trim()} disabled={busy || Boolean(inviteCode.trim())} placeholder={uiT("Ism va familiyangiz")}/>
-        <p className="kb-registration-note"><MessageCircle size={15}/><InterfaceText text=" Bu ism suhbatlarda profilingizda ko‘rinadi."/></p>
-        <button type="submit" className="kb-login-primary" disabled={busy || (!name.trim() && !inviteCode.trim()) || !oauthGrant}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <Bird size={18}/>} {busy ? uiT("Hisob tayyorlanmoqda…") : inviteCode.trim() ? uiT("Taklif orqali kirish") : uiT("Kabutarni boshlash")}<ArrowRight size={17}/></button>
-      </form>
-      <div className="kb-registration-existing"><strong><InterfaceText text="Telegram orqali allaqachon kirganmisiz?"/></strong><p><InterfaceText text="Kirish sahifasiga qayting va o‘sha hisobni oching. Google hisobingizni “Kirish va xavfsizlik” orqali ulang — mavjud suhbatlaringiz bitta hisobda qoladi."/></p><button type="button" className="kb-login-text-button" onClick={onCancel} disabled={busy}><ArrowLeft size={14}/><InterfaceText text=" Kirish sahifasiga qaytish"/></button></div>
-    </section>
-  </div></main>;
-}
-
-return { "default": KabutarRegistration };
-})();
-
-// Included from workspace/kabutarWorkspaceClient.js; implementation preserved.
-const __kbRev35_module4 = (() => {
-async function workspaceRequest(base, path, token, { method = 'GET', body, signal } = {}) {
-  const controller = new AbortController();
-  const abort = () => controller.abort(); signal?.addEventListener('abort', abort, { once: true });
-  if (signal?.aborted) controller.abort();
-  const timer = setTimeout(abort, 15000);
-  try {
-    const response = await fetch(`${base}${path}`, { method, signal: controller.signal, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(typeof data.detail === 'string' ? data.detail : 'So‘rov bajarilmadi. Qayta urinib ko‘ring.'), { status: response.status });
-    return data;
-  } catch (error) { if (error.name === 'AbortError') throw new Error('Server javobi kechikdi. Internetni tekshirib, qayta urinib ko‘ring.'); throw error; }
-  finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
-}
-
-return { "workspaceRequest": workspaceRequest };
-})();
-
-// Included from workspace/EducationSetup.jsx; implementation preserved.
-const __kbRev35_module3 = (() => {
-const React = __kbRev35_external0["default"];
-const useState = __kbRev35_external0["useState"];
-const workspaceRequest = __kbRev35_module4["workspaceRequest"];
-
-const roles = [['oquvchi', 'O‘quvchi', 'Sinfiga mos fanlar, jadval va testlar', '📚'], ['oqituvchi', 'O‘qituvchi', 'Darslar, materiallar va shaxsiy ish maydoni', '✏️'], ['ota-ona', 'Ota-ona', 'Farzandingizning ta’lim yo‘lini kuzatish', '🌱'], ['mustaqil', 'Mustaqil o‘rganaman', 'Qiziqishingizga mos bilim va mashqlar', '✦']];
-function EducationSetup({ apiBase, token, onComplete, onBack }) {
-  const { t: uiT } = useInterface();
-  const [role, setRole] = useState('oquvchi'), [grade, setGrade] = useState('5'), [language, setLanguage] = useState('uz'), [subject, setSubject] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  async function save(e) { e.preventDefault(); if (busy) return; setBusy(true); setError('');
-    try { await workspaceRequest(apiBase, '/auth/profile/education', token, { method: 'POST', body: { role, class: role === 'oquvchi' ? grade : null, language, subject: subject.trim() || null } }); onComplete(); }
-    catch (e) { setError(e.message); } finally { setBusy(false); }
-  }
-  return <main className="kb-education-setup"><button className="kb-work-back" onClick={onBack}>← <InterfaceText text="Kabutarga qaytish"/></button><small>KABUTAR TA’LIM</small><h1><InterfaceText text="Bilim yo‘lingizni tanlang."/></h1><p><InterfaceText text="Bir akkaunt. Suhbatlaringiz saqlanadi, yoniga ta’lim maydoningiz qo‘shiladi."/></p>
-    <form onSubmit={save}><div className="kb-education-roles">{roles.map(([id, title, description, icon]) => <button type="button" key={id} aria-pressed={role === id} onClick={() => setRole(id)} className={role === id ? 'selected' : ''}><span>{icon}</span><b>{uiT(title)}</b><small>{uiT(description)}</small></button>)}</div>
-      <div className="kb-education-fields">{role === 'oquvchi' && <label><InterfaceText text="Sinfingiz"/><select value={grade} onChange={e => setGrade(e.target.value)}>{Array.from({ length: 11 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}-sinf</option>)}</select></label>}<label><InterfaceText text="Ta’lim tili"/><select value={language} onChange={e => setLanguage(e.target.value)}><option value="uz"><InterfaceText text="O‘zbekcha"/></option><option value="ru"><InterfaceText text="Ruscha"/></option><option value="en"><InterfaceText text="Inglizcha"/></option></select></label>{role === 'oqituvchi' && <label><InterfaceText text="Asosiy faningiz"/><input maxLength={100} value={subject} onChange={e => setSubject(e.target.value)} placeholder={uiT("Masalan, matematika")} /></label>}</div>
-      <p className="kb-work-note"><InterfaceText text="Bu shaxsiy ta’lim maydonini ochadi. Muassasa ma’lumotlariga kirish muassasa tomonidan, farzand bilan bog‘lanish esa alohida tasdiqlanadi."/></p>
-      {error && <p className="kb-work-error" role="alert">{error}</p>}<button className="kb-work-primary" disabled={busy}>{busy ? uiT("Saqlanmoqda…") : uiT("Ta’lim maydonini ochish →")}</button>
-    </form>
-  </main>;
-}
-
-return { "default": EducationSetup };
-})();
+import * as __kbRev35_module3 from "./workspace/EducationSetup.jsx";
+import JoinInstitution from "./workspace/JoinInstitution.jsx";
 
 // Included from workspace/AccountSecurity.jsx; implementation preserved.
 const __kbRev35_module5 = (() => {
@@ -8740,60 +8102,8 @@ function DavomatBelgilash({ token, sinfId, onOrtga }) {
   );
 }
 
-function KirishKodiFormasi({ token, onOrtga }) {
-  const [kirishKodi, setKirishKodi] = useState("");
-  const [kodYuborilmoqda, setKodYuborilmoqda] = useState(false);
-  const [kodXato, setKodXato] = useState("");
-  const [kodNatija, setKodNatija] = useState(null);
-
-  const kodBilanQoshil = async () => {
-    if (!kirishKodi.trim()) { setKodXato("Kodni kiriting"); return; }
-    setKodYuborilmoqda(true); setKodXato(""); setKodNatija(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/oqituvchi/kirish_kodi_orqali_qoshil`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ kirish_kodi: kirishKodi.trim() }),
-        cache: "no-store",
-        credentials: "omit",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
-      setKodNatija(data);
-      setKirishKodi("");
-    } catch (e) {
-      setKodXato(e.message);
-    } finally { setKodYuborilmoqda(false); }
-  };
-
-  return (
-    <div className="px-5 pt-6 pb-4">
-      <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}><ChevronLeft size={15} style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} strokeWidth={2.5} /></span><InterfaceText text="Profil"/></button>
-      <h1 className="text-xl font-bold mb-4" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>🔑 Kirish kodi</h1>
-      <p className="text-xs mb-3" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>
-        Maktab/markaz/bog‘cha admini sizga bergan 12 belgili bir martalik
-        kodni kiriting — hisobingizga tegishli lavozim avtomatik qo‘shiladi.
-      </p>
-      <div className="flex gap-2">
-        <input type="text" value={kirishKodi} onChange={(e) => setKirishKodi(e.target.value.toUpperCase())}
-          placeholder="masalan: A1B2C3D4E5F6" maxLength={12}
-          className="flex-1 px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }} />
-        <button onClick={kodBilanQoshil} disabled={kodYuborilmoqda}
-          className="px-4 py-2.5 rounded-xl font-semibold text-white text-sm" style={{ backgroundColor: "#1B4B7A", opacity: kodYuborilmoqda ? 0.7 : 1 }}>
-          {kodYuborilmoqda ? "..." : "Qo'shilish"}
-        </button>
-      </div>
-      {kodXato && <p className="text-xs mt-2" style={{ color: "#A32D2D" }}>{kodXato}</p>}
-      {kodNatija && (
-        <p className="text-xs mt-2" style={{ color: "#3B6D11" }}>
-          ✅ "{kodNatija.joy_nomi}" — {(LAVOZIM_NOMLARI[kodNatija.lavozim] || kodNatija.lavozim)} sifatida qo'shildingiz. Sahifani yangilang.
-        </p>
-      )}
-    </div>
-  );
+function KirishKodiFormasi({ token, onOrtga, onComplete }) {
+  return <div className="px-5 pt-6 pb-4"><JoinInstitution apiBase={API_BASE} token={token} onBack={onOrtga} onComplete={onComplete}/></div>;
 }
 
 function RasmiySinflarim({ token, onOrtga }) {
@@ -12835,7 +12145,7 @@ function ProfileAccordion({ icon, title, summary, children, nested = false }) {
   );
 }
 
-function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorinishOzgar, rang }) {
+function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, adminKorinish, onKorinishOzgar, rang }) {
   const { t: uiT } = useInterface();
   const profilRangi = rang || "#1B4B7A";
   const [ism, setIsm] = useState(foydalanuvchi?.full_name || "");
@@ -13123,7 +12433,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
     return <RasmiySinflarim token={token} onOrtga={() => setKorinish("profil")} />;
   }
   if (korinish === "kirish_kodi") {
-    return <KirishKodiFormasi token={token} onOrtga={() => setKorinish("profil")} />;
+    return <KirishKodiFormasi token={token} onOrtga={() => setKorinish("profil")} onComplete={onInstitutionJoined} />;
   }
   if (korinish === "mening_kalendarim") {
     return (
@@ -13384,26 +12694,24 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, adminKorinish, onKorini
         </ProfileAccordion>
       )}
 
-      {foydalanuvchi?.role === "oqituvchi" && (
-        <ProfileAccordion nested icon="🔗" title="Maktab yoki markazga ulanish" summary="Rasmiy sinf va kirish kodi">
+        <ProfileAccordion nested icon="🔗" title="Muassasaga ulanish" summary="Admin bergan shaxsiy kod bilan ulanish">
         <div className="rounded-2xl p-3 bg-white border mb-4 shadow-sm space-y-2" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
-          <button onClick={() => setKorinish("rasmiy_sinf")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "var(--ui-legacy-background-f7f5f0, #F7F5F0)" }}>
+          {foydalanuvchi?.role === "oqituvchi" && <button onClick={() => setKorinish("rasmiy_sinf")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "var(--ui-legacy-background-f7f5f0, #F7F5F0)" }}>
             <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}>
               <GraduationCap size={16} style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} />
             </span>
             <span className="text-xs font-semibold flex-1 text-left" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>Rasmiy maktab sinfim bormi?</span>
             <ChevronRight size={15} style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }} />
-          </button>
+          </button>}
           <button onClick={() => setKorinish("kirish_kodi")} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "var(--ui-legacy-background-f7f5f0, #F7F5F0)" }}>
             <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FDF3E0" }}>
               <KeyRound size={16} style={{ color: "#8A5A1C" }} />
             </span>
-            <span className="text-xs font-semibold flex-1 text-left" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>Maktab/markazdan kirish kodim bor</span>
+            <span className="text-xs font-semibold flex-1 text-left" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>Admin bergan ulanish kodim bor</span>
             <ChevronRight size={15} style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }} />
           </button>
         </div>
         </ProfileAccordion>
-      )}
 
       <ProfileAccordion nested icon="🔊" title="Ovoz va til" summary={`${asosiyTil.toUpperCase()} · ${ovozJinsi === "qiz" ? "Ayol ovozi" : "Erkak ovozi"}`}>
       <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
@@ -14775,6 +14083,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const { t: uiT } = useInterface();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [membershipNotice, setMembershipNotice] = useState("");
+  const [membershipRevision, setMembershipRevision] = useState(0);
   const [profileReload, setProfileReload] = useState(0);
   const [educationLoadError, setEducationLoadError] = useState("");
   const [educationReload, setEducationReload] = useState(0);
@@ -14798,7 +14108,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       if (!controller.signal.aborted) setPresentationsAllowed(data?.allowed === true || data?.admin === true);
     }).catch(() => { /* An older backend may not have this optional module yet. */ }).finally(() => clearTimeout(timer));
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [token, foydalanuvchi?.user_id, readOnly, profileReload]);
+  }, [token, foydalanuvchi?.user_id, foydalanuvchi?.role, foydalanuvchi?.class, foydalanuvchi?.is_admin, readOnly, profileReload, membershipRevision]);
   const [bilimData, setBilimData] = useState(null);
   const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
   const [xatoMatn, setXatoMatn] = useState("");
@@ -14972,6 +14282,19 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     });
     return () => controller.abort();
   }, [kabutarOchiq, tab, foydalanuvchi, token, muassasalarYuklandi, readOnly, educationReload]);
+
+  const institutionJoined = ({ profile, result } = {}) => {
+    setMembershipRevision((current) => current + 1);
+    setMuassasalarYuklandi(false);
+    setMuassasalarim([]); setTanlanganMuassasa(null); setIshxonaTanlash(null);
+    setOqituvchiBoshlanishKorinishi(null);
+    setMembershipNotice(result?.joy_nomi ? `${result.joy_nomi} — muassasaga ulandingiz.` : "Muassasaga ulandingiz.");
+    if (profile) {
+      setFoydalanuvchi(profile);
+      setTab(profile.is_admin ? "admin" : profile.role === "oqituvchi" ? "oqituvchi" : profile.role === "ota-ona" ? "farzand" : "bilim");
+    } else setProfileReload((n) => n + 1);
+    kabutarniOch(false);
+  };
 
   if (holat === "yuklanmoqda") {
     return <Qobiq><div className="text-center"><Loader2 size={28} className="animate-spin mx-auto mb-3" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} /><p className="text-sm" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}><InterfaceText text="Yuklanmoqda..."/></p></div></Qobiq>;
@@ -15197,9 +14520,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         </React.Suspense>
       </div>}
       {talimYuklangan && <div style={{ display: kabutarOchiq ? "none" : "block" }}>
+      {membershipNotice && <div className="kb-app-notice" role="status"><span>{membershipNotice}</span><button type="button" aria-label="Xabarni yopish" onClick={() => setMembershipNotice("")}>×</button></div>}
       {educationLoadError && <div className="kb-app-error" role="alert"><p>{educationLoadError}</p><button className="kb-work-primary" onClick={() => setEducationReload((n) => n + 1)}><InterfaceText text="Qayta urinish"/></button></div>}
       {tab !== "kurslar" && foydalanuvchi?.education_ready === false && !foydalanuvchi?.is_admin ?
-        <EducationSetup apiBase={API_BASE} token={token} onBack={() => kabutarniOch(true)} onComplete={() => { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); }} /> : <>
+        <EducationSetup apiBase={API_BASE} token={token} onBack={() => kabutarniOch(true)} onComplete={(joined) => { if (joined?.profile) institutionJoined(joined); else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
           <button type="button" className="samtm-muassasa-main" onClick={() => muassasaniTanla(m)} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
@@ -15322,7 +14646,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       )}
 
       {tab === "profil" && (
-        <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi}
+        <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} onInstitutionJoined={institutionJoined}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
       )}
           </div>

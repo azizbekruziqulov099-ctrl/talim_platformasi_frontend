@@ -43,7 +43,7 @@ function FitText({ rect, text, label, fontSize, style = {}, className = '' }) {
 }
 
 /** Geometry is shared with the bounded native PPTX exporter; prompts never fetch images. */
-export default function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, transition = true }) {
+function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, transition = true, isManipulating = false }) {
   const host = useRef(null);
   const art = useRef(null);
   const priorIndex = useRef(index);
@@ -65,7 +65,7 @@ export default function SlidePreview({ document, index = 0, thumbnail = false, o
   }, [document.slides]);
   const spec = slide ? getLayoutSpec(slide, design, index, sections) : null;
   useLayoutEffect(() => {
-    if (!art.current) return undefined;
+    if (!art.current || isManipulating) return undefined;
     let cancelled = false;
     const check = () => {
       if (cancelled || !art.current || !width) return;
@@ -81,7 +81,7 @@ export default function SlidePreview({ document, index = 0, thumbnail = false, o
     check();
     globalThis.document?.fonts?.ready.then(check);
     return () => { cancelled = true; };
-  }, [slide, design, width]);
+  }, [slide, design, width, isManipulating]);
   useLayoutEffect(() => {
     const changed = priorIndex.current !== index;
     priorIndex.current = index;
@@ -106,7 +106,14 @@ export default function SlidePreview({ document, index = 0, thumbnail = false, o
         <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${design.overlay / 100})` }} />
         {spec.navigation && design.panel !== 'none' && <div style={panelStyle(spec.navigation)} />}
         {spec.panel && design.panel !== 'none' && <div style={panelStyle(spec.panel)} />}
-        {spec.decorations.map((item, at) => <React.Fragment key={`decoration-${at}`}><div style={box(item, { background: palette(item.fill), opacity: item.opacity ?? 1, borderRadius: item.kind === 'circle' ? '50%' : round ? item.radius || 0 : 0 })} />{item.text && <FitText rect={{ ...item, y: item.y + (item.h - item.fontSize * 1.28) / 2, h: item.fontSize * 1.28 + 1 }} text={item.text} label="Bosqich raqami" fontSize={item.fontSize || 24} style={{ textAlign: 'center', fontWeight: 700, color: ['cyan', 'green', 'amber'].includes(design.accent) ? '#071b24' : '#ffffff' }} />}</React.Fragment>)}
+        {spec.decorations.map((item, at) => <React.Fragment key={`decoration-${at}`}>
+          <svg aria-hidden="true" focusable="false" viewBox={`0 0 ${item.w} ${item.h}`} preserveAspectRatio="none" style={box(item, { opacity: item.opacity ?? 1, overflow: 'visible', pointerEvents: 'none' })}>
+            {item.kind === 'polygon' ? <polygon points={(item.points || []).map(point => point.join(',')).join(' ')} fill={palette(item.fill)} />
+              : item.kind === 'circle' ? <ellipse cx={item.w / 2} cy={item.h / 2} rx={item.w / 2} ry={item.h / 2} fill={palette(item.fill)} />
+                : <rect width={item.w} height={item.h} rx={round ? item.radius || 0 : 0} fill={palette(item.fill)} />}
+          </svg>
+          {item.text && <FitText rect={{ ...item, y: item.y + (item.h - (item.fontSize || 24) * 1.28) / 2, h: (item.fontSize || 24) * 1.28 + 1 }} text={item.text} label="Bosqich raqami" fontSize={item.fontSize || 24} style={{ textAlign: 'center', fontWeight: 700, color: ['cyan', 'green', 'amber'].includes(design.accent) ? '#071b24' : '#ffffff' }} />}
+        </React.Fragment>)}
         {spec.tabs.map((tab) => {
           const ribbon = spec.template === 'ribbon';
           const fill = ribbon && tab.active ? spec.sectionColor : tab.active ? `${theme.accent}3b` : 'transparent';
@@ -128,8 +135,30 @@ export default function SlidePreview({ document, index = 0, thumbnail = false, o
         {slide.example && spec.example && <><FitText rect={spec.example.label} text="MISOL" label="Misol belgisi" fontSize={14} style={{ color: spec.template === 'ribbon' && design.panel !== 'none' ? theme.color : theme.accent, fontWeight: 700, letterSpacing: 2 }} /><FitText rect={spec.example} text={slide.example} label="Misol" fontSize={sizes.example} className="ps49-slide-example" style={{ lineHeight: 1.25 }} /></>}
         <FitText rect={spec.footer} text={document.subject || document.title} label="Fan nomi" fontSize={14} style={{ color: theme.muted }} />
         <FitText rect={spec.page} text={`${String(index + 1).padStart(2, '0')} / ${String(document.slides.length).padStart(2, '0')}`} label="Slayd raqami" fontSize={14} style={{ color: theme.muted, textAlign: 'right' }} />
+        {(spec.elements || slide.elements || []).map((item, at) => item.kind === 'text'
+          ? <FitText key={item.id} rect={item} text={item.text} label={`${at + 1}-qo‘shimcha matn`} fontSize={item.fontSize || 28} style={{ color: item.color || theme.color }} />
+          : item.kind === 'image' && item.image ? <img key={item.id} src={item.image} alt="Qo‘shilgan rasm" style={box(item, { objectFit: 'contain' })} />
+            : item.kind === 'rect' ? <svg key={item.id} aria-hidden="true" focusable="false" viewBox={`0 0 ${item.w} ${item.h}`} preserveAspectRatio="none" style={box(item)}><rect width={item.w} height={item.h} fill={item.fill || theme.accent} /></svg> : null)}
       </div>
     </div>
-    {!thumbnail && fitErrors.length > 0 && <div role="alert" className="ps50-fit-warning" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, border: '1px solid #a93232', borderRadius: 6, padding: '7px 9px', font: '12px/1.35 Arial,sans-serif', background: '#fff1ef', color: '#821d1d' }}>{fitErrors.join(', ')} slaydga sig‘madi. Matnni qisqartiring yoki boshqa maketni tanlang.</div>}
+    {!thumbnail && !isManipulating && fitErrors.length > 0 && <div role="alert" className="ps50-fit-warning" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, border: '1px solid #a93232', borderRadius: 6, padding: '7px 9px', font: '12px/1.35 Arial,sans-serif', background: '#fff1ef', color: '#821d1d' }}>{fitErrors.join(', ')} slaydga sig‘madi. Matnni qisqartiring yoki boshqa maketni tanlang.</div>}
   </div>;
 }
+
+/** Typing on one slide must not rerender every image and formula in the slide strip. */
+function samePreviewProps(previous, next) {
+  const previousIndex = previous.index || 0, nextIndex = next.index || 0;
+  if (previousIndex !== nextIndex || !!previous.thumbnail !== !!next.thumbnail
+    || (previous.transition ?? true) !== (next.transition ?? true)
+    || !!previous.isManipulating !== !!next.isManipulating
+    || previous.onNavigate !== next.onNavigate) return false;
+  const before = previous.document, after = next.document;
+  if (before === after) return true;
+  if (before.design !== after.design || before.slides.length !== after.slides.length
+    || (before.subject || before.title) !== (after.subject || after.title)
+    || (before.slides[previousIndex] || before.slides[0]) !== (after.slides[nextIndex] || after.slides[0])) return false;
+  // Navigation depends on section order and first occurrence, not other slide content.
+  return before.slides.every((slide, at) => (slide.section || 'Taqdimot') === (after.slides[at].section || 'Taqdimot'));
+}
+
+export default React.memo(SlidePreview, samePreviewProps);

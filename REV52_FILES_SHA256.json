@@ -1,0 +1,151 @@
+{
+  "release": "REV52",
+  "component": "FRONTEND",
+  "baseline_archive": "talim_platformasi_frontend-main (3).zip",
+  "files": [
+    {
+      "path": "src/App.jsx",
+      "sha256": "34f3b0b9262bb45f1c68c12ca81032db4b263d14d553dd29d3628f1809cc5a07",
+      "bytes": 921015,
+      "previous_sha256": "277791d3704edcd85f1c2f63871f647df9738ffce27c2d3bbc1fce980d95b8ca"
+    },
+    {
+      "path": "src/SchoolInstitutionV23.jsx",
+      "sha256": "0d93c69756ee4a33f6c39d7fbfc6bddd56f2a8dda5b201b651ceef52bff23571",
+      "bytes": 35592,
+      "previous_sha256": "f8e1fdcd910c0ec18eea8c5bf9e66348654fa6fdae36de1a9bee7bb56e2f8730"
+    },
+    {
+      "path": "src/auth/KabutarLogin.jsx",
+      "sha256": "7fca120716aba1e8a173fd70bc56406b81bed2896b994744845e962cf647230e",
+      "bytes": 26788,
+      "previous_sha256": "3d28f1274725a03c04a829591ab2dd05c66ff822cba9b6fcc454e4a265a8ecb2"
+    },
+    {
+      "path": "src/auth/KabutarRegistration.jsx",
+      "sha256": "40cfda78e2b68874eb9bc6c34f9d94caf6a5db6e444c75d4982b6236c2a89ab7",
+      "bytes": 6832,
+      "previous_sha256": "5f770e9d5254792da19b96eb65309accd991ae1201c6184bfc7deca9ca4ae2e7"
+    },
+    {
+      "path": "src/auth/auth-membership.test.mjs",
+      "sha256": "4d4bfe010b429f8c1498d381e5a9b3abbac4004c98954a8314abb762e3c645c4",
+      "bytes": 4338,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/presentations/FreeformCanvas.jsx",
+      "sha256": "80283082cd7cf246ca1fc664fea5ba52cfdd92d48f62410315d6143466d86d7f",
+      "bytes": 16521,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/presentations/PresentationStudio.jsx",
+      "sha256": "18a3fc6bf3efd7710c2a195c52b96d8cb05f6803071ab6c576bb7020560f90ac",
+      "bytes": 73254,
+      "previous_sha256": "e3f5936fe5cedba90e0e0ab5d23eb4e50c59bc6e2743e3c62bcf2f64b22a7a72"
+    },
+    {
+      "path": "src/presentations/PresentationUI.jsx",
+      "sha256": "f26fc99f86b544f160ac4f9a5a0d8e4404b4a34af33aaaaa6fe893ef3ba97cef",
+      "bytes": 8883,
+      "previous_sha256": "3b26b40c9d1ef8d70073c0e2453757077b4e277c2c58c62cf0355345bd9ee550"
+    },
+    {
+      "path": "src/presentations/SlidePreview.jsx",
+      "sha256": "58a9063d1f0dfbc90a66dd043cd764a1f22cf5709ff5c4d9942f158ca7c05642",
+      "bytes": 14844,
+      "previous_sha256": "3625a14f0806d333e0d3883dbc63292c5c622ec7a44a27b8f7b91c82b49515f6"
+    },
+    {
+      "path": "src/presentations/canvas.css",
+      "sha256": "995e32a008f7f917780d2f7149a35724e65ad31ed6fe46b11399fc535b33f55f",
+      "bytes": 6057,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/presentations/geometry.js",
+      "sha256": "e05b18d320785528ea98702ae7c47d63ce94f60be3e6931d66f430b4a49e07cf",
+      "bytes": 1613,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/presentations/layouts.js",
+      "sha256": "f5af3f441a7b84ced679ae0a4577473a8a0f69f6a78e93c4462e8d9bf0169cb0",
+      "bytes": 27171,
+      "previous_sha256": "fc8571acdff480d88d7bd11841011497a35616102afaa5e706b9e71e7baeb0a9"
+    },
+    {
+      "path": "src/presentations/model.js",
+      "sha256": "2bf6f7473fa70d5e190ec1dc9f4f642588fbc4f272373278e869e71704abefb1",
+      "bytes": 35241,
+      "previous_sha256": "8e2def96925a1f633930c7edd2747aff4c84b029efd3f9208d2eb4d62b647d42"
+    },
+    {
+      "path": "src/presentations/model.test.mjs",
+      "sha256": "ec250b785e72f09868add09b6996677309104e5dfa2911056b49b3eb919e5940",
+      "bytes": 12410,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/presentations/presentation-studio.css",
+      "sha256": "7df39d646a496135dd7c6df54050047a74530e1bcae8292a0b24c622d15a0599",
+      "bytes": 54903,
+      "previous_sha256": "ed91012cad915a08ee1dce968ca5e92ee2411f15550c373e255d96f655ae00c3"
+    },
+    {
+      "path": "src/school/SchoolAccessCodes.jsx",
+      "sha256": "79aeaf3e99aef8fccd0a5ae80a4686e941a270564af70d611cd471d05d00f8be",
+      "bytes": 8508,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/school/SchoolWorkspace.jsx",
+      "sha256": "7b7b33fc5ab79f7fc191ddc2eff7910d8cbd202760ddf056290f538170c3625c",
+      "bytes": 744564,
+      "previous_sha256": "d7a1ba1bbd236dc39c5d993caa4bc27610f0c84ff97d44ba5e63a053337d2963"
+    },
+    {
+      "path": "src/school/institutionAccessCodes.js",
+      "sha256": "21a21179a397da5bfa83e9c50cd58e4e186b7d40dfa98500bc104dffbe97c080",
+      "bytes": 1608,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/school/institutionAccessCodes.test.mjs",
+      "sha256": "08442066ee0efd1342e2370578ca3ad531e448066b8d948a8b1d03443de7c7e6",
+      "bytes": 1684,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/workspace/EducationSetup.jsx",
+      "sha256": "b4240fcc67cec9a3e3b239797f23c1afbe6c5e107083962c67fc2076215a8288",
+      "bytes": 3853,
+      "previous_sha256": "ac3fcdc576dbf88996cf60ef5e1bcae242330b69fce87dc545c4181fb8b3d025"
+    },
+    {
+      "path": "src/workspace/JoinInstitution.jsx",
+      "sha256": "25ae846977abd01c3de6c34d073aad084b3c7731d93d9aff831d48a15586e7f3",
+      "bytes": 3939,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/workspace/kabutarWorkspaceClient.js",
+      "sha256": "d8735f9c6fcef4d6dc32ee6e7c241fc04b9b2ad42aff18003e9d5e49c557f55a",
+      "bytes": 1388,
+      "previous_sha256": "67aca153fdccce859075603519a990296f50e47c0ba1690b5220f2c11d3481d9"
+    },
+    {
+      "path": "src/workspace/membership.css",
+      "sha256": "9b7fbb56d470f544748f7ca87dea7d1148d27e2324faf12fd1f897bcd05c82bd",
+      "bytes": 2027,
+      "previous_sha256": null
+    },
+    {
+      "path": "src/workspace/membershipClient.js",
+      "sha256": "692cfd91673b6f70227bb812e390e91f0218ff8858b4a37e0564b4c4efd8c927",
+      "bytes": 2007,
+      "previous_sha256": null
+    }
+  ]
+}

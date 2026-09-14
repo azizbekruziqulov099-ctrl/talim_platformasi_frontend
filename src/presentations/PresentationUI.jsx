@@ -2,7 +2,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, MonitorPlay, X } from 'lucide-react';
 import { DEFAULT_DESIGN, makeProject } from './model.js';
-import { LAYOUTS, TEMPLATES } from './layouts.js';
+import { LAYOUTS, TEMPLATES, getFamily, getLayout } from './layouts.js';
 import SlidePreview from './SlidePreview.jsx';
 
 const focusable = root => Array.from(root?.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]') || []).filter(node => node.getClientRects().length && window.getComputedStyle(node).visibility !== 'hidden' && window.getComputedStyle(node).opacity !== '0');
@@ -72,8 +72,9 @@ function TemplateCard({ template, selected, onSelect }) {
     slides: (template.previewLayouts || ['cover', 'two_columns', 'image']).slice(0, 3).map((layout, index) => ({
       id: `preview-${template.id}-${index}`, layout, section: ['Kirish', 'O‘rganish', 'Amaliyot'][index],
       title: ['Bilimdan amaliyotga', 'Ikki fikrni taqqoslang', 'Natijani birga yarating'][index],
-      body: 'Asosiy fikrni aniq va sodda tushuntiring.', body2: 'Misollar orqali mavzuni ochib bering.', body3: 'Bilimni amalda qo‘llab ko‘ring.',
-      image: demoImage(), image2: demoImage(true), image_caption: 'Tabiatdagi shakllar', image2_caption: 'Rang va uyg‘unlik', formula: '', example: '',
+      body: 'Asosiy fikrni aniq va sodda tushuntiring.', body2: getLayout(layout).textCount > 1 ? 'Misollar orqali mavzuni ochib bering.' : '', body3: getLayout(layout).textCount > 2 ? 'Bilimni amalda qo‘llab ko‘ring.' : '',
+      image: getLayout(layout).imageCount > 0 ? demoImage() : null, image2: getLayout(layout).imageCount > 1 ? demoImage(true) : null,
+      image_caption: getLayout(layout).imageCount > 0 ? 'Tabiatdagi shakllar' : '', image2_caption: getLayout(layout).imageCount > 1 ? 'Rang va uyg‘unlik' : '', formula: '', example: '',
     })),
   }), [template]);
   const stop = () => { timers.current.forEach(clearTimeout); timers.current = []; setPlaying(false); };
@@ -89,8 +90,8 @@ function TemplateCard({ template, selected, onSelect }) {
   </article>;
 }
 
-export function TemplateGallery({ value, onSelect }) {
-  return <div className="ps50-template-gallery" aria-label="Besh xil taqdimot maketi">{TEMPLATES.map(template => <TemplateCard key={template.id} template={template} selected={value === template.id} onSelect={onSelect} />)}</div>;
+export function TemplateGallery({ value, onSelect, templates = TEMPLATES }) {
+  return <div className="ps50-template-gallery" aria-label="Taqdimot oilalari">{templates.map(template => <TemplateCard key={template.id} template={template} selected={getFamily(value).id === template.id} onSelect={onSelect} />)}</div>;
 }
 
 export function LayoutPicker({ value, onChange }) {

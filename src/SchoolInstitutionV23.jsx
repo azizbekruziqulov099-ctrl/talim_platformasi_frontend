@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
+import { accessCodeFile } from "./school/institutionAccessCodes.js";
 
 const panel = { background: "#fff", border: "1px solid #E5E1D8", borderRadius: 18, padding: 20 };
 const field = { width: "100%", border: "1px solid #D8D3C8", borderRadius: 12, padding: "10px 12px", fontSize: 14, background: "#fff" };
@@ -238,12 +239,14 @@ function ClassManager({ apiBase, token, scopeId, scopeKind, classes, shiftCount,
 }
 
 function downloadAccessCodes(result) {
-  if (!result?.access_codes?.length) return;
-  const lines = ["XODIMLAR KIRISH KODLARI", "", ...result.access_codes.flatMap((item) => [`${item.name}: ${item.code}`, ""])];
-  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const file = accessCodeFile(result);
+  if (!file) return;
+  const blob = new Blob([file.text], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = "xodimlar_kirish_kodlari.txt"; a.click();
-  URL.revokeObjectURL(url);
+  const a = document.createElement("a"); a.href = url; a.download = file.filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  // Let the browser consume the clicked URL before releasing the object.
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 export function OrganizationDeletePanel({ apiBase, token, organizationType, organizationId, name, ownCreation, onDeleted }) {
@@ -300,10 +303,11 @@ function ImportManager({ apiBase, token, scopeId, scopeKind, kind, classes }) {
     finally { setBusy(false); }
   };
   const commit = async () => {
+    if (busy || result || !preview) return;
     setBusy(true); setError("");
     try {
       const data = await requestJson(apiBase, `/api/maktab-v23/imports/${preview.job_id}/${kind}/commit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, decisions }) });
-      setResult(data); if (!student) downloadAccessCodes(data);
+      setResult(data);
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   };
@@ -323,7 +327,7 @@ function ImportManager({ apiBase, token, scopeId, scopeKind, kind, classes }) {
       <a href={selected.length || !student ? templateUrl : undefined} aria-disabled={student && !selected.length} style={{ ...secondary, display: "block", textAlign: "center", opacity: student && !selected.length ? 0.5 : 1 }}>📥 {student ? "O‘quvchilar" : "Xodimlar"} shablonini yuklab olish</a>
       <label style={{ ...secondary, display: "block", textAlign: "center", cursor: "pointer", borderStyle: "dashed" }}>{busy ? "Tekshirilmoqda..." : "📤 To‘ldirilgan Excel faylni tekshirish"}<input type="file" accept=".xlsx" hidden disabled={busy} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} /></label>
       <Notice>{error}</Notice>
-      {preview && (
+      {preview && !result && (
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl p-2" style={{ background: "#EDF8F1" }}><b>{preview.summary.ready}</b><small className="block">tayyor</small></div><div className="rounded-xl p-2" style={{ background: "#FFF8E8" }}><b>{preview.summary.decision_required}</b><small className="block">tanlov kerak</small></div><div className="rounded-xl p-2" style={{ background: "#FFF0ED" }}><b>{preview.summary.errors}</b><small className="block">xato</small></div></div>
           {preview.rows.map((row) => (
@@ -339,9 +343,22 @@ function ImportManager({ apiBase, token, scopeId, scopeKind, kind, classes }) {
           <button type="button" style={{ ...primary, width: "100%", opacity: readyForCommit && !busy ? 1 : 0.5 }} disabled={!readyForCommit || busy} onClick={commit}>{busy ? "Saqlanmoqda..." : "Tekshirilgan ma’lumotlarni saqlash"}</button>
         </div>
       )}
-      {result && <Notice kind="success">{student ? `${result.created_students} ta o‘quvchi, ${result.created_parents} ta ota/ona yaratildi; ${result.parent_child_links} ta bog‘lanish saqlandi.` : `${result.created_staff} ta xodim yaratildi, ${result.updated_staff} ta xodim yangilandi. Yangi kirish kodlari fayl bo‘lib yuklandi.`}</Notice>}
+      {result && <div className="space-y-3" role="status"><Notice kind="success">{student ? `${result.created_students} ta o‘quvchi, ${result.created_parents} ta ota/ona yaratildi; ${result.parent_child_links} ta bog‘lanish saqlandi.` : `${result.created_staff} ta xodim yaratildi, ${result.updated_staff} ta xodim yangilandi.`}</Notice>
+        {result.access_codes?.length > 0 ? <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: "#B9DFC8", background: "#F6FBF8" }}>
+          <p className="text-sm font-semibold">{result.access_codes.length} ta shaxsiy ulanish kodi tayyor.</p>
+          <p className="text-xs leading-relaxed" style={{ color: "#5A5648" }}>Faylda har bir kishining ismi, roli va o‘ziga tegishli kodi yozilgan. Har kimga faqat o‘z kodini bering. Oynadan chiqishdan oldin faylni yuklab saqlang.</p>
+          <button type="button" style={primary} onClick={() => { try { downloadAccessCodes(result); setError(""); } catch (problem) { setError(problem.message); } }}>Ulanish kodlarini yuklab olish</button>
+          <p className="text-xs" style={{ color: "#6F6859" }}>Yuklash boshlanmasa shu tugmani qayta bosishingiz mumkin.</p>
+        </div> : <p className="text-xs" style={{ color: "#6F6859" }}>Bu import natijasida yangi ulanish kodi qaytmadi. Hisobiga kira olmayotgan kishilar uchun administrator orqali shaxsiy kod oling.</p>}
+      </div>}
     </div>
   );
+}
+
+// The current school workspace opens this narrow import surface. Existing
+// timetable/teacher workload import keeps its separate workflow.
+export function SchoolStudentImport({ apiBase, token, scopeId, classes }) {
+  return <ImportManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind="school" kind="students" classes={classes || []}/>;
 }
 
 export function SchoolInstitutionManager({ apiBase, token, scopeId, scopeKind = "school", school, adminMode = false, onBack, onDeleted }) {
@@ -375,7 +392,7 @@ export function SchoolInstitutionManager({ apiBase, token, scopeId, scopeKind = 
       <div className="flex flex-wrap gap-2">{tabs.map(([key, label]) => <button type="button" key={key} style={tab === key ? primary : secondary} onClick={() => { setTab(key); setError(""); }}>{label}</button>)}</div>
       <Notice>{error}</Notice>
       <section style={panel}>
-        {loading ? <p className="text-sm">Yuklanmoqda...</p> : tab === "classes" ? <ClassManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} classes={data.classes || []} shiftCount={data.shift_count || 1} onReload={load} /> : tab === "staff" ? <ImportManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="staff" classes={data.classes || []} /> : tab === "students" ? <ImportManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="students" classes={data.classes || []} /> : (
+        {loading ? <p className="text-sm">Yuklanmoqda...</p> : tab === "classes" ? <ClassManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} classes={data.classes || []} shiftCount={data.shift_count || 1} onReload={load} /> : tab === "staff" ? <ImportManager key="staff" apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="staff" classes={data.classes || []} /> : tab === "students" ? <ImportManager key="students" apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="students" classes={data.classes || []} /> : (
           <div className="space-y-3"><h3 className="font-bold" style={{ color: "#A32D2D" }}>Muassasani o‘chirish</h3><p className="text-sm" style={{ color: "#6F6859" }}>Muassasa faol ro‘yxatdan olinadi va arxivlanadi. Tasdiqlash uchun nomini aynan kiriting.</p><div><Label required>Muassasa nomi</Label><input style={field} value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={school?.nomi} /></div>{!school?.own_creation && <div><Label required>4 xonali o‘chirish paroli</Label><input style={field} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0000" /></div>}<Notice kind="success">{school?.own_creation ? "Bu muassasani siz yaratgansiz — parol so‘ralmaydi." : "Boshqa admin yaratgan — 4 xonali parol majburiy."}</Notice><button type="button" style={{ ...danger, width: "100%", opacity: confirmName.trim() && (school?.own_creation || pin.length === 4) ? 1 : 0.5 }} disabled={!confirmName.trim() || (!school?.own_creation && pin.length !== 4) || deleting} onClick={remove}>{deleting ? "Arxivlanmoqda..." : "Muassasani o‘chirish"}</button></div>
         )}
       </section>

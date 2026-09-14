@@ -12,6 +12,7 @@ import {
 import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 import KabutarPanel from "../kabutar/KabutarPanel.jsx";
 import MilitaryRoutine from "./MilitaryRoutine.jsx";
+const SchoolAccessCodes = React.lazy(() => import("./SchoolAccessCodes.jsx"));
 
 const SAMTM_TEACHER_FIRST_RELEASE = "V19.3 · tasdiqlangan o‘quv reja";
 const SAMTM_TIMETABLE_FRONTEND_RELEASE = "SAMTM-FRONTEND-V23.7.2-GRID-PARTIAL-GROUP-CLASS";
@@ -10000,6 +10001,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   const [adminPreviewOpen, setAdminPreviewOpen] = useState(false);
   const [kabutarOpen, setKabutarOpen] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [accessCodesOpen, setAccessCodesOpen] = useState(false);
   const [smartOpen, setSmartOpen] = useState(null);
   const [teacherEditorOpen, setTeacherEditorOpen] = useState(false);
   const [teacherEditorMode, setTeacherEditorMode] = useState("manual");
@@ -10535,6 +10537,11 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
       setAdminPreviewOpen(false);
       return true;
     }
+    if (accessCodesOpen) {
+      setAccessCodesOpen(false);
+      loadManager();
+      return true;
+    }
     // Aqlli jadval o'z bosqich tarixini boshqaradi. Uning handleri qaysi
     // tartibda ro'yxatdan o'tganidan qat'i nazar ishlashi uchun bu yerda
     // hodisani o'tkazib yuboramiz.
@@ -10570,7 +10577,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     }
     return false;
   }), [
-    classCreateDraft, classEditDraft, adminPreviewOpen, smartOpen, teacherEditorOpen, curriculumOpen, centralCurriculumOpen,
+    classCreateDraft, classEditDraft, adminPreviewOpen, smartOpen, teacherEditorOpen, accessCodesOpen, curriculumOpen, centralCurriculumOpen,
     newSchoolMode, isNewSchoolFlow, maktabId, onBack, loadManager,
   ]);
 
@@ -10742,6 +10749,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     return <WorkspacePortal><CalendarJournal token={token} apiBase={apiBase} maktabId={maktabId} teacherOnly={teacherMode} onClose={() => setJournalOpen(false)}/></WorkspacePortal>;
   }
 
+  if (accessCodesOpen && !teacherMode && maktabId) {
+    return <WorkspacePortal><div className="min-h-screen" style={{ background: palette.cream }}>
+      <SmartHeader title={`${schoolName} · Shaxsiy ulanish kodlari`} subtitle="Mavjud xodim, o‘quvchi yoki ota-onaning ulanish kodini yangilash" onClose={() => setAccessCodesOpen(false)}/>
+      <main className="max-w-5xl mx-auto px-4 py-6"><Card className="p-5"><React.Suspense fallback={<p role="status">Ulanish kodlari bo‘limi yuklanmoqda…</p>}><SchoolAccessCodes key={maktabId} apiBase={apiBase} token={token} maktabId={maktabId}/></React.Suspense></Card></main>
+    </div></WorkspacePortal>;
+  }
+
   if (teacherMode) {
     return (
       <WorkspacePortal>
@@ -10856,6 +10870,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
                 <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
                 <div className="space-y-2">
                   <QuickAction icon={<BookOpen size={18}/>} title={`O‘quv reja · ${curriculumApproved ? "tasdiqlangan" : "tasdiqlanmagan"}`} desc="Avval fan–sinf–haftalik soatlarni tekshiring va tasdiqlang." onClick={() => setCurriculumOpen(true)}/>
+                  <QuickAction icon={<LockKeyhole size={18}/>} title="Shaxsiy ulanish kodlari" desc="Mavjud xodim, o‘quvchi yoki ota-onani toping va ishlamagan ulanish kodini yangilang." onClick={() => setAccessCodesOpen(true)}/>
                   <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc={curriculumApproved ? "F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." : "Ochiq: soatni qo‘lda yozing. Reja tasdiqlansa soat avtomatik chiqadi."} onClick={openTeacherEditor}/>
                   <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → o‘qituvchi vaqti → fan-soat → jadval yaratish → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
                   <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
