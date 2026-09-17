@@ -955,6 +955,9 @@ export function KitobMiyaBolimi({ token }) {
 const QIYINLIK_DARAJALARI = [
   ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"], ["qiyin", "🔴 Qiyin"], ["murakkab", "⚫ Murakkab"],
 ];
+// Har savolga beriladigan vaqt (soniya): "avto" — qiyinlikka qarab; yoki admin o'zi yozadi
+const AVTO_VAQT = { oson: 60, "o'rta": 80, qiyin: 100, murakkab: 120 };
+const VAQT_VARIANTLARI = [60, 80, 100, 120];
 
 export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
@@ -990,7 +993,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
   // Bosqichma-bosqich tanlash: sinf_turi -> sinf -> fan -> mavzular
   const [ichkiBosqich, setIchkiBosqich] = useState("sinf_turi");
-  const [sinflarRoyxati, setSinflarRoyxati] = useState({ oddiy: [], togarak: [] });
+  const [sinflarRoyxati, setSinflarRoyxati] = useState({ oddiy: [], talaba: [], togarak: [] });
   const [tanlanganSinfTuri, setTanlanganSinfTuri] = useState(null); // "oddiy" | "togarak"
   const [tanlanganSinfIchki, setTanlanganSinfIchki] = useState(null);
   const [ichkiFanlar, setIchkiFanlar] = useState([]);
@@ -1032,7 +1035,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     if (mode !== "shablon") return;
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
-      .then((d) => setSinflarRoyxati(d))
+      .then((d) => setSinflarRoyxati({ oddiy: d.oddiy || [], talaba: d.talaba || [], togarak: d.togarak || [] }))
       .catch(() => setXato("Sinflarni yuklab bo'lmadi"));
   }, [mode, token]);
 
@@ -1040,7 +1043,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     if (mode !== "import") return;
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
-      .then((d) => setImportSinflar(Array.from(new Set([...(d.oddiy || []), ...(d.togarak || [])]))))
+      .then((d) => setImportSinflar(Array.from(new Set([...(d.oddiy || []), ...(d.talaba || []), ...(d.togarak || [])]))))
       .catch(() => setXato("Import uchun sinflarni yuklab bo'lmadi"));
   }, [mode, token]);
 
@@ -1125,7 +1128,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       const res = await fetch(`${API_BASE}/api/admin/shablon_yukla?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar, maqsad }),
+        body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar: guruhlar.map((g) => ({ ...g, vaqt: g.vaqt ?? null })), maqsad }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -1259,10 +1262,14 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
         </label>
 
         {ichkiBosqich === "sinf_turi" && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button onClick={() => sinfTuriTanlandi("oddiy")}
               className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }}>
               🏫 1–11-sinf
+            </button>
+            <button onClick={() => sinfTuriTanlandi("talaba")}
+              className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#D9D2EA", color: "#5B4B8A", backgroundColor: "#F1EEF8" }}>
+              🎓 Talaba (kurslar)
             </button>
             <button onClick={() => sinfTuriTanlandi("togarak")}
               className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }}>
@@ -1276,12 +1283,15 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
             <button onClick={() => setIchkiBosqich("sinf_turi")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
               <ChevronLeft size={14} /> Ortga
             </button>
-            <div className="grid grid-cols-6 gap-1.5">
-              {(tanlanganSinfTuri === "oddiy" ? sinflarRoyxati.oddiy : sinflarRoyxati.togarak).map((s) => (
+            {(tanlanganSinfTuri === "talaba" ? sinflarRoyxati.talaba : tanlanganSinfTuri === "oddiy" ? sinflarRoyxati.oddiy : sinflarRoyxati.togarak).length === 0 && (
+              <p className="text-xs mb-2" style={{ color: "#8A8578" }}>{tanlanganSinfTuri === "talaba" ? "Hali kurs uchun mavzu yaratilmagan — «Topik shablon»da Sinf sifatida Bakalavr/Magistr kursini tanlab yarating." : "Bu turda mavzu topilmadi."}</p>
+            )}
+            <div className={tanlanganSinfTuri === "oddiy" ? "grid grid-cols-6 gap-1.5" : "grid grid-cols-3 gap-1.5"}>
+              {(tanlanganSinfTuri === "talaba" ? sinflarRoyxati.talaba : tanlanganSinfTuri === "oddiy" ? sinflarRoyxati.oddiy : sinflarRoyxati.togarak).map((s) => (
                 <button key={s} onClick={() => ichkiSinfTanlandi(s)}
                   className="py-2.5 rounded-lg border text-sm font-semibold text-center"
-                  style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  {s}
+                  style={{ borderColor: tanlanganSinfTuri === "talaba" ? "#D9D2EA" : "#E5E1D8", color: tanlanganSinfTuri === "talaba" ? "#5B4B8A" : "#5A5648" }}>
+                  {tanlanganSinfTuri === "talaba" ? `🎓 ${s}` : s}
                 </button>
               ))}
             </div>
@@ -1291,7 +1301,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
         {ichkiBosqich === "fan" && (
           <>
             <button onClick={() => { setIchkiBosqich("sinf"); setKopFanRejimi(false); setTanlanganFanlarKop([]); }} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
-              <ChevronLeft size={14} /> Ortga ({tanlanganSinfIchki}-sinf)
+              <ChevronLeft size={14} /> Ortga ({/kurs/i.test(String(tanlanganSinfIchki)) ? tanlanganSinfIchki : `${tanlanganSinfIchki}-sinf`})
             </button>
             {!kopFanRejimi && (
               <button onClick={() => setKopFanRejimi(true)}
@@ -1399,7 +1409,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
             return (
               <div key={g.diff}>
                 <p className="text-sm font-medium mb-1.5" style={{ color: "#2B2B2B" }}>{nom}</p>
-                <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                <div className="flex gap-1.5 mb-1.5 flex-wrap items-center">
                   {[0, 5, 10, 15, 20].map((n) => (
                     <button key={n} onClick={() => guruhniYangila(g.diff, "soni", n)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium"
@@ -1409,6 +1419,32 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
                       {n}
                     </button>
                   ))}
+                  <label className="flex items-center gap-1 text-[11px]" style={{ color: "#8A8578" }}>
+                    yoki
+                    <input type="number" min={0} max={200} value={g.soni} aria-label={`${nom}: savollar soni`}
+                      onChange={(e) => guruhniYangila(g.diff, "soni", Math.max(0, Math.min(200, parseInt(e.target.value, 10) || 0)))}
+                      className="w-16 px-2 py-1 rounded-lg border text-xs font-semibold text-center" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }} />
+                    ta
+                  </label>
+                </div>
+                <div className="flex gap-1.5 mb-1.5 flex-wrap items-center">
+                  <span className="text-[11px]" style={{ color: "#8A8578" }}>⏱ Vaqt:</span>
+                  <button onClick={() => guruhniYangila(g.diff, "vaqt", null)}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-medium"
+                    style={g.vaqt == null ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                    Avto ({AVTO_VAQT[g.diff]} s)
+                  </button>
+                  {VAQT_VARIANTLARI.map((v) => (
+                    <button key={v} onClick={() => guruhniYangila(g.diff, "vaqt", v)}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium"
+                      style={g.vaqt === v ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
+                      {v} s
+                    </button>
+                  ))}
+                  <input type="number" min={10} max={900} step={5} placeholder="o'zim" aria-label={`${nom}: har savolga soniya`}
+                    value={g.vaqt != null && !VAQT_VARIANTLARI.includes(g.vaqt) ? g.vaqt : ""}
+                    onChange={(e) => { const v = parseInt(e.target.value, 10); guruhniYangila(g.diff, "vaqt", Number.isFinite(v) && v >= 10 ? Math.min(900, v) : null); }}
+                    className="w-16 px-2 py-1 rounded-lg border text-[11px] text-center" style={{ borderColor: "#E5E1D8" }} />
                 </div>
                 <div className="flex gap-1.5">
                   <button onClick={() => guruhniYangila(g.diff, "turi", "single_choice")}
