@@ -462,6 +462,12 @@ const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
 const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
 const StudentScheduleWorkspace = _samtmLazyRetry(() => import("./student/StudentScheduleWorkspace.jsx"));
+// Talaba (1–11 sinfdan tashqari): qo'shilish oqimi, profil kartasi va o'z paralar jadvali
+const TalabaQoshilish = _samtmLazyRetry(() => import("./student/TalabaQoshilish.jsx"));
+const TalabaProfilKartasi = _samtmLazyRetry(() => import("./student/TalabaQoshilish.jsx").then((m) => ({ default: m.TalabaProfilKartasi })));
+const TalabaHaftalikJadval = _samtmLazyRetry(() => import("./student/TalabaHaftalikJadval.jsx"));
+// users.class "2 kurs" / "1 kurs magistr" — talaba; maktab jadvali va 1–11 tugmalari ularga tegmaydi
+const sinfTalabaMi = (qiymat) => /^\s*[1-6]\s*-?\s*kurs(?:\s+magistr)?\s*$/i.test(String(qiymat || ""));
 const MilitaryRoutine = _samtmLazyRetry(() => import("./school/MilitaryRoutine.jsx"));
 const lazyAdminTestTool = (exportName) =>
   _samtmLazyRetry(() =>
@@ -4474,6 +4480,66 @@ function BogchaTafsiloti({ token, bogcha, onOrtga }) {
   );
 }
 
+// Muassasaga TALABA paroli — faqat super admin (admin_akkaunt) qo'yadi.
+// Talaba shu 4 belgi bilan Profil → "Men 1–11 sinf emasman" orqali qo'shiladi.
+function TalabaParolQatori({ token, universitet, onYangilandi }) {
+  const [rejim, setRejim] = useState(null); // null | "qolda"
+  const [qiymat, setQiymat] = useState("");
+  const [band, setBand] = useState(false);
+  const [xato, setXato] = useState("");
+  const [nusxalandi, setNusxalandi] = useState(false);
+
+  const yubor = async (body) => {
+    setBand(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/universitet_talaba_paroli`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, universitet_id: universitet.id, ...body }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Server xatosi (${res.status})`);
+      onYangilandi({ id: universitet.id, talaba_paroli: d.talaba_paroli });
+      setRejim(null); setQiymat("");
+    } catch (e) { setXato(e.message); } finally { setBand(false); }
+  };
+  const nusxala = async () => {
+    try { await navigator.clipboard.writeText(universitet.talaba_paroli); setNusxalandi(true); setTimeout(() => setNusxalandi(false), 1500); } catch { /* jim */ }
+  };
+
+  return (
+    <div className="px-4 pb-3 pt-2 border-t" style={{ borderColor: "#EFECE6" }} onClick={(e) => e.stopPropagation()}>
+      <div className="flex flex-wrap items-center gap-2">
+        {universitet.talaba_paroli ? (
+          <>
+            <span className="text-xs" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>🔐 Talaba paroli:</span>
+            <button type="button" onClick={nusxala} title="Nusxalash" className="font-mono font-bold text-sm px-2 py-0.5 rounded-lg" style={{ backgroundColor: "#F1EEF8", color: "#5B4B8A", letterSpacing: "0.15em" }}>{universitet.talaba_paroli}</button>
+            {nusxalandi && <span className="text-[11px]" style={{ color: "#3B6D11" }}>nusxalandi</span>}
+            <span className="text-xs" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>· 👥 {Number(universitet.talaba_soni) || 0} talaba</span>
+          </>
+        ) : (
+          <span className="text-xs" style={{ color: "#B0553A" }}>🔓 Talabalar uchun parol qo'yilmagan — talaba qo'shila olmaydi</span>
+        )}
+        <span className="ml-auto flex flex-wrap gap-1.5">
+          <button type="button" disabled={band} onClick={() => yubor({})} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ borderColor: "#D9D2EA", color: "#5B4B8A", backgroundColor: "#fff" }}>{universitet.talaba_paroli ? "Yangi parol" : "Parol yaratish"}</button>
+          <button type="button" disabled={band} onClick={() => { setRejim(rejim === "qolda" ? null : "qolda"); setXato(""); }} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)", color: "var(--ui-legacy-color-5a5648, #5A5648)", backgroundColor: "#fff" }}>Qo'lda</button>
+          {universitet.talaba_paroli && <button type="button" disabled={band} onClick={() => { if (window.confirm(`${universitet.nomi}: talaba parolini o'chirasizmi? Yangi talabalar qo'shila olmaydi (mavjudlar qoladi).`)) yubor({ ochirish: true }); }} className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ borderColor: "#F1D5CC", color: "#B0553A", backgroundColor: "#fff" }}>O'chirish</button>}
+        </span>
+      </div>
+      {rejim === "qolda" && (
+        <div className="flex items-center gap-2 mt-2">
+          <input value={qiymat} maxLength={4} autoFocus placeholder="A7K2" aria-label="4 belgili parol"
+            onChange={(e) => setQiymat(e.target.value.replace(/[^0-9a-zA-Z]/g, "").toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && qiymat.length === 4 && yubor({ parol: qiymat })}
+            className="font-mono font-bold text-sm px-3 py-1.5 rounded-lg border w-24 text-center" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)", letterSpacing: "0.2em" }} />
+          <button type="button" disabled={band || qiymat.length !== 4} onClick={() => yubor({ parol: qiymat })} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#5B4B8A", opacity: band || qiymat.length !== 4 ? 0.6 : 1 }}>{band ? "…" : "Saqlash"}</button>
+          <span className="text-[11px]" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>4 belgi: harf + raqam aralash</span>
+        </div>
+      )}
+      {xato && <p className="text-xs mt-1.5" style={{ color: "#B0553A" }}>{xato}</p>}
+    </div>
+  );
+}
+
 function UniversitetlarBolimi({ token }) {
   const { t: uiT } = useInterface();
   const [holat, setHolat] = useState("universitet"); // universitet | fakultet | kafedra | guruh
@@ -4769,8 +4835,9 @@ function UniversitetlarBolimi({ token }) {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {holat === "universitet" && universitetlar.filter((u) => eskiKorsat || Number(u.fakultet_soni) > 0 || u.rektor_ismi).map((u) => (
-            <button key={u.id} onClick={() => universitetOch(u)} className="w-full text-left rounded-xl p-4 bg-white border flex items-center justify-between" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
+          {holat === "universitet" && universitetlar.filter((u) => eskiKorsat || Number(u.fakultet_soni) > 0 || u.rektor_ismi || u.talaba_paroli || Number(u.talaba_soni) > 0).map((u) => (
+            <div key={u.id} className="rounded-xl bg-white border" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
+            <button onClick={() => universitetOch(u)} className="w-full text-left rounded-xl p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold mb-1" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{u.nomi}{!Number(u.fakultet_soni) && !u.rektor_ismi && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "var(--ui-legacy-background-f1efe9, #F1EFE9)", color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>bo‘sh</span>}</p>
                 <p className="text-xs" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{[u.viloyat, u.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"} · {u.fakultet_soni} fakultet</p>
@@ -4778,6 +4845,8 @@ function UniversitetlarBolimi({ token }) {
               </div>
               <ChevronRight size={16} style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }} />
             </button>
+            <TalabaParolQatori token={token} universitet={u} onYangilandi={(yangi) => setUniversitetlar((old) => old.map((x) => (x.id === yangi.id ? { ...x, ...yangi } : x)))} />
+            </div>
           ))}
           {holat === "universitet" && universitetlar.some((u) => !Number(u.fakultet_soni) && !u.rektor_ismi) && <button type="button" onClick={() => setEskiKorsat((v) => !v)} className="w-full text-xs font-semibold py-2 rounded-xl border" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)", color: "var(--ui-legacy-color-8a8578, #8A8578)", background: "var(--ui-legacy-background-faf9f6, #FAF9F6)" }}>{eskiKorsat ? "Bo‘sh yozuvlarni yashirish" : `Bo‘sh yozuvlarni ko‘rsatish — fakultetsiz va rektorsiz (${universitetlar.filter((u) => !Number(u.fakultet_soni) && !u.rektor_ismi).length})`}</button>}
           {holat === "fakultet" && fakultetlar.map((f) => (
@@ -12093,6 +12162,9 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
         <>
           <div className="px-3 sm:px-5 pt-3">
             <MilitaryRoutine token={token} apiBase={API_BASE} childId={tanlanganBola} readOnly />
+            {sinfTalabaMi(farzandlar.find((bola) => Number(bola.user_id) === Number(tanlanganBola))?.class) ? (
+              <p className="rounded-2xl border bg-white p-4 text-sm mb-3" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)", color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>🎓 Farzandingiz talaba — paralar jadvalini o'zi boshqaradi, maktab jadvali tuzilmaydi.</p>
+            ) : (
             <StudentScheduleWorkspace
               token={token}
               student={farzandlar.find((bola) => Number(bola.user_id) === Number(tanlanganBola)) || { user_id: tanlanganBola }}
@@ -12100,6 +12172,7 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
               readOnly
               compactTitle
             />
+            )}
           </div>
           <BilimMarkazi
             token={token}
@@ -12185,6 +12258,35 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
   const [sinfSozlamalariOchiq, setSinfSozlamalariOchiq] = useState(false);
   const [sinf, setSinf] = useState(foydalanuvchi?.class ? String(foydalanuvchi.class).replace(/-sinf$/i, "") : "");
   const [sinfHarfi, setSinfHarfi] = useState(foydalanuvchi?.class_letter || "");
+  const [talabaProfili, setTalabaProfili] = useState(foydalanuvchi?.talaba_profili || null);
+  const [talabaOqimi, setTalabaOqimi] = useState(false);
+  const [talabaChiqilmoqda, setTalabaChiqilmoqda] = useState(false);
+  const talabaMi = !!talabaProfili || sinfTalabaMi(foydalanuvchi?.class);
+  useEffect(() => {
+    // Profil yuklanganda talaba ma'lumoti bo'lmasa (eski token) — alohida so'raymiz
+    if (foydalanuvchi?.role !== "oquvchi" || talabaProfili || !sinfTalabaMi(foydalanuvchi?.class)) return;
+    fetch(`${API_BASE}/api/talaba/profil?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json()).then((d) => { if (d.talaba_profili) setTalabaProfili(d.talaba_profili); }).catch(() => {});
+  }, [foydalanuvchi?.role, foydalanuvchi?.class, talabaProfili, token]);
+  const talabaSaqlandi = (d) => {
+    setTalabaProfili(d.talaba_profili || null); setTalabaOqimi(false); setSinf(d.sinf || ""); setSinfHarfi("");
+    const yangiProfil = { ...foydalanuvchi, role: "oquvchi", class: d.sinf, class_letter: null, talaba_profili: d.talaba_profili, talaba_mi: true,
+      universitet_id: d.talaba_profili?.universitet_id ?? foydalanuvchi?.universitet_id, education_ready: true };
+    if (onInstitutionJoined) onInstitutionJoined({ profile: yangiProfil, result: { joy_nomi: d.talaba_profili?.universitet_nomi } });
+    else onYangilandi(yangiProfil);
+  };
+  const talabadanChiqish = async () => {
+    if (!window.confirm("Muassasadan chiqasizmi? Kurs mavzulari va testlari yopiladi, keyin 1–11 sinfni qayta tanlaysiz.")) return;
+    setTalabaChiqilmoqda(true); setXato("");
+    try {
+      const res = await fetch(`${API_BASE}/api/talaba/profil?token=${encodeURIComponent(token)}`, { method: "DELETE" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || "Xato");
+      setTalabaProfili(null); setSinf("");
+      const yangiProfil = { ...foydalanuvchi, class: null, talaba_profili: null, talaba_mi: false };
+      if (onInstitutionJoined) onInstitutionJoined({ profile: yangiProfil, result: { joy_nomi: null } }); else onYangilandi(yangiProfil);
+    } catch (e) { setXato(e.message); } finally { setTalabaChiqilmoqda(false); }
+  };
   const [jins, setJins] = useState(foydalanuvchi?.jins || "");
   const [asosiyTil, setAsosiyTil] = useState(_ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz"));
   const [ovozJinsi, setOvozJinsi] = useState(_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz"));
@@ -12316,9 +12418,9 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
           token, full_name: ism, region: viloyat, district: tuman,
           tugilgan_sana: tugilganSana || undefined,
           maktab_raqami: maktabRaqami || undefined,
-          maktab_turi: foydalanuvchi?.role === "oquvchi" ? maktabTuri : undefined,
-          sinf: foydalanuvchi?.role === "oquvchi" && sinf ? sinf : undefined,
-          sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi ? sinfHarfi : undefined,
+          maktab_turi: foydalanuvchi?.role === "oquvchi" && !talabaMi ? maktabTuri : undefined,
+          sinf: foydalanuvchi?.role === "oquvchi" && sinf && !talabaMi ? sinf : undefined,
+          sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi && !talabaMi ? sinfHarfi : undefined,
           jins: (foydalanuvchi?.role === "oquvchi" || foydalanuvchi?.role === "oqituvchi") && jins ? jins : undefined,
           oqituvchi_fani: foydalanuvchi?.role === "oqituvchi" && oqituvchiFani ? oqituvchiFani : undefined,
           asosiy_til: asosiyTil,
@@ -12331,7 +12433,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
       onYangilandi({
         ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman,
         tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami,
-        maktab_turi_kaliti: maktabTuri, class: sinf, class_letter: sinfHarfi,
+        maktab_turi_kaliti: maktabTuri, class: talabaMi ? foydalanuvchi?.class : sinf, class_letter: talabaMi ? null : sinfHarfi,
         jins, oqituvchi_fani: oqituvchiFani, asosiy_til: asosiyTil, ovoz_jinsi: ovozJinsi,
         maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : foydalanuvchi?.maktab_id,
         maktab_nomi: royxatdagiMaktab ? royxatdagiMaktab.nomi : foydalanuvchi?.maktab_nomi,
@@ -12474,7 +12576,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
               <h1 className="text-xl font-bold truncate" style={{ color: "#fff" }}>{ism || uiT("Profil")}</h1>
               <p className="text-xs" style={{ color: "rgba(255,255,255,0.8)" }}>
                 {foydalanuvchi?.is_admin ? "🛠 Admin" : rolNomlari[foydalanuvchi?.role] || uiT("Foydalanuvchi")}
-                {foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
+                {foydalanuvchi?.role === "oquvchi" && talabaMi ? ` · ${talabaProfili ? `${talabaProfili.kurs}-kurs · ${talabaProfili.guruh}` : sinf}` : foydalanuvchi?.role === "oquvchi" && sinf ? ` · ${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : ""}
               </p>
             </div>
           </div>
@@ -12536,8 +12638,36 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
       </div>
       </ProfileAccordion>
 
-      {foydalanuvchi?.role === "oquvchi" && (
+      {foydalanuvchi?.role === "oquvchi" && (talabaOqimi || talabaMi) && (
+        <ProfileAccordion nested icon="🎓" title="Institut va kurs" summary={talabaProfili ? `${talabaProfili.universitet_nomi} · ${talabaProfili.kurs}-kurs · ${talabaProfili.guruh}` : talabaOqimi ? "Muassasaga qo'shilish" : sinf}>
+        <div className="mb-3">
+          <React.Suspense fallback={<div className="py-8 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: "#5B4B8A" }} /></div>}>
+            {talabaOqimi ? (
+              <TalabaQoshilish token={token} apiBase={API_BASE} onSaqlandi={talabaSaqlandi} onBekor={() => setTalabaOqimi(false)} />
+            ) : (
+              <>
+                <TalabaProfilKartasi profil={talabaProfili} onOzgartir={() => setTalabaOqimi(true)} onChiqish={talabadanChiqish} chiqilmoqda={talabaChiqilmoqda} />
+                {!talabaProfili && <p className="text-xs mt-2" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>Sinf: <b>{sinf}</b>. To'liq talaba ma'lumotini kiritish uchun <button type="button" className="underline font-semibold" style={{ color: "#5B4B8A" }} onClick={() => setTalabaOqimi(true)}>muassasaga qo'shiling</button>.</p>}
+                <p className="text-xs mt-3" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>Mavzular, testlar va AI ustoz <b>{talabaProfili?.sinf || sinf}</b> Sinf'i bo'yicha ochiladi. Kurs o'zgarsa — "Ma'lumotni o'zgartirish".</p>
+              </>
+            )}
+          </React.Suspense>
+        </div>
+        </ProfileAccordion>
+      )}
+
+      {foydalanuvchi?.role === "oquvchi" && !talabaOqimi && !talabaMi && (
         <ProfileAccordion nested icon="🏫" title="Maktab va sinf" summary={sinf ? `${sinf}${sinfHarfi ? `-${sinfHarfi}` : ""}-sinf` : "Sinf tanlanmagan"}>
+        <button type="button" onClick={() => setTalabaOqimi(true)}
+          className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 mb-3 text-left border"
+          style={{ borderColor: "#D9D2EA", backgroundColor: "#F1EEF8" }}>
+          <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-lg" style={{ backgroundColor: "#fff" }}>🎓</span>
+          <span>
+            <span className="block text-sm font-semibold" style={{ color: "#5B4B8A" }}>Men 1–11 sinf emasman — talabaman</span>
+            <span className="block text-xs" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>Institut paroli bilan kurs, guruh va yo'nalishingizni kiriting</span>
+          </span>
+          <ChevronRight size={16} className="ml-auto shrink-0" style={{ color: "#5B4B8A" }} />
+        </button>
         <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
           <p className="text-xs font-semibold mb-3 flex items-center gap-1.5" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>🏫 Maktab ma'lumotlari</p>
 
@@ -14526,7 +14656,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         <EducationSetup apiBase={API_BASE} token={token} onBack={() => kabutarniOch(true)} onComplete={(joined) => { if (joined?.profile) institutionJoined(joined); else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
-          <button type="button" className="samtm-muassasa-main" onClick={() => muassasaniTanla(m)} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
+          <button type="button" className="samtm-muassasa-main" onClick={() => { if (korinishRoli === "oquvchi") { setTanlanganMuassasa(m); setTab("bilim"); kabutarniOch(false); } else muassasaniTanla(m); }} title={`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`}>
             <span className="samtm-muassasa-ikon">{meta.ikon}</span>
             <span className="samtm-muassasa-matn"><b>{m.muassasa_nomi || m.display_name || meta.nom}</b><small>{meta.nom}{m.lavozim ? ` · ${m.lavozim}` : ""}{on ? " · siz shu yerdasiz" : ""}</small></span>
           </button>
@@ -14594,6 +14724,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         !muassasalarYuklandi ? <div className="py-12 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: joriyRang }}/><p className="text-xs mt-2" style={{ color: "var(--ui-legacy-color-7a8794, #7A8794)" }}>Ta’lim holati aniqlanmoqda…</p></div>
         : <>
           <MilitaryRoutine token={token} apiBase={API_BASE} readOnly />
+          {(foydalanuvchi?.talaba_mi || sinfTalabaMi(foydalanuvchi?.class)) ? (
+            <TalabaHaftalikJadval token={token} apiBase={API_BASE} talabaProfili={foydalanuvchi?.talaba_profili} readOnly={readOnly} />
+          ) : (
           <StudentScheduleWorkspace
             token={token}
             student={foydalanuvchi}
@@ -14605,6 +14738,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
               setTab("test");
             }}
           />
+          )}
           {mavjudMuassasalar.length === 0 ? <TashkilotsizOquvchiBoshSahifa
             foydalanuvchi={foydalanuvchi}
             bilimData={bilimData}

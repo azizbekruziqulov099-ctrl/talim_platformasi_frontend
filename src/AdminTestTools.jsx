@@ -1633,6 +1633,53 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   );
 }
 
+// "Aqlli Sinf tanlash" — admin qo'lda "2 kurs" deb yozmaydi: bosqich → raqam,
+// qiymat kanonik ("7" / "2 kurs" / "1 kurs magistr"). Maktab, talaba va
+// yosh guruhi (IQ) bir-biri bilan ARALASHMAYDI. Qo'lda yozish — faqat "Boshqa".
+export function SinfTanlagich({ qiymat, onChange, fan = "" }) {
+  const talabaMos = /^\s*([1-6])\s*-?\s*kurs(?:\s+(magistr))?\s*$/i.exec(qiymat || "");
+  const maktabMi = /^(?:[1-9]|1[01])$/.test((qiymat || "").trim());
+  const boshlangich = talabaMos ? (talabaMos[2] ? "magistr" : "bakalavr") : maktabMi ? "maktab" : qiymat ? "boshqa" : "maktab";
+  const [bosqich, setBosqich] = useState(boshlangich);
+  const iqFan = ["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => (fan || "").toLowerCase().includes(k));
+  const BOSQICHLAR = [["maktab", "🏫 Maktab", "1–11 sinf"], ["bakalavr", "📘 Bakalavr", "1–4 kurs"], ["magistr", "🎓 Magistr", "1–2 kurs"], ["boshqa", "✏️ Boshqa", iqFan ? "yosh guruhi" : "qo'lda"]];
+  const raqamlar = bosqich === "maktab" ? Array.from({ length: 11 }, (_, i) => String(i + 1)) : bosqich === "bakalavr" ? ["1", "2", "3", "4"] : bosqich === "magistr" ? ["1", "2"] : [];
+  const kanonik = (raqam) => (bosqich === "maktab" ? raqam : bosqich === "bakalavr" ? `${raqam} kurs` : `${raqam} kurs magistr`);
+  const faolRaqam = bosqich === "maktab" && maktabMi ? qiymat.trim() : talabaMos && ((bosqich === "magistr") === !!talabaMos[2]) ? talabaMos[1] : null;
+  return (
+    <div className="rounded-xl p-2.5 mb-1 border" style={{ borderColor: "#E5E1D8", backgroundColor: "#FAF9F6" }}>
+      <div className="grid grid-cols-4 gap-1.5 mb-2">
+        {BOSQICHLAR.map(([k, nom, izoh]) => (
+          <button key={k} type="button" onClick={() => { setBosqich(k); if (k !== "boshqa") onChange(""); }}
+            className="py-1.5 rounded-lg border text-[11px] font-semibold text-center leading-tight"
+            style={{ borderColor: bosqich === k ? "#5B4B8A" : "#E5E1D8", backgroundColor: bosqich === k ? "#5B4B8A" : "#fff", color: bosqich === k ? "#fff" : "#5A5648" }}>
+            {nom}<span className="block font-normal opacity-80">{izoh}</span>
+          </button>
+        ))}
+      </div>
+      {bosqich === "boshqa" ? (
+        <input type="text" value={qiymat} onChange={(e) => onChange(e.target.value)}
+          placeholder={iqFan ? "masalan: 10-11 yosh" : "masalan: Abituriyent"}
+          className="w-full px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {raqamlar.map((r) => (
+            <button key={r} type="button" onClick={() => onChange(kanonik(r))}
+              className="px-3 py-1.5 rounded-lg border text-sm font-semibold"
+              style={{ borderColor: faolRaqam === r ? "#1B4B7A" : "#E5E1D8", backgroundColor: faolRaqam === r ? "#1B4B7A" : "#fff", color: faolRaqam === r ? "#fff" : "#5A5648" }}>
+              {bosqich === "maktab" ? `${r}-sinf` : `${r}-kurs`}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] mt-2" style={{ color: "#8A8578" }}>
+        Bazaga yoziladigan Sinf: <b className="font-mono" style={{ color: "#2B2B2B" }}>{qiymat ? qiymat : "—"}</b>
+        {talabaMos && <> · talaba profili shu qiymat bilan mos tushadi</>}
+      </p>
+    </div>
+  );
+}
+
 export function TopikShablonBolimi({ token }) {
   const [sinf, setSinf] = useState("");
   const [fan, setFan] = useState("");
@@ -1716,11 +1763,8 @@ export function TopikShablonBolimi({ token }) {
   return (
     <>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf</label>
-        <input type="text" value={sinf} onChange={(e) => setSinf(e.target.value)}
-          placeholder={["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => fan.toLowerCase().includes(k)) ? "masalan: 10-11 yosh" : "masalan: 1"}
-          className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-1"
-          style={{ borderColor: "#E5E1D8" }} />
+        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf — aqlli tanlash</label>
+        <SinfTanlagich qiymat={sinf} onChange={setSinf} fan={fan} />
         {["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => fan.toLowerCase().includes(k)) && (
           <p className="text-[11px] mb-2" style={{ color: "#8A5A1C" }}>
             🧠 IQ/Mantiqiy fikrlash — bu yerga aniq sinf o'rniga <b>yosh guruhini</b> yozing (masalan "10-11 yosh"), oddiy fanlar bilan aralashib qolmasligi uchun.
