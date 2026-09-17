@@ -1641,6 +1641,7 @@ export function TopikShablonBolimi({ token }) {
   const [toliqYaratilmoqda, setToliqYaratilmoqda] = useState(false);
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
+  const [shablonXato, setShablonXato] = useState("");
   const [natija, setNatija] = useState(null);
   const [toliqNatija, setToliqNatija] = useState(null);
 
@@ -1665,9 +1666,9 @@ export function TopikShablonBolimi({ token }) {
 
   const shablonYukla = async () => {
     if (!sinf.trim() || !fan.trim() || !mavzular.trim()) {
-      setXato("Sinf, fan va mavzularni to'ldiring"); return;
+      setShablonXato("Sinf, fan va mavzularni to'ldiring"); return;
     }
-    setYuklanmoqda(true); setXato("");
+    setYuklanmoqda(true); setShablonXato("");
     try {
       const res = await fetch(`${API_BASE}/api/admin/topik_shablon?token=${encodeURIComponent(token)}`, {
         method: "POST",
@@ -1675,17 +1676,19 @@ export function TopikShablonBolimi({ token }) {
         body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), mavzular }),
       });
       if (!res.ok) {
+        // 500 holatida server JSON emas, oddiy matn qaytaradi — status kodini ko'rsatamiz
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.detail || "Xato");
+        throw new Error(d.detail || `Server xatosi (${res.status}) — Railway backend logini tekshiring`);
       }
       const blob = await res.blob();
       const dlUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = dlUrl; a.download = `shablon_${sinf}sinf_${fan}.xlsx`;
+      a.href = dlUrl;
+      a.download = `shablon_${sinf.trim()}sinf_${fan.trim()}.xlsx`.replace(/[\\/:*?"<>|]+/g, "_");
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(dlUrl);
     } catch (e) {
-      setXato(e.message);
+      setShablonXato(e.message);
     } finally { setYuklanmoqda(false); }
   };
 
@@ -1773,6 +1776,7 @@ export function TopikShablonBolimi({ token }) {
           style={{ backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8", opacity: yuklanmoqda ? 0.7 : 1 }}>
           {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "📥 Bo'sh shablon yuklab olish (Bob/Bo'lim to'ldirish uchun)"}
         </button>
+        {shablonXato && <p className="text-sm mt-2" style={{ color: "#B0553A" }}>❌ {shablonXato}</p>}
       </div>
 
       <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
