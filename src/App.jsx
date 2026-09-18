@@ -14223,6 +14223,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const [coursesOpened, setCoursesOpened] = useState(Boolean(initialCourses || initialCourseId));
   const [presentationsOpened, setPresentationsOpened] = useState(false);
   const [presentationsAllowed, setPresentationsAllowed] = useState(false);
+  const [presentationsReason, setPresentationsReason] = useState(""); // ruxsat yo'q yoki server javob bermagan sababi
   useAudiencePresence(API_BASE, token, !readOnly);
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
@@ -14234,9 +14235,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     fetch(`${String(API_BASE || "").replace(/\/+$/, "")}/api/taqdimotlar/capabilities`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       signal: controller.signal, cache: "no-store", credentials: "omit",
-    }).then(async (response) => response.ok ? response.json() : null).then((data) => {
-      if (!controller.signal.aborted) setPresentationsAllowed(data?.allowed === true || data?.admin === true);
-    }).catch(() => { /* An older backend may not have this optional module yet. */ }).finally(() => clearTimeout(timer));
+    }).then(async (response) => response.ok ? response.json() : { xato: `Taqdimot xizmati javob bermadi (${response.status}) — backend yangilanganini tekshiring.` }).then((data) => {
+      if (controller.signal.aborted) return;
+      const ok = data?.allowed === true || data?.admin === true || !!foydalanuvchi?.is_admin; // admin doim kira oladi — ustaxona o'zi aniq xatoni ko'rsatadi
+      setPresentationsAllowed(ok);
+      setPresentationsReason(ok ? "" : (data?.xato || data?.reason || "Taqdimot yaratish hisobingiz uchun hali ochilmagan."));
+    }).catch(() => { if (!controller.signal.aborted) { setPresentationsAllowed(!!foydalanuvchi?.is_admin); setPresentationsReason("Taqdimot xizmatiga ulanib bo'lmadi — internet yoki backendni tekshiring."); } }).finally(() => clearTimeout(timer));
     return () => { clearTimeout(timer); controller.abort(); };
   }, [token, foydalanuvchi?.user_id, foydalanuvchi?.role, foydalanuvchi?.class, foydalanuvchi?.is_admin, readOnly, profileReload, membershipRevision]);
   const [bilimData, setBilimData] = useState(null);
@@ -14472,7 +14476,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const tabTanlandi = (yangiTab) => {
     if (yangiTab === "kurslar") { openCourses("catalog"); return; }
     if (yangiTab === "taqdimotlar") {
-      if (!presentationsAllowed || readOnly) return;
+      if (readOnly) return;
+      if (!presentationsAllowed) { setMembershipNotice(presentationsReason || "Taqdimot yaratish hisobingiz uchun hali ochilmagan."); return; } // jim qolmasin
       setPresentationsOpened(true); setIshxonaTanlash(null); setTab("taqdimotlar"); kabutarniOch(false); return;
     }
     if (yangiTab === "oqituvchi_muassasa" && muassasaBandi) {

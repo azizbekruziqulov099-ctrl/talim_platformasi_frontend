@@ -7,7 +7,7 @@ const API_BASE =
 
 export function TopikMavzularTab({ token, onTestYarat }) {
   const [holat, setHolat] = useState("sinf"); // sinf | fan | mavzular
-  const [sinflar, setSinflar] = useState({ oddiy: [], togarak: [] });
+  const [sinflar, setSinflar] = useState({ oddiy: [], talaba: [], togarak: [] });
   const [tanlanganSinf, setTanlanganSinf] = useState(null);
   const [fanlar, setFanlar] = useState([]);
   const [tanlanganFan, setTanlanganFan] = useState(null);
@@ -72,7 +72,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
-      .then((d) => { setSinflar(d); setYuklanmoqda(false); })
+      .then((d) => { setSinflar({ oddiy: d.oddiy || [], talaba: d.talaba || [], togarak: d.togarak || [] }); setYuklanmoqda(false); })
       .catch(() => { setXato("Sinflarni yuklab bo'lmadi"); setYuklanmoqda(false); });
   }, [token]);
 
@@ -236,6 +236,20 @@ export function TopikMavzularTab({ token, onTestYarat }) {
                 </button>
               ))}
             </div>
+            {(sinflar.talaba || []).length > 0 && (
+              <>
+                <p className="text-xs font-semibold mb-2" style={{ color: "#5B4B8A" }}>🎓 Talaba kurslari (bakalavr / magistr)</p>
+                <div className="flex gap-1.5 flex-wrap mb-5">
+                  {sinflar.talaba.map((s) => (
+                    <button key={s} onClick={() => sinfTanlandi(s)}
+                      className="px-3 py-2 rounded-lg border text-sm font-semibold"
+                      style={{ borderColor: "#D9D2EA", backgroundColor: "#F1EEF8", color: "#5B4B8A" }}>
+                      🎓 {s}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             {sinflar.togarak.length > 0 && (
               <>
                 <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🔀 To'garak sinflari</p>

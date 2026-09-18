@@ -388,7 +388,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
               </div> : <div className="kb-login-telegram-start">
                 <p className="kb-login-method-copy"><InterfaceText text="Telegram orqali telefoningizni tasdiqlab kiring. Hisobingiz bo‘lmasa, avtomatik yaratiladi."/></p>
                 <button type="button" className="kb-login-primary" onClick={startTelegram} disabled={busy || configLoading || (!telegramEnabled && !configError)}>{busy || configLoading ? <LoaderCircle size={19} className="kb-login-spin"/> : <Send size={19}/>} {busy ? uiT("So‘rov tayyorlanmoqda…") : configLoading ? uiT("Kirish usullari tekshirilmoqda…") : uiT("Telegram orqali kirish")}{!busy && !configLoading && <ArrowRight size={18}/>}</button>
-                {!configLoading && config && !telegramEnabled && <p className="kb-login-poll-notice"><InterfaceText text="Telegram orqali kirish hali sozlanmagan. Sayt administratoriga ayting yoki Google orqali kiring."/></p>}
+                {!configLoading && config && !telegramEnabled && <p className="kb-login-poll-notice">{config?.telegram?.reason ? `Telegram orqali kirish hali sozlanmagan: ${config.telegram.reason}. ` : ""}<InterfaceText text={config?.telegram?.reason ? "Sayt administratoriga ayting yoki Google orqali kiring." : "Telegram orqali kirish hali sozlanmagan. Sayt administratoriga ayting yoki Google orqali kiring."}/></p>}
                 <p className="kb-login-under-button"><ShieldCheck size={15}/><InterfaceText text=" SMS yuborilmaydi. Tasdiqlash Telegram botida."/></p>
               </div>)}
 
