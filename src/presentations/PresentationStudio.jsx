@@ -154,7 +154,7 @@ export default function PresentationStudio({ apiBase = '', token, user, active =
   useEffect(() => {
     const fresh = makeProject();
     generation.current += 1; outlinePrepared.current = false; draftRef.current = fresh; setDraft(fresh); setSavedSnapshot(JSON.stringify(fresh)); setProject(null); setStep(0); setCount(15); setSelected(0); setRecovery(null); setError(''); setNotice(''); setImportOpen(false); setLibraryOpen(false); setPresenting(false); importRun.current += 1;
-    history.current = { past: [], future: [], group: null, at: 0 }; setFillMode('manual'); setFamilyMode('auto'); setAiInstructions(''); setAiError('');
+    history.current = { past: [], future: [], group: null, at: 0 }; setStartMode('manual'); setFamilyMode('auto'); setBgTheme('auto'); setWordFlow(false); setAiInstructions(''); setAiError('');
     if (!storageKey) { setRecoveryStatus('Bu hisob uchun qurilmada tiklash mavjud emas. Serverga saqlashdan foydalaning.'); return; }
     try {
       const raw = localStorage.getItem(storageKey);

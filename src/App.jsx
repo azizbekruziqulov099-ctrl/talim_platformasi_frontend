@@ -11205,7 +11205,16 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     } finally { setYaratilmoqda(false); }
   };
 
+  const [togarakRuxsati, setTogarakRuxsati] = useState({ ruxsat: true, izoh: "" }); // admin "kim nima yarata oladi" kaliti
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/api/xususiyat_ruxsatlarim?token=${encodeURIComponent(token)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.ruxsatlar?.togarak) setTogarakRuxsati(d.ruxsatlar.togarak); })
+      .catch(() => {});
+  }, [token]);
   const yaratishniOch = ({ turi = "oddiy", guruhTuri = null, guruhMaqsadi = "togarak" } = {}) => {
+    if (!togarakRuxsati.ruxsat) { setXato(togarakRuxsati.izoh || "To'garak yaratish hozircha yopiq."); return; }
     setXato("");
     setYangiTuri(turi);
     setYangiGuruhTuri(guruhMaqsadi);
@@ -12218,6 +12227,72 @@ function ProfileAccordion({ icon, title, summary, children, nested = false }) {
   );
 }
 
+// Admin: "Kim nima yarata oladi" — taqdimot va to'garak yaratishni rollarga
+// qarab ochish/yopish. Yopilganda foydalanuvchi shu yerdagi izohni ko'radi.
+function AdminRuxsatlarBolimi({ token }) {
+  const [data, setData] = useState(null);
+  const [xato, setXato] = useState("");
+  const [saqlanmoqda, setSaqlanmoqda] = useState("");
+  const [xabar, setXabar] = useState("");
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/xususiyat_ruxsatlari?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json()).then((d) => { if (d.xususiyatlar) setData(d); else setXato(d.detail || "Yuklab bo'lmadi"); })
+      .catch(() => setXato("Ruxsatlarni yuklab bo'lmadi"));
+  }, [token]);
+  const yangila = (kod, patch) => setData((old) => ({ ...old, xususiyatlar: old.xususiyatlar.map((x) => (x.kod === kod ? { ...x, ...patch } : x)) }));
+  const saqla = async (x) => {
+    setSaqlanmoqda(x.kod); setXato(""); setXabar("");
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/xususiyat_ruxsatlari`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, xususiyat: x.kod, rollar: x.rollar, izoh: x.izoh || "" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.detail || `Server xatosi (${res.status})`);
+      setXabar(`${x.nomi} — saqlandi. O'zgarish darhol kuchga kiradi.`);
+    } catch (e) { setXato(e.message); } finally { setSaqlanmoqda(""); }
+  };
+  if (xato && !data) return <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>;
+  if (!data) return <div className="py-6 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
+  return (
+    <div className="space-y-3">
+      <p className="text-xs" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>
+        Kalit yopiq bo'lsa, o'sha roldagi foydalanuvchi tugmani bosganda pastdagi <b>izoh</b>ni ko'radi. Siz (admin) uchun hamma narsa doim ochiq.
+      </p>
+      {data.xususiyatlar.map((x) => (
+        <div key={x.kod} className="rounded-2xl p-4 bg-white border shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{x.kod === "taqdimot" ? "🎞️" : "🎯"} {x.nomi}</p>
+          <p className="text-xs mt-0.5 mb-3" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{x.tavsif}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(data.rol_nomlari).map(([rol, nom]) => {
+              const on = !!x.rollar[rol];
+              return (
+                <button type="button" key={rol} role="switch" aria-checked={on} onClick={() => yangila(x.kod, { rollar: { ...x.rollar, [rol]: !on } })}
+                  className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 border text-left"
+                  style={{ borderColor: on ? "#BFD9C7" : "#E5E1D8", backgroundColor: on ? "#EAF3DE" : "#F7F5F0" }}>
+                  <span className="text-xs font-semibold" style={{ color: on ? "#3B6D11" : "#5A5648" }}>{nom}</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: on ? "#3B6D11" : "#8A8578", color: "#fff" }}>{on ? "Ochiq" : "Yopiq"}</span>
+                </button>
+              );
+            })}
+          </div>
+          <label className="block mt-3">
+            <span className="text-xs font-semibold" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>Yopilganda ko'rinadigan izoh (ixtiyoriy)</span>
+            <input value={x.izoh || ""} maxLength={300} onChange={(e) => yangila(x.kod, { izoh: e.target.value })}
+              placeholder={`Masalan: ${x.nomi} faqat 1-oktabrdan ochiladi`} className="w-full mt-1 px-3 py-2 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+          </label>
+          <div className="flex items-center gap-3 mt-3">
+            <button type="button" onClick={() => saqla(x)} disabled={saqlanmoqda === x.kod} className="px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A", opacity: saqlanmoqda === x.kod ? 0.6 : 1 }}>{saqlanmoqda === x.kod ? "…" : "Saqlash"}</button>
+            <button type="button" onClick={() => yangila(x.kod, { rollar: { ...x.standart } })} className="text-xs underline" style={{ color: "#8A8578" }}>Standart holatga</button>
+          </div>
+        </div>
+      ))}
+      {xato && <p className="text-sm" style={{ color: "#B0553A" }}>{xato}</p>}
+      {xabar && <p className="text-sm" style={{ color: "#3B6D11" }}>✓ {xabar}</p>}
+    </div>
+  );
+}
+
 function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, adminKorinish, onKorinishOzgar, rang }) {
   const { t: uiT } = useInterface();
   const profilRangi = rang || "#1B4B7A";
@@ -12996,6 +13071,12 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
         {qoshilishMuvaffaqiyat && <p className="text-sm mt-2" style={{ color: "#3B6D11" }}>✓ {qoshilishMuvaffaqiyat}</p>}
       </div>
       </ProfileAccordion>
+
+      {foydalanuvchi?.is_admin && (
+        <ProfileAccordion icon="🔑" title="Kim nima yarata oladi" summary="Taqdimot va to'garak yaratish — rollar bo'yicha ochish/yopish">
+          <AdminRuxsatlarBolimi token={token} />
+        </ProfileAccordion>
+      )}
 
       {foydalanuvchi?.is_admin && (
         <ProfileAccordion icon="🛡️" title="Admin xavfsizligi va arxiv" summary="Parol, faol muassasalar va arxiv">
