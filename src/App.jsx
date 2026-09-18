@@ -14341,8 +14341,23 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     return yangi;
   }), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
-  const [kabutarOchiq, setKabutarOchiq] = useState(!initialCourses && !initialCourseId);
-  const [kabutarYuklangan, setKabutarYuklangan] = useState(kabutarOchiq);
+  // Kirganda avval Ta'lim maydoni ochiladi; Kabutar — tepadagi tugma bilan.
+  const [kabutarOchiq, setKabutarOchiq] = useState(false);
+  const [kabutarYuklangan, setKabutarYuklangan] = useState(false);
+  // Admin Kabutarni butun platforma uchun o'chirsa — boshqalar "Tez kunda" ko'radi.
+  const [kabutarHolati, setKabutarHolati] = useState({ yoqilgan: true, xabar: "" });
+  useEffect(() => {
+    let tirik = true;
+    const yukla = () => fetch(`${API_BASE}/api/kabutar_holati`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (tirik && d && typeof d.yoqilgan === "boolean") setKabutarHolati({ yoqilgan: d.yoqilgan, xabar: d.xabar || "" }); })
+      .catch(() => {});
+    yukla();
+    const yangilandi = (event) => { if (event.detail && typeof event.detail.yoqilgan === "boolean") setKabutarHolati({ yoqilgan: event.detail.yoqilgan, xabar: event.detail.xabar || "" }); };
+    window.addEventListener("kabutar:holat", yangilandi);
+    return () => { tirik = false; window.removeEventListener("kabutar:holat", yangilandi); };
+  }, []);
+  const kabutarTezKunda = !kabutarHolati.yoqilgan && !foydalanuvchi?.is_admin;
   const [kabutarOqilmagan, setKabutarOqilmagan] = useState(0);
   const [kabutarContactRequest, setKabutarContactRequest] = useState(null);
   const kabutarniOch = useCallback((ochiq) => { setKabutarOchiq(ochiq); if (ochiq) setKabutarYuklangan(true); else setTalimYuklangan(true); try { window.sessionStorage.setItem("samtm_kabutar_ochiq", ochiq ? "1" : "0"); } catch { /* jim */ } }, []);
@@ -14687,6 +14702,11 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         .premium-sidebar{top:var(--samtm-portal-top,64px) !important;height:calc(100vh - var(--samtm-portal-top,64px));inset:auto auto 0 0 !important}
         .premium-topbar{top:var(--samtm-portal-top,64px) !important}
         .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px))}
+        .samtm-tez-kunda{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#FDF3E0;color:#8A5A1C;vertical-align:middle}
+        .samtm-tez-kunda-panel{max-width:520px;margin:12vh auto 0;padding:32px 28px;text-align:center;background:#fff;border:1px solid #E5E1D8;border-radius:24px;box-shadow:0 12px 40px rgba(27,75,122,.08)}
+        .samtm-tez-kunda-panel>span{display:block;font-size:44px;margin-bottom:8px}
+        .samtm-tez-kunda-panel>h2{font-size:22px;font-weight:800;color:#1B4B7A;margin:0 0 8px}
+        .samtm-tez-kunda-panel>p{font-size:14px;line-height:1.55;color:#5A5648;margin:0 0 20px}
         .samtm-top-spacer{height:64px}
         .samtm-test-active .samtm-top-switch,.samtm-test-active .samtm-top-spacer{display:none!important}
         .samtm-test-active{--samtm-portal-top:0px!important}
@@ -14713,14 +14733,23 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         <div className="samtm-top-switch" ref={topSwitchRef}>
           <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>🧭 <InterfaceText text="Ta’lim maydoni"/></button>
           <KabutarAssistantButton open={assistantOpen} onClick={() => setAssistantOpen(value => !value)} />
-          <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={uiT("Kabutar — suhbatlar")}><MessageCircle size={16} /> Kabutar{kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+          <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}><MessageCircle size={16} /> Kabutar{kabutarTezKunda ? <span className="samtm-tez-kunda">{uiT("tez kunda")}</span> : kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
           <InterfaceSettingsButton/>
           {!readOnly && <button type="button" className="kb-account-top-button" aria-label={uiT("Akkaunt va kirish sozlamalari")} title={uiT("Akkaunt va kirish")} onClick={() => setAccountOpen(true)}><User size={18} /></button>}
         </div>
       </>}
       <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} />
       {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} />}
-      {kabutarYuklangan && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
+      {kabutarYuklangan && kabutarTezKunda && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
+        <div className="samtm-tez-kunda-panel" role="status">
+          <span aria-hidden="true">🕊️</span>
+          <h2>{uiT("Kabutar — tez kunda")}</h2>
+          <p>{kabutarHolati.xabar || uiT("Suhbatlar bo‘limi tez kunda ishga tushadi.")}</p>
+          <button type="button" className="kb-work-primary" onClick={() => kabutarniOch(false)}>🧭 <InterfaceText text="Ta’lim maydoniga qaytish" /></button>
+        </div>
+      </div>}
+      {kabutarYuklangan && !kabutarTezKunda && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
+        {!kabutarHolati.yoqilgan && <div className="kb-app-notice" role="status"><span>🔒 Kabutar boshqa foydalanuvchilar uchun o‘chirilgan — ular «Tez kunda» ko‘radi. Siz admin sifatida ko‘rmoqdasiz.</span></div>}
         <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} /></div>}>
           <KabutarPanel
             token={token}

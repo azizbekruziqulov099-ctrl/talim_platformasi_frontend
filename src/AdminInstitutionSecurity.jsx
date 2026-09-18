@@ -214,6 +214,84 @@ function ActionDialog({ target, mode, onClose, onSuccess, token, apiBase }) {
 }
 
 
+// Kabutar (suhbatlar)ni butun platforma uchun yoqish/o'chirish. O'chirish
+// arxiv paroli bilan tasdiqlanadi — boshqalar "Tez kunda" ekranini ko'radi.
+function KabutarKaliti({ token, apiBase, onMessage }) {
+  const [holat, setHolat] = useState(null);
+  const [xato, setXato] = useState("");
+  const [tasdiq, setTasdiq] = useState(null); // null | { yoqilgan: bool }
+  const [parol, setParol] = useState("");
+  const [parolKorinadi, setParolKorinadi] = useState(false);
+  const [xabar, setXabar] = useState("");
+  const [band, setBand] = useState(false);
+
+  const yukla = useCallback(async () => {
+    try { const d = await securityRequest(apiBase, "/kabutar", token); setHolat(d); setXabar(d.xabar || ""); setXato(""); }
+    catch (error) { setXato(error.message); }
+  }, [apiBase, token]);
+  useEffect(() => { yukla(); }, [yukla]);
+
+  const saqla = async () => {
+    if (!tasdiq) return;
+    setBand(true); setXato("");
+    try {
+      const d = await securityRequest(apiBase, "/kabutar", token, {
+        method: "PUT", body: JSON.stringify({ token, yoqilgan: tasdiq.yoqilgan, ochirish_paroli: parol, xabar }),
+      });
+      setHolat(d); setTasdiq(null); setParol("");
+      onMessage?.(d.yoqilgan ? "Kabutar barcha uchun yoqildi." : "Kabutar o'chirildi — foydalanuvchilar «Tez kunda» ko'radi.");
+      window.dispatchEvent(new CustomEvent("kabutar:holat", { detail: { yoqilgan: d.yoqilgan, xabar: d.xabar } }));
+    } catch (error) { setXato(error.message); } finally { setBand(false); }
+  };
+
+  const yoqilgan = holat?.yoqilgan !== false;
+  return (
+    <div className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>Kabutar — suhbatlar bo'limi</p>
+          <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>
+            {holat ? (yoqilgan ? "Barcha foydalanuvchilar uchun ochiq" : `O'chirilgan · ${formatDate(holat.updated_at)} · boshqalar «Tez kunda» ko'radi`) : (xato || "Yuklanmoqda…")}
+          </p>
+        </div>
+        <span className="text-[10px] font-bold px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: yoqilgan ? "#EAF3DE" : "#FDF0EC", color: yoqilgan ? "#3B6D11" : "#B0553A" }}>{yoqilgan ? "YOQILGAN" : "O'CHIRILGAN"}</span>
+      </div>
+      {!tasdiq && holat && (
+        <button type="button" onClick={() => { setTasdiq({ yoqilgan: !yoqilgan }); setParol(""); setXato(""); }}
+          className="mt-3 w-full rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: yoqilgan ? "#B0553A" : "#3B6D11" }}>
+          {yoqilgan ? "Kabutarni o'chirish" : "Kabutarni yoqish"}
+        </button>
+      )}
+      {tasdiq && (
+        <div className="mt-3 rounded-xl p-3 bg-white border" style={{ borderColor: tasdiq.yoqilgan ? "#BFD9C7" : "#F1D5CC" }}>
+          <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{tasdiq.yoqilgan ? "Kabutarni yoqasizmi?" : "Haqiqatan o'chirasizmi?"}</p>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: "#5A5648" }}>
+            {tasdiq.yoqilgan
+              ? "Suhbatlar bo'limi barcha foydalanuvchilar uchun qayta ochiladi."
+              : "Barcha foydalanuvchilar uchun Kabutar yopiladi va o'rniga «Tez kunda» ekrani ko'rinadi. Siz admin sifatida ko'rishda davom etasiz. Xabarlar o'chmaydi."}
+          </p>
+          {!tasdiq.yoqilgan && (
+            <label className="block mt-3">
+              <span className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Foydalanuvchilar ko'radigan matn</span>
+              <input value={xabar} maxLength={200} onChange={(e) => setXabar(e.target.value)} placeholder="Kabutar — suhbatlar bo'limi tez kunda ishga tushadi." className="w-full mt-1 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
+            </label>
+          )}
+          <div className="mt-3">
+            <PasswordField label="O'chirish (arxiv) paroli" value={parol} onChange={setParol} placeholder="4 xonali parol" visible={parolKorinadi} onToggle={() => setParolKorinadi((v) => !v)} autoComplete="current-password" />
+          </div>
+          {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{xato}</p>}
+          <div className="flex gap-2 mt-3">
+            <button type="button" onClick={() => { setTasdiq(null); setXato(""); }} disabled={band} className="flex-1 rounded-xl py-2.5 text-sm font-semibold border" style={{ borderColor: "#E5E1D8", color: "#5A5648", backgroundColor: "#fff" }}>Bekor qilish</button>
+            <button type="button" onClick={saqla} disabled={band || parol.length < 4} className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: tasdiq.yoqilgan ? "#3B6D11" : "#B0553A", opacity: band || parol.length < 4 ? 0.6 : 1 }}>
+              {band ? "…" : tasdiq.yoqilgan ? "Ha, yoqish" : "Ha, o'chirish"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminInstitutionSecurity({ token, apiBase }) {
   const [status, setStatus] = useState(null);
   const [active, setActive] = useState([]);
@@ -309,6 +387,10 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
 
       {loadError && <div className="rounded-xl p-3 mb-3 text-sm" role="alert" style={{ backgroundColor: "#FDF0EC", color: "#B0553A" }}>{loadError}</div>}
       {message && <div className="rounded-xl p-3 mb-3 text-sm" role="status" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>✓ {message}</div>}
+
+      <SecurityAccordion icon={<span aria-hidden="true">🕊️</span>} title="Kabutar (suhbatlar)" summary="Butun platforma uchun yoqish/o'chirish — arxiv paroli bilan">
+        <KabutarKaliti token={token} apiBase={apiBase} onMessage={setMessage} />
+      </SecurityAccordion>
 
       <SecurityAccordion
         icon={<ShieldCheck size={16} />}

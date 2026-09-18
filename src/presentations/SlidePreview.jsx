@@ -37,9 +37,26 @@ export function Formula({ source, className = '' }) {
 function box(rect, extra = {}) {
   return { position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, boxSizing: 'border-box', ...extra };
 }
+/* Matn qutiga sig'masa shrift 6% qadam bilan kichrayadi (eng kami 55%) —
+ * PowerPoint eksporti ham xuddi shu qadamlar bilan kichraytiradi, shu sabab
+ * ko'rinish va .pptx mos keladi. Faqat eng kichik o'lchamda ham sig'masa ogohlantirish chiqadi. */
+export const FIT_MIN_SCALE = 0.55;
+export const FIT_STEP = 0.94;
 function FitText({ rect, text, label, fontSize, style = {}, className = '' }) {
+  const node = useRef(null);
+  const base = rect ? (rect.fontSize || fontSize) : fontSize;
+  const [scale, setScale] = useState(1);
+  const key = `${text}|${rect?.w}|${rect?.h}|${base}|${style.fontWeight || ''}`;
+  const priorKey = useRef(key);
+  if (priorKey.current !== key) { priorKey.current = key; if (scale !== 1) setScale(1); }
+  useLayoutEffect(() => {
+    const outer = node.current; if (!outer) return;
+    const inner = outer.firstElementChild || outer;
+    const overflow = inner.scrollWidth > outer.clientWidth + 1 || inner.scrollHeight > outer.clientHeight + 1;
+    if (overflow && scale * FIT_STEP >= FIT_MIN_SCALE - 1e-6) setScale(previous => Math.max(FIT_MIN_SCALE, previous * FIT_STEP));
+  }, [key, scale]);
   if (!rect || !text) return null;
-  return <div data-fit-label={label} className={className} style={box(rect, { fontSize: rect.fontSize || fontSize, lineHeight: rect.lineHeight || 1.28, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', overflow: 'hidden', ...style })}><div className="ps50-fit-inner">{text}</div></div>;
+  return <div ref={node} data-fit-label={label} data-fit-scale={scale.toFixed(2)} className={className} style={box(rect, { fontSize: base * scale, lineHeight: rect.lineHeight || 1.28, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', overflow: 'hidden', ...style })}><div className="ps50-fit-inner">{text}</div></div>;
 }
 
 /** Geometry is shared with the bounded native PPTX exporter; prompts never fetch images. */
@@ -73,7 +90,10 @@ function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, tran
         const inner = node.querySelector('.katex') || node.querySelector('.ps50-fit-inner') || node;
         const scale = width / 1280;
         const bounds = inner.getBoundingClientRect();
-        return inner.scrollWidth > node.clientWidth + 2 || inner.scrollHeight > node.clientHeight + 2 || bounds.height / scale > node.clientHeight + 2 || bounds.width / scale > node.clientWidth + 2;
+        const overflow = inner.scrollWidth > node.clientWidth + 2 || inner.scrollHeight > node.clientHeight + 2 || bounds.height / scale > node.clientHeight + 2 || bounds.width / scale > node.clientWidth + 2;
+        // Avto-kichrayish hali tugamagan matn xato emas; faqat eng kichik o'lchamda ham sig'masa
+        const shrinking = node.dataset.fitScale && Number(node.dataset.fitScale) > FIT_MIN_SCALE + 1e-6;
+        return overflow && !shrinking;
       }).map(node => node.dataset.fitLabel);
       if (art.current.querySelector('.ps49-formula-error')) errors.push('Formula');
       setFitErrors(previous => previous.join('|') === errors.join('|') ? previous : errors);
@@ -141,7 +161,7 @@ function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, tran
             : item.kind === 'rect' ? <svg key={item.id} aria-hidden="true" focusable="false" viewBox={`0 0 ${item.w} ${item.h}`} preserveAspectRatio="none" style={box(item)}><rect width={item.w} height={item.h} fill={item.fill || theme.accent} /></svg> : null)}
       </div>
     </div>
-    {!thumbnail && !isManipulating && fitErrors.length > 0 && <div role="alert" className="ps50-fit-warning" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, border: '1px solid #a93232', borderRadius: 6, padding: '7px 9px', font: '12px/1.35 Arial,sans-serif', background: '#fff1ef', color: '#821d1d' }}>{fitErrors.join(', ')} slaydga sig‘madi. Matnni qisqartiring yoki boshqa maketni tanlang.</div>}
+    {!thumbnail && !isManipulating && fitErrors.length > 0 && <div role="alert" className="ps50-fit-warning" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, border: '1px solid #a93232', borderRadius: 6, padding: '7px 9px', font: '12px/1.35 Arial,sans-serif', background: '#fff1ef', color: '#821d1d' }}>{fitErrors.join(', ')} — matn eng kichik o‘lchamda ham sig‘madi. Biroz qisqartiring yoki boshqa maketni tanlang.</div>}
   </div>;
 }
 

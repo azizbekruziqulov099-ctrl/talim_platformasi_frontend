@@ -64,7 +64,7 @@ export function BackgroundGallery({ value, mode, accent = 'blue', onSelect, onMo
   </div>;
 }
 
-export default function StartScreen({ draft, updateDraft, count, setCount, mode, setMode, aiAvailable, aiInstructions, setAiInstructions, bgTheme, setBgTheme, bgMode, setBgMode, onStart, busy, aiRunning, advanced }) {
+export default function StartScreen({ draft, updateDraft, count, setCount, mode, setMode, aiAvailable, aiInstructions, setAiInstructions, bgTheme, setBgTheme, bgMode, setBgMode, onStart, busy, aiRunning, advanced, familyPicker }) {
   const [bgOpen, setBgOpen] = useState(false);
   const suggestion = useMemo(() => suggestTheme(draft.subject, draft.audience), [draft.subject, draft.audience]);
   const effectiveTheme = bgTheme === 'auto' ? suggestion : bgTheme;
@@ -100,6 +100,11 @@ export default function StartScreen({ draft, updateDraft, count, setCount, mode,
         {mode === 'ai' && aiAvailable && <label className="ps60-field"><span>AI uchun istaklar (ixtiyoriy)</span><textarea value={aiInstructions} onChange={event => setAiInstructions(event.target.value)} maxLength={2000} rows={2} placeholder="Masalan: sodda til, kundalik hayotdan misollar, yakunda 3 ta savol." /></label>}
       </div>
 
+      {familyPicker && <div className="ps60-family">
+        <p className="ps60-yorliq"><strong>Maket (5 xil)</strong> — slaydlarning ko‘rinishi. Keyin tahrirda ham almashtirish mumkin.</p>
+        {familyPicker}
+      </div>}
+
       <div className="ps60-bg-pick">
         <div className="ps60-bg-pick-head">
           <span className="ps60-bg-pick-thumb" style={themeMeta ? undefined : { background: '#e8eef3' }}>{themeMeta ? <BackgroundTile theme={themeMeta} mode={bgMode} accent={draft.design.accent} selected={false} onSelect={() => setBgOpen(true)} /> : <ImageIcon size={18} />}</span>
@@ -124,7 +129,7 @@ export default function StartScreen({ draft, updateDraft, count, setCount, mode,
         {mode === 'manual' && <p className="ps49-help">Har slaydda «Rasm yuklash» tugmasi bor. Matnni yozing, kerak bo‘lsa «Slaydda tahrir» bilan joyini suring.</p>}
         {mode === 'ai' && <p className="ps49-help">AI matnni taklif qiladi — siz ko‘rib chiqib «Qo‘llash»ni bosasiz. Rasmlarni o‘zingiz yuklaysiz.</p>}
       </section>
-      {advanced && <details className="ps60-advanced"><summary>Qo‘shimcha: maket oilasi, tayyor matn, namuna <ChevronRight size={15} /></summary>{advanced}</details>}
+      {advanced && <details className="ps60-advanced"><summary>Qo‘shimcha: tayyor matndan olish, formula namunasi <ChevronRight size={15} /></summary>{advanced}</details>}
     </aside>
   </div>;
 }
