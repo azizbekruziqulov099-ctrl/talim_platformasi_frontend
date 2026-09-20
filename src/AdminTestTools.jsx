@@ -293,7 +293,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
                               onClick={() => sinfVaFanTanlandi(s.sinf, f.nom)}
                               className="w-full rounded-xl p-3 bg-white border text-left" style={{ borderColor: "#E5E1D8" }}>
                               <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}{f.dars_turi ? ` — ${f.dars_turi}` : ""}</span>
                                 <span className="text-xs font-semibold shrink-0" style={{ color: rang }}>{f.testli_mavzu}/{f.jami_mavzu}</span>
                               </div>
                               <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#EFEBE1" }}>
@@ -329,7 +329,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
               <button key={f.nom} onClick={() => fanTanlandi(f.nom)}
                 className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-white border text-left"
                 style={{ borderColor: "#E5E1D8" }}>
-                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}{f.dars_turi ? ` — ${f.dars_turi}` : ""}</span>
                 <span className="text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} yozuv →</span>
               </button>
             ))}
@@ -1018,8 +1018,9 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const [tanlanganFanlarKop, setTanlanganFanlarKop] = useState([]); // [fan_nomi, ...]
   const [kopFanYuklanmoqda, setKopFanYuklanmoqda] = useState(false);
 
-  const kopFanBelgilaAlmashtir = (fanNomi) => {
-    setTanlanganFanlarKop((prev) => prev.includes(fanNomi) ? prev.filter((f) => f !== fanNomi) : [...prev, fanNomi]);
+  const kopFanBelgilaAlmashtir = (fanNomi, darsTuri = "") => {
+    const kalit = `${fanNomi}|||${darsTuri}`;
+    setTanlanganFanlarKop((prev) => prev.includes(kalit) ? prev.filter((f) => f !== kalit) : [...prev, kalit]);
   };
 
   const kopFanTanlashniYakunla = async () => {
@@ -1027,8 +1028,9 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     setKopFanYuklanmoqda(true); setXato("");
     try {
       const barchaKodlar = [];
-      for (const fan of tanlanganFanlarKop) {
-        const res = await fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`);
+      for (const fanKalit of tanlanganFanlarKop) {
+        const [fan, darsTuri] = fanKalit.split("|||");
+        const res = await fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&dars_turi=${encodeURIComponent(darsTuri || "")}&token=${encodeURIComponent(token)}`);
         const d = await res.json();
         for (const m of (d.mavzular || [])) {
           barchaKodlar.push(...(m.topic_codes && m.topic_codes.length > 0 ? m.topic_codes : [m.topic_code]));
@@ -1089,11 +1091,11 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
   };
 
-  const ichkiFanTanlandi = (fan) => {
+  const ichkiFanTanlandi = (fan, darsTuri = "") => {
     setTanlanganFanIchki(fan);
     setIchkiBosqich("mavzular");
     setIchkiYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&dars_turi=${encodeURIComponent(darsTuri)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setIchkiMavzular(d.mavzular || []); setIchkiYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
@@ -1339,21 +1341,21 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
               const oddiyFanlar = ichkiFanlar.filter((f) => !iqMi(f.nom));
               const iqFanlar = ichkiFanlar.filter((f) => iqMi(f.nom));
               const FanTugmasi = (f) => kopFanRejimi ? (
-                <button key={f.nom} onClick={() => kopFanBelgilaAlmashtir(f.nom)}
+                <button key={f.nom} onClick={() => kopFanBelgilaAlmashtir(f.nom, f.dars_turi || "")}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border"
-                  style={{ backgroundColor: tanlanganFanlarKop.includes(f.nom) ? "#EAF1F7" : "#F7F5F0", borderColor: tanlanganFanlarKop.includes(f.nom) ? "#1B4B7A" : "transparent" }}>
+                  style={{ backgroundColor: tanlanganFanlarKop.includes(`${f.nom}|||${f.dars_turi || ""}`) ? "#EAF1F7" : "#F7F5F0", borderColor: tanlanganFanlarKop.includes(`${f.nom}|||${f.dars_turi || ""}`) ? "#1B4B7A" : "transparent" }}>
                   <span className="text-sm font-medium flex items-center gap-2" style={{ color: "#2B2B2B" }}>
-                    <span className="w-4 h-4 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: tanlanganFanlarKop.includes(f.nom) ? "#1B4B7A" : "#fff", border: "1px solid #C4BFAF" }}>
-                      {tanlanganFanlarKop.includes(f.nom) && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
+                    <span className="w-4 h-4 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: tanlanganFanlarKop.includes(`${f.nom}|||${f.dars_turi || ""}`) ? "#1B4B7A" : "#fff", border: "1px solid #C4BFAF" }}>
+                      {tanlanganFanlarKop.includes(`${f.nom}|||${f.dars_turi || ""}`) && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
                     </span>
                     {f.nom}
                   </span>
                   <span className="text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu</span>
                 </button>
               ) : (
-                <button key={f.nom} onClick={() => ichkiFanTanlandi(f.nom)}
+                <button key={`${f.nom}-${f.dars_turi || ""}`} onClick={() => ichkiFanTanlandi(f.nom, f.dars_turi || "")}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: "#F7F5F0" }}>
-                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}</span>
+                  <span className="text-sm font-medium" style={{ color: "#2B2B2B" }}>{f.nom}{f.dars_turi ? ` — ${f.dars_turi}` : ""}</span>
                   <span className="flex items-center gap-1 text-xs" style={{ color: "#8A8578" }}>{f.mavzu_soni} ta mavzu <ChevronRight size={14} /></span>
                 </button>
               );
@@ -1733,6 +1735,7 @@ export function SinfTanlagich({ qiymat, onChange, fan = "" }) {
 export function TopikShablonBolimi({ token }) {
   const [sinf, setSinf] = useState("");
   const [fan, setFan] = useState("");
+  const [darsTuri, setDarsTuri] = useState("");
   const [mavzular, setMavzular] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [toliqYaratilmoqda, setToliqYaratilmoqda] = useState(false);
@@ -1751,7 +1754,7 @@ export function TopikShablonBolimi({ token }) {
       const res = await fetch(`${API_BASE}/api/admin/topik_toliq_yarat?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), mavzular }),
+        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), dars_turi: darsTuri, mavzular }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.detail || "Xato");
@@ -1770,7 +1773,7 @@ export function TopikShablonBolimi({ token }) {
       const res = await fetch(`${API_BASE}/api/admin/topik_shablon?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), mavzular }),
+        body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), dars_turi: darsTuri, mavzular }),
       });
       if (!res.ok) {
         // 500 holatida server JSON emas, oddiy matn qaytaradi — status kodini ko'rsatamiz
@@ -1827,6 +1830,19 @@ export function TopikShablonBolimi({ token }) {
           placeholder="masalan: Ingliz tili"
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
           style={{ borderColor: "#E5E1D8" }} />
+
+        {/kurs/.test(sinf) && (
+          <>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Mashg'ulot turi</label>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {["Ma'ruza", "Amaliy", "Seminar", "Laboratoriya"].map((t) => (
+                <button key={t} type="button" onClick={() => setDarsTuri(t)}
+                  className="px-2 py-2 rounded-xl border text-xs font-semibold"
+                  style={{ borderColor: darsTuri === t ? "#1B4B7A" : "#E5E1D8", backgroundColor: darsTuri === t ? "#1B4B7A" : "#fff", color: darsTuri === t ? "#fff" : "#5A5648" }}>{t}</button>
+              ))}
+            </div>
+          </>
+        )}
 
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
           Mavzular (har biri yangi qatorda: chorak / mavzu)
