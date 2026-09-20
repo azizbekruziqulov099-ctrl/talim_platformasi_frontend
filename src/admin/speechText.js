@@ -1,0 +1,50 @@
+// Bound each request without dropping any paragraph or trailing text.
+export function readingChunks(value,max=1200) {
+ if(!Number.isInteger(max)||max<20)throw new Error('Invalid chunk size');
+ const result=[];
+ for(const paragraph of String(value||'').replace(/\r\n?/g,'\n').split(/\n+/)) {
+  let rest=paragraph.trim();
+  const first=result.length;
+  while(rest.length>max) {
+   const window=rest.slice(0,max+1);
+   const ends=[...window.matchAll(/[.!?;:](?:[”"’']?)(?=\s)/g)];
+   let end=ends.length?ends.at(-1).index+ends.at(-1)[0].length:window.lastIndexOf(' ');
+   if(end<max/3)end=max;
+   if(/[\uD800-\uDBFF]/.test(rest[end-1]))end--;
+   result.push({text:rest.slice(0,end).trim(),pauseMs:0});rest=rest.slice(end).trim();
+  }
+  if(rest)result.push({text:rest,pauseMs:0});
+  if(result.length>first)result.at(-1).pauseMs=450;
+ }
+ return result;
+}
+
+export function formatDictation(value,commands=true) {
+ let text=String(value||'').replace(/\r\n?/g,'\n');
+ // Longer spoken commands come first. Disable commands when dictating the words literally.
+ if(commands) {
+  const replacements=[['yangi abzas','\n\n'],['yangi xatboshi','\n\n'],['yangi qator','\n'],
+   ['nuqta vergul',';'],['ikki nuqta',':'],['so‘roq belgisi','?'],["so'roq belgisi",'?'],['soʻroq belgisi','?'],
+   ['undov belgisi','!'],['nuqta','.'],['vergul',',']];
+  for(const [word,mark] of replacements)text=text.replace(new RegExp(`(^|\\s)${word}(?=\\s|[.,!?;:]|$)`,'gi'),(_,before)=>`${before}${mark}`);
+ }
+ return text.replace(/\b([og])[‘’ʻʼ`']/gi,'$1‘')
+  .replace(/[ \t]+/g,' ').replace(/[ \t]*\n[ \t]*/g,'\n')
+  .replace(/ +([,.;:!?])/g,'$1').replace(/([,;:!?])(?=[\p{L}])/gu,'$1 ')
+  .replace(/([.!?])(?:[.!?])+/g,'$1').replace(/\n{3,}/g,'\n\n');
+}
+export function appendDictation(previous,segment,commands=true) {
+ const part=formatDictation(segment,commands);
+ const separator=!previous || /\s$/.test(previous) || /^[\s,.;:!?]/.test(part)?'':' ';
+ const text=formatDictation(`${previous}${separator}${part}`,false).replace(/^\s+/,'');
+ return text.replace(/(^|[.!?]\s+|\n+)([\p{L}])/gu,(_,prefix,letter)=>prefix+letter.toLocaleUpperCase('uz'));
+}
+
+export const recognitionError = code => ({
+ 'not-allowed':'Mikrofonga ruxsat berilmadi. Brauzer sozlamasidan mikrofonni yoqing.',
+ 'service-not-allowed':'Brauzer ovozni tanish xizmatiga ruxsat bermadi.',
+ 'audio-capture':'Mikrofon topilmadi yoki boshqa dastur band qilgan.',
+ 'network':'Ovozni tanish xizmati bilan aloqa uzildi. Internetni tekshirib, davom ettiring.',
+ 'language-not-supported':'Bu brauzer o‘zbekcha ovozni tanishni qo‘llamayapti. Boshqa mos brauzerda oching.',
+ 'no-speech':'Ovoz eshitilmadi. Mikrofonga yaqinroq gapirib, qayta boshlang.',
+}[code] || 'Ovozni tanib bo‘lmadi. Qayta urinib ko‘ring.');

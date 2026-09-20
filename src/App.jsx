@@ -1,3 +1,7 @@
+import LearnerTopics from './curriculum/LearnerTopics.jsx';
+import AdminSpeechStudio from './admin/AdminSpeechStudio.jsx';
+import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
+import {matchingSubjects,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType} from './curriculum/catalog.js';
 import CurriculumBoundary, { useCurriculum } from "./curriculum/CurriculumScope.jsx";
 // REV52: live auth and membership modules share one implementation.
 // REV42: personal curriculum planner and database-grounded assistant.
@@ -500,10 +504,10 @@ function lazyPanel(Component, props) {
 
 function TestTab(props) { return lazyPanel(LazyTestTab, props); }
 function DtsNomTahrirlash({ token }) {
-  const { fetch: scopedFetch } = useCurriculum();
+  const { fetch: scopedFetch, scope } = useCurriculum();
   const { t: uiT } = useInterface();
   const [ochiq, setOchiq] = useState(false);
-  const [sinf, setSinf] = useState("1");
+  const [sinf, setSinf] = useState(scope.grade || (scope.institution_type==='maktab'?'1':''));
   const [fanlar, setFanlar] = useState([]);
   const [fan, setFan] = useState("");
   const [mavzular, setMavzular] = useState([]);
@@ -554,15 +558,16 @@ function DtsNomTahrirlash({ token }) {
   };
 
   return <div className="mb-4 rounded-2xl border bg-white p-4" style={{ borderColor: "#d5e1e7" }}>
-    <button type="button" onClick={() => { const n = !ochiq; setOchiq(n); if (n && !fanlar.length) fanlarniYukla(); }}
+    <button type="button" onClick={() => { const n = !ochiq; setOchiq(n); if (n && sinf && !fanlar.length) fanlarniYukla(); }}
       className="w-full flex items-center justify-between font-semibold" style={{ color: "#12324b" }}>
       <span>✎ DTS fan va mavzu nomlarini tahrirlash</span><span>{ochiq ? "▲" : "▼"}</span>
     </button>
     {ochiq && <div className="mt-4">
-      <div className="flex flex-wrap gap-2 mb-4">{Array.from({ length: 11 }, (_, i) => String(i + 1)).map((g) =>
+      {scope.institution_type==='maktab'?<div className="flex flex-wrap gap-2 mb-4">{Array.from({ length: 11 }, (_, i) => String(i + 1)).map((g) =>
         <button key={g} type="button" onClick={() => { setSinf(g); fanlarniYukla(g); }}
           className="px-3 py-2 rounded-xl border font-semibold" style={{ background: sinf === g ? "#155f78" : "#f4f8fa", color: sinf === g ? "white" : "#12324b" }}>{g}-sinf</button>
-      )}</div>
+      )}</div>:scope.institution_type==='universitet'?<p className="mb-4 text-sm font-semibold">{scope.grade} · {scope.semestr}-semestr · {lessonLabel(scope.dars_turi)}</p>
+       :<div className="mb-4 flex gap-2"><label className="text-sm">Guruh yoki daraja<input className="ml-2 rounded-xl border p-2" value={sinf} onChange={e=>{setSinf(e.target.value);setFan('');setFanlar([]);setMavzular([]);}} placeholder={scope.institution_type==='bogcha'?'5-6 yosh':'A1'}/></label><button type="button" className="rounded-xl border px-3" disabled={!sinf.trim()||yuklanmoqda} onClick={()=>fanlarniYukla()}>Ko‘rsatish</button></div>}
       {xato && <div className="p-3 mb-3 rounded-xl" style={{ background: "#fff0f0", color: "#b42318" }}>{xato}</div>}
       {yuklanmoqda && <div className="py-3 text-sm"><InterfaceText text="Yuklanmoqda..."/></div>}
       {!fan && !yuklanmoqda && <div className="space-y-2">{fanlar.map((f) =>
@@ -582,13 +587,13 @@ function DtsNomTahrirlash({ token }) {
   </div>;
 }
 function TopikMavzularTab(props) {
-  return <CurriculumBoundary token={props.token}><DtsNomTahrirlash token={props.token} />{lazyPanel(LazyTopikMavzularTab, props)}</CurriculumBoundary>;
+  return <CurriculumBoundary token={props.token} title="Mavzular"><DtsNomTahrirlash token={props.token} />{lazyPanel(LazyTopikMavzularTab, props)}</CurriculumBoundary>;
 }
 function ModeratsiyaTab(props) { return lazyPanel(LazyModeratsiyaTab, props); }
 function KitobMiyaBolimi(props) { return lazyPanel(LazyKitobMiyaBolimi, props); }
-function TestShablonBolimi(props) { return <CurriculumBoundary token={props.token}>{lazyPanel(LazyTestShablonBolimi, props)}</CurriculumBoundary>; }
-function TopikShablonBolimi(props) { return <CurriculumBoundary token={props.token}>{lazyPanel(LazyTopikShablonBolimi, props)}</CurriculumBoundary>; }
-function TushuntirishBolimi(props) { return <CurriculumBoundary token={props.token}>{lazyPanel(LazyTushuntirishBolimi, props)}</CurriculumBoundary>; }
+function TestShablonBolimi(props) { return <CurriculumBoundary token={props.token} title={props.mode === "import" ? "Test importi" : "Test tuzish"}>{lazyPanel(LazyTestShablonBolimi, props)}</CurriculumBoundary>; }
+function TopikShablonBolimi(props) { return <CurriculumBoundary token={props.token} title="Mavzu yaratish">{lazyPanel(LazyTopikShablonBolimi, props)}</CurriculumBoundary>; }
+function TushuntirishBolimi(props) { return <CurriculumBoundary token={props.token} title="Mavzu tushuntirishlari">{lazyPanel(LazyTushuntirishBolimi, props)}</CurriculumBoundary>; }
 const AdminInstitutionSecurity = _samtmLazyRetry(() => import("./AdminInstitutionSecurity.jsx"));
 const AdminSchoolWizard = _samtmLazyRetry(() => import("./AdminSchoolWizard.jsx"));
 const KindergartenWorkspace = _samtmLazyRetry(
@@ -2425,7 +2430,11 @@ function BilimMarkazi({
 // 7) ADMIN — Test shablon yuklab olish / import qilish
 // ═══════════════════════════════════════════════════════════
 function AdminTestlarTab({ token }) {
-  return <TestTab token={token} sinf={null} />;
+  return <CurriculumBoundary token={token} title="Testlar"><AdminScopedTests token={token}/></CurriculumBoundary>;
+}
+function AdminScopedTests({token}) {
+  const {scope}=useCurriculum();
+  return <TestTab token={token} sinf={scope.grade || null} curriculumScope={scope}/>;
 }
 
 function AdminTab({ token, oldindanTanlangan }) {
@@ -9192,8 +9201,13 @@ function AiJavobBloklari({ javob, onQuickReply }) {
   );
 }
 
-function AiOquvchiUstozBolimi({ token, initialTarget = null }) {
+function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = null }) {
   const [sozlama, setSozlama] = useState(null);
+  const fallbackType=profileInstitutionType(foydalanuvchi);
+  const [catalogType,setCatalogType]=useState(fallbackType);
+  const [catalogLesson,setCatalogLesson]=useState('maruza');
+  const sectionChosen=useRef(false);
+
   const [fan, setFan] = useState("");
   const [topicCode, setTopicCode] = useState("");
   const [rejim, setRejim] = useState("orgatish");
@@ -9205,45 +9219,59 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null }) {
   const [xato, setXato] = useState("");
   const oxiriRef = useRef(null);
 
+  useEffect(()=>{
+    sectionChosen.current=false;
+    if(initialTarget?.institution_type)setCatalogType(initialTarget.institution_type);
+    if(initialTarget?.dars_turi)setCatalogLesson(initialTarget.dars_turi);
+  },[initialTarget?.nonce]);
+
   useEffect(() => {
-    const params = new URLSearchParams({ token });
-    if (initialTarget?.grade) params.set("grade", String(initialTarget.grade));
-    fetch(`${API_BASE}/api/ai/ustoz/fan_mavzular?${params}`)
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.detail || "Fanlar yuklanmadi");
-        setSozlama(d);
-        if (d.fanlar?.length > 0) {
-          const preferredFan = d.fanlar.find((item) => (
-            String(item.fan).toLocaleUpperCase("uz") === String(initialTarget?.subject || "").toLocaleUpperCase("uz")
-          )) || d.fanlar[0];
-          const preferredTopic = preferredFan.mavzular?.find((item) => (
-            item.topic_code === initialTarget?.topic_code || item.mavzu === initialTarget?.topic_name
-          )) || preferredFan.mavzular?.[0];
-          setFan(preferredFan.fan);
-          setTopicCode(preferredTopic?.topic_code || "");
-          setSuhbatId(null);
-          setXabarlar([]);
-        }
-      })
-      .catch((e) => setXato(e.message))
-      .finally(() => setYuklanmoqda(false));
-  }, [token, initialTarget?.nonce, initialTarget?.grade]);
+    const controller=new AbortController();
+    const params=new URLSearchParams({token,institution_type:catalogType});
+    if(initialTarget?.grade&&!sectionChosen.current)params.set('grade',String(initialTarget.grade));
+    setYuklanmoqda(true);setXato('');setSozlama(null);setFan('');setTopicCode('');setSuhbatId(null);setXabarlar([]);
+    fetch(`${API_BASE}/api/ai/ustoz/fan_mavzular?${params}`,{signal:controller.signal})
+      .then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.detail||'Mavzular yuklanmadi');return data;})
+      .then(data=>{
+        if(controller.signal.aborted)return;
+        setSozlama(data);
+        if(data.viewer?.preferred_type&&((!sectionChosen.current&&!initialTarget?.institution_type)||!data.viewer.types.includes(catalogType))&&catalogType!==data.viewer.preferred_type){setCatalogType(data.viewer.preferred_type);return;}
+        const all=data.fanlar||[];
+        const targeted=!sectionChosen.current&&initialTarget?.topic_code?all.find(subject=>subject.mavzular.some(topic=>topic.topic_code===initialTarget.topic_code)):null;
+        const selectedLesson=targeted?.dars_turi || catalogLesson;
+        if(targeted?.dars_turi)setCatalogLesson(targeted.dars_turi);
+        const visible=matchingSubjects(all,catalogType,selectedLesson);
+        const subject=targeted||visible.find(subject=>subject.fan===initialTarget?.subject)||visible[0];
+        const topic=subject?.mavzular.find(topic=>topic.topic_code===initialTarget?.topic_code)||subject?.mavzular[0];
+        setFan(subject?.kalit||'');setTopicCode(topic?.topic_code||'');
+      }).catch(error=>{if(!controller.signal.aborted)setXato(error.message);})
+      .finally(()=>{if(!controller.signal.aborted)setYuklanmoqda(false);});
+    return()=>controller.abort();
+  },[token,catalogType,initialTarget?.nonce,foydalanuvchi?.talaba_profili?.yangilangan_at]);
 
   useEffect(() => {
     oxiriRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [xabarlar, yuborilmoqda]);
 
-  const joriyFan = sozlama?.fanlar?.find((f) => f.fan === fan);
+  const visibleSubjects=matchingSubjects(sozlama?.fanlar||[],catalogType,catalogLesson);
+  const joriyFan = visibleSubjects.find((f) => f.kalit === fan);
   const joriyMavzu = joriyFan?.mavzular?.find((m) => m.topic_code === topicCode);
 
   const fanOzgar = (yangiFan) => {
-    const f = sozlama?.fanlar?.find((x) => x.fan === yangiFan);
+    const f = visibleSubjects.find((x) => x.kalit === yangiFan);
     setFan(yangiFan);
     setTopicCode(f?.mavzular?.[0]?.topic_code || "");
     setSuhbatId(null);
     setXabarlar([]);
   };
+
+  const changeCatalog=(type,lesson='maruza')=>{
+    sectionChosen.current=true;setCatalogType(type);setCatalogLesson(lesson);
+    const subject=matchingSubjects(sozlama?.fanlar||[],type,lesson)[0];
+    setFan(subject?.kalit||'');setTopicCode(subject?.mavzular[0]?.topic_code||'');
+    setSuhbatId(null);setXabarlar([]);setMatn('');setXato('');
+  };
+  const catalogHeader=<LearnerCurriculumHeader viewer={sozlama?.viewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type)} onLesson={lesson=>changeCatalog(catalogType,lesson)} disabled={yuborilmoqda}/>;
 
   const mavzuOzgar = (kod) => {
     setTopicCode(kod);
@@ -9269,7 +9297,7 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, fan, topic_code: topicCode, grade: sozlama?.sinf || initialTarget?.grade || undefined,
+          token, fan: joriyFan?.fan, topic_code: topicCode, grade: joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade || undefined,
           rejim, savol: yuboriladigan,
           suhbat_id: suhbatId,
         }),
@@ -9293,9 +9321,10 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null }) {
   if (sozlama?.sinf_sozlanmagan) {
     return (
       <div className="px-5 pt-6">
+        {catalogHeader}
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
-          <p className="font-semibold mb-1" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>Avval sinfingizni belgilang</p>
-          <p className="text-xs" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>AI ustoz aynan yoshingiz va sinfingizga mos ishlashi uchun Profil bo'limida sinfni tanlang.</p>
+          <p className="font-semibold mb-1" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>Profil ma’lumotlarini to‘ldiring</p>
+          <p className="text-xs" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>Profil bo‘limida muassasa, yo‘nalish, ta’lim shakli, kurs va semestrni to‘g‘ri saqlang.</p>
         </div>
       </div>
     );
@@ -9303,21 +9332,23 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null }) {
 
   return (
     <div className="px-4 pt-5 pb-4">
+      {catalogHeader}
       <div className="rounded-2xl p-4 mb-3 text-white overflow-hidden relative"
         style={{ background: "linear-gradient(135deg,#1B4B7A,#2D6E8B)" }}>
         <div className="relative z-10">
           <p className="text-xs opacity-80">Sizning shaxsiy yordamchingiz</p>
           <h1 className="text-xl font-bold mt-0.5">🧠 <InterfaceText text="AI Ustoz"/></h1>
           <p className="text-xs mt-1 opacity-90">
-            {sozlama?.sinf}-sinf · taxminiy {sozlama?.yosh} yosh · faqat bazadagi bilimlar
+            {gradeLabel(catalogType,sozlama?.sinf)} · {catalogType==='universitet'?lessonLabel(catalogLesson):institutionLabel(catalogType)}
           </p>
         </div>
       </div>
 
+      {!visibleSubjects.length&&<p className="mb-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Tanlangan bo‘limda profilingizga mos mavzu hali kiritilmagan.</p>}
       <div className="grid grid-cols-2 gap-2 mb-3">
         <select value={fan} onChange={(e) => fanOzgar(e.target.value)}
           className="px-3 py-2.5 rounded-xl border text-xs bg-white" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
-          {(sozlama?.fanlar || []).map((f) => <option key={f.fan} value={f.fan}>{f.fan}</option>)}
+          {visibleSubjects.map((f) => <option key={f.kalit} value={f.kalit}>{f.fan}</option>)}
         </select>
         <select value={topicCode} onChange={(e) => mavzuOzgar(e.target.value)}
           className="px-3 py-2.5 rounded-xl border text-xs bg-white" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
@@ -13207,6 +13238,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 },
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
+      { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
             { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
@@ -13220,6 +13252,8 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       ...(qoshimchaBand ? [qoshimchaBand] : []),
       { kalit: "oqituvchi", nom: qoshimchaBand ? "To‘garak va AI vositalari" : "Ish maydoni", ikon: Users },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
+      { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
+      { kalit: "test", nom: "Testlar", ikon: PencilLine },
             { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
@@ -13233,6 +13267,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   return [
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
+    { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "test", nom: "Test", ikon: PencilLine },
         { kalit: "profil", nom: "Profil", ikon: User },
@@ -14599,6 +14634,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     admin_muassasalar: ["Muassasalar", "Ro'yxat, yaratish va boshqaruv markazi"],
     admin_testlar: ["Testlar", "Savollar va natijalarni boshqarish"],
     admin_mavzular: ["Mavzular", "DTS va ta’lim mazmuni"],
+    admin_ovoz: ["Ovozli matn", "O‘zbekcha o‘qish va gapirib yozish"],
     admin_statistikalar: ["Statistikalar", "Tizimdan aniq o‘quvchigacha"],
     admin_moderatsiya: ["Moderatsiya", "Sifat va xavfsizlik nazorati"],
     oqituvchi: ["Ish maydoni", "Sinf, guruh va to‘garaklar"],
@@ -14606,6 +14642,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     farzand: ["Farzand tahlili", "Bilim, faollik va keyingi qadamlar"],
     bilim: ["Mening tahlilim", "Barcha ta’lim muhitlaridagi rivojim"],
     ai_ustoz: ["AI Ustoz", "Sizga mos individual dars"],
+    mavzular: ["Mavzular", "Ta’limingizga mos fan va mavzular"],
     test: ["Test markazi", "Bilimni tekshirish va mustahkamlash"],
     xabar: ["Xabarlar", "Bildirishnoma va suhbatlar"],
     profil: ["Profil", "Shaxsiy ma’lumot va ulanishlar"],
@@ -14813,8 +14850,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       {korinishRoli === "admin" && tab === "admin" && <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} /></>}
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
-        <TopikMavzularTab token={token} onTestYarat={(topicCode) => { setShablonOldindanTanlangan([topicCode]); setTab("admin"); }} />
+        <TopikMavzularTab token={token} onTestYarat={(topicCode, scopeId) => { setShablonOldindanTanlangan({scopeId,codes:[topicCode]}); setTab("admin"); }} />
       )}
       {korinishRoli === "admin" && tab === "admin_statistikalar" && (
         <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminStatisticsTab token={token} /></>
@@ -14880,13 +14918,22 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
           }
         </>
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
-        <AiOquvchiUstozBolimi token={token} initialTarget={talimYoliDarsNishoni} />
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "mavzular" && (
+        <LearnerTopics apiBase={API_BASE} token={token} user={foydalanuvchi}
+          onOpenLesson={korinishRoli === "oqituvchi" ? null : (topic) => {
+            setTalimYoliDarsNishoni({...topic,nonce:Date.now()});setTab("ai_ustoz");
+          }}
+          onOpenTest={(topic) => {
+            setTalimYoliTestNishoni({...topic,nonce:Date.now()});setTab("test");
+          }} />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "test" && (
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
+        <AiOquvchiUstozBolimi token={token} foydalanuvchi={foydalanuvchi} initialTarget={talimYoliDarsNishoni} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab
           token={token}
-          sinf={foydalanuvchi?.class}
+          sinf={korinishRoli === "oqituvchi" ? null : foydalanuvchi?.class}
           foydalanuvchi={foydalanuvchi}
           rang={joriyRang}
           oyinProfil={oyinProfil}

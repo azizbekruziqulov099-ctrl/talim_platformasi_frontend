@@ -1,3 +1,4 @@
+import {gradeLabel, institutionLabel, lessonLabel} from './curriculum/catalog.js';
 import { useCurriculum } from "./curriculum/CurriculumScope.jsx";
 import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
@@ -5,6 +6,23 @@ import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
   "https://talimplatformasi-production.up.railway.app";
+
+function fanRangiOl(name) {
+  const colors=['#C89B3C','#2D8B8B','#8B5FBF','#B0553A','#4A7C9E','#7C9E4A','#A8527A'];
+  let hash=0;for(const char of String(name||''))hash=char.charCodeAt(0)+((hash<<5)-hash);
+  return colors[Math.abs(hash)%colors.length];
+}
+function haqiqiyRasmKodimi(value) {
+  const text=String(value||'').trim();
+  return text.startsWith('/api/')||/^https?:\/\//i.test(text)||/^\d+(-\d+){5,9}$/.test(text);
+}
+function SavolRasmi({rasmId}) {
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[rasmId]);
+  if(failed)return <p className="text-xs text-amber-800">Rasm yuklanmadi.</p>;
+  const src=String(rasmId).startsWith('/api/')?`${API_BASE}${rasmId}`:/^https?:\/\//i.test(String(rasmId))?rasmId:`${API_BASE}/api/rasm/${encodeURIComponent(rasmId)}`;
+  return <img src={src} alt="Savol rasmi" className="max-h-64 w-full rounded-xl object-contain" onError={()=>setFailed(true)}/>;
+}
 
 export function TopikMavzularTab({ token, onTestYarat }) {
   const { fetch: scopedFetch, scope } = useCurriculum();
@@ -228,44 +246,12 @@ export function TopikMavzularTab({ token, onTestYarat }) {
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
         ) : (
           <>
-            <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🏫 Oddiy sinflar</p>
-            <div className="grid grid-cols-6 gap-1.5 mb-5">
-              {sinflar.oddiy.map((s) => (
-                <button key={s} onClick={() => sinfTanlandi(s)}
-                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
-                  style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
-                  {s}
-                </button>
-              ))}
+            <p className="mb-3 text-sm font-semibold">{scope.institution_type==='maktab'?'Sinfni tanlang':scope.institution_type==='universitet'?'Kurs':'Guruhni tanlang'}</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[...sinflar.oddiy,...(sinflar.talaba||[]),...sinflar.togarak].map(s=><button key={s} type="button" onClick={()=>sinfTanlandi(s)} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold">{gradeLabel(scope.institution_type,s)}</button>)}
             </div>
-            {(sinflar.talaba || []).length > 0 && (
-              <>
-                <p className="text-xs font-semibold mb-2" style={{ color: "#5B4B8A" }}>🎓 Talaba kurslari (bakalavr / magistr)</p>
-                <div className="flex gap-1.5 flex-wrap mb-5">
-                  {sinflar.talaba.map((s) => (
-                    <button key={s} onClick={() => sinfTanlandi(s)}
-                      className="px-3 py-2 rounded-lg border text-sm font-semibold"
-                      style={{ borderColor: "#D9D2EA", backgroundColor: "#F1EEF8", color: "#5B4B8A" }}>
-                      🎓 {s}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-            {sinflar.togarak.length > 0 && (
-              <>
-                <p className="text-xs font-semibold mb-2" style={{ color: "#5A5648" }}>🔀 To'garak sinflari</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {sinflar.togarak.map((s) => (
-                    <button key={s} onClick={() => sinfTanlandi(s)}
-                      className="px-3 py-2 rounded-lg border text-sm font-medium"
-                      style={{ borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            {![...sinflar.oddiy,...(sinflar.talaba||[]),...sinflar.togarak].length&&<p className="py-4 text-sm text-slate-500">Bu bo‘limda hali mavzu yo‘q. “Mavzu yaratish”dan yangi mavzu qo‘shing.</p>}
+
           </>
         )}
 
@@ -450,7 +436,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
                 )}
                 <div className="flex gap-2 flex-wrap">
                   {!m.test_bormi ? (
-                    <button onClick={() => onTestYarat(m.topic_code)}
+                    <button onClick={() => onTestYarat(m.topic_code, scope.id)}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg"
                       style={{ backgroundColor: "#1B4B7A", color: "#fff" }}>
                       🧪 Test shablon yaratish
@@ -977,7 +963,7 @@ const VAQT_VARIANTLARI = [60, 80, 100, 120];
 
 export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const { fetch: scopedFetch, scope } = useCurriculum();
-  const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
+  const [tanlanganKodlar, setTanlanganKodlar] = useState(() => String(oldindanTanlangan?.scopeId)===String(scope.id) ? oldindanTanlangan.codes || [] : []); // [topic_code, ...]
   const [maqsad, setMaqsad] = useState("oddiy"); // "oddiy" | "minimal_bilim"
   const [guruhlar, setGuruhlar] = useState(
     QIYINLIK_DARAJALARI.map(([diff]) => ({ diff, turi: "single_choice", soni: 0 }))
@@ -1009,7 +995,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   };
 
   // Bosqichma-bosqich tanlash: sinf_turi -> sinf -> fan -> mavzular
-  const [ichkiBosqich, setIchkiBosqich] = useState("sinf_turi");
+  const [ichkiBosqich, setIchkiBosqich] = useState("sinf");
   const [sinflarRoyxati, setSinflarRoyxati] = useState({ oddiy: [], talaba: [], togarak: [] });
   const [tanlanganSinfTuri, setTanlanganSinfTuri] = useState(null); // "oddiy" | "togarak"
   const [tanlanganSinfIchki, setTanlanganSinfIchki] = useState(null);
@@ -1042,7 +1028,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       setTanlanganKodlar(Array.from(new Set(barchaKodlar)));
       setKopFanRejimi(false);
       setTanlanganFanlarKop([]);
-      setIchkiBosqich("sinf_turi"); // mavzu tanlash yopiladi, "2) qiyinlik darajasi" ko'rinadi
+      setIchkiBosqich("sinf"); // mavzu tanlash yopiladi, "2) qiyinlik darajasi" ko'rinadi
     } catch {
       setXato("Mavzularni yuklab bo'lmadi");
     } finally {
@@ -1094,6 +1080,12 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
   };
 
+  useEffect(() => {
+    if (!scope.grade) return;
+    if (mode === "shablon") ichkiSinfTanlandi(scope.grade);
+    if (mode === "import") importSinfTanlandi(scope.grade);
+  }, [mode, scope.id]);
+
   const ichkiFanTanlandi = (fan, darsTuri = "") => {
     setTanlanganFanIchki(fan);
     setIchkiBosqich("mavzular");
@@ -1121,10 +1113,10 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   };
 
   useEffect(() => {
-    if (mode === "shablon" && oldindanTanlangan && oldindanTanlangan.length > 0) {
-      setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...oldindanTanlangan])));
+    if (mode === "shablon" && String(oldindanTanlangan?.scopeId)===String(scope.id) && oldindanTanlangan?.codes?.length) {
+      setTanlanganKodlar((prev) => Array.from(new Set([...prev, ...oldindanTanlangan.codes])));
     }
-  }, [mode, oldindanTanlangan]);
+  }, [mode, oldindanTanlangan, scope.id]);
 
   const kodniAlmashtir = (kodlar) => {
     setTanlanganKodlar((prev) => {
@@ -1224,6 +1216,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
   return (
     <>
+      <p className="mb-3 rounded-xl bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-950">{institutionLabel(scope.institution_type)}{scope.dars_turi?` → ${lessonLabel(scope.dars_turi)}`:''} · {mode==='import'?'Test importi':'Test tuzish'}</p>
       {mode === "import" && (
         <div className="rounded-2xl p-4 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <button onClick={diagnostikaniKor} disabled={diagnostikaYuklanmoqda}
@@ -1280,40 +1273,13 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
           1) Mavzu(lar)ni tanlang ({tanlanganKodlar.length} ta tanlandi)
         </label>
 
-        {ichkiBosqich === "sinf_turi" && (
-          <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => sinfTuriTanlandi("oddiy")}
-              className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }}>
-              🏫 1–11-sinf
-            </button>
-            <button onClick={() => sinfTuriTanlandi("talaba")}
-              className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#D9D2EA", color: "#5B4B8A", backgroundColor: "#F1EEF8" }}>
-              🎓 Talaba (kurslar)
-            </button>
-            <button onClick={() => sinfTuriTanlandi("togarak")}
-              className="py-3 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#2B2B2B" }}>
-              🎯 Boshqa sinflar
-            </button>
-          </div>
-        )}
-
         {ichkiBosqich === "sinf" && (
           <>
-            <button onClick={() => setIchkiBosqich("sinf_turi")} className="flex items-center gap-1.5 mb-3 text-xs" style={{ color: "#8A8578" }}>
-              <ChevronLeft size={14} /> Ortga
-            </button>
-            {(tanlanganSinfTuri === "talaba" ? sinflarRoyxati.talaba : tanlanganSinfTuri === "oddiy" ? sinflarRoyxati.oddiy : sinflarRoyxati.togarak).length === 0 && (
-              <p className="text-xs mb-2" style={{ color: "#8A8578" }}>{tanlanganSinfTuri === "talaba" ? "Hali kurs uchun mavzu yaratilmagan — «Topik shablon»da Sinf sifatida Bakalavr/Magistr kursini tanlab yarating." : "Bu turda mavzu topilmadi."}</p>
-            )}
-            <div className={tanlanganSinfTuri === "oddiy" ? "grid grid-cols-6 gap-1.5" : "grid grid-cols-3 gap-1.5"}>
-              {(tanlanganSinfTuri === "talaba" ? sinflarRoyxati.talaba : tanlanganSinfTuri === "oddiy" ? sinflarRoyxati.oddiy : sinflarRoyxati.togarak).map((s) => (
-                <button key={s} onClick={() => ichkiSinfTanlandi(s)}
-                  className="py-2.5 rounded-lg border text-sm font-semibold text-center"
-                  style={{ borderColor: tanlanganSinfTuri === "talaba" ? "#D9D2EA" : "#E5E1D8", color: tanlanganSinfTuri === "talaba" ? "#5B4B8A" : "#5A5648" }}>
-                  {tanlanganSinfTuri === "talaba" ? `🎓 ${s}` : s}
-                </button>
-              ))}
+            <p className="mb-2 text-xs text-slate-600">{scope.institution_type==='maktab'?'Sinfni':scope.institution_type==='universitet'?'Kursni':'Guruhni'} tanlang</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[...sinflarRoyxati.oddiy,...sinflarRoyxati.talaba,...sinflarRoyxati.togarak].map(s=><button type="button" key={s} onClick={()=>ichkiSinfTanlandi(s)} className="rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold">{gradeLabel(scope.institution_type,s)}</button>)}
             </div>
+            {![...sinflarRoyxati.oddiy,...sinflarRoyxati.talaba,...sinflarRoyxati.togarak].length&&<p className="py-4 text-sm text-slate-500">Tanlangan bo‘limda mavzu yo‘q. Avval shu muassasa va mashg‘ulot turida mavzu yarating.</p>}
           </>
         )}
 
@@ -1739,7 +1705,7 @@ export function TopikShablonBolimi({ token }) {
   const { fetch: scopedFetch, scope } = useCurriculum();
   const [sinf, setSinf] = useState(scope.grade || "");
   const [fan, setFan] = useState("");
-  const [darsTuri, setDarsTuri] = useState(scope.dars_turi || "");
+  const darsTuri = scope.dars_turi || "";
   const [mavzular, setMavzular] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [toliqYaratilmoqda, setToliqYaratilmoqda] = useState(false);
@@ -1820,15 +1786,7 @@ export function TopikShablonBolimi({ token }) {
   return (
     <>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf — aqlli tanlash</label>
-        {scope.grade ? <div className="mb-3 font-semibold">{scope.grade} · {scope.semestr}-semestr · {scope.dars_turi}</div> : <SinfTanlagich qiymat={sinf} onChange={setSinf} fan={fan} />}
-        {["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => fan.toLowerCase().includes(k)) && (
-          <p className="text-[11px] mb-2" style={{ color: "#8A5A1C" }}>
-            🧠 IQ/Mantiqiy fikrlash — bu yerga aniq sinf o'rniga <b>yosh guruhini</b> yozing (masalan "10-11 yosh"), oddiy fanlar bilan aralashib qolmasligi uchun.
-          </p>
-        )}
-        <div className="mb-3" />
-
+        <ScopeGradeInput scope={scope} value={sinf} onChange={setSinf}/>
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Fan</label>
         <input type="text" value={fan} onChange={(e) => setFan(e.target.value)}
           placeholder="masalan: Ingliz tili"
@@ -1836,7 +1794,7 @@ export function TopikShablonBolimi({ token }) {
           style={{ borderColor: "#E5E1D8" }} />
 
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
-          Mavzular (har biri yangi qatorda: chorak / mavzu)
+          Mavzular (har biri yangi qatorda: {scope.institution_type==='maktab'?'chorak':'blok'} / mavzu)
         </label>
         <textarea value={mavzular} onChange={(e) => setMavzular(e.target.value)}
           placeholder={"1 / Colours\n1 / Numbers\n2 / Animals"}
@@ -1959,4 +1917,14 @@ export function TushuntirishBolimi({ token }) {
       )}
     </div>
   );
+}
+
+function ScopeGradeInput({scope,value,onChange}) {
+  if(scope.institution_type==='universitet')return <div className="mb-4 rounded-xl bg-violet-50 p-3 text-sm font-semibold text-violet-900">{scope.grade} · {scope.semestr}-semestr · {lessonLabel(scope.dars_turi)}</div>;
+  const school=scope.institution_type==='maktab';
+  return <label className="mb-4 block text-xs font-semibold text-slate-600">{school?'Sinf':scope.institution_type==='bogcha'?'Yosh guruhi':'Kurs yoki guruh nomi'}
+    {school?<select value={value} onChange={e=>onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><option value="">Sinfni tanlang</option>{Array.from({length:11},(_,i)=><option key={i+1} value={String(i+1)}>{i+1}-sinf</option>)}</select>
+    :<><input value={value} onChange={e=>onChange(e.target.value)} list={`curriculum-groups-${scope.id}`} placeholder={scope.institution_type==='bogcha'?'Masalan: 5–6 yosh':'Masalan: A1 yoki Abituriyent'} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"/>
+      <datalist id={`curriculum-groups-${scope.id}`}>{(scope.institution_type==='bogcha'?['3-4 yosh','4-5 yosh','5-6 yosh','6-7 yosh']:['A1','A2','B1','B2','Abituriyent']).map(g=><option key={g} value={g}/>)}</datalist></>}
+  </label>;
 }

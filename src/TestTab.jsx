@@ -1,3 +1,5 @@
+import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
+import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey} from './curriculum/catalog.js';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
@@ -481,6 +483,7 @@ export default function TestTab({
   oyinProfil = null,
   onOyinProfilYangilandi,
   initialTarget = null,
+  curriculumScope = null,
 }) {
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
@@ -495,6 +498,13 @@ export default function TestTab({
   // uchun bu "vaqtincha o'z sinfini chetlab o'tish" rejimi.
   const [boshqaSinflarRejimi, setBoshqaSinflarRejimi] = useState(false);
   const [fanlar, setFanlar] = useState([]);
+  const fallbackType=curriculumScope?.institution_type || profileInstitutionType(foydalanuvchi || {class:sinf});
+  const [catalogType,setCatalogType]=useState(fallbackType);
+  const [catalogLesson,setCatalogLesson]=useState(curriculumScope?.dars_turi || 'maruza');
+  const [catalogViewer,setCatalogViewer]=useState(null);
+  const sectionChosen=useRef(false);
+  const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher ? null : (['maktab','universitet'].includes(catalogType) ? catalogViewer?.grade || sinf : null);
+
   const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
   const [ochiqFan, setOchiqFan] = useState(null);
   const [savollar, setSavollar] = useState([]);
@@ -516,6 +526,9 @@ export default function TestTab({
 
   useEffect(() => {
     if (!initialTarget?.nonce) return;
+    sectionChosen.current=false;
+    if(initialTarget.institution_type)setCatalogType(initialTarget.institution_type);
+    if(initialTarget.dars_turi)setCatalogLesson(initialTarget.dars_turi);
     const targetGrade = String(initialTarget.grade || initialTarget.sinf || "").trim();
     setHolat("mavzular");
     setFaolTuri("oddiy");
@@ -544,19 +557,15 @@ export default function TestTab({
   }, [holat, onTestFaollik]);
 
   useEffect(() => {
-    const qs = new URLSearchParams({ turi: faolTuri });
+    const qs = new URLSearchParams({ turi: faolTuri, institution_type: catalogType });
+    if(curriculumScope?.id)qs.set('scope_id',String(curriculumScope.id));
     if (token) qs.set("token", token);
     // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
     // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
-    if (sinf && !boshqaSinflarRejimi) qs.set("sinf", sinf);
+    if (sinf && !boshqaSinflarRejimi && ["maktab","universitet"].includes(catalogType)) qs.set("sinf", sinf);
     const url = `${API_BASE}/api/mavzular?${qs.toString()}`;
-    const keshlangan = MAVZULAR_XOTIRA_KESHI.get(url);
-    if (!token && keshlangan && Date.now() - keshlangan.vaqt < MAVZULAR_KESH_MS) {
-      setFanlar(keshlangan.fanlar);
-      setYuklanmoqda(false);
-      return undefined;
-    }
     setYuklanmoqda(true);
+    setFanlar([]);
     const controller = new AbortController();
     fetch(url, { signal: controller.signal })
       .then(async (r) => {
@@ -565,9 +574,16 @@ export default function TestTab({
         return d;
       })
       .then((d) => {
+        if (controller.signal.aborted) return;
         const yangiFanlar = d.fanlar || [];
+        setCatalogViewer(d.viewer || null);
+        if (!curriculumScope && d.viewer?.preferred_type && ((!sectionChosen.current && !initialTarget?.institution_type) || !d.viewer.types.includes(catalogType)) && catalogType!==d.viewer.preferred_type) setCatalogType(d.viewer.preferred_type);
+        if (initialTarget?.nonce && talimYoliNishoniRef.current!==initialTarget.nonce) {
+          const target=targetLesson(yangiFanlar,initialTarget.topic_codes || [initialTarget.topic_code]);
+          if(target)setCatalogLesson(target);
+        }
         if (!token) MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
-        setXato(d.profil_sozlanmagan ? "Talaba profilingizda yo‘nalish, ta’lim shakli, til va semestrni to‘ldiring." : "");
+        setXato(d.profil_sozlanmagan ? (d.viewer?.teacher ? "Profilingizda faol ish joyini tanlang." : "Ta’lim profilingizda sinf yoki yo‘nalish, ta’lim shakli, til va semestrni to‘ldiring.") : "");
         setFanlar(yangiFanlar);
         setYuklanmoqda(false);
       })
@@ -578,13 +594,13 @@ export default function TestTab({
         }
       });
     return () => controller.abort();
-  }, [sinf, faolTuri, boshqaSinflarRejimi, token, foydalanuvchi?.talaba_profili?.yangilangan_at]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
   const sinflarRoyxati = useMemo(() => {
     const bySinf = {};
-    fanlar.forEach((fan) => {
+    (faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson)).forEach((fan) => {
       fan.sinflar.forEach((s) => {
         if (!bySinf[s.sinf]) bySinf[s.sinf] = { sinf: s.sinf, fanlar: [] };
         bySinf[s.sinf].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
@@ -595,10 +611,10 @@ export default function TestTab({
       if (raqamA && raqamB) return parseInt(a.sinf, 10) - parseInt(b.sinf, 10);
       return String(a.sinf).localeCompare(String(b.sinf));
     });
-  }, [fanlar]);
+  }, [fanlar, catalogType, catalogLesson, faolTuri]);
 
   // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
-  const faolSinf = (boshqaSinflarRejimi || !sinf) ? tanlanganSinf : sinf;
+  const faolSinf = (boshqaSinflarRejimi || !profilSinfi) ? tanlanganSinf : profilSinfi;
   const joriySinfMalumoti = faolSinf
     ? sinflarRoyxati.find((s) => String(s.sinf) === String(faolSinf))
     : null;
@@ -660,12 +676,20 @@ export default function TestTab({
   };
 
   const [aralashRejim, setAralashRejim] = useState(false);
+  const changeCatalog=(type,lesson=catalogLesson)=>{
+    sectionChosen.current=true;
+    setCatalogType(type);setCatalogLesson(lesson);setFaolTuri('oddiy');
+    setTanlanganSinf(null);setOchiqFan(null);setTanlanganMavzu(null);
+    setTanlanganKodlar([]);setAralashRejim(false);setBoshqaSinflarRejimi(false);setXato('');
+  };
+  const catalogHeader=curriculumScope||faolTuri==='togarak'?null:<LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'maruza')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>;
+
   const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{nomi, topic_codes, savol_soni}]
 
   const aralashToggle = (m) => {
     setTanlanganKodlar((prev) =>
-      prev.some((k) => k.nomi === m.nomi)
-        ? prev.filter((k) => k.nomi !== m.nomi)
+      prev.some((k) => catalogTopicKey(k) === catalogTopicKey(m))
+        ? prev.filter((k) => catalogTopicKey(k) !== catalogTopicKey(m))
         : [...prev, m]
     );
   };
@@ -1380,6 +1404,7 @@ export default function TestTab({
     return (
       <div className="px-5 pt-6 pb-4">
         <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
+        <p className="mb-2 text-xs font-semibold text-sky-900">{institutionLabel(catalogType)}{catalogType==='universitet'?` → ${lessonLabel(catalogLesson)}`:''}</p>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
 
@@ -1917,9 +1942,10 @@ export default function TestTab({
 
   // holat === "mavzular"
   // Sinf ko'rsatilmasa (admin) va hali sinf tanlanmagan bo'lsa — avval sinflar ro'yxati.
-  if ((!sinf || boshqaSinflarRejimi) && !tanlanganSinf) {
+  if ((!profilSinfi || boshqaSinflarRejimi) && !tanlanganSinf) {
     return (
       <div className="px-5 pt-6 pb-4">
+        {catalogHeader}
         {faolTuri === "togarak" && (
           <button onClick={() => { setFaolTuri("oddiy"); setBoshqaSinflarRejimi(false); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
             {sinf ? "← O'z sinfimga qaytish" : "← Oddiy sinflarga qaytish"}
@@ -1944,7 +1970,7 @@ export default function TestTab({
                   className="rounded-2xl p-5 text-center bg-white border"
                   style={{ borderColor: "#E5E1D8" }}>
                   <p className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>
-                    {faolTuri === "togarak" ? s.sinf : `${s.sinf}-sinf`}
+                    {faolTuri === "togarak" ? s.sinf : gradeLabel(catalogType,s.sinf)}
                   </p>
                   <p className="text-xs" style={{ color: "#8A8578" }}>{s.fanlar.length} fan · {jamiMavzu} mavzu</p>
                 </button>
@@ -1969,14 +1995,15 @@ export default function TestTab({
   const sinfMalumoti = joriySinfMalumoti;
   return (
     <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
-      {(!sinf || boshqaSinflarRejimi) && (
+      {catalogHeader}
+      {(!profilSinfi || boshqaSinflarRejimi) && (
         <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
           ← Sinflar
         </button>
       )}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
-          {sinfMalumoti ? (faolTuri === "togarak" ? `${sinfMalumoti.sinf} testlari` : `${sinfMalumoti.sinf}-sinf testlari`) : "Test yechish"}
+          {sinfMalumoti ? (faolTuri === "togarak" ? `${sinfMalumoti.sinf} testlari` : `${gradeLabel(catalogType,sinfMalumoti.sinf)} testlari`) : "Test yechish"}
         </h1>
         <button onClick={() => { setAralashRejim(!aralashRejim); setTanlanganKodlar([]); }}
           className="text-xs font-semibold px-3 py-1.5 rounded-full"
@@ -2003,7 +2030,7 @@ export default function TestTab({
       )}
       {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm" style={{ color: "#8A8578" }}>Bu sinfda hozircha test mavjud emas.</p>
+          <p className="text-sm" style={{ color: "#8A8578" }}>Tanlangan bo‘limda sizga mos test hali kiritilmagan.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -2074,7 +2101,7 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
         </p>
       )}
       {korinadigan.map((m) => {
-        const tanlanganmi = tanlanganKodlar.some((k) => k.nomi === m.nomi);
+        const tanlanganmi = tanlanganKodlar.some((k) => catalogTopicKey(k) === catalogTopicKey(m));
         return (
           <button key={m.nomi}
             onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}

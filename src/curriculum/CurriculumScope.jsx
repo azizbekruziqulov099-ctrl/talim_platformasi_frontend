@@ -1,87 +1,149 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { scopedRequest } from './scopeRequest.js';
-const Context = createContext(null);
-const API = import.meta.env.VITE_API_BASE || 'https://talimplatformasi-production.up.railway.app';
-const labels = {maktab:'Maktab',universitet:'Institut',bogcha:'Bog‘cha',markaz:'Markaz'};
-const forms = {kunduzgi:'Kunduzgi',kechki:'Kechki',sirtqi:'Sirtqi',masofaviy:'Masofaviy',umumiy:'Shakllar uchun umumiy'};
-const lessons = {maruza:'Ma’ruza',amaliy:'Amaliy',seminar:'Seminar',laboratoriya:'Laboratoriya'};
-const blank = {institution_type:'universitet',institution_id:0,talim_bosqichi:'bakalavr',yonalish_id:0,yonalish_nomi:'',talim_shakli:'kunduzgi',talim_tili:'uz',kurs:1,semestr:1,guruh:'',dars_turi:'maruza'};
-const input = 'w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm';
-const button = 'rounded-xl bg-sky-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50';
-function Field({name,children}) { return <label className="block text-xs font-semibold text-stone-600">{name}<div className="mt-1">{children}</div></label>; }
-function Select({value,onChange,children}) { return <select className={input} value={value} onChange={e=>onChange(e.target.value)}>{children}</select>; }
+import React, {createContext,useContext,useEffect,useMemo,useState} from 'react';
+import {scopedRequest} from './scopeRequest.js';
+import {InstitutionTabs,LessonTabs} from './CurriculumTabs.jsx';
+import {FORM_LABELS,groupPrograms,programKey,programLabel,institutionLabel,lessonLabel} from './catalog.js';
+const Context=createContext(null);
+const API=import.meta.env.VITE_API_BASE || 'https://talimplatformasi-production.up.railway.app';
+const blank={institution_type:'universitet',institution_id:0,talim_bosqichi:'bakalavr',yonalish_id:0,yonalish_nomi:'',talim_shakli:'kunduzgi',talim_tili:'uz',kurs:1,semestr:1,guruh:'',dars_turi:'maruza'};
+const input='w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm';
+const button='rounded-xl bg-sky-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50';
+function Field({name,children}) {return <label className="block text-xs font-semibold text-slate-600">{name}<div className="mt-1">{children}</div></label>;}
+function Select({value,onChange,children,disabled=false}) {return <select className={input} value={value} disabled={disabled} onChange={e=>onChange(e.target.value)}>{children}</select>;}
 async function request(path,token,options={}) {
  const response=await fetch(`${API}/api/admin/curriculum${path}${path.includes('?')?'&':'?'}token=${encodeURIComponent(token)}`,options);
  const data=await response.json();
- if(!response.ok) throw new Error(typeof data.detail==='string'?data.detail:'So‘rov bajarilmadi');
+ if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'So‘rov bajarilmadi');
  return data;
 }
-export function useCurriculum() { const context=useContext(Context); if(!context) throw new Error('CurriculumBoundary kerak'); return context; }
-export default function CurriculumBoundary({token,children}) {
- const [scopes,setScopes]=useState([]),[selected,setSelected]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const [showCreate,setShowCreate]=useState(false),[draft,setDraft]=useState({...blank}),[options,setOptions]=useState({institutions:[],programs:[]});
+export function useCurriculum() {const context=useContext(Context);if(!context)throw new Error('CurriculumBoundary kerak');return context;}
+export default function CurriculumBoundary({token,children,title='Mavzular va testlar'}) {
+ const [scopes,setScopes]=useState([]),[selected,setSelected]=useState(''),[type,setType]=useState('maktab'),[lesson,setLesson]=useState('maruza');
+ const [error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
+ const [showCreate,setShowCreate]=useState(false),[draft,setDraft]=useState({...blank}),[options,setOptions]=useState({institutions:[],programs:[]}),[optionsLoading,setOptionsLoading]=useState(false);
  const [unassigned,setUnassigned]=useState(0),[legacy,setLegacy]=useState(null),[legacyCodes,setLegacyCodes]=useState([]);
+ const groups=useMemo(()=>groupPrograms(scopes,type),[scopes,type]);
+ const selectedBase=scopes.find(s=>String(s.id)===String(selected)&&s.institution_type===type);
+ const family=groups.find(g=>selectedBase&&g.key===programKey(selectedBase));
+ const scope=family?.lessons[type==='universitet'?lesson:''];
+ const institutions=[...new Map(groups.map(g=>[String(g.scope.institution_id),g.scope.institution_name])).entries()];
+ const institutionId=String(selectedBase?.institution_id ?? '');
  const set=(key,value)=>setDraft(old=>({...old,[key]:value}));
- const scope=scopes.find(s=>String(s.id)===String(selected));
- const refresh=async(prefer)=>{
-  const d=await request('/scopes',token);setScopes(d.scopes||[]);setUnassigned(d.unassigned||0);
-  let saved=prefer;
-  if(!saved) {try{saved=sessionStorage.getItem('curriculum-scope');}catch{}}
-  const chosen=d.scopes.find(s=>String(s.id)===String(saved))||d.scopes.find(s=>s.scope_key==='school-common');
-  setSelected(chosen?String(chosen.id):'');
+ const choose=s=>{
+  if(!s)return;
+  setSelected(String(s.id));setType(s.institution_type);setLesson(s.dars_turi || 'maruza');setError('');setLegacyCodes([]);
+  try{sessionStorage.setItem('curriculum-scope',String(s.id));}catch{}
  };
- useEffect(()=>{let live=true;setBusy(true);request('/scopes',token).then(d=>{
-  if(!live)return;setScopes(d.scopes||[]);setUnassigned(d.unassigned||0);
-  let saved='';try{saved=sessionStorage.getItem('curriculum-scope')||'';}catch{}
-  const chosen=d.scopes.find(s=>String(s.id)===saved)||d.scopes.find(s=>s.scope_key==='school-common');setSelected(chosen?String(chosen.id):'');
- }).catch(e=>live&&setError(e.message)).finally(()=>live&&setBusy(false));return()=>{live=false;};},[token]);
- useEffect(()=>{if(!showCreate)return;let live=true;setOptions({institutions:[],programs:[]});
-  request(`/options?institution_type=${draft.institution_type}&institution_id=${draft.institution_id}`,token).then(d=>live&&setOptions(d)).catch(e=>live&&setError(e.message));
+ useEffect(()=>{
+  let live=true;setLoading(true);setScopes([]);setLegacy(null);setLegacyCodes([]);
+  request('/scopes',token).then(data=>{
+   if(!live)return;
+   setScopes(data.scopes||[]);setUnassigned(data.unassigned||0);
+   let saved='';try{saved=sessionStorage.getItem('curriculum-scope')||'';}catch{}
+   choose(data.scopes.find(s=>String(s.id)===saved)||data.scopes.find(s=>s.scope_key==='school-common')||data.scopes[0]);
+  }).catch(e=>live&&setError(e.message)).finally(()=>live&&setLoading(false));
+  return()=>{live=false;};
+ },[token]);
+ useEffect(()=>{
+  if(!showCreate)return;
+  let live=true;setOptionsLoading(true);setOptions({institutions:[],programs:[]});
+  request(`/options?institution_type=${draft.institution_type}&institution_id=${draft.institution_id}`,token)
+   .then(data=>live&&setOptions(data)).catch(e=>live&&setError(e.message)).finally(()=>live&&setOptionsLoading(false));
   return()=>{live=false;};
  },[token,showCreate,draft.institution_type,draft.institution_id]);
- const choose=id=>{setSelected(String(id));setLegacyCodes([]);setError('');try{sessionStorage.setItem('curriculum-scope',String(id));}catch{}};
- const create=async()=>{setBusy(true);setError('');try{
-  const d=await request('/scopes',token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(draft)});
-  await refresh(d.scope.id);choose(d.scope.id);setShowCreate(false);
- }catch(e){setError(e.message);}finally{setBusy(false);}};
- const openLegacy=async()=>{setError('');try{const d=await request('/unassigned',token);setLegacy(d.groups||[]);}catch(e){setError(e.message);}};
- const assign=async()=>{setBusy(true);setError('');try{
-  await request('/assign-legacy',token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope_id:scope.id,topic_codes:legacyCodes})});
-  setLegacy(null);setLegacyCodes([]);await refresh(scope.id);
- }catch(e){setError(e.message);}finally{setBusy(false);}};
+ const addScopes=items=>setScopes(old=>[...old.filter(s=>!items.some(item=>String(item.id)===String(s.id))),...items]);
+ const chooseType=next=>{
+  setType(next);setError('');setLegacy(null);setLegacyCodes([]);setShowCreate(false);setLesson('maruza');
+  const first=groupPrograms(scopes,next)[0];
+  if(first)choose(first.lessons.maruza||first.scope);else setSelected('');
+ };
+ const chooseProgram=key=>{
+  const next=groups.find(g=>g.key===key);
+  if(next)choose(next.lessons[lesson]||next.lessons.maruza||next.scope);
+ };
+ const chooseInstitution=id=>{
+  const next=groups.find(g=>String(g.scope.institution_id)===id);
+  if(next)choose(next.lessons.maruza||next.scope);
+ };
+ const chooseLesson=async kind=>{
+  setLesson(kind);setError('');setLegacyCodes([]);
+  if(!family)return;
+  const existing=family.lessons[kind];
+  if(existing){choose(existing);return;}
+  setBusy(true);
+  try{
+   const data=await request('/scopes',token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...family.scope,dars_turi:kind})});
+   addScopes([data.scope]);choose(data.scope);
+  }catch(e){setError(e.message);}finally{setBusy(false);}
+ };
+ const openCreate=()=>{setDraft({...blank,institution_type:type,institution_id:selectedBase?.institution_id||0});setShowCreate(true);setError('');};
+ const create=async()=>{
+  setBusy(true);setError('');
+  try{
+   const data=await request('/programs',token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(draft)});
+   addScopes(data.scopes);choose(data.scopes.find(s=>s.dars_turi===lesson)||data.scope);setShowCreate(false);
+  }catch(e){setError(e.message);}finally{setBusy(false);}
+ };
+ const openLegacy=async()=>{setError('');try{const data=await request('/unassigned',token);setLegacy(data.groups||[]);}catch(e){setError(e.message);}};
+ const assign=async()=>{
+  setBusy(true);setError('');
+  try{
+   const data=await request('/assign-legacy',token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope_id:scope.id,topic_codes:legacyCodes})});
+   setUnassigned(n=>Math.max(0,n-data.assigned));setLegacy(null);setLegacyCodes([]);
+   // Refresh the content pane after assigning existing rows without changing scope.
+   setContentVersion(v=>v+1);
+  }catch(e){setError(e.message);}finally{setBusy(false);}
+ };
+ const [contentVersion,setContentVersion]=useState(0);
  const context=useMemo(()=>({scope,fetch:(url,options)=>scopedRequest(fetch,url,options,scope)}),[scope]);
  const program=options.programs.find(p=>String(p.id)===String(draft.yonalish_id));
- const languageAllowed=(lang,form=draft.talim_shakli)=>program?.variantlar?.length && form!=='umumiy' ? program.variantlar.some(v=>v.shakl===form&&v.til===lang) : (!program?.tillar?.length||program.tillar.includes(lang));
+ const languageAllowed=(lang,form=draft.talim_shakli)=>program?.variantlar?.length&&form!=='umumiy'?program.variantlar.some(v=>v.shakl===form&&v.til===lang):(!program?.tillar?.length||program.tillar.includes(lang));
  const chooseForm=form=>setDraft(d=>({...d,talim_shakli:form,talim_tili:languageAllowed(d.talim_tili,form)?d.talim_tili:(program?.variantlar?.find(v=>v.shakl===form)?.til||program?.tillar?.[0]||'uz')}));
  return <div className="space-y-4">
-  <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4" aria-label="O‘quv dasturi tanlovi">
-   <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold text-sky-950">O‘quv dasturi</h2><button type="button" className="text-sm font-semibold text-sky-900" onClick={()=>setShowCreate(v=>!v)}>{showCreate?'Yopish':'+ Dastur qo‘shish'}</button></div>
-   <Select value={selected} onChange={choose}><option value="">{busy?'Yuklanmoqda…':'Dastur tanlang'}</option>{scopes.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}</Select>
-   {scope&&<p className="mt-2 text-xs text-sky-900">Mavzular, shablonlar va import shu dasturga tegishli. {scope.institution_type==='universitet'?'Talabaga uning institut, yo‘nalish, shakl, til, kurs va semestriga mos material chiqadi.':''}</p>}
-   {showCreate&&<div className="mt-4 border-t border-sky-200 pt-4">
+  <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4" aria-label="Admin: muassasa va mashg‘ulot tanlash">
+   <h2 className="mb-3 text-lg font-bold text-slate-900">{title}</h2>
+   <InstitutionTabs value={type} onChange={chooseType} disabled={busy||loading}/>
+   {!loading&&<div className="mt-4">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+     <h3 className="font-semibold text-slate-800">{institutionLabel(type)} bo‘limi</h3>
+     <button type="button" disabled={busy} className="text-sm font-semibold text-sky-900" onClick={showCreate?()=>setShowCreate(false):openCreate}>{showCreate?'Yopish':type==='universitet'?'+ Institut dasturi qo‘shish':'+ Muassasa qo‘shish'}</button>
+    </div>
+    {groups.length>0?<div className="grid gap-3 sm:grid-cols-2">
+     <Field name="Muassasa"><Select value={institutionId} onChange={chooseInstitution} disabled={busy}>{institutions.map(([id,name])=><option key={id} value={id}>{name}</option>)}</Select></Field>
+     {type==='universitet'&&<Field name="Yo‘nalish · ta’lim shakli · kurs · semestr"><Select value={family?.key||''} onChange={chooseProgram} disabled={busy}>{groups.filter(g=>String(g.scope.institution_id)===institutionId).map(g=><option key={g.key} value={g.key}>{programLabel(g.scope)}</option>)}</Select></Field>}
+    </div>:<p className="rounded-xl bg-white p-3 text-sm text-slate-600">Bu bo‘limga hali {type==='universitet'?'institut dasturi':'muassasa'} qo‘shilmagan. Yuqoridagi qo‘shish tugmasidan boshlang.</p>}
+    {type==='universitet'&&family&&<LessonTabs value={lesson} onChange={chooseLesson} disabled={busy}/>}
+    {scope&&<p className="mt-3 text-xs text-slate-600">{institutionLabel(type)}{type==='universitet'?` → ${lessonLabel(lesson)}`:''}: quyidagi mavzu, test va import shu bo‘limga saqlanadi.</p>}
+   </div>}
+   {loading&&<p role="status" className="mt-3 text-sm text-slate-500">Bo‘limlar yuklanmoqda…</p>}
+   {showCreate&&<div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+    <h3 className="font-semibold">{institutionLabel(type)} — yangi {type==='universitet'?'ta’lim dasturi':'bo‘lim'}</h3>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-     <Field name="Muassasa turi"><Select value={draft.institution_type} onChange={v=>setDraft({...blank,institution_type:v})}>{Object.entries(labels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</Select></Field>
-     <Field name="Muassasa"><Select value={draft.institution_id} onChange={v=>setDraft(d=>({...d,institution_id:Number(v),yonalish_id:0,yonalish_nomi:''}))}><option value="0">{draft.institution_type==='maktab'?'Maktablar uchun umumiy katalog':'Muassasani tanlang'}</option>{options.institutions.map(i=><option key={i.id} value={i.id}>{i.nomi}</option>)}</Select></Field>
-     {draft.institution_type==='universitet'&&<>
-      <Field name="Ta’lim bosqichi"><Select value={draft.talim_bosqichi} onChange={v=>setDraft(d=>({...d,talim_bosqichi:v,yonalish_id:0,yonalish_nomi:'',kurs:1,semestr:1}))}><option value="bakalavr">Bakalavr</option><option value="magistr">Magistr</option></Select></Field>
-      <Field name="Yo‘nalish"><Select value={draft.yonalish_id} onChange={v=>{const p=options.programs.find(p=>String(p.id)===v);setDraft(d=>({...d,yonalish_id:Number(v),yonalish_nomi:p?.nomi||'',talim_shakli:p?.variantlar?.[0]?.shakl||p?.shakllar?.[0]||'kunduzgi',talim_tili:p?.variantlar?.[0]?.til||p?.tillar?.[0]||'uz'}));}}><option value="0">{options.programs.length?'Yo‘nalishni tanlang':'Yo‘nalish nomini quyida yozing'}</option>{options.programs.filter(p=>p.bosqich===draft.talim_bosqichi).map(p=><option key={p.id} value={p.id}>{p.nomi}</option>)}</Select></Field>
-      {!options.programs.length&&<Field name="Yo‘nalish nomi"><input className={input} value={draft.yonalish_nomi} onChange={e=>set('yonalish_nomi',e.target.value)}/></Field>}
-      <Field name="Ta’lim shakli"><Select value={draft.talim_shakli} onChange={chooseForm}>{Object.entries(forms).filter(([v])=>!program?.shakllar?.length||program.shakllar.includes(v)||v==='umumiy').map(([v,l])=><option key={v} value={v}>{l}</option>)}</Select></Field>
-      <Field name="Ta’lim tili"><Select value={draft.talim_tili} onChange={v=>set('talim_tili',v)}>{Object.entries({uz:'O‘zbek',ru:'Rus',tj:'Tojik',en:'Ingliz',kk:'Qoraqalpoq',kz:'Qozoq'}).filter(([v])=>languageAllowed(v)).map(([v,l])=><option key={v} value={v}>{l}</option>)}</Select></Field>
+     <Field name="Muassasa"><Select value={draft.institution_id} onChange={v=>setDraft(d=>({...d,institution_id:Number(v),yonalish_id:0,yonalish_nomi:''}))}><option value="0">{type==='maktab'?'Maktablar uchun umumiy katalog':'Muassasani tanlang'}</option>{options.institutions.map(i=><option key={i.id} value={i.id}>{i.nomi}</option>)}</Select></Field>
+     {type==='universitet'&&<>
+      <Field name="Bosqich"><Select value={draft.talim_bosqichi} onChange={v=>setDraft(d=>({...d,talim_bosqichi:v,yonalish_id:0,yonalish_nomi:'',kurs:1,semestr:1}))}><option value="bakalavr">Bakalavr</option><option value="magistr">Magistr</option></Select></Field>
+      <Field name="Yo‘nalish"><Select value={draft.yonalish_id} onChange={v=>{const p=options.programs.find(p=>String(p.id)===v);setDraft(d=>({...d,yonalish_id:Number(v),yonalish_nomi:p?.nomi||'',talim_shakli:p?.variantlar?.[0]?.shakl||p?.shakllar?.[0]||'kunduzgi',talim_tili:p?.variantlar?.[0]?.til||p?.tillar?.[0]||'uz'}));}}><option value="0">Yo‘nalishni tanlang</option>{options.programs.filter(p=>p.bosqich===draft.talim_bosqichi).map(p=><option key={p.id} value={p.id}>{p.nomi}</option>)}</Select></Field>
+      {!optionsLoading&&!options.programs.length&&<Field name="Yo‘nalish nomi"><input className={input} value={draft.yonalish_nomi} onChange={e=>set('yonalish_nomi',e.target.value)}/></Field>}
+      <Field name="Ta’lim shakli"><Select value={draft.talim_shakli} onChange={chooseForm}>{Object.entries(FORM_LABELS).filter(([v])=>!program?.shakllar?.length||program.shakllar.includes(v)||v==='umumiy').map(([v,label])=><option key={v} value={v}>{label}</option>)}</Select></Field>
+      <Field name="Ta’lim tili"><Select value={draft.talim_tili} onChange={v=>set('talim_tili',v)}>{Object.entries({uz:'O‘zbek',ru:'Rus',tj:'Tojik',en:'Ingliz',kk:'Qoraqalpoq',kz:'Qozoq'}).filter(([v])=>languageAllowed(v)).map(([v,label])=><option key={v} value={v}>{label}</option>)}</Select></Field>
       <Field name="Kurs"><Select value={draft.kurs} onChange={v=>setDraft(d=>({...d,kurs:Number(v),semestr:2*Number(v)-1}))}>{Array.from({length:draft.talim_bosqichi==='magistr'?2:6},(_,i)=><option key={i} value={i+1}>{i+1}-kurs</option>)}</Select></Field>
       <Field name="Semestr"><Select value={draft.semestr} onChange={v=>set('semestr',Number(v))}>{[2*draft.kurs-1,2*draft.kurs].map(v=><option key={v} value={v}>{v}-semestr</option>)}</Select></Field>
-      <Field name="Mashg‘ulot turi"><Select value={draft.dars_turi} onChange={v=>set('dars_turi',v)}>{Object.entries(lessons).map(([v,l])=><option key={v} value={v}>{l}</option>)}</Select></Field>
-      <Field name="Guruh (bo‘sh — shu dasturdagi barcha guruhlar)"><input className={input} maxLength={32} value={draft.guruh} onChange={e=>set('guruh',e.target.value.toUpperCase())}/></Field>
+      <Field name="Guruh (bo‘sh — barcha guruhlar)"><input className={input} maxLength={16} value={draft.guruh} onChange={e=>set('guruh',e.target.value.toUpperCase())}/></Field>
      </>}
-    </div><button type="button" className={`${button} mt-3`} disabled={busy} onClick={create}>Dasturni saqlash</button>
+    </div>
+    {type==='universitet'&&<p className="text-sm text-slate-600">Saqlanganda Ma’ruza, Amaliyot, Seminar va Laboratoriya alohida bo‘lim sifatida ochiladi. Har biriga o‘z mavzu va testlaringizni qo‘shasiz.</p>}
+    {optionsLoading&&<p role="status" className="text-sm text-slate-500">Muassasa ma’lumotlari yuklanmoqda…</p>}
+    <button type="button" className={button} disabled={busy||optionsLoading} onClick={create}>{busy?'Saqlanmoqda…':'Saqlash'}</button>
    </div>}
-   {unassigned>0&&<div className="mt-3 text-sm"><button type="button" className="font-semibold text-amber-900" onClick={openLegacy}>{unassigned} ta eski mavzuning dasturini belgilash</button></div>}
-   {legacy&&scope&&<div className="mt-3 space-y-2 rounded-xl bg-white p-3"><p className="text-sm font-semibold">Tanlangan eski mavzularni yuqoridagi dasturga biriktirish</p><p className="text-xs text-stone-600">Mavzular qaysi muassasa va ta’lim shakliga tegishli ekanligini tekshirib tanlang.</p>
-    {legacy.map((g,i)=><label key={i} className="flex items-start gap-2 text-sm"><input type="checkbox" checked={g.topic_codes.every(c=>legacyCodes.includes(c))} onChange={e=>setLegacyCodes(old=>e.target.checked?[...new Set([...old,...g.topic_codes])]:old.filter(c=>!g.topic_codes.includes(c)))}/><span>{g.grade} · {g.subject_name} · {g.dars_turi||'Turi belgilanmagan'} — {g.count} mavzu</span></label>)}
-    <button type="button" className={button} disabled={busy||!legacyCodes.length} onClick={assign}>{legacyCodes.length} ta mavzuni shu dasturga biriktirish</button><button type="button" className="ml-3 text-sm" onClick={()=>setLegacy(null)}>Bekor</button>
+   {unassigned>0&&scope&&<button type="button" className="mt-4 text-sm font-semibold text-amber-900" onClick={openLegacy}>Eski mavzularni bo‘limga biriktirish ({unassigned})</button>}
+   {legacy&&scope&&<div className="mt-3 space-y-2 rounded-xl bg-white p-3">
+    <p className="text-sm font-semibold">Tanlangan mavzular: {institutionLabel(type)}{type==='universitet'?` → ${lessonLabel(lesson)}`:''}</p>
+    <p className="text-xs text-slate-600">Faqat aynan shu muassasa va ta’lim dasturiga tegishli eski mavzularni belgilang.</p>
+    {legacy.map((g,i)=><label key={i} className="flex items-start gap-2 text-sm"><input type="checkbox" checked={g.topic_codes.every(c=>legacyCodes.includes(c))} onChange={e=>setLegacyCodes(old=>e.target.checked?[...new Set([...old,...g.topic_codes])]:old.filter(c=>!g.topic_codes.includes(c)))}/><span>{g.grade} · {g.subject_name} · {lessonLabel(g.dars_turi)||g.dars_turi||'Turi belgilanmagan'} — {g.count} mavzu</span></label>)}
+    <button type="button" className={button} disabled={busy||!legacyCodes.length} onClick={assign}>{legacyCodes.length} ta mavzuni biriktirish</button>
+    <button type="button" className="ml-3 text-sm" onClick={()=>setLegacy(null)}>Yopish</button>
    </div>}
    {error&&<p role="alert" className="mt-3 text-sm text-red-800">{error}</p>}
   </section>
-  {scope&&<Context.Provider value={context}><React.Fragment key={`${token}:${scope.id}`}>{children}</React.Fragment></Context.Provider>}
+  {scope&&!busy&&<Context.Provider value={context}><React.Fragment key={`${token}:${scope.id}:${contentVersion}`}>{children}</React.Fragment></Context.Provider>}
  </div>;
 }
