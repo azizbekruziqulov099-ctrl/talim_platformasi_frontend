@@ -1493,9 +1493,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
           {importSinf && importFan && (
             <p className="text-xs font-semibold rounded-lg px-3 py-2 mb-3" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>
-              ✓ {importSinf}{/^\d+$/.test(String(importSinf)) ? "-sinf" : ""} · {importFan === "__all__"
-                ? "shu sinfning eski testlari tozalanib, barcha fanlar Exceldan noldan yoziladi"
-                : `${importFan}ning eski testlari tozalanib, Exceldan noldan yoziladi`}
+              ✓ {gradeLabel(scope.institution_type,importSinf)} · {importFan === "__all__" ? "Barcha fanlar" : importFan}: Excelda savoli to‘ldirilgan mavzularning testlari almashtiriladi.
             </p>
           )}
 
@@ -1827,7 +1825,7 @@ export function TopikShablonBolimi({ token }) {
 
         <div className="rounded-xl p-2.5 mb-2" style={{ backgroundColor: "#F7F5F0" }}>
           <p className="text-[11px]" style={{ color: "#5A5648" }}>
-            Bu — bo'sh, 7 ustunli (Sinf/Fan/Chorak/Bob/Bo'lim/Mavzu/Kichik mavzu) shablon; bazaga hech narsa yozmaydi. Bob/Bo'lim/Kichik mavzuni to'ldirib, pastdagi "Import" orqali qayta yuklang — o'sha yerda kod avtomatik hisoblanadi.
+            Shablonda sinf/kurs, fan, mashg‘ulot turi, chorak/blok va mavzular tayyor yoziladi. Bob va bo‘limni to‘ldirib, pastdagi “Import” orqali qayta yuklang — mavzu kodi importda yaratiladi. Muassasa va dastur ma’lumotlarini o‘zgartirmang.
           </p>
         </div>
         <button onClick={shablonYukla} disabled={yuklanmoqda}
@@ -1853,6 +1851,7 @@ export function TopikShablonBolimi({ token }) {
           <div className="mt-3 text-sm" style={{ color: "#2B2B2B" }}>
             <p>➕ Qo'shildi: <b>{natija.added}</b></p>
             {natija.updated > 0 && <p>🔄 Yangilandi: <b>{natija.updated}</b></p>}
+            {natija.mavjud > 0 && <p>✓ Oldindan mavjud: <b>{natija.mavjud}</b></p>}
             <p>⏭ O'tkazildi: <b>{natija.skipped}</b></p>
             {natija.xato_namunalari && natija.xato_namunalari.length > 0 && (
               <div className="mt-2 rounded-lg p-2.5 space-y-1" style={{ backgroundColor: "#FCEBEB" }}>
