@@ -11,7 +11,7 @@ import "./talaba.css";
 const TIL_BAYROQ = { uz: "🇺🇿", ru: "🇷🇺", tj: "🇹🇯", en: "🇬🇧", kk: "🏳️", kz: "🇰🇿" };
 const STANDART_LUGAT = {
   bosqichlar: { bakalavr: "Bakalavr", magistr: "Magistr" },
-  kurs_chegarasi: { bakalavr: 4, magistr: 2 },
+  kurs_chegarasi: { bakalavr: 6, magistr: 2 },
   talim_shakllari: { kunduzgi: "Kunduzgi", kechki: "Kechki", sirtqi: "Sirtqi", masofaviy: "Masofaviy" },
   talim_tillari: { uz: "O'zbek", ru: "Rus", tj: "Tojik", en: "Ingliz", kk: "Qoraqalpoq", kz: "Qozoq" },
 };
@@ -52,6 +52,7 @@ export function TalabaProfilKartasi({ profil, onOzgartir, onChiqish, chiqilmoqda
         <div><dt>Bosqich</dt><dd>{profil.bosqich_nomi || profil.talim_bosqichi}</dd></div>
         <div><dt>Kurs</dt><dd>{profil.kurs}-kurs</dd></div>
         <div><dt>Guruh</dt><dd>{profil.guruh}</dd></div>
+        <div><dt>Semestr</dt><dd>{profil.semestr ? `${profil.semestr}-semestr` : "Sozlash kerak"}</dd></div>
         <div><dt>Shakl</dt><dd>{profil.talim_shakli_nomi || profil.talim_shakli}</dd></div>
         <div><dt>Til</dt><dd>{profil.talim_tili_nomi || profil.talim_tili}</dd></div>
         <div><dt>Mavzular Sinf'i</dt><dd className="tq-mono">{profil.sinf}</dd></div>
@@ -80,6 +81,7 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
   const [yonalish, setYonalish] = useState(null);        // tanlangan yo'nalish obyekti | null
   const [yonalishMatni, setYonalishMatni] = useState(""); // qo'lda yozilgan
   const [kurs, setKurs] = useState(1);
+  const [semestr, setSemestr] = useState(1);
   const [guruh, setGuruh] = useState("");
   const [shakl, setShakl] = useState("kunduzgi");
   const [til, setTil] = useState("uz");
@@ -103,8 +105,9 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
   const bosqichYonalishlari = yonalishlar.filter((y) => y.bosqich === talimBosqichi);
   const kursChegarasi = lugat.kurs_chegarasi?.[talimBosqichi] || STANDART_LUGAT.kurs_chegarasi[talimBosqichi];
   const shakllar = yonalish?.shakllar?.length ? yonalish.shakllar : Object.keys(lugat.talim_shakllari || STANDART_LUGAT.talim_shakllari);
-  const tillar = yonalish?.tillar?.length ? yonalish.tillar : Object.keys(lugat.talim_tillari || STANDART_LUGAT.talim_tillari);
+  const tillar = yonalish?.variantlar?.length ? [...new Set(yonalish.variantlar.filter(v => v.shakl === shakl).map(v => v.til))] : (yonalish?.tillar?.length ? yonalish.tillar : Object.keys(lugat.talim_tillari || STANDART_LUGAT.talim_tillari));
 
+  useEffect(() => { setSemestr(2 * kurs - 1); }, [kurs]);
   useEffect(() => { if (kurs > kursChegarasi) setKurs(1); }, [kursChegarasi, kurs]);
   useEffect(() => { if (!shakllar.includes(shakl)) setShakl(shakllar[0]); }, [shakllar, shakl]);
   useEffect(() => { if (!tillar.includes(til)) setTil(tillar[0]); }, [tillar, til]);
@@ -136,7 +139,7 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
         body: JSON.stringify({
           token, universitet_id: muassasa.id, parol: parol.trim().toUpperCase(),
           yonalish_id: yonalish ? yonalish.id : null, yonalish_nomi: yonalishNomi,
-          talim_bosqichi: talimBosqichi, kurs, guruh: guruh.trim(), talim_shakli: shakl, talim_tili: til,
+          talim_bosqichi: talimBosqichi, kurs, semestr, guruh: guruh.trim(), talim_shakli: shakl, talim_tili: til,
         }),
       });
       onSaqlandi?.(d);
@@ -216,12 +219,10 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
                   <small>{[y.kodi, y.fakultet].filter(Boolean).join(" · ") || y.daraja}</small>
                 </button>
               ))}
-              <button type="button" className={`tq-yonalish ${yonalish === null && yonalishMatni ? "on" : ""}`} onClick={() => setYonalish(null)}>
-                <b>Ro'yxatda yo'q</b><small>Yo'nalishimni o'zim yozaman</small>
-              </button>
+
             </div>
           ) : null}
-          {(yonalish === null) && (
+          {(yonalish === null && yonalishlar.length === 0) && (
             <input className="tq-kirish" value={yonalishMatni} onChange={(e) => setYonalishMatni(e.target.value)} maxLength={160}
               placeholder={talimBosqichi === "magistr" ? "masalan: Matematika (magistratura)" : "masalan: Boshlang'ich ta'lim"} />
           )}
@@ -233,6 +234,8 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
             ))}
           </div>
 
+          <p className="tq-yorliq">Semestr</p>
+          <div className="tq-chiplar">{[2 * kurs - 1, 2 * kurs].map(s => <Tugma key={s} faol={semestr === s} onClick={() => setSemestr(s)}>{s}-semestr</Tugma>)}</div>
           <p className="tq-yorliq">Guruh</p>
           <input className="tq-kirish tq-mono" value={guruh} onChange={(e) => setGuruh(e.target.value.toUpperCase())} maxLength={16}
             placeholder={`masalan: ${kurs}01`} aria-label="Guruh raqami" />
@@ -248,7 +251,7 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
           </div>
 
           <div className="tq-xulosa">
-            Saqlangach Sinf'ingiz: <span className="tq-mono">{kurs} kurs{talimBosqichi === "magistr" ? " magistr" : ""}</span>
+            {semestr}-semestr · {lugat.talim_shakllari?.[shakl] || shakl} ·  <span className="tq-mono">{kurs} kurs{talimBosqichi === "magistr" ? " magistr" : ""}</span>
           </div>
           <button type="button" className="tq-asosiy" onClick={saqla} disabled={yuklanmoqda}>
             {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "Muassasaga qo'shilish"}

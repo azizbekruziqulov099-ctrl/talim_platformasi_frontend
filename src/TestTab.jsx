@@ -545,12 +545,13 @@ export default function TestTab({
 
   useEffect(() => {
     const qs = new URLSearchParams({ turi: faolTuri });
+    if (token) qs.set("token", token);
     // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
     // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
     if (sinf && !boshqaSinflarRejimi) qs.set("sinf", sinf);
     const url = `${API_BASE}/api/mavzular?${qs.toString()}`;
     const keshlangan = MAVZULAR_XOTIRA_KESHI.get(url);
-    if (keshlangan && Date.now() - keshlangan.vaqt < MAVZULAR_KESH_MS) {
+    if (!token && keshlangan && Date.now() - keshlangan.vaqt < MAVZULAR_KESH_MS) {
       setFanlar(keshlangan.fanlar);
       setYuklanmoqda(false);
       return undefined;
@@ -565,7 +566,8 @@ export default function TestTab({
       })
       .then((d) => {
         const yangiFanlar = d.fanlar || [];
-        MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
+        if (!token) MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
+        setXato(d.profil_sozlanmagan ? "Talaba profilingizda yo‘nalish, ta’lim shakli, til va semestrni to‘ldiring." : "");
         setFanlar(yangiFanlar);
         setYuklanmoqda(false);
       })
@@ -576,7 +578,7 @@ export default function TestTab({
         }
       });
     return () => controller.abort();
-  }, [sinf, faolTuri, boshqaSinflarRejimi]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi, token, foydalanuvchi?.talaba_profili?.yangilangan_at]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
@@ -585,7 +587,7 @@ export default function TestTab({
     fanlar.forEach((fan) => {
       fan.sinflar.forEach((s) => {
         if (!bySinf[s.sinf]) bySinf[s.sinf] = { sinf: s.sinf, fanlar: [] };
-        bySinf[s.sinf].fanlar.push({ qisqa: fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
+        bySinf[s.sinf].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
       });
     });
     return Object.values(bySinf).sort((a, b) => {
@@ -716,10 +718,10 @@ export default function TestTab({
             ...umumiy,
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
+            body: JSON.stringify({ token, topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
           })
         : (() => {
-            const qs = new URLSearchParams();
+            const qs = new URLSearchParams({ token });
             if (qiyinlik) qs.set("qiyinlik", qiyinlik);
             if (rasimli !== null) qs.set("rasimli", rasimli);
             if (vaqtli !== null) qs.set("vaqtli", vaqtli);

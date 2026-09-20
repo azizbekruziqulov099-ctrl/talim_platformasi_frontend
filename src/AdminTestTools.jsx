@@ -1,3 +1,4 @@
+import { useCurriculum } from "./curriculum/CurriculumScope.jsx";
 import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
 
@@ -6,6 +7,7 @@ const API_BASE =
   "https://talimplatformasi-production.up.railway.app";
 
 export function TopikMavzularTab({ token, onTestYarat }) {
+  const { fetch: scopedFetch, scope } = useCurriculum();
   const [holat, setHolat] = useState("sinf"); // sinf | fan | mavzular
   const [sinflar, setSinflar] = useState({ oddiy: [], talaba: [], togarak: [] });
   const [tanlanganSinf, setTanlanganSinf] = useState(null);
@@ -19,7 +21,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const [mavzuOchirishTasdiqi, setMavzuOchirishTasdiqi] = useState(null); // mavzu obyekti | null
   const [mavzuniOchirishTasdiqi, setMavzuniOchirishTasdiqi] = useState(null); // mavzu obyekti | null (BUTUN mavzuni o'chirish uchun)
   const [boshKodTozalashXabari, setBoshKodTozalashXabari] = useState("");
-  const [faqatToliq, setFaqatToliq] = useState(true); // true: faqat Bob+Bo'lim to'ldirilgan mavzularni ko'rsatadi
+  const [faqatToliq, setFaqatToliq] = useState(false); // true: faqat Bob+Bo'lim to'ldirilgan mavzularni ko'rsatadi
   const [fanOchirishTasdiqi, setFanOchirishTasdiqi] = useState(false);
   const [fanMavzulariniOchirishTasdiqi, setFanMavzulariniOchirishTasdiqi] = useState(false);
   const [ochirilmoqda, setOchirilmoqda] = useState(false);
@@ -40,7 +42,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
       const params = new URLSearchParams({
         token, topic_codes: kodlar, yangi_bob: bobBolimQiymat.bob, yangi_bolim: bobBolimQiymat.bolim,
       });
-      const res = await fetch(`${API_BASE}/api/admin/mavzu_bob_bolim_tahrirla?${params}`, { method: "PUT" });
+      const res = await scopedFetch(`${API_BASE}/api/admin/mavzu_bob_bolim_tahrirla?${params}`, { method: "PUT" });
       const d = await res.json();
       if (!res.ok) throw new Error(d.detail || "Xato");
       setBobBolimTahrirlanayotgan(null);
@@ -54,7 +56,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
 
   const kodMoslikniTekshir = () => {
     setKodMoslikYuklanmoqda(true); setKodMoslik(null);
-    fetch(`${API_BASE}/api/admin/mavzu_kod_moslik?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`)
+    scopedFetch(`${API_BASE}/api/admin/mavzu_kod_moslik?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`)
       .then((r) => r.json())
       .then((d) => { setKodMoslik(d); setKodMoslikYuklanmoqda(false); })
       .catch(() => { setXato("Kod moslikni tekshirib bo'lmadi"); setKodMoslikYuklanmoqda(false); });
@@ -63,14 +65,14 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const umumiyKorinishniOch = () => {
     setUmumiyKorinish({ sinflar: [] });
     setUmumiyYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_umumiy_korinish?token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_umumiy_korinish?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setUmumiyKorinish(d); setUmumiyYuklanmoqda(false); })
       .catch(() => { setXato("Umumiy ko'rinishni yuklab bo'lmadi"); setUmumiyYuklanmoqda(false); });
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setSinflar({ oddiy: d.oddiy || [], talaba: d.talaba || [], togarak: d.togarak || [] }); setYuklanmoqda(false); })
       .catch(() => { setXato("Sinflarni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -80,7 +82,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
     setTanlanganSinf(sinf);
     setHolat("fan");
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -88,7 +90,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
 
   const mavzularniQaytaYukla = () => {
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -99,7 +101,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
     setHolat("mavzular");
     setSahifa(0);
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -116,7 +118,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
     setHolat("mavzular");
     setSahifa(0);
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setMavzular(d.mavzular || []); setYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -125,7 +127,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const mavzuTestlariniOchir = async (mavzu) => {
     setOchirilmoqda(true);
     try {
-      await fetch(`${API_BASE}/api/admin/mavzu_testlarini_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
+      await scopedFetch(`${API_BASE}/api/admin/mavzu_testlarini_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
         method: "DELETE",
       });
       setMavzuOchirishTasdiqi(null);
@@ -138,7 +140,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const mavzuniButunlayOchir = async (mavzu) => {
     setOchirilmoqda(true);
     try {
-      await fetch(`${API_BASE}/api/admin/mavzu_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
+      await scopedFetch(`${API_BASE}/api/admin/mavzu_ochir?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`, {
         method: "DELETE",
       });
       setMavzuniOchirishTasdiqi(null);
@@ -151,7 +153,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const boshKodliMavzularniTozala = async () => {
     setOchirilmoqda(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/bosh_kodli_mavzularni_tozalash?token=${encodeURIComponent(token)}`, { method: "DELETE" });
+      const res = await scopedFetch(`${API_BASE}/api/admin/bosh_kodli_mavzularni_tozalash?token=${encodeURIComponent(token)}`, { method: "DELETE" });
       const d = await res.json().catch(() => ({}));
       setBoshKodTozalashXabari(`✅ ${d.tozalangan_soni || 0} ta bo'sh kodli mavzu tozalandi`);
       mavzularniQaytaYukla();
@@ -163,7 +165,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const fanTestlariniOchir = async () => {
     setOchirilmoqda(true);
     try {
-      await fetch(`${API_BASE}/api/admin/fan_testlarini_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
+      await scopedFetch(`${API_BASE}/api/admin/fan_testlarini_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
         method: "DELETE",
       });
       setFanOchirishTasdiqi(false);
@@ -176,13 +178,13 @@ export function TopikMavzularTab({ token, onTestYarat }) {
   const fanMavzulariniButunlayOchir = async () => {
     setOchirilmoqda(true);
     try {
-      await fetch(`${API_BASE}/api/admin/fan_mavzularini_butunlay_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
+      await scopedFetch(`${API_BASE}/api/admin/fan_mavzularini_butunlay_ochir?token=${encodeURIComponent(token)}&sinf=${encodeURIComponent(tanlanganSinf)}&fan=${encodeURIComponent(tanlanganFan)}`, {
         method: "DELETE",
       });
       setFanMavzulariniOchirishTasdiqi(false);
       setHolat("fan");
       setYuklanmoqda(true);
-      fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(tanlanganSinf)}&token=${encodeURIComponent(token)}`)
+      scopedFetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(tanlanganSinf)}&token=${encodeURIComponent(token)}`)
         .then((r) => r.json())
         .then((d) => { setFanlar(d.fanlar || []); setYuklanmoqda(false); })
         .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -195,7 +197,7 @@ export function TopikMavzularTab({ token, onTestYarat }) {
     setRasmlarYuklanmoqda(true);
     setRasmGaleriyasi({ sarlavha: mavzu.nomi, rasmlar: [] });
     try {
-      const res = await fetch(`${API_BASE}/api/admin/mavzu_rasmlari?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`);
+      const res = await scopedFetch(`${API_BASE}/api/admin/mavzu_rasmlari?token=${encodeURIComponent(token)}&topic_codes=${encodeURIComponent(mavzu.topic_codes.join(","))}`);
       const data = await res.json();
       setRasmGaleriyasi({ sarlavha: mavzu.nomi, rasmlar: data.rasmlar || [] });
     } catch {
@@ -974,6 +976,7 @@ const AVTO_VAQT = { oson: 60, "o'rta": 80, qiyin: 100, murakkab: 120 };
 const VAQT_VARIANTLARI = [60, 80, 100, 120];
 
 export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
+  const { fetch: scopedFetch, scope } = useCurriculum();
   const [tanlanganKodlar, setTanlanganKodlar] = useState(oldindanTanlangan || []); // [topic_code, ...]
   const [maqsad, setMaqsad] = useState("oddiy"); // "oddiy" | "minimal_bilim"
   const [guruhlar, setGuruhlar] = useState(
@@ -995,7 +998,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
   const diagnostikaniKor = async () => {
     setDiagnostikaYuklanmoqda(true); setDiagnostikaXato(""); setDiagnostika(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/rasm_diagnostika?token=${encodeURIComponent(token)}`);
+      const res = await scopedFetch(`${API_BASE}/api/admin/rasm_diagnostika?token=${encodeURIComponent(token)}`);
       const d = await res.json().catch(() => null);
       if (!res.ok) throw new Error((d && d.detail) || `Server xatosi (${res.status})`);
       if (!d) throw new Error("Serverdan javob kelmadi");
@@ -1030,7 +1033,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
       const barchaKodlar = [];
       for (const fanKalit of tanlanganFanlarKop) {
         const [fan, darsTuri] = fanKalit.split("|||");
-        const res = await fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&dars_turi=${encodeURIComponent(darsTuri || "")}&token=${encodeURIComponent(token)}`);
+        const res = await scopedFetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&dars_turi=${encodeURIComponent(darsTuri || "")}&token=${encodeURIComponent(token)}`);
         const d = await res.json();
         for (const m of (d.mavzular || [])) {
           barchaKodlar.push(...(m.topic_codes && m.topic_codes.length > 0 ? m.topic_codes : [m.topic_code]));
@@ -1049,7 +1052,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
   useEffect(() => {
     if (mode !== "shablon") return;
-    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setSinflarRoyxati({ oddiy: d.oddiy || [], talaba: d.talaba || [], togarak: d.togarak || [] }))
       .catch(() => setXato("Sinflarni yuklab bo'lmadi"));
@@ -1057,7 +1060,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
 
   useEffect(() => {
     if (mode !== "import") return;
-    fetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setImportSinflar(Array.from(new Set([...(d.oddiy || []), ...(d.talaba || []), ...(d.togarak || [])]))))
       .catch(() => setXato("Import uchun sinflarni yuklab bo'lmadi"));
@@ -1069,7 +1072,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     setImportFanlar([]);
     if (!sinf) return;
     setImportTanlovYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setImportFanlar(d.fanlar || []); setImportFan("__all__"); })
       .catch(() => setXato("Import uchun fanlarni yuklab bo'lmadi"))
@@ -1085,7 +1088,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     setTanlanganSinfIchki(sinf);
     setIchkiBosqich("fan");
     setIchkiYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setIchkiFanlar(d.fanlar || []); setIchkiYuklanmoqda(false); })
       .catch(() => { setXato("Fanlarni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
@@ -1095,7 +1098,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     setTanlanganFanIchki(fan);
     setIchkiBosqich("mavzular");
     setIchkiYuklanmoqda(true);
-    fetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&dars_turi=${encodeURIComponent(darsTuri)}&token=${encodeURIComponent(token)}`)
+    scopedFetch(`${API_BASE}/api/admin/topik_royxat?sinf=${encodeURIComponent(tanlanganSinfIchki)}&fan=${encodeURIComponent(fan)}&dars_turi=${encodeURIComponent(darsTuri)}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setIchkiMavzular(d.mavzular || []); setIchkiYuklanmoqda(false); })
       .catch(() => { setXato("Mavzularni yuklab bo'lmadi"); setIchkiYuklanmoqda(false); });
@@ -1141,7 +1144,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
     if (jamiSon === 0) { setXato("Kamida bitta qiyinlik darajasidan son tanlang"); return; }
     setYuklanmoqda(true); setXato("");
     try {
-      const res = await fetch(`${API_BASE}/api/admin/shablon_yukla?token=${encodeURIComponent(token)}`, {
+      const res = await scopedFetch(`${API_BASE}/api/admin/shablon_yukla?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic_codes: tanlanganKodlar, guruhlar: guruhlar.map((g) => ({ ...g, vaqt: g.vaqt ?? null })), maqsad }),
@@ -1178,7 +1181,7 @@ export function TestShablonBolimi({ token, oldindanTanlangan, mode }) {
         kutilgan_sinf: importSinf,
         kutilgan_fan: importFan,
       });
-      const res = await fetch(`${API_BASE}/api/admin/shablon_import?${importQs.toString()}`, {
+      const res = await scopedFetch(`${API_BASE}/api/admin/shablon_import?${importQs.toString()}`, {
         method: "POST", body: formData,
       });
       const rawJavob = await res.text();
@@ -1733,9 +1736,10 @@ export function SinfTanlagich({ qiymat, onChange, fan = "" }) {
 }
 
 export function TopikShablonBolimi({ token }) {
-  const [sinf, setSinf] = useState("");
+  const { fetch: scopedFetch, scope } = useCurriculum();
+  const [sinf, setSinf] = useState(scope.grade || "");
   const [fan, setFan] = useState("");
-  const [darsTuri, setDarsTuri] = useState("");
+  const [darsTuri, setDarsTuri] = useState(scope.dars_turi || "");
   const [mavzular, setMavzular] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [toliqYaratilmoqda, setToliqYaratilmoqda] = useState(false);
@@ -1751,7 +1755,7 @@ export function TopikShablonBolimi({ token }) {
     }
     setToliqYaratilmoqda(true); setXato(""); setToliqNatija(null);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/topik_toliq_yarat?token=${encodeURIComponent(token)}`, {
+      const res = await scopedFetch(`${API_BASE}/api/admin/topik_toliq_yarat?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), dars_turi: darsTuri, mavzular }),
@@ -1770,7 +1774,7 @@ export function TopikShablonBolimi({ token }) {
     }
     setYuklanmoqda(true); setShablonXato("");
     try {
-      const res = await fetch(`${API_BASE}/api/admin/topik_shablon?token=${encodeURIComponent(token)}`, {
+      const res = await scopedFetch(`${API_BASE}/api/admin/topik_shablon?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sinf: sinf.trim(), fan: fan.trim(), dars_turi: darsTuri, mavzular }),
@@ -1799,7 +1803,7 @@ export function TopikShablonBolimi({ token }) {
     try {
       const formData = new FormData();
       formData.append("fayl", fayl);
-      const res = await fetch(`${API_BASE}/api/admin/topik_import?token=${encodeURIComponent(token)}`, {
+      const res = await scopedFetch(`${API_BASE}/api/admin/topik_import?token=${encodeURIComponent(token)}`, {
         method: "POST", body: formData,
       });
       const data = await res.json();
@@ -1817,7 +1821,7 @@ export function TopikShablonBolimi({ token }) {
     <>
       <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sinf — aqlli tanlash</label>
-        <SinfTanlagich qiymat={sinf} onChange={setSinf} fan={fan} />
+        {scope.grade ? <div className="mb-3 font-semibold">{scope.grade} · {scope.semestr}-semestr · {scope.dars_turi}</div> : <SinfTanlagich qiymat={sinf} onChange={setSinf} fan={fan} />}
         {["mantiq", "logika", "iq", "aql-zakovat", "fikrlash"].some((k) => fan.toLowerCase().includes(k)) && (
           <p className="text-[11px] mb-2" style={{ color: "#8A5A1C" }}>
             🧠 IQ/Mantiqiy fikrlash — bu yerga aniq sinf o'rniga <b>yosh guruhini</b> yozing (masalan "10-11 yosh"), oddiy fanlar bilan aralashib qolmasligi uchun.
@@ -1830,19 +1834,6 @@ export function TopikShablonBolimi({ token }) {
           placeholder="masalan: Ingliz tili"
           className="w-full px-3.5 py-2.5 rounded-xl border text-sm mb-3"
           style={{ borderColor: "#E5E1D8" }} />
-
-        {/kurs/.test(sinf) && (
-          <>
-            <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Mashg'ulot turi</label>
-            <div className="grid grid-cols-4 gap-2 mb-3">
-              {["Ma'ruza", "Amaliy", "Seminar", "Laboratoriya"].map((t) => (
-                <button key={t} type="button" onClick={() => setDarsTuri(t)}
-                  className="px-2 py-2 rounded-xl border text-xs font-semibold"
-                  style={{ borderColor: darsTuri === t ? "#1B4B7A" : "#E5E1D8", backgroundColor: darsTuri === t ? "#1B4B7A" : "#fff", color: darsTuri === t ? "#fff" : "#5A5648" }}>{t}</button>
-              ))}
-            </div>
-          </>
-        )}
 
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>
           Mavzular (har biri yangi qatorda: chorak / mavzu)
@@ -1921,6 +1912,7 @@ export function TopikShablonBolimi({ token }) {
 }
 
 export function TushuntirishBolimi({ token }) {
+  const { fetch: scopedFetch, scope } = useCurriculum();
   const [importlanmoqda, setImportlanmoqda] = useState(false);
   const [xato, setXato] = useState("");
   const [natija, setNatija] = useState(null);
@@ -1932,7 +1924,7 @@ export function TushuntirishBolimi({ token }) {
     try {
       const formData = new FormData();
       formData.append("fayl", fayl);
-      const res = await fetch(`${API_BASE}/api/admin/tushuntirish_import?token=${encodeURIComponent(token)}`, {
+      const res = await scopedFetch(`${API_BASE}/api/admin/tushuntirish_import?token=${encodeURIComponent(token)}`, {
         method: "POST", body: formData,
       });
       const data = await res.json();

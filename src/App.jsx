@@ -1,3 +1,4 @@
+import CurriculumBoundary, { useCurriculum } from "./curriculum/CurriculumScope.jsx";
 // REV52: live auth and membership modules share one implementation.
 // REV42: personal curriculum planner and database-grounded assistant.
 // REV38: archive-filtered institutions and explicit account/activity counts.
@@ -499,6 +500,7 @@ function lazyPanel(Component, props) {
 
 function TestTab(props) { return lazyPanel(LazyTestTab, props); }
 function DtsNomTahrirlash({ token }) {
+  const { fetch: scopedFetch } = useCurriculum();
   const { t: uiT } = useInterface();
   const [ochiq, setOchiq] = useState(false);
   const [sinf, setSinf] = useState("1");
@@ -509,7 +511,7 @@ function DtsNomTahrirlash({ token }) {
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
 
   const jsonOl = async (url, options) => {
-    const res = await fetch(url, options);
+    const res = await scopedFetch(url, options);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Server xatosi");
     return data;
@@ -580,13 +582,13 @@ function DtsNomTahrirlash({ token }) {
   </div>;
 }
 function TopikMavzularTab(props) {
-  return <><DtsNomTahrirlash token={props.token} />{lazyPanel(LazyTopikMavzularTab, props)}</>;
+  return <CurriculumBoundary token={props.token}><DtsNomTahrirlash token={props.token} />{lazyPanel(LazyTopikMavzularTab, props)}</CurriculumBoundary>;
 }
 function ModeratsiyaTab(props) { return lazyPanel(LazyModeratsiyaTab, props); }
 function KitobMiyaBolimi(props) { return lazyPanel(LazyKitobMiyaBolimi, props); }
-function TestShablonBolimi(props) { return lazyPanel(LazyTestShablonBolimi, props); }
-function TopikShablonBolimi(props) { return lazyPanel(LazyTopikShablonBolimi, props); }
-function TushuntirishBolimi(props) { return lazyPanel(LazyTushuntirishBolimi, props); }
+function TestShablonBolimi(props) { return <CurriculumBoundary token={props.token}>{lazyPanel(LazyTestShablonBolimi, props)}</CurriculumBoundary>; }
+function TopikShablonBolimi(props) { return <CurriculumBoundary token={props.token}>{lazyPanel(LazyTopikShablonBolimi, props)}</CurriculumBoundary>; }
+function TushuntirishBolimi(props) { return <CurriculumBoundary token={props.token}>{lazyPanel(LazyTushuntirishBolimi, props)}</CurriculumBoundary>; }
 const AdminInstitutionSecurity = _samtmLazyRetry(() => import("./AdminInstitutionSecurity.jsx"));
 const AdminSchoolWizard = _samtmLazyRetry(() => import("./AdminSchoolWizard.jsx"));
 const KindergartenWorkspace = _samtmLazyRetry(
@@ -1630,7 +1632,7 @@ function MavzularYoliVizual({ mavzular, rang }) {
   );
 }
 
-function MavzuQatori({ m, i, sinf, fan, rang }) {
+function MavzuQatori({ m, i, sinf, fan, rang, token }) {
   const holat = m.otilgan_kichik === 0 ? "boshlanmagan" : m.otilgan_kichik < m.jami_kichik ? "jarayonda" : "tugagan";
   const ikon = holat === "tugagan" ? "✅" : holat === "jarayonda" ? "🟡" : "⬜";
   const fonRang = holat === "tugagan" ? "#EAF3DE" : holat === "jarayonda" ? "#FDF3E0" : "#FFFFFF";
@@ -1645,7 +1647,7 @@ function MavzuQatori({ m, i, sinf, fan, rang }) {
     setOchiq(true);
     if (tushuntirish !== null) return; // allaqachon yuklangan — qayta so'ramaymiz
     setYuklanmoqda(true);
-    fetch(`${API_BASE}/api/mavzu_tushuntirish?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&mavzu=${encodeURIComponent(m.nomi)}`)
+    fetch(`${API_BASE}/api/mavzu_tushuntirish?sinf=${encodeURIComponent(sinf)}&fan=${encodeURIComponent(fan)}&mavzu=${encodeURIComponent(m.nomi)}&topic_code=${encodeURIComponent(m.topic_code)}${token ? `&token=${encodeURIComponent(token)}` : ""}`)
       .then((r) => r.json())
       .then((d) => { setTushuntirish(d.topildi ? d.tushuntirish : ""); setYuklanmoqda(false); })
       .catch(() => { setTushuntirish(""); setYuklanmoqda(false); });
@@ -1674,7 +1676,7 @@ function MavzuQatori({ m, i, sinf, fan, rang }) {
   );
 }
 
-function TalimYoli({ bolaId, fan, rang, onYopish }) {
+function TalimYoli({ bolaId, fan, rang, onYopish, token }) {
   const [malumot, setMalumot] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [xato, setXato] = useState("");
@@ -1756,7 +1758,7 @@ function TalimYoli({ bolaId, fan, rang, onYopish }) {
             ) : (
               <div className="space-y-2">
                 {malumot.mavzular.map((m, i) => (
-                  <MavzuQatori key={m.topic_code} m={m} i={i} sinf={malumot.sinf} fan={fan} rang={rang} />
+                  <MavzuQatori token={token} key={m.topic_code} m={m} i={i} sinf={malumot.sinf} fan={fan} rang={rang} />
                 ))}
               </div>
             )}
@@ -2310,7 +2312,7 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
         )}
       </div>
 
-      {yolFani && bolaId && <TalimYoli bolaId={bolaId} fan={yolFani.fan} rang={yolFani.rang} onYopish={() => setYolFani(null)} />}
+      {yolFani && bolaId && <TalimYoli token={token} bolaId={bolaId} fan={yolFani.fan} rang={yolFani.rang} onYopish={() => setYolFani(null)} />}
       {togarakYoliId && bolaId && <TogarakYoli bolaId={bolaId} togarakId={togarakYoliId} onYopish={() => setTogarakYoliId(null)} />}
     </div>
   );
@@ -10947,7 +10949,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   useEffect(() => {
     if (!yangiMaxsusSinf || togarakSinflari.length > 0) return;
     setTogarakSinflariYuklanmoqda(true);
-    fetch(`${API_BASE}/api/mavzular?turi=togarak`)
+    fetch(`${API_BASE}/api/mavzular?turi=togarak&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => {
         const sinflar = new Set();
@@ -10965,7 +10967,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     if (!sinfQiymati) return;
     setSinfFanlariYuklanmoqda(true);
     const turi = yangiMaxsusSinf ? "togarak" : "oddiy";
-    fetch(`${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinfQiymati)}&turi=${turi}`)
+    fetch(`${API_BASE}/api/mavzular?sinf=${encodeURIComponent(sinfQiymati)}&turi=${turi}&token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => setSinfFanlari((d.fanlar || []).map((f) => f.nom)))
       .finally(() => setSinfFanlariYuklanmoqda(false));
