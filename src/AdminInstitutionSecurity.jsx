@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from './interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
@@ -60,9 +62,10 @@ function formatDate(value) {
 
 
 function PasswordField({ label, value, onChange, placeholder, visible, onToggle, autoComplete }) {
+  useKbInterfaceLocale();
   return (
     <label className="block">
-      <span className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>{label}</span>
+      <span className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>{__kbUi(label)}</span>
       <span className="relative block">
         <input
           type={visible ? "text" : "password"}
@@ -80,7 +83,7 @@ function PasswordField({ label, value, onChange, placeholder, visible, onToggle,
           type="button"
           onClick={onToggle}
           className="absolute inset-y-0 right-0 w-10 flex items-center justify-center"
-          aria-label={visible ? "Parolni yashirish" : "Parolni ko'rsatish"}
+          aria-label={visible ? __kbUi("Parolni yashirish") : __kbUi("Parolni ko'rsatish")}
           style={{ color: "#8A8578" }}
         >
           {visible ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -92,6 +95,7 @@ function PasswordField({ label, value, onChange, placeholder, visible, onToggle,
 
 
 function SecurityAccordion({ icon, title, summary, children }) {
+  useKbInterfaceLocale();
   const [open, setOpen] = useState(false);
   return (
     <details className="rounded-xl border mb-3 overflow-visible" style={{ borderColor: "#E5E1D8", backgroundColor: "#fff" }} onToggle={(event) => setOpen(event.currentTarget.open)}>
@@ -112,6 +116,7 @@ function SecurityAccordion({ icon, title, summary, children }) {
 
 
 function ActionDialog({ target, mode, onClose, onSuccess, token, apiBase }) {
+  useKbInterfaceLocale();
   const [password, setPassword] = useState("");
   const [reason, setReason] = useState("");
   const [visible, setVisible] = useState(false);
@@ -163,40 +168,40 @@ function ActionDialog({ target, mode, onClose, onSuccess, token, apiBase }) {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
             <p className="text-[11px] font-bold tracking-[0.16em] mb-1" style={{ color: restore ? "#2D8B8B" : "#B0553A" }}>
-              {restore ? "ARXIVDAN TIKLASH" : "XAVFSIZ ARXIVLASH"}
+              {restore ? __kbUi("ARXIVDAN TIKLASH") : __kbUi("XAVFSIZ ARXIVLASH")}
             </p>
             <h3 id="institution-security-action-title" className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{target.nomi}</h3>
-            <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{target.turi_nomi} · ID {target.muassasa_id}</p>
+            <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{target.turi_nomi}{__kbUi(" · ID ")}{target.muassasa_id}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Yopish" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}><X size={17} /></button>
+          <button type="button" onClick={onClose} aria-label={__kbUi("Yopish")} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }}><X size={17} /></button>
         </div>
 
         <div className="rounded-xl p-3 mb-4 text-xs leading-relaxed" style={{ backgroundColor: restore ? "#EEF7F5" : "#FDF0EC", color: restore ? "#246D6D" : "#8E3E2B" }}>
           {restore
-            ? "Muassasa barcha saqlangan bog'lanishlari bilan yana faol ro'yxatga qaytadi."
-            : "Muassasa darhol faol ro'yxatdan olinadi, 365 kun arxivda saqlanadi va shu muddat ichida tiklanishi mumkin."}
+            ? __kbUi("Muassasa barcha saqlangan bog'lanishlari bilan yana faol ro'yxatga qaytadi.")
+            : __kbUi("Muassasa darhol faol ro'yxatdan olinadi, 365 kun arxivda saqlanadi va shu muddat ichida tiklanishi mumkin.")}
         </div>
 
         {!restore && (
           <label className="block mb-3">
-            <span className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>Sabab · ixtiyoriy</span>
-            <input value={reason} onChange={(event) => setReason(event.target.value.slice(0, 500))} placeholder="Masalan: xato yaratilgan" className="w-full px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
+            <span className="text-xs font-medium mb-1.5 block" style={{ color: "#5A5648" }}>{__kbUi("Sabab · ixtiyoriy")}</span>
+            <input value={reason} onChange={(event) => setReason(event.target.value.slice(0, 500))} placeholder={__kbUi("Masalan: xato yaratilgan")} className="w-full px-3.5 py-2.5 rounded-xl border text-sm" style={{ borderColor: "#E5E1D8" }} />
           </label>
         )}
 
         <PasswordField
-          label="Adminning 4 xonali o'chirish paroli"
+          label={__kbUi("Adminning 4 xonali o'chirish paroli")}
           value={password}
           onChange={setPassword}
-          placeholder="••••"
+          placeholder={__kbUi("••••")}
           visible={visible}
           onToggle={() => setVisible((current) => !current)}
           autoComplete="current-password"
         />
-        {error && <p className="text-sm mt-3" role="alert" style={{ color: "#B0553A" }}>{error}</p>}
+        {error && <p className="text-sm mt-3" role="alert" style={{ color: "#B0553A" }}>{__kbUi(error)}</p>}
 
         <div className="grid grid-cols-2 gap-2.5 mt-5">
-          <button type="button" onClick={onClose} className="py-2.5 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>Bekor qilish</button>
+          <button type="button" onClick={onClose} className="py-2.5 rounded-xl border text-sm font-semibold" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Bekor qilish")}</button>
           <button
             type="button"
             onClick={submit}
@@ -205,7 +210,7 @@ function ActionDialog({ target, mode, onClose, onSuccess, token, apiBase }) {
             style={{ backgroundColor: restore ? "#2D8B8B" : "#B0553A", opacity: password.length !== 4 || saving ? 0.55 : 1 }}
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : restore ? <RotateCcw size={16} /> : <Archive size={16} />}
-            {saving ? "..." : restore ? "Tiklash" : "Arxivlash"}
+            {saving ? __kbUi("...") : restore ? __kbUi("Tiklash") : __kbUi("Arxivlash")}
           </button>
         </div>
       </section>
@@ -217,6 +222,7 @@ function ActionDialog({ target, mode, onClose, onSuccess, token, apiBase }) {
 // Kabutar (suhbatlar)ni butun platforma uchun yoqish/o'chirish. O'chirish
 // arxiv paroli bilan tasdiqlanadi — boshqalar "Tez kunda" ekranini ko'radi.
 function KabutarKaliti({ token, apiBase, onMessage }) {
+  useKbInterfaceLocale();
   const [holat, setHolat] = useState(null);
   const [xato, setXato] = useState("");
   const [tasdiq, setTasdiq] = useState(null); // null | { yoqilgan: bool }
@@ -249,41 +255,41 @@ function KabutarKaliti({ token, apiBase, onMessage }) {
     <div className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>Kabutar — suhbatlar bo'limi</p>
+          <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Kabutar — suhbatlar bo'limi")}</p>
           <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>
-            {holat ? (yoqilgan ? "Barcha foydalanuvchilar uchun ochiq" : `O'chirilgan · ${formatDate(holat.updated_at)} · boshqalar «Tez kunda» ko'radi`) : (xato || "Yuklanmoqda…")}
+            {holat ? (yoqilgan ? __kbUi("Barcha foydalanuvchilar uchun ochiq") : __kbUi(`O'chirilgan · ${formatDate(holat.updated_at)} · boshqalar «Tez kunda» ko'radi`)) : (xato || __kbUi("Yuklanmoqda…"))}
           </p>
         </div>
-        <span className="text-[10px] font-bold px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: yoqilgan ? "#EAF3DE" : "#FDF0EC", color: yoqilgan ? "#3B6D11" : "#B0553A" }}>{yoqilgan ? "YOQILGAN" : "O'CHIRILGAN"}</span>
+        <span className="text-[10px] font-bold px-2 py-1 rounded-full shrink-0" style={{ backgroundColor: yoqilgan ? "#EAF3DE" : "#FDF0EC", color: yoqilgan ? "#3B6D11" : "#B0553A" }}>{yoqilgan ? __kbUi("YOQILGAN") : __kbUi("O'CHIRILGAN")}</span>
       </div>
       {!tasdiq && holat && (
         <button type="button" onClick={() => { setTasdiq({ yoqilgan: !yoqilgan }); setParol(""); setXato(""); }}
           className="mt-3 w-full rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: yoqilgan ? "#B0553A" : "#3B6D11" }}>
-          {yoqilgan ? "Kabutarni o'chirish" : "Kabutarni yoqish"}
+          {yoqilgan ? __kbUi("Kabutarni o'chirish") : __kbUi("Kabutarni yoqish")}
         </button>
       )}
       {tasdiq && (
         <div className="mt-3 rounded-xl p-3 bg-white border" style={{ borderColor: tasdiq.yoqilgan ? "#BFD9C7" : "#F1D5CC" }}>
-          <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{tasdiq.yoqilgan ? "Kabutarni yoqasizmi?" : "Haqiqatan o'chirasizmi?"}</p>
+          <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{tasdiq.yoqilgan ? __kbUi("Kabutarni yoqasizmi?") : __kbUi("Haqiqatan o'chirasizmi?")}</p>
           <p className="text-xs mt-1 leading-relaxed" style={{ color: "#5A5648" }}>
             {tasdiq.yoqilgan
-              ? "Suhbatlar bo'limi barcha foydalanuvchilar uchun qayta ochiladi."
-              : "Barcha foydalanuvchilar uchun Kabutar yopiladi va o'rniga «Tez kunda» ekrani ko'rinadi. Siz admin sifatida ko'rishda davom etasiz. Xabarlar o'chmaydi."}
+              ? __kbUi("Suhbatlar bo'limi barcha foydalanuvchilar uchun qayta ochiladi.")
+              : __kbUi("Barcha foydalanuvchilar uchun Kabutar yopiladi va o'rniga «Tez kunda» ekrani ko'rinadi. Siz admin sifatida ko'rishda davom etasiz. Xabarlar o'chmaydi.")}
           </p>
           {!tasdiq.yoqilgan && (
             <label className="block mt-3">
-              <span className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>Foydalanuvchilar ko'radigan matn</span>
-              <input value={xabar} maxLength={200} onChange={(e) => setXabar(e.target.value)} placeholder="Kabutar — suhbatlar bo'limi tez kunda ishga tushadi." className="w-full mt-1 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
+              <span className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>{__kbUi("Foydalanuvchilar ko'radigan matn")}</span>
+              <input value={xabar} maxLength={200} onChange={(e) => setXabar(e.target.value)} placeholder={__kbUi("Kabutar — suhbatlar bo'limi tez kunda ishga tushadi.")} className="w-full mt-1 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: "#E5E1D8" }} />
             </label>
           )}
           <div className="mt-3">
-            <PasswordField label="O'chirish (arxiv) paroli" value={parol} onChange={setParol} placeholder="4 xonali parol" visible={parolKorinadi} onToggle={() => setParolKorinadi((v) => !v)} autoComplete="current-password" />
+            <PasswordField label={__kbUi("O'chirish (arxiv) paroli")} value={parol} onChange={setParol} placeholder={__kbUi("4 xonali parol")} visible={parolKorinadi} onToggle={() => setParolKorinadi((v) => !v)} autoComplete="current-password" />
           </div>
-          {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{xato}</p>}
+          {xato && <p className="text-xs mt-2" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
           <div className="flex gap-2 mt-3">
-            <button type="button" onClick={() => { setTasdiq(null); setXato(""); }} disabled={band} className="flex-1 rounded-xl py-2.5 text-sm font-semibold border" style={{ borderColor: "#E5E1D8", color: "#5A5648", backgroundColor: "#fff" }}>Bekor qilish</button>
+            <button type="button" onClick={() => { setTasdiq(null); setXato(""); }} disabled={band} className="flex-1 rounded-xl py-2.5 text-sm font-semibold border" style={{ borderColor: "#E5E1D8", color: "#5A5648", backgroundColor: "#fff" }}>{__kbUi("Bekor qilish")}</button>
             <button type="button" onClick={saqla} disabled={band || parol.length < 4} className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: tasdiq.yoqilgan ? "#3B6D11" : "#B0553A", opacity: band || parol.length < 4 ? 0.6 : 1 }}>
-              {band ? "…" : tasdiq.yoqilgan ? "Ha, yoqish" : "Ha, o'chirish"}
+              {band ? __kbUi("…") : tasdiq.yoqilgan ? __kbUi("Ha, yoqish") : __kbUi("Ha, o'chirish")}
             </button>
           </div>
         </div>
@@ -293,6 +299,7 @@ function KabutarKaliti({ token, apiBase, onMessage }) {
 }
 
 export default function AdminInstitutionSecurity({ token, apiBase }) {
+  useKbInterfaceLocale();
   const [status, setStatus] = useState(null);
   const [active, setActive] = useState([]);
   const [archived, setArchived] = useState([]);
@@ -378,68 +385,68 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
         <div className="flex items-start gap-3">
           <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}><ShieldCheck size={20} /></span>
           <div>
-            <h2 id="admin-institution-security-title" className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Muassasa xavfsizligi va arxivi</h2>
-            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>Kim yaratganidan qat'i nazar, admin 4 xonali parol bilan istalgan muassasani arxivlaydi.</p>
+            <h2 id="admin-institution-security-title" className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Muassasa xavfsizligi va arxivi")}</h2>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{__kbUi("Kim yaratganidan qat'i nazar, admin 4 xonali parol bilan istalgan muassasani arxivlaydi.")}</p>
           </div>
         </div>
-        <button type="button" onClick={load} disabled={loading} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }} aria-label="Yangilash"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /></button>
+        <button type="button" onClick={load} disabled={loading} className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#F7F5F0", color: "#5A5648" }} aria-label={__kbUi("Yangilash")}><RefreshCw size={16} className={loading ? "animate-spin" : ""} /></button>
       </div>
 
-      {loadError && <div className="rounded-xl p-3 mb-3 text-sm" role="alert" style={{ backgroundColor: "#FDF0EC", color: "#B0553A" }}>{loadError}</div>}
+      {loadError && <div className="rounded-xl p-3 mb-3 text-sm" role="alert" style={{ backgroundColor: "#FDF0EC", color: "#B0553A" }}>{__kbUi(loadError)}</div>}
       {message && <div className="rounded-xl p-3 mb-3 text-sm" role="status" style={{ backgroundColor: "#EAF3DE", color: "#3B6D11" }}>✓ {message}</div>}
 
-      <SecurityAccordion icon={<span aria-hidden="true">🕊️</span>} title="Kabutar (suhbatlar)" summary="Butun platforma uchun yoqish/o'chirish — arxiv paroli bilan">
+      <SecurityAccordion icon={<span aria-hidden="true">🕊️</span>} title={__kbUi("Kabutar (suhbatlar)")} summary="Butun platforma uchun yoqish/o'chirish — arxiv paroli bilan">
         <KabutarKaliti token={token} apiBase={apiBase} onMessage={setMessage} />
       </SecurityAccordion>
 
       <SecurityAccordion
         icon={<ShieldCheck size={16} />}
-        title="O'chirish paroli"
+        title={__kbUi("O'chirish paroli")}
         summary={status?.configured ? "4 xonali parol faol" : "Parol sozlanmagan"}
       >
       <div className="rounded-xl p-3.5" style={{ backgroundColor: "#F7F5F0" }}>
         <div className="flex items-center justify-between gap-2 mb-3">
           <div>
-            <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>O'chirish parolini yangilash</p>
+            <p className="text-xs font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("O'chirish parolini yangilash")}</p>
             <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>
               {status?.source === "settings"
-                ? `Sozlamadagi parol faol · ${formatDate(status.updated_at)}`
+                ? __kbUi(`Sozlamadagi parol faol · ${formatDate(status.updated_at)}`)
                 : status?.source === "railway"
-                  ? "Eski Railway paroli faol — u o'zgartirilmaguncha saqlanadi"
-                  : "Parol hali belgilanmagan"}
+                  ? __kbUi("Eski Railway paroli faol — u o'zgartirilmaguncha saqlanadi")
+                  : __kbUi("Parol hali belgilanmagan")}
             </p>
           </div>
-          <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ backgroundColor: status?.configured ? "#EAF3DE" : "#FDF0EC", color: status?.configured ? "#3B6D11" : "#B0553A" }}>{status?.configured ? "FAOL" : "SOZLANMAGAN"}</span>
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ backgroundColor: status?.configured ? "#EAF3DE" : "#FDF0EC", color: status?.configured ? "#3B6D11" : "#B0553A" }}>{status?.configured ? __kbUi("FAOL") : __kbUi("SOZLANMAGAN")}</span>
         </div>
 
-        <p className="text-[11px] mb-2.5" style={{ color: "#8A8578" }}>Admin akkaunti tasdiqlangani uchun yangi parolni istalgan payt to'g'ridan-to'g'ri belgilash mumkin.</p>
+        <p className="text-[11px] mb-2.5" style={{ color: "#8A8578" }}>{__kbUi("Admin akkaunti tasdiqlangani uchun yangi parolni istalgan payt to'g'ridan-to'g'ri belgilash mumkin.")}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-          <PasswordField label="Yangi 4 raqam" value={newPassword} onChange={setNewPassword} placeholder="••••" visible={showNew} onToggle={() => setShowNew((value) => !value)} autoComplete="new-password" />
-          <PasswordField label="Yangi parolni takrorlang" value={repeatPassword} onChange={setRepeatPassword} placeholder="••••" visible={showRepeat} onToggle={() => setShowRepeat((value) => !value)} autoComplete="new-password" />
+          <PasswordField label={__kbUi("Yangi 4 raqam")} value={newPassword} onChange={setNewPassword} placeholder={__kbUi("••••")} visible={showNew} onToggle={() => setShowNew((value) => !value)} autoComplete="new-password" />
+          <PasswordField label={__kbUi("Yangi parolni takrorlang")} value={repeatPassword} onChange={setRepeatPassword} placeholder={__kbUi("••••")} visible={showRepeat} onToggle={() => setShowRepeat((value) => !value)} autoComplete="new-password" />
         </div>
-        {passwordError && <p className="text-xs mt-2" role="alert" style={{ color: "#B0553A" }}>{passwordError}</p>}
+        {passwordError && <p className="text-xs mt-2" role="alert" style={{ color: "#B0553A" }}>{__kbUi(passwordError)}</p>}
         <button type="button" onClick={savePassword} disabled={passwordSaving || newPassword.length !== 4 || repeatPassword.length !== 4} className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2" style={{ backgroundColor: "#1B4B7A", opacity: passwordSaving || newPassword.length !== 4 || repeatPassword.length !== 4 ? 0.5 : 1 }}>
           {passwordSaving ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
-          {passwordSaving ? "Saqlanmoqda..." : "Parolni yangilash"}
+          {passwordSaving ? __kbUi("Saqlanmoqda...") : __kbUi("Parolni yangilash")}
         </button>
       </div>
       </SecurityAccordion>
 
       <SecurityAccordion
         icon={<Archive size={16} />}
-        title="Muassasalar va arxiv"
+        title={__kbUi("Muassasalar va arxiv")}
         summary={`${active.length} faol · ${archived.length} arxiv`}
       >
-      <div className="grid grid-cols-2 gap-2 mb-3" role="tablist" aria-label="Muassasa holati">
-        <button type="button" role="tab" aria-selected={tab === "active"} onClick={() => setTab("active")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "active" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Building2 size={15} /> Faol muassasalar · {active.length}</button>
-        <button type="button" role="tab" aria-selected={tab === "archive"} onClick={() => setTab("archive")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "archive" ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Archive size={15} /> Arxivdagi muassasalar · {archived.length}</button>
+      <div className="grid grid-cols-2 gap-2 mb-3" role="tablist" aria-label={__kbUi("Muassasa holati")}>
+        <button type="button" role="tab" aria-selected={tab === "active"} onClick={() => setTab("active")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "active" ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Building2 size={15} />{__kbUi(" Faol muassasalar · ")}{active.length}</button>
+        <button type="button" role="tab" aria-selected={tab === "archive"} onClick={() => setTab("archive")} className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2" style={tab === "archive" ? { backgroundColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#5A5648" }}><Archive size={15} />{__kbUi(" Arxivdagi muassasalar · ")}{archived.length}</button>
       </div>
 
       {loading ? (
         <div className="py-8 flex items-center justify-center"><Loader2 size={22} className="animate-spin" style={{ color: "#1B4B7A" }} /></div>
       ) : tab === "active" ? (
         groupedActive.length === 0 ? (
-          <div className="rounded-xl p-5 text-center" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}><p className="text-sm">Faol muassasa topilmadi.</p></div>
+          <div className="rounded-xl p-5 text-center" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}><p className="text-sm">{__kbUi("Faol muassasa topilmadi.")}</p></div>
         ) : (
           <div className="space-y-3">
             {groupedActive.map(([type, institutions]) => (
@@ -450,9 +457,9 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
                     <div key={`${institution.muassasa_turi}-${institution.muassasa_id}`} className="rounded-xl p-3 flex items-center justify-between gap-3" style={{ backgroundColor: "#FAF8F2" }}>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{institution.nomi}</p>
-                        <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>ID {institution.muassasa_id}</p>
+                        <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{__kbUi("ID ")}{institution.muassasa_id}</p>
                       </div>
-                      <button type="button" onClick={() => setAction({ mode: "archive", target: institution })} disabled={!status?.configured} className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0" style={{ backgroundColor: "#FDF0EC", color: "#B0553A", opacity: status?.configured ? 1 : 0.45 }}><Trash2 size={14} /> Arxivlash</button>
+                      <button type="button" onClick={() => setAction({ mode: "archive", target: institution })} disabled={!status?.configured} className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0" style={{ backgroundColor: "#FDF0EC", color: "#B0553A", opacity: status?.configured ? 1 : 0.45 }}><Trash2 size={14} />{__kbUi(" Arxivlash")}</button>
                     </div>
                   ))}
                 </div>
@@ -461,7 +468,7 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
           </div>
         )
       ) : archived.length === 0 ? (
-        <div className="rounded-xl p-5 text-center" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}><Archive size={24} className="mx-auto mb-2" /><p className="text-sm">Arxiv bo'sh.</p></div>
+        <div className="rounded-xl p-5 text-center" style={{ backgroundColor: "#F7F5F0", color: "#8A8578" }}><Archive size={24} className="mx-auto mb-2" /><p className="text-sm">{__kbUi("Arxiv bo'sh.")}</p></div>
       ) : (
         <div className="space-y-2">
           {archived.map((institution) => (
@@ -469,18 +476,18 @@ export default function AdminInstitutionSecurity({ token, apiBase }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate" style={{ color: "#2B2B2B" }}>{institution.nomi}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{institution.turi_nomi} · arxivlandi {formatDate(institution.archived_at)}</p>
-                  <p className="text-[11px] mt-1 font-medium" style={{ color: institution.days_remaining <= 30 ? "#B0553A" : "#8A5A1C" }}>{institution.days_remaining} kun qoldi · {formatDate(institution.purge_after)} dan keyin butunlay o'chadi</p>
-                  {institution.sababi && <p className="text-[11px] mt-1" style={{ color: "#5A5648" }}>Sabab: {institution.sababi}</p>}
+                  <p className="text-[11px] mt-0.5" style={{ color: "#8A8578" }}>{institution.turi_nomi}{__kbUi(" · arxivlandi ")}{__kbUi(formatDate(institution.archived_at))}</p>
+                  <p className="text-[11px] mt-1 font-medium" style={{ color: institution.days_remaining <= 30 ? "#B0553A" : "#8A5A1C" }}>{institution.days_remaining}{__kbUi(" kun qoldi · ")}{__kbUi(formatDate(institution.purge_after))}{__kbUi(" dan keyin butunlay o'chadi")}</p>
+                  {institution.sababi && <p className="text-[11px] mt-1" style={{ color: "#5A5648" }}>{__kbUi("Sabab: ")}{institution.sababi}</p>}
                 </div>
-                <button type="button" onClick={() => setAction({ mode: "restore", target: institution })} className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0" style={{ backgroundColor: "#EEF7F5", color: "#246D6D" }}><RotateCcw size={14} /> Tiklash</button>
+                <button type="button" onClick={() => setAction({ mode: "restore", target: institution })} className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0" style={{ backgroundColor: "#EEF7F5", color: "#246D6D" }}><RotateCcw size={14} />{__kbUi(" Tiklash")}</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "#8A8578" }}>Arxivdagi muassasa 365 kun ichida tiklanadi. Muddat tugagach avtomatik tozalash ishga tushadi va tiklash yopiladi.</p>
+      <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "#8A8578" }}>{__kbUi("Arxivdagi muassasa 365 kun ichida tiklanadi. Muddat tugagach avtomatik tozalash ishga tushadi va tiklash yopiladi.")}</p>
       </SecurityAccordion>
 
       <ActionDialog

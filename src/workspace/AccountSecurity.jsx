@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AtSign, CheckCircle2, ChevronRight, Eye, EyeOff, KeyRound, LoaderCircle, LogOut, Send, ShieldCheck, X } from "lucide-react";
@@ -7,6 +9,7 @@ import { workspaceRequest } from "./kabutarWorkspaceClient.js";
 import "./workspace.css";
 
 export default function AccountSecurity({ apiBase, token, onToken, onClose, onLogout }) {
+  useKbInterfaceLocale();
   const [profile, setProfile] = useState(null);
   const [discovery, setDiscovery] = useState(null);
   const [discoveryError, setDiscoveryError] = useState("");
@@ -175,16 +178,16 @@ export default function AccountSecurity({ apiBase, token, onToken, onClose, onLo
 
   return createPortal(<div className="kb-security-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose?.(); }}>
     <div className="kb-security-panel" role="dialog" aria-modal="true" aria-labelledby="kb-security-title" aria-describedby="kb-security-description" tabIndex={-1} ref={panel}>
-      <header><div><span className="kb-security-eyebrow"><ShieldCheck size={15}/> SIZNING HISOBINGIZ</span><h2 id="kb-security-title">Kirish va xavfsizlik</h2></div><button className="kb-security-close" type="button" onClick={onClose} aria-label="Xavfsizlik oynasini yopish" ref={closeButton}><X size={20}/></button></header>
-      <p id="kb-security-description" className="kb-work-note">Kirish usullarini bitta hisobingizga ulang. KB raqamingiz va suhbatlaringiz shu hisobda qoladi.</p>
-      {error && <div className="kb-work-error" role="alert">{error}</div>}
-      {notice && <div className="kb-security-notice" role="status"><CheckCircle2 size={17}/>{notice}</div>}
-      {loading ? <p className="kb-security-loading" role="status"><LoaderCircle size={18} className="kb-login-spin"/> Hisob ma’lumotlari yuklanmoqda…</p> : !profile ? <button type="button" onClick={() => setRetry((value) => value + 1)}>Qayta yuklash</button> : <>
-        <section aria-label="Ulangan kirish usullari">
-          <h3>Ulangan hisoblar</h3>
+      <header><div><span className="kb-security-eyebrow"><ShieldCheck size={15}/>{__kbUi(" SIZNING HISOBINGIZ")}</span><h2 id="kb-security-title">{__kbUi("Kirish va xavfsizlik")}</h2></div><button className="kb-security-close" type="button" onClick={onClose} aria-label={__kbUi("Xavfsizlik oynasini yopish")} ref={closeButton}><X size={20}/></button></header>
+      <p id="kb-security-description" className="kb-work-note">{__kbUi("Kirish usullarini bitta hisobingizga ulang. KB raqamingiz va suhbatlaringiz shu hisobda qoladi.")}</p>
+      {error && <div className="kb-work-error" role="alert">{__kbUi(error)}</div>}
+      {notice && <div className="kb-security-notice" role="status"><CheckCircle2 size={17}/>{__kbUi(notice)}</div>}
+      {loading ? <p className="kb-security-loading" role="status"><LoaderCircle size={18} className="kb-login-spin"/>{__kbUi(" Hisob ma’lumotlari yuklanmoqda…")}</p> : !profile ? <button type="button" onClick={() => setRetry((value) => value + 1)}>{__kbUi("Qayta yuklash")}</button> : <>
+        <section aria-label={__kbUi("Ulangan kirish usullari")}>
+          <h3>{__kbUi("Ulangan hisoblar")}</h3>
           <div className="kb-security-identities">
-            <div><span className="kb-security-provider-icon"><Send size={19}/></span><div><strong>Telegram</strong><small>{telegramLinked ? profile.phone_masked || "Telefon tasdiqlangan" : "Telefon raqamingiz bilan tasdiqlash"}</small></div>{telegramLinked ? <span className="kb-security-linked"><CheckCircle2 size={14}/> Ulangan</span> : <button type="button" onClick={() => setTelegramOpen(true)} disabled={Boolean(busy)}>Ulash <ChevronRight size={14}/></button>}</div>
-            <div><span className="kb-security-provider-icon kb-security-google-mark">G</span><div><strong>Google</strong><small>{googleLinked ? "Google hisobingiz ulangan" : "Google hisobingiz orqali qayta kirish"}</small></div>{googleLinked ? <span className="kb-security-linked"><CheckCircle2 size={14}/> Ulangan</span> : <button type="button" onClick={linkGoogle} disabled={Boolean(busy)}>Ulash <ChevronRight size={14}/></button>}</div>
+            <div><span className="kb-security-provider-icon"><Send size={19}/></span><div><strong>{__kbUi("Telegram")}</strong><small>{telegramLinked ? profile.phone_masked || __kbUi("Telefon tasdiqlangan") : __kbUi("Telefon raqamingiz bilan tasdiqlash")}</small></div>{telegramLinked ? <span className="kb-security-linked"><CheckCircle2 size={14}/>{__kbUi(" Ulangan")}</span> : <button type="button" onClick={() => setTelegramOpen(true)} disabled={Boolean(busy)}>{__kbUi("Ulash ")}<ChevronRight size={14}/></button>}</div>
+            <div><span className="kb-security-provider-icon kb-security-google-mark">{__kbUi("G")}</span><div><strong>{__kbUi("Google")}</strong><small>{googleLinked ? __kbUi("Google hisobingiz ulangan") : __kbUi("Google hisobingiz orqali qayta kirish")}</small></div>{googleLinked ? <span className="kb-security-linked"><CheckCircle2 size={14}/>{__kbUi(" Ulangan")}</span> : <button type="button" onClick={linkGoogle} disabled={Boolean(busy)}>{__kbUi("Ulash ")}<ChevronRight size={14}/></button>}</div>
           </div>
           {telegramOpen && <TelegramSignIn apiBase={apiBase} token={token} mode="link" onCancel={() => setTelegramOpen(false)} onAuthenticated={(data) => {
             setTelegramOpen(false);
@@ -192,34 +195,34 @@ export default function AccountSecurity({ apiBase, token, onToken, onClose, onLo
             if (data?.token) onToken?.(data.token);
             setRetry((value) => value + 1);
           }}/>} 
-          <p className="kb-work-note">Google yoki Telegram boshqa Kabutar hisobiga ulangan bo‘lsa, hisoblar avtomatik birlashtirilmaydi.</p>
+          <p className="kb-work-note">{__kbUi("Google yoki Telegram boshqa Kabutar hisobiga ulangan bo‘lsa, hisoblar avtomatik birlashtirilmaydi.")}</p>
         </section>
         <section aria-labelledby="kb-discovery-heading">
-          <h3 id="kb-discovery-heading"><AtSign size={18}/> Sizni qanday topishsin?</h3>
-          <p className="kb-work-note">KB raqamingiz doimiy qoladi. Nik qo‘shsangiz, odamlar sizni @nik orqali ham topadi.</p>
-          {discoveryError && <div className="kb-work-error" role="alert">{discoveryError}</div>}
+          <h3 id="kb-discovery-heading"><AtSign size={18}/>{__kbUi(" Sizni qanday topishsin?")}</h3>
+          <p className="kb-work-note">{__kbUi("KB raqamingiz doimiy qoladi. Nik qo‘shsangiz, odamlar sizni @nik orqali ham topadi.")}</p>
+          {discoveryError && <div className="kb-work-error" role="alert">{__kbUi(discoveryError)}</div>}
           {discovery ? <form onSubmit={saveDiscovery}>
-            <label htmlFor="kb-public-nickname">Kabutar niki <span className="kb-security-optional">ixtiyoriy</span><div className="kb-security-nickname-field"><span aria-hidden="true">@</span><input id="kb-public-nickname" type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={33} placeholder="azizustoz" disabled={Boolean(busy)} aria-describedby="kb-nickname-help"/></div></label>
-            <p id="kb-nickname-help" className="kb-work-note">5–32 belgi: lotin harflari, raqamlar va _. Nik harf bilan boshlanadi. Profilingizdagi haqiqiy ism saqlanadi.</p>
-            <label className="kb-security-phone-toggle" htmlFor="kb-phone-discovery"><input id="kb-phone-discovery" type="checkbox" checked={phoneDiscoverable} onChange={(event) => setPhoneDiscoverable(event.target.checked)} disabled={Boolean(busy) || !discovery.phone_verified}/><span><strong>Telefon raqamim orqali topish mumkin</strong><small>{discovery.phone_verified ? `${discovery.phone_masked || "Tasdiqlangan raqam"} ni biladigan odamlar meni Kabutarda topishi mumkin.` : "Buning uchun telefoningizni yuqoridagi Telegram orqali tasdiqlang."}</small></span></label>
-            <button type="submit" className="kb-work-primary" disabled={Boolean(busy)}>{busy === "discovery" ? "Saqlanmoqda…" : "Qidiruv sozlamalarini saqlash"}</button>
-          </form> : <button type="button" onClick={() => setRetry((value) => value + 1)}>Qidiruv sozlamalarini qayta yuklash</button>}
+            <label htmlFor="kb-public-nickname">{__kbUi("Kabutar niki ")}<span className="kb-security-optional">{__kbUi("ixtiyoriy")}</span><div className="kb-security-nickname-field"><span aria-hidden="true">@</span><input id="kb-public-nickname" type="text" value={nickname} onChange={(event) => setNickname(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={33} placeholder={__kbUi("azizustoz")} disabled={Boolean(busy)} aria-describedby="kb-nickname-help"/></div></label>
+            <p id="kb-nickname-help" className="kb-work-note">{__kbUi("5–32 belgi: lotin harflari, raqamlar va _. Nik harf bilan boshlanadi. Profilingizdagi haqiqiy ism saqlanadi.")}</p>
+            <label className="kb-security-phone-toggle" htmlFor="kb-phone-discovery"><input id="kb-phone-discovery" type="checkbox" checked={phoneDiscoverable} onChange={(event) => setPhoneDiscoverable(event.target.checked)} disabled={Boolean(busy) || !discovery.phone_verified}/><span><strong>{__kbUi("Telefon raqamim orqali topish mumkin")}</strong><small>{discovery.phone_verified ? __kbUi(`${discovery.phone_masked || "Tasdiqlangan raqam"} ni biladigan odamlar meni Kabutarda topishi mumkin.`) : __kbUi("Buning uchun telefoningizni yuqoridagi Telegram orqali tasdiqlang.")}</small></span></label>
+            <button type="submit" className="kb-work-primary" disabled={Boolean(busy)}>{busy === "discovery" ? __kbUi("Saqlanmoqda…") : __kbUi("Qidiruv sozlamalarini saqlash")}</button>
+          </form> : <button type="button" onClick={() => setRetry((value) => value + 1)}>{__kbUi("Qidiruv sozlamalarini qayta yuklash")}</button>}
         </section>
         <section aria-labelledby="kb-password-heading">
-          <h3 id="kb-password-heading"><KeyRound size={17}/> {resetPassword ? "Unutilgan parolni tiklash" : profile.has_password ? "Parolni o‘zgartirish" : "Kirish uchun parol qo‘yish"}</h3>
-          {profile.has_password && <button type="button" className="kb-security-reset-choice" onClick={() => { setResetPassword((value) => !value); setCurrentPassword(""); setError(""); setNotice(""); }} disabled={Boolean(busy)}>{resetPassword ? "Amaldagi parolimni bilaman" : "Parolimni unutdim"}</button>}
-          {resetPassword && <p className="kb-security-recovery-info">Tiklash uchun oxirgi 10 daqiqa ichida shu hisobga ulangan Telegram yoki Google orqali qayta kirgan bo‘lishingiz kerak. Server tasdiqlasa, eski parolsiz yangisini qo‘yasiz. Faqat parol bilan kirilgan seansda bu amal bajarilmaydi.</p>}
+          <h3 id="kb-password-heading"><KeyRound size={17}/> {resetPassword ? __kbUi("Unutilgan parolni tiklash") : profile.has_password ? __kbUi("Parolni o‘zgartirish") : __kbUi("Kirish uchun parol qo‘yish")}</h3>
+          {profile.has_password && <button type="button" className="kb-security-reset-choice" onClick={() => { setResetPassword((value) => !value); setCurrentPassword(""); setError(""); setNotice(""); }} disabled={Boolean(busy)}>{resetPassword ? __kbUi("Amaldagi parolimni bilaman") : __kbUi("Parolimni unutdim")}</button>}
+          {resetPassword && <p className="kb-security-recovery-info">{__kbUi("Tiklash uchun oxirgi 10 daqiqa ichida shu hisobga ulangan Telegram yoki Google orqali qayta kirgan bo‘lishingiz kerak. Server tasdiqlasa, eski parolsiz yangisini qo‘yasiz. Faqat parol bilan kirilgan seansda bu amal bajarilmaydi.")}</p>}
           <form onSubmit={changePassword}>
-            {profile.has_password && !resetPassword && <label htmlFor="kb-current-password">Amaldagi parol<input id="kb-current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} maxLength={128} required disabled={Boolean(busy)}/></label>}
-            <label htmlFor="kb-new-password">Yangi parol<div className="kb-security-password-field"><input id="kb-new-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} maxLength={128} required aria-describedby="kb-password-help" disabled={Boolean(busy)}/><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Yangi parolni yashirish" : "Yangi parolni ko‘rsatish"} aria-pressed={showPassword}>{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div></label>
-            <label htmlFor="kb-confirm-password">Yangi parolni takrorlang<input id="kb-confirm-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={10} maxLength={128} required disabled={Boolean(busy)}/></label>
-            <p id="kb-password-help" className="kb-work-note">Kamida 10 belgi. Boshqa saytlarda ishlatmaydigan parol tanlang. Parol saqlanganda boshqa qurilmalardagi seanslar tugaydi.</p>
-            <button className="kb-work-primary" type="submit" disabled={Boolean(busy) || !password || !confirmation}>{busy === "password" ? "Saqlanmoqda…" : resetPassword ? "Parolni tiklash" : profile.has_password ? "Parolni yangilash" : "Parolni saqlash"}</button>
+            {profile.has_password && !resetPassword && <label htmlFor="kb-current-password">{__kbUi("Amaldagi parol")}<input id="kb-current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} maxLength={128} required disabled={Boolean(busy)}/></label>}
+            <label htmlFor="kb-new-password">{__kbUi("Yangi parol")}<div className="kb-security-password-field"><input id="kb-new-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} maxLength={128} required aria-describedby="kb-password-help" disabled={Boolean(busy)}/><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? __kbUi("Yangi parolni yashirish") : __kbUi("Yangi parolni ko‘rsatish")} aria-pressed={showPassword}>{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div></label>
+            <label htmlFor="kb-confirm-password">{__kbUi("Yangi parolni takrorlang")}<input id="kb-confirm-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={10} maxLength={128} required disabled={Boolean(busy)}/></label>
+            <p id="kb-password-help" className="kb-work-note">{__kbUi("Kamida 10 belgi. Boshqa saytlarda ishlatmaydigan parol tanlang. Parol saqlanganda boshqa qurilmalardagi seanslar tugaydi.")}</p>
+            <button className="kb-work-primary" type="submit" disabled={Boolean(busy) || !password || !confirmation}>{busy === "password" ? __kbUi("Saqlanmoqda…") : resetPassword ? __kbUi("Parolni tiklash") : profile.has_password ? __kbUi("Parolni yangilash") : __kbUi("Parolni saqlash")}</button>
           </form>
-          {!profile.has_password && <p className="kb-work-note">Parolni ilk marta qo‘yish uchun oxirgi 10 daqiqa ichida Telegram yoki Google orqali kirgan bo‘lishingiz kerak.</p>}
+          {!profile.has_password && <p className="kb-work-note">{__kbUi("Parolni ilk marta qo‘yish uchun oxirgi 10 daqiqa ichida Telegram yoki Google orqali kirgan bo‘lishingiz kerak.")}</p>}
         </section>
       </>}
-      <section aria-labelledby="kb-sessions-heading"><h3 id="kb-sessions-heading">Qurilmalardagi kirish</h3><p>“Chiqish” bosilganda qayta kirish uchun tasdiqlash yoki parol kerak bo‘ladi.</p><div className="kb-security-logout-actions"><button type="button" onClick={() => logout(false)} disabled={Boolean(busy)}><LogOut size={16}/>{busy === "logout" ? "Chiqilmoqda…" : "Shu qurilmadan chiqish"}</button><button type="button" className="kb-danger" onClick={() => logout(true)} disabled={Boolean(busy)}>{busy === "logout-all" ? "Seanslar tugatilmoqda…" : "Barcha qurilmalardan chiqish"}</button></div></section>
+      <section aria-labelledby="kb-sessions-heading"><h3 id="kb-sessions-heading">{__kbUi("Qurilmalardagi kirish")}</h3><p>{__kbUi("“Chiqish” bosilganda qayta kirish uchun tasdiqlash yoki parol kerak bo‘ladi.")}</p><div className="kb-security-logout-actions"><button type="button" onClick={() => logout(false)} disabled={Boolean(busy)}><LogOut size={16}/>{busy === "logout" ? __kbUi("Chiqilmoqda…") : __kbUi("Shu qurilmadan chiqish")}</button><button type="button" className="kb-danger" onClick={() => logout(true)} disabled={Boolean(busy)}>{busy === "logout-all" ? __kbUi("Seanslar tugatilmoqda…") : __kbUi("Barcha qurilmalardan chiqish")}</button></div></section>
     </div>
   </div>, document.body);
 }

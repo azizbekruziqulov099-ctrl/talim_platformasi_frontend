@@ -1,3 +1,6 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
+import {semesterPairLabel} from '../curriculum/catalog.js';
 import React, { useEffect, useMemo, useState } from "react";
 import { Loader2, ChevronLeft, GraduationCap, KeyRound, Search } from "lucide-react";
 import "./talaba.css";
@@ -38,6 +41,7 @@ function Tugma({ faol, onClick, children, rang = "#5B4B8A", disabled }) {
 }
 
 export function TalabaProfilKartasi({ profil, onOzgartir, onChiqish, chiqilmoqda }) {
+  useKbInterfaceLocale();
   if (!profil) return null;
   return (
     <div className="tq-profil-karta">
@@ -49,23 +53,24 @@ export function TalabaProfilKartasi({ profil, onOzgartir, onChiqish, chiqilmoqda
         </div>
       </div>
       <dl className="tq-profil-jadval">
-        <div><dt>Bosqich</dt><dd>{profil.bosqich_nomi || profil.talim_bosqichi}</dd></div>
-        <div><dt>Kurs</dt><dd>{profil.kurs}-kurs</dd></div>
-        <div><dt>Guruh</dt><dd>{profil.guruh}</dd></div>
-        <div><dt>Semestr</dt><dd>{profil.semestr ? `${profil.semestr}-semestr` : "Sozlash kerak"}</dd></div>
-        <div><dt>Shakl</dt><dd>{profil.talim_shakli_nomi || profil.talim_shakli}</dd></div>
-        <div><dt>Til</dt><dd>{profil.talim_tili_nomi || profil.talim_tili}</dd></div>
-        <div><dt>Mavzular Sinf'i</dt><dd className="tq-mono">{profil.sinf}</dd></div>
+        <div><dt>{__kbUi("Bosqich")}</dt><dd>{profil.bosqich_nomi || profil.talim_bosqichi}</dd></div>
+        <div><dt>{__kbUi("Kurs")}</dt><dd>{profil.kurs}{__kbUi("-kurs")}</dd></div>
+        <div><dt>{__kbUi("Guruh")}</dt><dd>{profil.guruh}</dd></div>
+        <div><dt>{__kbUi("Semestr")}</dt><dd>{profil.kurs ? __kbUi(semesterPairLabel(profil.kurs)) : __kbUi("Sozlash kerak")}</dd></div>
+        <div><dt>{__kbUi("Shakl")}</dt><dd>{profil.talim_shakli_nomi || profil.talim_shakli}</dd></div>
+        <div><dt>{__kbUi("Til")}</dt><dd>{profil.talim_tili_nomi || profil.talim_tili}</dd></div>
+        <div><dt>{__kbUi("Mavzular Sinf'i")}</dt><dd className="tq-mono">{profil.sinf}</dd></div>
       </dl>
       <div className="tq-profil-amallar">
-        {onOzgartir && <button type="button" onClick={onOzgartir}>Ma'lumotni o'zgartirish</button>}
-        {onChiqish && <button type="button" className="tq-xavfli" onClick={onChiqish} disabled={chiqilmoqda}>{chiqilmoqda ? "…" : "Muassasadan chiqish"}</button>}
+        {onOzgartir && <button type="button" onClick={onOzgartir}>{__kbUi("Ma'lumotni o'zgartirish")}</button>}
+        {onChiqish && <button type="button" className="tq-xavfli" onClick={onChiqish} disabled={chiqilmoqda}>{chiqilmoqda ? __kbUi("…") : __kbUi("Muassasadan chiqish")}</button>}
       </div>
     </div>
   );
 }
 
 export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, boshlangichBosqich = "muassasa" }) {
+  useKbInterfaceLocale();
   const [bosqich, setBosqich] = useState(boshlangichBosqich); // muassasa | parol | malumot
   const [muassasalar, setMuassasalar] = useState([]);
   const [lugat, setLugat] = useState(STANDART_LUGAT);
@@ -154,28 +159,28 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
   };
 
   return (
-    <section className="tq-oyna" aria-label="Talaba sifatida muassasaga qo'shilish">
+    <section className="tq-oyna" aria-label={__kbUi("Talaba sifatida muassasaga qo'shilish")}>
       <div className="tq-bosh">
-        <button type="button" className="tq-ortga" onClick={ortga}><ChevronLeft size={16} /> Ortga</button>
-        <ol className="tq-qadamlar" aria-label="Qadamlar">
+        <button type="button" className="tq-ortga" onClick={ortga}><ChevronLeft size={16} />{__kbUi(" Ortga")}</button>
+        <ol className="tq-qadamlar" aria-label={__kbUi("Qadamlar")}>
           {[["muassasa", "Institut"], ["parol", "Parol"], ["malumot", "Ma'lumot"]].map(([k, nom], i) => (
-            <li key={k} className={k === bosqich ? "on" : (["muassasa", "parol", "malumot"].indexOf(bosqich) > i ? "bajarildi" : "")}>{nom}</li>
+            <li key={k} className={k === bosqich ? "on" : (["muassasa", "parol", "malumot"].indexOf(bosqich) > i ? "bajarildi" : "")}>{__kbUi(nom)}</li>
           ))}
         </ol>
       </div>
 
       {bosqich === "muassasa" && (
         <>
-          <h3 className="tq-sarlavha">Qayerda o'qiysiz?</h3>
-          <p className="tq-izoh">Ro'yxatda faqat talabalar uchun parol qo'yilgan institutlar bor. Institutingiz yo'q bo'lsa — admin bilan bog'laning.</p>
-          <label className="tq-qidiruv"><Search size={15} /><input value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder="Institut nomi yoki viloyat" /></label>
-          {yuklanmoqda ? <p className="tq-holat"><Loader2 size={16} className="animate-spin" /> Yuklanmoqda…</p>
-            : filtrlangan.length === 0 ? <p className="tq-holat">{muassasalar.length ? "Qidiruvga mos institut topilmadi." : "Hozircha qo'shilish ochilgan institut yo'q."}</p>
+          <h3 className="tq-sarlavha">{__kbUi("Qayerda o'qiysiz?")}</h3>
+          <p className="tq-izoh">{__kbUi("Ro'yxatda faqat talabalar uchun parol qo'yilgan institutlar bor. Institutingiz yo'q bo'lsa — admin bilan bog'laning.")}</p>
+          <label className="tq-qidiruv"><Search size={15} /><input value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder={__kbUi("Institut nomi yoki viloyat")} /></label>
+          {yuklanmoqda ? <p className="tq-holat"><Loader2 size={16} className="animate-spin" />{__kbUi(" Yuklanmoqda…")}</p>
+            : filtrlangan.length === 0 ? <p className="tq-holat">{muassasalar.length ? __kbUi("Qidiruvga mos institut topilmadi.") : __kbUi("Hozircha qo'shilish ochilgan institut yo'q.")}</p>
             : <ul className="tq-royxat">{filtrlangan.map((m) => (
               <li key={m.id}>
                 <button type="button" onClick={() => { setMuassasa(m); setBosqich("parol"); setXato(""); }}>
                   <span className="tq-royxat-ikon">🎓</span>
-                  <span><b>{m.nomi}</b><small>{[m.viloyat, m.tuman].filter(Boolean).join(", ") || "Hudud ko'rsatilmagan"}</small></span>
+                  <span><b>{m.nomi}</b><small>{[m.viloyat, m.tuman].filter(Boolean).join(", ") || __kbUi("Hudud ko'rsatilmagan")}</small></span>
                 </button>
               </li>
             ))}</ul>}
@@ -185,15 +190,15 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
       {bosqich === "parol" && muassasa && (
         <>
           <h3 className="tq-sarlavha">{muassasa.nomi}</h3>
-          <p className="tq-izoh">Admin bergan 4 belgili parolni kiriting — harf va raqam aralash, masalan <span className="tq-mono">A7K2</span>.</p>
+          <p className="tq-izoh">{__kbUi("Admin bergan 4 belgili parolni kiriting — harf va raqam aralash, masalan ")}<span className="tq-mono">{__kbUi("A7K2")}</span>.</p>
           <label className="tq-parol">
             <KeyRound size={18} />
             <input value={parol} inputMode="text" autoCapitalize="characters" maxLength={4} autoFocus
               onChange={(e) => setParol(e.target.value.replace(/[^0-9a-zA-Z]/g, "").toUpperCase())}
-              onKeyDown={(e) => e.key === "Enter" && parolniTekshir()} placeholder="••••" aria-label="Muassasa paroli" />
+              onKeyDown={(e) => e.key === "Enter" && parolniTekshir()} placeholder={__kbUi("••••")} aria-label={__kbUi("Muassasa paroli")} />
           </label>
           <button type="button" className="tq-asosiy" onClick={parolniTekshir} disabled={yuklanmoqda || parol.length !== 4}>
-            {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "Davom etish"}
+            {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : __kbUi("Davom etish")}
           </button>
         </>
       )}
@@ -201,16 +206,16 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
       {bosqich === "malumot" && tekshiruv && (
         <>
           <h3 className="tq-sarlavha">{tekshiruv.universitet.nomi}</h3>
-          <p className="tq-izoh">Bu ma'lumotlar bo'yicha sizga mos mavzular, testlar va AI ustoz ochiladi. Guruhni bir marta yozasiz.</p>
+          <p className="tq-izoh">{__kbUi("Bu ma'lumotlar bo'yicha sizga mos mavzular, testlar va AI ustoz ochiladi. Guruhni bir marta yozasiz.")}</p>
 
-          <p className="tq-yorliq">Ta'lim bosqichi</p>
+          <p className="tq-yorliq">{__kbUi("Ta'lim bosqichi")}</p>
           <div className="tq-chiplar">
             {Object.entries(lugat.bosqichlar || STANDART_LUGAT.bosqichlar).map(([k, nom]) => (
-              <Tugma key={k} faol={talimBosqichi === k} onClick={() => { setTalimBosqichi(k); setYonalish(null); }}>{k === "magistr" ? "🎓" : "📘"} {nom}</Tugma>
+              <Tugma key={k} faol={talimBosqichi === k} onClick={() => { setTalimBosqichi(k); setYonalish(null); }}>{k === "magistr" ? __kbUi("🎓") : __kbUi("📘")} {nom}</Tugma>
             ))}
           </div>
 
-          <p className="tq-yorliq">Yo'nalish</p>
+          <p className="tq-yorliq">{__kbUi("Yo'nalish")}</p>
           {bosqichYonalishlari.length > 0 ? (
             <div className="tq-yonalishlar">
               {bosqichYonalishlari.map((y) => (
@@ -224,42 +229,42 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
           ) : null}
           {(yonalish === null && yonalishlar.length === 0) && (
             <input className="tq-kirish" value={yonalishMatni} onChange={(e) => setYonalishMatni(e.target.value)} maxLength={160}
-              placeholder={talimBosqichi === "magistr" ? "masalan: Matematika (magistratura)" : "masalan: Boshlang'ich ta'lim"} />
+              placeholder={talimBosqichi === "magistr" ? __kbUi("masalan: Matematika (magistratura)") : __kbUi("masalan: Boshlang'ich ta'lim")} />
           )}
 
-          <p className="tq-yorliq">Kurs</p>
+          <p className="tq-yorliq">{__kbUi("Kurs")}</p>
           <div className="tq-chiplar">
             {Array.from({ length: kursChegarasi }, (_, i) => i + 1).map((k) => (
-              <Tugma key={k} faol={kurs === k} onClick={() => setKurs(k)}>{k}-kurs</Tugma>
+              <Tugma key={k} faol={kurs === k} onClick={() => setKurs(k)}>{k}{__kbUi("-kurs · ")}{__kbUi(semesterPairLabel(k))}</Tugma>
             ))}
           </div>
 
-          <p className="tq-yorliq">Semestr</p>
-          <div className="tq-chiplar">{[2 * kurs - 1, 2 * kurs].map(s => <Tugma key={s} faol={semestr === s} onClick={() => setSemestr(s)}>{s}-semestr</Tugma>)}</div>
-          <p className="tq-yorliq">Guruh</p>
+          <p className="tq-yorliq">{__kbUi("Joriy semestr")}</p><p className="text-xs">{__kbUi("Kursingizning ikkala semestridagi mavzu va testlar birga ko‘rinadi.")}</p>
+          <div className="tq-chiplar">{[2 * kurs - 1, 2 * kurs].map(s => <Tugma key={s} faol={semestr === s} onClick={() => setSemestr(s)}>{s}{__kbUi("-semestr")}</Tugma>)}</div>
+          <p className="tq-yorliq">{__kbUi("Guruh")}</p>
           <input className="tq-kirish tq-mono" value={guruh} onChange={(e) => setGuruh(e.target.value.toUpperCase())} maxLength={16}
-            placeholder={`masalan: ${kurs}01`} aria-label="Guruh raqami" />
+            placeholder={__kbUi(`masalan: ${kurs}01`)} aria-label={__kbUi("Guruh raqami")} />
 
-          <p className="tq-yorliq">Ta'lim shakli</p>
+          <p className="tq-yorliq">{__kbUi("Ta'lim shakli")}</p>
           <div className="tq-chiplar">
             {shakllar.map((s) => <Tugma key={s} faol={shakl === s} onClick={() => setShakl(s)} rang="#0D7A77">{(lugat.talim_shakllari || STANDART_LUGAT.talim_shakllari)[s] || s}</Tugma>)}
           </div>
 
-          <p className="tq-yorliq">Ta'lim tili</p>
+          <p className="tq-yorliq">{__kbUi("Ta'lim tili")}</p>
           <div className="tq-chiplar">
-            {tillar.map((t) => <Tugma key={t} faol={til === t} onClick={() => setTil(t)} rang="#8A5A1C">{TIL_BAYROQ[t] || "🌐"} {(lugat.talim_tillari || STANDART_LUGAT.talim_tillari)[t] || t}</Tugma>)}
+            {tillar.map((t) => <Tugma key={t} faol={til === t} onClick={() => setTil(t)} rang="#8A5A1C">{TIL_BAYROQ[t] || __kbUi("🌐")} {(lugat.talim_tillari || STANDART_LUGAT.talim_tillari)[t] || t}</Tugma>)}
           </div>
 
           <div className="tq-xulosa">
-            {semestr}-semestr · {lugat.talim_shakllari?.[shakl] || shakl} ·  <span className="tq-mono">{kurs} kurs{talimBosqichi === "magistr" ? " magistr" : ""}</span>
+            {semestr}{__kbUi("-semestr · ")}{lugat.talim_shakllari?.[shakl] || shakl} ·  <span className="tq-mono">{kurs}{__kbUi(" kurs")}{talimBosqichi === "magistr" ? __kbUi(" magistr") : __kbUi("")}</span>
           </div>
           <button type="button" className="tq-asosiy" onClick={saqla} disabled={yuklanmoqda}>
-            {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : "Muassasaga qo'shilish"}
+            {yuklanmoqda ? <Loader2 size={16} className="animate-spin" /> : __kbUi("Muassasaga qo'shilish")}
           </button>
         </>
       )}
 
-      {xato && <p className="tq-xato" role="alert">{xato}</p>}
+      {xato && <p className="tq-xato" role="alert">{__kbUi(xato)}</p>}
     </section>
   );
 }

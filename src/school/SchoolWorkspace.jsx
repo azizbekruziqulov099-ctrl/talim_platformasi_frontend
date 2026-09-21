@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 // SAMTM FRONTEND V23.7 — teacher XLSX import and shift-aware class setup.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -75,6 +77,7 @@ const KJ_KUN = ["", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "
 const KJ_OY = ["", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
 const kjSana = iso => { const d = new Date(iso + "T00:00:00"); return `${d.getDate()} ${KJ_OY[d.getMonth() + 1].toLowerCase()}`; };
 function CalendarJournal({ token, apiBase, maktabId, onClose, teacherOnly = false, initialClassId = null }) {
+  useKbInterfaceLocale();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [setup, setSetup] = useState(null);
   const loadSetup = useCallback(async () => { try { const d = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sozlamalar?token=${encodeURIComponent(token)}&maktab_id=${encodeURIComponent(maktabId)}`); setSetup(d); } catch { /* jim */ } }, [apiBase, token, maktabId]);
@@ -98,7 +101,7 @@ function CalendarJournal({ token, apiBase, maktabId, onClose, teacherOnly = fals
     } catch (e) { setError(e.message); } finally { setApproving(false); }
   };
   const revokeApproval = async (t) => {
-    if (!window.confirm(`${kjSana(t.dan)} — ${kjSana(t.gacha)} tasdig'i bekor qilinsinmi? O‘qituvchilarga shu kunlar ko‘rinmay qoladi.`)) return;
+    if (!window.confirm(__kbUi(`${kjSana(t.dan)} — ${kjSana(t.gacha)} tasdig'i bekor qilinsinmi? O‘qituvchilarga shu kunlar ko‘rinmay qoladi.`))) return;
     try { const r = await fetch(`${apiBase}/api/maktab/kalendar_tasdiqlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&tasdiq_id=${t.id}`, { method: "DELETE" }); const d = await r.json(); if (!r.ok || d.detail) throw new Error(d.detail || "Bekor qilinmadi"); await load(); } catch (e) { setError(e.message); }
   };
   const presetApprove = (kind) => { const c = data?.choraklar?.find(x => x.boshlanish <= dan && dan <= x.tugash) || data?.choraklar?.[0]; const d0 = new Date(dan + "T00:00:00"); let d1 = new Date(d0); if (kind === "hafta") d1.setDate(d1.getDate() + 6); else if (kind === "oy") { d1.setMonth(d1.getMonth() + 1); d1.setDate(d1.getDate() - 1); } setApprove(a => ({ ...a, dan: kind === "chorak" && c ? c.boshlanish : dan, gacha: kind === "chorak" && c ? c.tugash : d1.toISOString().slice(0, 10) })); };
@@ -118,7 +121,7 @@ function CalendarJournal({ token, apiBase, maktabId, onClose, teacherOnly = fals
     } catch (e) { setError(e.message); } finally { setSaving(false); }
   };
   const deleteLesson = async (dz) => {
-    if (!window.confirm(`${dz.dars_raqami}-dars · ${dz.fan} o‘chirilsinmi?`)) return;
+    if (!window.confirm(__kbUi(`${dz.dars_raqami}-dars · ${dz.fan} o‘chirilsinmi?`))) return;
     try { const r = await fetch(`${apiBase}/api/maktab/dars_jadvali_ochir?token=${encodeURIComponent(token)}&sinf_id=${dz.sinf_id}&kun=${dz.hafta_kuni}&dars_raqami=${dz.dars_raqami}`, { method: "DELETE" }); const d = await r.json(); if (!r.ok || d.detail) throw new Error(d.detail || "O‘chirilmadi"); await load(); } catch (e) { setError(e.message); }
   };
   const load = useCallback(async () => {
@@ -137,65 +140,65 @@ function CalendarJournal({ token, apiBase, maktabId, onClose, teacherOnly = fals
   const kunlar = data?.kunlar || [];
   const chorak = data?.choraklar?.find(x => x.boshlanish <= dan && dan <= x.tugash);
   const sarlavha = davr === "hafta" ? `${kjSana(data?.dan || dan)} — ${kjSana(data?.gacha || dan)}` : davr === "oy" ? `${KJ_OY[new Date(dan + "T00:00:00").getMonth() + 1]} ${new Date(dan + "T00:00:00").getFullYear()}` : chorak ? `${chorak.chorak}-chorak · ${kjSana(chorak.boshlanish)} — ${kjSana(chorak.tugash)}` : "Chorak";
-  const Dars = ({ dz, compact }) => <div className={`rounded-xl border ${compact ? "px-2 py-1" : "px-3 py-2"}`} style={{ borderColor: dz.tasdiqlangan === false ? "#D9D4C8" : dz.manba === "admin" ? "#E3C78F" : palette.line, background: dz.tasdiqlangan === false ? "#FAF9F6" : dz.manba === "admin" ? "#FFF8EE" : dz.holat === "bugun" ? palette.mint : "#fff", opacity: dz.tasdiqlangan === false ? .7 : 1, borderStyle: dz.tasdiqlangan === false ? "dashed" : "solid" }} title={dz.tasdiqlangan === false ? "Kalendar tasdiqlanmagan — o‘qituvchilarga ko‘rinmaydi" : (dz.ogohlantirish || "")}>
+  const Dars = ({ dz, compact }) => { useKbInterfaceLocale(); return (<div className={`rounded-xl border ${compact ? "px-2 py-1" : "px-3 py-2"}`} style={{ borderColor: dz.tasdiqlangan === false ? "#D9D4C8" : dz.manba === "admin" ? "#E3C78F" : palette.line, background: dz.tasdiqlangan === false ? "#FAF9F6" : dz.manba === "admin" ? "#FFF8EE" : dz.holat === "bugun" ? palette.mint : "#fff", opacity: dz.tasdiqlangan === false ? .7 : 1, borderStyle: dz.tasdiqlangan === false ? "dashed" : "solid" }} title={dz.tasdiqlangan === false ? __kbUi("Kalendar tasdiqlanmagan — o‘qituvchilarga ko‘rinmaydi") : (dz.ogohlantirish || __kbUi(""))}>
     <div className="flex items-center gap-2 text-xs"><b style={{ color: palette.blue }}>{dz.dars_raqami}</b>{!sinfId && <b style={{ color: palette.ink }}>{dz.sinf_nomi}</b>}<span className="font-black truncate" style={{ color: palette.ink }}>{dz.fan}</span>{dz.guruh_kaliti && !["whole", "butun"].includes(dz.guruh_kaliti) && <span className="text-[9px] px-1 rounded" style={{ background: palette.sky, color: palette.blue }}>{dz.guruh_kaliti}</span>}{dz.ogohlantirish && <span title={dz.ogohlantirish}>⚠</span>}</div>
-    {!compact && <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>{dz.boshlanish_vaqti || ""}{dz.oqituvchi ? ` · ${dz.oqituvchi}` : ""}{dz.xona ? ` · ${dz.xona}` : ""}{dz.manba === "admin" ? " · admin qo‘ygan" : ""}</div>}
-    {dz.ochiq_dars && <div className="text-[9px] mt-0.5 inline-block px-1 rounded font-black" style={{ background: "#8A5A1C", color: "#fff" }}>🎓 ochiq dars{dz.ochiq_dars_mavzu ? `: ${dz.ochiq_dars_mavzu}` : ""}</div>}
+    {!compact && <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>{dz.boshlanish_vaqti || __kbUi("")}{dz.oqituvchi ? __kbUi(` · ${dz.oqituvchi}`) : __kbUi("")}{dz.xona ? __kbUi(` · ${dz.xona}`) : __kbUi("")}{dz.manba === "admin" ? __kbUi(" · admin qo‘ygan") : __kbUi("")}</div>}
+    {dz.ochiq_dars && <div className="text-[9px] mt-0.5 inline-block px-1 rounded font-black" style={{ background: "#8A5A1C", color: "#fff" }}>{__kbUi("🎓 ochiq dars")}{dz.ochiq_dars_mavzu ? __kbUi(`: ${dz.ochiq_dars_mavzu}`) : __kbUi("")}</div>}
     {!compact && dz.qisqa_izoh && <div className="text-[10px] mt-0.5 italic" style={{ color: palette.muted }}>👨‍👩‍👧 {dz.qisqa_izoh}</div>}
-    {!compact && <div className="text-[11px] mt-0.5 flex items-center justify-between gap-2"><span style={{ color: dz.mavzu ? palette.ink : "#A8A397" }}>{dz.mavzu ? `📖 ${dz.mavzu}${dz.mavzu_turi && dz.mavzu_turi !== "mavzu" ? ` · ${{ nazorat: "nazorat ishi", xato_tahlil: "xato tahlili", mustahkamlash: "mustahkamlash", masala: "masalalar" }[dz.mavzu_turi] || dz.mavzu_turi}` : ""}${dz.mavzu_tasdiqlangan === false ? " · ≈ taxminiy" : ""}` : "mavzu belgilanmagan"}</span>{dz.tasdiqlangan === false && <span className="text-[9px] font-black px-1 rounded" style={{ background: "#F3F1EC", color: palette.muted }}>tasdiqlanmagan</span>}{dz.manba === "admin" && !teacherOnly && <button type="button" onClick={() => deleteLesson(dz)} className="text-[10px] font-black" style={{ color: palette.red }}>o‘chirish</button>}</div>}
-  </div>;
-  const renderDayPanel = () => { const k = kunlar.find(x => x.sana === openDay); if (!k) return <div className="text-xs" style={{ color: palette.muted }}>Kunni tanlang</div>; return <><div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>{KJ_KUN[k.hafta_kuni]} · {k.hafta_turi} hafta{k.chorak ? ` · ${k.chorak}-chorak` : ""}</div><div className="text-lg font-black mb-3" style={{ color: palette.ink }}>{kjSana(k.sana)}</div>{!k.oquv_kuni ? <div className="text-sm" style={{ color: palette.muted }}>{k.sabab}</div> : k.darslar.length ? <div className="space-y-1.5 max-h-[45vh] overflow-auto">{k.darslar.map(dz => <Dars key={`${dz.slot_id}-${dz.sinf_id}`} dz={dz}/>)}</div> : <div className="text-sm" style={{ color: palette.muted }}>Dars yo‘q</div>}
+    {!compact && <div className="text-[11px] mt-0.5 flex items-center justify-between gap-2"><span style={{ color: dz.mavzu ? palette.ink : "#A8A397" }}>{dz.mavzu ? __kbUi(`📖 ${dz.mavzu}${dz.mavzu_turi && dz.mavzu_turi !== "mavzu" ? ` · ${{ nazorat: "nazorat ishi", xato_tahlil: "xato tahlili", mustahkamlash: "mustahkamlash", masala: "masalalar" }[dz.mavzu_turi] || dz.mavzu_turi}` : ""}${dz.mavzu_tasdiqlangan === false ? " · ≈ taxminiy" : ""}`) : __kbUi("mavzu belgilanmagan")}</span>{dz.tasdiqlangan === false && <span className="text-[9px] font-black px-1 rounded" style={{ background: "#F3F1EC", color: palette.muted }}>{__kbUi("tasdiqlanmagan")}</span>}{dz.manba === "admin" && !teacherOnly && <button type="button" onClick={() => deleteLesson(dz)} className="text-[10px] font-black" style={{ color: palette.red }}>{__kbUi("o‘chirish")}</button>}</div>}
+  </div>); };
+  const renderDayPanel = () => { const k = kunlar.find(x => x.sana === openDay); if (!k) return <div className="text-xs" style={{ color: palette.muted }}>{__kbUi("Kunni tanlang")}</div>; return <><div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>{__kbUi(KJ_KUN[k.hafta_kuni])} · {k.hafta_turi}{__kbUi(" hafta")}{k.chorak ? __kbUi(` · ${k.chorak}-chorak`) : __kbUi("")}</div><div className="text-lg font-black mb-3" style={{ color: palette.ink }}>{__kbUi(kjSana(k.sana))}</div>{!k.oquv_kuni ? <div className="text-sm" style={{ color: palette.muted }}>{k.sabab}</div> : k.darslar.length ? <div className="space-y-1.5 max-h-[45vh] overflow-auto">{k.darslar.map(dz => <Dars key={`${dz.slot_id}-${dz.sinf_id}`} dz={dz}/>)}</div> : <div className="text-sm" style={{ color: palette.muted }}>{__kbUi("Dars yo‘q")}</div>}
         {!teacherOnly && k.oquv_kuni && (sinfId ? (form ? <div className="mt-3 rounded-2xl border p-3 space-y-2" style={{ borderColor: "#E3C78F", background: "#FFF8EE" }}>
-          <div className="text-xs font-black" style={{ color: "#8A5A1C" }}>Yangi dars · {data?.sinflar?.find(c => String(c.id) === sinfId)?.nomi} · {kjSana(k.sana)}</div>
-          <div className="grid grid-cols-[70px_1fr] gap-2"><label className="text-[10px] font-bold" style={{ color: palette.muted }}>Dars №<select value={form.dars_raqami} onChange={e => setForm(f => ({ ...f, dars_raqami: e.target.value }))} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}>{[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}</option>)}</select></label><label className="text-[10px] font-bold" style={{ color: palette.muted }}>Fan<input list="kj-fanlar" value={form.fan} onChange={e => setForm(f => ({ ...f, fan: e.target.value }))} placeholder="Matematika" className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}/><datalist id="kj-fanlar">{subjects.map(x => <option key={x} value={x}/>)}</datalist></label></div>
-          <label className="block text-[10px] font-bold" style={{ color: palette.muted }}>O‘qituvchi<select value={form.oqituvchi_user_id} onChange={e => setForm(f => ({ ...f, oqituvchi_user_id: e.target.value }))} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}><option value="">— tanlanmagan —</option>{staff.filter(x => !form.fan || !x.fanlari || String(x.fanlari).toLocaleLowerCase("uz").includes(form.fan.trim().toLocaleLowerCase("uz"))).map(x => <option key={x.user_id} value={x.user_id}>{x.full_name}{x.fanlari ? ` · ${x.fanlari}` : ""}</option>)}</select></label>
-          <div className="grid grid-cols-2 gap-2"><label className="text-[10px] font-bold" style={{ color: palette.muted }}>Xona<input value={form.xona} onChange={e => setForm(f => ({ ...f, xona: e.target.value }))} placeholder="204" className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}/></label><label className="text-[10px] font-bold" style={{ color: palette.muted }}>Davr<select value={form.amal_turi} onChange={e => setForm(f => ({ ...f, amal_turi: e.target.value }))} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}><option value="kunlik">Faqat shu kun</option><option value="haftalik">Har {KJ_KUN[k.hafta_kuni]}</option><option value="choraklik">Shu chorak, har {KJ_KUN[k.hafta_kuni]}</option></select></label></div>
-          <div className="flex gap-2"><button type="button" onClick={() => saveLesson(k)} disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>{saving ? "Saqlanmoqda..." : "Saqlash"}</button><button type="button" onClick={() => setForm(null)} className="px-3 py-2 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div>
-        </div> : <button type="button" onClick={() => setForm({ dars_raqami: String((k.darslar.length || 0) + 1), fan: "", oqituvchi_user_id: "", xona: "", amal_turi: "kunlik" })} className="mt-3 w-full py-2.5 rounded-xl border-2 border-dashed text-sm font-black" style={{ borderColor: palette.line, color: palette.blue }}>+ Dars qo‘shish</button>) : <div className="mt-3 text-xs rounded-xl p-2" style={{ background: palette.cream, color: palette.muted }}>Dars qo‘shish uchun yuqorida <b>sinfni tanlang</b>. Butun maktab jadvalini avtomatik tuzish — "Aqlli dars jadvali"da.</div>)}</>; };
+          <div className="text-xs font-black" style={{ color: "#8A5A1C" }}>{__kbUi("Yangi dars · ")}{data?.sinflar?.find(c => String(c.id) === sinfId)?.nomi} · {__kbUi(kjSana(k.sana))}</div>
+          <div className="grid grid-cols-[70px_1fr] gap-2"><label className="text-[10px] font-bold" style={{ color: palette.muted }}>{__kbUi("Dars №")}<select value={form.dars_raqami} onChange={e => setForm(f => ({ ...f, dars_raqami: e.target.value }))} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}>{[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{__kbUi(n)}</option>)}</select></label><label className="text-[10px] font-bold" style={{ color: palette.muted }}>{__kbUi("Fan")}<input list="kj-fanlar" value={form.fan} onChange={e => setForm(f => ({ ...f, fan: e.target.value }))} placeholder={__kbUi("Matematika")} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}/><datalist id="kj-fanlar">{subjects.map(x => <option key={x} value={x}/>)}</datalist></label></div>
+          <label className="block text-[10px] font-bold" style={{ color: palette.muted }}>{__kbUi("O‘qituvchi")}<select value={form.oqituvchi_user_id} onChange={e => setForm(f => ({ ...f, oqituvchi_user_id: e.target.value }))} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}><option value="">{__kbUi("— tanlanmagan —")}</option>{staff.filter(x => !form.fan || !x.fanlari || String(x.fanlari).toLocaleLowerCase("uz").includes(form.fan.trim().toLocaleLowerCase("uz"))).map(x => <option key={x.user_id} value={x.user_id}>{x.full_name}{x.fanlari ? __kbUi(` · ${x.fanlari}`) : __kbUi("")}</option>)}</select></label>
+          <div className="grid grid-cols-2 gap-2"><label className="text-[10px] font-bold" style={{ color: palette.muted }}>{__kbUi("Xona")}<input value={form.xona} onChange={e => setForm(f => ({ ...f, xona: e.target.value }))} placeholder={__kbUi("204")} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}/></label><label className="text-[10px] font-bold" style={{ color: palette.muted }}>{__kbUi("Davr")}<select value={form.amal_turi} onChange={e => setForm(f => ({ ...f, amal_turi: e.target.value }))} className="mt-1 w-full px-2 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: palette.line }}><option value="kunlik">{__kbUi("Faqat shu kun")}</option><option value="haftalik">{__kbUi("Har ")}{__kbUi(KJ_KUN[k.hafta_kuni])}</option><option value="choraklik">{__kbUi("Shu chorak, har ")}{__kbUi(KJ_KUN[k.hafta_kuni])}</option></select></label></div>
+          <div className="flex gap-2"><button type="button" onClick={() => saveLesson(k)} disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>{saving ? __kbUi("Saqlanmoqda...") : __kbUi("Saqlash")}</button><button type="button" onClick={() => setForm(null)} className="px-3 py-2 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Bekor")}</button></div>
+        </div> : <button type="button" onClick={() => setForm({ dars_raqami: String((k.darslar.length || 0) + 1), fan: "", oqituvchi_user_id: "", xona: "", amal_turi: "kunlik" })} className="mt-3 w-full py-2.5 rounded-xl border-2 border-dashed text-sm font-black" style={{ borderColor: palette.line, color: palette.blue }}>{__kbUi("+ Dars qo‘shish")}</button>) : <div className="mt-3 text-xs rounded-xl p-2" style={{ background: palette.cream, color: palette.muted }}>{__kbUi("Dars qo‘shish uchun yuqorida ")}<b>{__kbUi("sinfni tanlang")}</b>{__kbUi(". Butun maktab jadvalini avtomatik tuzish — \"Aqlli dars jadvali\"da.")}</div>)}</>; };
   return <div className="min-h-screen">
-    <SmartHeader title="Kalendar jurnali" subtitle="Haftalik jadval haqiqiy kunlarda — hafta, oy, chorak" onClose={onClose} badge="AQLLI JADVAL 2.0"/>
+    <SmartHeader title={__kbUi("Kalendar jurnali")} subtitle={__kbUi("Haftalik jadval haqiqiy kunlarda — hafta, oy, chorak")} onClose={onClose} badge="AQLLI JADVAL 2.0"/>
     <main className="mx-auto max-w-7xl px-4 md:px-7 py-5 space-y-4">
       <Card className="p-4 flex flex-wrap items-center gap-2">
-        <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: palette.line }}>{[["hafta", "Hafta"], ["oy", "Oy"], ["chorak", "Chorak"]].map(([k, l]) => <button key={k} onClick={() => { setDavr(k); setOpenDay(null); }} className="px-4 py-2 text-sm font-black" style={davr === k ? { background: palette.blue, color: "#fff" } : { background: "#fff", color: palette.ink }}>{l}</button>)}</div>
+        <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: palette.line }}>{[["hafta", "Hafta"], ["oy", "Oy"], ["chorak", "Chorak"]].map(([k, l]) => <button key={k} onClick={() => { setDavr(k); setOpenDay(null); }} className="px-4 py-2 text-sm font-black" style={davr === k ? { background: palette.blue, color: "#fff" } : { background: "#fff", color: palette.ink }}>{__kbUi(l)}</button>)}</div>
         <button onClick={() => shift(-1)} className="w-9 h-9 rounded-xl border" style={{ borderColor: palette.line }}>‹</button>
         <div className="font-black text-sm min-w-[200px] text-center" style={{ color: palette.ink }}>{sarlavha}</div>
         <button onClick={() => shift(1)} className="w-9 h-9 rounded-xl border" style={{ borderColor: palette.line }}>›</button>
-        <button onClick={() => { const t = new Date(); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); setDan(t.toISOString().slice(0, 10)); setOpenDay(null); }} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Bugun</button>
-        {!teacherOnly && <select value={sinfId} onChange={e => { setSinfId(e.target.value); setOpenDay(null); }} className="ml-auto px-3 py-2 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Barcha sinflar</option>{(data?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.nomi} · {c.smena}-smena</option>)}</select>}
-        {data && <span className="text-xs" style={{ color: palette.muted }}>{data.oquv_kunlari} o‘quv kuni · {data.jami_dars} dars</span>}
-        {!teacherOnly && <button onClick={() => setSettingsOpen(v => !v)} className="px-3 py-2 rounded-xl text-xs font-black" style={settingsOpen ? { background: palette.blue, color: "#fff" } : { background: "#FFF8EE", color: "#8A5A1C" }}>⚙ {settingsOpen ? "Sozlamalarni yopish" : "Kalendar sozlamalari"}</button>}
-        {!teacherOnly && data?.rahbar && <button onClick={() => { setApproveOpen(v => !v); if (!approve.dan) presetApprove("hafta"); }} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: approveOpen ? palette.ink : palette.green }}>✓ Kalendarni tasdiqlash</button>}
+        <button onClick={() => { const t = new Date(); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); setDan(t.toISOString().slice(0, 10)); setOpenDay(null); }} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Bugun")}</button>
+        {!teacherOnly && <select value={sinfId} onChange={e => { setSinfId(e.target.value); setOpenDay(null); }} className="ml-auto px-3 py-2 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}><option value="">{__kbUi("Barcha sinflar")}</option>{(data?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.nomi} · {c.smena}{__kbUi("-smena")}</option>)}</select>}
+        {data && <span className="text-xs" style={{ color: palette.muted }}>{data.oquv_kunlari}{__kbUi(" o‘quv kuni · ")}{data.jami_dars}{__kbUi(" dars")}</span>}
+        {!teacherOnly && <button onClick={() => setSettingsOpen(v => !v)} className="px-3 py-2 rounded-xl text-xs font-black" style={settingsOpen ? { background: palette.blue, color: "#fff" } : { background: "#FFF8EE", color: "#8A5A1C" }}>⚙ {settingsOpen ? __kbUi("Sozlamalarni yopish") : __kbUi("Kalendar sozlamalari")}</button>}
+        {!teacherOnly && data?.rahbar && <button onClick={() => { setApproveOpen(v => !v); if (!approve.dan) presetApprove("hafta"); }} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: approveOpen ? palette.ink : palette.green }}>{__kbUi("✓ Kalendarni tasdiqlash")}</button>}
       </Card>
       {approveOpen && !teacherOnly && <Card className="p-4" style={{ borderColor: palette.green }}>
-        <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.green }}>Kalendarni tasdiqlash</div>
-        <p className="text-xs mt-1 mb-3" style={{ color: palette.muted }}>Jadval qaysi sanadan qaysi sanagacha, qaysi sinflar uchun <b>amalda</b> — tasdiqlang. Faqat tasdiqlangan kunlar o‘qituvchi, o‘quvchi va ota-onaga ko‘rinadi. Tasdiqlanmaganlar sizga kulrang chiziqli ko‘rinadi.</p>
-        <div className="flex flex-wrap gap-1.5 mb-3">{[["hafta", "Shu hafta"], ["oy", "Bir oy"], ["chorak", "Shu chorak"]].map(([k, l]) => <button key={k} type="button" onClick={() => presetApprove(k)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-black" style={{ background: palette.sky, color: palette.blue }}>{l}</button>)}</div>
+        <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.green }}>{__kbUi("Kalendarni tasdiqlash")}</div>
+        <p className="text-xs mt-1 mb-3" style={{ color: palette.muted }}>{__kbUi("Jadval qaysi sanadan qaysi sanagacha, qaysi sinflar uchun ")}<b>{__kbUi("amalda")}</b>{__kbUi(" — tasdiqlang. Faqat tasdiqlangan kunlar o‘qituvchi, o‘quvchi va ota-onaga ko‘rinadi. Tasdiqlanmaganlar sizga kulrang chiziqli ko‘rinadi.")}</p>
+        <div className="flex flex-wrap gap-1.5 mb-3">{[["hafta", "Shu hafta"], ["oy", "Bir oy"], ["chorak", "Shu chorak"]].map(([k, l]) => <button key={k} type="button" onClick={() => presetApprove(k)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi(l)}</button>)}</div>
         <div className="grid gap-3 md:grid-cols-[1fr_1fr_2fr]">
-          <label className="text-xs font-bold" style={{ color: palette.ink }}>Dan<input type="date" value={approve.dan} onChange={e => setApprove(a => ({ ...a, dan: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border text-sm" style={{ borderColor: palette.line }}/></label>
-          <label className="text-xs font-bold" style={{ color: palette.ink }}>Gacha<input type="date" value={approve.gacha} onChange={e => setApprove(a => ({ ...a, gacha: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border text-sm" style={{ borderColor: palette.line }}/></label>
-          <div><div className="text-xs font-bold mb-1" style={{ color: palette.ink }}>Sinflar</div><label className="inline-flex items-center gap-2 text-xs mr-3"><input type="checkbox" checked={approve.hamma} onChange={e => setApprove(a => ({ ...a, hamma: e.target.checked }))}/> Barcha sinflar (1–11)</label>{!approve.hamma && <div className="mt-1 flex flex-wrap gap-1 max-h-24 overflow-auto">{(data?.sinflar || []).map(c => { const on = approve.sinf_ids.includes(String(c.id)); return <button key={c.id} type="button" onClick={() => setApprove(a => ({ ...a, sinf_ids: on ? a.sinf_ids.filter(x => x !== String(c.id)) : [...a.sinf_ids, String(c.id)] }))} className="px-2 py-1 rounded-lg text-[11px] font-black border" style={on ? { background: palette.blue, color: "#fff", borderColor: palette.blue } : { background: "#fff", color: palette.ink, borderColor: palette.line }}>{c.nomi}</button>; })}</div>}</div>
+          <label className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Dan")}<input type="date" value={approve.dan} onChange={e => setApprove(a => ({ ...a, dan: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border text-sm" style={{ borderColor: palette.line }}/></label>
+          <label className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Gacha")}<input type="date" value={approve.gacha} onChange={e => setApprove(a => ({ ...a, gacha: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border text-sm" style={{ borderColor: palette.line }}/></label>
+          <div><div className="text-xs font-bold mb-1" style={{ color: palette.ink }}>{__kbUi("Sinflar")}</div><label className="inline-flex items-center gap-2 text-xs mr-3"><input type="checkbox" checked={approve.hamma} onChange={e => setApprove(a => ({ ...a, hamma: e.target.checked }))}/>{__kbUi(" Barcha sinflar (1–11)")}</label>{!approve.hamma && <div className="mt-1 flex flex-wrap gap-1 max-h-24 overflow-auto">{(data?.sinflar || []).map(c => { const on = approve.sinf_ids.includes(String(c.id)); return <button key={c.id} type="button" onClick={() => setApprove(a => ({ ...a, sinf_ids: on ? a.sinf_ids.filter(x => x !== String(c.id)) : [...a.sinf_ids, String(c.id)] }))} className="px-2 py-1 rounded-lg text-[11px] font-black border" style={on ? { background: palette.blue, color: "#fff", borderColor: palette.blue } : { background: "#fff", color: palette.ink, borderColor: palette.line }}>{c.nomi}</button>; })}</div>}</div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2"><input value={approve.izoh} onChange={e => setApprove(a => ({ ...a, izoh: e.target.value }))} placeholder="Izoh (ixtiyoriy)" className="flex-1 min-w-[200px] px-3 py-2 rounded-xl border text-sm" style={{ borderColor: palette.line }}/><button type="button" onClick={approveNow} disabled={approving} className="px-4 py-2 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.green }}>{approving ? "Tasdiqlanmoqda..." : "✓ Tasdiqlash"}</button></div>
-        {(data?.tasdiqlar || []).length > 0 && <div className="mt-4"><div className="text-xs font-black mb-1" style={{ color: palette.ink }}>Tasdiqlangan davrlar</div><div className="space-y-1">{data.tasdiqlar.map(t => <div key={t.id} className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: palette.mint }}><span style={{ color: palette.ink }}><b>{kjSana(t.dan)} — {kjSana(t.gacha)}</b> · {t.sinf_ids?.length ? `${t.sinf_ids.length} ta sinf` : "barcha sinflar"}{t.izoh ? ` · ${t.izoh}` : ""}{t.tasdiqlagan ? ` · ${t.tasdiqlagan}` : ""}</span><button type="button" onClick={() => revokeApproval(t)} className="font-black" style={{ color: palette.red }}>bekor</button></div>)}</div></div>}
+        <div className="mt-3 flex flex-wrap items-center gap-2"><input value={approve.izoh} onChange={e => setApprove(a => ({ ...a, izoh: e.target.value }))} placeholder={__kbUi("Izoh (ixtiyoriy)")} className="flex-1 min-w-[200px] px-3 py-2 rounded-xl border text-sm" style={{ borderColor: palette.line }}/><button type="button" onClick={approveNow} disabled={approving} className="px-4 py-2 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.green }}>{approving ? __kbUi("Tasdiqlanmoqda...") : __kbUi("✓ Tasdiqlash")}</button></div>
+        {(data?.tasdiqlar || []).length > 0 && <div className="mt-4"><div className="text-xs font-black mb-1" style={{ color: palette.ink }}>{__kbUi("Tasdiqlangan davrlar")}</div><div className="space-y-1">{data.tasdiqlar.map(t => <div key={t.id} className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs" style={{ background: palette.mint }}><span style={{ color: palette.ink }}><b>{__kbUi(kjSana(t.dan))} — {__kbUi(kjSana(t.gacha))}</b> · {t.sinf_ids?.length ? __kbUi(`${t.sinf_ids.length} ta sinf`) : __kbUi("barcha sinflar")}{t.izoh ? __kbUi(` · ${t.izoh}`) : __kbUi("")}{t.tasdiqlagan ? __kbUi(` · ${t.tasdiqlagan}`) : __kbUi("")}</span><button type="button" onClick={() => revokeApproval(t)} className="font-black" style={{ color: palette.red }}>{__kbUi("bekor")}</button></div>)}</div></div>}
       </Card>}
       {settingsOpen && !teacherOnly && <div className="space-y-3">
-        <SmartNotice tone="info">O‘quv yili, 4 chorak va bayram/dam kunlari shu yerda belgilanadi — bu kunlarga dars tushmaydi. Smena vaqtlari va sinflarning dars bo‘lmaydigan kunlari — "Aqlli dars jadvali → 1-bosqich"da.</SmartNotice>
+        <SmartNotice tone="info">{__kbUi("O‘quv yili, 4 chorak va bayram/dam kunlari shu yerda belgilanadi — bu kunlarga dars tushmaydi. Smena vaqtlari va sinflarning dars bo‘lmaydigan kunlari — \"Aqlli dars jadvali → 1-bosqich\"da.")}</SmartNotice>
         {setup ? <CalendarStep mode="kalendar" token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={async () => { await loadSetup(); await load(); }} setStep={() => { setSettingsOpen(false); }}/> : <div className="py-10 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></div>}
       </div>}
-      {error && <SmartNotice tone="error">{error}</SmartNotice>}
-      {data && !data.jadval_tasdiqlangan && <SmartNotice tone="warning">Tasdiqlangan jadval yo‘q — jurnal bo‘sh. Avval "Aqlli dars jadvali"da jadval yarating va tasdiqlang, yoki kunlarga qo‘lda dars qo‘shing.</SmartNotice>}
-      {data && data.rahbar && data.jami_dars > 0 && !(data.tasdiqlar || []).length && <SmartNotice tone="warning">Kalendar hali tasdiqlanmagan — darslar o‘qituvchi va o‘quvchilarga ko‘rinmaydi. "✓ Kalendarni tasdiqlash" bosib davr va sinflarni belgilang. Tasdiqlagach mavzular DTS'dan <b>avtomatik</b> joylanadi.</SmartNotice>}
-      {data && data.rahbar && data.avtopilot && (data.avtopilot.ishlayapti || data.avtopilot.boshlandi) && <Card className="p-3 flex items-center gap-3" style={{ background: palette.mint }}><Loader2 size={18} className="animate-spin shrink-0" style={{ color: palette.green }}/><div className="text-sm" style={{ color: palette.ink }}><b>Mavzular DTS'dan joylanmoqda…</b> {data.mavzusiz_darslar} ta darsga mavzu qo‘yiladi. 1–2 daqiqadan keyin "Bugun" yoki ‹ › bosib yangilang.</div></Card>}
-      {data && data.rahbar && data.avtopilot && !data.avtopilot.ishlayapti && !data.avtopilot.boshlandi && data.avtopilot.oxirgi && (data.mavzusiz_darslar > 0 || (data.avtopilot.oxirgi.xatolar || []).length > 0) && <Card className="p-3" style={{ background: "#FFF8EE", borderColor: "#E3C78F" }}><div className="flex flex-wrap items-start justify-between gap-2"><div className="text-xs" style={{ color: palette.ink }}><b>Mavzu avtopiloti:</b> {data.avtopilot.oxirgi.holat === "tugadi" ? `tugadi · reja ${data.avtopilot.oxirgi.reja_yaratildi || 0}, joylandi ${data.avtopilot.oxirgi.taqsimlandi || 0}, DTS'da topilmadi ${data.avtopilot.oxirgi.otkazildi || 0}` : `holat: ${data.avtopilot.oxirgi.holat}`}{data.mavzusiz_darslar > 0 && <span style={{ color: "#8A5A1C" }}> · hali {data.mavzusiz_darslar} dars mavzusiz</span>}{(data.avtopilot.oxirgi.xatolar || []).length > 0 && <div className="mt-1" style={{ color: palette.red }}>{data.avtopilot.oxirgi.xatolar.slice(0, 3).join(" · ")}</div>}{data.avtopilot.oxirgi.holat === "jadval_yoki_yil_yoq" && <div className="mt-1" style={{ color: palette.red }}>Faol o‘quv yili yoki tasdiqlangan jadval topilmadi — Kalendar sozlamalarida o‘quv yilini saqlang.</div>}</div><button type="button" onClick={async () => { try { await fetch(`${apiBase}/api/maktab/mavzu_avtopilot_boshlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST" }); setTimeout(load, 4000); } catch { /* jim */ } }} className="px-3 py-1.5 rounded-lg text-xs font-black text-white shrink-0" style={{ background: palette.green }}>🔄 Mavzularni qayta joylash</button></div></Card>}
+      {error && <SmartNotice tone="error">{__kbUi(error)}</SmartNotice>}
+      {data && !data.jadval_tasdiqlangan && <SmartNotice tone="warning">{__kbUi("Tasdiqlangan jadval yo‘q — jurnal bo‘sh. Avval \"Aqlli dars jadvali\"da jadval yarating va tasdiqlang, yoki kunlarga qo‘lda dars qo‘shing.")}</SmartNotice>}
+      {data && data.rahbar && data.jami_dars > 0 && !(data.tasdiqlar || []).length && <SmartNotice tone="warning">{__kbUi("Kalendar hali tasdiqlanmagan — darslar o‘qituvchi va o‘quvchilarga ko‘rinmaydi. \"✓ Kalendarni tasdiqlash\" bosib davr va sinflarni belgilang. Tasdiqlagach mavzular DTS'dan ")}<b>{__kbUi("avtomatik")}</b>{__kbUi(" joylanadi.")}</SmartNotice>}
+      {data && data.rahbar && data.avtopilot && (data.avtopilot.ishlayapti || data.avtopilot.boshlandi) && <Card className="p-3 flex items-center gap-3" style={{ background: palette.mint }}><Loader2 size={18} className="animate-spin shrink-0" style={{ color: palette.green }}/><div className="text-sm" style={{ color: palette.ink }}><b>{__kbUi("Mavzular DTS'dan joylanmoqda…")}</b> {data.mavzusiz_darslar}{__kbUi(" ta darsga mavzu qo‘yiladi. 1–2 daqiqadan keyin \"Bugun\" yoki ‹ › bosib yangilang.")}</div></Card>}
+      {data && data.rahbar && data.avtopilot && !data.avtopilot.ishlayapti && !data.avtopilot.boshlandi && data.avtopilot.oxirgi && (data.mavzusiz_darslar > 0 || (data.avtopilot.oxirgi.xatolar || []).length > 0) && <Card className="p-3" style={{ background: "#FFF8EE", borderColor: "#E3C78F" }}><div className="flex flex-wrap items-start justify-between gap-2"><div className="text-xs" style={{ color: palette.ink }}><b>{__kbUi("Mavzu avtopiloti:")}</b> {data.avtopilot.oxirgi.holat === "tugadi" ? __kbUi(`tugadi · reja ${data.avtopilot.oxirgi.reja_yaratildi || 0}, joylandi ${data.avtopilot.oxirgi.taqsimlandi || 0}, DTS'da topilmadi ${data.avtopilot.oxirgi.otkazildi || 0}`) : __kbUi(`holat: ${data.avtopilot.oxirgi.holat}`)}{data.mavzusiz_darslar > 0 && <span style={{ color: "#8A5A1C" }}>{__kbUi(" · hali ")}{data.mavzusiz_darslar}{__kbUi(" dars mavzusiz")}</span>}{(data.avtopilot.oxirgi.xatolar || []).length > 0 && <div className="mt-1" style={{ color: palette.red }}>{__kbUi(data.avtopilot.oxirgi.xatolar.slice(0, 3).join(" · "))}</div>}{data.avtopilot.oxirgi.holat === "jadval_yoki_yil_yoq" && <div className="mt-1" style={{ color: palette.red }}>{__kbUi("Faol o‘quv yili yoki tasdiqlangan jadval topilmadi — Kalendar sozlamalarida o‘quv yilini saqlang.")}</div>}</div><button type="button" onClick={async () => { try { await fetch(`${apiBase}/api/maktab/mavzu_avtopilot_boshlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`, { method: "POST" }); setTimeout(load, 4000); } catch { /* jim */ } }} className="px-3 py-1.5 rounded-lg text-xs font-black text-white shrink-0" style={{ background: palette.green }}>{__kbUi("🔄 Mavzularni qayta joylash")}</button></div></Card>}
       {busy && !data && <div className="py-16 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></div>}
       {data && davr === "hafta" && <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">{kunlar.filter(k => k.hafta_kuni <= 6).map(k => <Card key={k.sana} className="p-3" style={{ borderColor: k.bugun ? palette.green : palette.line, background: k.oquv_kuni ? "#fff" : "#FAF9F6" }}>
-        <button type="button" onClick={() => { setOpenDay(k.sana); setForm(null); }} className="w-full flex items-center justify-between mb-2 text-left rounded-lg px-1" style={{ background: openDay === k.sana ? palette.sky : undefined }}><div><div className="text-[10px] font-black uppercase" style={{ color: k.bugun ? palette.green : palette.muted }}>{KJ_KUN[k.hafta_kuni]}{k.bugun ? " · bugun" : ""}</div><div className="font-black" style={{ color: palette.ink }}>{kjSana(k.sana)}</div></div><span className="text-[10px]" style={{ color: palette.muted }}>{k.hafta_turi}{!teacherOnly && sinfId ? " · +" : ""}</span></button>
-        {!k.oquv_kuni ? <div className="text-xs py-4 text-center" style={{ color: palette.muted }}>{k.sabab || "Dars yo‘q"}</div> : k.darslar.length ? <div className="space-y-1.5">{k.darslar.map(dz => <Dars key={`${dz.slot_id}-${dz.sinf_id}`} dz={dz}/>)}</div> : <div className="text-xs py-4 text-center" style={{ color: palette.muted }}>Bu kunda dars yo‘q</div>}
+        <button type="button" onClick={() => { setOpenDay(k.sana); setForm(null); }} className="w-full flex items-center justify-between mb-2 text-left rounded-lg px-1" style={{ background: openDay === k.sana ? palette.sky : undefined }}><div><div className="text-[10px] font-black uppercase" style={{ color: k.bugun ? palette.green : palette.muted }}>{__kbUi(KJ_KUN[k.hafta_kuni])}{k.bugun ? __kbUi(" · bugun") : __kbUi("")}</div><div className="font-black" style={{ color: palette.ink }}>{__kbUi(kjSana(k.sana))}</div></div><span className="text-[10px]" style={{ color: palette.muted }}>{k.hafta_turi}{!teacherOnly && sinfId ? __kbUi(" · +") : __kbUi("")}</span></button>
+        {!k.oquv_kuni ? <div className="text-xs py-4 text-center" style={{ color: palette.muted }}>{k.sabab || __kbUi("Dars yo‘q")}</div> : k.darslar.length ? <div className="space-y-1.5">{k.darslar.map(dz => <Dars key={`${dz.slot_id}-${dz.sinf_id}`} dz={dz}/>)}</div> : <div className="text-xs py-4 text-center" style={{ color: palette.muted }}>{__kbUi("Bu kunda dars yo‘q")}</div>}
       </Card>)}</div>}
       {data && davr === "hafta" && openDay && !teacherOnly && <Card className="p-4 max-w-xl">{renderDayPanel()}</Card>}
       {data && davr !== "hafta" && <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <Card className="p-3"><div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black mb-1" style={{ color: palette.muted }}>{["Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"].map(d => <div key={d}>{d}</div>)}</div>
-          <div className="grid grid-cols-7 gap-1">{Array.from({ length: (kunlar[0]?.hafta_kuni || 1) - 1 }).map((_, i) => <div key={`e${i}`}/>)}{kunlar.map(k => <button key={k.sana} onClick={() => setOpenDay(k.sana)} className="rounded-xl p-1.5 text-left min-h-[64px] border" style={{ borderColor: openDay === k.sana ? palette.blue : k.bugun ? palette.green : palette.line, background: !k.oquv_kuni ? "#F3F1EC" : openDay === k.sana ? palette.sky : "#fff" }}><div className="text-[11px] font-black" style={{ color: k.bugun ? palette.green : palette.ink }}>{new Date(k.sana + "T00:00:00").getDate()}</div>{k.oquv_kuni ? <div className="text-[10px]" style={{ color: palette.muted }}>{k.darslar.length} dars{k.darslar.some(x => x.ogohlantirish) ? " ⚠" : ""}</div> : <div className="text-[9px] truncate" style={{ color: "#A8A397" }}>{k.sabab}</div>}</button>)}</div></Card>
+        <Card className="p-3"><div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black mb-1" style={{ color: palette.muted }}>{["Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"].map(d => <div key={d}>{__kbUi(d)}</div>)}</div>
+          <div className="grid grid-cols-7 gap-1">{Array.from({ length: (kunlar[0]?.hafta_kuni || 1) - 1 }).map((_, i) => <div key={`e${i}`}/>)}{kunlar.map(k => <button key={k.sana} onClick={() => setOpenDay(k.sana)} className="rounded-xl p-1.5 text-left min-h-[64px] border" style={{ borderColor: openDay === k.sana ? palette.blue : k.bugun ? palette.green : palette.line, background: !k.oquv_kuni ? "#F3F1EC" : openDay === k.sana ? palette.sky : "#fff" }}><div className="text-[11px] font-black" style={{ color: k.bugun ? palette.green : palette.ink }}>{__kbUi(new Date(k.sana + "T00:00:00").getDate())}</div>{k.oquv_kuni ? <div className="text-[10px]" style={{ color: palette.muted }}>{k.darslar.length}{__kbUi(" dars")}{k.darslar.some(x => x.ogohlantirish) ? __kbUi(" ⚠") : __kbUi("")}</div> : <div className="text-[9px] truncate" style={{ color: "#A8A397" }}>{k.sabab}</div>}</button>)}</div></Card>
         <Card className="p-4">{renderDayPanel()}</Card>
       </div>}
     </main>
@@ -203,47 +206,49 @@ function CalendarJournal({ token, apiBase, maktabId, onClose, teacherOnly = fals
 }
 
 function DirectorHome({ token, apiBase, maktabId, onOpenStaff, onOpenTimetable, onOpenRequests, onOpenStates, onMarkAttendance }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null); const [error, setError] = useState(""); const [filter, setFilter] = useState("hammasi"); const [open, setOpen] = useState(true);
   const load = useCallback(async () => {
     try { const r = await fetch(`${apiBase}/api/maktab/rahbariyat_bosh_ekran?token=${encodeURIComponent(token)}&maktab_id=${maktabId}`); const d = await r.json(); if (!r.ok || d.detail) throw new Error(d.detail || "Yuklanmadi"); setData(d); setError(""); } catch (e) { setError(e.message); }
   }, [apiBase, token, maktabId]);
   useEffect(() => { load(); const t = setInterval(load, 90000); return () => clearInterval(t); }, [load]);
-  if (error) return <Card className="p-4 mb-5"><SmartNotice tone="error">{error}</SmartNotice></Card>;
+  if (error) return <Card className="p-4 mb-5"><SmartNotice tone="error">{__kbUi(error)}</SmartNotice></Card>;
   if (!data) return <Card className="p-6 mb-5 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></Card>;
   const x = data.xulosa;
   const staff = data.xodimlar.filter(s => filter === "hammasi" ? true : filter === "kelmagan" ? ["kelmadi", "kasal", "sababli", "sababsiz"].includes(s.bugun) : filter === "metod" ? s.bugun === "metod_kuni" : filter === "belgilanmagan" ? ["belgilanmagan", "dars_bor"].includes(s.bugun) : s.bugun === "keldi");
-  const Stat = ({ n, label, tone, onClick, warn }) => <button type="button" onClick={onClick} disabled={!onClick} className="rounded-2xl p-3 text-left transition hover:-translate-y-0.5 disabled:hover:translate-y-0" style={{ background: warn && n > 0 ? "#FFF0EC" : palette.cream, border: `1px solid ${warn && n > 0 ? "#F1C2C2" : palette.line}` }}><div className="text-2xl font-black" style={{ color: warn && n > 0 ? palette.red : tone || palette.ink }}>{n}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>{label}{onClick ? " ›" : ""}</div></button>;
+  const Stat = ({ n, label, tone, onClick, warn }) => { useKbInterfaceLocale(); return (<button type="button" onClick={onClick} disabled={!onClick} className="rounded-2xl p-3 text-left transition hover:-translate-y-0.5 disabled:hover:translate-y-0" style={{ background: warn && n > 0 ? "#FFF0EC" : palette.cream, border: `1px solid ${warn && n > 0 ? "#F1C2C2" : palette.line}` }}><div className="text-2xl font-black" style={{ color: warn && n > 0 ? palette.red : tone || palette.ink }}>{n}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>{__kbUi(label)}{onClick ? __kbUi(" ›") : __kbUi("")}</div></button>); };
   return <Card className="p-5 mb-5" style={{ borderColor: palette.teal }}>
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Bugun maktab · {data.kun_nomi} · {data.sana} · {data.hozir}</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{x.qoplanmagan_darslar > 0 ? `⚠ ${x.qoplanmagan_darslar} ta dars qoplanmagan — o‘rinbosar kerak` : x.kelmagan > 0 ? `${x.kelmagan} ta xodim bugun yo‘q, darslar joyida` : "Maktabda hammasi joyida"}</h2></div>
-      <button type="button" onClick={() => setOpen(v => !v)} className="text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{open ? "Yig‘ish" : "Ochish"}</button>
+      <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("Bugun maktab · ")}{data.kun_nomi} · {data.sana} · {data.hozir}</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{x.qoplanmagan_darslar > 0 ? __kbUi(`⚠ ${x.qoplanmagan_darslar} ta dars qoplanmagan — o‘rinbosar kerak`) : x.kelmagan > 0 ? __kbUi(`${x.kelmagan} ta xodim bugun yo‘q, darslar joyida`) : __kbUi("Maktabda hammasi joyida")}</h2></div>
+      <button type="button" onClick={() => setOpen(v => !v)} className="text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{open ? __kbUi("Yig‘ish") : __kbUi("Ochish")}</button>
     </div>
     {open && <>
-      {!data.jadval_tasdiqlangan && <div className="mt-3"><SmartNotice tone="warning">Tasdiqlangan dars jadvali yo‘q — "Aqlli dars jadvali"da yarating va tasdiqlang.</SmartNotice></div>}
+      {!data.jadval_tasdiqlangan && <div className="mt-3"><SmartNotice tone="warning">{__kbUi("Tasdiqlangan dars jadvali yo‘q — \"Aqlli dars jadvali\"da yarating va tasdiqlang.")}</SmartNotice></div>}
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-        <Stat n={x.kelgan} label="Xodim keldi" tone={palette.green} onClick={() => setFilter("keldi")}/>
-        <Stat n={x.kelmagan} label="Xodim kelmagan" warn onClick={() => setFilter("kelmagan")}/>
-        <Stat n={x.metod_kuni} label="Metod kunida" tone="#8A5A1C" onClick={() => setFilter("metod")}/>
-        <Stat n={x.belgilanmagan} label="Davomat belgilanmagan" onClick={() => setFilter("belgilanmagan")}/>
-        <Stat n={x.qoplanmagan_darslar} label="Qoplanmagan dars" warn onClick={onOpenTimetable}/>
-        <Stat n={x.bugungi_darslar} label="Bugungi darslar" onClick={onOpenTimetable}/>
+        <Stat n={x.kelgan} label={__kbUi("Xodim keldi")} tone={palette.green} onClick={() => setFilter("keldi")}/>
+        <Stat n={x.kelmagan} label={__kbUi("Xodim kelmagan")} warn onClick={() => setFilter("kelmagan")}/>
+        <Stat n={x.metod_kuni} label={__kbUi("Metod kunida")} tone="#8A5A1C" onClick={() => setFilter("metod")}/>
+        <Stat n={x.belgilanmagan} label={__kbUi("Davomat belgilanmagan")} onClick={() => setFilter("belgilanmagan")}/>
+        <Stat n={x.qoplanmagan_darslar} label={__kbUi("Qoplanmagan dars")} warn onClick={onOpenTimetable}/>
+        <Stat n={x.bugungi_darslar} label={__kbUi("Bugungi darslar")} onClick={onOpenTimetable}/>
       </div>
       <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-        <Stat n={x.ozgartirish_sorovlari} label="O‘zgartirish so‘rovi" warn onClick={onOpenRequests}/>
-        <Stat n={x.qoralama_jadvallar} label="Tasdiq kutgan jadval" warn onClick={onOpenTimetable}/>
-        <Stat n={x.ochiq_holatlar} label="Ochiq aqlli holat" warn onClick={onOpenStates}/>
-        <Stat n={x.rahbarsiz_sinflar} label="Rahbarsiz sinf" warn/>
-        <Stat n={x.sinflar} label="Sinflar"/>
-        <Stat n={x.oquvchilar} label="O‘quvchilar"/>
+        <Stat n={x.ozgartirish_sorovlari} label={__kbUi("O‘zgartirish so‘rovi")} warn onClick={onOpenRequests}/>
+        <Stat n={x.qoralama_jadvallar} label={__kbUi("Tasdiq kutgan jadval")} warn onClick={onOpenTimetable}/>
+        <Stat n={x.ochiq_holatlar} label={__kbUi("Ochiq aqlli holat")} warn onClick={onOpenStates}/>
+        <Stat n={x.rahbarsiz_sinflar} label={__kbUi("Rahbarsiz sinf")} warn/>
+        <Stat n={x.sinflar} label={__kbUi("Sinflar")}/>
+        <Stat n={x.oquvchilar} label={__kbUi("O‘quvchilar")}/>
       </div>
-      {data.qoplanmagan.length > 0 && <div className="mt-4 rounded-2xl p-3" style={{ background: "#FFF0EC", border: "1px solid #F1C2C2" }}><div className="text-xs font-black mb-2" style={{ color: palette.red }}>Bugun qoplanmagan darslar — o‘qituvchi kelmagan:</div><div className="grid gap-1 sm:grid-cols-2">{data.qoplanmagan.map((d, i) => <div key={i} className="text-xs rounded-lg bg-white px-2 py-1.5" style={{ color: palette.ink }}><b>{d.dars_raqami}-dars</b> · {d.sinf_nomi} · {d.fan_nomi} · <span style={{ color: palette.muted }}>{d.oqituvchi}</span></div>)}</div></div>}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><div className="text-xs font-black" style={{ color: palette.ink }}>Xodimlar bugun {filter !== "hammasi" && <button type="button" onClick={() => setFilter("hammasi")} className="ml-2 underline" style={{ color: palette.blue }}>hammasini ko‘rsat</button>}</div>{onMarkAttendance && <button type="button" onClick={onMarkAttendance} className="text-xs font-black px-3 py-2 rounded-xl text-white" style={{ background: palette.green }}>✓ Davomat belgilash</button>}</div>
-      <div className="mt-2 max-h-72 overflow-auto rounded-2xl border" style={{ borderColor: palette.line }}>{staff.map(sx => { const [label, color, bg] = DH_HOLAT[sx.bugun] || DH_HOLAT.belgilanmagan; return <div key={sx.user_id} className="flex items-center justify-between gap-2 px-3 py-2 border-t text-xs" style={{ borderColor: palette.line }}><div className="min-w-0"><b style={{ color: palette.ink }}>{sx.full_name}</b><span style={{ color: palette.muted }}> · {sx.fanlari || sx.lavozim}{sx.bugungi_dars ? ` · ${sx.bugungi_dars} dars` : ""}</span>{sx.izoh && <span style={{ color: palette.muted }}> · {sx.izoh}</span>}</div><span className="shrink-0 px-2 py-0.5 rounded-lg font-black" style={{ background: bg, color }}>{label}</span></div>; })}{!staff.length && <div className="p-4 text-center text-xs" style={{ color: palette.muted }}>Bu holatda xodim yo‘q</div>}</div>
+      {data.qoplanmagan.length > 0 && <div className="mt-4 rounded-2xl p-3" style={{ background: "#FFF0EC", border: "1px solid #F1C2C2" }}><div className="text-xs font-black mb-2" style={{ color: palette.red }}>{__kbUi("Bugun qoplanmagan darslar — o‘qituvchi kelmagan:")}</div><div className="grid gap-1 sm:grid-cols-2">{data.qoplanmagan.map((d, i) => <div key={i} className="text-xs rounded-lg bg-white px-2 py-1.5" style={{ color: palette.ink }}><b>{d.dars_raqami}{__kbUi("-dars")}</b> · {d.sinf_nomi} · {d.fan_nomi} · <span style={{ color: palette.muted }}>{d.oqituvchi}</span></div>)}</div></div>}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><div className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Xodimlar bugun ")}{filter !== "hammasi" && <button type="button" onClick={() => setFilter("hammasi")} className="ml-2 underline" style={{ color: palette.blue }}>{__kbUi("hammasini ko‘rsat")}</button>}</div>{onMarkAttendance && <button type="button" onClick={onMarkAttendance} className="text-xs font-black px-3 py-2 rounded-xl text-white" style={{ background: palette.green }}>{__kbUi("✓ Davomat belgilash")}</button>}</div>
+      <div className="mt-2 max-h-72 overflow-auto rounded-2xl border" style={{ borderColor: palette.line }}>{staff.map(sx => { const [label, color, bg] = DH_HOLAT[sx.bugun] || DH_HOLAT.belgilanmagan; return <div key={sx.user_id} className="flex items-center justify-between gap-2 px-3 py-2 border-t text-xs" style={{ borderColor: palette.line }}><div className="min-w-0"><b style={{ color: palette.ink }}>{sx.full_name}</b><span style={{ color: palette.muted }}> · {sx.fanlari || sx.lavozim}{sx.bugungi_dars ? __kbUi(` · ${sx.bugungi_dars} dars`) : __kbUi("")}</span>{sx.izoh && <span style={{ color: palette.muted }}> · {sx.izoh}</span>}</div><span className="shrink-0 px-2 py-0.5 rounded-lg font-black" style={{ background: bg, color }}>{__kbUi(label)}</span></div>; })}{!staff.length && <div className="p-4 text-center text-xs" style={{ color: palette.muted }}>{__kbUi("Bu holatda xodim yo‘q")}</div>}</div>
     </>}
   </Card>;
 }
 
 function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenClass }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(true);
@@ -259,7 +264,7 @@ function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenClass }) {
   useEffect(() => { load(); const t = setInterval(() => { load(); setTick(x => x + 1); }, 60000); return () => clearInterval(t); }, [load]);
 
   if (busy && !data) return <Card className="p-8 text-center"><Loader2 className="mx-auto animate-spin" style={{ color: palette.blue }}/></Card>;
-  if (error && !data) return <Card className="p-5"><SmartNotice tone="error">{error}</SmartNotice></Card>;
+  if (error && !data) return <Card className="p-5"><SmartNotice tone="error">{__kbUi(error)}</SmartNotice></Card>;
   if (!data) return null;
 
   const { hafta = [], bugun, ertaga, metod_kunlari = [], rahbar_sinflar = [], jadval_tasdiqlangan } = data;
@@ -270,68 +275,69 @@ function TeacherHome({ token, apiBase, maktabId, onOpenTopics, onOpenClass }) {
   const cell = (d, p) => hafta.filter(h => Number(h.hafta_kuni) === d && Number(h.dars_raqami) === p);
   const haftaTuriMos = h => h.hafta_turi === "har_hafta" || h.hafta_turi === data.hafta_turi;
 
-  const Lesson = ({ dz, hozirgi }) => <div className="flex items-start gap-3 rounded-2xl border p-3" style={{ borderColor: hozirgi ? palette.green : palette.line, background: hozirgi ? palette.mint : "#fff", boxShadow: hozirgi ? "0 8px 24px rgba(46,108,85,.15)" : undefined }}>
-    <div className="w-12 shrink-0 text-center"><div className="text-lg font-black" style={{ color: hozirgi ? palette.green : palette.blue }}>{dz.dars_raqami}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>{dz.boshlanish_vaqti || ""}</div></div>
+  const Lesson = ({ dz, hozirgi }) => { useKbInterfaceLocale(); return (<div className="flex items-start gap-3 rounded-2xl border p-3" style={{ borderColor: hozirgi ? palette.green : palette.line, background: hozirgi ? palette.mint : "#fff", boxShadow: hozirgi ? "0 8px 24px rgba(46,108,85,.15)" : undefined }}>
+    <div className="w-12 shrink-0 text-center"><div className="text-lg font-black" style={{ color: hozirgi ? palette.green : palette.blue }}>{dz.dars_raqami}</div><div className="text-[10px] font-bold" style={{ color: palette.muted }}>{dz.boshlanish_vaqti || __kbUi("")}</div></div>
     <div className="min-w-0 flex-1">
-      <div className="flex flex-wrap items-center gap-2"><b className="text-sm" style={{ color: palette.ink }}>{dz.sinf_nomi}</b><span className="text-sm font-black" style={{ color: palette.blue }}>{dz.fan}</span>{dz.guruh_kaliti && dz.guruh_kaliti !== "butun" && <span className="text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: palette.sky, color: palette.blue }}>{dz.guruh_kaliti}</span>}{dz.xona && <span className="text-[11px]" style={{ color: palette.muted }}>· {dz.xona}-xona</span>}{hozirgi && <span className="text-[10px] font-black px-1.5 py-0.5 rounded text-white" style={{ background: palette.green }}>HOZIR</span>}</div>
-      <div className="mt-1 text-xs" style={{ color: dz.mavzu ? palette.ink : palette.muted }}>{dz.mavzu ? <>📖 <b>Mavzu:</b> {dz.mavzu}{dz.mavzu_tartib ? <span style={{ color: palette.muted }}> · {dz.mavzu_tartib}-mavzu</span> : null}{dz.mavzu_tasdiqlangan === false && <button type="button" onClick={onOpenTopics} className="ml-1 text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: "#FFF8EE", color: "#8A5A1C" }} title="Bu mavzu DTS'dan taxminiy joylangan. Mavzu rejasida tasdiqlang yoki o‘zgartiring">≈ taxminiy · tasdiqlang</button>}</> : <button type="button" onClick={onOpenTopics} className="underline">Mavzu belgilanmagan — mavzu rejasini tuzing</button>}</div>
-      {dz.ochiq_dars && <div className="mt-1 inline-block text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: "#8A5A1C", color: "#fff" }}>🎓 OCHIQ DARS{dz.ochiq_dars_mavzu ? `: ${dz.ochiq_dars_mavzu}` : ""}</div>}
-      {dz.qisqa_izoh && <div className="mt-0.5 text-[11px] italic" style={{ color: palette.muted }}>👨‍👩‍👧 Ota-onaga: {dz.qisqa_izoh}</div>}
-      {dz.uy_vazifa && <div className="mt-0.5 text-[11px]" style={{ color: palette.ink }}>📝 Uyga vazifa: {dz.uy_vazifa}</div>}
+      <div className="flex flex-wrap items-center gap-2"><b className="text-sm" style={{ color: palette.ink }}>{dz.sinf_nomi}</b><span className="text-sm font-black" style={{ color: palette.blue }}>{dz.fan}</span>{dz.guruh_kaliti && dz.guruh_kaliti !== "butun" && <span className="text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: palette.sky, color: palette.blue }}>{dz.guruh_kaliti}</span>}{dz.xona && <span className="text-[11px]" style={{ color: palette.muted }}>· {dz.xona}{__kbUi("-xona")}</span>}{hozirgi && <span className="text-[10px] font-black px-1.5 py-0.5 rounded text-white" style={{ background: palette.green }}>{__kbUi("HOZIR")}</span>}</div>
+      <div className="mt-1 text-xs" style={{ color: dz.mavzu ? palette.ink : palette.muted }}>{dz.mavzu ? <>📖 <b>{__kbUi("Mavzu:")}</b> {dz.mavzu}{dz.mavzu_tartib ? <span style={{ color: palette.muted }}> · {dz.mavzu_tartib}{__kbUi("-mavzu")}</span> : null}{dz.mavzu_tasdiqlangan === false && <button type="button" onClick={onOpenTopics} className="ml-1 text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: "#FFF8EE", color: "#8A5A1C" }} title={__kbUi("Bu mavzu DTS'dan taxminiy joylangan. Mavzu rejasida tasdiqlang yoki o‘zgartiring")}>{__kbUi("≈ taxminiy · tasdiqlang")}</button>}</> : <button type="button" onClick={onOpenTopics} className="underline">{__kbUi("Mavzu belgilanmagan — mavzu rejasini tuzing")}</button>}</div>
+      {dz.ochiq_dars && <div className="mt-1 inline-block text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: "#8A5A1C", color: "#fff" }}>{__kbUi("🎓 OCHIQ DARS")}{dz.ochiq_dars_mavzu ? __kbUi(`: ${dz.ochiq_dars_mavzu}`) : __kbUi("")}</div>}
+      {dz.qisqa_izoh && <div className="mt-0.5 text-[11px] italic" style={{ color: palette.muted }}>{__kbUi("👨‍👩‍👧 Ota-onaga: ")}{dz.qisqa_izoh}</div>}
+      {dz.uy_vazifa && <div className="mt-0.5 text-[11px]" style={{ color: palette.ink }}>{__kbUi("📝 Uyga vazifa: ")}{dz.uy_vazifa}</div>}
     </div>
-  </div>;
+  </div>); };
 
   return <div className="space-y-5">
-    {!jadval_tasdiqlangan && <SmartNotice tone="warning">Maktabda tasdiqlangan dars jadvali hali yo‘q — jadval tasdiqlangach bu ekran avtomatik to‘ladi.</SmartNotice>}
-    {jadval_tasdiqlangan && data.kalendar_tasdiqlangan === false && <SmartNotice tone="info">Rahbariyat kalendarni hali tasdiqlamagan — bugungi/ertangi darslar tasdiqlangach ko‘rinadi. Haftalik jadval pastda.</SmartNotice>}
+    {!jadval_tasdiqlangan && <SmartNotice tone="warning">{__kbUi("Maktabda tasdiqlangan dars jadvali hali yo‘q — jadval tasdiqlangach bu ekran avtomatik to‘ladi.")}</SmartNotice>}
+    {jadval_tasdiqlangan && data.kalendar_tasdiqlangan === false && <SmartNotice tone="info">{__kbUi("Rahbariyat kalendarni hali tasdiqlamagan — bugungi/ertangi darslar tasdiqlangach ko‘rinadi. Haftalik jadval pastda.")}</SmartNotice>}
 
     {/* BUGUN */}
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Bugun · {data.kun_nomi} · {data.sana} · {data.hafta_turi} hafta</div><h3 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{bugun.metod_kuni ? "Bugun sizning metod kuningiz" : !bugun.oquv_kuni ? (bugun.kalendar?.nomi || "Bugun dam kuni") : bugun.darslar.length ? `Bugun ${bugun.darslar.length} ta darsingiz bor` : "Bugun darsingiz yo‘q"}</h3></div>
-        <div className="flex flex-wrap gap-2"><button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>Mavzu rejasi</button></div>
+        <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("Bugun · ")}{data.kun_nomi} · {data.sana} · {data.hafta_turi}{__kbUi(" hafta")}</div><h3 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{bugun.metod_kuni ? __kbUi("Bugun sizning metod kuningiz") : !bugun.oquv_kuni ? (bugun.kalendar?.nomi || __kbUi("Bugun dam kuni")) : bugun.darslar.length ? __kbUi(`Bugun ${bugun.darslar.length} ta darsingiz bor`) : __kbUi("Bugun darsingiz yo‘q")}</h3></div>
+        <div className="flex flex-wrap gap-2"><button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{ background: palette.blue }}>{__kbUi("Mavzu rejasi")}</button></div>
       </div>
       {bugun.hozirgi && <div className="mt-4"><Lesson dz={bugun.hozirgi} hozirgi/></div>}
-      {!bugun.hozirgi && bugun.keyingi && <div className="mt-4 rounded-2xl p-3 flex items-center gap-3" style={{ background: palette.cream }}><Clock3 size={18} style={{ color: palette.blue }}/><div className="text-sm" style={{ color: palette.ink }}><b>Keyingi dars:</b> {bugun.keyingi.dars_raqami}-dars · {bugun.keyingi.sinf_nomi} · {bugun.keyingi.fan} · {bugun.keyingi.boshlanish_vaqti}{bugun.keyingi.mavzu ? ` · ${bugun.keyingi.mavzu}` : ""}</div></div>}
+      {!bugun.hozirgi && bugun.keyingi && <div className="mt-4 rounded-2xl p-3 flex items-center gap-3" style={{ background: palette.cream }}><Clock3 size={18} style={{ color: palette.blue }}/><div className="text-sm" style={{ color: palette.ink }}><b>{__kbUi("Keyingi dars:")}</b> {bugun.keyingi.dars_raqami}{__kbUi("-dars · ")}{bugun.keyingi.sinf_nomi} · {bugun.keyingi.fan} · {bugun.keyingi.boshlanish_vaqti}{bugun.keyingi.mavzu ? __kbUi(` · ${bugun.keyingi.mavzu}`) : __kbUi("")}</div></div>}
       {bugun.darslar.length > 0 && <div className="mt-4 grid gap-2 md:grid-cols-2">{bugun.darslar.filter(dz => !bugun.hozirgi || dz.slot_id !== bugun.hozirgi.slot_id).map(dz => <Lesson key={dz.slot_id} dz={dz}/>)}</div>}
     </Card>
 
     {/* ERTAGA */}
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Ertaga · {ertaga.kun_nomi} · {ertaga.sana}</div><h3 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{ertaga.metod_kuni ? "Ertaga metod kuni — dars yo‘q" : ertaga.darslar.length ? `Ertaga ${ertaga.darslar.length} ta dars — tayyorlaning` : "Ertaga darsingiz yo‘q"}</h3></div>
-        {ertaga.darslar.some(dz => dz.mavzu) && <button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.mint, color: palette.green }}>📚 Ertangi materialni ko‘rish</button>}
+        <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("Ertaga · ")}{ertaga.kun_nomi} · {ertaga.sana}</div><h3 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{ertaga.metod_kuni ? __kbUi("Ertaga metod kuni — dars yo‘q") : ertaga.darslar.length ? __kbUi(`Ertaga ${ertaga.darslar.length} ta dars — tayyorlaning`) : __kbUi("Ertaga darsingiz yo‘q")}</h3></div>
+        {ertaga.darslar.some(dz => dz.mavzu) && <button onClick={onOpenTopics} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.mint, color: palette.green }}>{__kbUi("📚 Ertangi materialni ko‘rish")}</button>}
       </div>
       {ertaga.darslar.length > 0 && <div className="mt-4 grid gap-2 md:grid-cols-2">{ertaga.darslar.map(dz => <Lesson key={dz.slot_id} dz={dz}/>)}</div>}
     </Card>
 
     {/* HAFTALIK JADVAL */}
     <Card className="p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3"><div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Haftalik jadvalim</div><h3 className="text-lg font-black" style={{ color: palette.ink }}>{data.haftalik_soat} soat / hafta{metod_kunlari.length ? ` · metod kuni: ${metod_kunlari.map(d => TH_KUN[d]).join(", ")}` : ""}</h3></div><span className="text-[11px]" style={{ color: palette.muted }}>Bugun yashil ustunda · metod kuni va bo‘sh vaqtni rahbariyat belgilaydi</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3"><div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("Haftalik jadvalim")}</div><h3 className="text-lg font-black" style={{ color: palette.ink }}>{data.haftalik_soat}{__kbUi(" soat / hafta")}{metod_kunlari.length ? __kbUi(` · metod kuni: ${metod_kunlari.map(d => TH_KUN[d]).join(", ")}`) : __kbUi("")}</h3></div><span className="text-[11px]" style={{ color: palette.muted }}>{__kbUi("Bugun yashil ustunda · metod kuni va bo‘sh vaqtni rahbariyat belgilaydi")}</span></div>
       <div className="overflow-x-auto"><table className="w-full text-xs" style={{ minWidth: 560 }}>
-        <thead><tr><th className="p-2 text-left w-10" style={{ color: palette.muted }}>№</th>{kunlar.map(d => <th key={d} className="p-2 text-center rounded-t-xl" style={{ background: d === bugunKun ? palette.mint : metod_kunlari.includes(d) ? "#FFF8EE" : palette.cream, color: d === bugunKun ? palette.green : palette.ink }}>{TH_KUN[d]}{metod_kunlari.includes(d) && <div className="text-[9px] font-black" style={{ color: "#8A5A1C" }}>metod</div>}</th>)}</tr></thead>
+        <thead><tr><th className="p-2 text-left w-10" style={{ color: palette.muted }}>№</th>{kunlar.map(d => <th key={d} className="p-2 text-center rounded-t-xl" style={{ background: d === bugunKun ? palette.mint : metod_kunlari.includes(d) ? "#FFF8EE" : palette.cream, color: d === bugunKun ? palette.green : palette.ink }}>{__kbUi(TH_KUN[d])}{metod_kunlari.includes(d) && <div className="text-[9px] font-black" style={{ color: "#8A5A1C" }}>{__kbUi("metod")}</div>}</th>)}</tr></thead>
         <tbody>{Array.from({ length: maxDars }, (_, i) => i + 1).map(p => <tr key={p}>
           <td className="p-2 font-black text-center" style={{ color: palette.muted }}>{p}</td>
-          {kunlar.map(d => { const items = cell(d, p); return <td key={d} className="p-1 align-top border-t" style={{ borderColor: palette.line, background: d === bugunKun ? "rgba(238,246,241,.5)" : undefined }}>{items.map(h => <div key={h.slot_id} className="mb-1 rounded-lg px-2 py-1" style={{ background: haftaTuriMos(h) ? palette.sky : "#F3F1EC", opacity: haftaTuriMos(h) ? 1 : .6 }} title={`${h.fan} · ${h.xona || ""} ${h.hafta_turi !== "har_hafta" ? `· ${h.hafta_turi} hafta` : ""}`}><div className="font-black" style={{ color: palette.blue }}>{h.sinf_nomi}</div><div className="truncate" style={{ color: palette.ink }}>{h.fan}</div>{h.xona && <div className="text-[10px]" style={{ color: palette.muted }}>{h.xona}</div>}</div>)}</td>; })}
+          {kunlar.map(d => { const items = cell(d, p); return <td key={d} className="p-1 align-top border-t" style={{ borderColor: palette.line, background: d === bugunKun ? "rgba(238,246,241,.5)" : undefined }}>{items.map(h => <div key={h.slot_id} className="mb-1 rounded-lg px-2 py-1" style={{ background: haftaTuriMos(h) ? palette.sky : "#F3F1EC", opacity: haftaTuriMos(h) ? 1 : .6 }} title={__kbUi(`${h.fan} · ${h.xona || ""} ${h.hafta_turi !== "har_hafta" ? `· ${h.hafta_turi} hafta` : ""}`)}><div className="font-black" style={{ color: palette.blue }}>{h.sinf_nomi}</div><div className="truncate" style={{ color: palette.ink }}>{h.fan}</div>{h.xona && <div className="text-[10px]" style={{ color: palette.muted }}>{h.xona}</div>}</div>)}</td>; })}
         </tr>)}</tbody>
       </table></div>
     </Card>
 
     {/* KUNDALIK ESLATMASI */}
     <Card className="p-4 flex flex-wrap items-center justify-between gap-3" style={{ background: data.kundalik_eslatma ? "#FFF8EE" : "#fff" }}>
-      <div className="text-sm" style={{ color: palette.ink }}>{data.kundalik_eslatma ? <b>⏰ Bugungi darslar bo‘yicha Kundalik.com da baholarni kiritishni unutmadingizmi?</b> : <span><b>Kundalik eslatmasi</b> — soat 15:00 dan keyin bugungi darslar uchun baho eslatmasi</span>}</div>
-      <button type="button" onClick={async () => { const next = !data.kundalik_eslatma_yoqilgan; try { await fetch(`${apiBase}/api/oqituvchi/kundalik-baho-eslatmasi?token=${encodeURIComponent(token)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ yoqilgan: next }) }); setData(d => ({ ...d, kundalik_eslatma_yoqilgan: next, kundalik_eslatma: next && d.kundalik_eslatma })); } catch { /* jim */ } }} className="px-3 py-2 rounded-xl text-xs font-black" style={data.kundalik_eslatma_yoqilgan ? { background: palette.green, color: "#fff" } : { background: palette.cream, color: palette.ink }}>{data.kundalik_eslatma_yoqilgan ? "Yoqilgan ✓" : "Yoqish"}</button>
+      <div className="text-sm" style={{ color: palette.ink }}>{data.kundalik_eslatma ? <b>{__kbUi("⏰ Bugungi darslar bo‘yicha Kundalik.com da baholarni kiritishni unutmadingizmi?")}</b> : <span><b>{__kbUi("Kundalik eslatmasi")}</b>{__kbUi(" — soat 15:00 dan keyin bugungi darslar uchun baho eslatmasi")}</span>}</div>
+      <button type="button" onClick={async () => { const next = !data.kundalik_eslatma_yoqilgan; try { await fetch(`${apiBase}/api/oqituvchi/kundalik-baho-eslatmasi?token=${encodeURIComponent(token)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ yoqilgan: next }) }); setData(d => ({ ...d, kundalik_eslatma_yoqilgan: next, kundalik_eslatma: next && d.kundalik_eslatma })); } catch { /* jim */ } }} className="px-3 py-2 rounded-xl text-xs font-black" style={data.kundalik_eslatma_yoqilgan ? { background: palette.green, color: "#fff" } : { background: palette.cream, color: palette.ink }}>{data.kundalik_eslatma_yoqilgan ? __kbUi("Yoqilgan ✓") : __kbUi("Yoqish")}</button>
     </Card>
 
     {/* SINF RAHBARLIGI */}
     {rahbar_sinflar.length > 0 && <Card className="p-5">
-      <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>Sinf rahbarligi — alohida ish maydoni</div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{rahbar_sinflar.map(c => <button key={c.id} type="button" onClick={() => onOpenClass && onOpenClass(c)} className="rounded-2xl border p-4 text-left hover:shadow-md" style={{ borderColor: palette.line, background: "#fff" }}><div className="text-xl font-black" style={{ color: palette.ink }}>{c.sinf_nomi}</div><div className="text-xs mt-1" style={{ color: palette.muted }}>{c.oquvchilar} o‘quvchi · {c.smena}-smena</div><div className="text-[11px] mt-2 font-black" style={{ color: palette.blue }}>Davomat, o‘quvchilar, ota-onalar ›</div></button>)}</div>
+      <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("Sinf rahbarligi — alohida ish maydoni")}</div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{rahbar_sinflar.map(c => <button key={c.id} type="button" onClick={() => onOpenClass && onOpenClass(c)} className="rounded-2xl border p-4 text-left hover:shadow-md" style={{ borderColor: palette.line, background: "#fff" }}><div className="text-xl font-black" style={{ color: palette.ink }}>{c.sinf_nomi}</div><div className="text-xs mt-1" style={{ color: palette.muted }}>{c.oquvchilar}{__kbUi(" o‘quvchi · ")}{c.smena}{__kbUi("-smena")}</div><div className="text-[11px] mt-2 font-black" style={{ color: palette.blue }}>{__kbUi("Davomat, o‘quvchilar, ota-onalar ›")}</div></button>)}</div>
     </Card>}
   </div>;
 }
 
 function TeacherPickerV2251({ value, options, numberOf, onChange, disabled, placeholder = "# — ustozni izlang", accentColor, borderColor, textColor }) {
+  useKbInterfaceLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef(null);
@@ -352,13 +358,13 @@ function TeacherPickerV2251({ value, options, numberOf, onChange, disabled, plac
     : options;
   const label = selected ? `#${numberOf.get(String(selected.user_id))} · ${selected.full_name}` : placeholder;
   return <div ref={rootRef} className="relative min-w-0 flex-1">
-    <button type="button" disabled={disabled} onClick={() => { setOpen(current => !current); setQuery(""); }} title={label} className="w-full p-1 rounded-lg border bg-white text-[10px] font-black text-left truncate disabled:opacity-50" style={{ borderColor: selected ? accentColor : borderColor, color: selected ? textColor : "#8A8578" }}>{label}</button>
+    <button type="button" disabled={disabled} onClick={() => { setOpen(current => !current); setQuery(""); }} title={__kbUi(label)} className="w-full p-1 rounded-lg border bg-white text-[10px] font-black text-left truncate disabled:opacity-50" style={{ borderColor: selected ? accentColor : borderColor, color: selected ? textColor : "#8A8578" }}>{__kbUi(label)}</button>
     {open && <div className="absolute z-40 left-0 right-0 mt-1 rounded-xl border bg-white shadow-lg" style={{ borderColor, minWidth: 220 }}>
-      <input autoFocus value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setOpen(false); if (event.key === "Enter" && filtered.length) { onChange(String(filtered[0].user_id)); setOpen(false); } }} placeholder="Familiya yoki # raqam..." className="w-full p-2 rounded-t-xl border-b text-[11px]" style={{ borderColor }}/>
+      <input autoFocus value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setOpen(false); if (event.key === "Enter" && filtered.length) { onChange(String(filtered[0].user_id)); setOpen(false); } }} placeholder={__kbUi("Familiya yoki # raqam...")} className="w-full p-2 rounded-t-xl border-b text-[11px]" style={{ borderColor }}/>
       <div className="max-h-56 overflow-auto">
-        <button type="button" onClick={() => { onChange(""); setOpen(false); }} className="w-full text-left px-2 py-1.5 text-[10px] font-black" style={{ color: "#8A8578" }}># — bo‘sh qoldirish</button>
-        {filtered.map(item => <button type="button" key={item.user_id} onClick={() => { onChange(String(item.user_id)); setOpen(false); }} className="w-full text-left px-2 py-1.5 text-[10px] font-black hover:bg-slate-50 truncate" style={{ color: textColor, background: String(item.user_id) === String(value || "") ? "#EAF1F7" : undefined }}>#{numberOf.get(String(item.user_id))} · {item.full_name}</button>)}
-        {!filtered.length && <div className="px-2 py-2 text-[10px]" style={{ color: "#8A8578" }}>Topilmadi</div>}
+        <button type="button" onClick={() => { onChange(""); setOpen(false); }} className="w-full text-left px-2 py-1.5 text-[10px] font-black" style={{ color: "#8A8578" }}>{__kbUi("# — bo‘sh qoldirish")}</button>
+        {filtered.map(item => <button type="button" key={item.user_id} onClick={() => { onChange(String(item.user_id)); setOpen(false); }} className="w-full text-left px-2 py-1.5 text-[10px] font-black hover:bg-slate-50 truncate" style={{ color: textColor, background: String(item.user_id) === String(value || "") ? "#EAF1F7" : undefined }}>#{__kbUi(numberOf.get(String(item.user_id)))} · {item.full_name}</button>)}
+        {!filtered.length && <div className="px-2 py-2 text-[10px]" style={{ color: "#8A8578" }}>{__kbUi("Topilmadi")}</div>}
       </div>
     </div>}
   </div>;
@@ -373,6 +379,7 @@ function Card({ children, style, className = "" }) {
 }
 
 function Stat({ icon, value, label, tone = "blue" }) {
+  useKbInterfaceLocale();
   const map = {
     blue: [palette.sky, palette.blue], teal: [palette.mint, palette.teal],
     green: [palette.greenBg, palette.green], amber: [palette.amberBg, palette.amber], red: [palette.redBg, palette.red]
@@ -381,25 +388,27 @@ function Stat({ icon, value, label, tone = "blue" }) {
   return (
     <Card className="p-4">
       <div className="w-9 h-9 rounded-2xl flex items-center justify-center mb-3" style={{ background: bg, color: fg }}>{icon}</div>
-      <div className="text-2xl font-black" style={{ color: palette.ink }}>{value ?? "—"}</div>
-      <div className="text-xs mt-1" style={{ color: palette.muted }}>{label}</div>
+      <div className="text-2xl font-black" style={{ color: palette.ink }}>{value ?? __kbUi("—")}</div>
+      <div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi(label)}</div>
     </Card>
   );
 }
 
 function CompactStat({ value, label, tone = "blue" }) {
+  useKbInterfaceLocale();
   const map = {
     blue: [palette.sky, palette.blue], teal: [palette.mint, palette.teal],
     green: [palette.greenBg, palette.green], amber: [palette.amberBg, palette.amber], red: [palette.redBg, palette.red]
   };
   const [bg, fg] = map[tone] || map.blue;
   return <div className="rounded-xl px-2.5 py-2 min-w-0" style={{ background: bg }}>
-    <div className="text-lg leading-none font-black truncate" style={{ color: palette.ink }}>{value ?? "—"}</div>
-    <div className="text-[10px] leading-tight mt-1 truncate" style={{ color: fg }}>{label}</div>
+    <div className="text-lg leading-none font-black truncate" style={{ color: palette.ink }}>{value ?? __kbUi("—")}</div>
+    <div className="text-[10px] leading-tight mt-1 truncate" style={{ color: fg }}>{__kbUi(label)}</div>
   </div>;
 }
 
 function QuickAction({ icon, title, desc, onClick }) {
+  useKbInterfaceLocale();
   return (
     <button onClick={onClick} className="w-full text-left rounded-2xl border p-4 bg-white transition-transform active:scale-[.99]" style={{ borderColor: palette.line }}>
       <div className="flex items-center gap-3">
@@ -415,6 +424,7 @@ function QuickAction({ icon, title, desc, onClick }) {
 }
 
 function TeacherToday({ token, apiBase }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -450,7 +460,7 @@ function TeacherToday({ token, apiBase }) {
   };
 
   if (loading) return <Card className="p-6"><Loader2 className="animate-spin" size={22} style={{ color: palette.blue }} /></Card>;
-  if (error) return <Card className="p-5"><p className="text-sm" style={{ color: palette.red }}>{error}</p></Card>;
+  if (error) return <Card className="p-5"><p className="text-sm" style={{ color: palette.red }}>{__kbUi(error)}</p></Card>;
 
   return (
     <div className="space-y-4">
@@ -459,7 +469,7 @@ function TeacherToday({ token, apiBase }) {
           <div className="flex gap-3">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.amberBg, color: palette.amber }}><BellRing size={20} /></div>
             <div>
-              <div className="text-sm font-bold" style={{ color: palette.ink }}>Kundalik eslatmasi</div>
+              <div className="text-sm font-bold" style={{ color: palette.ink }}>{__kbUi("Kundalik eslatmasi")}</div>
               <div className="text-xs mt-1 leading-relaxed" style={{ color: palette.muted }}>{data.kundalik_baho_eslatma_matni}</div>
             </div>
           </div>
@@ -472,15 +482,15 @@ function TeacherToday({ token, apiBase }) {
             {data?.kundalik_baho_eslatmasi_yoqilgan ? <ToggleRight size={24}/> : <ToggleLeft size={24}/>}
           </div>
           <div className="flex-1">
-            <div className="text-sm font-bold" style={{ color: palette.ink }}>Kundalik baho eslatmasi</div>
+            <div className="text-sm font-bold" style={{ color: palette.ink }}>{__kbUi("Kundalik baho eslatmasi")}</div>
             <div className="text-xs mt-0.5" style={{ color: palette.muted }}>
               {data?.kundalik_baho_eslatmasi_yoqilgan
-                ? "Yoqilgan — darslaringiz bo'lgan kun oxirida Kundalik baholari haqida eslatadi."
-                : "O'chiq — Kundalik baholari haqida hech qanday eslatma chiqmaydi."}
+                ? __kbUi("Yoqilgan — darslaringiz bo'lgan kun oxirida Kundalik baholari haqida eslatadi.")
+                : __kbUi("O'chiq — Kundalik baholari haqida hech qanday eslatma chiqmaydi.")}
             </div>
           </div>
           <div className="text-xs font-black px-3 py-1.5 rounded-full" style={{ background: data?.kundalik_baho_eslatmasi_yoqilgan ? palette.greenBg : palette.cream, color: data?.kundalik_baho_eslatmasi_yoqilgan ? palette.green : palette.muted }}>
-            {savingReminder ? "..." : data?.kundalik_baho_eslatmasi_yoqilgan ? "YOQ" : "O'CHIQ"}
+            {savingReminder ? __kbUi("...") : data?.kundalik_baho_eslatmasi_yoqilgan ? __kbUi("YOQ") : __kbUi("O'CHIQ")}
           </div>
         </button>
       </Card>
@@ -488,7 +498,7 @@ function TeacherToday({ token, apiBase }) {
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="text-xs font-bold tracking-[.12em] uppercase" style={{ color: palette.teal }}>Bugungi ish rejam</div>
+            <div className="text-xs font-bold tracking-[.12em] uppercase" style={{ color: palette.teal }}>{__kbUi("Bugungi ish rejam")}</div>
             <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{data?.oqituvchi}</h2>
           </div>
           <button onClick={load} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: palette.sky, color: palette.blue }}><RefreshCw size={16}/></button>
@@ -499,18 +509,18 @@ function TeacherToday({ token, apiBase }) {
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-black" style={{ background: "#fff", color: palette.blue }}>{d.dars_raqami}</div>
               <div className="flex-1">
                 <div className="text-sm font-bold" style={{ color: palette.ink }}>{d.fan}</div>
-                <div className="text-xs mt-0.5" style={{ color: palette.muted }}>{d.sinf}-{d.harf}{d.xona ? ` · ${d.xona}` : ""}{d.boshlanish_vaqti ? ` · ${d.boshlanish_vaqti}` : ""}</div>
+                <div className="text-xs mt-0.5" style={{ color: palette.muted }}>{d.sinf}-{d.harf}{d.xona ? __kbUi(` · ${d.xona}`) : __kbUi("")}{d.boshlanish_vaqti ? __kbUi(` · ${d.boshlanish_vaqti}`) : __kbUi("")}</div>
               </div>
               <ClipboardCheck size={18} style={{ color: palette.teal }} />
             </div>
           ))}
-          {(data?.darslar || []).length === 0 && <div className="rounded-2xl p-5 text-center" style={{ background: palette.cream, color: palette.muted }}>Bugun sizga biriktirilgan dars topilmadi.</div>}
+          {(data?.darslar || []).length === 0 && <div className="rounded-2xl p-5 text-center" style={{ background: palette.cream, color: palette.muted }}>{__kbUi("Bugun sizga biriktirilgan dars topilmadi.")}</div>}
         </div>
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
-        <Stat icon={<Clock3 size={18}/>} value={data?.jadvaldagi_haftalik_soat ?? 0} label="jadvaldagi haftalik soat" tone="teal" />
-        <Stat icon={<CalendarCheck2 size={18}/>} value={data?.haftalik_reja_soati ?? "—"} label="belgilangan haftalik yuklama" tone="blue" />
+        <Stat icon={<Clock3 size={18}/>} value={data?.jadvaldagi_haftalik_soat ?? 0} label={__kbUi("jadvaldagi haftalik soat")} tone="teal" />
+        <Stat icon={<CalendarCheck2 size={18}/>} value={data?.haftalik_reja_soati ?? "—"} label={__kbUi("belgilangan haftalik yuklama")} tone="blue" />
       </div>
     </div>
   );
@@ -531,6 +541,7 @@ const previewRoleMeta = {
 };
 
 function PreviewStat({ item }) {
+  useKbInterfaceLocale();
   const tones = {
     blue: [palette.sky, palette.blue], teal: [palette.mint, palette.teal],
     green: [palette.greenBg, palette.green], amber: [palette.amberBg, palette.amber],
@@ -539,14 +550,15 @@ function PreviewStat({ item }) {
   const [bg, fg] = tones[item?.tone] || tones.blue;
   return (
     <div className="rounded-2xl border bg-white p-4" style={{ borderColor: palette.line }}>
-      <div className="text-2xl font-black" style={{ color: fg }}>{item?.value ?? "—"}</div>
-      <div className="text-xs mt-1" style={{ color: palette.muted }}>{item?.label}</div>
+      <div className="text-2xl font-black" style={{ color: fg }}>{item?.value ?? __kbUi("—")}</div>
+      <div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi(item?.label)}</div>
       <div className="h-1 rounded-full mt-3" style={{ background: bg }} />
     </div>
   );
 }
 
 function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
+  useKbInterfaceLocale();
   const [catalog, setCatalog] = useState(null);
   const [role, setRole] = useState("maktab_admin");
   const [selectedUser, setSelectedUser] = useState("");
@@ -564,7 +576,7 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
   const [liveWrite, setLiveWrite] = useState(true); // sinov: amallar haqiqiy bajariladi
   const [cleanBusy, setCleanBusy] = useState(false);
   const cleanSinov = async () => {
-    if (!window.confirm("Bu maktabdagi barcha “SINOV ·” xodimlari va ularning izlari (xabarlar, biriktirishlar, rollar) o‘chiriladi. Real odamlarga tegilmaydi. Davom etamizmi?")) return;
+    if (!window.confirm(__kbUi("Bu maktabdagi barcha “SINOV ·” xodimlari va ularning izlari (xabarlar, biriktirishlar, rollar) o‘chiriladi. Real odamlarga tegilmaydi. Davom etamizmi?"))) return;
     setCleanBusy(true); setLiveError("");
     try {
       const r = await fetch(`${apiBase}/api/admin/sinov_izlarini_tozalash?token=${encodeURIComponent(token)}&turi=maktab&muassasa_id=${encodeURIComponent(maktabId)}`, { method: "POST" });
@@ -664,58 +676,58 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.redBg, color: palette.red }}><Eye size={20}/></div>
             <div className="min-w-0">
-              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>Admin ko'rish rejimi</div>
-              <div className="text-sm font-bold truncate" style={{ color: palette.ink }}>{schoolName || "Maktab"} · hech narsa o'zgarmaydi</div>
+              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>{__kbUi("Admin ko'rish rejimi")}</div>
+              <div className="text-sm font-bold truncate" style={{ color: palette.ink }}>{schoolName || __kbUi("Maktab")}{__kbUi(" · hech narsa o'zgarmaydi")}</div>
             </div>
           </div>
-          <button onClick={onClose} className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><X size={15}/> Yopish</button>
+          <button onClick={onClose} className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><X size={15}/>{__kbUi(" Yopish")}</button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 md:px-7 py-5 grid xl:grid-cols-[340px_1fr] gap-5">
         <div className="space-y-4">
           <Card className="p-4" style={{ borderColor: palette.red }}>
-            <div className="flex items-center gap-2 mb-1"><Eye size={18} style={{ color: palette.red }}/><div className="font-black" style={{ color: palette.ink }}>Haqiqiy interfeysni ochish</div></div>
-            <p className="text-[11px] mb-2" style={{ color: palette.muted }}>Xodim yoki o‘quvchini tanlang — platforma <b>aynan u ko‘rgan holda</b> yangi oynada ochiladi. Admin sessiyangiz o‘zgarmaydi.</p>
-            <label className="flex items-start gap-2 mb-3 p-2 rounded-xl cursor-pointer" style={{ background: liveWrite ? palette.mint : palette.cream }}><input type="checkbox" checked={liveWrite} onChange={e => setLiveWrite(e.target.checked)} className="mt-0.5"/><span className="text-[11px]" style={{ color: palette.ink }}><b>{liveWrite ? "🧪 Sinov rejimi — amallar haqiqiy bajariladi" : "👁 Faqat ko‘rish — hech narsa o‘zgarmaydi"}</b><br/><span style={{ color: palette.muted }}>{liveWrite ? "O‘sha rol qila oladigan hamma ishni qilib sinaysiz (xabar, belgilash, jadval...). Keyin pastdagi tugma bilan izlarini tozalaysiz." : "Dizayn va menyularni ko‘rish uchun."}</span></span></label>
-            {(() => {
+            <div className="flex items-center gap-2 mb-1"><Eye size={18} style={{ color: palette.red }}/><div className="font-black" style={{ color: palette.ink }}>{__kbUi("Haqiqiy interfeysni ochish")}</div></div>
+            <p className="text-[11px] mb-2" style={{ color: palette.muted }}>{__kbUi("Xodim yoki o‘quvchini tanlang — platforma ")}<b>{__kbUi("aynan u ko‘rgan holda")}</b>{__kbUi(" yangi oynada ochiladi. Admin sessiyangiz o‘zgarmaydi.")}</p>
+            <label className="flex items-start gap-2 mb-3 p-2 rounded-xl cursor-pointer" style={{ background: liveWrite ? palette.mint : palette.cream }}><input type="checkbox" checked={liveWrite} onChange={e => setLiveWrite(e.target.checked)} className="mt-0.5"/><span className="text-[11px]" style={{ color: palette.ink }}><b>{liveWrite ? __kbUi("🧪 Sinov rejimi — amallar haqiqiy bajariladi") : __kbUi("👁 Faqat ko‘rish — hech narsa o‘zgarmaydi")}</b><br/><span style={{ color: palette.muted }}>{liveWrite ? __kbUi("O‘sha rol qila oladigan hamma ishni qilib sinaysiz (xabar, belgilash, jadval...). Keyin pastdagi tugma bilan izlarini tozalaysiz.") : __kbUi("Dizayn va menyularni ko‘rish uchun.")}</span></span></label>
+            {__kbUi((() => {
               const roleLabels = { direktor: "Direktor", zam_direktor_uquv: "Zavuch (o‘quv)", zam_direktor_tarbiya: "Zavuch (tarbiya)", zavuch: "Zavuch", manaviyatchi: "Ma’naviyatchi", psixolog: "Psixolog", kotib: "Kotib", metodist: "Metodist", kutubxonachi: "Kutubxonachi", fan_oqituvchisi: "O‘qituvchi", oqituvchi: "O‘qituvchi", sinf_rahbari: "Sinf rahbari" };
               const staff = catalog?.xodimlar || [];
               const baseRoles = ["direktor", "zam_direktor_uquv", "zam_direktor_tarbiya", "psixolog", "kotib", "fan_oqituvchisi"];
               const roles = [...new Set([...baseRoles, ...staff.map(x => x.lavozim).filter(Boolean)])];
               return <div className="flex flex-wrap gap-1.5 mb-2">
-                <span className="text-[10px] font-black self-center" style={{ color: palette.muted }}>Lavozim bo‘yicha:</span>
+                <span className="text-[10px] font-black self-center" style={{ color: palette.muted }}>{__kbUi("Lavozim bo‘yicha:")}</span>
                 {roles.map(role => {
                   const holders = staff.filter(x => x.lavozim === role);
                   const active = holders.some(x => String(x.user_id) === String(liveUser));
-                  if (!holders.length) return <button key={role} type="button" disabled={liveBusy} onClick={() => openRolePreview(role)} className="px-2 py-1 rounded-lg border border-dashed text-[10px] font-black disabled:opacity-50" style={{ background: "#FFF8EE", color: "#8A5A1C", borderColor: "#E3C78F" }} title="Bu rolda odam yo‘q — sinov xodimi yaratilib, darhol ochiladi">{roleLabels[role] || role} · sinov ↗</button>;
-                  return <button key={role} type="button" onClick={() => { setLiveSearch(""); setLiveUser(String(holders[0].user_id)); }} className="px-2 py-1 rounded-lg border text-[10px] font-black" style={active ? { background: palette.red, color: "#fff", borderColor: palette.red } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={holders.map(x => x.full_name).join(", ")}>{roleLabels[role] || role}{holders.length > 1 ? ` (${holders.length})` : ""}</button>;
+                  if (!holders.length) return <button key={role} type="button" disabled={liveBusy} onClick={() => openRolePreview(role)} className="px-2 py-1 rounded-lg border border-dashed text-[10px] font-black disabled:opacity-50" style={{ background: "#FFF8EE", color: "#8A5A1C", borderColor: "#E3C78F" }} title={__kbUi("Bu rolda odam yo‘q — sinov xodimi yaratilib, darhol ochiladi")}>{roleLabels[role] || __kbUi(role)}{__kbUi(" · sinov ↗")}</button>;
+                  return <button key={role} type="button" onClick={() => { setLiveSearch(""); setLiveUser(String(holders[0].user_id)); }} className="px-2 py-1 rounded-lg border text-[10px] font-black" style={active ? { background: palette.red, color: "#fff", borderColor: palette.red } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={__kbUi(holders.map(x => x.full_name).join(", "))}>{roleLabels[role] || __kbUi(role)}{holders.length > 1 ? __kbUi(` (${holders.length})`) : __kbUi("")}</button>;
                 })}
               </div>;
-            })()}
-            <input value={liveSearch} onChange={e => setLiveSearch(e.target.value)} placeholder="Familiya bo‘yicha izlang..." className="w-full px-3 py-2 rounded-xl border text-sm outline-none mb-2" style={{ borderColor: palette.line }}/>
+            })())}
+            <input value={liveSearch} onChange={e => setLiveSearch(e.target.value)} placeholder={__kbUi("Familiya bo‘yicha izlang...")} className="w-full px-3 py-2 rounded-xl border text-sm outline-none mb-2" style={{ borderColor: palette.line }}/>
             <select value={liveUser} onChange={e => setLiveUser(e.target.value)} className="w-full px-3 py-2 rounded-xl border text-sm bg-white mb-2" style={{ borderColor: palette.line }} size={8}>
-              {(() => {
+              {__kbUi((() => {
                 const q = liveSearch.trim().toLocaleLowerCase("uz");
                 const match = name => !q || String(name || "").toLocaleLowerCase("uz").includes(q);
                 const classNameOfId = id => { const c = (catalog?.sinflar || []).find(item => String(item.id) === String(id)); return c ? `${c.sinf}-${c.harf}` : ""; };
                 const staff = (catalog?.xodimlar || []).filter(x => match(x.full_name));
                 const pupils = (catalog?.oquvchilar || []).filter(x => match(x.full_name));
                 return <>
-                  <optgroup label={`Xodimlar (${staff.length})`}>{staff.map(x => <option key={`x-${x.user_id}`} value={x.user_id}>{x.full_name} · {x.lavozim_nomi || x.lavozim || ""}{x.fanlari ? ` · ${x.fanlari}` : ""}</option>)}</optgroup>
-                  <optgroup label={`O‘quvchilar (${pupils.length})`}>{pupils.map(x => <option key={`o-${x.user_id}`} value={x.user_id}>{x.full_name} · {classNameOfId(x.sinf_id)} sinf</option>)}</optgroup>
+                  <optgroup label={__kbUi(`Xodimlar (${staff.length})`)}>{staff.map(x => <option key={`x-${x.user_id}`} value={x.user_id}>{x.full_name} · {x.lavozim_nomi || x.lavozim || __kbUi("")}{x.fanlari ? __kbUi(` · ${x.fanlari}`) : __kbUi("")}</option>)}</optgroup>
+                  <optgroup label={__kbUi(`O‘quvchilar (${pupils.length})`)}>{pupils.map(x => <option key={`o-${x.user_id}`} value={x.user_id}>{x.full_name} · {__kbUi(classNameOfId(x.sinf_id))}{__kbUi(" sinf")}</option>)}</optgroup>
                 </>;
-              })()}
+              })())}
             </select>
-            <button type="button" onClick={openLivePreview} disabled={!liveUser || liveBusy} className="w-full py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.red }}>{liveBusy ? "Ochilmoqda..." : "👁 Shu odam ko‘zi bilan ochish (yangi oyna)"}</button>
-            {liveError && <div className="mt-2 text-[11px] font-bold" style={{ color: liveError.startsWith("✅") ? palette.green : palette.red }}>{liveError}</div>}
-            <button type="button" onClick={cleanSinov} disabled={cleanBusy} className="mt-3 w-full py-2 rounded-xl text-xs font-black border disabled:opacity-50" style={{ borderColor: palette.line, color: palette.muted, background: "#fff" }}>{cleanBusy ? "Tozalanmoqda..." : "🧹 Sinov izlarini tozalash — SINOV xodimlari va ularning hamma amallari o‘chiriladi"}</button>
+            <button type="button" onClick={openLivePreview} disabled={!liveUser || liveBusy} className="w-full py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.red }}>{liveBusy ? __kbUi("Ochilmoqda...") : __kbUi("👁 Shu odam ko‘zi bilan ochish (yangi oyna)")}</button>
+            {liveError && <div className="mt-2 text-[11px] font-bold" style={{ color: liveError.startsWith("✅") ? palette.green : palette.red }}>{__kbUi(liveError)}</div>}
+            <button type="button" onClick={cleanSinov} disabled={cleanBusy} className="mt-3 w-full py-2 rounded-xl text-xs font-black border disabled:opacity-50" style={{ borderColor: palette.line, color: palette.muted, background: "#fff" }}>{cleanBusy ? __kbUi("Tozalanmoqda...") : __kbUi("🧹 Sinov izlarini tozalash — SINOV xodimlari va ularning hamma amallari o‘chiriladi")}</button>
           </Card>
           <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3"><UserCog size={18} style={{ color: palette.blue }}/><div className="font-black" style={{ color: palette.ink }}>Kim bo'lib ko'ramiz?</div></div>
+            <div className="flex items-center gap-2 mb-3"><UserCog size={18} style={{ color: palette.blue }}/><div className="font-black" style={{ color: palette.ink }}>{__kbUi("Kim bo'lib ko'ramiz?")}</div></div>
             <div className="relative mb-3">
               <Search size={15} className="absolute left-3 top-3" style={{ color: palette.muted }}/>
-              <input value={roleSearch} onChange={e=>setRoleSearch(e.target.value)} placeholder="Rolni qidiring..." className="w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/>
+              <input value={roleSearch} onChange={e=>setRoleSearch(e.target.value)} placeholder={__kbUi("Rolni qidiring...")} className="w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor: palette.line }}/>
             </div>
             <div className="space-y-2 max-h-[52vh] overflow-auto pr-1">
               {filteredRoles.map(([key,m]) => (
@@ -731,53 +743,52 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
           </Card>
 
           <Card className="p-4">
-            <div className="text-xs font-black uppercase tracking-[.1em] mb-3" style={{ color: palette.teal }}>Tanlash</div>
+            <div className="text-xs font-black uppercase tracking-[.1em] mb-3" style={{ color: palette.teal }}>{__kbUi("Tanlash")}</div>
             {loadingCatalog ? <div className="py-5 flex justify-center"><Loader2 className="animate-spin" size={22} style={{ color: palette.blue }}/></div> : <>
               {needsTeacher && (
                 <label className="block mb-3">
-                  <span className="text-xs font-bold" style={{ color: palette.ink }}>O'qituvchi</span>
+                  <span className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("O'qituvchi")}</span>
                   <select value={selectedUser} onChange={e=>setSelectedUser(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}>
-                    <option value="">O'qituvchini tanlang</option>
-                    {teachers.map(x=><option key={x.user_id} value={x.user_id}>{x.full_name}{x.fanlari ? ` — ${String(x.fanlari).replaceAll("\\n",", ")}` : ""}</option>)}
+                    <option value="">{__kbUi("O'qituvchini tanlang")}</option>
+                    {teachers.map(x=><option key={x.user_id} value={x.user_id}>{x.full_name}{x.fanlari ? __kbUi(` — ${String(x.fanlari).replaceAll("\\n",", ")}`) : __kbUi("")}</option>)}
                   </select>
                 </label>
               )}
               {needsClass && (
                 <label className="block mb-3">
-                  <span className="text-xs font-bold" style={{ color: palette.ink }}>Sinf</span>
+                  <span className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Sinf")}</span>
                   <select value={selectedClass} onChange={e=>setSelectedClass(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}>
-                    <option value="">Sinfni tanlang</option>
-                    {(catalog?.sinflar || []).map(x=><option key={x.id} value={x.id}>{x.sinf}-{x.harf} · {x.oquvchi_soni} o'quvchi</option>)}
+                    <option value="">{__kbUi("Sinfni tanlang")}</option>
+                    {(catalog?.sinflar || []).map(x=><option key={x.id} value={x.id}>{x.sinf}-{x.harf} · {x.oquvchi_soni}{__kbUi(" o'quvchi")}</option>)}
                   </select>
                 </label>
               )}
               {needsStudent && selectedClass && (
                 <label className="block mb-3">
-                  <span className="text-xs font-bold" style={{ color: palette.ink }}>O'quvchi</span>
+                  <span className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("O'quvchi")}</span>
                   <select value={selectedStudent} onChange={e=>setSelectedStudent(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border text-sm bg-white" style={{ borderColor: palette.line }}>
-                    <option value="">{students.length ? "Birinchi o'quvchini avtomatik ko'rish" : "O'quvchi yo'q"}</option>
+                    <option value="">{students.length ? __kbUi("Birinchi o'quvchini avtomatik ko'rish") : __kbUi("O'quvchi yo'q")}</option>
                     {students.map(x=><option key={x.user_id} value={x.user_id}>{x.full_name}</option>)}
                   </select>
                 </label>
               )}
-              {!needsTeacher && !needsClass && <div className="rounded-xl p-3 text-xs" style={{ background: palette.cream, color: palette.muted }}>Bu rol uchun qo'shimcha odam yoki sinf tanlash shart emas.</div>}
+              {!needsTeacher && !needsClass && <div className="rounded-xl p-3 text-xs" style={{ background: palette.cream, color: palette.muted }}>{__kbUi("Bu rol uchun qo'shimcha odam yoki sinf tanlash shart emas.")}</div>}
               <button onClick={openPreview} disabled={!canOpen || loadingPreview} className="w-full mt-3 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2" style={{ background: canOpen ? palette.blue : "#AAB6C0", opacity: loadingPreview ? .7 : 1 }}>
-                {loadingPreview ? <Loader2 className="animate-spin" size={17}/> : <Eye size={17}/>} Ko'rinishni ochish
-              </button>
+                {loadingPreview ? <Loader2 className="animate-spin" size={17}/> : <Eye size={17}/>}{__kbUi(" Ko'rinishni ochish")}</button>
             </>}
           </Card>
         </div>
 
         <div>
-          {error && <Card className="p-4 mb-4" style={{ borderColor: "#EECACA", background: palette.redBg }}><div className="text-sm font-bold" style={{ color: palette.red }}>{error}</div></Card>}
+          {error && <Card className="p-4 mb-4" style={{ borderColor: "#EECACA", background: palette.redBg }}><div className="text-sm font-bold" style={{ color: palette.red }}>{__kbUi(error)}</div></Card>}
 
           {!preview ? (
             <Card className="min-h-[65vh] p-8 md:p-12 flex items-center justify-center text-center">
               <div className="max-w-xl">
                 <div className="w-20 h-20 rounded-[28px] mx-auto flex items-center justify-center mb-5" style={{ background: palette.sky, color: palette.blue }}><Eye size={36}/></div>
                 <div className="text-2xl font-black" style={{ color: palette.ink }}>{previewRoleMeta[role]?.nom}</div>
-                <p className="text-sm mt-2 leading-relaxed" style={{ color: palette.muted }}>{previewRoleMeta[role]?.izoh}. Chapdan kerakli odam yoki sinfni tanlab, ko'rinishni oching.</p>
-                <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black" style={{ background: palette.greenBg, color: palette.green }}><LockKeyhole size={14}/> Faqat ko'rish · o'zgartirish yo'q</div>
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: palette.muted }}>{previewRoleMeta[role]?.izoh}{__kbUi(". Chapdan kerakli odam yoki sinfni tanlab, ko'rinishni oching.")}</p>
+                <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black" style={{ background: palette.greenBg, color: palette.green }}><LockKeyhole size={14}/>{__kbUi(" Faqat ko'rish · o'zgartirish yo'q")}</div>
               </div>
             </Card>
           ) : (
@@ -785,11 +796,11 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
               <Card className="p-5 md:p-7" style={{ background: "linear-gradient(135deg,#163E5B,#0E747B)", borderColor:"transparent", color:"#fff" }}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Siz hozir shunday ko'ryapsiz</div>
-                    <h2 className="text-2xl md:text-3xl font-black mt-2">{preview.rol_nomi}</h2>
-                    <div className="text-sm mt-1 opacity-80">{preview?.tanlangan?.full_name || preview?.tanlangan?.rahbar_ismi || (preview?.tanlangan?.sinf ? `${preview.tanlangan.sinf}-${preview.tanlangan.harf}` : schoolName)}</div>
+                    <div className="text-xs font-black uppercase tracking-[.14em] opacity-75">{__kbUi("Siz hozir shunday ko'ryapsiz")}</div>
+                    <h2 className="text-2xl md:text-3xl font-black mt-2">{__kbUi(preview.rol_nomi)}</h2>
+                    <div className="text-sm mt-1 opacity-80">{preview?.tanlangan?.full_name || preview?.tanlangan?.rahbar_ismi || (preview?.tanlangan?.sinf ? __kbUi(`${preview.tanlangan.sinf}-${preview.tanlangan.harf}`) : schoolName)}</div>
                   </div>
-                  <div className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background:"rgba(255,255,255,.14)" }}><LockKeyhole size={14}/> READ ONLY</div>
+                  <div className="px-3 py-2 rounded-xl text-xs font-black flex items-center gap-2" style={{ background:"rgba(255,255,255,.14)" }}><LockKeyhole size={14}/>{__kbUi(" READ ONLY")}</div>
                 </div>
               </Card>
 
@@ -811,7 +822,7 @@ function AdminRolePreview({ token, apiBase, maktabId, schoolName, onClose }) {
                       </div>
                     ))}
                   </div>
-                  {!(b.items || []).length && <div className="rounded-2xl p-5 text-sm text-center" style={{ background: palette.cream, color: palette.muted }}>{b.empty_text || "Ma'lumot yo'q"}</div>}
+                  {!(b.items || []).length && <div className="rounded-2xl p-5 text-sm text-center" style={{ background: palette.cream, color: palette.muted }}>{b.empty_text || __kbUi("Ma'lumot yo'q")}</div>}
                 </Card>
               ))}
             </div>
@@ -1204,17 +1215,17 @@ function v237SortClasses(rows) {
 }
 
 function SmartHeader({ title, subtitle, onClose, badge = "AQILLI JADVAL 2.0" }) {
+  useKbInterfaceLocale();
   return (
     <div className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ background: "rgba(255,255,255,.96)", borderColor: palette.line }}>
       <div className="max-w-[1500px] mx-auto px-4 md:px-7 py-3 flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[10px] md:text-xs font-black tracking-[.14em] uppercase" style={{ color: palette.teal }}>{badge}</div>
+          <div className="text-[10px] md:text-xs font-black tracking-[.14em] uppercase" style={{ color: palette.teal }}>{__kbUi(badge)}</div>
           <h1 className="text-lg md:text-2xl font-black truncate" style={{ color: palette.ink }}>{title}</h1>
           {subtitle && <p className="text-xs mt-0.5 truncate" style={{ color: palette.muted }}>{subtitle}</p>}
         </div>
         <button onClick={onClose} className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}>
-          <ArrowLeft size={16}/> Asosiy sahifaga qaytish
-        </button>
+          <ArrowLeft size={16}/>{__kbUi(" Asosiy sahifaga qaytish")}</button>
       </div>
     </div>
   );
@@ -1230,6 +1241,7 @@ function SmartNotice({ tone = "info", children }) {
 }
 
 function SmartStepNav({ step, setStep, teacherOnly, canManageTeacherAvailability = false }) {
+  useKbInterfaceLocale();
   const steps = (teacherOnly
     ? [[2, "O‘qituvchi vaqti"], [5, "Mavzu rejasi"]]
     : [[1, "1. Smena va sinf kunlari"], [2, "2. O‘qituvchi vaqti"], [3, "3. Sinf skeleti + o‘qituvchi"], [4, "4. Jadval yaratish"], [45, "5. O‘qituvchi jadvali"], [5, "6. Mavzu rejasi"]])
@@ -1243,7 +1255,7 @@ function SmartStepNav({ step, setStep, teacherOnly, canManageTeacherAvailability
               style={step === number
                 ? { background: palette.blue, color: "#fff", borderColor: palette.blue }
                 : { background: "#fff", color: palette.ink, borderColor: palette.line }}>
-              {label}
+              {__kbUi(label)}
             </button>
           ))}
         </div>
@@ -1253,6 +1265,7 @@ function SmartStepNav({ step, setStep, teacherOnly, canManageTeacherAvailability
 }
 
 function SmartTimetableGuideV240({ step }) {
+  useKbInterfaceLocale();
   const items = [
     [1, "Kalendar", "O‘quv kunlari"],
     [2, "O‘qituvchi vaqti", "Bo‘sh va metod kuni"],
@@ -1263,15 +1276,15 @@ function SmartTimetableGuideV240({ step }) {
   ];
   return <Card className="p-3 mb-4">
     <div className="flex items-center justify-between gap-3 mb-2">
-      <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Jadval yaratish yo‘li</div>
+      <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("Jadval yaratish yo‘li")}</div>
       <div className="text-[10px] font-bold" style={{ color: palette.muted }}>1 → 6</div>
     </div>
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
       {items.map(([value, title, detail], index) => {
         const active = Number(step) === Number(value);
         return <div key={value} className="rounded-xl border p-2.5" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.sky : "#fff" }}>
-          <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black" style={{ background: active ? palette.blue : palette.cream, color: active ? "#fff" : palette.ink }}>{index + 1}</span><span className="text-xs font-black" style={{ color: active ? palette.blue : palette.ink }}>{title}</span></div>
-          <div className="text-[10px] mt-1 ml-8" style={{ color: palette.muted }}>{detail}</div>
+          <div className="flex items-center gap-2"><span className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black" style={{ background: active ? palette.blue : palette.cream, color: active ? "#fff" : palette.ink }}>{index + 1}</span><span className="text-xs font-black" style={{ color: active ? palette.blue : palette.ink }}>{__kbUi(title)}</span></div>
+          <div className="text-[10px] mt-1 ml-8" style={{ color: palette.muted }}>{__kbUi(detail)}</div>
         </div>;
       })}
     </div>
@@ -1279,6 +1292,7 @@ function SmartTimetableGuideV240({ step }) {
 }
 
 function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }) {
+  useKbInterfaceLocale();
   const weekdays = Number(setup?.oquv_yili?.hafta_kunlari || 6);
   const classes = setup?.sinflar || [];
   const rules = setup?.sinf_kun_bloklari || setup?.avtomatik_qoidalar?.sinf_kun_bloklari || [];
@@ -1380,7 +1394,7 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
   };
 
   const removeRule = async rule => {
-    if (!window.confirm(`${ruleLabel(rule)} qoidasini olib tashlaysizmi?`)) return;
+    if (!window.confirm(__kbUi(`${ruleLabel(rule)} qoidasini olib tashlaysizmi?`))) return;
     setBusy(true);
     try {
       await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_kun_bloki?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&blok_id=${rule.id}`, { method: "DELETE" });
@@ -1396,14 +1410,12 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
   return <Card className="p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Sinfga dars qo‘yilmaydigan kun</h2>
-        <p className="text-xs mt-1" style={{ color: palette.muted }}>Bir marta saqlashda faqat bitta kun tanlanadi. Yana boshqa kun kerak bo‘lsa, uni alohida qoida qilib saqlang.</p>
+        <h2 className="text-xl font-black" style={{ color: palette.ink }}>{__kbUi("Sinfga dars qo‘yilmaydigan kun")}</h2>
+        <p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Bir marta saqlashda faqat bitta kun tanlanadi. Yana boshqa kun kerak bo‘lsa, uni alohida qoida qilib saqlang.")}</p>
       </div>
       <button onClick={() => saveRule({ goToGenerator: true, preset: true })} disabled={busy || weekdays < 6}
         className="px-4 py-2.5 rounded-xl text-xs font-black"
-        style={{ background: palette.redBg, color: palette.red, opacity: weekdays < 6 ? .55 : 1 }}>
-        1–4-sinf → Shanba (1 bosish)
-      </button>
+        style={{ background: palette.redBg, color: palette.red, opacity: weekdays < 6 ? .55 : 1 }}>{__kbUi("1–4-sinf → Shanba (1 bosish)")}</button>
     </div>
 
     {message && <div className="mt-4"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}
@@ -1412,27 +1424,27 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
       <div className="rounded-2xl p-4" style={{ background: palette.cream }}>
         <div className="flex gap-2 mb-3">
           <button onClick={() => setScope("parallel")} className="px-3 py-2 rounded-xl text-xs font-black"
-            style={scope === "parallel" ? { background: palette.blue, color: "#fff" } : { background: "#fff", color: palette.ink }}>Parallel sinflar</button>
+            style={scope === "parallel" ? { background: palette.blue, color: "#fff" } : { background: "#fff", color: palette.ink }}>{__kbUi("Parallel sinflar")}</button>
           <button onClick={() => setScope("sinf")} className="px-3 py-2 rounded-xl text-xs font-black"
-            style={scope === "sinf" ? { background: palette.blue, color: "#fff" } : { background: "#fff", color: palette.ink }}>Aniq sinflar</button>
+            style={scope === "sinf" ? { background: palette.blue, color: "#fff" } : { background: "#fff", color: palette.ink }}>{__kbUi("Aniq sinflar")}</button>
         </div>
 
         {scope === "parallel" ? <>
-          <div className="text-xs font-black mb-2">Qaysi parallel?</div>
+          <div className="text-xs font-black mb-2">{__kbUi("Qaysi parallel?")}</div>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {availableGrades.map(grade => <button key={grade} onClick={() => toggle(grade, selectedGrades, setSelectedGrades)}
               className="h-10 rounded-xl border text-xs font-black"
               style={selectedGrades.includes(grade)
                 ? { background: palette.sky, color: palette.blue, borderColor: palette.blue }
-                : { background: "#fff", color: palette.muted, borderColor: palette.line }}>{grade}-sinf</button>)}
+                : { background: "#fff", color: palette.muted, borderColor: palette.line }}>{grade}{__kbUi("-sinf")}</button>)}
           </div>
           <div className="flex flex-wrap gap-2 mt-3">
-            <button onClick={() => setSelectedGrades(availableGrades.filter(x => x <= 4))} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue }}>1–4 ni tanlash</button>
-            <button onClick={() => setSelectedGrades(availableGrades)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue }}>Barchasi</button>
-            <button onClick={() => setSelectedGrades([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.muted }}>Tozalash</button>
+            <button onClick={() => setSelectedGrades(availableGrades.filter(x => x <= 4))} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue }}>{__kbUi("1–4 ni tanlash")}</button>
+            <button onClick={() => setSelectedGrades(availableGrades)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue }}>{__kbUi("Barchasi")}</button>
+            <button onClick={() => setSelectedGrades([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.muted }}>{__kbUi("Tozalash")}</button>
           </div>
         </> : <>
-          <div className="text-xs font-black mb-2">Qaysi aniq sinflar?</div>
+          <div className="text-xs font-black mb-2">{__kbUi("Qaysi aniq sinflar?")}</div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-44 overflow-auto pr-1">
             {sortedClasses.map(c => {
               const id = String(c.id); const active = selectedClasses.includes(id);
@@ -1444,14 +1456,14 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
             })}
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={() => setSelectedClasses(sortedClasses.map(c => String(c.id)))} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue }}>Barchasi</button>
-            <button onClick={() => setSelectedClasses([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.muted }}>Tozalash</button>
+            <button onClick={() => setSelectedClasses(sortedClasses.map(c => String(c.id)))} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue }}>{__kbUi("Barchasi")}</button>
+            <button onClick={() => setSelectedClasses([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.muted }}>{__kbUi("Tozalash")}</button>
           </div>
         </>}
 
         <div className="mt-4 mb-2">
-          <div className="text-xs font-black">Qaysi bitta kunda dars bo‘lmasin?</div>
-          <div className="text-[8px] mt-0.5 truncate" style={{ color: palette.muted }}>Bu radio-tanlov: bir vaqtning o‘zida faqat bitta kun belgilanadi.</div>
+          <div className="text-xs font-black">{__kbUi("Qaysi bitta kunda dars bo‘lmasin?")}</div>
+          <div className="text-[8px] mt-0.5 truncate" style={{ color: palette.muted }}>{__kbUi("Bu radio-tanlov: bir vaqtning o‘zida faqat bitta kun belgilanadi.")}</div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {dayOptions.map(([day, name]) => <button key={day} onClick={() => setSelectedDay(Number(day))}
@@ -1467,8 +1479,8 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
         </div>
 
         <div className="grid sm:grid-cols-2 gap-2 mt-4">
-          <button onClick={() => saveRule({ goToGenerator: false })} disabled={busy} className="py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>{busy ? "Saqlanmoqda..." : "Faqat qoida saqlash"}</button>
-          <button onClick={() => saveRule({ goToGenerator: true })} disabled={busy} className="py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>{busy ? "Saqlanmoqda..." : "Saqlab, yagona generatorga o‘tish"}</button>
+          <button onClick={() => saveRule({ goToGenerator: false })} disabled={busy} className="py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>{busy ? __kbUi("Saqlanmoqda...") : __kbUi("Faqat qoida saqlash")}</button>
+          <button onClick={() => saveRule({ goToGenerator: true })} disabled={busy} className="py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>{busy ? __kbUi("Saqlanmoqda...") : __kbUi("Saqlab, yagona generatorga o‘tish")}</button>
         </div>
       </div>
 
@@ -1476,12 +1488,12 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
         <div className="rounded-2xl border p-4" style={{ borderColor: palette.line, background: "#fff" }}>
           <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
             <div>
-              <div className="text-sm font-black" style={{ color: palette.ink }}>Qaysi sinf qaysi kuni dars olmaydi?</div>
-              <div className="text-xs mt-1" style={{ color: palette.muted }}>Bu — qoida hisoboti. Haqiqiy haftalik darslar “Jadval yaratish” bosqichida ko‘rinadi.</div>
+              <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Qaysi sinf qaysi kuni dars olmaydi?")}</div>
+              <div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Bu — qoida hisoboti. Haqiqiy haftalik darslar “Jadval yaratish” bosqichida ko‘rinadi.")}</div>
             </div>
             <div className="flex gap-2">
-              <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{affectedClasses.length} sinf</div>
-              <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>{blockedDayCount} kun</div>
+              <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{affectedClasses.length}{__kbUi(" sinf")}</div>
+              <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>{blockedDayCount}{__kbUi(" kun")}</div>
             </div>
           </div>
 
@@ -1489,18 +1501,18 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
             <table className="min-w-[650px] w-full border-collapse bg-white">
               <thead className="sticky top-0 z-10" style={{ background: "#F5F8FA" }}>
                 <tr>
-                  <th className="text-left text-xs font-black p-2.5 border-b" style={{ borderColor: palette.line }}>Sinf</th>
+                  <th className="text-left text-xs font-black p-2.5 border-b" style={{ borderColor: palette.line }}>{__kbUi("Sinf")}</th>
                   {dayOptions.map(([day, name]) => <th key={day} className="text-center text-[11px] font-black p-2.5 border-b" style={{ borderColor: palette.line }}>{name}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {reportRows.map(row => <tr key={row.id}>
-                  <td className="text-xs font-black p-2.5 border-b" style={{ borderColor: palette.line, color: palette.ink }}>{row.label}</td>
+                  <td className="text-xs font-black p-2.5 border-b" style={{ borderColor: palette.line, color: palette.ink }}>{__kbUi(row.label)}</td>
                   {dayOptions.map(([day]) => {
                     const item = row.blocked.find(x => x.day === Number(day));
                     return <td key={day} className="text-center p-1.5 border-b" style={{ borderColor: palette.line }}>
                       {item
-                        ? <span title={item.source} className="inline-flex px-2 py-1 rounded-lg text-[10px] font-black" style={{ background: palette.redBg, color: palette.red }}>DARS YO‘Q</span>
+                        ? <span title={item.source} className="inline-flex px-2 py-1 rounded-lg text-[10px] font-black" style={{ background: palette.redBg, color: palette.red }}>{__kbUi("DARS YO‘Q")}</span>
                         : <span className="text-xs" style={{ color: "#C0C8CE" }}>—</span>}
                     </td>;
                   })}
@@ -1512,29 +1524,29 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
           <div className="grid sm:grid-cols-2 gap-2 mt-3">
             {dayReport.filter(item => item.classes.length).map(item => <div key={item.day} className="rounded-xl p-3" style={{ background: palette.cream }}>
               <div className="text-xs font-black" style={{ color: palette.ink }}>{item.name}</div>
-              <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>{item.classes.join(", ")}</div>
+              <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>{__kbUi(item.classes.join(", "))}</div>
             </div>)}
-            {!affectedClasses.length && <div className="sm:col-span-2"><SmartNotice tone="info">Hali hech bir sinfga dars bo‘lmaydigan kun belgilanmagan.</SmartNotice></div>}
+            {!affectedClasses.length && <div className="sm:col-span-2"><SmartNotice tone="info">{__kbUi("Hali hech bir sinfga dars bo‘lmaydigan kun belgilanmagan.")}</SmartNotice></div>}
           </div>
         </div>
 
         <div className="rounded-2xl border p-4" style={{ borderColor: palette.line, background: "#fff" }}>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-sm font-black" style={{ color: palette.ink }}>Faol qoidalarni boshqarish</div>
-              <div className="text-xs mt-0.5" style={{ color: palette.muted }}>Har bir qator — bitta sinf/parallel va bitta kun. × orqali olib tashlang.</div>
+              <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Faol qoidalarni boshqarish")}</div>
+              <div className="text-xs mt-0.5" style={{ color: palette.muted }}>{__kbUi("Har bir qator — bitta sinf/parallel va bitta kun. × orqali olib tashlang.")}</div>
             </div>
-            <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{rules.length} ta</div>
+            <div className="px-3 py-1.5 rounded-full text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{rules.length}{__kbUi(" ta")}</div>
           </div>
           <div className="grid sm:grid-cols-2 gap-2 max-h-[260px] overflow-auto pr-1">
             {rules.map(rule => <div key={rule.id} className="rounded-2xl border p-3 flex items-center gap-2" style={{ borderColor: palette.line, background: palette.redBg }}>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-black truncate" style={{ color: palette.ink }}>{ruleLabel(rule)}</div>
-                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{rule.qamrov === "parallel" ? "Butun parallel" : "Aniq sinf"}</div>
+                <div className="text-sm font-black truncate" style={{ color: palette.ink }}>{__kbUi(ruleLabel(rule))}</div>
+                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{rule.qamrov === "parallel" ? __kbUi("Butun parallel") : __kbUi("Aniq sinf")}</div>
               </div>
               <button onClick={() => removeRule(rule)} disabled={busy} className="w-8 h-8 rounded-xl font-black shrink-0" style={{ background: "#fff", color: palette.red }}>×</button>
             </div>)}
-            {!rules.length && <div className="sm:col-span-2"><SmartNotice tone="info">Hali sinf-kun qoidasi yo‘q.</SmartNotice></div>}
+            {!rules.length && <div className="sm:col-span-2"><SmartNotice tone="info">{__kbUi("Hali sinf-kun qoidasi yo‘q.")}</SmartNotice></div>}
           </div>
         </div>
       </div>
@@ -1542,6 +1554,7 @@ function ClassDayBlockPanel({ token, apiBase, maktabId, setup, reload, setStep }
   </Card>;
 }
 function CalendarStep({ token, apiBase, maktabId, setup, reload, setStep, mode = "hammasi" }) {
+  useKbInterfaceLocale();
   // mode: "jadval" — smena/dars vaqtlari + sinf kunlari (generator uchun); "kalendar" — o'quv yili, choraklar, bayramlar; "hammasi" — barchasi
   const showYear = mode !== "jadval"; const showShift = mode !== "kalendar"; const showDays = mode !== "jadval"; const showClassDays = mode !== "kalendar";
   const now = new Date();
@@ -1666,26 +1679,27 @@ function CalendarStep({ token, apiBase, maktabId, setup, reload, setStep, mode =
     } catch (error) { setMessage({ tone: "error", text: error.message }); }
     finally { setSaving(false); }
   };
-  const removeSpecial = async day => { if (!window.confirm(`${day.sana} kungi belgini olib tashlaysizmi?`)) return; try { await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/maxsus_kun?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sana=${day.sana}`, { method: "DELETE" }); await reload(); } catch (error) { setMessage({ tone: "error", text: error.message }); } };
+  const removeSpecial = async day => { if (!window.confirm(__kbUi(`${day.sana} kungi belgini olib tashlaysizmi?`))) return; try { await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/maxsus_kun?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sana=${day.sana}`, { method: "DELETE" }); await reload(); } catch (error) { setMessage({ tone: "error", text: error.message }); } };
   const dayStyle = day => ["dam","bayram","tatil","qoshimcha_dam"].includes(day.turi) ? { background: palette.redBg, color: palette.red } : day.holat === "taxminiy" ? { background: palette.amberBg, color: palette.amber } : { background: palette.greenBg, color: palette.green };
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{background:dirty?palette.amberBg:palette.greenBg,color:dirty?palette.amber:palette.green}}><div className="text-sm font-bold">{autoStatus || "Barcha o‘zgarishlar saqlangan"}</div><button onClick={save} disabled={saving} className="px-4 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?"Saqlanmoqda...":"Hozir saqlash"}</button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{background:dirty?palette.amberBg:palette.greenBg,color:dirty?palette.amber:palette.green}}><div className="text-sm font-bold">{autoStatus || __kbUi("Barcha o‘zgarishlar saqlangan")}</div><button onClick={save} disabled={saving} className="px-4 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?__kbUi("Saqlanmoqda..."):__kbUi("Hozir saqlash")}</button></div>
     <div className={`grid ${showYear && showShift ? "xl:grid-cols-[1.2fr_.8fr]" : "grid-cols-1"} gap-4`}>
-      {showYear && <Card className="p-5"><div className="flex flex-wrap items-start justify-between gap-3 mb-5"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>O‘quv yili va 4 chorak</h2><p className="text-xs mt-1" style={{color:palette.muted}}>Taxminiy sanalar sariq, administrator tasdiqlagan sanalar yashil. Tahrirlar avtomatik saqlanadi.</p></div><button onClick={suggest} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.amberBg,color:palette.amber}}>Taxminiy sanalarni yaratish va saqlash</button></div>
-        <div className="grid sm:grid-cols-4 gap-3 mb-4"><label className="text-xs font-bold" style={{color:palette.ink}}>O‘quv yili<input value={form.nomi} onChange={e=>changeForm({...form,nomi:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold" style={{color:palette.ink}}>Boshlanish<input type="date" value={form.boshlanish} onChange={e=>changeForm({...form,boshlanish:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold" style={{color:palette.ink}}>Tugash<input type="date" value={form.tugash} onChange={e=>changeForm({...form,tugash:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold" style={{color:palette.ink}}>O‘qish haftasi<select value={form.hafta_kunlari} onChange={e=>changeForm({...form,hafta_kunlari:Number(e.target.value)})} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value={5}>5 kun</option><option value={6}>6 kun</option></select></label></div>
-        <div className="space-y-2">{form.choraklar.map((q,index)=><div key={q.chorak} className="grid grid-cols-[70px_1fr_1fr_130px] gap-2 items-end rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black pb-2" style={{color:palette.ink}}>{q.chorak}-chorak</div><label className="text-[11px]" style={{color:palette.muted}}>Boshlanish<input type="date" value={q.boshlanish||""} onChange={e=>updateQuarter(index,"boshlanish",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}/></label><label className="text-[11px]" style={{color:palette.muted}}>Tugash<input type="date" value={q.tugash||""} onChange={e=>updateQuarter(index,"tugash",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}/></label><label className="text-[11px]" style={{color:palette.muted}}>Holat<select value={q.holat||"taxminiy"} onChange={e=>updateQuarter(index,"holat",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="taxminiy">Taxminiy</option><option value="tasdiqlangan">Tasdiqlangan</option></select></label></div>)}</div>
+      {showYear && <Card className="p-5"><div className="flex flex-wrap items-start justify-between gap-3 mb-5"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{__kbUi("O‘quv yili va 4 chorak")}</h2><p className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Taxminiy sanalar sariq, administrator tasdiqlagan sanalar yashil. Tahrirlar avtomatik saqlanadi.")}</p></div><button onClick={suggest} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.amberBg,color:palette.amber}}>{__kbUi("Taxminiy sanalarni yaratish va saqlash")}</button></div>
+        <div className="grid sm:grid-cols-4 gap-3 mb-4"><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("O‘quv yili")}<input value={form.nomi} onChange={e=>changeForm({...form,nomi:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("Boshlanish")}<input type="date" value={form.boshlanish} onChange={e=>changeForm({...form,boshlanish:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("Tugash")}<input type="date" value={form.tugash} onChange={e=>changeForm({...form,tugash:e.target.value})} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("O‘qish haftasi")}<select value={form.hafta_kunlari} onChange={e=>changeForm({...form,hafta_kunlari:Number(e.target.value)})} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value={5}>{__kbUi("5 kun")}</option><option value={6}>{__kbUi("6 kun")}</option></select></label></div>
+        <div className="space-y-2">{form.choraklar.map((q,index)=><div key={q.chorak} className="grid grid-cols-[70px_1fr_1fr_130px] gap-2 items-end rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black pb-2" style={{color:palette.ink}}>{q.chorak}{__kbUi("-chorak")}</div><label className="text-[11px]" style={{color:palette.muted}}>{__kbUi("Boshlanish")}<input type="date" value={q.boshlanish||""} onChange={e=>updateQuarter(index,"boshlanish",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}/></label><label className="text-[11px]" style={{color:palette.muted}}>{__kbUi("Tugash")}<input type="date" value={q.tugash||""} onChange={e=>updateQuarter(index,"tugash",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}/></label><label className="text-[11px]" style={{color:palette.muted}}>{__kbUi("Holat")}<select value={q.holat||"taxminiy"} onChange={e=>updateQuarter(index,"holat",e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="taxminiy">{__kbUi("Taxminiy")}</option><option value="tasdiqlangan">{__kbUi("Tasdiqlangan")}</option></select></label></div>)}</div>
       </Card>}
-      {showShift && <Card className="p-5"><h2 className="text-xl font-black mb-1" style={{color:palette.ink}}>Smena va dars vaqtlari</h2><p className="text-xs mb-4" style={{color:palette.muted}}>Har smenaning vaqti generator va o‘qituvchi bandligini aniq hisoblaydi.</p><div className="space-y-3">{form.smenalar.map((s,index)=><div key={s.smena} className="rounded-2xl p-3" style={{background:palette.cream}}><div className="font-black text-sm mb-2" style={{color:palette.ink}}>{s.smena}-smena</div><div className="grid grid-cols-2 gap-2">{[["boshlanish_vaqti","Boshlanish","time"],["dars_soni","Dars soni","number"],["dars_daqiqa","Dars daqiqasi","number"],["tanaffus_daqiqa","Tanaffus","number"],["katta_tanaffus_darsdan_keyin","Katta tanaffusdan oldin","number"],["katta_tanaffus_daqiqa","Katta tanaffus","number"]].map(([key,label,type])=><label key={key} className="text-[11px]" style={{color:palette.muted}}>{label}<input type={type} value={s[key]||""} onChange={e=>updateShift(index,key,e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}/></label>)}</div></div>)}</div></Card>}
+      {showShift && <Card className="p-5"><h2 className="text-xl font-black mb-1" style={{color:palette.ink}}>{__kbUi("Smena va dars vaqtlari")}</h2><p className="text-xs mb-4" style={{color:palette.muted}}>{__kbUi("Har smenaning vaqti generator va o‘qituvchi bandligini aniq hisoblaydi.")}</p><div className="space-y-3">{form.smenalar.map((s,index)=><div key={s.smena} className="rounded-2xl p-3" style={{background:palette.cream}}><div className="font-black text-sm mb-2" style={{color:palette.ink}}>{s.smena}{__kbUi("-smena")}</div><div className="grid grid-cols-2 gap-2">{[["boshlanish_vaqti","Boshlanish","time"],["dars_soni","Dars soni","number"],["dars_daqiqa","Dars daqiqasi","number"],["tanaffus_daqiqa","Tanaffus","number"],["katta_tanaffus_darsdan_keyin","Katta tanaffusdan oldin","number"],["katta_tanaffus_daqiqa","Katta tanaffus","number"]].map(([key,label,type])=><label key={key} className="text-[11px]" style={{color:palette.muted}}>{__kbUi(label)}<input type={type} value={s[key]||""} onChange={e=>updateShift(index,key,e.target.value)} className="w-full mt-1 p-2 rounded-xl border bg-white" style={{borderColor:palette.line}}/></label>)}</div></div>)}</div></Card>}
     </div>
-    {showDays && <div className="grid xl:grid-cols-[.75fr_1.25fr] gap-4"><Card className="p-5"><h2 className="text-xl font-black mb-4" style={{color:palette.ink}}>Maxsus kun qo‘shish</h2><div className="space-y-2.5"><input type="date" value={special.sana} onChange={e=>setSpecial({...special,sana:e.target.value})} className="w-full p-2.5 rounded-xl border" style={{borderColor:palette.line}}/><select value={special.turi} onChange={e=>setSpecial({...special,turi:e.target.value})} className="w-full p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="bayram">Bayram / dam</option><option value="tatil">Ta’til</option><option value="qoshimcha_dam">Qo‘shimcha dam</option><option value="qoshimcha_oqish">Qo‘shimcha o‘qish kuni</option><option value="oqish">O‘qish kuni</option></select><input value={special.nomi} onChange={e=>setSpecial({...special,nomi:e.target.value})} placeholder="Masalan: Bayram yoki ko‘chirilgan o‘qish kuni" className="w-full p-2.5 rounded-xl border" style={{borderColor:palette.line}}/><select value={special.holat} onChange={e=>setSpecial({...special,holat:e.target.value})} className="w-full p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="taxminiy">Taxminiy</option><option value="tasdiqlangan">Tasdiqlangan</option></select><button onClick={saveSpecial} disabled={saving} className="w-full py-3 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>{saving?"Saqlanmoqda...":"Kunni belgilash"}</button></div></Card>
-      <Card className="p-5"><div className="flex items-center justify-between gap-3 mb-4"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>Belgilangan kunlar</h2><p className="text-xs mt-1" style={{color:palette.muted}}>Qizil — o‘qish yo‘q. Sariq — taxminiy. Yashil — tasdiqlangan.</p></div><button onClick={save} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>Hammasini saqlash</button></div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[360px] overflow-auto pr-1">{(setup?.maxsus_kunlar||[]).map(day=><div key={day.id||day.sana} className="rounded-2xl p-3 flex gap-2 items-start" style={dayStyle(day)}><div className="flex-1"><div className="text-sm font-black">{day.sana}</div><div className="text-xs mt-1">{day.nomi||day.turi} · {day.holat}</div></div><button onClick={()=>removeSpecial(day)} className="text-xs font-black">×</button></div>)}{!(setup?.maxsus_kunlar||[]).length&&<div className="text-sm" style={{color:palette.muted}}>Hali maxsus kun qo‘shilmagan.</div>}</div></Card></div>}
+    {showDays && <div className="grid xl:grid-cols-[.75fr_1.25fr] gap-4"><Card className="p-5"><h2 className="text-xl font-black mb-4" style={{color:palette.ink}}>{__kbUi("Maxsus kun qo‘shish")}</h2><div className="space-y-2.5"><input type="date" value={special.sana} onChange={e=>setSpecial({...special,sana:e.target.value})} className="w-full p-2.5 rounded-xl border" style={{borderColor:palette.line}}/><select value={special.turi} onChange={e=>setSpecial({...special,turi:e.target.value})} className="w-full p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="bayram">{__kbUi("Bayram / dam")}</option><option value="tatil">{__kbUi("Ta’til")}</option><option value="qoshimcha_dam">{__kbUi("Qo‘shimcha dam")}</option><option value="qoshimcha_oqish">{__kbUi("Qo‘shimcha o‘qish kuni")}</option><option value="oqish">{__kbUi("O‘qish kuni")}</option></select><input value={special.nomi} onChange={e=>setSpecial({...special,nomi:e.target.value})} placeholder={__kbUi("Masalan: Bayram yoki ko‘chirilgan o‘qish kuni")} className="w-full p-2.5 rounded-xl border" style={{borderColor:palette.line}}/><select value={special.holat} onChange={e=>setSpecial({...special,holat:e.target.value})} className="w-full p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="taxminiy">{__kbUi("Taxminiy")}</option><option value="tasdiqlangan">{__kbUi("Tasdiqlangan")}</option></select><button onClick={saveSpecial} disabled={saving} className="w-full py-3 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>{saving?__kbUi("Saqlanmoqda..."):__kbUi("Kunni belgilash")}</button></div></Card>
+      <Card className="p-5"><div className="flex items-center justify-between gap-3 mb-4"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{__kbUi("Belgilangan kunlar")}</h2><p className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Qizil — o‘qish yo‘q. Sariq — taxminiy. Yashil — tasdiqlangan.")}</p></div><button onClick={save} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{__kbUi("Hammasini saqlash")}</button></div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[360px] overflow-auto pr-1">{(setup?.maxsus_kunlar||[]).map(day=><div key={day.id||day.sana} className="rounded-2xl p-3 flex gap-2 items-start" style={dayStyle(day)}><div className="flex-1"><div className="text-sm font-black">{day.sana}</div><div className="text-xs mt-1">{day.nomi||day.turi} · {day.holat}</div></div><button onClick={()=>removeSpecial(day)} className="text-xs font-black">×</button></div>)}{!(setup?.maxsus_kunlar||[]).length&&<div className="text-sm" style={{color:palette.muted}}>{__kbUi("Hali maxsus kun qo‘shilmagan.")}</div>}</div></Card></div>}
     {showClassDays && <ClassDayBlockPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>}
   </div>;
 }
 
 function ClassHourPanel({ token, apiBase, maktabId, setup, reload, setStep }) {
+  useKbInterfaceLocale();
   const classes=setup?.sinflar||[];const rules=setup?.sinf_soatlari||[];const weekdays=Number(setup?.oquv_yili?.hafta_kunlari||6);const maxPeriod=Math.max(1,...(setup?.smenalar||[]).map(s=>Number(s.dars_soni||0)));
   const [panelOpen,setPanelOpen]=useState(false);const [mode,setMode]=useState("parallel");const [grades,setGrades]=useState([]);const [classIds,setClassIds]=useState([]);const [day,setDay]=useState(5);const [period,setPeriod]=useState(Math.min(6,maxPeriod));const [message,setMessage]=useState(null);const [saving,setSaving]=useState(false);
   const availableGrades=useMemo(()=>[...new Set(classes.map(c=>Number(String(c.sinf||"").replace(/\D/g,""))).filter(Boolean))].sort((a,b)=>a-b),[classes]);
@@ -1693,12 +1707,13 @@ function ClassHourPanel({ token, apiBase, maktabId, setup, reload, setStep }) {
   const toggle=(list,setter,value)=>setter(list.includes(String(value))?list.filter(x=>x!==String(value)):[...list,String(value)]);
   const selectedCount=mode==="parallel"?classes.filter(c=>grades.includes(String(Number(String(c.sinf||"").replace(/\D/g,""))))).length:classIds.length;
   const saveRule=async goToGenerator=>{if(!selectedCount)return setMessage({tone:"error",text:"Kamida bitta parallel yoki aniq sinfni tanlang."});setSaving(true);setMessage(null);try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_soati_bulk?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,qamrov:mode,sinf_darajalari:grades.map(Number),sinf_idlar:classIds.map(Number),hafta_kuni:Number(day),dars_raqami:Number(period)})});const skipped=d.otkazib_yuborildi||[];let text=`${d.saqlandi||0} ta sinfga Kelajak soati saqlandi. U sinfning o‘z smenasida ${smartDays.find(([x])=>Number(x)===Number(day))?.[1]}, ${period}-darsga va sinf rahbariga biriktiriladi.`;if(skipped.length)text+=` ${skipped.length} ta sinf o‘tkazib yuborildi: ${skipped.slice(0,4).map(x=>`${x.sinf} — ${x.sabab}`).join("; ")}`;if(goToGenerator)text+=" Jadval yaratish bosqichiga o‘ting va yagona asosiy tugmani bosing.";setMessage({tone:skipped.length?"warning":"success",text});await reload();if(goToGenerator)setStep?.(4);}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
-  const remove=async row=>{if(!window.confirm(`${row.sinf}-${row.harf} sinf soati qoidasi olib tashlansinmi?`))return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_soati?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${row.sinf_id}`,{method:"DELETE"});setMessage({tone:"success",text:`${row.sinf}-${row.harf} sinf soati qoidasi olib tashlandi. Faol jadval o‘zgarmaydi; keyingi draftda qo‘llanmaydi.`});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
-  return <Card className="p-5"><button type="button" onClick={()=>setPanelOpen(v=>!v)} className="w-full flex flex-wrap items-start justify-between gap-3 text-left"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{panelOpen?"▾":"▸"} Kelajak soatini avtomatik joylash</h2>{panelOpen&&<p className="text-xs mt-1" style={{color:palette.muted}}>Kun va dars raqamini bir marta belgilang. Har sinf o‘z smenasida, aynan shu vaqtda haftasiga <b>1 soat KELAJAK SOATI</b> o‘tiladi va sinf rahbariga biriktiriladi.</p>}</div><div className="flex items-center gap-2"><div className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>{rules.length} ta faol qoida</div><span className="text-xs font-black" style={{color:palette.blue}}>{panelOpen?"Yopish":"Ochish"}</span></div></button>{panelOpen&&<>{message&&<div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}<div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4 mt-4"><div className="rounded-2xl p-4" style={{background:palette.cream}}><div className="flex gap-2 mb-3"><button onClick={()=>setMode("parallel")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="parallel"?palette.blue:"#fff",color:mode==="parallel"?"#fff":palette.ink}}>Parallel sinflar</button><button onClick={()=>setMode("aniq")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="aniq"?palette.blue:"#fff",color:mode==="aniq"?"#fff":palette.ink}}>Aniq sinflar</button></div>{mode==="parallel"?<><div className="text-xs font-black mb-2">Qaysi parallel?</div><div className="grid grid-cols-4 sm:grid-cols-6 gap-2">{availableGrades.map(g=><button key={g} onClick={()=>toggle(grades,setGrades,g)} className="py-2 rounded-xl border text-xs font-black" style={{background:grades.includes(String(g))?palette.sky:"#fff",borderColor:grades.includes(String(g))?palette.blue:palette.line,color:grades.includes(String(g))?palette.blue:palette.muted}}>{g}-sinf</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setGrades(availableGrades.map(String))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>Barchasi</button><button onClick={()=>setGrades([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>Tozalash</button></div></>:<><div className="text-xs font-black mb-2">Qaysi sinflar?</div><div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-40 overflow-auto">{classes.map(c=><button key={c.id} onClick={()=>toggle(classIds,setClassIds,c.id)} className="py-2 rounded-xl border text-xs font-black" style={{background:classIds.includes(String(c.id))?palette.sky:"#fff",borderColor:classIds.includes(String(c.id))?palette.blue:palette.line,color:classIds.includes(String(c.id))?palette.blue:palette.muted}}>{c.sinf}-{c.harf}</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setClassIds(classes.map(c=>String(c.id)))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>Barchasi</button><button onClick={()=>setClassIds([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>Tozalash</button></div></>}<div className="text-xs font-black mt-4 mb-2">Qaysi kuni?</div><div className="grid grid-cols-3 gap-2">{smartDays.slice(0,weekdays).map(([d,n])=><button key={d} onClick={()=>setDay(Number(d))} className="py-2 rounded-xl border text-xs font-black" style={{background:Number(day)===Number(d)?palette.sky:"#fff",borderColor:Number(day)===Number(d)?palette.blue:palette.line,color:Number(day)===Number(d)?palette.blue:palette.muted}}>{n}</button>)}</div><label className="block text-xs font-black mt-4">Qaysi dars?<select value={period} onChange={e=>setPeriod(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white">{Array.from({length:maxPeriod},(_,i)=><option key={i+1} value={i+1}>{i+1}-dars</option>)}</select></label><div className="text-[11px] mt-2" style={{color:palette.muted}}>Smena alohida tanlanmaydi: har bir sinfning o‘z smenasi avtomatik olinadi.</div><div className="grid sm:grid-cols-2 gap-2 mt-4"><button onClick={()=>saveRule(false)} disabled={saving} className="py-3 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>Faqat qoidani saqlash ({selectedCount})</button><button onClick={()=>saveRule(true)} disabled={saving} className="py-3 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>Saqlab, yagona generatorga o‘tish</button></div></div><div><div className="text-sm font-black mb-2" style={{color:palette.ink}}>Faol Kelajak soati qoidalari</div><div className="space-y-2 max-h-[470px] overflow-auto">{rules.map(r=><div key={r.id} className="rounded-2xl border p-3 flex items-center gap-3" style={{borderColor:palette.line,background:"#fff"}}><div className="flex-1 min-w-0"><div className="text-sm font-black" style={{color:palette.ink}}>{r.sinf}-{r.harf} · {smartDays.find(([d])=>Number(d)===Number(r.hafta_kuni))?.[1]} · {r.dars_raqami}-dars</div><div className="text-xs mt-1" style={{color:r.rahbar_ismi?palette.teal:palette.red}}>{r.smena}-smena · Sinf rahbari: {r.rahbar_ismi||"belgilanmagan"}</div></div><button onClick={()=>remove(r)} className="w-8 h-8 rounded-xl font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rules.length&&<SmartNotice tone="info">Kelajak soati qoidasi hali yo‘q. Sinflar, kun va darsni tanlab saqlang.</SmartNotice>}</div></div></div></>}</Card>;
+  const remove=async row=>{if(!window.confirm(__kbUi(`${row.sinf}-${row.harf} sinf soati qoidasi olib tashlansinmi?`)))return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/sinf_soati?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${row.sinf_id}`,{method:"DELETE"});setMessage({tone:"success",text:`${row.sinf}-${row.harf} sinf soati qoidasi olib tashlandi. Faol jadval o‘zgarmaydi; keyingi draftda qo‘llanmaydi.`});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
+  return <Card className="p-5"><button type="button" onClick={()=>setPanelOpen(v=>!v)} className="w-full flex flex-wrap items-start justify-between gap-3 text-left"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{panelOpen?__kbUi("▾"):__kbUi("▸")}{__kbUi(" Kelajak soatini avtomatik joylash")}</h2>{panelOpen&&<p className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Kun va dars raqamini bir marta belgilang. Har sinf o‘z smenasida, aynan shu vaqtda haftasiga ")}<b>{__kbUi("1 soat KELAJAK SOATI")}</b>{__kbUi(" o‘tiladi va sinf rahbariga biriktiriladi.")}</p>}</div><div className="flex items-center gap-2"><div className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>{rules.length}{__kbUi(" ta faol qoida")}</div><span className="text-xs font-black" style={{color:palette.blue}}>{panelOpen?__kbUi("Yopish"):__kbUi("Ochish")}</span></div></button>{panelOpen&&<>{message&&<div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}<div className="grid xl:grid-cols-[1.1fr_.9fr] gap-4 mt-4"><div className="rounded-2xl p-4" style={{background:palette.cream}}><div className="flex gap-2 mb-3"><button onClick={()=>setMode("parallel")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="parallel"?palette.blue:"#fff",color:mode==="parallel"?"#fff":palette.ink}}>{__kbUi("Parallel sinflar")}</button><button onClick={()=>setMode("aniq")} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:mode==="aniq"?palette.blue:"#fff",color:mode==="aniq"?"#fff":palette.ink}}>{__kbUi("Aniq sinflar")}</button></div>{mode==="parallel"?<><div className="text-xs font-black mb-2">{__kbUi("Qaysi parallel?")}</div><div className="grid grid-cols-4 sm:grid-cols-6 gap-2">{availableGrades.map(g=><button key={g} onClick={()=>toggle(grades,setGrades,g)} className="py-2 rounded-xl border text-xs font-black" style={{background:grades.includes(String(g))?palette.sky:"#fff",borderColor:grades.includes(String(g))?palette.blue:palette.line,color:grades.includes(String(g))?palette.blue:palette.muted}}>{g}{__kbUi("-sinf")}</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setGrades(availableGrades.map(String))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>{__kbUi("Barchasi")}</button><button onClick={()=>setGrades([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>{__kbUi("Tozalash")}</button></div></>:<><div className="text-xs font-black mb-2">{__kbUi("Qaysi sinflar?")}</div><div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-40 overflow-auto">{classes.map(c=><button key={c.id} onClick={()=>toggle(classIds,setClassIds,c.id)} className="py-2 rounded-xl border text-xs font-black" style={{background:classIds.includes(String(c.id))?palette.sky:"#fff",borderColor:classIds.includes(String(c.id))?palette.blue:palette.line,color:classIds.includes(String(c.id))?palette.blue:palette.muted}}>{c.sinf}-{c.harf}</button>)}</div><div className="flex gap-2 mt-2"><button onClick={()=>setClassIds(classes.map(c=>String(c.id)))} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.blue}}>{__kbUi("Barchasi")}</button><button onClick={()=>setClassIds([])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:"#fff",color:palette.muted}}>{__kbUi("Tozalash")}</button></div></>}<div className="text-xs font-black mt-4 mb-2">{__kbUi("Qaysi kuni?")}</div><div className="grid grid-cols-3 gap-2">{smartDays.slice(0,weekdays).map(([d,n])=><button key={d} onClick={()=>setDay(Number(d))} className="py-2 rounded-xl border text-xs font-black" style={{background:Number(day)===Number(d)?palette.sky:"#fff",borderColor:Number(day)===Number(d)?palette.blue:palette.line,color:Number(day)===Number(d)?palette.blue:palette.muted}}>{__kbUi(n)}</button>)}</div><label className="block text-xs font-black mt-4">{__kbUi("Qaysi dars?")}<select value={period} onChange={e=>setPeriod(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white">{__kbUi(Array.from({length:maxPeriod},(_,i)=><option key={i+1} value={i+1}>{i+1}{__kbUi("-dars")}</option>))}</select></label><div className="text-[11px] mt-2" style={{color:palette.muted}}>{__kbUi("Smena alohida tanlanmaydi: har bir sinfning o‘z smenasi avtomatik olinadi.")}</div><div className="grid sm:grid-cols-2 gap-2 mt-4"><button onClick={()=>saveRule(false)} disabled={saving} className="py-3 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>{__kbUi("Faqat qoidani saqlash (")}{selectedCount})</button><button onClick={()=>saveRule(true)} disabled={saving} className="py-3 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>{__kbUi("Saqlab, yagona generatorga o‘tish")}</button></div></div><div><div className="text-sm font-black mb-2" style={{color:palette.ink}}>{__kbUi("Faol Kelajak soati qoidalari")}</div><div className="space-y-2 max-h-[470px] overflow-auto">{rules.map(r=><div key={r.id} className="rounded-2xl border p-3 flex items-center gap-3" style={{borderColor:palette.line,background:"#fff"}}><div className="flex-1 min-w-0"><div className="text-sm font-black" style={{color:palette.ink}}>{r.sinf}-{r.harf} · {__kbUi(smartDays.find(([d])=>Number(d)===Number(r.hafta_kuni))?.[1])} · {r.dars_raqami}{__kbUi("-dars")}</div><div className="text-xs mt-1" style={{color:r.rahbar_ismi?palette.teal:palette.red}}>{r.smena}{__kbUi("-smena · Sinf rahbari: ")}{r.rahbar_ismi||__kbUi("belgilanmagan")}</div></div><button onClick={()=>remove(r)} className="w-8 h-8 rounded-xl font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rules.length&&<SmartNotice tone="info">{__kbUi("Kelajak soati qoidasi hali yo‘q. Sinflar, kun va darsni tanlab saqlang.")}</SmartNotice>}</div></div></div></>}</Card>;
 }
 
 
 function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, token, apiBase, maktabId, reload }) {
+  useKbInterfaceLocale();
   const canEditAvailability = setup?.can_manage_teacher_availability === true;
   const editScope = `${apiBase}\n${token}\n${maktabId}`;
   const latestAccessRef = useRef(null);
@@ -2166,7 +2181,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
     markDirty(currentRuleTeacher);
   };
 
-  if (!canEditAvailability) return <SmartNotice tone="info">O‘qituvchi vaqti va metod kunini faqat admin yoki maktabning o‘quv ishlari bo‘yicha direktor o‘rinbosari belgilaydi.</SmartNotice>;
+  if (!canEditAvailability) return <SmartNotice tone="info">{__kbUi("O‘qituvchi vaqti va metod kunini faqat admin yoki maktabning o‘quv ishlari bo‘yicha direktor o‘rinbosari belgilaydi.")}</SmartNotice>;
 
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
@@ -2174,18 +2189,14 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
     <Card className="p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-base font-black" style={{ color: palette.ink }}>
-            O‘qituvchining dars qo‘yilmaydigan vaqtlarini belgilang
-          </h2>
-          <p className="text-xs mt-1" style={{ color: palette.muted }}>
-            O‘qituvchini lupa bilan toping. Kun tugmasini bossangiz o‘sha kuni dars qo‘yilmaydi; smena yoki dars raqamini bossangiz faqat tanlangan vaqt o‘zgaradi. “🎯 Faqat shu vaqtlarda dars” — teskari rejim: hamma vaqt yopiladi, siz ochgan vaqtlar (yashil) ga dars qo‘yiladi.
-          </p>
+          <h2 className="text-base font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchining dars qo‘yilmaydigan vaqtlarini belgilang")}</h2>
+          <p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("O‘qituvchini lupa bilan toping. Kun tugmasini bossangiz o‘sha kuni dars qo‘yilmaydi; smena yoki dars raqamini bossangiz faqat tanlangan vaqt o‘zgaradi. “🎯 Faqat shu vaqtlarda dars” — teskari rejim: hamma vaqt yopiladi, siz ochgan vaqtlar (yashil) ga dars qo‘yiladi.")}</p>
           <div className="flex flex-wrap items-center gap-1.5 mt-2">
-            <span className="text-[10px] font-black" style={{ color: palette.muted }}>Barcha o‘qituvchiga ({visibleTeachers.length} ta) metod kuni:</span>
+            <span className="text-[10px] font-black" style={{ color: palette.muted }}>{__kbUi("Barcha o‘qituvchiga (")}{visibleTeachers.length}{__kbUi(" ta) metod kuni:")}</span>
             {smartDays.slice(0, weekdays).map(([day, label]) => {
               const ids = visibleTeachers.map(teacher => String(teacher.user_id));
               const allSet = ids.length > 0 && ids.every(item => (states[item]?.methods || {})[day]);
-              return <button key={day} type="button" disabled={saving} onClick={() => setMethodDayForAll(day)} className="px-2 py-1 rounded-md border text-[9px] font-black disabled:opacity-50" style={allSet ? { background: "#FDE2E2", color: "#B42318", borderColor: "#E7AFAF" } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={allSet ? "Barchadan olib tashlash" : "Barchaga metod kuni qo‘yish"}>{label}</button>;
+              return <button key={day} type="button" disabled={saving} onClick={() => setMethodDayForAll(day)} className="px-2 py-1 rounded-md border text-[9px] font-black disabled:opacity-50" style={allSet ? { background: "#FDE2E2", color: "#B42318", borderColor: "#E7AFAF" } : { background: "#fff", color: palette.ink, borderColor: palette.line }} title={allSet ? __kbUi("Barchadan olib tashlash") : __kbUi("Barchaga metod kuni qo‘yish")}>{__kbUi(label)}</button>;
             })}
           </div>
         </div>
@@ -2195,39 +2206,36 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
           className="px-3 py-2 rounded-lg text-[10px] font-black text-white"
           style={{ background: dirtyIds.length ? palette.blue : "#9BA8B2" }}
         >
-          {saving ? "Saqlanmoqda..." : `Saqlash (${dirtyIds.length})`}
+          {saving ? __kbUi("Saqlanmoqda...") : __kbUi(`Saqlash (${dirtyIds.length})`)}
         </button>
       </div>
 
       <label className="mt-3 flex items-center gap-2 rounded-xl border bg-white px-3 py-2.5" style={{ borderColor: palette.line }}>
         <Search size={17} style={{ color: palette.blue }}/>
-        <input value={teacherSearch} onChange={event => setTeacherSearch(event.target.value)} placeholder="O‘qituvchini F.I.Sh. bo‘yicha qidiring..." className="min-w-0 flex-1 bg-transparent outline-none text-sm"/>
+        <input value={teacherSearch} onChange={event => setTeacherSearch(event.target.value)} placeholder={__kbUi("O‘qituvchini F.I.Sh. bo‘yicha qidiring...")} className="min-w-0 flex-1 bg-transparent outline-none text-sm"/>
         {teacherSearch && <button type="button" onClick={() => setTeacherSearch("")} className="text-sm font-black" style={{ color: palette.red }}>×</button>}
       </label>
 
       <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-bold">
-        <span style={{ color: "#28765B" }}>🟩 BO‘SH — dars qo‘yish mumkin</span>
-        <span style={{ color: "#B42318" }}>🟥 QATTIQ — dars qo‘yilmaydi</span>
-        <span style={{ color: "#9C5700" }}>🟨 YUMSHOQ — iloji bo‘lsa bo‘sh</span>
+        <span style={{ color: "#28765B" }}>{__kbUi("🟩 BO‘SH — dars qo‘yish mumkin")}</span>
+        <span style={{ color: "#B42318" }}>{__kbUi("🟥 QATTIQ — dars qo‘yilmaydi")}</span>
+        <span style={{ color: "#9C5700" }}>{__kbUi("🟨 YUMSHOQ — iloji bo‘lsa bo‘sh")}</span>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 mt-2 rounded-lg border p-2" style={{ borderColor: palette.line }}>
         <div className="text-[10px] font-bold" style={{ color: palette.muted }}>
-          {visibleTeachers.length} o‘qituvchi · sahifada {pagedTeachers.length} ta · {teacherPage}/{teacherPageCount}
+          {visibleTeachers.length}{__kbUi(" o‘qituvchi · sahifada ")}{pagedTeachers.length}{__kbUi(" ta · ")}{teacherPage}/{teacherPageCount}
         </div>
         <div className="flex gap-1">
-          <button onClick={() => setTeacherPage(1)} disabled={teacherPage <= 1} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>Boshi</button>
-          <button onClick={() => setTeacherPage(page => Math.max(1, page - 1))} disabled={teacherPage <= 1} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>Oldingi</button>
-          <button onClick={() => setTeacherPage(page => Math.min(teacherPageCount, page + 1))} disabled={teacherPage >= teacherPageCount} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>Keyingi</button>
-          <button onClick={() => setTeacherPage(teacherPageCount)} disabled={teacherPage >= teacherPageCount} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>Oxiri</button>
+          <button onClick={() => setTeacherPage(1)} disabled={teacherPage <= 1} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>{__kbUi("Boshi")}</button>
+          <button onClick={() => setTeacherPage(page => Math.max(1, page - 1))} disabled={teacherPage <= 1} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>{__kbUi("Oldingi")}</button>
+          <button onClick={() => setTeacherPage(page => Math.min(teacherPageCount, page + 1))} disabled={teacherPage >= teacherPageCount} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Keyingi")}</button>
+          <button onClick={() => setTeacherPage(teacherPageCount)} disabled={teacherPage >= teacherPageCount} className="px-2 py-1 rounded text-[10px] font-black" style={{ background: palette.cream }}>{__kbUi("Oxiri")}</button>
         </div>
       </div>
 
       <div className="mt-2 rounded-lg p-2 text-[10px]"
-           style={{ background: palette.sky, color: palette.blue }}>
-        O‘qituvchi qatoridagi kun tugmasi: yashil — dars qo‘yish mumkin, qizil — shu kuni umuman dars qo‘yilmaydi.
-        Faqat bitta smena yoki dars vaqtini o‘zgartirish kerak bo‘lsa, smena nomini yoki dars raqamini bosing. Oxirida “Saqlash”ni bosing.
-      </div>
+           style={{ background: palette.sky, color: palette.blue }}>{__kbUi("O‘qituvchi qatoridagi kun tugmasi: yashil — dars qo‘yish mumkin, qizil — shu kuni umuman dars qo‘yilmaydi. Faqat bitta smena yoki dars vaqtini o‘zgartirish kerak bo‘lsa, smena nomini yoki dars raqamini bosing. Oxirida “Saqlash”ni bosing.")}</div>
 
       <div className="overflow-auto max-h-[76vh] mt-2 rounded-xl border"
            style={{ borderColor: palette.line }}>
@@ -2244,9 +2252,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
                   minWidth: 185, width: 185,
                   borderBottom: `1px solid ${palette.line}`,
                 }}
-              >
-                O‘qituvchi
-              </th>
+              >{__kbUi("O‘qituvchi")}</th>
               {smartDays.slice(0, weekdays).map(([day, name]) => <th
                 key={day}
                 className="p-1 text-center text-[9px] sticky top-0 z-20"
@@ -2256,7 +2262,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
                   borderBottom: `1px solid ${palette.line}`,
                 }}
               >
-                {name}
+                {__kbUi(name)}
               </th>)}
             </tr>
           </thead>
@@ -2288,41 +2294,35 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
                         {isDirty && <span
                           className="px-2 py-0.5 rounded-full text-[10px] font-black"
                           style={{ background: palette.amberBg, color: palette.amber }}
-                        >
-                          SAQLANMAGAN
-                        </span>}
+                        >{__kbUi("SAQLANMAGAN")}</span>}
                       </div>
                       <div className="text-[8px] mt-0.5 leading-3"
                            style={{ color: splitSubjects(teacher).length ? palette.teal : palette.red, maxHeight: 24, overflow: "hidden" }}>
-                        {splitSubjects(teacher).join(", ") || "Fan belgilanmagan"}
+                        {splitSubjects(teacher).join(", ") || __kbUi("Fan belgilanmagan")}
                       </div>
-                      <div className="text-[8px] mt-0.5 truncate" style={{ color: palette.muted }} title={teacherClasses(teacher)}>
-                        {teacherClasses(teacher)}
+                      <div className="text-[8px] mt-0.5 truncate" style={{ color: palette.muted }} title={__kbUi(teacherClasses(teacher))}>
+                        {__kbUi(teacherClasses(teacher))}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-1">
                         <button
                           onClick={() => setSelectedTeacher(uid)}
                           className="px-1.5 py-0.5 rounded-md text-[8px] font-black"
                           style={{ background: palette.sky, color: palette.blue }}
-                        >
-                          Qoidalari
-                        </button>
+                        >{__kbUi("Qoidalari")}</button>
                         <button
                           onClick={() => clearTeacherTimes(uid)}
                           disabled={saving}
                           className="px-1.5 py-0.5 rounded-md text-[8px] font-black disabled:opacity-45"
                           style={{ background: palette.redBg, color: palette.red }}
-                        >
-                          Vaqtlarini tozalash
-                        </button>
+                        >{__kbUi("Vaqtlarini tozalash")}</button>
                         <button
                           onClick={() => toggleAllowMode(uid)}
                           disabled={saving}
                           className="px-1.5 py-0.5 rounded-md text-[8px] font-black disabled:opacity-45"
                           style={isAllowMode(uid) ? { background: palette.green, color: "#fff" } : { background: palette.mint, color: palette.green }}
-                          title="Hamma vaqt yopiladi, keyin dars qo‘yiladigan kun / smena / soatlarni bosib ochasiz (yashil)"
+                          title={__kbUi("Hamma vaqt yopiladi, keyin dars qo‘yiladigan kun / smena / soatlarni bosib ochasiz (yashil)")}
                         >
-                          {isAllowMode(uid) ? "✓ Faqat yashil vaqtlarda dars · rejimdan chiqish" : "🎯 Faqat shu vaqtlarda dars"}
+                          {isAllowMode(uid) ? __kbUi("✓ Faqat yashil vaqtlarda dars · rejimdan chiqish") : __kbUi("🎯 Faqat shu vaqtlarda dars")}
                         </button>
                       </div>
                     </div>
@@ -2352,17 +2352,16 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
                       disabled={saving}
                       className="w-full h-6 rounded-md border text-[8px] font-black disabled:opacity-55"
                       style={levelStyle(allDayKeys(day).every(slotKey => teacherState.slots[slotKey] === "hard") ? "hard" : allDayKeys(day).some(slotKey => teacherState.slots[slotKey] === "hard") ? "mixed" : undefined)}
-                      title="Bosing: shu kun butunlay ochiladi / yopiladi"
-                    >
-                      KUN · {allDayKeys(day).every(slotKey => teacherState.slots[slotKey] === "hard") ? "YOPIQ" : allDayKeys(day).some(slotKey => teacherState.slots[slotKey] === "hard") ? "QISMAN" : "DARS QO‘YILADI"}
+                      title={__kbUi("Bosing: shu kun butunlay ochiladi / yopiladi")}
+                    >{__kbUi("KUN · ")}{allDayKeys(day).every(slotKey => teacherState.slots[slotKey] === "hard") ? __kbUi("YOPIQ") : allDayKeys(day).some(slotKey => teacherState.slots[slotKey] === "hard") ? __kbUi("QISMAN") : __kbUi("DARS QO‘YILADI")}
                     </button> : <button
                       onClick={() => cycleMethod(uid, day)}
                       disabled={saving}
                       className="w-full h-6 rounded-md border text-[8px] font-black disabled:opacity-55"
                       style={levelStyle(methodLevel)}
-                      title={`${methodLabel}: BO‘SH → DARS QO‘YILMAYDI → BO‘SH`}
+                      title={__kbUi(`${methodLabel}: BO‘SH → DARS QO‘YILMAYDI → BO‘SH`)}
                     >
-                      {methodLabel} · {levelText(methodLevel)}
+                      {__kbUi(methodLabel)} · {__kbUi(levelText(methodLevel))}
                     </button>}
 
                     <div className="space-y-1 mt-1">
@@ -2383,9 +2382,9 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
                             disabled={saving}
                             className="w-full h-5 rounded border text-[7px] font-black disabled:opacity-55"
                             style={levelStyle(aggregate)}
-                            title={`${shift.smena}-smena to‘liq: bosganda holati almashadi`}
+                            title={__kbUi(`${shift.smena}-smena to‘liq: bosganda holati almashadi`)}
                           >
-                            {shift.smena}S · {levelText(aggregate)}
+                            {shift.smena}{__kbUi("S · ")}{__kbUi(levelText(aggregate))}
                           </button>
 
                           <div
@@ -2418,7 +2417,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
                                 disabled={saving}
                                 className="h-5 rounded border text-[8px] font-black p-0 disabled:opacity-55"
                                 style={levelStyle(level)}
-                                title={`${shift.smena}-smena ${period}-dars`}
+                                title={__kbUi(`${shift.smena}-smena ${period}-dars`)}
                               >
                                 {period}
                               </button>;
@@ -2437,21 +2436,15 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
         {!visibleTeachers.length && <div
           className="p-8 text-center text-sm"
           style={{ color: palette.muted }}
-        >
-          Qidiruv bo‘yicha o‘qituvchi topilmadi.
-        </div>}
+        >{__kbUi("Qidiruv bo‘yicha o‘qituvchi topilmadi.")}</div>}
       </div>
     </Card>
 
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black" style={{ color: palette.ink }}>
-            O‘qituvchi yuklama qoidalari
-          </h2>
-          <p className="text-xs mt-1" style={{ color: palette.muted }}>
-            Qatordagi “Qoidalari”ni bossangiz shu o‘qituvchi tanlanadi.
-          </p>
+          <h2 className="text-xl font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchi yuklama qoidalari")}</h2>
+          <p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Qatordagi “Qoidalari”ni bossangiz shu o‘qituvchi tanlanadi.")}</p>
         </div>
 
         <select
@@ -2460,12 +2453,12 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
           disabled={saving}
           className="min-w-[280px] p-2.5 rounded-xl border bg-white disabled:opacity-50"
         >
-          <option value="">O‘qituvchini tanlang</option>
+          <option value="">{__kbUi("O‘qituvchini tanlang")}</option>
           {visibleTeachers.map(teacher => <option
             key={teacher.user_id}
             value={teacher.user_id}
           >
-            {teacher.full_name} — {splitSubjects(teacher).join(", ")}
+            {teacher.full_name} — {__kbUi(splitSubjects(teacher).join(", "))}
           </option>)}
         </select>
       </div>
@@ -2482,7 +2475,7 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
           className="text-xs font-bold"
           style={{ color: palette.ink }}
         >
-          {label}
+          {__kbUi(label)}
           <input
             type="number"
             min={min}
@@ -2494,30 +2487,28 @@ function TeacherTimeGridV1869({ setup, selectedTeacher, setSelectedTeacher, toke
           />
         </label>)}
 
-        <label className="text-xs font-bold" style={{ color: palette.ink }}>
-          Afzal smena
-          <select
+        <label className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Afzal smena")}<select
             value={currentRules.afzal_smena}
             onChange={event => updateRule("afzal_smena", event.target.value)}
             disabled={saving}
             className="w-full mt-1.5 p-2.5 rounded-xl border bg-white disabled:opacity-50"
           >
-            <option value={0}>Farqi yo‘q</option>
+            <option value={0}>{__kbUi("Farqi yo‘q")}</option>
             {shifts.map(shift => <option
               key={shift.smena}
               value={shift.smena}
             >
-              {shift.smena}-smena
-            </option>)}
+              {shift.smena}{__kbUi("-smena")}</option>)}
           </select>
         </label>
-      </div> : <SmartNotice tone="info">O‘qituvchini tanlang.</SmartNotice>}
+      </div> : <SmartNotice tone="info">{__kbUi("O‘qituvchini tanlang.")}</SmartNotice>}
     </Card>
   </div>;
 }
 
 
 function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep }) {
+  useKbInterfaceLocale();
   const [classId,setClassId]=useState(String(setup?.sinflar?.[0]?.id||""));
   const [rows,setRows]=useState([]); const [newSubject,setNewSubject]=useState(""); const [roomName,setRoomName]=useState(""); const [roomType,setRoomType]=useState("reserve"); const [message,setMessage]=useState(null); const [saving,setSaving]=useState(false);
   const assignments=useMemo(()=> (setup?.birikmalar||[]).filter(x=>String(x.sinf_id)===String(classId)),[setup,classId]);
@@ -2532,9 +2523,9 @@ function LegacyLoadsStepV191({ token, apiBase, maktabId, setup, reload, setStep 
   const save=async()=>{if(!classId)return;setSaving(true);setMessage(null);try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/fan_soatlari?token=${encodeURIComponent(token)}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fanlar:rows.map(r=>({...r,haftalik_soat:Number(r.haftalik_soat),kunlik_max:Number(r.kunlik_max),afzal_oxirgi_dars:Number(r.afzal_oxirgi_dars),asosiy_oqituvchi_user_id:r.asosiy_oqituvchi_user_id?Number(r.asosiy_oqituvchi_user_id):null,xona_id:r.xona_id?Number(r.xona_id):null,nazorat_soni:Number(r.nazorat_soni),mustahkamlash_soni:Number(r.mustahkamlash_soni),ogirlik:Number(r.ogirlik)}))})});setMessage({tone:"success",text:"Haftalik fan soatlari saqlandi. Guruh o‘qituvchilari “Jadval yaratish” bosqichidagi bitta tasdiqlash oynasida boshqariladi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}finally{setSaving(false);}};
   const teacherOptions=subject=>{const ids=assignments.filter(x=>String(x.fan_nomi).toLowerCase()===String(subject).toLowerCase()).map(x=>String(x.user_id));return (setup?.oqituvchilar||[]).filter(t=>ids.includes(String(t.user_id)));};
   const addRoom=async()=>{if(!roomName.trim())return;try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/xona?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,nomi:roomName.trim(),turi:roomType})});setRoomName("");setMessage({tone:"success",text:"Xona qo‘shildi."});await reload();}catch(e){setMessage({tone:"error",text:e.message});}};
-  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}-smena</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>Fan qo‘shish<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">Fan tanlang</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>Maxsus xona qo‘shish<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder="Masalan: Ingliz tili zaxira xonasi" className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold min-w-[210px]" style={{color:palette.ink}}>Xona turi<select value={roomType} onChange={e=>setRoomType(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="reserve">Zaxira / guruh xonasi</option><option value="sport">Sport zal</option><option value="classroom">Oddiy dars xonasi</option><option value="non_teaching">Dars o‘tilmaydigan xona</option></select></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>+ Xona</button></div>
-  <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">Fan</th><th>Haftalik</th><th>Kunlik max</th><th>Ketma-ket</th><th>Oxirgi afzal</th><th>Asosiy o‘qituvchi</th><th>Xona</th><th>Nazorat</th><th>Tahlil</th><th>Mustahkamlash</th><th>Og‘irlik</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" title="0,5 = har ikki haftada 1 dars (A/B hafta)" value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">Avto / guruhlar</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">Sinf xonasi</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>Yengil</option><option value={2}>O‘rta</option><option value={3}>Og‘ir</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">O‘chir</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.</SmartNotice>}
-  <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">Guruh o‘qituvchilari alohida tasdiqlanadi</div><div className="text-xs mt-1 leading-relaxed">Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini “Jadval yaratish” bosqichidagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.</div></div>
+  return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}<ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/><Card className="p-5"><div className="flex flex-wrap items-end gap-3 mb-3"><label className="text-xs font-bold min-w-[220px]" style={{color:palette.ink}}>{__kbUi("Sinf")}<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{(setup?.sinflar||[]).map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf} · {c.smena}{__kbUi("-smena")}</option>)}</select></label><label className="text-xs font-bold min-w-[250px] flex-1" style={{color:palette.ink}}>{__kbUi("Fan qo‘shish")}<select value={newSubject} onChange={e=>setNewSubject(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="">{__kbUi("Fan tanlang")}</option>{(setup?.fanlar||[]).filter(f=>!rows.some(r=>r.fan_nomi===f)).map(f=><option value={(f)} key={f}>{f}</option>)}</select></label><button onClick={addSubject} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>{__kbUi("+ Fan")}</button><button onClick={save} disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.blue}}>{saving?__kbUi("..."):__kbUi("Saqlash")}</button></div><div className="flex flex-wrap gap-2 items-end mb-5"><label className="text-xs font-bold flex-1 min-w-[230px]" style={{color:palette.ink}}>{__kbUi("Maxsus xona qo‘shish")}<input value={roomName} onChange={e=>setRoomName(e.target.value)} placeholder={__kbUi("Masalan: Ingliz tili zaxira xonasi")} className="w-full mt-1.5 p-2.5 rounded-xl border" style={{borderColor:palette.line}}/></label><label className="text-xs font-bold min-w-[210px]" style={{color:palette.ink}}>{__kbUi("Xona turi")}<select value={roomType} onChange={e=>setRoomType(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}><option value="reserve">{__kbUi("Zaxira / guruh xonasi")}</option><option value="sport">{__kbUi("Sport zal")}</option><option value="classroom">{__kbUi("Oddiy dars xonasi")}</option><option value="non_teaching">{__kbUi("Dars o‘tilmaydigan xona")}</option></select></label><button onClick={addRoom} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>{__kbUi("+ Xona")}</button></div>
+  <div className="overflow-auto"><table className="min-w-[1250px] w-full text-xs"><thead><tr className="text-left" style={{color:palette.muted}}><th className="p-2">{__kbUi("Fan")}</th><th>{__kbUi("Haftalik")}</th><th>{__kbUi("Kunlik max")}</th><th>{__kbUi("Ketma-ket")}</th><th>{__kbUi("Oxirgi afzal")}</th><th>{__kbUi("Asosiy o‘qituvchi")}</th><th>{__kbUi("Xona")}</th><th>{__kbUi("Nazorat")}</th><th>{__kbUi("Tahlil")}</th><th>{__kbUi("Mustahkamlash")}</th><th>{__kbUi("Og‘irlik")}</th><th></th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.fan_nomi} className="border-t" style={{borderColor:palette.line}}><td className="p-2 font-black" style={{color:palette.ink}}>{r.fan_nomi}</td><td><input type="number" min="0" max="20" step="0.5" title={__kbUi("0,5 = har ikki haftada 1 dars (A/B hafta)")} value={r.haftalik_soat} onChange={e=>update(i,"haftalik_soat",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="number" min="1" max="4" value={r.kunlik_max} onChange={e=>update(i,"kunlik_max",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.ketma_ket_mumkin)} onChange={e=>update(i,"ketma_ket_mumkin",e.target.checked)}/></td><td><input type="number" min="1" max="12" value={r.afzal_oxirgi_dars} onChange={e=>update(i,"afzal_oxirgi_dars",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.asosiy_oqituvchi_user_id||""} onChange={e=>update(i,"asosiy_oqituvchi_user_id",e.target.value)} className="w-52 p-2 rounded-lg border bg-white"><option value="">{__kbUi("Avto / guruhlar")}</option>{teacherOptions(r.fan_nomi).map(t=><option key={t.user_id} value={t.user_id}>{t.full_name}</option>)}</select></td><td><select value={r.xona_id||""} onChange={e=>update(i,"xona_id",e.target.value)} className="w-40 p-2 rounded-lg border bg-white"><option value="">{__kbUi("Sinf xonasi")}</option>{(setup?.xonalar||[]).map(x=><option key={x.id} value={x.id}>{x.nomi}</option>)}</select></td><td><input type="number" min="0" max="10" value={r.nazorat_soni} onChange={e=>update(i,"nazorat_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><input type="checkbox" checked={Boolean(r.nazoratdan_keyin_tahlil)} onChange={e=>update(i,"nazoratdan_keyin_tahlil",e.target.checked)}/></td><td><input type="number" min="0" max="20" value={r.mustahkamlash_soni} onChange={e=>update(i,"mustahkamlash_soni",e.target.value)} className="w-20 p-2 rounded-lg border"/></td><td><select value={r.ogirlik} onChange={e=>update(i,"ogirlik",e.target.value)} className="w-24 p-2 rounded-lg border bg-white"><option value={1}>{__kbUi("Yengil")}</option><option value={2}>{__kbUi("O‘rta")}</option><option value={3}>{__kbUi("Og‘ir")}</option></select></td><td><button onClick={()=>setRows(rows.filter((_,x)=>x!==i))} className="text-red-700 font-black">{__kbUi("O‘chir")}</button></td></tr>)}</tbody></table></div>{!rows.length&&<SmartNotice tone="warning">{__kbUi("Bu sinfga fan–o‘qituvchi birikmasi topilmadi. Fan qo‘shib, haftalik soatini kiriting.")}</SmartNotice>}
+  <div className="mt-5 rounded-2xl p-4" style={{background:palette.sky,color:palette.blue}}><div className="text-sm font-black">{__kbUi("Guruh o‘qituvchilari alohida tasdiqlanadi")}</div><div className="text-xs mt-1 leading-relaxed">{__kbUi("Ingliz tili 1/2-guruh, Texnologiya yoki Jismoniy tarbiya o‘g‘il/qiz guruhlari uchun qaysi guruhga qaysi o‘qituvchi kirishini “Jadval yaratish” bosqichidagi “Guruh va o‘qituvchilarni tasdiqlash” oynasida barcha sinflar bo‘yicha birga ko‘rasiz va almashtira olasiz.")}</div></div>
   </Card></div>;
 }
 
@@ -2822,6 +2813,7 @@ function TeacherFirstLoadEditorV192({
   token, apiBase, maktabId, onChanged, startWithNew = false,
   planOnly = false, showPlan = true, refreshKey = 0,
 }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [educationLanguage, setEducationLanguage] = useState("uz");
   const [teacherClassLanguageFilter, setTeacherClassLanguageFilter] = useState("all");
@@ -4059,7 +4051,7 @@ function TeacherFirstLoadEditorV192({
       );
     }
     if (groupedWholeRows.length && !window.confirm(
-      `${groupedWholeRows.length} ta guruhli fan “Butun sinf” holatida turibdi. OK bossangiz avtomatik o‘zgartirilmaydi va aynan shu holatda saqlanadi.`
+      __kbUi(`${groupedWholeRows.length} ta guruhli fan “Butun sinf” holatida turibdi. OK bossangiz avtomatik o‘zgartirilmaydi va aynan shu holatda saqlanadi.`)
     )) {
       return;
     }
@@ -4493,27 +4485,24 @@ function TeacherFirstLoadEditorV192({
     const pickerId = required ? "teacher-subject-picker" : "existing-teacher-subject-picker";
     const pickerInvalid = fieldIsInvalidV199(pickerId) && selectionRequired;
     return <div id={pickerId} className={`${required ? "col-span-2 order-2" : "md:col-span-2 order-3"} ${pickerInvalid ? "rounded-xl border p-2" : ""}`} style={pickerInvalid ? invalidFieldStyleV199(pickerId) : undefined}>
-      <div className="text-xs font-black" style={{ color: palette.ink }}>
-        O‘tadigan fanlari {selectionRequired && <span style={{ color: palette.red }}>*</span>}
+      <div className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("O‘tadigan fanlari ")}{selectionRequired && <span style={{ color: palette.red }}>*</span>}
       </div>
-      <div className="text-[10px] mt-1" style={{ color: palette.muted }}>
-        Fan ustiga bosing — tanlanadi. Yana bossangiz bekor bo‘ladi. Fanlar soni cheklanmagan.
-      </div>
+      <div className="text-[10px] mt-1" style={{ color: palette.muted }}>{__kbUi("Fan ustiga bosing — tanlanadi. Yana bossangiz bekor bo‘ladi. Fanlar soni cheklanmagan.")}</div>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {selected.map(value => {
           const option = specialtyOptions.find(item => item.value === value);
           const fanNumber = specialtySubjectChoices.findIndex(item => teacherSubjectKeyV203(item) === teacherSubjectKeyV203(value)) + 1;
           return <span key={value} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
-            {fanNumber > 0 ? `${String(fanNumber).padStart(2, "0")}. ` : ""}{option?.label || value}
-            <button type="button" onClick={() => { clearInvalidFieldV199(pickerId); removeSpecialtyValue(value); }} aria-label={`${option?.label || value} fanini olib tashlash`} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
+            {fanNumber > 0 ? __kbUi(`${String(fanNumber).padStart(2, "0")}. `) : __kbUi("")}{option?.label || value}
+            <button type="button" onClick={() => { clearInvalidFieldV199(pickerId); removeSpecialtyValue(value); }} aria-label={__kbUi(`${option?.label || value} fanini olib tashlash`)} className="w-4 h-4 rounded flex items-center justify-center" style={{ background: "rgba(255,255,255,.8)", color: palette.red }}>×</button>
           </span>;
         })}
-        {!selected.length && inferredFromRows.length > 0 && <span className="text-[10px] font-bold" style={{ color: palette.green }}>Pastdagi avtomatik darslardan olinadi: {inferredFromRows.join(", ")}</span>}
-        {!selected.length && !inferredFromRows.length && <span className="text-[10px]" style={{ color: palette.amber }}>Hozircha fan tanlanmagan</span>}
+        {!selected.length && inferredFromRows.length > 0 && <span className="text-[10px] font-bold" style={{ color: palette.green }}>{__kbUi("Pastdagi avtomatik darslardan olinadi: ")}{__kbUi(inferredFromRows.join(", "))}</span>}
+        {!selected.length && !inferredFromRows.length && <span className="text-[10px]" style={{ color: palette.amber }}>{__kbUi("Hozircha fan tanlanmagan")}</span>}
       </div>
       <label className="mt-2 flex items-center gap-2 rounded-xl border bg-white px-3 py-2" style={{ borderColor: palette.line }}>
         <Search size={15} style={{ color: palette.blue }}/>
-        <input value={specialtyQuery} onChange={event => setSpecialtyQuery(event.target.value)} placeholder="Fan nomi yoki raqami: 07, bio, mat..." className="min-w-0 flex-1 bg-transparent outline-none text-xs"/>
+        <input value={specialtyQuery} onChange={event => setSpecialtyQuery(event.target.value)} placeholder={__kbUi("Fan nomi yoki raqami: 07, bio, mat...")} className="min-w-0 flex-1 bg-transparent outline-none text-xs"/>
         {specialtyQuery && <button type="button" onClick={() => setSpecialtyQuery("")} className="text-xs font-black" style={{ color: palette.red }}>×</button>}
       </label>
       <div className="mt-2 max-h-28 overflow-auto rounded-xl border p-1.5 grid grid-cols-2 gap-1.5" style={{ borderColor: palette.line, background: "#fff" }}>
@@ -4527,14 +4516,13 @@ function TeacherFirstLoadEditorV192({
             background: checked ? palette.teal : palette.cream,
             color: checked ? "#fff" : palette.ink,
             borderColor: checked ? palette.teal : palette.line,
-          }}><span className="inline-flex min-w-7 mr-1.5 justify-center rounded px-1 py-0.5" style={{ background: checked ? "rgba(255,255,255,.2)" : palette.sky }}>{numberText}</span>{checked ? "✓ " : "+ "}{subject}</button>;
+          }}><span className="inline-flex min-w-7 mr-1.5 justify-center rounded px-1 py-0.5" style={{ background: checked ? "rgba(255,255,255,.2)" : palette.sky }}>{numberText}</span>{checked ? __kbUi("✓ ") : __kbUi("+ ")}{subject}</button>;
         })}
-        {!numberedSpecialtyChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>{specialtySubjectChoices.length ? "Qidiruv bo‘yicha fan topilmadi." : "Avval o‘quv reja fanlarini kiriting."}</div>}
+        {!numberedSpecialtyChoices.length && <div className="text-[10px] p-2" style={{ color: palette.muted }}>{specialtySubjectChoices.length ? __kbUi("Qidiruv bo‘yicha fan topilmadi.") : __kbUi("Avval o‘quv reja fanlarini kiriting.")}</div>}
       </div>
       <div className="text-[10px] font-bold mt-2" style={{ color: selected.length ? palette.green : palette.muted }}>
-        {selected.length} ta fan · faqat admin tasdiqlagan fanlar. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.
-      </div>
-      {pickerInvalid && <div className="text-[10px] font-black mt-1" style={{ color: palette.red }}>Fan tanlang yoki sinf rahbari darslarini avtomatik qo‘shing.</div>}
+        {selected.length}{__kbUi(" ta fan · faqat admin tasdiqlagan fanlar. Algebra → Geometriya, Ona tili → Adabiyot avtomatik tanlanadi.")}</div>
+      {pickerInvalid && <div className="text-[10px] font-black mt-1" style={{ color: palette.red }}>{__kbUi("Fan tanlang yoki sinf rahbari darslarini avtomatik qo‘shing.")}</div>}
     </div>;
   };
 
@@ -4544,7 +4532,7 @@ function TeacherFirstLoadEditorV192({
 
   if (!data) {
     return <Card className="p-6"><SmartNotice tone="error">
-      {message?.text || "O‘quv reja ma’lumotlari yuklanmadi. Backenddagi samtm_school.py faylini yangilab, qayta deploy qiling."}
+      {message?.text || __kbUi("O‘quv reja ma’lumotlari yuklanmadi. Backenddagi samtm_school.py faylini yangilab, qayta deploy qiling.")}
     </SmartNotice></Card>;
   }
 
@@ -4552,10 +4540,10 @@ function TeacherFirstLoadEditorV192({
     {validationDialog && <div className="fixed inset-0 z-[10050] flex items-center justify-center p-4" style={{ background: "rgba(15,35,50,.72)" }}>
       <div role="alertdialog" aria-modal="true" aria-labelledby="teacher-validation-title" className="w-full max-w-md rounded-3xl border bg-white p-5" style={{ borderColor: "#E5AAAA", boxShadow: "0 25px 90px rgba(0,0,0,.30)" }}>
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: palette.redBg, color: palette.red }}><AlertTriangle size={24}/></div>
-        <div id="teacher-validation-title" className="text-xl font-black mt-3" style={{ color: palette.ink }}>Ma’lumotni to‘ldiring</div>
+        <div id="teacher-validation-title" className="text-xl font-black mt-3" style={{ color: palette.ink }}>{__kbUi("Ma’lumotni to‘ldiring")}</div>
         <div className="text-sm mt-2 leading-relaxed font-bold" style={{ color: palette.red }}>{validationDialog.text}</div>
-        <div className="text-[11px] mt-2" style={{ color: palette.muted }}>OK ni bossangiz xato joyi avtomatik ochiladi va qizil rangda ko‘rsatiladi.</div>
-        <button type="button" autoFocus onClick={closeValidationDialogV199} className="w-full mt-5 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>OK — xatoni ko‘rsatish</button>
+        <div className="text-[11px] mt-2" style={{ color: palette.muted }}>{__kbUi("OK ni bossangiz xato joyi avtomatik ochiladi va qizil rangda ko‘rsatiladi.")}</div>
+        <button type="button" autoFocus onClick={closeValidationDialogV199} className="w-full mt-5 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>{__kbUi("OK — xatoni ko‘rsatish")}</button>
       </div>
     </div>}
     {allocationInspectorClass && allocationInspectorSummary && <div className="fixed inset-0 z-[9998] overflow-y-auto p-2 md:p-5" style={{ background: "rgba(15,35,50,.68)" }}>
@@ -4564,21 +4552,21 @@ function TeacherFirstLoadEditorV192({
           <div className="flex flex-wrap items-center gap-3">
             <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: palette.sky, color: palette.blue }}><BarChart3 size={22}/></div>
             <div className="flex-1 min-w-[230px]">
-              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>SINF YUKLAMASI TAQSIMOTI</div>
-              <div className="text-xl font-black" style={{ color: palette.ink }}>{allocationInspectorClass.sinf}-{allocationInspectorClass.harf} · fan va guruhlar</div>
-              <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>Faqat shu fanga guruh biriktirilgan bo‘lsa guruh yuklamasi hisoblanadi. Guruhga bo‘linmagan fan Butun sinf bo‘lib qoladi.</div>
-              <div className="text-[10px] font-black mt-1" style={{ color: palette.blue }}>Asosiy reja: {displayAllocationHours(allocationInspectorSummary.nominalAssigned)}/{displayAllocationHours(allocationInspectorSummary.nominalRequired)} soat · guruhlar: {displayAllocationHours(allocationInspectorSummary.groupAssigned)}/{displayAllocationHours(allocationInspectorSummary.groupRequired)} soat</div>
+              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("SINF YUKLAMASI TAQSIMOTI")}</div>
+              <div className="text-xl font-black" style={{ color: palette.ink }}>{allocationInspectorClass.sinf}-{allocationInspectorClass.harf}{__kbUi(" · fan va guruhlar")}</div>
+              <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>{__kbUi("Faqat shu fanga guruh biriktirilgan bo‘lsa guruh yuklamasi hisoblanadi. Guruhga bo‘linmagan fan Butun sinf bo‘lib qoladi.")}</div>
+              <div className="text-[10px] font-black mt-1" style={{ color: palette.blue }}>{__kbUi("Asosiy reja: ")}{__kbUi(displayAllocationHours(allocationInspectorSummary.nominalAssigned))}/{__kbUi(displayAllocationHours(allocationInspectorSummary.nominalRequired))}{__kbUi(" soat · guruhlar: ")}{__kbUi(displayAllocationHours(allocationInspectorSummary.groupAssigned))}/{__kbUi(displayAllocationHours(allocationInspectorSummary.groupRequired))}{__kbUi(" soat")}</div>
             </div>
-            <span className="px-3 py-2 rounded-xl text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>FAQAT KO‘RISH</span>
-            <button type="button" onClick={() => { setAllocationInspectorClassId(""); setAllocationInspectorSubjectKey(""); }} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><ArrowLeft size={16}/> O‘qituvchiga qaytish</button>
+            <span className="px-3 py-2 rounded-xl text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("FAQAT KO‘RISH")}</span>
+            <button type="button" onClick={() => { setAllocationInspectorClassId(""); setAllocationInspectorSubjectKey(""); }} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><ArrowLeft size={16}/>{__kbUi(" O‘qituvchiga qaytish")}</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 mt-4">
-            <div className="rounded-xl px-3 py-2" style={{ background: palette.sky }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>Asosiy o‘quv reja</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.nominalRequired)} soat</div><div className="text-[8px] font-bold" style={{ color: palette.muted }}>Guruh sabab ko‘paymaydi</div></div>
-            <div className="rounded-xl px-3 py-2" style={{ background: palette.mint }}><div className="text-[9px] font-black uppercase" style={{ color: palette.teal }}>Asosiy berilgan</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.nominalAssigned)} / {displayAllocationHours(allocationInspectorSummary.nominalRequired)}</div></div>
-            <div className="rounded-xl px-3 py-2" style={{ background: "#EEF2FF" }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>Guruh yuklama rejasi</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.groupRequired)} soat</div><div className="text-[8px] font-bold" style={{ color: palette.muted }}>Faqat guruhli fanlar</div></div>
-            <div className="rounded-xl px-3 py-2" style={{ background: palette.mint }}><div className="text-[9px] font-black uppercase" style={{ color: palette.teal }}>Guruhlarga berilgan</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.groupAssigned)} soat</div></div>
-            <div className="rounded-xl px-3 py-2" style={{ background: allocationInspectorSummary.groupRemaining ? palette.amberBg : palette.greenBg }}><div className="text-[9px] font-black uppercase" style={{ color: allocationInspectorSummary.groupRemaining ? palette.amber : palette.green }}>Guruhda qolgan</div><div className="text-lg font-black" style={{ color: palette.ink }}>{displayAllocationHours(allocationInspectorSummary.groupRemaining)} soat</div></div>
-            <div className="rounded-xl px-3 py-2" style={{ background: allocationInspectorSummary.complete ? palette.greenBg : palette.cream }}><div className="text-[9px] font-black uppercase" style={{ color: allocationInspectorSummary.complete ? palette.green : palette.muted }}>To‘lgan fanlar</div><div className="text-lg font-black" style={{ color: palette.ink }}>{allocationInspectorSummary.completeSubjects}/{allocationInspectorSummary.subjectCount}</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: palette.sky }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>{__kbUi("Asosiy o‘quv reja")}</div><div className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi(displayAllocationHours(allocationInspectorSummary.nominalRequired))}{__kbUi(" soat")}</div><div className="text-[8px] font-bold" style={{ color: palette.muted }}>{__kbUi("Guruh sabab ko‘paymaydi")}</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: palette.mint }}><div className="text-[9px] font-black uppercase" style={{ color: palette.teal }}>{__kbUi("Asosiy berilgan")}</div><div className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi(displayAllocationHours(allocationInspectorSummary.nominalAssigned))} / {__kbUi(displayAllocationHours(allocationInspectorSummary.nominalRequired))}</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: "#EEF2FF" }}><div className="text-[9px] font-black uppercase" style={{ color: palette.blue }}>{__kbUi("Guruh yuklama rejasi")}</div><div className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi(displayAllocationHours(allocationInspectorSummary.groupRequired))}{__kbUi(" soat")}</div><div className="text-[8px] font-bold" style={{ color: palette.muted }}>{__kbUi("Faqat guruhli fanlar")}</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: palette.mint }}><div className="text-[9px] font-black uppercase" style={{ color: palette.teal }}>{__kbUi("Guruhlarga berilgan")}</div><div className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi(displayAllocationHours(allocationInspectorSummary.groupAssigned))}{__kbUi(" soat")}</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: allocationInspectorSummary.groupRemaining ? palette.amberBg : palette.greenBg }}><div className="text-[9px] font-black uppercase" style={{ color: allocationInspectorSummary.groupRemaining ? palette.amber : palette.green }}>{__kbUi("Guruhda qolgan")}</div><div className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi(displayAllocationHours(allocationInspectorSummary.groupRemaining))}{__kbUi(" soat")}</div></div>
+            <div className="rounded-xl px-3 py-2" style={{ background: allocationInspectorSummary.complete ? palette.greenBg : palette.cream }}><div className="text-[9px] font-black uppercase" style={{ color: allocationInspectorSummary.complete ? palette.green : palette.muted }}>{__kbUi("To‘lgan fanlar")}</div><div className="text-lg font-black" style={{ color: palette.ink }}>{allocationInspectorSummary.completeSubjects}/{allocationInspectorSummary.subjectCount}</div></div>
           </div>
         </div>
 
@@ -4586,13 +4574,13 @@ function TeacherFirstLoadEditorV192({
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
-                <div className="text-sm font-black" style={{ color: palette.ink }}>Fanlar holati</div>
-                <div className="text-[10px]" style={{ color: palette.muted }}>Fan ustiga sichqonchani olib boring yoki bosing — o‘ng tomonda o‘qituvchi va guruhlar chiqadi.</div>
+                <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Fanlar holati")}</div>
+                <div className="text-[10px]" style={{ color: palette.muted }}>{__kbUi("Fan ustiga sichqonchani olib boring yoki bosing — o‘ng tomonda o‘qituvchi va guruhlar chiqadi.")}</div>
               </div>
-              <div className="text-[10px] font-black" style={{ color: allocationInspectorSummary.complete ? palette.green : palette.amber }}>{allocationInspectorSummary.percent}% taqsimlangan</div>
+              <div className="text-[10px] font-black" style={{ color: allocationInspectorSummary.complete ? palette.green : palette.amber }}>{allocationInspectorSummary.percent}{__kbUi("% taqsimlangan")}</div>
             </div>
             <div className="h-2 rounded-full overflow-hidden mb-4" style={{ background: palette.line }}><div className="h-full rounded-full" style={{ width: `${allocationInspectorSummary.percent}%`, background: allocationInspectorSummary.complete ? palette.green : palette.amber }}/></div>
-            {!allocationInspectorSummary.details.length ? <SmartNotice tone="warning">Bu sinf uchun o‘quv rejada fan–soat topilmadi.</SmartNotice> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+            {!allocationInspectorSummary.details.length ? <SmartNotice tone="warning">{__kbUi("Bu sinf uchun o‘quv rejada fan–soat topilmadi.")}</SmartNotice> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
               {allocationInspectorSummary.details.map(detail => {
                 const active = allocationInspectorSubject?.subject_key === detail.subject_key;
                 const toneBg = detail.extra ? palette.redBg : detail.complete ? palette.greenBg : detail.assigned > 0 ? palette.amberBg : "#FFF5F5";
@@ -4606,16 +4594,16 @@ function TeacherFirstLoadEditorV192({
                 return <button type="button" key={detail.subject_key} title={tooltip} onMouseEnter={() => setAllocationInspectorSubjectKey(detail.subject_key)} onClick={() => setAllocationInspectorSubjectKey(detail.subject_key)} className="text-left rounded-2xl border p-3 transition-shadow hover:shadow-md" style={{ background: active ? toneBg : "#fff", borderColor: active ? toneColor : palette.line }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="font-black leading-tight" style={{ color: palette.ink }}>{detail.fan_nomi}</div>
-                    <span className="shrink-0 px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: toneBg, color: toneColor }}>{detail.extra ? `+${displayAllocationHours(detail.extra)} ORTIQ` : detail.complete ? "TO‘LDI" : detail.assigned > 0 ? `${displayAllocationHours(detail.remaining)} QOLDI` : "BERILMAGAN"}</span>
+                    <span className="shrink-0 px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: toneBg, color: toneColor }}>{detail.extra ? __kbUi(`+${displayAllocationHours(detail.extra)} ORTIQ`) : detail.complete ? __kbUi("TO‘LDI") : detail.assigned > 0 ? __kbUi(`${displayAllocationHours(detail.remaining)} QOLDI`) : __kbUi("BERILMAGAN")}</span>
                   </div>
                   <div className="text-[10px] mt-2" style={{ color: palette.muted }}>
                     {detail.grouped
-                      ? <>Har guruh: <b>{displayAllocationHours(detail.expectedPerTarget)}</b> soat × <b>{detail.targetCount}</b> guruh = jami <b>{displayAllocationHours(detail.required)}</b> soat</>
-                      : <>Butun sinf: <b>{displayAllocationHours(detail.required)}</b> soat</>}
+                      ? <>{__kbUi("Har guruh: ")}<b>{__kbUi(displayAllocationHours(detail.expectedPerTarget))}</b>{__kbUi(" soat × ")}<b>{detail.targetCount}</b>{__kbUi(" guruh = jami ")}<b>{__kbUi(displayAllocationHours(detail.required))}</b>{__kbUi(" soat")}</>
+                      : <>{__kbUi("Butun sinf: ")}<b>{__kbUi(displayAllocationHours(detail.required))}</b>{__kbUi(" soat")}</>}
                   </div>
-                  <div className="text-[10px] mt-1" style={{ color: toneColor }}>Berildi: <b>{displayAllocationHours(detail.assigned)}</b> · qoldi: <b>{displayAllocationHours(detail.remaining)}</b> soat</div>
+                  <div className="text-[10px] mt-1" style={{ color: toneColor }}>{__kbUi("Berildi: ")}<b>{__kbUi(displayAllocationHours(detail.assigned))}</b>{__kbUi(" · qoldi: ")}<b>{__kbUi(displayAllocationHours(detail.remaining))}</b>{__kbUi(" soat")}</div>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {detail.targets.map(target => <span key={target.guruh_kaliti} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: target.extra ? palette.redBg : target.remaining ? palette.amberBg : palette.greenBg, color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{target.qisqa || target.guruh_nomi}: {displayAllocationHours(target.assigned)}/{displayAllocationHours(target.expected)}</span>)}
+                    {detail.targets.map(target => <span key={target.guruh_kaliti} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: target.extra ? palette.redBg : target.remaining ? palette.amberBg : palette.greenBg, color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{target.qisqa || target.guruh_nomi}: {__kbUi(displayAllocationHours(target.assigned))}/{__kbUi(displayAllocationHours(target.expected))}</span>)}
                   </div>
                 </button>;
               })}
@@ -4623,26 +4611,26 @@ function TeacherFirstLoadEditorV192({
           </div>
 
           <div className="rounded-2xl border p-4 self-start xl:sticky xl:top-[245px]" style={{ borderColor: palette.line, background: "#F8FBFD" }}>
-            {!allocationInspectorSubject ? <div className="text-sm" style={{ color: palette.muted }}>Ko‘rish uchun fan ustiga boring yoki bosing.</div> : <>
-              <div className="text-[10px] font-black uppercase tracking-[.1em]" style={{ color: palette.teal }}>FAN TAQSIMOTI</div>
+            {!allocationInspectorSubject ? <div className="text-sm" style={{ color: palette.muted }}>{__kbUi("Ko‘rish uchun fan ustiga boring yoki bosing.")}</div> : <>
+              <div className="text-[10px] font-black uppercase tracking-[.1em]" style={{ color: palette.teal }}>{__kbUi("FAN TAQSIMOTI")}</div>
               <div className="text-lg font-black mt-1" style={{ color: palette.ink }}>{allocationInspectorSubject.fan_nomi}</div>
               <div className="text-xs mt-1" style={{ color: palette.muted }}>
                 {allocationInspectorSubject.grouped
-                  ? <>Har bir guruhga <b>{displayAllocationHours(allocationInspectorSubject.expectedPerTarget)} soat</b> × <b>{allocationInspectorSubject.targetCount} guruh</b> = jami <b>{displayAllocationHours(allocationInspectorSubject.required)} soat</b></>
-                  : <>Butun sinf uchun <b>{displayAllocationHours(allocationInspectorSubject.required)} soat</b></>}
+                  ? <>{__kbUi("Har bir guruhga ")}<b>{__kbUi(displayAllocationHours(allocationInspectorSubject.expectedPerTarget))}{__kbUi(" soat")}</b> × <b>{allocationInspectorSubject.targetCount}{__kbUi(" guruh")}</b>{__kbUi(" = jami ")}<b>{__kbUi(displayAllocationHours(allocationInspectorSubject.required))}{__kbUi(" soat")}</b></>
+                  : <>{__kbUi("Butun sinf uchun ")}<b>{__kbUi(displayAllocationHours(allocationInspectorSubject.required))}{__kbUi(" soat")}</b></>}
               </div>
               <div className="space-y-2 mt-4">
                 {allocationInspectorSubject.targets.map(target => <div key={target.guruh_kaliti} className="rounded-xl border p-3" style={{ borderColor: target.extra ? "#E5AAAA" : target.remaining ? "#E7C58A" : "#9BCBAD", background: target.extra ? palette.redBg : target.remaining ? palette.amberBg : palette.greenBg }}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="font-black" style={{ color: palette.ink }}>{target.guruh_nomi}</div>
-                    <div className="text-xs font-black" style={{ color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{displayAllocationHours(target.assigned)} / {displayAllocationHours(target.expected)} soat</div>
+                    <div className="text-xs font-black" style={{ color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{__kbUi(displayAllocationHours(target.assigned))} / {__kbUi(displayAllocationHours(target.expected))}{__kbUi(" soat")}</div>
                   </div>
-                  <div className="text-[10px] mt-1" style={{ color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{target.extra ? `${displayAllocationHours(target.extra)} soat ortiqcha berilgan` : target.remaining ? `${displayAllocationHours(target.remaining)} soat hali berilmagan` : "To‘liq taqsimlangan"}</div>
+                  <div className="text-[10px] mt-1" style={{ color: target.extra ? palette.red : target.remaining ? palette.amber : palette.green }}>{target.extra ? __kbUi(`${displayAllocationHours(target.extra)} soat ortiqcha berilgan`) : target.remaining ? __kbUi(`${displayAllocationHours(target.remaining)} soat hali berilmagan`) : __kbUi("To‘liq taqsimlangan")}</div>
                   <div className="mt-2 space-y-1.5">
                     {target.teachers.length ? target.teachers.map(item => <div key={String(item.user_id || item.full_name)} className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-[11px]">
-                      <span className="font-bold" style={{ color: palette.ink }}>{item.full_name}{item.draft ? <span className="ml-1" style={{ color: palette.amber }}>(hozir kiritilmoqda)</span> : null}</span>
-                      <span className="font-black shrink-0" style={{ color: palette.blue }}>{displayAllocationHours(item.hours)} soat</span>
-                    </div>) : <div className="rounded-lg px-2.5 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,.7)", color: palette.red }}>O‘qituvchi biriktirilmagan</div>}
+                      <span className="font-bold" style={{ color: palette.ink }}>{item.full_name}{item.draft ? <span className="ml-1" style={{ color: palette.amber }}>{__kbUi("(hozir kiritilmoqda)")}</span> : null}</span>
+                      <span className="font-black shrink-0" style={{ color: palette.blue }}>{__kbUi(displayAllocationHours(item.hours))}{__kbUi(" soat")}</span>
+                    </div>) : <div className="rounded-lg px-2.5 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,.7)", color: palette.red }}>{__kbUi("O‘qituvchi biriktirilmagan")}</div>}
                   </div>
                 </div>)}
               </div>
@@ -4657,38 +4645,38 @@ function TeacherFirstLoadEditorV192({
           <div className="flex flex-wrap items-center gap-3">
             <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: palette.sky, color: palette.blue }}><BookOpen size={22}/></div>
             <div className="flex-1 min-w-[220px]">
-              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘QITUVCHI YUKLAMASI UCHUN MA’LUMOT</div>
-              <div className="text-xl font-black" style={{ color: palette.ink }}>O‘quv rejani tez ko‘rish</div>
-              <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>O‘qituvchi formasidagi kiritilgan ma’lumotlar saqlanib turibdi. Yopsangiz aynan shu joyga qaytasiz.</div>
+              <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("O‘QITUVCHI YUKLAMASI UCHUN MA’LUMOT")}</div>
+              <div className="text-xl font-black" style={{ color: palette.ink }}>{__kbUi("O‘quv rejani tez ko‘rish")}</div>
+              <div className="text-[11px] mt-0.5" style={{ color: palette.muted }}>{__kbUi("O‘qituvchi formasidagi kiritilgan ma’lumotlar saqlanib turibdi. Yopsangiz aynan shu joyga qaytasiz.")}</div>
             </div>
             <span className="px-3 py-2 rounded-xl text-xs font-black" style={{
               background: planApprovedForClass(planReferenceClassId) ? palette.greenBg : palette.amberBg,
               color: planApprovedForClass(planReferenceClassId) ? palette.green : palette.amber,
-            }}>{planApprovedForClass(planReferenceClassId) ? "✓ SHU SINF TILI REJASI TASDIQLANGAN" : "SHU SINF TILI REJASI TASDIQLANMAGAN"}</span>
-            <span className="px-3 py-2 rounded-xl text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>FAQAT KO‘RISH · O‘ZGARTIRIB BO‘LMAYDI</span>
-            <button type="button" onClick={() => setPlanReferenceOpen(false)} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><ArrowLeft size={16}/> O‘qituvchiga qaytish</button>
+            }}>{planApprovedForClass(planReferenceClassId) ? __kbUi("✓ SHU SINF TILI REJASI TASDIQLANGAN") : __kbUi("SHU SINF TILI REJASI TASDIQLANMAGAN")}</span>
+            <span className="px-3 py-2 rounded-xl text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("FAQAT KO‘RISH · O‘ZGARTIRIB BO‘LMAYDI")}</span>
+            <button type="button" onClick={() => setPlanReferenceOpen(false)} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.cream, color: palette.ink }}><ArrowLeft size={16}/>{__kbUi(" O‘qituvchiga qaytish")}</button>
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-4">
-            <label className="text-xs font-black" style={{ color: palette.ink }}>Ko‘rsatiladigan sinf</label>
+            <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Ko‘rsatiladigan sinf")}</label>
             <select value={planReferenceClassId} onChange={event => setPlanReferenceClassId(event.target.value)} className="min-w-[220px] px-3 py-2.5 rounded-xl border text-sm font-bold" style={{ borderColor: palette.line, color: palette.ink }}>
-              <option value="">Barcha sinflar</option>
-              {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {cls.smena}-smena</option>)}
+              <option value="">{__kbUi("Barcha sinflar")}</option>
+              {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {cls.smena}{__kbUi("-smena")}</option>)}
             </select>
-            <div className="px-3 py-2 rounded-xl text-[11px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Sariq katak — shu o‘qituvchiga hozir kiritayotgan faningiz</div>
-            {planReferenceClassId && <div className="px-3 py-2 rounded-xl text-[11px] font-bold" style={{ background: palette.sky, color: palette.blue }}>Tanlangan sinfda faqat soati bor fanlar ko‘rsatildi</div>}
+            <div className="px-3 py-2 rounded-xl text-[11px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("Sariq katak — shu o‘qituvchiga hozir kiritayotgan faningiz")}</div>
+            {planReferenceClassId && <div className="px-3 py-2 rounded-xl text-[11px] font-bold" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Tanlangan sinfda faqat soati bor fanlar ko‘rsatildi")}</div>}
           </div>
         </div>
 
         <div className="p-3 md:p-5">
-          {!(data?.sinflar || []).length ? <SmartNotice tone="error">Sinf ro‘yxati yuklanmagan.</SmartNotice> : !planReferenceSubjects.length ? <SmartNotice tone="warning">Tanlangan sinf uchun o‘quv rejada fan–soat topilmadi.</SmartNotice> : <div className="rounded-2xl border overflow-auto" style={{ borderColor: palette.line, maxHeight: "calc(100vh - 225px)" }}>
+          {!(data?.sinflar || []).length ? <SmartNotice tone="error">{__kbUi("Sinf ro‘yxati yuklanmagan.")}</SmartNotice> : !planReferenceSubjects.length ? <SmartNotice tone="warning">{__kbUi("Tanlangan sinf uchun o‘quv rejada fan–soat topilmadi.")}</SmartNotice> : <div className="rounded-2xl border overflow-auto" style={{ borderColor: palette.line, maxHeight: "calc(100vh - 225px)" }}>
             <table className="border-collapse text-xs" style={{ minWidth: `${175 + planReferenceSubjects.length * 58 + 95}px`, width: "100%" }}>
               <thead className="sticky top-0 z-20">
                 <tr>
-                  <th className="sticky left-0 z-30 p-3 text-left min-w-[175px]" style={{ background: palette.ink, color: "#fff" }}>SINF ↓ / FAN →</th>
+                  <th className="sticky left-0 z-30 p-3 text-left min-w-[175px]" style={{ background: palette.ink, color: "#fff" }}>{__kbUi("SINF ↓ / FAN →")}</th>
                   {planReferenceSubjects.map(subject => <th key={subject} className="p-0 text-center min-w-[58px] h-[165px]" title={subject} style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.18)" }}>
                     <div className="mx-auto text-[10px] font-black leading-tight" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", maxHeight: 155 }}>{subject}</div>
                   </th>)}
-                  <th className="p-2 text-center min-w-[95px]" style={{ background: palette.blue, color: "#fff" }}>HAFTALIK<br/>JAMI</th>
+                  <th className="p-2 text-center min-w-[95px]" style={{ background: palette.blue, color: "#fff" }}>{__kbUi("HAFTALIK")}<br/>{__kbUi("JAMI")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -4697,15 +4685,15 @@ function TeacherFirstLoadEditorV192({
                   return <tr key={cls.id} className="border-t" style={{ borderColor: palette.line }}>
                     <th className="sticky left-0 z-10 p-2.5 text-left" style={{ background: classIndex % 2 ? "#F8FBFD" : "#fff", color: palette.ink, borderRight: `1px solid ${palette.line}` }}>
                       <div className="font-black">{cls.sinf}-{cls.harf}</div>
-                      <div className="text-[9px] mt-0.5" style={{ color: palette.muted }}>{cls.smena}-smena</div>
+                      <div className="text-[9px] mt-0.5" style={{ color: palette.muted }}>{cls.smena}{__kbUi("-smena")}</div>
                     </th>
                     {planReferenceSubjects.map(subject => {
                       const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
                       const draftKey = `${cls.id}|${subjectKeyV193(subject)}`;
                       const selectedForTeacher = teacherDraftPlanKeys.has(draftKey);
                       const teacherHours = rows.filter(row => `${row.sinf_id}|${subjectKeyV193(row.fan_nomi)}` === draftKey).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0);
-                      return <td key={subject} className="p-1 text-center" title={selectedForTeacher ? `O‘qituvchiga kiritilmoqda: ${teacherHours} soat` : `${subject}: ${value || 0} soat`} style={{ background: selectedForTeacher ? palette.amberBg : (value > 0 ? palette.greenBg : (classIndex % 2 ? "#F8FBFD" : "#fff")), borderLeft: `1px solid ${palette.line}` }}>
-                        <div className="w-12 mx-auto px-1 py-2 rounded-lg border text-center font-black" style={{ borderColor: selectedForTeacher ? "#D89B3D" : (value > 0 ? "#8FC4A5" : palette.line), color: selectedForTeacher ? palette.amber : (value > 0 ? palette.green : palette.muted) }}>{value || "—"}</div>
+                      return <td key={subject} className="p-1 text-center" title={selectedForTeacher ? __kbUi(`O‘qituvchiga kiritilmoqda: ${teacherHours} soat`) : __kbUi(`${subject}: ${value || 0} soat`)} style={{ background: selectedForTeacher ? palette.amberBg : (value > 0 ? palette.greenBg : (classIndex % 2 ? "#F8FBFD" : "#fff")), borderLeft: `1px solid ${palette.line}` }}>
+                        <div className="w-12 mx-auto px-1 py-2 rounded-lg border text-center font-black" style={{ borderColor: selectedForTeacher ? "#D89B3D" : (value > 0 ? "#8FC4A5" : palette.line), color: selectedForTeacher ? palette.amber : (value > 0 ? palette.green : palette.muted) }}>{value || __kbUi("—")}</div>
                       </td>;
                     })}
                     <th className="p-2 text-center text-sm font-black" style={{ background: palette.blue, color: "#fff" }}>{classTotal}</th>
@@ -4719,124 +4707,111 @@ function TeacherFirstLoadEditorV192({
     </div>}
     {deleteCandidate && <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(15,35,50,.62)" }}>
       <div className="w-full max-w-md rounded-3xl border bg-white p-6" style={{ borderColor: palette.line, boxShadow: "0 25px 80px rgba(0,0,0,.25)" }}>
-        <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>O‘QITUVCHINI O‘CHIRISH</div>
+        <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.red }}>{__kbUi("O‘QITUVCHINI O‘CHIRISH")}</div>
         <div className="text-xl font-black mt-2" style={{ color: palette.ink }}>{deleteCandidate.full_name}</div>
-        <div className="text-sm mt-3 leading-relaxed" style={{ color: palette.muted }}>
-          Bu o‘qituvchi, uning barcha fan–sinf–guruh yuklamalari, sinf rahbarligi va faol jadval birikmalari maktabdan olib tashlanadi. Bu amalni bajarilsinmi?
-        </div>
+        <div className="text-sm mt-3 leading-relaxed" style={{ color: palette.muted }}>{__kbUi("Bu o‘qituvchi, uning barcha fan–sinf–guruh yuklamalari, sinf rahbarligi va faol jadval birikmalari maktabdan olib tashlanadi. Bu amalni bajarilsinmi?")}</div>
         <div className="grid grid-cols-2 gap-3 mt-5">
-          <button type="button" onClick={() => setDeleteCandidate(null)} disabled={deletingTeacher} className="px-4 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Yo‘q, bekor qilish</button>
-          <button type="button" onClick={confirmTeacherDelete} disabled={deletingTeacher} className="px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>{deletingTeacher ? "O‘chirilmoqda..." : "Ha, o‘chirish"}</button>
+          <button type="button" onClick={() => setDeleteCandidate(null)} disabled={deletingTeacher} className="px-4 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Yo‘q, bekor qilish")}</button>
+          <button type="button" onClick={confirmTeacherDelete} disabled={deletingTeacher} className="px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.red }}>{deletingTeacher ? __kbUi("O‘chirilmoqda...") : __kbUi("Ha, o‘chirish")}</button>
         </div>
       </div>
     </div>}
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     {!planOnly && entryCode && <div id="teacher-entry-code" className="rounded-2xl border p-4 flex flex-wrap items-center gap-3 scroll-mt-4" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
       <div className="flex-1 min-w-[240px]">
-        <div className="text-xs font-black" style={{ color: palette.green }}>YANGI O‘QITUVCHINING 2 OYLIK KIRISH KODI</div>
+        <div className="text-xs font-black" style={{ color: palette.green }}>{__kbUi("YANGI O‘QITUVCHINING 2 OYLIK KIRISH KODI")}</div>
         <div className="text-xl font-black tracking-[.18em] mt-1" style={{ color: palette.ink }}>{entryCode}</div>
-        <div className="text-[11px] mt-1" style={{ color: palette.muted }}>Kodni o‘qituvchiga alohida bering. U Google hisobini shu kod bilan bog‘laydi.</div>
+        <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{__kbUi("Kodni o‘qituvchiga alohida bering. U Google hisobini shu kod bilan bog‘laydi.")}</div>
       </div>
-      <button onClick={() => navigator.clipboard?.writeText(entryCode)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.green, color: "#fff" }}>Kodni nusxalash</button>
+      <button onClick={() => navigator.clipboard?.writeText(entryCode)} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.green, color: "#fff" }}>{__kbUi("Kodni nusxalash")}</button>
     </div>}
 
     {showPlan && <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>1-QADAM · O‘QUV REJA</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Fan va haftalik soatlarni tekshirish</h2>
-          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
-            Tayanch andoza sinflarga tayyor qo‘yildi. Kerakli soatni tuzating, saqlang va tasdiqlang.
-            Tasdiqlangandan keyin o‘qituvchi qatorida fan soati avtomatik chiqadi.
-          </p>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("1-QADAM · O‘QUV REJA")}</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Fan va haftalik soatlarni tekshirish")}</h2>
+          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>{__kbUi("Tayanch andoza sinflarga tayyor qo‘yildi. Kerakli soatni tuzating, saqlang va tasdiqlang. Tasdiqlangandan keyin o‘qituvchi qatorida fan soati avtomatik chiqadi.")}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="px-3 py-2 rounded-xl text-xs font-black" style={{
             background: activePlanStatus === "tasdiqlangan" ? palette.greenBg : palette.amberBg,
             color: activePlanStatus === "tasdiqlangan" ? palette.green : palette.amber,
           }}>
-            {activePlanStatus === "tasdiqlangan" ? "✓ TASDIQLANGAN" : "VAQTINCHA · TASDIQLANMAGAN"}
+            {activePlanStatus === "tasdiqlangan" ? __kbUi("✓ TASDIQLANGAN") : __kbUi("VAQTINCHA · TASDIQLANMAGAN")}
           </span>
-          <span className="text-[11px]" style={{ color: palette.muted }}>V{activePlanVersion}</span>
+          <span className="text-[11px]" style={{ color: palette.muted }}>{__kbUi("V")}{activePlanVersion}</span>
         </div>
       </div>
 
       {planOnly && <div className="mt-4 rounded-2xl border p-3" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
-        <div className="text-xs font-black mb-2" style={{ color: palette.ink }}>O‘quv reja tili</div>
+        <div className="text-xs font-black mb-2" style={{ color: palette.ink }}>{__kbUi("O‘quv reja tili")}</div>
         <div className="grid sm:grid-cols-3 gap-2">
           {V238_EDUCATION_LANGUAGE_ORDER.map(value => {
             const active = educationLanguage === value;
             const meta = V238_EDUCATION_LANGUAGES[value];
-            return <button type="button" key={value} onClick={() => { setEducationLanguage(value); setPlanMessage(null); }} disabled={planSaving || loading} className="px-4 py-3 rounded-xl border text-xs font-black disabled:opacity-50" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>{meta.badge} · {meta.label}</button>;
+            return <button type="button" key={value} onClick={() => { setEducationLanguage(value); setPlanMessage(null); }} disabled={planSaving || loading} className="px-4 py-3 rounded-xl border text-xs font-black disabled:opacity-50" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>{__kbUi(meta.badge)} · {__kbUi(meta.label)}</button>;
           })}
         </div>
-        <div className="text-[10px] mt-2" style={{ color: palette.muted }}>Har til alohida saqlanadi. Bir tilni tahrirlash boshqa tildagi fan va soatlarni o‘chirmaydi.</div>
+        <div className="text-[10px] mt-2" style={{ color: palette.muted }}>{__kbUi("Har til alohida saqlanadi. Bir tilni tahrirlash boshqa tildagi fan va soatlarni o‘chirmaydi.")}</div>
       </div>}
 
       {planMessage && <div className="mt-4"><SmartNotice tone={planMessage.tone}>{planMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center gap-3 mt-4">
         <label className="rounded-xl px-3 py-2 min-w-[210px]" style={{ background: palette.cream }}>
-          <span className="block text-[10px] font-black uppercase" style={{ color: palette.amber }}>Maxsus sinf soati nomi</span>
-          <input value={classHourName} onChange={event => setClassHourName(event.target.value)} className="w-full mt-1 px-2 py-1.5 rounded-lg border font-black" placeholder="KELAJAK SOATI"/>
+          <span className="block text-[10px] font-black uppercase" style={{ color: palette.amber }}>{__kbUi("Maxsus sinf soati nomi")}</span>
+          <input value={classHourName} onChange={event => setClassHourName(event.target.value)} className="w-full mt-1 px-2 py-1.5 rounded-lg border font-black" placeholder={__kbUi("KELAJAK SOATI")}/>
         </label>
         <div className="rounded-xl px-4 py-2.5 min-w-[130px]" style={{ background: palette.sky }}>
-          <div className="text-[10px] font-black uppercase" style={{ color: palette.blue }}>Sinflar</div>
-          <div className="text-xl font-black" style={{ color: palette.ink }}>{planGradeRows.length} ta daraja</div>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.blue }}>{__kbUi("Sinflar")}</div>
+          <div className="text-xl font-black" style={{ color: palette.ink }}>{planGradeRows.length}{__kbUi(" ta daraja")}</div>
         </div>
         <div className="rounded-xl px-4 py-2.5 min-w-[130px]" style={{ background: palette.mint }}>
-          <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>Fanlar</div>
-          <div className="text-xl font-black" style={{ color: palette.ink }}>{planSubjects.length} ta</div>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>{__kbUi("Fanlar")}</div>
+          <div className="text-xl font-black" style={{ color: palette.ink }}>{planSubjects.length}{__kbUi(" ta")}</div>
         </div>
         <div className="rounded-xl px-4 py-2.5 min-w-[170px]" style={{ background: palette.cream }}>
-          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>Fanlar + kelajak soati</div>
-          <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal} soat</div>
-          <div className="text-[9px] font-bold" style={{ color: palette.muted }}>{planAcademicTotal} fan + {planClassHourTotal} Kelajak soati</div>
+          <div className="text-[10px] font-black uppercase" style={{ color: palette.amber }}>{__kbUi("Fanlar + kelajak soati")}</div>
+          <div className="text-xl font-black" style={{ color: palette.ink }}>{planSchoolTotal}{__kbUi(" soat")}</div>
+          <div className="text-[9px] font-bold" style={{ color: palette.muted }}>{planAcademicTotal}{__kbUi(" fan + ")}{planClassHourTotal}{__kbUi(" Kelajak soati")}</div>
         </div>
-        <button onClick={autoFillPlanTemplate} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>
-          ⚡ Rasmiy o‘quv reja bilan avtomatik to‘ldirish
-        </button>
+        <button onClick={autoFillPlanTemplate} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.teal }}>{__kbUi("⚡ Rasmiy o‘quv reja bilan avtomatik to‘ldirish")}</button>
         <div className="flex-1"/>
-        <button onClick={() => savePlan(false)} disabled={planSaving} title="Keyin davom ettirish uchun saqlaydi; reja va dars jadvalini faollashtirmaydi" className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue, border: `1px solid ${palette.blue}` }}>{planSaving ? "Saqlanmoqda..." : "Vaqtincha saqlash · tasdiqlamasdan"}</button>
-        <button onClick={() => savePlan(true)} disabled={planSaving} title="O‘quv rejani faol qiladi va o‘qituvchi/jadval avtomatik hisobiga uzatadi" className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.green }}>{planSaving ? "..." : "Saqlash va rejani tasdiqlash"}</button>
+        <button onClick={() => savePlan(false)} disabled={planSaving} title={__kbUi("Keyin davom ettirish uchun saqlaydi; reja va dars jadvalini faollashtirmaydi")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.blue, border: `1px solid ${palette.blue}` }}>{planSaving ? __kbUi("Saqlanmoqda...") : __kbUi("Vaqtincha saqlash · tasdiqlamasdan")}</button>
+        <button onClick={() => savePlan(true)} disabled={planSaving} title={__kbUi("O‘quv rejani faol qiladi va o‘qituvchi/jadval avtomatik hisobiga uzatadi")} className="px-5 py-3 rounded-xl text-xs font-black text-white" style={{ background: palette.green }}>{planSaving ? __kbUi("...") : __kbUi("Saqlash va rejani tasdiqlash")}</button>
       </div>
-      <div className="mt-2 text-[10px] text-right" style={{ color: palette.muted }}>
-        Vaqtincha saqlash — keyin davom ettirish uchun. Tasdiqlash — o‘qituvchi avtomatik soati va dars jadvali uchun faol qiladi.
-      </div>
+      <div className="mt-2 text-[10px] text-right" style={{ color: palette.muted }}>{__kbUi("Vaqtincha saqlash — keyin davom ettirish uchun. Tasdiqlash — o‘qituvchi avtomatik soati va dars jadvali uchun faol qiladi.")}</div>
 
-      {!(data.sinflar || []).length ? <div className="mt-4"><SmartNotice tone="error">
-        Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.
-      </SmartNotice></div> : <>
-        <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>
-          Fanlar bu sahifada qo‘shilmaydi: ular maktabning 1–11-sinf fan tanlovidan olinadi. Qatorlarda tanlangan fanlar, ustunlarda sinflar turadi; bu yerda faqat admin andozasidan ko‘chgan haftalik soat tekshiriladi. Kiritilgan soat A/B/C parallel sinflarning barchasiga bir xil qo‘llanadi.
-        </div>
+      {!(data.sinflar || []).length ? <div className="mt-4"><SmartNotice tone="error">{__kbUi("Kiritilgan sinflar yuklanmadi. Yangilangan backenddagi `samtm_school.py` faylini ham deploy qiling.")}</SmartNotice></div> : <>
+        <div className="mt-3 text-[11px]" style={{ color: palette.muted }}>{__kbUi("Fanlar bu sahifada qo‘shilmaydi: ular maktabning 1–11-sinf fan tanlovidan olinadi. Qatorlarda tanlangan fanlar, ustunlarda sinflar turadi; bu yerda faqat admin andozasidan ko‘chgan haftalik soat tekshiriladi. Kiritilgan soat A/B/C parallel sinflarning barchasiga bir xil qo‘llanadi.")}</div>
         <div className="mt-3 rounded-2xl border overflow-auto" style={{ borderColor: palette.line, maxHeight: "68vh" }}>
           <table className="border-collapse text-[11px]" style={{ minWidth: "790px", width: "100%", tableLayout: "fixed" }}>
             <thead className="sticky top-0 z-30">
               <tr>
-                <th className="sticky left-0 z-40 w-[176px] min-w-[176px] px-3 py-3 text-left" style={{ background: palette.ink, color: "#fff" }}>FAN ↓ / SINF →</th>
-                {planGradeRows.map(gradeRow => <th key={gradeRow.grade} className="w-[52px] min-w-[52px] px-1 py-3 text-center font-black whitespace-nowrap" style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.16)" }}>{gradeRow.grade}-sinf</th>)}
+                <th className="sticky left-0 z-40 w-[176px] min-w-[176px] px-3 py-3 text-left" style={{ background: palette.ink, color: "#fff" }}>{__kbUi("FAN ↓ / SINF →")}</th>
+                {planGradeRows.map(gradeRow => <th key={gradeRow.grade} className="w-[52px] min-w-[52px] px-1 py-3 text-center font-black whitespace-nowrap" style={{ background: palette.ink, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.16)" }}>{gradeRow.grade}{__kbUi("-sinf")}</th>)}
               </tr>
             </thead>
             <tbody>
               {planSubjects.map((subject, subjectIndex) => <tr key={subject} style={{ borderTop: `1px solid ${palette.line}` }}>
                 <th className="sticky left-0 z-20 px-2.5 py-2 text-left" title={subject} style={{ background: subjectIndex % 2 ? "#F7FAFC" : "#fff", color: palette.ink, borderRight: `1px solid ${palette.line}` }}>
-                  <span className="block min-w-0 truncate font-black" title={subject}>{compactCurriculumSubjectV201(subject)}</span>
+                  <span className="block min-w-0 truncate font-black" title={subject}>{__kbUi(compactCurriculumSubjectV201(subject))}</span>
                 </th>
                 {planGradeRows.map(gradeRow => {
                   const cls = gradeRow.classes[0];
                   const allowed = gradePlanSubjects(gradeRow).some(item => subjectKeyV193(item) === subjectKeyV193(subject));
                   const value = Number(planCells[planCellKey(cls.id, subject)] || 0);
-                  return <td key={gradeRow.grade} className="p-1 text-center" title={`${gradeRow.grade}-sinf · ${subject}${allowed ? ` · ${value || 0} soat` : " · bu sinfda tanlanmagan"}`} style={{ background: value > 0 ? palette.greenBg : (subjectIndex % 2 ? "#F7FAFC" : "#fff"), borderLeft: `1px solid ${palette.line}` }}>
-                    {allowed ? <input aria-label={`${gradeRow.grade}-sinf ${subject}`} type="number" min="0" max="20" step="0.5" value={value || ""} placeholder="—" onChange={event => updatePlanGradeCell(gradeRow.classes, subject, event.target.value)} className="w-[42px] h-8 rounded-md border text-center text-[11px] font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted, background: "#fff" }}/> : <span style={{ color: "#C6CDD1" }}>×</span>}
+                  return <td key={gradeRow.grade} className="p-1 text-center" title={__kbUi(`${gradeRow.grade}-sinf · ${subject}${allowed ? ` · ${value || 0} soat` : " · bu sinfda tanlanmagan"}`)} style={{ background: value > 0 ? palette.greenBg : (subjectIndex % 2 ? "#F7FAFC" : "#fff"), borderLeft: `1px solid ${palette.line}` }}>
+                    {allowed ? <input aria-label={__kbUi(`${gradeRow.grade}-sinf ${subject}`)} type="number" min="0" max="20" step="0.5" value={value || ""} placeholder={__kbUi("—")} onChange={event => updatePlanGradeCell(gradeRow.classes, subject, event.target.value)} className="w-[42px] h-8 rounded-md border text-center text-[11px] font-black" style={{ borderColor: value > 0 ? "#8FC4A5" : palette.line, color: value > 0 ? palette.green : palette.muted, background: "#fff" }}/> : <span style={{ color: "#C6CDD1" }}>×</span>}
                   </td>;
                 })}
               </tr>)}
               <tr style={{ borderTop: `2px solid ${palette.teal}` }}>
-                <th className="sticky left-0 z-20 px-2.5 py-2 text-left font-black" title={classHourName || "KELAJAK SOATI"} style={{ background: palette.mint, color: palette.green, borderRight: `1px solid ${palette.line}` }}>{compactCurriculumSubjectV201(classHourName || "KELAJAK SOATI")}</th>
-                {planGradeRows.map(gradeRow => <td key={gradeRow.grade} className="p-1 text-center" style={{ background: palette.mint, borderLeft: `1px solid ${palette.line}` }}><input aria-label={`${gradeRow.grade}-sinf maxsus soati`} type="number" min="0" max="5" step="1" value={Number(classHourGradeHours[gradeRow.grade] || 0)} onChange={event => setClassHourGradeHours(current => ({ ...current, [gradeRow.grade]: Math.max(0, Math.min(5, Number(event.target.value) || 0)) }))} className="w-[42px] h-8 rounded-md border text-center text-[11px] font-black" style={{ borderColor: "#8FC4A5", color: palette.green, background: "#fff" }}/></td>)}
+                <th className="sticky left-0 z-20 px-2.5 py-2 text-left font-black" title={classHourName || __kbUi("KELAJAK SOATI")} style={{ background: palette.mint, color: palette.green, borderRight: `1px solid ${palette.line}` }}>{__kbUi(compactCurriculumSubjectV201(classHourName || "KELAJAK SOATI"))}</th>
+                {planGradeRows.map(gradeRow => <td key={gradeRow.grade} className="p-1 text-center" style={{ background: palette.mint, borderLeft: `1px solid ${palette.line}` }}><input aria-label={__kbUi(`${gradeRow.grade}-sinf maxsus soati`)} type="number" min="0" max="5" step="1" value={Number(classHourGradeHours[gradeRow.grade] || 0)} onChange={event => setClassHourGradeHours(current => ({ ...current, [gradeRow.grade]: Math.max(0, Math.min(5, Number(event.target.value) || 0)) }))} className="w-[42px] h-8 rounded-md border text-center text-[11px] font-black" style={{ borderColor: "#8FC4A5", color: palette.green, background: "#fff" }}/></td>)}
               </tr>
               <tr style={{ borderTop: `1px solid ${palette.line}` }}>
-                <th className="sticky left-0 z-20 px-2.5 py-2 text-left font-black" style={{ background: palette.blue, color: "#fff" }}>JAMI YUKLAMA</th>
+                <th className="sticky left-0 z-20 px-2.5 py-2 text-left font-black" style={{ background: palette.blue, color: "#fff" }}>{__kbUi("JAMI YUKLAMA")}</th>
                 {planGradeRows.map(gradeRow => {
                   const cls = gradeRow.classes[0];
                   const total = Number(classHourGradeHours[gradeRow.grade] || 0) + planSubjects.reduce((sum, subject) => sum + Number(planCells[planCellKey(cls.id, subject)] || 0), 0);
@@ -4851,41 +4826,36 @@ function TeacherFirstLoadEditorV192({
 
     {activePlanStatus !== "tasdiqlangan" && <SmartNotice tone="warning">
       {planOnly
-        ? "Rejani tekshirib tasdiqlasangiz, o‘qituvchi qatorlaridagi haftalik soat avtomatik chiqadi. O‘qituvchini qo‘lda qo‘shish esa hozir ham ochiq."
-        : "O‘quv reja tasdiqlanmagan: fan, sinf/guruh va haftalik soatni qo‘lda kiritib saqlashingiz mumkin. Faqat avtomatik soat va jadval manbasi reja tasdiqlanguncha ishlamaydi."}
+        ? __kbUi("Rejani tekshirib tasdiqlasangiz, o‘qituvchi qatorlaridagi haftalik soat avtomatik chiqadi. O‘qituvchini qo‘lda qo‘shish esa hozir ham ochiq.")
+        : __kbUi("O‘quv reja tasdiqlanmagan: fan, sinf/guruh va haftalik soatni qo‘lda kiritib saqlashingiz mumkin. Faqat avtomatik soat va jadval manbasi reja tasdiqlanguncha ishlamaydi.")}
     </SmartNotice>}
 
     {!planOnly && <>
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{SAMTM_TEACHER_FIRST_RELEASE} · asosiy kiritish usuli</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>O‘qituvchi bo‘yicha fan–sinf–guruh yuklamasi</h2>
-          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
-            Har bir qator bitta aniq dars: o‘qituvchi + fan + sinf + guruh + haftalik soat.
-            Fizika, Astronomiya va Iqtisod bir o‘qituvchida bo‘lsa ham aralashmaydi.
-          </p>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi(SAMTM_TEACHER_FIRST_RELEASE)}{__kbUi(" · asosiy kiritish usuli")}</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{__kbUi("O‘qituvchi bo‘yicha fan–sinf–guruh yuklamasi")}</h2>
+          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>{__kbUi("Har bir qator bitta aniq dars: o‘qituvchi + fan + sinf + guruh + haftalik soat. Fizika, Astronomiya va Iqtisod bir o‘qituvchida bo‘lsa ham aralashmaydi.")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={openPlanReference} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.amberBg, color: palette.amber }}><BookOpen size={16}/> O‘quv rejani ko‘rish</button>
-          {!creatingNew && teacher && <button type="button" onClick={() => setDeleteCandidate(teacher)} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>O‘qituvchini o‘chirish</button>}
+          <button type="button" onClick={openPlanReference} className="px-4 py-3 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.amberBg, color: palette.amber }}><BookOpen size={16}/>{__kbUi(" O‘quv rejani ko‘rish")}</button>
+          {!creatingNew && teacher && <button type="button" onClick={() => setDeleteCandidate(teacher)} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: palette.redBg, color: palette.red }}>{__kbUi("O‘qituvchini o‘chirish")}</button>}
         </div>
       </div>
 
       <div className="grid xl:grid-cols-[380px_minmax(0,1fr)] gap-3 mt-4 items-start">
         <div id="teacher-selector-panel" className="rounded-2xl p-3 border xl:sticky xl:top-3" style={{ background: palette.cream, borderColor: fieldIsInvalidV199("teacher-selector-panel") ? palette.red : "transparent" }}>
-          {!creatingNew && <button onClick={startNewTeacher} className="w-full px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
-            + Yangi o‘qituvchini qo‘lda kiritish
-          </button>}
+          {!creatingNew && <button onClick={startNewTeacher} className="w-full px-4 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>{__kbUi("+ Yangi o‘qituvchini qo‘lda kiritish")}</button>}
           {creatingNew ? <div id="new-teacher-form" className="grid grid-cols-2 gap-2 scroll-mt-4">
             <div className="col-span-2">
-              <div className="text-sm font-black" style={{ color: palette.ink }}>Yangi o‘qituvchi</div>
-              <div className="text-[11px] mt-1" style={{ color: palette.muted }}><b>* Majburiy:</b> F.I.Sh., o‘tadigan fanlar, haftalik maqsad soati va kamida bitta aniq dars qatori.</div>
+              <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Yangi o‘qituvchi")}</div>
+              <div className="text-[11px] mt-1" style={{ color: palette.muted }}><b>{__kbUi("* Majburiy:")}</b>{__kbUi(" F.I.Sh., o‘tadigan fanlar, haftalik maqsad soati va kamida bitta aniq dars qatori.")}</div>
             </div>
             {(data?.oqituvchilar || []).length > 0 && <div className="col-span-2 order-5 rounded-xl border p-2" style={{ borderColor: palette.line, background: "#fff" }}>
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>Saqlangan o‘qituvchilar</div>
-                <div className="text-[9px]" style={{ color: palette.muted }}>Eng yangi yuqorida</div>
+                <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>{__kbUi("Saqlangan o‘qituvchilar")}</div>
+                <div className="text-[9px]" style={{ color: palette.muted }}>{__kbUi("Eng yangi yuqorida")}</div>
               </div>
               <div className="space-y-1 mt-1.5 max-h-24 overflow-auto pr-1">
                 {[...(data?.oqituvchilar || [])].sort((left, right) =>
@@ -4896,66 +4866,60 @@ function TeacherFirstLoadEditorV192({
                   );
                   const recent = String(item.user_id) === recentlyCreatedTeacherId;
                   return <button type="button" key={item.user_id} onClick={() => openTeacherEditorV204(item.user_id)} className="w-full rounded-lg px-2.5 py-2 text-left border" style={{ background: recent ? palette.greenBg : palette.sky, borderColor: recent ? "#8FC4A5" : palette.line }}>
-                    <div className="text-[11px] font-black truncate" style={{ color: palette.ink }}>{recent ? "YANGI · " : ""}{item.full_name}</div>
+                    <div className="text-[11px] font-black truncate" style={{ color: palette.ink }}>{recent ? __kbUi("YANGI · ") : __kbUi("")}{item.full_name}</div>
                     <div className="text-[9px] mt-0.5 truncate" style={{ color: palette.muted }}>
-                      {total?.fan_soati ?? total?.haftalik_jami ?? 0}{Number(total?.sinf_soati || 0) ? ` + ${total.sinf_soati} Kelajak` : ""} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
+                      {total?.fan_soati ?? total?.haftalik_jami ?? 0}{Number(total?.sinf_soati || 0) ? __kbUi(` + ${total.sinf_soati} Kelajak`) : __kbUi("")}{__kbUi(" soat · ")}{(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || __kbUi("fan kiritilmagan")}
                     </div>
                   </button>;
                 })}
               </div>
-              <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>O‘qituvchini bossangiz uning yuklamasi tahrirlash uchun ochiladi.</div>
+              <div className="text-[9px] mt-1.5" style={{ color: palette.muted }}>{__kbUi("O‘qituvchini bossangiz uning yuklamasi tahrirlash uchun ochiladi.")}</div>
             </div>}
-            <label className="col-span-2 order-1 block text-xs font-black" style={{ color: palette.ink }}>F.I.Sh. <span style={{ color: palette.red }}>*</span>
-              <input id="new-teacher-full-name" autoFocus value={newTeacher.full_name} onChange={event => { clearInvalidFieldV199("new-teacher-full-name"); setNewTeacher(current => ({ ...current, full_name: event.target.value })); }} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-full-name")}/>
-              {fieldIsInvalidV199("new-teacher-full-name") && <span className="block mt-1 text-[10px]" style={{ color: palette.red }}>Bu yerni to‘ldiring.</span>}
+            <label className="col-span-2 order-1 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("F.I.Sh. ")}<span style={{ color: palette.red }}>*</span>
+              <input id="new-teacher-full-name" autoFocus value={newTeacher.full_name} onChange={event => { clearInvalidFieldV199("new-teacher-full-name"); setNewTeacher(current => ({ ...current, full_name: event.target.value })); }} placeholder={__kbUi("Masalan: Aliyev Anvar Akmalovich")} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-full-name")}/>
+              {fieldIsInvalidV199("new-teacher-full-name") && <span className="block mt-1 text-[10px]" style={{ color: palette.red }}>{__kbUi("Bu yerni to‘ldiring.")}</span>}
             </label>
             {renderSpecialtyPicker(true)}
-            <label className="order-3 block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati <span style={{ color: palette.red }}>*</span>
-              <input id="new-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={newTeacher.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("new-teacher-weekly-target"); setNewTeacher(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-weekly-target")}/>
-              {fieldIsInvalidV199("new-teacher-weekly-target") && <span className="block mt-1 text-[10px] font-black" style={{ color: palette.red }}>Haftalik maqsad soatini kiriting. Masalan: 25.</span>}
-              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.</span>
+            <label className="order-3 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Haftalik maqsad soati ")}<span style={{ color: palette.red }}>*</span>
+              <input id="new-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={newTeacher.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("new-teacher-weekly-target"); setNewTeacher(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder={__kbUi("Masalan: 22")} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-weekly-target")}/>
+              {fieldIsInvalidV199("new-teacher-weekly-target") && <span className="block mt-1 text-[10px] font-black" style={{ color: palette.red }}>{__kbUi("Haftalik maqsad soatini kiriting. Masalan: 25.")}</span>}
+              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>{__kbUi("Bu maqsad. Haqiqiy yuklama pastdagi qatorlardan hisoblanadi.")}</span>
             </label>
-            <div className="col-span-2 order-6 pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Ixtiyoriy ma’lumotlar</div>
-            <label className="order-7 block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
-              <input id="new-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={newTeacher.tugilgan_sana} onChange={event => { clearInvalidFieldV199("new-teacher-birth-date"); setNewTeacher(current => ({
+            <div className="col-span-2 order-6 pt-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("Ixtiyoriy ma’lumotlar")}</div>
+            <label className="order-7 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Tug‘ilgan sana (yil–oy–kun)")}<input id="new-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={newTeacher.tugilgan_sana} onChange={event => { clearInvalidFieldV199("new-teacher-birth-date"); setNewTeacher(current => ({
                 ...current,
                 tugilgan_sana: event.target.value,
                 tugilgan_yili: event.target.value ? event.target.value.slice(0, 4) : "",
               })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-birth-date")}/>
             </label>
-            <label className="order-7 block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
-              <input id="new-teacher-experience" type="number" min="0" max="60" value={newTeacher.ish_staji} onChange={event => { clearInvalidFieldV199("new-teacher-experience"); setNewTeacher(current => ({ ...current, ish_staji: event.target.value })); }} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-experience")}/>
+            <label className="order-7 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Ish staji (yil)")}<input id="new-teacher-experience" type="number" min="0" max="60" value={newTeacher.ish_staji} onChange={event => { clearInvalidFieldV199("new-teacher-experience"); setNewTeacher(current => ({ ...current, ish_staji: event.target.value })); }} placeholder={__kbUi("Masalan: 8")} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-experience")}/>
             </label>
-            <label className="order-7 block text-xs font-black" style={{ color: palette.ink }}>Toifasi
-              <select value={newTeacher.toifasi} onChange={event => setNewTeacher(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
-                <option value="">Belgilanmagan</option>
-                {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
+            <label className="order-7 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Toifasi")}<select value={newTeacher.toifasi} onChange={event => setNewTeacher(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+                <option value="">{__kbUi("Belgilanmagan")}</option>
+                {teacherCategoriesV192.map(category => <option key={category} value={category}>{__kbUi(category)}</option>)}
               </select>
             </label>
-            <label className="order-3 block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
-              <select id="new-teacher-leader-class" value={newTeacher.rahbar_sinf_id} onChange={event => { clearInvalidFieldV199("new-teacher-leader-class"); setNewTeacher(current => ({ ...current, rahbar_sinf_id: event.target.value })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-leader-class")}>
-                <option value="">Sinf rahbari emas</option>
+            <label className="order-3 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Sinf rahbarligi")}<select id="new-teacher-leader-class" value={newTeacher.rahbar_sinf_id} onChange={event => { clearInvalidFieldV199("new-teacher-leader-class"); setNewTeacher(current => ({ ...current, rahbar_sinf_id: event.target.value })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("new-teacher-leader-class")}>
+                <option value="">{__kbUi("Sinf rahbari emas")}</option>
                 {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id} disabled={Boolean(cls.rahbar_user_id)}>
-                  {cls.sinf}-{cls.harf}{cls.rahbar_user_id ? ` · ${cls.rahbar_ismi || "rahbari bor"}` : ""}
+                  {cls.sinf}-{cls.harf}{cls.rahbar_user_id ? __kbUi(` · ${cls.rahbar_ismi || "rahbari bor"}`) : __kbUi("")}
                 </option>)}
               </select>
-              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Sinf tanlansa, o‘qituvchiga haftasiga 1 soat KELAJAK SOATI avtomatik qo‘shiladi. Rahbari bor sinflar tanlanmaydi.</span>
+              <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>{__kbUi("Sinf tanlansa, o‘qituvchiga haftasiga 1 soat KELAJAK SOATI avtomatik qo‘shiladi. Rahbari bor sinflar tanlanmaydi.")}</span>
             </label>
-            {(() => {
+            {__kbUi((() => {
               const leaderClass = (data?.sinflar || []).find(cls => String(cls.id) === String(newTeacher.rahbar_sinf_id));
               const grade = Number(String(leaderClass?.sinf || "").match(/\d+/)?.[0] || 0);
               const leaderPlanApproved = planApprovedForClass(leaderClass?.id);
-              return grade >= 1 && grade <= 4 ? <button onClick={addPrimaryTeacherPlan} disabled={!leaderPlanApproved} className="col-span-2 order-4 w-full px-4 py-3 rounded-xl text-xs font-black text-white disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.green }} title={leaderPlanApproved ? "Mos fanlar reja soati bilan qo‘shiladi" : "Shu sinf ta’lim tilidagi o‘quv reja tasdiqlanishi kerak"}>
-                ⚡ {leaderPlanApproved ? "Sinf rahbari fanlarini reja bo‘yicha qo‘shish" : "Avto fan/soat · shu til rejasi tasdiqlanmagan"}
+              return grade >= 1 && grade <= 4 ? <button onClick={addPrimaryTeacherPlan} disabled={!leaderPlanApproved} className="col-span-2 order-4 w-full px-4 py-3 rounded-xl text-xs font-black text-white disabled:opacity-45 disabled:cursor-not-allowed" style={{ background: palette.green }} title={leaderPlanApproved ? __kbUi("Mos fanlar reja soati bilan qo‘shiladi") : __kbUi("Shu sinf ta’lim tilidagi o‘quv reja tasdiqlanishi kerak")}>
+                ⚡ {leaderPlanApproved ? __kbUi("Sinf rahbari fanlarini reja bo‘yicha qo‘shish") : __kbUi("Avto fan/soat · shu til rejasi tasdiqlanmagan")}
               </button> : null;
-            })()}
-            <button onClick={cancelNewTeacher} className="col-span-2 order-8 w-full px-4 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>Bekor qilish</button>
+            })())}
+            <button onClick={cancelNewTeacher} className="col-span-2 order-8 w-full px-4 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red, border: `1px solid ${palette.line}` }}>{__kbUi("Bekor qilish")}</button>
           </div> : <>
-            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>
-              O‘qituvchi qidirish
-              <div className="relative mt-1.5">
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>{__kbUi("O‘qituvchi qidirish")}<div className="relative mt-1.5">
                 <Search size={15} className="absolute left-3 top-3" style={{ color: palette.muted }}/>
-                <input value={query} onChange={event => setQuery(event.target.value)} placeholder="F.I.Sh." className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
+                <input value={query} onChange={event => setQuery(event.target.value)} placeholder={__kbUi("F.I.Sh.")} className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}/>
               </div>
             </label>
             <div className="space-y-1.5 mt-3 max-h-[420px] overflow-auto pr-1">
@@ -4970,14 +4934,14 @@ function TeacherFirstLoadEditorV192({
                 }}>
                   <div className="text-sm font-black" style={{ color: palette.ink }}>{item.full_name}</div>
                   <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                    {total?.fan_soati ?? total?.haftalik_jami ?? 0}/{item.haftalik_maqsad_soat || "—"}{Number(total?.sinf_soati || 0) ? ` + ${total.sinf_soati} Kelajak` : ""} soat · {(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || "fan kiritilmagan"}
+                    {total?.fan_soati ?? total?.haftalik_jami ?? 0}/{item.haftalik_maqsad_soat || __kbUi("—")}{Number(total?.sinf_soati || 0) ? __kbUi(` + ${total.sinf_soati} Kelajak`) : __kbUi("")}{__kbUi(" soat · ")}{(item.fanlar_royxati || specialtyValuesV195(item.mutaxassisligi)).join(", ") || __kbUi("fan kiritilmagan")}
                   </div>
                   <div className="text-[10px] mt-0.5 truncate" style={{ color: palette.muted }}>
-                    {item.toifasi || "Toifa belgilanmagan"}{item.ish_staji == null ? "" : ` · ${item.ish_staji} yil staj`}
+                    {item.toifasi || __kbUi("Toifa belgilanmagan")}{item.ish_staji == null ? __kbUi("") : __kbUi(` · ${item.ish_staji} yil staj`)}
                   </div>
                 </button>;
               })}
-              {!teachers.length && <div className="text-xs p-3 text-center" style={{ color: palette.muted }}>O‘qituvchi topilmadi.</div>}
+              {!teachers.length && <div className="text-xs p-3 text-center" style={{ color: palette.muted }}>{__kbUi("O‘qituvchi topilmadi.")}</div>}
             </div>
           </>}
         </div>
@@ -4986,52 +4950,44 @@ function TeacherFirstLoadEditorV192({
           {!creatingNew && <div id="existing-teacher-edit-panel" className="rounded-2xl border p-4 mb-4 scroll-mt-4" style={{ borderColor: palette.line, background: "#fff" }}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchi ma’lumotlarini tahrirlash</div>
-                <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>{teacher?.full_name || "Tanlangan o‘qituvchi"}</div>
+                <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("O‘qituvchi ma’lumotlarini tahrirlash")}</div>
+                <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>{teacher?.full_name || __kbUi("Tanlangan o‘qituvchi")}</div>
               </div>
               <button type="button" onClick={save} disabled={saving || !selectedTeacher} className="px-4 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
-                {saving ? "Saqlanmoqda..." : "O‘zgarishlarni saqlash"}
+                {saving ? __kbUi("Saqlanmoqda...") : __kbUi("O‘zgarishlarni saqlash")}
               </button>
             </div>
             <div className="grid md:grid-cols-2 gap-3">
-              <label className="order-1 block text-xs font-black md:col-span-2" style={{ color: palette.ink }}>F.I.Sh.
-                <input id="existing-teacher-full-name" value={existingProfile.full_name} onChange={event => { clearInvalidFieldV199("existing-teacher-full-name"); setExistingProfile(current => ({ ...current, full_name: event.target.value })); }} placeholder="Masalan: Aliyev Anvar Akmalovich" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-full-name")}/>
+              <label className="order-1 block text-xs font-black md:col-span-2" style={{ color: palette.ink }}>{__kbUi("F.I.Sh.")}<input id="existing-teacher-full-name" value={existingProfile.full_name} onChange={event => { clearInvalidFieldV199("existing-teacher-full-name"); setExistingProfile(current => ({ ...current, full_name: event.target.value })); }} placeholder={__kbUi("Masalan: Aliyev Anvar Akmalovich")} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-full-name")}/>
               </label>
               {renderSpecialtyPicker(false)}
-              <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>Haftalik maqsad soati
-                <input id="existing-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={existingProfile.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("existing-teacher-weekly-target"); setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder="Masalan: 22" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-weekly-target")}/>
+              <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Haftalik maqsad soati")}<input id="existing-teacher-weekly-target" type="number" min="0.5" max="60" step="0.5" value={existingProfile.haftalik_maqsad_soat} onChange={event => { clearInvalidFieldV199("existing-teacher-weekly-target"); setExistingProfile(current => ({ ...current, haftalik_maqsad_soat: event.target.value })); }} placeholder={__kbUi("Masalan: 22")} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-weekly-target")}/>
               </label>
-              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>Tug‘ilgan sana (yil–oy–kun)
-                <input id="existing-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={existingProfile.tugilgan_sana} onChange={event => { clearInvalidFieldV199("existing-teacher-birth-date"); setExistingProfile(current => ({
+              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Tug‘ilgan sana (yil–oy–kun)")}<input id="existing-teacher-birth-date" type="date" min="1900-01-01" max={birthDateMaxV195} value={existingProfile.tugilgan_sana} onChange={event => { clearInvalidFieldV199("existing-teacher-birth-date"); setExistingProfile(current => ({
                   ...current,
                   tugilgan_sana: event.target.value,
                   tugilgan_yili: event.target.value ? event.target.value.slice(0, 4) : "",
                 })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-birth-date")}/>
-                {existingProfile.tugilgan_yili && !existingProfile.tugilgan_sana && <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.amber }}>
-                  Eski bazada faqat {existingProfile.tugilgan_yili}-yil saqlangan. Oy va kunni belgilang.
-                </span>}
+                {existingProfile.tugilgan_yili && !existingProfile.tugilgan_sana && <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.amber }}>{__kbUi("Eski bazada faqat ")}{existingProfile.tugilgan_yili}{__kbUi("-yil saqlangan. Oy va kunni belgilang.")}</span>}
               </label>
-              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>Ish staji (yil)
-                <input id="existing-teacher-experience" type="number" min="0" max="60" step="1" value={existingProfile.ish_staji} onChange={event => { clearInvalidFieldV199("existing-teacher-experience"); setExistingProfile(current => ({ ...current, ish_staji: event.target.value })); }} placeholder="Masalan: 8" className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-experience")}/>
+              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Ish staji (yil)")}<input id="existing-teacher-experience" type="number" min="0" max="60" step="1" value={existingProfile.ish_staji} onChange={event => { clearInvalidFieldV199("existing-teacher-experience"); setExistingProfile(current => ({ ...current, ish_staji: event.target.value })); }} placeholder={__kbUi("Masalan: 8")} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-experience")}/>
               </label>
-              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>Toifasi
-                <select value={existingProfile.toifasi} onChange={event => setExistingProfile(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
-                  <option value="">Belgilanmagan</option>
-                  {teacherCategoriesV192.map(category => <option key={category} value={category}>{category}</option>)}
+              <label className="order-4 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Toifasi")}<select value={existingProfile.toifasi} onChange={event => setExistingProfile(current => ({ ...current, toifasi: event.target.value }))} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+                  <option value="">{__kbUi("Belgilanmagan")}</option>
+                  {teacherCategoriesV192.map(category => <option key={category} value={category}>{__kbUi(category)}</option>)}
                 </select>
               </label>
-              <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>Sinf rahbarligi
-                <select id="existing-teacher-leader-class" value={existingProfile.rahbar_sinf_id} onChange={event => { clearInvalidFieldV199("existing-teacher-leader-class"); setExistingProfile(current => ({ ...current, rahbar_sinf_id: event.target.value })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-leader-class")}>
-                  <option value="">Sinf rahbari emas</option>
+              <label className="order-1 block text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Sinf rahbarligi")}<select id="existing-teacher-leader-class" value={existingProfile.rahbar_sinf_id} onChange={event => { clearInvalidFieldV199("existing-teacher-leader-class"); setExistingProfile(current => ({ ...current, rahbar_sinf_id: event.target.value })); }} className="w-full mt-1.5 px-3 py-2.5 rounded-xl border bg-white" style={invalidFieldStyleV199("existing-teacher-leader-class")}>
+                  <option value="">{__kbUi("Sinf rahbari emas")}</option>
                   {(data?.sinflar || []).map(cls => {
                     const belongsToCurrent = String(cls.rahbar_user_id || "") === String(selectedTeacher);
                     const occupiedByOther = Boolean(cls.rahbar_user_id) && !belongsToCurrent;
                     return <option key={cls.id} value={cls.id} disabled={occupiedByOther}>
-                      {cls.sinf}-{cls.harf}{occupiedByOther ? ` · ${cls.rahbar_ismi || "rahbari bor"}` : belongsToCurrent ? " · hozirgi sinfi" : ""}
+                      {cls.sinf}-{cls.harf}{occupiedByOther ? __kbUi(` · ${cls.rahbar_ismi || "rahbari bor"}`) : belongsToCurrent ? __kbUi(" · hozirgi sinfi") : __kbUi("")}
                     </option>;
                   })}
                 </select>
-                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>Tanlangan sinf uchun 1 soat KELAJAK SOATI avtomatik yuklamaga kiradi. Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq.</span>
+                <span className="block mt-1 text-[10px] font-normal" style={{ color: palette.muted }}>{__kbUi("Tanlangan sinf uchun 1 soat KELAJAK SOATI avtomatik yuklamaga kiradi. Hozirgi sinfi ochiq, boshqa rahbari bor sinflar yopiq.")}</span>
               </label>
             </div>
           </div>}
@@ -5039,19 +4995,18 @@ function TeacherFirstLoadEditorV192({
           <div className="rounded-2xl border p-3 mb-2" style={{ borderColor: palette.line, background: "#F8FBFD" }}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-black" style={{ color: palette.ink }}>Fanlar bo‘yicha aqlli yuklama</div>
-                <div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>Fan → sinflar → tasdiqlangan o‘quv rejadan aniq soat.</div>
+                <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Fanlar bo‘yicha aqlli yuklama")}</div>
+                <div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{__kbUi("Fan → sinflar → tasdiqlangan o‘quv rejadan aniq soat.")}</div>
               </div>
               <button type="button" role="switch" aria-checked={autoSpecialty} onClick={() => changeAutoSpecialty(!autoSpecialty)} className="px-4 py-2.5 rounded-xl text-xs font-black border" style={{
                 background: autoSpecialty ? palette.greenBg : "#fff",
                 color: autoSpecialty ? palette.green : palette.muted,
                 borderColor: autoSpecialty ? "#8FC4A5" : palette.line,
-              }}>
-                AVTO {autoSpecialty ? "YOQILGAN" : "O‘CHIRILGAN"}
+              }}>{__kbUi("AVTO ")}{autoSpecialty ? __kbUi("YOQILGAN") : __kbUi("O‘CHIRILGAN")}
               </button>
             </div>
             <div className="mt-3">
-              <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>1. O‘tadigan fanni tanlang</div>
+              <div className="text-[10px] font-black uppercase" style={{ color: palette.teal }}>{__kbUi("1. O‘tadigan fanni tanlang")}</div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {activeSpecialtyValues.map((value, index) => {
                   const option = specialtyOptions.find(item => item.value === value);
@@ -5065,28 +5020,28 @@ function TeacherFirstLoadEditorV192({
                     borderColor: tone.line,
                     boxShadow: active ? `0 5px 16px ${tone.strong}33` : "none",
                   }}>
-                    {active ? "✓ " : ""}{fanNumber > 0 ? `${String(fanNumber).padStart(2, "0")}. ` : ""}{option?.label || value}<span className="ml-1 opacity-75">· {classCount} sinf</span>
+                    {active ? __kbUi("✓ ") : __kbUi("")}{fanNumber > 0 ? __kbUi(`${String(fanNumber).padStart(2, "0")}. `) : __kbUi("")}{option?.label || value}<span className="ml-1 opacity-75">· {classCount}{__kbUi(" sinf")}</span>
                   </button>;
                 })}
-                {!activeSpecialtyValues.length && <span className="text-[10px] rounded-lg px-3 py-2" style={{ background: palette.amberBg, color: palette.amber }}>Yuqoridan kamida bitta o‘tadigan fanni tanlang.</span>}
+                {!activeSpecialtyValues.length && <span className="text-[10px] rounded-lg px-3 py-2" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("Yuqoridan kamida bitta o‘tadigan fanni tanlang.")}</span>}
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>2. Shu fan o‘tiladigan sinflar</span>
+              <span className="text-[10px] font-black uppercase" style={{ color: activeSpecialtyTone.strong }}>{__kbUi("2. Shu fan o‘tiladigan sinflar")}</span>
               <span className="text-[10px]" style={{ color: teacherLanguagePlansApproved ? palette.green : palette.amber }}>
-                {teacherLanguagePlansApproved ? "Tanlangan til rejalari tasdiqlangan · avto tayyor" : "Ayrim tanlangan til rejalari tasdiqlanmagan · faqat qo‘lda"}
+                {teacherLanguagePlansApproved ? __kbUi("Tanlangan til rejalari tasdiqlangan · avto tayyor") : __kbUi("Ayrim tanlangan til rejalari tasdiqlanmagan · faqat qo‘lda")}
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {[['all','Barcha tillar'], ...V238_EDUCATION_LANGUAGE_ORDER.map(value => [value, V238_EDUCATION_LANGUAGES[value].label])].map(([value,label]) => {
                 const active = teacherClassLanguageFilter === value;
-                return <button type="button" key={value} onClick={() => setTeacherClassLanguageFilter(value)} className="px-3 py-1.5 rounded-lg border text-[9px] font-black" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : '#fff', color: active ? '#fff' : palette.muted }}>{label}</button>;
+                return <button type="button" key={value} onClick={() => setTeacherClassLanguageFilter(value)} className="px-3 py-1.5 rounded-lg border text-[9px] font-black" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : '#fff', color: active ? '#fff' : palette.muted }}>{__kbUi(label)}</button>;
               })}
-              <span className="px-2 py-1.5 text-[9px]" style={{ color: palette.muted }}>Sinf tanlansa, fanlar avtomatik shu sinf tilidagi rejadan olinadi.</span>
+              <span className="px-2 py-1.5 text-[9px]" style={{ color: palette.muted }}>{__kbUi("Sinf tanlansa, fanlar avtomatik shu sinf tilidagi rejadan olinadi.")}</span>
             </div>
             <div className="mt-2 rounded-xl border px-2.5 py-2" style={{ borderColor: activeSpecialtyTone.line, background: activeSpecialtyTone.soft }}>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[9px] font-black uppercase mr-1" style={{ color: activeSpecialtyTone.strong }}>Tezkor:</span>
+                <span className="text-[9px] font-black uppercase mr-1" style={{ color: activeSpecialtyTone.strong }}>{__kbUi("Tezkor:")}</span>
                 {specialtyClassQuickRangesV195.map(range => {
                   const rangeIds = specialtyClassIdsForQuickRange(range);
                   const exactSelection = rangeIds.length > 0 &&
@@ -5096,9 +5051,9 @@ function TeacherFirstLoadEditorV192({
                     background: exactSelection ? activeSpecialtyTone.strong : "#fff",
                     color: exactSelection ? "#fff" : activeSpecialtyTone.strong,
                     borderColor: activeSpecialtyTone.line,
-                  }}>{exactSelection ? "✓ " : ""}{range.label} · {rangeIds.length}</button>;
+                  }}>{exactSelection ? __kbUi("✓ ") : __kbUi("")}{__kbUi(range.label)} · {rangeIds.length}</button>;
                 })}
-                <button type="button" onClick={() => applySpecialtyAuto([], resolvedAutoSpecialty)} disabled={!resolvedAutoSpecialty || !specialtyClassIds.length} className="px-3 py-2 rounded-lg border text-[10px] font-black disabled:opacity-40" style={{ background: "#fff", color: palette.red, borderColor: "#E8BBBB" }}>Tanlovni tozalash</button>
+                <button type="button" onClick={() => applySpecialtyAuto([], resolvedAutoSpecialty)} disabled={!resolvedAutoSpecialty || !specialtyClassIds.length} className="px-3 py-2 rounded-lg border text-[10px] font-black disabled:opacity-40" style={{ background: "#fff", color: palette.red, borderColor: "#E8BBBB" }}>{__kbUi("Tanlovni tozalash")}</button>
               </div>
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1.5 mt-2">
@@ -5112,38 +5067,35 @@ function TeacherFirstLoadEditorV192({
                   groupSchemes.has("numbered") ? "1/2" : "",
                   groupSchemes.has("gender") ? "O‘/Q" : "",
                 ].filter(Boolean).join(" · ") || "Butun";
-                return <button type="button" key={cls.id} onClick={() => toggleSpecialtyClass(cls.id)} title={`${active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni tanlang — avto yuklama tayyorlanadi"} · ${groupHint}`} className="px-2 py-2 rounded-lg border text-[11px] font-black" style={{
+                return <button type="button" key={cls.id} onClick={() => toggleSpecialtyClass(cls.id)} title={__kbUi(`${active ? "Bu sinfni o‘qituvchi tanlovidan chiqarish" : "Bu sinfni tanlang — avto yuklama tayyorlanadi"} · ${groupHint}`)} className="px-2 py-2 rounded-lg border text-[11px] font-black" style={{
                   background: active ? activeSpecialtyTone.strong : "#fff",
                   color: active ? "#fff" : palette.ink,
                   borderColor: active ? activeSpecialtyTone.strong : palette.line,
-                }}>{active ? "✓ " : ""}{cls.sinf}-{cls.harf}<span className="block text-[8px] mt-0.5 opacity-75">{v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge} · {groupHint}</span></button>;
+                }}>{active ? __kbUi("✓ ") : __kbUi("")}{cls.sinf}-{cls.harf}<span className="block text-[8px] mt-0.5 opacity-75">{__kbUi(v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge)} · {__kbUi(groupHint)}</span></button>;
               })}
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds, resolvedAutoSpecialty)} disabled={!autoSpecialty || !resolvedAutoSpecialty} className="px-3 py-2 rounded-xl text-[11px] font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: activeSpecialtyTone.strong }}>
-                Shu fan sinflarini qayta to‘ldirish
-              </button>
+              <button type="button" onClick={() => applySpecialtyAuto(specialtyClassIds, resolvedAutoSpecialty)} disabled={!autoSpecialty || !resolvedAutoSpecialty} className="px-3 py-2 rounded-xl text-[11px] font-black text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: activeSpecialtyTone.strong }}>{__kbUi("Shu fan sinflarini qayta to‘ldirish")}</button>
               <button type="button" onClick={() => {
                 setAllocationOverviewOpen(true);
                 window.requestAnimationFrame(() => document.getElementById("sinf-yuklama-holati")?.scrollIntoView({ behavior: "smooth", block: "start" }));
               }} className="px-3 py-2 rounded-xl text-[11px] font-black border flex items-center gap-1.5" style={{ background: palette.sky, color: palette.blue, borderColor: palette.line }}>
-                <BarChart3 size={15}/> Pastdagi sinf yuklamasi holati ↓
-              </button>
+                <BarChart3 size={15}/>{__kbUi(" Pastdagi sinf yuklamasi holati ↓")}</button>
             </div>
 
           </div>
 
           <div className="grid grid-cols-4 gap-1.5">
-            <CompactStat value={targetHours || "—"} label="haftalik maqsad" tone="blue"/>
-            <CompactStat value={draftClassTotal ? `${draftFanTotal} + ${draftClassTotal}` : draftFanTotal} label={draftClassTotal ? `fan + ${classHourName || "Kelajak soati"}` : "tanlangan fan yuklamasi"} tone="teal"/>
-            <CompactStat value={targetHours ? Math.abs(targetDifference) : "—"} label={targetHours ? (targetDifference > 0 ? "soat qoldi" : targetDifference < 0 ? "soat oshdi" : "maqsadga teng") : "farq"} tone={targetDifference < 0 ? "amber" : "green"}/>
-            <CompactStat value={rows.length} label="aniq qator" tone="amber"/>
+            <CompactStat value={targetHours || "—"} label={__kbUi("haftalik maqsad")} tone="blue"/>
+            <CompactStat value={draftClassTotal ? `${draftFanTotal} + ${draftClassTotal}` : draftFanTotal} label={draftClassTotal ? __kbUi(`fan + ${classHourName || "Kelajak soati"}`) : __kbUi("tanlangan fan yuklamasi")} tone="teal"/>
+            <CompactStat value={targetHours ? Math.abs(targetDifference) : "—"} label={targetHours ? (targetDifference > 0 ? __kbUi("soat qoldi") : targetDifference < 0 ? __kbUi("soat oshdi") : __kbUi("maqsadga teng")) : __kbUi("farq")} tone={targetDifference < 0 ? "amber" : "green"}/>
+            <CompactStat value={rows.length} label={__kbUi("aniq qator")} tone="amber"/>
           </div>
 
           <div id="teacher-load-top-actions" className="sticky top-2 z-30 mt-4 p-3 rounded-2xl border grid grid-cols-2 items-center gap-4" style={{ borderColor: fieldIsInvalidV199("teacher-load-top-actions") ? palette.red : palette.line, background: fieldIsInvalidV199("teacher-load-top-actions") ? palette.redBg : "rgba(255,255,255,.97)", boxShadow: fieldIsInvalidV199("teacher-load-top-actions") ? "0 0 0 3px rgba(165,66,66,.16)" : "0 8px 24px rgba(24,50,75,.10)" }}>
-            <button onClick={() => { clearInvalidFieldV199("teacher-load-top-actions"); addRow(); }} className="justify-self-start px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>+ Yana fan / sinf / guruh qatori</button>
+            <button onClick={() => { clearInvalidFieldV199("teacher-load-top-actions"); addRow(); }} className="justify-self-start px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("+ Yana fan / sinf / guruh qatori")}</button>
             <button onClick={save} disabled={saving} className="justify-self-end px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{ background: palette.blue }}>
-              {saving ? "Saqlanmoqda..." : creatingNew ? "O‘qituvchi va yuklamani saqlash" : "O‘zgarishlarni saqlash"}
+              {saving ? __kbUi("Saqlanmoqda...") : creatingNew ? __kbUi("O‘qituvchi va yuklamani saqlash") : __kbUi("O‘zgarishlarni saqlash")}
             </button>
           </div>
 
@@ -5161,7 +5113,7 @@ function TeacherFirstLoadEditorV192({
               const allocation = allocationInfo(index, row);
               const assignedRoom = assignedRoomForClassV200(row.sinf_id);
               return <div id={`teacher-load-row-${index}`} key={index} className="rounded-2xl border p-3 grid md:grid-cols-[150px_1fr_155px_90px_150px_38px] gap-2 items-end scroll-mt-24" style={{ borderColor: row.auto_specialty ? "#8FC4A5" : palette.line, background: row.auto_specialty ? palette.greenBg : "#FCFDFE" }}>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinf <span style={{ color: palette.red }}>*</span>{row.auto_specialty && <span className="ml-1 px-1.5 py-0.5 rounded" style={{ background: palette.green, color: "#fff" }}>AVTO{row.auto_group_name ? ` · ${row.auto_group_name}` : ""}</span>}
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>{__kbUi("Sinf ")}<span style={{ color: palette.red }}>*</span>{row.auto_specialty && <span className="ml-1 px-1.5 py-0.5 rounded" style={{ background: palette.green, color: "#fff" }}>{__kbUi("AVTO")}{row.auto_group_name ? __kbUi(` · ${row.auto_group_name}`) : __kbUi("")}</span>}
                   <select id={`teacher-row-${index}-class`} value={row.sinf_id} onChange={event => {
                     clearInvalidFieldV199(`teacher-row-${index}-class`);
                     clearInvalidFieldV199(`teacher-row-${index}-group`);
@@ -5182,10 +5134,10 @@ function TeacherFirstLoadEditorV192({
                       xona_id: assignedRoomForClassV200(classId)?.id ? String(assignedRoomForClassV200(classId).id) : "",
                     });
                   }} className="w-full mt-1 p-2 rounded-lg border bg-white" style={invalidFieldStyleV199(`teacher-row-${index}-class`)}>
-                    {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge}</option>)}
+                    {(data?.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {__kbUi(v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge)}</option>)}
                   </select>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Fan <span style={{ color: palette.red }}>*</span>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>{__kbUi("Fan ")}<span style={{ color: palette.red }}>*</span>
                   <select id={`teacher-row-${index}-subject`} value={row.fan_nomi} onChange={event => {
                     clearInvalidFieldV199(`teacher-row-${index}-subject`);
                     clearInvalidFieldV199(`teacher-row-${index}-group`);
@@ -5205,11 +5157,11 @@ function TeacherFirstLoadEditorV192({
                       const candidate = { ...row, fan_nomi: subject };
                       const info = allocationInfo(index, candidate);
                       const same = allocationKey(candidate) === allocationKey(row);
-                      return <option key={subject} value={subject} disabled={!same && info.approved && info.maxForRow <= 0}>{subject}{!same && info.approved && info.maxForRow <= 0 ? " · soati to‘liq olingan" : ""}</option>;
+                      return <option key={subject} value={subject} disabled={!same && info.approved && info.maxForRow <= 0}>{subject}{!same && info.approved && info.maxForRow <= 0 ? __kbUi(" · soati to‘liq olingan") : __kbUi("")}</option>;
                     })}
                   </select>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: row.guruh_kaliti !== "whole" ? palette.teal : palette.muted }}>Aniq guruh / butun sinf <span style={{ color: palette.red }}>*</span>
+                <label className="text-[11px] font-black" style={{ color: row.guruh_kaliti !== "whole" ? palette.teal : palette.muted }}>{__kbUi("Aniq guruh / butun sinf ")}<span style={{ color: palette.red }}>*</span>
                   <select id={`teacher-row-${index}-group`} value={row.guruh_kaliti} onChange={event => {
                     clearInvalidFieldV199(`teacher-row-${index}-group`);
                     const nextKey = event.target.value;
@@ -5223,21 +5175,21 @@ function TeacherFirstLoadEditorV192({
                   }} className="w-full mt-1 p-2 rounded-lg border font-black" style={{ ...invalidFieldStyleV199(`teacher-row-${index}-group`), background: row.guruh_kaliti !== "whole" ? palette.mint : "#fff", color: row.guruh_kaliti !== "whole" ? palette.teal : palette.ink }}>
                     {!variants.some(variant => String(variant.guruh_kaliti) === String(row.guruh_kaliti)) && (
                       <option value={row.guruh_kaliti || "whole"} disabled>
-                        {groupedRequired ? "Guruh tanlanmagan — bu fan guruhli" : "Joriy guruh"}
+                        {groupedRequired ? __kbUi("Guruh tanlanmagan — bu fan guruhli") : __kbUi("Joriy guruh")}
                       </option>
                     )}
                     {variants.map(variant => {
                       const candidate = { ...row, guruh_kaliti: variant.guruh_kaliti };
                       const info = allocationInfo(index, candidate);
                       const same = allocationKey(candidate) === allocationKey(row);
-                      return <option key={variant.guruh_kaliti} value={variant.guruh_kaliti} disabled={!same && info.approved && info.maxForRow <= 0}>{variant.guruh_nomi}{!same && info.approved && info.maxForRow <= 0 ? " · to‘liq" : ""}</option>;
+                      return <option key={variant.guruh_kaliti} value={variant.guruh_kaliti} disabled={!same && info.approved && info.maxForRow <= 0}>{variant.guruh_nomi}{!same && info.approved && info.maxForRow <= 0 ? __kbUi(" · to‘liq") : __kbUi("")}</option>;
                     })}
                   </select>
-                  {fieldIsInvalidV199(`teacher-row-${index}-group`) && <span className="block mt-1 text-[9px]" style={{ color: palette.red }}>Mos guruhni tanlang.</span>}
-                  {row.guruh_kaliti !== "whole" && <span className="block mt-1 text-[9px] font-black" style={{ color: palette.teal }}>✓ Faqat {variantFor(row)?.guruh_nomi || scheduleGroupLabel(row.guruh_kaliti)} o‘qituvchiga biriktiriladi.</span>}
+                  {fieldIsInvalidV199(`teacher-row-${index}-group`) && <span className="block mt-1 text-[9px]" style={{ color: palette.red }}>{__kbUi("Mos guruhni tanlang.")}</span>}
+                  {row.guruh_kaliti !== "whole" && <span className="block mt-1 text-[9px] font-black" style={{ color: palette.teal }}>{__kbUi("✓ Faqat ")}{variantFor(row)?.guruh_nomi || __kbUi(scheduleGroupLabel(row.guruh_kaliti))}{__kbUi(" o‘qituvchiga biriktiriladi.")}</span>}
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Haftalik soat <span style={{ color: palette.red }}>*</span>
-                  <input id={`teacher-row-${index}-hours`} type="number" min="0.5" max={allocation.approved ? Math.max(0.5, allocation.maxForRow) : 20} step="0.5" value={row.haftalik_soat} placeholder="Masalan: 0,5" onChange={event => {
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>{__kbUi("Haftalik soat ")}<span style={{ color: palette.red }}>*</span>
+                  <input id={`teacher-row-${index}-hours`} type="number" min="0.5" max={allocation.approved ? Math.max(0.5, allocation.maxForRow) : 20} step="0.5" value={row.haftalik_soat} placeholder={__kbUi("Masalan: 0,5")} onChange={event => {
                     clearInvalidFieldV199(`teacher-row-${index}-hours`);
                     if (event.target.value === "") return update(index, { haftalik_soat: "" });
                     const requested = Math.max(0.5, Number(event.target.value || 0.5));
@@ -5251,31 +5203,30 @@ function TeacherFirstLoadEditorV192({
                     }
                     update(index, { haftalik_soat: requested });
                   }} className="w-full mt-1 p-2 rounded-lg border" style={invalidFieldStyleV199(`teacher-row-${index}-hours`, allocation.approved && allocation.remainingAfterRow === 0 ? "#8FC4A5" : palette.line)}/>
-                  {fieldIsInvalidV199(`teacher-row-${index}-hours`) && <span className="block mt-1 text-[9px] font-black" style={{ color: palette.red }}>Haftalik soatni to‘g‘ri kiriting.</span>}
+                  {fieldIsInvalidV199(`teacher-row-${index}-hours`) && <span className="block mt-1 text-[9px] font-black" style={{ color: palette.red }}>{__kbUi("Haftalik soatni to‘g‘ri kiriting.")}</span>}
                   {Math.abs(Number(row.haftalik_soat || 0) % 1 - 0.5) < 1e-9 && <span className="block mt-1 rounded-md px-1.5 py-1 text-[9px] font-black" style={{ color: palette.blue, background: palette.sky }}>
                     {Number(row.haftalik_soat) < 1
-                      ? "A/B HAFTA: bu fan har ikki haftada 1 marta o‘tadi. Jadvalda TOQ yoki JUFT hafta deb ko‘rinadi."
-                      : `${Math.floor(Number(row.haftalik_soat))} dars har hafta + 1 dars har ikki haftada (A/B) o‘tadi.`}
+                      ? __kbUi("A/B HAFTA: bu fan har ikki haftada 1 marta o‘tadi. Jadvalda TOQ yoki JUFT hafta deb ko‘rinadi.")
+                      : __kbUi(`${Math.floor(Number(row.haftalik_soat))} dars har hafta + 1 dars har ikki haftada (A/B) o‘tadi.`)}
                   </span>}
                   <span className="block mt-1 text-[9px] font-normal" style={{ color: allocation.approved ? palette.green : palette.amber }}>
                     {allocation.approved
-                      ? `Reja ${allocation.planHours} · band ${allocation.outsideHours + allocation.draftOtherHours + allocation.currentHours} · qoldi ${allocation.remainingAfterRow}${row.guruh_kaliti !== "whole" ? " · har guruh alohida" : ""}`
-                      : `Avto soat yo‘q · qo‘lda yozing${row.guruh_kaliti !== "whole" ? " · shu guruhning o‘ziga" : ""}`}
+                      ? __kbUi(`Reja ${allocation.planHours} · band ${allocation.outsideHours + allocation.draftOtherHours + allocation.currentHours} · qoldi ${allocation.remainingAfterRow}${row.guruh_kaliti !== "whole" ? " · har guruh alohida" : ""}`)
+                      : __kbUi(`Avto soat yo‘q · qo‘lda yozing${row.guruh_kaliti !== "whole" ? " · shu guruhning o‘ziga" : ""}`)}
                   </span>
                 </label>
-                <label className="text-[11px] font-black" style={{ color: palette.muted }}>Sinfga biriktirilgan xona
-                  <select value={assignedRoom ? String(assignedRoom.id) : ""} onChange={event => update(index, { xona_id: event.target.value })} disabled={!assignedRoom} className="w-full mt-1 p-2 rounded-lg border bg-white disabled:opacity-70">
-                    <option value="">Xona biriktirilmagan</option>
+                <label className="text-[11px] font-black" style={{ color: palette.muted }}>{__kbUi("Sinfga biriktirilgan xona")}<select value={assignedRoom ? String(assignedRoom.id) : ""} onChange={event => update(index, { xona_id: event.target.value })} disabled={!assignedRoom} className="w-full mt-1 p-2 rounded-lg border bg-white disabled:opacity-70">
+                    <option value="">{__kbUi("Xona biriktirilmagan")}</option>
                     {assignedRoom && <option value={assignedRoom.id}>{assignedRoom.nomi}</option>}
                   </select>
-                  <span className="block mt-1 text-[9px] font-normal" style={{ color: assignedRoom ? palette.green : palette.muted }}>{assignedRoom ? "Faqat shu sinfning o‘z xonasi olinadi." : "Jadvalda yolg‘on xona qo‘yilmaydi."}</span>
+                  <span className="block mt-1 text-[9px] font-normal" style={{ color: assignedRoom ? palette.green : palette.muted }}>{assignedRoom ? __kbUi("Faqat shu sinfning o‘z xonasi olinadi.") : __kbUi("Jadvalda yolg‘on xona qo‘yilmaydi.")}</span>
                 </label>
                 <button onClick={() => setRows(current => current.filter((_, rowIndex) => rowIndex !== index))} className="h-9 rounded-lg font-black" style={{ background: palette.redBg, color: palette.red }}>×</button>
               </div>;
             })}
           </div>
 
-          {!rows.length && <div className="mt-4"><SmartNotice tone="info">{teacher?.full_name || "Bu o‘qituvchi"} uchun hali dars qatori yo‘q. “Yangi fan–sinf qatori”ni bosing.</SmartNotice></div>}
+          {!rows.length && <div className="mt-4"><SmartNotice tone="info">{teacher?.full_name || __kbUi("Bu o‘qituvchi")}{__kbUi(" uchun hali dars qatori yo‘q. “Yangi fan–sinf qatori”ni bosing.")}</SmartNotice></div>}
         </div>
       </div>
     </Card>
@@ -5283,35 +5234,35 @@ function TeacherFirstLoadEditorV192({
     <Card className="p-5 scroll-mt-4" id="sinf-yuklama-holati">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-black" style={{ color: palette.ink }}>Sinf yuklamasi holati</h3>
-          <p className="text-xs mt-1" style={{ color: palette.muted }}>Asosiy o‘quv reja guruh sabab kamaymaydi yoki ko‘paymaydi. Guruhli fanlarning soati uning tagida alohida ko‘rsatiladi.</p>
+          <h3 className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi("Sinf yuklamasi holati")}</h3>
+          <p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Asosiy o‘quv reja guruh sabab kamaymaydi yoki ko‘paymaydi. Guruhli fanlarning soati uning tagida alohida ko‘rsatiladi.")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-2 text-[9px] font-black"><span style={{ color: palette.green }}>● To‘ldi</span><span style={{ color: palette.amber }}>● Qoldi</span><span style={{ color: palette.red }}>● Ortiqcha</span></div>
-          <button type="button" onClick={() => setAllocationOverviewOpen(current => !current)} className="px-4 py-2.5 rounded-xl text-xs font-black border" style={{ background: allocationOverviewOpen ? palette.sky : "#fff", color: palette.blue, borderColor: palette.line }}>{allocationOverviewOpen ? "Yig‘ish ▲" : "Ko‘rsatish ▼"}</button>
+          <div className="flex flex-wrap gap-2 text-[9px] font-black"><span style={{ color: palette.green }}>{__kbUi("● To‘ldi")}</span><span style={{ color: palette.amber }}>{__kbUi("● Qoldi")}</span><span style={{ color: palette.red }}>{__kbUi("● Ortiqcha")}</span></div>
+          <button type="button" onClick={() => setAllocationOverviewOpen(current => !current)} className="px-4 py-2.5 rounded-xl text-xs font-black border" style={{ background: allocationOverviewOpen ? palette.sky : "#fff", color: palette.blue, borderColor: palette.line }}>{allocationOverviewOpen ? __kbUi("Yig‘ish ▲") : __kbUi("Ko‘rsatish ▼")}</button>
         </div>
       </div>
       {allocationOverviewOpen && <>
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 mt-4">
-          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).nominalRequired, 0)} label="o‘quv reja · ko‘paymaydi" tone="blue"/>
-          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).nominalAssigned, 0)} label="asosiy rejadan berilgan" tone="teal"/>
-          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).groupRequired, 0)} label="guruh yuklama rejasi" tone="blue"/>
-          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).groupAssigned, 0)} label="guruhlarga berilgan" tone="teal"/>
-          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).groupRemaining, 0)} label="guruhlarda qolgan" tone="amber"/>
-          <Stat value={(data?.sinflar || []).filter(cls => classAllocationSummary(cls.id).complete).length} label="to‘liq sinflar" tone="green"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).nominalRequired, 0)} label={__kbUi("o‘quv reja · ko‘paymaydi")} tone="blue"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).nominalAssigned, 0)} label={__kbUi("asosiy rejadan berilgan")} tone="teal"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).groupRequired, 0)} label={__kbUi("guruh yuklama rejasi")} tone="blue"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).groupAssigned, 0)} label={__kbUi("guruhlarga berilgan")} tone="teal"/>
+          <Stat value={(data?.sinflar || []).reduce((sum, cls) => sum + classAllocationSummary(cls.id).groupRemaining, 0)} label={__kbUi("guruhlarda qolgan")} tone="amber"/>
+          <Stat value={(data?.sinflar || []).filter(cls => classAllocationSummary(cls.id).complete).length} label={__kbUi("to‘liq sinflar")} tone="green"/>
         </div>
-        <div className="text-[10px] mt-3" style={{ color: palette.muted }}>Sinfni bosing — fan, 1/2-guruh yoki o‘g‘il/qiz guruhi va qaysi o‘qituvchiga necha soat berilgani ochiladi. Joriy saqlanmagan qator ham hisobga kiradi.</div>
+        <div className="text-[10px] mt-3" style={{ color: palette.muted }}>{__kbUi("Sinfni bosing — fan, 1/2-guruh yoki o‘g‘il/qiz guruhi va qaysi o‘qituvchiga necha soat berilgani ochiladi. Joriy saqlanmagan qator ham hisobga kiradi.")}</div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mt-3">
           {(data?.sinflar || []).map(cls => {
             const summary = classAllocationSummary(cls.id);
             const statusColor = summary.extra ? palette.red : summary.complete ? palette.green : summary.assigned > 0 ? palette.amber : palette.muted;
             const statusBg = summary.extra ? palette.redBg : summary.complete ? palette.greenBg : summary.assigned > 0 ? palette.amberBg : palette.cream;
             const statusText = !summary.nominalRequired ? "REJA YO‘Q" : summary.extra ? `+${displayAllocationHours(summary.extra)} ORTIQ` : summary.complete ? "TO‘LDI" : summary.nominalRemaining > 0 ? `${displayAllocationHours(summary.nominalRemaining)} ASOSIY QOLDI` : `${displayAllocationHours(summary.groupRemaining)} GURUH QOLDI`;
-            return <button type="button" key={cls.id} onClick={() => openClassAllocationInspector(cls.id)} title={`${cls.sinf}-${cls.harf}: asosiy reja ${displayAllocationHours(summary.nominalAssigned)}/${displayAllocationHours(summary.nominalRequired)} soat; guruhlar ${displayAllocationHours(summary.groupAssigned)}/${displayAllocationHours(summary.groupRequired)} soat. Batafsil ko‘rish uchun bosing.`} className="rounded-xl border p-2.5 text-left hover:shadow-md" style={{ borderColor: statusColor, background: statusBg }}>
-              <div className="flex items-center justify-between gap-2"><span className="text-xs font-black" style={{ color: palette.ink }}>{cls.sinf}-{cls.harf}</span><span className="text-[8px] font-black text-right" style={{ color: statusColor }}>{statusText}</span></div>
-              <div className="text-[9px] font-bold mt-1" style={{ color: summary.nominalRemaining ? palette.amber : palette.green }}>Asosiy reja: {displayAllocationHours(summary.nominalAssigned)} / {displayAllocationHours(summary.nominalRequired)} soat</div>
+            return <button type="button" key={cls.id} onClick={() => openClassAllocationInspector(cls.id)} title={__kbUi(`${cls.sinf}-${cls.harf}: asosiy reja ${displayAllocationHours(summary.nominalAssigned)}/${displayAllocationHours(summary.nominalRequired)} soat; guruhlar ${displayAllocationHours(summary.groupAssigned)}/${displayAllocationHours(summary.groupRequired)} soat. Batafsil ko‘rish uchun bosing.`)} className="rounded-xl border p-2.5 text-left hover:shadow-md" style={{ borderColor: statusColor, background: statusBg }}>
+              <div className="flex items-center justify-between gap-2"><span className="text-xs font-black" style={{ color: palette.ink }}>{cls.sinf}-{cls.harf}</span><span className="text-[8px] font-black text-right" style={{ color: statusColor }}>{__kbUi(statusText)}</span></div>
+              <div className="text-[9px] font-bold mt-1" style={{ color: summary.nominalRemaining ? palette.amber : palette.green }}>{__kbUi("Asosiy reja: ")}{__kbUi(displayAllocationHours(summary.nominalAssigned))} / {__kbUi(displayAllocationHours(summary.nominalRequired))}{__kbUi(" soat")}</div>
               <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: "rgba(255,255,255,.8)" }}><div className="h-full rounded-full" style={{ width: `${summary.nominalPercent}%`, background: summary.nominalRemaining ? palette.amber : palette.green }}/></div>
-              {summary.groupRequired > 0 && <><div className="text-[8px] font-black mt-1.5" style={{ color: summary.groupRemaining ? palette.blue : palette.green }}>Guruhlar: {displayAllocationHours(summary.groupAssigned)} / {displayAllocationHours(summary.groupRequired)} soat · {summary.groupedSubjects} fan</div><div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: "rgba(255,255,255,.8)" }}><div className="h-full rounded-full" style={{ width: `${summary.groupPercent}%`, background: summary.groupRemaining ? palette.blue : palette.green }}/></div></>}
+              {summary.groupRequired > 0 && <><div className="text-[8px] font-black mt-1.5" style={{ color: summary.groupRemaining ? palette.blue : palette.green }}>{__kbUi("Guruhlar: ")}{__kbUi(displayAllocationHours(summary.groupAssigned))} / {__kbUi(displayAllocationHours(summary.groupRequired))}{__kbUi(" soat · ")}{summary.groupedSubjects}{__kbUi(" fan")}</div><div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: "rgba(255,255,255,.8)" }}><div className="h-full rounded-full" style={{ width: `${summary.groupPercent}%`, background: summary.groupRemaining ? palette.blue : palette.green }}/></div></>}
             </button>;
           })}
         </div>
@@ -5326,6 +5277,7 @@ function TeacherFirstLoadEditorV192({
 function TeacherQuickRegistryV2249({
   token, apiBase, maktabId, onChanged, onContinue, importOnly = false,
 }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -5477,7 +5429,7 @@ function TeacherQuickRegistryV2249({
       setMessage({ tone: "error", text: `${invalidCount} ta xato bor. Atomar import uchun barcha qatorlarni tuzatib, faylni qayta yuklang.` });
       return;
     }
-    if (!window.confirm(`${importPreview.yaroqli} ta o‘qituvchining barchasi ro‘yxatga qo‘shilsinmi?`)) return;
+    if (!window.confirm(__kbUi(`${importPreview.yaroqli} ta o‘qituvchining barchasi ro‘yxatga qo‘shilsinmi?`))) return;
     setImportCommitting(true); setMessage(null);
     try {
       const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_import_commit?token=${encodeURIComponent(token)}`, {
@@ -5539,7 +5491,7 @@ function TeacherQuickRegistryV2249({
   };
 
   const removeTeacher = async teacher => {
-    if (!window.confirm(`#${teacher.jadval_raqami || "?"} · ${teacher.full_name} o‘qituvchini o‘chirasizmi?`)) return;
+    if (!window.confirm(__kbUi(`#${teacher.jadval_raqami || "?"} · ${teacher.full_name} o‘qituvchini o‘chirasizmi?`))) return;
     setSaving(true); setMessage(null);
     try {
       const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_ochirish?token=${encodeURIComponent(token)}`, {
@@ -5568,41 +5520,41 @@ function TeacherQuickRegistryV2249({
     <Card className="p-5">
       <div className="flex flex-col xl:flex-row xl:items-start gap-5">
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>{importOnly ? "EXCEL SHABLON ORQALI O‘QITUVCHI YUKLASH" : "O‘QITUVCHILARNI OLDINDAN RAQAMLASH"}</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{importOnly ? "Tayyor shablonni yuklab, ko‘p o‘qituvchini bir martada kiriting" : "F.I.Sh.ni qo‘lda yoki Excel orqali kiriting — raqam avtomatik beriladi"}</h2>
-          <p className="text-xs mt-1.5 leading-relaxed max-w-3xl" style={{ color: palette.muted }}>{importOnly ? "Shablonda 4 ta to‘ldirilgan namuna bor. “O‘qituvchilar” varag‘iga F.I.Sh. va haftalik maqsad soatini yozing; “Namuna” varag‘i import qilinmaydi. Importdan keyin har bir ustozning fan–sinf–aniq guruh yuklamasini “Qo‘lda to‘liq kiritish” bo‘limida tekshirib yoki tahrirlab olasiz." : "Qo‘lda to‘liq kiritish uchun F.I.Sh., fan, staj, sinf/guruh va soat maydonlaridan foydalaning. Ko‘p o‘qituvchi bo‘lsa Excel shabloni ham mavjud. Raqam bir marta beriladi va keyin o‘zgarmaydi."}</p>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>{importOnly ? __kbUi("EXCEL SHABLON ORQALI O‘QITUVCHI YUKLASH") : __kbUi("O‘QITUVCHILARNI OLDINDAN RAQAMLASH")}</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{importOnly ? __kbUi("Tayyor shablonni yuklab, ko‘p o‘qituvchini bir martada kiriting") : __kbUi("F.I.Sh.ni qo‘lda yoki Excel orqali kiriting — raqam avtomatik beriladi")}</h2>
+          <p className="text-xs mt-1.5 leading-relaxed max-w-3xl" style={{ color: palette.muted }}>{importOnly ? __kbUi("Shablonda 4 ta to‘ldirilgan namuna bor. “O‘qituvchilar” varag‘iga F.I.Sh. va haftalik maqsad soatini yozing; “Namuna” varag‘i import qilinmaydi. Importdan keyin har bir ustozning fan–sinf–aniq guruh yuklamasini “Qo‘lda to‘liq kiritish” bo‘limida tekshirib yoki tahrirlab olasiz.") : __kbUi("Qo‘lda to‘liq kiritish uchun F.I.Sh., fan, staj, sinf/guruh va soat maydonlaridan foydalaning. Ko‘p o‘qituvchi bo‘lsa Excel shabloni ham mavjud. Raqam bir marta beriladi va keyin o‘zgarmaydi.")}</p>
           {!importOnly && <>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <input autoFocus value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder="Masalan: Aliyeva Dilnoza Anvarovna" className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
-              <button onClick={addTeacher} disabled={saving} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-60" style={{ background: palette.teal }}>{saving ? "Saqlanmoqda..." : "+ O‘qituvchi qo‘shish"}</button>
+              <input autoFocus value={teacherName} onChange={event => setTeacherName(event.target.value)} onKeyDown={event => { if (event.key === "Enter") addTeacher(); }} placeholder={__kbUi("Masalan: Aliyeva Dilnoza Anvarovna")} className="flex-1 p-3 rounded-xl border bg-white text-sm" style={{ borderColor: palette.line }}/>
+              <button onClick={addTeacher} disabled={saving} className="px-6 py-3 rounded-xl text-sm font-black text-white disabled:opacity-60" style={{ background: palette.teal }}>{saving ? __kbUi("Saqlanmoqda...") : __kbUi("+ O‘qituvchi qo‘shish")}</button>
             </div>
-            {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Oxirgi qo‘shilgan o‘qituvchi kirish kodi: <span className="font-black text-base">{entryCode}</span></div>}
+            {entryCode && <div className="mt-3 rounded-xl px-3 py-2 text-xs font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("Oxirgi qo‘shilgan o‘qituvchi kirish kodi: ")}<span className="font-black text-base">{entryCode}</span></div>}
           </>}
           <div className="rounded-2xl border p-3 mt-4" style={{ borderColor: palette.line, background: palette.cream }}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-black" style={{ color: palette.ink }}>Ko‘p o‘qituvchini Excel orqali yuklash</div>
-                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>1) Shablonni oling. 2) “O‘qituvchilar” varag‘ini to‘ldiring. 3) Faylni yuklab, natijani tasdiqlang. Maksimum 3 MB.</div>
+                <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Ko‘p o‘qituvchini Excel orqali yuklash")}</div>
+                <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{__kbUi("1) Shablonni oling. 2) “O‘qituvchilar” varag‘ini to‘ldiring. 3) Faylni yuklab, natijani tasdiqlang. Maksimum 3 MB.")}</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={downloadImportTemplate} disabled={templateDownloading || importPreviewing || importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 disabled:opacity-50" style={{ background: palette.sky, color: palette.blue }}>
-                  {templateDownloading ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {templateDownloading ? "Yuklanmoqda..." : "Shablonni yuklab olish"}
+                  {templateDownloading ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {templateDownloading ? __kbUi("Yuklanmoqda...") : __kbUi("Shablonni yuklab olish")}
                 </button>
                 <button type="button" onClick={() => importInputRef.current?.click()} disabled={importPreviewing || importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>
-                  {importPreviewing ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {importPreviewing ? "Tekshirilmoqda..." : "To‘ldirilgan Excelni yuklash"}
+                  {importPreviewing ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {importPreviewing ? __kbUi("Tekshirilmoqda...") : __kbUi("To‘ldirilgan Excelni yuklash")}
                 </button>
                 <input ref={importInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={previewImportFile} className="hidden"/>
               </div>
             </div>
           </div>
           {!!importCodes.length && <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "#E7C77B", background: palette.amberBg }}>
-            <div className="text-xs font-black" style={{ color: palette.amber }}>Yangi o‘qituvchilarning kirish kodlari — hozir saqlab oling</div>
-            <div className="grid md:grid-cols-2 gap-1.5 mt-2">{importCodes.map((item, index) => <div key={`${importCodeText(item)}-${index}`} className="rounded-lg bg-white px-2.5 py-2 text-[11px] font-bold" style={{ color: palette.ink }}>{importCodeText(item)}</div>)}</div>
+            <div className="text-xs font-black" style={{ color: palette.amber }}>{__kbUi("Yangi o‘qituvchilarning kirish kodlari — hozir saqlab oling")}</div>
+            <div className="grid md:grid-cols-2 gap-1.5 mt-2">{importCodes.map((item, index) => <div key={`${importCodeText(item)}-${index}`} className="rounded-lg bg-white px-2.5 py-2 text-[11px] font-bold" style={{ color: palette.ink }}>{__kbUi(importCodeText(item))}</div>)}</div>
           </div>}
         </div>
         <div className="grid grid-cols-2 gap-2 xl:w-[300px]">
-          <CompactStat value={teachers.length} label="raqamlangan o‘qituvchi" tone="blue"/>
-          <CompactStat value={teachers.length ? `#${Math.max(...teachers.map(t => Number(t.jadval_raqami || 0)))}` : "—"} label="oxirgi raqam" tone="teal"/>
+          <CompactStat value={teachers.length} label={__kbUi("raqamlangan o‘qituvchi")} tone="blue"/>
+          <CompactStat value={teachers.length ? `#${Math.max(...teachers.map(t => Number(t.jadval_raqami || 0)))}` : "—"} label={__kbUi("oxirgi raqam")} tone="teal"/>
         </div>
       </div>
     </Card>
@@ -5610,45 +5562,46 @@ function TeacherQuickRegistryV2249({
     {importPreview && <Card className="p-5" style={{ borderColor: previewInvalidCount ? "#E7C77B" : "#A7D3B8" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>EXCELNI IMPORTDAN OLDIN TEKSHIRISH</div>
-          <h3 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{importPayload?.fayl_nomi || "Tanlangan shablon"}</h3>
-          <div className="text-xs mt-1" style={{ color: palette.muted }}>Jami {importPreview.jami || 0} · yaroqli {importPreview.yaroqli || 0} · xatoli {previewInvalidCount}</div>
+          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("EXCELNI IMPORTDAN OLDIN TEKSHIRISH")}</div>
+          <h3 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{importPayload?.fayl_nomi || __kbUi("Tanlangan shablon")}</h3>
+          <div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Jami ")}{importPreview.jami || 0}{__kbUi(" · yaroqli ")}{importPreview.yaroqli || 0}{__kbUi(" · xatoli ")}{previewInvalidCount}</div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => { setImportPreview(null); setImportPayload(null); }} disabled={importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
+          <button type="button" onClick={() => { setImportPreview(null); setImportPayload(null); }} disabled={importCommitting} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Bekor qilish")}</button>
           <button type="button" onClick={commitTeacherImport} disabled={importCommitting || previewInvalidCount > 0 || Number(importPreview.yaroqli || 0) <= 0} className="px-4 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-40" style={{ background: palette.green }}>
-            {importCommitting && <Loader2 size={15} className="animate-spin"/>}{importCommitting ? "Import qilinmoqda..." : `${importPreview.yaroqli || 0} ta o‘qituvchini tasdiqlab import qilish`}
+            {importCommitting && <Loader2 size={15} className="animate-spin"/>}{importCommitting ? __kbUi("Import qilinmoqda...") : __kbUi(`${importPreview.yaroqli || 0} ta o‘qituvchini tasdiqlab import qilish`)}
           </button>
         </div>
       </div>
       <div className="overflow-auto mt-4 max-h-[360px] rounded-2xl border" style={{ borderColor: palette.line }}>
         <table className="w-full min-w-[620px] text-xs">
-          <thead className="sticky top-0" style={{ background: palette.sky, color: palette.blue }}><tr><th className="p-2.5 text-left w-24">Excel qatori</th><th className="p-2.5 text-left">F.I.Sh.</th><th className="p-2.5 text-left w-36">Skelet soati</th><th className="p-2.5 text-left w-24">Holat</th></tr></thead>
-          <tbody>{(importPreview.qatorlar || []).map((row, index) => <tr key={`${row.excel_qatori || index}-${row.full_name || ""}`} className="border-t" style={{ borderColor: palette.line }}><td className="p-2.5 font-black">{row.excel_qatori || index + 1}</td><td className="p-2.5 font-bold">{row.full_name}</td><td className="p-2.5">{row.haftalik_maqsad_soat ?? "—"}</td><td className="p-2.5 font-black" style={{ color: palette.green }}>Yaroqli</td></tr>)}</tbody>
+          <thead className="sticky top-0" style={{ background: palette.sky, color: palette.blue }}><tr><th className="p-2.5 text-left w-24">{__kbUi("Excel qatori")}</th><th className="p-2.5 text-left">{__kbUi("F.I.Sh.")}</th><th className="p-2.5 text-left w-36">{__kbUi("Skelet soati")}</th><th className="p-2.5 text-left w-24">{__kbUi("Holat")}</th></tr></thead>
+          <tbody>{(importPreview.qatorlar || []).map((row, index) => <tr key={`${row.excel_qatori || index}-${row.full_name || ""}`} className="border-t" style={{ borderColor: palette.line }}><td className="p-2.5 font-black">{row.excel_qatori || index + 1}</td><td className="p-2.5 font-bold">{row.full_name}</td><td className="p-2.5">{row.haftalik_maqsad_soat ?? __kbUi("—")}</td><td className="p-2.5 font-black" style={{ color: palette.green }}>{__kbUi("Yaroqli")}</td></tr>)}</tbody>
         </table>
       </div>
-      {!!previewErrors.length && <div className="mt-3 rounded-2xl p-3" style={{ background: palette.redBg }}><div className="text-xs font-black" style={{ color: palette.red }}>Tuzatilishi kerak bo‘lgan qatorlar — xato bor ekan, hech biri import qilinmaydi</div><div className="space-y-1 mt-2">{previewErrors.map((item, index) => <div key={`${importErrorText(item)}-${index}`} className="text-[11px] font-bold" style={{ color: palette.red }}>{importErrorText(item)}</div>)}</div></div>}
+      {!!previewErrors.length && <div className="mt-3 rounded-2xl p-3" style={{ background: palette.redBg }}><div className="text-xs font-black" style={{ color: palette.red }}>{__kbUi("Tuzatilishi kerak bo‘lgan qatorlar — xato bor ekan, hech biri import qilinmaydi")}</div><div className="space-y-1 mt-2">{previewErrors.map((item, index) => <div key={`${importErrorText(item)}-${index}`} className="text-[11px] font-bold" style={{ color: palette.red }}>{__kbUi(importErrorText(item))}</div>)}</div></div>}
     </Card>}
 
     {!importOnly && <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h3 className="text-lg font-black" style={{ color: palette.ink }}>O‘qituvchilar ro‘yxati</h3><div className="text-xs mt-1" style={{ color: palette.muted }}># raqam skeletda tanlash uchun. F.I.Sh. bo‘yicha fan yuklamasi keyingi bosqichda biriktiriladi.</div></div>
-        <button onClick={onContinue} disabled={!teachers.length} className="px-5 py-3 rounded-xl text-xs font-black text-white disabled:opacity-40" style={{ background: palette.blue }}>Sinf skeleti + o‘qituvchi raqamiga o‘tish →</button>
+        <div><h3 className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchilar ro‘yxati")}</h3><div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("# raqam skeletda tanlash uchun. F.I.Sh. bo‘yicha fan yuklamasi keyingi bosqichda biriktiriladi.")}</div></div>
+        <button onClick={onContinue} disabled={!teachers.length} className="px-5 py-3 rounded-xl text-xs font-black text-white disabled:opacity-40" style={{ background: palette.blue }}>{__kbUi("Sinf skeleti + o‘qituvchi raqamiga o‘tish →")}</button>
       </div>
-      {!teachers.length ? <div className="mt-4"><SmartNotice tone="warning">Hali o‘qituvchi kiritilmagan. Avval kamida bitta F.I.Sh. kiriting.</SmartNotice></div> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-4">
+      {!teachers.length ? <div className="mt-4"><SmartNotice tone="warning">{__kbUi("Hali o‘qituvchi kiritilmagan. Avval kamida bitta F.I.Sh. kiriting.")}</SmartNotice></div> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-4">
         {teachers.map(teacher => <div key={teacher.user_id} className="rounded-2xl border p-3 flex items-center gap-3" style={{ borderColor: palette.line, background: "#fff" }}>
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacher.jadval_raqami || "—"}</div>
-          <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{teacher.haftalik_maqsad_soat != null ? `Skelet soati: ${teacher.haftalik_maqsad_soat}` : "Skelet soati kiritilmagan"} · {teacher.dars_birikma_soni ? `${teacher.dars_birikma_soni} ta fan/guruh birikmasi` : "birikma yo‘q"}</div></div>
-          <button onClick={() => removeTeacher(teacher)} disabled={saving} className="w-8 h-8 rounded-lg text-xs font-black shrink-0" title="O‘qituvchini o‘chirish" style={{ background: palette.redBg, color: palette.red }}>×</button>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacher.jadval_raqami || __kbUi("—")}</div>
+          <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{teacher.haftalik_maqsad_soat != null ? __kbUi(`Skelet soati: ${teacher.haftalik_maqsad_soat}`) : __kbUi("Skelet soati kiritilmagan")} · {teacher.dars_birikma_soni ? __kbUi(`${teacher.dars_birikma_soni} ta fan/guruh birikmasi`) : __kbUi("birikma yo‘q")}</div></div>
+          <button onClick={() => removeTeacher(teacher)} disabled={saving} className="w-8 h-8 rounded-lg text-xs font-black shrink-0" title={__kbUi("O‘qituvchini o‘chirish")} style={{ background: palette.redBg, color: palette.red }}>×</button>
         </div>)}
       </div>}
-      <div className="mt-4 rounded-xl p-3 text-[11px]" style={{ background: palette.cream, color: palette.muted }}><b>Keyin tahrirlash mumkin:</b> staj, toifa, tug‘ilgan sana, mutaxassislik, metod kuni va boshqa qo‘shimcha ma’lumotlar o‘qituvchi yaratilishiga to‘sqinlik qilmaydi.</div>
+      <div className="mt-4 rounded-xl p-3 text-[11px]" style={{ background: palette.cream, color: palette.muted }}><b>{__kbUi("Keyin tahrirlash mumkin:")}</b>{__kbUi(" staj, toifa, tug‘ilgan sana, mutaxassislik, metod kuni va boshqa qo‘shimcha ma’lumotlar o‘qituvchi yaratilishiga to‘sqinlik qilmaydi.")}</div>
     </Card>}
   </div>;
 }
 
 
 function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -5773,7 +5726,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
 
   const [teacherSearch, setTeacherSearch] = useState("");
   const renumberTeachers = async () => {
-    if (!window.confirm("O‘qituvchi raqamlari F.I.Sh. alfavit tartibida 1 dan qayta beriladi. Skelet va tayyor jadval o‘zgarmaydi. Davom etamizmi?")) return;
+    if (!window.confirm(__kbUi("O‘qituvchi raqamlari F.I.Sh. alfavit tartibida 1 dan qayta beriladi. Skelet va tayyor jadval o‘zgarmaydi. Davom etamizmi?"))) return;
     setLoading(true);
     try {
       const result = await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v3/oqituvchi_raqamlarini_alfavit_tartibla?token=${encodeURIComponent(token)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ maktab_id: maktabId }) });
@@ -6503,7 +6456,7 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   };
 
   if (loading) return <Card className="p-8 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></Card>;
-  if (!data) return <SmartNotice tone="error">Sinf skeleti ma’lumotlari yuklanmadi.</SmartNotice>;
+  if (!data) return <SmartNotice tone="error">{__kbUi("Sinf skeleti ma’lumotlari yuklanmadi.")}</SmartNotice>;
 
   const selectedClass = (data.sinflar || []).find(cls => String(cls.id) === String(selectedClassId));
   const skeleton = selectedClass ? skeletonForClass(selectedClass.id) : { cells: [], weekdays: 6, periods: 5 };
@@ -6525,30 +6478,30 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
   return <div className="space-y-4">
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
     {!!orphanGroupConflicts.length && <SmartNotice tone="error">
-      {orphanGroupConflicts.length} ta saqlangan guruh qatori joriy guruh tizimiga ulanmagan. Eski yuklama yo‘qolmasligi uchun “Skeletni saqlash” bloklandi; joriy boshqa o‘zgarishlarni alohida saqlash mumkin. Muammoli qatorlar: {orphanGroupConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}`).join("; ")}.
+      {orphanGroupConflicts.length}{__kbUi(" ta saqlangan guruh qatori joriy guruh tizimiga ulanmagan. Eski yuklama yo‘qolmasligi uchun “Skeletni saqlash” bloklandi; joriy boshqa o‘zgarishlarni alohida saqlash mumkin. Muammoli qatorlar: ")}{__kbUi(orphanGroupConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}`).join("; "))}.
     </SmartNotice>}
     {!!splitAssignmentConflicts.length && <SmartNotice tone="error">
-      {splitAssignmentConflicts.length} ta aniq fan–sinf–guruh qatori ikki yoki undan ko‘p o‘qituvchiga bo‘lingan. Skelet faqat bitta ustozni tanlaydi; shuning uchun eski ma’lumotni jim o‘chirib yubormaslik maqsadida “Skeletni saqlash” bloklandi. Muammoli qatorlar: {splitAssignmentConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}${item.oqituvchilar.length ? ` (${item.oqituvchilar.join(", ")})` : ""}`).join("; ")}.
+      {splitAssignmentConflicts.length}{__kbUi(" ta aniq fan–sinf–guruh qatori ikki yoki undan ko‘p o‘qituvchiga bo‘lingan. Skelet faqat bitta ustozni tanlaydi; shuning uchun eski ma’lumotni jim o‘chirib yubormaslik maqsadida “Skeletni saqlash” bloklandi. Muammoli qatorlar: ")}{__kbUi(splitAssignmentConflicts.slice(0, 4).map(item => `${item.fan_nomi} · ${scheduleGroupLabel(item.guruh_kaliti)}${item.oqituvchilar.length ? ` (${item.oqituvchilar.join(", ")})` : ""}`).join("; "))}.
     </SmartNotice>}
     <Card className="p-5">
       <div className="flex flex-col xl:flex-row xl:items-start gap-5">
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>SINF SKELETI VA O‘QITUVCHI RAQAMLARI</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Sinf skeletida F.I.Sh. emas, o‘qituvchi raqami tanlanadi</h2>
-          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>Guruh turini va skeletni hozir saqlashingiz mumkin. O‘qituvchi hali ma’lum bo‘lmasa katakni bo‘sh qoldiring — # raqamni keyin biriktirasiz. Jadval yaratishdan oldin esa barcha ustozlar tanlangan bo‘lishi shart.</p>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>{__kbUi("SINF SKELETI VA O‘QITUVCHI RAQAMLARI")}</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Sinf skeletida F.I.Sh. emas, o‘qituvchi raqami tanlanadi")}</h2>
+          <p className="text-xs mt-1.5 leading-relaxed" style={{ color: palette.muted }}>{__kbUi("Guruh turini va skeletni hozir saqlashingiz mumkin. O‘qituvchi hali ma’lum bo‘lmasa katakni bo‘sh qoldiring — # raqamni keyin biriktirasiz. Jadval yaratishdan oldin esa barcha ustozlar tanlangan bo‘lishi shart.")}</p>
         </div>
         <div className="grid grid-cols-3 gap-2 xl:w-[360px]">
-          <CompactStat value={teachers.length} label="o‘qituvchi" tone="blue"/>
-          <CompactStat value={`${assignedCount}/${requiredCount}`} label="biriktirilgan" tone={assignedCount === requiredCount ? "green" : "amber"}/>
-          <CompactStat value={(data.sinflar || []).length} label="sinf" tone="teal"/>
+          <CompactStat value={teachers.length} label={__kbUi("o‘qituvchi")} tone="blue"/>
+          <CompactStat value={`${assignedCount}/${requiredCount}`} label={__kbUi("biriktirilgan")} tone={assignedCount === requiredCount ? "green" : "amber"}/>
+          <CompactStat value={(data.sinflar || []).length} label={__kbUi("sinf")} tone="teal"/>
         </div>
       </div>
-      {!teachers.length && <div className="mt-4"><SmartNotice tone="warning">O‘qituvchi ro‘yxati hozircha bo‘sh. Skelet va guruh turlarini saqlang; o‘qituvchilarni keyin qo‘shib, kataklarga # raqamni biriktiring.</SmartNotice></div>}
-      <div className="mt-4 flex flex-wrap items-center gap-2"><button onClick={() => setShowTeacherList(value => !value)} className="text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? "▾ O‘qituvchilar ro‘yxatini yopish" : `▸ O‘qituvchilar ro‘yxati (${teachers.length} ta, #1 dan)`}</button>{teachers.length > 0 && <button type="button" onClick={renumberTeachers} disabled={loading || stepBusy} className="text-xs font-black px-3 py-2 rounded-xl disabled:opacity-50" style={{ background: palette.mint, color: palette.green }} title="Raqamlar familiya bo‘yicha A dan Z gacha 1, 2, 3... bo‘lib qayta beriladi">🔤 Raqamlarni alfavit bo‘yicha tartiblash</button>}{showTeacherList && teachers.length > 0 && <input value={teacherSearch} onChange={event => setTeacherSearch(event.target.value)} placeholder="Familiya yoki # raqam bo‘yicha izlash..." className="flex-1 min-w-[180px] p-2 rounded-xl border text-xs" style={{ borderColor: palette.line }}/>}</div>
+      {!teachers.length && <div className="mt-4"><SmartNotice tone="warning">{__kbUi("O‘qituvchi ro‘yxati hozircha bo‘sh. Skelet va guruh turlarini saqlang; o‘qituvchilarni keyin qo‘shib, kataklarga # raqamni biriktiring.")}</SmartNotice></div>}
+      <div className="mt-4 flex flex-wrap items-center gap-2"><button onClick={() => setShowTeacherList(value => !value)} className="text-xs font-black px-3 py-2 rounded-xl" style={{ background: palette.sky, color: palette.blue }}>{showTeacherList ? __kbUi("▾ O‘qituvchilar ro‘yxatini yopish") : __kbUi(`▸ O‘qituvchilar ro‘yxati (${teachers.length} ta, #1 dan)`)}</button>{teachers.length > 0 && <button type="button" onClick={renumberTeachers} disabled={loading || stepBusy} className="text-xs font-black px-3 py-2 rounded-xl disabled:opacity-50" style={{ background: palette.mint, color: palette.green }} title={__kbUi("Raqamlar familiya bo‘yicha A dan Z gacha 1, 2, 3... bo‘lib qayta beriladi")}>{__kbUi("🔤 Raqamlarni alfavit bo‘yicha tartiblash")}</button>}{showTeacherList && teachers.length > 0 && <input value={teacherSearch} onChange={event => setTeacherSearch(event.target.value)} placeholder={__kbUi("Familiya yoki # raqam bo‘yicha izlash...")} className="flex-1 min-w-[180px] p-2 rounded-xl border text-xs" style={{ borderColor: palette.line }}/>}</div>
       {showTeacherList && teachers.length > 0 && <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
         {teachers.filter(teacher => { const q = teacherSearch.trim().toLocaleLowerCase("uz"); if (!q) return true; return String(teacher.full_name || "").toLocaleLowerCase("uz").includes(q) || String(teacherNumber.get(String(teacher.user_id))) === q.replace(/^#/, ""); }).map(teacher => <div key={teacher.user_id} className="rounded-xl border px-3 py-2 flex items-center gap-2" style={{ borderColor: palette.line, background: "#fff" }}>
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{teacherNumber.get(String(teacher.user_id))}</div>
-          <div className="min-w-0 flex-1"><div className="text-xs font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>skelet: {scheduleHourLabel(workloadPreview.get(String(teacher.user_id)) || 0)} soat</div></div>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0" style={{ background: palette.blue, color: "#fff" }}>#{__kbUi(teacherNumber.get(String(teacher.user_id)))}</div>
+          <div className="min-w-0 flex-1"><div className="text-xs font-black truncate" style={{ color: palette.ink }}>{teacher.full_name}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{__kbUi("skelet: ")}{__kbUi(scheduleHourLabel(workloadPreview.get(String(teacher.user_id)) || 0))}{__kbUi(" soat")}</div></div>
         </div>)}
       </div>}
     </Card>
@@ -6556,47 +6509,47 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
     <Card className="p-5">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>SINF SKELETI · FAN → O‘QITUVCHI RAQAMI</div>
-          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Fanlar eng ko‘p soatdan boshlab ketma-ket joylashtirildi</h2>
-          <p className="text-xs mt-1.5" style={{ color: palette.muted }}>Bu yakuniy jadval emas. Barcha haftalik fan kataklari ko‘rsatiladi; keyingi strict generator haqiqiy smena limitini, kunlarni va o‘qituvchi oynolarini tekshiradi.</p>
+          <div className="text-[10px] font-black uppercase tracking-[.14em]" style={{ color: palette.teal }}>{__kbUi("SINF SKELETI · FAN → O‘QITUVCHI RAQAMI")}</div>
+          <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Fanlar eng ko‘p soatdan boshlab ketma-ket joylashtirildi")}</h2>
+          <p className="text-xs mt-1.5" style={{ color: palette.muted }}>{__kbUi("Bu yakuniy jadval emas. Barcha haftalik fan kataklari ko‘rsatiladi; keyingi strict generator haqiqiy smena limitini, kunlarni va o‘qituvchi oynolarini tekshiradi.")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select value={selectedClassId} onChange={event => setSelectedClassId(event.target.value)} disabled={stepBusy} className="p-2.5 rounded-xl border bg-white text-sm font-black disabled:opacity-50" style={{ borderColor: palette.line, color: palette.ink }}>
-            {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge}</option>)}
+            {(data.sinflar || []).map(cls => <option key={cls.id} value={cls.id}>{cls.sinf}-{cls.harf} · {__kbUi(v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge)}</option>)}
           </select>
         </div>
       </div>
 
       {selectedClass && <div className="mt-4 rounded-2xl border overflow-hidden" style={{ borderColor: palette.line }}>
         <div className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: palette.sky }}>
-          <div><div className="text-base font-black" style={{ color: palette.ink }}>{selectedClass.sinf}-{selectedClass.harf} sinf · {v238EducationLanguageMeta(v238ClassEducationLanguage(selectedClass)).label} · {scheduleHourLabel(classPlanRows(selectedClass.id).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0))} fan soati</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{skeleton.periods} tagacha vaqtinchalik dars katagi · faqat shu ta’lim tilidagi fanlar · xona: {selectedClass.xona || selectedClass.xona_nomi || "biriktirilmagan"}</div></div>
-          <label className="flex items-center gap-2 text-xs font-black"><span style={{ color: palette.ink }}>Sinf rahbari</span><select value={leaders[String(selectedClass.id)] || ""} onChange={event => { setLeaders(current => ({ ...current, [String(selectedClass.id)]: event.target.value })); setSaveMessage(null); }} disabled={stepBusy} className="p-2 rounded-lg border bg-white disabled:opacity-50" style={{ borderColor: palette.line }}><option value="">Tanlanmagan</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{teacherNumber.get(String(teacher.user_id))} · {teacher.full_name}</option>)}</select></label>
+          <div><div className="text-base font-black" style={{ color: palette.ink }}>{selectedClass.sinf}-{selectedClass.harf}{__kbUi(" sinf · ")}{__kbUi(v238EducationLanguageMeta(v238ClassEducationLanguage(selectedClass)).label)} · {__kbUi(scheduleHourLabel(classPlanRows(selectedClass.id).reduce((sum, row) => sum + Number(row.haftalik_soat || 0), 0)))}{__kbUi(" fan soati")}</div><div className="text-[10px] mt-0.5" style={{ color: palette.muted }}>{skeleton.periods}{__kbUi(" tagacha vaqtinchalik dars katagi · faqat shu ta’lim tilidagi fanlar · xona: ")}{selectedClass.xona || selectedClass.xona_nomi || __kbUi("biriktirilmagan")}</div></div>
+          <label className="flex items-center gap-2 text-xs font-black"><span style={{ color: palette.ink }}>{__kbUi("Sinf rahbari")}</span><select value={leaders[String(selectedClass.id)] || ""} onChange={event => { setLeaders(current => ({ ...current, [String(selectedClass.id)]: event.target.value })); setSaveMessage(null); }} disabled={stepBusy} className="p-2 rounded-lg border bg-white disabled:opacity-50" style={{ borderColor: palette.line }}><option value="">{__kbUi("Tanlanmagan")}</option>{teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>#{__kbUi(teacherNumber.get(String(teacher.user_id)))} · {teacher.full_name}</option>)}</select></label>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-[720px] w-full border-collapse" style={{ tableLayout: "fixed" }}>
-            <thead><tr><th className="p-2 text-[10px] font-black text-left sticky left-0 z-10" style={{ background: palette.cream, color: palette.muted, width: 44 }}>Dars</th>{Array.from({ length: skeleton.weekdays }, (_, day) => <th key={day} className="p-2 text-[10px] font-black text-center" style={{ background: palette.cream, color: palette.muted }}>{dayNames[day]}</th>)}</tr></thead>
-            <tbody>{Array.from({ length: skeleton.periods }, (_, periodIndex) => <tr key={periodIndex}><td className="p-2 text-xs font-black text-center border-t sticky left-0 z-10 bg-white" style={{ borderColor: palette.line, color: palette.ink }}>{periodIndex + 1}</td>{Array.from({ length: skeleton.weekdays }, (_, dayIndex) => {
+            <thead><tr><th className="p-2 text-[10px] font-black text-left sticky left-0 z-10" style={{ background: palette.cream, color: palette.muted, width: 44 }}>{__kbUi("Dars")}</th>{__kbUi(Array.from({ length: skeleton.weekdays }, (_, day) => <th key={day} className="p-2 text-[10px] font-black text-center" style={{ background: palette.cream, color: palette.muted }}>{__kbUi(dayNames[day])}</th>))}</tr></thead>
+            <tbody>{__kbUi(Array.from({ length: skeleton.periods }, (_, periodIndex) => <tr key={periodIndex}><td className="p-2 text-xs font-black text-center border-t sticky left-0 z-10 bg-white" style={{ borderColor: palette.line, color: palette.ink }}>{periodIndex + 1}</td>{__kbUi(Array.from({ length: skeleton.weekdays }, (_, dayIndex) => {
               const flatIndex = periodIndex * skeleton.weekdays + dayIndex;
               const cell = skeleton.cells[flatIndex];
               if (!cell) return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line, background: "#FBFCFD" }}><div className="min-h-[82px] rounded-xl border-2 border-dashed" style={{ borderColor: "#EEF2F5" }}/></td>;
               if (cell.type === "classHour") {
                 const leaderId = leaders[String(selectedClass.id)] || "";
-                return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.amber }}>{leaderId ? `#${teacherNumber.get(String(leaderId))} · ${teacherById.get(String(leaderId))?.full_name || "Rahbar"}` : "Rahbar tanlanmagan"}</div></div></td>;
+                return <td key={dayIndex} className="p-1.5 border-t border-l" style={{ borderColor: palette.line }}><div className="min-h-[82px] rounded-xl p-2" style={{ background: palette.amberBg }}><div className="text-[11px] font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.amber }}>{leaderId ? __kbUi(`#${teacherNumber.get(String(leaderId))} · ${teacherById.get(String(leaderId))?.full_name || "Rahbar"}`) : __kbUi("Rahbar tanlanmagan")}</div></div></td>;
               }
               const allocations = allocationKeysFor(selectedClass.id, cell.fan_nomi);
               const activeGroupType = subjectGroupTypeFor(selectedClass.id, cell.fan_nomi);
               const subjectSwitchBusy = groupSavingKey.startsWith(`${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|`);
-              return <td key={dayIndex} className="p-1.5 border-t border-l align-top" style={{ borderColor: palette.line }}><div className="min-h-[112px] rounded-xl p-2" style={{ background: allocations.length > 1 ? palette.mint : "#fff" }}><div className="flex items-start justify-between gap-1"><div className="text-[11px] leading-tight font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><span className="text-[9px] font-black" style={{ color: palette.muted }}>{cell.amount < 1 ? "0,5" : ""}</span></div><label className="block mt-1.5"><span className="sr-only">{cell.fan_nomi} dars turi</span><select aria-label={`${cell.fan_nomi} dars turi`} value={activeGroupType} onChange={event => configureSubjectGroups(selectedClass.id, cell.fan_nomi, event.target.value)} disabled={stepBusy} className="w-full p-1 rounded-lg border bg-white text-[9px] font-black disabled:opacity-50" style={{ borderColor: activeGroupType === "whole" ? palette.line : palette.green, color: palette.ink }}>
-                {activeGroupType === "mixed" && <option value="mixed" disabled>Aralash — turini tanlang</option>}
-                <option value="whole">Butun sinf</option>
-                <option value="alphabet">1/2 guruh</option>
-                <option value="gender">O‘g‘il/Qiz</option>
-              </select></label>{subjectSwitchBusy && <div className="text-[8px] mt-1 font-black" style={{ color: palette.amber }}>Tanlovlar ko‘chirilmoqda...</div>}<div className={`mt-2 ${allocations.length > 1 ? "grid grid-cols-2 gap-1" : "space-y-1"}`}>{allocations.map((group, groupIndex) => {
+              return <td key={dayIndex} className="p-1.5 border-t border-l align-top" style={{ borderColor: palette.line }}><div className="min-h-[112px] rounded-xl p-2" style={{ background: allocations.length > 1 ? palette.mint : "#fff" }}><div className="flex items-start justify-between gap-1"><div className="text-[11px] leading-tight font-black" style={{ color: palette.ink }}>{cell.fan_nomi}</div><span className="text-[9px] font-black" style={{ color: palette.muted }}>{cell.amount < 1 ? __kbUi("0,5") : __kbUi("")}</span></div><label className="block mt-1.5"><span className="sr-only">{cell.fan_nomi}{__kbUi(" dars turi")}</span><select aria-label={__kbUi(`${cell.fan_nomi} dars turi`)} value={activeGroupType} onChange={event => configureSubjectGroups(selectedClass.id, cell.fan_nomi, event.target.value)} disabled={stepBusy} className="w-full p-1 rounded-lg border bg-white text-[9px] font-black disabled:opacity-50" style={{ borderColor: activeGroupType === "whole" ? palette.line : palette.green, color: palette.ink }}>
+                {activeGroupType === "mixed" && <option value="mixed" disabled>{__kbUi("Aralash — turini tanlang")}</option>}
+                <option value="whole">{__kbUi("Butun sinf")}</option>
+                <option value="alphabet">{__kbUi("1/2 guruh")}</option>
+                <option value="gender">{__kbUi("O‘g‘il/Qiz")}</option>
+              </select></label>{subjectSwitchBusy && <div className="text-[8px] mt-1 font-black" style={{ color: palette.amber }}>{__kbUi("Tanlovlar ko‘chirilmoqda...")}</div>}<div className={`mt-2 ${allocations.length > 1 ? "grid grid-cols-2 gap-1" : "space-y-1"}`}>{allocations.map((group, groupIndex) => {
                 const key = `${selectedClass.id}|${subjectKeyV193(cell.fan_nomi)}|${group.key}`;
                 const teacherId = assignments[key] || "";
-                return <div key={group.key} className={allocations.length > 1 ? "min-w-0 rounded-lg p-1" : "flex items-center gap-1"} style={allocations.length > 1 ? { background: "#fff", borderLeft: groupIndex ? `2px solid ${palette.line}` : undefined } : undefined}><span className={`text-[8px] font-black truncate ${allocations.length > 1 ? "block mb-0.5" : "w-11"}`} title={group.label} style={{ color: palette.teal }}>{allocations.length > 1 ? group.label : "Ustoz"}</span><TeacherPickerV2251 value={teacherId} options={teacherChoicesFor(cell.fan_nomi, teacherId)} numberOf={teacherNumber} onChange={next => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, next)} disabled={stepBusy} accentColor={palette.green} borderColor={palette.line} textColor={palette.ink}/></div>;
+                return <div key={group.key} className={allocations.length > 1 ? "min-w-0 rounded-lg p-1" : "flex items-center gap-1"} style={allocations.length > 1 ? { background: "#fff", borderLeft: groupIndex ? `2px solid ${palette.line}` : undefined } : undefined}><span className={`text-[8px] font-black truncate ${allocations.length > 1 ? "block mb-0.5" : "w-11"}`} title={__kbUi(group.label)} style={{ color: palette.teal }}>{allocations.length > 1 ? __kbUi(group.label) : __kbUi("Ustoz")}</span><TeacherPickerV2251 value={teacherId} options={teacherChoicesFor(cell.fan_nomi, teacherId)} numberOf={teacherNumber} onChange={next => updateAssignment(selectedClass.id, cell.fan_nomi, group.key, next)} disabled={stepBusy} accentColor={palette.green} borderColor={palette.line} textColor={palette.ink}/></div>;
               })}</div></div></td>;
-            })}</tr>)}</tbody>
+            }))}</tr>))}</tbody>
           </table>
         </div>
       </div>}
@@ -6604,38 +6557,38 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
       <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: palette.line, background: palette.mint }}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>EXCEL ORQALI TO‘LDIRISH</div>
-            <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>Joriy skeletni Excelga eksport qiling yoki to‘ldirilgan faylni import qiling</div>
-            <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>Yuklangan shablonda hozirgi sinflar, fanlar, guruh turi va saqlangan o‘qituvchi tanlovlari chiqadi. Birinchi <b>O‘qituvchilar</b> varag‘iga faqat F.I.Sh. yoziladi; fan va haftalik jami sinf varaqlaridan avtomatik yig‘iladi. Har bir sinf alohida varaqda bo‘ladi. Bitta fan haftasiga 5 soat bo‘lsa, 5 qator emas, <b>bitta qator va “Haftalik soat = 5”</b> ko‘rinishida yoziladi. Guruh turi va o‘qituvchi shu qatorda tanlanadi; o‘qituvchi bo‘sh qolishi ham mumkin.</div>
+            <div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("EXCEL ORQALI TO‘LDIRISH")}</div>
+            <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Joriy skeletni Excelga eksport qiling yoki to‘ldirilgan faylni import qiling")}</div>
+            <div className="text-[11px] mt-1 leading-relaxed" style={{ color: palette.muted }}>{__kbUi("Yuklangan shablonda hozirgi sinflar, fanlar, guruh turi va saqlangan o‘qituvchi tanlovlari chiqadi. Birinchi ")}<b>{__kbUi("O‘qituvchilar")}</b>{__kbUi(" varag‘iga faqat F.I.Sh. yoziladi; fan va haftalik jami sinf varaqlaridan avtomatik yig‘iladi. Har bir sinf alohida varaqda bo‘ladi. Bitta fan haftasiga 5 soat bo‘lsa, 5 qator emas, ")}<b>{__kbUi("bitta qator va “Haftalik soat = 5”")}</b>{__kbUi(" ko‘rinishida yoziladi. Guruh turi va o‘qituvchi shu qatorda tanlanadi; o‘qituvchi bo‘sh qolishi ham mumkin.")}</div>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button type="button" onClick={downloadSkeletonTemplateV241} disabled={stepBusy} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 disabled:opacity-50" style={{ background: palette.sky, color: palette.blue }}>
-              {xlsxAction === "template" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {xlsxAction === "template" ? "Yuklanmoqda..." : "Excel shablonni yuklab olish / eksport"}
+              {xlsxAction === "template" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15}/>} {xlsxAction === "template" ? __kbUi("Yuklanmoqda...") : __kbUi("Excel shablonni yuklab olish / eksport")}
             </button>
-            <button type="button" onClick={() => skeletonImportInputRef.current?.click()} disabled={stepBusy || dirtyCount > 0} className="px-3.5 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-50" title={dirtyCount ? "Avval ekrandagi joriy o‘zgarishlarni saqlang yoki qayta yuklang" : "To‘ldirilgan skelet Excel faylini tanlang"} style={{ background: palette.teal }}>
-              {xlsxAction === "preview" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {xlsxAction === "preview" ? "Tekshirilmoqda..." : "To‘ldirilgan Excelni qabul qilish / import"}
+            <button type="button" onClick={() => skeletonImportInputRef.current?.click()} disabled={stepBusy || dirtyCount > 0} className="px-3.5 py-2.5 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-50" title={dirtyCount ? __kbUi("Avval ekrandagi joriy o‘zgarishlarni saqlang yoki qayta yuklang") : __kbUi("To‘ldirilgan skelet Excel faylini tanlang")} style={{ background: palette.teal }}>
+              {xlsxAction === "preview" ? <Loader2 size={15} className="animate-spin"/> : <Download size={15} style={{ transform: "rotate(180deg)" }}/>} {xlsxAction === "preview" ? __kbUi("Tekshirilmoqda...") : __kbUi("To‘ldirilgan Excelni qabul qilish / import")}
             </button>
             <input ref={skeletonImportInputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={previewSkeletonXlsxV241} className="hidden"/>
           </div>
         </div>
-        {dirtyCount > 0 && <div className="mt-2 text-[10px] font-bold" style={{ color: palette.amber }}>Excel qabul qilishdan oldin ekrandagi {dirtyCount} ta o‘zgarishni saqlang yoki “Qayta yuklash”ni bosing.</div>}
+        {dirtyCount > 0 && <div className="mt-2 text-[10px] font-bold" style={{ color: palette.amber }}>{__kbUi("Excel qabul qilishdan oldin ekrandagi ")}{dirtyCount}{__kbUi(" ta o‘zgarishni saqlang yoki “Qayta yuklash”ni bosing.")}</div>}
         {xlsxPreview && <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: xlsxPreview.commit_mumkin ? "#A7D3B8" : "#E7AFAF", background: xlsxPreview.commit_mumkin ? palette.greenBg : palette.redBg }}>
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-xs font-black" style={{ color: palette.ink }}>{xlsxPayload?.fayl_nomi || "Tanlangan Excel"}</div>
-              <div className="text-[10px] mt-1" style={{ color: palette.muted }}>{Number(xlsxPreview?.jami?.sinf_soni ?? xlsxPreview?.jami?.sinflar ?? xlsxPreview?.sinflar?.length ?? 0)} ta sinf varag‘i · {Number(xlsxPreview?.jami?.qator_soni ?? xlsxPreview?.jami?.qatorlar ?? 0)} ta qator · yangi o‘qituvchi {Number(xlsxPreview?.oqituvchilar?.yangi || 0)}</div>
-              {!!xlsxErrors.length && <div className="mt-2 space-y-1">{xlsxErrors.slice(0, 4).map((item, index) => <div key={`${xlsxIssueTextV241(item)}-${index}`} className="text-[10px] font-bold" style={{ color: palette.red }}>{xlsxIssueTextV241(item)}</div>)}</div>}
-              {!!xlsxWarnings.length && <div className="mt-2 space-y-1">{xlsxWarnings.slice(0, 3).map((item, index) => <div key={`${xlsxIssueTextV241(item)}-${index}`} className="text-[10px] font-bold" style={{ color: palette.amber }}>{xlsxIssueTextV241(item)}</div>)}</div>}
+              <div className="text-xs font-black" style={{ color: palette.ink }}>{xlsxPayload?.fayl_nomi || __kbUi("Tanlangan Excel")}</div>
+              <div className="text-[10px] mt-1" style={{ color: palette.muted }}>{__kbUi(Number(xlsxPreview?.jami?.sinf_soni ?? xlsxPreview?.jami?.sinflar ?? xlsxPreview?.sinflar?.length ?? 0))}{__kbUi(" ta sinf varag‘i · ")}{__kbUi(Number(xlsxPreview?.jami?.qator_soni ?? xlsxPreview?.jami?.qatorlar ?? 0))}{__kbUi(" ta qator · yangi o‘qituvchi ")}{__kbUi(Number(xlsxPreview?.oqituvchilar?.yangi || 0))}</div>
+              {!!xlsxErrors.length && <div className="mt-2 space-y-1">{xlsxErrors.slice(0, 4).map((item, index) => <div key={`${xlsxIssueTextV241(item)}-${index}`} className="text-[10px] font-bold" style={{ color: palette.red }}>{__kbUi(xlsxIssueTextV241(item))}</div>)}</div>}
+              {!!xlsxWarnings.length && <div className="mt-2 space-y-1">{xlsxWarnings.slice(0, 3).map((item, index) => <div key={`${xlsxIssueTextV241(item)}-${index}`} className="text-[10px] font-bold" style={{ color: palette.amber }}>{__kbUi(xlsxIssueTextV241(item))}</div>)}</div>}
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
-              <button type="button" onClick={() => { setXlsxPreview(null); setXlsxPayload(null); }} disabled={Boolean(xlsxAction)} className="px-3 py-2 rounded-xl text-xs font-black disabled:opacity-50" style={{ background: "#fff", color: palette.ink }}>Bekor qilish</button>
-              <button type="button" onClick={commitSkeletonXlsxV241} disabled={Boolean(xlsxAction) || xlsxPreview.commit_mumkin !== true || dirtyCount > 0} className="px-4 py-2 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-45" style={{ background: palette.green }}>{xlsxAction === "commit" && <Loader2 size={14} className="animate-spin"/>}{xlsxAction === "commit" ? "Qabul qilinmoqda..." : "Tekshirilgan ma’lumotni saqlash"}</button>
+              <button type="button" onClick={() => { setXlsxPreview(null); setXlsxPayload(null); }} disabled={Boolean(xlsxAction)} className="px-3 py-2 rounded-xl text-xs font-black disabled:opacity-50" style={{ background: "#fff", color: palette.ink }}>{__kbUi("Bekor qilish")}</button>
+              <button type="button" onClick={commitSkeletonXlsxV241} disabled={Boolean(xlsxAction) || xlsxPreview.commit_mumkin !== true || dirtyCount > 0} className="px-4 py-2 rounded-xl text-xs font-black text-white flex items-center gap-2 disabled:opacity-45" style={{ background: palette.green }}>{xlsxAction === "commit" && <Loader2 size={14} className="animate-spin"/>}{xlsxAction === "commit" ? __kbUi("Qabul qilinmoqda...") : __kbUi("Tekshirilgan ma’lumotni saqlash")}</button>
             </div>
           </div>
         </div>}
         {!!xlsxCreatedTeachers.length && <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "#E7C77B", background: palette.amberBg }}>
-          <div className="text-xs font-black" style={{ color: palette.amber }}>Yangi o‘qituvchilar kirish kodlari — hozir saqlab oling</div>
-          <div className="grid md:grid-cols-2 gap-1.5 mt-2">{xlsxCreatedTeachers.map((teacher, index) => <div key={`${teacher.user_id || teacher.full_name}-${index}`} className="rounded-lg bg-white px-2.5 py-2 text-[10px] font-bold" style={{ color: palette.ink }}>#{teacher.jadval_raqami || "?"} · {teacher.full_name}: <span className="font-black">{teacher.kirish_kodi || "kod qaytarilmadi"}</span></div>)}</div>
+          <div className="text-xs font-black" style={{ color: palette.amber }}>{__kbUi("Yangi o‘qituvchilar kirish kodlari — hozir saqlab oling")}</div>
+          <div className="grid md:grid-cols-2 gap-1.5 mt-2">{xlsxCreatedTeachers.map((teacher, index) => <div key={`${teacher.user_id || teacher.full_name}-${index}`} className="rounded-lg bg-white px-2.5 py-2 text-[10px] font-bold" style={{ color: palette.ink }}>#{teacher.jadval_raqami || __kbUi("?")} · {teacher.full_name}: <span className="font-black">{teacher.kirish_kodi || __kbUi("kod qaytarilmadi")}</span></div>)}</div>
         </div>}
       </div>
 
@@ -6644,20 +6597,20 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="text-xs" style={{ color: dirtyCount ? palette.amber : palette.muted }}>
             {dirtyCount
-              ? `${dirtyCount} ta saqlanmagan joriy o‘zgarish bor. Ular uchun barcha sinflarni to‘ldirish shart emas.`
+              ? __kbUi(`${dirtyCount} ta saqlanmagan joriy o‘zgarish bor. Ular uchun barcha sinflarni to‘ldirish shart emas.`)
               : blankTeacherCount
-                ? `${blankTeacherCount} ta fan/guruhda o‘qituvchi keyin tanlanadi. Skelet va guruh turlarini hozir saqlash mumkin.`
-                : "Barcha fan/guruhlarga o‘qituvchi biriktirilgan. Jadval yaratishga o‘tish mumkin."}
+                ? __kbUi(`${blankTeacherCount} ta fan/guruhda o‘qituvchi keyin tanlanadi. Skelet va guruh turlarini hozir saqlash mumkin.`)
+                : __kbUi("Barcha fan/guruhlarga o‘qituvchi biriktirilgan. Jadval yaratishga o‘tish mumkin.")}
           </div>
           <div className="flex flex-wrap justify-end gap-2 shrink-0">
-            <button onClick={() => load(false, true)} disabled={stepBusy} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" style={{ background: palette.cream, color: palette.ink }}>Qayta yuklash</button>
-            <button onClick={saveCurrentChanges} disabled={stepBusy || dirtyCount === 0} className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title="Faqat o‘zgargan fan/guruh va sinf rahbarlarini saqlaydi" style={{ background: palette.green, color: "#fff" }}>
-              {savingAction === "current" ? "Joriy o‘zgarishlar saqlanmoqda..." : `Joriy o‘zgarishlarni saqlash${dirtyCount ? ` (${dirtyCount})` : ""}`}
+            <button onClick={() => load(false, true)} disabled={stepBusy} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Qayta yuklash")}</button>
+            <button onClick={saveCurrentChanges} disabled={stepBusy || dirtyCount === 0} className="px-5 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title={__kbUi("Faqat o‘zgargan fan/guruh va sinf rahbarlarini saqlaydi")} style={{ background: palette.green, color: "#fff" }}>
+              {savingAction === "current" ? __kbUi("Joriy o‘zgarishlar saqlanmoqda...") : __kbUi(`Joriy o‘zgarishlarni saqlash${dirtyCount ? ` (${dirtyCount})` : ""}`)}
             </button>
-            <button onClick={saveAll} disabled={stepBusy || !canSaveSkeleton} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title={hasUnsafeConflicts ? "Avval eski yuklama ziddiyatlarini to‘g‘rilang" : "Guruh turlari, o‘qituvchi tanlovlari va bo‘sh kataklarni saqlaydi"} style={{ background: palette.sky, color: palette.blue }}>
-              {savingAction === "skeleton" ? "Skelet saqlanmoqda..." : "Skeletni saqlash"}
+            <button onClick={saveAll} disabled={stepBusy || !canSaveSkeleton} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-50" title={hasUnsafeConflicts ? __kbUi("Avval eski yuklama ziddiyatlarini to‘g‘rilang") : __kbUi("Guruh turlari, o‘qituvchi tanlovlari va bo‘sh kataklarni saqlaydi")} style={{ background: palette.sky, color: palette.blue }}>
+              {savingAction === "skeleton" ? __kbUi("Skelet saqlanmoqda...") : __kbUi("Skeletni saqlash")}
             </button>
-            {setStep && <button onClick={() => canOpenGenerator && saveAll({ continueToGenerator: true })} disabled={stepBusy || !canOpenGenerator} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-40" title={!isComplete ? `Avval ${blankTeacherCount} ta fan/guruhga o‘qituvchi tanlang. Skeletni ustozsiz ham alohida saqlashingiz mumkin.` : hasUnsafeConflicts ? "Avval eski yuklama ziddiyatlarini to‘g‘rilang" : "To‘liq skeletni saqlaydi va generatorni ochadi"} style={{ background: palette.blue, color: "#fff" }}>Jadval yaratishga o‘tish →</button>}
+            {setStep && <button onClick={() => canOpenGenerator && saveAll({ continueToGenerator: true })} disabled={stepBusy || !canOpenGenerator} className="px-4 py-2.5 rounded-xl text-xs font-black disabled:opacity-40" title={!isComplete ? __kbUi(`Avval ${blankTeacherCount} ta fan/guruhga o‘qituvchi tanlang. Skeletni ustozsiz ham alohida saqlashingiz mumkin.`) : hasUnsafeConflicts ? __kbUi("Avval eski yuklama ziddiyatlarini to‘g‘rilang") : __kbUi("To‘liq skeletni saqlaydi va generatorni ochadi")} style={{ background: palette.blue, color: "#fff" }}>{__kbUi("Jadval yaratishga o‘tish →")}</button>}
           </div>
         </div>
       </div>
@@ -6669,12 +6622,13 @@ function ClassSkeletonLoadEditorV204({ token, apiBase, maktabId, reload, setStep
 
 
 function LoadsStep(props) {
+  useKbInterfaceLocale();
   const { token, apiBase, maktabId, setup, reload, setStep } = props;
   return <div className="space-y-4">
     <Card className="p-4">
       <div>
-        <div className="text-sm font-black" style={{ color: palette.ink }}>Sinf skeleti + o‘qituvchi raqami</div>
-        <div className="text-xs mt-1" style={{ color: palette.muted }}>Bu yerda yangi o‘qituvchi qo‘shilmaydi. O‘qituvchilar alohida “O‘qituvchi qo‘shish” oynasida yaratiladi; bu bosqichda faqat tayyor # raqam tanlanadi.</div>
+        <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Sinf skeleti + o‘qituvchi raqami")}</div>
+        <div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Bu yerda yangi o‘qituvchi qo‘shilmaydi. O‘qituvchilar alohida “O‘qituvchi qo‘shish” oynasida yaratiladi; bu bosqichda faqat tayyor # raqam tanlanadi.")}</div>
       </div>
     </Card>
     <ClassHourPanel token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={reload} setStep={setStep}/>
@@ -6741,6 +6695,7 @@ function scheduleHourLabel(value) {
 }
 
 function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, apiBase, onRoomChanged, readOnly = false }) {
+  useKbInterfaceLocale();
   const classRow = (setup?.sinflar || []).find(c => String(c.id) === String(selectedClass));
   const slots = (detail?.slotlar || []).filter(s => String(s.sinf_id) === String(selectedClass));
   const [roomEditor, setRoomEditor] = useState(null);
@@ -6819,38 +6774,38 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
       {roomMessage && <div className="mb-1.5"><SmartNotice tone={roomMessage.tone}>{roomMessage.text}</SmartNotice></div>}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
         <div className="min-w-0">
-          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>Jadval #{detail?.urinish?.id || "—"} · Haftalik dars jadvali</h3>
+          <h3 className="text-sm font-black leading-tight" style={{ color: palette.ink }}>{__kbUi("Jadval #")}{detail?.urinish?.id || __kbUi("—")}{__kbUi(" · Haftalik dars jadvali")}</h3>
           <div className="flex flex-wrap items-center gap-1 mt-1 text-[8px] font-black">
-            <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? "TOQ" : "JUFT"} HAFTA</span>
-            <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>A/B · 0,5 + 0,5</span>
-            <span style={{ color: readOnly ? palette.amber : palette.muted }}>{readOnly ? "Jarayon tugaguncha xona tahriri yopiq." : "Xona ustiga bosib tahrirlang."}</span>
+            <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.greenBg, color: palette.green }}>{detail?.joriy_hafta_turi === "toq" ? __kbUi("TOQ") : __kbUi("JUFT")}{__kbUi(" HAFTA")}</span>
+            <span className="px-1.5 py-0.5 rounded-md" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("A/B · 0,5 + 0,5")}</span>
+            <span style={{ color: readOnly ? palette.amber : palette.muted }}>{readOnly ? __kbUi("Jarayon tugaguncha xona tahriri yopiq.") : __kbUi("Xona ustiga bosib tahrirlang.")}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={downloadClasses} disabled={downloading} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={13}/>{downloading ? "Tayyorlanmoqda..." : "Sinflar XLSX"}</button>
+          <button type="button" onClick={downloadClasses} disabled={downloading} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={13}/>{downloading ? __kbUi("Tayyorlanmoqda...") : __kbUi("Sinflar XLSX")}</button>
           <select value={selectedClass || ''} onChange={e => setSelectedClass(e.target.value)} className="px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
             {(setup?.sinflar || []).map(c => <option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}
           </select>
         </div>
       </div>
       {classMatch && <div className="mb-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-black" style={{ background: classMatch.mos ? palette.greenBg : palette.amberBg, color: classMatch.mos ? palette.green : palette.amber }}>
-        {scheduleHourLabel(classMatch.fan_yuklama)} soat fan yuklamasi + {scheduleHourLabel(classMatch.sinf_soati_reja)} soat KELAJAK SOATI = {scheduleHourLabel(classMatch.reja)} soat reja · jadvalda {scheduleHourLabel(classMatch.jadval)} soat {classMatch.mos ? "✓ TO‘LIQ" : `· ${scheduleHourLabel(Math.abs(Number(classMatch.farq || 0)))} soat farq`}
+        {__kbUi(scheduleHourLabel(classMatch.fan_yuklama))}{__kbUi(" soat fan yuklamasi + ")}{__kbUi(scheduleHourLabel(classMatch.sinf_soati_reja))}{__kbUi(" soat KELAJAK SOATI = ")}{__kbUi(scheduleHourLabel(classMatch.reja))}{__kbUi(" soat reja · jadvalda ")}{__kbUi(scheduleHourLabel(classMatch.jadval))}{__kbUi(" soat ")}{classMatch.mos ? __kbUi("✓ TO‘LIQ") : __kbUi(`· ${scheduleHourLabel(Math.abs(Number(classMatch.farq || 0)))} soat farq`)}
       </div>}
       <div className="overflow-auto">
         <table className="min-w-[860px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
           <colgroup><col style={{ width: 32 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
           <thead><tr><th className="text-[9px] py-1">№</th>{smartDays.slice(0, weekdays).map(([day, name]) => {
             const blocked = blockedDays.has(day);
-            return <th key={day} className="text-[9px] leading-none py-1 rounded-md" style={blocked ? { color: palette.red, background: palette.redBg } : { color: palette.ink }}>{name}{blocked ? ' · blok' : ''}</th>;
+            return <th key={day} className="text-[9px] leading-none py-1 rounded-md" style={blocked ? { color: palette.red, background: palette.redBg } : { color: palette.ink }}>{__kbUi(name)}{blocked ? __kbUi(' · blok') : __kbUi('')}</th>;
           })}</tr></thead>
-          <tbody>{Array.from({ length: periods }, (_, periodIndex) => (
+          <tbody>{__kbUi(Array.from({ length: periods }, (_, periodIndex) => (
             <tr key={periodIndex}>
               <td className="text-[10px] font-black text-center p-0.5">{periodIndex + 1}</td>
               {smartDays.slice(0, weekdays).map(([day]) => {
                 const blocked = blockedDays.has(day);
                 const cell = blocked ? [] : slots.filter(slot => Number(slot.hafta_kuni) === day && Number(slot.dars_raqami) === periodIndex + 1);
                 return <td key={day} className="align-top p-0"><div className="min-h-[48px] rounded-lg border p-1 overflow-hidden" style={{ borderColor: blocked ? '#F0CACA' : palette.line, background: blocked ? palette.redBg : cell.length ? palette.sky : '#fff' }}>
-                  {blocked ? <div className="min-h-[38px] flex items-center justify-center text-center text-[9px] leading-tight font-black" style={{ color: palette.red }}>Dars yo‘q</div> : cell.map(slot => {
+                  {blocked ? <div className="min-h-[38px] flex items-center justify-center text-center text-[9px] leading-tight font-black" style={{ color: palette.red }}>{__kbUi("Dars yo‘q")}</div> : cell.map(slot => {
                     const grouped = slot.guruh_kaliti !== "whole";
                     const shortGroup = scheduleGroupShortLabel(slot.guruh_kaliti);
                     const groupTitle = scheduleGroupLabel(slot.guruh_kaliti);
@@ -6860,20 +6815,20 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
                     return <div key={slot.id} className="mb-0.5 last:mb-0 rounded-md px-1 py-0.5 leading-none" style={{ background: "rgba(255,255,255,.78)", borderLeft: grouped ? `2px solid ${palette.teal}` : "none" }}>
                       <div className="flex items-center gap-1 min-w-0">
                         {grouped && <span title={groupTitle} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{shortGroup}</span>}
-                        {alternating && <span title={slot.hafta_turi === "toq" ? "TOQ HAFTA · 0,5" : "JUFT HAFTA · 0,5"} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? "T·0,5" : "J·0,5"}</span>}
-                        <span className="text-[10px] leading-[1.05] font-black" title={subjectDisplayNameV201(slot.fan_nomi)} style={{ color: palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{subjectDisplayNameV201(slot.fan_nomi)}</span>
+                        {alternating && <span title={slot.hafta_turi === "toq" ? __kbUi("TOQ HAFTA · 0,5") : __kbUi("JUFT HAFTA · 0,5")} className="shrink-0 px-1 py-0.5 rounded text-[7px] font-black" style={{ background: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.greenBg : palette.amberBg, color: slot.hafta_turi === detail?.joriy_hafta_turi ? palette.green : palette.amber }}>{slot.hafta_turi === "toq" ? __kbUi("T·0,5") : __kbUi("J·0,5")}</span>}
+                        <span className="text-[10px] leading-[1.05] font-black" title={__kbUi(subjectDisplayNameV201(slot.fan_nomi))} style={{ color: palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{__kbUi(subjectDisplayNameV201(slot.fan_nomi))}</span>
                       </div>
                       <div className="flex items-center justify-between gap-1 min-w-0 mt-0.5 text-[8px] leading-tight">
-                        <span className="truncate" title={slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || 'O‘qituvchi yo‘q'}</span>
-                        <button type="button" disabled={readOnly} title={readOnly ? `Xona: ${roomName} · jadval yaratilayotganda tahrir yopiq` : `Xona: ${roomName} · tahrirlash`} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold disabled:cursor-not-allowed" style={{ color: readOnly ? palette.muted : roomExists ? palette.blue : palette.red }}>{roomName}{readOnly ? "" : " ✎"}</button>
+                        <span className="truncate" title={slot.oqituvchi_ismi || __kbUi('O‘qituvchi yo‘q')} style={{ color: palette.muted }}>{slot.oqituvchi_ismi || __kbUi('O‘qituvchi yo‘q')}</span>
+                        <button type="button" disabled={readOnly} title={readOnly ? __kbUi(`Xona: ${roomName} · jadval yaratilayotganda tahrir yopiq`) : __kbUi(`Xona: ${roomName} · tahrirlash`)} onClick={() => openRoomEditor(slot)} className="shrink-0 max-w-[43%] truncate text-right font-bold disabled:cursor-not-allowed" style={{ color: readOnly ? palette.muted : roomExists ? palette.blue : palette.red }}>{roomName}{readOnly ? __kbUi("") : __kbUi(" ✎")}</button>
                       </div>
-                      {!readOnly && Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">Qo‘lda yozish / sinf xonasi</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder="Masalan: 205" maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? "..." : "Saqlash"}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor</button></div></div>}
+                      {!readOnly && Number(roomEditor?.slotId) === Number(slot.id) && <div className="mt-1 rounded-md border p-1 space-y-1" style={{ borderColor: palette.line, background: "#fff" }}><select value={roomEditor.catalogId} onChange={event => setRoomEditor(current => ({ ...current, catalogId: event.target.value }))} className="w-full p-1 rounded border bg-white text-[8px]"><option value="">{__kbUi("Qo‘lda yozish / sinf xonasi")}</option>{(setup?.xonalar || []).map(room => <option key={room.id} value={room.id}>{room.nomi}</option>)}</select>{!roomEditor.catalogId && <input value={roomEditor.customName} onChange={event => setRoomEditor(current => ({ ...current, customName: event.target.value }))} placeholder={__kbUi("Masalan: 205")} maxLength={80} className="w-full p-1 rounded border text-[8px]"/>}<div className="flex gap-1"><button type="button" onClick={() => saveRoom(slot)} disabled={savingRoom} className="flex-1 px-1.5 py-1 rounded text-[8px] font-black text-white" style={{ background: palette.blue }}>{savingRoom ? __kbUi("...") : __kbUi("Saqlash")}</button><button type="button" onClick={() => setRoomEditor(null)} className="px-1.5 py-1 rounded text-[8px] font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Bekor")}</button></div></div>}
                     </div>;
                   })}
                 </div></td>;
               })}
             </tr>
-          ))}</tbody>
+          )))}</tbody>
         </table>
       </div>
     </Card>
@@ -6882,6 +6837,7 @@ function ScheduleGrid({ detail, setup, selectedClass, setSelectedClass, token, a
 
 
 function TeacherWeeklySchedule({ detail, setup }) {
+  useKbInterfaceLocale();
   const teachers = useMemo(() => {
     const catalog = new Map();
     (setup?.oqituvchilar || []).forEach(row => {
@@ -7012,31 +6968,31 @@ function TeacherWeeklySchedule({ detail, setup }) {
   return <Card className="p-2.5">
     <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
       <div>
-        <h2 className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchining 1/2-smena haftalik jadvali</h2>
-        <p className="text-[9px] mt-0.5" style={{ color: palette.muted }}>Har ikki smena, haftaning 6 kuni va har smenadagi 6 dars bitta ixcham ko‘rinishda.</p>
+        <h2 className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchining 1/2-smena haftalik jadvali")}</h2>
+        <p className="text-[9px] mt-0.5" style={{ color: palette.muted }}>{__kbUi("Har ikki smena, haftaning 6 kuni va har smenadagi 6 dars bitta ixcham ko‘rinishda.")}</p>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: actualWeeklyHours === plannedWeeklyHours ? palette.greenBg : palette.amberBg, color: actualWeeklyHours === plannedWeeklyHours ? palette.green : palette.amber }}>Reja/jadval {scheduleHourLabel(plannedWeeklyHours)}/{scheduleHourLabel(actualWeeklyHours)}</span>
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays} kun</span>
-        {preferredWorkDays && <span title={`${scheduleHourLabel(plannedWeeklyHours)} soat uchun avval ${preferredWorkDays} kun, faqat zaruratda ${fallbackWorkDays} kun ishlatiladi.`} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: activeDays <= preferredWorkDays ? palette.greenBg : activeDays <= fallbackWorkDays ? palette.amberBg : palette.redBg, color: activeDays <= preferredWorkDays ? palette.green : activeDays <= fallbackWorkDays ? palette.amber : palette.red }}>Kun maqsadi {preferredWorkDays} · amalda {activeDays}</span>}
-        {!!teacherMethodDays.size && <span title="Metod kuni oddiy darslar uchun yopiq. Faqat administrator qat‘iy belgilagan KELAJAK SOATI qonuniy istisno." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: methodDayErrors.length ? palette.redBg : methodDayExceptions.length ? palette.amberBg : palette.greenBg, color: methodDayErrors.length ? palette.red : methodDayExceptions.length ? palette.amber : palette.green }}>{teacherMethodDays.size} metod kuni{methodDayErrors.length ? ` · XATO ${methodDayErrors.length} oddiy dars` : methodDayExceptions.length ? ` · ${methodDayExceptions.length} KELAJAK istisnosi` : " · yopiq"}</span>}
-        {!!teacherUnavailableDays.size && <span title="To‘liq qizil/BAND kun barcha darslar, jumladan KELAJAK SOATI uchun ham yopiq." className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unavailableDayErrors.length ? palette.redBg : palette.sky, color: unavailableDayErrors.length ? palette.red : palette.blue }}>{teacherUnavailableDays.size} qizil kun{unavailableDayErrors.length ? ` · XATO ${unavailableDayErrors.length}` : ""}</span>}
-        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? "Parallel bor" : "Parallel yo‘q"}</span>
-        <span title={gapCount ? `${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}` : "Smena ichida bo‘sh dars yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>Ichki okno {gapCount}{gapShiftDays ? ` · ${gapShiftDays} kun` : ""}</span>
-        <span title={unifiedGapCount ? `Ikki smena bitta ish kuni sifatida: jami ${scheduleDurationLabel(unifiedGapMinutes)} · ${unifiedDayGaps.filter(row => row.gaps.length).map(row => `${row.name}: ${row.gaps.map(scheduleDurationLabel).join(", ")}`).join("; ")}` : "1- va 2-smena birga hisoblanganda ortiqcha kutish yo‘q"} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unifiedMaxGap > 120 ? palette.redBg : unifiedMaxGap > 60 ? palette.amberBg : palette.greenBg, color: unifiedMaxGap > 120 ? palette.red : unifiedMaxGap > 60 ? palette.amber : palette.green }}>{unifiedGapCount ? `Kun bo‘shlig‘i ${unifiedGapCount} · max ${scheduleDurationLabel(unifiedMaxGap)}` : "Kun bo‘shlig‘i yo‘q"}</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: actualWeeklyHours === plannedWeeklyHours ? palette.greenBg : palette.amberBg, color: actualWeeklyHours === plannedWeeklyHours ? palette.green : palette.amber }}>{__kbUi("Reja/jadval ")}{__kbUi(scheduleHourLabel(plannedWeeklyHours))}/{__kbUi(scheduleHourLabel(actualWeeklyHours))}</span>
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: palette.sky, color: palette.blue }}>{activeDays}{__kbUi(" kun")}</span>
+        {preferredWorkDays && <span title={__kbUi(`${scheduleHourLabel(plannedWeeklyHours)} soat uchun avval ${preferredWorkDays} kun, faqat zaruratda ${fallbackWorkDays} kun ishlatiladi.`)} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: activeDays <= preferredWorkDays ? palette.greenBg : activeDays <= fallbackWorkDays ? palette.amberBg : palette.redBg, color: activeDays <= preferredWorkDays ? palette.green : activeDays <= fallbackWorkDays ? palette.amber : palette.red }}>{__kbUi("Kun maqsadi ")}{preferredWorkDays}{__kbUi(" · amalda ")}{activeDays}</span>}
+        {!!teacherMethodDays.size && <span title={__kbUi("Metod kuni oddiy darslar uchun yopiq. Faqat administrator qat‘iy belgilagan KELAJAK SOATI qonuniy istisno.")} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: methodDayErrors.length ? palette.redBg : methodDayExceptions.length ? palette.amberBg : palette.greenBg, color: methodDayErrors.length ? palette.red : methodDayExceptions.length ? palette.amber : palette.green }}>{teacherMethodDays.size}{__kbUi(" metod kuni")}{methodDayErrors.length ? __kbUi(` · XATO ${methodDayErrors.length} oddiy dars`) : methodDayExceptions.length ? __kbUi(` · ${methodDayExceptions.length} KELAJAK istisnosi`) : __kbUi(" · yopiq")}</span>}
+        {!!teacherUnavailableDays.size && <span title={__kbUi("To‘liq qizil/BAND kun barcha darslar, jumladan KELAJAK SOATI uchun ham yopiq.")} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unavailableDayErrors.length ? palette.redBg : palette.sky, color: unavailableDayErrors.length ? palette.red : palette.blue }}>{teacherUnavailableDays.size}{__kbUi(" qizil kun")}{unavailableDayErrors.length ? __kbUi(` · XATO ${unavailableDayErrors.length}`) : __kbUi("")}</span>}
+        <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: parallelConflict ? palette.redBg : palette.greenBg, color: parallelConflict ? palette.red : palette.green }}>{parallelConflict ? __kbUi("Parallel bor") : __kbUi("Parallel yo‘q")}</span>
+        <span title={gapCount ? __kbUi(`${gapShiftDays} ta smena-kunda okno bor${multiGapShiftDays ? `; ${multiGapShiftDays} tasida bittadan ko‘p` : ""}`) : __kbUi("Smena ichida bo‘sh dars yo‘q")} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: multiGapShiftDays ? palette.redBg : gapCount ? palette.amberBg : palette.greenBg, color: multiGapShiftDays ? palette.red : gapCount ? palette.amber : palette.green }}>{__kbUi("Ichki okno ")}{gapCount}{gapShiftDays ? __kbUi(` · ${gapShiftDays} kun`) : __kbUi("")}</span>
+        <span title={unifiedGapCount ? __kbUi(`Ikki smena bitta ish kuni sifatida: jami ${scheduleDurationLabel(unifiedGapMinutes)} · ${unifiedDayGaps.filter(row => row.gaps.length).map(row => `${row.name}: ${row.gaps.map(scheduleDurationLabel).join(", ")}`).join("; ")}`) : __kbUi("1- va 2-smena birga hisoblanganda ortiqcha kutish yo‘q")} className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: unifiedMaxGap > 120 ? palette.redBg : unifiedMaxGap > 60 ? palette.amberBg : palette.greenBg, color: unifiedMaxGap > 120 ? palette.red : unifiedMaxGap > 60 ? palette.amber : palette.green }}>{unifiedGapCount ? __kbUi(`Kun bo‘shlig‘i ${unifiedGapCount} · max ${scheduleDurationLabel(unifiedMaxGap)}`) : __kbUi("Kun bo‘shlig‘i yo‘q")}</span>
         <select value={teacherId} onChange={event => setTeacherId(event.target.value)} className="min-w-[240px] px-2 py-1.5 rounded-lg border bg-white text-xs font-bold" style={{ borderColor: palette.line }}>
           {teachers.map(teacher => <option key={teacher.user_id} value={teacher.user_id}>{teacher.full_name}</option>)}
         </select>
       </div>
     </div>
-    {!teachers.length ? <SmartNotice tone="warning">Jadvalda o‘qituvchi topilmadi.</SmartNotice> : <div className="overflow-auto">
+    {!teachers.length ? <SmartNotice tone="warning">{__kbUi("Jadvalda o‘qituvchi topilmadi.")}</SmartNotice> : <div className="overflow-auto">
       <table className="min-w-[900px] w-full border-separate" style={{ tableLayout: "fixed", borderSpacing: 3 }}>
         <colgroup><col style={{ width: 56 }}/>{smartDays.slice(0, weekdays).map(([day]) => <col key={day}/>)}</colgroup>
-        <thead><tr><th className="text-[8px] py-1">Smena</th>{smartDays.slice(0, weekdays).map(([day, name]) => <th key={day} className="text-[9px] py-1" style={{ color: teacherMethodDays.has(Number(day)) ? palette.amber : teacherUnavailableDays.has(Number(day)) ? palette.blue : palette.ink }}>{name}{teacherMethodDays.has(Number(day)) && <span className="block text-[7px]">METOD KUNI</span>}{teacherUnavailableDays.has(Number(day)) && <span className="block text-[7px]">DARS OLINMAYDI</span>}</th>)}</tr></thead>
+        <thead><tr><th className="text-[8px] py-1">{__kbUi("Smena")}</th>{smartDays.slice(0, weekdays).map(([day, name]) => <th key={day} className="text-[9px] py-1" style={{ color: teacherMethodDays.has(Number(day)) ? palette.amber : teacherUnavailableDays.has(Number(day)) ? palette.blue : palette.ink }}>{__kbUi(name)}{teacherMethodDays.has(Number(day)) && <span className="block text-[7px]">{__kbUi("METOD KUNI")}</span>}{teacherUnavailableDays.has(Number(day)) && <span className="block text-[7px]">{__kbUi("DARS OLINMAYDI")}</span>}</th>)}</tr></thead>
         <tbody>{[1, 2].flatMap(shift => Array.from({ length: 6 }, (_, index) => {
           const period = index + 1;
           return <tr key={`${shift}-${period}`}>
-            <td className="text-[9px] font-black text-center rounded-md" style={{ background: shift === 1 ? palette.sky : palette.cream, color: palette.ink }}>{shift}-s · {period}</td>
+            <td className="text-[9px] font-black text-center rounded-md" style={{ background: shift === 1 ? palette.sky : palette.cream, color: palette.ink }}>{__kbUi(shift)}{__kbUi("-s · ")}{period}</td>
             {smartDays.slice(0, weekdays).map(([day]) => {
               const methodDay = teacherMethodDays.get(Number(day));
               const unavailableDay = teacherUnavailableDays.get(Number(day));
@@ -7055,10 +7011,10 @@ function TeacherWeeklySchedule({ detail, setup }) {
                 ? "#D99B9B"
                 : fixedClassHours.length ? "#E7C477" : palette.line;
               return <td key={day} className="align-top p-0"><div className="min-h-[32px] rounded-md border px-1 py-0.5 overflow-hidden" style={{ borderColor: cellBorder, background: cellBackground }}>
-                {!cell.length && blockedDay && <div className="text-[7px] font-black text-center pt-2" style={{ color: methodDay ? palette.amber : palette.blue }}>{methodDay ? "METOD" : "QIZIL"}</div>}
-                {cell.map(slot => <div key={slot.id} className="grid grid-cols-[auto_1fr] items-start gap-1 text-[9px] leading-[1.05] min-w-0" title={methodDay && !unavailableDay && isFixedClassHourLesson(slot) ? "Qat‘iy KELAJAK SOATI: faqat metod kuni uchun qonuniy istisno" : blockedDay ? "XATO: dars qizil/BAND yoki yopiq kunga tushgan" : ""}>
-                  <span className="shrink-0 px-1 py-0.5 rounded font-black" style={{ background: slot.guruh_kaliti !== "whole" ? palette.greenBg : "#fff", color: slot.guruh_kaliti !== "whole" ? palette.green : palette.ink }}>{slot.sinf}-{slot.harf}{slot.guruh_kaliti !== "whole" ? ` · ${scheduleGroupShortLabel(slot.guruh_kaliti)}` : ""}{slot.hafta_turi && slot.hafta_turi !== "har_hafta" ? ` · ${slot.hafta_turi === "toq" ? "T" : "J"}` : ""}</span>
-                  <span className="font-black" title={`${slot.sinf}-${slot.harf} · ${subjectDisplayNameV201(slot.fan_nomi)}`} style={{ color: ordinaryBlockedLessons.includes(slot) ? palette.red : fixedClassHours.includes(slot) ? palette.amber : palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{subjectDisplayNameV201(slot.fan_nomi)}{methodDay && !unavailableDay && isFixedClassHourLesson(slot) ? " · ISTISNO" : ""}</span>
+                {!cell.length && blockedDay && <div className="text-[7px] font-black text-center pt-2" style={{ color: methodDay ? palette.amber : palette.blue }}>{methodDay ? __kbUi("METOD") : __kbUi("QIZIL")}</div>}
+                {cell.map(slot => <div key={slot.id} className="grid grid-cols-[auto_1fr] items-start gap-1 text-[9px] leading-[1.05] min-w-0" title={methodDay && !unavailableDay && isFixedClassHourLesson(slot) ? __kbUi("Qat‘iy KELAJAK SOATI: faqat metod kuni uchun qonuniy istisno") : blockedDay ? __kbUi("XATO: dars qizil/BAND yoki yopiq kunga tushgan") : __kbUi("")}>
+                  <span className="shrink-0 px-1 py-0.5 rounded font-black" style={{ background: slot.guruh_kaliti !== "whole" ? palette.greenBg : "#fff", color: slot.guruh_kaliti !== "whole" ? palette.green : palette.ink }}>{slot.sinf}-{slot.harf}{slot.guruh_kaliti !== "whole" ? __kbUi(` · ${scheduleGroupShortLabel(slot.guruh_kaliti)}`) : __kbUi("")}{slot.hafta_turi && slot.hafta_turi !== "har_hafta" ? __kbUi(` · ${slot.hafta_turi === "toq" ? "T" : "J"}`) : __kbUi("")}</span>
+                  <span className="font-black" title={__kbUi(`${slot.sinf}-${slot.harf} · ${subjectDisplayNameV201(slot.fan_nomi)}`)} style={{ color: ordinaryBlockedLessons.includes(slot) ? palette.red : fixedClassHours.includes(slot) ? palette.amber : palette.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{__kbUi(subjectDisplayNameV201(slot.fan_nomi))}{methodDay && !unavailableDay && isFixedClassHourLesson(slot) ? __kbUi(" · ISTISNO") : __kbUi("")}</span>
                 </div>)}
               </div></td>;
             })}
@@ -7068,28 +7024,27 @@ function TeacherWeeklySchedule({ detail, setup }) {
     </div>}
     {missingWeeklyHours > 0 ? <div className="mt-2 rounded-xl border p-3" style={{ borderColor: "#E9B5B5", background: palette.redBg }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm font-black" style={{ color: palette.red }}>{scheduleHourLabel(missingWeeklyHours)} soat nega jadvalga kirmadi?</div>
-        <div className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: "#fff", color: palette.red }}>Reja {scheduleHourLabel(plannedWeeklyHours)} · kirdi {scheduleHourLabel(actualWeeklyHours)} · qoldi {scheduleHourLabel(missingWeeklyHours)}</div>
+        <div className="text-sm font-black" style={{ color: palette.red }}>{__kbUi(scheduleHourLabel(missingWeeklyHours))}{__kbUi(" soat nega jadvalga kirmadi?")}</div>
+        <div className="text-[10px] font-black px-2 py-1 rounded-lg" style={{ background: "#fff", color: palette.red }}>{__kbUi("Reja ")}{__kbUi(scheduleHourLabel(plannedWeeklyHours))}{__kbUi(" · kirdi ")}{__kbUi(scheduleHourLabel(actualWeeklyHours))}{__kbUi(" · qoldi ")}{__kbUi(scheduleHourLabel(missingWeeklyHours))}</div>
       </div>
       <p className="text-[10px] leading-relaxed mt-1.5 font-bold" style={{ color: palette.ink }}>
-        {teacherMatch?.sabab_xulosasi || `${selectedTeacher?.full_name || "O‘qituvchi"} uchun ${scheduleHourLabel(plannedWeeklyHours)} soat reja bor, lekin ${scheduleHourLabel(actualWeeklyHours)} soat joylashgan.`}
+        {teacherMatch?.sabab_xulosasi || __kbUi(`${selectedTeacher?.full_name || "O‘qituvchi"} uchun ${scheduleHourLabel(plannedWeeklyHours)} soat reja bor, lekin ${scheduleHourLabel(actualWeeklyHours)} soat joylashgan.`)}
       </p>
       {teacherMissingDetails.length ? <div className="grid md:grid-cols-2 gap-1.5 mt-2">
         {teacherMissingDetails.map((problem, index) => <div key={`${problem.sinf}-${problem.fan}-${index}`} className="rounded-lg border bg-white p-2" style={{ borderColor: "#F0CACA" }}>
-          <div className="text-[10px] font-black" style={{ color: palette.ink }}>{problem.sinf || "Sinf"} · {problem.fan || "Fan"}{problem.guruh_kaliti && problem.guruh_kaliti !== "whole" ? ` · ${scheduleGroupLabel(problem.guruh_kaliti)}` : ""} · {scheduleHourLabel(problem.soat || 1)} soat</div>
-          {problem.parallel_guruh && <div className="text-[9px] font-black mt-1" style={{ color: palette.blue }}>Parallel dars: sinf uchun 1 katak, har bir guruh o‘qituvchisi uchun 1 soatdan.</div>}
-          <div className="text-[9px] leading-relaxed mt-1" style={{ color: palette.red }}><b>Sabab:</b> {problem.sabab_izohi || problem.sabab || "Mos bo‘sh katak topilmadi."}</div>
-          <div className="text-[9px] leading-relaxed mt-1" style={{ color: palette.green }}><b>Yechim:</b> {problem.yechim || "O‘qituvchi va sinf vaqt cheklovlarini tekshirib, yangi draft yarating."}</div>
+          <div className="text-[10px] font-black" style={{ color: palette.ink }}>{problem.sinf || __kbUi("Sinf")} · {problem.fan || __kbUi("Fan")}{problem.guruh_kaliti && problem.guruh_kaliti !== "whole" ? __kbUi(` · ${scheduleGroupLabel(problem.guruh_kaliti)}`) : __kbUi("")} · {__kbUi(scheduleHourLabel(problem.soat || 1))}{__kbUi(" soat")}</div>
+          {problem.parallel_guruh && <div className="text-[9px] font-black mt-1" style={{ color: palette.blue }}>{__kbUi("Parallel dars: sinf uchun 1 katak, har bir guruh o‘qituvchisi uchun 1 soatdan.")}</div>}
+          <div className="text-[9px] leading-relaxed mt-1" style={{ color: palette.red }}><b>{__kbUi("Sabab:")}</b> {problem.sabab_izohi || problem.sabab || __kbUi("Mos bo‘sh katak topilmadi.")}</div>
+          <div className="text-[9px] leading-relaxed mt-1" style={{ color: palette.green }}><b>{__kbUi("Yechim:")}</b> {problem.yechim || __kbUi("O‘qituvchi va sinf vaqt cheklovlarini tekshirib, yangi draft yarating.")}</div>
         </div>)}
-      </div> : <div className="mt-2 rounded-lg bg-white p-2 text-[10px] leading-relaxed" style={{ color: palette.amber }}>
-        Bu eski draftda yetishmagan dars sababi o‘qituvchi bilan bog‘lab saqlanmagan. REV52 backendni deploy qilib yangi draft yarating — keyingi natijada metod kuni yopiq qoladi va har bir qolgan fan, sinf, sabab hamda yechim shu yerda aniq chiqadi.
-      </div>}
-    </div> : selectedTeacher && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ color: palette.green, background: palette.greenBg }}>{selectedTeacher.full_name} · reja va jadval soati to‘liq mos. Parallel dars yo‘q; 1/2-smena kutishi va ichki oknolar birga hisoblangan.</div>}
+      </div> : <div className="mt-2 rounded-lg bg-white p-2 text-[10px] leading-relaxed" style={{ color: palette.amber }}>{__kbUi("Bu eski draftda yetishmagan dars sababi o‘qituvchi bilan bog‘lab saqlanmagan. REV52 backendni deploy qilib yangi draft yarating — keyingi natijada metod kuni yopiq qoladi va har bir qolgan fan, sinf, sabab hamda yechim shu yerda aniq chiqadi.")}</div>}
+    </div> : selectedTeacher && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ color: palette.green, background: palette.greenBg }}>{selectedTeacher.full_name}{__kbUi(" · reja va jadval soati to‘liq mos. Parallel dars yo‘q; 1/2-smena kutishi va ichki oknolar birga hisoblangan.")}</div>}
   </Card>;
 }
 
 
 function TeacherScheduleStep({ token, apiBase, setup }) {
+  useKbInterfaceLocale();
   const run = setup?.urinishlar?.[0];
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState("");
@@ -7105,8 +7060,8 @@ function TeacherScheduleStep({ token, apiBase, setup }) {
       .catch(reason => { if (alive) setError(reason.message); });
     return () => { alive = false; };
   }, [run?.id, token, apiBase]);
-  if (!run?.id) return <SmartNotice tone="warning">Avval 4-bosqichda dars jadvalini yarating.</SmartNotice>;
-  if (error) return <SmartNotice tone="error">{error}</SmartNotice>;
+  if (!run?.id) return <SmartNotice tone="warning">{__kbUi("Avval 4-bosqichda dars jadvalini yarating.")}</SmartNotice>;
+  if (error) return <SmartNotice tone="error">{__kbUi(error)}</SmartNotice>;
   if (!detail) return <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={28} style={{ color: palette.blue }}/></div>;
   const downloadTeachers = async () => {
     setDownloading(true);
@@ -7120,36 +7075,38 @@ function TeacherScheduleStep({ token, apiBase, setup }) {
     }
   };
   return <div className="space-y-2">
-    {exportError && <SmartNotice tone="error">{exportError}</SmartNotice>}
-    <div className="flex justify-end"><button type="button" onClick={downloadTeachers} disabled={downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1.5" style={{ background: palette.green }}><Download size={14}/>{downloading ? "Tayyorlanmoqda..." : "O‘qituvchilar XLSX"}</button></div>
+    {exportError && <SmartNotice tone="error">{__kbUi(exportError)}</SmartNotice>}
+    <div className="flex justify-end"><button type="button" onClick={downloadTeachers} disabled={downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1.5" style={{ background: palette.green }}><Download size={14}/>{downloading ? __kbUi("Tayyorlanmoqda...") : __kbUi("O‘qituvchilar XLSX")}</button></div>
     <TeacherWeeklySchedule detail={detail} setup={setup}/>
   </div>;
 }
 
 
 function SanitaryScheduleRulesV1874() {
+  useKbInterfaceLocale();
   return <Card className="p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-black" style={{color:palette.ink}}>Jadval qanday yaratiladi?</h2>
-        <p className="text-xs mt-1" style={{color:palette.muted}}>Qizil vaqt va to‘qnashuv hech qachon buzilmaydi. Qolgan talablar barcha darsni to‘liq joylab, eng ixcham variantni tanlaydi.</p>
+        <h2 className="text-xl font-black" style={{color:palette.ink}}>{__kbUi("Jadval qanday yaratiladi?")}</h2>
+        <p className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Qizil vaqt va to‘qnashuv hech qachon buzilmaydi. Qolgan talablar barcha darsni to‘liq joylab, eng ixcham variantni tanlaydi.")}</p>
       </div>
-      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>QATTIQ + QULAY STRATEGIYA</span>
+      <span className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.greenBg,color:palette.green}}>{__kbUi("QATTIQ + QULAY STRATEGIYA")}</span>
     </div>
     <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
-      <div className="rounded-2xl p-3" style={{background:palette.redBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Qizil vaqt — yopiq</div><div className="text-xs mt-1" style={{color:palette.muted}}>O‘qituvchining qizil kuni yoki soatiga dars qo‘yilmaydi. Bir o‘qituvchi ikki joyda bir vaqtda bo‘lmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Barcha soat aniq</div><div className="text-xs mt-1" style={{color:palette.muted}}>Birorta dars qolmaydi, ortiqcha qo‘shilmaydi. Sinf, fan, guruh va o‘qituvchi jami qayta tekshiriladi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Ixcham ish kunlari</div><div className="text-xs mt-1" style={{color:palette.muted}}>2–6 soat: 2 kun (zaruratda 3); 7–10: 3 kun (4); 11–15: 4 kun (5). Bir soatli o‘qituvchi — 1 kun.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>Ikki smena yaqin</div><div className="text-xs mt-1" style={{color:palette.muted}}>1- va 2-smena oralig‘i 1 soat, ko‘pi bilan 2 soat afzal. 3 soat faqat boshqa qattiq cheklovlar majbur qilsa qoladi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>J/T va texnologiya</div><div className="text-xs mt-1" style={{color:palette.muted}}>Asosan 3–6-dars. Mumkin bo‘lsa ketma-ket juft qo‘yiladi; J/Tdan keyin og‘ir yozma fan qo‘yilmaydi.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>Asosiy fanlar 1–5</div><div className="text-xs mt-1" style={{color:palette.muted}}>Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi. Faqat boshqa legal katak qolmasa 6-dars ishlatiladi; bir sinfda haftasiga ko‘pi bilan 2 kun.</div></div>
-      <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>Sinfda okno yo‘q</div><div className="text-xs mt-1" style={{color:palette.muted}}>Sinf kuni 1-darsdan boshlanadi va uzluksiz ketadi. Og‘ir hamda yengil fanlar imkon qadar almashadi.</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.redBg}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("Qizil vaqt — yopiq")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("O‘qituvchining qizil kuni yoki soatiga dars qo‘yilmaydi. Bir o‘qituvchi ikki joyda bir vaqtda bo‘lmaydi.")}</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("Barcha soat aniq")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Birorta dars qolmaydi, ortiqcha qo‘shilmaydi. Sinf, fan, guruh va o‘qituvchi jami qayta tekshiriladi.")}</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("Ixcham ish kunlari")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("2–6 soat: 2 kun (zaruratda 3); 7–10: 3 kun (4); 11–15: 4 kun (5). Bir soatli o‘qituvchi — 1 kun.")}</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.sky}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("Ikki smena yaqin")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("1- va 2-smena oralig‘i 1 soat, ko‘pi bilan 2 soat afzal. 3 soat faqat boshqa qattiq cheklovlar majbur qilsa qoladi.")}</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.amberBg}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("J/T va texnologiya")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Asosan 3–6-dars. Mumkin bo‘lsa ketma-ket juft qo‘yiladi; J/Tdan keyin og‘ir yozma fan qo‘yilmaydi.")}</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.greenBg}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("Asosiy fanlar 1–5")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Matematika, algebra, geometriya, ona tili, adabiyot, fizika, kimyo va biologiya avval 1–5-darsga qo‘yiladi. Faqat boshqa legal katak qolmasa 6-dars ishlatiladi; bir sinfda haftasiga ko‘pi bilan 2 kun.")}</div></div>
+      <div className="rounded-2xl p-3" style={{background:palette.cream}}><div className="text-sm font-black" style={{color:palette.ink}}>{__kbUi("Sinfda okno yo‘q")}</div><div className="text-xs mt-1" style={{color:palette.muted}}>{__kbUi("Sinf kuni 1-darsdan boshlanadi va uzluksiz ketadi. Og‘ir hamda yengil fanlar imkon qadar almashadi.")}</div></div>
     </div>
   </Card>;
 }
 
 
 function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
+  useKbInterfaceLocale();
   const movableSlots = useMemo(
     () => (detail?.slotlar || []).filter(
       slot => String(slot.fan_nomi || "").trim().toLocaleLowerCase("uz") !== "sinf soati"
@@ -7247,64 +7204,57 @@ function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
   return <Card className="p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>V19.2 · aqlli o‘zgartirish</div>
-        <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Darsni ko‘chirish va xavfsiz almashtirish</h2>
-        <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
-          Tizim o‘qituvchi, sinf, xona, metod kuni va parallel darsni tekshiradi.
-          Avtomatik rejim eng yaxshi variantni beradi; uni o‘chirib variantni qo‘lda tanlash mumkin.
-        </p>
+        <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("V19.2 · aqlli o‘zgartirish")}</div>
+        <h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Darsni ko‘chirish va xavfsiz almashtirish")}</h2>
+        <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>{__kbUi("Tizim o‘qituvchi, sinf, xona, metod kuni va parallel darsni tekshiradi. Avtomatik rejim eng yaxshi variantni beradi; uni o‘chirib variantni qo‘lda tanlash mumkin.")}</p>
       </div>
       <button onClick={() => changeMode(!autoMode)} className="px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2" style={{
         background: autoMode ? palette.greenBg : palette.cream,
         color: autoMode ? palette.green : palette.ink,
       }}>
         {autoMode ? <ToggleRight size={19}/> : <ToggleLeft size={19}/>}
-        {autoMode ? "Avtomatik tavsiya yoqilgan" : "Qo‘lda tanlash"}
+        {autoMode ? __kbUi("Avtomatik tavsiya yoqilgan") : __kbUi("Qo‘lda tanlash")}
       </button>
     </div>
 
     {message && <div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}
 
     <div className="grid lg:grid-cols-[1fr_auto] gap-3 mt-4 items-end">
-      <label className="text-xs font-black" style={{ color: palette.ink }}>
-        Qaysi darsning joyi o‘zgarsin?
-        <select value={slotId} onChange={event => { setSlotId(event.target.value); setReport(null); }} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
+      <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Qaysi darsning joyi o‘zgarsin?")}<select value={slotId} onChange={event => { setSlotId(event.target.value); setReport(null); }} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{ borderColor: palette.line }}>
           {movableSlots.map(slot => <option key={slot.id} value={slot.id}>
-            {slot.sinf}-{slot.harf} · {dayName(slot.hafta_kuni)} · {slot.dars_raqami}-dars · {subjectDisplayNameV201(slot.fan_nomi)} · {slot.oqituvchi_ismi || "o‘qituvchi yo‘q"}{slot.guruh_kaliti !== "whole" ? ` · ${slot.guruh_kaliti}` : ""}
+            {slot.sinf}-{slot.harf} · {__kbUi(dayName(slot.hafta_kuni))} · {slot.dars_raqami}{__kbUi("-dars · ")}{__kbUi(subjectDisplayNameV201(slot.fan_nomi))} · {slot.oqituvchi_ismi || __kbUi("o‘qituvchi yo‘q")}{slot.guruh_kaliti !== "whole" ? __kbUi(` · ${slot.guruh_kaliti}`) : __kbUi("")}
           </option>)}
         </select>
       </label>
       <button onClick={loadSuggestions} disabled={loading || !slotId} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>
-        {loading ? "Tekshirilmoqda..." : "Xavfsiz variantlarni ko‘rsatish"}
+        {loading ? __kbUi("Tekshirilmoqda...") : __kbUi("Xavfsiz variantlarni ko‘rsatish")}
       </button>
     </div>
 
     {(report?.parallel_ziddiyatlar || []).length > 0 && <div className="mt-4 space-y-2">
       {report.parallel_ziddiyatlar.map((conflict, index) => <div key={index} className="rounded-xl p-3 text-xs font-bold" style={{ background: palette.redBg, color: palette.red }}>
-        {conflict.oqituvchi_ismi}: {dayName(conflict.hafta_kuni)}, {conflict.dars_raqami}-darsda {conflict.sinflar.join(" va ")} parallel tushgan.
-      </div>)}
+        {conflict.oqituvchi_ismi}: {__kbUi(dayName(conflict.hafta_kuni))}, {conflict.dars_raqami}{__kbUi("-darsda ")}{__kbUi(conflict.sinflar.join(" va "))}{__kbUi(" parallel tushgan.")}</div>)}
     </div>}
 
     {report && autoMode && topSuggestion && <div className="mt-4 rounded-2xl border p-4 flex flex-wrap items-center gap-3" style={{ borderColor: "#B9DFC5", background: palette.greenBg }}>
       <div className="flex-1 min-w-[250px]">
-        <div className="text-xs font-black uppercase" style={{ color: palette.green }}>Eng yaxshi xavfsiz variant</div>
+        <div className="text-xs font-black uppercase" style={{ color: palette.green }}>{__kbUi("Eng yaxshi xavfsiz variant")}</div>
         <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>
-          {dayName(topSuggestion.yangi_hafta_kuni)} · {topSuggestion.yangi_dars_raqami}-dars · {topSuggestion.turi === "almashtirish" ? "almashtirish" : "bo‘sh joyga ko‘chirish"}
+          {__kbUi(dayName(topSuggestion.yangi_hafta_kuni))} · {topSuggestion.yangi_dars_raqami}{__kbUi("-dars · ")}{topSuggestion.turi === "almashtirish" ? __kbUi("almashtirish") : __kbUi("bo‘sh joyga ko‘chirish")}
         </div>
         <div className="text-xs mt-1" style={{ color: palette.muted }}>{topSuggestion.nishon}</div>
       </div>
       <button onClick={() => apply(topSuggestion)} disabled={applying} className="px-5 py-2.5 rounded-xl text-sm font-black text-white" style={{ background: palette.green }}>
-        {applying ? "Bajarilmoqda..." : "Shu variantni qo‘llash"}
+        {applying ? __kbUi("Bajarilmoqda...") : __kbUi("Shu variantni qo‘llash")}
       </button>
     </div>}
 
     {report && !autoMode && <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3 mt-4">
       {(report.tavsiyalar || []).map((suggestion, index) => <button key={index} onClick={() => apply(suggestion)} disabled={applying} className="rounded-2xl border p-3 text-left" style={{ borderColor: palette.line, background: "#fff" }}>
         <div className="text-xs font-black" style={{ color: palette.blue }}>
-          {dayName(suggestion.yangi_hafta_kuni)} · {suggestion.yangi_dars_raqami}-dars
-        </div>
+          {__kbUi(dayName(suggestion.yangi_hafta_kuni))} · {suggestion.yangi_dars_raqami}{__kbUi("-dars")}</div>
         <div className="text-sm font-black mt-1" style={{ color: palette.ink }}>
-          {suggestion.turi === "almashtirish" ? "Almashtirish" : "Bo‘sh joyga ko‘chirish"}
+          {suggestion.turi === "almashtirish" ? __kbUi("Almashtirish") : __kbUi("Bo‘sh joyga ko‘chirish")}
         </div>
         <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{suggestion.nishon}</div>
       </button>)}
@@ -7314,6 +7264,7 @@ function SmartSwapPanelV192({ token, apiBase, maktabId, detail, onApplied }) {
 
 
 function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, onSaved }) {
+  useKbInterfaceLocale();
   const [report, setReport] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -7581,32 +7532,24 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black" style={{ color: palette.ink }}>
-            1. Sinf guruhlari va o‘qituvchilarini tasdiqlash
-          </h2>
-          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>
-            Sinf yaratishda saqlangan 1/2-guruh, o‘g‘il/qiz yoki mustaqil
-            guruhlar Excel importidagi o‘qituvchilar bilan solishtiriladi.
-            Masalan 5-A Ingliz tiliga 2 ta o‘qituvchi yozilgan bo‘lsa,
-            tizim ularni 1-guruh va 2-guruhga taklif qiladi. Shu oynada
-            o‘qituvchilarni almashtirib, jadvaldan oldin tasdiqlaysiz.
-          </p>
+          <h2 className="text-xl font-black" style={{ color: palette.ink }}>{__kbUi("1. Sinf guruhlari va o‘qituvchilarini tasdiqlash")}</h2>
+          <p className="text-xs mt-1 max-w-3xl" style={{ color: palette.muted }}>{__kbUi("Sinf yaratishda saqlangan 1/2-guruh, o‘g‘il/qiz yoki mustaqil guruhlar Excel importidagi o‘qituvchilar bilan solishtiriladi. Masalan 5-A Ingliz tiliga 2 ta o‘qituvchi yozilgan bo‘lsa, tizim ularni 1-guruh va 2-guruhga taklif qiladi. Shu oynada o‘qituvchilarni almashtirib, jadvaldan oldin tasdiqlaysiz.")}</p>
         </div>
         <div className="grid grid-cols-4 gap-2 min-w-[420px]">
-          <Stat value={summary.sinf_soni || 0} label="jami sinf" tone="blue" />
+          <Stat value={summary.sinf_soni || 0} label={__kbUi("jami sinf")} tone="blue" />
           <Stat
             value={summary.guruh_tizimli_sinf_soni || 0}
-            label="guruhli sinf"
+            label={__kbUi("guruhli sinf")}
             tone="teal"
           />
           <Stat
             value={summary.tasdiqlangan || 0}
-            label="tasdiqlangan"
+            label={__kbUi("tasdiqlangan")}
             tone="green"
           />
           <Stat
             value={summary.tasdiqlanmagan || 0}
-            label="qolgan"
+            label={__kbUi("qolgan")}
             tone={summary.tasdiqlanmagan ? "red" : "green"}
           />
         </div>
@@ -7615,12 +7558,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
       <div
         className="mt-4 rounded-xl p-3 text-xs leading-relaxed"
         style={{ background: palette.sky, color: palette.blue }}
-      >
-        Guruhli fan sinf rejasida guruhlar soniga ko‘paymaydi. Masalan
-        Ingliz tili haftasiga 1 soat va 2 guruh bo‘lsa: sinf rejasida 1 soat,
-        1-guruh o‘qituvchisida 1 soat, 2-guruh o‘qituvchisida 1 soat,
-        jadvalda esa ikkala guruh bir vaqtda turadigan 1 parallel slot bo‘ladi.
-      </div>
+      >{__kbUi("Guruhli fan sinf rejasida guruhlar soniga ko‘paymaydi. Masalan Ingliz tili haftasiga 1 soat va 2 guruh bo‘lsa: sinf rejasida 1 soat, 1-guruh o‘qituvchisida 1 soat, 2-guruh o‘qituvchisida 1 soat, jadvalda esa ikkala guruh bir vaqtda turadigan 1 parallel slot bo‘ladi.")}</div>
 
       <div className="flex flex-wrap gap-2 mt-4">
         <select
@@ -7628,11 +7566,10 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
           onChange={event => setGrade(event.target.value)}
           className="p-2.5 rounded-xl border bg-white"
         >
-          <option value="all">Barcha parallellar</option>
+          <option value="all">{__kbUi("Barcha parallellar")}</option>
           {Array.from({ length: 11 }, (_, index) => index + 1).map(value => (
             <option key={value} value={value}>
-              {value}-sinflar
-            </option>
+              {value}{__kbUi("-sinflar")}</option>
           ))}
         </select>
         <label
@@ -7643,16 +7580,14 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
             type="checkbox"
             checked={onlyProblems}
             onChange={event => setOnlyProblems(event.target.checked)}
-          />
-          Faqat tasdiqlanmagan/xato fanlar
-        </label>
+          />{__kbUi("Faqat tasdiqlanmagan/xato fanlar")}</label>
         <button
           onClick={load}
           disabled={loading}
           className="px-3 py-2.5 rounded-xl text-xs font-black"
           style={{ background: palette.sky, color: palette.blue }}
         >
-          {loading ? "Yuklanmoqda..." : "Qayta tekshirish"}
+          {loading ? __kbUi("Yuklanmoqda...") : __kbUi("Qayta tekshirish")}
         </button>
         <button
           onClick={() => savePairs(unresolvedVisible)}
@@ -7661,19 +7596,14 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
           style={{
             background: unresolvedVisible.length ? palette.teal : "#9BA8B2",
           }}
-        >
-          Ko‘rinayotganlarni saqlash va tasdiqlash
-        </button>
+        >{__kbUi("Ko‘rinayotganlarni saqlash va tasdiqlash")}</button>
       </div>
 
       {report?.tayyor && (
         <div
           className="mt-4 rounded-xl p-3 text-xs font-bold"
           style={{ background: palette.greenBg, color: palette.green }}
-        >
-          Barcha guruhli fanlarda guruhlar, o‘qituvchilar va haftalik soatlar
-          tasdiqlangan. Endi shablon/reja mosligini tekshirish mumkin.
-        </div>
+        >{__kbUi("Barcha guruhli fanlarda guruhlar, o‘qituvchilar va haftalik soatlar tasdiqlangan. Endi shablon/reja mosligini tekshirish mumkin.")}</div>
       )}
 
       <div className="space-y-4 mt-4 max-h-[780px] overflow-auto pr-1">
@@ -7686,8 +7616,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
             <div className="flex flex-wrap justify-between gap-2">
               <div>
                 <div className="text-lg font-black" style={{ color: palette.ink }}>
-                  {cls.sinf} · {cls.smena}-smena
-                </div>
+                  {cls.sinf} · {cls.smena}{__kbUi("-smena")}</div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {(cls.tizimlar || []).map(system => (
                     <span
@@ -7695,31 +7624,25 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                       className="px-2 py-1 rounded-full text-[10px] font-black"
                       style={{ background: palette.sky, color: palette.blue }}
                     >
-                      {system.nomi} · {(system.guruhlar || [])
+                      {system.nomi} · {__kbUi((system.guruhlar || [])
                         .map(group => `${group.guruh_nomi} (${group.oquvchi_soni ?? group.soni ?? 0})`)
-                        .join(" / ")}
+                        .join(" / "))}
                     </span>
                   ))}
                   {!(cls.tizimlar || []).length && (
-                    <span className="text-xs" style={{ color: palette.muted }}>
-                      Guruhlash tizimi yaratilmagan
-                    </span>
+                    <span className="text-xs" style={{ color: palette.muted }}>{__kbUi("Guruhlash tizimi yaratilmagan")}</span>
                   )}
                 </div>
               </div>
               <div className="text-xs font-bold" style={{ color: palette.muted }}>
-                {(cls.fanlar || []).length} ta guruh tekshiruvi
-              </div>
+                {(cls.fanlar || []).length}{__kbUi(" ta guruh tekshiruvi")}</div>
             </div>
 
             {!(cls.fanlar || []).length ? (
               <div
                 className="mt-3 rounded-xl p-3 text-xs"
                 style={{ background: palette.cream, color: palette.muted }}
-              >
-                Bu sinfda hozircha ikki o‘qituvchili yoki guruh tizimiga
-                biriktirilgan fan topilmadi.
-              </div>
+              >{__kbUi("Bu sinfda hozircha ikki o‘qituvchili yoki guruh tizimiga biriktirilgan fan topilmadi.")}</div>
             ) : (
               <div className="space-y-3 mt-3">
                 {(cls.fanlar || []).map(pair => {
@@ -7754,25 +7677,17 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                           <div className="text-sm font-black" style={{ color: palette.ink }}>
                             {pair.fan_nomi}
                           </div>
-                          <div className="text-[11px] mt-1" style={{ color: palette.muted }}>
-                            Import:
-                            {" "}
+                          <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{__kbUi("Import:")}{__kbUi(" ")}
                             {(pair.import_oqituvchilari || [])
                               .map(row =>
                                 `${row.full_name}${row.guruh_kaliti !== "whole" ? ` (${row.guruh_kaliti})` : ""}`
                               )
-                              .join(", ") || "o‘qituvchi yo‘q"}
+                              .join(", ") || __kbUi("o‘qituvchi yo‘q")}
                           </div>
                           <div className="grid grid-cols-3 gap-1.5 mt-2 max-w-xl">
-                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>
-                              Sinf rejasi: {pair.sinf_reja_soati ?? pair.haftalik_soat ?? "—"} soat
-                            </div>
-                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>
-                              Jadval: {pair.jadval_parallel_slot_soni ?? pair.haftalik_soat ?? "—"} parallel slot
-                            </div>
-                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>
-                              O‘qituvchi jami: {pair.oqituvchi_soat_jami ?? "—"} soat
-                            </div>
+                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Sinf rejasi: ")}{pair.sinf_reja_soati ?? pair.haftalik_soat ?? __kbUi("—")}{__kbUi(" soat")}</div>
+                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{__kbUi("Jadval: ")}{pair.jadval_parallel_slot_soni ?? pair.haftalik_soat ?? __kbUi("—")}{__kbUi(" parallel slot")}</div>
+                            <div className="rounded-lg px-2 py-1.5 text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("O‘qituvchi jami: ")}{pair.oqituvchi_soat_jami ?? __kbUi("—")}{__kbUi(" soat")}</div>
                           </div>
                         </div>
                         <span
@@ -7791,51 +7706,45 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                           }}
                         >
                           {pair.tasdiqlangan
-                            ? "TASDIQLANGAN"
+                            ? __kbUi("TASDIQLANGAN")
                             : pair.xatolar?.length
-                              ? "TUZATISH KERAK"
-                              : "TEKSHIRIB TASDIQLANG"}
+                              ? __kbUi("TUZATISH KERAK")
+                              : __kbUi("TEKSHIRIB TASDIQLANG")}
                         </span>
                       </div>
 
                       <div className="grid md:grid-cols-[180px_1fr] gap-2 mt-3">
-                        <label className="text-xs font-bold" style={{ color: palette.ink }}>
-                          Dars turi
-                          <select
+                        <label className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Dars turi")}<select
                             value={draft.turi}
                             onChange={event =>
                               updateDraft(pair, { turi: event.target.value })
                             }
                             className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
                           >
-                            <option value="group">Guruhlarga bo‘lingan</option>
-                            <option value="whole">Butun sinf</option>
+                            <option value="group">{__kbUi("Guruhlarga bo‘lingan")}</option>
+                            <option value="whole">{__kbUi("Butun sinf")}</option>
                           </select>
                         </label>
 
                         {draft.turi === "group" ? (
-                          <label className="text-xs font-bold" style={{ color: palette.ink }}>
-                            Qaysi guruhlash tizimi?
-                            <select
+                          <label className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Qaysi guruhlash tizimi?")}<select
                               value={draft.tizim_id || ""}
                               onChange={event => selectSystem(pair, event.target.value)}
                               className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
                             >
-                              <option value="">Tizimni tanlang</option>
+                              <option value="">{__kbUi("Tizimni tanlang")}</option>
                               {(pair.tizimlar || []).map(system => (
                                 <option key={system.id} value={system.id}>
                                   {system.nomi}
                                   {system.fan_biriktirilgan
-                                    ? " · fan avval biriktirilgan"
-                                    : " · tanlansa fanga biriktiriladi"}
+                                    ? __kbUi(" · fan avval biriktirilgan")
+                                    : __kbUi(" · tanlansa fanga biriktiriladi")}
                                 </option>
                               ))}
                             </select>
                           </label>
                         ) : (
-                          <label className="text-xs font-bold" style={{ color: palette.ink }}>
-                            Butun sinf o‘qituvchisi
-                            <select
+                          <label className="text-xs font-bold" style={{ color: palette.ink }}>{__kbUi("Butun sinf o‘qituvchisi")}<select
                               value={draft.asosiy_oqituvchi_user_id || ""}
                               onChange={event =>
                                 updateDraft(pair, {
@@ -7846,7 +7755,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                               }
                               className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
                             >
-                              <option value="">O‘qituvchini tanlang</option>
+                              <option value="">{__kbUi("O‘qituvchini tanlang")}</option>
                               {(pair.kandidat_oqituvchilar || []).map(teacher => (
                                 <option key={teacher.user_id} value={teacher.user_id}>
                                   {teacher.full_name}
@@ -7864,17 +7773,13 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                             disabled={saving}
                             className="px-3 py-2 rounded-xl text-xs font-black"
                             style={{ background: palette.sky, color: palette.blue }}
-                          >
-                            + 1-guruh / 2-guruh yaratish
-                          </button>
+                          >{__kbUi("+ 1-guruh / 2-guruh yaratish")}</button>
                           <button
                             onClick={() => createSystem(pair, "gender")}
                             disabled={saving}
                             className="px-3 py-2 rounded-xl text-xs font-black"
                             style={{ background: palette.cream, color: palette.ink }}
-                          >
-                            + O‘g‘il / Qiz guruhini yaratish
-                          </button>
+                          >{__kbUi("+ O‘g‘il / Qiz guruhini yaratish")}</button>
                         </div>
                       )}
 
@@ -7886,9 +7791,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                               disabled={saving}
                               className="px-3 py-2 rounded-xl text-[11px] font-black"
                               style={{ background: palette.sky, color: palette.blue }}
-                            >
-                              Boshqa variant: 1/2-guruh
-                            </button>
+                            >{__kbUi("Boshqa variant: 1/2-guruh")}</button>
                           )}
                           {!hasGender && (
                             <button
@@ -7896,9 +7799,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                               disabled={saving}
                               className="px-3 py-2 rounded-xl text-[11px] font-black"
                               style={{ background: palette.cream, color: palette.ink }}
-                            >
-                              Boshqa variant: O‘g‘il/Qiz
-                            </button>
+                            >{__kbUi("Boshqa variant: O‘g‘il/Qiz")}</button>
                           )}
                         </div>
                       )}
@@ -7927,27 +7828,24 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                                 }
                                 className="w-full mt-1.5 p-2.5 rounded-xl border bg-white"
                               >
-                                <option value="">O‘qituvchini tanlang</option>
+                                <option value="">{__kbUi("O‘qituvchini tanlang")}</option>
                                 {(pair.kandidat_oqituvchilar || []).map(teacher => (
                                   <option key={teacher.user_id} value={teacher.user_id}>
-                                    {teacher.full_name} · reja {teacher.haftalik_dars_soati ?? "—"}
+                                    {teacher.full_name}{__kbUi(" · reja ")}{teacher.haftalik_dars_soati ?? __kbUi("—")}
                                   </option>
                                 ))}
                               </select>
-                              {groupIndex === 0 ? <div className="w-full mt-2 p-2.5 rounded-xl border font-normal" style={{ borderColor: "#B9DFC5", background: palette.greenBg, color: palette.green }}>Xona: sinfning o‘z xonasi</div> : <select
+                              {groupIndex === 0 ? <div className="w-full mt-2 p-2.5 rounded-xl border font-normal" style={{ borderColor: "#B9DFC5", background: palette.greenBg, color: palette.green }}>{__kbUi("Xona: sinfning o‘z xonasi")}</div> : <select
                                 value={group.xona_id || ""}
                                 onChange={event => updateGroupRoom(pair, group.guruh_kaliti, event.target.value)}
                                 className="w-full mt-2 p-2.5 rounded-xl border bg-white"
                                 style={{ borderColor: group.xona_id ? palette.line : "#E4B7AE" }}
                               >
-                                <option value="">Bo‘linishga xona topilmadi</option>
-                                {roomOptionsFor(pair).map(room => <option key={room.id} value={room.id}>{room.nomi} · {room.turi === "sport" ? "sport zal" : room.turi === "reserve" ? "zaxira/guruh" : "dars xonasi"}</option>)}
+                                <option value="">{__kbUi("Bo‘linishga xona topilmadi")}</option>
+                                {roomOptionsFor(pair).map(room => <option key={room.id} value={room.id}>{room.nomi} · {room.turi === "sport" ? __kbUi("sport zal") : room.turi === "reserve" ? __kbUi("zaxira/guruh") : __kbUi("dars xonasi")}</option>)}
                               </select>}
-                              {groupIndex > 0 && !group.xona_id && <div className="mt-1.5 text-[10px] font-normal" style={{ color: "#B0553A" }}>Bo‘linishga xona topilmadi. Sport zal yoki zaxira xona yarating; zarur bo‘lsa jadvalda xonani qo‘lda yozasiz.</div>}
-                              <div className="mt-1 font-normal" style={{ color: palette.muted }}>
-                                O‘quvchi: {group.oquvchi_soni ?? 0} · shu guruh
-                                o‘qituvchisiga haftasiga {pair.haftalik_soat || "—"} soat
-                              </div>
+                              {groupIndex > 0 && !group.xona_id && <div className="mt-1.5 text-[10px] font-normal" style={{ color: "#B0553A" }}>{__kbUi("Bo‘linishga xona topilmadi. Sport zal yoki zaxira xona yarating; zarur bo‘lsa jadvalda xonani qo‘lda yozasiz.")}</div>}
+                              <div className="mt-1 font-normal" style={{ color: palette.muted }}>{__kbUi("O‘quvchi: ")}{group.oquvchi_soni ?? 0}{__kbUi(" · shu guruh o‘qituvchisiga haftasiga ")}{pair.haftalik_soat || __kbUi("—")}{__kbUi(" soat")}</div>
                             </label>
                           ))}
                         </div>
@@ -7955,17 +7853,17 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
 
                       {(pair.xatolar || []).map((error, index) => (
                         <div key={`e-${index}`} className="text-xs mt-2" style={{ color: palette.red }}>
-                          {error}
+                          {__kbUi(error)}
                         </div>
                       ))}
                       {(pair.ogohlantirishlar || []).map((warning, index) => (
                         <div key={`w-${index}`} className="text-xs mt-2" style={{ color: palette.amber }}>
-                          {warning}
+                          {__kbUi(warning)}
                         </div>
                       ))}
                       {pairError && (
                         <div className="text-xs mt-2 font-bold" style={{ color: palette.red }}>
-                          {pairError}
+                          {__kbUi(pairError)}
                         </div>
                       )}
 
@@ -7975,9 +7873,7 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
                           disabled={saving || Boolean(pairError)}
                           className="px-4 py-2.5 rounded-xl text-xs font-black text-white"
                           style={{ background: pairError ? "#9BA8B2" : palette.blue }}
-                        >
-                          Saqlash va tasdiqlash
-                        </button>
+                        >{__kbUi("Saqlash va tasdiqlash")}</button>
                       </div>
                     </div>
                   );
@@ -7988,21 +7884,14 @@ function GroupAssignmentReviewV1876({ token, apiBase, maktabId, onReadyChange, o
         ))}
 
         {!loading && !visibleClasses.length && (
-          <div className="p-7 text-center text-sm" style={{ color: palette.muted }}>
-            Bu filtr bo‘yicha sinf topilmadi.
-          </div>
+          <div className="p-7 text-center text-sm" style={{ color: palette.muted }}>{__kbUi("Bu filtr bo‘yicha sinf topilmadi.")}</div>
         )}
       </div>
 
       <div
         className="mt-4 rounded-xl p-3 text-xs"
         style={{ background: palette.cream, color: palette.muted }}
-      >
-        Mustaqil guruh a’zolarini o‘zgartirish kerak bo‘lsa, “Asosiy sahifaga
-        qaytish”ni bosing va sinf kartasidagi “Ko‘p guruhli boshqaruv”dan
-        o‘quvchilar tarkibini tuzating. Bu oynada esa fan va o‘qituvchi
-        taqsimoti tasdiqlanadi.
-      </div>
+      >{__kbUi("Mustaqil guruh a’zolarini o‘zgartirish kerak bo‘lsa, “Asosiy sahifaga qaytish”ni bosing va sinf kartasidagi “Ko‘p guruhli boshqaruv”dan o‘quvchilar tarkibini tuzating. Bu oynada esa fan va o‘qituvchi taqsimoti tasdiqlanadi.")}</div>
     </Card>
   );
 }
@@ -8043,6 +7932,7 @@ function normalizeGenerationBudgetSecondsV219(value) {
 function ScheduleRobotProgressV201({
   phase, setup, startedAt, searchStartedAt, searchFinishedAt, liveProgress, onStop, onClose, stopPending = false,
 }) {
+  useKbInterfaceLocale();
   const stage = GENERATION_PHASES_V210[phase] || GENERATION_PHASES_V210.calculating;
   const classCount = (setup?.sinflar || []).length;
   const teacherCount = (setup?.oqituvchilar || []).length;
@@ -8121,19 +8011,19 @@ function ScheduleRobotProgressV201({
           style={{ borderColor: palette.line }}
           onMouseDown={beginDrag}
           onTouchStart={beginDrag}
-          title="Ushlab suring"
+          title={__kbUi("Ushlab suring")}
         >
           <div className="text-lg font-black tracking-[-.2em]" style={{ color: palette.muted }}>⠿</div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATISH / YAXSHILASH</div>
-            <div className="text-xs font-bold truncate" style={{ color: palette.muted }}>Oynani ushlab istalgan joyga surish mumkin</div>
+            <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("JADVAL YARATISH / YAXSHILASH")}</div>
+            <div className="text-xs font-bold truncate" style={{ color: palette.muted }}>{__kbUi("Oynani ushlab istalgan joyga surish mumkin")}</div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="w-9 h-9 rounded-xl border text-xl font-black"
             style={{ borderColor: palette.line, color: palette.ink, background: "#fff" }}
-            title="Faqat oynani yopish — hisoblash davom etadi"
+            title={__kbUi("Faqat oynani yopish — hisoblash davom etadi")}
           >
             ×
           </button>
@@ -8146,8 +8036,8 @@ function ScheduleRobotProgressV201({
             <span className="absolute -right-1 -top-1 w-4 h-4 rounded-full" style={{ background: "#55C98B", border: "2px solid #fff" }}/>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>JADVAL YARATILMOQDA</div>
-            <div className="text-2xl md:text-3xl font-black mt-0.5" style={{ color: palette.ink }}>Jadval #{scheduleNumber}</div>
+            <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("JADVAL YARATILMOQDA")}</div>
+            <div className="text-2xl md:text-3xl font-black mt-0.5" style={{ color: palette.ink }}>{__kbUi("Jadval #")}{scheduleNumber}</div>
             <div className="text-base md:text-lg font-black mt-1 leading-snug" style={{ color: palette.blue }}>{processMessage}</div>
           </div>
           <div className="shrink-0 text-4xl md:text-5xl font-black" style={{ color: palette.teal }}>{processPercent}%</div>
@@ -8158,15 +8048,15 @@ function ScheduleRobotProgressV201({
         </div>
 
         <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.greenBg }}><div className="text-xl font-black" style={{ color: palette.green }}>{classCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>sinf</div></div>
-          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.sky }}><div className="text-xl font-black" style={{ color: palette.blue }}>{teacherCount || "—"}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘qituvchi</div></div>
-          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)} s</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>o‘tgan vaqt</div></div>
+          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.greenBg }}><div className="text-xl font-black" style={{ color: palette.green }}>{classCount || __kbUi("—")}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>{__kbUi("sinf")}</div></div>
+          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.sky }}><div className="text-xl font-black" style={{ color: palette.blue }}>{teacherCount || __kbUi("—")}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>{__kbUi("o‘qituvchi")}</div></div>
+          <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: palette.amberBg }}><div className="text-xl font-black" style={{ color: palette.amber }}>{Math.floor(totalElapsedSeconds)}{__kbUi(" s")}</div><div className="text-[11px] font-bold" style={{ color: palette.muted }}>{__kbUi("o‘tgan vaqt")}</div></div>
         </div>
 
         <button type="button" onClick={onStop} disabled={stopPending} className="w-full mt-4 py-3 rounded-xl text-sm font-black text-white disabled:cursor-wait disabled:opacity-75" style={{ background: palette.red }}>
-          {stopPending ? "To‘xtatilmoqda… eng yaxshi natija xavfsiz saqlanmoqda" : "Yaxshilashni to‘xtatish va eng yaxshi natijani olish"}
+          {stopPending ? __kbUi("To‘xtatilmoqda… eng yaxshi natija xavfsiz saqlanmoqda") : __kbUi("Yaxshilashni to‘xtatish va eng yaxshi natijani olish")}
         </button>
-        <div className="text-[10px] font-bold text-center mt-2" style={{ color: palette.muted }}>× faqat oynani yopadi. Hisoblash davom etadi.</div>
+        <div className="text-[10px] font-bold text-center mt-2" style={{ color: palette.muted }}>{__kbUi("× faqat oynani yopadi. Hisoblash davom etadi.")}</div>
       </div>
     </div>
   );
@@ -8281,22 +8171,23 @@ function methodExceptionRecommendationsV215(failure) {
 }
 
 function MethodDayExceptionRecommendationsV215({ failure }) {
+  useKbInterfaceLocale();
   const recommendations = methodExceptionRecommendationsV215(failure);
   const analysisText = String(failure?.metod_kuni_tavsiya_izohi || "").trim();
   if (!recommendations.length && !analysisText) return null;
   return <div className="mt-3 rounded-2xl border p-3" style={{ borderColor: "#E1C16E", background: "#FFFCF2" }}>
-    <div className="text-xs font-black uppercase tracking-[.1em]" style={{ color: palette.amber }}>{recommendations.length ? "Ixtiyoriy metod-kuni istisnolari" : "Metod-kuni bo‘yicha alohida tekshiruv"}</div>
+    <div className="text-xs font-black uppercase tracking-[.1em]" style={{ color: palette.amber }}>{recommendations.length ? __kbUi("Ixtiyoriy metod-kuni istisnolari") : __kbUi("Metod-kuni bo‘yicha alohida tekshiruv")}</div>
     <div className="mt-1 text-[11px] leading-relaxed font-bold" style={{ color: palette.ink }}>
-      {analysisText || "Qizil/BAND vaqt hech qachon ochilmaydi. Quyidagi 1–2 soatlik metod-kuni tavsiyalari avtomatik qo‘llanmagan; faqat administrator tekshirib, qo‘lda tasdiqlashi mumkin."}
+      {analysisText || __kbUi("Qizil/BAND vaqt hech qachon ochilmaydi. Quyidagi 1–2 soatlik metod-kuni tavsiyalari avtomatik qo‘llanmagan; faqat administrator tekshirib, qo‘lda tasdiqlashi mumkin.")}
     </div>
     <div className="mt-2 space-y-2">
       {recommendations.map((row, index) => <div key={`method-exception-${row?.oqituvchi_id ?? "x"}-${row?.kun ?? "x"}-${row?.dars ?? index}`} className="rounded-xl border bg-white p-2.5" style={{ borderColor: palette.line }}>
         <div className="font-black text-sm" style={{ color: palette.ink }}>{index + 1}. {row.teacher}</div>
-        <div className="mt-1 text-[10px] font-black" style={{ color: palette.amber }}>{row.day} · {row.periodText}{row?.vaqt ? ` · ${row.vaqt}` : ""}</div>
-        <div className="mt-1.5 text-[10px] leading-relaxed" style={{ color: palette.green }}><b>Kutilgan foyda:</b> {row.expectedBenefit}</div>
-        {row?.sabab && <div className="mt-1 text-[10px] leading-relaxed" style={{ color: palette.muted }}><b style={{ color: palette.ink }}>Sabab:</b> {row.sabab}</div>}
-        {row?.amal && <div className="mt-1 text-[10px] leading-relaxed font-bold" style={{ color: palette.blue }}>Qo‘lda bajarish: {row.amal}</div>}
-        <div className="mt-1.5 text-[9px] font-black" style={{ color: palette.red }}>AVTOMATIK QO‘LLANMAGAN · QIZIL/BAND YOPIQ QOLADI</div>
+        <div className="mt-1 text-[10px] font-black" style={{ color: palette.amber }}>{row.day} · {row.periodText}{row?.vaqt ? __kbUi(` · ${row.vaqt}`) : __kbUi("")}</div>
+        <div className="mt-1.5 text-[10px] leading-relaxed" style={{ color: palette.green }}><b>{__kbUi("Kutilgan foyda:")}</b> {row.expectedBenefit}</div>
+        {row?.sabab && <div className="mt-1 text-[10px] leading-relaxed" style={{ color: palette.muted }}><b style={{ color: palette.ink }}>{__kbUi("Sabab:")}</b> {row.sabab}</div>}
+        {row?.amal && <div className="mt-1 text-[10px] leading-relaxed font-bold" style={{ color: palette.blue }}>{__kbUi("Qo‘lda bajarish: ")}{row.amal}</div>}
+        <div className="mt-1.5 text-[9px] font-black" style={{ color: palette.red }}>{__kbUi("AVTOMATIK QO‘LLANMAGAN · QIZIL/BAND YOPIQ QOLADI")}</div>
       </div>)}
     </div>
   </div>;
@@ -8407,6 +8298,7 @@ function teacherWindowCountLabelV211(summary) {
 }
 
 function TeacherWindowSummaryV211({ report, runId }) {
+  useKbInterfaceLocale();
   if (!report || typeof report !== "object") return null;
   const summary = normalizeTeacherWindowReportV211(report);
   const hasGaps = summary.internalGapCount > 0 || summary.gapCount > 0 || summary.totalMinutes > 0 || summary.teacherCount > 0;
@@ -8414,31 +8306,31 @@ function TeacherWindowSummaryV211({ report, runId }) {
   return <Card className="p-3.5">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div>
-        <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>HAQIQIY · JORIY DRAFT{runId ? ` #${runId}` : ""}</div>
-        <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>O‘qituvchi oynalari</h3>
+        <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>{__kbUi("HAQIQIY · JORIY DRAFT")}{runId ? __kbUi(` #${runId}`) : __kbUi("")}</div>
+        <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>{__kbUi("O‘qituvchi oynalari")}</h3>
       </div>
       <div className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: hasGaps ? palette.amberBg : palette.greenBg, color: hasGaps ? palette.amber : palette.green }}>
-        {hasGaps ? (teacherCountLabel === "—" ? "Muammo aniqlandi" : `${teacherCountLabel} o‘qituvchi`) : summary.complete ? "Oyna yo‘q" : "Hisobot tugamadi"}
+        {hasGaps ? (teacherCountLabel === "—" ? __kbUi("Muammo aniqlandi") : __kbUi(`${teacherCountLabel} o‘qituvchi`)) : summary.complete ? __kbUi("Oyna yo‘q") : __kbUi("Hisobot tugamadi")}
       </div>
     </div>
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2.5">
-      <CompactStat value={teacherCountLabel} label="muammoli o‘qituvchi" tone={hasGaps ? "amber" : "green"}/>
-      <CompactStat value={summary.internalGapCount} label="smenada bo‘sh dars" tone={summary.internalGapCount ? "amber" : "green"}/>
-      <CompactStat value={summary.gapCount} label=">25 daq kutish oralig‘i" tone={summary.gapCount ? "amber" : "green"}/>
-      <CompactStat value={scheduleDurationLabel(summary.totalMinutes)} label="jami uzoq kutish" tone={summary.totalMinutes ? "amber" : "green"}/>
-      <CompactStat value={scheduleDurationLabel(summary.maximumMinutes)} label="eng uzun kutish" tone={summary.maximumMinutes > 120 ? "red" : summary.maximumMinutes ? "amber" : "green"}/>
+      <CompactStat value={teacherCountLabel} label={__kbUi("muammoli o‘qituvchi")} tone={hasGaps ? "amber" : "green"}/>
+      <CompactStat value={summary.internalGapCount} label={__kbUi("smenada bo‘sh dars")} tone={summary.internalGapCount ? "amber" : "green"}/>
+      <CompactStat value={summary.gapCount} label={__kbUi(">25 daq kutish oralig‘i")} tone={summary.gapCount ? "amber" : "green"}/>
+      <CompactStat value={scheduleDurationLabel(summary.totalMinutes)} label={__kbUi("jami uzoq kutish")} tone={summary.totalMinutes ? "amber" : "green"}/>
+      <CompactStat value={scheduleDurationLabel(summary.maximumMinutes)} label={__kbUi("eng uzun kutish")} tone={summary.maximumMinutes > 120 ? "red" : summary.maximumMinutes ? "amber" : "green"}/>
     </div>
     {summary.suggestions.length ? <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>
-      {summary.suggestions.length} ta sinov tavsiyasi bor. Ular hali qo‘llanmagan va hech bir qizil yoki metod vaqti avtomatik ochilmagan. Tafsilot “Natijani katta oynada ko‘rish” ichidagi “Oyna hisoboti” bo‘limida.
-    </div> : <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: hasGaps || !summary.complete ? palette.cream : palette.greenBg, color: hasGaps || !summary.complete ? palette.muted : palette.green }}>
-      {teacherWindowNoSuggestionMessageV211(summary, hasGaps)}
+      {summary.suggestions.length}{__kbUi(" ta sinov tavsiyasi bor. Ular hali qo‘llanmagan va hech bir qizil yoki metod vaqti avtomatik ochilmagan. Tafsilot “Natijani katta oynada ko‘rish” ichidagi “Oyna hisoboti” bo‘limida.")}</div> : <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: hasGaps || !summary.complete ? palette.cream : palette.greenBg, color: hasGaps || !summary.complete ? palette.muted : palette.green }}>
+      {__kbUi(teacherWindowNoSuggestionMessageV211(summary, hasGaps))}
     </div>}
   </Card>;
 }
 
 function TeacherWindowReportV211({ report, runId }) {
+  useKbInterfaceLocale();
   if (!report || typeof report !== "object") {
-    return <SmartNotice tone="info">Bu draft uchun o‘qituvchi oyna hisoboti kelmadi. Jadval va vaqt qoidalari o‘zgartirilmagan.</SmartNotice>;
+    return <SmartNotice tone="info">{__kbUi("Bu draft uchun o‘qituvchi oyna hisoboti kelmadi. Jadval va vaqt qoidalari o‘zgartirilmagan.")}</SmartNotice>;
   }
   const summary = normalizeTeacherWindowReportV211(report);
   const hasGaps = summary.internalGapCount > 0 || summary.gapCount > 0 || summary.totalMinutes > 0 || summary.teacherCount > 0;
@@ -8447,36 +8339,34 @@ function TeacherWindowReportV211({ report, runId }) {
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-4xl">
-          <h2 className="text-lg font-black" style={{ color: palette.ink }}>O‘qituvchi oynalarini kamaytirish hisoboti</h2>
-          <p className="text-[11px] leading-relaxed mt-1" style={{ color: palette.muted }}>
-            “HAQIQIY” ko‘rsatkichlar joriy draftdan olingan. “SINOV NATIJASI” hali qo‘llanmagan: tizim qizil yoki metod vaqtini o‘zi ochmagan va jadvalni o‘zgartirmagan.
-          </p>
-          <p className="text-[10px] leading-relaxed mt-1" style={{ color: palette.muted }}>“Smenada bo‘sh dars” — bir smena ichidagi bo‘sh dars raqami. “&gt;25 daq kutish” — o‘qituvchining kun vaqt chizig‘idagi uzun kutish oralig‘i. Ular alohida hisoblanadi.</p>
+          <h2 className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchi oynalarini kamaytirish hisoboti")}</h2>
+          <p className="text-[11px] leading-relaxed mt-1" style={{ color: palette.muted }}>{__kbUi("“HAQIQIY” ko‘rsatkichlar joriy draftdan olingan. “SINOV NATIJASI” hali qo‘llanmagan: tizim qizil yoki metod vaqtini o‘zi ochmagan va jadvalni o‘zgartirmagan.")}</p>
+          <p className="text-[10px] leading-relaxed mt-1" style={{ color: palette.muted }}>{__kbUi("“Smenada bo‘sh dars” — bir smena ichidagi bo‘sh dars raqami. “>25 daq kutish” — o‘qituvchining kun vaqt chizig‘idagi uzun kutish oralig‘i. Ular alohida hisoblanadi.")}</p>
         </div>
         <span className="px-3 py-1.5 rounded-full text-[10px] font-black" style={{ background: hasGaps ? palette.amberBg : palette.greenBg, color: hasGaps ? palette.amber : palette.green }}>
-          {hasGaps ? (teacherCountLabel === "—" ? "Muammo aniqlandi · ro‘yxat tugamadi" : `${teacherCountLabel} o‘qituvchida muammo`) : summary.complete ? "Oyna topilmadi" : "Hisobot tugamadi"}
+          {hasGaps ? (teacherCountLabel === "—" ? __kbUi("Muammo aniqlandi · ro‘yxat tugamadi") : __kbUi(`${teacherCountLabel} o‘qituvchida muammo`)) : summary.complete ? __kbUi("Oyna topilmadi") : __kbUi("Hisobot tugamadi")}
         </span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mt-3">
-        <CompactStat value={teacherCountLabel} label="muammoli o‘qituvchi" tone={hasGaps ? "amber" : "green"}/>
-        <CompactStat value={summary.internalGapCount} label="smenada bo‘sh dars" tone={summary.internalGapCount ? "amber" : "green"}/>
-        <CompactStat value={summary.gapCount} label=">25 daq kutish oralig‘i" tone={summary.gapCount ? "amber" : "green"}/>
-        <CompactStat value={scheduleDurationLabel(summary.totalMinutes)} label="jami uzoq kutish" tone={summary.totalMinutes ? "amber" : "green"}/>
-        <CompactStat value={scheduleDurationLabel(summary.maximumMinutes)} label="eng uzun kutish" tone={summary.maximumMinutes > 120 ? "red" : summary.maximumMinutes ? "amber" : "green"}/>
-        <CompactStat value={summary.checkedVariants ?? "—"} label="tekshirilgan variant" tone="blue"/>
+        <CompactStat value={teacherCountLabel} label={__kbUi("muammoli o‘qituvchi")} tone={hasGaps ? "amber" : "green"}/>
+        <CompactStat value={summary.internalGapCount} label={__kbUi("smenada bo‘sh dars")} tone={summary.internalGapCount ? "amber" : "green"}/>
+        <CompactStat value={summary.gapCount} label={__kbUi(">25 daq kutish oralig‘i")} tone={summary.gapCount ? "amber" : "green"}/>
+        <CompactStat value={scheduleDurationLabel(summary.totalMinutes)} label={__kbUi("jami uzoq kutish")} tone={summary.totalMinutes ? "amber" : "green"}/>
+        <CompactStat value={scheduleDurationLabel(summary.maximumMinutes)} label={__kbUi("eng uzun kutish")} tone={summary.maximumMinutes > 120 ? "red" : summary.maximumMinutes ? "amber" : "green"}/>
+        <CompactStat value={summary.checkedVariants ?? "—"} label={__kbUi("tekshirilgan variant")} tone="blue"/>
       </div>
       {summary.note && summary.complete && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed" style={{ background: palette.sky, color: palette.blue }}>{summary.note}</div>}
-      {summary.retryFirst && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.greenBg, color: palette.green }}>Birinchi qadam: qizil/metod vaqtini o‘zgartirmasdan “Dars jadvalini yaratish”ni yana bosing. Barcha rejalangan qidiruv urinishlari bajarilmagan; boshqa qonuniy tartib yaxshiroq natija berishi mumkin. Pastdagi tavsiya faqat shu holat yana takrorlansa ikkinchi qadam bo‘ladi.</div>}
-      {!summary.complete && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{summary.limited ? "Hisobot vaqt yoki variant chegarasi sabab qisman yakunlandi. Barcha kataklar tekshirilmagan; tavsiyalar faqat tekshirilgan variantlar ichidan." : "Qo‘shimcha tahlil to‘liq yakunlanmadi. Natijadagi jadval saqlangan, lekin tavsiya ro‘yxatini qat’iy yakuniy xulosa deb olmang."}</div>}
+      {summary.retryFirst && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.greenBg, color: palette.green }}>{__kbUi("Birinchi qadam: qizil/metod vaqtini o‘zgartirmasdan “Dars jadvalini yaratish”ni yana bosing. Barcha rejalangan qidiruv urinishlari bajarilmagan; boshqa qonuniy tartib yaxshiroq natija berishi mumkin. Pastdagi tavsiya faqat shu holat yana takrorlansa ikkinchi qadam bo‘ladi.")}</div>}
+      {!summary.complete && <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{summary.limited ? __kbUi("Hisobot vaqt yoki variant chegarasi sabab qisman yakunlandi. Barcha kataklar tekshirilmagan; tavsiyalar faqat tekshirilgan variantlar ichidan.") : __kbUi("Qo‘shimcha tahlil to‘liq yakunlanmadi. Natijadagi jadval saqlangan, lekin tavsiya ro‘yxatini qat’iy yakuniy xulosa deb olmang.")}</div>}
     </Card>
 
     <Card className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>HAQIQIY · JORIY DRAFT{runId ? ` #${runId}` : ""}</div>
-          <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>Bo‘sh darsi yoki uzoq kutishi bor o‘qituvchilar</h3>
+          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>{__kbUi("HAQIQIY · JORIY DRAFT")}{runId ? __kbUi(` #${runId}`) : __kbUi("")}</div>
+          <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>{__kbUi("Bo‘sh darsi yoki uzoq kutishi bor o‘qituvchilar")}</h3>
         </div>
-        <span className="text-[10px] font-black" style={{ color: palette.muted }}>{summary.actualTeachers.length} ta qator</span>
+        <span className="text-[10px] font-black" style={{ color: palette.muted }}>{summary.actualTeachers.length}{__kbUi(" ta qator")}</span>
       </div>
       {summary.actualTeachers.length ? <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2 max-h-[360px] overflow-auto pr-1">
         {summary.actualTeachers.map((teacher, index) => {
@@ -8491,27 +8381,27 @@ function TeacherWindowReportV211({ report, runId }) {
           const totalMinutes = teacherWindowReportNumberV211(teacher?.jami_daqiqa);
           const maximumMinutes = teacherWindowReportNumberV211(teacher?.eng_katta_daqiqa);
           return <div key={`actual-window-${teacher?.oqituvchi_id ?? index}`} className="rounded-xl border p-3" style={{ borderColor: "#BBD7E7", background: palette.sky }}>
-            <div className="font-black text-sm" style={{ color: palette.ink }}>{teacher?.full_name || `O‘qituvchi ID ${teacher?.oqituvchi_id ?? "—"}`}</div>
+            <div className="font-black text-sm" style={{ color: palette.ink }}>{teacher?.full_name || __kbUi(`O‘qituvchi ID ${teacher?.oqituvchi_id ?? "—"}`)}</div>
             <div className="flex flex-wrap gap-1.5 mt-2 text-[10px] font-black">
-              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{internalGapCount ?? "—"} ta smenadagi bo‘sh dars</span>
-              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{gapCount ?? "—"} ta &gt;25 daq kutish</span>
-              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{totalMinutes == null ? "—" : scheduleDurationLabel(totalMinutes)} uzoq kutish jami</span>
-              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: maximumMinutes > 120 ? palette.red : palette.amber }}>eng uzuni {maximumMinutes == null ? "—" : scheduleDurationLabel(maximumMinutes)}</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{internalGapCount ?? __kbUi("—")}{__kbUi(" ta smenadagi bo‘sh dars")}</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{gapCount ?? __kbUi("—")}{__kbUi(" ta >25 daq kutish")}</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: palette.blue }}>{totalMinutes == null ? __kbUi("—") : __kbUi(scheduleDurationLabel(totalMinutes))}{__kbUi(" uzoq kutish jami")}</span>
+              <span className="px-2 py-1 rounded-lg bg-white" style={{ color: maximumMinutes > 120 ? palette.red : palette.amber }}>{__kbUi("eng uzuni ")}{maximumMinutes == null ? __kbUi("—") : __kbUi(scheduleDurationLabel(maximumMinutes))}</span>
             </div>
-            {days.length > 0 && <div className="text-[9px] leading-relaxed mt-2" style={{ color: palette.muted }}>Muammo qayd etilgan kunlar: {days.join(", ")}</div>}
+            {days.length > 0 && <div className="text-[9px] leading-relaxed mt-2" style={{ color: palette.muted }}>{__kbUi("Muammo qayd etilgan kunlar: ")}{__kbUi(days.join(", "))}</div>}
           </div>;
         })}
-      </div> : <SmartNotice tone={hasGaps || !summary.complete ? "warning" : "success"}>{hasGaps ? "Oyna soni qayd etilgan, lekin qo‘shimcha tahlil o‘qituvchilar ro‘yxatini tugata olmadi. Joriy jadval o‘zgarmagan." : summary.complete ? "Haqiqiy jadvalda smena ichidagi bo‘sh dars yoki 25 daqiqadan uzun kutish topilmadi." : "O‘qituvchilar ro‘yxati bo‘yicha qo‘shimcha tahlil to‘liq yakunlanmadi."}</SmartNotice>}
+      </div> : <SmartNotice tone={hasGaps || !summary.complete ? "warning" : "success"}>{hasGaps ? __kbUi("Oyna soni qayd etilgan, lekin qo‘shimcha tahlil o‘qituvchilar ro‘yxatini tugata olmadi. Joriy jadval o‘zgarmagan.") : summary.complete ? __kbUi("Haqiqiy jadvalda smena ichidagi bo‘sh dars yoki 25 daqiqadan uzun kutish topilmadi.") : __kbUi("O‘qituvchilar ro‘yxati bo‘yicha qo‘shimcha tahlil to‘liq yakunlanmadi.")}</SmartNotice>}
     </Card>
 
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.amber }}>SINOV NATIJASI · HALI QO‘LLANMAGAN</div>
-          <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>Qaysi aniq vaqtni yumshatish foyda berishi mumkin?</h3>
-          <p className="text-[10px] mt-1" style={{ color: palette.muted }}>Bu tavsiyalar faqat o‘qish uchun. Hech qanday vaqt qoidasi avtomatik saqlanmaydi yoki o‘zgartirilmaydi.</p>
+          <div className="text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.amber }}>{__kbUi("SINOV NATIJASI · HALI QO‘LLANMAGAN")}</div>
+          <h3 className="text-sm font-black mt-0.5" style={{ color: palette.ink }}>{__kbUi("Qaysi aniq vaqtni yumshatish foyda berishi mumkin?")}</h3>
+          <p className="text-[10px] mt-1" style={{ color: palette.muted }}>{__kbUi("Bu tavsiyalar faqat o‘qish uchun. Hech qanday vaqt qoidasi avtomatik saqlanmaydi yoki o‘zgartirilmaydi.")}</p>
         </div>
-        <span className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>{summary.suggestions.length} ta tavsiya</span>
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: palette.amberBg, color: palette.amber }}>{summary.suggestions.length}{__kbUi(" ta tavsiya")}</span>
       </div>
       {summary.suggestions.length ? <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
         {summary.suggestions.map((suggestion, index) => {
@@ -8568,36 +8458,36 @@ function TeacherWindowReportV211({ report, runId }) {
           return <div key={`window-suggestion-${suggestion?.oqituvchi_id ?? "x"}-${suggestion?.kun ?? "x"}-${uniqueExceptionSlots.map(slot => `${slot.smena}-${slot.dars_raqami}`).join("_") || "x"}-${index}`} className="rounded-xl border p-3" style={{ borderColor: proven ? "#E1C16E" : palette.line, background: "#FFFCF2" }}>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <div className="font-black text-sm" style={{ color: palette.ink }}>{suggestion?.full_name || `O‘qituvchi ID ${suggestion?.oqituvchi_id ?? "—"}`}</div>
-                <div className="text-[10px] font-black mt-1" style={{ color: palette.amber }}>{teacherWindowTypeLabelV211(suggestion?.turi)} · {exceptionVariantLabel} · {slotText}</div>
+                <div className="font-black text-sm" style={{ color: palette.ink }}>{suggestion?.full_name || __kbUi(`O‘qituvchi ID ${suggestion?.oqituvchi_id ?? "—"}`)}</div>
+                <div className="text-[10px] font-black mt-1" style={{ color: palette.amber }}>{__kbUi(teacherWindowTypeLabelV211(suggestion?.turi))} · {__kbUi(exceptionVariantLabel)} · {slotText}</div>
               </div>
               <span className="px-2 py-1 rounded-lg text-[9px] font-black" style={{ background: proven ? palette.greenBg : palette.amberBg, color: proven ? palette.green : palette.amber }}>
-                {proven ? "MAHALLIY ALMASHUVDA ISBOTLANDI" : "QAYTA QIDIRUVGA BOG‘LIQ"}
+                {proven ? __kbUi("MAHALLIY ALMASHUVDA ISBOTLANDI") : __kbUi("QAYTA QIDIRUVGA BOG‘LIQ")}
               </span>
             </div>
-            {(suggestion?.sinf || suggestion?.fan) && <div className="mt-2 text-[10px] font-bold" style={{ color: palette.blue }}>{[suggestion.sinf, suggestion.fan].filter(Boolean).join(" · ")}</div>}
+            {(suggestion?.sinf || suggestion?.fan) && <div className="mt-2 text-[10px] font-bold" style={{ color: palette.blue }}>{__kbUi([suggestion.sinf, suggestion.fan].filter(Boolean).join(" · "))}</div>}
             <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>
-              {suggestion?.amal_matni || "Ko‘rsatilgan vaqt qoidasini faqat administrator tekshirib, zarur bo‘lsa qo‘lda yumshatishi mumkin."}
+              {suggestion?.amal_matni || __kbUi("Ko‘rsatilgan vaqt qoidasini faqat administrator tekshirib, zarur bo‘lsa qo‘lda yumshatishi mumkin.")}
             </div>
             <div className="mt-2 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed" style={{ background: "#fff", color: palette.ink }}>
-              <b>Mahalliy sinovdagi yaxshilanish:</b>{" "}
+              <b>{__kbUi("Mahalliy sinovdagi yaxshilanish:")}</b>{__kbUi(" ")}
               {hasExpectedNumbers
                 ? <>
-                    {beforeInternalGap != null || afterInternalGap != null ? <>Smenadagi bo‘sh dars {beforeInternalGap ?? "—"} → {afterInternalGap ?? "—"}{internalGapReduction != null ? ` (−${internalGapReduction})` : ""}</> : null}
+                    {beforeInternalGap != null || afterInternalGap != null ? <>{__kbUi("Smenadagi bo‘sh dars ")}{beforeInternalGap ?? __kbUi("—")} → {afterInternalGap ?? __kbUi("—")}{internalGapReduction != null ? __kbUi(` (−${internalGapReduction})`) : __kbUi("")}</> : null}
                     {(beforeInternalGap != null || afterInternalGap != null) && (beforeGap != null || afterGap != null) ? <> · </> : null}
-                    {beforeGap != null || afterGap != null ? <>&gt;25 daq kutish {beforeGap ?? "—"} → {afterGap ?? "—"}{gapReduction != null ? ` (−${Math.max(0, gapReduction)})` : ""}</> : null}
+                    {beforeGap != null || afterGap != null ? <>{__kbUi(">25 daq kutish ")}{beforeGap ?? __kbUi("—")} → {afterGap ?? __kbUi("—")}{gapReduction != null ? __kbUi(` (−${Math.max(0, gapReduction)})`) : __kbUi("")}</> : null}
                     {(beforeInternalGap != null || afterInternalGap != null || beforeGap != null || afterGap != null) && (beforeMinutes != null || afterMinutes != null) ? <> · </> : null}
-                    {beforeMinutes != null || afterMinutes != null ? <>Uzoq kutish {beforeMinutes == null ? "—" : scheduleDurationLabel(beforeMinutes)} → {afterMinutes == null ? "—" : scheduleDurationLabel(afterMinutes)}{minuteReduction != null ? ` (−${scheduleDurationLabel(Math.max(0, minuteReduction))})` : ""}</> : null}
+                    {beforeMinutes != null || afterMinutes != null ? <>{__kbUi("Uzoq kutish ")}{beforeMinutes == null ? __kbUi("—") : __kbUi(scheduleDurationLabel(beforeMinutes))} → {afterMinutes == null ? __kbUi("—") : __kbUi(scheduleDurationLabel(afterMinutes))}{minuteReduction != null ? __kbUi(` (−${scheduleDurationLabel(Math.max(0, minuteReduction))})`) : __kbUi("")}</> : null}
                   </>
-                : "Aniq kamayish soni hisoblanmagan."}
+                : __kbUi("Aniq kamayish soni hisoblanmagan.")}
             </div>
-            {mustRegenerate && <div className="mt-2 text-[10px] leading-relaxed font-bold" style={{ color: palette.red }}>Bu mahalliy sinov jadvalga qo‘llanmagan. Katakni tahrirlagach jadvalni qayta yaratish shart; yangi global natija aynan shu sonni kafolatlamaydi.</div>}
-            <div className="mt-2 text-[10px] leading-relaxed" style={{ color: palette.muted }}><b style={{ color: palette.ink }}>Sabab:</b> {suggestion?.sabab || "Bu katak boshqa qat’iy qoidalarni buzmasdan o‘qituvchi kutishini kamaytirishi mumkin."}</div>
+            {mustRegenerate && <div className="mt-2 text-[10px] leading-relaxed font-bold" style={{ color: palette.red }}>{__kbUi("Bu mahalliy sinov jadvalga qo‘llanmagan. Katakni tahrirlagach jadvalni qayta yaratish shart; yangi global natija aynan shu sonni kafolatlamaydi.")}</div>}
+            <div className="mt-2 text-[10px] leading-relaxed" style={{ color: palette.muted }}><b style={{ color: palette.ink }}>{__kbUi("Sabab:")}</b> {suggestion?.sabab || __kbUi("Bu katak boshqa qat’iy qoidalarni buzmasdan o‘qituvchi kutishini kamaytirishi mumkin.")}</div>
           </div>;
         })}
-      </div> : <SmartNotice tone={hasGaps || !summary.complete ? "warning" : "success"}>{teacherWindowNoSuggestionMessageV211(summary, hasGaps)}</SmartNotice>}
+      </div> : <SmartNotice tone={hasGaps || !summary.complete ? "warning" : "success"}>{__kbUi(teacherWindowNoSuggestionMessageV211(summary, hasGaps))}</SmartNotice>}
       <div className="mt-3 rounded-lg px-2.5 py-2 text-[10px] leading-relaxed font-bold" style={{ background: palette.cream, color: palette.muted }}>
-        {summary.complete ? "Tavsiya jadvalni o‘zgartirmaydi. Tavsiya bo‘lmasa qizil yoki metod vaqtini bekorga ochmang. Zarur bo‘lsa 2-bosqichda vaqtni qo‘lda tahrirlab saqlang, keyin 4-bosqichdagi mavjud yagona “Dars jadvalini yaratish” tugmasidan foydalaning." : "Tavsiya jadvalni o‘zgartirmaydi. Qo‘shimcha tahlil tugamagan; ko‘rsatilgan natijani qat’iy yakuniy xulosa deb olmang va jadvalni o‘zgartirishdan oldin qidiruvni yana ishga tushiring."}
+        {summary.complete ? __kbUi("Tavsiya jadvalni o‘zgartirmaydi. Tavsiya bo‘lmasa qizil yoki metod vaqtini bekorga ochmang. Zarur bo‘lsa 2-bosqichda vaqtni qo‘lda tahrirlab saqlang, keyin 4-bosqichdagi mavjud yagona “Dars jadvalini yaratish” tugmasidan foydalaning.") : __kbUi("Tavsiya jadvalni o‘zgartirmaydi. Qo‘shimcha tahlil tugamagan; ko‘rsatilgan natijani qat’iy yakuniy xulosa deb olmang va jadvalni o‘zgartirishdan oldin qidiruvni yana ishga tushiring.")}
       </div>
     </Card>
   </div>;
@@ -8605,6 +8495,7 @@ function TeacherWindowReportV211({ report, runId }) {
 
 
 function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClass, setSelectedClass, onClose, onRoomChanged, readOnly = false }) {
+  useKbInterfaceLocale();
   const [view, setView] = useState("classes");
   const [downloading, setDownloading] = useState("");
   const [downloadError, setDownloadError] = useState("");
@@ -8630,19 +8521,19 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
     <div className="min-h-screen p-3 md:p-5" style={{ background: "linear-gradient(180deg,#F5FAFC,#F7F4ED)" }}>
       <div className="max-w-[1580px] mx-auto space-y-3">
         <div className="rounded-2xl px-4 py-3 text-white flex flex-wrap items-center justify-between gap-3" style={{ background: color }}>
-          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">Jadval natijasi #{detail?.urinish?.id}{openedRevision ? `.${openedRevision}` : ""}</div><div className="text-xl font-black">{openedRevision ? improvementSummary || "Tekshirilgan yaxshilanish" : "Birinchi 100% yaratilgan jadval"}</div><div className="text-xs opacity-85 mt-0.5">{openedRevision ? "Oldingi variantdan yaxshiroq natija alohida saqlandi. Sinflarning kunlik dars sonlari o‘zgarmadi." : "Bu variant darhol saqlangan. Keyingi o‘qituvchi yaxshilanishlari alohida .1, .2… ko‘rinishida turadi."}</div></div>
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white text-sm font-black" style={{ color }}>Yopish ×</button>
+          <div><div className="text-[10px] font-black uppercase tracking-[.14em] opacity-80">{__kbUi("Jadval natijasi #")}{detail?.urinish?.id}{openedRevision ? __kbUi(`.${openedRevision}`) : __kbUi("")}</div><div className="text-xl font-black">{openedRevision ? improvementSummary || __kbUi("Tekshirilgan yaxshilanish") : __kbUi("Birinchi 100% yaratilgan jadval")}</div><div className="text-xs opacity-85 mt-0.5">{openedRevision ? __kbUi("Oldingi variantdan yaxshiroq natija alohida saqlandi. Sinflarning kunlik dars sonlari o‘zgarmadi.") : __kbUi("Bu variant darhol saqlangan. Keyingi o‘qituvchi yaxshilanishlari alohida .1, .2… ko‘rinishida turadi.")}</div></div>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white text-sm font-black" style={{ color }}>{__kbUi("Yopish ×")}</button>
         </div>
         <div className="rounded-2xl border bg-white p-2 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: palette.line }}>
           <div className="flex flex-wrap gap-1.5">
-            {[["classes","Sinf jadvallari"],["teachers","O‘qituvchi haftalik jadvali"],["windows",`Oyna hisoboti (${teacherWindowCountForTab})`]].map(([key,label]) => <button key={key} type="button" onClick={() => setView(key)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: view === key ? color : palette.cream, color: view === key ? "#fff" : palette.ink }}>{label}</button>)}
+            {[["classes","Sinf jadvallari"],["teachers","O‘qituvchi haftalik jadvali"],["windows",`Oyna hisoboti (${teacherWindowCountForTab})`]].map(([key,label]) => <button key={key} type="button" onClick={() => setView(key)} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: view === key ? color : palette.cream, color: view === key ? "#fff" : palette.ink }}>{__kbUi(label)}</button>)}
           </div>
           <div className="flex gap-1.5">
-            <button type="button" onClick={() => download("sinflar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={14}/>{downloading === "sinflar" ? "..." : "Sinflar XLSX"}</button>
-            <button type="button" onClick={() => download("oqituvchilar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.teal }}><Download size={14}/>{downloading === "oqituvchilar" ? "..." : "O‘qituvchilar XLSX"}</button>
+            <button type="button" onClick={() => download("sinflar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.green }}><Download size={14}/>{downloading === "sinflar" ? __kbUi("...") : __kbUi("Sinflar XLSX")}</button>
+            <button type="button" onClick={() => download("oqituvchilar")} disabled={!!downloading} className="px-3 py-2 rounded-xl text-xs font-black text-white flex items-center gap-1" style={{ background: palette.teal }}><Download size={14}/>{downloading === "oqituvchilar" ? __kbUi("...") : __kbUi("O‘qituvchilar XLSX")}</button>
           </div>
         </div>
-        {downloadError && <SmartNotice tone="error">{downloadError}</SmartNotice>}
+        {downloadError && <SmartNotice tone="error">{__kbUi(downloadError)}</SmartNotice>}
         {view === "classes" && <ScheduleGrid detail={detail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} onRoomChanged={onRoomChanged} readOnly={readOnly}/>} 
         {view === "teachers" && <TeacherWeeklySchedule detail={detail} setup={setup}/>} 
         {view === "windows" && <TeacherWindowReportV211 report={teacherWindowReport} runId={detail?.urinish?.id}/>} 
@@ -8652,6 +8543,7 @@ function GeneratorResultWindowV208({ detail, setup, token, apiBase, selectedClas
 }
 
 function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
+  useKbInterfaceLocale();
   const runs = setup?.urinishlar || [];
   const [runId, setRunId] = useState(String(runs[0]?.id || ""));
   const [detail, setDetail] = useState(null);
@@ -9462,51 +9354,49 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
         onClick={() => setProgressWindowOpen(true)}
         className="fixed z-[119] right-4 bottom-4 rounded-2xl px-4 py-3 text-sm font-black text-white"
         style={{ background: "linear-gradient(145deg,#0F7C82,#155A7A)", boxShadow: "0 16px 45px rgba(24,50,75,.28)" }}
-      >
-        Jadval #{liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || "—"} · {Number(liveProgress?.foiz || 0)}% · Jarayonni ochish
-      </button>
+      >{__kbUi("Jadval #")}{liveProgress?.ko_rinish_raqami || liveProgress?.jadval_raqami || __kbUi("—")} · {__kbUi(Number(liveProgress?.foiz || 0))}{__kbUi("% · Jarayonni ochish")}</button>
     )} 
     {message && <div className="rounded-2xl border-2 px-5 py-4 text-base font-black leading-snug" style={{ background: message.tone === "error" ? palette.redBg : message.tone === "warning" ? palette.amberBg : palette.greenBg, borderColor: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green, color: message.tone === "error" ? palette.red : message.tone === "warning" ? palette.amber : palette.green }}>{message.text}</div>}
     {(!!runs.length || generating) && <Card className="p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h2 className="text-xl font-black" style={{ color: palette.ink }}>Jadvallar</h2>
-        <span className="text-xs font-black" style={{ color: palette.muted }}>Oxirgi 4 ta saqlangan natija</span>
+        <h2 className="text-xl font-black" style={{ color: palette.ink }}>{__kbUi("Jadvallar")}</h2>
+        <span className="text-xs font-black" style={{ color: palette.muted }}>{__kbUi("Oxirgi 4 ta saqlangan natija")}</span>
       </div>
       {generating && liveProgress?.jadval_raqami && <div className="mb-3 rounded-2xl border-2 p-4" style={{ borderColor: palette.amber, background: palette.amberBg }}>
-        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>YANGI ALMASHINUVCHI NATIJA</div><div className="text-2xl font-black" style={{ color: palette.ink }}>Jadval #{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami}</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{Number(liveProgress.foiz || 0)}%</div></div>
-        <div className="text-sm mt-2 font-black leading-snug" style={{ color: palette.ink }}>{liveProgress.xabar || "Jadval yaratilmoqda va yaxshilanmoqda."}</div>
+        <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase" style={{ color: palette.amber }}>{__kbUi("YANGI ALMASHINUVCHI NATIJA")}</div><div className="text-2xl font-black" style={{ color: palette.ink }}>{__kbUi("Jadval #")}{liveProgress.ko_rinish_raqami || liveProgress.jadval_raqami}</div></div><div className="text-4xl font-black" style={{ color: palette.amber }}>{__kbUi(Number(liveProgress.foiz || 0))}%</div></div>
+        <div className="text-sm mt-2 font-black leading-snug" style={{ color: palette.ink }}>{liveProgress.xabar || __kbUi("Jadval yaratilmoqda va yaxshilanmoqda.")}</div>
       </div>}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {runs.slice(0, 4).map((run, index) => <button key={run.id} type="button" onClick={async () => { setGenerationFailure(null); setRunId(String(run.id)); await loadRun(run.id); }} className="text-left rounded-2xl border-2 p-4" style={{ borderColor: String(runId) === String(run.id) ? palette.teal : palette.line, background: String(runId) === String(run.id) ? palette.greenBg : "#fff" }}>
-          <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>Jadval #{run.id}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>ENG YANGI</span>}</div>
-          <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0} joylashdi · {run.joylashtirilmadi || 0} qoldi</div>
+          <div className="flex items-center justify-between"><div className="text-xl font-black" style={{ color: palette.ink }}>{__kbUi("Jadval #")}{run.id}</div>{index === 0 && <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{__kbUi("ENG YANGI")}</span>}</div>
+          <div className="text-xs mt-2 font-black" style={{ color: (run.joylashtirilmadi || 0) ? palette.red : palette.green }}>{run.joylashtirildi || 0}{__kbUi(" joylashdi · ")}{run.joylashtirilmadi || 0}{__kbUi(" qoldi")}</div>
         </button>)}
       </div>
-      {!!revisions.length && <div className="mt-3"><div className="text-xs font-black mb-2" style={{ color: palette.muted }}>Birinchi jadval va barcha yaxshilanishlar — xohlaganingizni bosib sinf/o‘qituvchi jadvalini oching</div><div className="flex gap-2 overflow-x-auto pb-1">{revisions.map(revision => <button key={revision.revision} type="button" title={revision.yaxshilanish?.xulosa || (Number(revision.revision) ? "Saqlangan yaxshilanish" : "Birinchi 100% jadval")} onClick={async () => { await loadRun(runId, revision.revision); setResultWindowOpen(true); }} className="shrink-0 rounded-xl border-2 px-3 py-2 text-left text-xs font-black max-w-[290px]" style={{ borderColor: selectedRevision === Number(revision.revision) ? palette.teal : palette.line, background: selectedRevision === Number(revision.revision) ? palette.greenBg : "#fff", color: palette.ink }}>#{runId}{Number(revision.revision) ? `.${revision.revision}` : ""}<span className="block mt-1 text-[10px] font-bold whitespace-normal" style={{ color: Number(revision.revision) ? palette.green : palette.blue }}>{revision.yaxshilanish?.xulosa || (Number(revision.revision) ? "Tekshirilgan yaxshilanish saqlandi" : "Birinchi 100% jadval")}</span><span className="block mt-1 text-[10px]" style={{ color: palette.muted }}>{revision.yaratilgan_at ? new Date(revision.yaratilgan_at).toLocaleString() : ""}</span></button>)}</div></div>}
+      {!!revisions.length && <div className="mt-3"><div className="text-xs font-black mb-2" style={{ color: palette.muted }}>{__kbUi("Birinchi jadval va barcha yaxshilanishlar — xohlaganingizni bosib sinf/o‘qituvchi jadvalini oching")}</div><div className="flex gap-2 overflow-x-auto pb-1">{revisions.map(revision => <button key={revision.revision} type="button" title={revision.yaxshilanish?.xulosa || (Number(revision.revision) ? __kbUi("Saqlangan yaxshilanish") : __kbUi("Birinchi 100% jadval"))} onClick={async () => { await loadRun(runId, revision.revision); setResultWindowOpen(true); }} className="shrink-0 rounded-xl border-2 px-3 py-2 text-left text-xs font-black max-w-[290px]" style={{ borderColor: selectedRevision === Number(revision.revision) ? palette.teal : palette.line, background: selectedRevision === Number(revision.revision) ? palette.greenBg : "#fff", color: palette.ink }}>#{runId}{Number(revision.revision) ? __kbUi(`.${revision.revision}`) : __kbUi("")}<span className="block mt-1 text-[10px] font-bold whitespace-normal" style={{ color: Number(revision.revision) ? palette.green : palette.blue }}>{revision.yaxshilanish?.xulosa || (Number(revision.revision) ? __kbUi("Tekshirilgan yaxshilanish saqlandi") : __kbUi("Birinchi 100% jadval"))}</span><span className="block mt-1 text-[10px]" style={{ color: palette.muted }}>{revision.yaratilgan_at ? __kbUi(new Date(revision.yaratilgan_at).toLocaleString()) : __kbUi("")}</span></button>)}</div></div>}
     </Card>}
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>AQILLI GENERATOR</div>
-          <h2 className="text-2xl font-black leading-tight" style={{ color: palette.ink }}>Dars jadvalini yaratish</h2>
-          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi.</p>
+          <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("AQILLI GENERATOR")}</div>
+          <h2 className="text-2xl font-black leading-tight" style={{ color: palette.ink }}>{__kbUi("Dars jadvalini yaratish")}</h2>
+          <p className="text-sm font-bold mt-1" style={{ color: palette.muted }}>{__kbUi("Avval to‘liq jadval yaratiladi, keyin o‘qituvchilar uchun yaxshilanadi.")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>Jadvalni ochish</button>}
+          {displayDetail && !generationFailure && <button type="button" onClick={openResultWindow} disabled={checking} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Jadvalni ochish")}</button>}
           {generating
-            ? <button onClick={stopGeneration} disabled={stopPending} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:cursor-wait disabled:opacity-75" style={{ background: palette.red }}><X size={17}/> {stopPending ? "To‘xtatilmoqda…" : "To‘xtatish"}</button>
-            : <button onClick={generate} disabled={checking || generationProbePending} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:opacity-65" style={{ background: palette.blue, cursor: checking || generationProbePending ? "wait" : "pointer" }}>{generationProbePending ? <Loader2 size={17} className="animate-spin"/> : <WandSparkles size={17}/>} {generationProbePending ? "Faol jarayon tekshirilmoqda…" : "Jadval yaratish"}</button>}
+            ? <button onClick={stopGeneration} disabled={stopPending} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:cursor-wait disabled:opacity-75" style={{ background: palette.red }}><X size={17}/> {stopPending ? __kbUi("To‘xtatilmoqda…") : __kbUi("To‘xtatish")}</button>
+            : <button onClick={generate} disabled={checking || generationProbePending} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center gap-2 disabled:opacity-65" style={{ background: palette.blue, cursor: checking || generationProbePending ? "wait" : "pointer" }}>{generationProbePending ? <Loader2 size={17} className="animate-spin"/> : <WandSparkles size={17}/>} {generationProbePending ? __kbUi("Faol jarayon tekshirilmoqda…") : __kbUi("Jadval yaratish")}</button>}
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5">
-        <CompactStat value={preflight?.tayyor ? "Tekshirildi" : preflight ? "Xato" : "…"} label="manba holati" tone={preflight?.tayyor ? "green" : "amber"}/>
-        <CompactStat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label="sinf" tone="blue"/>
-        <CompactStat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label="o‘qituvchi" tone="teal"/>
-        <CompactStat value={`${pre.xato_soni || 0}`} label="xato" tone={pre.xato_soni ? "red" : "green"}/>
+        <CompactStat value={preflight?.tayyor ? "Tekshirildi" : preflight ? "Xato" : "…"} label={__kbUi("manba holati")} tone={preflight?.tayyor ? "green" : "amber"}/>
+        <CompactStat value={`${pre.sinf_soni ?? pre.sinf_jami ?? 0}`} label={__kbUi("sinf")} tone="blue"/>
+        <CompactStat value={`${pre.oqituvchi_soni ?? pre.oqituvchi_jami ?? 0}`} label={__kbUi("o‘qituvchi")} tone="teal"/>
+        <CompactStat value={`${pre.xato_soni || 0}`} label={__kbUi("xato")} tone={pre.xato_soni ? "red" : "green"}/>
       </div>
 
-      {(preflight?.xatolar || []).length > 0 && <div className="space-y-2 mt-3 max-h-64 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-xl border-2 px-4 py-3 text-sm font-black leading-snug whitespace-normal break-words" style={{ background: palette.redBg, borderColor: palette.red, color: palette.red }}>Xato {index + 1}: {error}</div>)}</div>}
-      {preflight?.tayyor && <div className="mt-3 rounded-xl px-4 py-3 text-sm font-black" style={{ background: palette.greenBg, color: palette.green }}>✓ Ma’lumotlar tayyor — jadval yaratish mumkin</div>}
+      {(preflight?.xatolar || []).length > 0 && <div className="space-y-2 mt-3 max-h-64 overflow-auto">{preflight.xatolar.map((error, index) => <div key={index} className="rounded-xl border-2 px-4 py-3 text-sm font-black leading-snug whitespace-normal break-words" style={{ background: palette.redBg, borderColor: palette.red, color: palette.red }}>{__kbUi("Xato ")}{index + 1}: {__kbUi(error)}</div>)}</div>}
+      {preflight?.tayyor && <div className="mt-3 rounded-xl px-4 py-3 text-sm font-black" style={{ background: palette.greenBg, color: palette.green }}>{__kbUi("✓ Ma’lumotlar tayyor — jadval yaratish mumkin")}</div>}
     </Card>
 
     {displayDetail && !generationFailure && teacherWindowReport && <TeacherWindowSummaryV211 report={teacherWindowReport} runId={displayDetail?.urinish?.id}/>} 
@@ -9514,19 +9404,19 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     {generationFailure && <Card className="p-5" style={{ borderColor: failureAccent, borderWidth: 2 }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-sm font-black uppercase tracking-[.08em]" style={{ color: failureAccent }}>JADVAL YARATILMADI</div>
+          <div className="text-sm font-black uppercase tracking-[.08em]" style={{ color: failureAccent }}>{__kbUi("JADVAL YARATILMADI")}</div>
           <h3 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{generationFailure.message}</h3>
         </div>
-        <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length} ta</span>
+        <span className="px-2.5 py-1 rounded-full text-xs font-black" style={{ background: failureBackground, color: failureAccent }}>{failureProblems.length}{__kbUi(" ta")}</span>
       </div>
-      {recoverableSearchFailure && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Bu holat jadval imkonsizligini isbotlamaydi. Yarim draft yashirildi, oldingi tasdiqlangan jadval saqlandi va qizil/BAND vaqt ochilmadi.</div>}
-      {generationInfeasible && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.redBg, color: palette.red }}>Exact solver xavfsizlik qoidalari ichida to‘liq yechim yo‘qligini isbotladi. Pastda kamida bitta aniq sig‘im yoki global resurs ziddiyati doim ko‘rsatiladi; qizil/BAND vaqt avtomatik yumshatilmaydi.</div>}
-      <details className="mt-3"><summary className="cursor-pointer text-sm font-black" style={{ color: palette.blue }}>Texnik tekshiruv raqamlarini ko‘rish</summary><div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2">
-        <CompactStat value={failureSolverStats.seconds == null ? "—" : `${failureSolverStats.seconds.toFixed(2)} s`} label="jami exact qidiruv" tone="blue"/>
-        <CompactStat value={failureSolverStats.candidates ?? "—"} label="legal kandidat" tone="blue"/>
-        <CompactStat value={failureSolverStats.branches ?? "—"} label="CP-SAT branch" tone="amber"/>
-        <CompactStat value={failureSolverStats.conflicts ?? "—"} label="CP-SAT conflict" tone="amber"/>
-        <CompactStat value={failureSolverStats.methodSeconds == null ? "—" : `${failureSolverStats.methodSeconds.toFixed(2)} s`} label="metod fallback" tone="teal"/>
+      {recoverableSearchFailure && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("Bu holat jadval imkonsizligini isbotlamaydi. Yarim draft yashirildi, oldingi tasdiqlangan jadval saqlandi va qizil/BAND vaqt ochilmadi.")}</div>}
+      {generationInfeasible && <div className="mt-2 rounded-lg px-2.5 py-2 text-[11px] leading-relaxed font-bold" style={{ background: palette.redBg, color: palette.red }}>{__kbUi("Exact solver xavfsizlik qoidalari ichida to‘liq yechim yo‘qligini isbotladi. Pastda kamida bitta aniq sig‘im yoki global resurs ziddiyati doim ko‘rsatiladi; qizil/BAND vaqt avtomatik yumshatilmaydi.")}</div>}
+      <details className="mt-3"><summary className="cursor-pointer text-sm font-black" style={{ color: palette.blue }}>{__kbUi("Texnik tekshiruv raqamlarini ko‘rish")}</summary><div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-2">
+        <CompactStat value={failureSolverStats.seconds == null ? "—" : `${failureSolverStats.seconds.toFixed(2)} s`} label={__kbUi("jami exact qidiruv")} tone="blue"/>
+        <CompactStat value={failureSolverStats.candidates ?? "—"} label={__kbUi("legal kandidat")} tone="blue"/>
+        <CompactStat value={failureSolverStats.branches ?? "—"} label={__kbUi("CP-SAT branch")} tone="amber"/>
+        <CompactStat value={failureSolverStats.conflicts ?? "—"} label={__kbUi("CP-SAT conflict")} tone="amber"/>
+        <CompactStat value={failureSolverStats.methodSeconds == null ? "—" : `${failureSolverStats.methodSeconds.toFixed(2)} s`} label={__kbUi("metod fallback")} tone="teal"/>
       </div></details>
       {(generationInfeasible || generationUnknown) && <MethodDayExceptionRecommendationsV215 failure={generationFailure}/>} 
       <div className="mt-3 space-y-2">
@@ -9553,11 +9443,11 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
             ? `${proof.required_lessons} ta majburiy dars / ${proof.available_lessons} ta legal sig‘im${proof.shortage ? ` · ${proof.shortage} ta yetishmaydi` : ""}`
             : null;
           return <div key={`failure-${problem.raqam || index}`} className="rounded-xl border p-3" style={{ background: "#fff", borderColor: "#E9B5B5" }}>
-            <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sarlavha || `${problem.sinf} sinf · ${problem.fan}`}</div>
+            <div className="font-black text-sm" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sarlavha || __kbUi(`${problem.sinf} sinf · ${problem.fan}`)}</div>
             <div className="mt-2 grid md:grid-cols-3 gap-2 text-[11px] leading-snug">
-              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>{globalProblem ? "Qidiruv holati" : "Nima ziddiyat qildi?"}</b><br/>{globalProblem ? (mainReason.izoh || generationFailure?.message || "Butun jadval bo‘yicha qidiruv vaqt chegarasida tugadi.") : proofText || <>{problem.smena ? `${problem.smena}-smena · ` : ""}fanning haftalik {problem.takror_raqami || 1}-takrori · {teacherText}</>}</div>
-              <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>{recoverableSearchFailure ? "Qidiruvda qaysi kataklar band ko‘rindi?" : "Qaysi to‘siqlar ko‘p uchradi?"}</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? ` · ${reason.rad_etilgan_katak_soni} ta katak` : ""}</span>) : "Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi."}</div>
-              <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>{recoverableSearchFailure ? "Administrator nima qiladi?" : "Nima qilish kerak?"}</b><br/>{recoverableSearchFailure ? "Hozircha qoidani tahrirlamang. ‘Sinf band’ yoki ‘o‘qituvchi band’ — joriy joylashuv simptomi; u qaysi qoidani yumshatish kerakligini isbotlamaydi." : safeExactSolution}</div>
+              <div className="rounded-lg p-2" style={{ background: palette.sky, color: palette.ink }}><b>{globalProblem ? __kbUi("Qidiruv holati") : __kbUi("Nima ziddiyat qildi?")}</b><br/>{globalProblem ? (mainReason.izoh || generationFailure?.message || __kbUi("Butun jadval bo‘yicha qidiruv vaqt chegarasida tugadi.")) : proofText || <>{problem.smena ? __kbUi(`${problem.smena}-smena · `) : __kbUi("")}{__kbUi("fanning haftalik ")}{problem.takror_raqami || 1}{__kbUi("-takrori · ")}{teacherText}</>}</div>
+              <div className="rounded-lg p-2" style={{ background: failureBackground, color: failureAccent }}><b>{recoverableSearchFailure ? __kbUi("Qidiruvda qaysi kataklar band ko‘rindi?") : __kbUi("Qaysi to‘siqlar ko‘p uchradi?")}</b><br/>{reasons.length ? reasons.map((reason, reasonIndex) => <span key={reasonIndex} className="block mt-1">{reasonIndex + 1}. {reason.izoh || reason.sabab}{reason.rad_etilgan_katak_soni ? __kbUi(` · ${reason.rad_etilgan_katak_soni} ta katak`) : __kbUi("")}</span>) : __kbUi("Sinf va o‘qituvchi bir vaqtda bo‘sh bo‘lgan xavfsiz katak topilmadi.")}</div>
+              <div className="rounded-lg p-2" style={{ background: palette.greenBg, color: palette.green }}><b>{recoverableSearchFailure ? __kbUi("Administrator nima qiladi?") : __kbUi("Nima qilish kerak?")}</b><br/>{recoverableSearchFailure ? __kbUi("Hozircha qoidani tahrirlamang. ‘Sinf band’ yoki ‘o‘qituvchi band’ — joriy joylashuv simptomi; u qaysi qoidani yumshatish kerakligini isbotlamaydi.") : safeExactSolution}</div>
             </div>
           </div>;
         })}
@@ -9565,50 +9455,50 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
     </Card>}
 
     {generationFailure && displayDetail && <Card className="p-3.5" style={{ background: palette.cream }}>
-      <div className="text-xs font-black" style={{ color: palette.ink }}>Oldingi saqlangan jadval #{displayDetail?.urinish?.id}</div>
-      <div className="text-[11px] leading-relaxed mt-1" style={{ color: palette.muted }}>Bu jadval yangi qidiruv natijasi emas. U o‘chirilmagan, lekin yangi hisoblash muvaffaqiyatli tugamaguncha pastdagi natija va tasdiqlash oynalari ataylab yashirildi.</div>
+      <div className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Oldingi saqlangan jadval #")}{displayDetail?.urinish?.id}</div>
+      <div className="text-[11px] leading-relaxed mt-1" style={{ color: palette.muted }}>{__kbUi("Bu jadval yangi qidiruv natijasi emas. U o‘chirilmagan, lekin yangi hisoblash muvaffaqiyatli tugamaguncha pastdagi natija va tasdiqlash oynalari ataylab yashirildi.")}</div>
     </Card>}
 
-    {!generationFailure && detail && !displayDetail && <SmartNotice tone="warning">Oxirgi urinish to‘liq va validator tasdiqlagan jadval emas. Yarim draft, uning kataklari va tasdiqlash tugmasi ataylab yashirildi.</SmartNotice>}
+    {!generationFailure && detail && !displayDetail && <SmartNotice tone="warning">{__kbUi("Oxirgi urinish to‘liq va validator tasdiqlagan jadval emas. Yarim draft, uning kataklari va tasdiqlash tugmasi ataylab yashirildi.")}</SmartNotice>}
 
     {!generationFailure && displayDetail && <div className="grid lg:grid-cols-[.9fr_1.1fr] gap-3">
       <Card className="p-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-black leading-tight" style={{ color: palette.ink }}>Yaratilgan jadval va tasdiqlash</h2><span className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{detailResult.status} · VALIDATOR TASDIQLADI</span></div>
-        <p className="text-[10px] leading-tight mt-0.5" style={{ color: palette.muted }}>Eski jadval yangi draft 100% mos tasdiqlanmaguncha saqlanadi.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-black leading-tight" style={{ color: palette.ink }}>{__kbUi("Yaratilgan jadval va tasdiqlash")}</h2><span className="px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: palette.greenBg, color: palette.green }}>{__kbUi(detailResult.status)}{__kbUi(" · VALIDATOR TASDIQLADI")}</span></div>
+        <p className="text-[10px] leading-tight mt-0.5" style={{ color: palette.muted }}>{__kbUi("Eski jadval yangi draft 100% mos tasdiqlanmaguncha saqlanadi.")}</p>
         <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5 mt-2.5">
-          <CompactStat value={detail?.urinish?.sifat ?? "—"} label="sifat /100" tone="blue"/>
-          <CompactStat value={detail?.urinish?.joylashtirildi ?? 0} label="joylashdi" tone="green"/>
-          <CompactStat value={detail?.urinish?.joylashtirilmadi ?? 0} label="qoldi" tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
-          <CompactStat value={diagnostics.sinf_oknolari ?? "—"} label="sinf oknosi" tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
-          <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label="smenadagi bo‘sh dars" tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
-          <CompactStat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label="J/T → og‘ir" tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
+          <CompactStat value={detail?.urinish?.sifat ?? "—"} label={__kbUi("sifat /100")} tone="blue"/>
+          <CompactStat value={detail?.urinish?.joylashtirildi ?? 0} label={__kbUi("joylashdi")} tone="green"/>
+          <CompactStat value={detail?.urinish?.joylashtirilmadi ?? 0} label={__kbUi("qoldi")} tone={detail?.urinish?.joylashtirilmadi ? "red" : "green"}/>
+          <CompactStat value={diagnostics.sinf_oknolari ?? "—"} label={__kbUi("sinf oknosi")} tone={diagnostics.sinf_oknolari ? "red" : "green"}/>
+          <CompactStat value={diagnostics.oqituvchi_oknolari ?? "—"} label={__kbUi("smenadagi bo‘sh dars")} tone={diagnostics.oqituvchi_oknolari ? "amber" : "green"}/>
+          <CompactStat value={comfort.jismoniydan_keyin_ogir_fan ?? "—"} label={__kbUi("J/T → og‘ir")} tone={comfort.jismoniydan_keyin_ogir_fan ? "red" : "green"}/>
         </div>
-        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? "100% mos draftni tasdiqlash" : "Moslik tugamaguncha tasdiqlanmaydi"}</button>}
+        {detail?.urinish?.holat === "draft" && <button onClick={approve} disabled={!canApprove} className="w-full mt-2 py-2 rounded-xl text-xs font-black text-white" style={{ background: canApprove ? palette.green : "#9BA8B2" }}>{canApprove ? __kbUi("100% mos draftni tasdiqlash") : __kbUi("Moslik tugamaguncha tasdiqlanmaydi")}</button>}
 
         {detail && <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-          <CompactStat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label="sinf mos" tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
-          <CompactStat value={`${matchSummary.oqituvchi_mos || 0}/${matchSummary.oqituvchi_jami || 0}`} label="o‘qituvchi mos" tone={(matchSummary.oqituvchi_mos === matchSummary.oqituvchi_jami) ? "green" : "red"}/>
-          <CompactStat value={`${matchSummary.fan_mos || 0}/${matchSummary.fan_jami || 0}`} label="fan mos" tone={(matchSummary.fan_mos === matchSummary.fan_jami) ? "green" : "red"}/>
+          <CompactStat value={`${matchSummary.sinf_mos || 0}/${matchSummary.sinf_jami || 0}`} label={__kbUi("sinf mos")} tone={(matchSummary.sinf_mos === matchSummary.sinf_jami) ? "green" : "red"}/>
+          <CompactStat value={`${matchSummary.oqituvchi_mos || 0}/${matchSummary.oqituvchi_jami || 0}`} label={__kbUi("o‘qituvchi mos")} tone={(matchSummary.oqituvchi_mos === matchSummary.oqituvchi_jami) ? "green" : "red"}/>
+          <CompactStat value={`${matchSummary.fan_mos || 0}/${matchSummary.fan_jami || 0}`} label={__kbUi("fan mos")} tone={(matchSummary.fan_mos === matchSummary.fan_jami) ? "green" : "red"}/>
         </div>}
       </Card>
 
       <Card className="p-3.5">
-        <div className="flex items-center justify-between gap-2 mb-2"><h3 className="text-sm font-black" style={{ color: palette.ink }}>Aniq diagnostika</h3><span className="text-[10px] font-black px-2 py-1 rounded-full" style={{ background: mismatchRows.length ? palette.redBg : palette.greenBg, color: mismatchRows.length ? palette.red : palette.green }}>{mismatchRows.length + (match.xatolar || []).length + problems.length} ta</span></div>
+        <div className="flex items-center justify-between gap-2 mb-2"><h3 className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Aniq diagnostika")}</h3><span className="text-[10px] font-black px-2 py-1 rounded-full" style={{ background: mismatchRows.length ? palette.redBg : palette.greenBg, color: mismatchRows.length ? palette.red : palette.green }}>{mismatchRows.length + (match.xatolar || []).length + problems.length}{__kbUi(" ta")}</span></div>
         <div className="space-y-1 max-h-[220px] overflow-auto pr-1">
           {mismatchRows.map((row, index) => <div key={`m-${index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-tight" style={{ background: palette.redBg }}>
             <div className="font-black" style={{ color: palette.ink }}>{row.type} · {row.name}</div>
-            <div className="mt-1 font-bold" style={{ color: palette.red }}>{mismatchExplanationV199(row)}</div>
+            <div className="mt-1 font-bold" style={{ color: palette.red }}>{__kbUi(mismatchExplanationV199(row))}</div>
           </div>)}
-          {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.redBg, color: palette.red }}>{error}</div>)}
-          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-snug" style={{ background: palette.redBg }}><div className="font-black" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} · {problem.fan}</div><div className="mt-1 font-bold" style={{ color: palette.red }}>{problem.sabab || (problem.sabablar || []).map(row => row.sabab).join("; ")}</div>{problem.sabab_izohi && <div className="mt-0.5" style={{ color: palette.ink }}>{problem.sabab_izohi}</div>}{problem.yechim && <div className="mt-0.5" style={{ color: palette.green }}>Yechim: {problem.yechim}</div>}</div>)}
-          {warnings.map((warning, index) => <div key={`w-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.amberBg, color: palette.amber }}>Ogohlantirish {index + 1}: {warning}</div>)}
-          {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">Sinf, fan va o‘qituvchi soatlari 100% mos.</SmartNotice>}
+          {(match.xatolar || []).map((error, index) => <div key={`x-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.redBg, color: palette.red }}>{__kbUi(error)}</div>)}
+          {problems.map((problem, index) => <div key={`p-${index}`} className="rounded-lg px-2.5 py-2 text-[11px] leading-snug" style={{ background: palette.redBg }}><div className="font-black" style={{ color: palette.ink }}>{problem.raqam || index + 1}. {problem.sinf} · {problem.fan}</div><div className="mt-1 font-bold" style={{ color: palette.red }}>{problem.sabab || __kbUi((problem.sabablar || []).map(row => row.sabab).join("; "))}</div>{problem.sabab_izohi && <div className="mt-0.5" style={{ color: palette.ink }}>{problem.sabab_izohi}</div>}{problem.yechim && <div className="mt-0.5" style={{ color: palette.green }}>{__kbUi("Yechim: ")}{problem.yechim}</div>}</div>)}
+          {warnings.map((warning, index) => <div key={`w-${index}`} className="rounded-lg px-2 py-1.5 text-[11px] leading-snug whitespace-normal break-words" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("Ogohlantirish ")}{index + 1}: {__kbUi(warning)}</div>)}
+          {!mismatchRows.length && !(match.xatolar || []).length && !problems.length && !warnings.length && detail && <SmartNotice tone="success">{__kbUi("Sinf, fan va o‘qituvchi soatlari 100% mos.")}</SmartNotice>}
         </div>
       </Card>
     </div>}
 
     {displayDetail && !generationFailure && <ScheduleGrid detail={displayDetail} setup={setup} selectedClass={selectedClass} setSelectedClass={setSelectedClass} token={token} apiBase={apiBase} readOnly={generating} onRoomChanged={async result => { setRunId(String(result.urinish_id)); await reload({ silent: true }); await loadRun(result.urinish_id); }}/>} 
-    {displayDetail && !generationFailure && generating && <SmartNotice tone="info">Jadval yaratilayotgan yoki yaxshilanayotgan paytda xona, qo‘lda almashtirish va tasdiqlash faqat o‘qish rejimida. Jarayon tugagach tahrir ochiladi.</SmartNotice>}
+    {displayDetail && !generationFailure && generating && <SmartNotice tone="info">{__kbUi("Jadval yaratilayotgan yoki yaxshilanayotgan paytda xona, qo‘lda almashtirish va tasdiqlash faqat o‘qish rejimida. Jarayon tugagach tahrir ochiladi.")}</SmartNotice>}
     {displayDetail && !generationFailure && !generating && <SmartSwapPanelV192
       token={token}
       apiBase={apiBase}
@@ -9624,15 +9514,17 @@ function GenerateStep({ token, apiBase, maktabId, setup, reload }) {
 }
 
 function TopicCalendarRow({ row, token, apiBase, maktabId, onSaved, onToggleOpen, onConfirm }) {
+  useKbInterfaceLocale();
   const [title,setTitle]=useState(row.mavzu);const [dateValue,setDateValue]=useState(row.sana);const [saving,setSaving]=useState(false);const [error,setError]=useState("");
   const save=async()=>{setSaving(true);setError("");try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_taqvimi?token=${encodeURIComponent(token)}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,taqvim_id:row.id,mavzu:title,sana:dateValue})});await onSaved();}catch(e){setError(e.message);}finally{setSaving(false);}};
   const unlock=async()=>{try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_taqvimi/qulfni_och?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&taqvim_id=${row.id}`,{method:"POST"});await onSaved();}catch(e){setError(e.message);}};
   return <div className="rounded-2xl border p-3" style={{borderColor:row.ochiq_dars?"#8A5A1C":row.qulflangan?"#E8C779":palette.line,background:row.ochiq_dars?"#FFF3E0":row.qulflangan?"#FFF9E8":"#fff"}}>
-    <div className="mb-1 flex items-center gap-2 text-[10px] font-black"><span className="px-1.5 py-0.5 rounded" style={row.tasdiqlangan?{background:palette.mint,color:palette.green}:{background:"#F3F1EC",color:palette.muted}}>{row.tasdiqlangan?"✓ tasdiqlangan":"≈ taxminiy (DTS)"}</span>{onConfirm&&<button type="button" onClick={()=>onConfirm(row)} className="underline" style={{color:palette.blue}}>{row.tasdiqlangan?"bekor":"tasdiqlash"}</button>}</div>
-    {(row.ochiq_dars||row.qisqa_izoh||row.uy_vazifa)&&<div className="mb-2 flex flex-wrap gap-2 text-[11px]">{row.ochiq_dars&&<span className="px-2 py-0.5 rounded-lg font-black" style={{background:"#8A5A1C",color:"#fff"}}>🎓 Ochiq dars{row.ochiq_dars_mavzu?`: ${row.ochiq_dars_mavzu}`:""}</span>}{row.qisqa_izoh&&<span className="italic" style={{color:palette.muted}}>👨‍👩‍👧 {row.qisqa_izoh}</span>}{row.uy_vazifa&&<span style={{color:palette.ink}}>📝 {row.uy_vazifa}</span>}</div>}<div className="grid md:grid-cols-[145px_1fr_auto] gap-2 items-center"><input type="date" value={dateValue||""} onChange={e=>setDateValue(e.target.value)} className="p-2 rounded-xl border"/><input value={title} onChange={e=>setTitle(e.target.value)} className="p-2 rounded-xl border"/><div className="flex gap-1"><button onClick={save} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?"...":"Saqlash"}</button>{onToggleOpen&&<button type="button" onClick={()=>onToggleOpen(row)} className="px-3 py-2 rounded-xl text-xs font-black" style={row.ochiq_dars?{background:"#8A5A1C",color:"#fff"}:{background:"#FFF8EE",color:"#8A5A1C"}} title="Ochiq dars belgilash / bekor">{row.ochiq_dars?"Ochiq dars ✓":"Ochiq dars"}</button>}{row.qulflangan&&<button onClick={unlock} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.amber}}>Avtoga qaytarish</button>}</div></div><div className="text-[11px] mt-1" style={{color:palette.muted}}>{row.turi} · {row.dars_raqami}-dars {row.qulflangan?"· o‘qituvchi qulflagan":"· avtomatik"}</div>{error&&<div className="text-xs mt-1" style={{color:palette.red}}>{error}</div>}</div>;
+    <div className="mb-1 flex items-center gap-2 text-[10px] font-black"><span className="px-1.5 py-0.5 rounded" style={row.tasdiqlangan?{background:palette.mint,color:palette.green}:{background:"#F3F1EC",color:palette.muted}}>{row.tasdiqlangan?__kbUi("✓ tasdiqlangan"):__kbUi("≈ taxminiy (DTS)")}</span>{onConfirm&&<button type="button" onClick={()=>onConfirm(row)} className="underline" style={{color:palette.blue}}>{row.tasdiqlangan?__kbUi("bekor"):__kbUi("tasdiqlash")}</button>}</div>
+    {(row.ochiq_dars||row.qisqa_izoh||row.uy_vazifa)&&<div className="mb-2 flex flex-wrap gap-2 text-[11px]">{row.ochiq_dars&&<span className="px-2 py-0.5 rounded-lg font-black" style={{background:"#8A5A1C",color:"#fff"}}>{__kbUi("🎓 Ochiq dars")}{row.ochiq_dars_mavzu?__kbUi(`: ${row.ochiq_dars_mavzu}`):__kbUi("")}</span>}{row.qisqa_izoh&&<span className="italic" style={{color:palette.muted}}>👨‍👩‍👧 {row.qisqa_izoh}</span>}{row.uy_vazifa&&<span style={{color:palette.ink}}>📝 {row.uy_vazifa}</span>}</div>}<div className="grid md:grid-cols-[145px_1fr_auto] gap-2 items-center"><input type="date" value={dateValue||""} onChange={e=>setDateValue(e.target.value)} className="p-2 rounded-xl border"/><input value={title} onChange={e=>setTitle(e.target.value)} className="p-2 rounded-xl border"/><div className="flex gap-1"><button onClick={save} disabled={saving} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{saving?__kbUi("..."):__kbUi("Saqlash")}</button>{onToggleOpen&&<button type="button" onClick={()=>onToggleOpen(row)} className="px-3 py-2 rounded-xl text-xs font-black" style={row.ochiq_dars?{background:"#8A5A1C",color:"#fff"}:{background:"#FFF8EE",color:"#8A5A1C"}} title={__kbUi("Ochiq dars belgilash / bekor")}>{row.ochiq_dars?__kbUi("Ochiq dars ✓"):__kbUi("Ochiq dars")}</button>}{row.qulflangan&&<button onClick={unlock} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.amber}}>{__kbUi("Avtoga qaytarish")}</button>}</div></div><div className="text-[11px] mt-1" style={{color:palette.muted}}>{row.turi} · {row.dars_raqami}{__kbUi("-dars ")}{row.qulflangan?__kbUi("· o‘qituvchi qulflagan"):__kbUi("· avtomatik")}</div>{error&&<div className="text-xs mt-1" style={{color:palette.red}}>{__kbUi(error)}</div>}</div>;
 }
 
 function TopicsStep({ token, apiBase, maktabId, setup, teacherOnly }) {
+  useKbInterfaceLocale();
   const currentUser=String(setup?.joriy_user_id||"");const allowedAssignments=teacherOnly?(setup?.birikmalar||[]).filter(x=>String(x.user_id)===currentUser):(setup?.birikmalar||[]);
   const allowedClasses=teacherOnly?(setup?.sinflar||[]).filter(c=>allowedAssignments.some(a=>String(a.sinf_id)===String(c.id))):(setup?.sinflar||[]);
   const [classId,setClassId]=useState(String(allowedClasses?.[0]?.id||""));const subjects=useMemo(()=>[...new Set([...(setup?.fan_soatlari||[]).filter(x=>String(x.sinf_id)===String(classId)).map(x=>x.fan_nomi),...allowedAssignments.filter(x=>String(x.sinf_id)===String(classId)).map(x=>x.fan_nomi)])],[setup,classId,allowedAssignments]);
@@ -9648,20 +9540,21 @@ function TopicsStep({ token, apiBase, maktabId, setup, teacherOnly }) {
   const runImport=async(confirm)=>{if(!importFile){setMessage({tone:"error",text:"Avval to‘ldirilgan Excel faylni tanlang"});return;}setImportBusy(true);try{const form=new FormData();form.append("token",token);form.append("maktab_id",String(maktabId));form.append("sinf_id",String(classId));form.append("fan",fan);form.append("chorak",String(quarter));form.append("tasdiqlash",confirm?"1":"0");form.append("fayl",importFile);const r=await fetch(`${apiBase}/api/maktab/aqlli_jadval/v2/ish_rejasi_import`,{method:"POST",body:form});const d=await r.json();if(!r.ok||d.detail)throw new Error(d.detail||"Import bajarilmadi");if(confirm){setImportPreview(null);setImportFile(null);if(importRef.current)importRef.current.value="";setMessage({tone:"success",text:`✅ ${d.yozildi} ta darsga izoh/tushuntirish yozildi${d.moslanmadi?` · ${d.moslanmadi} qator moslanmadi`:""}.`});await load();}else setImportPreview(d);}catch(e){setMessage({tone:"error",text:e.message});}finally{setImportBusy(false);}};
   const confirmTopics=async(rejim,extra={})=>{try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzu_taqvimi/tasdiqlash?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,sinf_id:Number(classId),fan,chorak:Number(quarter),rejim,...extra})});setMessage({tone:"success",text:extra.bekor?`${d.soni} ta mavzu tasdig‘i bekor qilindi.`:`✅ ${d.soni} ta mavzu tasdiqlandi — o‘quvchi va ota-onaga endi “tasdiqlangan” ko‘rinadi.`});await load();}catch(e){setMessage({tone:"error",text:e.message});}};
   const weekOf=(iso)=>{const d=new Date(iso+"T00:00:00");const day=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-day);const sun=new Date(mon);sun.setDate(mon.getDate()+6);return [mon.toISOString().slice(0,10),sun.toISOString().slice(0,10)];};
-  const toggleOpenLesson=async(row)=>{const on=!row.ochiq_dars;let mavzu=row.ochiq_dars_mavzu||"";if(on){const v=window.prompt("Ochiq dars mavzusi (ixtiyoriy):",mavzu||row.mavzu);if(v===null)return;mavzu=v;}try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/ochiq_dars?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,taqvim_id:row.id,ochiq:on,mavzu})});await load();}catch(e){setMessage({tone:"error",text:e.message});}};
+  const toggleOpenLesson=async(row)=>{const on=!row.ochiq_dars;let mavzu=row.ochiq_dars_mavzu||"";if(on){const v=window.prompt(__kbUi("Ochiq dars mavzusi (ixtiyoriy):"),mavzu||row.mavzu);if(v===null)return;mavzu=v;}try{await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/ochiq_dars?token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({maktab_id:maktabId,taqvim_id:row.id,ochiq:on,mavzu})});await load();}catch(e){setMessage({tone:"error",text:e.message});}};
   const distribute=async()=>{try{const d=await smartFetch(`${apiBase}/api/maktab/aqlli_jadval/v2/mavzularni_taqsimlash?token=${encodeURIComponent(token)}&maktab_id=${maktabId}&sinf_id=${classId}&fan=${encodeURIComponent(fan)}&chorak=${quarter}`,{method:"POST"});const warning=(d.ogohlantirishlar||[]).join(" ");setMessage({tone:warning?"warning":"success",text:`${d.taqsimlandi||0} ta dars sanaga joylashtirildi. ${warning}`});await load();}catch(e){setMessage({tone:"error",text:e.message});}};
   return <div className="space-y-4">{message&&<SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-      {importPreview&&<div className="rounded-2xl border p-4 space-y-2" style={{borderColor:palette.line,background:"#FBFAF7"}}><div className="flex flex-wrap gap-3 text-sm"><span><b style={{color:palette.green}}>{importPreview.moslandi}</b> qator kalendarga moslandi</span><span><b style={{color:importPreview.moslanmadi?palette.red:palette.muted}}>{importPreview.moslanmadi}</b> moslanmadi</span><span style={{color:palette.muted}}>kalendarda {importPreview.kalendar_soni} dars</span></div>
-        <div className="max-h-48 overflow-auto text-xs space-y-1">{importPreview.moslangan_royxat.map(m=><div key={m.id} className="rounded-lg bg-white px-2 py-1.5 border" style={{borderColor:palette.line}}><b>{m.sana}</b> · {m.mavzu}{m.ochiq_dars?<span className="ml-1 px-1 rounded text-[10px] font-black" style={{background:"#FFF8EE",color:"#8A5A1C"}}>ochiq dars</span>:null}{m.qisqa_izoh?<div className="italic" style={{color:palette.muted}}>👨‍👩‍👧 {m.qisqa_izoh}</div>:null}</div>)}</div>
-        {importPreview.moslanmadi>0&&<div className="text-xs" style={{color:palette.red}}>Moslanmagan: {importPreview.moslanmagan_royxat.map(u=>`${u.sana||"?"} · ${u.mavzu||"?"}`).join(" | ")}</div>}
-        <div className="flex gap-2"><button type="button" onClick={()=>runImport(true)} disabled={importBusy||!importPreview.moslandi} className="px-4 py-2 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{background:palette.green}}>{importBusy?"Yozilmoqda...":`✓ ${importPreview.moslandi} ta darsga yozish`}</button><button type="button" onClick={()=>{setImportPreview(null);setImportFile(null);if(importRef.current)importRef.current.value="";}} className="px-4 py-2 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>Bekor</button></div></div>}<Card className="p-5"><div className="grid md:grid-cols-[1fr_1.4fr_120px_auto_auto] gap-2 items-end"><label className="text-xs font-bold" style={{color:palette.ink}}>Sinf<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{allowedClasses.map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>Fan<select value={fan} onChange={e=>setFan(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{subjects.map(f=><option key={f}>{f}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>Chorak<select value={quarter} onChange={e=>setQuarter(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{[1,2,3,4].map(q=><option key={q} value={q}>{q}</option>)}</select></label><button onClick={importDts} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>DTSdan olish</button><button onClick={distribute} className="px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>Sanalarga joylash</button>
-      {calendar.length>0&&<a href={templateUrl} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}} title="Kalendardagi kunlar va mavzular bilan Excel: izoh, tushuntirish, misollar, uy vazifasi ustunlarini to‘ldirib qaytarasiz">📥 Ish rejasi shabloni (Excel)</a>}
-      {calendar.length>0&&<label className="px-4 py-2.5 rounded-xl text-sm font-black cursor-pointer" style={{background:"#FFF8EE",color:"#8A5A1C"}}>📤 To‘ldirilganini yuklash<input ref={importRef} type="file" accept=".xlsx" className="hidden" onChange={e=>{setImportFile(e.target.files?.[0]||null);setImportPreview(null);}}/></label>}
-      {importFile&&!importPreview&&<button type="button" onClick={()=>runImport(false)} disabled={importBusy} className="px-4 py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{background:palette.blue}}>{importBusy?"Tekshirilmoqda...":`Tekshirish: ${importFile.name}`}</button>}</div></Card><div className="grid xl:grid-cols-[1fr_1fr] gap-4"><Card className="p-5"><div className="flex items-center justify-between mb-3"><div><h3 className="text-lg font-black" style={{color:palette.ink}}>Chorak mavzulari</h3><p className="text-xs" style={{color:palette.muted}}>O‘qituvchi nom, soat va tartibni o‘zgartira oladi.</p></div><div className="flex gap-2"><button onClick={()=>setPlan([...plan,{mavzu:"Yangi mavzu",soat:1,turi:"mavzu",manba:"qolda"}])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.ink}}>+ Mavzu</button><button onClick={save} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>Rejani saqlash</button></div></div><div className="space-y-2 max-h-[600px] overflow-auto pr-1">{plan.map((x,i)=><div key={i} className="rounded-2xl border p-3" style={{borderColor:palette.line}}><div className="grid grid-cols-[auto_1fr_70px_135px_auto] gap-2 items-center"><div className="text-xs font-black">{i+1}</div><input value={x.mavzu||""} onChange={e=>update(i,"mavzu",e.target.value)} className="p-2 rounded-xl border"/><input type="number" min="1" max="10" value={x.soat||1} onChange={e=>update(i,"soat",e.target.value)} className="p-2 rounded-xl border"/><select value={x.turi||"mavzu"} onChange={e=>update(i,"turi",e.target.value)} className="p-2 rounded-xl border bg-white"><option value="mavzu">Mavzu</option><option value="nazorat">Nazorat</option><option value="xato_tahlil">Xatolar tahlili</option><option value="mustahkamlash">Mustahkamlash</option><option value="masala">Masala</option></select><div className="flex gap-1"><button onClick={()=>move(i,-1)}>↑</button><button onClick={()=>move(i,1)}>↓</button><button onClick={()=>setPlan(plan.filter((_,n)=>n!==i))} style={{color:palette.red}}>×</button></div></div></div>)}{!plan.length&&!loading&&<SmartNotice tone="warning">Mavzu rejasi bo‘sh. DTSdan oling yoki qo‘lda kiriting.</SmartNotice>}</div></Card><Card className="p-5"><h3 className="text-lg font-black mb-1" style={{color:palette.ink}}>Real dars sanalari</h3><p className="text-xs mb-3" style={{color:palette.muted}}>Dam olish kuni qo‘shilsa avtomatik yozuvlar siljiydi; o‘qituvchi qulflagan yozuv saqlanadi.</p>{calendar.length>0&&<div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl p-3" style={{background:calendar.every(r=>r.tasdiqlangan)?palette.mint:"#FFF8EE"}}><div className="text-xs font-black" style={{color:calendar.every(r=>r.tasdiqlangan)?palette.green:"#8A5A1C"}}>{calendar.filter(r=>r.tasdiqlangan).length}/{calendar.length} mavzu tasdiqlangan{calendar.every(r=>r.tasdiqlangan)?" ✓":" — tasdiqlangunicha o‘quvchi va ota-onaga “taxminiy (DTS)” deb ko‘rinadi"}</div><div className="ml-auto flex flex-wrap gap-1.5"><button type="button" onClick={()=>confirmTopics("hamma")} className="px-3 py-1.5 rounded-lg text-xs font-black text-white" style={{background:palette.green}}>✓ Hammasini tasdiqlash</button>{calendar.some(r=>r.tasdiqlangan)&&<button type="button" onClick={()=>confirmTopics("hamma",{bekor:true})} className="px-3 py-1.5 rounded-lg text-xs font-black" style={{background:palette.cream,color:palette.ink}}>Tasdiqni bekor qilish</button>}</div></div>}
-        <div className="space-y-2 max-h-[650px] overflow-auto pr-1">{calendar.map((row,idx)=><React.Fragment key={row.id}>{(idx===0||weekOf(calendar[idx-1].sana)[0]!==weekOf(row.sana)[0])&&(()=>{const [mon,sun]=weekOf(row.sana);const wk=calendar.filter(r=>weekOf(r.sana)[0]===mon);const done=wk.every(r=>r.tasdiqlangan);return <div className="flex items-center justify-between gap-2 px-2 pt-2 text-[11px]"><span className="font-black" style={{color:palette.muted}}>Hafta: {mon.slice(8)}.{mon.slice(5,7)} — {sun.slice(8)}.{sun.slice(5,7)} · {wk.length} dars</span><button type="button" onClick={()=>confirmTopics("oraliq",{dan:mon,gacha:sun,bekor:done})} className="px-2 py-1 rounded-lg font-black" style={done?{background:palette.mint,color:palette.green}:{background:palette.sky,color:palette.blue}}>{done?"Hafta tasdiqlangan ✓":"Haftani tasdiqlash"}</button></div>;})()}<TopicCalendarRow onConfirm={r=>confirmTopics("ids",{ids:[r.id],bekor:!!r.tasdiqlangan})} onToggleOpen={toggleOpenLesson} row={row} token={token} apiBase={apiBase} maktabId={maktabId} onSaved={load}/></React.Fragment>)}{!calendar.length&&<SmartNotice tone="info">Avval tasdiqlangan jadval va mavzu rejasi bo‘lishi kerak.</SmartNotice>}</div></Card></div></div>;
+      {importPreview&&<div className="rounded-2xl border p-4 space-y-2" style={{borderColor:palette.line,background:"#FBFAF7"}}><div className="flex flex-wrap gap-3 text-sm"><span><b style={{color:palette.green}}>{importPreview.moslandi}</b>{__kbUi(" qator kalendarga moslandi")}</span><span><b style={{color:importPreview.moslanmadi?palette.red:palette.muted}}>{importPreview.moslanmadi}</b>{__kbUi(" moslanmadi")}</span><span style={{color:palette.muted}}>{__kbUi("kalendarda ")}{importPreview.kalendar_soni}{__kbUi(" dars")}</span></div>
+        <div className="max-h-48 overflow-auto text-xs space-y-1">{importPreview.moslangan_royxat.map(m=><div key={m.id} className="rounded-lg bg-white px-2 py-1.5 border" style={{borderColor:palette.line}}><b>{m.sana}</b> · {m.mavzu}{m.ochiq_dars?<span className="ml-1 px-1 rounded text-[10px] font-black" style={{background:"#FFF8EE",color:"#8A5A1C"}}>{__kbUi("ochiq dars")}</span>:null}{m.qisqa_izoh?<div className="italic" style={{color:palette.muted}}>👨‍👩‍👧 {m.qisqa_izoh}</div>:null}</div>)}</div>
+        {importPreview.moslanmadi>0&&<div className="text-xs" style={{color:palette.red}}>{__kbUi("Moslanmagan: ")}{__kbUi(importPreview.moslanmagan_royxat.map(u=>`${u.sana||"?"} · ${u.mavzu||"?"}`).join(" | "))}</div>}
+        <div className="flex gap-2"><button type="button" onClick={()=>runImport(true)} disabled={importBusy||!importPreview.moslandi} className="px-4 py-2 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{background:palette.green}}>{importBusy?__kbUi("Yozilmoqda..."):__kbUi(`✓ ${importPreview.moslandi} ta darsga yozish`)}</button><button type="button" onClick={()=>{setImportPreview(null);setImportFile(null);if(importRef.current)importRef.current.value="";}} className="px-4 py-2 rounded-xl text-sm font-black" style={{background:palette.cream,color:palette.ink}}>{__kbUi("Bekor")}</button></div></div>}<Card className="p-5"><div className="grid md:grid-cols-[1fr_1.4fr_120px_auto_auto] gap-2 items-end"><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("Sinf")}<select value={classId} onChange={e=>setClassId(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{allowedClasses.map(c=><option key={c.id} value={c.id}>{c.sinf}-{c.harf}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("Fan")}<select value={fan} onChange={e=>setFan(e.target.value)} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{subjects.map(f=><option value={(f)} key={f}>{f}</option>)}</select></label><label className="text-xs font-bold" style={{color:palette.ink}}>{__kbUi("Chorak")}<select value={quarter} onChange={e=>setQuarter(Number(e.target.value))} className="w-full mt-1.5 p-2.5 rounded-xl border bg-white" style={{borderColor:palette.line}}>{[1,2,3,4].map(q=><option key={q} value={q}>{__kbUi(q)}</option>)}</select></label><button onClick={importDts} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}}>{__kbUi("DTSdan olish")}</button><button onClick={distribute} className="px-4 py-2.5 rounded-xl text-sm font-black text-white" style={{background:palette.teal}}>{__kbUi("Sanalarga joylash")}</button>
+      {calendar.length>0&&<a href={templateUrl} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{background:palette.sky,color:palette.blue}} title={__kbUi("Kalendardagi kunlar va mavzular bilan Excel: izoh, tushuntirish, misollar, uy vazifasi ustunlarini to‘ldirib qaytarasiz")}>{__kbUi("📥 Ish rejasi shabloni (Excel)")}</a>}
+      {calendar.length>0&&<label className="px-4 py-2.5 rounded-xl text-sm font-black cursor-pointer" style={{background:"#FFF8EE",color:"#8A5A1C"}}>{__kbUi("📤 To‘ldirilganini yuklash")}<input ref={importRef} type="file" accept=".xlsx" className="hidden" onChange={e=>{setImportFile(e.target.files?.[0]||null);setImportPreview(null);}}/></label>}
+      {importFile&&!importPreview&&<button type="button" onClick={()=>runImport(false)} disabled={importBusy} className="px-4 py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50" style={{background:palette.blue}}>{importBusy?__kbUi("Tekshirilmoqda..."):__kbUi(`Tekshirish: ${importFile.name}`)}</button>}</div></Card><div className="grid xl:grid-cols-[1fr_1fr] gap-4"><Card className="p-5"><div className="flex items-center justify-between mb-3"><div><h3 className="text-lg font-black" style={{color:palette.ink}}>{__kbUi("Chorak mavzulari")}</h3><p className="text-xs" style={{color:palette.muted}}>{__kbUi("O‘qituvchi nom, soat va tartibni o‘zgartira oladi.")}</p></div><div className="flex gap-2"><button onClick={()=>setPlan([...plan,{mavzu:"Yangi mavzu",soat:1,turi:"mavzu",manba:"qolda"}])} className="px-3 py-2 rounded-xl text-xs font-black" style={{background:palette.cream,color:palette.ink}}>{__kbUi("+ Mavzu")}</button><button onClick={save} className="px-3 py-2 rounded-xl text-xs font-black text-white" style={{background:palette.blue}}>{__kbUi("Rejani saqlash")}</button></div></div><div className="space-y-2 max-h-[600px] overflow-auto pr-1">{plan.map((x,i)=><div key={i} className="rounded-2xl border p-3" style={{borderColor:palette.line}}><div className="grid grid-cols-[auto_1fr_70px_135px_auto] gap-2 items-center"><div className="text-xs font-black">{i+1}</div><input value={x.mavzu||""} onChange={e=>update(i,"mavzu",e.target.value)} className="p-2 rounded-xl border"/><input type="number" min="1" max="10" value={x.soat||1} onChange={e=>update(i,"soat",e.target.value)} className="p-2 rounded-xl border"/><select value={x.turi||"mavzu"} onChange={e=>update(i,"turi",e.target.value)} className="p-2 rounded-xl border bg-white"><option value="mavzu">{__kbUi("Mavzu")}</option><option value="nazorat">{__kbUi("Nazorat")}</option><option value="xato_tahlil">{__kbUi("Xatolar tahlili")}</option><option value="mustahkamlash">{__kbUi("Mustahkamlash")}</option><option value="masala">{__kbUi("Masala")}</option></select><div className="flex gap-1"><button onClick={()=>move(i,-1)}>↑</button><button onClick={()=>move(i,1)}>↓</button><button onClick={()=>setPlan(plan.filter((_,n)=>n!==i))} style={{color:palette.red}}>×</button></div></div></div>)}{!plan.length&&!loading&&<SmartNotice tone="warning">{__kbUi("Mavzu rejasi bo‘sh. DTSdan oling yoki qo‘lda kiriting.")}</SmartNotice>}</div></Card><Card className="p-5"><h3 className="text-lg font-black mb-1" style={{color:palette.ink}}>{__kbUi("Real dars sanalari")}</h3><p className="text-xs mb-3" style={{color:palette.muted}}>{__kbUi("Dam olish kuni qo‘shilsa avtomatik yozuvlar siljiydi; o‘qituvchi qulflagan yozuv saqlanadi.")}</p>{calendar.length>0&&<div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl p-3" style={{background:calendar.every(r=>r.tasdiqlangan)?palette.mint:"#FFF8EE"}}><div className="text-xs font-black" style={{color:calendar.every(r=>r.tasdiqlangan)?palette.green:"#8A5A1C"}}>{calendar.filter(r=>r.tasdiqlangan).length}/{calendar.length}{__kbUi(" mavzu tasdiqlangan")}{calendar.every(r=>r.tasdiqlangan)?__kbUi(" ✓"):__kbUi(" — tasdiqlangunicha o‘quvchi va ota-onaga “taxminiy (DTS)” deb ko‘rinadi")}</div><div className="ml-auto flex flex-wrap gap-1.5"><button type="button" onClick={()=>confirmTopics("hamma")} className="px-3 py-1.5 rounded-lg text-xs font-black text-white" style={{background:palette.green}}>{__kbUi("✓ Hammasini tasdiqlash")}</button>{calendar.some(r=>r.tasdiqlangan)&&<button type="button" onClick={()=>confirmTopics("hamma",{bekor:true})} className="px-3 py-1.5 rounded-lg text-xs font-black" style={{background:palette.cream,color:palette.ink}}>{__kbUi("Tasdiqni bekor qilish")}</button>}</div></div>}
+        <div className="space-y-2 max-h-[650px] overflow-auto pr-1">{calendar.map((row,idx)=><React.Fragment key={row.id}>{(idx===0||weekOf(calendar[idx-1].sana)[0]!==weekOf(row.sana)[0])&&__kbUi((()=>{const [mon,sun]=weekOf(row.sana);const wk=calendar.filter(r=>weekOf(r.sana)[0]===mon);const done=wk.every(r=>r.tasdiqlangan);return <div className="flex items-center justify-between gap-2 px-2 pt-2 text-[11px]"><span className="font-black" style={{color:palette.muted}}>{__kbUi("Hafta: ")}{__kbUi(mon.slice(8))}.{__kbUi(mon.slice(5,7))} — {__kbUi(sun.slice(8))}.{__kbUi(sun.slice(5,7))} · {wk.length}{__kbUi(" dars")}</span><button type="button" onClick={()=>confirmTopics("oraliq",{dan:mon,gacha:sun,bekor:done})} className="px-2 py-1 rounded-lg font-black" style={done?{background:palette.mint,color:palette.green}:{background:palette.sky,color:palette.blue}}>{done?__kbUi("Hafta tasdiqlangan ✓"):__kbUi("Haftani tasdiqlash")}</button></div>;})())}<TopicCalendarRow onConfirm={r=>confirmTopics("ids",{ids:[r.id],bekor:!!r.tasdiqlangan})} onToggleOpen={toggleOpenLesson} row={row} token={token} apiBase={apiBase} maktabId={maktabId} onSaved={load}/></React.Fragment>)}{!calendar.length&&<SmartNotice tone="info">{__kbUi("Avval tasdiqlangan jadval va mavzu rejasi bo‘lishi kerak.")}</SmartNotice>}</div></Card></div></div>;
 }
 
 function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = false, initialStep = 1 }) {
+  useKbInterfaceLocale();
   const firstStep = teacherOnly ? (initialStep === 2 ? 2 : 5) : initialStep;
   const [step, setStep] = useState(firstStep);
   const [setupResult, setSetupResult] = useState(null);
@@ -9731,12 +9624,12 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
     return true;
   }),[onClose]);
   return <div className="min-h-screen">
-    <SmartHeader title={teacherOnly && !canManageTeacherAvailability ? "Mavzu rejasi" : "Aqlli dars jadvali va yillik reja"} subtitle={teacherOnly && !canManageTeacherAvailability ? "O‘zingiz dars beradigan sinflarning mavzu rejasi" : "Kalendar, o‘qituvchi vaqti, sinf skeleti + o‘qituvchi, jadval yaratish va mavzu rejasi"} onClose={onClose}/>
+    <SmartHeader title={teacherOnly && !canManageTeacherAvailability ? __kbUi("Mavzu rejasi") : __kbUi("Aqlli dars jadvali va yillik reja")} subtitle={teacherOnly && !canManageTeacherAvailability ? __kbUi("O‘zingiz dars beradigan sinflarning mavzu rejasi") : __kbUi("Kalendar, o‘qituvchi vaqti, sinf skeleti + o‘qituvchi, jadval yaratish va mavzu rejasi")} onClose={onClose}/>
     <SmartStepNav step={step} setStep={selectStep} teacherOnly={teacherOnly} canManageTeacherAvailability={canManageTeacherAvailability}/>
     <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
-      {loading ? <div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <SmartNotice tone="error">{error}<button type="button" onClick={() => load()} className="ml-3 underline font-black">Qayta urinish</button></SmartNotice> : <>
+      {loading ? <div className="py-24 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <SmartNotice tone="error">{__kbUi(error)}<button type="button" onClick={() => load()} className="ml-3 underline font-black">{__kbUi("Qayta urinish")}</button></SmartNotice> : <>
         {step === 1 && !teacherOnly && <CalendarStep mode="jadval" token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={selectStep}/>}
-        {step === 2 && (canManageTeacherAvailability ? <TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/> : <SmartNotice tone="info">O‘qituvchi vaqti va metod kunini faqat admin yoki maktabning o‘quv ishlari bo‘yicha direktor o‘rinbosari belgilaydi.</SmartNotice>)}
+        {step === 2 && (canManageTeacherAvailability ? <TeacherTimeGridV1869 setup={setup} selectedTeacher={selectedTeacher} setSelectedTeacher={setSelectedTeacher} token={token} apiBase={apiBase} maktabId={maktabId} reload={load}/> : <SmartNotice tone="info">{__kbUi("O‘qituvchi vaqti va metod kunini faqat admin yoki maktabning o‘quv ishlari bo‘yicha direktor o‘rinbosari belgilaydi.")}</SmartNotice>)}
         {step === 3 && !teacherOnly && <LoadsStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load} setStep={selectStep}/>}
         {step === 4 && !teacherOnly && <GenerateStep token={token} apiBase={apiBase} maktabId={maktabId} setup={setup} reload={load}/>}
         {step === 45 && !teacherOnly && <TeacherScheduleStep token={token} apiBase={apiBase} setup={setup}/>}
@@ -9747,6 +9640,7 @@ function SmartTimetablePanel({ token, apiBase, maktabId, onClose, teacherOnly = 
 }
 
 function CentralLanguageCurriculumEditorV238({ token, apiBase, onClose }) {
+  useKbInterfaceLocale();
   const [language, setLanguage] = useState("uz");
   const [section, setSection] = useState("oquv_reja");
   const [rows, setRows] = useState([]);
@@ -9845,16 +9739,17 @@ function CentralLanguageCurriculumEditorV238({ token, apiBase, onClose }) {
     } catch (error) { setMessage({ tone: "error", text: error.message }); }
     finally { setApplying(false); }
   };
-  return <div className="min-h-screen"><SmartHeader title="3 til uchun markaziy o‘quv reja" subtitle="O‘zbek · Rus · Ingliz andozalari bir-biridan mustaqil" onClose={onClose} badge="ADMIN SOZLAMALARI"/><main className="max-w-6xl mx-auto px-4 md:px-7 py-5 space-y-4">
-    <Card className="p-4 space-y-3"><div className="grid sm:grid-cols-3 gap-2">{[["fanlar","1. Fanlar","Tasdiqlangan fanlar"],["oquv_reja","2. O‘quv reja","1–11-sinf haftalik soati"],["metod","3. Metod kunlari","Fan o‘qituvchilarining metod kuni"]].map(([value,title,subtitle])=>{const active=section===value;return <button type="button" key={value} onClick={()=>setSection(value)} disabled={saving||applying} className="px-4 py-3 rounded-xl border text-left" style={{borderColor:active?palette.blue:palette.line,background:active?palette.mint:'#fff',color:palette.ink}}><span className="block text-sm font-black">{title}</span><span className="block text-[10px] mt-1" style={{color:palette.muted}}>{subtitle}</span></button>;})}</div><div className="grid sm:grid-cols-3 gap-2">{V238_EDUCATION_LANGUAGE_ORDER.map(value => {const active=language===value;const meta=V238_EDUCATION_LANGUAGES[value];return <button type="button" key={value} onClick={() => setLanguage(value)} disabled={saving||applying} className="px-4 py-3 rounded-xl border text-sm font-black" style={{borderColor:active?palette.blue:palette.line,background:active?palette.blue:'#fff',color:active?'#fff':palette.ink}}>{meta.badge} · {meta.label}</button>;})}</div><div className="text-xs" style={{color:palette.muted}}>Har til alohida saqlanadi. Rus yoki Ingliz sozlamasi O‘zbek andozasini o‘zgartirmaydi.</div></Card>
+  return <div className="min-h-screen"><SmartHeader title={__kbUi("3 til uchun markaziy o‘quv reja")} subtitle={__kbUi("O‘zbek · Rus · Ingliz andozalari bir-biridan mustaqil")} onClose={onClose} badge="ADMIN SOZLAMALARI"/><main className="max-w-6xl mx-auto px-4 md:px-7 py-5 space-y-4">
+    <Card className="p-4 space-y-3"><div className="grid sm:grid-cols-3 gap-2">{[["fanlar","1. Fanlar","Tasdiqlangan fanlar"],["oquv_reja","2. O‘quv reja","1–11-sinf haftalik soati"],["metod","3. Metod kunlari","Fan o‘qituvchilarining metod kuni"]].map(([value,title,subtitle])=>{const active=section===value;return <button type="button" key={value} onClick={()=>setSection(value)} disabled={saving||applying} className="px-4 py-3 rounded-xl border text-left" style={{borderColor:active?palette.blue:palette.line,background:active?palette.mint:'#fff',color:palette.ink}}><span className="block text-sm font-black">{__kbUi(title)}</span><span className="block text-[10px] mt-1" style={{color:palette.muted}}>{__kbUi(subtitle)}</span></button>;})}</div><div className="grid sm:grid-cols-3 gap-2">{V238_EDUCATION_LANGUAGE_ORDER.map(value => {const active=language===value;const meta=V238_EDUCATION_LANGUAGES[value];return <button type="button" key={value} onClick={() => setLanguage(value)} disabled={saving||applying} className="px-4 py-3 rounded-xl border text-sm font-black" style={{borderColor:active?palette.blue:palette.line,background:active?palette.blue:'#fff',color:active?'#fff':palette.ink}}>{__kbUi(meta.badge)} · {__kbUi(meta.label)}</button>;})}</div><div className="text-xs" style={{color:palette.muted}}>{__kbUi("Har til alohida saqlanadi. Rus yoki Ingliz sozlamasi O‘zbek andozasini o‘zgartirmaydi.")}</div></Card>
     {message && <SmartNotice tone={message.tone}>{message.text}</SmartNotice>}
-    <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{v238EducationLanguageMeta(language).label} · {section === "metod" ? "metod kunlari" : section === "fanlar" ? "fanlar" : "o‘quv reja"}</h2><div className="text-xs mt-1" style={{color:palette.muted}}>{section === "metod" ? "Har fan uchun bitta kun. Bitta tugma fan o‘qituvchilariga avtomatik qo‘llaydi." : "Sinf darajasi · fan · haftalik soat · bir kunda maksimum"}</div></div><div className="flex flex-wrap gap-2">{section !== "metod"&&<button type="button" onClick={() => setRows(current => [...current,{_uiId:`${language}-${rowSequence.current += 1}`,sinf_darajasi:1,fan_nomi:'',haftalik_soat:1,kunlik_max:1,metod_kuni:'',tartib:current.length}])} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{background:palette.sky,color:palette.blue}}>+ Fan qatori</button>}{section !== "metod"&&<button type="button" onClick={save} disabled={saving||loading||applying} className="px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{background:palette.green}}>{saving?'Saqlanmoqda...':'Faqat shu tilni saqlash'}</button>}{section === "metod"&&<button type="button" onClick={applyAllMethodDays} disabled={saving||loading||applying} className="px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{background:palette.blue}}>{applying?'Avtomatik qo‘llanmoqda...':'Metod kunlarini barcha maktablarga avtomatik qo‘llash'}</button>}</div></div>
-      {loading ? <div className="py-16 flex justify-center"><Loader2 className="animate-spin"/></div> : section === "metod" ? <div className="space-y-2 max-h-[65vh] overflow-auto">{methodSubjects.map(item=><div key={item.key} className="grid sm:grid-cols-[1fr_190px] gap-3 items-center rounded-xl border p-3" style={{borderColor:palette.line}}><div><div className="text-sm font-black" style={{color:palette.ink}}>{item.fan_nomi}</div><div className="text-[10px] mt-1" style={{color:palette.muted}}>{item.sinflar.join(", ")}-sinflar</div></div><select value={item.metod_kuni} onChange={event=>updateMethodDay(item.key,event.target.value)} className="p-2.5 rounded-xl border bg-white text-sm" style={{borderColor:palette.line}}><option value="">Belgilanmagan</option>{smartDays.map(([day,name])=><option key={day} value={day}>{name}</option>)}</select></div>)}{!methodSubjects.length&&<SmartNotice tone="warning">Avval shu tilning fan va o‘quv rejasini saqlang.</SmartNotice>}</div> : <div className="space-y-2 max-h-[65vh] overflow-auto">{rows.map((row,index)=><div key={row._uiId} className="grid grid-cols-[85px_1fr_120px_120px_38px] gap-2 items-end rounded-xl border p-2" style={{borderColor:palette.line}}><label className="text-[10px] font-black">Sinf<input type="number" min="1" max="11" value={row.sinf_darajasi} onChange={event=>update(index,'sinf_darajasi',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">Fan nomi<input value={row.fan_nomi} onChange={event=>update(index,'fan_nomi',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">Haftalik soat<input type="number" min="0.5" step="0.5" value={row.haftalik_soat} onChange={event=>update(index,'haftalik_soat',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">Kunlik max<input type="number" min="1" max="4" value={row.kunlik_max} onChange={event=>update(index,'kunlik_max',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><button type="button" onClick={()=>setRows(current=>current.filter((_,i)=>i!==index))} className="h-9 rounded-lg font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rows.length&&<SmartNotice tone="warning">Bu til uchun andoza hali yo‘q. “+ Fan qatori” orqali kiriting.</SmartNotice>}</div>}
+    <Card className="p-5"><div className="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 className="text-xl font-black" style={{color:palette.ink}}>{__kbUi(v238EducationLanguageMeta(language).label)} · {section === "metod" ? __kbUi("metod kunlari") : section === "fanlar" ? __kbUi("fanlar") : __kbUi("o‘quv reja")}</h2><div className="text-xs mt-1" style={{color:palette.muted}}>{section === "metod" ? __kbUi("Har fan uchun bitta kun. Bitta tugma fan o‘qituvchilariga avtomatik qo‘llaydi.") : __kbUi("Sinf darajasi · fan · haftalik soat · bir kunda maksimum")}</div></div><div className="flex flex-wrap gap-2">{section !== "metod"&&<button type="button" onClick={() => setRows(current => [...current,{_uiId:`${language}-${rowSequence.current += 1}`,sinf_darajasi:1,fan_nomi:'',haftalik_soat:1,kunlik_max:1,metod_kuni:'',tartib:current.length}])} className="px-4 py-2.5 rounded-xl text-xs font-black" style={{background:palette.sky,color:palette.blue}}>{__kbUi("+ Fan qatori")}</button>}{section !== "metod"&&<button type="button" onClick={save} disabled={saving||loading||applying} className="px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{background:palette.green}}>{saving?__kbUi('Saqlanmoqda...'):__kbUi('Faqat shu tilni saqlash')}</button>}{section === "metod"&&<button type="button" onClick={applyAllMethodDays} disabled={saving||loading||applying} className="px-5 py-2.5 rounded-xl text-xs font-black text-white disabled:opacity-50" style={{background:palette.blue}}>{applying?__kbUi('Avtomatik qo‘llanmoqda...'):__kbUi('Metod kunlarini barcha maktablarga avtomatik qo‘llash')}</button>}</div></div>
+      {loading ? <div className="py-16 flex justify-center"><Loader2 className="animate-spin"/></div> : section === "metod" ? <div className="space-y-2 max-h-[65vh] overflow-auto">{methodSubjects.map(item=><div key={item.key} className="grid sm:grid-cols-[1fr_190px] gap-3 items-center rounded-xl border p-3" style={{borderColor:palette.line}}><div><div className="text-sm font-black" style={{color:palette.ink}}>{item.fan_nomi}</div><div className="text-[10px] mt-1" style={{color:palette.muted}}>{__kbUi(item.sinflar.join(", "))}{__kbUi("-sinflar")}</div></div><select value={item.metod_kuni} onChange={event=>updateMethodDay(item.key,event.target.value)} className="p-2.5 rounded-xl border bg-white text-sm" style={{borderColor:palette.line}}><option value="">{__kbUi("Belgilanmagan")}</option>{smartDays.map(([day,name])=><option key={day} value={day}>{__kbUi(name)}</option>)}</select></div>)}{!methodSubjects.length&&<SmartNotice tone="warning">{__kbUi("Avval shu tilning fan va o‘quv rejasini saqlang.")}</SmartNotice>}</div> : <div className="space-y-2 max-h-[65vh] overflow-auto">{rows.map((row,index)=><div key={row._uiId} className="grid grid-cols-[85px_1fr_120px_120px_38px] gap-2 items-end rounded-xl border p-2" style={{borderColor:palette.line}}><label className="text-[10px] font-black">{__kbUi("Sinf")}<input type="number" min="1" max="11" value={row.sinf_darajasi} onChange={event=>update(index,'sinf_darajasi',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">{__kbUi("Fan nomi")}<input value={row.fan_nomi} onChange={event=>update(index,'fan_nomi',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">{__kbUi("Haftalik soat")}<input type="number" min="0.5" step="0.5" value={row.haftalik_soat} onChange={event=>update(index,'haftalik_soat',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><label className="text-[10px] font-black">{__kbUi("Kunlik max")}<input type="number" min="1" max="4" value={row.kunlik_max} onChange={event=>update(index,'kunlik_max',event.target.value)} className="w-full mt-1 p-2 rounded-lg border"/></label><button type="button" onClick={()=>setRows(current=>current.filter((_,i)=>i!==index))} className="h-9 rounded-lg font-black" style={{background:palette.redBg,color:palette.red}}>×</button></div>)}{!rows.length&&<SmartNotice tone="warning">{__kbUi("Bu til uchun andoza hali yo‘q. “+ Fan qatori” orqali kiriting.")}</SmartNotice>}</div>}
     </Card>
   </main></div>;
 }
 
 function ClassBulkGroupSettingsV238({ token, apiBase, maktabId, classes = [], variants = [], onChanged }) {
+  useKbInterfaceLocale();
   const [selectedClassIds, setSelectedClassIds] = useState([]);
   const [systems, setSystems] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -9889,17 +9784,17 @@ function ClassBulkGroupSettingsV238({ token, apiBase, maktabId, classes = [], va
     finally { setSaving(false); }
   };
   return <Card className="p-5 mb-5">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>SINF SOZLAMALARI · GURUHLAR</div><h2 className="text-lg font-black mt-1" style={{ color: palette.ink }}>Sinflarga guruh tizimini qo‘shish</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Bu qo‘shish amali: keyin O‘g‘il/Qiz ni qo‘shsangiz, oldingi 1/2 guruh o‘chmaydi. Fan bilan bog‘lash Step 3 setkada qilinadi.</p></div><div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{selectedClassIds.length} ta sinf tanlandi</div></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("SINF SOZLAMALARI · GURUHLAR")}</div><h2 className="text-lg font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Sinflarga guruh tizimini qo‘shish")}</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Bu qo‘shish amali: keyin O‘g‘il/Qiz ni qo‘shsangiz, oldingi 1/2 guruh o‘chmaydi. Fan bilan bog‘lash Step 3 setkada qilinadi.")}</p></div><div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{selectedClassIds.length}{__kbUi(" ta sinf tanlandi")}</div></div>
     {message && <div className="mt-3"><SmartNotice tone={message.tone}>{message.text}</SmartNotice></div>}
     <div className="flex flex-wrap gap-2 mt-4">
-      {[['alphabet','1/2 guruh'],['gender','O‘g‘il/Qiz']].map(([value,label]) => <button type="button" key={value} onClick={() => toggleValue(setSystems, value)} className="px-4 py-2.5 rounded-xl border text-xs font-black" style={{ borderColor: systems.includes(value) ? palette.green : palette.line, background: systems.includes(value) ? palette.greenBg : '#fff', color: systems.includes(value) ? palette.green : palette.ink }}>{systems.includes(value) ? '✓ ' : ''}{label}</button>)}
-      <button type="button" onClick={() => setSelectedClassIds(classes.map(row => String(row.id)))} className="px-3 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>Barcha sinflar</button>
-      <button type="button" onClick={() => setSelectedClassIds([])} className="px-3 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.muted }}>Tanlovni tozalash</button>
+      {[['alphabet','1/2 guruh'],['gender','O‘g‘il/Qiz']].map(([value,label]) => <button type="button" key={value} onClick={() => toggleValue(setSystems, value)} className="px-4 py-2.5 rounded-xl border text-xs font-black" style={{ borderColor: systems.includes(value) ? palette.green : palette.line, background: systems.includes(value) ? palette.greenBg : '#fff', color: systems.includes(value) ? palette.green : palette.ink }}>{systems.includes(value) ? __kbUi('✓ ') : __kbUi('')}{__kbUi(label)}</button>)}
+      <button type="button" onClick={() => setSelectedClassIds(classes.map(row => String(row.id)))} className="px-3 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Barcha sinflar")}</button>
+      <button type="button" onClick={() => setSelectedClassIds([])} className="px-3 py-2.5 rounded-xl text-xs font-black" style={{ background: palette.cream, color: palette.muted }}>{__kbUi("Tanlovni tozalash")}</button>
     </div>
     <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-11 gap-2 mt-3 max-h-48 overflow-auto">
-      {classes.map(cls => { const active=activeSystemsFor(cls.id); const selected=selectedClassIds.includes(String(cls.id)); return <button type="button" key={cls.id} onClick={() => toggleValue(setSelectedClassIds, cls.id)} className="rounded-xl border px-2 py-2 text-xs font-black" style={{ borderColor:selected?palette.blue:palette.line,background:selected?palette.sky:'#fff',color:selected?palette.blue:palette.ink }}>{selected?'✓ ':''}{cls.sinf}-{cls.harf}<span className="block mt-1 text-[8px]" style={{color:palette.muted}}>{v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge}{active.has('alphabet')?' · 1/2':''}{active.has('gender')?' · O‘/Q':''}</span></button>; })}
+      {classes.map(cls => { const active=activeSystemsFor(cls.id); const selected=selectedClassIds.includes(String(cls.id)); return <button type="button" key={cls.id} onClick={() => toggleValue(setSelectedClassIds, cls.id)} className="rounded-xl border px-2 py-2 text-xs font-black" style={{ borderColor:selected?palette.blue:palette.line,background:selected?palette.sky:'#fff',color:selected?palette.blue:palette.ink }}>{selected?__kbUi('✓ '):__kbUi('')}{cls.sinf}-{cls.harf}<span className="block mt-1 text-[8px]" style={{color:palette.muted}}>{__kbUi(v238EducationLanguageMeta(v238ClassEducationLanguage(cls)).badge)}{active.has('alphabet')?__kbUi(' · 1/2'):__kbUi('')}{active.has('gender')?__kbUi(' · O‘/Q'):__kbUi('')}</span></button>; })}
     </div>
-    <div className="flex justify-end mt-4"><button type="button" onClick={save} disabled={saving || !selectedClassIds.length || !systems.length} className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-45" style={{ background: palette.teal }}>{saving ? 'Qo‘shilmoqda...' : 'Tanlangan sinflarga qo‘shish'}</button></div>
+    <div className="flex justify-end mt-4"><button type="button" onClick={save} disabled={saving || !selectedClassIds.length || !systems.length} className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-45" style={{ background: palette.teal }}>{saving ? __kbUi('Qo‘shilmoqda...') : __kbUi('Tanlangan sinflarga qo‘shish')}</button></div>
   </Card>;
 }
 
@@ -9940,12 +9835,14 @@ function useTeacherAvailabilityAccess({ token, apiBase, maktabId, enabled = true
 }
 
 function TeacherAvailabilityShortcut({ access, onOpen }) {
-  if (access.canManageTeacherAvailability === true) return <button type="button" onClick={() => { if (access.canManageTeacherAvailability === true) onOpen(); }} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title="O‘qituvchilarning bo‘sh va band vaqti, metod kuni va dars cheklovlarini belgilang"><Clock3 size={16}/> O‘qituvchi vaqti</button>;
-  if (access.error) return <div className="w-full"><SmartNotice tone="warning">{access.error}<button type="button" onClick={access.retry} className="ml-3 underline font-black">Qayta urinish</button></SmartNotice></div>;
+  useKbInterfaceLocale();
+  if (access.canManageTeacherAvailability === true) return <button type="button" onClick={() => { if (access.canManageTeacherAvailability === true) onOpen(); }} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title={__kbUi("O‘qituvchilarning bo‘sh va band vaqti, metod kuni va dars cheklovlarini belgilang")}><Clock3 size={16}/>{__kbUi(" O‘qituvchi vaqti")}</button>;
+  if (access.error) return <div className="w-full"><SmartNotice tone="warning">{__kbUi(access.error)}<button type="button" onClick={access.retry} className="ml-3 underline font-black">{__kbUi("Qayta urinish")}</button></SmartNotice></div>;
   return null;
 }
 
 export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBack, onLegacy, onRejalashtirish = null, adminPreview = false, canCreateInstitution = false, initialView = "dashboard" }) {
+  useKbInterfaceLocale();
   const organizationV17Id = initialWorkspace?.organization_v17_id || null;
   const contextId = initialWorkspace?.context_id || null;
   // Mavjud maktablar ro'yxati haqiqiy IDni ko'pincha ``maktab_id`` bilan
@@ -10605,13 +10502,13 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (!maktabId && !organizationV17Id && !contextId) {
     return <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
-        <SmartHeader title="Maktab ish maydoni" subtitle="Mavjud maktabni tanlab kiring" onClose={onBack} badge="MAKTAB WORKSPACE"/>
+        <SmartHeader title={__kbUi("Maktab ish maydoni")} subtitle={__kbUi("Mavjud maktabni tanlab kiring")} onClose={onBack} badge="MAKTAB WORKSPACE"/>
         <main className="max-w-xl mx-auto px-4 py-10">
           <Card className="p-6 text-center">
             <School size={34} className="mx-auto" style={{ color: palette.blue }}/>
-            <h1 className="text-xl font-black mt-3" style={{ color: palette.ink }}>Maktab tanlanmagan</h1>
-            <p className="text-sm mt-2" style={{ color: palette.muted }}>Yangi maktab bu sahifada yaratilmaydi. Administrator markazidan mavjud maktabni tanlang yoki yangi muassasa oching.</p>
-            <button type="button" onClick={onBack} className="mt-5 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>Muassasalarga qaytish</button>
+            <h1 className="text-xl font-black mt-3" style={{ color: palette.ink }}>{__kbUi("Maktab tanlanmagan")}</h1>
+            <p className="text-sm mt-2" style={{ color: palette.muted }}>{__kbUi("Yangi maktab bu sahifada yaratilmaydi. Administrator markazidan mavjud maktabni tanlang yoki yangi muassasa oching.")}</p>
+            <button type="button" onClick={onBack} className="mt-5 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.blue }}>{__kbUi("Muassasalarga qaytish")}</button>
           </Card>
         </main>
       </div>
@@ -10621,66 +10518,66 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (newSchoolMode || (isNewSchoolFlow && !maktabId)) {
     return <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
-        <SmartHeader title="Yangi maktab" subtitle="Maktabni yaratish va ish maydonini ochish" onClose={closeNewSchoolForm} badge="MAKTAB WORKSPACE"/>
+        <SmartHeader title={__kbUi("Yangi maktab")} subtitle={__kbUi("Maktabni yaratish va ish maydonini ochish")} onClose={closeNewSchoolForm} badge="MAKTAB WORKSPACE"/>
         <main className="max-w-5xl mx-auto px-4 md:px-7 py-7 md:py-10">
           <Card className="p-5 md:p-7">
             <div className="flex items-start gap-4 mb-6">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: palette.greenBg, color: palette.teal }}><School size={25}/></div>
-              <div><h1 className="text-2xl font-black" style={{ color: palette.ink }}>Yangi maktab yaratish</h1><p className="text-sm mt-1" style={{ color: palette.muted }}>Yangi maktab alohida yaratiladi. Oldingi maktab va uning barcha ma'lumotlari saqlanib qoladi.</p></div>
+              <div><h1 className="text-2xl font-black" style={{ color: palette.ink }}>{__kbUi("Yangi maktab yaratish")}</h1><p className="text-sm mt-1" style={{ color: palette.muted }}>{__kbUi("Yangi maktab alohida yaratiladi. Oldingi maktab va uning barcha ma'lumotlari saqlanib qoladi.")}</p></div>
             </div>
             <form onSubmit={createNewSchool} className="space-y-4">
-              <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Maktab nomi *</span><input autoFocus value={newSchoolName} onChange={e=>setNewSchoolName(e.target.value)} placeholder="Masalan: 25-son umumiy o‘rta ta’lim maktabi" className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: newSchoolError && !String(newSchoolName||'').trim() ? palette.red : palette.line, background: "#fff", color: palette.ink }}/></label>
+              <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Maktab nomi *")}</span><input autoFocus value={newSchoolName} onChange={e=>setNewSchoolName(e.target.value)} placeholder={__kbUi("Masalan: 25-son umumiy o‘rta ta’lim maktabi")} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: newSchoolError && !String(newSchoolName||'').trim() ? palette.red : palette.line, background: "#fff", color: palette.ink }}/></label>
               <div className="grid md:grid-cols-2 gap-4">
-                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Viloyat *</span><select value={newSchoolRegion} disabled={locationCatalogLoading || Boolean(locationCatalogError) || !locationCatalog.length} onChange={event => { setNewSchoolRegion(event.target.value); setNewSchoolDistrict(""); setNewSchoolError(""); }} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none disabled:opacity-50" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value="">{locationCatalogLoading ? "Hududlar yuklanmoqda..." : locationCatalogError ? "Hududlarni qayta yuklang" : "Viloyatni tanlang"}</option>{locationCatalog.map(region => <option key={region.kalit} value={region.nomi}>{region.nomi}</option>)}</select></label>
-                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Tuman / shahar *</span><select value={newSchoolDistrict} disabled={!newSchoolRegion || locationCatalogLoading || Boolean(locationCatalogError)} onChange={event => { setNewSchoolDistrict(event.target.value); setNewSchoolError(""); }} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none disabled:opacity-50" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value="">{newSchoolRegion ? "Tuman yoki shaharni tanlang" : "Avval viloyatni tanlang"}</option>{newSchoolDistrictOptions.map(district => <option key={district.kalit} value={district.nomi}>{district.nomi}</option>)}</select></label>
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Viloyat *")}</span><select value={newSchoolRegion} disabled={locationCatalogLoading || Boolean(locationCatalogError) || !locationCatalog.length} onChange={event => { setNewSchoolRegion(event.target.value); setNewSchoolDistrict(""); setNewSchoolError(""); }} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none disabled:opacity-50" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value="">{locationCatalogLoading ? __kbUi("Hududlar yuklanmoqda...") : locationCatalogError ? __kbUi("Hududlarni qayta yuklang") : __kbUi("Viloyatni tanlang")}</option>{locationCatalog.map(region => <option key={region.kalit} value={region.nomi}>{region.nomi}</option>)}</select></label>
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Tuman / shahar *")}</span><select value={newSchoolDistrict} disabled={!newSchoolRegion || locationCatalogLoading || Boolean(locationCatalogError)} onChange={event => { setNewSchoolDistrict(event.target.value); setNewSchoolError(""); }} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none disabled:opacity-50" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value="">{newSchoolRegion ? __kbUi("Tuman yoki shaharni tanlang") : __kbUi("Avval viloyatni tanlang")}</option>{newSchoolDistrictOptions.map(district => <option key={district.kalit} value={district.nomi}>{district.nomi}</option>)}</select></label>
               </div>
-              {locationCatalogError && <div className="rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2" style={{ background: palette.redBg, color: palette.red }}><div className="text-xs font-bold">Hududlar yuklanmadi. Maktab yaratishdan oldin qayta yuklang.</div><button type="button" onClick={() => setLocationCatalogRetry(value => value + 1)} disabled={locationCatalogLoading} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red }}>Qayta yuklash</button></div>}
+              {locationCatalogError && <div className="rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2" style={{ background: palette.redBg, color: palette.red }}><div className="text-xs font-bold">{__kbUi("Hududlar yuklanmadi. Maktab yaratishdan oldin qayta yuklang.")}</div><button type="button" onClick={() => setLocationCatalogRetry(value => value + 1)} disabled={locationCatalogLoading} className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: palette.red }}>{__kbUi("Qayta yuklash")}</button></div>}
               <div className="grid md:grid-cols-2 gap-4">
-                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Smena soni</span><select value={newSchoolShifts} onChange={event => changeNewSchoolShiftCount(event.target.value)} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value={1}>1 smena</option><option value={2}>2 smena</option></select></label>
-                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>Sinf harflari alifbosi</span><select value={newSchoolAlphabet} onChange={event => changeNewSchoolAlphabet(event.target.value)} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}>{Object.entries(V237_CLASS_ALPHABET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Smena soni")}</span><select value={newSchoolShifts} onChange={event => changeNewSchoolShiftCount(event.target.value)} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}><option value={1}>{__kbUi("1 smena")}</option><option value={2}>{__kbUi("2 smena")}</option></select></label>
+                <label className="block"><span className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Sinf harflari alifbosi")}</span><select value={newSchoolAlphabet} onChange={event => changeNewSchoolAlphabet(event.target.value)} className="mt-2 w-full rounded-2xl border px-4 py-3 text-sm outline-none" style={{ borderColor: palette.line, background: "#fff", color: palette.ink }}>{Object.entries(V237_CLASS_ALPHABET_LABELS).map(([value, label]) => <option key={value} value={value}>{__kbUi(label)}</option>)}</select></label>
               </div>
               <div className="rounded-3xl border overflow-hidden" style={{ borderColor: palette.line, background: "#fff" }}>
                 <div className="p-4 flex flex-wrap items-start justify-between gap-3" style={{ background: palette.sky }}>
-                  <div><div className="text-sm font-black" style={{ color: palette.ink }}>Har ta’lim tilida nechta parallel sinf bor?</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>Avval O‘zbek, keyin Rus, so‘ng Ingliz sinflarini kiriting. Sinf harflari til va smenalar orasida takrorlanmay, keyingi harfdan davom etadi.</div></div>
-                  <div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: newSchoolClassTotal ? palette.green : palette.amber }}>{newSchoolClassTotal} ta sinf</div>
+                  <div><div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Har ta’lim tilida nechta parallel sinf bor?")}</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>{__kbUi("Avval O‘zbek, keyin Rus, so‘ng Ingliz sinflarini kiriting. Sinf harflari til va smenalar orasida takrorlanmay, keyingi harfdan davom etadi.")}</div></div>
+                  <div className="px-3 py-2 rounded-xl text-xs font-black" style={{ background: "#fff", color: newSchoolClassTotal ? palette.green : palette.amber }}>{newSchoolClassTotal}{__kbUi(" ta sinf")}</div>
                 </div>
                 <div className="p-3 border-t flex flex-wrap gap-2" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
                   {V238_EDUCATION_LANGUAGE_ORDER.map(talim_tili => {
                     const meta = V238_EDUCATION_LANGUAGES[talim_tili];
                     const count = newSchoolPlanPreview.reduce((sum, row) => sum + Number(row?.tillar?.[talim_tili]?.jami || 0), 0);
                     const active = newSchoolPlanLanguage === talim_tili;
-                    return <button type="button" key={talim_tili} onClick={() => setNewSchoolPlanLanguage(talim_tili)} className="px-4 py-2.5 rounded-xl border text-xs font-black" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>{meta.badge} · {meta.label} ({count})</button>;
+                    return <button type="button" key={talim_tili} onClick={() => setNewSchoolPlanLanguage(talim_tili)} className="px-4 py-2.5 rounded-xl border text-xs font-black" style={{ borderColor: active ? palette.blue : palette.line, background: active ? palette.blue : "#fff", color: active ? "#fff" : palette.ink }}>{__kbUi(meta.badge)} · {__kbUi(meta.label)} ({count})</button>;
                   })}
                 </div>
                 <div className="overflow-auto max-h-[500px]">
                   <table className="w-full min-w-[760px] text-xs">
-                    <thead className="sticky top-0 z-10" style={{ background: palette.cream, color: palette.muted }}><tr><th className="p-2.5 text-left w-24">Sinf</th><th className="p-2.5 text-left w-32">1-smena soni</th><th className="p-2.5 text-left">1-smena nomlari</th><th className="p-2.5 text-left w-32">2-smena soni</th><th className="p-2.5 text-left">2-smena nomlari</th></tr></thead>
+                    <thead className="sticky top-0 z-10" style={{ background: palette.cream, color: palette.muted }}><tr><th className="p-2.5 text-left w-24">{__kbUi("Sinf")}</th><th className="p-2.5 text-left w-32">{__kbUi("1-smena soni")}</th><th className="p-2.5 text-left">{__kbUi("1-smena nomlari")}</th><th className="p-2.5 text-left w-32">{__kbUi("2-smena soni")}</th><th className="p-2.5 text-left">{__kbUi("2-smena nomlari")}</th></tr></thead>
                     <tbody>{newSchoolPlanPreview.map(row => {
                       const languageRow = row?.tillar?.[newSchoolPlanLanguage] || {};
                       return <tr key={`${newSchoolPlanLanguage}-${row.sinf}`} className="border-t" style={{ borderColor: palette.line, background: languageRow.jami ? "#fff" : "#FCFDFE" }}>
                         <td className="p-2.5"><span className="inline-flex w-10 h-9 rounded-xl items-center justify-center font-black" style={{ background: languageRow.jami ? palette.sky : palette.cream, color: languageRow.jami ? palette.blue : palette.muted }}>{row.sinf}</span></td>
                         <td className="p-2.5"><input type="number" min="0" max={newSchoolAlphabetRows.length} value={languageRow.birinchi_smena || 0} onChange={event => updateNewSchoolClassCount(row.sinf, "birinchi_smena", event.target.value, newSchoolPlanLanguage)} className="w-24 rounded-xl border px-3 py-2 text-center font-black" style={{ borderColor: Number(languageRow.birinchi_smena) ? palette.blue : palette.line }}/></td>
-                        <td className="p-2.5 font-bold" style={{ color: languageRow.birinchi_harflar?.length ? palette.blue : palette.muted }}>{languageRow.birinchi_harflar?.length ? languageRow.birinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
+                        <td className="p-2.5 font-bold" style={{ color: languageRow.birinchi_harflar?.length ? palette.blue : palette.muted }}>{languageRow.birinchi_harflar?.length ? __kbUi(languageRow.birinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ")) : __kbUi("—")}</td>
                         <td className="p-2.5"><input type="number" min="0" max={newSchoolAlphabetRows.length} value={Number(newSchoolShifts) === 2 ? (languageRow.ikkinchi_smena || 0) : 0} disabled={Number(newSchoolShifts) !== 2} onChange={event => updateNewSchoolClassCount(row.sinf, "ikkinchi_smena", event.target.value, newSchoolPlanLanguage)} className="w-24 rounded-xl border px-3 py-2 text-center font-black disabled:opacity-40" style={{ borderColor: Number(languageRow.ikkinchi_smena) ? palette.teal : palette.line }}/></td>
-                        <td className="p-2.5 font-bold" style={{ color: languageRow.ikkinchi_harflar?.length ? palette.teal : palette.muted }}>{Number(newSchoolShifts) !== 2 ? "2-smena o‘chirilgan" : languageRow.ikkinchi_harflar?.length ? languageRow.ikkinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ") : "—"}</td>
+                        <td className="p-2.5 font-bold" style={{ color: languageRow.ikkinchi_harflar?.length ? palette.teal : palette.muted }}>{Number(newSchoolShifts) !== 2 ? __kbUi("2-smena o‘chirilgan") : languageRow.ikkinchi_harflar?.length ? __kbUi(languageRow.ikkinchi_harflar.map(letter => `${row.sinf}-${letter}`).join(", ")) : __kbUi("—")}</td>
                       </tr>;
                     })}</tbody>
                   </table>
                 </div>
                 <div className="border-t p-4" style={{ borderColor: palette.line, background: "#FCFDFE" }}>
-                  <div className="flex items-center justify-between gap-3"><div className="text-sm font-black" style={{ color: palette.ink }}>Tanlangan sinflar</div><div className="text-xs font-black" style={{ color: newSchoolClassTotal ? palette.green : palette.muted }}>{newSchoolClassTotal} ta</div></div>
+                  <div className="flex items-center justify-between gap-3"><div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Tanlangan sinflar")}</div><div className="text-xs font-black" style={{ color: newSchoolClassTotal ? palette.green : palette.muted }}>{newSchoolClassTotal}{__kbUi(" ta")}</div></div>
                   {newSchoolClassTotal ? <div className="grid md:grid-cols-3 gap-3 mt-3">
                     {newSchoolClassSummary.map(group => {
                       const meta = v238EducationLanguageMeta(group.talim_tili);
-                      return <div key={group.talim_tili} className="rounded-2xl border p-3" style={{ borderColor: palette.line, background: "#fff" }}><div className="text-xs font-black" style={{ color: palette.blue }}>{meta.badge} · {meta.label} ({group.classes.length})</div><div className="flex flex-wrap gap-1.5 mt-2">{group.classes.length ? group.classes.map(cls => <span key={cls.key} className="px-2 py-1 rounded-lg text-[10px] font-black" style={{ background: cls.smena === 1 ? palette.sky : palette.mint, color: cls.smena === 1 ? palette.blue : palette.teal }}>{cls.nomi} · {cls.smena}S</span>) : <span className="text-[10px]" style={{ color: palette.muted }}>Tanlanmagan</span>}</div></div>;
+                      return <div key={group.talim_tili} className="rounded-2xl border p-3" style={{ borderColor: palette.line, background: "#fff" }}><div className="text-xs font-black" style={{ color: palette.blue }}>{__kbUi(meta.badge)} · {__kbUi(meta.label)} ({group.classes.length})</div><div className="flex flex-wrap gap-1.5 mt-2">{group.classes.length ? group.classes.map(cls => <span key={cls.key} className="px-2 py-1 rounded-lg text-[10px] font-black" style={{ background: cls.smena === 1 ? palette.sky : palette.mint, color: cls.smena === 1 ? palette.blue : palette.teal }}>{cls.nomi} · {cls.smena}{__kbUi("S")}</span>) : <span className="text-[10px]" style={{ color: palette.muted }}>{__kbUi("Tanlanmagan")}</span>}</div></div>;
                     })}
-                  </div> : <div className="text-xs mt-2" style={{ color: palette.muted }}>Sinf sonini kiritsangiz, UZ/RU/EN tanlovlari shu yerda birga ko‘rinadi.</div>}
+                  </div> : <div className="text-xs mt-2" style={{ color: palette.muted }}>{__kbUi("Sinf sonini kiritsangiz, UZ/RU/EN tanlovlari shu yerda birga ko‘rinadi.")}</div>}
                 </div>
               </div>
-              {newSchoolError && <SmartNotice tone="error">{newSchoolError}</SmartNotice>}
+              {newSchoolError && <SmartNotice tone="error">{__kbUi(newSchoolError)}</SmartNotice>}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-                <button type="button" onClick={closeNewSchoolForm} disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button>
-                <button type="submit" disabled={newSchoolCreating || locationCatalogLoading || Boolean(locationCatalogError) || !locationCatalog.length} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: palette.teal }}>{newSchoolCreating ? <><Loader2 size={17} className="animate-spin"/> Yaratilmoqda...</> : <><School size={17}/> Maktabni yaratish</>}</button>
+                <button type="button" onClick={closeNewSchoolForm} disabled={newSchoolCreating} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Bekor qilish")}</button>
+                <button type="submit" disabled={newSchoolCreating || locationCatalogLoading || Boolean(locationCatalogError) || !locationCatalog.length} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: palette.teal }}>{newSchoolCreating ? <><Loader2 size={17} className="animate-spin"/>{__kbUi(" Yaratilmoqda...")}</> : <><School size={17}/>{__kbUi(" Maktabni yaratish")}</>}</button>
               </div>
             </form>
           </Card>
@@ -10692,7 +10589,7 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (curriculumOpen) {
     return <WorkspacePortal>
       <div className="min-h-screen">
-        <SmartHeader title={`${schoolName} · O‘quv reja`} subtitle="Fan → sinf → haftalik soat → tasdiqlash" onClose={() => { setCurriculumOpen(false); loadManager(); }}/>
+        <SmartHeader title={__kbUi(`${schoolName} · O‘quv reja`)} subtitle={__kbUi("Fan → sinf → haftalik soat → tasdiqlash")} onClose={() => { setCurriculumOpen(false); loadManager(); }}/>
         <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5">
           <TeacherFirstLoadEditorV192 token={token} apiBase={apiBase} maktabId={maktabId} planOnly onChanged={loadManager}/>
         </main>
@@ -10703,16 +10600,16 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   if (teacherEditorOpen) {
     return <WorkspacePortal>
       <div className="min-h-screen">
-        <SmartHeader title={`${schoolName} · O‘qituvchi va yuklama`} subtitle="F.I.Sh. + staj + fan + sinf/guruh + haftalik soat → bitta saqlash" onClose={() => setTeacherEditorOpen(false)}/>
+        <SmartHeader title={__kbUi(`${schoolName} · O‘qituvchi va yuklama`)} subtitle={__kbUi("F.I.Sh. + staj + fan + sinf/guruh + haftalik soat → bitta saqlash")} onClose={() => setTeacherEditorOpen(false)}/>
         <main className="max-w-[1500px] mx-auto px-4 md:px-7 py-5 space-y-5">
           <Card className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchini qanday kiritasiz?</div>
-              <div className="text-[11px] mt-1" style={{ color: palette.muted }}>Qo‘lda rejimida profil va aniq sinf/guruh yuklamasi birga saqlanadi. Excel ko‘p o‘qituvchi uchun.</div>
+              <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchini qanday kiritasiz?")}</div>
+              <div className="text-[11px] mt-1" style={{ color: palette.muted }}>{__kbUi("Qo‘lda rejimida profil va aniq sinf/guruh yuklamasi birga saqlanadi. Excel ko‘p o‘qituvchi uchun.")}</div>
             </div>
             <div className="grid grid-cols-2 gap-2 min-w-[360px]">
-              <button type="button" onClick={() => setTeacherEditorMode("manual")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: teacherEditorMode === "manual" ? palette.blue : palette.sky, color: teacherEditorMode === "manual" ? "#fff" : palette.blue }}>Qo‘lda to‘liq kiritish</button>
-              <button type="button" onClick={() => setTeacherEditorMode("excel")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: teacherEditorMode === "excel" ? palette.teal : palette.mint, color: teacherEditorMode === "excel" ? "#fff" : palette.teal }}>Excel shablon</button>
+              <button type="button" onClick={() => setTeacherEditorMode("manual")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: teacherEditorMode === "manual" ? palette.blue : palette.sky, color: teacherEditorMode === "manual" ? "#fff" : palette.blue }}>{__kbUi("Qo‘lda to‘liq kiritish")}</button>
+              <button type="button" onClick={() => setTeacherEditorMode("excel")} className="px-4 py-3 rounded-xl text-xs font-black" style={{ background: teacherEditorMode === "excel" ? palette.teal : palette.mint, color: teacherEditorMode === "excel" ? "#fff" : palette.teal }}>{__kbUi("Excel shablon")}</button>
             </div>
           </Card>
           {teacherEditorMode === "manual" ? <TeacherFirstLoadEditorV192
@@ -10727,8 +10624,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
             }}
           />}
           <Card className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ background: palette.sky }}>
-            <div><div className="text-sm font-black" style={{ color: palette.ink }}>O‘qituvchilar tayyormi?</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>Yangi ustoz saqlanishi bilan uning o‘zgarmas # raqami va fan–sinf–guruh yuklamasi keyingi oynada darhol ko‘rinadi.</div></div>
-            <button type="button" onClick={() => { setTeacherEditorOpen(false); setSmartOpen(3); }} className="px-5 py-3 rounded-xl text-xs font-black text-white shrink-0" style={{ background: palette.blue }}>Sinf skeleti + guruh o‘qituvchilariga o‘tish →</button>
+            <div><div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("O‘qituvchilar tayyormi?")}</div><div className="text-[11px] mt-1" style={{ color: palette.muted }}>{__kbUi("Yangi ustoz saqlanishi bilan uning o‘zgarmas # raqami va fan–sinf–guruh yuklamasi keyingi oynada darhol ko‘rinadi.")}</div></div>
+            <button type="button" onClick={() => { setTeacherEditorOpen(false); setSmartOpen(3); }} className="px-5 py-3 rounded-xl text-xs font-black text-white shrink-0" style={{ background: palette.blue }}>{__kbUi("Sinf skeleti + guruh o‘qituvchilariga o‘tish →")}</button>
           </Card>
         </main>
       </div>
@@ -10751,8 +10648,8 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
 
   if (accessCodesOpen && !teacherMode && maktabId) {
     return <WorkspacePortal><div className="min-h-screen" style={{ background: palette.cream }}>
-      <SmartHeader title={`${schoolName} · Shaxsiy ulanish kodlari`} subtitle="Mavjud xodim, o‘quvchi yoki ota-onaning ulanish kodini yangilash" onClose={() => setAccessCodesOpen(false)}/>
-      <main className="max-w-5xl mx-auto px-4 py-6"><Card className="p-5"><React.Suspense fallback={<p role="status">Ulanish kodlari bo‘limi yuklanmoqda…</p>}><SchoolAccessCodes key={maktabId} apiBase={apiBase} token={token} maktabId={maktabId}/></React.Suspense></Card></main>
+      <SmartHeader title={__kbUi(`${schoolName} · Shaxsiy ulanish kodlari`)} subtitle={__kbUi("Mavjud xodim, o‘quvchi yoki ota-onaning ulanish kodini yangilash")} onClose={() => setAccessCodesOpen(false)}/>
+      <main className="max-w-5xl mx-auto px-4 py-6"><Card className="p-5"><React.Suspense fallback={<p role="status">{__kbUi("Ulanish kodlari bo‘limi yuklanmoqda…")}</p>}><SchoolAccessCodes key={maktabId} apiBase={apiBase} token={token} maktabId={maktabId}/></React.Suspense></Card></main>
     </div></WorkspacePortal>;
   }
 
@@ -10760,15 +10657,15 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
     return (
       <WorkspacePortal>
         <div className="min-h-screen">
-          <SmartHeader title={schoolName} subtitle="O‘qituvchi ish maydoni" onClose={onBack}/>
+          <SmartHeader title={schoolName} subtitle={__kbUi("O‘qituvchi ish maydoni")} onClose={onBack}/>
           <main className="max-w-6xl mx-auto px-4 md:px-7 py-5 md:py-8">
             <Card className="p-5 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div><div className="text-xs font-black uppercase tracking-[.14em] opacity-75">Mening maktabim</div><h2 className="text-2xl md:text-3xl font-black mt-1">{schoolName}</h2><p className="text-sm mt-1 opacity-80">Bugungi darslar, haftalik jadval va mavzu rejasi bir joyda.</p></div>
+                <div><div className="text-xs font-black uppercase tracking-[.14em] opacity-75">{__kbUi("Mening maktabim")}</div><h2 className="text-2xl md:text-3xl font-black mt-1">{schoolName}</h2><p className="text-sm mt-1 opacity-80">{__kbUi("Bugungi darslar, haftalik jadval va mavzu rejasi bir joyda.")}</p></div>
                 <div className="flex flex-wrap gap-2">
                   <TeacherAvailabilityShortcut access={availabilityAccess} onOpen={() => setSmartOpen(2)}/>
-                  <button onClick={() => setJournalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "rgba(255,255,255,.16)" }}>📅 Kalendar jurnali</button>
-                  <button onClick={() => setSmartOpen(5)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "#fff", color: palette.blue }}>Mavzu rejasi</button>
+                  <button onClick={() => setJournalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "rgba(255,255,255,.16)" }}>{__kbUi("📅 Kalendar jurnali")}</button>
+                  <button onClick={() => setSmartOpen(5)} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: "#fff", color: palette.blue }}>{__kbUi("Mavzu rejasi")}</button>
                 </div>
               </div>
             </Card>
@@ -10782,62 +10679,62 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
   return (
     <WorkspacePortal>
       <div className="min-h-screen" style={{ background: "radial-gradient(circle at top right,#E9F7F5 0,transparent 33%),linear-gradient(180deg,#F8FBFD 0%,#F7F4ED 100%)" }}>
-        <SmartHeader title={schoolName} subtitle="Maktab boshqaruv markazi" onClose={onBack} badge="MAKTAB WORKSPACE"/>
-        {classCreateDraft && <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 2147483100, background: "rgba(16,35,52,.58)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true" aria-label="Yangi sinf qo‘shish">
+        <SmartHeader title={schoolName} subtitle={__kbUi("Maktab boshqaruv markazi")} onClose={onBack} badge="MAKTAB WORKSPACE"/>
+        {classCreateDraft && <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 2147483100, background: "rgba(16,35,52,.58)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true" aria-label={__kbUi("Yangi sinf qo‘shish")}>
           <form onSubmit={saveClassCreate} className="w-full max-w-xl rounded-3xl border bg-white p-5 md:p-6" style={{ borderColor: palette.line, boxShadow: "0 28px 90px rgba(11,35,50,.28)" }}>
             <div className="flex items-start justify-between gap-3">
-              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>YANGI SINF</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>Sinf, ta’lim tili, smena va xonani kiriting</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Ta’lim tili fanlar, o‘quv reja, yuklama va jadval setkasini shu sinfga moslaydi.</p></div>
+              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("YANGI SINF")}</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Sinf, ta’lim tili, smena va xonani kiriting")}</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Ta’lim tili fanlar, o‘quv reja, yuklama va jadval setkasini shu sinfga moslaydi.")}</p></div>
               <button type="button" onClick={() => { setClassCreateDraft(null); setClassCreateError(""); }} disabled={classCreateSaving} className="w-9 h-9 rounded-xl font-black" style={{ background: palette.cream, color: palette.ink }}>×</button>
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mt-5">
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Sinf darajasi *<select autoFocus value={classCreateDraft.sinf} onChange={event => { setClassCreateDraft(current => ({ ...current, sinf: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">1–11 dan tanlang</option>{Array.from({ length: 11 }, (_, index) => index + 1).map(grade => <option key={grade} value={grade}>{grade}-sinf</option>)}</select></label>
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Harf yoki erkin nom *<input list="v237-class-label-suggestions" value={classCreateDraft.harf} onChange={event => { setClassCreateDraft(current => ({ ...current, harf: event.target.value })); setClassCreateError(""); }} placeholder="A, Б, Rus, A-1" className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: palette.line }}/><datalist id="v237-class-label-suggestions">{(V237_CLASS_ALPHABETS[schoolAlphabet] || []).map(label => <option key={label} value={label}/>)}</datalist></label>
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Smena *<select value={classCreateDraft.smena} onChange={event => { setClassCreateDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value={1}>1-smena</option>{configuredSchoolShiftCount !== 1 && <option value={2}>2-smena</option>}</select></label>
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Ta’lim tili *<select value={classCreateDraft.talim_tili || "uz"} onChange={event => { setClassCreateDraft(current => ({ ...current, talim_tili: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}>{V238_EDUCATION_LANGUAGE_ORDER.map(value => <option key={value} value={value}>{V238_EDUCATION_LANGUAGES[value].label}</option>)}</select></label>
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Sinf xonasi<select value={classCreateDraft.xona_id} onChange={event => { setClassCreateDraft(current => ({ ...current, xona_id: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Xonasiz</option>{classRooms.map(room => <option key={room.id} value={room.id}>{room.nomi}{room.xona_raqami ? ` · ${room.xona_raqami}` : ""}</option>)}</select></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Sinf darajasi *")}<select autoFocus value={classCreateDraft.sinf} onChange={event => { setClassCreateDraft(current => ({ ...current, sinf: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">{__kbUi("1–11 dan tanlang")}</option>{Array.from({ length: 11 }, (_, index) => index + 1).map(grade => <option key={grade} value={grade}>{grade}{__kbUi("-sinf")}</option>)}</select></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Harf yoki erkin nom *")}<input list="v237-class-label-suggestions" value={classCreateDraft.harf} onChange={event => { setClassCreateDraft(current => ({ ...current, harf: event.target.value })); setClassCreateError(""); }} placeholder={__kbUi("A, Б, Rus, A-1")} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: palette.line }}/><datalist id="v237-class-label-suggestions">{(V237_CLASS_ALPHABETS[schoolAlphabet] || []).map(label => <option key={label} value={label}/>)}</datalist></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Smena *")}<select value={classCreateDraft.smena} onChange={event => { setClassCreateDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value={1}>{__kbUi("1-smena")}</option>{configuredSchoolShiftCount !== 1 && <option value={2}>{__kbUi("2-smena")}</option>}</select></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Ta’lim tili *")}<select value={classCreateDraft.talim_tili || "uz"} onChange={event => { setClassCreateDraft(current => ({ ...current, talim_tili: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}>{V238_EDUCATION_LANGUAGE_ORDER.map(value => <option key={value} value={value}>{__kbUi(V238_EDUCATION_LANGUAGES[value].label)}</option>)}</select></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Sinf xonasi")}<select value={classCreateDraft.xona_id} onChange={event => { setClassCreateDraft(current => ({ ...current, xona_id: event.target.value })); setClassCreateError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">{__kbUi("Xonasiz")}</option>{classRooms.map(room => <option key={room.id} value={room.id}>{room.nomi}{room.xona_raqami ? __kbUi(` · ${room.xona_raqami}`) : __kbUi("")}</option>)}</select></label>
             </div>
-            <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>Joriy taklif alifbosi: {V237_CLASS_ALPHABET_LABELS[schoolAlphabet]}. Bu majburiy cheklov emas — maydonga xohlagan lotin/kirill nomni yozishingiz mumkin.</div>
-            {classCreateError && <div className="mt-3"><SmartNotice tone="error">{classCreateError}</SmartNotice></div>}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5"><button type="button" onClick={() => { setClassCreateDraft(null); setClassCreateError(""); }} disabled={classCreateSaving} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button><button type="submit" disabled={classCreateSaving} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>{classCreateSaving && <Loader2 size={16} className="animate-spin"/>}{classCreateSaving ? "Yaratilmoqda..." : "Sinfni yaratish"}</button></div>
+            <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Joriy taklif alifbosi: ")}{__kbUi(V237_CLASS_ALPHABET_LABELS[schoolAlphabet])}{__kbUi(". Bu majburiy cheklov emas — maydonga xohlagan lotin/kirill nomni yozishingiz mumkin.")}</div>
+            {classCreateError && <div className="mt-3"><SmartNotice tone="error">{__kbUi(classCreateError)}</SmartNotice></div>}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5"><button type="button" onClick={() => { setClassCreateDraft(null); setClassCreateError(""); }} disabled={classCreateSaving} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Bekor qilish")}</button><button type="submit" disabled={classCreateSaving} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>{classCreateSaving && <Loader2 size={16} className="animate-spin"/>}{classCreateSaving ? __kbUi("Yaratilmoqda...") : __kbUi("Sinfni yaratish")}</button></div>
           </form>
         </div>}
-        {classEditDraft && <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 2147483100, background: "rgba(16,35,52,.58)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true" aria-label="Sinfni tahrirlash">
+        {classEditDraft && <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 2147483100, background: "rgba(16,35,52,.58)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true" aria-label={__kbUi("Sinfni tahrirlash")}>
           <form onSubmit={saveClassEdit} className="w-full max-w-lg rounded-3xl border bg-white p-5 md:p-6" style={{ borderColor: palette.line, boxShadow: "0 28px 90px rgba(11,35,50,.28)" }}>
             <div className="flex items-start justify-between gap-3">
-              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>SINFNI TAHRIRLASH</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{classEditDraft.sinf}-{classEditDraft.harf}</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>Sinf ID si saqlanadi; o‘quvchi, rahbar, fan yuklamasi va jadval bog‘lanishlari o‘chmaydi.</p></div>
+              <div><div className="text-[10px] font-black uppercase tracking-[.13em]" style={{ color: palette.teal }}>{__kbUi("SINFNI TAHRIRLASH")}</div><h2 className="text-xl font-black mt-1" style={{ color: palette.ink }}>{classEditDraft.sinf}-{classEditDraft.harf}</h2><p className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("Sinf ID si saqlanadi; o‘quvchi, rahbar, fan yuklamasi va jadval bog‘lanishlari o‘chmaydi.")}</p></div>
               <button type="button" onClick={() => { setClassEditDraft(null); setClassEditError(""); }} disabled={classEditSaving} className="w-9 h-9 rounded-xl font-black" style={{ background: palette.cream, color: palette.ink }}>×</button>
             </div>
             <div className="grid sm:grid-cols-[120px_1fr] gap-3 mt-5">
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Sinf darajasi<input value={classEditDraft.sinf} readOnly className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm font-black" style={{ borderColor: palette.line, background: palette.cream, color: palette.muted }}/></label>
-              <label className="text-xs font-black" style={{ color: palette.ink }}>Harf yoki erkin nom *<input autoFocus value={classEditDraft.harf} onChange={event => { setClassEditDraft(current => ({ ...current, harf: event.target.value })); setClassEditError(""); }} placeholder="Masalan: A, Б, Rus, A-1" className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: classEditError && !String(classEditDraft.harf || "").trim() ? palette.red : palette.line }}/></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Sinf darajasi")}<input value={classEditDraft.sinf} readOnly className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm font-black" style={{ borderColor: palette.line, background: palette.cream, color: palette.muted }}/></label>
+              <label className="text-xs font-black" style={{ color: palette.ink }}>{__kbUi("Harf yoki erkin nom *")}<input autoFocus value={classEditDraft.harf} onChange={event => { setClassEditDraft(current => ({ ...current, harf: event.target.value })); setClassEditError(""); }} placeholder={__kbUi("Masalan: A, Б, Rus, A-1")} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm outline-none" style={{ borderColor: classEditError && !String(classEditDraft.harf || "").trim() ? palette.red : palette.line }}/></label>
             </div>
-            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Smena *<select value={classEditDraft.smena} onChange={event => { setClassEditDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Joriy smenani tanlang</option><option value={1}>1-smena</option>{classEditAllowsSecondShift && <option value={2}>2-smena</option>}</select></label>
-            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Ta’lim tili *<select value={classEditDraft.talim_tili || "uz"} onChange={event => { setClassEditDraft(current => ({ ...current, talim_tili: event.target.value })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}>{V238_EDUCATION_LANGUAGE_ORDER.map(value => <option key={value} value={value}>{V238_EDUCATION_LANGUAGES[value].label}</option>)}</select></label>
-            <div className="mt-2 rounded-xl px-3 py-2 text-[11px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>Muhim: sinfda o‘quv reja, o‘qituvchi, guruh yoki jadval bog‘lanishi bo‘lsa server ta’lim tilini jim almashtirmaydi. Bunday holatda yangi sinf yarating yoki ma’lumotni alohida ko‘chiring.</div>
-            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>Sinf xonasi<select value={classEditDraft.xona_id ?? ""} onChange={event => { setClassEditDraft(current => ({ ...current, xona_id: event.target.value })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">Xonasiz</option>{classRooms.map(room => <option key={room.id} value={room.id}>{room.nomi}{room.xona_raqami ? ` · ${room.xona_raqami}` : ""}</option>)}</select></label>
-            <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>Bu tahrirda alfavit majburiy emas: lotin, kirill yoki xohlagan qisqa nom qabul qilinadi. Faqat shu sinf darajasida aynan bir xil nom takrorlanmasin.</div>
-            {classEditError && <div className="mt-3"><SmartNotice tone="error">{classEditError}</SmartNotice></div>}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5"><button type="button" onClick={() => { setClassEditDraft(null); setClassEditError(""); }} disabled={classEditSaving} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Bekor qilish</button><button type="submit" disabled={classEditSaving} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>{classEditSaving && <Loader2 size={16} className="animate-spin"/>}{classEditSaving ? "Saqlanmoqda..." : "Sinfni saqlash"}</button></div>
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>{__kbUi("Smena *")}<select value={classEditDraft.smena} onChange={event => { setClassEditDraft(current => ({ ...current, smena: Number(event.target.value) || "" })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">{__kbUi("Joriy smenani tanlang")}</option><option value={1}>{__kbUi("1-smena")}</option>{classEditAllowsSecondShift && <option value={2}>{__kbUi("2-smena")}</option>}</select></label>
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>{__kbUi("Ta’lim tili *")}<select value={classEditDraft.talim_tili || "uz"} onChange={event => { setClassEditDraft(current => ({ ...current, talim_tili: event.target.value })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}>{V238_EDUCATION_LANGUAGE_ORDER.map(value => <option key={value} value={value}>{__kbUi(V238_EDUCATION_LANGUAGES[value].label)}</option>)}</select></label>
+            <div className="mt-2 rounded-xl px-3 py-2 text-[11px] font-bold" style={{ background: palette.amberBg, color: palette.amber }}>{__kbUi("Muhim: sinfda o‘quv reja, o‘qituvchi, guruh yoki jadval bog‘lanishi bo‘lsa server ta’lim tilini jim almashtirmaydi. Bunday holatda yangi sinf yarating yoki ma’lumotni alohida ko‘chiring.")}</div>
+            <label className="block text-xs font-black mt-3" style={{ color: palette.ink }}>{__kbUi("Sinf xonasi")}<select value={classEditDraft.xona_id ?? ""} onChange={event => { setClassEditDraft(current => ({ ...current, xona_id: event.target.value })); setClassEditError(""); }} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-sm bg-white" style={{ borderColor: palette.line }}><option value="">{__kbUi("Xonasiz")}</option>{classRooms.map(room => <option key={room.id} value={room.id}>{room.nomi}{room.xona_raqami ? __kbUi(` · ${room.xona_raqami}`) : __kbUi("")}</option>)}</select></label>
+            <div className="mt-3 rounded-xl px-3 py-2 text-[11px]" style={{ background: palette.sky, color: palette.blue }}>{__kbUi("Bu tahrirda alfavit majburiy emas: lotin, kirill yoki xohlagan qisqa nom qabul qilinadi. Faqat shu sinf darajasida aynan bir xil nom takrorlanmasin.")}</div>
+            {classEditError && <div className="mt-3"><SmartNotice tone="error">{__kbUi(classEditError)}</SmartNotice></div>}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5"><button type="button" onClick={() => { setClassEditDraft(null); setClassEditError(""); }} disabled={classEditSaving} className="px-5 py-3 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Bekor qilish")}</button><button type="submit" disabled={classEditSaving} className="px-5 py-3 rounded-xl text-sm font-black text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: palette.teal }}>{classEditSaving && <Loader2 size={16} className="animate-spin"/>}{classEditSaving ? __kbUi("Saqlanmoqda...") : __kbUi("Sinfni saqlash")}</button></div>
           </form>
         </div>}
         <main className="max-w-7xl mx-auto px-4 md:px-7 py-5 md:py-8">
           <div className="flex flex-wrap justify-end gap-2 mb-5">
             <button onClick={() => setCurriculumOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: curriculumApproved ? palette.green : palette.amber, color: "#fff" }}>
-              <BookOpen size={16}/> O‘quv reja {curriculumApproved ? "✓" : "· tasdiqlanmagan"}
+              <BookOpen size={16}/>{__kbUi(" O‘quv reja ")}{curriculumApproved ? __kbUi("✓") : __kbUi("· tasdiqlanmagan")}
             </button>
-            <button onClick={openTeacherEditor} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title={curriculumApproved ? "Reja soati avtomatik chiqadi" : "Qo‘lda fan–sinf–guruh–soat kiritish ochiq; avtomatik soat reja tasdiqlanganda ishlaydi"}><UserCog size={16}/> O‘qituvchi qo‘shish</button>
-            <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/> Aqlli dars jadvali</button>
+            <button onClick={openTeacherEditor} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }} title={curriculumApproved ? __kbUi("Reja soati avtomatik chiqadi") : __kbUi("Qo‘lda fan–sinf–guruh–soat kiritish ochiq; avtomatik soat reja tasdiqlanganda ishlaydi")}><UserCog size={16}/>{__kbUi(" O‘qituvchi qo‘shish")}</button>
+            <button onClick={() => setSmartOpen(1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><CalendarDays size={16}/>{__kbUi(" Aqlli dars jadvali")}</button>
             <TeacherAvailabilityShortcut access={availabilityAccess} onOpen={() => setSmartOpen(2)}/>
-            <button onClick={() => setJournalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.mint, color: palette.green }} title="Tasdiqlangan haftalik jadval haqiqiy kunlarda: hafta / oy / chorak"><CalendarDays size={16}/> Kalendar jurnali</button>
-            {onRejalashtirish && <button onClick={onRejalashtirish} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#FFF8EE", color: "#8A5A1C" }} title="Qo‘lda dars qo‘yish / o‘zgartirish: bir kun / har hafta / chorak">Qo‘lda o‘zgartirish</button>}
-            {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/> Rol sifatida ko‘rish</button>}
-            <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/> Yangilash</button>
-            {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Maktab sozlamalari</button>}
+            <button onClick={() => setJournalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.mint, color: palette.green }} title={__kbUi("Tasdiqlangan haftalik jadval haqiqiy kunlarda: hafta / oy / chorak")}><CalendarDays size={16}/>{__kbUi(" Kalendar jurnali")}</button>
+            {onRejalashtirish && <button onClick={onRejalashtirish} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#FFF8EE", color: "#8A5A1C" }} title={__kbUi("Qo‘lda dars qo‘yish / o‘zgartirish: bir kun / har hafta / chorak")}>{__kbUi("Qo‘lda o‘zgartirish")}</button>}
+            {adminPreview && <button onClick={() => setAdminPreviewOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.greenBg, color: palette.green }}><Eye size={16}/>{__kbUi(" Rol sifatida ko‘rish")}</button>}
+            <button onClick={loadManager} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: "#fff", border: `1px solid ${palette.line}`, color: palette.blue }}><RefreshCw size={15}/>{__kbUi(" Yangilash")}</button>
+            {onLegacy && <button onClick={onLegacy} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Maktab sozlamalari")}</button>}
           </div>
 
           <Card className="p-5 md:p-7 mb-5" style={{ background: "linear-gradient(135deg,#153D5A,#0D7378)", borderColor: "transparent", color: "#fff" }}>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-              <div><div className="text-xs font-bold tracking-[.14em] uppercase opacity-75">Maktab boshqaruv markazi</div><h1 className="text-2xl md:text-4xl font-black mt-2">{schoolName}</h1><p className="text-sm mt-2 opacity-80 max-w-2xl">Bugungi holat, sinflar, o‘qituvchi yuklamasi va e’tibor talab qiladigan vaziyatlar — bir qarashda.</p></div>
+              <div><div className="text-xs font-bold tracking-[.14em] uppercase opacity-75">{__kbUi("Maktab boshqaruv markazi")}</div><h1 className="text-2xl md:text-4xl font-black mt-2">{schoolName}</h1><p className="text-sm mt-2 opacity-80 max-w-2xl">{__kbUi("Bugungi holat, sinflar, o‘qituvchi yuklamasi va e’tibor talab qiladigan vaziyatlar — bir qarashda.")}</p></div>
               <div className="w-16 h-16 rounded-3xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,.14)" }}><School size={31}/></div>
             </div>
           </Card>
@@ -10845,36 +10742,36 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
           {maktabId && <MilitaryRoutine token={token} apiBase={apiBase} schoolId={maktabId} />}
           {!adminPreview && <DirectorHome token={token} apiBase={apiBase} maktabId={maktabId} onOpenTimetable={() => setSmartOpen(4)} onOpenRequests={() => setSmartOpen(45)} onOpenStates={null} onMarkAttendance={null}/>}
           {classEditNotice && <div className="mb-4"><SmartNotice tone={classEditNotice.tone}>{classEditNotice.text}</SmartNotice></div>}
-          {loadWarnings.length > 0 && !loading && <div className="mb-4 space-y-2">{loadWarnings.slice(0,5).map((warning, index)=><SmartNotice key={`${warning}-${index}`} tone="warning">{warning}</SmartNotice>)}</div>}
-          {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <div className="space-y-3"><SmartNotice tone="error">{error}</SmartNotice>{workspaceLinkError && <div className="flex flex-wrap gap-2"><button onClick={() => setWorkspaceRetry(value => value + 1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><RefreshCw size={15}/> Maktabni qayta bog'lash</button><button onClick={onBack} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>Muassasani qayta tanlash</button></div>}</div> : <>
+          {loadWarnings.length > 0 && !loading && <div className="mb-4 space-y-2">{loadWarnings.slice(0,5).map((warning, index)=><SmartNotice key={`${warning}-${index}`} tone="warning">{__kbUi(warning)}</SmartNotice>)}</div>}
+          {loading ? <div className="py-20 flex justify-center"><Loader2 className="animate-spin" size={30} style={{ color: palette.blue }}/></div> : error ? <div className="space-y-3"><SmartNotice tone="error">{__kbUi(error)}</SmartNotice>{workspaceLinkError && <div className="flex flex-wrap gap-2"><button onClick={() => setWorkspaceRetry(value => value + 1)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-2" style={{ background: palette.blue, color: "#fff" }}><RefreshCw size={15}/>{__kbUi(" Maktabni qayta bog'lash")}</button><button onClick={onBack} className="px-4 py-2.5 rounded-xl text-sm font-black" style={{ background: palette.cream, color: palette.ink }}>{__kbUi("Muassasani qayta tanlash")}</button></div>}</div> : <>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-              <Stat icon={<GraduationCap size={18}/>} value={jamiOquvchi} label="o‘quvchi" tone="blue"/>
-              <Stat icon={<School size={18}/>} value={dashboardClasses.length} label="sinf" tone="teal"/>
-              <Stat icon={<UserRoundCheck size={18}/>} value={dashboard?.bugungi_davomat?.kelgan ?? 0} label="bugun kelgan" tone="green"/>
-              <Stat icon={<ClipboardCheck size={18}/>} value={dashboard?.bugungi_davomat?.sinflar_belgilamagan ?? 0} label="davomat kiritmagan sinf" tone={dashboard?.bugungi_davomat?.sinflar_belgilamagan ? "amber" : "green"}/>
-              <Stat icon={<BellRing size={18}/>} value={holatlar.length} label="ochiq aqlli holat" tone={holatlar.length ? "red" : "green"}/>
+              <Stat icon={<GraduationCap size={18}/>} value={jamiOquvchi} label={__kbUi("o‘quvchi")} tone="blue"/>
+              <Stat icon={<School size={18}/>} value={dashboardClasses.length} label={__kbUi("sinf")} tone="teal"/>
+              <Stat icon={<UserRoundCheck size={18}/>} value={dashboard?.bugungi_davomat?.kelgan ?? 0} label={__kbUi("bugun kelgan")} tone="green"/>
+              <Stat icon={<ClipboardCheck size={18}/>} value={dashboard?.bugungi_davomat?.sinflar_belgilamagan ?? 0} label={__kbUi("davomat kiritmagan sinf")} tone={dashboard?.bugungi_davomat?.sinflar_belgilamagan ? "amber" : "green"}/>
+              <Stat icon={<BellRing size={18}/>} value={holatlar.length} label={__kbUi("ochiq aqlli holat")} tone={holatlar.length ? "red" : "green"}/>
             </div>
 
             <ClassBulkGroupSettingsV238 token={token} apiBase={apiBase} maktabId={maktabId} classes={dashboardClasses} variants={classGroupVariants} onChanged={loadManager}/>
 
             <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-4 mb-5">
               <Card className="p-5">
-                <div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Bugun maktabda</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Tezkor nazorat</div></div><LayoutDashboard size={22} style={{ color: palette.blue }}/></div>
+                <div className="flex items-center justify-between mb-4"><div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("Bugun maktabda")}</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Tezkor nazorat")}</div></div><LayoutDashboard size={22} style={{ color: palette.blue }}/></div>
                 <div className="space-y-2.5">
-                  {(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) > 0 && <div className="rounded-2xl p-3.5 flex gap-3" style={{ background: palette.amberBg }}><AlertTriangle size={19} style={{ color: palette.amber }}/><div><div className="text-sm font-bold" style={{ color: palette.ink }}>{dashboard.bugungi_davomat.sinflar_belgilamagan} ta sinf davomat kiritmagan</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>Faqat kelmagan yoki kechikkan o‘quvchini belgilash kifoya.</div></div></div>}
+                  {(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) > 0 && <div className="rounded-2xl p-3.5 flex gap-3" style={{ background: palette.amberBg }}><AlertTriangle size={19} style={{ color: palette.amber }}/><div><div className="text-sm font-bold" style={{ color: palette.ink }}>{dashboard.bugungi_davomat.sinflar_belgilamagan}{__kbUi(" ta sinf davomat kiritmagan")}</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>{__kbUi("Faqat kelmagan yoki kechikkan o‘quvchini belgilash kifoya.")}</div></div></div>}
                   {holatlar.slice(0,4).map(h=><div key={h.id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background: h.daraja>=3?palette.redBg:palette.cream }}><div className="w-8 h-8 rounded-xl flex items-center justify-center font-black" style={{ background: "#fff", color:h.daraja>=3?palette.red:palette.amber }}>{h.daraja}</div><div className="flex-1"><div className="text-sm font-bold" style={{ color: palette.ink }}>{h.full_name}</div><div className="text-xs mt-0.5" style={{ color: palette.muted }}>{h.sarlavha}</div></div></div>)}
-                  {!holatlar.length && !(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) && <SmartNotice tone="success">Hozircha shoshilinch signal yo‘q.</SmartNotice>}
+                  {!holatlar.length && !(dashboard?.bugungi_davomat?.sinflar_belgilamagan || 0) && <SmartNotice tone="success">{__kbUi("Hozircha shoshilinch signal yo‘q.")}</SmartNotice>}
                 </div>
               </Card>
               <Card className="p-5">
-                <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>Aqlli yordamchi</div></div>
+                <div className="flex items-center gap-2 mb-4"><WandSparkles size={20} style={{ color: palette.teal }}/><div className="text-lg font-black" style={{ color: palette.ink }}>{__kbUi("Aqlli yordamchi")}</div></div>
                 <div className="space-y-2">
-                  <QuickAction icon={<BookOpen size={18}/>} title={`O‘quv reja · ${curriculumApproved ? "tasdiqlangan" : "tasdiqlanmagan"}`} desc="Avval fan–sinf–haftalik soatlarni tekshiring va tasdiqlang." onClick={() => setCurriculumOpen(true)}/>
-                  <QuickAction icon={<LockKeyhole size={18}/>} title="Shaxsiy ulanish kodlari" desc="Mavjud xodim, o‘quvchi yoki ota-onani toping va ishlamagan ulanish kodini yangilang." onClick={() => setAccessCodesOpen(true)}/>
-                  <QuickAction icon={<UserCog size={18}/>} title="O‘qituvchi va yuklama qo‘shish" desc={curriculumApproved ? "F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." : "Ochiq: soatni qo‘lda yozing. Reja tasdiqlansa soat avtomatik chiqadi."} onClick={openTeacherEditor}/>
-                  <QuickAction icon={<CalendarDays size={18}/>} title="Aqlli dars jadvali" desc="Kalendar → o‘qituvchi vaqti → fan-soat → jadval yaratish → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
-                  <QuickAction icon={<BarChart3 size={18}/>} title="Yuklama balansi" desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
-                  <QuickAction icon={<MessageCircle size={18}/>} title="Xabarlar" desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
+                  <QuickAction icon={<BookOpen size={18}/>} title={__kbUi(`O‘quv reja · ${curriculumApproved ? "tasdiqlangan" : "tasdiqlanmagan"}`)} desc="Avval fan–sinf–haftalik soatlarni tekshiring va tasdiqlang." onClick={() => setCurriculumOpen(true)}/>
+                  <QuickAction icon={<LockKeyhole size={18}/>} title={__kbUi("Shaxsiy ulanish kodlari")} desc="Mavjud xodim, o‘quvchi yoki ota-onani toping va ishlamagan ulanish kodini yangilang." onClick={() => setAccessCodesOpen(true)}/>
+                  <QuickAction icon={<UserCog size={18}/>} title={__kbUi("O‘qituvchi va yuklama qo‘shish")} desc={curriculumApproved ? "F.I.Sh., fanlar, sinf yoki guruhlar va haftalik soatni bitta joyda kiriting." : "Ochiq: soatni qo‘lda yozing. Reja tasdiqlansa soat avtomatik chiqadi."} onClick={openTeacherEditor}/>
+                  <QuickAction icon={<CalendarDays size={18}/>} title={__kbUi("Aqlli dars jadvali")} desc="Kalendar → o‘qituvchi vaqti → fan-soat → jadval yaratish → tasdiq → mavzu rejasi." onClick={() => setSmartOpen(1)}/>
+                  <QuickAction icon={<BarChart3 size={18}/>} title={__kbUi("Yuklama balansi")} desc={`${yuklamaMuammo.length} ta xodimda yuklama farqi bor.`} onClick={() => setSmartOpen(4)}/>
+                  <QuickAction icon={<MessageCircle size={18}/>} title={__kbUi("Xabarlar")} desc="Maktab, sinf va ishchi guruhlar bo‘yicha muloqot." onClick={onBack}/>
                 </div>
               </Card>
             </div>
@@ -10883,34 +10780,31 @@ export default function SchoolWorkspace({ token, apiBase, initialWorkspace, onBa
               <Card className="p-5">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>O‘qituvchilar</div>
-                    <div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Haftalik yuklama</div>
+                    <div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("O‘qituvchilar")}</div>
+                    <div className="text-lg font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Haftalik yuklama")}</div>
                   </div>
                   <button onClick={openTeacherEditor} className="px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2" style={{ background: palette.teal, color: "#fff" }}>
-                    <UserCog size={16}/> + O‘qituvchi
-                  </button>
+                    <UserCog size={16}/>{__kbUi(" + O‘qituvchi")}</button>
                 </div>
                 <div className="space-y-2 max-h-[390px] overflow-auto pr-1">
-                  {yuklama.slice(0,30).map(x=>{const reja=x.haftalik_reja_jami??x.haftalik_dars_soati;const amaldagi=Number(x.amaldagi_soat??x.biriktirilgan_soat??x.jadvaldagi_soat??0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.lavozim==="psixolog"?`Psixolog · ${x.psixolog_sinf_soni||0} sinf`:`${x.fanlari||"Fan belgilanmagan"}${x.sinf_soati_soni?` · +${x.sinf_soati_soni} sinf soati`:""}`}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??"—"}</div><div className="text-[10px]" style={{ color:palette.muted }}>{x.hisob_manbasi==="tasdiqlangan_jadval"?"jadval soati":"biriktirilgan soat"}</div></div></div>})}
+                  {yuklama.slice(0,30).map(x=>{const reja=x.haftalik_reja_jami??x.haftalik_dars_soati;const amaldagi=Number(x.amaldagi_soat??x.biriktirilgan_soat??x.jadvaldagi_soat??0);const bad=x.holat==="ortiqcha";const ok=x.holat==="toliq";return <div key={x.user_id} className="rounded-2xl p-3.5 flex items-center gap-3" style={{ background:ok?palette.greenBg:bad?palette.redBg:palette.cream }}><div className="flex-1 min-w-0"><div className="text-sm font-bold truncate" style={{ color:palette.ink }}>{x.full_name}</div><div className="text-xs mt-0.5 truncate" style={{ color:palette.muted }}>{x.lavozim==="psixolog"?__kbUi(`Psixolog · ${x.psixolog_sinf_soni||0} sinf`):__kbUi(`${x.fanlari||"Fan belgilanmagan"}${x.sinf_soati_soni?` · +${x.sinf_soati_soni} sinf soati`:""}`)}</div></div><div className="text-right"><div className="text-sm font-black" style={{ color:bad?palette.red:ok?palette.green:palette.amber }}>{amaldagi}/{reja??__kbUi("—")}</div><div className="text-[10px]" style={{ color:palette.muted }}>{x.hisob_manbasi==="tasdiqlangan_jadval"?__kbUi("jadval soati"):__kbUi("biriktirilgan soat")}</div></div></div>})}
                   {!yuklama.length&&<div className="rounded-2xl border-2 border-dashed p-5 text-center" style={{ borderColor: palette.line, background: palette.cream }}>
-                    <div className="text-sm font-black" style={{ color: palette.ink }}>Hali o‘qituvchi kiritilmagan</div>
-                    <div className="text-xs mt-1" style={{ color: palette.muted }}>F.I.Sh., fan, sinf yoki guruh va haftalik soatni qo‘lda kiriting.</div>
-                    <button onClick={openTeacherEditor} className="mt-3 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>
-                      + Birinchi o‘qituvchini qo‘shish
-                    </button>
+                    <div className="text-sm font-black" style={{ color: palette.ink }}>{__kbUi("Hali o‘qituvchi kiritilmagan")}</div>
+                    <div className="text-xs mt-1" style={{ color: palette.muted }}>{__kbUi("F.I.Sh., fan, sinf yoki guruh va haftalik soatni qo‘lda kiriting.")}</div>
+                    <button onClick={openTeacherEditor} className="mt-3 px-5 py-3 rounded-xl text-sm font-black text-white" style={{ background: palette.teal }}>{__kbUi("+ Birinchi o‘qituvchini qo‘shish")}</button>
                   </div>}
                 </div>
               </Card>
               <Card className="p-5">
                 <div className="flex flex-col gap-3 mb-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>Sinflar</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>Maktab xaritasi</div><div className="text-[10px] mt-1" style={{ color: palette.muted }}>Sinf qo‘shing yoki kartani bosib harf, smena va xonani tahrirlang.</div></div>
-                    <button type="button" onClick={openClassCreator} disabled={!classCatalogReady} className="px-3.5 py-2.5 rounded-xl text-xs font-black shrink-0 disabled:opacity-45" title={classCatalogReady ? "Yangi sinf qo‘shish" : "Avval sinf va xona katalogini yuklang"} style={{ background: palette.teal, color: "#fff" }}>+ Sinf qo‘shish</button>
+                    <div><div className="text-xs font-black uppercase tracking-[.12em]" style={{ color: palette.teal }}>{__kbUi("Sinflar")}</div><div className="text-lg font-black mt-1" style={{ color: palette.ink }}>{__kbUi("Maktab xaritasi")}</div><div className="text-[10px] mt-1" style={{ color: palette.muted }}>{__kbUi("Sinf qo‘shing yoki kartani bosib harf, smena va xonani tahrirlang.")}</div></div>
+                    <button type="button" onClick={openClassCreator} disabled={!classCatalogReady} className="px-3.5 py-2.5 rounded-xl text-xs font-black shrink-0 disabled:opacity-45" title={classCatalogReady ? __kbUi("Yangi sinf qo‘shish") : __kbUi("Avval sinf va xona katalogini yuklang")} style={{ background: palette.teal, color: "#fff" }}>{__kbUi("+ Sinf qo‘shish")}</button>
                   </div>
-                  <label className="text-[10px] font-black" style={{ color: palette.muted }}>Yangi sinflar uchun harf tartibi<select value={schoolAlphabet} disabled={alphabetSaving} onChange={event => saveSchoolAlphabet(event.target.value)} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-xs bg-white disabled:opacity-60" style={{ borderColor: palette.line, color: palette.ink }}>{Object.entries(V237_CLASS_ALPHABET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                  <label className="text-[10px] font-black" style={{ color: palette.muted }}>{__kbUi("Yangi sinflar uchun harf tartibi")}<select value={schoolAlphabet} disabled={alphabetSaving} onChange={event => saveSchoolAlphabet(event.target.value)} className="w-full mt-1.5 rounded-xl border px-3 py-2.5 text-xs bg-white disabled:opacity-60" style={{ borderColor: palette.line, color: palette.ink }}>{Object.entries(V237_CLASS_ALPHABET_LABELS).map(([value, label]) => <option key={value} value={value}>{__kbUi(label)}</option>)}</select></label>
                 </div>
-                {!classCatalogReady && <div className="mb-3"><SmartNotice tone="warning">Sinf/xona katalogi yuklanmaguncha tahrirlash bloklandi; “Yangilash”ni bosing.</SmartNotice></div>}
-                <div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{dashboardClasses.map(s=>{const language=v238EducationLanguageMeta(v238ClassEducationLanguage(s));return <button type="button" onClick={() => openClassEditor(s)} disabled={!classCatalogReady} key={s.id} className="rounded-2xl p-3.5 text-left border hover:shadow-md disabled:opacity-55" style={{ background:palette.cream, borderColor: palette.line }}><div className="flex items-start justify-between gap-2"><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="flex gap-1"><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background:palette.greenBg,color:palette.green }}>{language.badge}</div><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background: s.smena ? palette.sky : palette.amberBg, color: s.smena ? palette.blue : palette.amber }}>{s.smena ? `${s.smena}-smena` : "Smena noma’lum"}</div></div></div><div className="text-[10px] mt-1 font-black" style={{ color:palette.teal }}>{language.label}</div><div className="text-xs mt-1" style={{ color:palette.muted }}>{Number(s.oquvchi_soni || 0)} o‘quvchi</div><div className="text-xs mt-1 truncate" style={{ color: s.xona ? palette.blue : palette.muted }}>Xona: {s.xona || s.xona_nomi || "biriktirilmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>Rahbar: {s.rahbar_ismi||"belgilanmagan"}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>Psixolog: {s.psixolog_ismi||"belgilanmagan"}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.blue }}>Tahrirlash →</div></button>;})}</div>
+                {!classCatalogReady && <div className="mb-3"><SmartNotice tone="warning">{__kbUi("Sinf/xona katalogi yuklanmaguncha tahrirlash bloklandi; “Yangilash”ni bosing.")}</SmartNotice></div>}
+                <div className="grid grid-cols-2 gap-2.5 max-h-[390px] overflow-auto pr-1">{dashboardClasses.map(s=>{const language=v238EducationLanguageMeta(v238ClassEducationLanguage(s));return <button type="button" onClick={() => openClassEditor(s)} disabled={!classCatalogReady} key={s.id} className="rounded-2xl p-3.5 text-left border hover:shadow-md disabled:opacity-55" style={{ background:palette.cream, borderColor: palette.line }}><div className="flex items-start justify-between gap-2"><div className="text-base font-black" style={{ color:palette.ink }}>{s.sinf}-{s.harf}</div><div className="flex gap-1"><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background:palette.greenBg,color:palette.green }}>{__kbUi(language.badge)}</div><div className="text-[9px] font-black px-2 py-1 rounded-lg" style={{ background: s.smena ? palette.sky : palette.amberBg, color: s.smena ? palette.blue : palette.amber }}>{s.smena ? __kbUi(`${s.smena}-smena`) : __kbUi("Smena noma’lum")}</div></div></div><div className="text-[10px] mt-1 font-black" style={{ color:palette.teal }}>{__kbUi(language.label)}</div><div className="text-xs mt-1" style={{ color:palette.muted }}>{__kbUi(Number(s.oquvchi_soni || 0))}{__kbUi(" o‘quvchi")}</div><div className="text-xs mt-1 truncate" style={{ color: s.xona ? palette.blue : palette.muted }}>{__kbUi("Xona: ")}{s.xona || s.xona_nomi || __kbUi("biriktirilmagan")}</div><div className="text-xs mt-1 truncate" style={{ color:s.rahbar_ismi?palette.teal:palette.amber }}>{__kbUi("Rahbar: ")}{s.rahbar_ismi||__kbUi("belgilanmagan")}</div><div className="text-xs mt-1 truncate" style={{ color:s.psixolog_ismi?"#6B4E9B":palette.muted }}>{__kbUi("Psixolog: ")}{s.psixolog_ismi||__kbUi("belgilanmagan")}</div><div className="text-[10px] mt-2 font-black" style={{ color: palette.blue }}>{__kbUi("Tahrirlash →")}</div></button>;})}</div>
               </Card>
             </div>
           </>}

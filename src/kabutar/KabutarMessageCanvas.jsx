@@ -1,3 +1,5 @@
+import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CornerDownRight, MessageSquare, Sparkles } from "lucide-react";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
@@ -12,7 +14,7 @@ function displayDay(day, locale, t, short = false) {
   const value = new Date(year, month - 1, date, 12);
   if (Number.isNaN(value.getTime())) return t("Sana tanlang");
   try { return value.toLocaleDateString(locale || "uz-UZ", { day: "numeric", month: short ? "short" : "long" }); }
-  catch { return value.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" }); }
+  catch { return value.toLocaleDateString(__kbLocaleTag(), { day: "numeric", month: "short" }); }
 }
 
 function messageTime(message, locale) {
@@ -23,6 +25,7 @@ function messageTime(message, locale) {
 }
 
 export default function KabutarMessageCanvas({ messages = [], selectedId, onSelect, layout = "keyboard", height = 30, showPreviews = true }) {
+  useKbInterfaceLocale();
   const { t, locale } = useInterface();
   const rows = useMemo(() => canvasMessages(messages), [messages]);
   const days = useMemo(() => canvasDays(rows), [rows]);
@@ -179,12 +182,12 @@ export default function KabutarMessageCanvas({ messages = [], selectedId, onSele
   return <section ref={canvas} className={`kb-canvas${isCollapsed ? " kb-canvas--collapsed" : ""}${compactCanvas ? " kb-canvas--compact" : ""}`} aria-labelledby={headingId} style={{ "--kb-canvas-vh": [20, 30, 40].includes(Number(height)) ? Number(height) : 30, "--kb-canvas-maxheight": containerBudget == null ? "430px" : `${Math.max(150, containerBudget)}px` }}>
     <header className="kb-canvas-header">
       <div className="kb-canvas-heading"><span className="kb-canvas-mark"><Sparkles size={16}/></span><div><h3 id={headingId}>{t("Xabarlar maydoni")}</h3><p>{t(constrained ? "Kichik ekranda o‘qish uchun joy saqlandi" : "Xabarni tanlang — pastda to‘liq ochiladi")}</p></div></div>
-      <div className="kb-canvas-header-actions">{isCollapsed && <select className="kb-canvas-compact-select" aria-label={t("Xabarni tanlang")} value={rows.some(message => String(message.id) === String(selectedId)) ? String(selectedId) : ""} onChange={event => { const message = rows.find(row => String(row.id) === event.target.value); if (message) chooseMessage(message); }}><option value="" disabled>{t("Xabarni tanlang")} · {rows.length}</option>{[...rows].reverse().map(message => <option key={message.id} value={String(message.id)}>{displayDay(canvasMessageDay(message), locale, t, true)} · {message.earlierThread ? t("Oldingi muhokama") : `${message.yuboruvchi_ismi || (message.meniki ? t("Siz") : t("Xabar"))} · ${messageSummary(message).slice(0, 65)}`}</option>)}</select>}{!isCollapsed && <button type="button" className="kb-canvas-latest" onClick={showLatest} disabled={!rows.length}>{t("Eng yangi")}<CornerDownRight size={14}/></button>}{!constrained && <button type="button" className="kb-canvas-collapse" aria-expanded={!isCollapsed} aria-controls={contentId} aria-label={t(isCollapsed ? "Xabarlar maydonini ochish" : "Xabarlar maydonini yig‘ish")} onClick={() => { setCollapsed(value => !value); setPreviewId(null); }}>{isCollapsed ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button>}</div>
+      <div className="kb-canvas-header-actions">{isCollapsed && <select className="kb-canvas-compact-select" aria-label={t("Xabarni tanlang")} value={rows.some(message => String(message.id) === String(selectedId)) ? String(selectedId) : ""} onChange={event => { const message = rows.find(row => String(row.id) === event.target.value); if (message) chooseMessage(message); }}><option value="" disabled>{t("Xabarni tanlang")} · {rows.length}</option>{[...rows].reverse().map(message => <option key={message.id} value={String(message.id)}>{__kbUi(displayDay(canvasMessageDay(message), locale, t, true))} · {message.earlierThread ? t("Oldingi muhokama") : __kbUi(`${message.yuboruvchi_ismi || (message.meniki ? t("Siz") : t("Xabar"))} · ${messageSummary(message).slice(0, 65)}`)}</option>)}</select>}{!isCollapsed && <button type="button" className="kb-canvas-latest" onClick={showLatest} disabled={!rows.length}>{t("Eng yangi")}<CornerDownRight size={14}/></button>}{!constrained && <button type="button" className="kb-canvas-collapse" aria-expanded={!isCollapsed} aria-controls={contentId} aria-label={t(isCollapsed ? "Xabarlar maydonini ochish" : "Xabarlar maydonini yig‘ish")} onClick={() => { setCollapsed(value => !value); setPreviewId(null); }}>{isCollapsed ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button>}</div>
     </header>
     <div id={contentId} className="kb-canvas-content" hidden={isCollapsed}>
     <div className="kb-canvas-days">
       <div className="kb-canvas-date-tabs" aria-label={t("Xabarlar sanasi")}>
-        {recentDays.map(value => <button type="button" key={value} aria-pressed={value === day} onClick={() => chooseDay(value)}>{displayDay(value, locale, t, true)}</button>)}
+        {recentDays.map(value => <button type="button" key={value} aria-pressed={value === day} onClick={() => chooseDay(value)}>{__kbUi(displayDay(value, locale, t, true))}</button>)}
       </div>
       <label className="kb-canvas-date-picker"><CalendarDays size={15}/><span className="kb-canvas-sr">{t("Sana tanlang")}</span><input aria-label={t("Sana tanlang")} type="date" value={day === "unknown" ? "" : day} onChange={event => { if (event.target.value) chooseDay(event.target.value); }}/></label>
     </div>
@@ -197,20 +200,20 @@ export default function KabutarMessageCanvas({ messages = [], selectedId, onSele
           const count = Math.max(0, Math.floor(Number(message.reply_count) || 0));
           return <button type="button" key={message.id} className={`kb-canvas-tile${message.meniki && !message.earlierThread ? " kb-canvas-tile--own" : ""}`} style={{ gridRow: position.row, gridColumn: position.column }}
             ref={node => { if (node) buttons.current.set(String(message.id), node); else buttons.current.delete(String(message.id)); }}
-            aria-pressed={String(message.id) === String(selectedId)} aria-label={`${sender}: ${summary.slice(0, 180)}`} aria-describedby={String(previewId) === String(message.id) && preview ? previewLabel : undefined}
+            aria-pressed={String(message.id) === String(selectedId)} aria-label={__kbUi(`${sender}: ${summary.slice(0, 180)}`)} aria-describedby={String(previewId) === String(message.id) && preview ? previewLabel : undefined}
             onFocus={() => setPreviewId(message.id)} onBlur={() => setPreviewId(null)} onMouseEnter={() => setPreviewId(message.id)} onClick={() => chooseMessage(message)} onKeyDown={event => moveFocus(event, index)}>
             <span className="kb-canvas-tile-author"><span className="kb-canvas-dot"/>{sender}</span><span className="kb-canvas-tile-text">{summary}</span>
-            {count > 0 && <span className="kb-canvas-tile-replies" aria-label={`${count} ${t("javob")}`}><MessageSquare size={10}/>{count > 99 ? "99+" : count}</span>}
+            {count > 0 && <span className="kb-canvas-tile-replies" aria-label={__kbUi(`${count} ${t("javob")}`)}><MessageSquare size={10}/>{count > 99 ? __kbUi("99+") : count}</span>}
           </button>;
         })}
       </div> : <div className="kb-canvas-empty"><MessageSquare size={23}/><strong>{t("Bu kunda yuklangan xabar yo‘q")}</strong><span>{t("Boshqa sanani tanlang yoki eski xabarlarni yuklang")}</span></div>}
       {preview && <div className="kb-canvas-preview" id={previewLabel} role="tooltip" onMouseEnter={() => setPreviewId(preview.id)}>
-        <div><strong>{preview.earlierThread ? t("Oldingi muhokama") : preview.yuboruvchi_ismi || (preview.meniki ? t("Siz") : t("Xabar"))}</strong>{!preview.earlierThread && <span>{messageTime(preview, locale)}</span>}</div>
-        <p>{preview.earlierThread ? t("Oldingi muhokamani ochish") : preview.matn ? String(preview.matn).slice(0, 1000) : t(canvasMessageText(preview))}</p><small>{t("To‘liq o‘qish uchun xabarni bosing")}</small>
+        <div><strong>{preview.earlierThread ? t("Oldingi muhokama") : preview.yuboruvchi_ismi || (preview.meniki ? t("Siz") : t("Xabar"))}</strong>{!preview.earlierThread && <span>{__kbUi(messageTime(preview, locale))}</span>}</div>
+        <p>{preview.earlierThread ? t("Oldingi muhokamani ochish") : preview.matn ? __kbUi(String(preview.matn).slice(0, 1000)) : t(canvasMessageText(preview))}</p><small>{t("To‘liq o‘qish uchun xabarni bosing")}</small>
       </div>}
     </div>
     <footer className="kb-canvas-footer">
-      <span aria-live="polite">{page.items.length ? `${page.start + 1}–${page.end} / ${dayMessages.length}` : `0 / ${dayMessages.length}`} <span className="kb-canvas-footer-label">{t("xabar")}</span>{geometry.adapted && <span className="kb-canvas-adapted"> · {t("Ixcham shakl")}</span>}</span>
+      <span aria-live="polite">{page.items.length ? __kbUi(`${page.start + 1}–${page.end} / ${dayMessages.length}`) : __kbUi(`0 / ${dayMessages.length}`)} <span className="kb-canvas-footer-label">{t("xabar")}</span>{geometry.adapted && <span className="kb-canvas-adapted"> · {t("Ixcham shakl")}</span>}</span>
       <span className="kb-canvas-page-actions"><button type="button" disabled={!page.before} onClick={() => changePage(page.previousId)} aria-label={t("Oldingi xabarlar")}><ChevronLeft size={16}/></button><button type="button" disabled={!page.after} onClick={() => changePage(page.nextId)} aria-label={t("Keyingi xabarlar")}><ChevronRight size={16}/>{page.after > 0 && <span>{page.after}</span>}</button></span>
     </footer>
     </div>

@@ -176,3 +176,9 @@ html[data-kb-theme="dark"] .kb-login-methods button { color:var(--ui-muted); }
 html[data-kb-theme="dark"] .kb-login-methods button.is-selected { background:var(--ui-surface); color:var(--ui-text); }
 html[data-kb-theme="dark"] :is(.kb-login-google,.kb-registration-email,.kb-login-verification,.kb-registration-existing,.kb-registration-invite) { background:var(--ui-elevated); color:var(--ui-text); border-color:var(--ui-border); }
 html[data-kb-theme="dark"] :is(.kb-login-pending-note,.kb-login-method-copy,.kb-login-recovery-note,.kb-login-account-note,.kb-registration-note,.kb-login-card-foot,.kb-login-footer) { color:var(--ui-muted); }
+
+.kb-translation-help { margin: 8px 0; font-size: 12px; line-height: 1.5; opacity: .78; }
+.kb-translation-status { margin: 8px 0; font-size: 12px; }
+.kb-translation-retry { padding: 7px 12px; border: 1px solid currentColor; border-radius: 8px; font-size: 12px; }
+.kb-translation-attribution { display: inline-block; margin: 8px; font-size: 11px; text-decoration: underline; }
+.kb-content-translation { display: block; margin-top: 4px; font-size: 10px; font-weight: 400; line-height: 1.4; opacity: .72; }

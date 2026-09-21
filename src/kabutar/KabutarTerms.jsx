@@ -1,9 +1,12 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { ShieldCheck, Loader2 } from "lucide-react";
 
 // Server acceptance belongs to this account and this exact rule version.
 export default function KabutarTerms({ apiBase, token, onAccepted }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [terms, setTerms] = useState(null);
   const [checked, setChecked] = useState(false);
@@ -59,6 +62,6 @@ export default function KabutarTerms({ apiBase, token, onAccepted }) {
       <label><input type="checkbox" checked={checked} disabled={busy} onChange={event => setChecked(event.target.checked)} />{t("Qoidalarni o‘qidim va ularga rioya qilaman.")}</label>
       <button type="button" disabled={!checked || busy} onClick={() => { if (checked && !busy) session.current?.load(terms.version); }}>{busy ? <Loader2 size={17} /> : <ShieldCheck size={17} />}{t("Tasdiqlash")}</button>
     </> : busy ? <p role="status">{t("Suhbat qoidalari yuklanmoqda…")}</p> : <button type="button" onClick={() => session.current?.load()}>{t("Qayta yuklash")}</button>}
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert">{__kbUi(error)}</p>}
   </section>;
 }

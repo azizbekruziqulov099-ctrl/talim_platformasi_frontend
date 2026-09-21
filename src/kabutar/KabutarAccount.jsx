@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Check, Copy, Grid2X2, Keyboard, MessageCircle, Search, Settings, Share2, SlidersHorizontal, Star, User, Users, X } from "lucide-react";
@@ -44,12 +46,13 @@ export function useKabutarPreferences(ownerId, apiBase) {
 }
 
 function Avatar({ person, apiBase, large = false }) {
+  useKbInterfaceLocale();
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [person?.user_id, person?.rasm_bormi]);
   return <span className={`kb-avatar${large ? " kb-avatar--large" : ""}`} aria-hidden="true">
     {person?.rasm_bormi && person?.user_id && !failed
-      ? <img src={`${String(apiBase || "").replace(/\/$/, "")}/api/profil_rasm/${encodeURIComponent(person.user_id)}`} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
-      : initials(person?.full_name)}
+      ? <img src={`${String(apiBase || "").replace(/\/$/, "")}/api/profil_rasm/${encodeURIComponent(person.user_id)}`} alt={__kbUi("")} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+      : __kbUi(initials(person?.full_name))}
   </span>;
 }
 
@@ -68,10 +71,11 @@ const canvasShapes = [
 ];
 
 function MessageLayoutPreview({ settings, t }) {
+  useKbInterfaceLocale();
   const canvas = settings.messageLayout === "canvas";
   return <div className={`kb-layout-preview${canvas ? " is-canvas" : ""}`} role="img" aria-label={t(canvas ? "Ixcham xabarlar maydoni namunasi" : "Klassik suhbat namunasi")}>
     {canvas && <div className={`kb-layout-preview__tiles kb-layout-preview__tiles--${settings.canvasShape}`} style={{ height: `${settings.canvasHeight * 2 + 24}px` }} aria-hidden="true">
-      {Array.from({ length: 18 }, (_, index) => <span key={index} className={index === 8 ? "is-selected" : ""}><i/><b/></span>)}
+      {__kbUi(Array.from({ length: 18 }, (_, index) => <span key={index} className={index === 8 ? "is-selected" : ""}><i/><b/></span>))}
     </div>}
     <div className="kb-layout-preview__conversation" aria-hidden="true"><span className="kb-layout-preview__bubble">{t("Bugungi reja")}</span><span className="kb-layout-preview__bubble is-own">{t("Tushunarli, rahmat!")}</span></div>
     <div className="kb-layout-preview__input" aria-hidden="true"><span>{t("Xabar yozing…")}</span><MessageCircle size={15}/></div>
@@ -92,7 +96,7 @@ function KabutarDisplaySettings({ preferences, t }) {
       <MessageLayoutPreview settings={settings} t={t}/>
       {settings.messageLayout === "canvas" && <div className="kb-canvas-options">
         <fieldset className="kb-setting-fieldset"><legend><Keyboard size={16}/>{t("Kartochkalar shakli")}</legend><div className="kb-shape-options">{canvasShapes.map(([value, label]) => <label className="kb-option-pill" key={value}><input type="radio" name="kb-canvas-shape" value={value} checked={settings.canvasShape === value} onChange={() => preferences.updateSettings({ canvasShape: value })}/><span>{t(label)}</span></label>)}</div></fieldset>
-        <fieldset className="kb-setting-fieldset"><legend>{t("Yuqori maydon balandligi")}</legend><div className="kb-height-options">{[20, 30, 40].map(value => <label className="kb-option-pill" key={value}><input type="radio" name="kb-canvas-height" value={value} checked={settings.canvasHeight === value} onChange={() => preferences.updateSettings({ canvasHeight: value })}/><span>{value}%</span></label>)}</div><p className="kb-help">{t("Kartochka ustida kuting — qisqa ko‘rinadi. Bosing — xabar pastda ochiladi.")}</p></fieldset>
+        <fieldset className="kb-setting-fieldset"><legend>{t("Yuqori maydon balandligi")}</legend><div className="kb-height-options">{[20, 30, 40].map(value => <label className="kb-option-pill" key={value}><input type="radio" name="kb-canvas-height" value={value} checked={settings.canvasHeight === value} onChange={() => preferences.updateSettings({ canvasHeight: value })}/><span>{__kbUi(value)}%</span></label>)}</div><p className="kb-help">{t("Kartochka ustida kuting — qisqa ko‘rinadi. Bosing — xabar pastda ochiladi.")}</p></fieldset>
         <p className="kb-setting-note">{t("Ko‘p xabarlar sahifalarga bo‘linadi. Telefon ekranida kartochkalar bosishga qulay o‘lchamda qoladi.")}</p>
       </div>}
       <label className="kb-setting-row"><span><strong>{t("Guruh javoblarini yig‘ish")}</strong><small>{t("Asosiy xabar va unga yozilgan javoblar bir muhokamada ochiladi.")}</small></span><input type="checkbox" role="switch" checked={settings.groupThreads} onChange={event => preferences.updateSettings({ groupThreads: event.target.checked })}/></label>
@@ -107,6 +111,7 @@ function KabutarDisplaySettings({ preferences, t }) {
 }
 
 export default function KabutarAccount({ token, apiBase, directory, initialPage = "profile", person = null, preferences, onClose, onOpenContact, onMeUpdated }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [page, setPage] = useState(initialPage);
   const [selected, setSelected] = useState(person);
@@ -233,28 +238,28 @@ export default function KabutarAccount({ token, apiBase, directory, initialPage 
   const roles = Array.isArray(card?.rollar) ? card.rollar : [];
   return createPortal(<div className="kb-account-overlay" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="kb-account-sheet" role="dialog" aria-modal="true" aria-label={t("Kabutar profil, kontaktlar va sozlamalar")} tabIndex={-1} ref={dialogRef} onKeyDown={keyDown}>
-      <header className="kb-sheet-header"><div><small>KABUTAR</small><h2>{t(page === "contacts" ? "Kontaktlar" : page === "settings" ? "Sozlamalar" : isSelf ? "Mening profilim" : isGroup ? "Guruh ma’lumoti" : "Kontakt profili")}</h2></div><button type="button" className="kb-icon-button" onClick={onClose} aria-label={t("Kabutar oynasiga qaytish")}><X size={23}/></button></header>
+      <header className="kb-sheet-header"><div><small>{__kbUi("KABUTAR")}</small><h2>{t(page === "contacts" ? "Kontaktlar" : page === "settings" ? "Sozlamalar" : isSelf ? "Mening profilim" : isGroup ? "Guruh ma’lumoti" : "Kontakt profili")}</h2></div><button type="button" className="kb-icon-button" onClick={onClose} aria-label={t("Kabutar oynasiga qaytish")}><X size={23}/></button></header>
       <nav className="kb-account-tabs" aria-label={t("Kabutar menyusi")}>
         {[["profile", "Profil", User], ["contacts", "Kontaktlar", Users], ["settings", "Sozlamalar", Settings]].map(([key, label, Icon]) => <button key={key} type="button" aria-current={page === key ? "page" : undefined} onClick={() => switchPage(key)}><Icon size={18}/>{t(label)}</button>)}
       </nav>
       <div className="kb-sheet-body">
         {page === "profile" && <>
           {!isSelf && <button type="button" className="kb-text-button" onClick={() => switchPage("contacts")}><ArrowLeft size={16}/>{t("Kontaktlarga qaytish")}</button>}
-          <div className="kb-profile-hero"><Avatar person={card} apiBase={apiBase} large/><h3>{card?.full_name || t("Profil yuklanmoqda")}</h3><p>{card?.qisqa || card?.izoh || (ownDetails && t(roleName(ownDetails.role))) || ""}</p></div>
+          <div className="kb-profile-hero"><Avatar person={card} apiBase={apiBase} large/><h3>{card?.full_name || t("Profil yuklanmoqda")}</h3><p>{card?.qisqa || card?.izoh || (ownDetails && t(roleName(ownDetails.role))) || __kbUi("")}</p></div>
           {card?.kabutar_id && <div className="kb-id-card"><label htmlFor={`${drawerId.current}-id`}>{t(isSelf ? "Mening Kabutar ID raqamim" : "Kabutar ID raqami")}</label><input id={`${drawerId.current}-id`} value={card.kabutar_id} readOnly onFocus={event => event.target.select()}/><div className="kb-button-row"><button type="button" onClick={copyId}><Copy size={17}/>{t("Nusxalash")}</button><button type="button" onClick={shareId}><Share2 size={17}/>{t("Ulashish")}</button></div><p>{t("Kabutar ID orqali faqat ruxsat etilgan aloqalar topiladi.")}</p></div>}
           {loading && <p className="kb-state" role="status">{t("Profil ma’lumotlari yuklanmoqda…")}</p>}
           {profileError && <div className="kb-state kb-state--error" role="alert">{t(profileError)}<button type="button" className="kb-text-button" onClick={() => setReload(value => value + 1)}>{t("Qayta urinish")}</button></div>}
           {!loading && !profileError && !card?.kabutar_id && !isGroup && <p className="kb-state">{t("Kabutar ID hozircha ko‘rsatilmagan.")}</p>}
           {!isSelf && !isGroup && card?.user_id && <div className="kb-profile-actions"><button type="button" className="kb-primary" onClick={() => onOpenContact({ ...selected, ...card, izoh: card.qisqa || card.izoh || selected?.izoh || "" })}><MessageCircle size={18}/>{t("Xabar yozish")}</button><button type="button" className="kb-secondary" aria-pressed={saved} onClick={() => preferences.toggleSaved(card)}><Star size={18} fill={saved ? "currentColor" : "none"}/>{t(saved ? "Tanlanganlardan olish" : "Tanlangan kontakt")}</button></div>}
           {isGroup && <button type="button" className="kb-primary" onClick={onClose}>{t("Guruh xabarlariga qaytish")}</button>}
-          {roles.length > 0 && <section className="kb-settings-card"><h3>{t("Muassasa va rollar")}</h3>{roles.map((role, index) => <div className="kb-role" key={`${role.rol}-${role.muassasa}-${index}`}><span className="kb-role-mark"><Check size={15}/></span><div><strong>{role.rol}</strong>{role.muassasa && <small>{role.muassasa}</small>}</div></div>)}</section>}
+          {roles.length > 0 && <section className="kb-settings-card"><h3>{t("Muassasa va rollar")}</h3>{roles.map((role, index) => <div className="kb-role" key={`${role.rol}-${role.muassasa}-${index}`}><span className="kb-role-mark"><Check size={15}/></span><div><strong>{__kbUi(role.rol)}</strong>{role.muassasa && <small>{role.muassasa}</small>}</div></div>)}</section>}
           {isSelf && ownDetails && <section className="kb-settings-card"><h3>{t("Shaxsiy ma’lumotlar")}</h3><dl className="kb-details">
             {[["Ism", ownDetails.full_name === card?.full_name ? ownDetails.full_name : card?.full_name], ["Rol", t(roleName(ownDetails.role))], ["Telefon", ownDetails.telefon || ownDetails.phone], ["Viloyat", ownDetails.region], ["Tuman", ownDetails.district], ["Maktab", ownDetails.maktab_nomi], ["Sinf", ownDetails.class ? `${ownDetails.class}${ownDetails.class_letter || ""}` : ""]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value}</dd></div>)}
           </dl></section>}
           {isSelf && card?.user_id && <section className="kb-settings-card"><h3>{t("Profil sozlamasi")}</h3>{editingName ? <form onSubmit={saveName}><label className="kb-field" htmlFor={`${drawerId.current}-name`}>{t("Ism va familiya")}</label><input className="kb-input" id={`${drawerId.current}-name`} value={name} onChange={event => setName(event.target.value)} maxLength={160} required autoComplete="name"/><div className="kb-button-row"><button type="submit" className="kb-primary" disabled={saving}>{t(saving ? "Saqlanmoqda…" : "Saqlash")}</button><button type="button" disabled={saving} onClick={() => setEditingName(false)}>{t("Bekor qilish")}</button></div></form> : <button type="button" className="kb-secondary" onClick={() => { setName(card.full_name || ""); setEditingName(true); }}>{t("Ismni o‘zgartirish")}</button>}</section>}
         </>}
         {page === "contacts" && <>
-          <form className="kb-settings-card" onSubmit={lookup}><h3>{t("ID bilan kontakt topish")}</h3><label className="kb-field" htmlFor={`${drawerId.current}-lookup`}>{t("Kabutar ID")}</label><div className="kb-search-id"><input className="kb-input" id={`${drawerId.current}-lookup`} value={lookupId} onChange={event => setLookupId(event.target.value)} placeholder="KB-123456" autoComplete="off" maxLength={16}/><button type="submit" className="kb-primary" disabled={lookupBusy}>{t(lookupBusy ? "Izlanmoqda…" : "Topish")}</button></div>{lookupError && <p className="kb-state kb-state--error" role="alert">{t(lookupError)}</p>}</form>
+          <form className="kb-settings-card" onSubmit={lookup}><h3>{t("ID bilan kontakt topish")}</h3><label className="kb-field" htmlFor={`${drawerId.current}-lookup`}>{t("Kabutar ID")}</label><div className="kb-search-id"><input className="kb-input" id={`${drawerId.current}-lookup`} value={lookupId} onChange={event => setLookupId(event.target.value)} placeholder={__kbUi("KB-123456")} autoComplete="off" maxLength={16}/><button type="submit" className="kb-primary" disabled={lookupBusy}>{t(lookupBusy ? "Izlanmoqda…" : "Topish")}</button></div>{lookupError && <p className="kb-state kb-state--error" role="alert">{t(lookupError)}</p>}</form>
           <label className="kb-contact-search"><Search size={18}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={t("Ism, ID yoki muassasa")} aria-label={t("Kontaktlarni qidirish")}/></label>
           <div className="kb-filter-row"><button type="button" aria-pressed={!savedOnly} onClick={() => setSavedOnly(false)}>{t("Barchasi")}</button><button type="button" aria-pressed={savedOnly} onClick={() => setSavedOnly(true)}>{t("Tanlanganlar")} · {preferences.saved.length}</button><span>{filtered.length} {t("kontakt")}</span></div>
           <p className="kb-help">{t("Muassasalaringizdagi aloqalar va suhbatlar. Tanlanganlar shu qurilmada saqlanadi.")}</p>

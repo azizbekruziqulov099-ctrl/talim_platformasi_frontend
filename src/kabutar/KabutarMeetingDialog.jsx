@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -28,6 +30,7 @@ export function validateMeeting(value, currentOrigin = "", now = Date.now()) {
 }
 
 export default function KabutarMeetingDialog({ apiBase, token, groupId, onClose }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [phase, setPhase] = useState("ready");
   const [meeting, setMeeting] = useState(null);

@@ -1,3 +1,5 @@
+import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -93,17 +95,17 @@ function savePreferences(preferences) {
 }
 
 function ErrorNotice({ error, onRetry }) {
+  useKbInterfaceLocale();
   if (!error) return null;
   return (
     <div className="kg-error" role="alert">
       <div>
-        <b>Amal bajarilmadi</b>
-        <p>{error}</p>
+        <b>{__kbUi("Amal bajarilmadi")}</b>
+        <p>{__kbUi(error)}</p>
       </div>
       {onRetry && (
         <button type="button" onClick={onRetry}>
-          <RefreshCw size={15} /> Qayta urinish
-        </button>
+          <RefreshCw size={15} />{__kbUi(" Qayta urinish")}</button>
       )}
     </div>
   );
@@ -125,6 +127,7 @@ function mergeById(current, incoming) {
 }
 
 function LoadMoreButton({ hasMore, busy, onClick }) {
+  useKbInterfaceLocale();
   if (!hasMore) return null;
   return (
     <button
@@ -133,9 +136,7 @@ function LoadMoreButton({ hasMore, busy, onClick }) {
       disabled={busy}
       onClick={onClick}
     >
-      {busy && <Loader2 size={15} className="animate-spin" />}
-      Yana ko‘rsatish
-    </button>
+      {busy && <Loader2 size={15} className="animate-spin" />}{__kbUi("Yana ko‘rsatish")}</button>
   );
 }
 
@@ -193,14 +194,16 @@ function useGroupOptions({ token, apiBase, contextId, enabled = true }) {
 }
 
 function BackButton({ onClick, label = "Ortga" }) {
+  useKbInterfaceLocale();
   return (
     <button type="button" className="kg-back" onClick={onClick}>
-      <ArrowLeft size={17} /> {label}
+      <ArrowLeft size={17} /> {__kbUi(label)}
     </button>
   );
 }
 
 function StatusPill({ status }) {
+  useKbInterfaceLocale();
   const labels = {
     active: "Faol",
     pending: "Kutilmoqda",
@@ -214,7 +217,7 @@ function StatusPill({ status }) {
     waived: "Bekor qilingan",
     cancelled: "Bekor qilingan",
   };
-  return <span className={`kg-status ${status}`}>{labels[status] || status}</span>;
+  return <span className={`kg-status ${status}`}>{labels[status] || __kbUi(status)}</span>;
 }
 
 export default function KindergartenWorkspace({
@@ -224,6 +227,7 @@ export default function KindergartenWorkspace({
   onBack,
   onLegacy,
 }) {
+  useKbInterfaceLocale();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [workspaces, setWorkspaces] = useState([]);
@@ -283,7 +287,7 @@ export default function KindergartenWorkspace({
     return (
       <div className="kg-shell">
         <BackButton onClick={onBack} />
-        <LoadingBlock text="Bog'cha ish maydoni yuklanmoqda..." />
+        <LoadingBlock text={__kbUi("Bog'cha ish maydoni yuklanmoqda...")} />
       </div>
     );
   }
@@ -334,18 +338,15 @@ export default function KindergartenWorkspace({
 
   return (
     <div className="kg-shell">
-      <BackButton onClick={onBack} label="Ish maydoniga qaytish" />
+      <BackButton onClick={onBack} label={__kbUi("Ish maydoniga qaytish")} />
       <header className="kg-hero">
         <div className="kg-hero-icon">
           <Baby size={28} />
         </div>
         <div>
-          <span className="kg-eyebrow">BOG‘CHA BOSHQARUVI</span>
-          <h1>Bog‘chani tartibli ishga tushiring</h1>
-          <p>
-            Yangi bog‘cha oching yoki mavjud muassasaga lavozimingiz bilan
-            qo‘shiling. Har bir xodim faqat o‘ziga kerakli menyularni ko‘radi.
-          </p>
+          <span className="kg-eyebrow">{__kbUi("BOG‘CHA BOSHQARUVI")}</span>
+          <h1>{__kbUi("Bog‘chani tartibli ishga tushiring")}</h1>
+          <p>{__kbUi("Yangi bog‘cha oching yoki mavjud muassasaga lavozimingiz bilan qo‘shiling. Har bir xodim faqat o‘ziga kerakli menyularni ko‘radi.")}</p>
         </div>
       </header>
 
@@ -357,8 +358,8 @@ export default function KindergartenWorkspace({
             <Plus size={20} />
           </span>
           <span>
-            <b>Yangi bog‘cha yaratish</b>
-            <small>Xususiy yoki davlat bog‘chasi uchun raqamli ish maydoni</small>
+            <b>{__kbUi("Yangi bog‘cha yaratish")}</b>
+            <small>{__kbUi("Xususiy yoki davlat bog‘chasi uchun raqamli ish maydoni")}</small>
           </span>
           <ChevronRight size={18} />
         </button>
@@ -367,8 +368,8 @@ export default function KindergartenWorkspace({
             <Search size={20} />
           </span>
           <span>
-            <b>Mavjud bog‘chaga qo‘shilish</b>
-            <small>Nom bo‘yicha toping yoki xodim taklif kodini kiriting</small>
+            <b>{__kbUi("Mavjud bog‘chaga qo‘shilish")}</b>
+            <small>{__kbUi("Nom bo‘yicha toping yoki xodim taklif kodini kiriting")}</small>
           </span>
           <ChevronRight size={18} />
         </button>
@@ -378,10 +379,10 @@ export default function KindergartenWorkspace({
         <section className="kg-section">
           <div className="kg-section-title">
             <div>
-              <span className="kg-eyebrow">MUASSASALARIM</span>
-              <h2>Ulangan bog‘chalar</h2>
+              <span className="kg-eyebrow">{__kbUi("MUASSASALARIM")}</span>
+              <h2>{__kbUi("Ulangan bog‘chalar")}</h2>
             </div>
-            <span>{workspaces.length} ta</span>
+            <span>{workspaces.length}{__kbUi(" ta")}</span>
           </div>
           <div className="kg-workspace-grid">
             {workspaces.map((workspace) => (
@@ -411,11 +412,11 @@ export default function KindergartenWorkspace({
                 <h3>{workspace.name}</h3>
                 <p>
                   {[workspace.region, workspace.district].filter(Boolean).join(", ") ||
-                    "Hudud kiritilmagan"}
+                    __kbUi("Hudud kiritilmagan")}
                 </p>
                 <div className="kg-role-list">
                   {(workspace.roles || []).map((role) => (
-                    <span key={role}>{ROLE_LABELS[role] || role}</span>
+                    <span key={role}>{ROLE_LABELS[role] || __kbUi(role)}</span>
                   ))}
                 </div>
               </button>
@@ -428,8 +429,8 @@ export default function KindergartenWorkspace({
         <section className="kg-section">
           <div className="kg-section-title">
             <div>
-              <span className="kg-eyebrow">SO‘ROVLAR</span>
-              <h2>Javob kutilmoqda</h2>
+              <span className="kg-eyebrow">{__kbUi("SO‘ROVLAR")}</span>
+              <h2>{__kbUi("Javob kutilmoqda")}</h2>
             </div>
           </div>
           <div className="kg-compact-list">
@@ -440,7 +441,7 @@ export default function KindergartenWorkspace({
                 </span>
                 <span>
                   <b>{request.name}</b>
-                  <small>{ROLE_LABELS[request.requested_role]}</small>
+                  <small>{__kbUi(ROLE_LABELS[request.requested_role])}</small>
                 </span>
                 <StatusPill status="pending" />
               </div>
@@ -452,11 +453,8 @@ export default function KindergartenWorkspace({
       <section className="kg-safety-note">
         <ShieldCheck size={21} />
         <div>
-          <b>Vakolatlar muassasa ichida ajratiladi</b>
-          <p>
-            Bitta hisob bir nechta bog‘chaga va har birida boshqa lavozimga ega
-            bo‘lishi mumkin. AI yordamchi ruxsatni chetlab o‘tmaydi.
-          </p>
+          <b>{__kbUi("Vakolatlar muassasa ichida ajratiladi")}</b>
+          <p>{__kbUi("Bitta hisob bir nechta bog‘chaga va har birida boshqa lavozimga ega bo‘lishi mumkin. AI yordamchi ruxsatni chetlab o‘tmaydi.")}</p>
         </div>
       </section>
     </div>
@@ -472,6 +470,7 @@ function OnboardingWizard({
   onJoin,
   onCreated,
 }) {
+  useKbInterfaceLocale();
   const [selection, setSelection] = useState({
     ownership_type: "private",
     relationship: "owner",
@@ -676,14 +675,14 @@ function OnboardingWizard({
       <div className="kg-shell">
         <BackButton onClick={onBack} />
         <header className="kg-page-header">
-          <span className="kg-eyebrow">1-QADAM</span>
-          <h1>Siz bog‘chaga kim bo‘lib ulanasiz?</h1>
-          <p>Bu tanlov keyingi menyu va ruxsatlarni belgilaydi.</p>
+          <span className="kg-eyebrow">{__kbUi("1-QADAM")}</span>
+          <h1>{__kbUi("Siz bog‘chaga kim bo‘lib ulanasiz?")}</h1>
+          <p>{__kbUi("Bu tanlov keyingi menyu va ruxsatlarni belgilaydi.")}</p>
         </header>
         <ErrorNotice error={error} />
 
         <section className="kg-form-card">
-          <label className="kg-label">Bog‘cha turi</label>
+          <label className="kg-label">{__kbUi("Bog‘cha turi")}</label>
           <div className="kg-choice-grid two">
             {[
               {
@@ -715,13 +714,13 @@ function OnboardingWizard({
                 }
               >
                 <Building2 size={20} />
-                <b>{choice.title}</b>
-                <small>{choice.text}</small>
+                <b>{__kbUi(choice.title)}</b>
+                <small>{__kbUi(choice.text)}</small>
               </button>
             ))}
           </div>
 
-          <label className="kg-label">Sizning munosabatingiz</label>
+          <label className="kg-label">{__kbUi("Sizning munosabatingiz")}</label>
           <div className="kg-choice-grid">
             {[
               {
@@ -769,7 +768,7 @@ function OnboardingWizard({
 
           {selection.relationship !== "educator" && (
             <>
-              <label className="kg-label">Sozlash usuli</label>
+              <label className="kg-label">{__kbUi("Sozlash usuli")}</label>
               <div className="kg-segmented">
                 {[
                   ["assistant", "AI avatar bilan"],
@@ -787,7 +786,7 @@ function OnboardingWizard({
                       }))
                     }
                   >
-                    {label}
+                    {__kbUi(label)}
                   </button>
                 ))}
               </div>
@@ -795,10 +794,8 @@ function OnboardingWizard({
               {selection.setup_mode === "assistant" && (
                 <div className="kg-avatar-picker">
                   <div>
-                    <b>AI yo‘lko‘rsatuvchi</b>
-                    <small>
-                      Menyularni ko‘rsatadi, tushuntiradi va qoralama tayyorlaydi
-                    </small>
+                    <b>{__kbUi("AI yo‘lko‘rsatuvchi")}</b>
+                    <small>{__kbUi("Menyularni ko‘rsatadi, tushuntiradi va qoralama tayyorlaydi")}</small>
                   </div>
                   <div className="kg-avatar-options">
                     {[
@@ -812,7 +809,7 @@ function OnboardingWizard({
                         className={preferences.variant === value ? "selected" : ""}
                         onClick={() => onPreferences({ variant: value })}
                       >
-                        {label}
+                        {__kbUi(label)}
                       </button>
                     ))}
                   </div>
@@ -823,9 +820,7 @@ function OnboardingWizard({
                       onChange={(event) =>
                         onPreferences({ speechEnabled: event.target.checked })
                       }
-                    />
-                    Matn bilan birga ovoz chiqarib tushuntirsin
-                  </label>
+                    />{__kbUi("Matn bilan birga ovoz chiqarib tushuntirsin")}</label>
                 </div>
               )}
             </>
@@ -833,10 +828,7 @@ function OnboardingWizard({
 
           <div className="kg-legal-note">
             <ShieldCheck size={18} />
-            <span>
-              Bu amal platformadagi raqamli profilni yaratadi. Litsenziya yoki
-              davlat ro‘yxatidan o‘tkazish o‘rnini bosmaydi.
-            </span>
+            <span>{__kbUi("Bu amal platformadagi raqamli profilni yaratadi. Litsenziya yoki davlat ro‘yxatidan o‘tkazish o‘rnini bosmaydi.")}</span>
           </div>
 
           <button
@@ -847,8 +839,8 @@ function OnboardingWizard({
           >
             {busy ? <Loader2 size={17} className="animate-spin" /> : null}
             {selection.relationship === "educator"
-              ? "Bog'chani topish"
-              : "Sozlashni boshlash"}
+              ? __kbUi("Bog'chani topish")
+              : __kbUi("Sozlashni boshlash")}
             <ChevronRight size={17} />
           </button>
         </section>
@@ -861,7 +853,7 @@ function OnboardingWizard({
     <div className="kg-shell kg-with-avatar">
       <BackButton
         onClick={stepIndex === 0 ? onBack : previousStep}
-        label={stepIndex === 0 ? "Bekor qilish" : "Oldingi qadam"}
+        label={stepIndex === 0 ? __kbUi("Bekor qilish") : __kbUi("Oldingi qadam")}
       />
       <div className="kg-wizard-progress">
         {ONBOARDING_STEPS.map((item, index) => (
@@ -874,7 +866,7 @@ function OnboardingWizard({
             onClick={() => index <= stepIndex && setStep(item.key)}
           >
             <i>{index < stepIndex ? <Check size={13} /> : index + 1}</i>
-            <span>{item.label}</span>
+            <span>{__kbUi(item.label)}</span>
           </button>
         ))}
       </div>
@@ -884,25 +876,25 @@ function OnboardingWizard({
       {step === "basics" && (
         <section className="kg-form-card">
           <header>
-            <span className="kg-eyebrow">ASOSIY MA’LUMOT</span>
-            <h2>Bog‘chani aniqlab olamiz</h2>
-            <p>Faqat bilgan ma’lumotingizni kiriting; rasmiy ma’lumot taxmin qilinmaydi.</p>
+            <span className="kg-eyebrow">{__kbUi("ASOSIY MA’LUMOT")}</span>
+            <h2>{__kbUi("Bog‘chani aniqlab olamiz")}</h2>
+            <p>{__kbUi("Faqat bilgan ma’lumotingizni kiriting; rasmiy ma’lumot taxmin qilinmaydi.")}</p>
           </header>
           <div className="kg-field">
-            <label>Bog‘cha nomi *</label>
+            <label>{__kbUi("Bog‘cha nomi *")}</label>
             <input
               data-ai-anchor="kg-name"
               value={basic.name}
               onChange={(event) =>
                 setBasic((current) => ({ ...current, name: event.target.value }))
               }
-              placeholder="Masalan: Mehribon bolajon bog'chasi"
+              placeholder={__kbUi("Masalan: Mehribon bolajon bog'chasi")}
               maxLength={180}
             />
           </div>
           <div className="kg-form-grid two">
             <div className="kg-field">
-              <label>Viloyat</label>
+              <label>{__kbUi("Viloyat")}</label>
               <select
                 value={basic.region}
                 onChange={(event) =>
@@ -913,16 +905,16 @@ function OnboardingWizard({
                   }))
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {VILOYATLAR.map((region) => (
                   <option key={region} value={region}>
-                    {region}
+                    {__kbUi(region)}
                   </option>
                 ))}
               </select>
             </div>
             <div className="kg-field">
-              <label>Tuman / shahar</label>
+              <label>{__kbUi("Tuman / shahar")}</label>
               <select
                 value={basic.district}
                 disabled={!basic.region}
@@ -933,7 +925,7 @@ function OnboardingWizard({
                   }))
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {(HUDUDLAR[basic.region] || []).map((district) => (
                   <option key={district} value={district}>
                     {district}
@@ -944,7 +936,7 @@ function OnboardingWizard({
           </div>
           <div className="kg-form-grid two">
             <div className="kg-field">
-              <label>Manzil</label>
+              <label>{__kbUi("Manzil")}</label>
               <input
                 value={basic.address}
                 onChange={(event) =>
@@ -953,17 +945,17 @@ function OnboardingWizard({
                     address: event.target.value,
                   }))
                 }
-                placeholder="Ko'cha, uy raqami"
+                placeholder={__kbUi("Ko'cha, uy raqami")}
               />
             </div>
             <div className="kg-field">
-              <label>Aloqa telefoni</label>
+              <label>{__kbUi("Aloqa telefoni")}</label>
               <input
                 value={basic.phone}
                 onChange={(event) =>
                   setBasic((current) => ({ ...current, phone: event.target.value }))
                 }
-                placeholder="+998 __ ___ __ __"
+                placeholder={__kbUi("+998 __ ___ __ __")}
               />
             </div>
           </div>
@@ -973,11 +965,11 @@ function OnboardingWizard({
       {step === "schedule" && (
         <section className="kg-form-card">
           <header>
-            <span className="kg-eyebrow">ISH TARTIBI</span>
-            <h2>Kalendar uchun asosiy vaqtlar</h2>
-            <p>Bu vaqtlar keyingi davomat, mashg‘ulot va xodimlar jadvaliga asos bo‘ladi.</p>
+            <span className="kg-eyebrow">{__kbUi("ISH TARTIBI")}</span>
+            <h2>{__kbUi("Kalendar uchun asosiy vaqtlar")}</h2>
+            <p>{__kbUi("Bu vaqtlar keyingi davomat, mashg‘ulot va xodimlar jadvaliga asos bo‘ladi.")}</p>
           </header>
-          <label className="kg-label">Ish kunlari</label>
+          <label className="kg-label">{__kbUi("Ish kunlari")}</label>
           <div className="kg-day-picker">
             {DAY_LABELS.map((day) => (
               <button
@@ -993,13 +985,13 @@ function OnboardingWizard({
                   }))
                 }
               >
-                {day.label}
+                {__kbUi(day.label)}
               </button>
             ))}
           </div>
           <div className="kg-form-grid three">
             <div className="kg-field">
-              <label>Ochilish vaqti</label>
+              <label>{__kbUi("Ochilish vaqti")}</label>
               <input
                 data-ai-anchor="kg-work-start"
                 type="time"
@@ -1013,7 +1005,7 @@ function OnboardingWizard({
               />
             </div>
             <div className="kg-field">
-              <label>Yopilish vaqti</label>
+              <label>{__kbUi("Yopilish vaqti")}</label>
               <input
                 type="time"
                 value={basic.work_end}
@@ -1026,7 +1018,7 @@ function OnboardingWizard({
               />
             </div>
             <div className="kg-field">
-              <label>Umumiy sig‘im</label>
+              <label>{__kbUi("Umumiy sig‘im")}</label>
               <input
                 type="number"
                 min="1"
@@ -1037,7 +1029,7 @@ function OnboardingWizard({
                     capacity: event.target.value,
                   }))
                 }
-                placeholder="Masalan: 120"
+                placeholder={__kbUi("Masalan: 120")}
               />
             </div>
           </div>
@@ -1053,12 +1045,10 @@ function OnboardingWizard({
                       payment_enabled: event.target.checked,
                     }))
                   }
-                />
-                Oylik to‘lov nazoratini yoqish
-              </label>
+                />{__kbUi("Oylik to‘lov nazoratini yoqish")}</label>
               {basic.payment_enabled && (
                 <div className="kg-field">
-                  <label>Standart oylik to‘lov (so‘m)</label>
+                  <label>{__kbUi("Standart oylik to‘lov (so‘m)")}</label>
                   <input
                     type="number"
                     min="0"
@@ -1069,7 +1059,7 @@ function OnboardingWizard({
                         monthly_fee: event.target.value,
                       }))
                     }
-                    placeholder="Masalan: 800000"
+                    placeholder={__kbUi("Masalan: 800000")}
                   />
                 </div>
               )}
@@ -1081,15 +1071,15 @@ function OnboardingWizard({
       {step === "groups" && (
         <section className="kg-form-card">
           <header>
-            <span className="kg-eyebrow">GURUHLAR</span>
-            <h2>Birinchi guruhlarni kiriting</h2>
-            <p>Hozir bo‘sh qoldirib, keyin ish maydonidan ham yaratishingiz mumkin.</p>
+            <span className="kg-eyebrow">{__kbUi("GURUHLAR")}</span>
+            <h2>{__kbUi("Birinchi guruhlarni kiriting")}</h2>
+            <p>{__kbUi("Hozir bo‘sh qoldirib, keyin ish maydonidan ham yaratishingiz mumkin.")}</p>
           </header>
           <div className="kg-group-builder">
             {groups.map((group, index) => (
               <div className="kg-group-draft" key={group.localId}>
                 <div className="kg-group-draft-title">
-                  <b>{index + 1}-guruh</b>
+                  <b>{index + 1}{__kbUi("-guruh")}</b>
                   {groups.length > 1 && (
                     <button
                       type="button"
@@ -1099,12 +1089,11 @@ function OnboardingWizard({
                         )
                       }
                     >
-                      <X size={15} /> Olib tashlash
-                    </button>
+                      <X size={15} />{__kbUi(" Olib tashlash")}</button>
                   )}
                 </div>
                 <div className="kg-field">
-                  <label>Guruh nomi</label>
+                  <label>{__kbUi("Guruh nomi")}</label>
                   <input
                     data-ai-anchor={index === 0 ? "kg-group-name" : undefined}
                     value={group.name}
@@ -1117,12 +1106,12 @@ function OnboardingWizard({
                         ),
                       )
                     }
-                    placeholder="Masalan: Quyoshcha"
+                    placeholder={__kbUi("Masalan: Quyoshcha")}
                   />
                 </div>
                 <div className="kg-form-grid four">
                   <div className="kg-field">
-                    <label>Min. yosh (oy)</label>
+                    <label>{__kbUi("Min. yosh (oy)")}</label>
                     <input
                       type="number"
                       min="0"
@@ -1140,7 +1129,7 @@ function OnboardingWizard({
                     />
                   </div>
                   <div className="kg-field">
-                    <label>Maks. yosh (oy)</label>
+                    <label>{__kbUi("Maks. yosh (oy)")}</label>
                     <input
                       type="number"
                       min="0"
@@ -1158,7 +1147,7 @@ function OnboardingWizard({
                     />
                   </div>
                   <div className="kg-field">
-                    <label>Sig‘im</label>
+                    <label>{__kbUi("Sig‘im")}</label>
                     <input
                       type="number"
                       min="1"
@@ -1176,7 +1165,7 @@ function OnboardingWizard({
                     />
                   </div>
                   <div className="kg-field">
-                    <label>Xona</label>
+                    <label>{__kbUi("Xona")}</label>
                     <input
                       value={group.room_name}
                       onChange={(event) =>
@@ -1188,7 +1177,7 @@ function OnboardingWizard({
                           ),
                         )
                       }
-                      placeholder="1-xona"
+                      placeholder={__kbUi("1-xona")}
                     />
                   </div>
                 </div>
@@ -1212,17 +1201,16 @@ function OnboardingWizard({
               ])
             }
           >
-            <Plus size={16} /> Yana guruh
-          </button>
+            <Plus size={16} />{__kbUi(" Yana guruh")}</button>
         </section>
       )}
 
       {step === "team" && (
         <section className="kg-form-card" data-ai-anchor="kg-team-info">
           <header>
-            <span className="kg-eyebrow">JAMOA VA ROLLAR</span>
-            <h2>Xodimlar bog‘cha ochilgandan keyin ulanadi</h2>
-            <p>Har bir xodim uchun alohida hisob va muassasa ichidagi lavozim bo‘ladi.</p>
+            <span className="kg-eyebrow">{__kbUi("JAMOA VA ROLLAR")}</span>
+            <h2>{__kbUi("Xodimlar bog‘cha ochilgandan keyin ulanadi")}</h2>
+            <p>{__kbUi("Har bir xodim uchun alohida hisob va muassasa ichidagi lavozim bo‘ladi.")}</p>
           </header>
           <div className="kg-process-list">
             {[
@@ -1232,16 +1220,16 @@ function OnboardingWizard({
               ["4", "Faqat lavozimiga mos menyular ochiladi"],
             ].map(([number, text]) => (
               <div key={number}>
-                <i>{number}</i>
-                <span>{text}</span>
+                <i>{__kbUi(number)}</i>
+                <span>{__kbUi(text)}</span>
               </div>
             ))}
           </div>
           <div className="kg-safety-note compact">
             <ShieldCheck size={20} />
             <div>
-              <b>AI avatar rol bera olmaydi</b>
-              <p>U formani tushuntiradi, lekin yuqori vakolatni faqat rahbar tasdiqlaydi.</p>
+              <b>{__kbUi("AI avatar rol bera olmaydi")}</b>
+              <p>{__kbUi("U formani tushuntiradi, lekin yuqori vakolatni faqat rahbar tasdiqlaydi.")}</p>
             </div>
           </div>
         </section>
@@ -1250,45 +1238,45 @@ function OnboardingWizard({
       {step === "preview" && (
         <section className="kg-form-card" data-ai-anchor="kg-preview">
           <header>
-            <span className="kg-eyebrow">YAKUNIY TEKSHIRUV</span>
-            <h2>Raqamli ish maydoni tayyor</h2>
-            <p>Quyidagi ma’lumotni tekshiring. Tasdiqlashdan oldin ortga qaytib o‘zgartira olasiz.</p>
+            <span className="kg-eyebrow">{__kbUi("YAKUNIY TEKSHIRUV")}</span>
+            <h2>{__kbUi("Raqamli ish maydoni tayyor")}</h2>
+            <p>{__kbUi("Quyidagi ma’lumotni tekshiring. Tasdiqlashdan oldin ortga qaytib o‘zgartira olasiz.")}</p>
           </header>
           {!preview ? (
-            <LoadingBlock text="Ma'lumot tekshirilmoqda..." />
+            <LoadingBlock text={__kbUi("Ma'lumot tekshirilmoqda...")} />
           ) : (
             <>
               <div className="kg-preview-grid">
                 <div>
-                  <small>Bog‘cha</small>
+                  <small>{__kbUi("Bog‘cha")}</small>
                   <b>{preview.summary.name}</b>
                 </div>
                 <div>
-                  <small>Turi</small>
+                  <small>{__kbUi("Turi")}</small>
                   <b>
                     {preview.summary.ownership_type === "private"
-                      ? "Xususiy"
-                      : "Davlat"}
+                      ? __kbUi("Xususiy")
+                      : __kbUi("Davlat")}
                   </b>
                 </div>
                 <div>
-                  <small>Ish vaqti</small>
+                  <small>{__kbUi("Ish vaqti")}</small>
                   <b>
-                    {preview.summary.work_start || "—"} –{" "}
-                    {preview.summary.work_end || "—"}
+                    {preview.summary.work_start || __kbUi("—")} –{__kbUi(" ")}
+                    {preview.summary.work_end || __kbUi("—")}
                   </b>
                 </div>
                 <div>
-                  <small>Guruhlar</small>
-                  <b>{preview.summary.group_count} ta</b>
+                  <small>{__kbUi("Guruhlar")}</small>
+                  <b>{preview.summary.group_count}{__kbUi(" ta")}</b>
                 </div>
                 <div>
-                  <small>Sig‘im</small>
-                  <b>{preview.summary.capacity || "Kiritilmagan"}</b>
+                  <small>{__kbUi("Sig‘im")}</small>
+                  <b>{preview.summary.capacity || __kbUi("Kiritilmagan")}</b>
                 </div>
                 <div>
-                  <small>Sizning rolingiz</small>
-                  <b>{ROLE_LABELS[preview.summary.relationship]}</b>
+                  <small>{__kbUi("Sizning rolingiz")}</small>
+                  <b>{__kbUi(ROLE_LABELS[preview.summary.relationship])}</b>
                 </div>
               </div>
               {preview.summary.groups.length > 0 && (
@@ -1296,19 +1284,19 @@ function OnboardingWizard({
                   {preview.summary.groups.map((group) => (
                     <span key={group.name}>
                       {group.name}
-                      {group.capacity ? ` · ${group.capacity} bola` : ""}
+                      {group.capacity ? __kbUi(` · ${group.capacity} bola`) : __kbUi("")}
                     </span>
                   ))}
                 </div>
               )}
               {(preview.warnings || []).map((warning) => (
                 <div className="kg-warning" key={warning}>
-                  <BellRing size={17} /> {warning}
+                  <BellRing size={17} /> {__kbUi(warning)}
                 </div>
               ))}
               <div className="kg-legal-note">
                 <ShieldCheck size={18} />
-                <span>{preview.legal_notice}</span>
+                <span>{__kbUi(preview.legal_notice)}</span>
               </div>
             </>
           )}
@@ -1318,8 +1306,7 @@ function OnboardingWizard({
       <div className="kg-wizard-actions">
         {stepIndex > 0 && (
           <button type="button" className="kg-secondary-button" onClick={previousStep}>
-            <ArrowLeft size={16} /> Ortga
-          </button>
+            <ArrowLeft size={16} />{__kbUi(" Ortga")}</button>
         )}
         {step !== "preview" ? (
           <button
@@ -1328,8 +1315,7 @@ function OnboardingWizard({
             onClick={nextStep}
             disabled={busy}
           >
-            {busy && <Loader2 size={16} className="animate-spin" />}
-            Saqlash va davom etish <ChevronRight size={16} />
+            {busy && <Loader2 size={16} className="animate-spin" />}{__kbUi("Saqlash va davom etish ")}<ChevronRight size={16} />
           </button>
         ) : (
           <button
@@ -1338,9 +1324,7 @@ function OnboardingWizard({
             onClick={confirm}
             disabled={busy || !preview}
           >
-            {busy && <Loader2 size={16} className="animate-spin" />}
-            Men tekshirdim — bog‘chani yaratish
-          </button>
+            {busy && <Loader2 size={16} className="animate-spin" />}{__kbUi("Men tekshirdim — bog‘chani yaratish")}</button>
         )}
       </div>
 
@@ -1373,6 +1357,7 @@ function OnboardingWizard({
 }
 
 function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
+  useKbInterfaceLocale();
   const [tab, setTab] = useState("search");
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("");
@@ -1443,30 +1428,26 @@ function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
     <div className="kg-shell">
       <BackButton onClick={onBack} />
       <header className="kg-page-header">
-        <span className="kg-eyebrow">BOG‘CHAGA QO‘SHILISH</span>
-        <h1>Mavjud muassasani toping</h1>
-        <p>Rahbar tasdig‘i yoki maxsus taklif kodi orqali xavfsiz ulanasiz.</p>
+        <span className="kg-eyebrow">{__kbUi("BOG‘CHAGA QO‘SHILISH")}</span>
+        <h1>{__kbUi("Mavjud muassasani toping")}</h1>
+        <p>{__kbUi("Rahbar tasdig‘i yoki maxsus taklif kodi orqali xavfsiz ulanasiz.")}</p>
       </header>
       <div className="kg-segmented kg-tabs">
         <button
           type="button"
           className={tab === "search" ? "selected" : ""}
           onClick={() => setTab("search")}
-        >
-          Nom bo‘yicha
-        </button>
+        >{__kbUi("Nom bo‘yicha")}</button>
         <button
           type="button"
           className={tab === "code" ? "selected" : ""}
           onClick={() => setTab("code")}
-        >
-          Taklif kodi
-        </button>
+        >{__kbUi("Taklif kodi")}</button>
       </div>
       <ErrorNotice error={error} />
       {success && (
         <div className="kg-success">
-          <BadgeCheck size={19} /> {success}
+          <BadgeCheck size={19} /> {__kbUi(success)}
         </div>
       )}
 
@@ -1474,7 +1455,7 @@ function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
         <section className="kg-form-card">
           <div className="kg-form-grid search">
             <div className="kg-field">
-              <label>Bog‘cha nomi</label>
+              <label>{__kbUi("Bog‘cha nomi")}</label>
               <input
                 value={query}
                 onChange={(event) => {
@@ -1482,30 +1463,28 @@ function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
                   setResults([]);
                 }}
                 onKeyDown={(event) => event.key === "Enter" && search()}
-                placeholder="Masalan: Quyoshcha"
+                placeholder={__kbUi("Masalan: Quyoshcha")}
               />
             </div>
             <div className="kg-field">
-              <label>Viloyat (ixtiyoriy)</label>
+              <label>{__kbUi("Viloyat (ixtiyoriy)")}</label>
               <select value={region} onChange={(event) => {
                 setRegion(event.target.value);
                 setResults([]);
               }}>
-                <option value="">Barchasi</option>
+                <option value="">{__kbUi("Barchasi")}</option>
                 {VILOYATLAR.map((item) => (
                   <option key={item} value={item}>
-                    {item}
+                    {__kbUi(item)}
                   </option>
                 ))}
               </select>
             </div>
             <button type="button" className="kg-primary-button" onClick={search}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-              Qidirish
-            </button>
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}{__kbUi("Qidirish")}</button>
           </div>
 
-          <label className="kg-label">So‘raladigan lavozim</label>
+          <label className="kg-label">{__kbUi("So‘raladigan lavozim")}</label>
           <select
             className="kg-wide-select"
             value={role}
@@ -1515,7 +1494,7 @@ function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
               .filter(([key]) => !["owner", "founder"].includes(key))
               .map(([key, label]) => (
                 <option key={key} value={key}>
-                  {label}
+                  {__kbUi(label)}
                 </option>
               ))}
           </select>
@@ -1529,32 +1508,30 @@ function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
                 <span>
                   <b>{item.name}</b>
                   <small>
-                    {[item.region, item.district].filter(Boolean).join(", ")} ·{" "}
-                    {item.ownership_type === "private" ? "Xususiy" : "Davlat"}
+                    {__kbUi([item.region, item.district].filter(Boolean).join(", "))} ·{__kbUi(" ")}
+                    {item.ownership_type === "private" ? __kbUi("Xususiy") : __kbUi("Davlat")}
                   </small>
                 </span>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => requestJoin(item.context_id)}
-                >
-                  So‘rov yuborish
-                </button>
+                >{__kbUi("So‘rov yuborish")}</button>
               </div>
             ))}
             {!busy && query && results.length === 0 && (
-              <p className="kg-empty-text">Mos bog‘cha topilmadi.</p>
+              <p className="kg-empty-text">{__kbUi("Mos bog‘cha topilmadi.")}</p>
             )}
           </div>
         </section>
       ) : (
         <section className="kg-form-card compact-card">
           <div className="kg-field">
-            <label>Rahbar bergan taklif kodi</label>
+            <label>{__kbUi("Rahbar bergan taklif kodi")}</label>
             <input
               value={code}
               onChange={(event) => setCode(event.target.value.toUpperCase())}
-              placeholder="AB12-CD34"
+              placeholder={__kbUi("AB12-CD34")}
               maxLength={9}
             />
           </div>
@@ -1564,9 +1541,7 @@ function JoinKindergarten({ token, apiBase, onBack, onRequested }) {
             disabled={busy || code.trim().length < 8}
             onClick={acceptCode}
           >
-            {busy && <Loader2 size={16} className="animate-spin" />}
-            Kod bilan ulanish
-          </button>
+            {busy && <Loader2 size={16} className="animate-spin" />}{__kbUi("Kod bilan ulanish")}</button>
         </section>
       )}
     </div>
@@ -1582,6 +1557,7 @@ function KindergartenDashboard({
   onBack,
   onLegacy,
 }) {
+  useKbInterfaceLocale();
   const [dashboard, setDashboard] = useState(null);
   const [section, setSection] = useState("overview");
   const [loading, setLoading] = useState(true);
@@ -1690,7 +1666,7 @@ function KindergartenDashboard({
     return (
       <div className="kg-shell">
         <BackButton onClick={onBack} />
-        <LoadingBlock text="Bog'cha boshqaruvi yuklanmoqda..." />
+        <LoadingBlock text={__kbUi("Bog'cha boshqaruvi yuklanmoqda...")} />
       </div>
     );
   }
@@ -1721,8 +1697,7 @@ function KindergartenDashboard({
     <div className="kg-dashboard-shell kg-with-avatar">
       <header className="kg-dashboard-header">
         <button type="button" className="kg-back" onClick={onBack}>
-          <ArrowLeft size={17} /> Bog‘chalarim
-        </button>
+          <ArrowLeft size={17} />{__kbUi(" Bog‘chalarim")}</button>
         <div className="kg-dashboard-brand">
           <span className="kg-workspace-logo">
             <Building2 size={22} />
@@ -1730,8 +1705,7 @@ function KindergartenDashboard({
           <div>
             <h1>{dashboard.profile.name}</h1>
             <p>
-              {dashboard.profile.ownership_type === "private" ? "Xususiy" : "Davlat"}{" "}
-              bog‘chasi · {dashboard.role_labels.join(", ")}
+              {dashboard.profile.ownership_type === "private" ? __kbUi("Xususiy") : __kbUi("Davlat")}{__kbUi(" ")}{__kbUi("bog‘chasi · ")}{__kbUi(dashboard.role_labels.join(", "))}
             </p>
           </div>
         </div>
@@ -1741,8 +1715,7 @@ function KindergartenDashboard({
             type="button"
             className="kg-avatar-setting"
             onClick={() => onPreferences({ enabled: !preferences.enabled })}
-          >
-            AI {preferences.enabled ? "yoqilgan" : "o‘chirilgan"}
+          >{__kbUi("AI ")}{preferences.enabled ? __kbUi("yoqilgan") : __kbUi("o‘chirilgan")}
           </button>
         </div>
       </header>
@@ -1770,7 +1743,7 @@ function KindergartenDashboard({
               onClick={() => selectSection(item.key)}
             >
               <Icon size={17} />
-              {item.label}
+              {__kbUi(item.label)}
             </button>
           );
         })}
@@ -1857,9 +1830,7 @@ function KindergartenDashboard({
           />
         )}
         {onLegacy && dashboard.profile.legacy_bogcha_id && (
-          <button type="button" className="kg-legacy-link" onClick={onLegacy}>
-            Eski guruh ekranini ochish
-          </button>
+          <button type="button" className="kg-legacy-link" onClick={onLegacy}>{__kbUi("Eski guruh ekranini ochish")}</button>
         )}
       </main>
 
@@ -1881,6 +1852,7 @@ function KindergartenDashboard({
 }
 
 function OverviewPanel({ dashboard, manager, onOpen }) {
+  useKbInterfaceLocale();
   const allowedKeys = new Set((dashboard.menu || []).map((item) => item.key));
   const metrics = [
     ["groups", "Guruhlar", dashboard.metrics.groups, Users],
@@ -1898,7 +1870,7 @@ function OverviewPanel({ dashboard, manager, onOpen }) {
           .map(([key, label, value, Icon]) => (
             <button type="button" key={key} onClick={() => onOpen(key)}>
               <span><Icon size={19} /></span>
-              <small>{label}</small>
+              <small>{__kbUi(label)}</small>
               <b>{value || 0}</b>
             </button>
           ))}
@@ -1906,8 +1878,8 @@ function OverviewPanel({ dashboard, manager, onOpen }) {
       {dashboard.checklist.length > 0 && <section className="kg-dashboard-card">
         <div className="kg-section-title">
           <div>
-            <span className="kg-eyebrow">ISHGA TUSHIRISH</span>
-            <h2>Bog‘cha tayyorlik ro‘yxati</h2>
+            <span className="kg-eyebrow">{__kbUi("ISHGA TUSHIRISH")}</span>
+            <h2>{__kbUi("Bog‘cha tayyorlik ro‘yxati")}</h2>
           </div>
           <span>
             {dashboard.checklist.filter((item) => item.done).length}/
@@ -1920,7 +1892,7 @@ function OverviewPanel({ dashboard, manager, onOpen }) {
               <i className={item.done ? "done" : ""}>
                 {item.done && <Check size={14} />}
               </i>
-              <span>{item.label}</span>
+              <span>{__kbUi(item.label)}</span>
               <ChevronRight size={16} />
             </button>
           ))}
@@ -1928,12 +1900,12 @@ function OverviewPanel({ dashboard, manager, onOpen }) {
       </section>}
       <section className="kg-dashboard-card kg-today">
         <div>
-          <span className="kg-eyebrow">BUGUN</span>
+          <span className="kg-eyebrow">{__kbUi("BUGUN")}</span>
           <h2>
-            {dashboard.profile.work_start?.slice(0, 5) || "08:00"} –{" "}
-            {dashboard.profile.work_end?.slice(0, 5) || "18:00"}
+            {dashboard.profile.work_start?.slice(0, 5) || __kbUi("08:00")} –{__kbUi(" ")}
+            {dashboard.profile.work_end?.slice(0, 5) || __kbUi("18:00")}
           </h2>
-          <p>Kalendar va davomat shu ish tartibiga tayangan holda ko‘rsatiladi.</p>
+          <p>{__kbUi("Kalendar va davomat shu ish tartibiga tayangan holda ko‘rsatiladi.")}</p>
         </div>
         <Clock3 size={34} />
       </section>
@@ -1942,6 +1914,7 @@ function OverviewPanel({ dashboard, manager, onOpen }) {
 }
 
 function GroupsPanel({ token, apiBase, contextId, manager }) {
+  useKbInterfaceLocale();
   const [items, setItems] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({
@@ -2007,24 +1980,23 @@ function GroupsPanel({ token, apiBase, contextId, manager }) {
     <section className="kg-dashboard-card">
       <div className="kg-section-title">
         <div>
-          <span className="kg-eyebrow">GURUHLAR</span>
-          <h2>Yosh va xona bo‘yicha guruhlar</h2>
+          <span className="kg-eyebrow">{__kbUi("GURUHLAR")}</span>
+          <h2>{__kbUi("Yosh va xona bo‘yicha guruhlar")}</h2>
         </div>
         {manager && (
           <button type="button" className="kg-small-primary" onClick={() => setFormOpen(!formOpen)}>
-            <Plus size={15} /> Yangi guruh
-          </button>
+            <Plus size={15} />{__kbUi(" Yangi guruh")}</button>
         )}
       </div>
       <ErrorNotice error={error} />
       {formOpen && (
         <div className="kg-inline-form">
-          <div className="kg-field"><label>Nomi</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div className="kg-field"><label>Min. yosh (oy)</label><input type="number" value={form.age_min_months} onChange={(e) => setForm({ ...form, age_min_months: Number(e.target.value) })} /></div>
-          <div className="kg-field"><label>Maks. yosh (oy)</label><input type="number" value={form.age_max_months} onChange={(e) => setForm({ ...form, age_max_months: Number(e.target.value) })} /></div>
-          <div className="kg-field"><label>Sig‘im</label><input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} /></div>
-          <div className="kg-field"><label>Xona</label><input value={form.room_name} onChange={(e) => setForm({ ...form, room_name: e.target.value })} /></div>
-          <button type="button" onClick={create} disabled={busy || !form.name.trim()}>Saqlash</button>
+          <div className="kg-field"><label>{__kbUi("Nomi")}</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="kg-field"><label>{__kbUi("Min. yosh (oy)")}</label><input type="number" value={form.age_min_months} onChange={(e) => setForm({ ...form, age_min_months: Number(e.target.value) })} /></div>
+          <div className="kg-field"><label>{__kbUi("Maks. yosh (oy)")}</label><input type="number" value={form.age_max_months} onChange={(e) => setForm({ ...form, age_max_months: Number(e.target.value) })} /></div>
+          <div className="kg-field"><label>{__kbUi("Sig‘im")}</label><input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} /></div>
+          <div className="kg-field"><label>{__kbUi("Xona")}</label><input value={form.room_name} onChange={(e) => setForm({ ...form, room_name: e.target.value })} /></div>
+          <button type="button" onClick={create} disabled={busy || !form.name.trim()}>{__kbUi("Saqlash")}</button>
         </div>
       )}
       {busy && items.length === 0 ? <LoadingBlock /> : (
@@ -2036,16 +2008,16 @@ function GroupsPanel({ token, apiBase, contextId, manager }) {
                 <h3>{group.name}</h3>
                 <p>
                   {group.age_min_months != null && group.age_max_months != null
-                    ? `${group.age_min_months}–${group.age_max_months} oy`
-                    : "Yosh belgilanmagan"}
-                  {group.room_name ? ` · ${group.room_name}` : ""}
+                    ? __kbUi(`${group.age_min_months}–${group.age_max_months} oy`)
+                    : __kbUi("Yosh belgilanmagan")}
+                  {group.room_name ? __kbUi(` · ${group.room_name}`) : __kbUi("")}
                 </p>
-                <small>{group.teacher_name || "Tarbiyachi biriktirilmagan"}</small>
+                <small>{group.teacher_name || __kbUi("Tarbiyachi biriktirilmagan")}</small>
               </div>
-              <b>{group.child_count}/{group.capacity || "∞"}</b>
+              <b>{group.child_count}/{group.capacity || __kbUi("∞")}</b>
             </article>
           ))}
-          {!busy && items.length === 0 && <p className="kg-empty-text">Hali guruh yaratilmagan.</p>}
+          {!busy && items.length === 0 && <p className="kg-empty-text">{__kbUi("Hali guruh yaratilmagan.")}</p>}
         </div>
       )}
       <LoadMoreButton
@@ -2058,6 +2030,7 @@ function GroupsPanel({ token, apiBase, contextId, manager }) {
 }
 
 function StaffPanel({ token, apiBase, contextId }) {
+  useKbInterfaceLocale();
   const [staff, setStaff] = useState([]);
   const [requests, setRequests] = useState([]);
   const {
@@ -2185,14 +2158,14 @@ function StaffPanel({ token, apiBase, contextId }) {
   return (
     <div className="kg-two-column">
       <section className="kg-dashboard-card">
-        <div className="kg-section-title"><div><span className="kg-eyebrow">XODIMLAR</span><h2>Faol jamoa</h2></div><span>{staff.length} ta</span></div>
+        <div className="kg-section-title"><div><span className="kg-eyebrow">{__kbUi("XODIMLAR")}</span><h2>{__kbUi("Faol jamoa")}</h2></div><span>{staff.length}{__kbUi(" ta")}</span></div>
         <ErrorNotice error={error || groupsError} />
         {busy && staff.length === 0 ? <LoadingBlock /> : (
           <div className="kg-compact-list">
             {staff.map((person) => (
               <div key={person.id}>
                 <span className="kg-list-icon"><Users size={17} /></span>
-                <span><b>{person.full_name}</b><small>{person.role_label}{person.group_name ? ` · ${person.group_name}` : ""}</small></span>
+                <span><b>{person.full_name}</b><small>{__kbUi(person.role_label)}{person.group_name ? __kbUi(` · ${person.group_name}`) : __kbUi("")}</small></span>
                 <StatusPill status={person.status} />
               </div>
             ))}
@@ -2206,20 +2179,20 @@ function StaffPanel({ token, apiBase, contextId }) {
       </section>
       <div>
         <section className="kg-dashboard-card">
-          <span className="kg-eyebrow">TAKLIF KODI</span>
-          <h2>Yangi xodimni ulash</h2>
-          <div className="kg-field"><label>F.I.Sh. (ixtiyoriy)</label><input value={invite.invited_name} onChange={(e) => setInvite({ ...invite, invited_name: e.target.value })} /></div>
-          <div className="kg-field"><label>Lavozim</label><select value={invite.role_key} onChange={(e) => setInvite({ ...invite, role_key: e.target.value, group_id: "" })}>{Object.entries(ROLE_LABELS).filter(([key]) => !["owner", "founder", "system_admin"].includes(key)).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+          <span className="kg-eyebrow">{__kbUi("TAKLIF KODI")}</span>
+          <h2>{__kbUi("Yangi xodimni ulash")}</h2>
+          <div className="kg-field"><label>{__kbUi("F.I.Sh. (ixtiyoriy)")}</label><input value={invite.invited_name} onChange={(e) => setInvite({ ...invite, invited_name: e.target.value })} /></div>
+          <div className="kg-field"><label>{__kbUi("Lavozim")}</label><select value={invite.role_key} onChange={(e) => setInvite({ ...invite, role_key: e.target.value, group_id: "" })}>{Object.entries(ROLE_LABELS).filter(([key]) => !["owner", "founder", "system_admin"].includes(key)).map(([key, label]) => <option key={key} value={key}>{__kbUi(label)}</option>)}</select></div>
           {!MANAGER_ROLES.includes(invite.role_key) && (
             <div className="kg-field">
-              <label>Guruh doirasi</label>
+              <label>{__kbUi("Guruh doirasi")}</label>
               <select
                 value={invite.group_id}
                 onChange={(event) =>
                   setInvite({ ...invite, group_id: event.target.value })
                 }
               >
-                <option value="">Barcha guruhlar</option>
+                <option value="">{__kbUi("Barcha guruhlar")}</option>
                 {groups.map((group) => (
                   <option key={group.id} value={group.id}>{group.name}</option>
                 ))}
@@ -2231,25 +2204,25 @@ function StaffPanel({ token, apiBase, contextId }) {
               />
             </div>
           )}
-          <div className="kg-field"><label>Telefon / email (ixtiyoriy)</label><input value={invite.invited_contact} onChange={(e) => setInvite({ ...invite, invited_contact: e.target.value })} /></div>
-          <button type="button" className="kg-primary-button" onClick={makeInvite} disabled={busy}><UserPlus size={16} /> Kod yaratish</button>
+          <div className="kg-field"><label>{__kbUi("Telefon / email (ixtiyoriy)")}</label><input value={invite.invited_contact} onChange={(e) => setInvite({ ...invite, invited_contact: e.target.value })} /></div>
+          <button type="button" className="kg-primary-button" onClick={makeInvite} disabled={busy}><UserPlus size={16} />{__kbUi(" Kod yaratish")}</button>
           {generatedCode && (
             <div className="kg-invite-code">
-              <small>Bir martalik kod</small><b>{generatedCode}</b>
-              <button type="button" onClick={() => navigator.clipboard?.writeText(generatedCode)}><Copy size={15} /> Nusxalash</button>
+              <small>{__kbUi("Bir martalik kod")}</small><b>{generatedCode}</b>
+              <button type="button" onClick={() => navigator.clipboard?.writeText(generatedCode)}><Copy size={15} />{__kbUi(" Nusxalash")}</button>
             </div>
           )}
         </section>
         {requests.length > 0 && (
           <section className="kg-dashboard-card">
-            <span className="kg-eyebrow">QO‘SHILISH SO‘ROVLARI</span>
-            <h2>Rahbar tasdig‘i</h2>
+            <span className="kg-eyebrow">{__kbUi("QO‘SHILISH SO‘ROVLARI")}</span>
+            <h2>{__kbUi("Rahbar tasdig‘i")}</h2>
             <div className="kg-request-list">
               {requests.map((request) => (
                 <div key={request.id}>
-                  <span><b>{request.full_name}</b><small>{ROLE_LABELS[request.requested_role]}</small></span>
-                  <button type="button" aria-label={`${request.full_name} so'rovini tasdiqlash`} onClick={() => decide(request.id, true)}><Check size={14} /></button>
-                  <button type="button" aria-label={`${request.full_name} so'rovini rad etish`} className="reject" onClick={() => decide(request.id, false)}><X size={14} /></button>
+                  <span><b>{request.full_name}</b><small>{__kbUi(ROLE_LABELS[request.requested_role])}</small></span>
+                  <button type="button" aria-label={__kbUi(`${request.full_name} so'rovini tasdiqlash`)} onClick={() => decide(request.id, true)}><Check size={14} /></button>
+                  <button type="button" aria-label={__kbUi(`${request.full_name} so'rovini rad etish`)} className="reject" onClick={() => decide(request.id, false)}><X size={14} /></button>
                 </div>
               ))}
               <LoadMoreButton
@@ -2266,6 +2239,7 @@ function StaffPanel({ token, apiBase, contextId }) {
 }
 
 function ChildrenPanel({ token, apiBase, contextId, canEdit }) {
+  useKbInterfaceLocale();
   const [children, setChildren] = useState([]);
   const {
     groups,
@@ -2338,18 +2312,18 @@ function ChildrenPanel({ token, apiBase, contextId, canEdit }) {
   return (
     <section className="kg-dashboard-card">
       <div className="kg-section-title">
-        <div><span className="kg-eyebrow">BOLALAR</span><h2>Guruh va ota-ona aloqasi</h2></div>
-        {canEdit && <button type="button" className="kg-small-primary" onClick={() => setFormOpen(!formOpen)}><Plus size={15} /> Bola qo‘shish</button>}
+        <div><span className="kg-eyebrow">{__kbUi("BOLALAR")}</span><h2>{__kbUi("Guruh va ota-ona aloqasi")}</h2></div>
+        {canEdit && <button type="button" className="kg-small-primary" onClick={() => setFormOpen(!formOpen)}><Plus size={15} />{__kbUi(" Bola qo‘shish")}</button>}
       </div>
       <ErrorNotice error={error || groupsError} />
       {formOpen && (
         <div className="kg-child-form">
-          <div className="kg-field"><label>Bola F.I.Sh. *</label><input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+          <div className="kg-field"><label>{__kbUi("Bola F.I.Sh. *")}</label><input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
           <div className="kg-form-grid three">
             <div className="kg-field">
-              <label>Guruh</label>
+              <label>{__kbUi("Guruh")}</label>
               <select value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })}>
-                <option value="">Tanlanmagan</option>
+                <option value="">{__kbUi("Tanlanmagan")}</option>
                 {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
               </select>
               <LoadMoreButton
@@ -2358,25 +2332,25 @@ function ChildrenPanel({ token, apiBase, contextId, canEdit }) {
                 onClick={loadMoreGroups}
               />
             </div>
-            <div className="kg-field"><label>Tug‘ilgan sana</label><input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
-            <div className="kg-field"><label>Jinsi</label><select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}><option value="unspecified">Ko‘rsatilmagan</option><option value="female">Qiz</option><option value="male">O‘g‘il</option></select></div>
+            <div className="kg-field"><label>{__kbUi("Tug‘ilgan sana")}</label><input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Jinsi")}</label><select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}><option value="unspecified">{__kbUi("Ko‘rsatilmagan")}</option><option value="female">{__kbUi("Qiz")}</option><option value="male">{__kbUi("O‘g‘il")}</option></select></div>
           </div>
           <div className="kg-form-grid three">
-            <div className="kg-field"><label>Ota-ona F.I.Sh.</label><input value={form.guardian_name} onChange={(e) => setForm({ ...form, guardian_name: e.target.value })} /></div>
-            <div className="kg-field"><label>Aloqa telefoni</label><input value={form.guardian_phone} onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })} /></div>
-            <div className="kg-field"><label>Qarindoshligi</label><input value={form.guardian_relationship} onChange={(e) => setForm({ ...form, guardian_relationship: e.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Ota-ona F.I.Sh.")}</label><input value={form.guardian_name} onChange={(e) => setForm({ ...form, guardian_name: e.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Aloqa telefoni")}</label><input value={form.guardian_phone} onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Qarindoshligi")}</label><input value={form.guardian_relationship} onChange={(e) => setForm({ ...form, guardian_relationship: e.target.value })} /></div>
           </div>
-          <div className="kg-field"><label>Allergiya (bo‘lsa)</label><input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} /></div>
-          <button type="button" className="kg-primary-button" onClick={create} disabled={busy || !form.full_name.trim()}>Saqlash</button>
+          <div className="kg-field"><label>{__kbUi("Allergiya (bo‘lsa)")}</label><input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} /></div>
+          <button type="button" className="kg-primary-button" onClick={create} disabled={busy || !form.full_name.trim()}>{__kbUi("Saqlash")}</button>
         </div>
       )}
       {busy && children.length === 0 ? <LoadingBlock /> : (
         <div className="kg-table-wrap">
           <table className="kg-table">
-            <thead><tr><th>F.I.Sh.</th><th>Guruh</th><th>Tug‘ilgan sana</th><th>Ota-ona</th><th>Telefon</th></tr></thead>
-            <tbody>{children.map((child) => <tr key={child.id}><td><b>{child.full_name}</b>{child.allergies && <small className="kg-alert-small">Allergiya: {child.allergies}</small>}</td><td>{child.group_name || "—"}</td><td>{child.birth_date || "—"}</td><td>{child.guardian_name || "—"}</td><td>{child.guardian_phone || "—"}</td></tr>)}</tbody>
+            <thead><tr><th>{__kbUi("F.I.Sh.")}</th><th>{__kbUi("Guruh")}</th><th>{__kbUi("Tug‘ilgan sana")}</th><th>{__kbUi("Ota-ona")}</th><th>{__kbUi("Telefon")}</th></tr></thead>
+            <tbody>{children.map((child) => <tr key={child.id}><td><b>{child.full_name}</b>{child.allergies && <small className="kg-alert-small">{__kbUi("Allergiya: ")}{child.allergies}</small>}</td><td>{child.group_name || __kbUi("—")}</td><td>{child.birth_date || __kbUi("—")}</td><td>{child.guardian_name || __kbUi("—")}</td><td>{child.guardian_phone || __kbUi("—")}</td></tr>)}</tbody>
           </table>
-          {!busy && children.length === 0 && <p className="kg-empty-text">Hali bola kiritilmagan.</p>}
+          {!busy && children.length === 0 && <p className="kg-empty-text">{__kbUi("Hali bola kiritilmagan.")}</p>}
         </div>
       )}
       <LoadMoreButton
@@ -2389,6 +2363,7 @@ function ChildrenPanel({ token, apiBase, contextId, canEdit }) {
 }
 
 function AttendancePanel({ token, apiBase, contextId }) {
+  useKbInterfaceLocale();
   const {
     groups,
     groupsBusy,
@@ -2444,10 +2419,10 @@ function AttendancePanel({ token, apiBase, contextId }) {
 
   return (
     <section className="kg-dashboard-card">
-      <div className="kg-section-title"><div><span className="kg-eyebrow">DAVOMAT</span><h2>Kunlik kelish holati</h2></div></div>
+      <div className="kg-section-title"><div><span className="kg-eyebrow">{__kbUi("DAVOMAT")}</span><h2>{__kbUi("Kunlik kelish holati")}</h2></div></div>
       <ErrorNotice error={error || groupsError} />
       <div className="kg-filter-row">
-        <select value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">Guruhni tanlang</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
+        <select value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">{__kbUi("Guruhni tanlang")}</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
         <input type="date" value={dateValue} onChange={(e) => setDateValue(e.target.value)} />
       </div>
       <LoadMoreButton
@@ -2458,17 +2433,18 @@ function AttendancePanel({ token, apiBase, contextId }) {
       <div className="kg-attendance-list">
         {items.map((item) => (
           <div key={item.child_id}>
-            <span><b>{item.full_name}</b><small>{item.status ? `Holat: ${item.status}` : "Belgilanmagan"}</small></span>
-            <div>{[["present", "Keldi"], ["late", "Kech"], ["absent", "Kelmadi"], ["sick", "Kasal"]].map(([status, label]) => <button type="button" key={status} disabled={busyId === item.child_id} className={item.status === status ? `active ${status}` : ""} onClick={() => mark(item.child_id, status)}>{label}</button>)}</div>
+            <span><b>{item.full_name}</b><small>{item.status ? __kbUi(`Holat: ${item.status}`) : __kbUi("Belgilanmagan")}</small></span>
+            <div>{[["present", "Keldi"], ["late", "Kech"], ["absent", "Kelmadi"], ["sick", "Kasal"]].map(([status, label]) => <button type="button" key={status} disabled={busyId === item.child_id} className={item.status === status ? `active ${status}` : ""} onClick={() => mark(item.child_id, status)}>{__kbUi(label)}</button>)}</div>
           </div>
         ))}
-        {groupId && items.length === 0 && <p className="kg-empty-text">Bu guruhda faol bola yo‘q.</p>}
+        {groupId && items.length === 0 && <p className="kg-empty-text">{__kbUi("Bu guruhda faol bola yo‘q.")}</p>}
       </div>
     </section>
   );
 }
 
 function DailyReportsPanel({ token, apiBase, contextId }) {
+  useKbInterfaceLocale();
   const {
     groups,
     groupsBusy,
@@ -2607,14 +2583,14 @@ function DailyReportsPanel({ token, apiBase, contextId }) {
       <section className="kg-dashboard-card">
         <div className="kg-section-title">
           <div>
-            <span className="kg-eyebrow">KUNLIK HISOBOT</span>
-            <h2>Bola holati va faoliyati</h2>
+            <span className="kg-eyebrow">{__kbUi("KUNLIK HISOBOT")}</span>
+            <h2>{__kbUi("Bola holati va faoliyati")}</h2>
           </div>
         </div>
         <ErrorNotice error={error || groupsError} />
         <div className="kg-filter-row">
           <select value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-            <option value="">Guruhni tanlang</option>
+            <option value="">{__kbUi("Guruhni tanlang")}</option>
             {groups.map((group) => (
               <option key={group.id} value={group.id}>{group.name}</option>
             ))}
@@ -2640,15 +2616,15 @@ function DailyReportsPanel({ token, apiBase, contextId }) {
                   <b>{child.full_name}</b>
                   <small>
                     {child.report_id
-                      ? `${child.mood || "Holat kiritilgan"} · hisobot saqlangan`
-                      : "Hisobot kiritilmagan"}
+                      ? __kbUi(`${child.mood || "Holat kiritilgan"} · hisobot saqlangan`)
+                      : __kbUi("Hisobot kiritilmagan")}
                   </small>
                 </span>
                 {child.report_id ? <BadgeCheck size={18} /> : <ChevronRight size={16} />}
               </button>
             ))}
             {!busy && groupId && items.length === 0 && (
-              <p className="kg-empty-text">Bu guruhda faol bola yo‘q.</p>
+              <p className="kg-empty-text">{__kbUi("Bu guruhda faol bola yo‘q.")}</p>
             )}
           </div>
         )}
@@ -2658,38 +2634,37 @@ function DailyReportsPanel({ token, apiBase, contextId }) {
         {!selectedChild ? (
           <div className="kg-report-placeholder">
             <ClipboardCheck size={29} />
-            <h2>Bolani tanlang</h2>
-            <p>Ovqatlanish, uyqu, kayfiyat va mashg‘ulotni bitta shaklda saqlaysiz.</p>
+            <h2>{__kbUi("Bolani tanlang")}</h2>
+            <p>{__kbUi("Ovqatlanish, uyqu, kayfiyat va mashg‘ulotni bitta shaklda saqlaysiz.")}</p>
           </div>
         ) : (
           <>
-            <span className="kg-eyebrow">HISOBOT</span>
+            <span className="kg-eyebrow">{__kbUi("HISOBOT")}</span>
             <h2>{selectedChild.full_name}</h2>
-            {saved && <div className="kg-success"><Check size={16} /> Hisobot saqlandi</div>}
+            {saved && <div className="kg-success"><Check size={16} />{__kbUi(" Hisobot saqlandi")}</div>}
             <div className="kg-field">
-              <label>Kayfiyati</label>
+              <label>{__kbUi("Kayfiyati")}</label>
               <select value={form.mood} onChange={(event) => setForm({ ...form, mood: event.target.value })}>
-                <option value="a'lo">A’lo</option>
-                <option value="yaxshi">Yaxshi</option>
-                <option value="tinch">Tinch</option>
-                <option value="charchagan">Charchagan</option>
-                <option value="bezovta">Bezovta</option>
+                <option value="a'lo">{__kbUi("A’lo")}</option>
+                <option value="yaxshi">{__kbUi("Yaxshi")}</option>
+                <option value="tinch">{__kbUi("Tinch")}</option>
+                <option value="charchagan">{__kbUi("Charchagan")}</option>
+                <option value="bezovta">{__kbUi("Bezovta")}</option>
               </select>
             </div>
             <div className="kg-form-grid three">
-              <div className="kg-field"><label>Nonushta</label><input value={form.breakfast} onChange={(event) => setForm({ ...form, breakfast: event.target.value })} placeholder="Yaxshi / ozroq..." /></div>
-              <div className="kg-field"><label>Tushlik</label><input value={form.lunch} onChange={(event) => setForm({ ...form, lunch: event.target.value })} /></div>
-              <div className="kg-field"><label>Tamaddi</label><input value={form.snack} onChange={(event) => setForm({ ...form, snack: event.target.value })} /></div>
+              <div className="kg-field"><label>{__kbUi("Nonushta")}</label><input value={form.breakfast} onChange={(event) => setForm({ ...form, breakfast: event.target.value })} placeholder={__kbUi("Yaxshi / ozroq...")} /></div>
+              <div className="kg-field"><label>{__kbUi("Tushlik")}</label><input value={form.lunch} onChange={(event) => setForm({ ...form, lunch: event.target.value })} /></div>
+              <div className="kg-field"><label>{__kbUi("Tamaddi")}</label><input value={form.snack} onChange={(event) => setForm({ ...form, snack: event.target.value })} /></div>
             </div>
             <div className="kg-form-grid two">
-              <div className="kg-field"><label>Uyqu (daqiqa)</label><input type="number" min="0" value={form.sleep_minutes} onChange={(event) => setForm({ ...form, sleep_minutes: event.target.value })} /></div>
-              <div className="kg-field"><label>Uyqu sifati</label><select value={form.sleep_quality} onChange={(event) => setForm({ ...form, sleep_quality: event.target.value })}><option value="">Tanlanmagan</option><option value="yaxshi">Yaxshi</option><option value="qisqa">Qisqa</option><option value="uxlamadi">Uxlamadi</option></select></div>
+              <div className="kg-field"><label>{__kbUi("Uyqu (daqiqa)")}</label><input type="number" min="0" value={form.sleep_minutes} onChange={(event) => setForm({ ...form, sleep_minutes: event.target.value })} /></div>
+              <div className="kg-field"><label>{__kbUi("Uyqu sifati")}</label><select value={form.sleep_quality} onChange={(event) => setForm({ ...form, sleep_quality: event.target.value })}><option value="">{__kbUi("Tanlanmagan")}</option><option value="yaxshi">{__kbUi("Yaxshi")}</option><option value="qisqa">{__kbUi("Qisqa")}</option><option value="uxlamadi">{__kbUi("Uxlamadi")}</option></select></div>
             </div>
-            <div className="kg-field"><label>Bugungi faoliyat</label><textarea value={form.activities} onChange={(event) => setForm({ ...form, activities: event.target.value })} /></div>
-            <div className="kg-field"><label>Tarbiyachi izohi</label><textarea value={form.educator_note} onChange={(event) => setForm({ ...form, educator_note: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Bugungi faoliyat")}</label><textarea value={form.activities} onChange={(event) => setForm({ ...form, activities: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Tarbiyachi izohi")}</label><textarea value={form.educator_note} onChange={(event) => setForm({ ...form, educator_note: event.target.value })} /></div>
             <button type="button" className="kg-primary-button" onClick={save} disabled={busy}>
-              {busy && <Loader2 size={15} className="animate-spin" />} Hisobotni saqlash
-            </button>
+              {busy && <Loader2 size={15} className="animate-spin" />}{__kbUi(" Hisobotni saqlash")}</button>
           </>
         )}
       </section>
@@ -2698,6 +2673,7 @@ function DailyReportsPanel({ token, apiBase, contextId }) {
 }
 
 function CalendarPanel({ token, apiBase, contextId, canEdit }) {
+  useKbInterfaceLocale();
   const today = new Date();
   const nextMonth = new Date(today);
   nextMonth.setDate(today.getDate() + 30);
@@ -2758,7 +2734,7 @@ function CalendarPanel({ token, apiBase, contextId, canEdit }) {
   }, [dateFrom, dateTo, contextId]);
 
   const create = async () => {
-    if (!window.confirm("Kalendar voqeasini e'lon qilasizmi?")) return;
+    if (!window.confirm(__kbUi("Kalendar voqeasini e'lon qilasizmi?"))) return;
     setBusy(true);
     try {
       await kindergartenApi("/calendar", {
@@ -2777,17 +2753,17 @@ function CalendarPanel({ token, apiBase, contextId, canEdit }) {
 
   return (
     <section className="kg-dashboard-card">
-      <div className="kg-section-title"><div><span className="kg-eyebrow">KALENDAR</span><h2>Bog‘cha va guruh tadbirlari</h2></div>{canEdit && <button type="button" className="kg-small-primary" onClick={() => setFormOpen(!formOpen)}><Plus size={15} /> Voqea</button>}</div>
+      <div className="kg-section-title"><div><span className="kg-eyebrow">{__kbUi("KALENDAR")}</span><h2>{__kbUi("Bog‘cha va guruh tadbirlari")}</h2></div>{canEdit && <button type="button" className="kg-small-primary" onClick={() => setFormOpen(!formOpen)}><Plus size={15} />{__kbUi(" Voqea")}</button>}</div>
       <ErrorNotice error={error || groupsError} />
       <div className="kg-filter-row"><input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} /><span>—</span><input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} /></div>
       {formOpen && (
         <div className="kg-calendar-form">
           <div className="kg-form-grid three">
-            <div className="kg-field"><label>Turi</label><select value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })}>{[["activity", "Mashg‘ulot"], ["holiday", "Bayram"], ["meeting", "Uchrashuv"], ["meal", "Ovqatlanish"], ["sleep", "Uyqu"], ["medical", "Tibbiy"], ["other", "Boshqa"]].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+            <div className="kg-field"><label>{__kbUi("Turi")}</label><select value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })}>{[["activity", "Mashg‘ulot"], ["holiday", "Bayram"], ["meeting", "Uchrashuv"], ["meal", "Ovqatlanish"], ["sleep", "Uyqu"], ["medical", "Tibbiy"], ["other", "Boshqa"]].map(([key, label]) => <option key={key} value={key}>{__kbUi(label)}</option>)}</select></div>
             <div className="kg-field">
-              <label>Guruh</label>
+              <label>{__kbUi("Guruh")}</label>
               <select value={form.group_id} onChange={(e) => setForm({ ...form, group_id: e.target.value })}>
-                <option value="">Butun bog‘cha</option>
+                <option value="">{__kbUi("Butun bog‘cha")}</option>
                 {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
               </select>
               <LoadMoreButton
@@ -2796,19 +2772,19 @@ function CalendarPanel({ token, apiBase, contextId, canEdit }) {
                 onClick={loadMoreGroups}
               />
             </div>
-            <div className="kg-field"><label>Nomi</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Nomi")}</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
           </div>
-          <div className="kg-form-grid two"><div className="kg-field"><label>Boshlanish</label><input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></div><div className="kg-field"><label>Tugash</label><input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></div></div>
-          <div className="kg-field"><label>Izoh</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-          <button type="button" className="kg-primary-button" onClick={create} disabled={busy || !form.title.trim()}>Tekshirdim — e’lon qilish</button>
+          <div className="kg-form-grid two"><div className="kg-field"><label>{__kbUi("Boshlanish")}</label><input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></div><div className="kg-field"><label>{__kbUi("Tugash")}</label><input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></div></div>
+          <div className="kg-field"><label>{__kbUi("Izoh")}</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <button type="button" className="kg-primary-button" onClick={create} disabled={busy || !form.title.trim()}>{__kbUi("Tekshirdim — e’lon qilish")}</button>
         </div>
       )}
       {busy && events.length === 0 ? <LoadingBlock /> : (
         <div className="kg-timeline">
           {events.map((event) => (
-            <article key={event.id}><time>{new Date(event.starts_at).toLocaleDateString("uz-UZ", { day: "2-digit", month: "short" })}<b>{new Date(event.starts_at).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}</b></time><i /><div><h3>{event.title}</h3><p>{event.group_name || "Butun bog‘cha"} · {event.event_type}</p>{event.description && <small>{event.description}</small>}</div></article>
+            <article key={event.id}><time>{__kbUi(new Date(event.starts_at).toLocaleDateString(__kbLocaleTag(), { day: "2-digit", month: "short" }))}<b>{__kbUi(new Date(event.starts_at).toLocaleTimeString(__kbLocaleTag(), { hour: "2-digit", minute: "2-digit" }))}</b></time><i /><div><h3>{event.title}</h3><p>{event.group_name || __kbUi("Butun bog‘cha")} · {event.event_type}</p>{event.description && <small>{event.description}</small>}</div></article>
           ))}
-          {!busy && events.length === 0 && <p className="kg-empty-text">Bu davrda kalendar voqeasi yo‘q.</p>}
+          {!busy && events.length === 0 && <p className="kg-empty-text">{__kbUi("Bu davrda kalendar voqeasi yo‘q.")}</p>}
         </div>
       )}
       <LoadMoreButton
@@ -2821,6 +2797,7 @@ function CalendarPanel({ token, apiBase, contextId, canEdit }) {
 }
 
 function PaymentsPanel({ token, apiBase, contextId, profile }) {
+  useKbInterfaceLocale();
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const defaultDue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-05`;
@@ -2930,7 +2907,7 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
   };
 
   const generateInvoices = async () => {
-    if (!window.confirm("Tanlangan oy uchun barcha faol bolalarga hisob yaratasizmi?")) {
+    if (!window.confirm(__kbUi("Tanlangan oy uchun barcha faol bolalarga hisob yaratasizmi?"))) {
       return;
     }
     setBusy(true);
@@ -2958,7 +2935,7 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
   };
 
   const recordPayment = async () => {
-    if (!payment || !window.confirm(`${payment.full_name} uchun to'lovni tasdiqlaysizmi?`)) {
+    if (!payment || !window.confirm(__kbUi(`${payment.full_name} uchun to'lovni tasdiqlaysizmi?`))) {
       return;
     }
     setBusy(true);
@@ -2991,31 +2968,30 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
   return (
     <div>
       <ErrorNotice error={error} />
-      {notice && <div className="kg-success"><Check size={17} /> {notice}</div>}
+      {notice && <div className="kg-success"><Check size={17} /> {__kbUi(notice)}</div>}
       <section className="kg-payment-metrics">
-        <div><small>Rejalar</small><b>{plans.length}</b></div>
-        <div><small>Kelgan to‘lov</small><b>{paidTotal.toLocaleString("uz-UZ")} so‘m</b></div>
-        <div><small>Qoldiq</small><b>{unpaidTotal.toLocaleString("uz-UZ")} so‘m</b></div>
+        <div><small>{__kbUi("Rejalar")}</small><b>{plans.length}</b></div>
+        <div><small>{__kbUi("Kelgan to‘lov")}</small><b>{__kbUi(paidTotal.toLocaleString(__kbLocaleTag()))}{__kbUi(" so‘m")}</b></div>
+        <div><small>{__kbUi("Qoldiq")}</small><b>{__kbUi(unpaidTotal.toLocaleString(__kbLocaleTag()))}{__kbUi(" so‘m")}</b></div>
       </section>
 
       <div className="kg-two-column">
         <section className="kg-dashboard-card">
-          <span className="kg-eyebrow">TO‘LOV REJASI</span>
-          <h2>Standart summa va sana</h2>
-          <div className="kg-field"><label>Reja nomi</label><input value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} /></div>
+          <span className="kg-eyebrow">{__kbUi("TO‘LOV REJASI")}</span>
+          <h2>{__kbUi("Standart summa va sana")}</h2>
+          <div className="kg-field"><label>{__kbUi("Reja nomi")}</label><input value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} /></div>
           <div className="kg-form-grid two">
-            <div className="kg-field"><label>Summa (so‘m)</label><input type="number" min="1" value={planForm.amount} onChange={(event) => setPlanForm({ ...planForm, amount: event.target.value })} /></div>
-            <div className="kg-field"><label>Har oyning kuni</label><input type="number" min="1" max="28" value={planForm.billing_day} onChange={(event) => setPlanForm({ ...planForm, billing_day: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Summa (so‘m)")}</label><input type="number" min="1" value={planForm.amount} onChange={(event) => setPlanForm({ ...planForm, amount: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Har oyning kuni")}</label><input type="number" min="1" max="28" value={planForm.billing_day} onChange={(event) => setPlanForm({ ...planForm, billing_day: event.target.value })} /></div>
           </div>
           <button type="button" className="kg-primary-button" disabled={busy || !planForm.name.trim() || Number(planForm.amount) <= 0} onClick={createPlan}>
-            {busy && <Loader2 size={15} className="animate-spin" />} Reja yaratish
-          </button>
+            {busy && <Loader2 size={15} className="animate-spin" />}{__kbUi(" Reja yaratish")}</button>
           {plans.length > 0 && (
             <div className="kg-plan-list">
               {plans.map((plan) => (
                 <div key={plan.id}>
-                  <span><b>{plan.name}</b><small>Har oyning {plan.billing_day}-kuni</small></span>
-                  <strong>{Number(plan.amount).toLocaleString("uz-UZ")} so‘m</strong>
+                  <span><b>{plan.name}</b><small>{__kbUi("Har oyning ")}{plan.billing_day}{__kbUi("-kuni")}</small></span>
+                  <strong>{__kbUi(Number(plan.amount).toLocaleString(__kbLocaleTag()))}{__kbUi(" so‘m")}</strong>
                 </div>
               ))}
             </div>
@@ -3023,43 +2999,41 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
         </section>
 
         <section className="kg-dashboard-card">
-          <span className="kg-eyebrow">OYLIK HISOBLAR</span>
-          <h2>Faol bolalarga hisob chiqarish</h2>
+          <span className="kg-eyebrow">{__kbUi("OYLIK HISOBLAR")}</span>
+          <h2>{__kbUi("Faol bolalarga hisob chiqarish")}</h2>
           <div className="kg-field">
-            <label>To‘lov rejasi</label>
+            <label>{__kbUi("To‘lov rejasi")}</label>
             <select value={generateForm.plan_id} onChange={(event) => setGenerateForm({ ...generateForm, plan_id: event.target.value })}>
-              <option value="">Rejani tanlang</option>
-              {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {Number(plan.amount).toLocaleString("uz-UZ")}</option>)}
+              <option value="">{__kbUi("Rejani tanlang")}</option>
+              {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {__kbUi(Number(plan.amount).toLocaleString(__kbLocaleTag()))}</option>)}
             </select>
           </div>
           <div className="kg-form-grid two">
-            <div className="kg-field"><label>Hisob oyi</label><input type="date" value={generateForm.period_month} onChange={(event) => setGenerateForm({ ...generateForm, period_month: event.target.value })} /></div>
-            <div className="kg-field"><label>To‘lash muddati</label><input type="date" value={generateForm.due_date} onChange={(event) => setGenerateForm({ ...generateForm, due_date: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Hisob oyi")}</label><input type="date" value={generateForm.period_month} onChange={(event) => setGenerateForm({ ...generateForm, period_month: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("To‘lash muddati")}</label><input type="date" value={generateForm.due_date} onChange={(event) => setGenerateForm({ ...generateForm, due_date: event.target.value })} /></div>
           </div>
-          <button type="button" className="kg-primary-button" disabled={busy || !generateForm.plan_id} onClick={generateInvoices}>
-            Hisoblarni ko‘rib, yaratish
-          </button>
-          <div className="kg-legal-note"><ShieldCheck size={17} /><span>Tizim mavjud oy hisobini takrorlamaydi. Yaratishdan oldin alohida tasdiq so‘raladi.</span></div>
+          <button type="button" className="kg-primary-button" disabled={busy || !generateForm.plan_id} onClick={generateInvoices}>{__kbUi("Hisoblarni ko‘rib, yaratish")}</button>
+          <div className="kg-legal-note"><ShieldCheck size={17} /><span>{__kbUi("Tizim mavjud oy hisobini takrorlamaydi. Yaratishdan oldin alohida tasdiq so‘raladi.")}</span></div>
         </section>
       </div>
 
       <section className="kg-dashboard-card">
         <div className="kg-section-title">
-          <div><span className="kg-eyebrow">HISOBLAR</span><h2>Bola kesimidagi holat</h2></div>
-          <span>{billingSummary.invoice_count || invoices.length} ta</span>
+          <div><span className="kg-eyebrow">{__kbUi("HISOBLAR")}</span><h2>{__kbUi("Bola kesimidagi holat")}</h2></div>
+          <span>{billingSummary.invoice_count || invoices.length}{__kbUi(" ta")}</span>
         </div>
         {busy && invoices.length === 0 ? <LoadingBlock /> : (
           <div className="kg-table-wrap">
             <table className="kg-table kg-invoice-table">
-              <thead><tr><th>Bola</th><th>Oy</th><th>Hisob</th><th>To‘langan</th><th>Qoldiq</th><th>Holat</th><th /></tr></thead>
+              <thead><tr><th>{__kbUi("Bola")}</th><th>{__kbUi("Oy")}</th><th>{__kbUi("Hisob")}</th><th>{__kbUi("To‘langan")}</th><th>{__kbUi("Qoldiq")}</th><th>{__kbUi("Holat")}</th><th /></tr></thead>
               <tbody>
                 {invoices.map((invoice) => (
                   <tr key={invoice.id}>
                     <td><b>{invoice.full_name}</b><small>{invoice.plan_name}</small></td>
-                    <td>{String(invoice.period_month).slice(0, 7)}</td>
-                    <td>{Number(invoice.amount_due).toLocaleString("uz-UZ")}</td>
-                    <td>{Number(invoice.amount_paid).toLocaleString("uz-UZ")}</td>
-                    <td>{Number(invoice.remaining).toLocaleString("uz-UZ")}</td>
+                    <td>{__kbUi(String(invoice.period_month).slice(0, 7))}</td>
+                    <td>{__kbUi(Number(invoice.amount_due).toLocaleString(__kbLocaleTag()))}</td>
+                    <td>{__kbUi(Number(invoice.amount_paid).toLocaleString(__kbLocaleTag()))}</td>
+                    <td>{__kbUi(Number(invoice.remaining).toLocaleString(__kbLocaleTag()))}</td>
                     <td><StatusPill status={invoice.status} /></td>
                     <td>
                       {["unpaid", "partial"].includes(invoice.status) && (
@@ -3075,16 +3049,14 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
                               globalThis.crypto?.randomUUID?.() ||
                               `${Date.now()}-${Math.random().toString(36).slice(2)}`,
                           })}
-                        >
-                          To‘lov
-                        </button>
+                        >{__kbUi("To‘lov")}</button>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {!busy && invoices.length === 0 && <p className="kg-empty-text">Hali hisob yaratilmagan.</p>}
+            {!busy && invoices.length === 0 && <p className="kg-empty-text">{__kbUi("Hali hisob yaratilmagan.")}</p>}
           </div>
         )}
         <LoadMoreButton
@@ -3097,14 +3069,14 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
       {payment && (
         <div className="kg-modal-backdrop" onClick={() => setPayment(null)}>
           <div className="kg-modal" role="dialog" aria-modal="true" aria-labelledby="kg-payment-title" onClick={(event) => event.stopPropagation()}>
-            <button type="button" aria-label="To'lov oynasini yopish" className="kg-modal-close" onClick={() => setPayment(null)}><X size={16} /></button>
-            <span className="kg-eyebrow">TO‘LOVNI YOZISH</span>
+            <button type="button" aria-label={__kbUi("To'lov oynasini yopish")} className="kg-modal-close" onClick={() => setPayment(null)}><X size={16} /></button>
+            <span className="kg-eyebrow">{__kbUi("TO‘LOVNI YOZISH")}</span>
             <h2 id="kg-payment-title">{payment.full_name}</h2>
-            <p>Qoldiq: {Number(payment.remaining).toLocaleString("uz-UZ")} so‘m</p>
-            <div className="kg-field"><label>Kelgan summa</label><input type="number" min="1" max={payment.remaining} value={payment.payment_amount} onChange={(event) => setPayment({ ...payment, payment_amount: event.target.value })} /></div>
-            <div className="kg-field"><label>Usuli</label><select value={payment.payment_method} onChange={(event) => setPayment({ ...payment, payment_method: event.target.value })}><option value="cash">Naqd</option><option value="card">Karta</option><option value="bank_transfer">Bank o‘tkazmasi</option><option value="online">Onlayn</option><option value="other">Boshqa</option></select></div>
-            <div className="kg-field"><label>Chek / izoh raqami</label><input value={payment.reference} onChange={(event) => setPayment({ ...payment, reference: event.target.value })} /></div>
-            <button type="button" className="kg-primary-button" onClick={recordPayment} disabled={busy || Number(payment.payment_amount) <= 0}>Tekshirdim — to‘lovni tasdiqlash</button>
+            <p>{__kbUi("Qoldiq: ")}{__kbUi(Number(payment.remaining).toLocaleString(__kbLocaleTag()))}{__kbUi(" so‘m")}</p>
+            <div className="kg-field"><label>{__kbUi("Kelgan summa")}</label><input type="number" min="1" max={payment.remaining} value={payment.payment_amount} onChange={(event) => setPayment({ ...payment, payment_amount: event.target.value })} /></div>
+            <div className="kg-field"><label>{__kbUi("Usuli")}</label><select value={payment.payment_method} onChange={(event) => setPayment({ ...payment, payment_method: event.target.value })}><option value="cash">{__kbUi("Naqd")}</option><option value="card">{__kbUi("Karta")}</option><option value="bank_transfer">{__kbUi("Bank o‘tkazmasi")}</option><option value="online">{__kbUi("Onlayn")}</option><option value="other">{__kbUi("Boshqa")}</option></select></div>
+            <div className="kg-field"><label>{__kbUi("Chek / izoh raqami")}</label><input value={payment.reference} onChange={(event) => setPayment({ ...payment, reference: event.target.value })} /></div>
+            <button type="button" className="kg-primary-button" onClick={recordPayment} disabled={busy || Number(payment.payment_amount) <= 0}>{__kbUi("Tekshirdim — to‘lovni tasdiqlash")}</button>
           </div>
         </div>
       )}
@@ -3113,6 +3085,7 @@ function PaymentsPanel({ token, apiBase, contextId, profile }) {
 }
 
 function SettingsPanel({ token, apiBase, profile, onSaved, preferences, onPreferences }) {
+  useKbInterfaceLocale();
   const [form, setForm] = useState({
     work_start: profile.work_start?.slice(0, 5) || "08:00",
     work_end: profile.work_end?.slice(0, 5) || "18:00",
@@ -3147,24 +3120,24 @@ function SettingsPanel({ token, apiBase, profile, onSaved, preferences, onPrefer
   return (
     <div className="kg-two-column">
       <section className="kg-dashboard-card">
-        <span className="kg-eyebrow">BOG‘CHA SOZLAMALARI</span>
-        <h2>Ish tartibi</h2>
+        <span className="kg-eyebrow">{__kbUi("BOG‘CHA SOZLAMALARI")}</span>
+        <h2>{__kbUi("Ish tartibi")}</h2>
         <ErrorNotice error={error} />
-        {saved && <div className="kg-success"><Check size={17} /> Saqlandi</div>}
-        <div className="kg-day-picker">{DAY_LABELS.map((day) => <button type="button" key={day.value} className={form.work_days.includes(day.value) ? "selected" : ""} onClick={() => setForm({ ...form, work_days: form.work_days.includes(day.value) ? form.work_days.filter((value) => value !== day.value) : [...form.work_days, day.value].sort() })}>{day.label}</button>)}</div>
-        <div className="kg-form-grid two"><div className="kg-field"><label>Ochilish</label><input type="time" value={form.work_start} onChange={(e) => setForm({ ...form, work_start: e.target.value })} /></div><div className="kg-field"><label>Yopilish</label><input type="time" value={form.work_end} onChange={(e) => setForm({ ...form, work_end: e.target.value })} /></div></div>
-        <div className="kg-field"><label>Umumiy sig‘im</label><input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} /></div>
-        {profile.ownership_type === "private" && <><label className="kg-switch-row"><input type="checkbox" checked={form.payment_enabled} onChange={(e) => setForm({ ...form, payment_enabled: e.target.checked })} /> To‘lov nazoratini yoqish</label>{form.payment_enabled && <div className="kg-field"><label>Oylik summa</label><input type="number" value={form.monthly_fee} onChange={(e) => setForm({ ...form, monthly_fee: e.target.value })} /></div>}</>}
-        <button type="button" className="kg-primary-button" onClick={save} disabled={busy}>{busy && <Loader2 size={15} className="animate-spin" />} Saqlash</button>
+        {saved && <div className="kg-success"><Check size={17} />{__kbUi(" Saqlandi")}</div>}
+        <div className="kg-day-picker">{DAY_LABELS.map((day) => <button type="button" key={day.value} className={form.work_days.includes(day.value) ? "selected" : ""} onClick={() => setForm({ ...form, work_days: form.work_days.includes(day.value) ? form.work_days.filter((value) => value !== day.value) : [...form.work_days, day.value].sort() })}>{__kbUi(day.label)}</button>)}</div>
+        <div className="kg-form-grid two"><div className="kg-field"><label>{__kbUi("Ochilish")}</label><input type="time" value={form.work_start} onChange={(e) => setForm({ ...form, work_start: e.target.value })} /></div><div className="kg-field"><label>{__kbUi("Yopilish")}</label><input type="time" value={form.work_end} onChange={(e) => setForm({ ...form, work_end: e.target.value })} /></div></div>
+        <div className="kg-field"><label>{__kbUi("Umumiy sig‘im")}</label><input type="number" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} /></div>
+        {profile.ownership_type === "private" && <><label className="kg-switch-row"><input type="checkbox" checked={form.payment_enabled} onChange={(e) => setForm({ ...form, payment_enabled: e.target.checked })} />{__kbUi(" To‘lov nazoratini yoqish")}</label>{form.payment_enabled && <div className="kg-field"><label>{__kbUi("Oylik summa")}</label><input type="number" value={form.monthly_fee} onChange={(e) => setForm({ ...form, monthly_fee: e.target.value })} /></div>}</>}
+        <button type="button" className="kg-primary-button" onClick={save} disabled={busy}>{busy && <Loader2 size={15} className="animate-spin" />}{__kbUi(" Saqlash")}</button>
       </section>
       <section className="kg-dashboard-card">
-        <span className="kg-eyebrow">AI AVATAR</span>
-        <h2>Shaxsiy yordamchi</h2>
-        <label className="kg-switch-row"><input type="checkbox" checked={preferences.enabled} onChange={(e) => onPreferences({ enabled: e.target.checked })} /> Yordamchini ko‘rsatish</label>
-        <label className="kg-switch-row"><input type="checkbox" checked={preferences.speechEnabled} onChange={(e) => onPreferences({ speechEnabled: e.target.checked })} /> Ovoz chiqarib tushuntirish</label>
-        <label className="kg-label">Ko‘rinishi</label>
-        <div className="kg-segmented">{[["female", "Ziyo"], ["male", "Temur"], ["neutral", "Hamroh"]].map(([value, label]) => <button type="button" key={value} className={preferences.variant === value ? "selected" : ""} onClick={() => onPreferences({ variant: value })}>{label}</button>)}</div>
-        <div className="kg-safety-note compact"><ShieldCheck size={19} /><div><b>Yordamchi ruxsatni oshirmaydi</b><p>U faqat siz ko‘ra oladigan menyularni tushuntiradi.</p></div></div>
+        <span className="kg-eyebrow">{__kbUi("AI AVATAR")}</span>
+        <h2>{__kbUi("Shaxsiy yordamchi")}</h2>
+        <label className="kg-switch-row"><input type="checkbox" checked={preferences.enabled} onChange={(e) => onPreferences({ enabled: e.target.checked })} />{__kbUi(" Yordamchini ko‘rsatish")}</label>
+        <label className="kg-switch-row"><input type="checkbox" checked={preferences.speechEnabled} onChange={(e) => onPreferences({ speechEnabled: e.target.checked })} />{__kbUi(" Ovoz chiqarib tushuntirish")}</label>
+        <label className="kg-label">{__kbUi("Ko‘rinishi")}</label>
+        <div className="kg-segmented">{[["female", "Ziyo"], ["male", "Temur"], ["neutral", "Hamroh"]].map(([value, label]) => <button type="button" key={value} className={preferences.variant === value ? "selected" : ""} onClick={() => onPreferences({ variant: value })}>{__kbUi(label)}</button>)}</div>
+        <div className="kg-safety-note compact"><ShieldCheck size={19} /><div><b>{__kbUi("Yordamchi ruxsatni oshirmaydi")}</b><p>{__kbUi("U faqat siz ko‘ra oladigan menyularni tushuntiradi.")}</p></div></div>
       </section>
     </div>
   );

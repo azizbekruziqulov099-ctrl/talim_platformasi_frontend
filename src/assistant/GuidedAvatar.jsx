@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, {
   useCallback,
   useEffect,
@@ -106,6 +108,7 @@ export default function GuidedAvatar({
   onSpeechChange,
   onEnabledChange,
 }) {
+  useKbInterfaceLocale();
   const [minimized, setMinimized] = useState(false);
   const [paused, setPaused] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -214,16 +217,14 @@ export default function GuidedAvatar({
           lastSpoken.current = "";
           onEnabledChange?.(true);
         }}
-        title="AI yordamchini yoqish"
+        title={__kbUi("AI yordamchini yoqish")}
       >
         <span className={`guided-avatar-face ${variant}`} aria-hidden="true">
           <i className="hair" />
           <i className="eye left" />
           <i className="eye right" />
           <i className="mouth" />
-        </span>
-        AI
-      </button>
+        </span>{__kbUi("AI")}</button>
     );
   }
 
@@ -238,7 +239,7 @@ export default function GuidedAvatar({
           setActivityVersion((value) => value + 1);
           onAction?.("RESTORE", activeStep);
         }}
-        aria-label={`${avatarName} yordamchini ochish`}
+        aria-label={__kbUi(`${avatarName} yordamchini ochish`)}
       >
         <span className={`guided-avatar-face ${variant}`} aria-hidden="true">
           <i className="hair" />
@@ -248,7 +249,7 @@ export default function GuidedAvatar({
         </span>
         <span>
           <b>{avatarName}</b>
-          <small>Men shu yerdaman</small>
+          <small>{__kbUi("Men shu yerdaman")}</small>
         </span>
       </button>
     );
@@ -314,7 +315,7 @@ export default function GuidedAvatar({
           </span>
           <span>
             <b>{avatarName}</b>
-            <small>Yo‘lko‘rsatuvchi yordamchi</small>
+            <small>{__kbUi("Yo‘lko‘rsatuvchi yordamchi")}</small>
           </span>
         </div>
         <div className="guided-avatar-actions">
@@ -331,7 +332,7 @@ export default function GuidedAvatar({
                 setSpeaking(false);
               }
             }}
-            aria-label={speechEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
+            aria-label={speechEnabled ? __kbUi("Ovozni o'chirish") : __kbUi("Ovozni yoqish")}
           >
             {speechEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
           </button>
@@ -343,7 +344,7 @@ export default function GuidedAvatar({
               setMinimized(true);
               onAction?.("MINIMIZE", activeStep);
             }}
-            aria-label="Burchakka qaytarish"
+            aria-label={__kbUi("Burchakka qaytarish")}
           >
             <CornerDownRight size={15} />
           </button>
@@ -354,7 +355,7 @@ export default function GuidedAvatar({
               setSpeaking(false);
               onEnabledChange?.(false);
             }}
-            aria-label="Yordamchini o'chirish"
+            aria-label={__kbUi("Yordamchini o'chirish")}
           >
             <X size={15} />
           </button>
@@ -365,14 +366,13 @@ export default function GuidedAvatar({
       {onQuestion && (
         <div className="guided-avatar-question">
           <label htmlFor="guided-avatar-question-input">
-            <MessageCircle size={13} /> Shu qadam haqida so‘rang
-          </label>
+            <MessageCircle size={13} />{__kbUi(" Shu qadam haqida so‘rang")}</label>
           <div>
             <input
               id="guided-avatar-question-input"
               value={question}
               maxLength={240}
-              placeholder="Masalan: 2 smenani tanlasam nima bo‘ladi?"
+              placeholder={__kbUi("Masalan: 2 smenani tanlasam nima bo‘ladi?")}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -385,14 +385,14 @@ export default function GuidedAvatar({
               type="button"
               disabled={questionBusy || question.trim().length < 3}
               onClick={askQuestion}
-              aria-label="Savolni yuborish"
+              aria-label={__kbUi("Savolni yuborish")}
             >
-              {questionBusy ? "…" : <Send size={14} />}
+              {questionBusy ? __kbUi("…") : <Send size={14} />}
             </button>
           </div>
           {questionError && (
             <small className="guided-avatar-question-error">
-              {questionError}
+              {__kbUi(questionError)}
             </small>
           )}
           {suggestion && (
@@ -408,13 +408,10 @@ export default function GuidedAvatar({
                   }}
                 >
                   <Check size={13} />
-                  {suggestion.actionLabel || "Qoralamaga qo‘llash"}
+                  {suggestion.actionLabel || __kbUi("Qoralamaga qo‘llash")}
                 </button>
               )}
-              <small>
-                Yordamchi faqat ko‘rsatilgan qoralama o‘zgarishini qo‘llaydi;
-                saqlash, e’lon qilish va tasdiqlashni o‘zi bajarmaydi.
-              </small>
+              <small>{__kbUi("Yordamchi faqat ko‘rsatilgan qoralama o‘zgarishini qo‘llaydi; saqlash, e’lon qilish va tasdiqlashni o‘zi bajarmaydi.")}</small>
             </div>
           )}
         </div>
@@ -440,7 +437,7 @@ export default function GuidedAvatar({
           type="button"
           onClick={() => navigate(-1)}
           disabled={activeIndex <= 0}
-          title="Oldingi qadam"
+          title={__kbUi("Oldingi qadam")}
         >
           <ArrowLeft size={15} />
         </button>
@@ -460,7 +457,7 @@ export default function GuidedAvatar({
           className="wide"
         >
           {paused ? <Play size={14} /> : <Pause size={14} />}
-          {paused ? "Davom etish" : "To'xtatish"}
+          {paused ? __kbUi("Davom etish") : __kbUi("To'xtatish")}
         </button>
         {onUndo && (
           <button
@@ -469,7 +466,7 @@ export default function GuidedAvatar({
               onUndo();
               onAction?.("UNDO", activeStep);
             }}
-            title="Oxirgi avatar qadamini qaytarish"
+            title={__kbUi("Oxirgi avatar qadamini qaytarish")}
           >
             <RotateCcw size={15} />
           </button>
@@ -478,7 +475,7 @@ export default function GuidedAvatar({
           type="button"
           onClick={() => navigate(1)}
           disabled={!steps.length || activeIndex >= steps.length - 1}
-          title="Keyingi qadam"
+          title={__kbUi("Keyingi qadam")}
         >
           <ArrowRight size={15} />
         </button>

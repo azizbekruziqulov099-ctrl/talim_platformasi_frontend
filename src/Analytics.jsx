@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from './interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -96,6 +98,7 @@ function LoadingCard({ text = "Tahlil yuklanmoqda..." }) {
 }
 
 function ErrorCard({ message, onRetry }) {
+  useKbInterfaceLocale();
   return (
     <div className="rounded-2xl bg-white border p-5" style={{ borderColor: "#E8C8C2" }}>
       <div className="flex items-start gap-3">
@@ -103,13 +106,11 @@ function ErrorCard({ message, onRetry }) {
           <AlertTriangle size={19} style={{ color: "#A32D2D" }} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>Analitika ochilmadi</p>
+          <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{__kbUi("Analitika ochilmadi")}</p>
           <p className="text-xs mt-1 leading-relaxed" style={{ color: "#6F6859" }}>{message}</p>
           {onRetry && (
             <button onClick={onRetry} className="mt-3 px-3 py-2 rounded-xl text-xs font-semibold border"
-              style={{ borderColor: "#D8D3C7", color: "#1B4B7A", backgroundColor: "#fff" }}>
-              Qayta urinish
-            </button>
+              style={{ borderColor: "#D8D3C7", color: "#1B4B7A", backgroundColor: "#fff" }}>{__kbUi("Qayta urinish")}</button>
           )}
         </div>
       </div>
@@ -118,6 +119,7 @@ function ErrorCard({ message, onRetry }) {
 }
 
 function MetricCard({ icon: Icon, label, value, suffix, tone = "#1B4B7A", soft = "#EAF1F7", note }) {
+  useKbInterfaceLocale();
   return (
     <div className="rounded-2xl bg-white border p-3.5 min-w-0" style={{ borderColor: "#E5E1D8" }}>
       <div className="flex items-center justify-between gap-2">
@@ -126,7 +128,7 @@ function MetricCard({ icon: Icon, label, value, suffix, tone = "#1B4B7A", soft =
         </span>
         {note && <span className="text-[10px] truncate" style={{ color: "#8A8578" }}>{note}</span>}
       </div>
-      <p className="mt-3 text-[11px] font-medium truncate" style={{ color: "#8A8578" }}>{label}</p>
+      <p className="mt-3 text-[11px] font-medium truncate" style={{ color: "#8A8578" }}>{__kbUi(label)}</p>
       <p className="mt-0.5 text-xl font-bold tabular-nums" style={{ color: "#2B2B2B" }}>
         {value}<span className="text-xs font-semibold ml-0.5" style={{ color: "#8A8578" }}>{suffix}</span>
       </p>
@@ -144,11 +146,12 @@ function ScoreBar({ value, color = "#1B4B7A", height = 7 }) {
 }
 
 function TrendChart({ points = [], color = "#1B4B7A" }) {
+  useKbInterfaceLocale();
   const clean = points.filter((p) => Number.isFinite(Number(p.score)));
   if (clean.length < 2) {
     return (
       <div className="h-32 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#FAF8F2" }}>
-        <p className="text-xs" style={{ color: "#8A8578" }}>Trend uchun kamida 2 kunlik natija kerak</p>
+        <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Trend uchun kamida 2 kunlik natija kerak")}</p>
       </div>
     );
   }
@@ -165,7 +168,7 @@ function TrendChart({ points = [], color = "#1B4B7A" }) {
   const area = `${padX},${height - padY} ${line} ${coords.at(-1).x},${height - padY}`;
   return (
     <div className="w-full overflow-hidden">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-36" role="img" aria-label="Natija trendi">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-36" role="img" aria-label={__kbUi("Natija trendi")}>
         {[25, 50, 75].map((v) => {
           const y = height - padY - (v / 100) * (height - padY * 2);
           return <line key={v} x1={padX} y1={y} x2={width - padX} y2={y} stroke="#E7E3D9" strokeDasharray="5 7" />;
@@ -185,15 +188,14 @@ function TrendChart({ points = [], color = "#1B4B7A" }) {
 }
 
 function ContextTabs({ contexts = [], selected, onSelect, accent = "#1B4B7A" }) {
+  useKbInterfaceLocale();
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
       <button onClick={() => onSelect(null)}
         className="shrink-0 px-3.5 py-2.5 rounded-xl text-xs font-semibold border"
         style={selected == null
           ? { backgroundColor: accent, borderColor: accent, color: "#fff" }
-          : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>
-        ✨ Umumiy
-      </button>
+          : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("✨ Umumiy")}</button>
       {contexts.map((c) => {
         const meta = contextMeta(c.type);
         const active = Number(selected) === Number(c.id);
@@ -203,7 +205,7 @@ function ContextTabs({ contexts = [], selected, onSelect, accent = "#1B4B7A" }) 
             style={active
               ? { backgroundColor: meta.color, borderColor: meta.color, color: "#fff" }
               : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>
-            {meta.emoji} {c.name || meta.label}
+            {meta.emoji} {c.name || __kbUi(meta.label)}
           </button>
         );
       })}
@@ -212,14 +214,13 @@ function ContextTabs({ contexts = [], selected, onSelect, accent = "#1B4B7A" }) 
 }
 
 function LegacyFallback({ data }) {
+  useKbInterfaceLocale();
   if (!data) return null;
   return (
     <div className="rounded-2xl bg-white border p-5" style={{ borderColor: "#E5E1D8" }}>
-      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A8578" }}>Eski umumiy natija</p>
-      <p className="text-4xl font-bold mt-2" style={{ color: "#1B4B7A" }}>{number(data.umumiy_foiz)}%</p>
-      <p className="text-xs mt-2" style={{ color: "#8A8578" }}>
-        Yangi migratsiya ishga tushgach maktab, markaz va AI natijalari alohida ko'rinadi.
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A8578" }}>{__kbUi("Eski umumiy natija")}</p>
+      <p className="text-4xl font-bold mt-2" style={{ color: "#1B4B7A" }}>{__kbUi(number(data.umumiy_foiz))}%</p>
+      <p className="text-xs mt-2" style={{ color: "#8A8578" }}>{__kbUi("Yangi migratsiya ishga tushgach maktab, markaz va AI natijalari alohida ko'rinadi.")}</p>
     </div>
   );
 }
@@ -268,13 +269,12 @@ function LearningGoldenRoute({
   topics, currentCode, viewer, pathType, grade, monthKey,
   onOpenTest, onOpenLesson,
 }) {
+  useKbInterfaceLocale();
   if (!topics.length) {
     return (
       <section className="rounded-2xl border p-4" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF9E9" }}>
-        <p className="text-sm font-bold" style={{ color: "#6F4A16" }}>{monthLabel(monthKey)} — takrorlash oynasi</p>
-        <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "#8A6A37" }}>
-          Bu oyga yangi mavzu tushmagan. Oldingi mavzularni takrorlang yoki bilim darajasi noma'lum mavzudan test ishlang.
-        </p>
+        <p className="text-sm font-bold" style={{ color: "#6F4A16" }}>{__kbUi(monthLabel(monthKey))}{__kbUi(" — takrorlash oynasi")}</p>
+        <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "#8A6A37" }}>{__kbUi("Bu oyga yangi mavzu tushmagan. Oldingi mavzularni takrorlang yoki bilim darajasi noma'lum mavzudan test ishlang.")}</p>
       </section>
     );
   }
@@ -282,12 +282,10 @@ function LearningGoldenRoute({
     <section className="rounded-2xl border bg-white p-3.5" style={{ borderColor: "#E4C77D" }}>
       <div className="flex items-center justify-between gap-3 mb-3">
         <div>
-          <p className="text-[10px] uppercase font-bold tracking-[0.14em]" style={{ color: "#9A7123" }}>Oltin ta'lim yo'li</p>
-          <p className="text-sm font-bold mt-0.5" style={{ color: "#3D392F" }}>{monthLabel(monthKey)} · {topics.length} mavzu</p>
+          <p className="text-[10px] uppercase font-bold tracking-[0.14em]" style={{ color: "#9A7123" }}>{__kbUi("Oltin ta'lim yo'li")}</p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: "#3D392F" }}>{__kbUi(monthLabel(monthKey))} · {topics.length}{__kbUi(" mavzu")}</p>
         </div>
-        <span className="rounded-full px-2.5 py-1 text-[9px] font-bold" style={{ color: "#7B5718", backgroundColor: "#FFF3C9" }}>
-          Teng taqsimlangan
-        </span>
+        <span className="rounded-full px-2.5 py-1 text-[9px] font-bold" style={{ color: "#7B5718", backgroundColor: "#FFF3C9" }}>{__kbUi("Teng taqsimlangan")}</span>
       </div>
       <div>
         {topics.map((topic, index) => {
@@ -309,17 +307,17 @@ function LearningGoldenRoute({
                   <div className="min-w-0">
                     <p className="text-xs font-bold leading-snug" style={{ color: "#2B2B2B" }}>{topic.topic_name}</p>
                     <p className="text-[9px] mt-1" style={{ color: topic.schedule_is_estimate ? "#8A5A1C" : "#28735A" }}>
-                      {shortDate(topic.planned_start)}–{shortDate(topic.planned_end)} · {topic.academic_week_no || topic.week_no}-hafta · {topic.schedule_is_estimate ? "taxminiy" : "aniq reja"}
+                      {__kbUi(shortDate(topic.planned_start))}–{__kbUi(shortDate(topic.planned_end))} · {topic.academic_week_no || topic.week_no}{__kbUi("-hafta · ")}{topic.schedule_is_estimate ? __kbUi("taxminiy") : __kbUi("aniq reja")}
                     </p>
                   </div>
-                  {isCurrent && <span className="shrink-0 rounded-full px-2 py-1 text-[8px] font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>HOZIR</span>}
+                  {isCurrent && <span className="shrink-0 rounded-full px-2 py-1 text-[8px] font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("HOZIR")}</span>}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   <span className="rounded-full px-2 py-1 text-[9px] font-semibold" style={{ color: teaching.color, backgroundColor: teaching.soft }}>
-                    {topic.teaching_state?.label || teaching.label}
+                    {topic.teaching_state?.label || __kbUi(teaching.label)}
                   </span>
                   <span className="rounded-full px-2 py-1 text-[9px] font-semibold" style={{ color: knowledge.color, backgroundColor: knowledge.soft }}>
-                    {topic.knowledge_score == null ? "Bilim noma'lum" : `${topic.knowledge_label} · ${Math.round(number(topic.knowledge_score))}%`}
+                    {topic.knowledge_score == null ? __kbUi("Bilim noma'lum") : __kbUi(`${topic.knowledge_label} · ${Math.round(number(topic.knowledge_score))}%`)}
                   </span>
                 </div>
                 {viewer === "student" && (topic.has_lesson_content || topic.can_take_test) && (
@@ -327,14 +325,12 @@ function LearningGoldenRoute({
                     {topic.has_lesson_content && (
                       <button type="button" onClick={() => onOpenLesson?.({ ...topic, grade, subject: topic.subject })}
                         className="rounded-lg px-2.5 py-1.5 text-[9px] font-bold inline-flex items-center gap-1" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                        <BookOpen size={11} /> O'rganish
-                      </button>
+                        <BookOpen size={11} />{__kbUi(" O'rganish")}</button>
                     )}
                     {topic.can_take_test && (
                       <button type="button" onClick={() => onOpenTest?.({ ...topic, grade, subject: topic.subject, track: pathType === "olympiad" ? "olympiad" : "standard" })}
                         className="rounded-lg px-2.5 py-1.5 text-[9px] font-bold inline-flex items-center gap-1" style={{ backgroundColor: "#E7F4EE", color: "#28735A" }}>
-                        <Target size={11} /> Test
-                      </button>
+                        <Target size={11} />{__kbUi(" Test")}</button>
                     )}
                   </div>
                 )}
@@ -348,12 +344,13 @@ function LearningGoldenRoute({
 }
 
 function PathMetric({ icon: Icon, label, value, note, color, soft }) {
+  useKbInterfaceLocale();
   return (
     <div className="rounded-2xl border bg-white p-3.5" style={{ borderColor: "#E5E1D8" }}>
       <span className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ color, backgroundColor: soft }}>
         <Icon size={16} />
       </span>
-      <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8578" }}>{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8578" }}>{__kbUi(label)}</p>
       <p className="text-2xl font-bold mt-0.5" style={{ color: "#2B2B2B" }}>{value}</p>
       <p className="text-[10px] mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{note}</p>
     </div>
@@ -361,14 +358,13 @@ function PathMetric({ icon: Icon, label, value, note, color, soft }) {
 }
 
 function LearningTopicCard({ topic, isCurrent, viewer, pathType, grade, onOpenTest, onOpenLesson }) {
+  useKbInterfaceLocale();
   const teaching = PATH_STATE_META[topic.teaching_state?.key] || PATH_STATE_META.upcoming;
   const knowledge = KNOWLEDGE_META[topic.knowledge_status] || KNOWLEDGE_META.unknown;
   return (
     <article className="relative rounded-2xl border bg-white p-4" style={{ borderColor: isCurrent ? "#1B4B7A" : "#E5E1D8", borderWidth: isCurrent ? 2 : 1 }}>
       {isCurrent && (
-        <span className="absolute -top-2.5 left-4 px-2.5 py-1 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-          Siz hozir shu yerdasiz
-        </span>
+        <span className="absolute -top-2.5 left-4 px-2.5 py-1 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("Siz hozir shu yerdasiz")}</span>
       )}
       <div className={cx("flex items-start gap-3", isCurrent && "pt-1")}>
         <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold" style={{ color: teaching.color, backgroundColor: teaching.soft }}>
@@ -376,34 +372,31 @@ function LearningTopicCard({ topic, isCurrent, viewer, pathType, grade, onOpenTe
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-snug" style={{ color: "#2B2B2B" }}>{topic.topic_name}</p>
-          <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
-            O'quv yilining {topic.academic_week_no || topic.week_no}-haftasi · {topic.term_no}-chorakning {topic.week_no}-haftasi
-          </p>
+          <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>{__kbUi("O'quv yilining ")}{topic.academic_week_no || topic.week_no}{__kbUi("-haftasi · ")}{topic.term_no}{__kbUi("-chorakning ")}{topic.week_no}{__kbUi("-haftasi")}</p>
           <p className="text-[10px] mt-0.5" style={{ color: topic.schedule_is_estimate ? "#8A5A1C" : "#28735A" }}>
-            {shortDate(topic.planned_start)}–{shortDate(topic.planned_end)} · {topic.schedule_is_estimate ? "taxminiy sana" : "o'qituvchi/muassasa rejasi"}
+            {__kbUi(shortDate(topic.planned_start))}–{__kbUi(shortDate(topic.planned_end))} · {topic.schedule_is_estimate ? __kbUi("taxminiy sana") : __kbUi("o'qituvchi/muassasa rejasi")}
           </p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-3">
         <div className="rounded-xl p-2.5" style={{ backgroundColor: teaching.soft }}>
-          <p className="text-[9px] uppercase font-semibold" style={{ color: teaching.color }}>Dars holati</p>
-          <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: teaching.color }}>{topic.teaching_state?.label || teaching.label}</p>
+          <p className="text-[9px] uppercase font-semibold" style={{ color: teaching.color }}>{__kbUi("Dars holati")}</p>
+          <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: teaching.color }}>{topic.teaching_state?.label || __kbUi(teaching.label)}</p>
         </div>
         <div className="rounded-xl p-2.5" style={{ backgroundColor: knowledge.soft }}>
-          <p className="text-[9px] uppercase font-semibold" style={{ color: knowledge.color }}>Bilim dalili</p>
+          <p className="text-[9px] uppercase font-semibold" style={{ color: knowledge.color }}>{__kbUi("Bilim dalili")}</p>
           <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: knowledge.color }}>
-            {topic.knowledge_score == null ? "Bilim darajasi noma'lum" : `${topic.knowledge_label} · ${Math.round(number(topic.knowledge_score))}%`}
+            {topic.knowledge_score == null ? __kbUi("Bilim darajasi noma'lum") : __kbUi(`${topic.knowledge_label} · ${Math.round(number(topic.knowledge_score))}%`)}
           </p>
         </div>
       </div>
       {topic.knowledge_score == null ? (
-        <div className="mt-2.5 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed" style={{ backgroundColor: "#FAF8F2", color: "#6F6859" }}>
-          Dars sanasi o'tgani bilim isboti emas. {topic.can_take_test ? "Test bo'limida shu mavzu bo'yicha bilimingizni tekshirishingiz mumkin." : "Bu mavzu uchun test yoki o'qituvchi bahosi hali yo'q."}
+        <div className="mt-2.5 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed" style={{ backgroundColor: "#FAF8F2", color: "#6F6859" }}>{__kbUi("Dars sanasi o'tgani bilim isboti emas. ")}{topic.can_take_test ? __kbUi("Test bo'limida shu mavzu bo'yicha bilimingizni tekshirishingiz mumkin.") : __kbUi("Bu mavzu uchun test yoki o'qituvchi bahosi hali yo'q.")}
         </div>
       ) : topic.memory ? (
         <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "#FAF8F2" }}>
-          <span className="text-[11px]" style={{ color: "#5A5648" }}>{topic.memory.memory_status_label}</span>
-          <span className="text-[10px] font-semibold" style={{ color: "#8A8578" }}>{topic.memory.forgetting_probability}% xavf</span>
+          <span className="text-[11px]" style={{ color: "#5A5648" }}>{__kbUi(topic.memory.memory_status_label)}</span>
+          <span className="text-[10px] font-semibold" style={{ color: "#8A8578" }}>{topic.memory.forgetting_probability}{__kbUi("% xavf")}</span>
         </div>
       ) : null}
       {viewer === "student" && (topic.can_take_test || topic.has_lesson_content) && (
@@ -412,14 +405,13 @@ function LearningTopicCard({ topic, isCurrent, viewer, pathType, grade, onOpenTe
             <button type="button" onClick={() => onOpenLesson?.({ ...topic, grade, subject: topic.subject })}
               className={cx("rounded-xl px-3 py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5", !topic.can_take_test && "col-span-2")}
               style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-              <BookOpen size={14} /> Mavzuni o'rganish
-            </button>
+              <BookOpen size={14} />{__kbUi(" Mavzuni o'rganish")}</button>
           )}
           {topic.can_take_test && (
             <button type="button" onClick={() => onOpenTest?.({ ...topic, grade, subject: topic.subject, track: pathType === "olympiad" ? "olympiad" : "standard" })}
               className={cx("rounded-xl px-3 py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5", !topic.has_lesson_content && "col-span-2")}
               style={{ backgroundColor: pathType === "olympiad" ? "#FFF3D6" : "#E7F4EE", color: pathType === "olympiad" ? "#8A5A1C" : "#28735A" }}>
-              <Target size={14} /> {pathType === "olympiad" ? "Olimpiada testi" : "Test ishlash"}
+              <Target size={14} /> {pathType === "olympiad" ? __kbUi("Olimpiada testi") : __kbUi("Test ishlash")}
             </button>
           )}
         </div>
@@ -432,6 +424,7 @@ function LearningSubjectPathPage({
   data, subject, term, setTerm, accent, onBack, viewer,
   onOpenTest, onOpenLesson,
 }) {
+  useKbInterfaceLocale();
   const [calendarMode, setCalendarMode] = useState("month");
   const [selectedMonth, setSelectedMonth] = useState("");
   const subjectTopics = (data?.topics || []).filter((topic) => topic.subject === subject);
@@ -480,26 +473,24 @@ function LearningSubjectPathPage({
       <section className="rounded-3xl p-5" style={{ background: `linear-gradient(135deg, ${isOlympiad ? "#8A5A1C" : accent}, #173A5B)`, color: "#fff" }}>
         <button onClick={onBack} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold mb-4"
           style={{ backgroundColor: "rgba(255,255,255,.14)", color: "#fff" }}>
-          <ChevronLeft size={15} /> Fanlar ro'yxatiga qaytish
-        </button>
+          <ChevronLeft size={15} />{__kbUi(" Fanlar ro'yxatiga qaytish")}</button>
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#D7E2EA" }}>
-          {isOlympiad ? "Olimpiada ta'lim yo'li" : "Fan ta'lim yo'li"}
+          {isOlympiad ? __kbUi("Olimpiada ta'lim yo'li") : __kbUi("Fan ta'lim yo'li")}
         </p>
         <h2 className="text-2xl font-bold mt-1">{subject}</h2>
         <p className="text-xs mt-2" style={{ color: "#D7E2EA" }}>
-          {data?.selected_grade}-sinf · {data?.academic_year} · {subjectTopics.length} mavzu
-        </p>
+          {data?.selected_grade}{__kbUi("-sinf · ")}{data?.academic_year} · {subjectTopics.length}{__kbUi(" mavzu")}</p>
       </section>
 
       {isOlympiad && (
         <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>4 manbali tayyorgarlik bahosi</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>Yo'q dalil bilim deb taxmin qilinmaydi</p>
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("4 manbali tayyorgarlik bahosi")}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>{__kbUi("Yo'q dalil bilim deb taxmin qilinmaydi")}</p>
             </div>
             <span className="text-xl font-bold" style={{ color: "#8A5A1C" }}>
-              {olympiad?.confirmed_readiness_percent == null ? "—" : `${number(olympiad.confirmed_readiness_percent)}%`}
+              {olympiad?.confirmed_readiness_percent == null ? __kbUi("—") : __kbUi(`${number(olympiad.confirmed_readiness_percent)}%`)}
             </span>
           </div>
           <div className="space-y-2.5">
@@ -507,24 +498,23 @@ function LearningSubjectPathPage({
               <div key={component.key} className="rounded-xl p-3" style={{ backgroundColor: component.has_evidence ? "#FFF8E7" : "#F1EFE9" }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold" style={{ color: "#3D392F" }}>{component.label}</p>
+                    <p className="text-xs font-semibold" style={{ color: "#3D392F" }}>{__kbUi(component.label)}</p>
                     <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: "#8A8578" }}>{component.description}</p>
                   </div>
                   <span className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ backgroundColor: "#fff", color: "#8A5A1C" }}>
-                    {component.weight}% ulush
-                  </span>
+                    {component.weight}{__kbUi("% ulush")}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-3">
                   <span className="text-[10px] font-semibold" style={{ color: component.has_evidence ? "#28735A" : "#8A8578" }}>
-                    {component.has_evidence ? `${number(component.score)}% natija · ${number(component.earned_points)} ball` : "Hali baholanmagan"}
+                    {component.has_evidence ? __kbUi(`${number(component.score)}% natija · ${number(component.earned_points)} ball`) : __kbUi("Hali baholanmagan")}
                   </span>
-                  <span className="text-[10px]" style={{ color: "#8A8578" }}>{number(component.evidence_count)} dalil</span>
+                  <span className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi(number(component.evidence_count))}{__kbUi(" dalil")}</span>
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-3 rounded-xl px-3 py-2.5 text-[11px]" style={{ backgroundColor: "#FAF8F2", color: "#6F6859" }}>
-            {olympiad?.label || "Hali baholanmagan"} · dalil qamrovi {number(olympiad?.evidence_coverage_percent)}%
+            {olympiad?.label || __kbUi("Hali baholanmagan")}{__kbUi(" · dalil qamrovi ")}{__kbUi(number(olympiad?.evidence_coverage_percent))}%
           </div>
         </section>
       )}
@@ -532,25 +522,21 @@ function LearningSubjectPathPage({
       <section className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>O'quv kalendari</p>
-            <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{shortDate(data?.calendar?.start)}–{shortDate(data?.calendar?.end)}</h3>
+            <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>{__kbUi("O'quv kalendari")}</p>
+            <h3 className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{__kbUi(shortDate(data?.calendar?.start))}–{__kbUi(shortDate(data?.calendar?.end))}</h3>
             <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
-              {number(data?.calendar?.teaching_week_count)} o'qish haftasi · Dushanba–Shanba · {data?.calendar_source?.is_estimate ? "taxminiy reja" : "muassasa rejasi"}
+              {__kbUi(number(data?.calendar?.teaching_week_count))}{__kbUi(" o'qish haftasi · Dushanba–Shanba · ")}{data?.calendar_source?.is_estimate ? __kbUi("taxminiy reja") : __kbUi("muassasa rejasi")}
             </p>
             {data?.calendar?.balance_rule === "subject_even_across_year" && (
-              <p className="text-[10px] mt-1 font-semibold" style={{ color: "#8A5A1C" }}>
-                Har bir fan mavzulari o'quv yiliga alohida va teng taqsimlangan
-              </p>
+              <p className="text-[10px] mt-1 font-semibold" style={{ color: "#8A5A1C" }}>{__kbUi("Har bir fan mavzulari o'quv yiliga alohida va teng taqsimlangan")}</p>
             )}
           </div>
           <div className="text-right shrink-0">
-            <span className="inline-block text-[10px] rounded-full px-2.5 py-1" style={{ backgroundColor: "#F1EFE9", color: "#6F6859" }}>{subjectTopics.length} mavzu</span>
+            <span className="inline-block text-[10px] rounded-full px-2.5 py-1" style={{ backgroundColor: "#F1EFE9", color: "#6F6859" }}>{subjectTopics.length}{__kbUi(" mavzu")}</span>
             {data?.calendar?.balance_rule === "subject_even_across_year" && (
-              <p className="text-[9px] font-semibold mt-1" style={{ color: "#8A5A1C" }}>
-                Oyiga {subjectSummary?.min_monthly_topic_count === subjectSummary?.max_monthly_topic_count
-                  ? number(subjectSummary?.min_monthly_topic_count)
-                  : `${number(subjectSummary?.min_monthly_topic_count)}–${number(subjectSummary?.max_monthly_topic_count)}`} mavzu
-              </p>
+              <p className="text-[9px] font-semibold mt-1" style={{ color: "#8A5A1C" }}>{__kbUi("Oyiga ")}{subjectSummary?.min_monthly_topic_count === subjectSummary?.max_monthly_topic_count
+                  ? __kbUi(number(subjectSummary?.min_monthly_topic_count))
+                  : __kbUi(`${number(subjectSummary?.min_monthly_topic_count)}–${number(subjectSummary?.max_monthly_topic_count)}`)}{__kbUi(" mavzu")}</p>
             )}
           </div>
         </div>
@@ -558,7 +544,7 @@ function LearningSubjectPathPage({
           {[["month", "Oylar bo'yicha"], ["week", "Haftalar bo'yicha"]].map(([key, label]) => (
             <button key={key} onClick={() => setCalendarMode(key)} className="rounded-lg py-2 text-xs font-semibold"
               style={calendarMode === key ? { backgroundColor: "#fff", color: accent, boxShadow: "0 1px 4px rgba(0,0,0,.08)" } : { color: "#6F6859" }}>
-              {label}
+              {__kbUi(label)}
             </button>
           ))}
         </div>
@@ -569,15 +555,14 @@ function LearningSubjectPathPage({
                 <button key={month.key} onClick={() => setSelectedMonth(month.key)}
                   className="shrink-0 rounded-xl px-3 py-2 text-[10px] font-semibold"
                   style={selectedMonth === month.key ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>
-                  {monthLabel(month.key)}<span className="block text-[9px] opacity-75">{subjectTopics.filter((topic) => topicFallsInMonth(topic, month.key)).length} mavzu</span>
+                  {__kbUi(monthLabel(month.key))}<span className="block text-[9px] opacity-75">{subjectTopics.filter((topic) => topicFallsInMonth(topic, month.key)).length}{__kbUi(" mavzu")}</span>
                 </button>
               ))}
             </div>
             <div className="mt-2.5 rounded-xl px-3 py-2 flex items-center justify-between gap-3" style={{ backgroundColor: "#FFF8E7" }}>
-              <span className="text-[10px] font-semibold" style={{ color: "#7B5718" }}>{monthLabel(selectedMonth)} rejasi</span>
+              <span className="text-[10px] font-semibold" style={{ color: "#7B5718" }}>{__kbUi(monthLabel(selectedMonth))}{__kbUi(" rejasi")}</span>
               <span className="text-[10px]" style={{ color: "#8A6A37" }}>
-                {visibleTopics.length} mavzu · {number(selectedMonthMeta?.week_count)} o'qish haftasi
-              </span>
+                {visibleTopics.length}{__kbUi(" mavzu · ")}{__kbUi(number(selectedMonthMeta?.week_count))}{__kbUi(" o'qish haftasi")}</span>
             </div>
           </div>
         ) : (
@@ -587,7 +572,7 @@ function LearningSubjectPathPage({
               return (
                 <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold"
                   style={Number(term) === q ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>
-                  {q}-chorak<span className="block text-[9px] opacity-70">{count} mavzu</span>
+                  {__kbUi(q)}{__kbUi("-chorak")}<span className="block text-[9px] opacity-70">{count}{__kbUi(" mavzu")}</span>
                 </button>
               );
             })}
@@ -603,8 +588,8 @@ function LearningSubjectPathPage({
             ["Keyingi", routePosition.next, "#E7F4EE", "#28735A"],
           ].map(([label, topic, soft, color]) => (
             <div key={label} className="rounded-xl p-2.5 min-w-0" style={{ backgroundColor: soft }}>
-              <p className="text-[9px] font-bold uppercase" style={{ color }}>{label}</p>
-              <p className="text-[10px] font-semibold mt-1 leading-snug line-clamp-2" style={{ color: "#3D392F" }}>{topic?.topic_name || "—"}</p>
+              <p className="text-[9px] font-bold uppercase" style={{ color }}>{__kbUi(label)}</p>
+              <p className="text-[10px] font-semibold mt-1 leading-snug line-clamp-2" style={{ color: "#3D392F" }}>{topic?.topic_name || __kbUi("—")}</p>
             </div>
           ))}
         </section>
@@ -618,13 +603,13 @@ function LearningSubjectPathPage({
         />
       ) : <section className="space-y-4">
         {Object.keys(groupedWeeks).length === 0 ? (
-          <p className="text-xs text-center py-5" style={{ color: "#8A8578" }}>Bu chorakda mavzu yo'q.</p>
+          <p className="text-xs text-center py-5" style={{ color: "#8A8578" }}>{__kbUi("Bu chorakda mavzu yo'q.")}</p>
         ) : Object.entries(groupedWeeks).map(([weekKey, topics]) => (
           <div key={weekKey}>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: "#EEEAE1", color: "#5A5648" }}>{topics[0]?.academic_week_no || topics[0]?.week_no}</span>
-              <p className="text-xs font-bold" style={{ color: "#3D392F" }}>O'quv yilining {topics[0]?.academic_week_no || topics[0]?.week_no}-haftasi</p>
-              <span className="text-[10px]" style={{ color: "#8A8578" }}>{shortDate(topics[0]?.planned_start)}–{shortDate(topics[0]?.planned_end)}</span>
+              <p className="text-xs font-bold" style={{ color: "#3D392F" }}>{__kbUi("O'quv yilining ")}{topics[0]?.academic_week_no || topics[0]?.week_no}{__kbUi("-haftasi")}</p>
+              <span className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi(shortDate(topics[0]?.planned_start))}–{__kbUi(shortDate(topics[0]?.planned_end))}</span>
               <div className="h-px flex-1" style={{ backgroundColor: "#E5E1D8" }} />
             </div>
             <div className="space-y-2.5 pl-3 border-l-2" style={{ borderColor: "#E5E1D8" }}>
@@ -650,6 +635,7 @@ export function StudentLearningPathDashboard({
   onOpenTest = null,
   onOpenLesson = null,
 }) {
+  useKbInterfaceLocale();
   const [contextId, setContextId] = useState(null);
   const [groupId, setGroupId] = useState(null);
   const [grade, setGrade] = useState("");
@@ -718,8 +704,8 @@ export function StudentLearningPathDashboard({
     setView("overview");
   };
 
-  if (loading && !data) return <div className="px-5 pb-5"><LoadingCard text="Ta'lim yo'li qurilmoqda..." /></div>;
-  if (error && !data) return <div className="px-5 pb-5"><ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} /></div>;
+  if (loading && !data) return <div className="px-5 pb-5"><LoadingCard text={__kbUi("Ta'lim yo'li qurilmoqda...")} /></div>;
+  if (error && !data) return <div className="px-5 pb-5"><ErrorCard message={__kbUi(error)} onRetry={() => setReloadKey((x) => x + 1)} /></div>;
 
   if (view === "subject" && subject) {
     return (
@@ -744,17 +730,17 @@ export function StudentLearningPathDashboard({
   return (
     <div className="px-5 pb-6 space-y-4">
       <section className="rounded-3xl p-5 overflow-hidden relative" style={{ background: `linear-gradient(135deg, ${heroColor}, #173A5B)`, color: "#fff" }}>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#C9D8E4" }}>{isOlympiad ? "Olimpiada GPS" : "Ta'lim GPS"}</p>
-        <h2 className="text-2xl font-bold mt-1">{isOlympiad ? "Olimpiadaga qanday tayyorlanyapman?" : "Qayerdaman va keyin nima?"}</h2>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#C9D8E4" }}>{isOlympiad ? __kbUi("Olimpiada GPS") : __kbUi("Ta'lim GPS")}</p>
+        <h2 className="text-2xl font-bold mt-1">{isOlympiad ? __kbUi("Olimpiadaga qanday tayyorlanyapman?") : __kbUi("Qayerdaman va keyin nima?")}</h2>
         <p className="text-xs mt-2 max-w-xl leading-relaxed" style={{ color: "#D7E2EA" }}>
           {isOlympiad
-            ? "To'rtta mustaqil dalil 20% + 20% + 30% + 30% tartibida baholanadi."
-            : "Kalendar, o'qituvchi tasdig'i va bilim natijasi alohida hisoblanadi. Sana o'tishi mavzu o'rganildi degani emas."}
+            ? __kbUi("To'rtta mustaqil dalil 20% + 20% + 30% + 30% tartibida baholanadi.")
+            : __kbUi("Kalendar, o'qituvchi tasdig'i va bilim natijasi alohida hisoblanadi. Sana o'tishi mavzu o'rganildi degani emas.")}
         </p>
         <div className="mt-4 flex items-center gap-2 text-[10px]">
-          <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{data?.selected_grade}-sinf</span>
+          <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{data?.selected_grade}{__kbUi("-sinf")}</span>
           <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{data?.academic_year}</span>
-          {viewer === "parent" && <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>Faqat ko'rish</span>}
+          {viewer === "parent" && <span className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(255,255,255,.14)" }}>{__kbUi("Faqat ko'rish")}</span>}
         </div>
       </section>
 
@@ -765,14 +751,12 @@ export function StudentLearningPathDashboard({
           return (
             <button key={context.id} onClick={() => selectContext(context)} className="shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold"
               style={active ? { backgroundColor: meta.color, borderColor: meta.color, color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#5A5648" }}>
-              {meta.emoji} {context.type === "platform" ? "Maktab dasturi" : context.name}
+              {meta.emoji} {context.type === "platform" ? __kbUi("Maktab dasturi") : context.name}
             </button>
           );
         })}
         <button onClick={selectOlympiad} className="shrink-0 rounded-xl border px-3 py-2.5 text-xs font-semibold"
-          style={isOlympiad ? { backgroundColor: "#8A5A1C", borderColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E4C77D", color: "#8A5A1C" }}>
-          🥇 Olimpiada
-        </button>
+          style={isOlympiad ? { backgroundColor: "#8A5A1C", borderColor: "#8A5A1C", color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E4C77D", color: "#8A5A1C" }}>{__kbUi("🥇 Olimpiada")}</button>
       </div>
 
       {!isOlympiad && (data?.selected_context?.groups || []).length > 1 && (
@@ -788,18 +772,18 @@ export function StudentLearningPathDashboard({
 
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>Ko'rilayotgan bosqich</p>
-          <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.selected_grade}-sinf · {data?.calendar_source?.label}</p>
+          <p className="text-[10px] uppercase font-semibold" style={{ color: "#8A8578" }}>{__kbUi("Ko'rilayotgan bosqich")}</p>
+          <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.selected_grade}{__kbUi("-sinf · ")}{__kbUi(data?.calendar_source?.label)}</p>
         </div>
         <select value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(""); setTerm(1); setView("overview"); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold" style={{ borderColor: "#D8D3C7", color: heroColor }}>
-          {(data?.grade_options || []).map((g) => <option key={g} value={g}>{g}-sinf</option>)}
+          {(data?.grade_options || []).map((g) => <option key={g} value={g}>{g}{__kbUi("-sinf")}</option>)}
         </select>
       </div>
 
       {data?.grade_progression?.message && String(data?.selected_grade) === String(data?.student?.current_grade) && (
         <div className="rounded-2xl border p-3.5" style={{ borderColor: data.grade_progression.status === "completed" ? "#E4C77D" : "#C8DDD4", backgroundColor: data.grade_progression.status === "completed" ? "#FFF8E7" : "#EEF7F3" }}>
           <p className="text-xs font-bold" style={{ color: data.grade_progression.status === "completed" ? "#6F5320" : "#28735A" }}>
-            {data.grade_progression.status === "completed" ? "✓ Sinf bosqichi yakunlangan" : "● Joriy sinf faol"}
+            {data.grade_progression.status === "completed" ? __kbUi("✓ Sinf bosqichi yakunlangan") : __kbUi("● Joriy sinf faol")}
           </p>
           <p className="text-[11px] mt-1" style={{ color: "#6F6859" }}>{data.grade_progression.message}</p>
         </div>
@@ -810,8 +794,8 @@ export function StudentLearningPathDashboard({
           <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}><CalendarDays size={17} /></span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.focus_week?.label || "Haftalik reja"}</p>
-              {data?.focus_week?.start && <span className="text-[10px]" style={{ color: "#8A8578" }}>{shortDate(data.focus_week.start)}–{shortDate(data.focus_week.end)}</span>}
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{data?.focus_week?.label || __kbUi("Haftalik reja")}</p>
+              {data?.focus_week?.start && <span className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi(shortDate(data.focus_week.start))}–{__kbUi(shortDate(data.focus_week.end))}</span>}
             </div>
             {(data?.focus_week?.topics || []).length ? (
               <div className="mt-2 space-y-1.5">
@@ -822,30 +806,28 @@ export function StudentLearningPathDashboard({
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] mt-1.5" style={{ color: "#8A8578" }}>{data?.grade_progression?.status === "completed" ? "Bu sinfning reja haftalari tugagan." : "Rejada shu haftaga mavzu topilmadi."}</p>
+              <p className="text-[11px] mt-1.5" style={{ color: "#8A8578" }}>{data?.grade_progression?.status === "completed" ? __kbUi("Bu sinfning reja haftalari tugagan.") : __kbUi("Rejada shu haftaga mavzu topilmadi.")}</p>
             )}
           </div>
         </div>
       </section>
 
       {!isOlympiad && data?.calendar_source?.is_estimate && (
-        <div className="rounded-xl border px-3 py-2.5 text-[11px] leading-relaxed" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF8E7", color: "#6F5320" }}>
-          Rasmiy kalendar ulanmagan. Hozir mavzular SamTM taxminiy haftalariga joylandi; o'qituvchi yoki admin rejasi kiritilsa, o'sha reja ustun bo'ladi.
-        </div>
+        <div className="rounded-xl border px-3 py-2.5 text-[11px] leading-relaxed" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF8E7", color: "#6F5320" }}>{__kbUi("Rasmiy kalendar ulanmagan. Hozir mavzular SamTM taxminiy haftalariga joylandi; o'qituvchi yoki admin rejasi kiritilsa, o'sha reja ustun bo'ladi.")}</div>
       )}
 
       <div className="grid grid-cols-3 gap-2.5">
         {isOlympiad ? (
           <>
-            <PathMetric icon={Target} label="Tasdiqlangan tayyorgarlik" value={olympiadSummary.confirmed_readiness_percent == null ? "—" : `${number(olympiadSummary.confirmed_readiness_percent)}%`} note="4 manba yig'indisi" color="#8A5A1C" soft="#FDF3E0" />
-            <PathMetric icon={CheckCircle2} label="Dalil qamrovi" value={`${number(olympiadSummary.evidence_coverage_percent)}%`} note={`${number(olympiadSummary.evaluated_subject_count)}/${number(olympiadSummary.subject_count)} fan`} color="#28735A" soft="#E7F4EE" />
-            <PathMetric icon={Brain} label="Baholash modeli" value="4" note="20 + 20 + 30 + 30" color="#5B63A9" soft="#EFEEFB" />
+            <PathMetric icon={Target} label={__kbUi("Tasdiqlangan tayyorgarlik")} value={olympiadSummary.confirmed_readiness_percent == null ? "—" : `${number(olympiadSummary.confirmed_readiness_percent)}%`} note="4 manba yig'indisi" color="#8A5A1C" soft="#FDF3E0" />
+            <PathMetric icon={CheckCircle2} label={__kbUi("Dalil qamrovi")} value={`${number(olympiadSummary.evidence_coverage_percent)}%`} note={`${number(olympiadSummary.evaluated_subject_count)}/${number(olympiadSummary.subject_count)} fan`} color="#28735A" soft="#E7F4EE" />
+            <PathMetric icon={Brain} label={__kbUi("Baholash modeli")} value="4" note="20 + 20 + 30 + 30" color="#5B63A9" soft="#EFEEFB" />
           </>
         ) : (
           <>
-            <PathMetric icon={CalendarDays} label="Reja yetgan" value={`${number(summary.planned_reached_percent)}%`} note="Sana bo'yicha" color="#8A5A1C" soft="#FDF3E0" />
-            <PathMetric icon={CheckCircle2} label="Amalda o'tilgan" value={`${number(summary.taught_percent)}%`} note="O'qituvchi tasdig'i" color="#28735A" soft="#E7F4EE" />
-            <PathMetric icon={Brain} label="Tasdiqlangan bilim" value={summary.verified_knowledge_percent == null ? "—" : `${number(summary.verified_knowledge_percent)}%`} note={`${number(summary.verified_topic_count)}/${number(summary.topic_count)} mavzu`} color="#5B63A9" soft="#EFEEFB" />
+            <PathMetric icon={CalendarDays} label={__kbUi("Reja yetgan")} value={`${number(summary.planned_reached_percent)}%`} note="Sana bo'yicha" color="#8A5A1C" soft="#FDF3E0" />
+            <PathMetric icon={CheckCircle2} label={__kbUi("Amalda o'tilgan")} value={`${number(summary.taught_percent)}%`} note="O'qituvchi tasdig'i" color="#28735A" soft="#E7F4EE" />
+            <PathMetric icon={Brain} label={__kbUi("Tasdiqlangan bilim")} value={summary.verified_knowledge_percent == null ? "—" : `${number(summary.verified_knowledge_percent)}%`} note={`${number(summary.verified_topic_count)}/${number(summary.topic_count)} mavzu`} color="#5B63A9" soft="#EFEEFB" />
           </>
         )}
       </div>
@@ -853,24 +835,21 @@ export function StudentLearningPathDashboard({
       {!isOlympiad && summary.confirmation_missing_count > 0 && (
         <div className="rounded-2xl border px-3.5 py-3" style={{ borderColor: "#E4C77D", backgroundColor: "#FFF8E7" }}>
           <p className="text-xs font-bold" style={{ color: "#6F5320" }}>
-            {summary.confirmation_missing_count} mavzuning reja sanasi o'tgan, lekin “o'tildi” tasdig'i yo'q
-          </p>
-          <p className="text-[10px] mt-1 leading-relaxed" style={{ color: "#8A6B32" }}>
-            Bu mavzular o'rganildi deb hisoblanmaydi. O'qituvchi tasdiqlashi yoki reja sanasini tuzatishi kerak.
-          </p>
+            {summary.confirmation_missing_count}{__kbUi(" mavzuning reja sanasi o'tgan, lekin “o'tildi” tasdig'i yo'q")}</p>
+          <p className="text-[10px] mt-1 leading-relaxed" style={{ color: "#8A6B32" }}>{__kbUi("Bu mavzular o'rganildi deb hisoblanmaydi. O'qituvchi tasdiqlashi yoki reja sanasini tuzatishi kerak.")}</p>
         </div>
       )}
 
       {(data?.subjects || []).length === 0 ? (
         <div className="rounded-2xl bg-white border p-7 text-center" style={{ borderColor: "#E5E1D8" }}>
           <BookOpen size={28} className="mx-auto mb-3" style={{ color: "#8A8578" }} />
-          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>Bu yo'l uchun mavzu rejasi hali yo'q</p>
+          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>{__kbUi("Bu yo'l uchun mavzu rejasi hali yo'q")}</p>
         </div>
       ) : (
         <section>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{isOlympiad ? "Olimpiada fan yo'llari" : "Fan yo'llari"}</p>
-            <span className="text-[10px]" style={{ color: "#8A8578" }}>{data.subjects.length} fan · ustiga bosib ichiga kiring</span>
+            <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{isOlympiad ? __kbUi("Olimpiada fan yo'llari") : __kbUi("Fan yo'llari")}</p>
+            <span className="text-[10px]" style={{ color: "#8A8578" }}>{data.subjects.length}{__kbUi(" fan · ustiga bosib ichiga kiring")}</span>
           </div>
           <div className="space-y-2">
             {data.subjects.map((item, index) => {
@@ -879,17 +858,17 @@ export function StudentLearningPathDashboard({
               return (
                 <button key={item.name} onClick={() => { setSubject(item.name); setTerm(1); setView("subject"); }} className="w-full rounded-2xl border bg-white p-3.5 text-left" style={{ borderColor: "#E5E1D8" }}>
                   <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: isOlympiad ? "#FDF3E0" : "#EEEAE1", color: isOlympiad ? "#8A5A1C" : "#5A5648" }}>{String(index + 1).padStart(2, "0")}</span>
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: isOlympiad ? "#FDF3E0" : "#EEEAE1", color: isOlympiad ? "#8A5A1C" : "#5A5648" }}>{__kbUi(String(index + 1).padStart(2, "0"))}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-bold truncate" style={{ color: "#2B2B2B" }}>{item.name}</p>
-                        <span className="text-xs font-semibold" style={{ color: value == null ? "#8A8578" : "#28735A" }}>{value == null ? "Hali baholanmagan" : `${number(value)}%`}</span>
+                        <span className="text-xs font-semibold" style={{ color: value == null ? "#8A8578" : "#28735A" }}>{value == null ? __kbUi("Hali baholanmagan") : __kbUi(`${number(value)}%`)}</span>
                       </div>
                       <div className="mt-2"><ScoreBar value={isOlympiad ? olympiad?.evidence_coverage_percent : item.planned_reached_percent} color={isOlympiad ? "#8A5A1C" : accent} height={6} /></div>
                       <p className="text-[10px] mt-1" style={{ color: "#8A8578" }}>
                         {isOlympiad
-                          ? `${olympiad?.label || "Hali baholanmagan"} · dalil ${number(olympiad?.evidence_coverage_percent)}%`
-                          : `${item.topic_count} mavzu · ${item.taught_percent}% tasdiq · ${item.test_available_count} testli · ${item.lesson_available_count} darsli · ${item.unknown_topic_count} noma'lum`}
+                          ? __kbUi(`${olympiad?.label || "Hali baholanmagan"} · dalil ${number(olympiad?.evidence_coverage_percent)}%`)
+                          : __kbUi(`${item.topic_count} mavzu · ${item.taught_percent}% tasdiq · ${item.test_available_count} testli · ${item.lesson_available_count} darsli · ${item.unknown_topic_count} noma'lum`)}
                       </p>
                     </div>
                     <ChevronRight size={17} style={{ color: "#A7A091" }} />
@@ -900,7 +879,7 @@ export function StudentLearningPathDashboard({
           </div>
         </section>
       )}
-      {error && <ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} />}
+      {error && <ErrorCard message={__kbUi(error)} onRetry={() => setReloadKey((x) => x + 1)} />}
     </div>
   );
 }
@@ -916,6 +895,7 @@ export function StudentAnalyticsDashboard({
   fallbackData = null,
   onBack = null,
 }) {
+  useKbInterfaceLocale();
   const [contextId, setContextId] = useState(lockedContextId);
   const [period, setPeriod] = useState(30);
   const [data, setData] = useState(null);
@@ -994,25 +974,25 @@ export function StudentAnalyticsDashboard({
             </button>
           )}
           <div className="min-w-0">
-            {!compact && <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: accent }}>O'quvchi analitikasi</p>}
-            {!compact && <h1 className="text-2xl font-bold truncate" style={{ color: "#2B2B2B" }}>{student.full_name || "Mening bilimim"}</h1>}
+            {!compact && <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: accent }}>{__kbUi("O'quvchi analitikasi")}</p>}
+            {!compact && <h1 className="text-2xl font-bold truncate" style={{ color: "#2B2B2B" }}>{student.full_name || __kbUi("Mening bilimim")}</h1>}
             {compact && activeContext && (
               <p className="text-xs font-medium" style={{ color: "#8A8578" }}>
                 {contextMeta(activeContext.type).emoji} {activeContext.name}
               </p>
             )}
             {compact && !activeContext && (
-              <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>Umumiy tahlil</p>
+              <p className="text-sm font-semibold" style={{ color: "#2B2B2B" }}>{__kbUi("Umumiy tahlil")}</p>
             )}
           </div>
         </div>
         <select value={period} onChange={(e) => setPeriod(Number(e.target.value))}
           className="rounded-xl border px-2.5 py-2 text-xs bg-white shrink-0"
           style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-          <option value={7}>7 kun</option>
-          <option value={30}>30 kun</option>
-          <option value={90}>90 kun</option>
-          <option value={365}>1 yil</option>
+          <option value={7}>{__kbUi("7 kun")}</option>
+          <option value={30}>{__kbUi("30 kun")}</option>
+          <option value={90}>{__kbUi("90 kun")}</option>
+          <option value={365}>{__kbUi("1 yil")}</option>
         </select>
       </div>
 
@@ -1024,7 +1004,7 @@ export function StudentAnalyticsDashboard({
 
       {loading ? <LoadingCard /> : error ? (
         <div className="space-y-3">
-          <ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} />
+          <ErrorCard message={__kbUi(error)} onRetry={() => setReloadKey((x) => x + 1)} />
           <LegacyFallback data={fallbackData} />
         </div>
       ) : data ? (
@@ -1033,37 +1013,37 @@ export function StudentAnalyticsDashboard({
             style={{ background: `linear-gradient(135deg, ${accent}, #2D6E8B)` }}>
             <div className="absolute -right-8 -top-10 w-36 h-36 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
             <div className="absolute right-14 -bottom-14 w-28 h-28 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
-            <p className="text-xs font-semibold opacity-75">{activeContext ? activeContext.name : "Barcha ta'lim muhitlari"}</p>
+            <p className="text-xs font-semibold opacity-75">{activeContext ? activeContext.name : __kbUi("Barcha ta'lim muhitlari")}</p>
             <div className="flex items-end gap-2 mt-2">
               <p className="text-5xl font-bold tabular-nums">{Math.round(number(summary.avg_score))}</p>
               <p className="text-lg font-semibold opacity-80 mb-1">%</p>
             </div>
             <div className="flex items-center gap-4 mt-4 text-xs">
-              <span className="flex items-center gap-1.5"><Flame size={14} /> {number(summary.streak_days)} kun ketma-ket</span>
-              <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {number(summary.active_days)} faol kun</span>
+              <span className="flex items-center gap-1.5"><Flame size={14} /> {__kbUi(number(summary.streak_days))}{__kbUi(" kun ketma-ket")}</span>
+              <span className="flex items-center gap-1.5"><CalendarDays size={14} /> {__kbUi(number(summary.active_days))}{__kbUi(" faol kun")}</span>
             </div>
           </div>
 
           <div className="student-kpi-strip premium-kpi-grid grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            <MetricCard icon={CheckCircle2} label="O'zlashtirilgan mavzu" value={number(summary.mastered_topics)}
+            <MetricCard icon={CheckCircle2} label={__kbUi("O'zlashtirilgan mavzu")} value={number(summary.mastered_topics)}
               tone="#28735A" soft="#E7F4EE" />
-            <MetricCard icon={AlertTriangle} label="Takrorlash kerak" value={number(summary.needs_review)}
+            <MetricCard icon={AlertTriangle} label={__kbUi("Takrorlash kerak")} value={number(summary.needs_review)}
               tone="#A32D2D" soft="#FCEBEB" />
-            <MetricCard icon={Brain} label="Esdan chiqish xavfi" value={number(summary.at_risk_topics)}
+            <MetricCard icon={Brain} label={__kbUi("Esdan chiqish xavfi")} value={number(summary.at_risk_topics)}
               tone="#B0553A" soft="#FBEDE8" />
-            <MetricCard icon={RefreshCw} label="Qayta tiklangan" value={number(summary.recovered_topics)}
+            <MetricCard icon={RefreshCw} label={__kbUi("Qayta tiklangan")} value={number(summary.recovered_topics)}
               tone="#28735A" soft="#E7F4EE" />
-            <MetricCard icon={BookOpen} label="Bajarilgan faoliyat" value={number(summary.event_count)}
+            <MetricCard icon={BookOpen} label={__kbUi("Bajarilgan faoliyat")} value={number(summary.event_count)}
               tone="#8B5FBF" soft="#F3EEFA" />
-            <MetricCard icon={Clock3} label="O'qish vaqti" value={number(summary.time_minutes)}
+            <MetricCard icon={Clock3} label={__kbUi("O'qish vaqti")} value={number(summary.time_minutes)}
               suffix="daq" tone="#8A5A1C" soft="#FDF3E0" />
           </div>
 
           <section className="student-trend-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Natija rivoji</p>
-                <p className="text-[11px]" style={{ color: "#8A8578" }}>Har kunlik baholangan faoliyat</p>
+                <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Natija rivoji")}</p>
+                <p className="text-[11px]" style={{ color: "#8A8578" }}>{__kbUi("Har kunlik baholangan faoliyat")}</p>
               </div>
               <TrendingUp size={20} style={{ color: accent }} />
             </div>
@@ -1072,11 +1052,11 @@ export function StudentAnalyticsDashboard({
 
           <section className="student-subject-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Fanlar kesimida</p>
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Fanlar kesimida")}</p>
               <BarChart3 size={18} style={{ color: accent }} />
             </div>
             {(data.subjects || []).length === 0 ? (
-              <p className="text-xs py-5 text-center" style={{ color: "#8A8578" }}>Hali baholangan fan natijasi yo'q</p>
+              <p className="text-xs py-5 text-center" style={{ color: "#8A8578" }}>{__kbUi("Hali baholangan fan natijasi yo'q")}</p>
             ) : (
               <div className="space-y-3.5">
                 {data.subjects.map((s, index) => {
@@ -1089,8 +1069,7 @@ export function StudentAnalyticsDashboard({
                       </div>
                       <ScoreBar value={s.avg_score} color={color} />
                       <p className="text-[10px] mt-1" style={{ color: "#9A9485" }}>
-                        {s.event_count} faoliyat · {s.time_minutes} daqiqa
-                      </p>
+                        {s.event_count}{__kbUi(" faoliyat · ")}{s.time_minutes}{__kbUi(" daqiqa")}</p>
                     </div>
                   );
                 })}
@@ -1105,14 +1084,14 @@ export function StudentAnalyticsDashboard({
                   <Target size={16} style={{ color: "#A32D2D" }} />
                 </span>
                 <div>
-                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Xotira va takrorlash</p>
-                  <p className="text-[10px]" style={{ color: "#8A8578" }}>Past natija, muddat va unutish ehtimoli</p>
+                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Xotira va takrorlash")}</p>
+                  <p className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi("Past natija, muddat va unutish ehtimoli")}</p>
                 </div>
               </div>
               {(data.weak_topics || []).length === 0 ? (
                 <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: "#E7F4EE" }}>
                   <CheckCircle2 size={18} style={{ color: "#28735A" }} />
-                  <p className="text-xs font-medium" style={{ color: "#28735A" }}>Hozircha qiyin mavzu aniqlanmadi</p>
+                  <p className="text-xs font-medium" style={{ color: "#28735A" }}>{__kbUi("Hozircha qiyin mavzu aniqlanmadi")}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1124,18 +1103,15 @@ export function StudentAnalyticsDashboard({
                           <p className="text-[10px] mt-0.5 truncate" style={{ color: "#8A8578" }}>{w.subject} · {w.context_name}</p>
                         </div>
                         <span className="text-xs font-bold shrink-0" style={{ color: "#A32D2D" }}>
-                          {Math.round(number(w.forgetting_probability))}% xavf
-                        </span>
+                          {Math.round(number(w.forgetting_probability))}{__kbUi("% xavf")}</span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-2">
                         <span className="text-[10px] font-semibold" style={{
                           color: w.memory_status === "forgotten" ? "#A32D2D" : w.memory_status === "at_risk" ? "#8A5A1C" : "#28735A",
                         }}>
-                          {w.memory_status_label}
+                          {__kbUi(w.memory_status_label)}
                         </span>
-                        <span className="text-[10px]" style={{ color: "#8A8578" }}>
-                          Bilim {Math.round(number(w.mastery_score))}% · {number(w.days_since_assessment)} kun
-                        </span>
+                        <span className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi("Bilim ")}{Math.round(number(w.mastery_score))}% · {__kbUi(number(w.days_since_assessment))}{__kbUi(" kun")}</span>
                       </div>
                     </div>
                   ))}
@@ -1143,7 +1119,7 @@ export function StudentAnalyticsDashboard({
               )}
               {(data.recovered_topics || []).length > 0 && (
                 <div className="mt-3 pt-3 border-t" style={{ borderColor: "#EEEAE1" }}>
-                  <p className="text-[11px] font-bold mb-2" style={{ color: "#28735A" }}>Qayta testda tiklangan</p>
+                  <p className="text-[11px] font-bold mb-2" style={{ color: "#28735A" }}>{__kbUi("Qayta testda tiklangan")}</p>
                   <div className="space-y-1.5">
                     {data.recovered_topics.slice(0, 3).map((topic) => (
                       <div key={`recovered-${topic.context_id}-${topic.topic_code}`} className="flex items-center justify-between gap-3 text-[10px]">
@@ -1164,8 +1140,8 @@ export function StudentAnalyticsDashboard({
                   <Brain size={16} style={{ color: "#8B5FBF" }} />
                 </span>
                 <div>
-                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>Keyingi reja</p>
-                  <p className="text-[10px]" style={{ color: "#8A8578" }}>Natijaga qarab tavsiya</p>
+                  <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Keyingi reja")}</p>
+                  <p className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi("Natijaga qarab tavsiya")}</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -1180,9 +1156,9 @@ export function StudentAnalyticsDashboard({
           </div>
 
           <section className="student-events-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>So'nggi faoliyatlar</p>
+            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("So'nggi faoliyatlar")}</p>
             {(data.recent_events || []).length === 0 ? (
-              <p className="text-xs py-4 text-center" style={{ color: "#8A8578" }}>Hali faoliyat yozilmagan</p>
+              <p className="text-xs py-4 text-center" style={{ color: "#8A8578" }}>{__kbUi("Hali faoliyat yozilmagan")}</p>
             ) : (
               <div className="divide-y" style={{ borderColor: "#EEEAE1" }}>
                 {data.recent_events.slice(0, 8).map((e) => (
@@ -1191,15 +1167,15 @@ export function StudentAnalyticsDashboard({
                       style={{ backgroundColor: contextMeta(
                         visibleContexts.find((c) => c.name === e.context_name)?.type
                       ).soft }}>
-                      {e.event_type.includes("ai") ? "🤖" : e.event_type.includes("test") ? "✍️" : "📖"}
+                      {e.event_type.includes("ai") ? __kbUi("🤖") : e.event_type.includes("test") ? __kbUi("✍️") : __kbUi("📖")}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold truncate" style={{ color: "#3D392F" }}>
                         {EVENT_LABELS[e.event_type] || e.event_type}
-                        {e.subject ? ` · ${e.subject}` : ""}
+                        {e.subject ? __kbUi(` · ${e.subject}`) : __kbUi("")}
                       </p>
                       <p className="text-[10px] mt-0.5 truncate" style={{ color: "#8A8578" }}>
-                        {e.context_name} · {EVIDENCE_LABELS[e.evidence_source] || e.evidence_source} · {dateLabel(e.occurred_at)}
+                        {e.context_name} · {EVIDENCE_LABELS[e.evidence_source] || e.evidence_source} · {__kbUi(dateLabel(e.occurred_at))}
                       </p>
                     </div>
                     {e.score != null && (
@@ -1226,6 +1202,7 @@ function AdminItemIcon({ type }) {
 }
 
 export function AdminStatisticsTab({ token }) {
+  useKbInterfaceLocale();
   const [level, setLevel] = useState("tizim");
   const [params, setParams] = useState({});
   const [stack, setStack] = useState([{ level: "tizim", params: {}, label: "Barcha tizim" }]);
@@ -1333,14 +1310,14 @@ export function AdminStatisticsTab({ token }) {
     <div className="analytics-view px-5 pt-6 pb-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1B4B7A" }}>Boshqaruv markazi</p>
-          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Statistikalar</h1>
-          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Tizimdan aniq o'quvchigacha ichma-ich tahlil</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1B4B7A" }}>{__kbUi("Boshqaruv markazi")}</p>
+          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Statistikalar")}</h1>
+          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{__kbUi("Tizimdan aniq o'quvchigacha ichma-ich tahlil")}</p>
         </div>
         <button onClick={sync} disabled={syncing}
           className="w-10 h-10 rounded-xl border flex items-center justify-center bg-white"
           style={{ borderColor: "#E5E1D8", color: "#1B4B7A", opacity: syncing ? 0.6 : 1 }}
-          title="Eski bazani analitikaga sinxronlash">
+          title={__kbUi("Eski bazani analitikaga sinxronlash")}>
           <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
         </button>
       </div>
@@ -1354,17 +1331,17 @@ export function AdminStatisticsTab({ token }) {
               style={index === stack.length - 1
                 ? { backgroundColor: "#EAF1F7", color: "#1B4B7A" }
                 : { color: "#8A8578" }}>
-              {crumb.label}
+              {__kbUi(crumb.label)}
             </button>
           </React.Fragment>
         ))}
       </div>
 
       <div className="premium-kpi-grid grid grid-cols-2 gap-2.5 mb-3">
-        <MetricCard icon={Users} label="O'quvchilar" value={number(data?.summary?.student_count)} tone="#1B4B7A" soft="#EAF1F7" />
-        <MetricCard icon={TrendingUp} label="O'rtacha bilim" value={Math.round(number(data?.summary?.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
-        <MetricCard icon={BookOpen} label="Faoliyatlar" value={number(data?.summary?.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
-        <MetricCard icon={AlertTriangle} label="Yordam kerak" value={number(data?.summary?.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
+        <MetricCard icon={Users} label={__kbUi("O'quvchilar")} value={number(data?.summary?.student_count)} tone="#1B4B7A" soft="#EAF1F7" />
+        <MetricCard icon={TrendingUp} label={__kbUi("O'rtacha bilim")} value={Math.round(number(data?.summary?.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
+        <MetricCard icon={BookOpen} label={__kbUi("Faoliyatlar")} value={number(data?.summary?.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
+        <MetricCard icon={AlertTriangle} label={__kbUi("Yordam kerak")} value={number(data?.summary?.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
       </div>
 
       <div className="flex gap-2 mb-3">
@@ -1372,26 +1349,26 @@ export function AdminStatisticsTab({ token }) {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#9A9485" }} />
           <input value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border pl-9 pr-3 py-2.5 text-sm"
-            style={{ borderColor: "#E5E1D8" }} placeholder="Nom bo'yicha qidirish" />
+            style={{ borderColor: "#E5E1D8" }} placeholder={__kbUi("Nom bo'yicha qidirish")} />
         </div>
         <select value={period} onChange={(e) => setPeriod(Number(e.target.value))}
           className="rounded-xl border px-2.5 py-2 text-xs bg-white"
           style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-          <option value={7}>7 kun</option>
-          <option value={30}>30 kun</option>
-          <option value={90}>90 kun</option>
-          <option value={365}>1 yil</option>
+          <option value={7}>{__kbUi("7 kun")}</option>
+          <option value={30}>{__kbUi("30 kun")}</option>
+          <option value={90}>{__kbUi("90 kun")}</option>
+          <option value={365}>{__kbUi("1 yil")}</option>
         </select>
       </div>
 
       {loading ? <LoadingCard /> : error ? (
-        <ErrorCard message={error} onRetry={() => setReloadKey((x) => x + 1)} />
+        <ErrorCard message={__kbUi(error)} onRetry={() => setReloadKey((x) => x + 1)} />
       ) : (
         <div className="space-y-2.5">
           {filtered.length === 0 ? (
             <div className="rounded-2xl bg-white border p-8 text-center" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>Ma'lumot topilmadi</p>
-              <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Sinxronlash tugmasini bosing yoki filtrni tozalang.</p>
+              <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>{__kbUi("Ma'lumot topilmadi")}</p>
+              <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{__kbUi("Sinxronlash tugmasini bosing yoki filtrni tozalang.")}</p>
             </div>
           ) : filtered.map((item) => {
             const meta = contextMeta(item.context_type);
@@ -1412,8 +1389,7 @@ export function AdminStatisticsTab({ token }) {
                       </span>
                     </div>
                     <p className="text-[10px] mt-1 truncate" style={{ color: "#8A8578" }}>
-                      {item.student_count} o'quvchi · {item.event_count} faoliyat
-                      {item.needs_help ? ` · ${item.needs_help} yordam kerak` : ""}
+                      {item.student_count}{__kbUi(" o'quvchi · ")}{item.event_count}{__kbUi(" faoliyat")}{item.needs_help ? __kbUi(` · ${item.needs_help} yordam kerak`) : __kbUi("")}
                     </p>
                     <div className="mt-2"><ScoreBar value={item.avg_score} color={item.avg_score >= 60 ? "#28735A" : "#B0553A"} height={5} /></div>
                   </div>
@@ -1429,6 +1405,7 @@ export function AdminStatisticsTab({ token }) {
 }
 
 function TeacherLearningPlanManager({ token, groupId }) {
+  useKbInterfaceLocale();
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(null);
   const [term, setTerm] = useState(1);
@@ -1512,22 +1489,20 @@ function TeacherLearningPlanManager({ token, groupId }) {
       <button onClick={() => setOpen((value) => !value)} className="w-full p-4 flex items-center gap-3 text-left">
         <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}><CalendarDays size={18} /></span>
         <span className="min-w-0 flex-1">
-          <span className="text-sm font-bold block" style={{ color: "#2B2B2B" }}>Mavzu kalendari va “o'tildi” tasdig'i</span>
-          <span className="text-[10px] block mt-0.5" style={{ color: "#8A8578" }}>{data ? `${taught}/${data.topics.length} mavzu amalda o'tilgan` : "Reja sanasi bilim natijasidan alohida yuritiladi"}</span>
+          <span className="text-sm font-bold block" style={{ color: "#2B2B2B" }}>{__kbUi("Mavzu kalendari va “o'tildi” tasdig'i")}</span>
+          <span className="text-[10px] block mt-0.5" style={{ color: "#8A8578" }}>{data ? __kbUi(`${taught}/${data.topics.length} mavzu amalda o'tilgan`) : __kbUi("Reja sanasi bilim natijasidan alohida yuritiladi")}</span>
         </span>
         <ChevronRight size={17} style={{ color: "#A7A091", transform: open ? "rotate(90deg)" : "none" }} />
       </button>
       {open && (
         <div className="border-t p-4" style={{ borderColor: "#EEEAE1" }}>
-          {loading ? <LoadingCard text="Guruh rejasi yuklanmoqda..." /> : !data ? (
-            <ErrorCard message={message || "Reja topilmadi"} onRetry={load} />
+          {loading ? <LoadingCard text={__kbUi("Guruh rejasi yuklanmoqda...")} /> : !data ? (
+            <ErrorCard message={message || __kbUi("Reja topilmadi")} onRetry={load} />
           ) : (
             <>
-              <div className="rounded-xl px-3 py-2.5 mb-3 text-[11px] leading-relaxed" style={{ backgroundColor: "#FFF8E7", color: "#6F5320" }}>
-                “O'tildi” faqat darsni tasdiqlaydi. O'quvchining bilimi esa shu mavzudagi test yoki mavzuga qo'yilgan bahodan keyin aniqlanadi.
-              </div>
+              <div className="rounded-xl px-3 py-2.5 mb-3 text-[11px] leading-relaxed" style={{ backgroundColor: "#FFF8E7", color: "#6F5320" }}>{__kbUi("“O'tildi” faqat darsni tasdiqlaydi. O'quvchining bilimi esa shu mavzudagi test yoki mavzuga qo'yilgan bahodan keyin aniqlanadi.")}</div>
               <div className="grid grid-cols-4 gap-1.5 mb-3">
-                {[1, 2, 3, 4].map((q) => <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold" style={Number(term) === q ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>{q}-chorak</button>)}
+                {[1, 2, 3, 4].map((q) => <button key={q} onClick={() => setTerm(q)} className="rounded-xl py-2 text-xs font-semibold" style={Number(term) === q ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F1EFE9", color: "#5A5648" }}>{__kbUi(q)}{__kbUi("-chorak")}</button>)}
               </div>
               <div className="space-y-2 max-h-[34rem] overflow-y-auto pr-1">
                 {topics.map((topic) => {
@@ -1538,17 +1513,17 @@ function TeacherLearningPlanManager({ token, groupId }) {
                         <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ color: meta.color, backgroundColor: meta.soft }}>{meta.icon}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold" style={{ color: "#3D392F" }}>{topic.topic_name}</p>
-                          <p className="text-[9px] mt-0.5" style={{ color: "#8A8578" }}>{topic.week_no}-hafta · {topic.subject}</p>
+                          <p className="text-[9px] mt-0.5" style={{ color: "#8A8578" }}>{topic.week_no}{__kbUi("-hafta · ")}{topic.subject}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-2.5">
-                        <label className="text-[9px]" style={{ color: "#8A8578" }}>Boshlanish<input type="date" value={topic.planned_start || ""} onChange={(e) => updateTopic(topic.topic_code, "planned_start", e.target.value)} className="mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px]" style={{ borderColor: "#D8D3C7", color: "#3D392F" }} /></label>
-                        <label className="text-[9px]" style={{ color: "#8A8578" }}>Tugash<input type="date" value={topic.planned_end || ""} onChange={(e) => updateTopic(topic.topic_code, "planned_end", e.target.value)} className="mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px]" style={{ borderColor: "#D8D3C7", color: "#3D392F" }} /></label>
+                        <label className="text-[9px]" style={{ color: "#8A8578" }}>{__kbUi("Boshlanish")}<input type="date" value={topic.planned_start || ""} onChange={(e) => updateTopic(topic.topic_code, "planned_start", e.target.value)} className="mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px]" style={{ borderColor: "#D8D3C7", color: "#3D392F" }} /></label>
+                        <label className="text-[9px]" style={{ color: "#8A8578" }}>{__kbUi("Tugash")}<input type="date" value={topic.planned_end || ""} onChange={(e) => updateTopic(topic.topic_code, "planned_end", e.target.value)} className="mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px]" style={{ borderColor: "#D8D3C7", color: "#3D392F" }} /></label>
                       </div>
                       <div className="grid grid-cols-3 gap-1.5 mt-2.5">
-                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "planned")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#F1EFE9", color: "#5A5648" }}>Rejada</button>
-                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "delayed")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>Kechikdi</button>
-                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "taught")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#E7F4EE", color: "#28735A" }}>{saving === topic.topic_code ? "..." : "✓ O'tildi"}</button>
+                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "planned")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#F1EFE9", color: "#5A5648" }}>{__kbUi("Rejada")}</button>
+                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "delayed")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>{__kbUi("Kechikdi")}</button>
+                        <button disabled={saving === topic.topic_code} onClick={() => saveTopic(topic, "taught")} className="rounded-lg py-2 text-[10px] font-semibold" style={{ backgroundColor: "#E7F4EE", color: "#28735A" }}>{saving === topic.topic_code ? __kbUi("...") : __kbUi("✓ O'tildi")}</button>
                       </div>
                     </div>
                   );
@@ -1564,6 +1539,7 @@ function TeacherLearningPlanManager({ token, groupId }) {
 }
 
 export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }) {
+  useKbInterfaceLocale();
   const [contexts, setContexts] = useState([]);
   const [contextId, setContextId] = useState(null);
   const [groupId, setGroupId] = useState(null);
@@ -1661,16 +1637,16 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
           <ChevronLeft size={18} />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1B4B7A" }}>O'qituvchi paneli</p>
-          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>Statistikalar</h1>
-          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Ish joyi → guruh → o'quvchi → mavzu</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "#1B4B7A" }}>{__kbUi("O'qituvchi paneli")}</p>
+          <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Statistikalar")}</h1>
+          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{__kbUi("Ish joyi → guruh → o'quvchi → mavzu")}</p>
         </div>
         <select value={period} onChange={(e) => setPeriod(Number(e.target.value))}
           className="rounded-xl border px-2.5 py-2 text-xs bg-white"
           style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-          <option value={7}>7 kun</option>
-          <option value={30}>30 kun</option>
-          <option value={90}>90 kun</option>
+          <option value={7}>{__kbUi("7 kun")}</option>
+          <option value={30}>{__kbUi("30 kun")}</option>
+          <option value={90}>{__kbUi("90 kun")}</option>
         </select>
       </div>
 
@@ -1704,31 +1680,31 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
         </div>
       )}
 
-      {contextsLoading || (groupId && groupLoading) ? <LoadingCard /> : error ? <ErrorCard message={error} /> : !groupId ? (
+      {contextsLoading || (groupId && groupLoading) ? <LoadingCard /> : error ? <ErrorCard message={__kbUi(error)} /> : !groupId ? (
         <div className="rounded-2xl bg-white border p-8 text-center" style={{ borderColor: "#E5E1D8" }}>
           <Users size={28} className="mx-auto mb-3" style={{ color: "#8A8578" }} />
-          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>Tahlil qilinadigan guruh yo'q</p>
-          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>Avval sinf yoki to'garak a'zolarini sinxronlang.</p>
+          <p className="text-sm font-semibold" style={{ color: "#3D392F" }}>{__kbUi("Tahlil qilinadigan guruh yo'q")}</p>
+          <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{__kbUi("Avval sinf yoki to'garak a'zolarini sinxronlang.")}</p>
         </div>
       ) : data ? (
         <div className="teacher-analytics-grid space-y-3.5">
           <div className="teacher-kpi-strip premium-kpi-grid grid grid-cols-2 gap-2.5">
-            <MetricCard icon={Users} label="Guruhdagi o'quvchi" value={number(data.summary.student_count)} />
-            <MetricCard icon={TrendingUp} label="O'rtacha bilim" value={Math.round(number(data.summary.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
-            <MetricCard icon={BookOpen} label="Faoliyatlar" value={number(data.summary.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
-            <MetricCard icon={AlertTriangle} label="Yordam kerak" value={number(data.summary.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
+            <MetricCard icon={Users} label={__kbUi("Guruhdagi o'quvchi")} value={number(data.summary.student_count)} />
+            <MetricCard icon={TrendingUp} label={__kbUi("O'rtacha bilim")} value={Math.round(number(data.summary.avg_score))} suffix="%" tone="#28735A" soft="#E7F4EE" />
+            <MetricCard icon={BookOpen} label={__kbUi("Faoliyatlar")} value={number(data.summary.event_count)} tone="#8B5FBF" soft="#F3EEFA" />
+            <MetricCard icon={AlertTriangle} label={__kbUi("Yordam kerak")} value={number(data.summary.needs_help)} tone="#A32D2D" soft="#FCEBEB" />
           </div>
 
           <TeacherLearningPlanManager token={token} groupId={groupId} />
 
           <section className="teacher-trend-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Guruh rivoji</p>
+            <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("Guruh rivoji")}</p>
             <TrendChart points={data.trend} color="#1B4B7A" />
           </section>
 
           {(data.difficult_topics || []).length > 0 && (
             <section className="teacher-difficult-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>Sinfga qiyin tushayotgan mavzular</p>
+              <p className="text-sm font-bold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("Sinfga qiyin tushayotgan mavzular")}</p>
               <div className="space-y-2">
                 {data.difficult_topics.slice(0, 6).map((t) => (
                   <div key={`${t.subject}-${t.topic_code}`} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "#FAF8F2" }}>
@@ -1737,7 +1713,7 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold truncate" style={{ color: "#3D392F" }}>{t.subject || t.topic_code}</p>
-                      <p className="text-[10px]" style={{ color: "#8A8578" }}>{t.attempts} urinish</p>
+                      <p className="text-[10px]" style={{ color: "#8A8578" }}>{t.attempts}{__kbUi(" urinish")}</p>
                     </div>
                     <span className="text-xs font-bold" style={{ color: "#A32D2D" }}>{Math.round(number(t.avg_score))}%</span>
                   </div>
@@ -1748,8 +1724,8 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
 
           <section className="teacher-students-card rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>O'quvchilar</p>
-              <span className="text-[10px]" style={{ color: "#8A8578" }}>Past natija yuqorida</span>
+              <p className="text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("O'quvchilar")}</p>
+              <span className="text-[10px]" style={{ color: "#8A8578" }}>{__kbUi("Past natija yuqorida")}</span>
             </div>
             <div className="space-y-2">
               {(data.students || []).map((s) => (
@@ -1758,7 +1734,7 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
                   style={{ borderColor: s.needs_help ? "#E8C8C2" : "#E5E1D8", backgroundColor: s.needs_help ? "#FFF9F8" : "#fff" }}>
                   <span className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                     style={{ backgroundColor: s.needs_help ? "#FCEBEB" : "#EAF1F7", color: s.needs_help ? "#A32D2D" : "#1B4B7A" }}>
-                    {(s.full_name || "?").split(" ").slice(0, 2).map((x) => x[0]).join("")}
+                    {__kbUi((s.full_name || "?").split(" ").slice(0, 2).map((x) => x[0]).join(""))}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
@@ -1768,8 +1744,7 @@ export function TeacherAnalyticsPanel({ token, onBack, initialWorkplace = null }
                       </span>
                     </div>
                     <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>
-                      {s.event_count} faoliyat · {s.time_minutes} daqiqa
-                      {s.needs_help ? " · yordam kerak" : ""}
+                      {s.event_count}{__kbUi(" faoliyat · ")}{s.time_minutes}{__kbUi(" daqiqa")}{s.needs_help ? __kbUi(" · yordam kerak") : __kbUi("")}
                     </p>
                   </div>
                   <ChevronRight size={16} style={{ color: "#A7A091" }} />

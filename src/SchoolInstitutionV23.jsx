@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from './interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import React, { useEffect, useMemo, useState } from "react";
 import { HUDUDLAR, VILOYATLAR } from "./hududlar.js";
 import { accessCodeFile } from "./school/institutionAccessCodes.js";
@@ -30,6 +32,7 @@ function Notice({ kind = "error", children }) {
 }
 
 function PersonPicker({ apiBase, token, scopeId, scopeKind = "school", role = "", value, onChange, placeholder, adminGlobal = false }) {
+  useKbInterfaceLocale();
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -54,20 +57,20 @@ function PersonPicker({ apiBase, token, scopeId, scopeKind = "school", role = ""
     return (
       <div className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>
         <span className="text-sm font-semibold">{value.full_name}</span>
-        <button type="button" onClick={() => onChange(null)} className="text-xs">✕ O‘zgartirish</button>
+        <button type="button" onClick={() => onChange(null)} className="text-xs">{__kbUi("✕ O‘zgartirish")}</button>
       </div>
     );
   }
   return (
     <div className="relative">
-      <input style={field} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder || "Ism bo‘yicha qidiring..."} />
-      {loading && <span className="text-xs" style={{ color: "#8A8578" }}>Qidirilmoqda...</span>}
+      <input style={field} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder || __kbUi("Ism bo‘yicha qidiring...")} />
+      {loading && <span className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Qidirilmoqda...")}</span>}
       {items.length > 0 && (
         <div className="absolute z-20 left-0 right-0 mt-1 rounded-xl border bg-white shadow-lg p-1 max-h-52 overflow-auto" style={{ borderColor: "#E5E1D8" }}>
           {items.map((item) => (
             <button type="button" key={item.user_id} className="w-full text-left rounded-lg px-3 py-2 hover:bg-slate-50" onClick={() => { onChange(item); setQuery(""); setItems([]); }}>
               <b className="text-sm block">{item.full_name}</b>
-              <small style={{ color: "#8A8578" }}>{item.lavozim || item.role || "Foydalanuvchi"}</small>
+              <small style={{ color: "#8A8578" }}>{item.lavozim || item.role || __kbUi("Foydalanuvchi")}</small>
             </button>
           ))}
         </div>
@@ -82,32 +85,33 @@ const newClassRow = (shift = 1) => ({
 });
 
 function ClassFields({ row, onChange, onRemove, shiftCount, apiBase, token, scopeId, scopeKind = "school", adminGlobal = false }) {
+  useKbInterfaceLocale();
   const patch = (values) => onChange({ ...row, ...values });
   return (
     <div className="rounded-2xl border p-4 space-y-3" style={{ borderColor: "#E5E1D8", background: "#FCFBF8" }}>
       <div className="flex items-center justify-between gap-3">
-        <b className="text-sm">Sinf</b>
-        {onRemove && <button type="button" onClick={onRemove} className="text-xs font-semibold" style={{ color: "#A32D2D" }}>Olib tashlash</button>}
+        <b className="text-sm">{__kbUi("Sinf")}</b>
+        {onRemove && <button type="button" onClick={onRemove} className="text-xs font-semibold" style={{ color: "#A32D2D" }}>{__kbUi("Olib tashlash")}</button>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div><Label required>Sinf nomi</Label><input style={field} value={row.code} onChange={(e) => patch({ code: e.target.value })} placeholder="Masalan: 5-A, 5a yoki 11-D" /></div>
+        <div><Label required>{__kbUi("Sinf nomi")}</Label><input style={field} value={row.code} onChange={(e) => patch({ code: e.target.value })} placeholder={__kbUi("Masalan: 5-A, 5a yoki 11-D")} /></div>
         <div>
-          <Label required>Smena</Label>
+          <Label required>{__kbUi("Smena")}</Label>
           <select style={field} value={row.shift_no} onChange={(e) => patch({ shift_no: Number(e.target.value) })}>
-            <option value={1}>1-smena</option>
-            {Number(shiftCount) === 2 && <option value={2}>2-smena</option>}
+            <option value={1}>{__kbUi("1-smena")}</option>
+            {Number(shiftCount) === 2 && <option value={2}>{__kbUi("2-smena")}</option>}
           </select>
         </div>
-        <div><Label>Bino — ixtiyoriy</Label><input style={field} value={row.building_name} onChange={(e) => patch({ building_name: e.target.value })} placeholder="Masalan: Asosiy bino" /></div>
-        <div><Label>Xona — ixtiyoriy</Label><input style={field} value={row.room_number} onChange={(e) => patch({ room_number: e.target.value })} placeholder="Masalan: 205" /></div>
+        <div><Label>{__kbUi("Bino — ixtiyoriy")}</Label><input style={field} value={row.building_name} onChange={(e) => patch({ building_name: e.target.value })} placeholder={__kbUi("Masalan: Asosiy bino")} /></div>
+        <div><Label>{__kbUi("Xona — ixtiyoriy")}</Label><input style={field} value={row.room_number} onChange={(e) => patch({ room_number: e.target.value })} placeholder={__kbUi("Masalan: 205")} /></div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <Label>Sinf rahbari — ixtiyoriy</Label>
+          <Label>{__kbUi("Sinf rahbari — ixtiyoriy")}</Label>
           <PersonPicker apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} role="teacher" value={row.homeroom} onChange={(person) => patch({ homeroom: person })} adminGlobal={adminGlobal} />
         </div>
         <div>
-          <Label>Psixolog — ixtiyoriy</Label>
+          <Label>{__kbUi("Psixolog — ixtiyoriy")}</Label>
           <PersonPicker apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} role="psychologist" value={row.psychologist} onChange={(person) => patch({ psychologist: person })} adminGlobal={adminGlobal} />
         </div>
       </div>
@@ -126,6 +130,7 @@ function payloadClass(row) {
 }
 
 function SchoolCreateWizard({ apiBase, token, onCancel, onCreated }) {
+  useKbInterfaceLocale();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [region, setRegion] = useState("");
@@ -166,45 +171,46 @@ function SchoolCreateWizard({ apiBase, token, onCancel, onCreated }) {
   return (
     <section style={panel} className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <div><span className="text-xs font-bold" style={{ color: "#1B4B7A" }}>MAKTAB YARATISH · {step}/3</span><h2 className="text-lg font-bold">{step === 1 ? "Asosiy ma’lumot" : step === 2 ? "Haqiqiy sinflar" : "Tekshirish va yaratish"}</h2></div>
+        <div><span className="text-xs font-bold" style={{ color: "#1B4B7A" }}>{__kbUi("MAKTAB YARATISH · ")}{step}/3</span><h2 className="text-lg font-bold">{step === 1 ? __kbUi("Asosiy ma’lumot") : step === 2 ? __kbUi("Haqiqiy sinflar") : __kbUi("Tekshirish va yaratish")}</h2></div>
         <button type="button" onClick={onCancel} className="text-sm">✕</button>
       </div>
       {step === 1 && (
         <div className="space-y-3">
-          <div><Label required>Maktab nomi</Label><input style={field} value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: 21-sonli umumiy o‘rta ta’lim maktabi" autoFocus /></div>
+          <div><Label required>{__kbUi("Maktab nomi")}</Label><input style={field} value={name} onChange={(e) => setName(e.target.value)} placeholder={__kbUi("Masalan: 21-sonli umumiy o‘rta ta’lim maktabi")} autoFocus /></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label>Viloyat</Label><select style={field} value={region} onChange={(e) => { setRegion(e.target.value); setDistrict(""); }}><option value="">Tanlanmagan</option>{VILOYATLAR.map((item) => <option key={item}>{item}</option>)}</select></div>
-            <div><Label>Tuman</Label><select style={field} value={district} disabled={!region} onChange={(e) => setDistrict(e.target.value)}><option value="">Tanlanmagan</option>{(HUDUDLAR[region] || []).map((item) => <option key={item}>{item}</option>)}</select></div>
+            <div><Label>{__kbUi("Viloyat")}</Label><select style={field} value={region} onChange={(e) => { setRegion(e.target.value); setDistrict(""); }}><option value="">{__kbUi("Tanlanmagan")}</option>{VILOYATLAR.map((item) => <option value={(item)} key={item}>{__kbUi(item)}</option>)}</select></div>
+            <div><Label>{__kbUi("Tuman")}</Label><select style={field} value={district} disabled={!region} onChange={(e) => setDistrict(e.target.value)}><option value="">{__kbUi("Tanlanmagan")}</option>{(HUDUDLAR[region] || []).map((item) => <option value={(item)} key={item}>{item}</option>)}</select></div>
           </div>
-          <div><Label required>Maktabdagi smena soni</Label><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} style={shiftCount === number ? primary : secondary} onClick={() => { setShiftCount(number); setClasses((rows) => rows.map((row) => ({ ...row, shift_no: Math.min(row.shift_no, number) }))); }}>{number} smenali</button>)}</div></div>
-          <div><Label>Direktor — ixtiyoriy</Label><PersonPicker apiBase={apiBase} token={token} value={director} onChange={setDirector} adminGlobal placeholder="Direktor ismini qidiring..." /></div>
-          <Notice kind="success">Admin yaratgani uchun pul so‘ralmaydi: muassasa darhol faol bo‘ladi, yechiladigan summa 0 so‘m.</Notice>
+          <div><Label required>{__kbUi("Maktabdagi smena soni")}</Label><div className="grid grid-cols-2 gap-2">{[1, 2].map((number) => <button type="button" key={number} style={shiftCount === number ? primary : secondary} onClick={() => { setShiftCount(number); setClasses((rows) => rows.map((row) => ({ ...row, shift_no: Math.min(row.shift_no, number) }))); }}>{__kbUi(number)}{__kbUi(" smenali")}</button>)}</div></div>
+          <div><Label>{__kbUi("Direktor — ixtiyoriy")}</Label><PersonPicker apiBase={apiBase} token={token} value={director} onChange={setDirector} adminGlobal placeholder={__kbUi("Direktor ismini qidiring...")} /></div>
+          <Notice kind="success">{__kbUi("Admin yaratgani uchun pul so‘ralmaydi: muassasa darhol faol bo‘ladi, yechiladigan summa 0 so‘m.")}</Notice>
         </div>
       )}
       {step === 2 && (
         <div className="space-y-3">
-          <Notice kind="success">Tizim parallel sinflarni o‘zi ko‘paytirmaydi. Maktabda qaysi sinflar bor bo‘lsa, faqat shularni kiriting.</Notice>
+          <Notice kind="success">{__kbUi("Tizim parallel sinflarni o‘zi ko‘paytirmaydi. Maktabda qaysi sinflar bor bo‘lsa, faqat shularni kiriting.")}</Notice>
           {classes.map((row, index) => <ClassFields key={row.key} row={row} shiftCount={shiftCount} apiBase={apiBase} token={token} adminGlobal onChange={(changed) => setClasses((items) => items.map((item, i) => i === index ? changed : item))} onRemove={classes.length > 1 ? () => setClasses((items) => items.filter((_, i) => i !== index)) : null} />)}
-          <button type="button" style={secondary} className="w-full" onClick={() => setClasses((items) => [...items, newClassRow(1)])}>+ Yana bitta sinf qo‘shish</button>
+          <button type="button" style={secondary} className="w-full" onClick={() => setClasses((items) => [...items, newClassRow(1)])}>{__kbUi("+ Yana bitta sinf qo‘shish")}</button>
         </div>
       )}
       {step === 3 && (
         <div className="space-y-3">
-          <div className="rounded-xl p-4" style={{ background: "#F7F5F0" }}><b>{name}</b><p className="text-sm" style={{ color: "#6F6859" }}>{[region, district].filter(Boolean).join(", ") || "Hudud kiritilmagan"} · {shiftCount} smena · {classes.length} ta sinf</p></div>
-          <div className="flex flex-wrap gap-2">{classes.map((row) => <span key={row.key} className="text-xs font-bold rounded-full px-3 py-1.5" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{row.code.toUpperCase()} · {row.shift_no}-smena</span>)}</div>
-          <Notice kind="success">Faol holat · admin granti · 0 so‘m. Sinov yoki hamyon tasdig‘i chiqmaydi.</Notice>
+          <div className="rounded-xl p-4" style={{ background: "#F7F5F0" }}><b>{name}</b><p className="text-sm" style={{ color: "#6F6859" }}>{[region, district].filter(Boolean).join(", ") || __kbUi("Hudud kiritilmagan")} · {shiftCount}{__kbUi(" smena · ")}{classes.length}{__kbUi(" ta sinf")}</p></div>
+          <div className="flex flex-wrap gap-2">{classes.map((row) => <span key={row.key} className="text-xs font-bold rounded-full px-3 py-1.5" style={{ background: "#EAF1F7", color: "#1B4B7A" }}>{__kbUi(row.code.toUpperCase())} · {row.shift_no}{__kbUi("-smena")}</span>)}</div>
+          <Notice kind="success">{__kbUi("Faol holat · admin granti · 0 so‘m. Sinov yoki hamyon tasdig‘i chiqmaydi.")}</Notice>
         </div>
       )}
-      <Notice>{error}</Notice>
+      <Notice>{__kbUi(error)}</Notice>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" style={secondary} onClick={step === 1 ? onCancel : () => { setStep((current) => current - 1); setError(""); }}>Orqaga</button>
-        {step < 3 ? <button type="button" style={primary} onClick={next}>Davom etish</button> : <button type="button" style={primary} disabled={saving} onClick={create}>{saving ? "Yaratilmoqda..." : "Maktabni yaratish"}</button>}
+        <button type="button" style={secondary} onClick={step === 1 ? onCancel : () => { setStep((current) => current - 1); setError(""); }}>{__kbUi("Orqaga")}</button>
+        {step < 3 ? <button type="button" style={primary} onClick={next}>{__kbUi("Davom etish")}</button> : <button type="button" style={primary} disabled={saving} onClick={create}>{saving ? __kbUi("Yaratilmoqda...") : __kbUi("Maktabni yaratish")}</button>}
       </div>
     </section>
   );
 }
 
 function ClassManager({ apiBase, token, scopeId, scopeKind, classes, shiftCount, onReload }) {
+  useKbInterfaceLocale();
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -226,14 +232,14 @@ function ClassManager({ apiBase, token, scopeId, scopeKind, classes, shiftCount,
   };
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3"><div><h3 className="font-bold">Sinflar</h3><p className="text-xs" style={{ color: "#8A8578" }}>Har bir sinf alohida yaratiladi; avtomatik parallel qo‘shilmaydi.</p></div><button type="button" style={primary} onClick={() => start()}>+ Sinf</button></div>
-      {editing && <div className="space-y-3"><ClassFields row={editing} onChange={setEditing} shiftCount={shiftCount} apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} /><Notice>{error}</Notice><div className="grid grid-cols-2 gap-2"><button style={secondary} onClick={() => setEditing(null)}>Bekor qilish</button><button style={primary} disabled={saving} onClick={save}>{saving ? "Saqlanmoqda..." : "Saqlash"}</button></div></div>}
+      <div className="flex items-center justify-between gap-3"><div><h3 className="font-bold">{__kbUi("Sinflar")}</h3><p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Har bir sinf alohida yaratiladi; avtomatik parallel qo‘shilmaydi.")}</p></div><button type="button" style={primary} onClick={() => start()}>{__kbUi("+ Sinf")}</button></div>
+      {editing && <div className="space-y-3"><ClassFields row={editing} onChange={setEditing} shiftCount={shiftCount} apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} /><Notice>{__kbUi(error)}</Notice><div className="grid grid-cols-2 gap-2"><button style={secondary} onClick={() => setEditing(null)}>{__kbUi("Bekor qilish")}</button><button style={primary} disabled={saving} onClick={save}>{saving ? __kbUi("Saqlanmoqda...") : __kbUi("Saqlash")}</button></div></div>}
       {!editing && (classes.length ? <div className="space-y-2">{classes.map((item) => (
         <div key={item.id} className="rounded-xl p-3.5 flex items-start justify-between gap-3" style={{ background: "#F7F5F0" }}>
-          <div><b>{item.normalized_code || `${item.sinf}-${item.harf}`}</b><p className="text-xs" style={{ color: "#6F6859" }}>{item.shift_no || 1}-smena · {item.rahbar_ismi || "Rahbar tanlanmagan"} · {item.psixolog_ismi || "Psixolog tanlanmagan"}</p><p className="text-xs" style={{ color: "#8A8578" }}>{[item.building_name, item.room_number && `${item.room_number}-xona`].filter(Boolean).join(" · ") || "Bino/xona kiritilmagan"}</p></div>
-          <button type="button" style={secondary} onClick={() => start(item)}>Tahrirlash</button>
+          <div><b>{item.normalized_code || __kbUi(`${item.sinf}-${item.harf}`)}</b><p className="text-xs" style={{ color: "#6F6859" }}>{item.shift_no || 1}{__kbUi("-smena · ")}{item.rahbar_ismi || __kbUi("Rahbar tanlanmagan")} · {item.psixolog_ismi || __kbUi("Psixolog tanlanmagan")}</p><p className="text-xs" style={{ color: "#8A8578" }}>{[item.building_name, item.room_number && `${item.room_number}-xona`].filter(Boolean).join(" · ") || __kbUi("Bino/xona kiritilmagan")}</p></div>
+          <button type="button" style={secondary} onClick={() => start(item)}>{__kbUi("Tahrirlash")}</button>
         </div>
-      ))}</div> : <p className="text-sm" style={{ color: "#8A8578" }}>Hali sinf yaratilmagan.</p>)}
+      ))}</div> : <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi("Hali sinf yaratilmagan.")}</p>)}
     </div>
   );
 }
@@ -250,6 +256,7 @@ function downloadAccessCodes(result) {
 }
 
 export function OrganizationDeletePanel({ apiBase, token, organizationType, organizationId, name, ownCreation, onDeleted }) {
+  useKbInterfaceLocale();
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [pin, setPin] = useState("");
@@ -266,20 +273,21 @@ export function OrganizationDeletePanel({ apiBase, token, organizationType, orga
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   };
-  if (!open) return <button type="button" style={{ ...secondary, width: "100%", color: "#A32D2D", marginTop: 16 }} onClick={() => setOpen(true)}>🗑 Muassasani o‘chirish</button>;
+  if (!open) return <button type="button" style={{ ...secondary, width: "100%", color: "#A32D2D", marginTop: 16 }} onClick={() => setOpen(true)}>{__kbUi("🗑 Muassasani o‘chirish")}</button>;
   return (
     <section style={{ ...panel, marginTop: 16, borderColor: "#E7A99C" }} className="space-y-3">
-      <div className="flex justify-between gap-3"><div><b style={{ color: "#A32D2D" }}>Muassasani o‘chirish</b><p className="text-xs" style={{ color: "#6F6859" }}>Faol ro‘yxatdan olinadi va arxivga tushadi.</p></div><button type="button" onClick={() => setOpen(false)}>✕</button></div>
-      <div><Label required>Muassasa nomini aynan kiriting</Label><input style={field} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder={name} /></div>
-      {!ownCreation && <div><Label required>4 xonali o‘chirish paroli</Label><input style={field} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} /></div>}
-      <Notice kind="success">{ownCreation ? "Buni siz yaratgansiz — parol kerak emas." : "Buni boshqa admin yaratgan — 4 xonali parol majburiy."}</Notice>
-      <Notice>{error}</Notice>
-      <button type="button" style={{ ...danger, width: "100%", opacity: confirmation.trim() && (ownCreation || pin.length === 4) ? 1 : 0.5 }} disabled={!confirmation.trim() || (!ownCreation && pin.length !== 4) || busy} onClick={remove}>{busy ? "Arxivlanmoqda..." : "Tasdiqlab o‘chirish"}</button>
+      <div className="flex justify-between gap-3"><div><b style={{ color: "#A32D2D" }}>{__kbUi("Muassasani o‘chirish")}</b><p className="text-xs" style={{ color: "#6F6859" }}>{__kbUi("Faol ro‘yxatdan olinadi va arxivga tushadi.")}</p></div><button type="button" onClick={() => setOpen(false)}>✕</button></div>
+      <div><Label required>{__kbUi("Muassasa nomini aynan kiriting")}</Label><input style={field} value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder={name} /></div>
+      {!ownCreation && <div><Label required>{__kbUi("4 xonali o‘chirish paroli")}</Label><input style={field} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} /></div>}
+      <Notice kind="success">{ownCreation ? __kbUi("Buni siz yaratgansiz — parol kerak emas.") : __kbUi("Buni boshqa admin yaratgan — 4 xonali parol majburiy.")}</Notice>
+      <Notice>{__kbUi(error)}</Notice>
+      <button type="button" style={{ ...danger, width: "100%", opacity: confirmation.trim() && (ownCreation || pin.length === 4) ? 1 : 0.5 }} disabled={!confirmation.trim() || (!ownCreation && pin.length !== 4) || busy} onClick={remove}>{busy ? __kbUi("Arxivlanmoqda...") : __kbUi("Tasdiqlab o‘chirish")}</button>
     </section>
   );
 }
 
 function ImportManager({ apiBase, token, scopeId, scopeKind, kind, classes }) {
+  useKbInterfaceLocale();
   const student = kind === "students";
   const [selected, setSelected] = useState(classes.map((item) => item.id));
   const [preview, setPreview] = useState(null);
@@ -322,34 +330,34 @@ function ImportManager({ apiBase, token, scopeId, scopeKind, kind, classes }) {
   }, [preview, decisions, student]);
   return (
     <div className="space-y-4">
-      <div><h3 className="font-bold">{student ? "O‘quvchilar va ota-onalar" : "Xodimlar, fanlar va sinflar"}</h3><p className="text-xs" style={{ color: "#8A8578" }}>Majburiy va ixtiyoriy ustunlar shablonda rang bilan ajratilgan.</p></div>
-      {student && <div><Label required>Shablonga kiritiladigan sinflar</Label><div className="flex flex-wrap gap-2">{classes.map((item) => { const checked = selected.includes(item.id); return <label key={item.id} className="text-xs font-semibold rounded-full px-3 py-2 cursor-pointer" style={{ background: checked ? "#EAF1F7" : "#F7F5F0", color: checked ? "#1B4B7A" : "#6F6859" }}><input className="mr-1.5" type="checkbox" checked={checked} onChange={() => setSelected((current) => checked ? current.filter((id) => id !== item.id) : [...current, item.id])} />{item.normalized_code || `${item.sinf}-${item.harf}`}</label>; })}</div></div>}
-      <a href={selected.length || !student ? templateUrl : undefined} aria-disabled={student && !selected.length} style={{ ...secondary, display: "block", textAlign: "center", opacity: student && !selected.length ? 0.5 : 1 }}>📥 {student ? "O‘quvchilar" : "Xodimlar"} shablonini yuklab olish</a>
-      <label style={{ ...secondary, display: "block", textAlign: "center", cursor: "pointer", borderStyle: "dashed" }}>{busy ? "Tekshirilmoqda..." : "📤 To‘ldirilgan Excel faylni tekshirish"}<input type="file" accept=".xlsx" hidden disabled={busy} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} /></label>
-      <Notice>{error}</Notice>
+      <div><h3 className="font-bold">{student ? __kbUi("O‘quvchilar va ota-onalar") : __kbUi("Xodimlar, fanlar va sinflar")}</h3><p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Majburiy va ixtiyoriy ustunlar shablonda rang bilan ajratilgan.")}</p></div>
+      {student && <div><Label required>{__kbUi("Shablonga kiritiladigan sinflar")}</Label><div className="flex flex-wrap gap-2">{classes.map((item) => { const checked = selected.includes(item.id); return <label key={item.id} className="text-xs font-semibold rounded-full px-3 py-2 cursor-pointer" style={{ background: checked ? "#EAF1F7" : "#F7F5F0", color: checked ? "#1B4B7A" : "#6F6859" }}><input className="mr-1.5" type="checkbox" checked={checked} onChange={() => setSelected((current) => checked ? current.filter((id) => id !== item.id) : [...current, item.id])} />{item.normalized_code || __kbUi(`${item.sinf}-${item.harf}`)}</label>; })}</div></div>}
+      <a href={selected.length || !student ? templateUrl : undefined} aria-disabled={student && !selected.length} style={{ ...secondary, display: "block", textAlign: "center", opacity: student && !selected.length ? 0.5 : 1 }}>📥 {student ? __kbUi("O‘quvchilar") : __kbUi("Xodimlar")}{__kbUi(" shablonini yuklab olish")}</a>
+      <label style={{ ...secondary, display: "block", textAlign: "center", cursor: "pointer", borderStyle: "dashed" }}>{busy ? __kbUi("Tekshirilmoqda...") : __kbUi("📤 To‘ldirilgan Excel faylni tekshirish")}<input type="file" accept=".xlsx" hidden disabled={busy} onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} /></label>
+      <Notice>{__kbUi(error)}</Notice>
       {preview && !result && (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl p-2" style={{ background: "#EDF8F1" }}><b>{preview.summary.ready}</b><small className="block">tayyor</small></div><div className="rounded-xl p-2" style={{ background: "#FFF8E8" }}><b>{preview.summary.decision_required}</b><small className="block">tanlov kerak</small></div><div className="rounded-xl p-2" style={{ background: "#FFF0ED" }}><b>{preview.summary.errors}</b><small className="block">xato</small></div></div>
+          <div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl p-2" style={{ background: "#EDF8F1" }}><b>{preview.summary.ready}</b><small className="block">{__kbUi("tayyor")}</small></div><div className="rounded-xl p-2" style={{ background: "#FFF8E8" }}><b>{preview.summary.decision_required}</b><small className="block">{__kbUi("tanlov kerak")}</small></div><div className="rounded-xl p-2" style={{ background: "#FFF0ED" }}><b>{__kbUi(preview.summary.errors)}</b><small className="block">{__kbUi("xato")}</small></div></div>
           {preview.rows.map((row) => (
             <div key={row.row_number} className="rounded-xl border p-3" style={{ borderColor: row.status === "error" ? "#E7A99C" : row.status === "decision_required" ? "#E7BD73" : "#C9DFCF" }}>
-              <div className="flex items-center justify-between gap-2"><b className="text-sm">{row.row_number}-qator · {student ? row.student_name : row.name}</b><span className="text-xs">{row.status === "ready" ? "✅ Tayyor" : row.status === "error" ? "❌ Xato" : "⚠️ Tanlang"}</span></div>
-              {student ? <p className="text-xs" style={{ color: "#6F6859" }}>{row.class_code} · {row.parent_type}: {row.parent_name} ({row.parent_birth_year})</p> : <p className="text-xs" style={{ color: "#6F6859" }}>{row.role_label} · {row.specialty}{row.assignments?.length ? ` · ${row.assignments.map((a) => `${a.class_code ? `${a.class_code}: ` : ""}${a.subject || a.input}`).join("; ")}` : ""}</p>}
+              <div className="flex items-center justify-between gap-2"><b className="text-sm">{row.row_number}{__kbUi("-qator · ")}{student ? row.student_name : row.name}</b><span className="text-xs">{row.status === "ready" ? __kbUi("✅ Tayyor") : row.status === "error" ? __kbUi("❌ Xato") : __kbUi("⚠️ Tanlang")}</span></div>
+              {student ? <p className="text-xs" style={{ color: "#6F6859" }}>{row.class_code} · {row.parent_type}: {row.parent_name} ({row.parent_birth_year})</p> : <p className="text-xs" style={{ color: "#6F6859" }}>{__kbUi(row.role_label)} · {row.specialty}{row.assignments?.length ? __kbUi(` · ${row.assignments.map((a) => `${a.class_code ? `${a.class_code}: ` : ""}${a.subject || a.input}`).join("; ")}`) : __kbUi("")}</p>}
               {row.errors?.map((message) => <p key={message} className="text-xs mt-1" style={{ color: "#A32D2D" }}>{message}</p>)}
               {row.warnings?.map((message) => <p key={message} className="text-xs mt-1" style={{ color: "#8A5A1C" }}>{message}</p>)}
-              {student && row.status === "decision_required" && <div className="mt-2 rounded-lg p-2" style={{ background: "#FFF8E8" }}><b className="text-xs">Bular bir xil ota/onami?</b>{row.parent_candidates.map((candidate) => <label key={candidate.user_id} className="block text-xs mt-1"><input type="radio" name={`parent-${row.row_number}`} className="mr-1.5" checked={String(decisions[row.row_number]?.same_parent_id) === String(candidate.user_id)} onChange={() => setDecisions((current) => ({ ...current, [row.row_number]: { same_parent_id: candidate.user_id, canonical_name: candidate.full_name } }))} />Ha — {candidate.full_name}, {candidate.birth_year} ({candidate.score}% mos)</label>)}<label className="block text-xs mt-1"><input type="radio" name={`parent-${row.row_number}`} className="mr-1.5" checked={decisions[row.row_number]?.same_parent_id === "new"} onChange={() => setDecisions((current) => ({ ...current, [row.row_number]: { same_parent_id: "new" } }))} />Yo‘q, boshqa odam — yangi ota/ona yarating</label>{decisions[row.row_number]?.same_parent_id !== "new" && decisions[row.row_number]?.same_parent_id && <input style={{ ...field, marginTop: 8 }} value={decisions[row.row_number]?.canonical_name || ""} onChange={(e) => setDecisions((current) => ({ ...current, [row.row_number]: { ...current[row.row_number], canonical_name: e.target.value } }))} placeholder="Saqlanadigan to‘g‘ri F.I.Sh." />}</div>}
-              {!student && row.status === "decision_required" && <div className="mt-2 space-y-2">{row.assignments.map((assignment, index) => assignment.needs_confirmation && <label key={`${assignment.input}-${index}`} className="block text-xs font-semibold">“{assignment.input}” uchun to‘g‘ri fan<select style={{ ...field, marginTop: 5 }} value={decisions[row.row_number]?.subject_choices?.[index] || ""} onChange={(e) => setDecisions((current) => ({ ...current, [row.row_number]: { ...current[row.row_number], subject_choices: { ...(current[row.row_number]?.subject_choices || {}), [index]: e.target.value } } }))}><option value="">Tanlang</option>{assignment.alternatives.map((option) => <option key={option.subject} value={option.subject}>{option.subject} · {option.score}% mos</option>)}</select></label>)}<label className="block text-xs font-semibold"><input type="checkbox" className="mr-1.5" checked={Boolean(decisions[row.row_number]?.accept_subjects)} onChange={(e) => setDecisions((current) => ({ ...current, [row.row_number]: { ...current[row.row_number], accept_subjects: e.target.checked } }))} />Tanlangan fan tuzatishlarini tasdiqlayman</label></div>}
+              {student && row.status === "decision_required" && <div className="mt-2 rounded-lg p-2" style={{ background: "#FFF8E8" }}><b className="text-xs">{__kbUi("Bular bir xil ota/onami?")}</b>{row.parent_candidates.map((candidate) => <label key={candidate.user_id} className="block text-xs mt-1"><input type="radio" name={`parent-${row.row_number}`} className="mr-1.5" checked={String(decisions[row.row_number]?.same_parent_id) === String(candidate.user_id)} onChange={() => setDecisions((current) => ({ ...current, [row.row_number]: { same_parent_id: candidate.user_id, canonical_name: candidate.full_name } }))} />{__kbUi("Ha — ")}{candidate.full_name}, {candidate.birth_year} ({candidate.score}{__kbUi("% mos)")}</label>)}<label className="block text-xs mt-1"><input type="radio" name={`parent-${row.row_number}`} className="mr-1.5" checked={decisions[row.row_number]?.same_parent_id === "new"} onChange={() => setDecisions((current) => ({ ...current, [row.row_number]: { same_parent_id: "new" } }))} />{__kbUi("Yo‘q, boshqa odam — yangi ota/ona yarating")}</label>{decisions[row.row_number]?.same_parent_id !== "new" && decisions[row.row_number]?.same_parent_id && <input style={{ ...field, marginTop: 8 }} value={decisions[row.row_number]?.canonical_name || ""} onChange={(e) => setDecisions((current) => ({ ...current, [row.row_number]: { ...current[row.row_number], canonical_name: e.target.value } }))} placeholder={__kbUi("Saqlanadigan to‘g‘ri F.I.Sh.")} />}</div>}
+              {!student && row.status === "decision_required" && <div className="mt-2 space-y-2">{row.assignments.map((assignment, index) => assignment.needs_confirmation && <label key={`${assignment.input}-${index}`} className="block text-xs font-semibold">“{assignment.input}{__kbUi("” uchun to‘g‘ri fan")}<select style={{ ...field, marginTop: 5 }} value={decisions[row.row_number]?.subject_choices?.[index] || ""} onChange={(e) => setDecisions((current) => ({ ...current, [row.row_number]: { ...current[row.row_number], subject_choices: { ...(current[row.row_number]?.subject_choices || {}), [index]: e.target.value } } }))}><option value="">{__kbUi("Tanlang")}</option>{assignment.alternatives.map((option) => <option key={option.subject} value={option.subject}>{option.subject} · {option.score}{__kbUi("% mos")}</option>)}</select></label>)}<label className="block text-xs font-semibold"><input type="checkbox" className="mr-1.5" checked={Boolean(decisions[row.row_number]?.accept_subjects)} onChange={(e) => setDecisions((current) => ({ ...current, [row.row_number]: { ...current[row.row_number], accept_subjects: e.target.checked } }))} />{__kbUi("Tanlangan fan tuzatishlarini tasdiqlayman")}</label></div>}
             </div>
           ))}
-          <button type="button" style={{ ...primary, width: "100%", opacity: readyForCommit && !busy ? 1 : 0.5 }} disabled={!readyForCommit || busy} onClick={commit}>{busy ? "Saqlanmoqda..." : "Tekshirilgan ma’lumotlarni saqlash"}</button>
+          <button type="button" style={{ ...primary, width: "100%", opacity: readyForCommit && !busy ? 1 : 0.5 }} disabled={!readyForCommit || busy} onClick={commit}>{busy ? __kbUi("Saqlanmoqda...") : __kbUi("Tekshirilgan ma’lumotlarni saqlash")}</button>
         </div>
       )}
-      {result && <div className="space-y-3" role="status"><Notice kind="success">{student ? `${result.created_students} ta o‘quvchi, ${result.created_parents} ta ota/ona yaratildi; ${result.parent_child_links} ta bog‘lanish saqlandi.` : `${result.created_staff} ta xodim yaratildi, ${result.updated_staff} ta xodim yangilandi.`}</Notice>
+      {result && <div className="space-y-3" role="status"><Notice kind="success">{student ? __kbUi(`${result.created_students} ta o‘quvchi, ${result.created_parents} ta ota/ona yaratildi; ${result.parent_child_links} ta bog‘lanish saqlandi.`) : __kbUi(`${result.created_staff} ta xodim yaratildi, ${result.updated_staff} ta xodim yangilandi.`)}</Notice>
         {result.access_codes?.length > 0 ? <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: "#B9DFC8", background: "#F6FBF8" }}>
-          <p className="text-sm font-semibold">{result.access_codes.length} ta shaxsiy ulanish kodi tayyor.</p>
-          <p className="text-xs leading-relaxed" style={{ color: "#5A5648" }}>Faylda har bir kishining ismi, roli va o‘ziga tegishli kodi yozilgan. Har kimga faqat o‘z kodini bering. Oynadan chiqishdan oldin faylni yuklab saqlang.</p>
-          <button type="button" style={primary} onClick={() => { try { downloadAccessCodes(result); setError(""); } catch (problem) { setError(problem.message); } }}>Ulanish kodlarini yuklab olish</button>
-          <p className="text-xs" style={{ color: "#6F6859" }}>Yuklash boshlanmasa shu tugmani qayta bosishingiz mumkin.</p>
-        </div> : <p className="text-xs" style={{ color: "#6F6859" }}>Bu import natijasida yangi ulanish kodi qaytmadi. Hisobiga kira olmayotgan kishilar uchun administrator orqali shaxsiy kod oling.</p>}
+          <p className="text-sm font-semibold">{result.access_codes.length}{__kbUi(" ta shaxsiy ulanish kodi tayyor.")}</p>
+          <p className="text-xs leading-relaxed" style={{ color: "#5A5648" }}>{__kbUi("Faylda har bir kishining ismi, roli va o‘ziga tegishli kodi yozilgan. Har kimga faqat o‘z kodini bering. Oynadan chiqishdan oldin faylni yuklab saqlang.")}</p>
+          <button type="button" style={primary} onClick={() => { try { downloadAccessCodes(result); setError(""); } catch (problem) { setError(problem.message); } }}>{__kbUi("Ulanish kodlarini yuklab olish")}</button>
+          <p className="text-xs" style={{ color: "#6F6859" }}>{__kbUi("Yuklash boshlanmasa shu tugmani qayta bosishingiz mumkin.")}</p>
+        </div> : <p className="text-xs" style={{ color: "#6F6859" }}>{__kbUi("Bu import natijasida yangi ulanish kodi qaytmadi. Hisobiga kira olmayotgan kishilar uchun administrator orqali shaxsiy kod oling.")}</p>}
       </div>}
     </div>
   );
@@ -362,6 +370,7 @@ export function SchoolStudentImport({ apiBase, token, scopeId, classes }) {
 }
 
 export function SchoolInstitutionManager({ apiBase, token, scopeId, scopeKind = "school", school, adminMode = false, onBack, onDeleted }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState({ classes: [], shift_count: school?.smena_soni || 1 });
   const [tab, setTab] = useState("classes");
   const [loading, setLoading] = useState(true);
@@ -387,13 +396,13 @@ export function SchoolInstitutionManager({ apiBase, token, scopeId, scopeKind = 
   const tabs = [["classes", "Sinflar"], ["staff", "Xodimlar importi"], ["students", "O‘quvchilar importi"], ...(adminMode ? [["delete", "O‘chirish"]] : [])];
   return (
     <div className="space-y-4">
-      {onBack && <button type="button" onClick={onBack} className="text-sm font-semibold" style={{ color: "#1B4B7A" }}>← Maktablar</button>}
-      {school && <div><h1 className="text-xl font-bold">{school.nomi || school.name}</h1><p className="text-xs" style={{ color: "#8A8578" }}>{[school.viloyat, school.tuman].filter(Boolean).join(", ")}</p></div>}
-      <div className="flex flex-wrap gap-2">{tabs.map(([key, label]) => <button type="button" key={key} style={tab === key ? primary : secondary} onClick={() => { setTab(key); setError(""); }}>{label}</button>)}</div>
-      <Notice>{error}</Notice>
+      {onBack && <button type="button" onClick={onBack} className="text-sm font-semibold" style={{ color: "#1B4B7A" }}>{__kbUi("← Maktablar")}</button>}
+      {school && <div><h1 className="text-xl font-bold">{school.nomi || school.name}</h1><p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi([school.viloyat, school.tuman].filter(Boolean).join(", "))}</p></div>}
+      <div className="flex flex-wrap gap-2">{tabs.map(([key, label]) => <button type="button" key={key} style={tab === key ? primary : secondary} onClick={() => { setTab(key); setError(""); }}>{__kbUi(label)}</button>)}</div>
+      <Notice>{__kbUi(error)}</Notice>
       <section style={panel}>
-        {loading ? <p className="text-sm">Yuklanmoqda...</p> : tab === "classes" ? <ClassManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} classes={data.classes || []} shiftCount={data.shift_count || 1} onReload={load} /> : tab === "staff" ? <ImportManager key="staff" apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="staff" classes={data.classes || []} /> : tab === "students" ? <ImportManager key="students" apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="students" classes={data.classes || []} /> : (
-          <div className="space-y-3"><h3 className="font-bold" style={{ color: "#A32D2D" }}>Muassasani o‘chirish</h3><p className="text-sm" style={{ color: "#6F6859" }}>Muassasa faol ro‘yxatdan olinadi va arxivlanadi. Tasdiqlash uchun nomini aynan kiriting.</p><div><Label required>Muassasa nomi</Label><input style={field} value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={school?.nomi} /></div>{!school?.own_creation && <div><Label required>4 xonali o‘chirish paroli</Label><input style={field} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0000" /></div>}<Notice kind="success">{school?.own_creation ? "Bu muassasani siz yaratgansiz — parol so‘ralmaydi." : "Boshqa admin yaratgan — 4 xonali parol majburiy."}</Notice><button type="button" style={{ ...danger, width: "100%", opacity: confirmName.trim() && (school?.own_creation || pin.length === 4) ? 1 : 0.5 }} disabled={!confirmName.trim() || (!school?.own_creation && pin.length !== 4) || deleting} onClick={remove}>{deleting ? "Arxivlanmoqda..." : "Muassasani o‘chirish"}</button></div>
+        {loading ? <p className="text-sm">{__kbUi("Yuklanmoqda...")}</p> : tab === "classes" ? <ClassManager apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} classes={data.classes || []} shiftCount={data.shift_count || 1} onReload={load} /> : tab === "staff" ? <ImportManager key="staff" apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="staff" classes={data.classes || []} /> : tab === "students" ? <ImportManager key="students" apiBase={apiBase} token={token} scopeId={scopeId} scopeKind={scopeKind} kind="students" classes={data.classes || []} /> : (
+          <div className="space-y-3"><h3 className="font-bold" style={{ color: "#A32D2D" }}>{__kbUi("Muassasani o‘chirish")}</h3><p className="text-sm" style={{ color: "#6F6859" }}>{__kbUi("Muassasa faol ro‘yxatdan olinadi va arxivlanadi. Tasdiqlash uchun nomini aynan kiriting.")}</p><div><Label required>{__kbUi("Muassasa nomi")}</Label><input style={field} value={confirmName} onChange={(e) => setConfirmName(e.target.value)} placeholder={school?.nomi} /></div>{!school?.own_creation && <div><Label required>{__kbUi("4 xonali o‘chirish paroli")}</Label><input style={field} inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder={__kbUi("0000")} /></div>}<Notice kind="success">{school?.own_creation ? __kbUi("Bu muassasani siz yaratgansiz — parol so‘ralmaydi.") : __kbUi("Boshqa admin yaratgan — 4 xonali parol majburiy.")}</Notice><button type="button" style={{ ...danger, width: "100%", opacity: confirmName.trim() && (school?.own_creation || pin.length === 4) ? 1 : 0.5 }} disabled={!confirmName.trim() || (!school?.own_creation && pin.length !== 4) || deleting} onClick={remove}>{deleting ? __kbUi("Arxivlanmoqda...") : __kbUi("Muassasani o‘chirish")}</button></div>
         )}
       </section>
     </div>
@@ -401,6 +410,7 @@ export function SchoolInstitutionManager({ apiBase, token, scopeId, scopeKind = 
 }
 
 export default function SchoolAdminV23({ apiBase, token }) {
+  useKbInterfaceLocale();
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -417,11 +427,11 @@ export default function SchoolAdminV23({ apiBase, token }) {
   if (selected) return <SchoolInstitutionManager apiBase={apiBase} token={token} scopeId={selected.id} school={selected} adminMode onBack={() => { setSelected(null); load(); }} onDeleted={() => { setSelected(null); load(); }} />;
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3"><div><h1 className="text-xl font-bold">🏫 Maktablar</h1><p className="text-xs" style={{ color: "#8A8578" }}>Yaratish, sinflar, xodimlar va o‘quvchilar bitta ketma-ket boshqaruvda.</p></div><button type="button" style={primary} onClick={() => { setCreating(true); setCreated(null); }}>+ Yangi maktab</button></div>
-      <Notice>{error}</Notice>
-      {created && <Notice kind="success">Maktab darhol faol yaratildi. To‘lov: 0 so‘m. Boshqa admin o‘chirishi uchun bir martalik 4 xonali parol: <b>{created.deletion_pin}</b>. Uni xavfsiz saqlang.</Notice>}
+      <div className="flex items-start justify-between gap-3"><div><h1 className="text-xl font-bold">{__kbUi("🏫 Maktablar")}</h1><p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Yaratish, sinflar, xodimlar va o‘quvchilar bitta ketma-ket boshqaruvda.")}</p></div><button type="button" style={primary} onClick={() => { setCreating(true); setCreated(null); }}>{__kbUi("+ Yangi maktab")}</button></div>
+      <Notice>{__kbUi(error)}</Notice>
+      {created && <Notice kind="success">{__kbUi("Maktab darhol faol yaratildi. To‘lov: 0 so‘m. Boshqa admin o‘chirishi uchun bir martalik 4 xonali parol: ")}<b>{created.deletion_pin}</b>{__kbUi(". Uni xavfsiz saqlang.")}</Notice>}
       {creating && <SchoolCreateWizard apiBase={apiBase} token={token} onCancel={() => setCreating(false)} onCreated={(data) => { setCreating(false); setCreated(data); load(); }} />}
-      {!creating && (loading ? <p className="text-sm">Maktablar yuklanmoqda...</p> : schools.length ? <div className="space-y-2">{schools.map((item) => <button type="button" key={item.id} className="w-full text-left" style={panel} onClick={() => setSelected(item)}><div className="flex items-center justify-between gap-3"><div><b>{item.nomi}</b><p className="text-xs" style={{ color: "#8A8578" }}>{[item.viloyat, item.tuman].filter(Boolean).join(", ") || "Hudud kiritilmagan"} · {item.smena_soni} smena · {item.class_count} ta sinf</p><p className="text-xs" style={{ color: item.own_creation ? "#28735A" : "#8A5A1C" }}>{item.own_creation ? "Siz yaratgansiz · o‘chirishda parol kerak emas" : "Boshqa admin yaratgan · o‘chirishda 4 xonali parol kerak"}</p></div><span>›</span></div></button>)}</div> : <div style={panel} className="text-center text-sm" >Hali maktab yaratilmagan.</div>)}
+      {!creating && (loading ? <p className="text-sm">{__kbUi("Maktablar yuklanmoqda...")}</p> : schools.length ? <div className="space-y-2">{schools.map((item) => <button type="button" key={item.id} className="w-full text-left" style={panel} onClick={() => setSelected(item)}><div className="flex items-center justify-between gap-3"><div><b>{item.nomi}</b><p className="text-xs" style={{ color: "#8A8578" }}>{[item.viloyat, item.tuman].filter(Boolean).join(", ") || __kbUi("Hudud kiritilmagan")} · {item.smena_soni}{__kbUi(" smena · ")}{item.class_count}{__kbUi(" ta sinf")}</p><p className="text-xs" style={{ color: item.own_creation ? "#28735A" : "#8A5A1C" }}>{item.own_creation ? __kbUi("Siz yaratgansiz · o‘chirishda parol kerak emas") : __kbUi("Boshqa admin yaratgan · o‘chirishda 4 xonali parol kerak")}</p></div><span>›</span></div></button>)}</div> : <div style={panel} className="text-center text-sm" >{__kbUi("Hali maktab yaratilmagan.")}</div>)}
     </div>
   );
 }

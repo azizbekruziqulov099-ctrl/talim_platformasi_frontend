@@ -1,16 +1,20 @@
-import React, { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {translateUi,subscribeTranslation,translationSnapshot,translationStatus,checkTranslationService,setInterfaceRuntimeLocale} from './interfaceRuntime.js';
+import React, { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Globe2, Laptop, Moon, SlidersHorizontal, Sun, X } from 'lucide-react';
 import { DEFAULT_INTERFACE, INTERFACE_KEY, INTERFACE_LOCALES, normalizeInterface, readInterface, translateInterface } from './interfaceRules.js';
 import './interface.css';
 
-const InterfaceContext = createContext(null);
+export const InterfaceContext = createContext(null);
 const localStore = () => { try { return window.localStorage; } catch { return null; } };
 const fallback = { ...DEFAULT_INTERFACE, resolvedTheme: 'light', reduceMotion: false, storageError: '', updateInterface: () => {}, t: translateInterface };
 const safeMedia = query => { try { return window.matchMedia(query); } catch { return null; } };
 export function InterfaceProvider({ children }) {
   const [preferences, setPreferences] = useState(() => readInterface(localStore()));
   const [storageError, setStorageError] = useState('');
+  const translationRevision=useSyncExternalStore(subscribeTranslation,translationSnapshot,translationSnapshot);
+  setInterfaceRuntimeLocale(preferences.locale);
+  useEffect(()=>{checkTranslationService();},[]);
   const [systemDark, setSystemDark] = useState(() => safeMedia('(prefers-color-scheme: dark)')?.matches || false);
   const [systemMotion, setSystemMotion] = useState(() => safeMedia('(prefers-reduced-motion: reduce)')?.matches || false);
   const current = useRef(preferences);
@@ -39,21 +43,29 @@ export function InterfaceProvider({ children }) {
     document.documentElement.lang = INTERFACE_LOCALES.find(item => item.value === preferences.locale)?.lang || 'uz-Latn';
     document.documentElement.style.colorScheme = resolvedTheme;
   }, [resolvedTheme, reduceMotion, preferences.locale]);
-  const t = useCallback((text, values) => translateInterface(text, preferences.locale, values), [preferences.locale]);
-  const value = useMemo(() => ({ ...preferences, resolvedTheme, reduceMotion, storageError, updateInterface, t }), [preferences, resolvedTheme, reduceMotion, storageError, updateInterface, t]);
+  const t = useCallback((text, values) => translateUi(text, preferences.locale, values), [preferences.locale,translationRevision]);
+  const value = useMemo(() => ({ ...preferences, resolvedTheme, reduceMotion, storageError, updateInterface, t, translationRevision, translationStatus:translationStatus() }), [preferences, resolvedTheme, reduceMotion, storageError, updateInterface, t, translationRevision]);
   return <InterfaceContext.Provider value={value}>{children}</InterfaceContext.Provider>;
 }
 export function useInterface() { return useContext(InterfaceContext) || fallback; }
 export function InterfaceText({ text }) { return useInterface().t(text); }
 
 export function InterfaceSettings({ compact = false }) {
-  const { t, locale, theme, reduceMotion, updateInterface, storageError } = useInterface();
+  const { t, locale, theme, reduceMotion, updateInterface, storageError, translateContent, translationStatus:serviceStatus } = useInterface();
   const id = useId();
   return <section className={`kb-interface-settings${compact ? ' is-compact' : ''}`} aria-labelledby={`${id}-heading`}>
     <header><span className="kb-interface-symbol"><Globe2 size={21}/></span><div><h3 id={`${id}-heading`}>{t('Til va ko‘rinish')}</h3><p>{t('Sozlamalar shu qurilmada saqlanadi.')}</p></div></header>
     <fieldset><legend>{t('Ilova tili')}</legend><div className="kb-interface-languages">{INTERFACE_LOCALES.map(item => <label key={item.value} className={locale === item.value ? 'is-selected' : ''}>
       <input type="radio" name={`${id}-locale`} value={item.value} checked={locale === item.value} onChange={() => updateInterface({ locale: item.value })}/><span lang={item.lang}>{item.label}</span>{locale === item.value && <Check size={15} aria-hidden="true"/>}
     </label>)}</div></fieldset>
+    <p className="kb-translation-help">{t('Interfeys tili ta’lim profilingizdagi tilni o‘zgartirmaydi.')}</p>
+    <fieldset><legend>{t('Bazadagi matnlar')}</legend>
+      <label className="kb-interface-motion"><span><strong>{t('Avtomatik tarjima')}</strong><small>{t('Mavzu, savol va izohlarning tarjimasini tanlangan tilda ko‘rsatadi. Asl matn bazada o‘zgarmaydi.')}</small></span><input type="checkbox" role="switch" checked={translateContent} onChange={event=>updateInterface({translateContent:event.target.checked})}/></label>
+      <p className="kb-translation-help">{t('Yoqilganda ko‘rsatilayotgan o‘quv matnlari tarjima uchun Google xizmatiga yuboriladi.')}</p>
+      <p className="kb-translation-status" role="status">{t(serviceStatus==='ready'?'Tarjima xizmati sozlangan.':serviceStatus==='unconfigured'?'Avtomatik tarjima hali ulanmagan.':serviceStatus==='unavailable'?'Tarjima xizmatiga ulanib bo‘lmadi.':'Yuklanmoqda…')}</p>
+      {serviceStatus!=='ready'&&<button type="button" className="kb-translation-retry" onClick={()=>checkTranslationService()}>{t('Qayta tekshirish')}</button>}
+      <a className="kb-translation-attribution" href="https://translate.google.com" target="_blank" rel="noopener noreferrer" translate="no">Google Translate</a>
+    </fieldset>
     <fieldset><legend>{t('Ko‘rinish')}</legend><div className="kb-interface-themes">{[{ value: 'system', label: 'Tizimga mos', Icon: Laptop }, { value: 'light', label: 'Yorug‘', Icon: Sun }, { value: 'dark', label: 'Tungi', Icon: Moon }].map(({ value, label, Icon }) => <label key={value} className={theme === value ? 'is-selected' : ''}>
       <input type="radio" name={`${id}-theme`} value={value} checked={theme === value} onChange={() => updateInterface({ theme: value })}/><span className={`kb-theme-preview kb-theme-preview--${value}`} aria-hidden="true"><i/><i/><i/></span><span><Icon size={16}/>{t(label)}</span>
     </label>)}</div></fieldset>

@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -29,9 +31,10 @@ export function formulaResult(source) {
 }
 
 export function Formula({ source, className = '' }) {
+  useKbInterfaceLocale();
   const result = useMemo(() => formulaResult(source), [source]);
-  if (result.error) return <div className={`ps49-formula-error ${className}`} role="alert">{result.error}</div>;
-  return <div className={`ps49-formula ${className}`} aria-label={`Formula: ${source}`} dangerouslySetInnerHTML={{ __html: result.html }} />;
+  if (result.error) return <div className={`ps49-formula-error ${className}`} role="alert">{__kbUi(result.error)}</div>;
+  return <div className={`ps49-formula ${className}`} aria-label={__kbUi(`Formula: ${source}`)} dangerouslySetInnerHTML={{ __html: result.html }} />;
 }
 
 function box(rect, extra = {}) {
@@ -61,6 +64,7 @@ function FitText({ rect, text, label, fontSize, style = {}, className = '' }) {
 
 /** Geometry is shared with the bounded native PPTX exporter; prompts never fetch images. */
 function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, transition = true, isManipulating = false }) {
+  useKbInterfaceLocale();
   const host = useRef(null);
   const art = useRef(null);
   const priorIndex = useRef(index);
@@ -119,7 +123,7 @@ function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, tran
   const palette = (value) => value === 'accent' ? theme.accent : value === 'sectionColor' ? spec.sectionColor : value === 'panel' ? theme.panel : value || theme.accent;
   const sizes = spec.fontSizes;
   const panelStyle = (rect) => box(rect, { borderRadius: round ? (rect.radius ?? 20) : 0, border: `1px solid ${theme.border}`, background: rect.fill ? `${palette(rect.fill)}${design.panel === 'glass' ? theme.light ? 'b3' : 'c7' : ''}` : theme.panel, opacity: rect.opacity ?? 1 });
-  return <div ref={host} className={`ps49-preview-host${thumbnail ? ' ps49-preview-thumb' : ''}`} style={{ aspectRatio: '16/9', position: 'relative', overflow: 'hidden' }} aria-label={`${index + 1}-slayd: ${slide.title}`}>
+  return <div ref={host} className={`ps49-preview-host${thumbnail ? ' ps49-preview-thumb' : ''}`} style={{ aspectRatio: '16/9', position: 'relative', overflow: 'hidden' }} aria-label={__kbUi(`${index + 1}-slayd: ${slide.title}`)}>
     <style>{`.ps50-slide-art .katex-display{margin:0;overflow:visible}.ps50-slide-art .ps49-formula{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:visible}.ps50-slide-art .katex{font-size:1em;display:inline-block}.ps50-slide-art button{font-family:inherit}.ps50-slide-art button:focus-visible{outline:4px solid currentColor;outline-offset:-4px}`}</style>
     <div className="ps49-slide-canvas" style={{ width: 1280, height: 720, transform: `scale(${width / 1280})`, transformOrigin: 'top left', position: 'absolute', inset: 0, color: theme.color, fontFamily: design.font === 'serif' ? 'Georgia, serif' : 'Arial, sans-serif' }}>
       <div ref={art} className="ps50-slide-art" data-template={spec.template} data-layout={spec.layout} style={{ position: 'absolute', inset: 0, backgroundColor: theme.background, backgroundImage: theme.image ? `url("${theme.image}")` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -132,7 +136,7 @@ function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, tran
               : item.kind === 'circle' ? <ellipse cx={item.w / 2} cy={item.h / 2} rx={item.w / 2} ry={item.h / 2} fill={palette(item.fill)} />
                 : <rect width={item.w} height={item.h} rx={round ? item.radius || 0 : 0} fill={palette(item.fill)} />}
           </svg>
-          {item.text && <FitText rect={{ ...item, y: item.y + (item.h - (item.fontSize || 24) * 1.28) / 2, h: (item.fontSize || 24) * 1.28 + 1 }} text={item.text} label="Bosqich raqami" fontSize={item.fontSize || 24} style={{ textAlign: 'center', fontWeight: 700, color: ['cyan', 'green', 'amber'].includes(design.accent) ? '#071b24' : '#ffffff' }} />}
+          {item.text && <FitText rect={{ ...item, y: item.y + (item.h - (item.fontSize || 24) * 1.28) / 2, h: (item.fontSize || 24) * 1.28 + 1 }} text={item.text} label={__kbUi("Bosqich raqami")} fontSize={item.fontSize || 24} style={{ textAlign: 'center', fontWeight: 700, color: ['cyan', 'green', 'amber'].includes(design.accent) ? '#071b24' : '#ffffff' }} />}
         </React.Fragment>)}
         {spec.tabs.map((tab) => {
           const ribbon = spec.template === 'ribbon';
@@ -140,28 +144,28 @@ function SlidePreview({ document, index = 0, thumbnail = false, onNavigate, tran
           const textRect = tab.text || { ...tab, x: tab.x + 12, y: tab.y + 9, w: tab.w - 24, h: tab.h - 16 };
           const tabRect = ribbon ? tab : { ...tab, x: tab.x + 5, y: tab.y + 5, w: tab.w - 10, h: tab.h - 10 };
           return <React.Fragment key={tab.label}><div style={box(tabRect, { borderRadius: round ? ribbon ? '16px 16px 0 0' : 12 : 0, background: fill, border: !ribbon && tab.active ? `1px solid ${theme.accent}8c` : undefined })} />
-            {onNavigate && !thumbnail ? <button type="button" aria-label={`${tab.label} bo‘limiga o‘tish`} aria-current={tab.active ? 'step' : undefined} onClick={() => onNavigate(tab.firstIndex)} style={box(tab, { padding: 0, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' })} /> : null}
-            <FitText rect={textRect} text={tab.label} label="Bo‘lim nomi" fontSize={sizes.nav} style={{ pointerEvents: 'none', textAlign: 'center', fontWeight: tab.active ? 700 : 400, color: tab.active ? theme.color : theme.muted }} />
+            {onNavigate && !thumbnail ? <button type="button" aria-label={__kbUi(`${tab.label} bo‘limiga o‘tish`)} aria-current={tab.active ? 'step' : undefined} onClick={() => onNavigate(tab.firstIndex)} style={box(tab, { padding: 0, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' })} /> : null}
+            <FitText rect={textRect} text={__kbUi(tab.label)} label={__kbUi("Bo‘lim nomi")} fontSize={sizes.nav} style={{ pointerEvents: 'none', textAlign: 'center', fontWeight: tab.active ? 700 : 400, color: tab.active ? theme.color : theme.muted }} />
           </React.Fragment>;
         })}
-        {spec.section && <FitText rect={spec.section} text={slide.section} label="Bo‘lim" fontSize={14} style={{ color: theme.accent, fontWeight: 700 }} />}
-        <FitText rect={spec.title} text={slide.title} label="Sarlavha" fontSize={sizes.title} className="ps49-slide-title" style={{ fontWeight: 700, lineHeight: 1.12 }} />
+        {spec.section && <FitText rect={spec.section} text={slide.section} label={__kbUi("Bo‘lim")} fontSize={14} style={{ color: theme.accent, fontWeight: 700 }} />}
+        <FitText rect={spec.title} text={slide.title} label={__kbUi("Sarlavha")} fontSize={sizes.title} className="ps49-slide-title" style={{ fontWeight: 700, lineHeight: 1.12 }} />
         {spec.imageSlots.map((slot, at) => <React.Fragment key={slot.field}>
-          {slide[slot.field] ? <img alt={slide[slot.captionField] || `${at + 1}-slayd rasmi`} src={slide[slot.field]} style={box(slot, { objectFit: slot.fit || 'contain', borderRadius: round ? 12 : 0 })} /> : !thumbnail && <div className="ps49-empty-image" style={box(slot, { border: `2px dashed ${theme.muted}`, color: theme.muted, fontSize: 23, display: 'grid', placeItems: 'center', textAlign: 'center', borderRadius: round ? 12 : 0 })}>{at + 1}-rasmni qo‘shing</div>}
-          {slide[slot.field] && slot.caption && <FitText rect={slot.caption} text={slide[slot.captionField]} label={`${at + 1}-rasm izohi`} fontSize={sizes.caption} style={{ color: theme.muted }} />}
+          {slide[slot.field] ? <img alt={slide[slot.captionField] || __kbUi(`${at + 1}-slayd rasmi`)} src={slide[slot.field]} style={box(slot, { objectFit: slot.fit || 'contain', borderRadius: round ? 12 : 0 })} /> : !thumbnail && <div className="ps49-empty-image" style={box(slot, { border: `2px dashed ${theme.muted}`, color: theme.muted, fontSize: 23, display: 'grid', placeItems: 'center', textAlign: 'center', borderRadius: round ? 12 : 0 })}>{at + 1}{__kbUi("-rasmni qo‘shing")}</div>}
+          {slide[slot.field] && slot.caption && <FitText rect={slot.caption} text={slide[slot.captionField]} label={__kbUi(`${at + 1}-rasm izohi`)} fontSize={sizes.caption} style={{ color: theme.muted }} />}
         </React.Fragment>)}
-        {spec.bodySlots.map((slot, at) => <FitText key={slot.field} rect={slot} text={slide[slot.field]} label={`${at + 1}-matn`} fontSize={sizes.body} className="ps49-slide-body" />)}
+        {spec.bodySlots.map((slot, at) => <FitText key={slot.field} rect={slot} text={slide[slot.field]} label={__kbUi(`${at + 1}-matn`)} fontSize={sizes.body} className="ps49-slide-body" />)}
         {slide.formula && spec.formula && <div data-fit-label="Formula" className="ps49-slide-equation" style={box(spec.formula, { fontSize: sizes.formula, color: theme.color, overflow: 'hidden' })}><Formula source={slide.formula} /></div>}
-        {slide.example && spec.example && <><FitText rect={spec.example.label} text="MISOL" label="Misol belgisi" fontSize={14} style={{ color: spec.template === 'ribbon' && design.panel !== 'none' ? theme.color : theme.accent, fontWeight: 700, letterSpacing: 2 }} /><FitText rect={spec.example} text={slide.example} label="Misol" fontSize={sizes.example} className="ps49-slide-example" style={{ lineHeight: 1.25 }} /></>}
-        <FitText rect={spec.footer} text={document.subject || document.title} label="Fan nomi" fontSize={14} style={{ color: theme.muted }} />
-        <FitText rect={spec.page} text={`${String(index + 1).padStart(2, '0')} / ${String(document.slides.length).padStart(2, '0')}`} label="Slayd raqami" fontSize={14} style={{ color: theme.muted, textAlign: 'right' }} />
+        {slide.example && spec.example && <><FitText rect={spec.example.label} text={__kbUi("MISOL")} label={__kbUi("Misol belgisi")} fontSize={14} style={{ color: spec.template === 'ribbon' && design.panel !== 'none' ? theme.color : theme.accent, fontWeight: 700, letterSpacing: 2 }} /><FitText rect={spec.example} text={slide.example} label={__kbUi("Misol")} fontSize={sizes.example} className="ps49-slide-example" style={{ lineHeight: 1.25 }} /></>}
+        <FitText rect={spec.footer} text={document.subject || document.title} label={__kbUi("Fan nomi")} fontSize={14} style={{ color: theme.muted }} />
+        <FitText rect={spec.page} text={__kbUi(`${String(index + 1).padStart(2, '0')} / ${String(document.slides.length).padStart(2, '0')}`)} label={__kbUi("Slayd raqami")} fontSize={14} style={{ color: theme.muted, textAlign: 'right' }} />
         {(spec.elements || slide.elements || []).map((item, at) => item.kind === 'text'
-          ? <FitText key={item.id} rect={item} text={item.text} label={`${at + 1}-qo‘shimcha matn`} fontSize={item.fontSize || 28} style={{ color: item.color || theme.color }} />
-          : item.kind === 'image' && item.image ? <img key={item.id} src={item.image} alt="Qo‘shilgan rasm" style={box(item, { objectFit: 'contain' })} />
+          ? <FitText key={item.id} rect={item} text={item.text} label={__kbUi(`${at + 1}-qo‘shimcha matn`)} fontSize={item.fontSize || 28} style={{ color: item.color || theme.color }} />
+          : item.kind === 'image' && item.image ? <img key={item.id} src={item.image} alt={__kbUi("Qo‘shilgan rasm")} style={box(item, { objectFit: 'contain' })} />
             : item.kind === 'rect' ? <svg key={item.id} aria-hidden="true" focusable="false" viewBox={`0 0 ${item.w} ${item.h}`} preserveAspectRatio="none" style={box(item)}><rect width={item.w} height={item.h} fill={item.fill || theme.accent} /></svg> : null)}
       </div>
     </div>
-    {!thumbnail && !isManipulating && fitErrors.length > 0 && <div role="alert" className="ps50-fit-warning" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, border: '1px solid #a93232', borderRadius: 6, padding: '7px 9px', font: '12px/1.35 Arial,sans-serif', background: '#fff1ef', color: '#821d1d' }}>{fitErrors.join(', ')} — matn eng kichik o‘lchamda ham sig‘madi. Biroz qisqartiring yoki boshqa maketni tanlang.</div>}
+    {!thumbnail && !isManipulating && fitErrors.length > 0 && <div role="alert" className="ps50-fit-warning" style={{ position: 'absolute', left: 8, right: 8, bottom: 8, border: '1px solid #a93232', borderRadius: 6, padding: '7px 9px', font: '12px/1.35 Arial,sans-serif', background: '#fff1ef', color: '#821d1d' }}>{__kbUi(fitErrors.join(', '))}{__kbUi(" — matn eng kichik o‘lchamda ham sig‘madi. Biroz qisqartiring yoki boshqa maketni tanlang.")}</div>}
   </div>;
 }
 

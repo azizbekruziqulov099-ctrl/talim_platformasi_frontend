@@ -1,3 +1,6 @@
+import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
+import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
@@ -113,6 +116,9 @@ export function resolveGameAvatarProfile(profile = {}, gradeBand = "applicant", 
 
 
 const GameText = React.memo(function GameText({ value }) {
+  const translation=useTranslatedContent(value);
+  value=translation.text;
+  useKbInterfaceLocale();
   const text = String(value || "")
     .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "\$$1\$")
     .replace(/\[\/?(?:ru|en|uz)\]/gi, "");
@@ -121,7 +127,7 @@ const GameText = React.memo(function GameText({ value }) {
     ? `${text.slice(0, rawMathStart)}$${text.slice(rawMathStart).trim()}$`
     : text;
   const parts = normalized.split(/(\$[^$]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/g);
-  return parts.map((part, index) => {
+  const rendered=parts.map((part, index) => {
     const looksMath = /^\$[^$]+\$$/.test(part) || /^\\\([\s\S]*\\\)$/.test(part) || /^\\\[[\s\S]*\\\]$/.test(part);
     if (!looksMath) return <React.Fragment key={index}>{part}</React.Fragment>;
     const expression = part.startsWith("$") ? part.slice(1, -1) : part.slice(2, -2);
@@ -132,9 +138,12 @@ const GameText = React.memo(function GameText({ value }) {
       return <React.Fragment key={index}>{part}</React.Fragment>;
     }
   });
+
+  return <>{rendered}<ContentTranslationStatus translation={translation}/></>;
 });
 
 const GameImage = React.memo(function GameImage({ value, apiBase }) {
+  useKbInterfaceLocale();
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [value]);
   if (!value || failed) return null;
@@ -149,10 +158,11 @@ const GameImage = React.memo(function GameImage({ value, apiBase }) {
     }
   }
   const src = raw.startsWith("/api/") ? `${apiBase}${raw}` : /^https?:\/\//i.test(raw) ? raw : `${apiBase}/api/rasm/${raw}`;
-  return <img className="game-question-image" src={src} alt="Savol rasmi" onError={() => setFailed(true)} />;
+  return <img className="game-question-image" src={src} alt={__kbUi("Savol rasmi")} onError={() => setFailed(true)} />;
 });
 
 export function GameProfileStrip({ profile, accent = "#1B4B7A", compact = false }) {
+  useKbInterfaceLocale();
   if (!profile) return null;
   const progress = Math.min(100, Math.max(0, ((profile.level_progress || 0) / (profile.level_target || 250)) * 100));
   return (
@@ -160,16 +170,16 @@ export function GameProfileStrip({ profile, accent = "#1B4B7A", compact = false 
       <div className="game-profile-main">
         <span className="game-profile-medal">★</span>
         <div>
-          <strong>{Number(profile.total_points || 0).toLocaleString("uz-UZ")} ochko</strong>
-          <small>{profileLevelLabel(profile)}</small>
+          <strong>{__kbUi(Number(profile.total_points || 0).toLocaleString(__kbLocaleTag()))}{__kbUi(" ochko")}</strong>
+          <small>{__kbUi(profileLevelLabel(profile))}</small>
         </div>
       </div>
-      <div className="game-level-track" role="progressbar" aria-label="Keyingi daraja" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress)}>
+      <div className="game-level-track" role="progressbar" aria-label={__kbUi("Keyingi daraja")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress)}>
         <span style={{ width: `${progress}%` }} />
       </div>
       <div className="game-profile-stats">
-        <span>🔥 {profile.current_streak || 0} kun</span>
-        <span>🏁 {profile.games_completed || 0} o'yin</span>
+        <span>🔥 {profile.current_streak || 0}{__kbUi(" kun")}</span>
+        <span>🏁 {profile.games_completed || 0}{__kbUi(" o'yin")}</span>
       </div>
     </div>
   );
@@ -192,30 +202,32 @@ function learningSteps(subjectName = "") {
 }
 
 export function GameModePicker({ value, onChange, gradeBand = "applicant", accent, profile, playerGender, onPlayerGenderChange, subjectName = "", topicName = "", availableQuestions = null, grade }) {
+  useKbInterfaceLocale();
   const age = AGE_BANDS[gradeBand] || AGE_BANDS.applicant;
   const chosen = modeForId(value);
   const plan = EDUCATIONAL_GAMES[chosen.id];
   const avatar = resolveGameAvatarProfile({ ...profile, jins: playerGender || profile?.jins, class: grade || profile?.class }, gradeBand);
-  return <section className="game-picker-wrap edu-game-picker" style={{ "--game-accent": accent || "#1B4B7A" }} aria-label="Ta’limiy o‘yin tanlash">
+  return <section className="game-picker-wrap edu-game-picker" style={{ "--game-accent": accent || "#1B4B7A" }} aria-label={__kbUi("Ta’limiy o‘yin tanlash")}>
     <GameProfileStrip profile={profile} accent={accent} />
-    <header className="edu-game-head"><div><small>BILIM BILAN SARGUZASHT</small><h2>Bugun qaysi o‘yinni tanlaysiz?</h2><p>Bir mavzu, beshta usul. Har bir javobdan nimadir o‘rganing.</p></div><span className="edu-game-badge">5 ta o‘yin</span></header>
-    {(subjectName || topicName) ? <p className="edu-game-topic"><strong>{subjectName || "Tanlangan mavzular"}</strong><span>{topicName}</span></p> : null}
-    <div className="edu-game-cards" role="group" aria-label="Beshta o‘yin">
+    <header className="edu-game-head"><div><small>{__kbUi("BILIM BILAN SARGUZASHT")}</small><h2>{__kbUi("Bugun qaysi o‘yinni tanlaysiz?")}</h2><p>{__kbUi("Bir mavzu, beshta usul. Har bir javobdan nimadir o‘rganing.")}</p></div><span className="edu-game-badge">{__kbUi("5 ta o‘yin")}</span></header>
+    {(subjectName || topicName) ? <p className="edu-game-topic"><strong>{subjectName || __kbUi("Tanlangan mavzular")}</strong><span>{topicName}</span></p> : null}
+    <div className="edu-game-cards" role="group" aria-label={__kbUi("Beshta o‘yin")}>
       {GAME_MODES.map(mode => <button type="button" key={mode.id} className={`edu-game-card ${chosen.id === mode.id ? "is-selected" : ""}`} aria-pressed={chosen.id === mode.id} onClick={() => onChange?.(mode.id)} style={{ "--edu-color": mode.colors[0], "--edu-tint": `${mode.colors[1]}35` }}>
-        <span className="edu-game-cover"><img src={GAME_SCENE_COVERS[mode.id]} alt={`${mode.name} o‘yin sahnasi`} loading="lazy" width="1280" height="720" /><span className="edu-game-icon" aria-hidden="true">{EDUCATIONAL_GAMES[mode.id].icon}</span></span><strong>{mode.name}</strong><p>{EDUCATIONAL_GAMES[mode.id].goal}</p><small className="edu-game-mechanic">{EDUCATIONAL_GAMES[mode.id].mechanic}</small><span className="edu-game-tag">{chosen.id === mode.id ? "✓ Tanlandi" : "Tanlash →"}</span>
+        <span className="edu-game-cover"><img src={GAME_SCENE_COVERS[mode.id]} alt={__kbUi(`${mode.name} o‘yin sahnasi`)} loading="lazy" width="1280" height="720" /><span className="edu-game-icon" aria-hidden="true">{__kbUi(EDUCATIONAL_GAMES[mode.id].icon)}</span></span><strong>{__kbUi(mode.name)}</strong><p>{__kbUi(EDUCATIONAL_GAMES[mode.id].goal)}</p><small className="edu-game-mechanic">{__kbUi(EDUCATIONAL_GAMES[mode.id].mechanic)}</small><span className="edu-game-tag">{chosen.id === mode.id ? __kbUi("✓ Tanlandi") : __kbUi("Tanlash →")}</span>
       </button>)}
     </div>
     <div className="edu-game-detail" style={{ "--edu-color": chosen.colors[0], "--edu-tint": `${chosen.colors[1]}28` }}>
-      <header><strong>{plan.icon} {chosen.name}</strong><span>{age.label}</span></header><p>{plan.description}</p>
+      <header><strong>{__kbUi(plan.icon)} {chosen.name}</strong><span>{__kbUi(age.label)}</span></header><p>{__kbUi(plan.description)}</p>
       <ol className="edu-game-steps">{learningSteps(subjectName).map(step => <li key={step}>{step}</li>)}</ol>
-      <small>Har 5-savol — nazorat savoli. Savollar tanlangan fan va mavzu bazasidan olinadi.</small>
-      {availableQuestions !== null && Number(availableQuestions) < 25 ? <p className="edu-study-note">Hozir {Math.max(0, Number(availableQuestions) || 0)} ta mos savol bor. Pastda shu songa yetadigan o‘yin uzunliklari ko‘rinadi.</p> : null}
+      <small>{__kbUi("Har 5-savol — nazorat savoli. Savollar tanlangan fan va mavzu bazasidan olinadi.")}</small>
+      {availableQuestions !== null && Number(availableQuestions) < 25 ? <p className="edu-study-note">{__kbUi("Hozir ")}{Math.max(0, Number(availableQuestions) || 0)}{__kbUi(" ta mos savol bor. Pastda shu songa yetadigan o‘yin uzunliklari ko‘rinadi.")}</p> : null}
     </div>
-    <div className="game-avatar-choice"><img src={avatar.src} alt={`${avatar.label} qahramoni`} width="58" height="76" loading="lazy" /><div><strong>Sizning qahramoningiz</strong><small>{avatar.label}</small></div><div className="game-avatar-gender" aria-label="Qahramon tanlash"><button type="button" aria-pressed={avatar.gender === "girl"} className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>Qiz</button><button type="button" aria-pressed={avatar.gender === "boy"} className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>O‘g‘il</button></div></div>
+    <div className="game-avatar-choice"><img src={avatar.src} alt={__kbUi(`${avatar.label} qahramoni`)} width="58" height="76" loading="lazy" /><div><strong>{__kbUi("Sizning qahramoningiz")}</strong><small>{__kbUi(avatar.label)}</small></div><div className="game-avatar-gender" aria-label={__kbUi("Qahramon tanlash")}><button type="button" aria-pressed={avatar.gender === "girl"} className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>{__kbUi("Qiz")}</button><button type="button" aria-pressed={avatar.gender === "boy"} className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>{__kbUi("O‘g‘il")}</button></div></div>
   </section>;
 }
 
 function EducationalMission({ mode, question, learningLog, subjectName, topicName }) {
+  useKbInterfaceLocale();
   const [opened, setOpened] = useState(null);
   useEffect(() => setOpened(null), [question.question_key]);
   const plan = EDUCATIONAL_GAMES[mode] || EDUCATIONAL_GAMES.bridge;
@@ -224,7 +236,7 @@ function EducationalMission({ mode, question, learningLog, subjectName, topicNam
   const record = learningLog.find(item => item.position === opened);
   const roundLog = learningLog.filter(item => item.position >= roundStart && item.position < roundStart + 5);
   return <section className={`edu-mission edu-mission-${mode}`} aria-label={plan.goal}>
-    <header className="edu-mission-head"><div><small>{subjectName || "BILIM MISSIYASI"}</small><h2>{plan.icon} {plan.goal}</h2><p>{topicName || plan.tip}</p></div><span>{roundLog.filter(item => item.correct).length}/5 to‘g‘ri</span></header>
+    <header className="edu-mission-head"><div><small>{subjectName || __kbUi("BILIM MISSIYASI")}</small><h2>{plan.icon} {plan.goal}</h2><p>{topicName || plan.tip}</p></div><span>{roundLog.filter(item => item.correct).length}{__kbUi("/5 to‘g‘ri")}</span></header>
     <div className="edu-mission-world"><div className="edu-mission-route">
       {plan.steps.map((title, index) => {
         const number = roundStart + index;
@@ -232,49 +244,51 @@ function EducationalMission({ mode, question, learningLog, subjectName, topicNam
         const state = answer ? answer.correct ? "is-cleared" : "is-missed" : number === position ? "is-current" : "";
         const status = answer ? answer.correct ? "O‘zlashtirildi" : "Takrorlash kerak" : number === position ? "Hozirgi savol" : "Navbatda";
         const icon = answer ? answer.correct ? "✓" : "↻" : number === position ? plan.icon : "○";
-        return <button type="button" key={number} className={`edu-mission-tile ${state}`} disabled={!answer} onClick={() => setOpened(opened === number ? null : number)} aria-expanded={opened === number} aria-label={`${title}: ${status}`} style={{ "--building-height": `${54 + index * 13}px` }}><span aria-hidden="true">{icon}</span><strong>{title}</strong><small>{status}</small></button>;
+        return <button type="button" key={number} className={`edu-mission-tile ${state}`} disabled={!answer} onClick={() => setOpened(opened === number ? null : number)} aria-expanded={opened === number} aria-label={__kbUi(`${title}: ${status}`)} style={{ "--building-height": `${54 + index * 13}px` }}><span aria-hidden="true">{icon}</span><strong>{title}</strong><small>{__kbUi(status)}</small></button>;
       })}
     </div></div>
-    <p className="edu-mission-caption">{plan.tip} {roundLog.length > 0 ? "O‘tilgan joyni bosib, savol va izohni yana ko‘ring." : ""}</p>
-    {record ? <div className="edu-mission-evidence"><strong>{record.position}-savol · {record.correct ? "To‘g‘ri yechildi" : "Mustahkamlash uchun"}</strong><p><GameText value={record.question} /></p><p>To‘g‘ri javob: <GameText value={record.correctText || record.correctAnswer || "Server izohiga qarang"} /></p>{record.explanation ? <p><GameText value={record.explanation} /></p> : null}</div> : null}
+    <p className="edu-mission-caption">{plan.tip} {roundLog.length > 0 ? __kbUi("O‘tilgan joyni bosib, savol va izohni yana ko‘ring.") : __kbUi("")}</p>
+    {record ? <div className="edu-mission-evidence"><strong>{record.position}{__kbUi("-savol · ")}{record.correct ? __kbUi("To‘g‘ri yechildi") : __kbUi("Mustahkamlash uchun")}</strong><p><GameText value={record.question} /></p><p>{__kbUi("To‘g‘ri javob: ")}<GameText value={record.correctText || record.correctAnswer || "Server izohiga qarang"} /></p>{record.explanation ? <p><GameText value={record.explanation} /></p> : null}</div> : null}
   </section>;
 }
 
 function LearningTools({ mode, subjectName, question, locked, ruledOut, onRuleOut }) {
+  useKbInterfaceLocale();
   const [checks, setChecks] = useState([]);
   const [confidence, setConfidence] = useState("");
   const [method, setMethod] = useState("");
   const [note, setNote] = useState("");
   const toggle = step => setChecks(current => current.includes(step) ? current.filter(item => item !== step) : [...current, step]);
   return <details className="edu-study-tools" open={mode === "detective" || undefined}>
-    <summary>{EDUCATIONAL_GAMES[mode]?.icon} {mode === "detective" ? "Detektiv vositasi: variantlarni tekshiring" : "O‘ylash vositasi — ixtiyoriy"}</summary>
-    {mode === "detective" ? <><p>Mos kelmaydi deb o‘ylagan variantni belgilang. Bu sizning taxminingiz; yana bosib belgini olib tashlaysiz.</p><div className="edu-detective-strikes">{(question.options || []).filter(option => !option.hidden).map(option => <button type="button" key={option.key} disabled={locked} aria-pressed={ruledOut.includes(option.key)} onClick={() => onRuleOut(option.key)}>{ruledOut.includes(option.key) ? "↶" : "×"} {option.key}</button>)}</div></> : null}
-    {mode === "bridge" ? <><p>Ko‘prikdan o‘tishdan oldin uch qadamni tekshiring.</p><div className="edu-tool-options">{learningSteps(subjectName).map(step => <button type="button" key={step} disabled={locked} aria-pressed={checks.includes(step)} onClick={() => toggle(step)}>{checks.includes(step) ? "✓ " : "○ "}{step}</button>)}</div></> : null}
-    {mode === "millionaire" ? <><p>Javobingizga qanchalik ishonasiz? Natijadan keyin taxminingiz bilan solishtiring.</p><div className="edu-confidence">{["Ishonaman", "Ikkilanayapman", "Yordam kerak"].map(item => <button type="button" key={item} disabled={locked} aria-pressed={confidence === item} onClick={() => setConfidence(item)}>{item}</button>)}</div>{confidence ? <small>Sizning bahoyingiz: {confidence}</small> : null}</> : null}
-    {mode === "space" ? <><p>Qaysi usul bilan javob topmoqchisiz?</p><div className="edu-tool-options">{["Eslab topaman", "Hisoblab topaman", "Solishtirib topaman"].map(item => <button type="button" key={item} disabled={locked} aria-pressed={method === item} onClick={() => setMethod(item)}>{item}</button>)}</div></> : null}
-    {mode === "city" ? <label>Javobimning sababi…<textarea value={note} disabled={locked} maxLength={500} onChange={event => setNote(event.target.value)} placeholder="O‘z fikringizni bitta gap bilan yozing (ixtiyoriy)."/><small>Bu qoralama avtomatik baholanmaydi va keyingi savolda tozalanadi.</small></label> : null}
+    <summary>{__kbUi(EDUCATIONAL_GAMES[mode]?.icon)} {mode === "detective" ? __kbUi("Detektiv vositasi: variantlarni tekshiring") : __kbUi("O‘ylash vositasi — ixtiyoriy")}</summary>
+    {mode === "detective" ? <><p>{__kbUi("Mos kelmaydi deb o‘ylagan variantni belgilang. Bu sizning taxminingiz; yana bosib belgini olib tashlaysiz.")}</p><div className="edu-detective-strikes">{(question.options || []).filter(option => !option.hidden).map(option => <button type="button" key={option.key} disabled={locked} aria-pressed={ruledOut.includes(option.key)} onClick={() => onRuleOut(option.key)}>{ruledOut.includes(option.key) ? __kbUi("↶") : __kbUi("×")} {option.key}</button>)}</div></> : null}
+    {mode === "bridge" ? <><p>{__kbUi("Ko‘prikdan o‘tishdan oldin uch qadamni tekshiring.")}</p><div className="edu-tool-options">{learningSteps(subjectName).map(step => <button type="button" key={step} disabled={locked} aria-pressed={checks.includes(step)} onClick={() => toggle(step)}>{checks.includes(step) ? __kbUi("✓ ") : __kbUi("○ ")}{step}</button>)}</div></> : null}
+    {mode === "millionaire" ? <><p>{__kbUi("Javobingizga qanchalik ishonasiz? Natijadan keyin taxminingiz bilan solishtiring.")}</p><div className="edu-confidence">{["Ishonaman", "Ikkilanayapman", "Yordam kerak"].map(item => <button type="button" key={item} disabled={locked} aria-pressed={confidence === item} onClick={() => setConfidence(item)}>{__kbUi(item)}</button>)}</div>{confidence ? <small>{__kbUi("Sizning bahoyingiz: ")}{confidence}</small> : null}</> : null}
+    {mode === "space" ? <><p>{__kbUi("Qaysi usul bilan javob topmoqchisiz?")}</p><div className="edu-tool-options">{["Eslab topaman", "Hisoblab topaman", "Solishtirib topaman"].map(item => <button type="button" key={item} disabled={locked} aria-pressed={method === item} onClick={() => setMethod(item)}>{__kbUi(item)}</button>)}</div></> : null}
+    {mode === "city" ? <label>{__kbUi("Javobimning sababi…")}<textarea value={note} disabled={locked} maxLength={500} onChange={event => setNote(event.target.value)} placeholder={__kbUi("O‘z fikringizni bitta gap bilan yozing (ixtiyoriy).")}/><small>{__kbUi("Bu qoralama avtomatik baholanmaydi va keyingi savolda tozalanadi.")}</small></label> : null}
   </details>;
 }
 
 function LearningReview({ entries, apiBase }) {
+  useKbInterfaceLocale();
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [mastered, setMastered] = useState([]);
   const mistakes = entries.filter(item => !item.correct);
   const current = mistakes[index];
-  if (!mistakes.length) return entries.length ? <p className="edu-result-summary">Bu o‘yinda tekshirilgan javoblaringiz orasida xato qolmadi. Keyingi mavzuga o‘tishingiz mumkin.</p> : null;
+  if (!mistakes.length) return entries.length ? <p className="edu-result-summary">{__kbUi("Bu o‘yinda tekshirilgan javoblaringiz orasida xato qolmadi. Keyingi mavzuga o‘tishingiz mumkin.")}</p> : null;
   const checked = Boolean(answer);
   const correct = checked && answer === current?.correctAnswer;
   const canPractice = Boolean(current?.correctAnswer && current?.options?.some(option => option.key === current.correctAnswer));
   return <section className="edu-game-review">
-    <h2>Xatoni bilimga aylantiring</h2><p>{mistakes.length} ta savolni mustahkamlash mumkin. Bu mashq yangi reyting ochkosi bermaydi.</p>
-    {!active ? <button type="button" onClick={() => setActive(true)}>↻ Xatolar ustida ishlash</button> : current ? <div className="edu-review-question">
-      <small>{index + 1}/{mistakes.length} · {mastered.length} tasi qayta to‘g‘ri yechildi</small><GameImage value={current.image} apiBase={apiBase}/><p><GameText value={current.question}/></p>
-      {canPractice ? <div className="edu-review-options">{current.options.map(option => <button type="button" key={option.key} disabled={checked} className={checked && option.key === current.correctAnswer ? "is-correct" : answer === option.key ? "is-wrong" : ""} onClick={() => { setAnswer(option.key); if (option.key === current.correctAnswer) setMastered(items => items.includes(current.questionKey) ? items : [...items, current.questionKey]); }}>{option.key}. <GameText value={option.text}/></button>)}</div> : <p>Bu savol uchun qayta tanlash javobi mavjud emas. Mavzuni izoh orqali takrorlang.</p>}
-      {(checked || !canPractice) ? <div className="edu-review-result" role="status"><strong>{checked ? correct ? "✓ Endi to‘g‘ri!" : "Yechimni yana ko‘rib chiqing." : "Takrorlash"}</strong>{current.correctText ? <p>To‘g‘ri javob: <GameText value={current.correctText}/></p> : null}{current.explanation ? <p><GameText value={current.explanation}/></p> : <p>Izoh mavjud emas. Shu mavzudagi qoida yoki yechimni qayta ko‘rib chiqing.</p>}</div> : null}
-      <div className="edu-feedback-actions">{checked && !correct ? <button type="button" onClick={() => setAnswer("")}>Yana urinaman</button> : null}<button type="button" onClick={() => { setIndex(index + 1); setAnswer(""); }}>{index + 1 < mistakes.length ? "Keyingi xato" : "Mashqni yakunlash"}</button></div>
-    </div> : <div className="edu-review-result" role="status"><strong>Mashq yakunlandi</strong><p>{mastered.length}/{mistakes.length} savol qayta to‘g‘ri yechildi.</p><button type="button" onClick={() => { setIndex(0); setAnswer(""); }}>Yana takrorlash</button></div>}
+    <h2>{__kbUi("Xatoni bilimga aylantiring")}</h2><p>{mistakes.length}{__kbUi(" ta savolni mustahkamlash mumkin. Bu mashq yangi reyting ochkosi bermaydi.")}</p>
+    {!active ? <button type="button" onClick={() => setActive(true)}>{__kbUi("↻ Xatolar ustida ishlash")}</button> : current ? <div className="edu-review-question">
+      <small>{index + 1}/{mistakes.length} · {mastered.length}{__kbUi(" tasi qayta to‘g‘ri yechildi")}</small><GameImage value={current.image} apiBase={apiBase}/><p><GameText value={current.question}/></p>
+      {canPractice ? <div className="edu-review-options">{current.options.map(option => <button type="button" key={option.key} disabled={checked} className={checked && option.key === current.correctAnswer ? "is-correct" : answer === option.key ? "is-wrong" : ""} onClick={() => { setAnswer(option.key); if (option.key === current.correctAnswer) setMastered(items => items.includes(current.questionKey) ? items : [...items, current.questionKey]); }}>{option.key}. <GameText value={option.text}/></button>)}</div> : <p>{__kbUi("Bu savol uchun qayta tanlash javobi mavjud emas. Mavzuni izoh orqali takrorlang.")}</p>}
+      {(checked || !canPractice) ? <div className="edu-review-result" role="status"><strong>{checked ? correct ? __kbUi("✓ Endi to‘g‘ri!") : __kbUi("Yechimni yana ko‘rib chiqing.") : __kbUi("Takrorlash")}</strong>{current.correctText ? <p>{__kbUi("To‘g‘ri javob: ")}<GameText value={current.correctText}/></p> : null}{current.explanation ? <p><GameText value={current.explanation}/></p> : <p>{__kbUi("Izoh mavjud emas. Shu mavzudagi qoida yoki yechimni qayta ko‘rib chiqing.")}</p>}</div> : null}
+      <div className="edu-feedback-actions">{checked && !correct ? <button type="button" onClick={() => setAnswer("")}>{__kbUi("Yana urinaman")}</button> : null}<button type="button" onClick={() => { setIndex(index + 1); setAnswer(""); }}>{index + 1 < mistakes.length ? __kbUi("Keyingi xato") : __kbUi("Mashqni yakunlash")}</button></div>
+    </div> : <div className="edu-review-result" role="status"><strong>{__kbUi("Mashq yakunlandi")}</strong><p>{mastered.length}/{mistakes.length}{__kbUi(" savol qayta to‘g‘ri yechildi.")}</p><button type="button" onClick={() => { setIndex(0); setAnswer(""); }}>{__kbUi("Yana takrorlash")}</button></div>}
   </section>;
 }
 
@@ -297,6 +311,7 @@ const GAME_SCENE_FEEDBACK_COPY = {
 
 
 function SceneFeedbackFX({ feedback, mode, transition, countdown, paused = false, bossName = "Boss" }) {
+  useKbInterfaceLocale();
   const hasOutcome = feedback?.correct === true
     || feedback?.correct === false
     || (feedback?.type === "timeout" && (feedback?.finalized || transition));
@@ -318,15 +333,15 @@ function SceneFeedbackFX({ feedback, mode, transition, countdown, paused = false
       role="status"
       aria-live="polite"
     >
-      <span aria-hidden="true">{correct ? "✓" : "!"}</span>
+      <span aria-hidden="true">{correct ? __kbUi("✓") : __kbUi("!")}</span>
       <div>
-        <strong>{correct ? copy.success : feedback?.type === "timeout" ? "VAQT TUGADI" : copy.fail}</strong>
+        <strong>{correct ? __kbUi(copy.success) : feedback?.type === "timeout" ? __kbUi("VAQT TUGADI") : copy.fail}</strong>
         
-        <small>{nextLabel}</small>
+        <small>{__kbUi(nextLabel)}</small>
       </div>
       {transition && (
-        <b className="scene-feedback-countdown" aria-label={`${countdown || gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)} soniya`}>
-          {countdown ?? gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)}
+        <b className="scene-feedback-countdown" aria-label={__kbUi(`${countdown || gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS)} soniya`)}>
+          {countdown ?? __kbUi(gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS))}
         </b>
       )}
       <i /><i /><i /><i /><i /><i />
@@ -336,6 +351,7 @@ function SceneFeedbackFX({ feedback, mode, transition, countdown, paused = false
 
 
 function GameAvatar({ variant = "runner", className = "", profile }) {
+  useKbInterfaceLocale();
   const avatar = profile || resolveGameAvatarProfile();
   return (
     <span className={`game-avatar avatar-${variant} avatar-gender-${avatar.gender} avatar-age-${avatar.ageKey} ${className}`} aria-hidden="true">
@@ -344,7 +360,7 @@ function GameAvatar({ variant = "runner", className = "", profile }) {
       <img
         className="avatar-render avatar-portrait"
         src={avatar.src}
-        alt=""
+        alt={__kbUi("")}
         width="320"
         height="540"
         decoding="async"
@@ -361,10 +377,11 @@ function GameAvatar({ variant = "runner", className = "", profile }) {
 
 
 function SceneHud({ label, step, icon }) {
+  useKbInterfaceLocale();
   return (
     <div className="scene-hud" aria-hidden="true">
       <span>{icon}</span>
-      <div><small>MISSIYA</small><strong>{label}</strong></div>
+      <div><small>{__kbUi("MISSIYA")}</small><strong>{__kbUi(label)}</strong></div>
       <b>{step}/5</b>
     </div>
   );
@@ -372,6 +389,7 @@ function SceneHud({ label, step, icon }) {
 
 
 function GameLivesHud({ mode, livesRemaining, feedback }) {
+  useKbInterfaceLocale();
   const modeCopy = {
     bridge: { title: "JON ARQONLARI", full: "♥", empty: "×" },
     millionaire: { title: "IMKON CHIROQLARI", full: "◆", empty: "◇" },
@@ -398,11 +416,11 @@ function GameLivesHud({ mode, livesRemaining, feedback }) {
     <div
       className={`game-lives-hud lives-${mode} ${lostLife ? "did-lose" : ""} ${gainedLife ? "did-gain" : ""}`}
       role="status"
-      aria-label={`${activeLives} ta jon qoldi`}
+      aria-label={__kbUi(`${activeLives} ta jon qoldi`)}
     >
       <strong>{modeCopy.title}</strong>
       <div>
-        {Array.from({ length: maxLives }, (_, index) => (
+        {__kbUi(Array.from({ length: maxLives }, (_, index) => (
           <span
             key={index}
             className={[
@@ -413,9 +431,9 @@ function GameLivesHud({ mode, livesRemaining, feedback }) {
           >
             <i /><b>{index < activeLives ? modeCopy.full : modeCopy.empty}</b>
           </span>
-        ))}
+        )))}
       </div>
-      <small>{feedback?.lifeGained ? "Bosqich tugadi · jon tiklandi" : `Raunddan o'tsangiz jon ${maxLives} tagacha tiklanadi`}</small>
+      <small>{feedback?.lifeGained ? __kbUi("Bosqich tugadi · jon tiklandi") : __kbUi(`Raunddan o'tsangiz jon ${maxLives} tagacha tiklanadi`)}</small>
     </div>
   );
 }
@@ -442,10 +460,11 @@ function gameRoundStates(question = {}, learningLog = [], feedback) {
 }
 
 function BridgeScene({ step, feedback, avatarProfile, states = [] }) {
+  useKbInterfaceLocale();
   const state = sceneStateClass(feedback);
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   return (
-    <section className={`game-scene game-scene-bridge ${state}`} aria-label={`Oltin ko'prik, ${safeStep}-oyna`}>
+    <section className={`game-scene game-scene-bridge ${state}`} aria-label={__kbUi(`Oltin ko'prik, ${safeStep}-oyna`)}>
       <div className="bridge-world" aria-hidden="true">
         <div className="bridge-sun" />
         <div className="bridge-cloud bridge-cloud-one" /><div className="bridge-cloud bridge-cloud-two" />
@@ -462,78 +481,81 @@ function BridgeScene({ step, feedback, avatarProfile, states = [] }) {
               number === safeStep && feedback?.correct === true ? "is-cleared" : "",
             ].filter(Boolean).join(" ");
             return (
-              <span key={number} className={classes} data-outcome={states[number - 1]}><b>{number === 5 ? "★" : number}</b><i /><em /><u /></span>
+              <span key={number} className={classes} data-outcome={states[number - 1]}><b>{number === 5 ? __kbUi("★") : __kbUi(number)}</b><i /><em /><u /></span>
             );
           })}
         </div>
         <div className="bridge-runner-track" style={{ "--runner-index": feedback?.correct === true ? safeStep - 1 : Math.max(-0.25, safeStep - 1.6) }}>
           <div className="bridge-runner"><GameAvatar variant="runner" profile={avatarProfile} /></div>
         </div>
-        <div className="bridge-portal"><i>★</i><b>BOSS</b></div>
+        <div className="bridge-portal"><i>★</i><b>{__kbUi("BOSS")}</b></div>
       </div>
-      <SceneHud icon="◆" label={safeStep === 5 ? "Boss darvozasi" : "To'g'ri oynaga sakrang"} step={safeStep} />
-      <small className="scene-caption">{safeStep === 5 ? "Darvozani ochish uchun final javobni toping" : "To'g'ri javob qahramonni keyingi oynaga olib o'tadi"}</small>
+      <SceneHud icon="◆" label={safeStep === 5 ? __kbUi("Boss darvozasi") : __kbUi("To'g'ri oynaga sakrang")} step={safeStep} />
+      <small className="scene-caption">{safeStep === 5 ? __kbUi("Darvozani ochish uchun final javobni toping") : __kbUi("To'g'ri javob qahramonni keyingi oynaga olib o'tadi")}</small>
     </section>
   );
 }
 
 
 function MillionaireScene({ step, feedback, avatarProfile, states = [] }) {
+  useKbInterfaceLocale();
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const prizes = ["1 000 000", "500 000", "250 000", "125 000", "64 000"];
   return (
-    <section className={`game-scene game-scene-millionaire ${sceneStateClass(feedback)}`} aria-label={`Bilim millioneri, ${safeStep}-pog'ona`}>
+    <section className={`game-scene game-scene-millionaire ${sceneStateClass(feedback)}`} aria-label={__kbUi(`Bilim millioneri, ${safeStep}-pog'ona`)}>
       <div className="millionaire-world" aria-hidden="true">
         <div className="stage-beams"><i /><i /><i /><i /><i /></div>
         <div className="stage-rings"><i /><i /><i /></div>
-        <div className="stage-audience">{Array.from({ length: 24 }, (_, index) => <i key={index} />)}</div>
+        <div className="stage-audience">{__kbUi(Array.from({ length: 24 }, (_, index) => <i key={index} />))}</div>
         <div className="millionaire-chair"><i /><b /><GameAvatar variant="contestant" profile={avatarProfile} /></div>
-        <div className="millionaire-emblem"><span>M</span><i /></div>
+        <div className="millionaire-emblem"><span>{__kbUi("M")}</span><i /></div>
         <div className="millionaire-ladder">
           {prizes.map((prize, index) => {
             const level = 5 - index;
-            return <span key={prize} data-outcome={states[level - 1]} className={[level === safeStep ? "is-current" : "", states[level - 1] === "correct" ? "is-done" : "", states[level - 1] === "missed" ? "is-missed" : ""].filter(Boolean).join(" ")}><i>{states[level - 1] === "correct" ? "✓" : states[level - 1] === "missed" ? "↻" : level}</i><b>{prize}</b></span>;
+            return <span key={prize} data-outcome={states[level - 1]} className={[level === safeStep ? "is-current" : "", states[level - 1] === "correct" ? "is-done" : "", states[level - 1] === "missed" ? "is-missed" : ""].filter(Boolean).join(" ")}><i>{states[level - 1] === "correct" ? __kbUi("✓") : states[level - 1] === "missed" ? __kbUi("↻") : level}</i><b>{__kbUi(prize)}</b></span>;
           })}
         </div>
       </div>
-      <SceneHud icon="₿" label={safeStep === 5 ? "Millionlik savol" : "Navbatdagi pog'ona"} step={safeStep} />
-      <small className="scene-caption">Bilimingiz bilan bosh sovrin tomon ko'tariling</small>
+      <SceneHud icon="₿" label={safeStep === 5 ? __kbUi("Millionlik savol") : __kbUi("Navbatdagi pog'ona")} step={safeStep} />
+      <small className="scene-caption">{__kbUi("Bilimingiz bilan bosh sovrin tomon ko'tariling")}</small>
     </section>
   );
 }
 
 
 function SpaceScene({ step, feedback, avatarProfile, states = [] }) {
+  useKbInterfaceLocale();
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const cleared = states.filter(value => value === "correct").length;
   const rocketIndex = Math.max(-0.2, cleared - 1);
   return (
-    <section className={`game-scene game-scene-space ${sceneStateClass(feedback)}`} aria-label={`Kosmik parvoz, ${safeStep}-orbita`}>
+    <section className={`game-scene game-scene-space ${sceneStateClass(feedback)}`} aria-label={__kbUi(`Kosmik parvoz, ${safeStep}-orbita`)}>
       <div className="space-world" aria-hidden="true">
         <div className="space-nebula" /><div className="space-nebula is-second" />
-        <div className="space-starfield">{Array.from({ length: 34 }, (_, index) => <i key={index} />)}</div>
+        <div className="space-starfield">{__kbUi(Array.from({ length: 34 }, (_, index) => <i key={index} />))}</div>
         <div className="space-planet planet-one"><i /></div>
         <div className="space-planet planet-two"><i /></div>
-        <div className="space-planet planet-boss"><i /><b>BOSS</b></div>
+        <div className="space-planet planet-boss"><i /><b>{__kbUi("BOSS")}</b></div>
         <div className="space-route">{states.map((state, index) => <i key={index} data-outcome={state} className={`is-${state}`} />)}</div>
         <div className="space-rocket-track" style={{ "--rocket-index": rocketIndex }}>
           <div className="space-rocket"><i className="rocket-flame" /><b /><span /><em /></div>
         </div>
         <div className="space-pilot"><GameAvatar variant="astronaut" profile={avatarProfile} /></div>
-        <div className="space-cockpit"><span /><i /><b>ENERGIYA</b><em><u style={{ width: `${cleared * 20}%` }} /></em></div>
+        <div className="space-cockpit"><span /><i /><b>{__kbUi("ENERGIYA")}</b><em><u style={{ width: `${cleared * 20}%` }} /></em></div>
       </div>
-      <SceneHud icon="✦" label={safeStep === 5 ? "Boss sayyorasi" : "Keyingi orbitaga uching"} step={safeStep} />
-      <small className="scene-caption">Har to'g'ri javob raketaga yangi quvvat beradi</small>
+      <SceneHud icon="✦" label={safeStep === 5 ? __kbUi("Boss sayyorasi") : __kbUi("Keyingi orbitaga uching")} step={safeStep} />
+      <small className="scene-caption">{__kbUi("Har to'g'ri javob raketaga yangi quvvat beradi")}</small>
     </section>
   );
 }
 
 
 function DetectiveScene({ step, feedback, avatarProfile, states = [] }) {
+  useKbInterfaceLocale();
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   const clueLabels = ["IZ", "KALIT", "XARITA", "KOD"];
   return (
-    <section className={`game-scene game-scene-detective ${sceneStateClass(feedback)}`} aria-label={`Bilim detektivi, ${safeStep}-dalil`}>
+    <section className={`game-scene game-scene-detective ${sceneStateClass(feedback)}`} aria-label={__kbUi(`Bilim detektivi, ${safeStep}-dalil`)}>
       <div className="detective-world" aria-hidden="true">
         <div className="detective-window"><i /><i /><i /><i /></div>
         <div className="detective-lamp"><i /><b /></div>
@@ -544,23 +566,24 @@ function DetectiveScene({ step, feedback, avatarProfile, states = [] }) {
           {clueLabels.map((label, index) => {
             const number = index + 1;
             const outcome = states[index];
-            return <span key={label} data-outcome={outcome} className={[outcome === "correct" ? "is-found" : "", outcome === "missed" ? "is-missed" : "", number === safeStep ? "is-current" : ""].filter(Boolean).join(" ")}><i>{number}</i><b>{label}</b><em>{outcome === "correct" ? "TOPILDI" : outcome === "missed" ? "QAYTA" : "?"}</em></span>;
+            return <span key={label} data-outcome={outcome} className={[outcome === "correct" ? "is-found" : "", outcome === "missed" ? "is-missed" : "", number === safeStep ? "is-current" : ""].filter(Boolean).join(" ")}><i>{number}</i><b>{__kbUi(label)}</b><em>{outcome === "correct" ? __kbUi("TOPILDI") : outcome === "missed" ? __kbUi("QAYTA") : __kbUi("?")}</em></span>;
           })}
-          <b data-outcome={states[4]} className={`detective-verdict ${safeStep === 5 ? "is-current" : ""} ${states[4] === "correct" ? "is-found" : states[4] === "missed" ? "is-missed" : ""}`}>XULOSA<i>{states[4] === "correct" ? "✓" : "★"}</i></b>
+          <b data-outcome={states[4]} className={`detective-verdict ${safeStep === 5 ? "is-current" : ""} ${states[4] === "correct" ? "is-found" : states[4] === "missed" ? "is-missed" : ""}`}>{__kbUi("XULOSA")}<i>{states[4] === "correct" ? __kbUi("✓") : __kbUi("★")}</i></b>
         </div>
         <div className="detective-spotlight" />
       </div>
-      <SceneHud icon="⌕" label={safeStep === 5 ? "Sirni oching" : `${safeStep}-dalilni toping`} step={safeStep} />
-      <small className="scene-caption">Savolni yeching va ish doskasidagi sirli bog'lanishni oching</small>
+      <SceneHud icon="⌕" label={safeStep === 5 ? __kbUi("Sirni oching") : __kbUi(`${safeStep}-dalilni toping`)} step={safeStep} />
+      <small className="scene-caption">{__kbUi("Savolni yeching va ish doskasidagi sirli bog'lanishni oching")}</small>
     </section>
   );
 }
 
 
 function CityScene({ step, feedback, avatarProfile, states = [] }) {
+  useKbInterfaceLocale();
   const safeStep = Math.max(1, Math.min(5, Number(step) || 1));
   return (
-    <section className={`game-scene game-scene-city ${sceneStateClass(feedback)}`} aria-label={`Bilim shahri, ${safeStep}-qurilish`}>
+    <section className={`game-scene game-scene-city ${sceneStateClass(feedback)}`} aria-label={__kbUi(`Bilim shahri, ${safeStep}-qurilish`)}>
       <div className="city-world" aria-hidden="true">
         <div className="city-sun" /><div className="city-cloud is-one" /><div className="city-cloud is-two" />
         <div className="city-hills"><i /><i /></div>
@@ -568,7 +591,7 @@ function CityScene({ step, feedback, avatarProfile, states = [] }) {
         <div className="city-skyline">
           {[1, 2, 3, 4, 5].map((number) => (
             <span key={number} data-outcome={states[number - 1]} className={`${states[number - 1] === "correct" ? "is-built" : ""} ${states[number - 1] === "missed" ? "is-missed" : ""} ${number === safeStep ? "is-current" : ""} ${number === safeStep && feedback?.correct === true ? "is-built-now" : ""}`}>
-              <b>{number === 5 ? "★" : ""}</b>{Array.from({ length: Math.min(8, number + 3) }, (_, index) => <i key={index} />)}
+              <b>{number === 5 ? __kbUi("★") : __kbUi("")}</b>{__kbUi(Array.from({ length: Math.min(8, number + 3) }, (_, index) => <i key={index} />))}
             </span>
           ))}
         </div>
@@ -576,8 +599,8 @@ function CityScene({ step, feedback, avatarProfile, states = [] }) {
         <div className="city-builder"><GameAvatar variant="builder" profile={avatarProfile} /><i className="builder-plan" /></div>
         <div className="city-trees"><i /><i /><i /></div>
       </div>
-      <SceneHud icon="▦" label={safeStep === 5 ? "Shahar markazi" : "Yangi bino quring"} step={safeStep} />
-      <small className="scene-caption">To'g'ri javob bilan shahringizga yangi bino qo'shing</small>
+      <SceneHud icon="▦" label={safeStep === 5 ? __kbUi("Shahar markazi") : __kbUi("Yangi bino quring")} step={safeStep} />
+      <small className="scene-caption">{__kbUi("To'g'ri javob bilan shahringizga yangi bino qo'shing")}</small>
     </section>
   );
 }
@@ -600,14 +623,15 @@ function gameClockNow() {
 
 
 function GameTimer({ timer }) {
+  useKbInterfaceLocale();
   if (!timer || timer.phase === "inactive") return null;
   if (timer.phase === "preparing") {
     return (
       <div className="game-timer is-preparing" role="status" aria-live="polite">
         <span className="game-timer-icon" aria-hidden="true">◷</span>
         <div>
-          <strong>{timer.autoReading ? "Savol ovozli o'qilmoqda" : "Vaqt tayyorlanmoqda"}</strong>
-          <small>Hisob savol tayyor bo'lgach boshlanadi</small>
+          <strong>{timer.autoReading ? __kbUi("Savol ovozli o'qilmoqda") : __kbUi("Vaqt tayyorlanmoqda")}</strong>
+          <small>{__kbUi("Hisob savol tayyor bo'lgach boshlanadi")}</small>
         </div>
       </div>
     );
@@ -617,10 +641,10 @@ function GameTimer({ timer }) {
       <div className="game-timer is-error" role="alert">
         <span className="game-timer-icon" aria-hidden="true">!</span>
         <div>
-          <strong>Vaqtni boshlab bo'lmadi</strong>
-          <small>{timer.message || "Internetni tekshirib, qayta urinib ko'ring"}</small>
+          <strong>{__kbUi("Vaqtni boshlab bo'lmadi")}</strong>
+          <small>{timer.message || __kbUi("Internetni tekshirib, qayta urinib ko'ring")}</small>
         </div>
-        {timer.onRetry && <button type="button" onClick={timer.onRetry}>Qayta urinish</button>}
+        {timer.onRetry && <button type="button" onClick={timer.onRetry}>{__kbUi("Qayta urinish")}</button>}
       </div>
     );
   }
@@ -633,17 +657,17 @@ function GameTimer({ timer }) {
     <div
       className={`game-timer ${warning ? "is-warning" : ""} ${critical ? "is-critical" : ""} ${timer.phase === "expired" ? "is-expired" : ""}`}
       role="timer"
-      aria-label={timer.phase === "expired" ? "Vaqt tugadi" : `${Math.ceil(remaining)} soniya qoldi`}
+      aria-label={timer.phase === "expired" ? __kbUi("Vaqt tugadi") : __kbUi(`${Math.ceil(remaining)} soniya qoldi`)}
     >
       <span className="game-timer-icon" aria-hidden="true">⏱</span>
       <div className="game-timer-copy">
-        <strong>{timer.phase === "expired" ? "Vaqt tugadi" : formatGameTimerSeconds(remaining)}</strong>
-        <small>Tezlik uchun bonus yo'q · aniq javob muhim</small>
+        <strong>{timer.phase === "expired" ? __kbUi("Vaqt tugadi") : __kbUi(formatGameTimerSeconds(remaining))}</strong>
+        <small>{__kbUi("Tezlik uchun bonus yo'q · aniq javob muhim")}</small>
       </div>
       <div
         className="game-timer-track"
         role="progressbar"
-        aria-label="Savol uchun qolgan vaqt"
+        aria-label={__kbUi("Savol uchun qolgan vaqt")}
         aria-valuemin="0"
         aria-valuemax={Math.ceil(limit)}
         aria-valuenow={Math.ceil(remaining)}
@@ -663,6 +687,7 @@ function isFailureTerminal(payload = {}) {
 
 
 function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics, learningLog = [], apiBase }) {
+  useKbInterfaceLocale();
   const meta = modeForId(mode);
   const lives = gameLivesRemaining(terminal, terminal?.result);
   const terminalResult = terminal?.result;
@@ -676,23 +701,23 @@ function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics, lear
     <div className="game-result-overlay">
       <div className="game-result game-terminal-result" style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1] }}>
         <div className="game-result-burst">♥</div>
-        <p className="game-kicker">MISSIYA YAKUNLANDI</p>
-        <h1>{modeNameForBand(mode, gradeBand)}</h1>
+        <p className="game-kicker">{__kbUi("MISSIYA YAKUNLANDI")}</p>
+        <h1>{__kbUi(modeNameForBand(mode, gradeBand))}</h1>
         <p className="game-terminal-message">{message}</p>
-        {lives !== null && <p className="game-terminal-lives">♥ {lives} imkon qoldi</p>}
+        {lives !== null && <p className="game-terminal-lives">♥ {lives}{__kbUi(" imkon qoldi")}</p>}
         {terminalResult && (
           <>
             <div className="game-result-score" style={{ color: meta.colors[0] }}>
               <strong>{terminalResult.score_1000 || 0}</strong><span>/ 1000</span>
             </div>
-            <p>{terminalResult.correct_count || 0} / {terminalResult.total || 0} to'g'ri · {terminalResult.percent || 0}% bilim natijasi</p>
+            <p>{terminalResult.correct_count || 0} / {terminalResult.total || 0}{__kbUi(" to'g'ri · ")}{terminalResult.percent || 0}{__kbUi("% bilim natijasi")}</p>
             <GameProfileStrip profile={terminalResult.profile} accent={meta.colors[0]} compact />
           </>
         )}
         <LearningReview entries={learningLog} apiBase={apiBase} />
         <div className="game-result-actions">
-          <button type="button" onClick={onSetup}>Qayta urinish</button>
-          <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
+          <button type="button" onClick={onSetup}>{__kbUi("Qayta urinish")}</button>
+          <button type="button" className="is-secondary" onClick={onTopics}>{__kbUi("Boshqa mavzu")}</button>
         </div>
       </div>
     </div>
@@ -701,35 +726,36 @@ function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics, lear
 
 
 function ResultScreen({ result, mode, gradeBand, onSetup, onTopics, learningLog = [], apiBase }) {
+  useKbInterfaceLocale();
   const meta = modeForId(mode);
   const color = result.score_1000 >= 850 ? "#C58B19" : result.score_1000 >= 600 ? meta.colors[0] : "#9A3412";
   return (
     <div className="game-result-overlay">
       <div className="game-result" style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1] }}>
-        <div className="game-result-burst">{result.perfect ? "★" : result.completed ? "✓" : "■"}</div>
-        <p className="game-kicker">{result.completed ? "MISSIYA YAKUNLANDI" : "O'YIN TO'XTATILDI"}</p>
-        <h1>{modeNameForBand(mode, gradeBand)}</h1>
+        <div className="game-result-burst">{result.perfect ? __kbUi("★") : result.completed ? __kbUi("✓") : __kbUi("■")}</div>
+        <p className="game-kicker">{result.completed ? __kbUi("MISSIYA YAKUNLANDI") : __kbUi("O'YIN TO'XTATILDI")}</p>
+        <h1>{__kbUi(modeNameForBand(mode, gradeBand))}</h1>
         <div className="game-result-score" style={{ color }}>
           <strong>{result.score_1000 || 0}</strong><span>/ 1000</span>
         </div>
-        <p>{result.correct_count || 0} / {result.total || 0} to'g'ri · {result.percent || 0}% bilim natijasi</p>
+        <p>{result.correct_count || 0} / {result.total || 0}{__kbUi(" to'g'ri · ")}{result.percent || 0}{__kbUi("% bilim natijasi")}</p>
         <div className="game-result-breakdown">
-          <span><b>{result.regular_points || 0}</b> test</span>
-          <span><b>{result.boss_points || 0}</b> nazorat</span>
-          <span><b>{result.completion_points || 0}</b> yakun</span>
-          <span><b>{result.mastery_bonus || 0}</b> bonus</span>
+          <span><b>{result.regular_points || 0}</b>{__kbUi(" test")}</span>
+          <span><b>{result.boss_points || 0}</b>{__kbUi(" nazorat")}</span>
+          <span><b>{result.completion_points || 0}</b>{__kbUi(" yakun")}</span>
+          <span><b>{result.mastery_bonus || 0}</b>{__kbUi(" bonus")}</span>
         </div>
         <div className="game-earned-points">
-          <span>Hisobga qo'shildi</span>
-          <strong>+{result.awarded_points || 0} ochko</strong>
-          {result.daily_first_test_points > 0 && <small>Shundan +{result.daily_first_test_points} — bugungi birinchi tugallangan test</small>}
-          {result.awarded_points === 0 && result.completed && <small>Bu natija avvalgi rekordingizdan oshmadi; bilim foizi baribir saqlandi.</small>}
+          <span>{__kbUi("Hisobga qo'shildi")}</span>
+          <strong>+{result.awarded_points || 0}{__kbUi(" ochko")}</strong>
+          {result.daily_first_test_points > 0 && <small>{__kbUi("Shundan +")}{result.daily_first_test_points}{__kbUi(" — bugungi birinchi tugallangan test")}</small>}
+          {result.awarded_points === 0 && result.completed && <small>{__kbUi("Bu natija avvalgi rekordingizdan oshmadi; bilim foizi baribir saqlandi.")}</small>}
         </div>
         <GameProfileStrip profile={result.profile} accent={meta.colors[0]} compact />
         <LearningReview entries={learningLog} apiBase={apiBase} />
         <div className="game-result-actions">
-          <button type="button" onClick={onSetup}>Shu mavzuda yana</button>
-          <button type="button" className="is-secondary" onClick={onTopics}>Boshqa mavzu</button>
+          <button type="button" onClick={onSetup}>{__kbUi("Shu mavzuda yana")}</button>
+          <button type="button" className="is-secondary" onClick={onTopics}>{__kbUi("Boshqa mavzu")}</button>
         </div>
       </div>
     </div>
@@ -754,6 +780,7 @@ export default function TestGameArena({
   subjectName = "",
   topicName = "",
 }) {
+  useKbInterfaceLocale();
   const initialFailure = isFailureTerminal(initialSession) ? initialSession : null;
   const [session, setSession] = useState(initialSession);
   const [selectedOption, setSelectedOption] = useState("");
@@ -1517,7 +1544,7 @@ export default function TestGameArena({
       />
     );
   }
-  if (!question) return <div className="game-loading">O'yin holati yuklanmoqda...</div>;
+  if (!question) return <div className="game-loading">{__kbUi("O'yin holati yuklanmoqda...")}</div>;
 
   const overallProgress = Math.max(0, Math.min(100, ((question.position - 1) / question.total) * 100));
   const feedbackFinal = Boolean(feedback?.finalized);
@@ -1571,26 +1598,26 @@ export default function TestGameArena({
     >
       <header className="game-topbar">
         <div>
-          <small>{age.label} · {avatarProfile.gender === "girl" ? "qiz" : "o'g'il"} qahramon · {question.round}-raund</small>
+          <small>{__kbUi(age.label)} · {avatarProfile.gender === "girl" ? __kbUi("qiz") : __kbUi("o'g'il")}{__kbUi(" qahramon · ")}{question.round}{__kbUi("-raund")}</small>
           <strong>{meta.name}</strong>
         </div>
         <div className="game-top-stats">
           <span>✓ {session.correct_count || 0}</span>
-          {livesRemaining !== null && <span aria-label={`${livesRemaining} imkon qoldi`}>♥ {livesRemaining}</span>}
+          {livesRemaining !== null && <span aria-label={__kbUi(`${livesRemaining} imkon qoldi`)}>♥ {livesRemaining}</span>}
           <span>{question.position}/{question.total}</span>
-          <button type="button" onClick={() => setStopConfirm(true)} aria-label="O'yinni to'xtatish">■</button>
+          <button type="button" onClick={() => setStopConfirm(true)} aria-label={__kbUi("O'yinni to'xtatish")}>■</button>
         </div>
       </header>
-      <div className="game-overall-track" role="progressbar" aria-label="O'yin jarayoni" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
+      <div className="game-overall-track" role="progressbar" aria-label={__kbUi("O'yin jarayoni")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
 
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
           {mode === "millionaire" && question.can_use_lifeline && (
-            <div className="game-lifelines" aria-label="Yordamlar">
+            <div className="game-lifelines" aria-label={__kbUi("Yordamlar")}>
               <button type="button" disabled={interactionLocked || !session.lifelines?.fifty_fifty || question.lifeline_used} onClick={() => useLifeline("fifty_fifty")}>50/50</button>
-              <button type="button" disabled={interactionLocked || !session.lifelines?.remove_one || question.lifeline_used} onClick={() => useLifeline("remove_one")}>−1 xato</button>
+              <button type="button" disabled={interactionLocked || !session.lifelines?.remove_one || question.lifeline_used} onClick={() => useLifeline("remove_one")}>{__kbUi("−1 xato")}</button>
             </div>
           )}
 
@@ -1599,8 +1626,8 @@ export default function TestGameArena({
             className={`game-question-card game-question-in-scene ${isBoss ? "is-boss" : ""} ${feedback?.correct === true ? "is-answer-correct" : ""} ${feedback?.correct === false || feedback?.type === "timeout" ? "is-answer-wrong" : ""} ${feedbackTransition ? "is-advancing" : ""}`}
           >
         <div className="game-question-label">
-          <span>{isBoss ? "★ Nazorat savoli" : `${question.round_step}-savol`}</span>
-          {isBoss && <small>4 variantdan birini tanlang</small>}
+          <span>{isBoss ? __kbUi("★ Nazorat savoli") : __kbUi(`${question.round_step}-savol`)}</span>
+          {isBoss && <small>{__kbUi("4 variantdan birini tanlang")}</small>}
         </div>
         <GameImage value={question.rasm_id} apiBase={apiBase} />
         <div className="game-question-heading">
@@ -1611,19 +1638,19 @@ export default function TestGameArena({
               className={`game-read-button is-${readStatus}`}
               disabled={voiceLocked}
               onClick={() => onRead(readText, { manual: true })}
-              aria-label={readButtonLabel}
-              title={readButtonLabel}
+              aria-label={__kbUi(readButtonLabel)}
+              title={__kbUi(readButtonLabel)}
             >
               {readButtonIcon}
             </button>
           )}
         </div>
-        {readError && <div className="game-voice-error" role="alert">Ovoz ishga tushmadi. Karnayni yana bosing.</div>}
+        {readError && <div className="game-voice-error" role="alert">{__kbUi("Ovoz ishga tushmadi. Karnayni yana bosing.")}</div>}
 
         <div
           className={`game-options ${mode === "bridge" ? `bridge-answer-course is-${bridgeOutcome}` : ""}`}
           style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%" } : undefined}
-          aria-label={isBoss ? "Nazorat savoli variantlari" : "Javob variantlari"}
+          aria-label={isBoss ? __kbUi("Nazorat savoli variantlari") : __kbUi("Javob variantlari")}
         >
           {(question.options || []).map((option) => (
             <button
@@ -1640,7 +1667,7 @@ export default function TestGameArena({
               onClick={() => submitAnswer(option.key)}
             >
               <span>{option.key}</span>
-              <b>{option.hidden ? "Xato javob olib tashlandi" : <GameText value={option.text} />}</b>
+              <b>{option.hidden ? __kbUi("Xato javob olib tashlandi") : <GameText value={option.text} />}</b>
             </button>
           ))}
         </div>
@@ -1651,48 +1678,46 @@ export default function TestGameArena({
           {feedback?.finalized && (
             <div className={feedback.correct ? "is-correct" : "is-error"} style={{ padding: "18px", borderRadius: "16px", border: `2px solid ${feedback.correct ? "#238665" : "#B43B3B"}`, background: feedback.correct ? "#EAF7F1" : "#FFF0F0", color: "#21384C" }}>
               <strong style={{ display: "block", fontSize: "20px", lineHeight: 1.35, color: feedback.correct ? "#176B4E" : "#942828" }}>
-                {feedback.correct ? `✓ To‘g‘ri javob: ${feedback.correctAnswer || selectedOption || "—"}` : `✗ To‘g‘ri javob: ${feedback.correctAnswer || "—"}`}
+                {feedback.correct ? __kbUi(`✓ To‘g‘ri javob: ${feedback.correctAnswer || selectedOption || "—"}`) : __kbUi(`✗ To‘g‘ri javob: ${feedback.correctAnswer || "—"}`)}
               </strong>
-              {feedback.explanation && <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #CAD8D2", fontSize: "16px", lineHeight: 1.7 }}><b style={{ display: "block", marginBottom: "4px" }}>Izoh:</b><GameText value={feedback.explanation} /></div>}
-              {pendingNext && <button type="button" onClick={moveNext} style={{ marginTop: "14px", padding: "11px 16px", borderRadius: "11px", border: 0, background: "#1B4B7A", color: "white", fontWeight: 800 }}>Izohni o‘qidim — keyingi savol</button>}
+              {feedback.explanation && <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #CAD8D2", fontSize: "16px", lineHeight: 1.7 }}><b style={{ display: "block", marginBottom: "4px" }}>{__kbUi("Izoh:")}</b><GameText value={feedback.explanation} /></div>}
+              {pendingNext && <button type="button" onClick={moveNext} style={{ marginTop: "14px", padding: "11px 16px", borderRadius: "11px", border: 0, background: "#1B4B7A", color: "white", fontWeight: 800 }}>{__kbUi("Izohni o‘qidim — keyingi savol")}</button>}
             </div>
           )}
-          {feedback?.type === "lifeline" && <div className="is-help"><strong>Yordam ishladi</strong><p>{feedback.text}</p></div>}
+          {feedback?.type === "lifeline" && <div className="is-help"><strong>{__kbUi("Yordam ishladi")}</strong><p>{feedback.text}</p></div>}
           {feedback?.type === "retry" && feedback.text ? <div className="is-help"><p><GameText value={feedback.text}/></p></div> : null}
-          {feedbackTransition ? <div className="edu-feedback-actions"><button type="button" aria-pressed={holdExplanation} onClick={() => setHoldExplanation(current => !current)}>{holdExplanation ? "▶ Avtomatik davomni yoqish" : "⏸ Izohni o‘qish uchun to‘xtatish"}</button><small role="status">{holdExplanation ? "Izohni shoshilmay o‘qing. Keyingi savol hali boshlanmagan." : `${feedbackCountdown ?? 5} soniyadan so‘ng ${pendingResult || pendingTerminal ? "natija ochiladi" : "davom etiladi"}.`}</small></div> : null}
+          {feedbackTransition ? <div className="edu-feedback-actions"><button type="button" aria-pressed={holdExplanation} onClick={() => setHoldExplanation(current => !current)}>{holdExplanation ? __kbUi("▶ Avtomatik davomni yoqish") : __kbUi("⏸ Izohni o‘qish uchun to‘xtatish")}</button><small role="status">{holdExplanation ? __kbUi("Izohni shoshilmay o‘qing. Keyingi savol hali boshlanmagan.") : __kbUi(`${feedbackCountdown ?? 5} soniyadan so‘ng ${pendingResult || pendingTerminal ? "natija ochiladi" : "davom etiladi"}.`)}</small></div> : null}
           {feedback?.type === "timeout" && feedback?.retryable && (
             <div className="is-timeout">
-              <strong>Server bilan aloqa uzildi</strong>
-              <p>Natijani xavfsiz qayta yuborishingiz mumkin.</p>
-              <button type="button" className="game-timeout-retry" onClick={retryTimeout} disabled={busy || stopConfirm}>
-                Qayta yuborish
-              </button>
+              <strong>{__kbUi("Server bilan aloqa uzildi")}</strong>
+              <p>{__kbUi("Natijani xavfsiz qayta yuborishingiz mumkin.")}</p>
+              <button type="button" className="game-timeout-retry" onClick={retryTimeout} disabled={busy || stopConfirm}>{__kbUi("Qayta yuborish")}</button>
             </div>
           )}
-          {error && <div className="is-error">{error}</div>}
+          {error && <div className="is-error">{__kbUi(error)}</div>}
         </div>
           </main>
         </div>
-        <aside className="game-mission-sidebar game-visual-panel" aria-label="O‘yin sahnasi va natijalar">
-          <header className="game-world-heading"><small>{subjectName || "BILIM SARGUZASHTI"}{topicName ? ` · ${topicName}` : ""}</small><strong>{meta.name}</strong></header>
+        <aside className="game-mission-sidebar game-visual-panel" aria-label={__kbUi("O‘yin sahnasi va natijalar")}>
+          <header className="game-world-heading"><small>{subjectName || __kbUi("BILIM SARGUZASHTI")}{topicName ? __kbUi(` · ${topicName}`) : __kbUi("")}</small><strong>{meta.name}</strong></header>
           <div className="game-world-viewport">
             <GameScene key={questionKey} mode={mode} question={question} feedback={feedback} avatarProfile={avatarProfile} learningLog={learningLog} />
             <SceneFeedbackFX feedback={feedback} mode={mode} transition={feedbackTransition} countdown={feedbackCountdown} paused={holdExplanation} bossName="Nazorat savoli" />
           </div>
           {livesRemaining !== null && <GameLivesHud mode={mode} livesRemaining={livesRemaining} feedback={feedback} />}
-          <div className="game-world-progress"><strong>{question.round}-raund · {question.round_step}/5 savol</strong><span>{gameRoundStates(question, learningLog, feedback).filter(state => state === "correct").length}/5 to‘g‘ri</span></div>
+          <div className="game-world-progress"><strong>{question.round}{__kbUi("-raund · ")}{question.round_step}{__kbUi("/5 savol")}</strong><span>{gameRoundStates(question, learningLog, feedback).filter(state => state === "correct").length}{__kbUi("/5 to‘g‘ri")}</span></div>
         </aside>
       </div>
 
       {stopConfirm && (
-        <div className="game-modal-backdrop" role="dialog" aria-modal="true" aria-label="O'yinni to'xtatish">
+        <div className="game-modal-backdrop" role="dialog" aria-modal="true" aria-label={__kbUi("O'yinni to'xtatish")}>
           <div className="game-modal">
-            <h2>O'yinni to'xtatasizmi?</h2>
-            <p>Bilim natijangiz saqlanadi, ammo o'yinni tugatish bonusi va hisob ochkosi berilmaydi.</p>
-            {error && <p className="game-modal-error" role="alert">{error}</p>}
+            <h2>{__kbUi("O'yinni to'xtatasizmi?")}</h2>
+            <p>{__kbUi("Bilim natijangiz saqlanadi, ammo o'yinni tugatish bonusi va hisob ochkosi berilmaydi.")}</p>
+            {error && <p className="game-modal-error" role="alert">{__kbUi(error)}</p>}
             <div>
-              <button type="button" autoFocus onClick={closeStopConfirm} disabled={busy}>Davom etish</button>
-              <button type="button" className="is-danger" onClick={stopGame} disabled={busy}>Ha, to'xtatish</button>
+              <button type="button" autoFocus onClick={closeStopConfirm} disabled={busy}>{__kbUi("Davom etish")}</button>
+              <button type="button" className="is-danger" onClick={stopGame} disabled={busy}>{__kbUi("Ha, to'xtatish")}</button>
             </div>
           </div>
         </div>

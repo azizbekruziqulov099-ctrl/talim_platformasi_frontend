@@ -1,3 +1,6 @@
+import {useTranslatedContent,ContentTranslationStatus} from '../interface/TranslatedContent.jsx';
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useMemo } from "react";
 import katex from "katex";
 
@@ -19,6 +22,9 @@ export function splitCourseMath(value) {
   return parts;
 }
 export default function CourseText({ text, className = "" }) {
+  const translation=useTranslatedContent(text);
+  text=translation.text;
+  useKbInterfaceLocale();
   const parts = useMemo(() => splitCourseMath(text).map(part => {
     if (!part.math || part.math.length > 6000) return part;
     try { return { ...part, html: katex.renderToString(part.math, { displayMode: part.display, throwOnError: true, trust: false, strict: "error", maxExpand: 250, maxSize: 20, output: "htmlAndMathml" }) }; }
@@ -26,5 +32,5 @@ export default function CourseText({ text, className = "" }) {
   }), [text]);
   return <div className={`academy-text ${className}`} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.75 }}>
     {parts.map((part, index) => part.html ? <span key={index} style={part.display ? { display: "block", overflowX: "auto", maxWidth: "100%" } : undefined} dangerouslySetInnerHTML={{ __html: part.html }} /> : <React.Fragment key={index}>{part.text ?? part.source}</React.Fragment>)}
-  </div>;
+  <ContentTranslationStatus translation={translation}/></div>;
 }

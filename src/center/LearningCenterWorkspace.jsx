@@ -1,3 +1,5 @@
+import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -205,9 +207,10 @@ function saveAvatarPreferences(value) {
 }
 
 function BackButton({ onClick, label = "Ortga" }) {
+  useKbInterfaceLocale();
   return (
     <button type="button" className="lc-back" onClick={onClick}>
-      <ArrowLeft size={17} /> {label}
+      <ArrowLeft size={17} /> {__kbUi(label)}
     </button>
   );
 }
@@ -222,17 +225,17 @@ function LoadingBlock({ text = "Yuklanmoqda..." }) {
 }
 
 function ErrorNotice({ error, onRetry }) {
+  useKbInterfaceLocale();
   if (!error) return null;
   return (
     <div className="lc-error" role="alert">
       <div>
-        <b>Amal bajarilmadi</b>
-        <p>{error}</p>
+        <b>{__kbUi("Amal bajarilmadi")}</b>
+        <p>{__kbUi(error)}</p>
       </div>
       {onRetry && (
         <button type="button" onClick={onRetry}>
-          <RefreshCw size={15} /> Qayta urinish
-        </button>
+          <RefreshCw size={15} />{__kbUi(" Qayta urinish")}</button>
       )}
     </div>
   );
@@ -258,28 +261,31 @@ function EmptyState({ icon: Icon = Search, title, text }) {
 }
 
 function StatusPill({ status }) {
+  useKbInterfaceLocale();
   if (!status) return null;
   return (
     <span className={`lc-status ${status}`}>
-      {STATUS_LABELS[status] || status}
+      {STATUS_LABELS[status] || __kbUi(status)}
     </span>
   );
 }
 
 function Field({ label, hint, children, wide = false, aiField }) {
+  useKbInterfaceLocale();
   return (
     <label
       className={`lc-field ${wide ? "wide" : ""}`}
       data-ai-field={aiField || undefined}
     >
-      <span>{label}</span>
+      <span>{__kbUi(label)}</span>
       {children}
-      {hint && <small>{hint}</small>}
+      {hint && <small>{__kbUi(hint)}</small>}
     </label>
   );
 }
 
 function WeekdayPicker({ value = [], onChange }) {
+  useKbInterfaceLocale();
   const selected = new Set((value || []).map(Number));
   return (
     <div className="lc-weekdays">
@@ -294,9 +300,9 @@ function WeekdayPicker({ value = [], onChange }) {
             else next.add(day.value);
             onChange([...next].sort());
           }}
-          title={day.label}
+          title={__kbUi(day.label)}
         >
-          {day.short}
+          {__kbUi(day.short)}
         </button>
       ))}
     </div>
@@ -328,12 +334,13 @@ function ActionButton({
 }
 
 function TruncationNotice({ count, capped, hasMore }) {
+  useKbInterfaceLocale();
   if (!capped && !hasMore) return null;
   return (
     <div className="lc-truncation">
       {capped
-        ? "Ko‘rsatish chegarasiga yetildi. Qidiruv yoki filtrdan foydalaning."
-        : `${count} ta yozuv yuklandi. Qolganini “Yana ko‘rsatish” orqali oling.`}
+        ? __kbUi("Ko‘rsatish chegarasiga yetildi. Qidiruv yoki filtrdan foydalaning.")
+        : __kbUi(`${count} ta yozuv yuklandi. Qolganini “Yana ko‘rsatish” orqali oling.`)}
     </div>
   );
 }
@@ -446,6 +453,7 @@ function usePagedResource({
 }
 
 function SelectorPagination({ resources = [] }) {
+  useKbInterfaceLocale();
   const pending = resources.filter(
     ([, resource]) => resource?.hasMore || resource?.capped,
   );
@@ -460,10 +468,9 @@ function SelectorPagination({ resources = [] }) {
             busy={resource.busy}
             onClick={resource.loadMore}
           >
-            {label}: yana 100 ta
-          </ActionButton>
+            {__kbUi(label)}{__kbUi(": yana 100 ta")}</ActionButton>
         ) : (
-          <small key={label}>{label}: sahifalash xavfsiz to‘xtatildi.</small>
+          <small key={label}>{__kbUi(label)}{__kbUi(": sahifalash xavfsiz to‘xtatildi.")}</small>
         ),
       )}
     </div>
@@ -471,6 +478,7 @@ function SelectorPagination({ resources = [] }) {
 }
 
 function LoadMore({ resource }) {
+  useKbInterfaceLocale();
   return (
     <>
       <TruncationNotice
@@ -483,9 +491,7 @@ function LoadMore({ resource }) {
           secondary
           busy={resource.busy}
           onClick={resource.loadMore}
-        >
-          Yana ko‘rsatish
-        </ActionButton>
+        >{__kbUi("Yana ko‘rsatish")}</ActionButton>
       )}
     </>
   );
@@ -500,6 +506,7 @@ export default function LearningCenterWorkspace({
   assignedOnly = false,
   canCreateInstitution = true,
 }) {
+  useKbInterfaceLocale();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [workspaces, setWorkspaces] = useState([]);
@@ -723,7 +730,7 @@ export default function LearningCenterWorkspace({
     return (
       <div className="lc-shell">
         <BackButton onClick={onBack} />
-        <LoadingBlock text="O‘quv markazi ish maydoni yuklanmoqda..." />
+        <LoadingBlock text={__kbUi("O‘quv markazi ish maydoni yuklanmoqda...")} />
       </div>
     );
   }
@@ -762,15 +769,12 @@ export default function LearningCenterWorkspace({
 
   return (
     <div className="lc-shell">
-      <BackButton onClick={onBack} label="Asosiy platforma" />
+      <BackButton onClick={onBack} label={__kbUi("Asosiy platforma")} />
       <header className="lc-hero">
         <div>
-          <span className="lc-eyebrow">O‘QUV MARKAZI</span>
-          <h1>Repetitor va markaz boshqaruvi — bitta sodda ish maydonida</h1>
-          <p>
-            Direktor, administrator, o‘qituvchi, o‘quvchi va ota-ona o‘z
-            vazifasiga mos ko‘rinishda ishlaydi.
-          </p>
+          <span className="lc-eyebrow">{__kbUi("O‘QUV MARKAZI")}</span>
+          <h1>{__kbUi("Repetitor va markaz boshqaruvi — bitta sodda ish maydonida")}</h1>
+          <p>{__kbUi("Direktor, administrator, o‘qituvchi, o‘quvchi va ota-ona o‘z vazifasiga mos ko‘rinishda ishlaydi.")}</p>
         </div>
         <span className="lc-hero-icon">
           <GraduationCap size={42} />
@@ -785,16 +789,16 @@ export default function LearningCenterWorkspace({
           onClick={() => setScreen("create")}
         >
           <span><Plus size={23} /></span>
-          <b>Yangi markaz ochish</b>
-          <p>AI avatar bilan bosqichma-bosqich sozlang</p>
+          <b>{__kbUi("Yangi markaz ochish")}</b>
+          <p>{__kbUi("AI avatar bilan bosqichma-bosqich sozlang")}</p>
           <ChevronRight size={18} />
         </button>
       </section>}
 
       {assignedOnly && workspaces.length === 0 && (
         <InfoNotice>
-          <b>Markaz ish joyi ulanmagan</b>
-          <p>Oddiy o‘qituvchi markaz ochmaydi. Administrator sizni markazga biriktirgach, ish maydoni shu yerda ko‘rinadi; shaxsiy dars uchun esa “Repetitorlik ochish”dan foydalaning.</p>
+          <b>{__kbUi("Markaz ish joyi ulanmagan")}</b>
+          <p>{__kbUi("Oddiy o‘qituvchi markaz ochmaydi. Administrator sizni markazga biriktirgach, ish maydoni shu yerda ko‘rinadi; shaxsiy dars uchun esa “Repetitorlik ochish”dan foydalaning.")}</p>
         </InfoNotice>
       )}
 
@@ -802,14 +806,11 @@ export default function LearningCenterWorkspace({
         <section className="lc-workspaces">
           <div className="lc-section-heading">
             <div>
-              <span className="lc-eyebrow">TIZIM TEKSHIRUVI</span>
-              <h2>Davlat markazi arizalari</h2>
+              <span className="lc-eyebrow">{__kbUi("TIZIM TEKSHIRUVI")}</span>
+              <h2>{__kbUi("Davlat markazi arizalari")}</h2>
             </div>
           </div>
-          <InfoNotice tone="warning">
-            Qarorni faqat hujjat va vakolatni platformadan tashqarida haqiqiy
-            tekshirgan tizim administratori beradi.
-          </InfoNotice>
+          <InfoNotice tone="warning">{__kbUi("Qarorni faqat hujjat va vakolatni platformadan tashqarida haqiqiy tekshirgan tizim administratori beradi.")}</InfoNotice>
           <div className="lc-entity-grid">
             {verifications.map((item) => (
               <article key={item.context_id}>
@@ -820,9 +821,9 @@ export default function LearningCenterWorkspace({
                   <h3>{item.name}</h3>
                   <p>
                     {[item.region, item.district].filter(Boolean).join(", ") ||
-                      "Hudud kiritilmagan"}
+                      __kbUi("Hudud kiritilmagan")}
                   </p>
-                  <small>Ariza #{item.context_id}</small>
+                  <small>{__kbUi("Ariza #")}{item.context_id}</small>
                 </div>
                 <div className="lc-row-actions">
                   <ActionButton
@@ -830,18 +831,14 @@ export default function LearningCenterWorkspace({
                     onClick={() =>
                       decideVerification(item.context_id, "verified")
                     }
-                  >
-                    Tekshirdim — tasdiqlash
-                  </ActionButton>
+                  >{__kbUi("Tekshirdim — tasdiqlash")}</ActionButton>
                   <ActionButton
                     danger
                     busy={verificationBusy}
                     onClick={() =>
                       decideVerification(item.context_id, "rejected")
                     }
-                  >
-                    Rad etish
-                  </ActionButton>
+                  >{__kbUi("Rad etish")}</ActionButton>
                 </div>
               </article>
             ))}
@@ -851,9 +848,7 @@ export default function LearningCenterWorkspace({
               secondary
               busy={verificationMoreBusy}
               onClick={loadMoreVerifications}
-            >
-              Yana 100 ta arizani ko‘rsatish
-            </ActionButton>
+            >{__kbUi("Yana 100 ta arizani ko‘rsatish")}</ActionButton>
           )}
         </section>
       )}
@@ -861,15 +856,15 @@ export default function LearningCenterWorkspace({
       <section className="lc-workspaces">
         <div className="lc-section-heading">
           <div>
-            <span className="lc-eyebrow">ISH MAYDONLARIM</span>
-            <h2>Ulangan markazlar</h2>
+            <span className="lc-eyebrow">{__kbUi("ISH MAYDONLARIM")}</span>
+            <h2>{__kbUi("Ulangan markazlar")}</h2>
           </div>
         </div>
         {workspaces.length === 0 ? (
           <EmptyState
             icon={Building2}
-            title={assignedOnly ? "Ulangan markaz yo‘q" : "Hali markaz yo‘q"}
-            text={assignedOnly ? "Markaz rahbari xodim taklifini yuborishi kerak." : "Direktor sifatida yangi markaz yarating."}
+            title={assignedOnly ? __kbUi("Ulangan markaz yo‘q") : __kbUi("Hali markaz yo‘q")}
+            text={assignedOnly ? __kbUi("Markaz rahbari xodim taklifini yuborishi kerak.") : __kbUi("Direktor sifatida yangi markaz yarating.")}
           />
         ) : (
           <div className="lc-workspace-grid">
@@ -896,12 +891,12 @@ export default function LearningCenterWorkspace({
                       CENTER_TYPES.find(
                         (item) => item.value === workspace.center_type,
                       )?.label ||
-                      "O‘quv markazi"}
+                      __kbUi("O‘quv markazi")}
                   </small>
                   <em>
-                    {(workspace.role_labels || workspace.roles || [])
+                    {__kbUi((workspace.role_labels || workspace.roles || [])
                       .map((role) => CENTER_ROLES[role] || role)
-                      .join(", ")}
+                      .join(", "))}
                   </em>
                 </span>
                 <StatusPill
@@ -921,9 +916,7 @@ export default function LearningCenterWorkspace({
               secondary
               busy={workspaceMoreBusy}
               onClick={loadMoreWorkspaces}
-            >
-              Yana 100 ta markazni ko‘rsatish
-            </ActionButton>
+            >{__kbUi("Yana 100 ta markazni ko‘rsatish")}</ActionButton>
           </div>
         )}
       </section>
@@ -940,6 +933,7 @@ function CenterOnboarding({
   onBack,
   onCreated,
 }) {
+  useKbInterfaceLocale();
   const [step, setStep] = useState("identity");
   const [draft, setDraft] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -1353,16 +1347,13 @@ function CenterOnboarding({
 
   return (
     <div className="lc-shell lc-with-avatar">
-      <BackButton onClick={onBack} label="Markazlarim" />
+      <BackButton onClick={onBack} label={__kbUi("Markazlarim")} />
       <header className="lc-page-header">
-        <span className="lc-eyebrow">YANGI MARKAZ</span>
-        <h1>Markazni bosqichma-bosqich sozlang</h1>
-        <p>
-          AI avatar maydonlarni tushuntiradi. Saqlash va yakuniy tasdiq doim
-          sizda qoladi.
-        </p>
+        <span className="lc-eyebrow">{__kbUi("YANGI MARKAZ")}</span>
+        <h1>{__kbUi("Markazni bosqichma-bosqich sozlang")}</h1>
+        <p>{__kbUi("AI avatar maydonlarni tushuntiradi. Saqlash va yakuniy tasdiq doim sizda qoladi.")}</p>
       </header>
-      <div className="lc-stepper" aria-label="Sozlash bosqichlari">
+      <div className="lc-stepper" aria-label={__kbUi("Sozlash bosqichlari")}>
         {ONBOARDING_STEPS.map((item, index) => (
           <button
             type="button"
@@ -1374,13 +1365,13 @@ function CenterOnboarding({
             onClick={() => index <= currentIndex && setStep(item.key)}
           >
             <i>{index < currentIndex ? <Check size={13} /> : index + 1}</i>
-            <span>{item.label}</span>
+            <span>{__kbUi(item.label)}</span>
           </button>
         ))}
       </div>
       <ErrorNotice error={error} />
       {busy && !draft ? (
-        <LoadingBlock text="Xavfsiz qoralama yaratilmoqda..." />
+        <LoadingBlock text={__kbUi("Xavfsiz qoralama yaratilmoqda...")} />
       ) : (
         <>
           {step === "identity" && (
@@ -1390,8 +1381,8 @@ function CenterOnboarding({
             >
               <div className="lc-section-heading">
                 <div>
-                  <span className="lc-eyebrow">1. MARKAZ</span>
-                  <h2>Qaysi shaklda ishlaysiz?</h2>
+                  <span className="lc-eyebrow">{__kbUi("1. MARKAZ")}</span>
+                  <h2>{__kbUi("Qaysi shaklda ishlaysiz?")}</h2>
                 </div>
               </div>
               <div className="lc-choice-grid">
@@ -1421,23 +1412,23 @@ function CenterOnboarding({
                     }}
                   >
                     <Building2 size={22} />
-                    <b>{item.label}</b>
-                    <small>{item.hint}</small>
+                    <b>{__kbUi(item.label)}</b>
+                    <small>{__kbUi(item.hint)}</small>
                   </button>
                 ))}
               </div>
               <div className="lc-form-grid">
-                <Field label="Markaz nomi" wide>
+                <Field label={__kbUi("Markaz nomi")} wide>
                   <input
                     value={identity.name}
                     maxLength={160}
                     onChange={(event) =>
                       setIdentity({ ...identity, name: event.target.value })
                     }
-                    placeholder="Masalan: Ziyo Education"
+                    placeholder={__kbUi("Masalan: Ziyo Education")}
                   />
                 </Field>
-                <Field label="Viloyat">
+                <Field label={__kbUi("Viloyat")}>
                   <select
                     value={identity.region}
                     onChange={(event) =>
@@ -1448,36 +1439,36 @@ function CenterOnboarding({
                       })
                     }
                   >
-                    <option value="">Tanlang</option>
+                    <option value="">{__kbUi("Tanlang")}</option>
                     {VILOYATLAR.map((region) => (
-                      <option key={region}>{region}</option>
+                      <option value={(region)} key={region}>{__kbUi(region)}</option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Tuman/shahar">
+                <Field label={__kbUi("Tuman/shahar")}>
                   <select
                     value={identity.district}
                     onChange={(event) =>
                       setIdentity({ ...identity, district: event.target.value })
                     }
                   >
-                    <option value="">Tanlang</option>
+                    <option value="">{__kbUi("Tanlang")}</option>
                     {districts.map((district) => (
-                      <option key={district}>{district}</option>
+                      <option value={(district)} key={district}>{district}</option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Manzil">
+                <Field label={__kbUi("Manzil")}>
                   <input
                     value={identity.address}
                     maxLength={240}
                     onChange={(event) =>
                       setIdentity({ ...identity, address: event.target.value })
                     }
-                    placeholder="Ko‘cha va bino"
+                    placeholder={__kbUi("Ko‘cha va bino")}
                   />
                 </Field>
-                <Field label="Telefon">
+                <Field label={__kbUi("Telefon")}>
                   <input
                     type="tel"
                     value={identity.phone}
@@ -1485,7 +1476,7 @@ function CenterOnboarding({
                     onChange={(event) =>
                       setIdentity({ ...identity, phone: event.target.value })
                     }
-                    placeholder="+998 ..."
+                    placeholder={__kbUi("+998 ...")}
                   />
                 </Field>
               </div>
@@ -1499,8 +1490,8 @@ function CenterOnboarding({
             >
               <div className="lc-section-heading">
                 <div>
-                  <span className="lc-eyebrow">2. FILIALLAR</span>
-                  <h2>Dars o‘tiladigan joylar</h2>
+                  <span className="lc-eyebrow">{__kbUi("2. FILIALLAR")}</span>
+                  <h2>{__kbUi("Dars o‘tiladigan joylar")}</h2>
                 </div>
                 <ActionButton
                   secondary
@@ -1518,14 +1509,13 @@ function CenterOnboarding({
                     ])
                   }
                 >
-                  <Plus size={15} /> Filial
-                </ActionButton>
+                  <Plus size={15} />{__kbUi(" Filial")}</ActionButton>
               </div>
               <div className="lc-draft-list">
                 {branches.map((branch, index) => (
                   <article key={branch.local_id}>
                     <header>
-                      <b>{index + 1}-filial</b>
+                      <b>{index + 1}{__kbUi("-filial")}</b>
                       {branches.length > 1 && (
                         <button
                           type="button"
@@ -1537,12 +1527,11 @@ function CenterOnboarding({
                             )
                           }
                         >
-                          <X size={15} /> Olib tashlash
-                        </button>
+                          <X size={15} />{__kbUi(" Olib tashlash")}</button>
                       )}
                     </header>
                     <div className="lc-form-grid">
-                      <Field label="Nomi">
+                      <Field label={__kbUi("Nomi")}>
                         <input
                           value={branch.name}
                           onChange={(event) =>
@@ -1556,7 +1545,7 @@ function CenterOnboarding({
                           }
                         />
                       </Field>
-                      <Field label="Manzil">
+                      <Field label={__kbUi("Manzil")}>
                         <input
                           value={branch.address}
                           onChange={(event) =>
@@ -1570,7 +1559,7 @@ function CenterOnboarding({
                           }
                         />
                       </Field>
-                      <Field label="Ochilish">
+                      <Field label={__kbUi("Ochilish")}>
                         <input
                           type="time"
                           value={branch.work_start}
@@ -1585,7 +1574,7 @@ function CenterOnboarding({
                           }
                         />
                       </Field>
-                      <Field label="Yopilish">
+                      <Field label={__kbUi("Yopilish")}>
                         <input
                           type="time"
                           value={branch.work_end}
@@ -1600,7 +1589,7 @@ function CenterOnboarding({
                           }
                         />
                       </Field>
-                      <Field label="Ish kunlari" wide>
+                      <Field label={__kbUi("Ish kunlari")} wide>
                         <WeekdayPicker
                           value={branch.work_days}
                           onChange={(workDays) =>
@@ -1625,8 +1614,8 @@ function CenterOnboarding({
             <section className="lc-form-card" data-ai-anchor="center-rooms">
               <div className="lc-section-heading">
                 <div>
-                  <span className="lc-eyebrow">3. XONALAR</span>
-                  <h2>Xona va sig‘im</h2>
+                  <span className="lc-eyebrow">{__kbUi("3. XONALAR")}</span>
+                  <h2>{__kbUi("Xona va sig‘im")}</h2>
                 </div>
                 <ActionButton
                   secondary
@@ -1643,14 +1632,13 @@ function CenterOnboarding({
                     ])
                   }
                 >
-                  <Plus size={15} /> Xona
-                </ActionButton>
+                  <Plus size={15} />{__kbUi(" Xona")}</ActionButton>
               </div>
               <div className="lc-room-grid">
                 {rooms.map((room) => (
                   <article key={room.local_id}>
                     <DoorOpen size={20} />
-                    <Field label="Filial">
+                    <Field label={__kbUi("Filial")}>
                       <select
                         value={room.branch_index}
                         onChange={(event) =>
@@ -1673,7 +1661,7 @@ function CenterOnboarding({
                         ))}
                       </select>
                     </Field>
-                    <Field label="Xona nomi">
+                    <Field label={__kbUi("Xona nomi")}>
                       <input
                         value={room.name}
                         onChange={(event) =>
@@ -1687,7 +1675,7 @@ function CenterOnboarding({
                         }
                       />
                     </Field>
-                    <Field label="Turi">
+                    <Field label={__kbUi("Turi")}>
                       <select
                         value={room.room_type}
                         onChange={(event) =>
@@ -1700,13 +1688,13 @@ function CenterOnboarding({
                           )
                         }
                       >
-                        <option value="classroom">Oddiy sinfxona</option>
-                        <option value="computer">Kompyuter xonasi</option>
-                        <option value="laboratory">Laboratoriya</option>
-                        <option value="online">Virtual xona</option>
+                        <option value="classroom">{__kbUi("Oddiy sinfxona")}</option>
+                        <option value="computer">{__kbUi("Kompyuter xonasi")}</option>
+                        <option value="laboratory">{__kbUi("Laboratoriya")}</option>
+                        <option value="online">{__kbUi("Virtual xona")}</option>
                       </select>
                     </Field>
-                    <Field label="Sig‘im">
+                    <Field label={__kbUi("Sig‘im")}>
                       <input
                         type="number"
                         min="1"
@@ -1737,9 +1725,7 @@ function CenterOnboarding({
                             ),
                           )
                         }
-                      >
-                        Olib tashlash
-                      </button>
+                      >{__kbUi("Olib tashlash")}</button>
                     )}
                   </article>
                 ))}
@@ -1752,8 +1738,8 @@ function CenterOnboarding({
               className="lc-form-card"
               data-ai-anchor="center-subjects"
             >
-              <span className="lc-eyebrow">4. FANLAR</span>
-              <h2>Markaz o‘qitadigan fanlarni tanlang</h2>
+              <span className="lc-eyebrow">{__kbUi("4. FANLAR")}</span>
+              <h2>{__kbUi("Markaz o‘qitadigan fanlarni tanlang")}</h2>
               <div className="lc-subject-picker">
                 {(meta?.subjects || SUBJECT_PRESETS).map((subject) => {
                   const name =
@@ -1782,8 +1768,8 @@ function CenterOnboarding({
 
           {step === "staff" && (
             <section className="lc-form-card" data-ai-anchor="center-staff">
-              <span className="lc-eyebrow">5. JAMOA</span>
-              <h2>Siz markazda qanday ishlaysiz?</h2>
+              <span className="lc-eyebrow">{__kbUi("5. JAMOA")}</span>
+              <h2>{__kbUi("Siz markazda qanday ishlaysiz?")}</h2>
               <div className="lc-choice-grid compact">
                 {(identity.operator_model === "independent_tutor"
                   ? [
@@ -1812,15 +1798,12 @@ function CenterOnboarding({
                     }
                   >
                     <Users size={21} />
-                    <b>{label}</b>
-                    <small>{hint}</small>
+                    <b>{__kbUi(label)}</b>
+                    <small>{__kbUi(hint)}</small>
                   </button>
                 ))}
               </div>
-              <InfoNotice>
-                Boshqa xodimlar markaz yaratilgach alohida hisob va aniq rol
-                bilan ulanadi. AI avatar rol bera olmaydi.
-              </InfoNotice>
+              <InfoNotice>{__kbUi("Boshqa xodimlar markaz yaratilgach alohida hisob va aniq rol bilan ulanadi. AI avatar rol bera olmaydi.")}</InfoNotice>
             </section>
           )}
 
@@ -1828,8 +1811,8 @@ function CenterOnboarding({
             <section className="lc-form-card" data-ai-anchor="center-courses">
               <div className="lc-section-heading">
                 <div>
-                  <span className="lc-eyebrow">6. BIRINCHI KURS</span>
-                  <h2>Kurs qoralamasini tayyorlang</h2>
+                  <span className="lc-eyebrow">{__kbUi("6. BIRINCHI KURS")}</span>
+                  <h2>{__kbUi("Kurs qoralamasini tayyorlang")}</h2>
                 </div>
                 <label className="lc-switch">
                   <input
@@ -1838,13 +1821,11 @@ function CenterOnboarding({
                     onChange={(event) =>
                       setCourse({ ...course, create_now: event.target.checked })
                     }
-                  />
-                  Hozir yaratish
-                </label>
+                  />{__kbUi("Hozir yaratish")}</label>
               </div>
               {course.create_now && (
                 <div className="lc-form-grid">
-                  <Field label="Kurs nomi" wide>
+                  <Field label={__kbUi("Kurs nomi")} wide>
                     <input
                       value={course.name}
                       onChange={(event) =>
@@ -1852,7 +1833,7 @@ function CenterOnboarding({
                       }
                     />
                   </Field>
-                  <Field label="Fan">
+                  <Field label={__kbUi("Fan")}>
                     <select
                       value={course.subject_name}
                       onChange={(event) =>
@@ -1863,11 +1844,11 @@ function CenterOnboarding({
                       }
                     >
                       {subjects.map((subject) => (
-                        <option key={subject}>{subject}</option>
+                        <option value={(subject)} key={subject}>{subject}</option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="Kurs shakli">
+                  <Field label={__kbUi("Kurs shakli")}>
                     <select
                       value={course.course_type}
                       onChange={(event) => {
@@ -1882,12 +1863,12 @@ function CenterOnboarding({
                     >
                       {COURSE_FORMATS.map((item) => (
                         <option key={item.value} value={item.value}>
-                          {item.label}
+                          {__kbUi(item.label)}
                         </option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="O‘qitish usuli">
+                  <Field label={__kbUi("O‘qitish usuli")}>
                     <select
                       value={course.delivery_mode}
                       onChange={(event) =>
@@ -1899,14 +1880,14 @@ function CenterOnboarding({
                     >
                       {DELIVERY_FORMATS.map((item) => (
                         <option key={item.value} value={item.value}>
-                          {item.label}
+                          {__kbUi(item.label)}
                         </option>
                       ))}
                     </select>
                   </Field>
                   <Field
-                    label="Maqsad tizimi"
-                    hint="CEFR va IELTS avtomatik tenglashtirilmaydi."
+                    label={__kbUi("Maqsad tizimi")}
+                    hint={__kbUi("CEFR va IELTS avtomatik tenglashtirilmaydi.")}
                   >
                     <select
                       value={course.target_framework}
@@ -1917,14 +1898,14 @@ function CenterOnboarding({
                         })
                       }
                     >
-                      <option value="general">Umumiy fan darajasi</option>
-                      <option value="cefr">CEFR</option>
-                      <option value="ielts">IELTS</option>
-                      <option value="school">Maktab/sinf dasturi</option>
+                      <option value="general">{__kbUi("Umumiy fan darajasi")}</option>
+                      <option value="cefr">{__kbUi("CEFR")}</option>
+                      <option value="ielts">{__kbUi("IELTS")}</option>
+                      <option value="school">{__kbUi("Maktab/sinf dasturi")}</option>
                     </select>
                   </Field>
                   {course.target_framework === "cefr" && (
-                    <Field label="CEFR maqsadi">
+                    <Field label={__kbUi("CEFR maqsadi")}>
                       <select
                         value={course.cefr_level}
                         onChange={(event) =>
@@ -1935,14 +1916,14 @@ function CenterOnboarding({
                         }
                       >
                         {CEFR_LEVELS.map((level) => (
-                          <option key={level}>{level}</option>
+                          <option value={(level)} key={level}>{__kbUi(level)}</option>
                         ))}
                       </select>
                     </Field>
                   )}
                   {course.target_framework === "ielts" && (
                     <>
-                      <Field label="IELTS turi">
+                      <Field label={__kbUi("IELTS turi")}>
                         <select
                           value={course.ielts_type || "academic"}
                           onChange={(event) =>
@@ -1954,12 +1935,12 @@ function CenterOnboarding({
                         >
                           {IELTS_TYPES.map((item) => (
                             <option key={item.value} value={item.value}>
-                              {item.label}
+                              {__kbUi(item.label)}
                             </option>
                           ))}
                         </select>
                       </Field>
-                      <Field label="Overall maqsad">
+                      <Field label={__kbUi("Overall maqsad")}>
                         <select
                           value={course.ielts_overall_target || "6.0"}
                           onChange={(event) =>
@@ -1970,13 +1951,13 @@ function CenterOnboarding({
                           }
                         >
                           {IELTS_BANDS.map((band) => (
-                            <option key={band}>{band}</option>
+                            <option value={(band)} key={band}>{band}</option>
                           ))}
                         </select>
                       </Field>
                     </>
                   )}
-                  <Field label="Sig‘im">
+                  <Field label={__kbUi("Sig‘im")}>
                     <input
                       type="number"
                       min="1"
@@ -1991,7 +1972,7 @@ function CenterOnboarding({
                       }
                     />
                   </Field>
-                  <Field label="Oyiga narx (so‘m)">
+                  <Field label={__kbUi("Oyiga narx (so‘m)")}>
                     <input
                       type="number"
                       min="0"
@@ -2005,7 +1986,7 @@ function CenterOnboarding({
                       }
                     />
                   </Field>
-                  <Field label="Haftasiga">
+                  <Field label={__kbUi("Haftasiga")}>
                     <select
                       value={course.sessions_per_week}
                       onChange={(event) =>
@@ -2017,12 +1998,11 @@ function CenterOnboarding({
                     >
                       {[1, 2, 3, 4, 5, 6, 7].map((number) => (
                         <option key={number} value={number}>
-                          {number} kun
-                        </option>
+                          {__kbUi(number)}{__kbUi(" kun")}</option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="Dars davomiyligi">
+                  <Field label={__kbUi("Dars davomiyligi")}>
                     <select
                       value={course.duration_minutes}
                       onChange={(event) =>
@@ -2034,14 +2014,13 @@ function CenterOnboarding({
                     >
                       {[45, 60, 80, 90, 120].map((minutes) => (
                         <option key={minutes} value={minutes}>
-                          {minutes} daqiqa
-                        </option>
+                          {__kbUi(minutes)}{__kbUi(" daqiqa")}</option>
                       ))}
                     </select>
                   </Field>
                   {identity.operator_model === "independent_tutor" ? (
                     <>
-                      <Field label="Boshlanish vaqti">
+                      <Field label={__kbUi("Boshlanish vaqti")}>
                         <input
                           type="time"
                           value={course.starts_at}
@@ -2053,7 +2032,7 @@ function CenterOnboarding({
                           }
                         />
                       </Field>
-                      <Field label="Hafta kunlari" wide>
+                      <Field label={__kbUi("Hafta kunlari")} wide>
                         <WeekdayPicker
                           value={course.weekdays}
                           onChange={(weekdays) =>
@@ -2063,23 +2042,17 @@ function CenterOnboarding({
                       </Field>
                     </>
                   ) : (
-                    <InfoNotice>
-                      Dars kunlari va vaqtini hozir tanlamaysiz. Markaz
-                      ochilgach avval o‘qituvchini kursga biriktiring, keyin
-                      Jadval bo‘limida uning bo‘sh vaqti va xona bilan
-                      to‘qnashmasdan saqlang.
-                    </InfoNotice>
+                    <InfoNotice>{__kbUi("Dars kunlari va vaqtini hozir tanlamaysiz. Markaz ochilgach avval o‘qituvchini kursga biriktiring, keyin Jadval bo‘limida uning bo‘sh vaqti va xona bilan to‘qnashmasdan saqlang.")}</InfoNotice>
                   )}
                   <div className="lc-course-summary">
                     <Sparkles size={18} />
                     <span>
-                      <b>{course.name || "Kurs"}</b>
-                      {courseFramework} ·{" "}
+                      <b>{course.name || __kbUi("Kurs")}</b>
+                      {courseFramework} ·{__kbUi(" ")}
                       {identity.operator_model === "independent_tutor"
-                        ? `${course.weekdays.length} kun · `
-                        : "jadval keyin · "}
-                      {course.duration_minutes} daqiqa
-                    </span>
+                        ? __kbUi(`${course.weekdays.length} kun · `)
+                        : __kbUi("jadval keyin · ")}
+                      {course.duration_minutes}{__kbUi(" daqiqa")}</span>
                   </div>
                 </div>
               )}
@@ -2090,8 +2063,8 @@ function CenterOnboarding({
             <section className="lc-form-card" data-ai-anchor="center-billing">
               <div className="lc-section-heading">
                 <div>
-                  <span className="lc-eyebrow">7. TO‘LOV NAZORATI</span>
-                  <h2>Hisob-kitob tartibi</h2>
+                  <span className="lc-eyebrow">{__kbUi("7. TO‘LOV NAZORATI")}</span>
+                  <h2>{__kbUi("Hisob-kitob tartibi")}</h2>
                 </div>
                 <label className="lc-switch">
                   <input
@@ -2100,13 +2073,11 @@ function CenterOnboarding({
                     onChange={(event) =>
                       setBilling({ ...billing, enabled: event.target.checked })
                     }
-                  />
-                  Yoqilgan
-                </label>
+                  />{__kbUi("Yoqilgan")}</label>
               </div>
               {billing.enabled && (
                 <div className="lc-form-grid">
-                  <Field label="Hisob davri">
+                  <Field label={__kbUi("Hisob davri")}>
                     <select
                       value={billing.billing_period}
                       onChange={(event) =>
@@ -2116,12 +2087,12 @@ function CenterOnboarding({
                         })
                       }
                     >
-                      <option value="monthly">Oylik</option>
-                      <option value="course">Kurs uchun</option>
-                      <option value="lesson">Har dars uchun</option>
+                      <option value="monthly">{__kbUi("Oylik")}</option>
+                      <option value="course">{__kbUi("Kurs uchun")}</option>
+                      <option value="lesson">{__kbUi("Har dars uchun")}</option>
                     </select>
                   </Field>
-                  <Field label="Oylik to‘lov muddati">
+                  <Field label={__kbUi("Oylik to‘lov muddati")}>
                     <select
                       value={billing.due_day}
                       onChange={(event) =>
@@ -2133,70 +2104,59 @@ function CenterOnboarding({
                     >
                       {Array.from({ length: 28 }, (_, index) => index + 1).map(
                         (day) => (
-                          <option key={day} value={day}>
-                            Har oyning {day}-kuni
-                          </option>
+                          <option key={day} value={day}>{__kbUi("Har oyning ")}{day}{__kbUi("-kuni")}</option>
                         ),
                       )}
                     </select>
                   </Field>
                 </div>
               )}
-              <InfoNotice tone="warning">
-                AI avatar to‘lovni yozmaydi, tasdiqlamaydi va qarzdorlikni
-                o‘zgartirmaydi. Bu amallar hisobchi yoki rahbarning aniq
-                tasdig‘i bilan bajariladi.
-              </InfoNotice>
+              <InfoNotice tone="warning">{__kbUi("AI avatar to‘lovni yozmaydi, tasdiqlamaydi va qarzdorlikni o‘zgartirmaydi. Bu amallar hisobchi yoki rahbarning aniq tasdig‘i bilan bajariladi.")}</InfoNotice>
             </section>
           )}
 
           {step === "preview" && (
             <section className="lc-form-card" data-ai-anchor="center-preview">
-              <span className="lc-eyebrow">8. YAKUNIY TEKSHIRUV</span>
-              <h2>Markaz ish maydoni tayyor</h2>
+              <span className="lc-eyebrow">{__kbUi("8. YAKUNIY TEKSHIRUV")}</span>
+              <h2>{__kbUi("Markaz ish maydoni tayyor")}</h2>
               {!preview ? (
-                <LoadingBlock text="Server tekshiruvi bajarilmoqda..." />
+                <LoadingBlock text={__kbUi("Server tekshiruvi bajarilmoqda...")} />
               ) : (
                 <>
                   <div className="lc-preview-grid">
                     <div>
-                      <small>Markaz</small>
+                      <small>{__kbUi("Markaz")}</small>
                       <b>{preview.summary?.name || identity.name}</b>
                     </div>
                     <div>
-                      <small>Filial</small>
+                      <small>{__kbUi("Filial")}</small>
                       <b>
-                        {preview.summary?.branch_count ?? branches.length} ta
-                      </b>
+                        {preview.summary?.branch_count ?? branches.length}{__kbUi(" ta")}</b>
                     </div>
                     <div>
-                      <small>Xona</small>
-                      <b>{preview.summary?.room_count ?? rooms.length} ta</b>
+                      <small>{__kbUi("Xona")}</small>
+                      <b>{preview.summary?.room_count ?? rooms.length}{__kbUi(" ta")}</b>
                     </div>
                     <div>
-                      <small>Fan</small>
+                      <small>{__kbUi("Fan")}</small>
                       <b>
-                        {preview.summary?.subject_count ?? subjects.length} ta
-                      </b>
+                        {preview.summary?.subject_count ?? subjects.length}{__kbUi(" ta")}</b>
                     </div>
                     <div>
-                      <small>Birinchi kurs</small>
-                      <b>{course.create_now ? course.name : "Keyin yaratiladi"}</b>
+                      <small>{__kbUi("Birinchi kurs")}</small>
+                      <b>{course.create_now ? course.name : __kbUi("Keyin yaratiladi")}</b>
                     </div>
                     <div>
-                      <small>To‘lov nazorati</small>
-                      <b>{billing.enabled ? "Yoqilgan" : "O‘chirilgan"}</b>
+                      <small>{__kbUi("To‘lov nazorati")}</small>
+                      <b>{billing.enabled ? __kbUi("Yoqilgan") : __kbUi("O‘chirilgan")}</b>
                     </div>
                   </div>
                   {(preview.warnings || []).map((warning) => (
                     <InfoNotice key={warning} tone="warning">
-                      {warning}
+                      {__kbUi(warning)}
                     </InfoNotice>
                   ))}
-                  <InfoNotice>
-                    Bu platformadagi raqamli ish maydoni. Davlat litsenziyasi
-                    yoki yuridik ro‘yxatdan o‘tish o‘rnini bosmaydi.
-                  </InfoNotice>
+                  <InfoNotice>{__kbUi("Bu platformadagi raqamli ish maydoni. Davlat litsenziyasi yoki yuridik ro‘yxatdan o‘tish o‘rnini bosmaydi.")}</InfoNotice>
                 </>
               )}
             </section>
@@ -2210,17 +2170,13 @@ function CenterOnboarding({
                   setStep(ONBOARDING_STEPS[currentIndex - 1].key)
                 }
               >
-                <ArrowLeft size={15} /> Ortga
-              </ActionButton>
+                <ArrowLeft size={15} />{__kbUi(" Ortga")}</ActionButton>
             )}
             {step !== "preview" ? (
-              <ActionButton busy={busy} onClick={next}>
-                Saqlash va davom etish <ChevronRight size={15} />
+              <ActionButton busy={busy} onClick={next}>{__kbUi("Saqlash va davom etish ")}<ChevronRight size={15} />
               </ActionButton>
             ) : (
-              <ActionButton busy={busy} disabled={!preview} onClick={confirm}>
-                Men tekshirdim — markazni yaratish
-              </ActionButton>
+              <ActionButton busy={busy} disabled={!preview} onClick={confirm}>{__kbUi("Men tekshirdim — markazni yaratish")}</ActionButton>
             )}
           </div>
         </>
@@ -2265,6 +2221,7 @@ function CenterDashboard({
   onBack,
   onLegacy,
 }) {
+  useKbInterfaceLocale();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -2388,7 +2345,7 @@ function CenterDashboard({
     return (
       <div className="lc-shell">
         <BackButton onClick={onBack} />
-        <LoadingBlock text="Markaz boshqaruvi yuklanmoqda..." />
+        <LoadingBlock text={__kbUi("Markaz boshqaruvi yuklanmoqda...")} />
       </div>
     );
   }
@@ -2720,7 +2677,7 @@ function CenterDashboard({
   return (
     <div className="lc-dashboard-shell lc-with-avatar">
       <header className="lc-dashboard-header">
-        <BackButton onClick={onBack} label="Markazlarim" />
+        <BackButton onClick={onBack} label={__kbUi("Markazlarim")} />
         <div className="lc-dashboard-brand">
           <span className="lc-workspace-logo">
             <GraduationCap size={22} />
@@ -2729,12 +2686,12 @@ function CenterDashboard({
             <h1>{center.name}</h1>
             <p>
               {center.operator_model === "independent_tutor"
-                ? "Mustaqil repetitor"
+                ? __kbUi("Mustaqil repetitor")
                 : center.ownership_type === "public"
-                  ? "Davlat o‘quv markazi"
-                  : "Xususiy o‘quv markazi"}
-              {" · "}
-              {roles.map((role) => CENTER_ROLES[role] || role).join(", ")}
+                  ? __kbUi("Davlat o‘quv markazi")
+                  : __kbUi("Xususiy o‘quv markazi")}
+              {__kbUi(" · ")}
+              {__kbUi(roles.map((role) => CENTER_ROLES[role] || role).join(", "))}
             </p>
           </div>
         </div>
@@ -2743,12 +2700,11 @@ function CenterDashboard({
           <button
             type="button"
             onClick={() => onPreferences({ enabled: !preferences.enabled })}
-          >
-            AI {preferences.enabled ? "yoqilgan" : "o‘chirilgan"}
+          >{__kbUi("AI ")}{preferences.enabled ? __kbUi("yoqilgan") : __kbUi("o‘chirilgan")}
           </button>
         </div>
       </header>
-      <nav className="lc-dashboard-nav" aria-label="Markaz menyusi">
+      <nav className="lc-dashboard-nav" aria-label={__kbUi("Markaz menyusi")}>
         {menu.map((item) => {
           const [fallbackLabel, Icon] =
             MENU_META[item.key] || [item.key, LayoutDashboard];
@@ -2762,8 +2718,8 @@ function CenterDashboard({
             >
               <Icon size={17} />
               {item.label && item.label !== item.key
-                ? item.label
-                : fallbackLabel}
+                ? __kbUi(item.label)
+                : __kbUi(fallbackLabel)}
             </button>
           );
         })}
@@ -2796,9 +2752,7 @@ function CenterDashboard({
           />
         )}
         {onLegacy && center.legacy_center_id && (
-          <button type="button" className="lc-legacy" onClick={onLegacy}>
-            Eski markaz oynasini ochish
-          </button>
+          <button type="button" className="lc-legacy" onClick={onLegacy}>{__kbUi("Eski markaz oynasini ochish")}</button>
         )}
       </main>
       <GuidedAvatar
@@ -2826,6 +2780,7 @@ function CenterDashboard({
 }
 
 function OverviewPanel({ dashboard, permissions, onOpen }) {
+  useKbInterfaceLocale();
   const counts = dashboard.counts || dashboard.metrics || {};
   const metrics = [
     ["courses", "Faol kurslar", counts.active_courses ?? counts.courses, GraduationCap],
@@ -2841,33 +2796,28 @@ function OverviewPanel({ dashboard, permissions, onOpen }) {
         {metrics.map(([key, label, value, Icon]) => (
           <button type="button" key={key} onClick={() => onOpen(key)}>
             <span><Icon size={19} /></span>
-            <small>{label}</small>
+            <small>{__kbUi(label)}</small>
             <b>{Number(value) || 0}</b>
           </button>
         ))}
       </section>
       <section className="lc-dashboard-card lc-today-card">
         <div>
-          <span className="lc-eyebrow">BUGUNGI ISH</span>
-          <h2>Dars, qabul va to‘lovlar bitta kalendarda</h2>
-          <p>
-            Har bir rol faqat o‘z vazifasini ko‘radi. O‘qituvchi o‘z
-            guruhlariga, ota-ona esa bog‘langan farzandiga kiradi.
-          </p>
+          <span className="lc-eyebrow">{__kbUi("BUGUNGI ISH")}</span>
+          <h2>{__kbUi("Dars, qabul va to‘lovlar bitta kalendarda")}</h2>
+          <p>{__kbUi("Har bir rol faqat o‘z vazifasini ko‘radi. O‘qituvchi o‘z guruhlariga, ota-ona esa bog‘langan farzandiga kiradi.")}</p>
         </div>
         <Clock3 size={38} />
       </section>
       {!permissions.length && (
-        <InfoNotice tone="warning">
-          Server aniq yozish ruxsatlarini bermadi. Xavfsizlik uchun barcha
-          o‘zgartirish tugmalari yopiq, ma’lumot faqat ko‘rish rejimida.
-        </InfoNotice>
+        <InfoNotice tone="warning">{__kbUi("Server aniq yozish ruxsatlarini bermadi. Xavfsizlik uchun barcha o‘zgartirish tugmalari yopiq, ma’lumot faqat ko‘rish rejimida.")}</InfoNotice>
       )}
     </>
   );
 }
 
 function ResourceHeader({ eyebrow, title, text, canCreate, onCreate, label }) {
+  useKbInterfaceLocale();
   return (
     <div className="lc-section-heading">
       <div>
@@ -2877,7 +2827,7 @@ function ResourceHeader({ eyebrow, title, text, canCreate, onCreate, label }) {
       </div>
       {canCreate && (
         <ActionButton onClick={onCreate}>
-          <Plus size={15} /> {label}
+          <Plus size={15} /> {__kbUi(label)}
         </ActionButton>
       )}
     </div>
@@ -2925,6 +2875,7 @@ function CoursesPanel({
   roles,
   capabilities,
 }) {
+  useKbInterfaceLocale();
   const canCreate = canAny(permissions, "courses");
   const studentCatalogMode = roles.includes("student") && !canCreate;
   const branchScope = capabilities?.branch_scope || {};
@@ -3184,42 +3135,42 @@ function CoursesPanel({
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="KURSLAR"
-        title="Repetitorlik, to‘garak va imtihonga tayyorlov"
+        eyebrow={__kbUi("KURSLAR")}
+        title={__kbUi("Repetitorlik, to‘garak va imtihonga tayyorlov")}
         text={
           studentCatalogMode
-            ? "Faol kursni tanlab qabulxonaga ariza yuboring."
+            ? __kbUi("Faol kursni tanlab qabulxonaga ariza yuboring.")
             : roles.includes("teacher")
-            ? "Server faqat sizga biriktirilgan kurslarni qaytaradi."
-            : "Fan, o‘qituvchi, format, maqsad va narx bir joyda."
+            ? __kbUi("Server faqat sizga biriktirilgan kurslarni qaytaradi.")
+            : __kbUi("Fan, o‘qituvchi, format, maqsad va narx bir joyda.")
         }
         canCreate={canCreate}
         onCreate={() => setOpen((value) => !value)}
-        label="Yangi kurs"
+        label={__kbUi("Yangi kurs")}
       />
       <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
-      {applicationNotice && <InfoNotice>{applicationNotice}</InfoNotice>}
+      {applicationNotice && <InfoNotice>{__kbUi(applicationNotice)}</InfoNotice>}
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs nomi" wide aiField="name">
+            <Field label={__kbUi("Kurs nomi")} wide aiField="name">
               <input
                 value={form.name}
                 maxLength={180}
                 onChange={(event) =>
                   setForm({ ...form, name: event.target.value })
                 }
-                placeholder="Masalan: IELTS Foundation"
+                placeholder={__kbUi("Masalan: IELTS Foundation")}
               />
             </Field>
-            <Field label="Fan" aiField="subject_id">
+            <Field label={__kbUi("Fan")} aiField="subject_id">
               <select
                 value={form.subject_id}
                 onChange={(event) =>
                   setForm({ ...form, subject_id: event.target.value })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {options.subjects.items.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
@@ -3227,7 +3178,7 @@ function CoursesPanel({
                 ))}
               </select>
             </Field>
-            <Field label="Kurs turi" aiField="course_type">
+            <Field label={__kbUi("Kurs turi")} aiField="course_type">
               <select
                 value={form.course_type}
                 onChange={(event) => {
@@ -3241,12 +3192,12 @@ function CoursesPanel({
               >
                 {COURSE_FORMATS.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item.label}
+                    {__kbUi(item.label)}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="O‘qitish shakli" aiField="delivery_mode">
+            <Field label={__kbUi("O‘qitish shakli")} aiField="delivery_mode">
               <select
                 value={form.delivery_mode}
                 onChange={(event) =>
@@ -3255,18 +3206,18 @@ function CoursesPanel({
               >
                 {DELIVERY_FORMATS.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item.label}
+                    {__kbUi(item.label)}
                   </option>
                 ))}
               </select>
             </Field>
             <Field
-              label="Filial"
+              label={__kbUi("Filial")}
               aiField="branch_id"
               hint={
                 ["offline", "hybrid"].includes(form.delivery_mode)
-                  ? "Bu o‘qitish shaklida filial majburiy."
-                  : "Jonli onlayn kurs filialsiz bo‘lishi mumkin."
+                  ? __kbUi("Bu o‘qitish shaklida filial majburiy.")
+                  : __kbUi("Jonli onlayn kurs filialsiz bo‘lishi mumkin.")
               }
             >
               <select
@@ -3278,14 +3229,12 @@ function CoursesPanel({
                 {!branchRestricted && (
                   <option value="">
                     {["offline", "hybrid"].includes(form.delivery_mode)
-                      ? "Filialni tanlang"
-                      : "Filialsiz/onlayn"}
+                      ? __kbUi("Filialni tanlang")
+                      : __kbUi("Filialsiz/onlayn")}
                   </option>
                 )}
                 {branchRestricted && !form.branch_id && (
-                  <option value="" disabled>
-                    Vakolatli filial yuklanmoqda
-                  </option>
+                  <option value="" disabled>{__kbUi("Vakolatli filial yuklanmoqda")}</option>
                 )}
                 {options.branches.items.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -3294,14 +3243,14 @@ function CoursesPanel({
                 ))}
               </select>
             </Field>
-            <Field label="O‘qituvchi" aiField="teacher_user_id">
+            <Field label={__kbUi("O‘qituvchi")} aiField="teacher_user_id">
               <select
                 value={form.teacher_user_id}
                 onChange={(event) =>
                   setForm({ ...form, teacher_user_id: event.target.value })
                 }
               >
-                <option value="">Keyin biriktirish</option>
+                <option value="">{__kbUi("Keyin biriktirish")}</option>
                 {options.staff.items
                   .filter(
                     (item) =>
@@ -3328,9 +3277,9 @@ function CoursesPanel({
               </select>
             </Field>
             <Field
-              label="Maqsad"
+              label={__kbUi("Maqsad")}
               aiField="target_framework"
-              hint="CEFR va IELTS o‘rtasida avtomatik tenglik yo‘q."
+              hint={__kbUi("CEFR va IELTS o‘rtasida avtomatik tenglik yo‘q.")}
             >
               <select
                 value={form.target_framework}
@@ -3338,15 +3287,15 @@ function CoursesPanel({
                   setForm({ ...form, target_framework: event.target.value })
                 }
               >
-                <option value="general">Umumiy daraja</option>
-                <option value="cefr">CEFR</option>
-                <option value="ielts">IELTS</option>
-                <option value="school">Maktab/sinf</option>
-                <option value="national_exam">Milliy imtihon</option>
+                <option value="general">{__kbUi("Umumiy daraja")}</option>
+                <option value="cefr">{__kbUi("CEFR")}</option>
+                <option value="ielts">{__kbUi("IELTS")}</option>
+                <option value="school">{__kbUi("Maktab/sinf")}</option>
+                <option value="national_exam">{__kbUi("Milliy imtihon")}</option>
               </select>
             </Field>
             {form.target_framework === "cefr" && (
-              <Field label="CEFR" aiField="cefr_level">
+              <Field label={__kbUi("CEFR")} aiField="cefr_level">
                 <select
                   value={form.cefr_level}
                   onChange={(event) =>
@@ -3354,7 +3303,7 @@ function CoursesPanel({
                   }
                 >
                   {CEFR_LEVELS.map((level) => (
-                    <option key={level}>{level}</option>
+                    <option value={(level)} key={level}>{__kbUi(level)}</option>
                   ))}
                 </select>
               </Field>
@@ -3363,18 +3312,18 @@ function CoursesPanel({
               <IeltsTargetFields form={form} setForm={setForm} />
             )}
             {!["cefr", "ielts"].includes(form.target_framework) && (
-              <Field label="Daraja/sinf">
+              <Field label={__kbUi("Daraja/sinf")}>
                 <input
                   value={form.level_label}
                   maxLength={80}
                   onChange={(event) =>
                     setForm({ ...form, level_label: event.target.value })
                   }
-                  placeholder="Masalan: 9-sinf yoki boshlang‘ich"
+                  placeholder={__kbUi("Masalan: 9-sinf yoki boshlang‘ich")}
                 />
               </Field>
             )}
-            <Field label="Sig‘im" aiField="capacity">
+            <Field label={__kbUi("Sig‘im")} aiField="capacity">
               <input
                 type="number"
                 min="1"
@@ -3386,7 +3335,7 @@ function CoursesPanel({
                 }
               />
             </Field>
-            <Field label="Oyiga narx">
+            <Field label={__kbUi("Oyiga narx")}>
               <input
                 type="number"
                 min="0"
@@ -3400,7 +3349,7 @@ function CoursesPanel({
                 }
               />
             </Field>
-            <Field label="Haftasiga">
+            <Field label={__kbUi("Haftasiga")}>
               <select
                 value={form.sessions_per_week}
                 onChange={(event) =>
@@ -3412,12 +3361,11 @@ function CoursesPanel({
               >
                 {[1, 2, 3, 4, 5, 6, 7].map((value) => (
                   <option key={value} value={value}>
-                    {value} dars
-                  </option>
+                    {__kbUi(value)}{__kbUi(" dars")}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Davomiyligi">
+            <Field label={__kbUi("Davomiyligi")}>
               <select
                 value={form.duration_minutes}
                 onChange={(event) =>
@@ -3429,13 +3377,12 @@ function CoursesPanel({
               >
                 {[45, 60, 80, 90, 120, 180].map((value) => (
                   <option key={value} value={value}>
-                    {value} daqiqa
-                  </option>
+                    {__kbUi(value)}{__kbUi(" daqiqa")}</option>
                 ))}
               </select>
             </Field>
             {form.teacher_user_id ? (
-              <Field label="Boshlanish vaqti">
+              <Field label={__kbUi("Boshlanish vaqti")}>
                 <input
                   type="time"
                   value={form.starts_at}
@@ -3445,13 +3392,9 @@ function CoursesPanel({
                 />
               </Field>
             ) : (
-              <InfoNotice>
-                O‘qituvchi hali tanlanmasa aniq kun va vaqt saqlanmaydi.
-                Keyin Jadval bo‘limida o‘qituvchi hamda xona bilan birga
-                kiriting.
-              </InfoNotice>
+              <InfoNotice>{__kbUi("O‘qituvchi hali tanlanmasa aniq kun va vaqt saqlanmaydi. Keyin Jadval bo‘limida o‘qituvchi hamda xona bilan birga kiriting.")}</InfoNotice>
             )}
-            <Field label="Boshlanish sanasi">
+            <Field label={__kbUi("Boshlanish sanasi")}>
               <input
                 type="date"
                 value={form.start_date}
@@ -3460,7 +3403,7 @@ function CoursesPanel({
                 }
               />
             </Field>
-            <Field label="Tugash sanasi">
+            <Field label={__kbUi("Tugash sanasi")}>
               <input
                 type="date"
                 value={form.end_date}
@@ -3470,7 +3413,7 @@ function CoursesPanel({
               />
             </Field>
             {form.teacher_user_id && (
-              <Field label="Hafta kunlari" wide>
+              <Field label={__kbUi("Hafta kunlari")} wide>
                 <WeekdayPicker
                   value={form.weekdays}
                   onChange={(weekdays) =>
@@ -3492,17 +3435,12 @@ function CoursesPanel({
               ["O‘qituvchilar", options.staff],
             ]}
           />
-          <InfoNotice>
-            Yangi kurs qoralama yaratiladi. E’lon qilish, o‘quvchi qabul qilish
-            va to‘lov yozish alohida inson tasdig‘idir.
-          </InfoNotice>
+          <InfoNotice>{__kbUi("Yangi kurs qoralama yaratiladi. E’lon qilish, o‘quvchi qabul qilish va to‘lov yozish alohida inson tasdig‘idir.")}</InfoNotice>
           <ActionButton
             busy={busy}
             disabled={!form.name.trim() || !form.subject_id}
             onClick={create}
-          >
-            Kurs qoralamasini saqlash
-          </ActionButton>
+          >{__kbUi("Kurs qoralamasini saqlash")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -3515,7 +3453,7 @@ function CoursesPanel({
               <div>
                 <h3>{item.name}</h3>
                 <p>
-                  {item.subject_name || "Fan"} ·{" "}
+                  {item.subject_name || __kbUi("Fan")} ·{__kbUi(" ")}
                   {COURSE_FORMATS.find(
                     (option) =>
                       option.value === (item.course_type || item.format_key),
@@ -3523,17 +3461,17 @@ function CoursesPanel({
                 </p>
                 <small>
                   {item.target_framework === "cefr"
-                    ? `CEFR ${item.cefr_level || item.level_from || ""}`
+                    ? __kbUi(`CEFR ${item.cefr_level || item.level_from || ""}`)
                     : item.target_framework === "ielts"
-                      ? `IELTS ${item.ielts_overall_target || item.target_score || ""}`
-                      : item.level_label || "Umumiy"}
-                  {" · "}
-                  {item.teacher_name || "O‘qituvchi biriktirilmagan"}
+                      ? __kbUi(`IELTS ${item.ielts_overall_target || item.target_score || ""}`)
+                      : item.level_label || __kbUi("Umumiy")}
+                  {__kbUi(" · ")}
+                  {item.teacher_name || __kbUi("O‘qituvchi biriktirilmagan")}
                 </small>
               </div>
               <div className="lc-entity-end">
                 <StatusPill status={item.status || "draft"} />
-                <b>{item.enrolled_count ?? item.student_count ?? 0}/{item.capacity || "∞"}</b>
+                <b>{item.enrolled_count ?? item.student_count ?? 0}/{item.capacity || __kbUi("∞")}</b>
                 {studentCatalogMode && (
                   <button
                     type="button"
@@ -3541,15 +3479,15 @@ function CoursesPanel({
                     onClick={() => applyToCourse(item)}
                   >
                     {Number(item.available_seats) < 1
-                      ? "Joy qolmagan"
-                      : "Kursga ariza berish"}
+                      ? __kbUi("Joy qolmagan")
+                      : __kbUi("Kursga ariza berish")}
                   </button>
                 )}
                 {canCreate && item.status === "draft" && (
                   <>
                     {!item.teacher_user_id && (
                       <select
-                        aria-label={`${item.name} uchun o‘qituvchi`}
+                        aria-label={__kbUi(`${item.name} uchun o‘qituvchi`)}
                         value={activationTeachers[item.id] || ""}
                         onChange={(event) =>
                           setActivationTeachers((current) => ({
@@ -3558,7 +3496,7 @@ function CoursesPanel({
                           }))
                         }
                       >
-                        <option value="">O‘qituvchini tanlang</option>
+                        <option value="">{__kbUi("O‘qituvchini tanlang")}</option>
                         {options.staff.items
                           .filter((staff) => staff.role_key === "teacher")
                           .map((staff) => (
@@ -3575,9 +3513,7 @@ function CoursesPanel({
                       type="button"
                       disabled={busy}
                       onClick={() => activate(item)}
-                    >
-                      Men tekshirdim — jadval o‘qituvchisi bilan faollashtirish
-                    </button>
+                    >{__kbUi("Men tekshirdim — jadval o‘qituvchisi bilan faollashtirish")}</button>
                   </>
                 )}
               </div>
@@ -3587,8 +3523,8 @@ function CoursesPanel({
       ) : (
         <EmptyState
           icon={GraduationCap}
-          title="Kurs topilmadi"
-          text="Vakolatingiz bo‘lsa birinchi kurs qoralamasini yarating."
+          title={__kbUi("Kurs topilmadi")}
+          text={__kbUi("Vakolatingiz bo‘lsa birinchi kurs qoralamasini yarating.")}
         />
       )}
       {canCreate && (
@@ -3602,6 +3538,7 @@ function CoursesPanel({
 }
 
 function IeltsTargetFields({ form, setForm }) {
+  useKbInterfaceLocale();
   const targets = [
     ["ielts_overall_target", "Overall"],
     ["ielts_listening_target", "Listening"],
@@ -3611,7 +3548,7 @@ function IeltsTargetFields({ form, setForm }) {
   ];
   return (
     <>
-      <Field label="IELTS turi">
+      <Field label={__kbUi("IELTS turi")}>
         <select
           value={form.ielts_test_type}
           onChange={(event) =>
@@ -3620,13 +3557,13 @@ function IeltsTargetFields({ form, setForm }) {
         >
           {IELTS_TYPES.map((item) => (
             <option key={item.value} value={item.value}>
-              {item.label}
+              {__kbUi(item.label)}
             </option>
           ))}
         </select>
       </Field>
       {targets.map(([key, label]) => (
-        <Field label={`${label} maqsadi`} key={key}>
+        <Field label={__kbUi(`${label} maqsadi`)} key={key}>
           <select
             value={form[key]}
             onChange={(event) =>
@@ -3634,7 +3571,7 @@ function IeltsTargetFields({ form, setForm }) {
             }
           >
             {IELTS_BANDS.map((band) => (
-              <option key={band}>{band}</option>
+              <option value={(band)} key={band}>{band}</option>
             ))}
           </select>
         </Field>
@@ -3644,6 +3581,7 @@ function IeltsTargetFields({ form, setForm }) {
 }
 
 function GroupsPanel(props) {
+  useKbInterfaceLocale();
   const resource = usePagedResource({
     apiBase: props.apiBase,
     token: props.token,
@@ -3654,12 +3592,12 @@ function GroupsPanel(props) {
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="GURUHLAR"
-        title="O‘qituvchi, xona va o‘quvchilar bog‘lanishi"
+        eyebrow={__kbUi("GURUHLAR")}
+        title={__kbUi("O‘qituvchi, xona va o‘quvchilar bog‘lanishi")}
         text={
           props.roles.includes("teacher")
-            ? "Faqat sizga biriktirilgan guruhlar."
-            : "Kurs ichidagi faol guruhlar va bo‘sh joylar."
+            ? __kbUi("Faqat sizga biriktirilgan guruhlar.")
+            : __kbUi("Kurs ichidagi faol guruhlar va bo‘sh joylar.")
         }
       />
       <ErrorNotice error={resource.error} onRetry={resource.reload} />
@@ -3674,17 +3612,17 @@ function GroupsPanel(props) {
                 <StatusPill status={item.status || "active"} />
               </header>
               <h3>{item.group_name || item.name}</h3>
-              <p>{item.subject_name || "Fan"} · {item.teacher_name || "O‘qituvchi"}</p>
+              <p>{item.subject_name || __kbUi("Fan")} · {item.teacher_name || __kbUi("O‘qituvchi")}</p>
               <div>
-                <small>O‘quvchi</small>
+                <small>{__kbUi("O‘quvchi")}</small>
                 <b>
                   {item.enrolled_count ?? item.student_count ?? 0}/
-                  {item.capacity || "∞"}
+                  {item.capacity || __kbUi("∞")}
                 </b>
               </div>
               <div>
-                <small>Jadval</small>
-                <b>{item.schedule_label || "Belgilanmagan"}</b>
+                <small>{__kbUi("Jadval")}</small>
+                <b>{item.schedule_label || __kbUi("Belgilanmagan")}</b>
               </div>
             </article>
           ))}
@@ -3692,8 +3630,8 @@ function GroupsPanel(props) {
       ) : (
         <EmptyState
           icon={Users}
-          title="Guruh yo‘q"
-          text="Guruh kurs ochilganda yoki o‘quvchilar qabul qilinganda ko‘rinadi."
+          title={__kbUi("Guruh yo‘q")}
+          text={__kbUi("Guruh kurs ochilganda yoki o‘quvchilar qabul qilinganda ko‘rinadi.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -3709,6 +3647,7 @@ function StudentsPanel({
   roles,
   capabilities,
 }) {
+  useKbInterfaceLocale();
   const canManage = canAny(permissions, "enrollments");
   const canManageParentLinks =
     capabilities?.can_manage_parent_links === true;
@@ -3937,46 +3876,42 @@ function StudentsPanel({
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="O‘QUVCHILAR"
-        title="Qabul, faol o‘quvchi va kutish ro‘yxati"
+        eyebrow={__kbUi("O‘QUVCHILAR")}
+        title={__kbUi("Qabul, faol o‘quvchi va kutish ro‘yxati")}
         text={
           roles.includes("parent")
-            ? "Faqat hisobingizga bog‘langan farzandlar."
+            ? __kbUi("Faqat hisobingizga bog‘langan farzandlar.")
             : roles.includes("student")
-              ? "Faqat o‘zingizga tegishli kurslar."
-              : "Kursga qabul serverda foydalanuvchi va sig‘imni tekshiradi."
+              ? __kbUi("Faqat o‘zingizga tegishli kurslar.")
+              : __kbUi("Kursga qabul serverda foydalanuvchi va sig‘imni tekshiradi.")
         }
         canCreate={canManage}
         onCreate={() => setOpen((value) => !value)}
-        label="Kursga yozish"
+        label={__kbUi("Kursga yozish")}
       />
       <div className="lc-filter-row">
-        <Field label="Holat">
+        <Field label={__kbUi("Holat")}>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="">Barchasi</option>
-            <option value="pending">Kutilmoqda</option>
-            <option value="active">Faol</option>
-            <option value="waitlisted">Kutish ro‘yxati</option>
-            <option value="paused">Pauzada</option>
-            <option value="rejected">Rad etilgan</option>
-            <option value="withdrawn">Chiqarilgan</option>
-            <option value="completed">Yakunlangan</option>
+            <option value="">{__kbUi("Barchasi")}</option>
+            <option value="pending">{__kbUi("Kutilmoqda")}</option>
+            <option value="active">{__kbUi("Faol")}</option>
+            <option value="waitlisted">{__kbUi("Kutish ro‘yxati")}</option>
+            <option value="paused">{__kbUi("Pauzada")}</option>
+            <option value="rejected">{__kbUi("Rad etilgan")}</option>
+            <option value="withdrawn">{__kbUi("Chiqarilgan")}</option>
+            <option value="completed">{__kbUi("Yakunlangan")}</option>
           </select>
         </Field>
       </div>
       <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
       {canManage && !canManageParentLinks && (
-        <InfoNotice>
-          Ota-ona bog‘lanishini faqat markaz miqyosidagi qabul
-          administratori boshqaradi. Filial vakolati bilan o‘quvchi qabulini
-          davom ettirishingiz mumkin.
-        </InfoNotice>
+        <InfoNotice>{__kbUi("Ota-ona bog‘lanishini faqat markaz miqyosidagi qabul administratori boshqaradi. Filial vakolati bilan o‘quvchi qabulini davom ettirishingiz mumkin.")}</InfoNotice>
       )}
       {parentLinkTarget && canManageParentLinks && (
         <div className="lc-inline-form">
           <div className="lc-section-heading">
             <div>
-              <span className="lc-eyebrow">OTA-ONA BOG‘LANISHI</span>
+              <span className="lc-eyebrow">{__kbUi("OTA-ONA BOG‘LANISHI")}</span>
               <h3>{parentLinkTarget.student_name}</h3>
             </div>
             <button
@@ -3984,12 +3919,11 @@ function StudentsPanel({
               className="lc-text-danger"
               onClick={() => setParentLinkTarget(null)}
             >
-              <X size={14} /> Yopish
-            </button>
+              <X size={14} />{__kbUi(" Yopish")}</button>
           </div>
           <Field
-            label="Ota-onani ism yoki hisob ID bilan topish"
-            hint="Bog‘lanishdan keyin ota-ona faqat shu farzand ma’lumotini ko‘radi."
+            label={__kbUi("Ota-onani ism yoki hisob ID bilan topish")}
+            hint={__kbUi("Bog‘lanishdan keyin ota-ona faqat shu farzand ma’lumotini ko‘radi.")}
             wide
           >
             <div className="lc-search-control">
@@ -4007,17 +3941,16 @@ function StudentsPanel({
                     searchParents();
                   }
                 }}
-                placeholder="Kamida 3 ta belgi"
+                placeholder={__kbUi("Kamida 3 ta belgi")}
               />
               <ActionButton secondary busy={busy} onClick={searchParents}>
-                <Search size={14} /> Qidirish
-              </ActionButton>
+                <Search size={14} />{__kbUi(" Qidirish")}</ActionButton>
             </div>
           </Field>
           <div>
-            <span className="lc-eyebrow">FAOL BOG‘LANISHLAR</span>
+            <span className="lc-eyebrow">{__kbUi("FAOL BOG‘LANISHLAR")}</span>
             {parentLinksBusy ? (
-              <LoadingBlock text="Ota-onalar yuklanmoqda..." />
+              <LoadingBlock text={__kbUi("Ota-onalar yuklanmoqda...")} />
             ) : parentLinks.length ? (
               <div className="lc-user-results">
                 {parentLinks.map((link) => (
@@ -4028,22 +3961,20 @@ function StudentsPanel({
                     <span>
                       <b>
                         {link.parent_name ||
-                          `Ota-ona #${link.parent_user_id}`}
+                          __kbUi(`Ota-ona #${link.parent_user_id}`)}
                       </b>
-                      <small>Faol ota-ona bog‘lanishi</small>
+                      <small>{__kbUi("Faol ota-ona bog‘lanishi")}</small>
                     </span>
                     <ActionButton
                       danger
                       busy={busy}
                       onClick={() => revokeParent(link)}
-                    >
-                      Bekor qilish
-                    </ActionButton>
+                    >{__kbUi("Bekor qilish")}</ActionButton>
                   </div>
                 ))}
               </div>
             ) : (
-              <InfoNotice>Bu o‘quvchiga faol ota-ona bog‘lanmagan.</InfoNotice>
+              <InfoNotice>{__kbUi("Bu o‘quvchiga faol ota-ona bog‘lanmagan.")}</InfoNotice>
             )}
           </div>
           {parentResults.length > 0 && (
@@ -4063,7 +3994,7 @@ function StudentsPanel({
                     <b>{user.full_name}</b>
                     <small>
                       {user.account_identifier ||
-                        `Hisob #${user.user_id}`}
+                        __kbUi(`Hisob #${user.user_id}`)}
                     </small>
                   </span>
                   {Number(parentUserId) === Number(user.user_id) && (
@@ -4077,22 +4008,20 @@ function StudentsPanel({
             busy={busy}
             disabled={!parentUserId}
             onClick={linkParent}
-          >
-            Men tekshirdim — ota-onani bog‘lash
-          </ActionButton>
+          >{__kbUi("Men tekshirdim — ota-onani bog‘lash")}</ActionButton>
         </div>
       )}
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs" aiField="course_id">
+            <Field label={__kbUi("Kurs")} aiField="course_id">
               <select
                 value={form.course_id}
                 onChange={(event) =>
                   setForm({ ...form, course_id: event.target.value })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {courses.items.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.name}
@@ -4101,8 +4030,8 @@ function StudentsPanel({
               </select>
             </Field>
             <Field
-              label="O‘quvchini ism yoki hisob ID bilan topish"
-              hint="Faqat qidiruvdan chiqqan tasdiqlangan hisobni tanlang."
+              label={__kbUi("O‘quvchini ism yoki hisob ID bilan topish")}
+              hint={__kbUi("Faqat qidiruvdan chiqqan tasdiqlangan hisobni tanlang.")}
               wide
             >
               <div className="lc-search-control">
@@ -4120,15 +4049,14 @@ function StudentsPanel({
                       searchUsers();
                     }
                   }}
-                  placeholder="Kamida 3 ta belgi"
+                  placeholder={__kbUi("Kamida 3 ta belgi")}
                 />
                 <ActionButton
                   secondary
                   busy={busy}
                   onClick={searchUsers}
                 >
-                  <Search size={14} /> Qidirish
-                </ActionButton>
+                  <Search size={14} />{__kbUi(" Qidirish")}</ActionButton>
               </div>
             </Field>
             {userResults.length > 0 && (
@@ -4153,7 +4081,7 @@ function StudentsPanel({
                       <b>{user.full_name}</b>
                       <small>
                         {user.account_identifier ||
-                          `Hisob #${user.user_id}`}
+                          __kbUi(`Hisob #${user.user_id}`)}
                       </small>
                     </span>
                     {Number(form.student_user_id) === Number(user.user_id) && (
@@ -4163,7 +4091,7 @@ function StudentsPanel({
                 ))}
               </div>
             )}
-            <Field label="Boshlanish sanasi">
+            <Field label={__kbUi("Boshlanish sanasi")}>
               <input
                 type="date"
                 value={form.start_date}
@@ -4172,18 +4100,18 @@ function StudentsPanel({
                 }
               />
             </Field>
-            <Field label="Qabul turi">
+            <Field label={__kbUi("Qabul turi")}>
               <select
                 value={form.entry_status}
                 onChange={(event) =>
                   setForm({ ...form, entry_status: event.target.value })
                 }
               >
-                <option value="pending">Avval tekshirish</option>
-                <option value="waitlisted">Kutish ro‘yxati</option>
+                <option value="pending">{__kbUi("Avval tekshirish")}</option>
+                <option value="waitlisted">{__kbUi("Kutish ro‘yxati")}</option>
               </select>
             </Field>
-            <Field label="Izoh" wide>
+            <Field label={__kbUi("Izoh")} wide>
               <textarea
                 maxLength={500}
                 value={form.notes}
@@ -4196,9 +4124,7 @@ function StudentsPanel({
           <SelectorPagination
             resources={[["Kurslar", courses]]}
           />
-          <ActionButton busy={busy} onClick={create}>
-            Qabul so‘rovini saqlash
-          </ActionButton>
+          <ActionButton busy={busy} onClick={create}>{__kbUi("Qabul so‘rovini saqlash")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -4208,19 +4134,19 @@ function StudentsPanel({
           <table className="lc-table">
             <thead>
               <tr>
-                <th>O‘quvchi</th>
-                <th>Kurs</th>
-                <th>Boshlangan</th>
-                <th>Holat</th>
-                <th>Amal</th>
+                <th>{__kbUi("O‘quvchi")}</th>
+                <th>{__kbUi("Kurs")}</th>
+                <th>{__kbUi("Boshlangan")}</th>
+                <th>{__kbUi("Holat")}</th>
+                <th>{__kbUi("Amal")}</th>
               </tr>
             </thead>
             <tbody>
               {resource.items.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.student_name || `O‘quvchi #${item.student_user_id}`}</td>
-                  <td>{item.course_name || "—"}</td>
-                  <td>{item.start_date || "—"}</td>
+                  <td>{item.student_name || __kbUi(`O‘quvchi #${item.student_user_id}`)}</td>
+                  <td>{item.course_name || __kbUi("—")}</td>
+                  <td>{item.start_date || __kbUi("—")}</td>
                   <td><StatusPill status={item.status} /></td>
                   <td>
                     {canManage ? (
@@ -4234,8 +4160,8 @@ function StudentsPanel({
                             onClick={() => decide(item, "approve")}
                           >
                             {item.status === "paused"
-                              ? "Qayta faollashtirish"
-                              : "Qabul qilish"}
+                              ? __kbUi("Qayta faollashtirish")
+                              : __kbUi("Qabul qilish")}
                           </button>
                         )}
                         {item.status === "pending" && (
@@ -4243,9 +4169,7 @@ function StudentsPanel({
                             type="button"
                             disabled={busy}
                             onClick={() => decide(item, "waitlist")}
-                          >
-                            Kutishga
-                          </button>
+                          >{__kbUi("Kutishga")}</button>
                         )}
                         {item.status === "active" &&
                           canManageParentLinks && (
@@ -4253,18 +4177,14 @@ function StudentsPanel({
                             type="button"
                             disabled={busy}
                             onClick={() => decide(item, "pause")}
-                          >
-                            Pauza
-                          </button>
+                          >{__kbUi("Pauza")}</button>
                         )}
                         {["pending", "waitlisted"].includes(item.status) && (
                           <button
                             type="button"
                             disabled={busy}
                             onClick={() => decide(item, "reject")}
-                          >
-                            Rad etish
-                          </button>
+                          >{__kbUi("Rad etish")}</button>
                         )}
                         {["active", "paused", "waitlisted"].includes(
                           item.status,
@@ -4273,9 +4193,7 @@ function StudentsPanel({
                             type="button"
                             disabled={busy}
                             onClick={() => decide(item, "withdraw")}
-                          >
-                            Kursdan chiqarish
-                          </button>
+                          >{__kbUi("Kursdan chiqarish")}</button>
                         )}
                         {item.status === "active" && (
                           <button
@@ -4289,13 +4207,11 @@ function StudentsPanel({
                               setParentLinks([]);
                               loadParentLinks(item.student_user_id);
                             }}
-                          >
-                            Ota-ona bog‘lash
-                          </button>
+                          >{__kbUi("Ota-ona bog‘lash")}</button>
                         )}
                       </div>
                     ) : (
-                      "—"
+                      __kbUi("—")
                     )}
                   </td>
                 </tr>
@@ -4306,8 +4222,8 @@ function StudentsPanel({
       ) : (
         <EmptyState
           icon={UserPlus}
-          title="O‘quvchi topilmadi"
-          text="Tanlangan holatda qabul yozuvi yo‘q."
+          title={__kbUi("O‘quvchi topilmadi")}
+          text={__kbUi("Tanlangan holatda qabul yozuvi yo‘q.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -4316,6 +4232,7 @@ function StudentsPanel({
 }
 
 function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
+  useKbInterfaceLocale();
   const canManage = canAny(permissions, "schedule");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -4496,19 +4413,19 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="JADVAL"
-        title="Darslar kalendari"
+        eyebrow={__kbUi("JADVAL")}
+        title={__kbUi("Darslar kalendari")}
         text={
           roles.includes("teacher")
-            ? "Faqat sizga biriktirilgan darslar."
-            : "Xona, o‘qituvchi va guruh to‘qnashuvi serverda tekshiriladi."
+            ? __kbUi("Faqat sizga biriktirilgan darslar.")
+            : __kbUi("Xona, o‘qituvchi va guruh to‘qnashuvi serverda tekshiriladi.")
         }
         canCreate={canManage}
         onCreate={() => setOpen((value) => !value)}
-        label="Dars qo‘shish"
+        label={__kbUi("Dars qo‘shish")}
       />
       <div className="lc-filter-row">
-        <Field label="Boshlanish sanasi">
+        <Field label={__kbUi("Boshlanish sanasi")}>
           <input
             type="date"
             value={fromDate}
@@ -4520,7 +4437,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs" aiField="course_id">
+            <Field label={__kbUi("Kurs")} aiField="course_id">
               <select
                 value={form.course_id}
                 onChange={(event) => {
@@ -4540,16 +4457,16 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                   });
                 }}
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {courses.items.map((course) => (
                   <option key={course.id} value={course.id}>
-                    {course.name} ·{" "}
-                    {course.status === "draft" ? "qoralama" : "faol"}
+                    {course.name} ·{__kbUi(" ")}
+                    {course.status === "draft" ? __kbUi("qoralama") : __kbUi("faol")}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Jadval turi" aiField="schedule_kind">
+            <Field label={__kbUi("Jadval turi")} aiField="schedule_kind">
               <select
                 value={form.schedule_kind}
                 onChange={(event) =>
@@ -4559,12 +4476,12 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                   })
                 }
               >
-                <option value="weekly">Har hafta takrorlanadi</option>
-                <option value="dated">Bir kunlik qo‘shimcha dars</option>
+                <option value="weekly">{__kbUi("Har hafta takrorlanadi")}</option>
+                <option value="dated">{__kbUi("Bir kunlik qo‘shimcha dars")}</option>
               </select>
             </Field>
             {form.schedule_kind === "dated" ? (
-              <Field label="Sana">
+              <Field label={__kbUi("Sana")}>
                 <input
                   type="date"
                   value={form.lesson_date}
@@ -4578,7 +4495,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
               </Field>
             ) : (
               <>
-                <Field label="Boshlanish sanasi">
+                <Field label={__kbUi("Boshlanish sanasi")}>
                   <input
                     type="date"
                     value={form.effective_from}
@@ -4590,7 +4507,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                     }
                   />
                 </Field>
-                <Field label="Tugash sanasi">
+                <Field label={__kbUi("Tugash sanasi")}>
                   <input
                     type="date"
                     value={form.effective_to}
@@ -4602,7 +4519,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                     }
                   />
                 </Field>
-                <Field label="Hafta kunlari" wide aiField="weekdays">
+                <Field label={__kbUi("Hafta kunlari")} wide aiField="weekdays">
                   <WeekdayPicker
                     value={form.weekdays}
                     onChange={(weekdays) =>
@@ -4612,7 +4529,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                 </Field>
               </>
             )}
-            <Field label="Boshlanish" aiField="starts_at">
+            <Field label={__kbUi("Boshlanish")} aiField="starts_at">
               <input
                 type="time"
                 value={form.starts_at}
@@ -4621,7 +4538,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Davomiyligi" aiField="duration_minutes">
+            <Field label={__kbUi("Davomiyligi")} aiField="duration_minutes">
               <select
                 value={form.duration_minutes}
                 onChange={(event) =>
@@ -4633,19 +4550,18 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
               >
                 {[45, 60, 80, 90, 120, 180].map((value) => (
                   <option key={value} value={value}>
-                    {value} daqiqa
-                  </option>
+                    {__kbUi(value)}{__kbUi(" daqiqa")}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Xona">
+            <Field label={__kbUi("Xona")}>
               <select
                 value={form.room_id}
                 onChange={(event) =>
                   setForm({ ...form, room_id: event.target.value })
                 }
               >
-                <option value="">Onlayn/xonasiz</option>
+                <option value="">{__kbUi("Onlayn/xonasiz")}</option>
                 {options.rooms.items
                   .filter(() => {
                     const course = courses.items.find(
@@ -4666,20 +4582,20 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                   })
                   .map((room) => (
                   <option key={room.id} value={room.id}>
-                    {room.branch_name ? `${room.branch_name} · ` : ""}
+                    {room.branch_name ? __kbUi(`${room.branch_name} · `) : __kbUi("")}
                     {room.name}
                   </option>
                   ))}
               </select>
             </Field>
-            <Field label="O‘qituvchi">
+            <Field label={__kbUi("O‘qituvchi")}>
               <select
                 value={form.teacher_user_id}
                 onChange={(event) =>
                   setForm({ ...form, teacher_user_id: event.target.value })
                 }
               >
-                <option value="">Kurs o‘qituvchisi</option>
+                <option value="">{__kbUi("Kurs o‘qituvchisi")}</option>
                 {options.staff.items
                   .filter((item) => {
                     const course = courses.items.find(
@@ -4710,7 +4626,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                   ))}
               </select>
             </Field>
-            <Field label="Mavzu" wide>
+            <Field label={__kbUi("Mavzu")} wide>
               <input
                 value={form.topic}
                 maxLength={240}
@@ -4735,8 +4651,8 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
             {courses.items.find(
               (item) => Number(item.id) === Number(form.course_id),
             )?.status === "active"
-              ? "Men tekshirdim — jadvalga e’lon qilish"
-              : "Qoralama dars vaqtini saqlash"}
+              ? __kbUi("Men tekshirdim — jadvalga e’lon qilish")
+              : __kbUi("Qoralama dars vaqtini saqlash")}
           </ActionButton>
         </div>
       )}
@@ -4747,15 +4663,15 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
           {resource.items.map((item) => (
             <article key={item.id}>
               <time>
-                <b>{item.starts_at?.slice(0, 5) || "—"}</b>
+                <b>{item.starts_at?.slice(0, 5) || __kbUi("—")}</b>
                 <small>{item.lesson_date || item.date}</small>
               </time>
               <span>
                 <h3>{item.course_name || item.title}</h3>
-                <p>{item.topic || "Mavzu belgilanmagan"}</p>
+                <p>{item.topic || __kbUi("Mavzu belgilanmagan")}</p>
                 <small>
-                  {item.teacher_name || "O‘qituvchi"} ·{" "}
-                  {item.room_name || "Onlayn/xonasiz"}
+                  {item.teacher_name || __kbUi("O‘qituvchi")} ·{__kbUi(" ")}
+                  {item.room_name || __kbUi("Onlayn/xonasiz")}
                 </small>
               </span>
               <div className="lc-entity-end">
@@ -4765,9 +4681,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
                     type="button"
                     disabled={busy}
                     onClick={() => publishSlot(item)}
-                  >
-                    Men tekshirdim — e’lon qilish
-                  </button>
+                  >{__kbUi("Men tekshirdim — e’lon qilish")}</button>
                 )}
               </div>
             </article>
@@ -4776,8 +4690,8 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
       ) : (
         <EmptyState
           icon={CalendarDays}
-          title="Dars topilmadi"
-          text="Tanlangan sanadan keyin jadval yozuvi yo‘q."
+          title={__kbUi("Dars topilmadi")}
+          text={__kbUi("Tanlangan sanadan keyin jadval yozuvi yo‘q.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -4786,6 +4700,7 @@ function SchedulePanel({ apiBase, token, contextId, permissions, roles }) {
 }
 
 function SafeFormula({ formula, display = true }) {
+  useKbInterfaceLocale();
   const [html, setHtml] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
@@ -4825,7 +4740,7 @@ function SafeFormula({ formula, display = true }) {
     return (
       <div className="lc-formula-error">
         <code>{formula}</code>
-        <small>{error}</small>
+        <small>{__kbUi(error)}</small>
       </div>
     );
   }
@@ -4839,6 +4754,7 @@ function SafeFormula({ formula, display = true }) {
 }
 
 function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
+  useKbInterfaceLocale();
   const [tab, setTab] = useState("plans");
   const canPlan = canAny(permissions, "lessons");
   const canHomework = canAny(permissions, "homework");
@@ -5150,9 +5066,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
             setOpen(false);
             setReviewTarget(null);
           }}
-        >
-          Dars rejalari
-        </button>
+        >{__kbUi("Dars rejalari")}</button>
         <button
           type="button"
           className={tab === "homework" ? "active" : ""}
@@ -5160,32 +5074,30 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
             setTab("homework");
             setOpen(false);
           }}
-        >
-          Uy vazifalari
-        </button>
+        >{__kbUi("Uy vazifalari")}</button>
       </div>
       <ResourceHeader
-        eyebrow={tab === "plans" ? "DARS REJA" : "UY VAZIFASI"}
+        eyebrow={tab === "plans" ? __kbUi("DARS REJA") : __kbUi("UY VAZIFASI")}
         title={
           tab === "plans"
-            ? "Maqsad, tushuntirish va mashqlar"
-            : "Muddat, topshiriq va baholash"
+            ? __kbUi("Maqsad, tushuntirish va mashqlar")
+            : __kbUi("Muddat, topshiriq va baholash")
         }
         text={
           roles.includes("student") || roles.includes("parent")
-            ? "Bu bo‘lim siz uchun faqat ko‘rish rejimida."
-            : "Matn va LaTeX formulalari xavfsiz ko‘rsatiladi."
+            ? __kbUi("Bu bo‘lim siz uchun faqat ko‘rish rejimida.")
+            : __kbUi("Matn va LaTeX formulalari xavfsiz ko‘rsatiladi.")
         }
         canCreate={canCreate}
         onCreate={() => setOpen((value) => !value)}
-        label={tab === "plans" ? "Reja qoralamasi" : "Vazifa qoralamasi"}
+        label={tab === "plans" ? __kbUi("Reja qoralamasi") : __kbUi("Vazifa qoralamasi")}
       />
       <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
       {submissionTarget && (
         <div className="lc-inline-form">
           <div className="lc-section-heading">
             <div>
-              <span className="lc-eyebrow">VAZIFANI TOPSHIRISH</span>
+              <span className="lc-eyebrow">{__kbUi("VAZIFANI TOPSHIRISH")}</span>
               <h3>{submissionTarget.title}</h3>
             </div>
             <button
@@ -5193,11 +5105,10 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               className="lc-text-danger"
               onClick={() => setSubmissionTarget(null)}
             >
-              <X size={14} /> Yopish
-            </button>
+              <X size={14} />{__kbUi(" Yopish")}</button>
           </div>
           <div className="lc-form-grid">
-            <Field label="Javob" wide>
+            <Field label={__kbUi("Javob")} wide>
               <textarea
                 value={submission.answer_text}
                 maxLength={50000}
@@ -5209,7 +5120,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Formula javobi (LaTeX)" wide>
+            <Field label={__kbUi("Formula javobi (LaTeX)")} wide>
               <textarea
                 value={submission.answer_latex}
                 maxLength={20000}
@@ -5225,16 +5136,14 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               <SafeFormula formula={submission.answer_latex} />
             </div>
           </div>
-          <ActionButton busy={busy} onClick={submitHomework}>
-            Men tekshirdim — vazifani topshirish
-          </ActionButton>
+          <ActionButton busy={busy} onClick={submitHomework}>{__kbUi("Men tekshirdim — vazifani topshirish")}</ActionButton>
         </div>
       )}
       {reviewTarget && canHomework && (
         <div className="lc-inline-form">
           <div className="lc-section-heading">
             <div>
-              <span className="lc-eyebrow">TOPSHIRIQLARNI TEKSHIRISH</span>
+              <span className="lc-eyebrow">{__kbUi("TOPSHIRIQLARNI TEKSHIRISH")}</span>
               <h3>{reviewTarget.title}</h3>
             </div>
             <button
@@ -5242,8 +5151,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               className="lc-text-danger"
               onClick={() => setReviewTarget(null)}
             >
-              <X size={14} /> Yopish
-            </button>
+              <X size={14} />{__kbUi(" Yopish")}</button>
           </div>
           <ErrorNotice
             error={homeworkSubmissions.error}
@@ -5251,7 +5159,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
           />
           {homeworkSubmissions.busy &&
           !homeworkSubmissions.items.length ? (
-            <LoadingBlock text="O‘quvchi javoblari yuklanmoqda..." />
+            <LoadingBlock text={__kbUi("O‘quvchi javoblari yuklanmoqda...")} />
           ) : homeworkSubmissions.items.length ? (
             <div className="lc-content-list">
               {homeworkSubmissions.items.map((item) => {
@@ -5261,15 +5169,15 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                     <header>
                       <span>
                         <ClipboardCheck size={18} />
-                        <b>{item.student_name || `O‘quvchi #${item.student_user_id}`}</b>
+                        <b>{item.student_name || __kbUi(`O‘quvchi #${item.student_user_id}`)}</b>
                       </span>
                       <StatusPill status={item.status || "submitted"} />
                     </header>
-                    <p>{item.answer_text || "Matnli javob yo‘q"}</p>
+                    <p>{item.answer_text || __kbUi("Matnli javob yo‘q")}</p>
                     <SafeFormula formula={item.answer_latex} />
                     <div className="lc-form-grid">
                       <Field
-                        label={`Ball (0–${reviewTarget.max_score || 100})`}
+                        label={__kbUi(`Ball (0–${reviewTarget.max_score || 100})`)}
                       >
                         <input
                           type="number"
@@ -5291,7 +5199,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                           }
                         />
                       </Field>
-                      <Field label="Izoh" wide>
+                      <Field label={__kbUi("Izoh")} wide>
                         <textarea
                           maxLength={10000}
                           value={grade.feedback ?? item.feedback ?? ""}
@@ -5310,23 +5218,19 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                     <footer>
                       <small>
                         {item.submitted_at
-                          ? new Date(item.submitted_at).toLocaleString("uz-UZ")
-                          : "Topshirilgan"}
+                          ? __kbUi(new Date(item.submitted_at).toLocaleString(__kbLocaleTag()))
+                          : __kbUi("Topshirilgan")}
                       </small>
                       <ActionButton
                         busy={busy}
                         onClick={() => gradeHomework(item)}
-                      >
-                        Men tekshirdim — bahoni saqlash
-                      </ActionButton>
+                      >{__kbUi("Men tekshirdim — bahoni saqlash")}</ActionButton>
                       {["submitted", "graded"].includes(item.status) && (
                         <ActionButton
                           secondary
                           busy={busy}
                           onClick={() => returnHomework(item)}
-                        >
-                          Tuzatishga qaytarish
-                        </ActionButton>
+                        >{__kbUi("Tuzatishga qaytarish")}</ActionButton>
                       )}
                     </footer>
                   </article>
@@ -5336,8 +5240,8 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
           ) : (
             <EmptyState
               icon={ClipboardCheck}
-              title="Javob topshirilmagan"
-              text="O‘quvchi vazifani topshirgach shu yerda ko‘rinadi."
+              title={__kbUi("Javob topshirilmagan")}
+              text={__kbUi("O‘quvchi vazifani topshirgach shu yerda ko‘rinadi.")}
             />
           )}
           <LoadMore resource={homeworkSubmissions} />
@@ -5346,14 +5250,14 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs" aiField="course_id">
+            <Field label={__kbUi("Kurs")} aiField="course_id">
               <select
                 value={form.course_id}
                 onChange={(event) =>
                   setForm({ ...form, course_id: event.target.value })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {courses.items.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.name}
@@ -5361,7 +5265,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                 ))}
               </select>
             </Field>
-            <Field label={tab === "plans" ? "Dars sanasi" : "Topshirish muddati"}>
+            <Field label={tab === "plans" ? __kbUi("Dars sanasi") : __kbUi("Topshirish muddati")}>
               <input
                 type="date"
                 value={
@@ -5377,7 +5281,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               />
             </Field>
             {tab === "plans" && (
-              <Field label="Dars davomiyligi" aiField="duration_minutes">
+              <Field label={__kbUi("Dars davomiyligi")} aiField="duration_minutes">
                 <select
                   value={form.duration_minutes}
                   onChange={(event) =>
@@ -5389,13 +5293,12 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                 >
                   {[45, 60, 80, 90, 120, 180].map((minutes) => (
                     <option key={minutes} value={minutes}>
-                      {minutes} daqiqa
-                    </option>
+                      {__kbUi(minutes)}{__kbUi(" daqiqa")}</option>
                   ))}
                 </select>
               </Field>
             )}
-            <Field label="Sarlavha" wide aiField="title">
+            <Field label={__kbUi("Sarlavha")} wide aiField="title">
               <input
                 value={form.title}
                 maxLength={240}
@@ -5406,7 +5309,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
             </Field>
             {tab === "plans" && (
               <>
-                <Field label="Dars maqsadi" wide>
+                <Field label={__kbUi("Dars maqsadi")} wide>
                   <textarea
                     value={form.objective}
                     maxLength={2000}
@@ -5415,7 +5318,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                     }
                   />
                 </Field>
-                <Field label="Tushuntirish" wide>
+                <Field label={__kbUi("Tushuntirish")} wide>
                   <textarea
                     value={form.explanation}
                     maxLength={10000}
@@ -5424,7 +5327,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                     }
                   />
                 </Field>
-                <Field label="Faoliyat va mashqlar" wide>
+                <Field label={__kbUi("Faoliyat va mashqlar")} wide>
                   <textarea
                     value={form.activities}
                     maxLength={10000}
@@ -5437,7 +5340,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
             )}
             {tab === "homework" && (
               <>
-                <Field label="Topshiriq" wide>
+                <Field label={__kbUi("Topshiriq")} wide>
                   <textarea
                     value={form.homework_text}
                     maxLength={10000}
@@ -5446,7 +5349,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                     }
                   />
                 </Field>
-                <Field label="Maksimal ball">
+                <Field label={__kbUi("Maksimal ball")}>
                   <input
                     type="number"
                     min="1"
@@ -5463,8 +5366,8 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               </>
             )}
             <Field
-              label="LaTeX formula"
-              hint={"Masalan: \\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}"}
+              label={__kbUi("LaTeX formula")}
+              hint={__kbUi("Masalan: \\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}")}
               wide
             >
               <textarea
@@ -5477,16 +5380,14 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               />
             </Field>
             <div className="lc-formula-preview">
-              <small>Xavfsiz formula ko‘rinishi</small>
+              <small>{__kbUi("Xavfsiz formula ko‘rinishi")}</small>
               <SafeFormula formula={form.formula_latex} />
             </div>
           </div>
           <SelectorPagination
             resources={[["Kurslar", courses]]}
           />
-          <ActionButton busy={busy} onClick={save}>
-            Qoralamani saqlash
-          </ActionButton>
+          <ActionButton busy={busy} onClick={save}>{__kbUi("Qoralamani saqlash")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -5527,7 +5428,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                 {item.content_text ||
                   item.instructions ||
                   item.explanation ||
-                  "Tavsif yo‘q"}
+                  __kbUi("Tavsif yo‘q")}
               </p>
               <SafeFormula
                 formula={item.content_latex || item.formula_latex}
@@ -5535,25 +5436,24 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
               {tab === "homework" &&
                 roles.includes("student") &&
                 mySubmission?.item && (
-                  <InfoNotice>
-                    Holat:{" "}
+                  <InfoNotice>{__kbUi("Holat:")}{__kbUi(" ")}
                     {STATUS_LABELS[mySubmission.item.status] ||
-                      mySubmission.item.status}
+                      __kbUi(mySubmission.item.status)}
                     {mySubmission.item.score != null
-                      ? ` · ${mySubmission.item.score}/${item.max_score || "—"}`
-                      : ""}
+                      ? __kbUi(` · ${mySubmission.item.score}/${item.max_score || "—"}`)
+                      : __kbUi("")}
                     {mySubmission.item.feedback
-                      ? ` · Izoh: ${mySubmission.item.feedback}`
-                      : ""}
+                      ? __kbUi(` · Izoh: ${mySubmission.item.feedback}`)
+                      : __kbUi("")}
                   </InfoNotice>
                 )}
               <footer>
                 <small>
-                  {item.course_name || "Kurs"} ·{" "}
+                  {item.course_name || __kbUi("Kurs")} ·{__kbUi(" ")}
                   {item.lesson_date ||
                     item.due_date ||
                     item.due_at?.slice(0, 10) ||
-                    "Sanasiz"}
+                    __kbUi("Sanasiz")}
                 </small>
                 <div className="lc-row-actions">
                   {tab === "plans" && (
@@ -5561,9 +5461,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                       type="button"
                       disabled={busy}
                       onClick={() => downloadWord(item)}
-                    >
-                      Word yuklab olish
-                    </button>
+                    >{__kbUi("Word yuklab olish")}</button>
                   )}
                   {tab === "plans" &&
                     canPlan &&
@@ -5572,9 +5470,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                       type="button"
                       disabled={busy}
                       onClick={() => publish(item)}
-                    >
-                      Men tekshirdim — e’lon qilish
-                    </button>
+                    >{__kbUi("Men tekshirdim — e’lon qilish")}</button>
                     )}
                   {tab === "homework" &&
                     canHomework &&
@@ -5583,9 +5479,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                         type="button"
                         disabled={busy}
                         onClick={() => publish(item)}
-                      >
-                        Men tekshirdim — e’lon qilish
-                      </button>
+                      >{__kbUi("Men tekshirdim — e’lon qilish")}</button>
                     )}
                   {tab === "homework" && canHomework && (
                     <button
@@ -5595,9 +5489,7 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                         setReviewGrades({});
                         setReviewTarget(item);
                       }}
-                    >
-                      Javoblarni tekshirish
-                    </button>
+                    >{__kbUi("Javoblarni tekshirish")}</button>
                   )}
                   {tab === "homework" &&
                     roles.includes("student") &&
@@ -5612,14 +5504,14 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
                         onClick={() => openHomeworkSubmission(item)}
                       >
                         {mySubmission?.can_resubmit
-                          ? "Tuzatib qayta topshirish"
+                          ? __kbUi("Tuzatib qayta topshirish")
                           : mySubmission && !mySubmission.can_submit
                             ? mySubmission.item
                               ? STATUS_LABELS[
                                   mySubmission.item.status
-                                ] || "Topshirilgan"
-                              : "Muddati tugagan"
-                            : "Holatni tekshirish / topshirish"}
+                                ] || __kbUi("Topshirilgan")
+                              : __kbUi("Muddati tugagan")
+                            : __kbUi("Holatni tekshirish / topshirish")}
                       </button>
                     )}
                 </div>
@@ -5631,8 +5523,8 @@ function LessonsPanel({ apiBase, token, contextId, permissions, roles }) {
       ) : (
         <EmptyState
           icon={BookOpen}
-          title="Material topilmadi"
-          text="Hali dars reja yoki uy vazifasi yo‘q."
+          title={__kbUi("Material topilmadi")}
+          text={__kbUi("Hali dars reja yoki uy vazifasi yo‘q.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -5647,6 +5539,7 @@ function AttendanceGradesPanel({
   permissions,
   roles,
 }) {
+  useKbInterfaceLocale();
   const [tab, setTab] = useState("attendance");
   const canAttendance = canAny(permissions, "attendance");
   const canGrades = canAny(permissions, "grades");
@@ -5737,9 +5630,7 @@ function AttendanceGradesPanel({
             setTab("attendance");
             setOpen(false);
           }}
-        >
-          Davomat
-        </button>
+        >{__kbUi("Davomat")}</button>
         <button
           type="button"
           className={tab === "grades" ? "active" : ""}
@@ -5747,28 +5638,26 @@ function AttendanceGradesPanel({
             setTab("grades");
             setOpen(false);
           }}
-        >
-          Baholar
-        </button>
+        >{__kbUi("Baholar")}</button>
       </div>
       <ResourceHeader
-        eyebrow={tab === "attendance" ? "DAVOMAT" : "BAHOLAR"}
+        eyebrow={tab === "attendance" ? __kbUi("DAVOMAT") : __kbUi("BAHOLAR")}
         title={
           tab === "attendance"
-            ? "Darsga kelish holati"
-            : "Natija va o‘sish ko‘rsatkichi"
+            ? __kbUi("Darsga kelish holati")
+            : __kbUi("Natija va o‘sish ko‘rsatkichi")
         }
         text={
           roles.includes("student") || roles.includes("parent")
-            ? "Faqat o‘zingizga yoki bog‘langan farzandga tegishli yozuvlar."
-            : "O‘qituvchi faqat o‘z guruhidagi o‘quvchini belgilaydi."
+            ? __kbUi("Faqat o‘zingizga yoki bog‘langan farzandga tegishli yozuvlar.")
+            : __kbUi("O‘qituvchi faqat o‘z guruhidagi o‘quvchini belgilaydi.")
         }
         canCreate={canWrite}
         onCreate={() => setOpen((value) => !value)}
-        label={tab === "attendance" ? "Belgilash" : "Baho yozish"}
+        label={tab === "attendance" ? __kbUi("Belgilash") : __kbUi("Baho yozish")}
       />
       <div className="lc-filter-row">
-        <Field label="Kurs">
+        <Field label={__kbUi("Kurs")}>
           <select
             value={courseId}
             onChange={(event) => {
@@ -5776,7 +5665,7 @@ function AttendanceGradesPanel({
               setForm({ ...form, student_user_id: "" });
             }}
           >
-            <option value="">Barchasi</option>
+            <option value="">{__kbUi("Barchasi")}</option>
             {courses.items.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.name}
@@ -5784,7 +5673,7 @@ function AttendanceGradesPanel({
             ))}
           </select>
         </Field>
-        <Field label="Sana">
+        <Field label={__kbUi("Sana")}>
           <input
             type="date"
             value={date}
@@ -5797,27 +5686,27 @@ function AttendanceGradesPanel({
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="O‘quvchi">
+            <Field label={__kbUi("O‘quvchi")}>
               <select
                 value={form.student_user_id}
                 onChange={(event) =>
                   setForm({ ...form, student_user_id: event.target.value })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {enrollments.items.map((item) => (
                   <option
                     key={item.student_user_id || item.id}
                     value={item.student_user_id}
                   >
                     {item.student_name ||
-                      `O‘quvchi #${item.student_user_id}`}
+                      __kbUi(`O‘quvchi #${item.student_user_id}`)}
                   </option>
                 ))}
               </select>
             </Field>
             {tab === "attendance" ? (
-              <Field label="Holat">
+              <Field label={__kbUi("Holat")}>
                 <select
                   value={form.attendance_status}
                   onChange={(event) =>
@@ -5827,15 +5716,15 @@ function AttendanceGradesPanel({
                     })
                   }
                 >
-                  <option value="present">Keldi</option>
-                  <option value="late">Kechikdi</option>
-                  <option value="excused">Sababli kelmadi</option>
-                  <option value="absent">Sababsiz kelmadi</option>
+                  <option value="present">{__kbUi("Keldi")}</option>
+                  <option value="late">{__kbUi("Kechikdi")}</option>
+                  <option value="excused">{__kbUi("Sababli kelmadi")}</option>
+                  <option value="absent">{__kbUi("Sababsiz kelmadi")}</option>
                 </select>
               </Field>
             ) : (
               <>
-                <Field label="Baholash nomi">
+                <Field label={__kbUi("Baholash nomi")}>
                   <input
                     value={form.assessment_name}
                     onChange={(event) =>
@@ -5846,7 +5735,7 @@ function AttendanceGradesPanel({
                     }
                   />
                 </Field>
-                <Field label="Ball (100 dan)">
+                <Field label={__kbUi("Ball (100 dan)")}>
                   <input
                     type="number"
                     min="0"
@@ -5859,7 +5748,7 @@ function AttendanceGradesPanel({
                 </Field>
               </>
             )}
-            <Field label="Izoh" wide>
+            <Field label={__kbUi("Izoh")} wide>
               <textarea
                 maxLength={500}
                 value={form.note}
@@ -5872,9 +5761,7 @@ function AttendanceGradesPanel({
           <SelectorPagination
             resources={[["O‘quvchilar", enrollments]]}
           />
-          <ActionButton busy={busy} onClick={save}>
-            Saqlash
-          </ActionButton>
+          <ActionButton busy={busy} onClick={save}>{__kbUi("Saqlash")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -5884,22 +5771,22 @@ function AttendanceGradesPanel({
           <table className="lc-table">
             <thead>
               <tr>
-                <th>O‘quvchi</th>
-                <th>Kurs</th>
-                <th>Sana</th>
-                <th>{tab === "attendance" ? "Holat" : "Natija"}</th>
+                <th>{__kbUi("O‘quvchi")}</th>
+                <th>{__kbUi("Kurs")}</th>
+                <th>{__kbUi("Sana")}</th>
+                <th>{tab === "attendance" ? __kbUi("Holat") : __kbUi("Natija")}</th>
               </tr>
             </thead>
             <tbody>
               {resource.items.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.student_name || `#${item.student_user_id}`}</td>
-                  <td>{item.course_name || "—"}</td>
+                  <td>{item.student_name || __kbUi(`#${item.student_user_id}`)}</td>
+                  <td>{item.course_name || __kbUi("—")}</td>
                   <td>{item.attendance_date || item.grade_date || item.date}</td>
                   <td>
                     {tab === "attendance"
-                      ? item.status_label || item.status
-                      : `${item.score ?? "—"}/${item.max_score || 100}`}
+                      ? item.status_label || __kbUi(item.status)
+                      : __kbUi(`${item.score ?? "—"}/${item.max_score || 100}`)}
                   </td>
                 </tr>
               ))}
@@ -5909,8 +5796,8 @@ function AttendanceGradesPanel({
       ) : (
         <EmptyState
           icon={BadgeCheck}
-          title="Yozuv topilmadi"
-          text="Tanlangan kurs va sanada ma’lumot yo‘q."
+          title={__kbUi("Yozuv topilmadi")}
+          text={__kbUi("Tanlangan kurs va sanada ma’lumot yo‘q.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -5927,6 +5814,7 @@ function AssessmentsPanel({
   currentUserId,
   linkedChildren = [],
 }) {
+  useKbInterfaceLocale();
   const canManage = canAny(permissions, "assessments");
   const studentMode = roles.includes("student");
   const parentMode = roles.includes("parent");
@@ -6703,15 +6591,15 @@ function AssessmentsPanel({
             setAttemptResult(null);
             setError("");
           }}
-          label="Testlar"
+          label={__kbUi("Testlar")}
         />
         <div className="lc-section-heading">
           <div>
-            <span className="lc-eyebrow">MUSTAQIL TEST</span>
+            <span className="lc-eyebrow">{__kbUi("MUSTAQIL TEST")}</span>
             <h2>
               {activeAttempt.assessment?.title ||
                 activeAttempt.attempt.title ||
-                "Test savollari"}
+                __kbUi("Test savollari")}
             </h2>
           </div>
           <StatusPill status={attemptResult ? "completed" : "active"} />
@@ -6720,16 +6608,16 @@ function AssessmentsPanel({
         {attemptResult ? (
           <div className="lc-result-card">
             <BadgeCheck size={34} />
-            <h3>Test topshirildi</h3>
+            <h3>{__kbUi("Test topshirildi")}</h3>
             <b>
-              {attemptResult.score ?? "Tekshirilmoqda"} /{" "}
-              {attemptResult.max_score ?? "—"}
+              {attemptResult.score ?? __kbUi("Tekshirilmoqda")} /{__kbUi(" ")}
+              {attemptResult.max_score ?? __kbUi("—")}
             </b>
             <p>
               {attemptResult.score == null ||
               attemptResult.status === "submitted"
-                ? "Yozma javoblarni o‘qituvchi tekshiradi."
-                : "Natija hisobingizga saqlandi."}
+                ? __kbUi("Yozma javoblarni o‘qituvchi tekshiradi.")
+                : __kbUi("Natija hisobingizga saqlandi.")}
             </p>
           </div>
         ) : (
@@ -6737,22 +6625,19 @@ function AssessmentsPanel({
             {remainingSeconds != null && (
               <InfoNotice
                 tone={remainingSeconds <= 60 ? "warning" : undefined}
-              >
-                Qolgan vaqt:{" "}
+              >{__kbUi("Qolgan vaqt:")}{__kbUi(" ")}
                 {String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:
-                {String(remainingSeconds % 60).padStart(2, "0")}. Vaqt
-                tugaganda kiritilgan javoblar avtomatik topshiriladi.
-              </InfoNotice>
+                {__kbUi(String(remainingSeconds % 60).padStart(2, "0"))}{__kbUi(". Vaqt tugaganda kiritilgan javoblar avtomatik topshiriladi.")}</InfoNotice>
             )}
             {autosaveStatus !== "idle" && (
               <div className="lc-truncation" aria-live="polite">
                 {autosaveStatus === "saving"
-                  ? "Javoblar serverga saqlanmoqda…"
+                  ? __kbUi("Javoblar serverga saqlanmoqda…")
                   : autosaveStatus === "saved"
-                    ? "Javoblar serverga saqlandi."
+                    ? __kbUi("Javoblar serverga saqlandi.")
                     : autosaveStatus === "local"
-                      ? "Serverga saqlash vaqtincha ishlamadi; javoblar shu brauzerda saqlandi va keyingi o‘zgarishda yana urinadi."
-                      : "Urinish vaqti tugagan."}
+                      ? __kbUi("Serverga saqlash vaqtincha ishlamadi; javoblar shu brauzerda saqlandi va keyingi o‘zgarishda yana urinadi.")
+                      : __kbUi("Urinish vaqti tugagan.")}
               </div>
             )}
             <div className="lc-attempt-list">
@@ -6807,7 +6692,7 @@ function AssessmentsPanel({
                         <textarea
                           value={attemptAnswers[item.id] || ""}
                           maxLength={5000}
-                          placeholder="Javobingiz"
+                          placeholder={__kbUi("Javobingiz")}
                           onChange={(event) =>
                             setAttemptAnswers((current) => ({
                               ...current,
@@ -6826,8 +6711,8 @@ function AssessmentsPanel({
               onClick={() => submitAttempt(remainingSeconds === 0)}
             >
               {remainingSeconds === 0
-                ? "Kiritilgan javoblarni yuborish"
-                : "Men tekshirdim — testni topshirish"}
+                ? __kbUi("Kiritilgan javoblarni yuborish")
+                : __kbUi("Men tekshirdim — testni topshirish")}
             </ActionButton>
           </>
         )}
@@ -6838,18 +6723,18 @@ function AssessmentsPanel({
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="TEST VA IMTIHON"
-        title="Mustaqil ishlash va natija"
+        eyebrow={__kbUi("TEST VA IMTIHON")}
+        title={__kbUi("Mustaqil ishlash va natija")}
         text={
           studentMode
-            ? "Faqat e’lon qilingan testni o‘zingiz boshlab yechasiz."
+            ? __kbUi("Faqat e’lon qilingan testni o‘zingiz boshlab yechasiz.")
             : parentMode && !canManage
-              ? "Faqat faol bog‘langan farzandingizning test tarixi va natijalarini ko‘rasiz."
-              : "Test avval qoralama bo‘ladi, keyin inson tekshiruviga ko‘ra e’lon qilinadi."
+              ? __kbUi("Faqat faol bog‘langan farzandingizning test tarixi va natijalarini ko‘rasiz.")
+              : __kbUi("Test avval qoralama bo‘ladi, keyin inson tekshiruviga ko‘ra e’lon qilinadi.")
         }
         canCreate={canManage}
         onCreate={() => setOpen((value) => !value)}
-        label="Test qoralamasi"
+        label={__kbUi("Test qoralamasi")}
       />
       {canManage && (
         <div className="lc-filter-row">
@@ -6860,8 +6745,7 @@ function AssessmentsPanel({
               setReviewTarget(null);
             }}
           >
-            <ClipboardCheck size={15} /> Topshirilganlarni tekshirish
-          </ActionButton>
+            <ClipboardCheck size={15} />{__kbUi(" Topshirilganlarni tekshirish")}</ActionButton>
         </div>
       )}
       <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
@@ -6871,13 +6755,13 @@ function AssessmentsPanel({
             <div>
               <span className="lc-eyebrow">
                 {parentMode && !studentMode
-                  ? "FARZAND NATIJALARI"
-                  : "URINISHLARIM"}
+                  ? __kbUi("FARZAND NATIJALARI")
+                  : __kbUi("URINISHLARIM")}
               </span>
               <h3>
                 {parentMode && !studentMode
-                  ? "Test tarixi va natija"
-                  : "Davom ettirish va natijalar"}
+                  ? __kbUi("Test tarixi va natija")
+                  : __kbUi("Davom ettirish va natijalar")}
               </h3>
             </div>
           </div>
@@ -6885,8 +6769,8 @@ function AssessmentsPanel({
             <Field
               label={
                 studentMode
-                  ? "Natija egasi"
-                  : "Bog‘langan farzand"
+                  ? __kbUi("Natija egasi")
+                  : __kbUi("Bog‘langan farzand")
               }
             >
               <select
@@ -6896,39 +6780,34 @@ function AssessmentsPanel({
                   setHistoryResult(null);
                 }}
               >
-                {studentMode && <option value="">Mening natijalarim</option>}
+                {studentMode && <option value="">{__kbUi("Mening natijalarim")}</option>}
                 {safeLinkedChildren.map((child) => (
                   <option
                     key={child.student_user_id}
                     value={child.student_user_id}
                   >
                     {child.student_name ||
-                      `O‘quvchi #${child.student_user_id}`}
+                      __kbUi(`O‘quvchi #${child.student_user_id}`)}
                   </option>
                 ))}
               </select>
             </Field>
           )}
           {parentMode && !studentMode && !safeLinkedChildren.length && (
-            <InfoNotice>
-              Hisobingizga faol bog‘langan farzand topilmadi. Markaz
-              administratori bog‘lanishni tekshirishi kerak.
-            </InfoNotice>
+            <InfoNotice>{__kbUi("Hisobingizga faol bog‘langan farzand topilmadi. Markaz administratori bog‘lanishni tekshirishi kerak.")}</InfoNotice>
           )}
           {historyResult && (
             <div className="lc-result-card">
               <BadgeCheck size={28} />
               <h3>{historyResult.item.assessment_title}</h3>
               <b>
-                {historyResult.result.score ?? "Tekshirilmoqda"} /{" "}
-                {historyResult.result.max_score ?? "—"}
+                {historyResult.result.score ?? __kbUi("Tekshirilmoqda")} /{__kbUi(" ")}
+                {historyResult.result.max_score ?? __kbUi("—")}
               </b>
               <p>
                 <StatusPill status={historyResult.result.status} />
               </p>
-              <button type="button" onClick={() => setHistoryResult(null)}>
-                Yopish
-              </button>
+              <button type="button" onClick={() => setHistoryResult(null)}>{__kbUi("Yopish")}</button>
             </div>
           )}
           <ErrorNotice
@@ -6936,17 +6815,17 @@ function AssessmentsPanel({
             onRetry={myAttempts.reload}
           />
           {myAttempts.busy && !myAttempts.items.length ? (
-            <LoadingBlock text="Urinishlar yuklanmoqda..." />
+            <LoadingBlock text={__kbUi("Urinishlar yuklanmoqda...")} />
           ) : myAttempts.items.length ? (
             <div className="lc-table-wrap">
               <table className="lc-table">
                 <thead>
                   <tr>
-                    <th>Test</th>
-                    <th>Kurs</th>
-                    <th>Urinish</th>
-                    <th>Holat/natija</th>
-                    <th>Amal</th>
+                    <th>{__kbUi("Test")}</th>
+                    <th>{__kbUi("Kurs")}</th>
+                    <th>{__kbUi("Urinish")}</th>
+                    <th>{__kbUi("Holat/natija")}</th>
+                    <th>{__kbUi("Amal")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -6959,8 +6838,8 @@ function AssessmentsPanel({
                         <StatusPill status={item.status} />
                         {item.status === "scored" && (
                           <small>
-                            {" "}
-                            {item.score ?? 0}/{item.max_score ?? "—"}
+                            {__kbUi(" ")}
+                            {item.score ?? 0}/{item.max_score ?? __kbUi("—")}
                           </small>
                         )}
                       </td>
@@ -6972,11 +6851,9 @@ function AssessmentsPanel({
                             type="button"
                             disabled={busy}
                             onClick={() => resumeAttempt(item)}
-                          >
-                            Davom ettirish
-                          </button>
+                          >{__kbUi("Davom ettirish")}</button>
                         ) : item.status === "in_progress" ? (
-                          "O‘quvchi davom ettiradi"
+                          __kbUi("O‘quvchi davom ettiradi")
                         ) : ["submitted", "scored", "expired"].includes(
                             item.status,
                           ) ? (
@@ -6986,13 +6863,13 @@ function AssessmentsPanel({
                             onClick={() => viewHistoryResult(item)}
                           >
                             {item.status === "expired"
-                              ? "Vaqti tugagan"
+                              ? __kbUi("Vaqti tugagan")
                               : item.status === "submitted"
-                                ? "Tekshiruv holati"
-                                : "Natijani ko‘rish"}
+                                ? __kbUi("Tekshiruv holati")
+                                : __kbUi("Natijani ko‘rish")}
                           </button>
                         ) : (
-                          "Natija saqlangan"
+                          __kbUi("Natija saqlangan")
                         )}
                       </td>
                     </tr>
@@ -7001,7 +6878,7 @@ function AssessmentsPanel({
               </table>
             </div>
           ) : (
-            <InfoNotice>Hali test urinishi yo‘q.</InfoNotice>
+            <InfoNotice>{__kbUi("Hali test urinishi yo‘q.")}</InfoNotice>
           )}
           <LoadMore resource={myAttempts} />
         </section>
@@ -7010,8 +6887,8 @@ function AssessmentsPanel({
         <div className="lc-inline-form">
           <div className="lc-section-heading">
             <div>
-              <span className="lc-eyebrow">INSON TEKSHIRUVI</span>
-              <h3>Baholash kutilayotgan urinishlar</h3>
+              <span className="lc-eyebrow">{__kbUi("INSON TEKSHIRUVI")}</span>
+              <h3>{__kbUi("Baholash kutilayotgan urinishlar")}</h3>
             </div>
           </div>
           <ErrorNotice
@@ -7024,16 +6901,14 @@ function AssessmentsPanel({
                 <div>
                   <small>
                     {reviewTarget.attempt?.student_name ||
-                      `O‘quvchi #${reviewTarget.attempt?.student_user_id}`}
+                      __kbUi(`O‘quvchi #${reviewTarget.attempt?.student_user_id}`)}
                   </small>
                   <h3>{reviewTarget.assessment?.title}</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setReviewTarget(null)}
-                >
-                  Ro‘yxatga qaytish
-                </button>
+                >{__kbUi("Ro‘yxatga qaytish")}</button>
               </div>
               <div className="lc-content-list">
                 {(reviewTarget.answers || []).map((answer) => {
@@ -7089,8 +6964,8 @@ function AssessmentsPanel({
                   return (
                     <article key={answer.assessment_item_id}>
                       <header>
-                        <b>{answer.item_order}-savol</b>
-                        <small>{answer.points} ball</small>
+                        <b>{answer.item_order}{__kbUi("-savol")}</b>
+                        <small>{answer.points}{__kbUi(" ball")}</small>
                       </header>
                       <p>
                         {answer.question ||
@@ -7099,15 +6974,15 @@ function AssessmentsPanel({
                       </p>
                       <div className="lc-preview-grid">
                         <div>
-                          <small>O‘quvchi javobi</small>
-                          <b>{readableAnswer(rawResponse)}</b>
+                          <small>{__kbUi("O‘quvchi javobi")}</small>
+                          <b>{__kbUi(readableAnswer(rawResponse))}</b>
                         </div>
                         <div>
-                          <small>Javob kaliti</small>
+                          <small>{__kbUi("Javob kaliti")}</small>
                           <b>
                             {rawCorrect == null
-                              ? "Qo‘lda tekshiriladi"
-                              : readableAnswer(rawCorrect)}
+                              ? __kbUi("Qo‘lda tekshiriladi")
+                              : __kbUi(readableAnswer(rawCorrect))}
                           </b>
                         </div>
                       </div>
@@ -7116,11 +6991,11 @@ function AssessmentsPanel({
                 })}
               </div>
               <Field
-                label={`Yakuniy ball (0–${
+                label={__kbUi(`Yakuniy ball (0–${
                   reviewTarget.attempt?.max_score ??
                   reviewTarget.assessment?.total_points ??
                   0
-                })`}
+                })`)}
               >
                 <input
                   type="number"
@@ -7143,7 +7018,7 @@ function AssessmentsPanel({
                     ["writing", "Writing"],
                     ["speaking", "Speaking"],
                   ].map(([key, label]) => (
-                    <Field key={key} label={`${label} (0–9)`}>
+                    <Field key={key} label={__kbUi(`${label} (0–9)`)}>
                       <input
                         type="number"
                         min="0"
@@ -7171,22 +7046,20 @@ function AssessmentsPanel({
                     ))
                 }
                 onClick={scoreAttempt}
-              >
-                Men tekshirdim — bahoni saqlash
-              </ActionButton>
+              >{__kbUi("Men tekshirdim — bahoni saqlash")}</ActionButton>
             </>
           ) : reviewAttempts.busy && !reviewAttempts.items.length ? (
-            <LoadingBlock text="Topshirilgan testlar yuklanmoqda..." />
+            <LoadingBlock text={__kbUi("Topshirilgan testlar yuklanmoqda...")} />
           ) : reviewAttempts.items.length ? (
             <div className="lc-table-wrap">
               <table className="lc-table">
                 <thead>
                   <tr>
-                    <th>O‘quvchi</th>
-                    <th>Test</th>
-                    <th>Kurs</th>
-                    <th>Topshirilgan</th>
-                    <th>Amal</th>
+                    <th>{__kbUi("O‘quvchi")}</th>
+                    <th>{__kbUi("Test")}</th>
+                    <th>{__kbUi("Kurs")}</th>
+                    <th>{__kbUi("Topshirilgan")}</th>
+                    <th>{__kbUi("Amal")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -7197,17 +7070,15 @@ function AssessmentsPanel({
                       <td>{item.course_name}</td>
                       <td>
                         {item.submitted_at
-                          ? new Date(item.submitted_at).toLocaleString("uz-UZ")
-                          : "—"}
+                          ? __kbUi(new Date(item.submitted_at).toLocaleString(__kbLocaleTag()))
+                          : __kbUi("—")}
                       </td>
                       <td>
                         <button
                           type="button"
                           disabled={busy}
                           onClick={() => openAttemptReview(item)}
-                        >
-                          Javoblarni ochish
-                        </button>
+                        >{__kbUi("Javoblarni ochish")}</button>
                       </td>
                     </tr>
                   ))}
@@ -7215,7 +7086,7 @@ function AssessmentsPanel({
               </table>
             </div>
           ) : (
-            <InfoNotice>Tekshirish kutilayotgan test yo‘q.</InfoNotice>
+            <InfoNotice>{__kbUi("Tekshirish kutilayotgan test yo‘q.")}</InfoNotice>
           )}
           {!reviewTarget && <LoadMore resource={reviewAttempts} />}
         </div>
@@ -7223,14 +7094,14 @@ function AssessmentsPanel({
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs" aiField="course_id">
+            <Field label={__kbUi("Kurs")} aiField="course_id">
               <select
                 value={form.course_id}
                 onChange={(event) =>
                   setForm({ ...form, course_id: event.target.value })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {courses.items.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.name}
@@ -7238,7 +7109,7 @@ function AssessmentsPanel({
                 ))}
               </select>
             </Field>
-            <Field label="Turi" aiField="assessment_type">
+            <Field label={__kbUi("Turi")} aiField="assessment_type">
               <select
                 value={form.assessment_type}
                 onChange={(event) => {
@@ -7255,32 +7126,32 @@ function AssessmentsPanel({
                   });
                 }}
               >
-                <option value="quiz">Mavzu testi</option>
-                <option value="mock_exam">Sinov imtihoni</option>
-                <option value="midterm">Oraliq imtihon</option>
-                <option value="final">Yakuniy imtihon</option>
-                <option value="placement">Daraja aniqlash</option>
-                <option value="diagnostic">Diagnostika</option>
-                <option value="exam">Imtihon</option>
-                <option value="cefr_mock">CEFR sinov</option>
-                <option value="ielts_mock">IELTS sinov</option>
+                <option value="quiz">{__kbUi("Mavzu testi")}</option>
+                <option value="mock_exam">{__kbUi("Sinov imtihoni")}</option>
+                <option value="midterm">{__kbUi("Oraliq imtihon")}</option>
+                <option value="final">{__kbUi("Yakuniy imtihon")}</option>
+                <option value="placement">{__kbUi("Daraja aniqlash")}</option>
+                <option value="diagnostic">{__kbUi("Diagnostika")}</option>
+                <option value="exam">{__kbUi("Imtihon")}</option>
+                <option value="cefr_mock">{__kbUi("CEFR sinov")}</option>
+                <option value="ielts_mock">{__kbUi("IELTS sinov")}</option>
               </select>
             </Field>
-            <Field label="Baholash tizimi" aiField="framework">
+            <Field label={__kbUi("Baholash tizimi")} aiField="framework">
               <select
                 value={form.framework}
                 onChange={(event) =>
                   setForm({ ...form, framework: event.target.value })
                 }
               >
-                <option value="custom">Markaz mezoni</option>
-                <option value="cefr">CEFR</option>
-                <option value="ielts">IELTS</option>
-                <option value="national_exam">Milliy imtihon</option>
-                <option value="school">Maktab dasturi</option>
+                <option value="custom">{__kbUi("Markaz mezoni")}</option>
+                <option value="cefr">{__kbUi("CEFR")}</option>
+                <option value="ielts">{__kbUi("IELTS")}</option>
+                <option value="national_exam">{__kbUi("Milliy imtihon")}</option>
+                <option value="school">{__kbUi("Maktab dasturi")}</option>
               </select>
             </Field>
-            <Field label="Nomi" wide aiField="title">
+            <Field label={__kbUi("Nomi")} wide aiField="title">
               <input
                 value={form.title}
                 maxLength={240}
@@ -7289,7 +7160,7 @@ function AssessmentsPanel({
                 }
               />
             </Field>
-            <Field label="Davomiyligi" aiField="duration_minutes">
+            <Field label={__kbUi("Davomiyligi")} aiField="duration_minutes">
               <select
                 value={form.duration_minutes}
                 onChange={(event) =>
@@ -7301,12 +7172,11 @@ function AssessmentsPanel({
               >
                 {[15, 30, 45, 60, 90, 120, 180].map((value) => (
                   <option key={value} value={value}>
-                    {value} daqiqa
-                  </option>
+                    {__kbUi(value)}{__kbUi(" daqiqa")}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Urinish soni">
+            <Field label={__kbUi("Urinish soni")}>
               <select
                 value={form.max_attempts}
                 onChange={(event) =>
@@ -7317,11 +7187,11 @@ function AssessmentsPanel({
                 }
               >
                 {[1, 2, 3, 4, 5].map((value) => (
-                  <option key={value}>{value}</option>
+                  <option value={(value)} key={value}>{__kbUi(value)}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Ochiladi">
+            <Field label={__kbUi("Ochiladi")}>
               <input
                 type="datetime-local"
                 value={form.opens_at}
@@ -7330,7 +7200,7 @@ function AssessmentsPanel({
                 }
               />
             </Field>
-            <Field label="Yopiladi">
+            <Field label={__kbUi("Yopiladi")}>
               <input
                 type="datetime-local"
                 value={form.closes_at}
@@ -7339,7 +7209,7 @@ function AssessmentsPanel({
                 }
               />
             </Field>
-            <Field label="Ko‘rsatma" wide>
+            <Field label={__kbUi("Ko‘rsatma")} wide>
               <textarea
                 value={form.instructions}
                 maxLength={5000}
@@ -7353,8 +7223,8 @@ function AssessmentsPanel({
           <div className="lc-question-builder">
             <div className="lc-section-heading">
               <div>
-                <span className="lc-eyebrow">SAVOLLAR</span>
-                <h3>Test ichidagi savollar</h3>
+                <span className="lc-eyebrow">{__kbUi("SAVOLLAR")}</span>
+                <h3>{__kbUi("Test ichidagi savollar")}</h3>
               </div>
               <ActionButton
                 secondary
@@ -7373,13 +7243,12 @@ function AssessmentsPanel({
                   ])
                 }
               >
-                <Plus size={14} /> Savol
-              </ActionButton>
+                <Plus size={14} />{__kbUi(" Savol")}</ActionButton>
             </div>
             {questions.map((question, questionIndex) => (
               <article key={question.local_id}>
                 <header>
-                  <b>{questionIndex + 1}-savol</b>
+                  <b>{questionIndex + 1}{__kbUi("-savol")}</b>
                   {questions.length > 1 && (
                     <button
                       type="button"
@@ -7391,12 +7260,11 @@ function AssessmentsPanel({
                         )
                       }
                     >
-                      <X size={14} /> Olib tashlash
-                    </button>
+                      <X size={14} />{__kbUi(" Olib tashlash")}</button>
                   )}
                 </header>
                 <div className="lc-form-grid">
-                  <Field label="Savol turi">
+                  <Field label={__kbUi("Savol turi")}>
                     <select
                       value={question.question_type}
                       onChange={(event) =>
@@ -7413,11 +7281,11 @@ function AssessmentsPanel({
                         )
                       }
                     >
-                      <option value="multiple_choice">Variantli</option>
-                      <option value="short_answer">Qisqa javob</option>
+                      <option value="multiple_choice">{__kbUi("Variantli")}</option>
+                      <option value="short_answer">{__kbUi("Qisqa javob")}</option>
                     </select>
                   </Field>
-                  <Field label="Ball">
+                  <Field label={__kbUi("Ball")}>
                     <input
                       type="number"
                       min="0.1"
@@ -7438,7 +7306,7 @@ function AssessmentsPanel({
                       }
                     />
                   </Field>
-                  <Field label="Savol matni" wide>
+                  <Field label={__kbUi("Savol matni")} wide>
                     <textarea
                       value={question.prompt}
                       maxLength={5000}
@@ -7453,7 +7321,7 @@ function AssessmentsPanel({
                       }
                     />
                   </Field>
-                  <Field label="LaTeX formula" wide>
+                  <Field label={__kbUi("LaTeX formula")} wide>
                     <textarea
                       value={question.formula_latex}
                       maxLength={2000}
@@ -7478,7 +7346,7 @@ function AssessmentsPanel({
                     question.options.map((option, optionIndex) => (
                       <Field
                         key={`${question.local_id}-${optionIndex}`}
-                        label={`${String.fromCharCode(65 + optionIndex)} variant`}
+                        label={__kbUi(`${String.fromCharCode(65 + optionIndex)} variant`)}
                       >
                         <input
                           value={option}
@@ -7503,7 +7371,7 @@ function AssessmentsPanel({
                         />
                       </Field>
                     ))}
-                  <Field label="To‘g‘ri javob" wide>
+                  <Field label={__kbUi("To‘g‘ri javob")} wide>
                     {question.question_type === "multiple_choice" ? (
                       <select
                         value={question.correct_answer}
@@ -7520,15 +7388,15 @@ function AssessmentsPanel({
                           )
                         }
                       >
-                        <option value="">Tanlang</option>
+                        <option value="">{__kbUi("Tanlang")}</option>
                         {question.options.map((option, optionIndex) => (
                           <option
                             key={optionIndex}
                             value={String(optionIndex)}
                             disabled={!option.trim()}
                           >
-                            {String.fromCharCode(65 + optionIndex)}.{" "}
-                            {option || "Bo‘sh"}
+                            {__kbUi(String.fromCharCode(65 + optionIndex))}.{__kbUi(" ")}
+                            {option || __kbUi("Bo‘sh")}
                           </option>
                         ))}
                       </select>
@@ -7555,9 +7423,7 @@ function AssessmentsPanel({
               </article>
             ))}
           </div>
-          <ActionButton busy={busy} onClick={create}>
-            Test qoralamasini saqlash
-          </ActionButton>
+          <ActionButton busy={busy} onClick={create}>{__kbUi("Test qoralamasini saqlash")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -7571,11 +7437,10 @@ function AssessmentsPanel({
                 <StatusPill status={item.status} />
               </header>
               <h3>{item.title}</h3>
-              <p>{item.course_name || "Kurs"} · {item.duration_minutes || 0} daqiqa</p>
+              <p>{item.course_name || __kbUi("Kurs")} · {item.duration_minutes || 0}{__kbUi(" daqiqa")}</p>
               <small>
-                {item.item_count ?? item.question_count ?? 0} savol ·{" "}
-                {item.total_points ?? item.total_score ?? 0} ball
-              </small>
+                {item.item_count ?? item.question_count ?? 0}{__kbUi(" savol ·")}{__kbUi(" ")}
+                {item.total_points ?? item.total_score ?? 0}{__kbUi(" ball")}</small>
               {canManage && item.status === "draft" && (
                 <ActionButton
                   secondary
@@ -7584,14 +7449,12 @@ function AssessmentsPanel({
                   onClick={() => publish(item)}
                 >
                   {item.item_count ?? item.question_count
-                    ? "Men tekshirdim — e’lon qilish"
-                    : "Avval savol qo‘shing"}
+                    ? __kbUi("Men tekshirdim — e’lon qilish")
+                    : __kbUi("Avval savol qo‘shing")}
                 </ActionButton>
               )}
               {studentMode && item.status === "published" && (
-                <ActionButton busy={busy} onClick={() => startAttempt(item)}>
-                  Testni boshlash
-                </ActionButton>
+                <ActionButton busy={busy} onClick={() => startAttempt(item)}>{__kbUi("Testni boshlash")}</ActionButton>
               )}
             </article>
           ))}
@@ -7599,8 +7462,8 @@ function AssessmentsPanel({
       ) : (
         <EmptyState
           icon={FileQuestion}
-          title="Test yo‘q"
-          text="Hali sizga ochilgan test yoki imtihon topilmadi."
+          title={__kbUi("Test yo‘q")}
+          text={__kbUi("Hali sizga ochilgan test yoki imtihon topilmadi.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -7609,6 +7472,7 @@ function AssessmentsPanel({
 }
 
 function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
+  useKbInterfaceLocale();
   const canManage = canAny(permissions, "payments");
   const canView =
     permissions.includes("billing.view") ||
@@ -7797,8 +7661,8 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
       <section className="lc-dashboard-card">
         <EmptyState
           icon={WalletCards}
-          title="Moliyaviy ruxsat yo‘q"
-          text="To‘lov ma’lumoti faqat o‘quvchi, bog‘langan ota-ona, hisobchi va vakolatli rahbarga ko‘rinadi."
+          title={__kbUi("Moliyaviy ruxsat yo‘q")}
+          text={__kbUi("To‘lov ma’lumoti faqat o‘quvchi, bog‘langan ota-ona, hisobchi va vakolatli rahbarga ko‘rinadi.")}
         />
       </section>
     );
@@ -7811,24 +7675,20 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
           type="button"
           className={tab === "invoices" ? "active" : ""}
           onClick={() => setTab("invoices")}
-        >
-          Hisoblar
-        </button>
+        >{__kbUi("Hisoblar")}</button>
         <button
           type="button"
           className={tab === "debts" ? "active" : ""}
           onClick={() => setTab("debts")}
-        >
-          Qarzdorlik
-        </button>
+        >{__kbUi("Qarzdorlik")}</button>
       </div>
       <ResourceHeader
-        eyebrow="TO‘LOVLAR"
-        title="Hisob, kelgan to‘lov va qarzdorlik"
+        eyebrow={__kbUi("TO‘LOVLAR")}
+        title={__kbUi("Hisob, kelgan to‘lov va qarzdorlik")}
         text={
           roles.includes("student") || roles.includes("parent")
-            ? "Faqat o‘zingizga yoki bog‘langan farzandga tegishli hisoblar."
-            : "Pul yozuvi faqat alohida inson tasdig‘i va takrorlanmas kalit bilan saqlanadi."
+            ? __kbUi("Faqat o‘zingizga yoki bog‘langan farzandga tegishli hisoblar.")
+            : __kbUi("Pul yozuvi faqat alohida inson tasdig‘i va takrorlanmas kalit bilan saqlanadi.")
         }
       />
       <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
@@ -7847,7 +7707,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 setOpen(true);
               }}
             >
-              {label}
+              {__kbUi(label)}
             </button>
           ))}
         </div>
@@ -7855,28 +7715,26 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
       {open && formMode === "payment" && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Hisob">
+            <Field label={__kbUi("Hisob")}>
               <select
                 value={form.invoice_id}
                 onChange={(event) =>
                   setForm({ ...form, invoice_id: event.target.value })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {resource.items
                   .filter((item) => item.status !== "paid")
                   .map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.student_name || `#${item.id}`} ·{" "}
-                      {Number(item.balance_due ?? item.amount).toLocaleString(
-                        "uz-UZ",
-                      )}{" "}
-                      so‘m
-                    </option>
+                      {item.student_name || __kbUi(`#${item.id}`)} ·{__kbUi(" ")}
+                      {__kbUi(Number(item.balance_due ?? item.amount).toLocaleString(
+                        __kbLocaleTag(),
+                      ))}{__kbUi(" ")}{__kbUi("so‘m")}</option>
                   ))}
               </select>
             </Field>
-            <Field label="Summa">
+            <Field label={__kbUi("Summa")}>
               <input
                 type="number"
                 min="1"
@@ -7887,7 +7745,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Sana">
+            <Field label={__kbUi("Sana")}>
               <input
                 type="date"
                 value={form.paid_at}
@@ -7896,19 +7754,19 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Usul">
+            <Field label={__kbUi("Usul")}>
               <select
                 value={form.payment_method}
                 onChange={(event) =>
                   setForm({ ...form, payment_method: event.target.value })
                 }
               >
-                <option value="cash">Naqd</option>
-                <option value="card">Karta/terminal</option>
-                <option value="bank_transfer">Bank o‘tkazmasi</option>
+                <option value="cash">{__kbUi("Naqd")}</option>
+                <option value="card">{__kbUi("Karta/terminal")}</option>
+                <option value="bank_transfer">{__kbUi("Bank o‘tkazmasi")}</option>
               </select>
             </Field>
-            <Field label="Chek yoki izoh" wide>
+            <Field label={__kbUi("Chek yoki izoh")} wide>
               <input
                 value={form.reference}
                 maxLength={240}
@@ -7919,26 +7777,21 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
             </Field>
           </div>
           <SelectorPagination resources={[["Hisoblar", resource]]} />
-          <InfoNotice tone="warning">
-            “Tasdiqlash” bosilgach moliyaviy yozuv yaratiladi. AI avatar bu
-            tugmani bosa olmaydi.
-          </InfoNotice>
-          <ActionButton busy={busy} onClick={pay}>
-            Men tekshirdim — to‘lovni tasdiqlash
-          </ActionButton>
+          <InfoNotice tone="warning">{__kbUi("“Tasdiqlash” bosilgach moliyaviy yozuv yaratiladi. AI avatar bu tugmani bosa olmaydi.")}</InfoNotice>
+          <ActionButton busy={busy} onClick={pay}>{__kbUi("Men tekshirdim — to‘lovni tasdiqlash")}</ActionButton>
         </div>
       )}
       {open && formMode === "plan" && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs">
+            <Field label={__kbUi("Kurs")}>
               <select
                 value={planForm.course_id}
                 onChange={(event) =>
                   setPlanForm({ ...planForm, course_id: event.target.value })
                 }
               >
-                <option value="">Barcha kurslar uchun</option>
+                <option value="">{__kbUi("Barcha kurslar uchun")}</option>
                 {courses.items.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.name}
@@ -7946,7 +7799,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 ))}
               </select>
             </Field>
-            <Field label="Reja nomi">
+            <Field label={__kbUi("Reja nomi")}>
               <input
                 value={planForm.name}
                 maxLength={180}
@@ -7955,7 +7808,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Summa">
+            <Field label={__kbUi("Summa")}>
               <input
                 type="number"
                 min="1"
@@ -7966,7 +7819,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Davri">
+            <Field label={__kbUi("Davri")}>
               <select
                 value={planForm.billing_cycle}
                 onChange={(event) =>
@@ -7976,15 +7829,15 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                   })
                 }
               >
-                <option value="monthly">Oylik</option>
-                <option value="weekly">Haftalik</option>
-                <option value="per_lesson">Har dars</option>
-                <option value="course">Butun kurs</option>
-                <option value="one_time">Bir martalik</option>
+                <option value="monthly">{__kbUi("Oylik")}</option>
+                <option value="weekly">{__kbUi("Haftalik")}</option>
+                <option value="per_lesson">{__kbUi("Har dars")}</option>
+                <option value="course">{__kbUi("Butun kurs")}</option>
+                <option value="one_time">{__kbUi("Bir martalik")}</option>
               </select>
             </Field>
             {planForm.billing_cycle === "monthly" && (
-              <Field label="To‘lov kuni">
+              <Field label={__kbUi("To‘lov kuni")}>
                 <select
                   value={planForm.billing_day}
                   onChange={(event) =>
@@ -7996,7 +7849,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 >
                   {Array.from({ length: 28 }, (_, index) => index + 1).map(
                     (day) => (
-                      <option key={day}>{day}</option>
+                      <option value={(day)} key={day}>{day}</option>
                     ),
                   )}
                 </select>
@@ -8004,15 +7857,13 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
             )}
           </div>
           <SelectorPagination resources={[["Kurslar", courses]]} />
-          <ActionButton busy={busy} onClick={createPlan}>
-            Men tekshirdim — rejani yaratish
-          </ActionButton>
+          <ActionButton busy={busy} onClick={createPlan}>{__kbUi("Men tekshirdim — rejani yaratish")}</ActionButton>
         </div>
       )}
       {open && formMode === "invoice" && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="To‘lov rejasi">
+            <Field label={__kbUi("To‘lov rejasi")}>
               <select
                 value={invoiceForm.plan_id}
                 onChange={(event) =>
@@ -8022,16 +7873,15 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                   })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {plans.items.map((plan) => (
                   <option key={plan.id} value={plan.id}>
-                    {plan.name} ·{" "}
-                    {Number(plan.amount).toLocaleString("uz-UZ")} so‘m
-                  </option>
+                    {plan.name} ·{__kbUi(" ")}
+                    {__kbUi(Number(plan.amount).toLocaleString(__kbLocaleTag()))}{__kbUi(" so‘m")}</option>
                 ))}
               </select>
             </Field>
-            <Field label="O‘quvchi/kurs qabuli">
+            <Field label={__kbUi("O‘quvchi/kurs qabuli")}>
               <select
                 value={invoiceForm.enrollment_id}
                 onChange={(event) =>
@@ -8041,16 +7891,16 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                   })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {enrollments.items.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.student_name || `O‘quvchi #${item.student_user_id}`} ·{" "}
-                    {item.course_name || "Kurs"}
+                    {item.student_name || __kbUi(`O‘quvchi #${item.student_user_id}`)} ·{__kbUi(" ")}
+                    {item.course_name || __kbUi("Kurs")}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Davr boshlanishi">
+            <Field label={__kbUi("Davr boshlanishi")}>
               <input
                 type="date"
                 value={invoiceForm.period_start}
@@ -8062,7 +7912,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Davr tugashi">
+            <Field label={__kbUi("Davr tugashi")}>
               <input
                 type="date"
                 value={invoiceForm.period_end}
@@ -8074,7 +7924,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="To‘lov muddati">
+            <Field label={__kbUi("To‘lov muddati")}>
               <input
                 type="date"
                 value={invoiceForm.due_date}
@@ -8086,7 +7936,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
                 }
               />
             </Field>
-            <Field label="Chegirma summasi">
+            <Field label={__kbUi("Chegirma summasi")}>
               <input
                 type="number"
                 min="0"
@@ -8107,9 +7957,7 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
               ["Qabullar", enrollments],
             ]}
           />
-          <ActionButton busy={busy} onClick={createInvoice}>
-            Men tekshirdim — hisobni yaratish
-          </ActionButton>
+          <ActionButton busy={busy} onClick={createInvoice}>{__kbUi("Men tekshirdim — hisobni yaratish")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -8119,25 +7967,23 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
           <table className="lc-table">
             <thead>
               <tr>
-                <th>O‘quvchi</th>
-                <th>Kurs/oy</th>
-                <th>Hisob</th>
-                <th>Qoldiq</th>
-                <th>Holat</th>
+                <th>{__kbUi("O‘quvchi")}</th>
+                <th>{__kbUi("Kurs/oy")}</th>
+                <th>{__kbUi("Hisob")}</th>
+                <th>{__kbUi("Qoldiq")}</th>
+                <th>{__kbUi("Holat")}</th>
               </tr>
             </thead>
             <tbody>
               {resource.items.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.student_name || "—"}</td>
-                  <td>{item.course_name || item.billing_month || "—"}</td>
-                  <td>{Number(item.amount || 0).toLocaleString("uz-UZ")} so‘m</td>
+                  <td>{item.student_name || __kbUi("—")}</td>
+                  <td>{item.course_name || item.billing_month || __kbUi("—")}</td>
+                  <td>{__kbUi(Number(item.amount || 0).toLocaleString(__kbLocaleTag()))}{__kbUi(" so‘m")}</td>
                   <td>
-                    {Number(item.balance_due ?? item.debt_amount ?? 0).toLocaleString(
-                      "uz-UZ",
-                    )}{" "}
-                    so‘m
-                  </td>
+                    {__kbUi(Number(item.balance_due ?? item.debt_amount ?? 0).toLocaleString(
+                      __kbLocaleTag(),
+                    ))}{__kbUi(" ")}{__kbUi("so‘m")}</td>
                   <td><StatusPill status={item.status || "unpaid"} /></td>
                 </tr>
               ))}
@@ -8147,8 +7993,8 @@ function PaymentsPanel({ apiBase, token, contextId, permissions, roles }) {
       ) : (
         <EmptyState
           icon={CircleDollarSign}
-          title="Moliyaviy yozuv yo‘q"
-          text="Tanlangan bo‘limda hisob yoki qarzdorlik topilmadi."
+          title={__kbUi("Moliyaviy yozuv yo‘q")}
+          text={__kbUi("Tanlangan bo‘limda hisob yoki qarzdorlik topilmadi.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -8164,6 +8010,7 @@ function AnalyticsPanel({
   roles,
   currentUserId,
 }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [workload, setWorkload] = useState(null);
   const [error, setError] = useState("");
@@ -8331,21 +8178,21 @@ function AnalyticsPanel({
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="ANALITIKA"
-        title="Natija, davomat va o‘sish"
+        eyebrow={__kbUi("ANALITIKA")}
+        title={__kbUi("Natija, davomat va o‘sish")}
         text={
           roles.includes("teacher")
-            ? "Faqat siz o‘qitadigan guruhlar kesimi."
-            : "Server rolingiz doirasidagi umumlashtirilgan ko‘rsatkichni qaytaradi."
+            ? __kbUi("Faqat siz o‘qitadigan guruhlar kesimi.")
+            : __kbUi("Server rolingiz doirasidagi umumlashtirilgan ko‘rsatkichni qaytaradi.")
         }
       />
       <div className="lc-filter-row">
-        <Field label="Davr">
+        <Field label={__kbUi("Davr")}>
           <select value={period} onChange={(event) => setPeriod(event.target.value)}>
-            <option value="7d">7 kun</option>
-            <option value="30d">30 kun</option>
-            <option value="90d">90 kun</option>
-            <option value="year">O‘quv yili</option>
+            <option value="7d">{__kbUi("7 kun")}</option>
+            <option value="30d">{__kbUi("30 kun")}</option>
+            <option value="90d">{__kbUi("90 kun")}</option>
+            <option value="year">{__kbUi("O‘quv yili")}</option>
           </select>
         </Field>
         {canUseWorkload && canCreateWorklog && (
@@ -8353,8 +8200,7 @@ function AnalyticsPanel({
             secondary
             onClick={() => setWorklogOpen((current) => !current)}
           >
-            <Plus size={14} /> O‘qituvchi ish vaqtini yozish
-          </ActionButton>
+            <Plus size={14} />{__kbUi(" O‘qituvchi ish vaqtini yozish")}</ActionButton>
         )}
       </div>
       <ErrorNotice
@@ -8364,7 +8210,7 @@ function AnalyticsPanel({
       {worklogOpen && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Kurs">
+            <Field label={__kbUi("Kurs")}>
               <select
                 value={worklogForm.course_id}
                 onChange={(event) =>
@@ -8375,15 +8221,15 @@ function AnalyticsPanel({
                   })
                 }
               >
-                <option value="">Tanlang</option>
+                <option value="">{__kbUi("Tanlang")}</option>
                 {courses.items.map((course) => (
                   <option key={course.id} value={course.id}>
-                    {course.name} · {course.teacher_name || "O‘qituvchisiz"}
+                    {course.name} · {course.teacher_name || __kbUi("O‘qituvchisiz")}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Sana">
+            <Field label={__kbUi("Sana")}>
               <input
                 type="date"
                 value={worklogForm.work_date}
@@ -8397,8 +8243,8 @@ function AnalyticsPanel({
               />
             </Field>
             <Field
-              label="Shu kundagi dars"
-              hint="Bir jadval darsi uchun faqat bitta ish yozuvi saqlanadi."
+              label={__kbUi("Shu kundagi dars")}
+              hint={__kbUi("Bir jadval darsi uchun faqat bitta ish yozuvi saqlanadi.")}
             >
               <select
                 value={worklogForm.schedule_slot_id}
@@ -8416,21 +8262,21 @@ function AnalyticsPanel({
               >
                 <option value="">
                   {worklogSchedule.busy
-                    ? "Jadval yuklanmoqda..."
+                    ? __kbUi("Jadval yuklanmoqda...")
                     : datedWorklogSlots.length
-                      ? "Darsni tanlang"
-                      : "Bu sanada dars yo‘q"}
+                      ? __kbUi("Darsni tanlang")
+                      : __kbUi("Bu sanada dars yo‘q")}
                 </option>
                 {datedWorklogSlots.map((slot) => (
                   <option key={slot.id} value={slot.id}>
-                    {String(slot.starts_at || "").slice(0, 5)}–
-                    {String(slot.ends_at || "").slice(0, 5)} ·{" "}
+                    {__kbUi(String(slot.starts_at || "").slice(0, 5))}–
+                    {__kbUi(String(slot.ends_at || "").slice(0, 5))} ·{__kbUi(" ")}
                     {slot.topic || slot.course_name}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Ishlangan daqiqa">
+            <Field label={__kbUi("Ishlangan daqiqa")}>
               <input
                 type="number"
                 min="1"
@@ -8444,7 +8290,7 @@ function AnalyticsPanel({
                 }
               />
             </Field>
-            <Field label="Hisoblash turi">
+            <Field label={__kbUi("Hisoblash turi")}>
               <select
                 value={worklogForm.pay_unit}
                 onChange={(event) =>
@@ -8454,12 +8300,12 @@ function AnalyticsPanel({
                   })
                 }
               >
-                <option value="lesson">Dars uchun</option>
-                <option value="hour">Soatbay</option>
-                <option value="fixed">Belgilangan</option>
+                <option value="lesson">{__kbUi("Dars uchun")}</option>
+                <option value="hour">{__kbUi("Soatbay")}</option>
+                <option value="fixed">{__kbUi("Belgilangan")}</option>
               </select>
             </Field>
-            <Field label="Stavka (ixtiyoriy)">
+            <Field label={__kbUi("Stavka (ixtiyoriy)")}>
               <input
                 type="number"
                 min="0"
@@ -8472,7 +8318,7 @@ function AnalyticsPanel({
                 }
               />
             </Field>
-            <Field label="Izoh" wide>
+            <Field label={__kbUi("Izoh")} wide>
               <textarea
                 maxLength={1000}
                 value={worklogForm.note}
@@ -8497,9 +8343,7 @@ function AnalyticsPanel({
               !worklogForm.course_id || !worklogForm.schedule_slot_id
             }
             onClick={saveWorklog}
-          >
-            Ish yozuvini saqlash
-          </ActionButton>
+          >{__kbUi("Ish yozuvini saqlash")}</ActionButton>
         </div>
       )}
       {busy ? (
@@ -8513,10 +8357,10 @@ function AnalyticsPanel({
               ["O‘rtacha natija", `${data?.average_score ?? 0}%`],
               ["Yakunlangan test", data?.assessments_completed],
               ["Yangi qabul", data?.new_enrollments],
-              ["Qarzdorlik", `${Number(data?.debt_total || 0).toLocaleString("uz-UZ")} so‘m`],
+              ["Qarzdorlik", `${Number(data?.debt_total || 0).toLocaleString(__kbLocaleTag())} so‘m`],
             ].map(([label, value]) => (
               <article key={label}>
-                <small>{label}</small>
+                <small>{__kbUi(label)}</small>
                 <b>{value ?? 0}</b>
               </article>
             ))}
@@ -8526,7 +8370,7 @@ function AnalyticsPanel({
               <div key={item.course_id}>
                 <span>
                   <b>{item.course_name}</b>
-                  <small>{item.students || 0} o‘quvchi</small>
+                  <small>{item.students || 0}{__kbUi(" o‘quvchi")}</small>
                 </span>
                 <i><em style={{ width: `${Math.min(100, item.average_score || 0)}%` }} /></i>
                 <strong>{item.average_score || 0}%</strong>
@@ -8534,21 +8378,16 @@ function AnalyticsPanel({
             ))}
           </div>
           {!data?.course_progress?.length && (
-            <InfoNotice>
-              Kurs bo‘yicha yetarli natija yig‘ilgach o‘sish chizig‘i
-              ko‘rsatiladi.
-            </InfoNotice>
+            <InfoNotice>{__kbUi("Kurs bo‘yicha yetarli natija yig‘ilgach o‘sish chizig‘i ko‘rsatiladi.")}</InfoNotice>
           )}
           <section className="lc-inline-section">
             <div className="lc-section-heading">
               <div>
-                <span className="lc-eyebrow">O‘QITUVCHI YUKLAMASI</span>
+                <span className="lc-eyebrow">{__kbUi("O‘QITUVCHI YUKLAMASI")}</span>
                 <h3>
-                  {Number(
+                  {__kbUi(Number(
                     workload?.summary?.approved_minutes || 0,
-                  ).toLocaleString("uz-UZ")}{" "}
-                  daqiqa tasdiqlangan
-                </h3>
+                  ).toLocaleString(__kbLocaleTag()))}{__kbUi(" ")}{__kbUi("daqiqa tasdiqlangan")}</h3>
               </div>
             </div>
             {workload?.items?.length ? (
@@ -8556,12 +8395,12 @@ function AnalyticsPanel({
                 <table className="lc-table">
                   <thead>
                     <tr>
-                      <th>O‘qituvchi</th>
-                      <th>Kurs</th>
-                      <th>Sana</th>
-                      <th>Vaqt</th>
-                      <th>Holat</th>
-                      <th>Amal</th>
+                      <th>{__kbUi("O‘qituvchi")}</th>
+                      <th>{__kbUi("Kurs")}</th>
+                      <th>{__kbUi("Sana")}</th>
+                      <th>{__kbUi("Vaqt")}</th>
+                      <th>{__kbUi("Holat")}</th>
+                      <th>{__kbUi("Amal")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -8570,7 +8409,7 @@ function AnalyticsPanel({
                         <td>{item.teacher_name}</td>
                         <td>{item.course_name}</td>
                         <td>{item.work_date}</td>
-                        <td>{item.minutes_worked} daqiqa</td>
+                        <td>{item.minutes_worked}{__kbUi(" daqiqa")}</td>
                         <td>
                           <StatusPill status={item.status || "pending"} />
                         </td>
@@ -8586,21 +8425,17 @@ function AnalyticsPanel({
                                 onClick={() =>
                                   decideWorklog(item, "approved")
                                 }
-                              >
-                                Tasdiqlash
-                              </button>
+                              >{__kbUi("Tasdiqlash")}</button>
                               <button
                                 type="button"
                                 disabled={busy}
                                 onClick={() =>
                                   decideWorklog(item, "rejected")
                                 }
-                              >
-                                Rad etish
-                              </button>
+                              >{__kbUi("Rad etish")}</button>
                             </div>
                           ) : (
-                            "—"
+                            __kbUi("—")
                           )}
                         </td>
                       </tr>
@@ -8609,9 +8444,7 @@ function AnalyticsPanel({
                 </table>
               </div>
             ) : (
-              <InfoNotice>
-                Tanlangan davrda o‘qituvchi ish yozuvi yo‘q.
-              </InfoNotice>
+              <InfoNotice>{__kbUi("Tanlangan davrda o‘qituvchi ish yozuvi yo‘q.")}</InfoNotice>
             )}
           </section>
         </>
@@ -8629,6 +8462,7 @@ function StaffPanel({
   currentUserId,
   capabilities,
 }) {
+  useKbInterfaceLocale();
   const canManage = canAny(permissions, "staff");
   const branchScope = capabilities?.branch_scope || {};
   const branchRestricted = branchScope.global === false;
@@ -8932,27 +8766,27 @@ function StaffPanel({
   return (
     <section className="lc-dashboard-card">
       <ResourceHeader
-        eyebrow="XODIMLAR"
+        eyebrow={__kbUi("XODIMLAR")}
         title={
           actorRoles?.includes("teacher") && !canManage
-            ? "Mening ish vaqtim"
-            : "Rol, filial va fan biriktirish"
+            ? __kbUi("Mening ish vaqtim")
+            : __kbUi("Rol, filial va fan biriktirish")
         }
         text={
           actorRoles?.includes("teacher") && !canManage
-            ? "Dars qo‘yish mumkin, afzal va mavjud bo‘lmagan vaqtlaringizni sozlang."
-            : "Tasdiqlangan platforma foydalanuvchisini aniq rol bilan ulang. Bir o‘qituvchi bir nechta markazda alohida ish maydoni bilan ishlashi mumkin."
+            ? __kbUi("Dars qo‘yish mumkin, afzal va mavjud bo‘lmagan vaqtlaringizni sozlang.")
+            : __kbUi("Tasdiqlangan platforma foydalanuvchisini aniq rol bilan ulang. Bir o‘qituvchi bir nechta markazda alohida ish maydoni bilan ishlashi mumkin.")
         }
         canCreate={canManage && roleOptions.length > 0}
         onCreate={() => setOpen((value) => !value)}
-        label="Xodim biriktirish"
+        label={__kbUi("Xodim biriktirish")}
       />
       <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
       {availabilityTarget && (
         <div className="lc-inline-form">
           <div className="lc-section-heading">
             <div>
-              <span className="lc-eyebrow">O‘QITUVCHI VAQTI</span>
+              <span className="lc-eyebrow">{__kbUi("O‘QITUVCHI VAQTI")}</span>
               <h3>{availabilityTarget.full_name}</h3>
             </div>
             <button
@@ -8960,18 +8794,14 @@ function StaffPanel({
               className="lc-text-danger"
               onClick={() => setAvailabilityTarget(null)}
             >
-              <X size={14} /> Yopish
-            </button>
+              <X size={14} />{__kbUi(" Yopish")}</button>
           </div>
-          <InfoNotice>
-            “Mavjud” va “Afzal” vaqtlar jadval tuzishga yordam beradi;
-            “Mavjud emas” oralig‘iga dars qo‘yilsa server rad etadi.
-          </InfoNotice>
+          <InfoNotice>{__kbUi("“Mavjud” va “Afzal” vaqtlar jadval tuzishga yordam beradi; “Mavjud emas” oralig‘iga dars qo‘yilsa server rad etadi.")}</InfoNotice>
           <div className="lc-content-list">
             {availabilityRows.map((row) => (
               <article key={row.local_id}>
                 <div className="lc-form-grid">
-                  <Field label="Hafta kuni">
+                  <Field label={__kbUi("Hafta kuni")}>
                     <select
                       value={row.weekday}
                       onChange={(event) =>
@@ -8989,12 +8819,12 @@ function StaffPanel({
                     >
                       {WEEK_DAYS.map((day) => (
                         <option key={day.value} value={day.value}>
-                          {day.label}
+                          {__kbUi(day.label)}
                         </option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="Boshlanish">
+                  <Field label={__kbUi("Boshlanish")}>
                     <input
                       type="time"
                       value={row.starts_at}
@@ -9009,7 +8839,7 @@ function StaffPanel({
                       }
                     />
                   </Field>
-                  <Field label="Tugash">
+                  <Field label={__kbUi("Tugash")}>
                     <input
                       type="time"
                       value={row.ends_at}
@@ -9024,7 +8854,7 @@ function StaffPanel({
                       }
                     />
                   </Field>
-                  <Field label="Holat">
+                  <Field label={__kbUi("Holat")}>
                     <select
                       value={row.availability}
                       onChange={(event) =>
@@ -9037,12 +8867,12 @@ function StaffPanel({
                         )
                       }
                     >
-                      <option value="available">Mavjud</option>
-                      <option value="preferred">Afzal vaqt</option>
-                      <option value="unavailable">Mavjud emas</option>
+                      <option value="available">{__kbUi("Mavjud")}</option>
+                      <option value="preferred">{__kbUi("Afzal vaqt")}</option>
+                      <option value="unavailable">{__kbUi("Mavjud emas")}</option>
                     </select>
                   </Field>
-                  <Field label="Qaysi sanadan">
+                  <Field label={__kbUi("Qaysi sanadan")}>
                     <input
                       type="date"
                       value={row.effective_from}
@@ -9057,7 +8887,7 @@ function StaffPanel({
                       }
                     />
                   </Field>
-                  <Field label="Qaysi sanagacha">
+                  <Field label={__kbUi("Qaysi sanagacha")}>
                     <input
                       type="date"
                       value={row.effective_to}
@@ -9072,7 +8902,7 @@ function StaffPanel({
                       }
                     />
                   </Field>
-                  <Field label="Izoh" wide>
+                  <Field label={__kbUi("Izoh")} wide>
                     <input
                       value={row.note}
                       maxLength={500}
@@ -9098,9 +8928,7 @@ function StaffPanel({
                       ),
                     )
                   }
-                >
-                  Olib tashlash
-                </button>
+                >{__kbUi("Olib tashlash")}</button>
               </article>
             ))}
           </div>
@@ -9123,18 +8951,15 @@ function StaffPanel({
                 ])
               }
             >
-              <Plus size={14} /> Vaqt qo‘shish
-            </ActionButton>
-            <ActionButton busy={busy} onClick={saveAvailability}>
-              O‘qituvchi vaqtini saqlash
-            </ActionButton>
+              <Plus size={14} />{__kbUi(" Vaqt qo‘shish")}</ActionButton>
+            <ActionButton busy={busy} onClick={saveAvailability}>{__kbUi("O‘qituvchi vaqtini saqlash")}</ActionButton>
           </div>
         </div>
       )}
       {open && (
         <div className="lc-inline-form">
           <div className="lc-form-grid">
-            <Field label="Xodimni ism yoki hisob ID bo‘yicha topish" wide>
+            <Field label={__kbUi("Xodimni ism yoki hisob ID bo‘yicha topish")} wide>
               <div className="lc-search-control">
                 <input
                   value={userQuery}
@@ -9150,15 +8975,14 @@ function StaffPanel({
                       searchUsers();
                     }
                   }}
-                  placeholder="Kamida 3 ta belgi"
+                  placeholder={__kbUi("Kamida 3 ta belgi")}
                 />
                 <ActionButton
                   secondary
                   busy={busy}
                   onClick={searchUsers}
                 >
-                  <Search size={14} /> Qidirish
-                </ActionButton>
+                  <Search size={14} />{__kbUi(" Qidirish")}</ActionButton>
               </div>
             </Field>
             {userResults.length > 0 && (
@@ -9183,9 +9007,9 @@ function StaffPanel({
                       <b>{user.full_name}</b>
                       <small>
                         {user.already_in_center
-                          ? "Markazda boshqa roli bor — yana rol berish mumkin"
+                          ? __kbUi("Markazda boshqa roli bor — yana rol berish mumkin")
                           : user.account_identifier ||
-                            `Foydalanuvchi #${user.user_id}`}
+                            __kbUi(`Foydalanuvchi #${user.user_id}`)}
                       </small>
                     </span>
                     {Number(form.user_id) === Number(user.user_id) && (
@@ -9195,7 +9019,7 @@ function StaffPanel({
                 ))}
               </div>
             )}
-            <Field label="Rol">
+            <Field label={__kbUi("Rol")}>
               <select
                 value={form.role_key}
                 onChange={(event) =>
@@ -9204,12 +9028,12 @@ function StaffPanel({
               >
                 {roleOptions.map(([key, label]) => (
                   <option key={key} value={key}>
-                    {label}
+                    {__kbUi(label)}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Filial" aiField="branch_id">
+            <Field label={__kbUi("Filial")} aiField="branch_id">
               <select
                 value={form.branch_id}
                 onChange={(event) =>
@@ -9217,12 +9041,10 @@ function StaffPanel({
                 }
               >
                 {!branchRestricted && (
-                  <option value="">Barcha filial</option>
+                  <option value="">{__kbUi("Barcha filial")}</option>
                 )}
                 {branchRestricted && !form.branch_id && (
-                  <option value="" disabled>
-                    Vakolatli filial yuklanmoqda
-                  </option>
+                  <option value="" disabled>{__kbUi("Vakolatli filial yuklanmoqda")}</option>
                 )}
                 {branches.items.map((branch) => (
                   <option key={branch.id} value={branch.id}>
@@ -9231,20 +9053,20 @@ function StaffPanel({
                 ))}
               </select>
             </Field>
-            <Field label="Ish shakli">
+            <Field label={__kbUi("Ish shakli")}>
               <select
                 value={form.employment_type}
                 onChange={(event) =>
                   setForm({ ...form, employment_type: event.target.value })
                 }
               >
-                <option value="full_time">To‘liq stavka</option>
-                <option value="part_time">O‘rindoshlik</option>
-                <option value="contract">Shartnoma</option>
-                <option value="hourly">Soatbay</option>
+                <option value="full_time">{__kbUi("To‘liq stavka")}</option>
+                <option value="part_time">{__kbUi("O‘rindoshlik")}</option>
+                <option value="contract">{__kbUi("Shartnoma")}</option>
+                <option value="hourly">{__kbUi("Soatbay")}</option>
               </select>
             </Field>
-            <Field label="Haftalik imkoniyat">
+            <Field label={__kbUi("Haftalik imkoniyat")}>
               <select
                 value={form.weekly_capacity_hours}
                 onChange={(event) =>
@@ -9256,13 +9078,12 @@ function StaffPanel({
               >
                 {[6, 12, 18, 24, 30, 36, 40, 48].map((hour) => (
                   <option key={hour} value={hour}>
-                    {hour} soat
-                  </option>
+                    {__kbUi(hour)}{__kbUi(" soat")}</option>
                 ))}
               </select>
             </Field>
             {form.role_key === "teacher" && (
-              <Field label="O‘qitadigan fanlar" wide>
+              <Field label={__kbUi("O‘qitadigan fanlar")} wide>
                 <div className="lc-subject-picker small">
                   {subjects.items.map((subject) => {
                     const selected = form.subject_ids.includes(
@@ -9298,13 +9119,8 @@ function StaffPanel({
               ["Fanlar", subjects],
             ]}
           />
-          <InfoNotice tone="warning">
-            Rol berish yuqori vakolatli amal. AI avatar bu formani tushuntiradi,
-            lekin xodimni o‘zi biriktirmaydi.
-          </InfoNotice>
-          <ActionButton busy={busy} onClick={save}>
-            Men tekshirdim — xodimni biriktirish
-          </ActionButton>
+          <InfoNotice tone="warning">{__kbUi("Rol berish yuqori vakolatli amal. AI avatar bu formani tushuntiradi, lekin xodimni o‘zi biriktirmaydi.")}</InfoNotice>
+          <ActionButton busy={busy} onClick={save}>{__kbUi("Men tekshirdim — xodimni biriktirish")}</ActionButton>
         </div>
       )}
       {resource.busy && !resource.items.length ? (
@@ -9315,11 +9131,11 @@ function StaffPanel({
             <article key={item.id}>
               <span className="lc-list-icon"><Users size={18} /></span>
               <div>
-                <h3>{item.full_name || item.name || `Xodim #${item.user_id}`}</h3>
-                <p>{CENTER_ROLES[item.role_key] || item.role_key}</p>
+                <h3>{item.full_name || item.name || __kbUi(`Xodim #${item.user_id}`)}</h3>
+                <p>{CENTER_ROLES[item.role_key] || __kbUi(item.role_key)}</p>
                 <small>
-                  {item.branch_name || "Barcha filial"} ·{" "}
-                  {(item.subject_names || []).join(", ") || "Fan belgilanmagan"}
+                  {item.branch_name || __kbUi("Barcha filial")} ·{__kbUi(" ")}
+                  {(item.subject_names || []).join(", ") || __kbUi("Fan belgilanmagan")}
                 </small>
               </div>
               <div className="lc-entity-end">
@@ -9332,9 +9148,7 @@ function StaffPanel({
                     type="button"
                     disabled={busy}
                     onClick={() => openAvailability(item)}
-                  >
-                    Bo‘sh vaqtini sozlash
-                  </button>
+                  >{__kbUi("Bo‘sh vaqtini sozlash")}</button>
                 )}
                 {canManage &&
                   assignableRoles.has(item.role_key) &&
@@ -9344,16 +9158,12 @@ function StaffPanel({
                       type="button"
                       disabled={busy}
                       onClick={() => changeStaffStatus(item, "suspended")}
-                    >
-                      Vaqtincha to‘xtatish
-                    </button>
+                    >{__kbUi("Vaqtincha to‘xtatish")}</button>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => changeStaffStatus(item, "ended")}
-                    >
-                      Ishini yakunlash
-                    </button>
+                    >{__kbUi("Ishini yakunlash")}</button>
                   </div>
                 )}
               </div>
@@ -9363,8 +9173,8 @@ function StaffPanel({
       ) : (
         <EmptyState
           icon={Users}
-          title="Xodim topilmadi"
-          text="Markazga hali alohida xodim biriktirilmagan."
+          title={__kbUi("Xodim topilmadi")}
+          text={__kbUi("Markazga hali alohida xodim biriktirilmagan.")}
         />
       )}
       <LoadMore resource={resource} />
@@ -9381,6 +9191,7 @@ function SettingsPanel({
   preferences,
   onPreferences,
 }) {
+  useKbInterfaceLocale();
   const [tab, setTab] = useState("branches");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -9475,26 +9286,26 @@ function SettingsPanel({
   return (
     <>
       <section className="lc-dashboard-card">
-        <span className="lc-eyebrow">MARKAZ SOZLAMALARI</span>
+        <span className="lc-eyebrow">{__kbUi("MARKAZ SOZLAMALARI")}</span>
         <h2>{center.name}</h2>
         <div className="lc-settings-summary">
           <div>
             <MapPin size={18} />
             <span>
-              <small>Hudud</small>
-              <b>{[center.region, center.district].filter(Boolean).join(", ") || "—"}</b>
+              <small>{__kbUi("Hudud")}</small>
+              <b>{[center.region, center.district].filter(Boolean).join(", ") || __kbUi("—")}</b>
             </span>
           </div>
           <div>
             <Building2 size={18} />
             <span>
-              <small>Model</small>
+              <small>{__kbUi("Model")}</small>
               <b>
                 {center.operator_model === "independent_tutor"
-                  ? "Mustaqil repetitor"
+                  ? __kbUi("Mustaqil repetitor")
                   : center.ownership_type === "public"
-                    ? "Davlat markazi"
-                    : "Xususiy markaz"}
+                    ? __kbUi("Davlat markazi")
+                    : __kbUi("Xususiy markaz")}
               </b>
             </span>
           </div>
@@ -9503,8 +9314,8 @@ function SettingsPanel({
           <div>
             <Sparkles size={20} />
             <span>
-              <b>AI yo‘lko‘rsatuvchi</b>
-              <small>Ovozni va ko‘rinishni istalgan vaqtda o‘zgartiring.</small>
+              <b>{__kbUi("AI yo‘lko‘rsatuvchi")}</b>
+              <small>{__kbUi("Ovozni va ko‘rinishni istalgan vaqtda o‘zgartiring.")}</small>
             </span>
           </div>
           <label className="lc-switch">
@@ -9514,9 +9325,7 @@ function SettingsPanel({
               onChange={(event) =>
                 onPreferences({ enabled: event.target.checked })
               }
-            />
-            Yoqilgan
-          </label>
+            />{__kbUi("Yoqilgan")}</label>
           <label className="lc-switch">
             <input
               type="checkbox"
@@ -9524,18 +9333,16 @@ function SettingsPanel({
               onChange={(event) =>
                 onPreferences({ speechEnabled: event.target.checked })
               }
-            />
-            Ovoz
-          </label>
+            />{__kbUi("Ovoz")}</label>
           <select
             value={preferences.variant}
             onChange={(event) =>
               onPreferences({ variant: event.target.value })
             }
           >
-            <option value="female">Ayol ko‘rinishi</option>
-            <option value="male">Erkak ko‘rinishi</option>
-            <option value="neutral">Neytral ko‘rinish</option>
+            <option value="female">{__kbUi("Ayol ko‘rinishi")}</option>
+            <option value="male">{__kbUi("Erkak ko‘rinishi")}</option>
+            <option value="neutral">{__kbUi("Neytral ko‘rinish")}</option>
           </select>
         </div>
       </section>
@@ -9555,28 +9362,28 @@ function SettingsPanel({
                 setOpen(false);
               }}
             >
-              {label}
+              {__kbUi(label)}
             </button>
           ))}
         </div>
         <ResourceHeader
-          eyebrow="TUZILMA"
+          eyebrow={__kbUi("TUZILMA")}
           title={
             tab === "branches"
-              ? "Filiallar"
+              ? __kbUi("Filiallar")
               : tab === "rooms"
-                ? "Xonalar"
-                : "O‘qitiladigan fanlar"
+                ? __kbUi("Xonalar")
+                : __kbUi("O‘qitiladigan fanlar")
           }
           canCreate={canManage}
           onCreate={() => setOpen((value) => !value)}
-          label="Qo‘shish"
+          label={__kbUi("Qo‘shish")}
         />
         <ErrorNotice error={error || resource.error} onRetry={resource.reload} />
         {open && (
           <div className="lc-inline-form">
             <div className="lc-form-grid">
-              <Field label="Nomi">
+              <Field label={__kbUi("Nomi")}>
                 <input
                   value={form.name}
                   maxLength={160}
@@ -9587,7 +9394,7 @@ function SettingsPanel({
               </Field>
               {tab === "branches" && (
                 <>
-                  <Field label="Manzil">
+                  <Field label={__kbUi("Manzil")}>
                     <input
                       value={form.address}
                       maxLength={240}
@@ -9596,7 +9403,7 @@ function SettingsPanel({
                       }
                     />
                   </Field>
-                  <Field label="Ish boshlanishi">
+                  <Field label={__kbUi("Ish boshlanishi")}>
                     <input
                       type="time"
                       value={form.work_start}
@@ -9605,7 +9412,7 @@ function SettingsPanel({
                       }
                     />
                   </Field>
-                  <Field label="Ish tugashi">
+                  <Field label={__kbUi("Ish tugashi")}>
                     <input
                       type="time"
                       value={form.work_end}
@@ -9614,7 +9421,7 @@ function SettingsPanel({
                       }
                     />
                   </Field>
-                  <Field label="Ish kunlari" wide>
+                  <Field label={__kbUi("Ish kunlari")} wide>
                     <WeekdayPicker
                       value={form.work_days}
                       onChange={(workDays) =>
@@ -9626,14 +9433,14 @@ function SettingsPanel({
               )}
               {tab === "rooms" && (
                 <>
-                  <Field label="Filial">
+                  <Field label={__kbUi("Filial")}>
                     <select
                       value={form.branch_id}
                       onChange={(event) =>
                         setForm({ ...form, branch_id: event.target.value })
                       }
                     >
-                      <option value="">Tanlang</option>
+                      <option value="">{__kbUi("Tanlang")}</option>
                       {branches.items.map((branch) => (
                         <option key={branch.id} value={branch.id}>
                           {branch.name}
@@ -9641,20 +9448,20 @@ function SettingsPanel({
                       ))}
                     </select>
                   </Field>
-                  <Field label="Xona turi">
+                  <Field label={__kbUi("Xona turi")}>
                     <select
                       value={form.room_type}
                       onChange={(event) =>
                         setForm({ ...form, room_type: event.target.value })
                       }
                     >
-                      <option value="classroom">Oddiy sinfxona</option>
-                      <option value="computer">Kompyuter xonasi</option>
-                      <option value="laboratory">Laboratoriya</option>
-                      <option value="online">Virtual xona</option>
+                      <option value="classroom">{__kbUi("Oddiy sinfxona")}</option>
+                      <option value="computer">{__kbUi("Kompyuter xonasi")}</option>
+                      <option value="laboratory">{__kbUi("Laboratoriya")}</option>
+                      <option value="online">{__kbUi("Virtual xona")}</option>
                     </select>
                   </Field>
-                  <Field label="Sig‘im">
+                  <Field label={__kbUi("Sig‘im")}>
                     <input
                       type="number"
                       min="1"
@@ -9671,14 +9478,14 @@ function SettingsPanel({
                 </>
               )}
               {tab === "subjects" && (
-                <Field label="Qisqa kod">
+                <Field label={__kbUi("Qisqa kod")}>
                   <input
                     value={form.subject_code}
                     maxLength={32}
                     onChange={(event) =>
                       setForm({ ...form, subject_code: event.target.value })
                     }
-                    placeholder="Masalan: MATH"
+                    placeholder={__kbUi("Masalan: MATH")}
                   />
                 </Field>
               )}
@@ -9693,9 +9500,7 @@ function SettingsPanel({
                 (tab === "rooms" && !form.branch_id)
               }
               onClick={save}
-            >
-              Saqlash
-            </ActionButton>
+            >{__kbUi("Saqlash")}</ActionButton>
           </div>
         )}
         {resource.busy && !resource.items.length ? (
@@ -9717,10 +9522,10 @@ function SettingsPanel({
                   <h3>{item.name}</h3>
                   <p>
                     {tab === "branches"
-                      ? item.address || "Manzil kiritilmagan"
+                      ? item.address || __kbUi("Manzil kiritilmagan")
                       : tab === "rooms"
-                        ? `${item.branch_name || "Filial"} · ${item.capacity || 0} joy`
-                        : item.subject_code || "Kod belgilanmagan"}
+                        ? __kbUi(`${item.branch_name || "Filial"} · ${item.capacity || 0} joy`)
+                        : item.subject_code || __kbUi("Kod belgilanmagan")}
                   </p>
                 </div>
               </article>
@@ -9729,8 +9534,8 @@ function SettingsPanel({
         ) : (
           <EmptyState
             icon={Settings}
-            title="Ma’lumot yo‘q"
-            text="Vakolatingiz bo‘lsa birinchi yozuvni qo‘shing."
+            title={__kbUi("Ma’lumot yo‘q")}
+            text={__kbUi("Vakolatingiz bo‘lsa birinchi yozuvni qo‘shing.")}
           />
         )}
         <LoadMore resource={resource} />

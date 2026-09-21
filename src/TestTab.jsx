@@ -1,3 +1,7 @@
+import TranslatedContent from './interface/TranslatedContent.jsx';
+import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
+import {uiText as __kbUi} from './interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
 import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey} from './curriculum/catalog.js';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -94,6 +98,8 @@ function _latexMatniniAjrat(qism) {
 }
 
 const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) {
+  const translation=useTranslatedContent(matn);
+  matn=translation.text;
   // $...$ , [lat]...[/lat] VA belgisiz xom LaTeX buyrug'i — uchalasi ham
   // xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
   const qismlar = useMemo(() => (matn || "").split(_LATEX_BOLISH_REGEX), [matn]);
@@ -111,7 +117,7 @@ const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) 
         }
         return <span key={i}>{qism}</span>;
       })}
-    </p>
+    <ContentTranslationStatus translation={translation}/></p>
   );
 });
 
@@ -143,6 +149,7 @@ function latexniOzbekchaOqishga(latex) {
 // ko'rsatadi — Web Speech API'ning "boundary" hodisasi bilan bog'lanadi
 // (tashqi, pullik TTS xizmat SHART emas — brauzerning o'zi o'qiydi).
 function OqiladiganMatn({ matn, joriySozIndeksi }) {
+  useKbInterfaceLocale();
   const sozlar = useMemo(() => matn.split(/(\s+)/), [matn]);
   return (
     <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "#2B2B2B" }}>
@@ -285,6 +292,7 @@ function OvozliOqishTugmasi({
   asosiyTil = "uz",
   ovozJinsi = "qiz",
 }) {
+  useKbInterfaceLocale();
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
   const audioRef = useRef(null);
@@ -390,26 +398,26 @@ function OvozliOqishTugmasi({
     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
       <button onClick={() => (oqilyaptimi ? toxtat() : boshla(tezlik))}
         className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-        {oqilyaptimi ? "⏹ To'xtatish" : "🔊 O'qib berish"}
+        {oqilyaptimi ? __kbUi("⏹ To'xtatish") : __kbUi("🔊 O'qib berish")}
       </button>
       {oqilyaptimi && (
         <button onClick={pauzaYokiDavomEttir}
           className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-          {pauzada ? "▶ Davom" : "⏸ Pauza"}
+          {pauzada ? __kbUi("▶ Davom") : __kbUi("⏸ Pauza")}
         </button>
       )}
       {[0.75, 1, 1.25, 1.5].map((t) => (
         <button key={t} onClick={() => tezlikOzgar(t)}
           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg"
           style={tezlik === t ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#8A8578" }}>
-          {t}x
-        </button>
+          {__kbUi(t)}{__kbUi("x")}</button>
       ))}
     </div>
   );
 }
 
 function SavolRasmi({ rasmId }) {
+  useKbInterfaceLocale();
   const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
   useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
 
@@ -427,7 +435,7 @@ function SavolRasmi({ rasmId }) {
           String(rasmId).startsWith("/api/") ? `${API_BASE}${rasmId}`
           : /^https?:\/\//i.test(String(rasmId)) ? rasmId
           : `${API_BASE}/api/rasm/${rasmId}`
-        } alt=""
+        } alt={__kbUi("")}
         className="w-full rounded-xl object-contain"
         style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
         onLoad={() => setHolat("tayyor")}
@@ -446,13 +454,16 @@ function tegsizKorsat(matn) {
 }
 
 function Matn({ matn, latex }) {
+  const translation=useTranslatedContent(matn);
+  matn=translation.text;
+  useKbInterfaceLocale();
   // Umumiy yordamchidan foydalanadi — $...$, [lat]...[/lat] va belgisiz
   // xom LaTeX buyrug'ini ham taniydi. is_latex bayrog'iga qaramay, TEGLAR/
   // buyruq o'zi bor-yo'qligini ham tekshiradi — AI ba'zan bayroqni to'g'ri
   // qo'ymasligi yoki teglarni butunlay unutishi mumkin.
   const toza = tegsizKorsat(matn) || "";
   const bormi = toza.includes("$") || toza.includes("[lat]") || toza.includes("\\");
-  if (!bormi) return <>{toza}</>;
+  if (!bormi) return <>{toza}<ContentTranslationStatus translation={translation}/></>;
   const qismlar = toza.split(_LATEX_BOLISH_REGEX);
   return (
     <>
@@ -468,7 +479,7 @@ function Matn({ matn, latex }) {
         }
         return <span key={i}>{q}</span>;
       })}
-    </>
+    <ContentTranslationStatus translation={translation}/></>
   );
 }
 
@@ -485,6 +496,7 @@ export default function TestTab({
   initialTarget = null,
   curriculumScope = null,
 }) {
+  useKbInterfaceLocale();
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
   // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
@@ -1341,24 +1353,21 @@ export default function TestTab({
             <span className="text-2xl font-bold" style={{ color: rangi }}>{natija.foiz}%</span>
           </div>
           <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
-          <p className="text-sm mb-6" style={{ color: "#8A8578" }}>{natija.togri} / {natija.jami} to'g'ri</p>
+          <p className="text-sm mb-6" style={{ color: "#8A8578" }}>{natija.togri} / {natija.jami}{__kbUi(" to'g'ri")}</p>
         </div>
 
         {natija.ochko && (
           <div className="rounded-2xl p-4 bg-white border mb-5" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className="text-xs" style={{ color: "#8A8578" }}>Oddiy test natijasi</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Oddiy test natijasi")}</p>
                 <p className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{natija.ochko.score_1000 || 0} / 1000</p>
               </div>
               <span className="px-3 py-1.5 rounded-full text-sm font-bold" style={{ color: "#7A5412", backgroundColor: "#FFF3CD" }}>
-                +{natija.ochko.awarded_points || 0} ochko
-              </span>
+                +{natija.ochko.awarded_points || 0}{__kbUi(" ochko")}</span>
             </div>
             {natija.ochko.daily_first_test_points > 0 && (
-              <p className="text-xs mb-3" style={{ color: "#5A5648" }}>
-                Bugungi birinchi tugallangan test uchun +{natija.ochko.daily_first_test_points} bonus.
-              </p>
+              <p className="text-xs mb-3" style={{ color: "#5A5648" }}>{__kbUi("Bugungi birinchi tugallangan test uchun +")}{natija.ochko.daily_first_test_points}{__kbUi(" bonus.")}</p>
             )}
             <React.Suspense fallback={<div className="h-10" />}>
               <GameProfileStrip profile={natija.ochko.profile} accent={rang} compact />
@@ -1368,9 +1377,7 @@ export default function TestTab({
 
         {natija.xatolar && natija.xatolar.length > 0 && (
           <div className="mb-6">
-            <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>
-              ❌ Xato javoblar ({natija.xatolar.length} ta)
-            </p>
+            <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("❌ Xato javoblar (")}{natija.xatolar.length}{__kbUi(" ta)")}</p>
             <div className="space-y-3">
               {natija.xatolar.map((x) => (
                 <div key={x.savol_id} className="rounded-xl p-4 border" style={{ borderColor: "#F3D3D3", backgroundColor: "#FCEBEB" }}>
@@ -1384,9 +1391,7 @@ export default function TestTab({
           </div>
         )}
 
-        <button onClick={qaytaBoshlash} className="w-full py-3.5 rounded-xl font-semibold text-white text-center" style={{ backgroundColor: "#1B4B7A" }}>
-          Boshqa mavzu
-        </button>
+        <button onClick={qaytaBoshlash} className="w-full py-3.5 rounded-xl font-semibold text-white text-center" style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("Boshqa mavzu")}</button>
       </div>
     );
   }
@@ -1403,31 +1408,31 @@ export default function TestTab({
     );
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
-        <p className="mb-2 text-xs font-semibold text-sky-900">{institutionLabel(catalogType)}{catalogType==='universitet'?` → ${lessonLabel(catalogLesson)}`:''}</p>
+        <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>{__kbUi("Ortga")}</button>
+        <p className="mb-2 text-xs font-semibold text-sky-900">{__kbUi(institutionLabel(catalogType))}{catalogType==='universitet'?__kbUi(` → ${lessonLabel(catalogLesson)}`):__kbUi('')}</p>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
 
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🧭 Test uslubi</p>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("🧭 Test uslubi")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button onClick={() => testUslubiniTanla("bir_bir")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "bir_bir" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📖 Bittalab</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun</p>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("📖 Bittalab")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun")}</p>
             </button>
             <button onClick={() => testUslubiniTanla("hammasi")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "hammasi" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📜 Hammasi birga</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Natija faqat yakunlaganda ko'rinadi — imtihon uslubida</p>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("📜 Hammasi birga")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Natija faqat yakunlaganda ko'rinadi — imtihon uslubida")}</p>
             </button>
             <button onClick={() => testUslubiniTanla("oyin")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "oyin" ? { borderColor: rang, backgroundColor: `${rang}12` } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>🎮 O'yinli test</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>5 xil o'yin, har 5-savolda nazorat, 3 jon va bilim ochkolari</p>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("🎮 O'yinli test")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("5 xil o'yin, har 5-savolda nazorat, 3 jon va bilim ochkolari")}</p>
             </button>
           </div>
         </div>
@@ -1451,7 +1456,7 @@ export default function TestTab({
         ) : (
           <>
             <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi</p>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("🎯 Qiyinlik darajasi")}</p>
               <div className="flex gap-2 flex-wrap">
                 {[
                   ["", "🎲 Aralash"], ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"],
@@ -1462,14 +1467,14 @@ export default function TestTab({
                     style={qiyinlik === qiym
                       ? { backgroundColor: "#1B4B7A", color: "#fff" }
                       : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-                    {nom}
+                    {__kbUi(nom)}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>⚙️ Qo'shimcha sozlamalar</p>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("⚙️ Qo'shimcha sozlamalar")}</p>
               <UchXilTanlov nom="🖼️ Rasm" qiymat={rasimli} onOzgar={setRasimli} haNomi="Rasmli" yoqNomi="Rasmsiz" />
               <UchXilTanlov nom="⏱️ Vaqt" qiymat={vaqtli} onOzgar={setVaqtli} haNomi="Vaqtli" yoqNomi="Vaqtsiz" />
               <UchXilTanlov nom="✍️ Javob turi" qiymat={yozuvli} onOzgar={setYozuvli} haNomi="Yozuvli" yoqNomi="Tugmali" />
@@ -1478,17 +1483,15 @@ export default function TestTab({
         )}
 
         <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>
-            🔢 Nechta savol yechasiz?
-            {mosSoni === null && <Loader2 size={14} className="animate-spin" style={{ color: "#8A8578" }} />}
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>{__kbUi("🔢 Nechta savol yechasiz?")}{mosSoni === null && <Loader2 size={14} className="animate-spin" style={{ color: "#8A8578" }} />}
           </p>
           {mosSoni === null ? (
-            <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
+            <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>{__kbUi("Mos savollar soni tekshirilmoqda...")}</p>
           ) : (testRejimi === "oyin" ? variantlar.length === 0 : mosSoni === 0) ? (
             <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
               {testRejimi === "oyin"
-                ? "O'yin uchun kamida 5 ta to'liq, 4 variantli savol kerak."
-                : "Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang."}
+                ? __kbUi("O'yin uchun kamida 5 ta to'liq, 4 variantli savol kerak.")
+                : __kbUi("Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.")}
             </p>
           ) : (
             <>
@@ -1497,26 +1500,22 @@ export default function TestTab({
                   <button key={n} onClick={() => testniBoshlash(n)}
                     className="py-3.5 rounded-xl border font-semibold text-center text-sm"
                     style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
-                    <span className="block">{n} ta</span>
-                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5} ta nazorat savoli</span>}
+                    <span className="block">{n}{__kbUi(" ta")}</span>
+                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5}{__kbUi(" ta nazorat savoli")}</span>}
                   </button>
                 ))}
               </div>
               {testRejimi !== "oyin" && jami <= 100 && (
                 <button onClick={() => testniBoshlash(jami)}
                   className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
-                  style={{ backgroundColor: "#1B4B7A" }}>
-                  🚀 Hammasi ({jami} ta)
-                </button>
+                  style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("🚀 Hammasi (")}{jami}{__kbUi(" ta)")}</button>
               )}
               {testRejimi !== "oyin" && jami > 100 && (
-                <p className="text-xs mt-3" style={{ color: "#5A5648" }}>
-                  Bankda {jami} ta mos savol bor. Bitta urinishda 100 tagacha savol ishlaysiz.
-                </p>
+                <p className="text-xs mt-3" style={{ color: "#5A5648" }}>{__kbUi("Bankda ")}{jami}{__kbUi(" ta mos savol bor. Bitta urinishda 100 tagacha savol ishlaysiz.")}</p>
               )}
             </>
           )}
-          {xato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          {xato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
         </div>
       </div>
     );
@@ -1558,15 +1557,14 @@ export default function TestTab({
               ✓ {toGriSoni}
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
-              ✗ {xatoSoni}
+              ✗ {__kbUi(xatoSoni)}
             </span>
           </div>
           <div className="flex items-center gap-2">
             {qolganVaqt !== null && !javobBerilgan && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: qolganVaqt <= 5 ? "#FCEBEB" : "#F1EFE8", color: qolganVaqt <= 5 ? "#A32D2D" : "#5A5648" }}>
-                ⏱ {qolganVaqt}s
-              </span>
+                ⏱ {qolganVaqt}{__kbUi("s")}</span>
             )}
             <button onClick={() => setToxtatishModali(true)}
               className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
@@ -1584,7 +1582,7 @@ export default function TestTab({
 
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-          {(() => {
+          {__kbUi((() => {
             const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
             const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
             return (
@@ -1592,24 +1590,23 @@ export default function TestTab({
                 <div className="flex items-center gap-1">
                   <button onClick={() => ovozniOqi(ovozMatni)}
                     aria-busy={shuOqilmoqda && ovozHolati === "yuklanmoqda"}
-                    aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda" : "Ovoz chiqarib o'qish"}
+                    aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda") : __kbUi("Ovoz chiqarib o'qish")}
                     className="w-9 h-9 rounded-full flex items-center justify-center"
                     style={{
                       backgroundColor: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#FFF3CD" : "#EAF1F7",
                       color: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#8A5A1C" : "#1B4B7A",
                     }}
-                    title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda..." : "Ovoz chiqarib o'qish"}>
+                    title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda...") : __kbUi("Ovoz chiqarib o'qish")}>
                     {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
-                      : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
-                      : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
-                      : "🔊"}
+                      : shuOqilmoqda && ovozHolati === "oynamoqda" ? __kbUi("⏸️")
+                      : shuOqilmoqda && ovozHolati === "pauzada" ? __kbUi("▶️")
+                      : __kbUi("🔊")}
                   </button>
                   {shuOqilmoqda && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
                     <button onClick={() => setOvozTezlikOchiq((o) => !o)}
                       className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
                       style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                      {ovozTezligi}x
-                    </button>
+                      {ovozTezligi}{__kbUi("x")}</button>
                   )}
                 </div>
                 {shuOqilmoqda && ovozTezlikOchiq && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
@@ -1618,14 +1615,13 @@ export default function TestTab({
                       <button key={t} onClick={() => { ovozTezliginiOzgartir(t); setOvozTezlikOchiq(false); }}
                         className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                         style={t === ovozTezligi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { color: "#5A5648" }}>
-                        {t}x
-                      </button>
+                        {__kbUi(t)}{__kbUi("x")}</button>
                     ))}
                   </div>
                 )}
               </div>
             );
-          })()}
+          })())}
         </h2>
 
         {yozuvli ? (
@@ -1634,7 +1630,7 @@ export default function TestTab({
               onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
               disabled={javobBerilgan || javobKutilmoqda}
               onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && !javobKutilmoqda && (yozibJavob[s.id] || "").trim()) javobBerVaTekshir(s.id, yozibJavob[s.id].trim()); }}
-              placeholder="Javobingizni yozing..."
+              placeholder={__kbUi("Javobingizni yozing...")}
               className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
               style={javobBerilgan
                 ? { borderColor: joriyNatija.togrimi ? "#639922" : "#E24B4A", backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }
@@ -1644,7 +1640,7 @@ export default function TestTab({
                 disabled={javobKutilmoqda || !(yozibJavob[s.id] || "").trim()}
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm"
                 style={{ backgroundColor: "#1B4B7A", opacity: !javobKutilmoqda && (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
-                {javobKutilmoqda ? "Tekshirilmoqda..." : "Javobni yuborish"}
+                {javobKutilmoqda ? __kbUi("Tekshirilmoqda...") : __kbUi("Javobni yuborish")}
               </button>
             )}
           </div>
@@ -1673,13 +1669,13 @@ export default function TestTab({
         {javobBerilgan && (
           <div className="rounded-xl p-5 mb-4 border-2" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB", borderColor: joriyNatija.togrimi ? "#639922" : "#C64040" }}>
             {joriyNatija.togrimi ? (
-              <p className="text-lg font-bold" style={{ color: "#285B0B" }}>✓ To‘g‘ri javob: {joriyNatija.togri_javob}</p>
+              <p className="text-lg font-bold" style={{ color: "#285B0B" }}>{__kbUi("✓ To‘g‘ri javob: ")}{joriyNatija.togri_javob}</p>
             ) : (
               <AralashMatn matn={`✗ Noto‘g‘ri. To‘g‘ri javob: ${joriyNatija.togri_javob}`} className="text-lg font-bold" style={{ color: "#8F2020" }} />
             )}
             {joriyNatija.tushuntirish && (
               <div className="mt-3 pt-3 border-t" style={{ borderColor: joriyNatija.togrimi ? "#B9D39F" : "#E3B5B5" }}>
-                <b className="block text-sm mb-1" style={{ color: "#27394A" }}>Izoh:</b>
+                <b className="block text-sm mb-1" style={{ color: "#27394A" }}>{__kbUi("Izoh:")}</b>
                 <AralashMatn matn={joriyNatija.tushuntirish} className="text-base leading-7 font-medium" style={{ color: "#27394A" }} />
               </div>
             )}
@@ -1688,30 +1684,24 @@ export default function TestTab({
 
         {javobBerilgan ? (
           <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-            {oxirgi ? `Yakunlash${avtoQoldi ? ` (${avtoQoldi})` : ""}` : `Keyingi savol${avtoQoldi ? ` (${avtoQoldi})` : ""}`}
+            {oxirgi ? __kbUi(`Yakunlash${avtoQoldi ? ` (${avtoQoldi})` : ""}`) : __kbUi(`Keyingi savol${avtoQoldi ? ` (${avtoQoldi})` : ""}`)}
           </button>
         ) : (
           <p className="text-center text-xs" style={{ color: "#B0AA98" }}>
-            {javobKutilmoqda ? "Javob tekshirilmoqda..." : "Javobni tanlang"}
+            {javobKutilmoqda ? __kbUi("Javob tekshirilmoqda...") : __kbUi("Javobni tanlang")}
           </p>
         )}
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
-              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-                Hozirgacha javob bergan {Object.keys(javoblar).length} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
-              </p>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>{__kbUi("⏹ Testni to'xtatasizmi?")}</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>{__kbUi("Hozirgacha javob bergan ")}{Object.keys(javoblar).length}{__kbUi(" ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.")}</p>
               <div className="flex gap-2.5">
                 <button onClick={() => setToxtatishModali(false)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  Davom etish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Davom etish")}</button>
                 <button onClick={toxtatish}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
-                  Ha, to'xtatish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>{__kbUi("Ha, to'xtatish")}</button>
               </div>
             </div>
           </div>
@@ -1738,18 +1728,16 @@ export default function TestTab({
         {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
         <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length} javob berildi</span>
+            <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length}{__kbUi(" javob berildi")}</span>
             <div className="flex items-center gap-2">
               {umumiyVaqt !== null && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{ backgroundColor: umumiyVaqt <= 30 ? "#FCEBEB" : "#F1EFE8", color: umumiyVaqt <= 30 ? "#A32D2D" : "#5A5648" }}>
-                  ⏱ {Math.floor(umumiyVaqt / 60)}:{String(umumiyVaqt % 60).padStart(2, "0")}
+                  ⏱ {Math.floor(umumiyVaqt / 60)}:{__kbUi(String(umumiyVaqt % 60).padStart(2, "0"))}
                 </span>
               )}
               <button onClick={() => setToxtatishModali(true)}
-                className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
-                ⏹ To'xtatish
-              </button>
+                className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>{__kbUi("⏹ To'xtatish")}</button>
             </div>
           </div>
           {/* Savol raqamlari — endi bir qatorga sig'masa, PASTGA (yangi qatorga)
@@ -1783,7 +1771,7 @@ export default function TestTab({
                   contentVisibility: "auto",
                   containIntrinsicSize: "520px",
                 }}>
-                <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}-savol</p>
+                <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}{__kbUi("-savol")}</p>
 
                 {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
                   ? <SavolRasmi rasmId={s.rasm_id} />
@@ -1791,7 +1779,7 @@ export default function TestTab({
 
                 <h2 className="text-lg font-semibold mb-4 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
                   <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-                  {(() => {
+                  {__kbUi((() => {
                     const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
                     const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
                     return (
@@ -1799,24 +1787,23 @@ export default function TestTab({
                         <div className="flex items-center gap-1">
                           <button onClick={() => ovozniOqi(ovozMatni)}
                             aria-busy={shuOqilmoqda && ovozHolati === "yuklanmoqda"}
-                            aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda" : "Ovoz chiqarib o'qish"}
+                            aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda") : __kbUi("Ovoz chiqarib o'qish")}
                             className="w-9 h-9 rounded-full flex items-center justify-center"
                             style={{
                               backgroundColor: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#FFF3CD" : "#EAF1F7",
                               color: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#8A5A1C" : "#1B4B7A",
                             }}
-                            title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda..." : "Ovoz chiqarib o'qish"}>
+                            title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda...") : __kbUi("Ovoz chiqarib o'qish")}>
                             {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
-                              : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
-                              : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
-                              : "🔊"}
+                              : shuOqilmoqda && ovozHolati === "oynamoqda" ? __kbUi("⏸️")
+                              : shuOqilmoqda && ovozHolati === "pauzada" ? __kbUi("▶️")
+                              : __kbUi("🔊")}
                           </button>
                           {shuOqilmoqda && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
                             <button onClick={() => setOvozTezlikOchiq((o) => !o)}
                               className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
                               style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                              {ovozTezligi}x
-                            </button>
+                              {ovozTezligi}{__kbUi("x")}</button>
                           )}
                         </div>
                         {shuOqilmoqda && ovozTezlikOchiq && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
@@ -1825,14 +1812,13 @@ export default function TestTab({
                               <button key={t} onClick={() => { ovozTezliginiOzgartir(t); setOvozTezlikOchiq(false); }}
                                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                                 style={t === ovozTezligi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { color: "#5A5648" }}>
-                                {t}x
-                              </button>
+                                {__kbUi(t)}{__kbUi("x")}</button>
                             ))}
                           </div>
                         )}
                       </div>
                     );
-                  })()}
+                  })())}
                 </h2>
 
                 {yozuvli ? (
@@ -1841,16 +1827,14 @@ export default function TestTab({
                       onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
                       disabled={javobBerilgan}
                       onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobYoz(s.id, yozibJavob[s.id].trim()); }}
-                      placeholder="Javobingizni yozing..."
+                      placeholder={__kbUi("Javobingizni yozing...")}
                       className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
                       style={javobBerilgan ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0" } : { borderColor: "#E5E1D8" }} />
                     {!javobBerilgan && (
                       <button onClick={() => (yozibJavob[s.id] || "").trim() && javobYoz(s.id, yozibJavob[s.id].trim())}
                         disabled={!(yozibJavob[s.id] || "").trim()}
                         className="w-full py-3 rounded-xl font-semibold text-white text-sm"
-                        style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
-                        Javobni belgilash
-                      </button>
+                        style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>{__kbUi("Javobni belgilash")}</button>
                     )}
                   </div>
                 ) : (
@@ -1875,9 +1859,7 @@ export default function TestTab({
                 )}
 
                 {!javobBerilgan && (
-                  <button onClick={() => savolniOtkazib(i)} className="w-full text-center text-xs font-medium mt-3" style={{ color: "#8A8578" }}>
-                    O'tkazib yuborish →
-                  </button>
+                  <button onClick={() => savolniOtkazib(i)} className="w-full text-center text-xs font-medium mt-3" style={{ color: "#8A8578" }}>{__kbUi("O'tkazib yuborish →")}</button>
                 )}
               </div>
             );
@@ -1889,27 +1871,19 @@ export default function TestTab({
         <div className="fixed bottom-20 right-5 z-20">
           <button onClick={() => setYakunlashTasdiqi(true)}
             className="rounded-full px-5 py-3 font-semibold text-white text-sm shadow-lg flex items-center gap-1.5"
-            style={{ backgroundColor: "#1B4B7A" }}>
-            ✓ Yakunlash
-          </button>
+            style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("✓ Yakunlash")}</button>
         </div>
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
-              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-                Hozirgacha javob bergan {jamiJavoblangan} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
-              </p>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>{__kbUi("⏹ Testni to'xtatasizmi?")}</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>{__kbUi("Hozirgacha javob bergan ")}{jamiJavoblangan}{__kbUi(" ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.")}</p>
               <div className="flex gap-2.5">
                 <button onClick={() => setToxtatishModali(false)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  Davom etish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Davom etish")}</button>
                 <button onClick={toxtatish}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
-                  Ha, to'xtatish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>{__kbUi("Ha, to'xtatish")}</button>
               </div>
             </div>
           </div>
@@ -1918,20 +1892,15 @@ export default function TestTab({
         {yakunlashTasdiqi && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>✓ Testni yakunlaysizmi?</p>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>{__kbUi("✓ Testni yakunlaysizmi?")}</p>
               <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-                {jamiJavoblangan} / {savollar.length} savolga javob berdingiz.
-                {jamiJavoblangan < savollar.length ? " Qolganlari javobsiz hisoblanadi." : ""}
+                {jamiJavoblangan} / {savollar.length}{__kbUi(" savolga javob berdingiz.")}{jamiJavoblangan < savollar.length ? __kbUi(" Qolganlari javobsiz hisoblanadi.") : __kbUi("")}
               </p>
               <div className="flex gap-2.5">
                 <button onClick={() => setYakunlashTasdiqi(false)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  Davom etish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Davom etish")}</button>
                 <button onClick={() => { setYakunlashTasdiqi(false); yakunla(); }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-                  Ha, yakunlash
-                </button>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("Ha, yakunlash")}</button>
               </div>
             </div>
           </div>
@@ -1948,18 +1917,18 @@ export default function TestTab({
         {catalogHeader}
         {faolTuri === "togarak" && (
           <button onClick={() => { setFaolTuri("oddiy"); setBoshqaSinflarRejimi(false); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
-            {sinf ? "← O'z sinfimga qaytish" : "← Oddiy sinflarga qaytish"}
+            {sinf ? __kbUi("← O'z sinfimga qaytish") : __kbUi("← Oddiy sinflarga qaytish")}
           </button>
         )}
         <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
-          {faolTuri === "togarak" ? "Boshqa sinflar (to'garak)" : "Test yechish"}
+          {faolTuri === "togarak" ? __kbUi("Boshqa sinflar (to'garak)") : __kbUi("Test yechish")}
         </h1>
-        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
         ) : sinflarRoyxati.length === 0 && faolTuri === "togarak" ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha to'garak sinflari mavjud emas.</p>
+            <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi("Hozircha to'garak sinflari mavjud emas.")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -1970,9 +1939,9 @@ export default function TestTab({
                   className="rounded-2xl p-5 text-center bg-white border"
                   style={{ borderColor: "#E5E1D8" }}>
                   <p className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>
-                    {faolTuri === "togarak" ? s.sinf : gradeLabel(catalogType,s.sinf)}
+                    {faolTuri === "togarak" ? s.sinf : __kbUi(gradeLabel(catalogType,s.sinf))}
                   </p>
-                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.fanlar.length} fan · {jamiMavzu} mavzu</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.fanlar.length}{__kbUi(" fan · ")}{jamiMavzu}{__kbUi(" mavzu")}</p>
                 </button>
               );
             })}
@@ -1981,8 +1950,8 @@ export default function TestTab({
                 className="rounded-2xl p-5 text-center bg-white border-2 border-dashed"
                 style={{ borderColor: "#C4BFAF" }}>
                 <p className="text-xl mb-1">📚</p>
-                <p className="text-sm font-semibold" style={{ color: "#5A5648" }}>Boshqa sinflar</p>
-                <p className="text-xs" style={{ color: "#8A8578" }}>to'garak guruhlari</p>
+                <p className="text-sm font-semibold" style={{ color: "#5A5648" }}>{__kbUi("Boshqa sinflar")}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("to'garak guruhlari")}</p>
               </button>
             )}
           </div>
@@ -1997,40 +1966,34 @@ export default function TestTab({
     <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
       {catalogHeader}
       {(!profilSinfi || boshqaSinflarRejimi) && (
-        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
-          ← Sinflar
-        </button>
+        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>{__kbUi("← Sinflar")}</button>
       )}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
-          {sinfMalumoti ? (faolTuri === "togarak" ? `${sinfMalumoti.sinf} testlari` : `${gradeLabel(catalogType,sinfMalumoti.sinf)} testlari`) : "Test yechish"}
+          {sinfMalumoti ? (faolTuri === "togarak" ? __kbUi(`${sinfMalumoti.sinf} testlari`) : __kbUi(`${gradeLabel(catalogType,sinfMalumoti.sinf)} testlari`)) : __kbUi("Test yechish")}
         </h1>
         <button onClick={() => { setAralashRejim(!aralashRejim); setTanlanganKodlar([]); }}
           className="text-xs font-semibold px-3 py-1.5 rounded-full"
           style={aralashRejim
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-          {aralashRejim ? "✕ Aralash rejimi" : "🔀 Bir nechta mavzu"}
+          {aralashRejim ? __kbUi("✕ Aralash rejimi") : __kbUi("🔀 Bir nechta mavzu")}
         </button>
       </div>
       {sinf && !boshqaSinflarRejimi && (
         <button onClick={() => { setBoshqaSinflarRejimi(true); setFaolTuri("togarak"); setTanlanganSinf(null); }}
-          className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
-          📚 Boshqa (to'garak) guruhlarni ko'rish →
-        </button>
+          className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>{__kbUi("📚 Boshqa (to'garak) guruhlarni ko'rish →")}</button>
       )}
-      {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+      {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
       {aralashRejim && (
         <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
-          <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
-            👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.
-          </p>
+          <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>{__kbUi("👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.")}</p>
           <span className="text-sm font-bold shrink-0 ml-2" style={{ color: "#1B4B7A" }}>{tanlanganKodlar.length}</span>
         </div>
       )}
       {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm" style={{ color: "#8A8578" }}>Tanlangan bo‘limda sizga mos test hali kiritilmagan.</p>
+          <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi("Tanlangan bo‘limda sizga mos test hali kiritilmagan.")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -2039,7 +2002,7 @@ export default function TestTab({
             return (
               <div key={fan.qisqa} className="rounded-2xl overflow-hidden border bg-white" style={{ borderColor: "#E5E1D8" }}>
                 <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)} className="w-full flex items-center justify-between p-4">
-                  <span className="font-semibold text-sm" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
+                  <span className="font-semibold text-sm" style={{ color: "#2B2B2B" }}><TranslatedContent text={fan.nom} showStatus={false}/></span>
                   {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}
                 </button>
                 {ochiq && (
@@ -2057,9 +2020,7 @@ export default function TestTab({
           <div className="max-w-md mx-auto">
             <button onClick={aralashTestBoshlandi}
               className="w-full py-3.5 rounded-xl font-semibold text-white text-sm shadow-lg"
-              style={{ backgroundColor: "#1B4B7A" }}>
-              🚀 Aralash test boshlash ({tanlanganKodlar.length} mavzu tanlandi)
-            </button>
+              style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("🚀 Aralash test boshlash (")}{tanlanganKodlar.length}{__kbUi(" mavzu tanlandi)")}</button>
           </div>
         </div>
       )}
@@ -2068,6 +2029,7 @@ export default function TestTab({
 }
 
 function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
+  useKbInterfaceLocale();
   const variantlar = [[null, "Barchasi"], [true, haNomi], [false, yoqNomi]];
   return (
     <div className="flex items-center justify-between mb-3 last:mb-0">
@@ -2088,22 +2050,21 @@ function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
 }
 
 function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla }) {
+  useKbInterfaceLocale();
   const [sahifa, setSahifa] = useState(0);
   const JAMI_SAHIFA = Math.ceil(fan.mavzular.length / 10) || 1;
   const korinadigan = fan.mavzular.slice(sahifa * 10, sahifa * 10 + 10);
-  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => m.nomi === k.nomi)).length;
+  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => catalogTopicKey(m) === catalogTopicKey(k))).length;
 
   return (
     <div className="px-4 pb-4 space-y-2">
       {aralashRejim && shuFandaTanlangan > 0 && (
-        <p className="text-xs font-semibold px-1 pb-1" style={{ color: "#1B4B7A" }}>
-          ✓ Bu fandan {shuFandaTanlangan} ta mavzu tanlandi
-        </p>
+        <p className="text-xs font-semibold px-1 pb-1" style={{ color: "#1B4B7A" }}>{__kbUi("✓ Bu fandan ")}{shuFandaTanlangan}{__kbUi(" ta mavzu tanlandi")}</p>
       )}
       {korinadigan.map((m) => {
         const tanlanganmi = tanlanganKodlar.some((k) => catalogTopicKey(k) === catalogTopicKey(m));
         return (
-          <button key={m.nomi}
+          <button key={catalogTopicKey(m)}
             onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}
             className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border-2"
             style={{
@@ -2117,9 +2078,9 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
                   {tanlanganmi && <span className="text-white text-xs">✓</span>}
                 </span>
               )}
-              <span className="text-sm text-left" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+              <span className="text-sm text-left" style={{ color: "#2B2B2B" }}><TranslatedContent text={m.nomi} showStatus={false}/>{m.semestr > 0 && <small className="block text-xs opacity-70">{m.semestr}{__kbUi("-semestr")}</small>}</span>
             </span>
-            <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
+            <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{m.savol_soni}{__kbUi(" ta")}</span>
           </button>
         );
       })}
@@ -2127,15 +2088,11 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
         <div className="flex items-center justify-between pt-1">
           <button onClick={() => setSahifa((s) => Math.max(0, s - 1))} disabled={sahifa === 0}
             className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>
-            ← Oldingi
-          </button>
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>{__kbUi("← Oldingi")}</button>
           <span className="text-xs" style={{ color: "#8A8578" }}>{sahifa + 1} / {JAMI_SAHIFA}</span>
           <button onClick={() => setSahifa((s) => Math.min(JAMI_SAHIFA - 1, s + 1))} disabled={sahifa >= JAMI_SAHIFA - 1}
             className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= JAMI_SAHIFA - 1 ? "#C4BFAF" : "#5A5648" }}>
-            Keyingi →
-          </button>
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= JAMI_SAHIFA - 1 ? "#C4BFAF" : "#5A5648" }}>{__kbUi("Keyingi →")}</button>
         </div>
       )}
     </div>

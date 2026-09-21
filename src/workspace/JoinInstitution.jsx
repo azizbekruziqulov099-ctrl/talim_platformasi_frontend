@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { Building2, KeyRound, LoaderCircle } from 'lucide-react';
 import { useInterface } from '../interface/InterfacePreferences.jsx';
@@ -5,6 +7,7 @@ import { claimInstitution, institutionCodeError, refreshInstitutionProfile } fro
 import './membership.css';
 
 export default function JoinInstitution({ apiBase = '', token, onComplete, onBack }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -57,10 +60,10 @@ export default function JoinInstitution({ apiBase = '', token, onComplete, onBac
     <p>{t('Maktab, institut, universitet, markaz yoki bog‘cha admini bergan shaxsiy ulanish kodini kiriting. Rolingiz va biriktirilgan sinf yoki guruhingiz muassasa ma’lumotlaridan olinadi.')}</p>
     <form onSubmit={submit}>
       {!joined && <><label htmlFor="kb-institution-code">{t('Admin bergan ulanish kodi')}</label>
-        <input id="kb-institution-code" value={code} onChange={event => setCode(event.target.value)} type="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={256} placeholder="A1B2 C3D4 E5F6" disabled={busy} required/>
+        <input id="kb-institution-code" value={code} onChange={event => setCode(event.target.value)} type="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={256} placeholder={__kbUi("A1B2 C3D4 E5F6")} disabled={busy} required/>
         <p className="kb-membership-note">{t('Bu kod muassasaga bir marta ulaydi. Keyingi kirishlarda Telegram, Google yoki o‘zingiz belgilagan shaxsiy paroldan foydalanasiz.')}</p></>}
       {joined && <p className="kb-membership-success" role="status">{joined.joy_nomi || t('Muassasa')} — {t('ulandingiz. Hisob yangilanmoqda.')}</p>}
-      {error && <p className="kb-membership-error" role="alert">{error}</p>}
+      {error && <p className="kb-membership-error" role="alert">{__kbUi(error)}</p>}
       <button type="submit" className="kb-membership-submit" disabled={busy || (!joined && !code.trim())}>{busy ? <LoaderCircle size={18} className="animate-spin"/> : <KeyRound size={18}/>} {busy ? t('Tekshirilmoqda…') : joined ? t('Hisobni yangilash') : t('Muassasaga qo‘shilish')}</button>
     </form>
   </section>;

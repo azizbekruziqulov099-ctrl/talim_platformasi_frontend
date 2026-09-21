@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -17,6 +19,7 @@ const elapsedLabel = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2
 // One dialog owns one connection. Incoming notifications belong to the foreground
 // Kabutar panel; no background socket, polling loop or media engine is duplicated.
 export default function KabutarCallDialog({ apiBase, token, peer, mode = "audio", callId = null, onClose }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [status, setStatus] = useState("checking");
   const [message, setMessage] = useState("");
@@ -245,10 +248,10 @@ export default function KabutarCallDialog({ apiBase, token, peer, mode = "audio"
         <header><span>{kind === "video" ? t("Videoqo‘ng‘iroq") : t("Ovozli qo‘ng‘iroq")}</span><button type="button" autoFocus onClick={() => actions.current.dismiss?.()} aria-label={t("Qo‘ng‘iroqni yopish")}><X size={22} /></button></header>
         <div className={`kb-call-stage ${kind === "audio" ? "kb-call-audio" : ""}`}>
           {kind === "video" ? <video ref={remoteRef} autoPlay playsInline className="kb-call-remote" /> : <audio ref={remoteRef} autoPlay playsInline />}
-          {(kind === "audio" || status !== "connected") && <div className="kb-call-person"><div className="kb-call-avatar">{name.trim().slice(0, 1).toUpperCase()}</div><h2>{name}</h2></div>}
+          {(kind === "audio" || status !== "connected") && <div className="kb-call-person"><div className="kb-call-avatar">{__kbUi(name.trim().slice(0, 1).toUpperCase())}</div><h2>{name}</h2></div>}
           {kind === "video" && <video ref={localRef} autoPlay playsInline muted className="kb-call-local" aria-label={t("Sizning kamerangiz")} />}
         </div>
-        <div className="kb-call-status" aria-live="polite"><strong>{t(label[status])}</strong>{status === "connected" && <span aria-label={t("Qo‘ng‘iroq davomiyligi")}>{elapsedLabel(seconds)}</span>}{message && <p>{message}</p>}</div>
+        <div className="kb-call-status" aria-live="polite"><strong>{t(label[status])}</strong>{status === "connected" && <span aria-label={t("Qo‘ng‘iroq davomiyligi")}>{__kbUi(elapsedLabel(seconds))}</span>}{message && <p>{message}</p>}</div>
         {needsPlay && !done && <button className="kb-call-play" type="button" onClick={() => actions.current.play?.()}><Volume2 size={18} />{t("Ovozini eshitish")}</button>}
         <div className="kb-call-controls">
           {!incoming && !done && <><button type="button" onClick={() => actions.current.mute?.()} disabled={status === "checking"} aria-pressed={muted} aria-label={muted ? t("Mikrofonni yoqish") : t("Mikrofonni o‘chirish")}>{muted ? <MicOff /> : <Mic />}</button>{kind === "video" && <button type="button" onClick={() => actions.current.camera?.()} disabled={status === "checking"} aria-pressed={cameraOff} aria-label={cameraOff ? t("Kamerani yoqish") : t("Kamerani o‘chirish")}>{cameraOff ? <VideoOff /> : <Video />}</button>}</>}

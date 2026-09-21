@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -7,6 +9,7 @@ import { registerPhoneBackHandler } from "../pwa/samtmPwa.js";
 let safetySequence = 0;
 
 export default function KabutarSafety({ apiBase, token, view, onClose, onBlocked }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [mode, setMode] = useState(view.mode);
   const [reason, setReason] = useState("abuse");
@@ -79,14 +82,14 @@ export default function KabutarSafety({ apiBase, token, view, onClose, onBlocked
       : <>
         <p><strong>{view.person?.full_name || t("Tanlangan xabar")}</strong></p>
         {mode === "block" ? <p>{t("Bu odam bilan shaxsiy xabarlar va qo‘ng‘iroqlar to‘xtatiladi. Keyin “Bloklangan aloqalar”dan blokni olib tashlashingiz mumkin.")}</p> : <>
-          {view.message?.matn && <blockquote>{String(view.message.matn).slice(0, 220)}</blockquote>}
+          {view.message?.matn && <blockquote>{__kbUi(String(view.message.matn).slice(0, 220))}</blockquote>}
           <label>{t("Sababi")}<select disabled={busy} value={reason} onChange={event => setReason(event.target.value)}><option value="abuse">{t("Haqorat yoki bezovta qilish")}</option><option value="spam">{t("Keraksiz reklama / spam")}</option><option value="unsafe">{t("Xavfli yoki nomaqbul kontent")}</option><option value="other">{t("Boshqa sabab")}</option></select></label>
           <label>{t("Qo‘shimcha izoh")}<textarea disabled={busy} maxLength={1000} value={detail} onChange={event => setDetail(event.target.value)} placeholder={t("Vaziyatni qisqacha tushuntiring…")}/></label>
         </>}
         {!notice && <footer>{mode === "report" && view.person?.user_id && !view.person?.guruh_id && <button type="button" disabled={busy} onClick={() => setMode("block")}>{t("Aloqani bloklash")}</button>}<button type="button" className="kb-safety-submit" disabled={busy} onClick={submit}>{busy ? t("Bajarilmoqda…") : mode === "block" ? t("Bloklashni tasdiqlash") : t("Shikoyatni yuborish")}</button></footer>}
       </>}
-      {error && <p role="alert" className="kb-safety-error">{error}</p>}
-      {notice && <p role="status" className="kb-safety-notice">{notice}</p>}
+      {error && <p role="alert" className="kb-safety-error">{__kbUi(error)}</p>}
+      {notice && <p role="status" className="kb-safety-notice">{__kbUi(notice)}</p>}
     </section>
   </div>, document.body);
 }

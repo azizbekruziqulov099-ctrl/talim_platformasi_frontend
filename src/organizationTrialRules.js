@@ -1,3 +1,4 @@
+import {interfaceLocaleTag} from './interface/interfaceRuntime.js';
 export const PAYMENTS_ENABLED = false;
 export const PRIVATE_OWNERSHIP_TYPE = "private";
 export const ORGANIZATION_TRIAL_DAYS = 0;
@@ -11,7 +12,7 @@ export const ORGANIZATION_TYPES = Object.freeze([
 ]);
 const TYPE_BY_VALUE = new Map(ORGANIZATION_TYPES.map(item => [item.value, item]));
 export const organizationTypeMeta = value => TYPE_BY_VALUE.get(value) || { value, label: "Muassasa", icon: "🏢", legacyType: null, workspace: null };
-export const formatUzs = value => `${Math.max(0, Number(value) || 0).toLocaleString("uz-UZ")} UZS`;
+export const formatUzs = value => `${Math.max(0, Number(value) || 0).toLocaleString(interfaceLocaleTag())} UZS`;
 export const organizationIsReadOnly = () => false;
 export const organizationCanActivate = () => false;
 export const organizationTrialState = () => ({ key: "active", label: "Faol · bepul", detail: "Barcha imkoniyatlar hozircha bepul ochilgan." });

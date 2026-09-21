@@ -58,7 +58,7 @@ test("admin manual wallet credit is provider-honest and explicitly confirmed", (
 
 test("trial and expiry copy promise 30 days, read-only access, and retained data", () => {
   assert.match(app, /30 kunlik sinov tugagan/);
-  assert.match(app, /Sinov tugashi: \{formatTrialEnd\(organization\.trial_ends_at\)\}/);
+  assert.match(app, /Sinov tugashi:[\s\S]{0,80}formatTrialEnd\(organization\.trial_ends_at\)/);
   assert.match(app, /Barcha ma'lumot saqlangan/);
   assert.match(app, /To'lanmagan muassasa o'chirilmaydi/);
   assert.match(app, /Bir martalik faollashtirish/);

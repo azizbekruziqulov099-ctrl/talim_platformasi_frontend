@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ImagePlus, Move, Plus, RotateCcw, Square, Trash2, Type } from 'lucide-react';
 import SlidePreview, { designTokens } from './SlidePreview.jsx';
@@ -34,6 +36,7 @@ function selectableObjects(slide, spec) {
 
 /** Slide patches are committed after a gesture ends. All intermediate movement stays local. */
 export default function FreeformCanvas({ document: project, slideIndex = 0, onChangeSlide, disabled = false }) {
+  useKbInterfaceLocale();
   const slide = project.slides[slideIndex] || project.slides[0];
   const [selectedKey, setSelectedKey] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -193,42 +196,43 @@ export default function FreeformCanvas({ document: project, slideIndex = 0, onCh
 
   if (!slide) return null;
   const cannotAdd = disabled || imageBusy || customCount >= ELEMENT_LIMIT;
-  return <section className={`ps51-freeform${disabled ? ' is-disabled' : ''}`} aria-label="Slayd muharriri">
-    <div className="ps51-canvas-toolbar" role="group" aria-label="Obyekt qo‘shish">
+  return <section className={`ps51-freeform${disabled ? ' is-disabled' : ''}`} aria-label={__kbUi("Slayd muharriri")}>
+    <div className="ps51-canvas-toolbar" role="group" aria-label={__kbUi("Obyekt qo‘shish")}>
       <div className="ps51-canvas-add">
-        <button type="button" disabled={cannotAdd} onClick={() => addElement('text')}><Type size={16} /><span>Matn</span><Plus size={12} /></button>
-        <button type="button" disabled={cannotAdd} onClick={() => upload.current?.click()}><ImagePlus size={16} /><span>{imageBusy ? 'Tayyorlanmoqda…' : 'Rasm'}</span></button>
-        <button type="button" disabled={cannotAdd} onClick={() => addElement('rect')}><Square size={15} /><span>Shakl</span><Plus size={12} /></button>
-        <input ref={upload} type="file" accept="image/png,image/jpeg" className="ps51-file-input" aria-label="Slaydga rasm yuklash" onChange={addImage} disabled={cannotAdd} tabIndex={-1} />
+        <button type="button" disabled={cannotAdd} onClick={() => addElement('text')}><Type size={16} /><span>{__kbUi("Matn")}</span><Plus size={12} /></button>
+        <button type="button" disabled={cannotAdd} onClick={() => upload.current?.click()}><ImagePlus size={16} /><span>{imageBusy ? __kbUi('Tayyorlanmoqda…') : __kbUi('Rasm')}</span></button>
+        <button type="button" disabled={cannotAdd} onClick={() => addElement('rect')}><Square size={15} /><span>{__kbUi("Shakl")}</span><Plus size={12} /></button>
+        <input ref={upload} type="file" accept="image/png,image/jpeg" className="ps51-file-input" aria-label={__kbUi("Slaydga rasm yuklash")} onChange={addImage} disabled={cannotAdd} tabIndex={-1} />
       </div>
-      <button type="button" className="ps51-reset" disabled={disabled || !Object.keys(slide.placements || {}).length} onClick={() => { gesture.current = null; setDraft(null); onChangeSlide?.({ placements: {} }); }} title="Asosiy matn va rasmlarni maketdagi joyiga qaytarish"><RotateCcw size={15} /><span>Joylashuvni tiklash</span></button>
+      <button type="button" className="ps51-reset" disabled={disabled || !Object.keys(slide.placements || {}).length} onClick={() => { gesture.current = null; setDraft(null); onChangeSlide?.({ placements: {} }); }} title={__kbUi("Asosiy matn va rasmlarni maketdagi joyiga qaytarish")}><RotateCcw size={15} /><span>{__kbUi("Joylashuvni tiklash")}</span></button>
     </div>
     <div className="ps51-canvas-stage">
       <SlidePreview document={previewProject} index={slideIndex} transition={false} isManipulating={!!draft} />
       {!disabled && <div ref={overlay} className="ps51-canvas-overlay" onPointerDown={event => { if (event.target === event.currentTarget) setSelectedKey(null); }} onPointerMove={moveGesture} onPointerUp={event => endGesture(event)} onPointerCancel={event => endGesture(event, true)} onLostPointerCapture={event => endGesture(event, true)}>
-        {objects.map(item => <div key={item.key} role="button" tabIndex={0} data-canvas-object={item.key} aria-label={`${item.label}: tanlash va ko‘chirish`} aria-pressed={selectedKey === item.key} aria-describedby={helpId} className={`ps51-canvas-object${selectedKey === item.key ? ' is-selected' : ''}`} style={positionStyle(item)} onFocus={() => setSelectedKey(item.key)} onPointerDown={event => startGesture(event, item)} onKeyDown={event => objectKeys(event, item)} />)}
+        {objects.map(item => <div key={item.key} role="button" tabIndex={0} data-canvas-object={item.key} aria-label={__kbUi(`${item.label}: tanlash va ko‘chirish`)} aria-pressed={selectedKey === item.key} aria-describedby={helpId} className={`ps51-canvas-object${selectedKey === item.key ? ' is-selected' : ''}`} style={positionStyle(item)} onFocus={() => setSelectedKey(item.key)} onPointerDown={event => startGesture(event, item)} onKeyDown={event => objectKeys(event, item)} />)}
         {selected && <div className="ps51-selection-frame" style={positionStyle(selected)}>
-          <span className="ps51-selection-label">{selected.label}</span>
-          {['nw', 'ne', 'sw', 'se'].map(corner => <button key={corner} type="button" className={`ps51-resize-handle is-${corner}`} aria-label={`${selected.label}: o‘lchamini o‘zgartirish (${corner})`} title="O‘lchamini o‘zgartirish" onPointerDown={event => startGesture(event, selected, corner)} onKeyDown={event => objectKeys(event, selected, true)} />)}
+          <span className="ps51-selection-label">{__kbUi(selected.label)}</span>
+          {['nw', 'ne', 'sw', 'se'].map(corner => <button key={corner} type="button" className={`ps51-resize-handle is-${corner}`} aria-label={__kbUi(`${selected.label}: o‘lchamini o‘zgartirish (${corner})`)} title={__kbUi("O‘lchamini o‘zgartirish")} onPointerDown={event => startGesture(event, selected, corner)} onKeyDown={event => objectKeys(event, selected, true)} />)}
         </div>}
       </div>}
     </div>
-    <div className="ps51-canvas-caption"><p id={helpId}><Move size={13} />Obyektni suring, burchagidan o‘lchamini o‘zgartiring. Strelka: 1 px · Shift: 10 px.</p><span>{customCount}/{ELEMENT_LIMIT}</span></div>
-    {error && <p className="ps51-canvas-error" role="alert">{error}</p>}
-    {customCount >= ELEMENT_LIMIT && <p className="ps51-canvas-note">Bu slaydga 12 ta qo‘shimcha obyekt qo‘shildi.</p>}
-    {selected && !disabled ? <div className="ps51-object-inspector" aria-label={`${selected.label} sozlamalari`}>
-      <div className="ps51-inspector-heading"><strong>{selected.label}</strong>{selected.custom ? <button type="button" className="ps51-delete" onClick={() => { onChangeSlide?.({ elements: (slide.elements || []).filter(item => item.id !== selected.id) }); setSelectedKey(null); }}><Trash2 size={14} />O‘chirish</button> : <span>Matnni quyidagi maydonlarda tahrirlang</span>}</div>
-      {selected.custom && selected.kind === 'text' && <label className="ps51-inspector-text">Matn<textarea value={selected.text || ''} maxLength={600} rows={2} onChange={event => updateElement({ text: event.target.value })} /></label>}
+    <div className="ps51-canvas-caption"><p id={helpId}><Move size={13} />{__kbUi("Obyektni suring, burchagidan o‘lchamini o‘zgartiring. Strelka: 1 px · Shift: 10 px.")}</p><span>{customCount}/{__kbUi(ELEMENT_LIMIT)}</span></div>
+    {error && <p className="ps51-canvas-error" role="alert">{__kbUi(error)}</p>}
+    {customCount >= ELEMENT_LIMIT && <p className="ps51-canvas-note">{__kbUi("Bu slaydga 12 ta qo‘shimcha obyekt qo‘shildi.")}</p>}
+    {selected && !disabled ? <div className="ps51-object-inspector" aria-label={__kbUi(`${selected.label} sozlamalari`)}>
+      <div className="ps51-inspector-heading"><strong>{__kbUi(selected.label)}</strong>{selected.custom ? <button type="button" className="ps51-delete" onClick={() => { onChangeSlide?.({ elements: (slide.elements || []).filter(item => item.id !== selected.id) }); setSelectedKey(null); }}><Trash2 size={14} />{__kbUi("O‘chirish")}</button> : <span>{__kbUi("Matnni quyidagi maydonlarda tahrirlang")}</span>}</div>
+      {selected.custom && selected.kind === 'text' && <label className="ps51-inspector-text">{__kbUi("Matn")}<textarea value={selected.text || ''} maxLength={600} rows={2} onChange={event => updateElement({ text: event.target.value })} /></label>}
       <div className="ps51-inspector-fields">
-        {[['x', 'X'], ['y', 'Y'], ['w', 'Kenglik'], ['h', 'Balandlik']].map(([key, label]) => <CoordinateInput key={`${selected.key}-${key}`} label={label} value={selected[key]} min={key === 'w' || key === 'h' ? 24 : 0} max={key === 'x' || key === 'w' ? 1280 : 720} onCommit={value => commitGeometry(selected, { ...geometry(selected), [key]: value })?.[key]} />)}
-        {selected.custom && selected.kind === 'text' && <CoordinateInput label="Shrift" value={selected.fontSize || 28} min={14} max={72} onCommit={fontSize => updateElement({ fontSize: Math.max(14, Math.min(72, fontSize)) })} />}
-        {selected.custom && ['text', 'rect'].includes(selected.kind) && <label className="ps51-inspector-color">Rang<input type="color" value={(selected.kind === 'text' ? selected.color : selected.fill) || '#17394b'} onChange={event => updateElement({ [selected.kind === 'text' ? 'color' : 'fill']: event.target.value })} /></label>}
+        {[['x', 'X'], ['y', 'Y'], ['w', 'Kenglik'], ['h', 'Balandlik']].map(([key, label]) => <CoordinateInput key={`${selected.key}-${key}`} label={__kbUi(label)} value={selected[key]} min={key === 'w' || key === 'h' ? 24 : 0} max={key === 'x' || key === 'w' ? 1280 : 720} onCommit={value => commitGeometry(selected, { ...geometry(selected), [key]: value })?.[key]} />)}
+        {selected.custom && selected.kind === 'text' && <CoordinateInput label={__kbUi("Shrift")} value={selected.fontSize || 28} min={14} max={72} onCommit={fontSize => updateElement({ fontSize: Math.max(14, Math.min(72, fontSize)) })} />}
+        {selected.custom && ['text', 'rect'].includes(selected.kind) && <label className="ps51-inspector-color">{__kbUi("Rang")}<input type="color" value={(selected.kind === 'text' ? selected.color : selected.fill) || '#17394b'} onChange={event => updateElement({ [selected.kind === 'text' ? 'color' : 'fill']: event.target.value })} /></label>}
       </div>
-    </div> : <div className="ps51-inspector-empty"><span>Slayddagi matn yoki rasmni tanlang.</span><span>1280 × 720</span></div>}
+    </div> : <div className="ps51-inspector-empty"><span>{__kbUi("Slayddagi matn yoki rasmni tanlang.")}</span><span>1280 × 720</span></div>}
   </section>;
 }
 
 function CoordinateInput({ label, value, min, max, onCommit }) {
+  useKbInterfaceLocale();
   const [input, setInput] = useState(String(Math.round(value)));
   useEffect(() => setInput(String(Math.round(value))), [value]);
   const commit = () => {
@@ -239,5 +243,5 @@ function CoordinateInput({ label, value, min, max, onCommit }) {
       setInput(String(Math.round(Number.isFinite(committed) ? committed : bounded)));
     } else setInput(String(Math.round(value)));
   };
-  return <label className="ps51-coordinate">{label}<input type="number" value={input} min={min} max={max} step={1} onChange={event => setInput(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /></label>;
+  return <label className="ps51-coordinate">{__kbUi(label)}<input type="number" value={input} min={min} max={max} step={1} onChange={event => setInput(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /></label>;
 }

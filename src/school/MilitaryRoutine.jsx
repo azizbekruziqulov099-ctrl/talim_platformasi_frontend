@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarDays, Clock3, Plus, RefreshCw, Save, ShieldCheck, Trash2, X } from "lucide-react";
 import "./militaryRoutine.css";
@@ -47,6 +49,7 @@ export function validateRoutineDraft(rows) {
 }
 
 export default function MilitaryRoutine({ token, apiBase = "", schoolId, childId, readOnly = false }) {
+  useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [chosenSchool, setChosenSchool] = useState(null);
   const [error, setError] = useState("");
@@ -106,12 +109,12 @@ export default function MilitaryRoutine({ token, apiBase = "", schoolId, childId
     finally { clearTimeout(timer); setSaving(false); }
   };
   if (!token || (!data && !error)) return null;
-  if (data?.enabled === false) return !readOnly && data.can_enable ? <section className="military-routine" aria-label="Harbiy maktabga moslash">
-    <div className="military-routine__header"><div><h3>Harbiy maktabga moslash</h3><p>{data.school_name}</p></div><button type="button" disabled={saving} onClick={() => setEnableConfirm((value) => !value)}>Harbiy maktab tartibini yoqish</button></div>
-    {enableConfirm && <div className="military-routine__preset"><p>Tanlangan maktab harbiy maktab turiga o‘tadi. Darslar va sinflar saqlanadi; kun tartibi, yotoqxona va navbatchilik sozlamalari ochiladi.</p><button type="button" disabled={saving} onClick={enableMilitary}>{saving ? "Saqlanmoqda…" : "Shu maktab uchun yoqish"}</button></div>}
-    {error && <p className="military-routine__error" role="alert">{error}</p>}
+  if (data?.enabled === false) return !readOnly && data.can_enable ? <section className="military-routine" aria-label={__kbUi("Harbiy maktabga moslash")}>
+    <div className="military-routine__header"><div><h3>{__kbUi("Harbiy maktabga moslash")}</h3><p>{data.school_name}</p></div><button type="button" disabled={saving} onClick={() => setEnableConfirm((value) => !value)}>{__kbUi("Harbiy maktab tartibini yoqish")}</button></div>
+    {enableConfirm && <div className="military-routine__preset"><p>{__kbUi("Tanlangan maktab harbiy maktab turiga o‘tadi. Darslar va sinflar saqlanadi; kun tartibi, yotoqxona va navbatchilik sozlamalari ochiladi.")}</p><button type="button" disabled={saving} onClick={enableMilitary}>{saving ? __kbUi("Saqlanmoqda…") : __kbUi("Shu maktab uchun yoqish")}</button></div>}
+    {error && <p className="military-routine__error" role="alert">{__kbUi(error)}</p>}
   </section> : null;
-  if (!data) return <section className="military-routine" aria-label="Kun tartibi"><p role="status">{error}</p><button type="button" onClick={load}>Qayta yuklash</button></section>;
+  if (!data) return <section className="military-routine" aria-label={__kbUi("Kun tartibi")}><p role="status">{__kbUi(error)}</p><button type="button" onClick={load}>{__kbUi("Qayta yuklash")}</button></section>;
   const today = routineToday(data.entries || [], new Date(tick + clockOffset.current));
   const current = today.rows.find((row) => row.status === "current");
   const next = today.rows.find((row) => row.status === "next");
@@ -130,33 +133,33 @@ export default function MilitaryRoutine({ token, apiBase = "", schoolId, childId
     finally { clearTimeout(timer); setSaving(false); }
   };
 
-  return <section className="military-routine" aria-label="Harbiy maktab kun tartibi">
-    <header className="military-routine__header"><div><span className="military-routine__eyebrow"><ShieldCheck size={15} /> Harbiy maktab</span><h3>Bugungi kun tartibi</h3><p>{data.school_name} · {DAYS[today.day - 1]} · {today.clock}</p></div><div className="military-routine__actions">
-      {!draft && <button type="button" aria-label="Kun tartibini yangilash" onClick={load}><RefreshCw size={16} /></button>}
-      {data.can_edit && !readOnly && !draft && <button type="button" onClick={() => { setDraft(data.entries.map((row) => ({ ...row }))); setDay(today.day); setError(""); setNotice(""); }}><CalendarDays size={16} /> Kun tartibini sozlash</button>}
+  return <section className="military-routine" aria-label={__kbUi("Harbiy maktab kun tartibi")}>
+    <header className="military-routine__header"><div><span className="military-routine__eyebrow"><ShieldCheck size={15} />{__kbUi(" Harbiy maktab")}</span><h3>{__kbUi("Bugungi kun tartibi")}</h3><p>{data.school_name} · {__kbUi(DAYS[today.day - 1])} · {today.clock}</p></div><div className="military-routine__actions">
+      {!draft && <button type="button" aria-label={__kbUi("Kun tartibini yangilash")} onClick={load}><RefreshCw size={16} /></button>}
+      {data.can_edit && !readOnly && !draft && <button type="button" onClick={() => { setDraft(data.entries.map((row) => ({ ...row }))); setDay(today.day); setError(""); setNotice(""); }}><CalendarDays size={16} />{__kbUi(" Kun tartibini sozlash")}</button>}
     </div></header>
-    {!schoolId && data.schools?.length > 1 && <label className="military-routine__school">Maktab<select disabled={!!draft} value={data.school_id} onChange={(event) => setChosenSchool(Number(event.target.value))}>{data.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></label>}
-    {error && <p className="military-routine__error" role="alert">{error}</p>}
-    {notice && <p className="military-routine__notice" role="status">{notice}</p>}
+    {!schoolId && data.schools?.length > 1 && <label className="military-routine__school">{__kbUi("Maktab")}<select disabled={!!draft} value={data.school_id} onChange={(event) => setChosenSchool(Number(event.target.value))}>{data.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></label>}
+    {error && <p className="military-routine__error" role="alert">{__kbUi(error)}</p>}
+    {notice && <p className="military-routine__notice" role="status">{__kbUi(notice)}</p>}
     {draft ? <div className="military-routine__editor">
-      <p>Vaqt, dars, to‘garak va hafta turini erkin moslang. Aniq tugash vaqti bo‘lmasa, bo‘sh qoldiring. Saqlangan reja direktor, o‘quvchi va bog‘langan ota-onaga ko‘rinadi.</p>
-      {!draft.length && data.preset?.length > 0 && <div className="military-routine__preset"><strong>Boshlang‘ich tartibni qo‘llash</strong><p>Dushanba–shanba: 08:00 dan 50 daqiqalik darslar, 13:00–14:00 tushlik va dam, 14:00 oltinchi dars, 15:00–16:30 ikki 45 daqiqalik to‘garak. Namunada tushlik va dam olish 30 daqiqadan ajratilgan — bu boshlang‘ich taxmin. Kunlar, tanaffuslar, to‘garak fanlari va barcha vaqtlarni saqlashdan oldin o‘zingizga moslang.</p><button type="button" disabled={saving} onClick={() => setDraft(data.preset.map((row) => ({ ...row })))}>Namunani tahrirga olish</button></div>}
-      <p className="military-routine__footnote">To‘garaklarni kerakli kunlarda nomlab, toq/juft haftalarda almashtirishingiz mumkin. Har bir fan uchun haftadagi ikki mashg‘ulotni belgilang. Toq va juft haftalar yil kalendari bo‘yicha sanaladi.</p>
-      <div className="military-routine__days" role="group" aria-label="Hafta kuni">{DAYS.map((name, idx) => <button type="button" disabled={saving} key={name} aria-pressed={day === idx + 1} onClick={() => setDay(idx + 1)}>{name}</button>)}</div>
+      <p>{__kbUi("Vaqt, dars, to‘garak va hafta turini erkin moslang. Aniq tugash vaqti bo‘lmasa, bo‘sh qoldiring. Saqlangan reja direktor, o‘quvchi va bog‘langan ota-onaga ko‘rinadi.")}</p>
+      {!draft.length && data.preset?.length > 0 && <div className="military-routine__preset"><strong>{__kbUi("Boshlang‘ich tartibni qo‘llash")}</strong><p>{__kbUi("Dushanba–shanba: 08:00 dan 50 daqiqalik darslar, 13:00–14:00 tushlik va dam, 14:00 oltinchi dars, 15:00–16:30 ikki 45 daqiqalik to‘garak. Namunada tushlik va dam olish 30 daqiqadan ajratilgan — bu boshlang‘ich taxmin. Kunlar, tanaffuslar, to‘garak fanlari va barcha vaqtlarni saqlashdan oldin o‘zingizga moslang.")}</p><button type="button" disabled={saving} onClick={() => setDraft(data.preset.map((row) => ({ ...row })))}>{__kbUi("Namunani tahrirga olish")}</button></div>}
+      <p className="military-routine__footnote">{__kbUi("To‘garaklarni kerakli kunlarda nomlab, toq/juft haftalarda almashtirishingiz mumkin. Har bir fan uchun haftadagi ikki mashg‘ulotni belgilang. Toq va juft haftalar yil kalendari bo‘yicha sanaladi.")}</p>
+      <div className="military-routine__days" role="group" aria-label={__kbUi("Hafta kuni")}>{DAYS.map((name, idx) => <button type="button" disabled={saving} key={name} aria-pressed={day === idx + 1} onClick={() => setDay(idx + 1)}>{__kbUi(name)}</button>)}</div>
       <div className="military-routine__fields">{draft.map((row, index) => row.day === day && <div className="military-routine__edit-row" key={index}>
-        <label>Boshlanish<input type="time" value={row.start} disabled={saving} onChange={(event) => change(index, { start: event.target.value })} /></label>
-        <label>Tugash<input type="time" value={row.end} disabled={saving} onChange={(event) => change(index, { end: event.target.value })} /></label>
-        <label>Mashg‘ulot<input value={row.title} maxLength={120} placeholder="Mashg‘ulot nomi" disabled={saving} onChange={(event) => change(index, { title: event.target.value })} /></label>
-        <label>Turi<select value={row.kind} disabled={saving} onChange={(event) => change(index, { kind: event.target.value })}>{Object.entries(KINDS).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
-        <label>Hafta turi<select value={row.week || "all"} disabled={saving} onChange={(event) => change(index, { week: event.target.value })}><option value="all">Har hafta</option><option value="odd">Toq haftalar</option><option value="even">Juft haftalar</option></select></label>
-        <button type="button" disabled={saving} aria-label={`${row.title || "Band"}ni olib tashlash`} onClick={() => setDraft((rows) => rows.filter((_, idx) => idx !== index))}><Trash2 size={17} /></button>
+        <label>{__kbUi("Boshlanish")}<input type="time" value={row.start} disabled={saving} onChange={(event) => change(index, { start: event.target.value })} /></label>
+        <label>{__kbUi("Tugash")}<input type="time" value={row.end} disabled={saving} onChange={(event) => change(index, { end: event.target.value })} /></label>
+        <label>{__kbUi("Mashg‘ulot")}<input value={row.title} maxLength={120} placeholder={__kbUi("Mashg‘ulot nomi")} disabled={saving} onChange={(event) => change(index, { title: event.target.value })} /></label>
+        <label>{__kbUi("Turi")}<select value={row.kind} disabled={saving} onChange={(event) => change(index, { kind: event.target.value })}>{Object.entries(KINDS).map(([value, name]) => <option key={value} value={value}>{__kbUi(name)}</option>)}</select></label>
+        <label>{__kbUi("Hafta turi")}<select value={row.week || "all"} disabled={saving} onChange={(event) => change(index, { week: event.target.value })}><option value="all">{__kbUi("Har hafta")}</option><option value="odd">{__kbUi("Toq haftalar")}</option><option value="even">{__kbUi("Juft haftalar")}</option></select></label>
+        <button type="button" disabled={saving} aria-label={__kbUi(`${row.title || "Band"}ni olib tashlash`)} onClick={() => setDraft((rows) => rows.filter((_, idx) => idx !== index))}><Trash2 size={17} /></button>
       </div>)}</div>
-      <button type="button" disabled={saving || draft.filter((row) => row.day === day).length >= MAX_DAILY_ENTRIES || draft.length >= MAX_WEEKLY_ENTRIES} onClick={() => setDraft((rows) => [...rows, { day, start: "", end: "", title: "", kind: "boshqa", week: "all" }])}><Plus size={16} /> Mashg‘ulot qo‘shish</button>
-      <footer><button type="button" disabled={saving} onClick={() => { setDraft(null); setError(""); load(); }}><X size={16} /> Bekor qilish</button><button type="button" className="military-routine__save" disabled={saving} onClick={save}><Save size={16} /> {saving ? "Saqlanmoqda…" : "Saqlash va ko‘rsatish"}</button></footer>
+      <button type="button" disabled={saving || draft.filter((row) => row.day === day).length >= MAX_DAILY_ENTRIES || draft.length >= MAX_WEEKLY_ENTRIES} onClick={() => setDraft((rows) => [...rows, { day, start: "", end: "", title: "", kind: "boshqa", week: "all" }])}><Plus size={16} />{__kbUi(" Mashg‘ulot qo‘shish")}</button>
+      <footer><button type="button" disabled={saving} onClick={() => { setDraft(null); setError(""); load(); }}><X size={16} />{__kbUi(" Bekor qilish")}</button><button type="button" className="military-routine__save" disabled={saving} onClick={save}><Save size={16} /> {saving ? __kbUi("Saqlanmoqda…") : __kbUi("Saqlash va ko‘rsatish")}</button></footer>
     </div> : <>
-      <div className="military-routine__now"><Clock3 size={21} /><div><small>Reja bo‘yicha hozir</small><strong>{current ? current.title : next ? "Mashg‘ulotlar oralig‘i" : today.rows.length ? "Bugungi reja yakunlangan" : "Bugun uchun reja kiritilmagan"}</strong>{current ? <span>{current.start}{current.end ? `–${current.end}` : ""}</span> : next ? <span>Keyingi: {next.start} · {next.title}</span> : null}</div></div>
-      {today.rows.length ? <ol className="military-routine__timeline">{today.rows.map((row) => <li key={`${row.start}-${row.end}`} data-status={row.status}><time>{row.start}<span>{row.end}</span></time><div><strong>{row.title}</strong><small>{KINDS[row.kind]} · {row.status === "current" ? "Hozirgi vaqt" : row.status === "done" ? "Rejadagi vaqt o‘tgan" : "Rejada"}</small></div>{row.status === "current" && <span className="military-routine__live">Hozir</span>}</li>)}</ol> : <p className="military-routine__empty">{data.entries.length ? "Boshqa kunlarning rejasi saqlangan. Bugungi vaqtlar hali belgilanmagan." : "Direktor kun tartibini kiritgach, bugungi mashg‘ulotlar vaqtiga qarab avtomatik ko‘rinadi."}</p>}
-      <p className="military-routine__footnote">{today.week === "odd" ? "Toq hafta" : "Juft hafta"} · Bu tasdiqlangan kun tartibi. Haqiqiy davomat va bajarilgan ishlar alohida qayd etiladi. Toshkent vaqti.</p>
+      <div className="military-routine__now"><Clock3 size={21} /><div><small>{__kbUi("Reja bo‘yicha hozir")}</small><strong>{current ? current.title : next ? __kbUi("Mashg‘ulotlar oralig‘i") : today.rows.length ? __kbUi("Bugungi reja yakunlangan") : __kbUi("Bugun uchun reja kiritilmagan")}</strong>{current ? <span>{current.start}{current.end ? __kbUi(`–${current.end}`) : __kbUi("")}</span> : next ? <span>{__kbUi("Keyingi: ")}{next.start} · {next.title}</span> : null}</div></div>
+      {today.rows.length ? <ol className="military-routine__timeline">{today.rows.map((row) => <li key={`${row.start}-${row.end}`} data-status={row.status}><time>{row.start}<span>{row.end}</span></time><div><strong>{row.title}</strong><small>{__kbUi(KINDS[row.kind])} · {row.status === "current" ? __kbUi("Hozirgi vaqt") : row.status === "done" ? __kbUi("Rejadagi vaqt o‘tgan") : __kbUi("Rejada")}</small></div>{row.status === "current" && <span className="military-routine__live">{__kbUi("Hozir")}</span>}</li>)}</ol> : <p className="military-routine__empty">{data.entries.length ? __kbUi("Boshqa kunlarning rejasi saqlangan. Bugungi vaqtlar hali belgilanmagan.") : __kbUi("Direktor kun tartibini kiritgach, bugungi mashg‘ulotlar vaqtiga qarab avtomatik ko‘rinadi.")}</p>}
+      <p className="military-routine__footnote">{today.week === "odd" ? __kbUi("Toq hafta") : __kbUi("Juft hafta")}{__kbUi(" · Bu tasdiqlangan kun tartibi. Haqiqiy davomat va bajarilgan ishlar alohida qayd etiladi. Toshkent vaqti.")}</p>
     </>}
     {!draft && <MilitaryOperations schoolId={data.school_id} childId={childId} token={token} apiBase={apiBase} readOnly={readOnly} />}
   </section>;

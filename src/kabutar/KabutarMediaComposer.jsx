@@ -1,3 +1,5 @@
+import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -24,6 +26,7 @@ function useObjectURL(file) {
 }
 
 function Preview({ draft, caption, setCaption, busy, onSend, onClose, onCancelUpload, conversationLabel }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const url = useObjectURL(draft.file);
   const box = useRef(null);
@@ -54,11 +57,11 @@ function Preview({ draft, caption, setCaption, busy, onSend, onClose, onCancelUp
     <div className="kb-media-overlay" onKeyDown={onKeyDown}>
       <div ref={box} tabIndex={-1} className="kb-media-preview" role="dialog" aria-modal="true" aria-label={t("Yuborishdan oldin ko‘rish")} aria-busy={busy}>
         <header><strong>{draft.kind === "photo" ? t("Rasm yuborish") : draft.kind === "audio" ? t("Ovozni eshitib ko‘ring") : draft.kind.startsWith("video") ? t("Videoni ko‘rib oling") : t("Fayl yuborish")}</strong><button type="button" disabled={busy} onClick={onClose} aria-label={t("Bekor qilish")}>✕</button></header>
-        {conversationLabel && <p className="kb-media-recipient">{t("Kimga:")}<strong>{conversationLabel}</strong></p>}
+        {conversationLabel && <p className="kb-media-recipient">{t("Kimga:")}<strong>{__kbUi(conversationLabel)}</strong></p>}
         {draft.kind === "photo" ? <img src={url || undefined} alt={t("Yuboriladigan rasm")} /> : draft.kind === "audio" ? <audio src={url || undefined} controls /> : draft.kind.startsWith("video") ? <video src={url || undefined} controls playsInline className={draft.kind === "video_doira" ? "kb-round-video" : ""} /> : <div className="kb-document-preview">📄 {draft.file.name}</div>}
-        <small>{draft.file.name} · {(draft.file.size / 1024 / 1024).toFixed(1)} MB</small>
+        <small>{draft.file.name} · {(draft.file.size / 1024 / 1024).toFixed(1)}{__kbUi(" MB")}</small>
         <textarea disabled={busy} maxLength={4000} value={caption} onChange={e => setCaption(e.target.value)} placeholder={t("Tagiga izoh yozing…")} aria-label={t("Media izohi")} />
-        {draft.error && <p role="alert">{draft.error}</p>}
+        {draft.error && <p role="alert">{__kbUi(draft.error)}</p>}
         <footer><button type="button" onClick={busy ? onCancelUpload : onClose}>{busy ? t("Yuborishni to‘xtatish") : t("Bekor qilish")}</button><button type="button" disabled={busy} className="kb-media-send" onClick={onSend}>{busy ? t("Yuborilmoqda…") : t("Yuborish ➤")}</button></footer>
       </div>
     </div>, document.body
@@ -71,6 +74,7 @@ function Preview({ draft, caption, setCaption, busy, onSend, onClose, onCancelUp
  * Resolves true only after the server confirms acceptance; false retains draft.
  */
 export default function KabutarMediaComposer({ disabled = false, conversationKey, conversationLabel = "", onSend, onBusyChange }) {
+  useKbInterfaceLocale();
   const { t } = useInterface();
   const [stage, setStage] = useState("idle");
   const [kind, setKind] = useState("audio");
@@ -302,19 +306,19 @@ export default function KabutarMediaComposer({ disabled = false, conversationKey
     <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,audio/*,video/*,.pdf,.docx,.xlsx" onChange={pick} hidden />
     <div className="kb-media-buttons">
       <button type="button" disabled={unavailable || active || Boolean(draft) || uploading} onClick={() => input.current?.click()} aria-label={t("Rasm yoki fayl tanlash")} title={t("Rasm yoki fayl tanlash")}><Paperclip size={21}/></button>
-      {[["audio", <Mic size={21}/>, "Ovoz yozish"], ["video_doira", <Video size={21}/>, "Video yozish"]].map(([type, icon, label]) => <button key={type} type="button" className={`kb-record-button ${active && kind === type ? "is-recording" : ""}`} disabled={unavailable || Boolean(draft) || uploading || (active && kind !== type)} aria-label={label} aria-pressed={active && kind === type} title={`${label}: bir bosing — yozish; bosib ushlab tepaga torting — qulflash`} onPointerDown={event => press(event, type)} onPointerMove={move} onPointerUp={lift} onPointerCancel={pointerLost} onLostPointerCapture={pointerLost} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 && !active) start(type); }}>{icon}</button>)}
+      {[["audio", <Mic size={21}/>, "Ovoz yozish"], ["video_doira", <Video size={21}/>, "Video yozish"]].map(([type, icon, label]) => <button key={type} type="button" className={`kb-record-button ${active && kind === type ? "is-recording" : ""}`} disabled={unavailable || Boolean(draft) || uploading || (active && kind !== type)} aria-label={__kbUi(label)} aria-pressed={active && kind === type} title={__kbUi(`${label}: bir bosing — yozish; bosib ushlab tepaga torting — qulflash`)} onPointerDown={event => press(event, type)} onPointerMove={move} onPointerUp={lift} onPointerCancel={pointerLost} onLostPointerCapture={pointerLost} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 && !active) start(type); }}>{icon}</button>)}
       {!active && <span className="kb-media-hint">{t("Rasm, ovoz yoki video xabar")}</span>}
     </div>
     {active && <div className="kb-record-status">
-      <div className="kb-record-heading"><span className="kb-record-dot" /><strong role="status">{stage === "acquiring" ? t("Ruxsat kutilmoqda…") : stage === "stopping" ? t("Yozuv tayyorlanmoqda…") : kind === "audio" ? t("Ovoz yozilmoqda") : t("Video yozilmoqda")}</strong><time aria-label={t("Yozuv davomiyligi")}>{recordingClock(elapsed)}</time></div>
+      <div className="kb-record-heading"><span className="kb-record-dot" /><strong role="status">{stage === "acquiring" ? t("Ruxsat kutilmoqda…") : stage === "stopping" ? t("Yozuv tayyorlanmoqda…") : kind === "audio" ? t("Ovoz yozilmoqda") : t("Video yozilmoqda")}</strong><time aria-label={t("Yozuv davomiyligi")}>{__kbUi(recordingClock(elapsed))}</time></div>
       {kind === "video_doira" && <video ref={liveVideo} muted autoPlay playsInline className="kb-live-video" />}
       <div className="kb-volume" role="meter" aria-label={t("Mikrofon ovoz darajasi")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)}><span style={{ width: `${Math.round(level * 100)}%` }} /></div>
       <p>{locked ? t("🔒 Yozuv qulflangan — qo‘lingizni olishingiz mumkin") : t("↑ Tepaga torting — qulflash · ← Chapga torting — bekor qilish")}</p>
       <small>{kind === "audio" ? t("Ovoz: 15 daqiqagacha") : t("Video: 3 daqiqagacha")}</small>
       <div className="kb-record-actions"><button type="button" onClick={discard}>{t("Bekor qilish")}</button>{!locked && stage === "recording" && <button type="button" onClick={() => { if (session.current) { session.current.locked = true; setLocked(true); } }}>{t("🔒 Qulflash")}</button>}<button type="button" disabled={stage !== "recording"} onClick={() => stop()}>{t("■ To‘xtatib ko‘rish")}</button></div>
     </div>}
-    {notice && <p className="kb-media-notice" role="status">{notice}</p>}
-    {error && <p className="kb-media-error" role="alert">{error}</p>}
+    {notice && <p className="kb-media-notice" role="status">{__kbUi(notice)}</p>}
+    {error && <p className="kb-media-error" role="alert">{__kbUi(error)}</p>}
     {draft && draft.key === conversationKey && <Preview draft={draft} caption={caption} setCaption={setCaption} busy={uploading} onSend={submit} onClose={closeDraft} onCancelUpload={cancelUpload} conversationLabel={conversationLabel} />}
   </div>;
 }
