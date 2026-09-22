@@ -19,12 +19,12 @@ export function detectSpeechLanguage(value, fallback = 'uz') {
   if (en > uz) return 'en';
   return Object.hasOwn(SPEECH_LOCALES, fallback) ? fallback : 'uz';
 }
-export function splitSpeechText(value) {
+export function splitSpeechText(value, fallback = 'uz') {
   const text = String(value || '');
   const result = [];
   const untagged = part => {
     if (!part.trim()) return;
-    let language = detectSpeechLanguage(part);
+    let language = detectSpeechLanguage(part, fallback);
     for (const sentence of part.split(/(?<=[.!?;\n])\s+/)) {
       if (!sentence.trim()) continue;
       language = detectSpeechLanguage(sentence, language);

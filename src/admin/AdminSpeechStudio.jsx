@@ -1,23 +1,28 @@
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React,{useEffect,useRef,useState} from 'react';
-import {appendDictation,readingChunks,recognitionError} from './speechText.js';
+import {appendDictation,readingChunks} from './speechText.js';
 import {SpeechReader} from './speechReader.js';
 import {AudioDictation} from './audioDictation.js';
-import {detectSpeechLanguage,recognitionLocale} from '../speech/language.js';
+import {detectSpeechLanguage} from '../speech/language.js';
+import {BrowserDictation,dictationSupport} from './browserDictation.js';
 
 export default function AdminSpeechStudio({apiBase,token}) {
   useKbInterfaceLocale();
  const [access,setAccess]=useState(null);
+ const [accessError,setAccessError]=useState('');
+ const [statusAttempt,setStatusAttempt]=useState(0);
  const [mode,setMode]=useState('read');
  const [text,setText]=useState('');
  const [voice,setVoice]=useState('qiz');
+ const [readLanguage,setReadLanguage]=useState('auto');
+ const [dictationLanguage,setDictationLanguage]=useState('uz');
+ const [useBrowser,setUseBrowser]=useState(false);
  const [rate,setRate]=useState(1);
  const [reading,setReading]=useState('idle');
  const [progress,setProgress]=useState([0,0]);
  const [dictation,setDictation]=useState('');
  const [interim,setInterim]=useState('');
- const [listening,setListening]=useState(false);
  const [recording,setRecording]=useState('idle');
  const [recognizedLanguage,setRecognizedLanguage]=useState('');
  const [commands,setCommands]=useState(true);
@@ -27,63 +32,59 @@ export default function AdminSpeechStudio({apiBase,token}) {
  const recognitionRef=useRef(null);
  const audioDictationRef=useRef(null);
  const commandsRef=useRef(commands);commandsRef.current=commands;
- const autoDictation=Boolean(access?.dictation_available&&globalThis.MediaRecorder&&globalThis.navigator?.mediaDevices?.getUserMedia);
- const dictationBusy=listening||recording!=='idle';
- const Recognition=globalThis.SpeechRecognition||globalThis.webkitSpeechRecognition;
+ const support=dictationSupport(access);
+ const autoDictation=support.recording&&!useBrowser;
+ const dictationBusy=recording!=='idle';
+ const languageNames={uz:'O‘zbekcha',uzbek:'O‘zbekcha',ru:'Ruscha',russian:'Ruscha',en:'Inglizcha',english:'Inglizcha'};
  useEffect(()=>{
   const controller=new AbortController();
-  setAccess(null);setError('');
+  setAccess(null);setAccessError('');setError('');
+  const timeout=setTimeout(()=>{controller.abort();setAccessError('Ovoz xizmatini tekshirish cho‘zildi. Qayta tekshirishni bosing.');},15000);
   fetch(`${apiBase}/api/admin/speech/status?${new URLSearchParams({token})}`,{signal:controller.signal})
-   .then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.detail||'Admin ruxsati tasdiqlanmadi');return data;})
+   .then(async response=>{const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.detail||(response.status===404?'Ovoz xizmati manzili topilmadi. Backend yangilanishini tekshiring.':'Admin ruxsati tasdiqlanmadi'));if(!data.admin)throw new Error('Ovoz xizmatidan noto‘g‘ri javob keldi. Backend manzilini tekshiring.');return data;})
    .then(data=>{if(!controller.signal.aborted)setAccess(data);})
-   .catch(err=>{if(!controller.signal.aborted)setError(err.message);});
+   .catch(err=>{if(!controller.signal.aborted)setAccessError(err.message||'Ovoz xizmati bilan aloqa yo‘q. Qayta tekshiring.');})
+   .finally(()=>clearTimeout(timeout));
   const reader=new SpeechReader({onState:setReading,onProgress:(done,total)=>setProgress([done,total]),onError:setError,
-   fetchAudio:async(value,speaker,signal)=>{
+   fetchAudio:async(value,speaker,signal,language)=>{
     const response=await fetch(`${apiBase}/api/admin/speech/read?${new URLSearchParams({token})}`,{
-     method:'POST',headers:{'Content-Type':'application/json'},signal,body:JSON.stringify({text:value,voice:speaker})});
+     method:'POST',headers:{'Content-Type':'application/json'},signal,body:JSON.stringify({text:value,voice:speaker,language})});
     if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.detail||'Ovoz xizmati javob bermadi');}
     return response.blob();
    }});
   readerRef.current=reader;
+  const receiveText=result=>{setDictation(old=>appendDictation(old,result.text,commandsRef.current&&(['uz','uzbek'].includes(result.language)||(!result.language&&detectSpeechLanguage(result.text)==='uz'))));setRecognizedLanguage(result.language);};
   const recorder=new AudioDictation({onState:setRecording,onError:setError,
-   onText:result=>{setDictation(old=>appendDictation(old,result.text,commandsRef.current&&detectSpeechLanguage(result.text)==='uz'));setRecognizedLanguage(result.language);},
-   transcribe:async(blob,signal)=>{
-    const response=await fetch(`${apiBase}/api/admin/speech/dictate?${new URLSearchParams({token})}`,{
+   onText:receiveText,
+   transcribe:async(blob,signal,language)=>{
+    const response=await fetch(`${apiBase}/api/admin/speech/dictate?${new URLSearchParams({token,language})}`,{
      method:'POST',headers:{'Content-Type':blob.type},body:blob,signal});
     const result=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(result.detail||'Ovozni matnga aylantirib bo‘lmadi.');
     return result;
    }});
   audioDictationRef.current=recorder;
-  return()=>{controller.abort();reader.dispose();recorder.cancel();const rec=recognitionRef.current;if(rec){rec.onresult=rec.onend=rec.onerror=null;rec.abort();recognitionRef.current=null;}};
- },[apiBase,token]);
- const stopDictation=()=>{audioDictationRef.current?.stop();recognitionRef.current?.stop();};
- const switchMode=value=>{readerRef.current?.stop();audioDictationRef.current?.cancel();recognitionRef.current?.abort();setMode(value);setError('');setNotice('');};
+  const browser=new BrowserDictation({onState:setRecording,onText:receiveText,onInterim:setInterim,onError:setError});
+  recognitionRef.current=browser;
+  return()=>{clearTimeout(timeout);controller.abort();reader.dispose();recorder.cancel();browser.cancel();};
+ },[apiBase,token,statusAttempt]);
+ const stopDictation=()=>{
+  if(recording==='starting'||recording==='transcribing'){audioDictationRef.current?.cancel();recognitionRef.current?.cancel();}
+  else if(recording==='listening')recognitionRef.current?.stop();
+  else audioDictationRef.current?.stop();
+ };
+ const switchMode=value=>{readerRef.current?.stop();audioDictationRef.current?.cancel();recognitionRef.current?.cancel();setInterim('');setMode(value);setError('');setNotice('');};
  const startReading=()=>{
   if(!access?.admin||!text.trim())return;
-  setError('');setNotice('');readerRef.current.start(readingChunks(text),{voice,rate});
+  setError('');setNotice('');readerRef.current.start(readingChunks(text,1200,readLanguage),{voice,rate});
  };
  const startDictation=()=>{
   if(!access?.admin||dictationBusy)return;
-  if(autoDictation){readerRef.current?.stop();setError('');setNotice('');setInterim('');audioDictationRef.current.start();return;}
-  if(!Recognition||recognitionRef.current)return;
+  if(support.reason){setError(support.reason);return;}
   readerRef.current?.stop();setError('');setNotice('');setInterim('');
-  const rec=new Recognition();recognitionRef.current=rec;
-  rec.lang=recognitionLocale(dictation||text,globalThis.navigator?.languages||[]);rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;
-  if('unspokenPunctuation' in rec)rec.unspokenPunctuation=true;
-  const completed=new Set();
-  rec.onresult=event=>{
-   let pending='';
-   for(let i=event.resultIndex;i<event.results.length;i++){
-    const result=event.results[i];
-    if(result.isFinal&&!completed.has(i)){completed.add(i);setDictation(old=>appendDictation(old,result[0].transcript,commands&&detectSpeechLanguage(result[0].transcript)==='uz'));}
-    else if(!result.isFinal)pending+=`${result[0].transcript} `;
-   }
-   setInterim(pending.trim());
-  };
-  rec.onerror=event=>{if(event.error!=='aborted')setError(recognitionError(event.error));};
-  rec.onend=()=>{recognitionRef.current=null;setListening(false);setInterim('');};
-  try{rec.start();setListening(true);}catch(err){recognitionRef.current=null;setListening(false);setError(err.message||'Mikrofon ochilmadi');}
+  setRecognizedLanguage('');
+  if(autoDictation)audioDictationRef.current.start({language:dictationLanguage});
+  else recognitionRef.current.start(dictationLanguage==='auto'?'uz':dictationLanguage);
  };
  const copy=async value=>{
   try{await navigator.clipboard.writeText(value);setNotice('Matn nusxalandi.');}catch{setError('Nusxalash amalga oshmadi. Matnni belgilab nusxalang.');}
@@ -101,17 +102,20 @@ export default function AdminSpeechStudio({apiBase,token}) {
   </div>
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{__kbUi(error)}</p>}
   {notice&&<p role="status" className="text-sm text-green-800">{__kbUi(notice)}</p>}
-  {!access&&!error&&<p role="status" className="text-sm text-slate-500">{__kbUi("Admin ruxsati tekshirilmoqda…")}</p>}
+  {accessError&&<div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{__kbUi(accessError)}</p><button type="button" className={`${button} mt-2`} onClick={()=>setStatusAttempt(value=>value+1)}>{__kbUi('Qayta tekshirish')}</button></div>}
+  {!access&&!accessError&&<p role="status" className="text-sm text-slate-500">{__kbUi("Ovoz xizmati tekshirilmoqda…")}</p>}
   {mode==='read'?<section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
    <label className="block text-sm font-semibold text-slate-700">{__kbUi("O‘qiladigan matn")}<textarea value={text} onChange={event=>setText(event.target.value)} disabled={reading!=='idle'} maxLength={50000} rows={11}
      placeholder={__kbUi("Matnni shu yerga yozing yoki joylang. Nuqta, vergul va abzaslarni saqlang.")}
      className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-base font-normal leading-relaxed disabled:bg-slate-50"/>
    </label>
    <p className="text-xs text-slate-500">{__kbUi(text.length.toLocaleString())}{__kbUi(" / 50 000 belgi. Abzaslar orasida alohida pauza qilinadi.")}</p>
-   <div className="grid gap-4 sm:grid-cols-2">
+   <div className="grid gap-4 sm:grid-cols-3">
+    <label className="text-sm font-semibold text-slate-700">{__kbUi('O‘qish tili')}<select value={readLanguage} onChange={event=>setReadLanguage(event.target.value)} disabled={reading!=='idle'} className="mt-2 block w-full rounded-xl border p-2.5"><option value="auto">{__kbUi('Avtomatik')}</option>{['uz','ru','en'].map(code=><option key={code} value={code}>{__kbUi(languageNames[code])}</option>)}</select></label>
     <label className="text-sm font-semibold text-slate-700">{__kbUi("Ovoz")}<select value={voice} onChange={event=>setVoice(event.target.value)} disabled={reading!=='idle'} className="mt-2 block w-full rounded-xl border p-2.5"><option value="qiz">{__kbUi("Qiz ovozi")}</option><option value="ogil">{__kbUi("O‘g‘il ovozi")}</option></select></label>
     <label className="text-sm font-semibold text-slate-700">{__kbUi("Tezlik: ")}{rate.toFixed(2)}×<input type="range" min="0.5" max="2" step="0.05" value={rate} onChange={event=>{const value=Number(event.target.value);setRate(value);readerRef.current?.setRate(value);}} className="mt-4 block w-full"/><span className="mt-1 flex justify-between text-xs font-normal text-slate-500"><span>{__kbUi("Sekin")}</span><span>{__kbUi("Tez")}</span></span></label>
    </div>
+   <p className="text-xs text-slate-500">{__kbUi('Til noto‘g‘ri aniqlansa, o‘qish tilini tanlang. Matndagi [uz], [ru], [en] teglari o‘z tilida o‘qiladi.')}</p>
    <div className="flex flex-wrap gap-2">
     {reading==='idle'?<button type="button" className={`${button} !bg-sky-900 !text-white`} disabled={!access?.reading_available||!text.trim()} onClick={startReading}>{__kbUi("Ovoz chiqarib o‘qish")}</button>
      : reading==='paused'?<button type="button" className={button} onClick={()=>{setError('');readerRef.current.resume();}}>{__kbUi("Davom ettirish")}</button>
@@ -122,11 +126,13 @@ export default function AdminSpeechStudio({apiBase,token}) {
    {access&&!access.reading_available&&<p className="text-sm text-amber-800">{__kbUi("Serverda ovoz xizmati mavjud emas. Yangilanishdagi backend paketlarini o‘rnating.")}</p>}
   </section>:<section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
    <p className="text-sm text-slate-600">{__kbUi("Mikrofonni yoqing va gapiring. Yozishni to‘xtatgach, matnni tahrirlashingiz mumkin.")}</p>
-   {!autoDictation&&!Recognition&&<p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi("Bu brauzer ovozni matnga aylantirishni qo‘llamaydi. Saytni mikrofon va ovoz tanishni qo‘llaydigan brauzerda oching.")}</p>}
+   {access&&support.reason&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(support.reason)}</p>}
+   <label className="block text-sm font-semibold text-slate-700">{__kbUi('Gapiradigan tilingiz')}<select value={dictationLanguage==='auto'&&!autoDictation?'uz':dictationLanguage} disabled={dictationBusy} onChange={event=>setDictationLanguage(event.target.value)} className="mt-2 block w-full rounded-xl border p-2.5">{['uz','ru','en'].map(code=><option key={code} value={code}>{__kbUi(languageNames[code])}</option>)}{autoDictation&&<option value="auto">{__kbUi('Avtomatik aniqlash')}</option>}</select></label>
+   {support.recording&&support.browser&&<div className="flex flex-wrap gap-2" role="group" aria-label={__kbUi('Gapirib yozish usuli')}>{[[false,'Ovoz yozib yuborish'],[true,'Gapirgan zahoti yozish']].map(([browser,label])=><button key={label} type="button" disabled={dictationBusy} aria-pressed={useBrowser===browser} className={`${button} ${useBrowser===browser?'!border-sky-800 !bg-sky-50':''}`} onClick={()=>{setUseBrowser(browser);if(browser&&dictationLanguage==='auto')setDictationLanguage('uz');setError('');}}>{__kbUi(label)}</button>)}</div>}
    <label className="flex gap-2 text-sm text-slate-700"><input type="checkbox" checked={commands} disabled={dictationBusy} onChange={event=>setCommands(event.target.checked)}/>{__kbUi("“Nuqta”, “vergul”, “so‘roq belgisi”, “yangi abzas” buyruqlarini tinish belgilariga aylantirish")}</label>
-   <p className="text-xs text-slate-500">{autoDictation?__kbUi('Til ovozdan avtomatik aniqlanadi. Har yozuv 2 daqiqagacha. Ovozingiz matnga aylantirish uchun Groq xizmatiga yuboriladi.'):__kbUi('Brauzer rejimi: til mavjud matn yoki qurilma tilidan olinadi. Brauzer ovozni o‘z tanish xizmatiga yuborishi mumkin.')}</p>
-   <div className="flex flex-wrap items-center gap-3"><button type="button" className={`${button} !bg-sky-900 !text-white`} disabled={!access?.admin||(!autoDictation&&!Recognition)||['starting','transcribing'].includes(recording)} onClick={dictationBusy?stopDictation:startDictation}>{dictationBusy?__kbUi('Yozishni to‘xtatish'):__kbUi('Mikrofonni yoqish')}</button>
-    <span role="status" className="text-sm text-slate-500">{recording==='transcribing'?__kbUi('Ovoz matnga aylantirilmoqda…'):recording==='starting'?__kbUi('Mikrofon ochilmoqda…'):dictationBusy?__kbUi('Tinglanmoqda…'):recognizedLanguage?`${__kbUi('Aniqlangan til')}: ${recognizedLanguage}`:__kbUi('Gapirib yozishga tayyor')}</span>
+   <p className="text-xs text-slate-500">{autoDictation?__kbUi('Gapirib bo‘lgach “Yozishni to‘xtatish”ni bosing — matn shu yerga tushadi. Har yozuv 2 daqiqagacha. Ovozingiz Groq xizmatida matnga aylantiriladi.'):__kbUi('Gapirganingiz tanlangan tilda yoziladi. Brauzer ovozni o‘z tanish xizmatiga yuborishi mumkin.')}</p>
+   <div className="flex flex-wrap items-center gap-3"><button type="button" className={`${button} !bg-sky-900 !text-white`} disabled={!access?.admin} onClick={dictationBusy?stopDictation:startDictation}>{['starting','transcribing'].includes(recording)?__kbUi('Bekor qilish'):dictationBusy?__kbUi('Yozishni to‘xtatish'):__kbUi('Mikrofonni yoqish')}</button>
+    <span role="status" className="text-sm text-slate-500">{recording==='transcribing'?__kbUi('Ovoz matnga aylantirilmoqda…'):recording==='starting'?__kbUi('Mikrofon ochilmoqda…'):dictationBusy?__kbUi('Tinglanmoqda…'):recognizedLanguage?`${__kbUi('Yozuv tili')}: ${__kbUi(languageNames[recognizedLanguage]||recognizedLanguage)}`:access?.admin&&!support.reason?__kbUi('Gapirib yozishga tayyor'):__kbUi('')}</span>
    </div>
    {interim&&<p aria-live="polite" className="rounded-xl bg-sky-50 p-3 text-sm italic text-slate-500">{interim}</p>}
    <label className="block text-sm font-semibold text-slate-700">{__kbUi("Yozilgan matn")}<textarea value={dictation} readOnly={dictationBusy} onChange={event=>setDictation(event.target.value)} rows={10} className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-base font-normal leading-relaxed" placeholder={__kbUi("Gapirganlaringiz shu yerda yoziladi…")}/></label>

@@ -34,7 +34,7 @@ export class SpeechReader {
   this.releaseAudio();session.fetching=true;this.onState('loading');
   try {
    const chunk=session.chunks[session.index];
-   const blob=await this.fetchAudio(chunk.text,session.voice,session.controller.signal);
+   const blob=await this.fetchAudio(chunk.text,session.voice,session.controller.signal,chunk.language||'auto');
    if(this.session!==session)return;
    session.fetching=false;this.url=this.createURL(blob);this.audio=this.createAudio(this.url);
    this.audio.playbackRate=this.rate;this.audio.preservesPitch=true;

@@ -5,7 +5,7 @@ export class AudioDictation {
     Object.assign(this, { transcribe, onText, onState, onError, mediaDevices, Recorder, setTimer, clearTimer });
     this.generation = 0; this.busy = false;
   }
-  async start() {
+  async start({language='auto'}={}) {
     if (this.busy) return;
     this.busy = true;
     const generation = ++this.generation;
@@ -24,7 +24,7 @@ export class AudioDictation {
         if (bytes > 8 * 1024 * 1024) { this.cancel(); this.onError('Yozuv juda katta. Qisqaroq gapirib yozing.'); return; }
         parts.push(event.data);
       };
-      recorder.onerror = () => { this.cancel(); this.onError('Mikrofondan yozib bo‘lmadi. Qayta urinib ko‘ring.'); };
+      recorder.onerror = () => { if(generation!==this.generation)return;this.cancel();this.onError('Mikrofondan yozib bo‘lmadi. Qayta urinib ko‘ring.'); };
       recorder.onstop = async () => {
         if (generation !== this.generation) return;
         this.release();
@@ -33,7 +33,7 @@ export class AudioDictation {
         try {
           const blob = new Blob(parts, { type: recorder.mimeType || mimeType || 'audio/webm' });
           if (!blob.size) throw new Error('Ovoz yozuvi bo‘sh. Qayta gapirib ko‘ring.');
-          const result = await this.transcribe(blob, controller.signal);
+          const result = await this.transcribe(blob, controller.signal, language);
           if (generation === this.generation) this.onText(result);
         } catch (error) { if (generation === this.generation && error.name !== 'AbortError') this.onError(error.message); }
         finally { if (generation === this.generation) { this.busy = false; this.controller = null; this.onState('idle'); } }
@@ -44,10 +44,16 @@ export class AudioDictation {
     } catch (error) {
       if (generation !== this.generation) return;
       this.cancel();
-      this.onError(error.name === 'NotAllowedError' ? 'Mikrofonga ruxsat bering.' : 'Mikrofonni ochib bo‘lmadi. Qayta urinib ko‘ring.');
+      this.onError(error.name === 'NotAllowedError' ? 'Mikrofonga ruxsat berilmadi. Brauzerning sayt ruxsatlaridan mikrofonni yoqing.'
+        : error.name === 'NotFoundError' ? 'Mikrofon topilmadi. Mikrofonni ulang va qayta urinib ko‘ring.'
+        : error.name === 'NotReadableError' ? 'Mikrofon boshqa dasturda band yoki qurilmada o‘chirilgan.'
+        : 'Mikrofonni ochib bo‘lmadi. Qayta urinib ko‘ring.');
     }
   }
-  stop() { if (this.recorder?.state === 'recording') this.recorder.stop(); }
+  stop() {
+    if (this.recorder?.state === 'recording') this.recorder.stop();
+    else if(this.busy)this.cancel();
+  }
   release() {
     this.clearTimer(this.timer); this.timer = null;
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null; this.recorder = null;
