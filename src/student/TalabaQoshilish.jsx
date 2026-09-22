@@ -11,6 +11,8 @@ import "./talaba.css";
 // Saqlangach backend users.class ga "2 kurs" yozadi — o'sha kurs uchun
 // yaratilgan mavzu, test va AI ustoz talabaga chiqadi.
 
+const StandaloneSetup = React.lazy(() => import("../workspace/EducationSetup.jsx"));
+
 const TIL_BAYROQ = { uz: "🇺🇿", ru: "🇷🇺", tj: "🇹🇯", en: "🇬🇧", kk: "🏳️", kz: "🇰🇿" };
 const STANDART_LUGAT = {
   bosqichlar: { bakalavr: "Bakalavr", magistr: "Magistr" },
@@ -69,7 +71,7 @@ export function TalabaProfilKartasi({ profil, onOzgartir, onChiqish, chiqilmoqda
   );
 }
 
-export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, boshlangichBosqich = "muassasa" }) {
+export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, boshlangichBosqich = "muassasa", onStandalone }) {
   useKbInterfaceLocale();
   const [bosqich, setBosqich] = useState(boshlangichBosqich); // muassasa | parol | malumot
   const [muassasalar, setMuassasalar] = useState([]);
@@ -158,6 +160,8 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
     onBekor?.();
   };
 
+  if (bosqich === 'standalone') return <React.Suspense fallback={<p>Yuklanmoqda…</p>}><StandaloneSetup apiBase={apiBase} token={token} initialRole="talaba" onComplete={onSaqlandi} onBack={() => setBosqich('muassasa')}/></React.Suspense>;
+
   return (
     <section className="tq-oyna" aria-label={__kbUi("Talaba sifatida muassasaga qo'shilish")}>
       <div className="tq-bosh">
@@ -172,7 +176,8 @@ export default function TalabaQoshilish({ token, apiBase, onSaqlandi, onBekor, b
       {bosqich === "muassasa" && (
         <>
           <h3 className="tq-sarlavha">{__kbUi("Qayerda o'qiysiz?")}</h3>
-          <p className="tq-izoh">{__kbUi("Ro'yxatda faqat talabalar uchun parol qo'yilgan institutlar bor. Institutingiz yo'q bo'lsa — admin bilan bog'laning.")}</p>
+          <p className="tq-izoh">{__kbUi("Institutingizni tanlang yoki umumiy testlar uchun institut tanlamasdan davom eting.")}</p>
+          <button type="button" className="tq-asosiy" onClick={() => onStandalone ? onStandalone() : setBosqich('standalone')}>{__kbUi('Institutim ro‘yxatda yo‘q — davom etish')}</button>
           <label className="tq-qidiruv"><Search size={15} /><input value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder={__kbUi("Institut nomi yoki viloyat")} /></label>
           {yuklanmoqda ? <p className="tq-holat"><Loader2 size={16} className="animate-spin" />{__kbUi(" Yuklanmoqda…")}</p>
             : filtrlangan.length === 0 ? <p className="tq-holat">{muassasalar.length ? __kbUi("Qidiruvga mos institut topilmadi.") : __kbUi("Hozircha qo'shilish ochilgan institut yo'q.")}</p>

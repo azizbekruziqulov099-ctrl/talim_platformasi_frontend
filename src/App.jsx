@@ -1,3 +1,6 @@
+import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
+import {EducationHome} from './workspace/EducationSetup.jsx';
+import {educationRole, initialEducationTab, needsEducation} from './workspace/educationRules.js';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
 import {setTranslationSession} from './interface/interfaceRuntime.js';
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
@@ -843,37 +846,12 @@ function _ovozJinsiniTuzat(jins) {
   return ["ogil", "o'g'il", "erkak", "male", "boy"].includes(String(jins || "").trim().toLowerCase()) ? "ogil" : "qiz";
 }
 
-function _ovozQismlargaBol(matn, asosiyTil = "uz") {
-  const xom = String(matn || "");
-  // Tegsiz matn hech qachon brauzer/profilning inglizcha standart ovoziga
-  // tushmaydi. Asosiy til qat'iy o'zbekcha; faqat [en] va [ru] teglari
-  // ichidagi bo'laklar o'z tiliga o'tadi. Parametr eski chaqiruvlar bilan
-  // moslik uchun qoldirilgan.
-  const standart = "uz";
-  const naqsh = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
-  const qismlar = [];
-  let oxiri = 0;
-  let mos;
-  while ((mos = naqsh.exec(xom)) !== null) {
-    const oldingi = xom.slice(oxiri, mos.index);
-    if (oldingi.trim()) qismlar.push({ til: standart, matn: oldingi });
-    if (mos[2].trim()) qismlar.push({ til: _ovozTiliniTuzat(mos[1]), matn: mos[2] });
-    oxiri = naqsh.lastIndex;
-  }
-  const qolgan = xom.slice(oxiri);
-  if (qolgan.trim()) qismlar.push({ til: standart, matn: qolgan });
-  return qismlar.length > 0 ? qismlar : [{ til: standart, matn: xom }];
+function _ovozQismlargaBol(matn) {
+  return splitSpeechText(matn);
 }
 
 function _brauzerOvoziniTanla(til, jins) {
-  const voices = globalThis.speechSynthesis?.getVoices?.() || [];
-  const lang = OVOZ_TIL_LANG[_ovozTiliniTuzat(til)].toLowerCase();
-  const mosOvozlar = voices.filter((voice) => String(voice.lang || "").toLowerCase().startsWith(lang.slice(0, 2)));
-  if (mosOvozlar.length === 0) return null;
-  const erkakKalitlari = ["male", "david", "guy", "dmitry", "sardor", "mark"];
-  const ayolKalitlari = ["female", "zira", "samantha", "jenny", "svetlana", "madina", "anna"];
-  const kalitlar = _ovozJinsiniTuzat(jins) === "ogil" ? erkakKalitlari : ayolKalitlari;
-  return mosOvozlar.find((voice) => kalitlar.some((kalit) => String(voice.name || "").toLowerCase().includes(kalit))) || mosOvozlar[0];
+  return selectBrowserVoice(globalThis.speechSynthesis?.getVoices?.() || [], _ovozTiliniTuzat(til), _ovozJinsiniTuzat(jins));
 }
 
 function _xorijiyMatnniOvozgaTayyorla(matn, til) {
@@ -967,7 +945,7 @@ function OvozliOqishTugmasi({
   const oqilyaptimi = oqilayotganId === kontentId;
 
   const boshla = (boshlanishTezligi) => {
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -1021,7 +999,7 @@ function OvozliOqishTugmasi({
       };
       utterance.onend = keyingisiniOqi;
       utterance.onerror = tugadi;
-      window.speechSynthesis.speak(utterance);
+      window.speechSynthesis?.speak(utterance);
     };
     setOqilayotganId(kontentId);
     keyingisiniOqi();
@@ -1034,12 +1012,12 @@ function OvozliOqishTugmasi({
       setPauzada(!pauzada);
       return;
     }
-    if (pauzada) { window.speechSynthesis.resume(); setPauzada(false); }
-    else { window.speechSynthesis.pause(); setPauzada(true); }
+    if (pauzada) { window.speechSynthesis?.resume(); setPauzada(false); }
+    else { window.speechSynthesis?.pause(); setPauzada(true); }
   };
 
   const toxtat = () => {
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -6274,7 +6252,7 @@ function OquvchiKitobKorish({ token, togarak, topicCode, mavzuNomi, onOrtga, foy
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, togarak.id, topicCode]);
 
-  useEffect(() => () => window.speechSynthesis.cancel(), []);
+  useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
   const youtubeIdOl = (url) => {
     const m = (url || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{11})/);
@@ -6569,7 +6547,7 @@ function TogarakAzoMavzulari({ token, togarak, onOrtga, onKalendar, ochiladiganT
   if (tanlanganMavzu) {
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); window.speechSynthesis.cancel(); setOqilayotganId(null); }}
+        <button onClick={() => { setTanlanganMavzu(null); setKontentlar(null); window.speechSynthesis?.cancel(); setOqilayotganId(null); }}
           className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}><ChevronLeft size={15} style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} strokeWidth={2.5} /></span><InterfaceText text={__kbUi("Mavzular")}/></button>
         <h1 className="text-xl font-bold mb-3" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{__kbUi(formatTopicTitle(0, tanlanganMavzu))}</h1>
         <button onClick={() => setKitobOchiq(true)} className="w-full rounded-2xl bg-white border flex items-center gap-3 px-4 py-3.5 mb-5" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
@@ -12231,6 +12209,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
       .then((r) => r.json()).then((d) => { if (d.talaba_profili) setTalabaProfili(d.talaba_profili); }).catch(() => {});
   }, [foydalanuvchi?.role, foydalanuvchi?.class, talabaProfili, token]);
   const talabaSaqlandi = (d) => {
+    if (d.profile) { setTalabaOqimi(false); if (onInstitutionJoined) onInstitutionJoined(d); return; }
     setTalabaProfili(d.talaba_profili || null); setTalabaOqimi(false); setSinf(d.sinf || ""); setSinfHarfi("");
     const yangiProfil = { ...foydalanuvchi, role: "oquvchi", class: d.sinf, class_letter: null, talaba_profili: d.talaba_profili, talaba_mi: true,
       universitet_id: d.talaba_profili?.universitet_id ?? foydalanuvchi?.universitet_id, education_ready: true };
@@ -12250,7 +12229,6 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
     } catch (e) { setXato(e.message); } finally { setTalabaChiqilmoqda(false); }
   };
   const [jins, setJins] = useState(foydalanuvchi?.jins || "");
-  const [asosiyTil, setAsosiyTil] = useState(_ovozTiliniTuzat(foydalanuvchi?.asosiy_til || "uz"));
   const [ovozJinsi, setOvozJinsi] = useState(_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz"));
   const [oqituvchiFani, setOqituvchiFani] = useState(foydalanuvchi?.oqituvchi_fani || "");
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
@@ -12385,7 +12363,6 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
           sinf_harfi: foydalanuvchi?.role === "oquvchi" && sinfHarfi && !talabaMi ? sinfHarfi : undefined,
           jins: (foydalanuvchi?.role === "oquvchi" || foydalanuvchi?.role === "oqituvchi") && jins ? jins : undefined,
           oqituvchi_fani: foydalanuvchi?.role === "oqituvchi" && oqituvchiFani ? oqituvchiFani : undefined,
-          asosiy_til: asosiyTil,
           ovoz_jinsi: ovozJinsi,
           maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : undefined,
         }),
@@ -12396,7 +12373,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
         ...foydalanuvchi, full_name: ism, region: viloyat, district: tuman,
         tugilgan_sana: tugilganSana, maktab_raqami: maktabRaqami,
         maktab_turi_kaliti: maktabTuri, class: talabaMi ? foydalanuvchi?.class : sinf, class_letter: talabaMi ? null : sinfHarfi,
-        jins, oqituvchi_fani: oqituvchiFani, asosiy_til: asosiyTil, ovoz_jinsi: ovozJinsi,
+        jins, oqituvchi_fani: oqituvchiFani, ovoz_jinsi: ovozJinsi,
         maktab_id: royxatdagiMaktab ? royxatdagiMaktab.id : foydalanuvchi?.maktab_id,
         maktab_nomi: royxatdagiMaktab ? royxatdagiMaktab.nomi : foydalanuvchi?.maktab_nomi,
       });
@@ -12626,7 +12603,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
           <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-lg" style={{ backgroundColor: "#fff" }}>🎓</span>
           <span>
             <span className="block text-sm font-semibold" style={{ color: "#5B4B8A" }}>{__kbUi("Men 1–11 sinf emasman — talabaman")}</span>
-            <span className="block text-xs" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Institut paroli bilan kurs, guruh va yo'nalishingizni kiriting")}</span>
+            <span className="block text-xs" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Institutga ulaning yoki institut tanlamasdan kurs, shakl va tilingizni saqlang")}</span>
           </span>
           <ChevronRight size={16} className="ml-auto shrink-0" style={{ color: "#5B4B8A" }} />
         </button>
@@ -12795,28 +12772,17 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
         </div>
         </ProfileAccordion>
 
-      <ProfileAccordion nested icon="🔊" title={__kbUi("Ovoz va til")} summary={`${asosiyTil.toUpperCase()} · ${ovozJinsi === "qiz" ? "Ayol ovozi" : "Erkak ovozi"}`}>
+      <ProfileAccordion nested icon="🔊" title={__kbUi("Ovoz")} summary={ovozJinsi === "qiz" ? __kbUi("Qiz ovozi") : __kbUi("O‘g‘il ovozi")}>
       <div className="rounded-2xl p-4 bg-white border mb-3 shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
-        <p className="text-xs font-semibold mb-1 flex items-center gap-1.5" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("🔊 Ovoz va til sozlamalari")}</p>
-        <p className="text-[11px] mb-3 leading-relaxed" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi("Tegsiz matn asosiy tilda o'qiladi. Faqat ")}<b>{__kbUi("[en]...[/en]")}</b>{__kbUi(" va ")}<b>{__kbUi("[ru]...[/ru]")}</b>{__kbUi(" ichidagi qismlar mos xorijiy ovozda o'qiladi. Noma'lum til o'zbekchaga qaytadi.")}</p>
-        <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Asosiy til")}</label>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {[["uz", "O'zbekcha"], ["en", "English"], ["ru", "Русский"]].map(([kod, nom]) => (
-            <button key={kod} type="button" onClick={() => setAsosiyTil(kod)}
-              className="py-2.5 rounded-xl border text-xs font-semibold"
-              style={{ borderColor: asosiyTil === kod ? profilRangi : "#E5E1D8", backgroundColor: asosiyTil === kod ? profilRangi : "#fff", color: asosiyTil === kod ? "#fff" : "#5A5648" }}>
-              {__kbUi(nom)}
-            </button>
-          ))}
-        </div>
+        <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Matnning o‘zbekcha, ruscha yoki inglizcha tili avtomatik aniqlanadi. Faqat ovozni tanlang.")}</p>
         <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}><InterfaceText text={__kbUi("Ovoz")}/></label>
         <div className="grid grid-cols-2 gap-2.5">
           <button type="button" onClick={() => setOvozJinsi("ogil")}
             className="py-2.5 rounded-xl border text-sm font-semibold"
-            style={{ borderColor: ovozJinsi === "ogil" ? OGIL_RANGI : "#E5E1D8", backgroundColor: ovozJinsi === "ogil" ? OGIL_RANGI : "#fff", color: ovozJinsi === "ogil" ? "#fff" : "#5A5648" }}>{__kbUi("👨 Erkak ovozi")}</button>
+            style={{ borderColor: ovozJinsi === "ogil" ? OGIL_RANGI : "#E5E1D8", backgroundColor: ovozJinsi === "ogil" ? OGIL_RANGI : "#fff", color: ovozJinsi === "ogil" ? "#fff" : "#5A5648" }}>{__kbUi("👨 O‘g‘il ovozi")}</button>
           <button type="button" onClick={() => setOvozJinsi("qiz")}
             className="py-2.5 rounded-xl border text-sm font-semibold"
-            style={{ borderColor: ovozJinsi === "qiz" ? QIZ_RANGI : "#E5E1D8", backgroundColor: ovozJinsi === "qiz" ? QIZ_RANGI : "#fff", color: ovozJinsi === "qiz" ? "#fff" : "#5A5648" }}>{__kbUi("👩 Ayol ovozi")}</button>
+            style={{ borderColor: ovozJinsi === "qiz" ? QIZ_RANGI : "#E5E1D8", backgroundColor: ovozJinsi === "qiz" ? QIZ_RANGI : "#fff", color: ovozJinsi === "qiz" ? "#fff" : "#5A5648" }}>{__kbUi("👩 Qiz ovozi")}</button>
         </div>
       </div>
       </ProfileAccordion>
@@ -14163,7 +14129,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const [profileReload, setProfileReload] = useState(0);
   const [educationLoadError, setEducationLoadError] = useState("");
   const [educationReload, setEducationReload] = useState(0);
-  const [talimYuklangan, setTalimYuklangan] = useState(Boolean(initialCourses || initialCourseId));
+  const [talimYuklangan, setTalimYuklangan] = useState(true);
+  const [educationEditing, setEducationEditing] = useState(false);
   const [courseNavigation, setCourseNavigation] = useState({ courseId: initialCourseId, mode: "catalog", nonce: 0 });
   const [coursesOpened, setCoursesOpened] = useState(Boolean(initialCourses || initialCourseId));
   const [presentationsOpened, setPresentationsOpened] = useState(false);
@@ -14334,7 +14301,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       .then((u) => {
         if (controller.signal.aborted) return;
         setFoydalanuvchi(u);
-        setTab(current => current === "kurslar" || (current == null && (initialCourses || initialCourseId)) ? "kurslar" : u.is_admin ? "admin" : u.role === "oqituvchi" ? "oqituvchi" : u.role === "ota-ona" ? "farzand" : "bilim");
+        setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : initialEducationTab(u)));
         setHolat("tayyor");
       }).catch((error) => {
         if (controller.signal.aborted) return;
@@ -14347,7 +14314,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
 
   // Ta’lim ma’lumotlari shu bo‘lim ochilgandagina yuklanadi.
   useEffect(() => {
-    if (kabutarOchiq || tab === "kurslar" || !foydalanuvchi || foydalanuvchi.education_ready === false || muassasalarYuklandi) return;
+    if (kabutarOchiq || tab === "kurslar" || !foydalanuvchi || muassasalarYuklandi) return;
     const controller = new AbortController();
     const user = foydalanuvchi;
     setEducationLoadError("");
@@ -14385,7 +14352,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     setMembershipNotice(result?.joy_nomi ? `${result.joy_nomi} — muassasaga ulandingiz.` : "Muassasaga ulandingiz.");
     if (profile) {
       setFoydalanuvchi(profile);
-      setTab(profile.is_admin ? "admin" : profile.role === "oqituvchi" ? "oqituvchi" : profile.role === "ota-ona" ? "farzand" : "bilim");
+      setTab(profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
     } else setProfileReload((n) => n + 1);
     kabutarniOch(false);
   };
@@ -14632,8 +14599,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       {talimYuklangan && <div style={{ display: kabutarOchiq ? "none" : "block" }}>
       {membershipNotice && <div className="kb-app-notice" role="status"><span>{__kbUi(membershipNotice)}</span><button type="button" aria-label={__kbUi("Xabarni yopish")} onClick={() => setMembershipNotice("")}>×</button></div>}
       {educationLoadError && <div className="kb-app-error" role="alert"><p>{__kbUi(educationLoadError)}</p><button className="kb-work-primary" onClick={() => setEducationReload((n) => n + 1)}><InterfaceText text={__kbUi("Qayta urinish")}/></button></div>}
-      {tab !== "kurslar" && foydalanuvchi?.education_ready === false && !foydalanuvchi?.is_admin ?
-        <EducationSetup apiBase={API_BASE} token={token} onBack={() => kabutarniOch(true)} onComplete={(joined) => { if (joined?.profile) institutionJoined(joined); else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
+      {(educationEditing || needsEducation(foydalanuvchi, tab)) && !foydalanuvchi?.is_admin ?
+        <EducationSetup apiBase={API_BASE} token={token} user={foydalanuvchi} target={tab} onBack={() => { setEducationEditing(false); setTab("home"); }} onComplete={(joined) => { setEducationEditing(false); if (joined?.profile) { institutionJoined(joined); setMembershipNotice(""); } else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
           <button type="button" className="samtm-muassasa-main" onClick={() => { if (korinishRoli === "oquvchi") { setTanlanganMuassasa(m); setTab("bilim"); kabutarniOch(false); } else muassasaniTanla(m); }} title={__kbUi(`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`)}>
@@ -14651,7 +14618,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
               <h1>{uiT(tabMalumoti[0])}</h1>
             </div>
             <div className="premium-top-actions">
-              <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : uiT("O‘quvchi")}</span>
+              <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : uiT("O‘quvchi")}</span>
               <button onClick={() => tabTanlandi("xabar")} aria-label={uiT("Xabarlar")}><Bell size={18} /></button>
               <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar"
                 aria-label={uiT("Profil va sozlamalar")} title={uiT("Profil va sozlamalar")}>
@@ -14660,6 +14627,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
             </div>
           </header>
           <div className="premium-page-stage">
+      {tab === "home" && <EducationHome onOpen={tabTanlandi}/>}
+
       {presentationsOpened && !readOnly && <div hidden={tab !== "taqdimotlar"}>
         <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Taqdimot ustaxonasi yuklanmoqda…")}</p>}>
           <PresentationStudio key={token} apiBase={API_BASE} token={token} user={foydalanuvchi}
@@ -14704,8 +14673,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "bilim" && (
         !muassasalarYuklandi ? <div className="py-12 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: joriyRang }}/><p className="text-xs mt-2" style={{ color: "var(--ui-legacy-color-7a8794, #7A8794)" }}>{__kbUi("Ta’lim holati aniqlanmoqda…")}</p></div>
         : <>
-          <MilitaryRoutine token={token} apiBase={API_BASE} readOnly />
-          {(foydalanuvchi?.talaba_mi || sinfTalabaMi(foydalanuvchi?.class)) ? (
+          {mavjudMuassasalar.length > 0 && <MilitaryRoutine token={token} apiBase={API_BASE} readOnly />}
+          {mavjudMuassasalar.length === 0 ? null : (foydalanuvchi?.talaba_mi || sinfTalabaMi(foydalanuvchi?.class)) ? (
             <TalabaHaftalikJadval token={token} apiBase={API_BASE} talabaProfili={foydalanuvchi?.talaba_profili} readOnly={readOnly} />
           ) : (
           <StudentScheduleWorkspace
@@ -14759,6 +14728,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab
           token={token}
+          onEducationSetup={korinishRoli === "oquvchi" && !foydalanuvchi?.talaba_profili && !foydalanuvchi?.maktab_id ? () => setEducationEditing(true) : undefined}
           sinf={korinishRoli === "oqituvchi" ? null : foydalanuvchi?.class}
           foydalanuvchi={foydalanuvchi}
           rang={joriyRang}
@@ -14893,6 +14863,7 @@ export default function App() {
   const kirildi = useCallback((nextToken) => {
     sessionEpoch.current += 1; persistSession(nextToken);
     setLoginError(""); setOauthProfil(null); setToken(nextToken);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     try { window.sessionStorage.removeItem(COURSE_RETURN_KEY); } catch { /* optional continuation */ }
   }, [persistSession]);
   const chiqish = useCallback(async (allDevices = false) => {

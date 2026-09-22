@@ -18,10 +18,10 @@ export function InstitutionTabs({types=INSTITUTION_TYPES.map(item=>item.key),...
   useKbInterfaceLocale();
  return <Tabs {...props} items={INSTITUTION_TYPES.filter(item=>types.includes(item.key))} label={__kbUi("Muassasa bo‘limlari")}/>;
 }
-export function LessonTabs(props) {
+export function LessonTabs({includeAll=false, ...props}) {
   useKbInterfaceLocale();
  return <div className="mt-4"><p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("Mashg‘ulot turi")}</p>
-  <Tabs {...props} items={LESSON_TYPES} label={__kbUi("Mashg‘ulot turlari")}/>
+  <Tabs {...props} items={includeAll ? [{key:'all',label:'Barchasi'},...LESSON_TYPES] : LESSON_TYPES} label={__kbUi("Mashg‘ulot turlari")}/>
  </div>;
 }
 export function LearnerCurriculumHeader({viewer,type,lesson,onType,onLesson,fallbackType='maktab',disabled=false}) {
@@ -32,7 +32,7 @@ export function LearnerCurriculumHeader({viewer,type,lesson,onType,onLesson,fall
   <InstitutionTabs types={types} value={type} onChange={onType} disabled={disabled}/>
   {type==='universitet'&&<>
    {profile&&<p className="mt-3 text-xs leading-relaxed text-slate-600">{profile.yonalish_nomi} · {__kbUi(FORM_LABELS[profile.talim_shakli])} · {__kbUi(profile.talim_tili?.toUpperCase())} · {profile.kurs}{__kbUi("-kurs · ")}{profile.semestr ? __kbUi(`${semesterPairLabel(profile.kurs)}`) : __kbUi('Semestrni profilda tanlang')}</p>}
-   <LessonTabs value={lesson} onChange={onLesson} disabled={disabled}/>
+   <LessonTabs includeAll value={lesson} onChange={onLesson} disabled={disabled}/>
   </>}
  </section>;
 }

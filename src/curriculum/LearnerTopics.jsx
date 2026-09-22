@@ -8,7 +8,7 @@ import {catalogTopicKey,gradeLabel,matchingSubjects,profileInstitutionType} from
 export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTest}) {
   useKbInterfaceLocale();
  const [type,setType]=useState(()=>profileInstitutionType(user));
- const [lesson,setLesson]=useState('maruza');
+ const [lesson,setLesson]=useState('all');
  const [catalog,setCatalog]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
@@ -31,19 +31,19 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  },[apiBase,token,type,user?.talaba_profili?.yangilangan_at,user?.class]);
  const subjects=matchingSubjects(catalog?.fanlar||[],type,lesson);
  const openTarget=(subject,group,topic)=>({...topic,topic_code:topic.topic_codes[0],
-  topic_name:topic.nomi,subject:subject.nom,fan:subject.nom,grade:group.sinf,institution_type:type,dars_turi:lesson});
+  topic_name:topic.nomi,subject:subject.nom,fan:subject.nom,grade:group.sinf,institution_type:type,dars_turi:subject.dars_turi});
  return <div className="space-y-4">
   <div><h2 className="text-xl font-bold text-slate-800">{__kbUi("Mavzular")}</h2>
    <p className="mt-1 text-sm text-slate-600">{catalog?.viewer?.teacher ? __kbUi('Ish joyingizga tegishli fan, mavzu va testlar.') : __kbUi('Ta’lim profilingizga mos fan, mavzu va testlar.')}</p></div>
   <LearnerCurriculumHeader viewer={catalog?.viewer} type={type} lesson={lesson} fallbackType={profileInstitutionType(user)}
-   onType={value=>{chosen.current=true;setType(value);setLesson('maruza');}}
+   onType={value=>{chosen.current=true;setType(value);setLesson('all');}}
    onLesson={setLesson} disabled={loading}/>
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{__kbUi(error)}</p>}
   {loading?<p role="status" className="p-6 text-center text-slate-500">{__kbUi("Mavzular yuklanmoqda…")}</p>
    : catalog?.profil_sozlanmagan ? <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{catalog.viewer?.teacher?__kbUi('Profilingizda faol ish joyini tanlang.'):__kbUi('Ta’lim profilingizni to‘ldiring: muassasa, yo‘nalish, ta’lim shakli, til, kurs, semestr va guruh mos bo‘lishi kerak.')}</p>
    : !error&&!subjects.length ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">{__kbUi("Bu bo‘limga mos mavzular hali kiritilmagan.")}</p>
    : subjects.map(subject=><section key={subject.kalit} className="rounded-2xl border border-slate-200 bg-white p-4">
-    <h3 className="font-bold text-slate-800"><TranslatedContent text={subject.nom} showStatus={false}/></h3>
+    <h3 className="font-bold text-slate-800"><TranslatedContent text={subject.nom} showStatus={false}/>{subject.dars_turi_nomi && <small className="block text-xs font-normal mt-1">{__kbUi(subject.dars_turi_nomi)}</small>}</h3>
     {subject.institution_name&&<p className="mt-1 text-xs text-slate-500">{subject.institution_name}</p>}
     {subject.sinflar.map(group=><div key={group.sinf} className="mt-3">
      <p className="mb-2 text-xs font-semibold text-slate-500">{__kbUi(gradeLabel(type,group.sinf))}</p>

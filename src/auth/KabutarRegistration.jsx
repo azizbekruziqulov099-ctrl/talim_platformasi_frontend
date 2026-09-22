@@ -66,7 +66,7 @@ export default function KabutarRegistration({ apiBase = "", email = "", ism = ""
     <section className="kb-login-card kb-registration-card" aria-labelledby="kb-registration-heading">
       <span className="kb-registration-verified"><CheckCircle2 size={16}/><InterfaceText text={__kbUi(" Google hisobingiz tasdiqlandi")}/></span>
       <h1 id="kb-registration-heading">{uiT(accountCreated ? "Hisobingiz yaratildi" : "Sizni qanday chaqiraylik?")}</h1>
-      <p className="kb-login-method-copy"><InterfaceText text={__kbUi("Bitta Kabutar profili bilan suhbatlarni boshlang. Ta’lim yo‘nalishi va rolingizni keyin tanlaysiz.")}/></p>
+      <p className="kb-login-method-copy"><InterfaceText text={__kbUi("Ismingizni saqlang — ta’lim bo‘limi darhol ochiladi. Testlar uchun sinf yoki kursingizni tanlaysiz.")}/></p>
       <div className="kb-registration-email">{email}</div>
       {error && <div className="kb-login-error" role="alert">{__kbUi(error)}</div>}
       {accountCreated && error && <div className="kb-registration-existing"><strong>{uiT('Hisobingiz saqlandi. Muassasa kodi hali tasdiqlanmadi.')}</strong><p>{uiT('Kodni tuzatib qayta yuboring yoki hisobingizga o‘ting. Keyin Profil → Muassasaga ulanish orqali davom etishingiz mumkin.')}</p><button type="button" className="kb-login-text-button" disabled={busy} onClick={() => { submitted.current = true; onAuthenticated?.(authenticated.current); }}>{uiT('Hisobga kirish')}</button></div>}
@@ -79,7 +79,7 @@ export default function KabutarRegistration({ apiBase = "", email = "", ism = ""
         <label htmlFor="kb-registration-name"><InterfaceText text={__kbUi("Ism va familiyangiz")}/></label>
         <input id="kb-registration-name" name="name" autoComplete="name" type="text" value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={80} required={!accountCreated} disabled={busy || accountCreated} placeholder={uiT("Ism va familiyangiz")}/>
         <p className="kb-registration-note"><MessageCircle size={15}/><InterfaceText text={__kbUi(" Bu ism suhbatlarda profilingizda ko‘rinadi.")}/></p>
-        <button type="submit" className="kb-login-primary" disabled={busy || (!accountCreated && (!name.trim() || !oauthGrant))}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <Bird size={18}/>} {busy ? uiT("Tekshirilmoqda…") : inviteCode.trim() ? uiT("Kod bilan muassasaga ulanish") : accountCreated ? uiT("Hisobga kirish") : uiT("Kabutarni boshlash")}<ArrowRight size={17}/></button>
+        <button type="submit" className="kb-login-primary" disabled={busy || (!accountCreated && (!name.trim() || !oauthGrant))}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <Bird size={18}/>} {busy ? uiT("Tekshirilmoqda…") : inviteCode.trim() ? uiT("Kod bilan muassasaga ulanish") : accountCreated ? uiT("Hisobga kirish") : uiT("Ta’limga kirish")}<ArrowRight size={17}/></button>
       </form>
       <div className="kb-registration-existing"><strong><InterfaceText text={__kbUi("Telegram orqali allaqachon kirganmisiz?")}/></strong><p><InterfaceText text={__kbUi("Kirish sahifasiga qayting va o‘sha hisobni oching. Google hisobingizni “Kirish va xavfsizlik” orqali ulang — mavjud suhbatlaringiz bitta hisobda qoladi.")}/></p><button type="button" className="kb-login-text-button" onClick={onCancel} disabled={busy}><ArrowLeft size={14}/><InterfaceText text={__kbUi(" Kirish sahifasiga qaytish")}/></button></div>
     </section>

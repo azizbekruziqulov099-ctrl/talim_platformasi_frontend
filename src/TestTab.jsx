@@ -1,9 +1,10 @@
+import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
 import TranslatedContent from './interface/TranslatedContent.jsx';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
 import {uiText as __kbUi} from './interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
-import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey} from './curriculum/catalog.js';
+import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey,catalogGrade} from './curriculum/catalog.js';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
@@ -14,6 +15,7 @@ import {
   gradeBandForClass,
 } from "./testGameRules.js";
 import LearningQuest from "./test/LearningQuest.jsx";
+import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
 const TestGameArena = React.lazy(() => import("./TestGameArena.jsx"));
@@ -175,37 +177,12 @@ function _ovozJinsiniTuzat(jins) {
   return ["ogil", "o'g'il", "erkak", "male", "boy"].includes(String(jins || "").trim().toLowerCase()) ? "ogil" : "qiz";
 }
 
-function _ovozQismlargaBol(matn, asosiyTil = "uz") {
-  const xom = String(matn || "");
-  // Tegsiz matn hech qachon brauzer/profilning inglizcha standart ovoziga
-  // tushmaydi. Asosiy til qat'iy o'zbekcha; faqat [en] va [ru] teglari
-  // ichidagi bo'laklar o'z tiliga o'tadi. Parametr eski chaqiruvlar bilan
-  // moslik uchun qoldirilgan.
-  const standart = "uz";
-  const naqsh = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
-  const qismlar = [];
-  let oxiri = 0;
-  let mos;
-  while ((mos = naqsh.exec(xom)) !== null) {
-    const oldingi = xom.slice(oxiri, mos.index);
-    if (oldingi.trim()) qismlar.push({ til: standart, matn: oldingi });
-    if (mos[2].trim()) qismlar.push({ til: _ovozTiliniTuzat(mos[1]), matn: mos[2] });
-    oxiri = naqsh.lastIndex;
-  }
-  const qolgan = xom.slice(oxiri);
-  if (qolgan.trim()) qismlar.push({ til: standart, matn: qolgan });
-  return qismlar.length > 0 ? qismlar : [{ til: standart, matn: xom }];
+function _ovozQismlargaBol(matn) {
+  return splitSpeechText(matn);
 }
 
 function _brauzerOvoziniTanla(til, jins) {
-  const voices = globalThis.speechSynthesis?.getVoices?.() || [];
-  const lang = OVOZ_TIL_LANG[_ovozTiliniTuzat(til)].toLowerCase();
-  const mosOvozlar = voices.filter((voice) => String(voice.lang || "").toLowerCase().replace("_", "-").split("-")[0] === lang.split("-")[0]);
-  if (mosOvozlar.length === 0) return null;
-  const erkakKalitlari = ["male", "david", "guy", "dmitry", "sardor", "mark"];
-  const ayolKalitlari = ["female", "zira", "samantha", "jenny", "svetlana", "madina", "anna"];
-  const kalitlar = _ovozJinsiniTuzat(jins) === "ogil" ? erkakKalitlari : ayolKalitlari;
-  return mosOvozlar.find((voice) => kalitlar.some((kalit) => String(voice.name || "").toLowerCase().includes(kalit))) || mosOvozlar[0];
+  return selectBrowserVoice(globalThis.speechSynthesis?.getVoices?.() || [], _ovozTiliniTuzat(til), _ovozJinsiniTuzat(jins));
 }
 
 function _xorijiyMatnniOvozgaTayyorla(matn, til) {
@@ -299,7 +276,7 @@ function OvozliOqishTugmasi({
   const oqilyaptimi = oqilayotganId === kontentId;
 
   const boshla = (boshlanishTezligi) => {
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -353,7 +330,7 @@ function OvozliOqishTugmasi({
       };
       utterance.onend = keyingisiniOqi;
       utterance.onerror = tugadi;
-      window.speechSynthesis.speak(utterance);
+      window.speechSynthesis?.speak(utterance);
     };
     setOqilayotganId(kontentId);
     keyingisiniOqi();
@@ -366,12 +343,12 @@ function OvozliOqishTugmasi({
       setPauzada(!pauzada);
       return;
     }
-    if (pauzada) { window.speechSynthesis.resume(); setPauzada(false); }
-    else { window.speechSynthesis.pause(); setPauzada(true); }
+    if (pauzada) { window.speechSynthesis?.resume(); setPauzada(false); }
+    else { window.speechSynthesis?.pause(); setPauzada(true); }
   };
 
   const toxtat = () => {
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -495,6 +472,7 @@ export default function TestTab({
   onOyinProfilYangilandi,
   initialTarget = null,
   curriculumScope = null,
+  onEducationSetup,
 }) {
   useKbInterfaceLocale();
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
@@ -512,10 +490,10 @@ export default function TestTab({
   const [fanlar, setFanlar] = useState([]);
   const fallbackType=curriculumScope?.institution_type || profileInstitutionType(foydalanuvchi || {class:sinf});
   const [catalogType,setCatalogType]=useState(fallbackType);
-  const [catalogLesson,setCatalogLesson]=useState(curriculumScope?.dars_turi || 'maruza');
+  const [catalogLesson,setCatalogLesson]=useState(curriculumScope?.dars_turi || 'all');
   const [catalogViewer,setCatalogViewer]=useState(null);
   const sectionChosen=useRef(false);
-  const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher ? null : (['maktab','universitet'].includes(catalogType) ? catalogViewer?.grade || sinf : null);
+  const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher ? null : catalogGrade(catalogType, catalogViewer?.grade || sinf);
 
   const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
   const [ochiqFan, setOchiqFan] = useState(null);
@@ -570,11 +548,11 @@ export default function TestTab({
 
   useEffect(() => {
     const qs = new URLSearchParams({ turi: faolTuri, institution_type: catalogType });
-    if(curriculumScope?.id)qs.set('scope_id',String(curriculumScope.id));
+    if(curriculumScope?.id && curriculumScope.institution_type===catalogType)qs.set('scope_id',String(curriculumScope.id));
     if (token) qs.set("token", token);
     // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
     // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
-    if (sinf && !boshqaSinflarRejimi && ["maktab","universitet"].includes(catalogType)) qs.set("sinf", sinf);
+    if (!token && !boshqaSinflarRejimi && catalogGrade(catalogType, sinf)) qs.set("sinf", catalogGrade(catalogType, sinf));
     const url = `${API_BASE}/api/mavzular?${qs.toString()}`;
     setYuklanmoqda(true);
     setFanlar([]);
@@ -601,12 +579,12 @@ export default function TestTab({
       })
       .catch((e) => {
         if (e.name !== "AbortError") {
-          setXato("Mavzularni yuklab bo'lmadi");
+          setXato(e.message || "Mavzularni yuklab bo'lmadi");
           setYuklanmoqda(false);
         }
       });
     return () => controller.abort();
-  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, curriculumScope?.id, curriculumScope?.institution_type, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
@@ -615,7 +593,7 @@ export default function TestTab({
     (faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson)).forEach((fan) => {
       fan.sinflar.forEach((s) => {
         if (!bySinf[s.sinf]) bySinf[s.sinf] = { sinf: s.sinf, fanlar: [] };
-        bySinf[s.sinf].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
+        bySinf[s.sinf].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.dars_turi_nomi ? `${fan.nom} · ${fan.dars_turi_nomi}` : fan.nom, mavzular: s.mavzular });
       });
     });
     return Object.values(bySinf).sort((a, b) => {
@@ -630,6 +608,10 @@ export default function TestTab({
   const joriySinfMalumoti = faolSinf
     ? sinflarRoyxati.find((s) => String(s.sinf) === String(faolSinf))
     : null;
+
+  useEffect(() => {
+    if (joriySinfMalumoti?.fanlar.length === 1) setOchiqFan(joriySinfMalumoti.fanlar[0].qisqa);
+  }, [joriySinfMalumoti]);
 
   useEffect(() => {
     if (!initialTarget?.nonce || yuklanmoqda || talimYoliNishoniRef.current === initialTarget.nonce) return;
@@ -694,7 +676,7 @@ export default function TestTab({
     setTanlanganSinf(null);setOchiqFan(null);setTanlanganMavzu(null);
     setTanlanganKodlar([]);setAralashRejim(false);setBoshqaSinflarRejimi(false);setXato('');
   };
-  const catalogHeader=curriculumScope||faolTuri==='togarak'?null:<LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'maruza')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>;
+  const catalogHeader=curriculumScope||faolTuri==='togarak'?null:<><LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'all')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>{onEducationSetup && <button type="button" onClick={onEducationSetup} className="mb-4 text-sm font-semibold text-sky-900">{__kbUi('Sinf yoki kursni o‘zgartirish')}</button>}</>;
 
   const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{nomi, topic_codes, savol_soni}]
 
@@ -1053,6 +1035,11 @@ export default function TestTab({
   const [yakunlashTasdiqi, setYakunlashTasdiqi] = useState(false);
   const umumiyTimerRef = useRef(null);
   const savolReflari = useRef({}); // {index: DOM element} — raqam bosilganda shu savolga aylantirish uchun
+  useEffect(() => {
+    if (holat !== "savollar" || testRejimi !== "hammasi") return;
+    const frame = requestAnimationFrame(() => savolReflari.current[0]?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [holat, testRejimi]);
 
   // "bir_bir" (eski, mashq) rejimi uchun — bitta-bitta savol, darhol
   // to'g'ri/noto'g'ri ko'rsatish, avtomatik keyingisiga o'tish.
@@ -1235,13 +1222,14 @@ export default function TestTab({
     const keyingiIndex = savollar.findIndex((s, i) => i > joriyIndex && javoblar[s.id] === undefined);
     const nishon = keyingiIndex !== -1 ? keyingiIndex : savollar.findIndex((s) => javoblar[s.id] === undefined);
     if (nishon !== -1 && savolReflari.current[nishon]) {
-      savolReflari.current[nishon].scrollIntoView({ behavior: "smooth", block: "center" });
+      raqamgaOt(nishon);
     }
   };
 
   const raqamgaOt = (index) => {
     if (savolReflari.current[index]) {
-      savolReflari.current[index].scrollIntoView({ behavior: "smooth", block: "center" });
+      savolReflari.current[index].focus({ preventScroll: true });
+      savolReflari.current[index].scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -1725,38 +1713,8 @@ export default function TestTab({
             correctCount={0}
           />
         </div>
-        {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
-        <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length}{__kbUi(" javob berildi")}</span>
-            <div className="flex items-center gap-2">
-              {umumiyVaqt !== null && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: umumiyVaqt <= 30 ? "#FCEBEB" : "#F1EFE8", color: umumiyVaqt <= 30 ? "#A32D2D" : "#5A5648" }}>
-                  ⏱ {Math.floor(umumiyVaqt / 60)}:{__kbUi(String(umumiyVaqt % 60).padStart(2, "0"))}
-                </span>
-              )}
-              <button onClick={() => setToxtatishModali(true)}
-                className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>{__kbUi("⏹ To'xtatish")}</button>
-            </div>
-          </div>
-          {/* Savol raqamlari — endi bir qatorga sig'masa, PASTGA (yangi qatorga)
-              tushadi, gorizontal aylantirish shart emas, hammasi darhol ko'rinadi. */}
-          <div className="flex gap-1.5 flex-wrap">
-            {savollar.map((s, i) => {
-              const javobBormi = javoblar[s.id] !== undefined;
-              return (
-                <button key={s.id} onClick={() => raqamgaOt(i)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2"
-                  style={javobBormi
-                    ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0", color: "#8A5A1C" }
-                    : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
-                  {i + 1}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <QuestionNavigator questions={savollar} answers={javoblar} remaining={umumiyVaqt}
+          onJump={raqamgaOt} onStop={() => setToxtatishModali(true)} onFinish={() => setYakunlashTasdiqi(true)} />
 
         <div className="px-5 pt-5 space-y-5">
           {savollar.map((s, i) => {
@@ -1766,7 +1724,7 @@ export default function TestTab({
 
             return (
               <div key={s.id} ref={(el) => { savolReflari.current[i] = el; }}
-                className="rounded-2xl p-4 bg-white border" style={{
+                tabIndex={-1} className="test-question-card rounded-2xl p-4 bg-white border" style={{
                   borderColor: javobBerilgan ? "#F5DFA3" : "#E5E1D8",
                   contentVisibility: "auto",
                   containIntrinsicSize: "520px",
@@ -1866,13 +1824,6 @@ export default function TestTab({
           })}
         </div>
 
-        {/* Kichik, burchakdagi "Yakunlash" tugmasi — endi butun kenglikni
-            egallamaydi, va bosilganda tasdiqlash so'raladi. */}
-        <div className="fixed bottom-20 right-5 z-20">
-          <button onClick={() => setYakunlashTasdiqi(true)}
-            className="rounded-full px-5 py-3 font-semibold text-white text-sm shadow-lg flex items-center gap-1.5"
-            style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("✓ Yakunlash")}</button>
-        </div>
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
@@ -1994,6 +1945,7 @@ export default function TestTab({
       {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi("Tanlangan bo‘limda sizga mos test hali kiritilmagan.")}</p>
+          {onEducationSetup && <button type="button" className="mt-4 rounded-xl border px-4 py-3 text-sm font-semibold" onClick={onEducationSetup}>{__kbUi("Sinf yoki kursni tekshirish")}</button>}
         </div>
       ) : (
         <div className="space-y-3">

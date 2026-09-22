@@ -153,6 +153,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [pollNotice, setPollNotice] = useState("");
+  const [loginCode, setLoginCode] = useState("");
   const [seconds, setSeconds] = useState(0);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -242,6 +243,10 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
         networkFailures = 0;
         setPollNotice("");
         if (data.status === "complete") { finish(data); return; }
+        if (data.status === "code_required") {
+          setPollNotice("Kod botga yuborildi. Uni quyidagi maydonga kiriting.");
+          return;
+        }
         if (["expired", "cancelled", "rejected", "denied"].includes(data.status)) {
           expire(data.status === "expired" ? "Tasdiqlash vaqti tugadi. Yangi kirish so‘rovini boshlang." : "Kirish tasdiqlanmadi. Yangi so‘rov bilan qayta urinishingiz mumkin.");
           return;
@@ -281,6 +286,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     setPending(null);
     pendingRef.current = null;
     setPollNotice("");
+    setLoginCode("");
     savePending(storageKey, null);
     if (old) {
       authRequest(apiBase, "/auth/telegram/cancel", { body: { challenge: old.challenge, browser_secret: old.browser_secret } }).catch(() => {});
@@ -304,13 +310,39 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     setBusy(true);
     setError("");
     try {
-      const data = await authRequest(apiBase, "/auth/telegram/start", { body: { mode: "login" }, signal: controller.signal });
+      const data = await authRequest(apiBase, "/auth/telegram/start", { body: { mode: "login", delivery: "code" }, signal: controller.signal });
       if (!mounted.current || id !== commandId.current) return;
       const next = telegramChallenge(data);
       if (!next) throw new Error("Telegram kirish havolasi olinmadi. Qayta urinib ko‘ring.");
       savePending(storageKey, next);
       pendingRef.current = next;
       setPending(next);
+      setLoginCode("");
+    } catch (err) {
+      if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
+    } finally {
+      if (mounted.current && id === commandId.current) { commandBusy.current = false; setBusy(false); }
+    }
+  };
+
+  const verifyTelegramCode = async (event) => {
+    event.preventDefault();
+    if (commandBusy.current || !pending || !/^\d{6}$/.test(loginCode)) return;
+    commandBusy.current = true;
+    const id = ++commandId.current;
+    const controller = new AbortController();
+    command.current?.abort(); command.current = controller;
+    setBusy(true); setError("");
+    try {
+      const data = await authRequest(apiBase, "/auth/telegram/verify", {
+        body: { challenge: pending.challenge, browser_secret: pending.browser_secret, code: loginCode }, signal: controller.signal,
+      });
+      if (!mounted.current || id !== commandId.current || controller.signal.aborted) return;
+      if (data.status === "complete") { finish(data); return; }
+      if (["expired", "cancelled"].includes(data.status)) {
+        cancelPending(); setError("Kod muddati tugadi yoki urinishlar tugadi. Telegram orqali qaytadan boshlang."); return;
+      }
+      setError(data.status === "invalid_code" ? `Kod noto‘g‘ri. Bot bergan kodni tekshiring. ${data.attempts_left} ta urinish qoldi.` : "Avval botda telefoningizni ulashing va rolingizni tanlab kod oling.");
     } catch (err) {
       if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
     } finally {
@@ -362,14 +394,14 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
             <article><span className="kb-login-path-icon"><MessageCircle size={23}/></span><div><h2>{__kbUi("Kabutar")}</h2><p><InterfaceText text={__kbUi("Suhbatlar, ovozli xabarlar va yaqinlaringiz.")}/></p></div><ArrowRight size={19}/></article>
             <article><span className="kb-login-path-icon kb-login-path-education"><GraduationCap size={24}/></span><div><h2>{__kbUi("Kabutar Ta’lim")}</h2><p><InterfaceText text={__kbUi("Fanlar, shaxsiy jadval va bilim yo‘lingiz.")}/></p></div><ArrowRight size={19}/></article>
           </div>
-          <p className="kb-login-intro-note"><Sparkles size={16}/><InterfaceText text={__kbUi(" Avval Kabutarga kiring. Ta’limni o‘zingizga moslab yoqing.")}/></p>
+          <p className="kb-login-intro-note"><Sparkles size={16}/><InterfaceText text={__kbUi(" Kiring va ta’limni boshlang. Testlar sinf yoki kursingizga mos ochiladi.")}/></p>
         </section>
 
         <section className="kb-login-access" id="kabutar-signin" aria-labelledby="kabutar-signin-title">
           <div className="kb-login-card">
             <div className="kb-login-card-top"><span className="kb-login-card-symbol"><Bird size={28}/></span><span><InterfaceText text={__kbUi("BIR HISOB. IKKI IMKONIYAT.")}/></span></div>
             <h2 id="kabutar-signin-title"><InterfaceText text={__kbUi("Xush kelibsiz.")}/></h2>
-            <p className="kb-login-card-description"><InterfaceText text={__kbUi("Suhbatingizni davom ettiring")}/><br/><InterfaceText text={__kbUi("yoki Kabutarda ilk qadamingizni qo‘ying.")}/></p>
+            <p className="kb-login-card-description"><InterfaceText text={__kbUi("Ta’limni davom ettiring")}/><br/><InterfaceText text={__kbUi("Testlar, mavzular va darslar bir joyda.")}/></p>
 
             {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text={__kbUi("Kirish tasdiqlandi")}/></h3><p><InterfaceText text={__kbUi("Kabutaringiz ochilmoqda…")}/></p></div> : <>
               <div className="kb-login-methods" role="group" aria-label={uiT("Kirish usuli")}>
@@ -382,15 +414,19 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
 
               {method === "telegram" && (pending ? <div className="kb-login-telegram-pending">
                 <div className="kb-login-pending-heading"><span><LoaderCircle className="kb-login-spin" size={16}/><InterfaceText text={__kbUi(" Tasdiqlashingiz kutilmoqda")}/></span><time aria-label={uiT("Qolgan vaqt")}>{__kbUi(formatAuthCountdown(seconds))}</time></div>
-                <ol><li><InterfaceText text={__kbUi("Botni oching va ")}/><strong>{__kbUi("Start")}</strong><InterfaceText text={__kbUi(" tugmasini bosing.")}/></li><li><InterfaceText text={__kbUi("O‘z telefon raqamingizni ulashing va kirishni tasdiqlang.")}/></li><li><InterfaceText text={__kbUi("Shu oynaga qayting — hisobingiz ochiladi.")}/></li></ol>
-                {pending.verification_code && <div className="kb-login-verification"><span><InterfaceText text={__kbUi("Botdagi so‘rov raqami shu bilan bir xil bo‘lsin:")}/></span><strong>{pending.verification_code}</strong></div>}
-                <a className="kb-login-primary" href={pending.bot_url} target="_blank" rel="noopener noreferrer"><Send size={19}/><InterfaceText text={__kbUi(" Telegram botini ochish ")}/><ArrowRight size={18}/></a>
-                <p className="kb-login-pending-note">{uiT("Tasdiqlagach, aynan shu brauzer oynasiga qayting. Telegram ichida ochilgan boshqa oynada so‘rov davom etmaydi.")}</p>
-                <button type="button" className="kb-login-text-button" onClick={() => pollNow.current?.()}>{uiT("Botda tasdiqladim — tekshirish")}</button>
+                <ol><li>{uiT("Botni oching va Start tugmasini bosing.")}</li><li>{uiT("Telefoningizni ulashing, rolingizni tanlang va kod oling.")}</li><li>{uiT("Shu oynaga qaytib, bot bergan 6 xonali kodni kiriting.")}</li></ol>
+                <a className="kb-login-primary" href={pending.bot_url} target="_blank" rel="noopener noreferrer"><Send size={19}/>{uiT("Telegram botini ochish")}<ArrowRight size={18}/></a>
+                {pending.delivery === "code" ? <form className="kb-login-password-form kb-login-code-form" onSubmit={verifyTelegramCode}>
+                  <label htmlFor="telegram-login-code">{uiT("Botdan olingan kod")}</label>
+                  <input id="telegram-login-code" name="telegram-code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={loginCode} onChange={e => setLoginCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" required disabled={busy} aria-describedby="telegram-code-help"/>
+                  <p id="telegram-code-help" className="kb-login-pending-note">{uiT("Kodni bot rolingizni tanlaganingizdan keyin beradi.")}</p>
+                  <button type="submit" className="kb-login-primary" disabled={busy || loginCode.length !== 6}>{busy ? <LoaderCircle size={18} className="kb-login-spin"/> : <ArrowRight size={18}/>} {uiT(busy ? "Tekshirilmoqda…" : "Kod bilan saytga kirish")}</button>
+                </form> : <button type="button" className="kb-login-text-button" onClick={() => pollNow.current?.()}>{uiT("Botda tasdiqladim — tekshirish")}</button>}
+                <details className="kb-login-request-label"><summary>{uiT("So‘rov belgisi")}</summary><p>{pending.verification_code}</p><small>{uiT("Bu kirish kodi emas. Kodni botdan oling.")}</small></details>
                 {pollNotice && <p className="kb-login-poll-notice" role="status">{__kbUi(pollNotice)}</p>}
                 <button type="button" className="kb-login-text-button" onClick={cancelPending}><InterfaceText text={__kbUi("Bekor qilish")}/></button>
               </div> : <div className="kb-login-telegram-start">
-                <p className="kb-login-method-copy"><InterfaceText text={__kbUi("Telegram orqali telefoningizni tasdiqlab kiring. Hisobingiz bo‘lmasa, avtomatik yaratiladi.")}/></p>
+                <p className="kb-login-method-copy"><InterfaceText text={__kbUi("Botda rolingizni tanlang, kod oling va shu yerga kiriting. Hisobingiz bo‘lmasa, avtomatik yaratiladi.")}/></p>
                 <button type="button" className="kb-login-primary" onClick={startTelegram} disabled={busy || configLoading || (!telegramEnabled && !configError)}>{busy || configLoading ? <LoaderCircle size={19} className="kb-login-spin"/> : <Send size={19}/>} {busy ? uiT("So‘rov tayyorlanmoqda…") : configLoading ? uiT("Kirish usullari tekshirilmoqda…") : uiT("Telegram orqali kirish")}{!busy && !configLoading && <ArrowRight size={18}/>}</button>
                 {!configLoading && config && !telegramEnabled && <p className="kb-login-poll-notice">{config?.telegram?.reason ? __kbUi(`Telegram orqali kirish hali sozlanmagan: ${config.telegram.reason}. `) : __kbUi("")}<InterfaceText text={config?.telegram?.reason ? __kbUi("Sayt administratoriga ayting yoki Google orqali kiring.") : __kbUi("Telegram orqali kirish hali sozlanmagan. Sayt administratoriga ayting yoki Google orqali kiring.")}/></p>}
                 <p className="kb-login-under-button"><ShieldCheck size={15}/><InterfaceText text={__kbUi(" SMS yuborilmaydi. Tasdiqlash Telegram botida.")}/></p>

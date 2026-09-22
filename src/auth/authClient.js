@@ -57,6 +57,7 @@ export function telegramChallenge(data, now = Date.now()) {
     challenge: data.challenge,
     browser_secret: data.browser_secret,
     bot_url: url.toString(),
+    delivery: data.delivery === "code" ? "code" : "approval",
     verification_code: /^\d{6}$/.test(String(data.verification_code || "")) ? String(data.verification_code) : "",
     expires_at: now + duration * 1000,
   };

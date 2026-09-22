@@ -3,10 +3,12 @@ import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePrefer
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Plus, Trash2, Settings2 } from "lucide-react";
 import "./talaba.css";
+import { paraVaqti } from "./scheduleTime.js";
+export { paraVaqti } from "./scheduleTime.js";
 
 // Talabaning O'Z haftalik jadvali — maktab o'quv rejasiga bog'lanmagan,
 // to'liq o'zi boshqaradi: kun turi (dars / amaliyot / dam), har kunda
-// 0..9-para, para vaqtlari sozlamadan avtomatik yoki qo'lda.
+// 0..9-para, para vaqtlari yagona sozlamadan avtomatik hisoblanadi.
 
 const QISQA_KUN = ["Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"];
 const KUN_NOMLARI = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
@@ -14,16 +16,6 @@ const KUN_TURLARI = { dars: "Dars kuni", amaliyot: "Amaliyot kuni", dam: "Dam ol
 const PARA_TURLARI = { maruza: "Ma'ruza", amaliyot: "Amaliyot", seminar: "Seminar", laboratoriya: "Laboratoriya", mustaqil: "Mustaqil ta'lim", boshqa: "Boshqa" };
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-function daqiqaga(vaqt) { const m = /^(\d{2}):(\d{2})$/.exec(vaqt || ""); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
-function vaqtga(d) { d = ((d % 1440) + 1440) % 1440; return `${String(Math.floor(d / 60)).padStart(2, "0")}:${String(d % 60).padStart(2, "0")}`; }
-export function paraVaqti(para, sozlamalar) {
-  if (para.boshlanish && para.tugash) return `${para.boshlanish}–${para.tugash}`;
-  const bosh = daqiqaga(sozlamalar?.boshlanish) ?? 8 * 60 + 30;
-  const davom = Number(sozlamalar?.para_daqiqa) || 80, tanaffus = Number(sozlamalar?.tanaffus_daqiqa) || 10;
-  const indeks = Math.max(0, Number(para.raqam) - 1); // 1-para = boshlanish; 0-para = bir para oldin
-  const start = Number(para.raqam) === 0 ? bosh - davom - tanaffus : bosh + indeks * (davom + tanaffus);
-  return `${vaqtga(start)}–${vaqtga(start + davom)}`;
-}
 function sanaBelgisi(iso, farq) {
   if (!iso) return "";
   const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + farq);
@@ -78,7 +70,7 @@ export default function TalabaHaftalikJadval({ token, apiBase, talabaProfili, re
   const paraQosh = () => kunniYangila(kun.kun, (k) => {
     const band = new Set(k.paralar.map((p) => p.raqam));
     let raqam = 1; while (band.has(raqam) && raqam < 9) raqam += 1;
-    return { turi: k.turi === "dam" ? "dars" : k.turi, paralar: [...k.paralar, { raqam, fan: "", turi: k.turi === "amaliyot" ? "amaliyot" : "maruza", oqituvchi: "", xona: "", boshlanish: "", tugash: "", izoh: "" }] };
+    return { turi: k.turi === "dam" ? "dars" : k.turi, paralar: [...k.paralar, { raqam, fan: "", turi: k.turi === "amaliyot" ? "amaliyot" : "maruza", oqituvchi: "", xona: "", izoh: "" }] };
   });
   const paraYangila = (indeks, patch) => kunniYangila(kun.kun, (k) => ({ paralar: k.paralar.map((p, i) => (i === indeks ? { ...p, ...patch } : p)) }));
   const paraOchir = (indeks) => kunniYangila(kun.kun, (k) => ({ paralar: k.paralar.filter((_, i) => i !== indeks) }));
@@ -90,7 +82,7 @@ export default function TalabaHaftalikJadval({ token, apiBase, talabaProfili, re
       if (bosh) throw new Error(`${KUN_NOMLARI[bosh.kun - 1]}: fan nomi yozilmagan para bor`);
       const res = await fetch(`${apiBase}/api/talaba/haftalik_jadval`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, sozlamalar: draft.sozlamalar, kunlar: draft.kunlar }),
+        body: JSON.stringify({ token, sozlamalar: draft.sozlamalar, kunlar: draft.kunlar.map(day => ({ ...day, paralar: day.paralar.map(({ boshlanish, tugash, ...para }) => para) })) }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Server xatosi (${res.status})`);
@@ -172,7 +164,7 @@ export default function TalabaHaftalikJadval({ token, apiBase, talabaProfili, re
                           <label>{__kbUi("Turi")}<select value={p.turi} onChange={(e) => paraYangila(i, { turi: e.target.value })}>{Object.entries(PARA_TURLARI).map(([k, nom]) => <option key={k} value={k}>{__kbUi(nom)}</option>)}</select></label>
                           <label>{__kbUi("O'qituvchi")}<input value={p.oqituvchi} maxLength={120} onChange={(e) => paraYangila(i, { oqituvchi: e.target.value })} placeholder={__kbUi("ixtiyoriy")} /></label>
                           <label>{__kbUi("Xona")}<input value={p.xona} maxLength={40} onChange={(e) => paraYangila(i, { xona: e.target.value })} placeholder={__kbUi("masalan: 214")} /></label>
-                          <label>{__kbUi("Vaqt")}<span className="tj-vaqt-juft"><input type="time" value={p.boshlanish} onChange={(e) => paraYangila(i, { boshlanish: e.target.value })} /><input type="time" value={p.tugash} onChange={(e) => paraYangila(i, { tugash: e.target.value })} /></span><small>{__kbUi("Bo'sh qolsa sozlamadan hisoblanadi")}</small></label>
+                          <div className="tj-hisoblangan-vaqt"><time>{paraVaqti(p, sozlamalar)}</time><small>{__kbUi("Vaqt sozlamalaridan")}</small></div>
                           <button type="button" className="tj-ochir" onClick={() => paraOchir(i)} aria-label={__kbUi("Parani o'chirish")}><Trash2 size={15} /></button>
                         </div>
                       ) : (

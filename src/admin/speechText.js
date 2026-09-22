@@ -45,6 +45,6 @@ export const recognitionError = code => ({
  'service-not-allowed':'Brauzer ovozni tanish xizmatiga ruxsat bermadi.',
  'audio-capture':'Mikrofon topilmadi yoki boshqa dastur band qilgan.',
  'network':'Ovozni tanish xizmati bilan aloqa uzildi. Internetni tekshirib, davom ettiring.',
- 'language-not-supported':'Bu brauzer o‘zbekcha ovozni tanishni qo‘llamayapti. Boshqa mos brauzerda oching.',
+ 'language-not-supported':'Bu brauzer aniqlangan tilda ovozni tanishni qo‘llamayapti. Boshqa mos brauzerda oching.',
  'no-speech':'Ovoz eshitilmadi. Mikrofonga yaqinroq gapirib, qayta boshlang.',
 }[code] || 'Ovozni tanib bo‘lmadi. Qayta urinib ko‘ring.');

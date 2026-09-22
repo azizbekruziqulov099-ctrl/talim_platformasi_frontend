@@ -1,0 +1,25 @@
+.test-question-nav { position: sticky; top: 0; z-index: 20; padding: 8px 16px; background: var(--ui-legacy-backgroundColor-f7f5f0, #f7f5f0); color: var(--ui-legacy-color-5a5648, #5a5648); border-bottom: 1px solid #e5e1d8; }
+.test-question-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
+.test-question-status > span { margin-right: auto; }
+.test-question-status button { padding: 6px 8px; min-height: 36px; color: #a32d2d; }
+.test-question-status time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.test-question-status time.is-urgent { color: #a32d2d; font-weight: 700; }
+.test-question-toggle { width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 600; }
+.test-question-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; max-height: min(22vh, 176px); max-height: min(22dvh, 176px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 3px 4px 8px 0; }
+.test-question-grid[hidden] { display: none; }
+.test-question-grid button { min-height: 40px; border-radius: 10px; border: 1px solid #d5d1c8; background: #fff; color: #5a5648; font-size: 13px; font-weight: 600; }
+.test-question-grid button.is-answered { background: #fdf3e0; border-color: #c89b3c; color: #8a5a1c; }
+.test-question-actions { display: flex; gap: 6px; }
+.test-question-actions button { min-height: 38px; flex: 1; border-radius: 8px; background: #eaf1f7; color: #1b4b7a; padding: 5px 4px; font-size: 12px; }
+.test-question-actions button:disabled { opacity: .4; }
+.test-question-actions button.test-question-finish { color: #fff; background: #1b4b7a; }
+.test-question-nav button:focus-visible { outline: 2px solid #1b4b7a; outline-offset: 2px; }
+.test-question-card { scroll-margin-top: 146px; }
+@media (max-width: 360px) { .test-question-nav { padding-inline: 10px; } .test-question-actions button { font-size: 11px; } }
+@media (max-height: 420px) {
+  .test-question-nav { padding-block: 4px; }
+  .test-question-status button, .test-question-actions button { min-height: 30px; }
+  .test-question-toggle { min-height: 32px; }
+  .test-question-grid { max-height: 18vh; max-height: 18dvh; }
+  .test-question-card { scroll-margin-top: 116px; }
+}

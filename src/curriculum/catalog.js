@@ -10,11 +10,17 @@ export const LESSON_TYPES = [
  {key:'seminar',label:'Seminar'}, {key:'laboratoriya',label:'Laboratoriya'},
 ];
 export const FORM_LABELS = {kunduzgi:'Kunduzgi',kechki:'Kechki',sirtqi:'Sirtqi',masofaviy:'Masofaviy',umumiy:'Shakllar uchun umumiy'};
-export const lessonLabel = key => LESSON_TYPES.find(item=>item.key===key)?.label || '';
+export const lessonLabel = key => key==='all' ? 'Barchasi' : LESSON_TYPES.find(item=>item.key===key)?.label || '';
 export const institutionLabel = key => INSTITUTION_TYPES.find(item=>item.key===key)?.label || '';
 export const gradeLabel = (type,grade) => type==='maktab' && /^\d+$/.test(String(grade)) ? `${grade}-sinf` : String(grade || '');
-export const profileInstitutionType = user => user?.talaba_profili || user?.universitet_id || /kurs/i.test(String(user?.class||'')) ? 'universitet' : user?.maktab_id ? 'maktab' : user?.bogcha_id ? 'bogcha' : user?.markaz_id ? 'markaz' : 'maktab';
+export const profileInstitutionType = user => user?.talaba_mi || user?.education_role === 'talaba' || user?.talaba_profili || user?.universitet_id || /kurs/i.test(String(user?.class||'')) ? 'universitet' : user?.maktab_id ? 'maktab' : user?.bogcha_id ? 'bogcha' : user?.markaz_id ? 'markaz' : 'maktab';
 export const catalogTopicKey = topic => JSON.stringify([topic.scope_id ?? null,[...new Set(topic.topic_codes || [])].map(String).sort()]);
+export function catalogGrade(type, value) {
+ const grade=String(value || '').toLowerCase().trim().replace(/\s*-?\s*sinf$/, '').trim();
+ if(type==='maktab')return /^(?:[1-9]|1[01])$/.test(grade)?grade:null;
+ if(type==='universitet')return /^[1-6]\s*-?\s*kurs(?:\s+magistr)?$/.test(grade)?grade.replace(/\s*-?\s*kurs/, ' kurs'):null;
+ return null;
+}
 export function programKey(scope) {
  return JSON.stringify(['institution_type','institution_id','talim_bosqichi','yonalish_id',
   'yonalish_key','talim_shakli','talim_tili','kurs','guruh'].map(key=>String(key==='yonalish_key'&&Number(scope.yonalish_id)>0?'':scope[key] ?? '')));
@@ -37,7 +43,7 @@ export function groupPrograms(scopes,type) {
 }
 export function matchingSubjects(subjects,type,lesson) {
  return subjects.filter(subject=>subject.institution_type===type &&
-  (type!=='universitet' || subject.dars_turi===lesson));
+  (type!=='universitet' || lesson==='all' || subject.dars_turi===lesson));
 }
 export function targetLesson(subjects,codes) {
  const wanted=new Set((codes || []).filter(Boolean).map(String));
