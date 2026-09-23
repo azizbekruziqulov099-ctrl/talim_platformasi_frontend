@@ -89,7 +89,22 @@ export default function AdminSpeechStudio({apiBase,token}) {
   else if(recording==='listening')recognitionRef.current?.stop();
   else audioDictationRef.current?.stop();
  };
- const switchMode=value=>{readerRef.current?.stop();audioDictationRef.current?.cancel();recognitionRef.current?.cancel();setInterim('');setMode(value);setError('');setNotice('');};
+ const switchMode=value=>{
+  if(value===mode)return;
+  // Opening a text panel is a UI action, not an audio-service operation.
+  // In particular, an idle/unavailable player must not block this button.
+  setMode(value);setError('');setNotice('');setInterim('');
+  const active=[];
+  if(reading!=='idle')active.push([readerRef.current,'stop']);
+  if(recording!=='idle')active.push([audioDictationRef.current,'cancel'],[recognitionRef.current,'cancel']);
+  let failed=false;
+  for(const [resource,method] of active){
+   try{if(typeof resource?.[method]==='function')resource[method]();}
+   catch{failed=true;}
+  }
+  setReading('idle');setRecording('idle');
+  if(failed)setError('Oldingi ovoz jarayonini yopib bo‘lmadi. Bo‘lim ochildi; mikrofonni qayta ishlatishdan oldin sahifani yangilang.');
+ };
  const startReading=()=>{
   if(!access?.admin||!text.trim())return;
   setError('');setNotice('');readerRef.current.start(readingChunks(text,1200,readLanguage),{voice,rate});
