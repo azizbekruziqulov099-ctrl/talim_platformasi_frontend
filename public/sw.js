@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v5-speech-tab-60";
+const CACHE = "samtm-shell-v5-live-speech-61";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 

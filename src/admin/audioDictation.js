@@ -42,8 +42,10 @@ export class AudioDictation {
         parts.push(event.data);
       };
       recorder.onerror = () => { if(generation!==this.generation)return;this.cancel();this.onError('Mikrofondan yozib bo‘lmadi. Qayta urinib ko‘ring.'); };
+      let finalized=false;
       recorder.onstop = async () => {
-        if (generation !== this.generation) return;
+        if (generation !== this.generation || finalized) return;
+        finalized=true;
         this.release();
         const blob = new Blob(parts, { type: recorder.mimeType || mimeType || 'audio/webm' });
         if(!blob.size){this.busy=false;this.state('idle');this.onError('Ovoz yozuvi bo‘sh. Qayta gapirib ko‘ring.');return;}
@@ -86,7 +88,7 @@ export class AudioDictation {
   }
   discard(){if(!this.busy){this.lastRecording=null;this.onRecording(null);}}
   stop() {
-    if(this.phase==='recording'&&this.recorder?.state==='recording') {
+    if(this.phase==='recording') {
       // stop() queues final dataavailable/onstop events. A second click must
       // leave those handlers attached until the complete Blob is assembled.
       this.state('stopping');
@@ -94,7 +96,15 @@ export class AudioDictation {
       this.timer=this.setTimer(()=>{
         if(this.phase==='stopping'){this.cancel();this.onError('Mikrofon yozuvi yakunlanmadi. Qayta yozib ko‘ring.');}
       },5000);
-      try{this.recorder.stop();}catch{this.cancel();this.onError('Yozuvni to‘xtatib bo‘lmadi. Qayta yozib ko‘ring.');}
+      try{
+        // A device interruption can already have made the recorder inactive.
+        // Its final events may still be queued. Paused recorders can stop too.
+        if(this.recorder && this.recorder.state!=='inactive')this.recorder.stop();
+      }catch{this.cancel();this.onError('Yozuvni to‘xtatib bo‘lmadi. Qayta yozib ko‘ring.');}
+      finally{
+        // Release the microphone NOW, even if the browser never emits onstop.
+        const stream=this.stream;this.stream=null;stopTracks(stream);
+      }
     } else if(this.phase==='starting')this.cancel();
   }
   release() {

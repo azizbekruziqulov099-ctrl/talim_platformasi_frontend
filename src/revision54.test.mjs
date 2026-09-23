@@ -42,7 +42,7 @@ test('male preference cannot accidentally match female or an unknown browser voi
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function dictationFixture(options = {}) {
-  const states = [], texts = [], errors = [], sent = [], recorders = [], timers = [];
+  const states = [], texts = [], errors = [], sent = [], recorders = [], timers = new Map();
   const track = { stopped: false, stop() { this.stopped = true; } };
   const stream = { getTracks: () => [track] };
   class Recorder {
@@ -59,7 +59,7 @@ function dictationFixture(options = {}) {
     onState: value => states.push(value), onText: value => texts.push(value), onError: value => errors.push(value),
     mediaDevices: { getUserMedia: async () => stream }, Recorder,
     transcribe: async blob => { sent.push(blob); return { text: 'Hello.', language: 'english' }; },
-    setTimer: callback => { timers.push(callback); return callback; }, clearTimer: () => {}, ...options,
+    setTimer: (callback,ms) => { timers.set(callback,ms); return callback; }, clearTimer: callback => timers.delete(callback), ...options,
   });
   return { recorder, states, texts, errors, sent, recorders, track, stream, timers };
 }
@@ -68,7 +68,7 @@ test('recording includes all chunks and stops the microphone before transcriptio
   f.recorders[0].ondataavailable({ data: new Blob(['first']) });
   f.recorder.stop(); await tick();
   assert.equal(await f.sent[0].text(), 'firstlast'); assert.equal(f.track.stopped, true);
-  assert.deepEqual(f.states, ['starting', 'recording', 'transcribing', 'idle']);
+  assert.deepEqual(f.states, ['starting', 'recording', 'stopping', 'transcribing', 'idle']);
   assert.deepEqual(f.texts, [{ text: 'Hello.', language: 'english' }]);
 });
 test('double clicks cannot start duplicate microphone sessions', async () => {
@@ -87,7 +87,9 @@ test('cancelled transcription cannot append a delayed result', async () => {
   assert.equal(signal.aborted, true); assert.deepEqual(f.texts, []);
 });
 test('the two minute limit finishes and submits the current recording', async () => {
-  const f = dictationFixture(); await f.recorder.start(); f.timers[0](); await tick();
+  const f = dictationFixture(); await f.recorder.start();
+  const timeout=[...f.timers].find(([,ms])=>ms===120000)?.[0];
+  assert.equal(typeof timeout,'function');timeout();await tick();
   assert.equal(f.track.stopped, true); assert.equal(f.sent.length, 1); assert.equal(f.states.at(-1), 'idle');
 });
 test('oversized recordings stop without uploading partial audio', async () => {
