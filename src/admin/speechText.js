@@ -1,4 +1,4 @@
-import {detectSpeechLanguage,splitSpeechText} from '../speech/language.js';
+import {detectSpeechLanguage,splitSpeechText,protectSpeechMath} from '../speech/language.js';
 
 // Resolve language tags BEFORE splitting paragraphs and request-size boundaries.
 // Each request carries its language, including number-only chunks inside a tag.
@@ -6,8 +6,10 @@ export function readingChunks(value,max=1200,language='auto') {
  if(!Number.isInteger(max)||max<20)throw new Error('Invalid chunk size');
  if(!['auto','uz','ru','en'].includes(language))throw new Error('O‘qish tilini tanlang');
  const result=[];
- const source=String(value||'').replace(/\r\n?/g,'\n');
- const fallback=detectSpeechLanguage(source.replace(/\[\/?(?:uz|ru|en)\]/gi,''));
+ const original=String(value||'').replace(/\r\n?/g,'\n');
+ const protectedMath=protectSpeechMath(original);
+ const source=protectedMath.text;
+ const fallback=detectSpeechLanguage(original.replace(/\[\/?(?:uz|ru|en)\]/gi,''));
  const append=(value,explicit)=>{
  for(const paragraph of value.split(/\n+/)) {
   const first=result.length;
@@ -20,13 +22,21 @@ export function readingChunks(value,max=1200,language='auto') {
    else parts.push({...part});
   }
   for(const part of parts) {
-  const paragraph=part.matn;
+  const paragraph=protectedMath.restore(part.matn);
   let rest=paragraph.trim();
   while(rest.length>max) {
    const window=rest.slice(0,max+1);
    const ends=[...window.matchAll(/[.!?;:](?:[”"’']?)(?=\s)/g)];
    let end=ends.length?ends.at(-1).index+ends.at(-1)[0].length:window.lastIndexOf(' ');
    if(end<max/3)end=max;
+   // A formula is one reading unit: never split a fraction, root or its tags.
+   const formulas=[...rest.matchAll(/\[lat\][\s\S]*?\[\/lat\]|\$\$[\s\S]*?\$\$|\$[^$\n]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/gi)];
+   const crossing=formulas.find(formula=>formula.index<end&&formula.index+formula[0].length>end);
+   if(crossing){
+    if(crossing.index>0)end=crossing.index;
+    else if(crossing[0].length<=max)end=crossing[0].length;
+    else throw new Error('Bitta formula juda uzun. Uni alohida qisqaroq formulalarga ajrating.');
+   }
    if(/[\uD800-\uDBFF]/.test(rest[end-1]))end--;
    result.push({text:rest.slice(0,end).trim(),language:part.til,pauseMs:0});rest=rest.slice(end).trim();
   }
@@ -71,6 +81,6 @@ export const recognitionError = code => ({
  'service-not-allowed':'Brauzer ovozni tanish xizmatiga ruxsat bermadi.',
  'audio-capture':'Mikrofon topilmadi yoki boshqa dastur band qilgan.',
  'network':'Ovozni tanish xizmati bilan aloqa uzildi. Internetni tekshirib, davom ettiring.',
- 'language-not-supported':'Brauzer tanlangan tilda gapirib yozishni qo‘llamayapti. Ovoz yozib yuborish rejimini ishlating yoki boshqa tilni tanlang.',
+ 'language-not-supported':'Brauzer tanlangan tilda gapirib yozishni qo‘llamayapti. Tilni tekshiring yoki qurilmangiz klaviaturasidagi mikrofonni sinang.',
  'no-speech':'Ovoz eshitilmadi. Mikrofonga yaqinroq gapirib, qayta boshlang.',
 }[code] || 'Ovozni tanib bo‘lmadi. Qayta urinib ko‘ring.');
