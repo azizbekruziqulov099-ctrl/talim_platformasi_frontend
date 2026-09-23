@@ -6,8 +6,13 @@ export class SpeechReader {
   this.session=null;this.audio=null;this.url=null;this.timer=null;this.rate=1;
  }
  releaseAudio() {
-  if(this.audio){this.audio.onended=null;this.audio.onerror=null;this.audio.pause();this.audio.removeAttribute('src');this.audio=null;}
-  if(this.url){this.revokeURL(this.url);this.url=null;}
+  const audio=this.audio,url=this.url;this.audio=null;this.url=null;
+  if(audio){
+   audio.onended=null;audio.onerror=null;
+   try{audio.pause();}catch{/* player already detached */}
+   try{audio.removeAttribute('src');}catch{/* continue releasing the object URL */}
+  }
+  if(url){try{this.revokeURL(url);}catch{/* already revoked */}}
  }
  stop(notify=true) {
   this.session?.controller.abort();this.session=null;
@@ -63,5 +68,5 @@ export class SpeechReader {
   else if(session.fetching)this.onState('loading');
   else this.step(session);
  }
- dispose() {this.stop(false);this.onState=this.onProgress=this.onError=()=>{};}
+ dispose() {this.onState=this.onProgress=this.onError=()=>{};this.stop(false);}
 }

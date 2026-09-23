@@ -1,3 +1,4 @@
+import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
 import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
 import {EducationHome} from './workspace/EducationSetup.jsx';
 import {educationRole, initialEducationTab, needsEducation} from './workspace/educationRules.js';
@@ -7,6 +8,7 @@ import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import LearnerTopics from './curriculum/LearnerTopics.jsx';
 import AdminSpeechStudio from './admin/AdminSpeechStudio.jsx';
+import SectionErrorBoundary from './workspace/AppErrorBoundary.jsx';
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
 import {matchingSubjects,gradeLabel,semesterPairLabel,institutionLabel,lessonLabel,profileInstitutionType} from './curriculum/catalog.js';
 import CurriculumBoundary, { useCurriculum } from "./curriculum/CurriculumScope.jsx";
@@ -55,7 +57,7 @@ const authEndpoint = __kbRev35_module1["authEndpoint"];
 const workspaceRequest = __kbRev35_module4["workspaceRequest"];
 
 
-function AccountSecurity({ apiBase, token, onToken, onClose, onLogout }) {
+function AccountSecurity({ apiBase, token, onToken, onClose, onLogout, initialTelegramOpen = false }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const [profile, setProfile] = useState(null);
@@ -67,7 +69,7 @@ function AccountSecurity({ apiBase, token, onToken, onClose, onLogout }) {
   const [retry, setRetry] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(initialTelegramOpen);
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -14627,6 +14629,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
             </div>
           </header>
           <div className="premium-page-stage">
+      <SectionErrorBoundary resetKey={`${korinishRoli}:${tab}`}>
       {tab === "home" && <EducationHome onOpen={tabTanlandi}/>}
 
       {presentationsOpened && !readOnly && <div hidden={tab !== "taqdimotlar"}>
@@ -14743,6 +14746,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} onInstitutionJoined={institutionJoined}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
       )}
+      </SectionErrorBoundary>
           </div>
         </main>
       <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : tab}
@@ -14850,6 +14854,18 @@ export default function App() {
   const [oauthProfil, setOauthProfil] = useState(null);
   const [loginError, setLoginError] = useState(yol.oauthXato || "");
   const [notice, setNotice] = useState(yol.oauthXato || "");
+  const [telegramLinkOpen, setTelegramLinkOpen] = useState(() => Boolean(readTelegramLinkIntent()));
+  useEffect(() => {
+    const arrived = () => {
+      const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (!fragment.has("telegram_phone") && !fragment.has("telegram_link")) return;
+      captureTelegramArrival(window.location.hash);
+      if (fragment.get("telegram_link") === "1") setTelegramLinkOpen(true);
+    };
+    window.addEventListener("hashchange", arrived);
+    return () => window.removeEventListener("hashchange", arrived);
+  }, []);
+  const closeTelegramLink = () => { clearTelegramLinkIntent(); setTelegramLinkOpen(false); };
   const sessionEpoch = useRef(0);
   const persistSession = useCallback((value) => {
     if (korishRejimi) return;
@@ -14874,6 +14890,7 @@ export default function App() {
     }
     if (sessionEpoch.current !== startedEpoch || (_saqlanganTokenniOl() && _saqlanganTokenniOl() !== token)) return;
     try { window.sessionStorage.removeItem("kabutar_google_link_intent"); } catch { /* blocked storage */ }
+    clearTelegramLinkIntent(); setTelegramLinkOpen(false);
     sessionEpoch.current += 1; persistSession(null);
     setOauthProfil(null); setNotice(""); setLoginError(""); setToken(null);
   }, [token, persistSession]);
@@ -14907,8 +14924,10 @@ export default function App() {
         await workspaceRequest(API_BASE, "/auth/google/link", currentToken, { method: "POST", body: { email: data.email, oauth_grant: data.oauth_grant } });
         if (!cancelled && sessionEpoch.current === startedEpoch && _saqlanganTokenniOl() === currentToken) setNotice("Google hisobi akkauntingizga ulandi.");
       } else if (data.holat === "kirdi" && data.token) {
+        if (data.intent === "telegram") setTelegramLinkOpen(true);
         kirildi(data.token);
       } else if (data.holat === "ulash" && data.email && data.oauth_grant) {
+        if (data.intent === "telegram") setTelegramLinkOpen(true);
         setOauthProfil({ email: data.email, ism: data.ism || "", oauthGrant: data.oauth_grant });
       } else throw new Error("Google kirish javobi noto‘g‘ri. Qayta urinib ko‘ring.");
     }).catch((error) => {
@@ -14931,7 +14950,7 @@ export default function App() {
     </div>
     <Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} readOnly />
   </div>;
-  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
+  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
   return <><KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} /><button type="button" onClick={() => setPublicCourses(true)} style={{ position: "fixed", top: 12, right: 12, zIndex: 40, padding: "10px 16px", borderRadius: 14, background: "var(--ui-surface, #ffffff)", color: "var(--ui-text, #17394b)", border: "1px solid var(--ui-border, #d9e4ea)", fontWeight: 700, boxShadow: "0 4px 20px #17394b15" }}>{__kbUi("Kurslarni ko‘rish")}</button></>;
 }

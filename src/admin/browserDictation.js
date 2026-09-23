@@ -51,6 +51,7 @@ export class BrowserDictation {
   this.onInterim('');this.onState('idle');if(message)this.onError(message);
  }
  cancel(){this.finish();}
+ dispose(){this.onState=this.onText=this.onInterim=this.onError=()=>{};this.finish();}
 }
 
 export function dictationSupport(access,environment=globalThis) {
