@@ -1,3 +1,4 @@
+import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
 import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
 import TranslatedContent from './interface/TranslatedContent.jsx';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
@@ -5,6 +6,7 @@ import {uiText as __kbUi} from './interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
 import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey,catalogGrade} from './curriculum/catalog.js';
+import {catalogSubjectDetails, searchCatalog} from './curriculum/adminTestCatalog.js';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
@@ -185,78 +187,8 @@ function _brauzerOvoziniTanla(til, jins) {
   return selectBrowserVoice(globalThis.speechSynthesis?.getVoices?.() || [], _ovozTiliniTuzat(til), _ovozJinsiniTuzat(jins));
 }
 
-function _xorijiyMatnniOvozgaTayyorla(matn, til) {
-  const lugat = til === "ru"
-    ? { frac: (a, b) => `${a} делённое на ${b}`, sqrt: (x) => `квадратный корень из ${x}`, square: (x) => `${x} в квадрате`, cube: (x) => `${x} в кубе`, power: (x, n) => `${x} в степени ${n}`, "+": " плюс ", "-": " минус ", "×": " умножить на ", "·": " умножить на ", "*": " умножить на ", "÷": " разделить на ", "=": " равно ", "≤": " меньше или равно ", "≥": " больше или равно ", "≠": " не равно ", "<": " меньше ", ">": " больше " }
-    : { frac: (a, b) => `${a} over ${b}`, sqrt: (x) => `square root of ${x}`, square: (x) => `${x} squared`, cube: (x) => `${x} cubed`, power: (x, n) => `${x} to the power of ${n}`, "+": " plus ", "-": " minus ", "×": " times ", "·": " times ", "*": " times ", "÷": " divided by ", "=": " equals ", "≤": " less than or equal to ", "≥": " greater than or equal to ", "≠": " not equal to ", "<": " less than ", ">": " greater than " };
-  let t = String(matn || "");
-  t = t.replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "$1").replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/\\(?:left|right)/g, "");
-  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (_, a, b) => ` ${lugat.frac(a, b)} `);
-  t = t.replace(/\\sqrt\s*\{([^{}]+)\}/g, (_, x) => ` ${lugat.sqrt(x)} `);
-  t = t.replace(/([0-9A-Za-zА-Яа-я]+)\s*\^\s*\{?(\d+)\}?/g, (_, x, n) => ` ${n === "2" ? lugat.square(x) : n === "3" ? lugat.cube(x) : lugat.power(x, n)} `);
-  for (const [re, belgi] of [[/\\times/g, "×"], [/\\cdot/g, "·"], [/\\div/g, "÷"], [/\\leq/g, "≤"], [/\\geq/g, "≥"], [/\\neq/g, "≠"]]) t = t.replace(re, belgi);
-  t = t.replace(/\\pi\b/g, " pi ");
-  for (const belgi of ["≤", "≥", "≠", "+", "-", "×", "·", "*", "÷", "=", "<", ">"])
-    t = t.replace(new RegExp(`\\s*${belgi.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "g"), lugat[belgi]);
-  t = t.replace(/\\[A-Za-z]+|[{}]/g, " ");
-  return t.replace(/\s+/g, " ").trim();
-}
-
 function _matnniOvozgaTayyorla(matn, til = "uz") {
-  // LaTeX belgilangan (yoki belgisiz) kasrlarni tabiiy o'zbekcha nutqqa
-  // aylantiradi — masalan \tfrac{1}{2} → "ikkidan bir", 6\tfrac{1}{2}
-  // (aralash son) → "olti butun ikkidan bir". Shuningdek: o'lchov
-  // birliklari (kg, sm, km...) to'liq so'zga, va matematik o'zgaruvchilar
-  // (x, y, z, n — songa yopishgan bo'lsa ham, masalan "2x") o'z nomiga
-  // ("iks", "igrik"...) aylantiriladi — xom holda o'qish tushunarsiz
-  // eshitilgani uchun kerak.
-  if (!matn) return "";
-  til = _ovozTiliniTuzat(til);
-  if (til !== "uz") return _xorijiyMatnniOvozgaTayyorla(matn, til);
-  let t = matn;
-  t = t.replace(/\[lat\]([^]*?)\[\/lat\]/g, "$1");
-  t = t.replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/(\d)\s*(\\(?:tfrac|dfrac|cfrac|frac))/g, "$1 butun $2");
-  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "$2 dan $1");
-  t = t.replace(/\\sqrt\s*\{([^{}]*)\}/g, "$1 ning kvadrat ildizi");
-  t = t.replace(/\\times/g, " marta ");
-  t = t.replace(/\\cdot/g, " marta ");
-  t = t.replace(/\\div/g, " bo'lib ");
-  t = t.replace(/\\pm/g, " plyus-minus ");
-  t = t.replace(/\\leq/g, " kichik yoki teng ");
-  t = t.replace(/\\geq/g, " katta yoki teng ");
-  t = t.replace(/\\neq/g, " teng emas ");
-  t = t.replace(/\\infty/g, " cheksizlik ");
-  t = t.replace(/\\approx/g, " taxminan teng ");
-  t = t.replace(/\\pi\b/g, " pi ");
-  t = t.replace(/([0-9a-zA-Z]+)\s*\^\s*\{?(\d+)\}?/g, (_, asos, daraja) => {
-    if (daraja === "2") return ` ${asos} kvadrat `;
-    if (daraja === "3") return ` ${asos} kub `;
-    return ` ${asos} ning ${daraja}-darajasi `;
-  });
-  const birliklar = [
-    [/\bkm\/soat\b/gi, " kilometr soatiga "],
-    [/\bkg\b/gi, " kilogramm "], [/\bgr\b/gi, " gramm "],
-    [/\bmm\b/gi, " millimetr "], [/\bsm\b/gi, " santimetr "], [/\bkm\b/gi, " kilometr "],
-    [/\bml\b/gi, " millilitr "], [/\bl\b/gi, " litr "],
-    [/\bsm2\b|\bsm²\b/gi, " kvadrat santimetr "], [/\bm2\b|\bm²\b/gi, " kvadrat metr "],
-    [/\bsm3\b|\bsm³\b/gi, " kub santimetr "], [/\bm3\b|\bm³\b/gi, " kub metr "],
-    [/\bm\b/g, " metr "],
-  ];
-  for (const [re, almashtir] of birliklar) t = t.replace(re, almashtir);
-  const ozgaruvchilar = { x: "iks", y: "igrik", z: "zet", n: "en" };
-  t = t.replace(/(?<![a-zA-Zʻʼ'])([xyzn])(?![a-zA-Zʻʼ'])/g, (m, harf) => ` ${ozgaruvchilar[harf]} `);
-  t = t.replace(/°C/g, " daraja Selsiy ");
-  t = t.replace(/%/g, " foiz ");
-  t = t.replace(/≤/g, " kichik yoki teng ").replace(/≥/g, " katta yoki teng ").replace(/≠/g, " teng emas ");
-  t = t.replace(/\+/g, " plyus ").replace(/−|-/g, " minus ");
-  t = t.replace(/[×·*]/g, " ko'paytirilgan ").replace(/÷/g, " bo'lingan ").replace(/=/g, " teng ");
-  t = t.replace(/</g, " kichik ").replace(/>/g, " katta ");
-  t = t.replace(/\$/g, "");
-  t = t.replace(/_{2,}/g, " bo'sh joy "); // "___" (bo'sh joy) — "pastki chiziq" deb o'qilmasin
-  t = t.replace(/[_`#]+/g, "");
-  return t.replace(/\s+/g, " ").trim();
+  return prepareSpeech(matn, _ovozTiliniTuzat(til));
 }
 
 function OvozliOqishTugmasi({
@@ -272,22 +204,30 @@ function OvozliOqishTugmasi({
   useKbInterfaceLocale();
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
+  const [talaffuzXatosi, setTalaffuzXatosi] = useState("");
   const audioRef = useRef(null);
+  const speechRunRef = useRef(0);
   const oqilyaptimi = oqilayotganId === kontentId;
 
   const boshla = (boshlanishTezligi) => {
+    const run = ++speechRunRef.current;
+    const current = () => speechRunRef.current === run;
     window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
     setPauzada(false);
-    const qismlar = _ovozQismlargaBol(matn, asosiyTil)
+    setTalaffuzXatosi("");
+    let qismlar;
+    try { qismlar = _ovozQismlargaBol(matn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
+    } catch(error) { setTalaffuzXatosi(error.message); return; }
     const brauzerOvozlari = qismlar.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
     let qismIndeksi = 0;
     const tugadi = () => {
+      if (!current()) return;
       audioRef.current = null;
       setOqilayotganId(null);
       setJoriySozIndeksi(-1);
@@ -298,6 +238,7 @@ function OvozliOqishTugmasi({
         matn: String(matn || ""),
         jins: _ovozJinsiniTuzat(ovozJinsi),
         asosiy_til: "uz",
+        revision: SPEECH_REVISION,
       });
       const audio = new Audio(`${API_BASE}/api/ovoz?${qs.toString()}`);
       audio.playbackRate = boshlanishTezligi;
@@ -309,6 +250,7 @@ function OvozliOqishTugmasi({
       return;
     }
     const keyingisiniOqi = () => {
+      if (!current()) return;
       if (qismIndeksi >= qismlar.length) { tugadi(); return; }
       const joriyQismIndeksi = qismIndeksi++;
       const qism = qismlar[joriyQismIndeksi];
@@ -321,6 +263,7 @@ function OvozliOqishTugmasi({
       utterance.rate = boshlanishTezligi;
       utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
       utterance.onboundary = (e) => {
+        if (!current()) return;
         if (e.name && e.name !== "word") return;
         let idx = 0;
         for (let i = 0; i < sozPozitsiyalari.length; i++) {
@@ -348,6 +291,7 @@ function OvozliOqishTugmasi({
   };
 
   const toxtat = () => {
+    speechRunRef.current++;
     window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
@@ -368,11 +312,14 @@ function OvozliOqishTugmasi({
   };
 
   useEffect(() => () => {
+    speechRunRef.current++;
+    window.speechSynthesis?.cancel();
     if (audioRef.current) audioRef.current.pause();
   }, []);
 
   return (
     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+      {talaffuzXatosi && <span role="alert" className="text-xs text-red-700">{talaffuzXatosi}</span>}
       <button onClick={() => (oqilyaptimi ? toxtat() : boshla(tezlik))}
         className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
         {oqilyaptimi ? __kbUi("⏹ To'xtatish") : __kbUi("🔊 O'qib berish")}
@@ -472,6 +419,7 @@ export default function TestTab({
   onOyinProfilYangilandi,
   initialTarget = null,
   curriculumScope = null,
+  catalogBrowse = null,
   onEducationSetup,
 }) {
   useKbInterfaceLocale();
@@ -488,14 +436,18 @@ export default function TestTab({
   // uchun bu "vaqtincha o'z sinfini chetlab o'tish" rejimi.
   const [boshqaSinflarRejimi, setBoshqaSinflarRejimi] = useState(false);
   const [fanlar, setFanlar] = useState([]);
-  const fallbackType=curriculumScope?.institution_type || profileInstitutionType(foydalanuvchi || {class:sinf});
+  const fallbackType=catalogBrowse?.type || curriculumScope?.institution_type || profileInstitutionType(foydalanuvchi || {class:sinf});
   const [catalogType,setCatalogType]=useState(fallbackType);
   const [catalogLesson,setCatalogLesson]=useState(curriculumScope?.dars_turi || 'all');
   const [catalogViewer,setCatalogViewer]=useState(null);
   const sectionChosen=useRef(false);
   const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher ? null : catalogGrade(catalogType, catalogViewer?.grade || sinf);
 
-  const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
+  const [tanlanganSinf, setTanlanganSinf] = useState(catalogBrowse?.initialGrade || null);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [closedSubjects, setClosedSubjects] = useState([]);
+  const [catalogReload, setCatalogReload] = useState(0);
+  const browseQuery = new URLSearchParams(catalogBrowse?.filters || {}).toString();
   const [ochiqFan, setOchiqFan] = useState(null);
   const [savollar, setSavollar] = useState([]);
   const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
@@ -548,6 +500,7 @@ export default function TestTab({
 
   useEffect(() => {
     const qs = new URLSearchParams({ turi: faolTuri, institution_type: catalogType });
+    for (const [key, value] of new URLSearchParams(browseQuery)) qs.set(key, value);
     if(curriculumScope?.id && curriculumScope.institution_type===catalogType)qs.set('scope_id',String(curriculumScope.id));
     if (token) qs.set("token", token);
     // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
@@ -567,7 +520,7 @@ export default function TestTab({
         if (controller.signal.aborted) return;
         const yangiFanlar = d.fanlar || [];
         setCatalogViewer(d.viewer || null);
-        if (!curriculumScope && d.viewer?.preferred_type && ((!sectionChosen.current && !initialTarget?.institution_type) || !d.viewer.types.includes(catalogType)) && catalogType!==d.viewer.preferred_type) setCatalogType(d.viewer.preferred_type);
+        if (!curriculumScope && !catalogBrowse && d.viewer?.preferred_type && ((!sectionChosen.current && !initialTarget?.institution_type) || !d.viewer.types.includes(catalogType)) && catalogType!==d.viewer.preferred_type) setCatalogType(d.viewer.preferred_type);
         if (initialTarget?.nonce && talimYoliNishoniRef.current!==initialTarget.nonce) {
           const target=targetLesson(yangiFanlar,initialTarget.topic_codes || [initialTarget.topic_code]);
           if(target)setCatalogLesson(target);
@@ -578,30 +531,32 @@ export default function TestTab({
         setYuklanmoqda(false);
       })
       .catch((e) => {
-        if (e.name !== "AbortError") {
+        if (!controller.signal.aborted && e.name !== "AbortError") {
           setXato(e.message || "Mavzularni yuklab bo'lmadi");
           setYuklanmoqda(false);
         }
       });
     return () => controller.abort();
-  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, curriculumScope?.id, curriculumScope?.institution_type, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, curriculumScope?.id, curriculumScope?.institution_type, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at, browseQuery, catalogReload]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
   const sinflarRoyxati = useMemo(() => {
     const bySinf = {};
-    (faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson)).forEach((fan) => {
+    const subjects = faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson);
+    searchCatalog(subjects, catalogBrowse ? catalogSearch : '').forEach((fan) => {
       fan.sinflar.forEach((s) => {
-        if (!bySinf[s.sinf]) bySinf[s.sinf] = { sinf: s.sinf, fanlar: [] };
-        bySinf[s.sinf].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.dars_turi_nomi ? `${fan.nom} · ${fan.dars_turi_nomi}` : fan.nom, mavzular: s.mavzular });
+        const grade = catalogGrade(catalogType, s.sinf) || s.sinf;
+        if (!bySinf[grade]) bySinf[grade] = { sinf: grade, fanlar: [] };
+        bySinf[grade].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.dars_turi_nomi ? `${fan.nom} · ${fan.dars_turi_nomi}` : fan.nom, details: catalogBrowse ? catalogSubjectDetails(fan) : '', mavzular: s.mavzular });
       });
     });
     return Object.values(bySinf).sort((a, b) => {
       const raqamA = /^\d+$/.test(a.sinf), raqamB = /^\d+$/.test(b.sinf);
       if (raqamA && raqamB) return parseInt(a.sinf, 10) - parseInt(b.sinf, 10);
-      return String(a.sinf).localeCompare(String(b.sinf));
+      return String(a.sinf).localeCompare(String(b.sinf), 'uz', { numeric: true });
     });
-  }, [fanlar, catalogType, catalogLesson, faolTuri]);
+  }, [fanlar, catalogType, catalogLesson, faolTuri, catalogSearch, Boolean(catalogBrowse)]);
 
   // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
   const faolSinf = (boshqaSinflarRejimi || !profilSinfi) ? tanlanganSinf : profilSinfi;
@@ -676,7 +631,15 @@ export default function TestTab({
     setTanlanganSinf(null);setOchiqFan(null);setTanlanganMavzu(null);
     setTanlanganKodlar([]);setAralashRejim(false);setBoshqaSinflarRejimi(false);setXato('');
   };
-  const catalogHeader=curriculumScope||faolTuri==='togarak'?null:<><LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'all')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>{onEducationSetup && <button type="button" onClick={onEducationSetup} className="mb-4 text-sm font-semibold text-sky-900">{__kbUi('Sinf yoki kursni o‘zgartirish')}</button>}</>;
+  const catalogHeader=curriculumScope||catalogBrowse||faolTuri==='togarak'?null:<><LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'all')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>{onEducationSetup && <button type="button" onClick={onEducationSetup} className="mb-4 text-sm font-semibold text-sky-900">{__kbUi('Sinf yoki kursni o‘zgartirish')}</button>}</>;
+  const catalogSearchControl = catalogBrowse && <label className="mb-4 block text-sm font-semibold text-slate-700">
+    <span className="mb-1 block">{__kbUi('Fan yoki mavzuni qidirish')}</span>
+    <input type="search" value={catalogSearch} onChange={event => { setCatalogSearch(event.target.value); setClosedSubjects([]); }}
+      placeholder={__kbUi('Fan, mavzu nomi yoki kodi…')} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"/>
+  </label>;
+  const catalogError = xato && <div role="alert" className="mb-4 text-sm text-amber-900"><p>{__kbUi(xato)}</p>
+    {catalogBrowse && <button type="button" className="mt-2 rounded-lg border px-3 py-2 font-semibold" disabled={yuklanmoqda} onClick={() => setCatalogReload(value => value + 1)}>{__kbUi('Qayta urinish')}</button>}
+  </div>;
 
   const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{nomi, topic_codes, savol_soni}]
 
@@ -860,9 +823,11 @@ export default function TestTab({
     const asosiyTil = "uz";
     const ovozJinsi = _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz");
     const xomMatn = String(matn || "").replace(/\s+/g, " ").trim();
-    const ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
+    let ovozQismlari;
+    try { ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
+    } catch(error) { ovozniToxtat(); setOvozXatosi(error.message); return Promise.resolve({status:"error"}); }
     const ovozKaliti = `${asosiyTil}|${ovozJinsi}|${xomMatn}`;
     if (!ovozQismlari.length) {
       setOvozXatosi("O'qiladigan matn topilmadi.");
@@ -981,7 +946,7 @@ export default function TestTab({
       if (sorovIndeksi >= sorovlar.length) { yakunla("ended"); return; }
       const segment = ++ijro.segment;
       const segmentJoriymi = () => joriymi() && ijro.segment === segment;
-      const ovozQs = new URLSearchParams({ matn: sorovlar[sorovIndeksi++], jins: ovozJinsi, asosiy_til: asosiyTil });
+      const ovozQs = new URLSearchParams({ matn: sorovlar[sorovIndeksi++], jins: ovozJinsi, asosiy_til: asosiyTil, revision: SPEECH_REVISION });
       const manzil = `${API_BASE}/api/ovoz?${ovozQs.toString()}`;
       try {
         // Reuse one media element so a continued recording keeps the initial
@@ -1872,21 +1837,22 @@ export default function TestTab({
           </button>
         )}
         <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
-          {faolTuri === "togarak" ? __kbUi("Boshqa sinflar (to'garak)") : __kbUi("Test yechish")}
+          {faolTuri === "togarak" ? __kbUi("Boshqa sinflar (to'garak)") : catalogBrowse ? __kbUi(catalogType === 'universitet' ? 'Kurslar' : 'Sinflar va guruhlar') : __kbUi("Test yechish")}
         </h1>
-        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
+        {catalogSearchControl}
+        {catalogError}
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
-        ) : sinflarRoyxati.length === 0 && faolTuri === "togarak" ? (
+        ) : sinflarRoyxati.length === 0 && (faolTuri === "togarak" || catalogBrowse) ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi("Hozircha to'garak sinflari mavjud emas.")}</p>
+            <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi(catalogBrowse ? (catalogSearch ? 'Qidiruvga mos fan yoki mavzu topilmadi.' : 'Bu bo‘limda hali tayyor test yo‘q.') : "Hozircha to'garak sinflari mavjud emas.")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {sinflarRoyxati.map((s) => {
               const jamiMavzu = s.fanlar.reduce((sum, f) => sum + f.mavzular.length, 0);
               return (
-                <button key={s.sinf} onClick={() => setTanlanganSinf(s.sinf)}
+                <button key={s.sinf} onClick={() => { setTanlanganSinf(s.sinf); setClosedSubjects([]); }}
                   className="rounded-2xl p-5 text-center bg-white border"
                   style={{ borderColor: "#E5E1D8" }}>
                   <p className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>
@@ -1896,7 +1862,7 @@ export default function TestTab({
                 </button>
               );
             })}
-            {faolTuri === "oddiy" && !sinf && (
+            {faolTuri === "oddiy" && !sinf && !catalogBrowse && (
               <button onClick={() => setFaolTuri("togarak")}
                 className="rounded-2xl p-5 text-center bg-white border-2 border-dashed"
                 style={{ borderColor: "#C4BFAF" }}>
@@ -1916,8 +1882,8 @@ export default function TestTab({
   return (
     <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
       {catalogHeader}
-      {(!profilSinfi || boshqaSinflarRejimi) && (
-        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>{__kbUi("← Sinflar")}</button>
+      {(!profilSinfi || boshqaSinflarRejimi) && !catalogBrowse?.initialGrade && (
+        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>{__kbUi(catalogType === 'universitet' ? '← Kurslar' : '← Sinflar')}</button>
       )}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
@@ -1931,34 +1897,40 @@ export default function TestTab({
           {aralashRejim ? __kbUi("✕ Aralash rejimi") : __kbUi("🔀 Bir nechta mavzu")}
         </button>
       </div>
-      {sinf && !boshqaSinflarRejimi && (
+      {sinf && !boshqaSinflarRejimi && !catalogBrowse && (
         <button onClick={() => { setBoshqaSinflarRejimi(true); setFaolTuri("togarak"); setTanlanganSinf(null); }}
           className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>{__kbUi("📚 Boshqa (to'garak) guruhlarni ko'rish →")}</button>
       )}
-      {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
+      {catalogSearchControl}
+      {catalogError}
       {aralashRejim && (
         <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
           <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>{__kbUi("👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.")}</p>
           <span className="text-sm font-bold shrink-0 ml-2" style={{ color: "#1B4B7A" }}>{tanlanganKodlar.length}</span>
         </div>
       )}
-      {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
+      {catalogBrowse && yuklanmoqda ? <div role="status" className="py-10 text-center">{__kbUi('Testlar yuklanmoqda…')}</div> : !sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi("Tanlangan bo‘limda sizga mos test hali kiritilmagan.")}</p>
+          <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi(catalogSearch ? 'Qidiruvga mos fan yoki mavzu topilmadi.' : 'Tanlangan bo‘limda sizga mos test hali kiritilmagan.')}</p>
           {onEducationSetup && <button type="button" className="mt-4 rounded-xl border px-4 py-3 text-sm font-semibold" onClick={onEducationSetup}>{__kbUi("Sinf yoki kursni tekshirish")}</button>}
         </div>
       ) : (
         <div className="space-y-3">
           {sinfMalumoti.fanlar.map((fan) => {
-            const ochiq = ochiqFan === fan.qisqa;
+            const ochiq = catalogBrowse && catalogType === 'universitet' ? !closedSubjects.includes(fan.qisqa) : ochiqFan === fan.qisqa;
             return (
               <div key={fan.qisqa} className="rounded-2xl overflow-hidden border bg-white" style={{ borderColor: "#E5E1D8" }}>
-                <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)} className="w-full flex items-center justify-between p-4">
-                  <span className="font-semibold text-sm" style={{ color: "#2B2B2B" }}><TranslatedContent text={fan.nom} showStatus={false}/></span>
+                <button type="button" aria-expanded={ochiq} onClick={() => {
+                  if (catalogBrowse && catalogType === 'universitet') setClosedSubjects(old => ochiq ? [...old, fan.qisqa] : old.filter(key => key !== fan.qisqa));
+                  else setOchiqFan(ochiq ? null : fan.qisqa);
+                }} className="w-full flex items-center justify-between gap-3 p-4 text-left">
+                  <span className="min-w-0 font-semibold text-sm" style={{ color: "#2B2B2B" }}><TranslatedContent text={fan.nom} showStatus={false}/>
+                    {fan.details && <span className="mt-1 block break-words text-xs font-normal text-slate-600">{__kbUi(fan.details)}</span>}
+                  </span>
                   {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}
                 </button>
                 {ochiq && (
-                  <MavzuRoyxati fan={fan} aralashRejim={aralashRejim} tanlanganKodlar={tanlanganKodlar}
+                  <MavzuRoyxati key={catalogBrowse ? catalogSearch : fan.qisqa} fan={fan} aralashRejim={aralashRejim} tanlanganKodlar={tanlanganKodlar}
                     onToggle={aralashToggle} onTanla={mavzuBoslandi} />
                 )}
               </div>

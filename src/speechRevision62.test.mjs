@@ -67,11 +67,11 @@ test('multiline formulas inherit explicit language and remain whole at reading r
   assert.ok(!chunks.some(c=>c.text.includes('undefined')));
  }
 });
-test('automatic sentence detection does not split a multiline formula or switch its language',()=>{
+test('default Uzbek does not split a multiline formula or infer another language',()=>{
  const formula=String.raw`[lat]\frac{1}{2}
 + x^2[/lat]`;
  const result=splitSpeechText(`Найдите значение. ${formula}`);
- assert.equal(result.at(-1).til,'ru');assert.equal(result.at(-1).matn,formula);
+ assert.equal(result.at(-1).til,'uz');assert.equal(result.at(-1).matn,formula);
 });
 test('one oversized formula reports a readable error instead of sending broken LaTeX',()=>{
  assert.throws(()=>readingChunks(`[ru][lat]${'x+'.repeat(70)}1[/lat][/ru]`,100),/formula juda uzun/);

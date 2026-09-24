@@ -1,3 +1,5 @@
+import {readingChunks} from '../admin/speechText.js';
+import {protectSpeechMath} from '../speech/language.js';
 // Pure view rules. Catalog selection and scoring remain server-authoritative.
 export const DEFAULT_ASSISTANT_DRAFT = Object.freeze({
   grade: null, topic_codes: [], question_count: 20, difficulty: "mixed", minutes: 30,
@@ -50,34 +52,13 @@ export function questionOptions(question) {
   });
 }
 
-export function assistantSpeechChunks(value, limit = 1050) {
-  // Preserve explicitly tagged languages; untagged assistant messages are Uzbek.
-  const source = String(value || "").replace(/[*#`]/g, "").trim();
+export function assistantSpeechChunks(value, limit = 1100) {
+  const source = String(value || "").trim();
   if (!source) return [];
-  const pattern = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
-  const parts = [];
-  let cursor = 0;
-  let match;
-  const append = (text, lang) => {
-    let remaining = text.trim();
-    while (remaining) {
-      let cut = Math.min(remaining.length, limit);
-      if (cut < remaining.length) {
-        const space = remaining.lastIndexOf(" ", cut);
-        if (space > limit / 2) cut = space;
-      }
-      const chunk = remaining.slice(0, cut).trim();
-      if (chunk) parts.push(`[${lang}]${chunk}[/${lang}]`);
-      remaining = remaining.slice(cut).trim();
-    }
-  };
-  while ((match = pattern.exec(source))) {
-    append(source.slice(cursor, match.index), "uz");
-    append(match[2], match[1].toLowerCase());
-    cursor = pattern.lastIndex;
-  }
-  append(source.slice(cursor), "uz");
-  return parts;
+  const protectedMath = protectSpeechMath(source);
+  const plain = protectedMath.text.replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/(^|\n)#{1,6}\s+/g, '$1');
+  return readingChunks(protectedMath.restore(plain), Math.min(1400, limit))
+    .map(chunk => `[${chunk.language}]${chunk.text}[/${chunk.language}]`);
 }
 
 export function assistantImageSource(value, apiBase) {

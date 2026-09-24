@@ -68,10 +68,13 @@ export class AudioDictation {
     this.state('transcribing');
     const controller=new AbortController();this.controller=controller;
     try {
-      const result=await this.transcribe(blob,controller.signal,language);
-      if(generation!==this.generation)return;
-      if(typeof result?.text!=='string'||!result.text.trim())throw new Error('Ovoz xizmati matn qaytarmadi. Yozuvni tinglab, qayta yuboring.');
-      this.onText(result);
+      const texts=[];
+      for(const part of (Array.isArray(blob)?blob:[blob])) {
+        const result=await this.transcribe(part,controller.signal,language);
+        if(generation!==this.generation)return;
+        if(typeof result?.text!=='string'||!result.text.trim())throw new Error('Ovoz xizmati matn qaytarmadi. Yozuvni tinglab, qayta yuboring.');
+        texts.push(result.text.trim());this.onText({...result,text:texts.join(' ')});
+      }
     } catch(error) {if(generation===this.generation&&error.name!=='AbortError')this.onError(error.message||'Yozuv yuborilmadi. Qayta urinib ko‘ring.');}
     finally {if(generation===this.generation){this.busy=false;this.controller=null;this.state('idle');}}
   }
@@ -83,8 +86,16 @@ export class AudioDictation {
   async retry({language=this.lastRecording?.language||'auto'}={}) {
     if(this.busy||!this.lastRecording)return;
     this.busy=true;const generation=++this.generation;
-    const {blob}=this.lastRecording;this.remember(blob,language);
-    await this.submit(blob,language,generation);
+    const {blob,blobs}=this.lastRecording;this.lastRecording={blob,blobs,language};this.onRecording(this.lastRecording);
+    await this.submit(blobs||blob,language,generation);
+  }
+  selectSegments(blobs,{language='auto'}={}) {
+    if(this.busy)return;
+    try{
+      const parts=blobs.map(audioFileBlob);
+      if(!parts.length||parts.reduce((n,part)=>n+part.size,0)>MAX_AUDIO_BYTES)throw new Error('Ovoz yozuvi 8 MB dan oshmasligi kerak.');
+      this.lastRecording={blob:parts[0],blobs:parts,language};this.onRecording(this.lastRecording);
+    }catch(error){this.onError(error.message);}
   }
   discard(){if(!this.busy){this.lastRecording=null;this.onRecording(null);}}
   stop() {

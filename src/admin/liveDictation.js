@@ -1,3 +1,7 @@
+import {LiveRecorder} from './liveRecorder.js';
+
+// Prefer the native recorder: it works without an AudioContext audio callback.
+// PCM remains a fallback for browsers without MediaRecorder.
 // Capture PCM rather than waiting for a device-specific MediaRecorder stop
 // event. Each request is a complete WAV; container fragments are never sent.
 export function speechWav(parts,sampleRate) {
@@ -25,7 +29,8 @@ function stopStream(stream){try{for(const track of stream?.getTracks()||[])try{t
 export class LiveDictation {
  constructor({transcribe,onText=()=>{},onState=()=>{},onError=()=>{},onRecording=()=>{},onActivity=()=>{},
   mediaDevices=globalThis.navigator?.mediaDevices,AudioContext=globalThis.AudioContext||globalThis.webkitAudioContext,
-  setTimer=setTimeout,clearTimer=clearTimeout}={}) {
+  setTimer=setTimeout,clearTimer=clearTimeout,Recorder=globalThis.MediaRecorder,now}={}) {
+  if(Recorder)return new LiveRecorder({transcribe,onText,onState,onError,onRecording,onActivity,mediaDevices,Recorder,setTimer,clearTimer,now});
   Object.assign(this,{transcribe,onText,onState,onError,onRecording,onActivity,mediaDevices,AudioContext,setTimer,clearTimer});
   this.session=null;this.phase='idle';
  }
@@ -42,8 +47,12 @@ export class LiveDictation {
    // Must happen in the original button gesture, before awaiting permission
    // (especially Safari). Failures are reported; they cannot lock the editor.
    const context=new this.AudioContext();session.context=context;
-   const resume=context.resume?.();
-   Promise.resolve(resume).catch(()=>{if(this.session===session)this.fail(session,'Mikrofon ovozini ochib bo‘lmadi. Ovoz yozib yuborish usulini tanlang.');});
+   const resumeContext=async()=>{
+    try{await context.resume?.();}
+    catch{if(this.session===session)this.fail(session,'STT_CAPTURE_STALLED: Mikrofon ovozini ochib bo‘lmadi.');}
+   };
+   void resumeContext();
+   if(this.session!==session)return;
    const stream=await this.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
    if(this.session!==session){stopStream(stream);return;}
    session.stream=stream;
@@ -58,10 +67,20 @@ export class LiveDictation {
     catch{this.fail(session,'Mikrofon ovozini yozib bo‘lmadi. Ovoz yozib yuborish usulini tanlang.');}
    };
    source.connect(processor);processor.connect(gain);gain.connect(context.destination);
+   // Some browsers suspend Web Audio while their permission dialog is open.
+   // Resume again after permission/graph setup; don't wait forever for the
+   // very first ScriptProcessor callback (the previous 0-second screen).
+   if(context.state==='suspended'||context.state==='interrupted')void resumeContext();
+   if(this.session!==session)return;
+   this.clearTimer(session.timer);
+   session.timer=this.setTimer(()=>{
+    if(this.session===session&&!session.started)this.fail(session,'STT_CAPTURE_STALLED: Mikrofon ochildi, lekin yozuv boshlanmadi.');
+   },12000);
    for(const track of stream.getTracks())track.addEventListener?.('ended',()=>{if(this.session===session)this.stop();},{once:true});
   }catch(error){
    if(this.session!==session)return;
-   this.fail(session,error?.name==='NotAllowedError'?'Mikrofonga ruxsat berilmadi. Brauzerning sayt ruxsatlaridan mikrofonni yoqing.'
+   this.fail(session,session.stream?'STT_CAPTURE_STALLED: Mikrofon yozuvini ochib bo‘lmadi.'
+    :error?.name==='NotAllowedError'?'Mikrofonga ruxsat berilmadi. Brauzerning sayt ruxsatlaridan mikrofonni yoqing.'
     :error?.name==='NotFoundError'?'Mikrofon topilmadi. Mikrofonni ulang.'
     :error?.name==='NotReadableError'?'Mikrofon boshqa dasturda band yoki qurilmada o‘chirilgan.'
     :'Mikrofonni ochib bo‘lmadi. Ovoz yozib yuborish usulini tanlang.');
@@ -69,6 +88,10 @@ export class LiveDictation {
  }
  samples(session,part) {
   if(!part.length)return;
+  this.clearTimer(session.framesTimer);
+  session.framesTimer=this.setTimer(()=>{
+   if(this.session===session&&session.capture)this.fail(session,'STT_CAPTURE_STALLED: Mikrofondan ovoz kelishi to‘xtadi.');
+  },12000);
   if(!session.started){session.started=true;this.clearTimer(session.timer);this.state('recording');
    session.timer=this.setTimer(()=>{if(this.session===session)this.stop();},120000);}
   session.parts.push(part);session.segment.push(part);session.frames+=part.length;session.segmentFrames+=part.length;
@@ -107,7 +130,7 @@ export class LiveDictation {
   void this.pump(session);
  }
  release(session) {
-  session.capture=false;this.clearTimer(session.timer);
+  session.capture=false;this.clearTimer(session.timer);this.clearTimer(session.framesTimer);
   if(session.processor)session.processor.onaudioprocess=null;
   const stream=session.stream;session.stream=null;stopStream(stream);
   for(const node of [session.source,session.processor,session.gain])try{node?.disconnect();}catch{}

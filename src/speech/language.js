@@ -1,5 +1,5 @@
 // Detect the three reading languages supported by the education content.
-// Explicit content tags win; ambiguous names/formulas inherit the surrounding text.
+// Reading is Uzbek unless an explicit content tag chooses another language.
 export const SPEECH_LOCALES = { uz: 'uz-UZ', en: 'en-US', ru: 'ru-RU' };
 export function protectSpeechMath(value) {
   const formulas=[];
@@ -31,11 +31,10 @@ export function splitSpeechText(value, fallback = 'uz') {
   const result = [];
   const untagged = part => {
     if (!part.trim()) return;
-    let language = detectSpeechLanguage(part, fallback);
+    const language = 'uz';
     const protectedMath=protectSpeechMath(part);
     for (const sentence of protectedMath.text.split(/(?<=[.!?;\n])\s+/)) {
       if (!sentence.trim()) continue;
-      language = detectSpeechLanguage(sentence, language);
       result.push({ til: language, matn: protectedMath.restore(sentence) });
     }
   };

@@ -51,7 +51,7 @@
 .ka-confirm dl{gap:9px;margin-bottom:10px}
 .ka-confirm dt{font-size:10px}.ka-confirm dd{font-size:12px}.ka-confirm ul{font-size:11px;max-height:160px;overflow-y:auto;overscroll-behavior:contain}
 .ka-body{padding:17px 15px}
-.ka-pdf-export{margin-top:20px;padding:14px;border:1px solid #d7e4df;border-radius:14px;background:#fff}
+.ka-pdf-export{flex-shrink:0;margin:8px 16px;padding:14px;border:1px solid #d7e4df;border-radius:14px;background:#fff}
 .ka-pdf-export>div:first-child{display:flex;align-items:center;gap:10px;color:#26745f}
 .ka-pdf-export strong{display:block;font-size:12px;color:var(--ka-ink);font-weight:650}
 .ka-pdf-export small{display:block;font-size:10px;line-height:1.5;color:var(--ka-muted);margin-top:3px}

@@ -1,4 +1,4 @@
-import {detectSpeechLanguage,splitSpeechText,protectSpeechMath} from '../speech/language.js';
+import {splitSpeechText,protectSpeechMath} from '../speech/language.js';
 
 // Resolve language tags BEFORE splitting paragraphs and request-size boundaries.
 // Each request carries its language, including number-only chunks inside a tag.
@@ -9,13 +9,12 @@ export function readingChunks(value,max=1200,language='auto') {
  const original=String(value||'').replace(/\r\n?/g,'\n');
  const protectedMath=protectSpeechMath(original);
  const source=protectedMath.text;
- const fallback=detectSpeechLanguage(original.replace(/\[\/?(?:uz|ru|en)\]/gi,''));
  const append=(value,explicit)=>{
  for(const paragraph of value.split(/\n+/)) {
   const first=result.length;
   const detected=explicit||language!=='auto'
    ? [{matn:paragraph,til:explicit||language}]
-   : splitSpeechText(paragraph,fallback);
+   : splitSpeechText(paragraph);
   const parts=[];
   for(const part of detected) {
    if(parts.length&&parts.at(-1).til===part.til)parts.at(-1).matn+=' '+part.matn;

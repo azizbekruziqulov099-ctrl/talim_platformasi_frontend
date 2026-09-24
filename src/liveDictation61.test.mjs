@@ -47,7 +47,7 @@ test('permission cancellation closes the context and releases a late microphone 
 });
 test('no audio frames is an error, not a false recording indicator',async()=>{
  const f=fixture();await f.live.start();assert.equal(f.states.at(-1),'starting');
- [...f.timers].find(([,ms])=>ms===20000)[0]();
+ [...f.timers].find(([,ms])=>ms===12000)[0]();
  assert.equal(f.states.at(-1),'idle');assert.ok(f.errors[0]);assert.equal(f.released(),1);assert.equal(f.contexts[0].closed,1);
 });
 test('text appears during capture; final stop releases microphone before queued HTTP work',async()=>{

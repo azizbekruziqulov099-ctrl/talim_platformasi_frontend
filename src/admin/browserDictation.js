@@ -110,7 +110,7 @@ export function dictationSupport(access,environment=globalThis) {
  const browser=secure&&Boolean(environment.SpeechRecognition||environment.webkitSpeechRecognition);
  const microphone=secure&&Boolean(environment.navigator?.mediaDevices?.getUserMedia);
  const Context=environment.AudioContext||environment.webkitAudioContext;
- const live=microphone&&Boolean(Context?.prototype?.createScriptProcessor)&&Boolean(access?.dictation_available);
+ const live=microphone&&Boolean(environment.MediaRecorder||Context?.prototype?.createScriptProcessor)&&Boolean(access?.dictation_available);
  const recording=microphone&&Boolean(environment.MediaRecorder)&&Boolean(access?.dictation_available);
  let reason='';
  if(!secure)reason='Mikrofon ishlashi uchun saytni HTTPS manzilida oching.';
@@ -118,4 +118,11 @@ export function dictationSupport(access,environment=globalThis) {
   ? 'Bu brauzerda mikrofon yozuvi ochilmayapti. Saytni mikrofonni qo‘llaydigan brauzerda oching.'
   : 'Ovozni matnga aylantirish xizmati ulanmagan, bu brauzerda ham gapirib yozish mavjud emas.';
  return {live,recording,browser,reason};
+}
+
+// Opening admin/server status must not silently switch a working browser
+// microphone to a different capture engine or start using provider quota.
+export function preferredDictationMethod(method, support) {
+ if (['browser','recording','live'].includes(method) && support[method]) return method;
+ return ['browser','live','recording'].find(key => support[key]) || 'browser';
 }

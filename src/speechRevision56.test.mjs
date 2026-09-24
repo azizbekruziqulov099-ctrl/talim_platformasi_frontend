@@ -23,14 +23,14 @@ test('chosen reading language applies to untagged content; explicit tags retain 
  assert.deepEqual(readingChunks(''),[]);
  assert.throws(()=>readingChunks('Matn',1200,'wrong'));
 });
-test('automatic reading still handles three languages in one untagged paragraph',()=>{
- assert.deepEqual(readingChunks('Salom. Hello world! Привет, мир.').map(chunk=>chunk.language),['uz','en','ru']);
+test('untagged reading stays Uzbek even when vocabulary belongs to another language',()=>{
+ assert.deepEqual(readingChunks('Salom. Hello world! Привет, мир.').map(chunk=>chunk.language),['uz']);
 });
 test('consecutive sentences in one language are sent in bounded batches',()=>{
  const text='Hello world. '.repeat(200);
  const chunks=readingChunks(text);
  assert.ok(chunks.length>=2&&chunks.length<=4);
- assert.ok(chunks.every(chunk=>chunk.language==='en'&&chunk.text.length<=1200));
+ assert.ok(chunks.every(chunk=>chunk.language==='uz'&&chunk.text.length<=1200));
  assert.equal(chunks.map(chunk=>chunk.text).join(' '),text.trim());
 });
 test('reader sends each chunk language alongside its text and chosen gender',async()=>{

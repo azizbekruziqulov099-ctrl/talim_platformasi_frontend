@@ -1,4 +1,5 @@
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {SPEECH_REVISION} from '../speech/pronunciation.js';
 import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
@@ -70,7 +71,9 @@ function useAssistantVoice(apiBase, enabled) {
   const speak = useCallback((id, text) => {
     if (runRef.current?.id === id) { stop(); return; }
     stop();
-    const chunks = assistantSpeechChunks(text);
+    let chunks;
+    try { chunks = assistantSpeechChunks(text); }
+    catch (error) { setVoice({id:null,status:'',error:error.message}); return; }
     if (!chunks.length) return;
     const audio = new Audio();
     const run = { id, audio, index: 0, timer: null };
@@ -84,7 +87,7 @@ function useAssistantVoice(apiBase, enabled) {
     const next = () => {
       if (!current()) return;
       if (run.index >= chunks.length) { stop(); return; }
-      const params = new URLSearchParams({ matn: chunks[run.index], jins: "qiz", asosiy_til: "uz" });
+      const params = new URLSearchParams({ matn: chunks[run.index], jins: "qiz", asosiy_til: "uz", revision: SPEECH_REVISION });
       audio.src = `${apiBase}/api/ovoz?${params.toString()}`;
       setVoice({ id, status: "loading", error: "" });
       clearTimeout(run.timer);
@@ -382,6 +385,8 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
     try {
       const blob = await request(`/attempt/${encodeURIComponent(attempt.attempt_id)}/export?format=${format}&answer_key=${key ? "true" : "false"}`, { download: true });
       if (operation.current !== op) return;
+      if (format === 'pdf' && await blob.slice(0,5).text() !== '%PDF-') throw new Error('Server PDF fayl qaytarmadi. Qayta yuklab ko‘ring.');
+      if (operation.current !== op) return;
       const url = URL.createObjectURL(blob); downloadUrls.current.add(url);
       const link = document.createElement("a"); link.href = url;
       link.download = `kabutar-${key ? "javoblar-kaliti" : "test"}-${String(attempt.attempt_id).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24)}.${format}`;
@@ -418,6 +423,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
     <ul>{(summary.topics || selectedTopics).map((topic) => <li key={topic.topic_code}>{topic.subject_name ? __kbUi(`${topic.subject_name}: `) : __kbUi("")}{__kbUi(topicTitle(topic))}{summary.allocation?.find((entry) => entry.topic_code === topic.topic_code)?.count != null ? __kbUi(` — ${summary.allocation.find((entry) => entry.topic_code === topic.topic_code).count} savol`) : __kbUi("")}</li>)}</ul>
     <p className="ka-hint">{__kbUi(selectedSubjects.map(([code, name]) => `${name}: ${summary.subject_points?.[code] ?? draft.subject_points?.[code] ?? 1} ball`).join(" · "))}</p>
     <button type="button" className="ka-primary ka-full" disabled={interactionDisabled || plan.fingerprint !== draftFingerprint(draft)} onClick={start}>{busy === "create" ? __kbUi("Test tayyorlanmoqda…") : __kbUi("Tasdiqlayman — testni boshlash")}</button>
+    <p className="ka-hint">{__kbUi('Test tuzilgach, yuqoridagi “PDF — savollar” tugmasi bilan shu savollarni alohida fayl qilib olasiz.')}</p>
     {tab === "chat" && <button type="button" className="ka-link" onClick={() => setTab("plan")}>{__kbUi("Shartlarni o‘zgartirish")}</button>}
   </div>;
 
@@ -436,6 +442,12 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
       <button type="button" aria-pressed={tab === "plan"} onClick={() => setTab("plan")}><BookOpen size={15} />{__kbUi("Test rejasi ")}<span>{draft.topic_codes?.length || 0}</span></button>
       {attempt && <button type="button" aria-pressed={tab === "attempt"} onClick={() => setTab("attempt")}>{result ? __kbUi("Natija") : __kbUi("Test")}{!result && <span>{__kbUi(formatAssistantTime(seconds))}</span>}</button>}
     </nav>
+    {attempt && <section className="ka-pdf-export" aria-label={__kbUi("Testni PDF ko‘rinishida yuklash")}>
+        <div><FileText size={21} /><span><strong>{__kbUi("Qog‘ozda ham mashq qiling")}</strong><small>{__kbUi("Savollar va javob kaliti alohida PDF faylda.")}</small></span></div>
+        <div className="ka-actions"><button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf")}><Download size={16} />{busy === "download-pdf-false" ? __kbUi("PDF tayyorlanmoqda…") : __kbUi("PDF — savollar")}</button>
+          {keysAllowed && <button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf", true)}><Download size={16} />{busy === "download-pdf-true" ? __kbUi("Kalit tayyorlanmoqda…") : __kbUi("PDF — javob kaliti")}</button>}</div>
+        {!keysAllowed && <p className="ka-hint">{__kbUi("Javoblaringizni test yakunida ko‘rasiz. Alohida kalit o‘qituvchi yoki administrator uchun.")}</p>}
+      </section>}
     {!recoveryChecked && !readOnly && <div className="ka-recovery" role="status">{busy === "recover" ? __kbUi("Saqlangan test tekshirilmoqda…") : <>{__kbUi("Oldingi testni tekshirish uchun ")}<button className="ka-link" type="button" onClick={() => { setError(""); setRecoveryRetry((current) => current + 1); }}>{__kbUi("qayta urinib ko‘ring")}</button>.</>}</div>}
     {(error || voice.error) && <div className="ka-alert" role="alert"><span>{error || __kbUi(voice.error)}</span><button type="button" className="ka-icon-button" aria-label={__kbUi("Xabarni yopish")} onClick={() => { setError(""); voice.stop(); }}><X size={16} /></button></div>}
     {tab === "chat" && <>
@@ -525,12 +537,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
         })}</div>
         <button type="button" className="ka-primary ka-full" onClick={newConversation}><MessageCircle size={17} />{__kbUi("Yangi suhbat va mashq")}</button>
       </>}
-      <section className="ka-pdf-export" aria-label={__kbUi("Testni PDF ko‘rinishida yuklash")}>
-        <div><FileText size={21} /><span><strong>{__kbUi("Qog‘ozda ham mashq qiling")}</strong><small>{__kbUi("Savollar va javob kaliti alohida PDF faylda.")}</small></span></div>
-        <div className="ka-actions"><button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf")}><Download size={16} />{busy === "download-pdf-false" ? __kbUi("PDF tayyorlanmoqda…") : __kbUi("PDF — savollar")}</button>
-          {keysAllowed && <button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf", true)}><Download size={16} />{busy === "download-pdf-true" ? __kbUi("Kalit tayyorlanmoqda…") : __kbUi("PDF — javob kaliti")}</button>}</div>
-        {!keysAllowed && <p className="ka-hint">{__kbUi("Javoblaringizni test yakunida ko‘rasiz. Alohida kalit o‘qituvchi yoki administrator uchun.")}</p>}
-      </section>
+
     </div>}
     <footer className="ka-footer">{attempt && !result ? __kbUi("Yopilganda ham imtihon vaqti davom etadi.") : __kbUi("Yopib-ochsangiz, shu seansdagi suhbat saqlanadi.")}</footer>
   </section>;

@@ -1,3 +1,4 @@
+import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
 import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
 import {EducationHome} from './workspace/EducationSetup.jsx';
@@ -12,6 +13,7 @@ import SectionErrorBoundary from './workspace/AppErrorBoundary.jsx';
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
 import {matchingSubjects,gradeLabel,semesterPairLabel,institutionLabel,lessonLabel,profileInstitutionType} from './curriculum/catalog.js';
 import CurriculumBoundary, { useCurriculum } from "./curriculum/CurriculumScope.jsx";
+import AdminTestBrowser from './curriculum/AdminTestBrowser.jsx';
 // REV52: live auth and membership modules share one implementation.
 // REV42: personal curriculum planner and database-grounded assistant.
 // REV38: archive-filtered institutions and explicit account/activity counts.
@@ -856,78 +858,8 @@ function _brauzerOvoziniTanla(til, jins) {
   return selectBrowserVoice(globalThis.speechSynthesis?.getVoices?.() || [], _ovozTiliniTuzat(til), _ovozJinsiniTuzat(jins));
 }
 
-function _xorijiyMatnniOvozgaTayyorla(matn, til) {
-  const lugat = til === "ru"
-    ? { frac: (a, b) => `${a} делённое на ${b}`, sqrt: (x) => `квадратный корень из ${x}`, square: (x) => `${x} в квадрате`, cube: (x) => `${x} в кубе`, power: (x, n) => `${x} в степени ${n}`, "+": " плюс ", "-": " минус ", "×": " умножить на ", "·": " умножить на ", "*": " умножить на ", "÷": " разделить на ", "=": " равно ", "≤": " меньше или равно ", "≥": " больше или равно ", "≠": " не равно ", "<": " меньше ", ">": " больше " }
-    : { frac: (a, b) => `${a} over ${b}`, sqrt: (x) => `square root of ${x}`, square: (x) => `${x} squared`, cube: (x) => `${x} cubed`, power: (x, n) => `${x} to the power of ${n}`, "+": " plus ", "-": " minus ", "×": " times ", "·": " times ", "*": " times ", "÷": " divided by ", "=": " equals ", "≤": " less than or equal to ", "≥": " greater than or equal to ", "≠": " not equal to ", "<": " less than ", ">": " greater than " };
-  let t = String(matn || "");
-  t = t.replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "$1").replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/\\(?:left|right)/g, "");
-  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (_, a, b) => ` ${lugat.frac(a, b)} `);
-  t = t.replace(/\\sqrt\s*\{([^{}]+)\}/g, (_, x) => ` ${lugat.sqrt(x)} `);
-  t = t.replace(/([0-9A-Za-zА-Яа-я]+)\s*\^\s*\{?(\d+)\}?/g, (_, x, n) => ` ${n === "2" ? lugat.square(x) : n === "3" ? lugat.cube(x) : lugat.power(x, n)} `);
-  for (const [re, belgi] of [[/\\times/g, "×"], [/\\cdot/g, "·"], [/\\div/g, "÷"], [/\\leq/g, "≤"], [/\\geq/g, "≥"], [/\\neq/g, "≠"]]) t = t.replace(re, belgi);
-  t = t.replace(/\\pi\b/g, " pi ");
-  for (const belgi of ["≤", "≥", "≠", "+", "-", "×", "·", "*", "÷", "=", "<", ">"])
-    t = t.replace(new RegExp(`\\s*${belgi.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "g"), lugat[belgi]);
-  t = t.replace(/\\[A-Za-z]+|[{}]/g, " ");
-  return t.replace(/\s+/g, " ").trim();
-}
-
 function _matnniOvozgaTayyorla(matn, til = "uz") {
-  // LaTeX belgilangan (yoki belgisiz) kasrlarni tabiiy o'zbekcha nutqqa
-  // aylantiradi — masalan \tfrac{1}{2} → "ikkidan bir", 6\tfrac{1}{2}
-  // (aralash son) → "olti butun ikkidan bir". Shuningdek: o'lchov
-  // birliklari (kg, sm, km...) to'liq so'zga, va matematik o'zgaruvchilar
-  // (x, y, z, n — songa yopishgan bo'lsa ham, masalan "2x") o'z nomiga
-  // ("iks", "igrik"...) aylantiriladi — xom holda o'qish tushunarsiz
-  // eshitilgani uchun kerak.
-  if (!matn) return "";
-  til = _ovozTiliniTuzat(til);
-  if (til !== "uz") return _xorijiyMatnniOvozgaTayyorla(matn, til);
-  let t = matn;
-  t = t.replace(/\[lat\]([^]*?)\[\/lat\]/g, "$1");
-  t = t.replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/(\d)\s*(\\(?:tfrac|dfrac|cfrac|frac))/g, "$1 butun $2");
-  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "$2 dan $1");
-  t = t.replace(/\\sqrt\s*\{([^{}]*)\}/g, "$1 ning kvadrat ildizi");
-  t = t.replace(/\\times/g, " marta ");
-  t = t.replace(/\\cdot/g, " marta ");
-  t = t.replace(/\\div/g, " bo'lib ");
-  t = t.replace(/\\pm/g, " plyus-minus ");
-  t = t.replace(/\\leq/g, " kichik yoki teng ");
-  t = t.replace(/\\geq/g, " katta yoki teng ");
-  t = t.replace(/\\neq/g, " teng emas ");
-  t = t.replace(/\\infty/g, " cheksizlik ");
-  t = t.replace(/\\approx/g, " taxminan teng ");
-  t = t.replace(/\\pi\b/g, " pi ");
-  t = t.replace(/([0-9a-zA-Z]+)\s*\^\s*\{?(\d+)\}?/g, (_, asos, daraja) => {
-    if (daraja === "2") return ` ${asos} kvadrat `;
-    if (daraja === "3") return ` ${asos} kub `;
-    return ` ${asos} ning ${daraja}-darajasi `;
-  });
-  const birliklar = [
-    [/\bkm\/soat\b/gi, " kilometr soatiga "],
-    [/\bkg\b/gi, " kilogramm "], [/\bgr\b/gi, " gramm "],
-    [/\bmm\b/gi, " millimetr "], [/\bsm\b/gi, " santimetr "], [/\bkm\b/gi, " kilometr "],
-    [/\bml\b/gi, " millilitr "], [/\bl\b/gi, " litr "],
-    [/\bsm2\b|\bsm²\b/gi, " kvadrat santimetr "], [/\bm2\b|\bm²\b/gi, " kvadrat metr "],
-    [/\bsm3\b|\bsm³\b/gi, " kub santimetr "], [/\bm3\b|\bm³\b/gi, " kub metr "],
-    [/\bm\b/g, " metr "],
-  ];
-  for (const [re, almashtir] of birliklar) t = t.replace(re, almashtir);
-  const ozgaruvchilar = { x: "iks", y: "igrik", z: "zet", n: "en" };
-  t = t.replace(/(?<![a-zA-Zʻʼ'])([xyzn])(?![a-zA-Zʻʼ'])/g, (m, harf) => ` ${ozgaruvchilar[harf]} `);
-  t = t.replace(/°C/g, " daraja Selsiy ");
-  t = t.replace(/%/g, " foiz ");
-  t = t.replace(/≤/g, " kichik yoki teng ").replace(/≥/g, " katta yoki teng ").replace(/≠/g, " teng emas ");
-  t = t.replace(/\+/g, " plyus ").replace(/−|-/g, " minus ");
-  t = t.replace(/[×·*]/g, " ko'paytirilgan ").replace(/÷/g, " bo'lingan ").replace(/=/g, " teng ");
-  t = t.replace(/</g, " kichik ").replace(/>/g, " katta ");
-  t = t.replace(/\$/g, "");
-  t = t.replace(/_{2,}/g, " bo'sh joy "); // "___" (bo'sh joy) — "pastki chiziq" deb o'qilmasin
-  t = t.replace(/[_`#]+/g, "");
-  return t.replace(/\s+/g, " ").trim();
+  return prepareSpeech(matn, _ovozTiliniTuzat(til));
 }
 
 function OvozliOqishTugmasi({
@@ -943,22 +875,30 @@ function OvozliOqishTugmasi({
   useKbInterfaceLocale();
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
+  const [talaffuzXatosi, setTalaffuzXatosi] = useState("");
   const audioRef = useRef(null);
+  const speechRunRef = useRef(0);
   const oqilyaptimi = oqilayotganId === kontentId;
 
   const boshla = (boshlanishTezligi) => {
+    const run = ++speechRunRef.current;
+    const current = () => speechRunRef.current === run;
     window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
     setPauzada(false);
-    const qismlar = _ovozQismlargaBol(matn, asosiyTil)
+    setTalaffuzXatosi("");
+    let qismlar;
+    try { qismlar = _ovozQismlargaBol(matn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
+    } catch(error) { setTalaffuzXatosi(error.message); return; }
     const brauzerOvozlari = qismlar.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
     let qismIndeksi = 0;
     const tugadi = () => {
+      if (!current()) return;
       audioRef.current = null;
       setOqilayotganId(null);
       setJoriySozIndeksi(-1);
@@ -969,6 +909,7 @@ function OvozliOqishTugmasi({
         matn: String(matn || ""),
         jins: _ovozJinsiniTuzat(ovozJinsi),
         asosiy_til: "uz",
+        revision: SPEECH_REVISION,
       });
       const audio = new Audio(`${API_BASE}/api/ovoz?${qs.toString()}`);
       audio.playbackRate = boshlanishTezligi;
@@ -980,6 +921,7 @@ function OvozliOqishTugmasi({
       return;
     }
     const keyingisiniOqi = () => {
+      if (!current()) return;
       if (qismIndeksi >= qismlar.length) { tugadi(); return; }
       const joriyQismIndeksi = qismIndeksi++;
       const qism = qismlar[joriyQismIndeksi];
@@ -992,6 +934,7 @@ function OvozliOqishTugmasi({
       utterance.rate = boshlanishTezligi;
       utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
       utterance.onboundary = (e) => {
+        if (!current()) return;
         if (e.name && e.name !== "word") return;
         let idx = 0;
         for (let i = 0; i < sozPozitsiyalari.length; i++) {
@@ -1019,6 +962,7 @@ function OvozliOqishTugmasi({
   };
 
   const toxtat = () => {
+    speechRunRef.current++;
     window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
@@ -1039,11 +983,14 @@ function OvozliOqishTugmasi({
   };
 
   useEffect(() => () => {
+    speechRunRef.current++;
+    window.speechSynthesis?.cancel();
     if (audioRef.current) audioRef.current.pause();
   }, []);
 
   return (
     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+      {talaffuzXatosi && <span role="alert" className="text-xs text-red-700">{talaffuzXatosi}</span>}
       <button onClick={() => (oqilyaptimi ? toxtat() : boshla(tezlik))}
         className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)", color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }}>
         {oqilyaptimi ? __kbUi("⏹ To'xtatish") : __kbUi("🔊 O'qib berish")}
@@ -2416,11 +2363,7 @@ function BilimMarkazi({
 // ═══════════════════════════════════════════════════════════
 function AdminTestlarTab({ token }) {
   useKbInterfaceLocale();
-  return <CurriculumBoundary token={token} title={__kbUi("Testlar")}><AdminScopedTests token={token}/></CurriculumBoundary>;
-}
-function AdminScopedTests({token}) {
-  const {scope}=useCurriculum();
-  return <TestTab token={token} sinf={scope.grade || null} curriculumScope={scope}/>;
+  return <AdminTestBrowser token={token} Tests={TestTab}/>;
 }
 
 function AdminTab({ token, oldindanTanlangan }) {

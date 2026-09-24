@@ -1,4 +1,6 @@
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
+import {splitSpeechText,SPEECH_LOCALES} from '../speech/language.js';
+import {prepareSpeech,SPEECH_REVISION} from '../speech/pronunciation.js';
 import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, {
   useCallback,
@@ -23,8 +25,10 @@ import {
 } from "lucide-react";
 
 let activeTtsAudio = null;
+let speechGeneration = 0;
 
 function stopSpeech() {
+  speechGeneration++;
   window.speechSynthesis?.cancel();
   if (!activeTtsAudio) return;
   activeTtsAudio.onplaying = null;
@@ -39,20 +43,29 @@ function browserSpeak(text, { onStart, onEnd } = {}) {
     onEnd?.();
     return;
   }
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "uz-UZ";
+  const pieces = splitSpeechText(text);
+  const generation = speechGeneration;
+  const voices = window.speechSynthesis.getVoices();
+  let index = 0;
+  const next = () => {
+  if (generation !== speechGeneration) return;
+  if (index >= pieces.length) { onEnd?.(); return; }
+  const piece = pieces[index++];
+  let spoken;
+  try { spoken = prepareSpeech(piece.matn,piece.til); } catch { onEnd?.(); return; }
+  const preferred = voices.find(voice => voice.lang.toLowerCase().startsWith(piece.til));
+  if (!preferred) { onEnd?.(); return; }
+  const utterance = new SpeechSynthesisUtterance(spoken);
+  utterance.lang = SPEECH_LOCALES[piece.til];
   utterance.rate = 0.92;
   utterance.pitch = 1.02;
-  const voices = window.speechSynthesis.getVoices();
-  const preferred =
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("uz")) ||
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("tr")) ||
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("en"));
   if (preferred) utterance.voice = preferred;
   utterance.onstart = () => onStart?.();
-  utterance.onend = () => onEnd?.();
+  utterance.onend = next;
   utterance.onerror = () => onEnd?.();
   window.speechSynthesis.speak(utterance);
+  };
+  next();
 }
 
 function speakUzbek(
@@ -71,6 +84,7 @@ function speakUzbek(
   const url = new URL(`${base}/api/ovoz`, window.location.origin);
   url.searchParams.set("matn", text.slice(0, 1500));
   url.searchParams.set("jins", variant === "male" ? "ogil" : "qiz");
+  url.searchParams.set("revision", SPEECH_REVISION);
   const audio = new Audio(url.toString());
   let fallbackStarted = false;
   activeTtsAudio = audio;

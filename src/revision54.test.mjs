@@ -26,7 +26,7 @@ test('reading detects untagged Uzbek, Russian and English', () => {
     ['Quyidagi sonlarning yig‘indisini hisoblang.', 'uz']]) assert.equal(detectSpeechLanguage(text), language);
 });
 test('mixed sentences and explicit content tags preserve their own language', () => {
-  assert.deepEqual(splitSpeechText('Salom. Hello world! Привет, мир. [uz]apple[/uz]').map(part => part.til), ['uz', 'en', 'ru', 'uz']);
+  assert.deepEqual(splitSpeechText('Salom. Hello world! Привет, мир. [uz]apple[/uz]').map(part => part.til), ['uz', 'uz', 'uz', 'uz']);
   assert.deepEqual(splitSpeechText('[en]2 + 3 = 5[/en]'), [{ til: 'en', matn: '2 + 3 = 5' }]);
   assert.equal(detectSpeechLanguage('[lat]x + y[/lat]'), 'uz');
   assert.equal(recognitionLocale('Какой ответ?', ['en-US']), 'ru-RU');
