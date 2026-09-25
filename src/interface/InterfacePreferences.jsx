@@ -62,8 +62,8 @@ export function InterfaceSettings({ compact = false }) {
     <fieldset><legend>{t('Bazadagi matnlar')}</legend>
       <label className="kb-interface-motion"><span><strong>{t('Avtomatik tarjima')}</strong><small>{t('Mavzu, savol va izohlarning tarjimasini tanlangan tilda ko‘rsatadi. Asl matn bazada o‘zgarmaydi.')}</small></span><input type="checkbox" role="switch" checked={translateContent} onChange={event=>updateInterface({translateContent:event.target.checked})}/></label>
       <p className="kb-translation-help">{t('Yoqilganda ko‘rsatilayotgan o‘quv matnlari tarjima uchun Google xizmatiga yuboriladi.')}</p>
-      <p className="kb-translation-status" role="status">{t(serviceStatus==='ready'?'Tarjima xizmati sozlangan.':serviceStatus==='unconfigured'?'Avtomatik tarjima hali ulanmagan.':serviceStatus==='unavailable'?'Tarjima xizmatiga ulanib bo‘lmadi.':'Yuklanmoqda…')}</p>
-      {serviceStatus!=='ready'&&<button type="button" className="kb-translation-retry" onClick={()=>checkTranslationService()}>{t('Qayta tekshirish')}</button>}
+      <p className="kb-translation-status" role="status">{t(serviceStatus==='ready'?'Tarjima xizmati sozlangan.':serviceStatus==='unknown'?'Yuklanmoqda…':'Interfeys brauzer orqali bepul tarjima qilinadi. Bazadagi matnlarni tarjima qilish uchun backendda GOOGLE_TRANSLATE_API_KEY kerak.')}</p>
+      {serviceStatus!=='ready'&&serviceStatus!=='unknown'&&<button type="button" className="kb-translation-retry" onClick={()=>checkTranslationService()}>{t('Qayta tekshirish')}</button>}
       <a className="kb-translation-attribution" href="https://translate.google.com" target="_blank" rel="noopener noreferrer" translate="no">Google Translate</a>
     </fieldset>
     <fieldset><legend>{t('Ko‘rinish')}</legend><div className="kb-interface-themes">{[{ value: 'system', label: 'Tizimga mos', Icon: Laptop }, { value: 'light', label: 'Yorug‘', Icon: Sun }, { value: 'dark', label: 'Tungi', Icon: Moon }].map(({ value, label, Icon }) => <label key={value} className={theme === value ? 'is-selected' : ''}>

@@ -6,7 +6,7 @@ import {SpeechReader} from './speechReader.js';
 import {AudioDictation} from './audioDictation.js';
 import {LiveDictation} from './liveDictation.js';
 import {detectSpeechLanguage} from '../speech/language.js';
-import {BrowserDictation,browserDictationSupport,dictationSupport,preferredDictationMethod} from './browserDictation.js';
+import {BrowserDictation,browserDictationSupport,browserDictationStatus,browserUzbekWarning,dictationSupport,preferredDictationMethod} from './browserDictation.js';
 import {dictationFallbackMessage,transcribeRecording} from './transcriptionClient.js';
 
 const fallbackKey=apiBase=>`kabutar:speech-browser:${apiBase}`;
@@ -36,6 +36,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
  const [dictation,setDictation]=useState('');
  const [interim,setInterim]=useState('');
  const [recording,setRecording]=useState('idle');
+ const [browserStatus,setBrowserStatus]=useState({phase:'idle'});
  const [savedAudio,setSavedAudio]=useState(null);
  const [savedPart,setSavedPart]=useState(0);
  const [audioUrl,setAudioUrl]=useState('');
@@ -58,7 +59,8 @@ export default function AdminSpeechStudio({apiBase,token}) {
  const serverAccessRef=useRef(serverAvailable);serverAccessRef.current=serverAvailable;
  const support=dictationSupport({dictation_available:serverAvailable});
  if(!serverAvailable)support.reason=browserDictationSupport().reason;
- const preferredMethod=preferredDictationMethod(method,support);
+ const preferredMethod=preferredDictationMethod(method,support,dictationLanguage);
+ const uzbekWarning=browserUzbekWarning(dictationLanguage,support);
  const selectedMethod=recording!=='idle'&&runningMethod?runningMethod:preferredMethod;
  const autoDictation=selectedMethod!=='browser';
  const dictationBusy=recording!=='idle';
@@ -135,7 +137,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
    onRecording:alive(({blob,blobs,language})=>blobs?recorder.selectSegments(blobs,{language}):recorder.selectFile(blob,{language})),
    transcribe});
   liveDictationRef.current=live;
-  const browser=new BrowserDictation({onState:alive(setRecording),onText:receiveText(),onInterim:alive(setInterim),onError:alive(setError)});
+  const browser=new BrowserDictation({onState:alive(setRecording),onStatus:alive(setBrowserStatus),onText:receiveText(),onInterim:alive(setInterim),onError:alive(setError)});
   recognitionRef.current=browser;
   return()=>{
    active=false;continueDictationRef.current=false;
@@ -186,17 +188,29 @@ export default function AdminSpeechStudio({apiBase,token}) {
   try{readerRef.current?.start(readingChunks(text,1200),{voice,rate});}
   catch(error){setError(error.message||'Matnni o‘qishga tayyorlab bo‘lmadi.');}
  };
- const startDictation=()=>{
-  if(dictationBusy)return;
-  if(support.reason){setError(support.reason);return;}
+ const beginDictation=(nextMethod,base=dictation)=>{
+  if(!support[nextMethod]){setError(support.reason||'Bu yozish usuli hozir mavjud emas. Boshqa usulni tanlang.');return;}
   setError('');setNotice('');setInterim('');
   try{readerRef.current?.stop();}catch{/* the dictation panel stays usable */}
   setRecognizedLanguage('');
-  continueDictationRef.current=true;setRunningMethod(preferredMethod);
-  if(preferredMethod!=='browser'){dictationBaseRef.current=dictation;generatedRef.current=null;retryTailRef.current='';}
-  if(selectedMethod==='live')liveDictationRef.current?.start({language:dictationLanguage});
-  else if(selectedMethod==='recording')audioDictationRef.current?.start({language:dictationLanguage});
+  continueDictationRef.current=true;setRunningMethod(nextMethod);
+  if(nextMethod!=='browser'){dictationBaseRef.current=base;generatedRef.current=null;retryTailRef.current='';}
+  if(nextMethod==='live')liveDictationRef.current?.start({language:dictationLanguage});
+  else if(nextMethod==='recording')audioDictationRef.current?.start({language:dictationLanguage});
   else recognitionRef.current?.start(dictationLanguage==='auto'?'uz':dictationLanguage);
+ };
+ const startDictation=()=>{if(!dictationBusy)beginDictation(preferredMethod);};
+ const changeDictationMethod=(nextMethod,startNow=false)=>{
+  if(!support[nextMethod])return;
+  if(nextMethod===selectedMethod&&dictationBusy)return;
+  // A stuck recognizer must not disable the working recorder. Switching is an
+  // explicit click (also keeps mobile activation); never upload automatically.
+  const base=interim?appendDictation(dictation,interim,commands&&dictationLanguage==='uz'):dictation;
+  const restart=dictationBusy||startNow;
+  if(dictationBusy){cancelDictation();setDictation(base);}
+  setMethod(nextMethod);setError('');setNotice('');
+  if(nextMethod==='browser'&&dictationLanguage==='auto')setDictationLanguage('uz');
+  if(restart)beginDictation(nextMethod,base);
  };
  const convertSaved=()=>{
   if(dictationBusy||!savedAudio||!serverAccessRef.current)return;
@@ -223,13 +237,13 @@ export default function AdminSpeechStudio({apiBase,token}) {
   const link=document.createElement('a');link.href=url;link.download='matn.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
  const button='rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-40';
- return <div className="mx-auto min-w-0 max-w-4xl space-y-5 pb-24" data-speech-revision="64">
+ return <div className="mx-auto min-w-0 max-w-4xl space-y-5 pb-24" data-speech-revision="65">
   <div><h2 className="text-xl font-bold text-slate-800">{__kbUi("Ovozli matn")}</h2><p className="mt-1 text-sm text-slate-600">{__kbUi("Matnni o‘z tilida o‘qish va gapirib yozish.")}</p></div>
   <div className="grid grid-cols-2 gap-2" role="group" aria-label={__kbUi("Ovozli matn rejimi")}>
    {[['read','Matnni o‘qish'],['dictate','Gapirib yozish']].map(([key,label])=><button key={key} type="button" onClick={()=>switchMode(key)} aria-pressed={mode===key}
     className={`${button} ${mode===key?'!border-sky-800 !bg-sky-900 !text-white':''}`}>{__kbUi(label)}</button>)}
   </div>
-  {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{__kbUi(error)}</p>}
+  {error&&mode==='read'&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{__kbUi(error)}</p>}
   {notice&&<p role="status" className="text-sm text-green-800">{__kbUi(notice)}</p>}
   {mode==='read'&&accessError&&<div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{__kbUi(accessError)}</p><button type="button" className={`${button} mt-2`} onClick={()=>setStatusAttempt(value=>value+1)}>{__kbUi('Qayta tekshirish')}</button></div>}
   {mode==='read'&&!access&&!accessError&&<p role="status" className="text-sm text-slate-500">{__kbUi("Ovoz xizmati tekshirilmoqda…")}</p>}
@@ -254,7 +268,12 @@ export default function AdminSpeechStudio({apiBase,token}) {
    {access&&!access.reading_available&&<p className="text-sm text-amber-800">{__kbUi("Serverda ovoz xizmati mavjud emas. Yangilanishdagi backend paketlarini o‘rnating.")}</p>}
   </section><section hidden={mode!=='dictate'} aria-label={__kbUi('Gapirib yozish')} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
    <p className="text-sm text-slate-600">{__kbUi(selectedMethod==='live'?'Mikrofonni yoqing va gapiring. Ovoz qismlab yuboriladi; xizmat javob bergan sari matn shu yerda chiqadi.':selectedMethod==='browser'?'Mikrofonni yoqing va gapiring. Tanish xizmati qaytargan so‘zlar gapirayotganingizda matnga tushadi.':'Mikrofonni yoqing va gapiring. Tugatish tugmasini bosgach, yozuv matnga aylantiriladi.')}</p>
+   {error&&<div role="alert" className="space-y-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+    <p>{__kbUi(error)}</p>
+    {selectedMethod==='browser'&&browserStatus.phase==='error'&&(support.live||support.recording)&&<button type="button" className={button} onClick={()=>changeDictationMethod(support.live?'live':'recording',true)}>{__kbUi('Groq bilan yozishni boshlash')}</button>}
+   </div>}
    {support.reason&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(support.reason)}</p>}
+   {!support.reason&&uzbekWarning&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(uzbekWarning)}</p>}
    {fallback&&<div role="status" className="rounded-xl bg-sky-50 p-3 text-sm text-sky-900">
     <p>{__kbUi(fallback)}</p>
     {savedAudio&&<p className="mt-1">{__kbUi('Avvalgi ovoz saqlandi. Matnga tushmagan so‘zlarni qayta ayting yoki yozuvni keyinroq qayta yuboring.')}</p>}
@@ -264,11 +283,11 @@ export default function AdminSpeechStudio({apiBase,token}) {
     {!dictationBusy?<button type="button" className={`${button} !bg-sky-900 !text-white`} disabled={Boolean(support.reason)} onClick={startDictation}>{__kbUi('Mikrofonni yoqish')}</button>
      :<><button type="button" className={`${button} !bg-sky-900 !text-white`} disabled={['stopping','transcribing'].includes(recording)} onClick={stopDictation}>{__kbUi(selectedMethod==='recording'?'To‘xtatish va matnga aylantirish':'Yozishni tugatish')}</button>
       <button type="button" className={`${button} !border-red-300 !text-red-700`} onClick={cancelDictation}>{__kbUi('Bekor qilish')}</button></>}
-    <span role="status" className="text-sm text-slate-500">{recording==='stopping'?__kbUi('Mikrofon o‘chirildi. Yozuv yakunlanmoqda…'):recording==='transcribing'?__kbUi('Mikrofon o‘chirildi. Matn tayyorlanmoqda…'):recording==='starting'?__kbUi('Mikrofon ruxsati va ovoz kutilmoqda…'):dictationBusy?__kbUi(selectedMethod==='recording'?'Ovoz yozilmoqda. Tugatish tugmasini bosing.':activity.pending?'Gapirishingiz mumkin. Matn olinmoqda…':'Tinglanmoqda…'):recognizedLanguage?`${__kbUi('Yozuv tili')}: ${__kbUi(languageNames[recognizedLanguage]||recognizedLanguage)}`:!support.reason?__kbUi('Gapirib yozishga tayyor'):__kbUi('')}</span>
+    <span role="status" className="text-sm text-slate-500">{recording==='stopping'?__kbUi('Yozuv to‘xtatilmoqda. Oxirgi matn kutilmoqda…'):recording==='transcribing'?__kbUi('Mikrofon o‘chirildi. Matn tayyorlanmoqda…'):dictationBusy&&selectedMethod==='browser'?__kbUi(browserDictationStatus(browserStatus)):recording==='starting'?__kbUi('Mikrofon ochilmoqda. Brauzer so‘rasa, “Ruxsat berish”ni bosing.'):dictationBusy?__kbUi(selectedMethod==='recording'?'Ovoz yozilmoqda. Tugatish tugmasini bosing.':activity.pending?'Gapirishingiz mumkin. Matn olinmoqda…':'Tinglanmoqda…'):error?__kbUi('Yozuv to‘xtadi. Qayta boshlashingiz mumkin.'):recognizedLanguage?`${__kbUi('Yozuv tili')}: ${__kbUi(languageNames[recognizedLanguage]||recognizedLanguage)}`:!support.reason?__kbUi('Gapirib yozishga tayyor'):__kbUi('')}</span>
    </div>
    {selectedMethod==='live'&&dictationBusy&&recording!=='starting'&&<div className="flex items-center gap-3 text-xs text-slate-600">{activity.level!==null&&<meter aria-label={__kbUi('Mikrofon ovozi')} min="0" max="1" value={activity.level} className="h-3 w-28"/>}<span>{activity.seconds} {__kbUi('soniya')}</span>{activity.quiet&&<span>{__kbUi('Oxirgi bo‘lakda nutq eshitilmadi. Mikrofonga yaqinroq gapiring.')}</span>}</div>}
    <label className="block text-sm font-semibold text-slate-700">{__kbUi('Gapiradigan tilingiz')}<select value={dictationLanguage==='auto'&&!autoDictation?'uz':dictationLanguage} disabled={dictationBusy} onChange={event=>setDictationLanguage(event.target.value)} className="mt-2 block w-full rounded-xl border p-2.5">{['uz','ru','en'].map(code=><option key={code} value={code}>{__kbUi(languageNames[code])}</option>)}{autoDictation&&<option value="auto">{__kbUi('Avtomatik aniqlash')}</option>}</select></label>
-   {(support.live||support.recording)&&<div className="space-y-2"><p className="text-xs text-slate-600">{__kbUi('Brauzer — asosiy usul. Groq — faqat admin uchun, xohlasangiz tanlang.')}</p><div className="flex flex-wrap gap-2" role="group" aria-label={__kbUi('Gapirib yozish usuli')}>{[['browser','Brauzer orqali yozish'],['recording','Ovoz yozib yuborish'],['live','Groq orqali jonli yozish']].filter(([key])=>support[key]).map(([key,label])=><button key={key} type="button" disabled={dictationBusy} aria-pressed={selectedMethod===key} className={`${button} ${selectedMethod===key?'!border-sky-800 !bg-sky-50':''}`} onClick={()=>{setMethod(key);if(key==='browser'&&dictationLanguage==='auto')setDictationLanguage('uz');setError('');setNotice('');}}>{__kbUi(label)}</button>)}</div></div>}
+   {(support.live||support.recording)&&<div className="space-y-2"><p className="text-xs text-slate-600">{__kbUi('O‘zbekcha uchun Groq avtomatik tanlanadi (brauzer o‘zbek tilini yaxshi tanimaydi). Ruscha va inglizcha uchun brauzer ishlatiladi. Yozish boshlanmasa, shu yerdan boshqa usulga o‘ting.')}</p><div className="flex flex-wrap gap-2" role="group" aria-label={__kbUi('Gapirib yozish usuli')}>{[['browser','Brauzer orqali yozish'],['recording','Ovoz yozib yuborish'],['live','Groq orqali jonli yozish']].filter(([key])=>support[key]).map(([key,label])=><button key={key} type="button" disabled={dictationBusy&&selectedMethod===key} aria-pressed={selectedMethod===key} className={`${button} ${selectedMethod===key?'!border-sky-800 !bg-sky-50':''}`} onClick={()=>changeDictationMethod(key)}>{__kbUi(label)}</button>)}</div></div>}
    <label className="flex gap-2 text-sm text-slate-700"><input type="checkbox" checked={commands} disabled={dictationBusy} onChange={event=>setCommands(event.target.checked)}/>{__kbUi("“Nuqta”, “vergul”, “so‘roq belgisi”, “yangi abzas” buyruqlarini tinish belgilariga aylantirish")}</label>
    <p className="text-xs text-slate-500">{autoDictation?__kbUi('Har yozuv 2 daqiqagacha. Ovozingiz Groq xizmatida matnga aylantiriladi.'):__kbUi('Brauzer ovozni o‘z tanish xizmatiga yuborishi mumkin.')}</p>
    <p className="text-xs text-slate-500">{__kbUi('Telefon klaviaturasida mikrofon bo‘lsa, matn maydoniga bosib, undan ham foydalanishingiz mumkin.')}</p>

@@ -37,3 +37,25 @@ test('content chunking preserves formulas and exact concatenation',()=>{const te
 test('oversized protected block cannot be split into corrupt formulas',()=>{assert.throws(()=>splitTranslationContent('$$'+'x'.repeat(13000)+'$$'),/content_too_long/);});
 test('content failure is explicit so UI can preserve source',async()=>{await assert.rejects(()=>translateContentText('Source','en','a',async()=>({ok:false,status:503})),/translation_unavailable/);await assert.rejects(()=>translateContentText('Source','en','a',async()=>response([])),/translation_unavailable/);});
 test('public dictionaries never contain runtime private data',()=>{assert.ok(!registeredInterfaceLabels().some(s=>s.includes('PRIVATE_VALUE_93485')));});
+test('without a backend key the interface is translated free from the browser, values stay private',async()=>{
+ await checkTranslationService(async()=>({ok:true,json:async()=>({configured:false})}));
+ const sources=JSON.parse(readFileSync(new URL('./interfaceSources.json',import.meta.url)));const source=sources.find(s=>s.includes('{v0}')&&!s.includes('{v1}')&&!hasInterfaceTranslation(s)&&/^[A-Z]/.test(s));
+ const input=source.replace('{v0}','PRIVATE_VALUE_5511'),urls=[],old=globalThis.fetch;
+ globalThis.fetch=async url=>{urls.push(String(url));const q=new URL(url).searchParams.get('q');return {ok:true,status:200,json:async()=>[[['RU '+q,q]]]};};
+ try{translateUi(input,'ru');await flushInterfaceTranslations();
+  assert.ok(urls.length>=1&&urls.every(u=>u.startsWith('https://translate.googleapis.com/')));
+  assert.ok(urls.every(u=>!u.includes('PRIVATE_VALUE_5511')));
+  const out=translateUi(input,'ru');assert.ok(out.startsWith('RU '));assert.ok(out.includes('PRIVATE_VALUE_5511'));
+ }finally{globalThis.fetch=old;}
+});
+test('brand names are protected from machine translation',async()=>{
+ const {maskInterfaceText,unmaskInterfaceText}=await import('./interfaceRuntime.js');
+ const {masked,saved}=maskInterfaceText('Kabutar orqali Telegram {v0} kiring');assert.ok(!masked.includes('Kabutar')&&!masked.includes('{v0}'));
+ assert.equal(unmaskInterfaceText(masked.replace('orqali','через'),saved),'Kabutar через Telegram {v0} kiring');
+ assert.throws(()=>unmaskInterfaceText('lost',saved));
+});
+test('a failing backend falls back to browser translation',async()=>{
+ const source=JSON.parse(readFileSync(new URL('./interfaceSources.json',import.meta.url))).find(s=>!hasInterfaceTranslation(s)&&!s.includes('{')&&/^[A-Z]/.test(s)&&s.length<60);
+ const old=globalThis.fetch;globalThis.fetch=async url=>String(url).includes('/api/translation/')?{ok:false,status:503,json:async()=>({})}:{ok:true,status:200,json:async()=>[[['EN text','x']]]};
+ try{translateUi(source,'en');await flushInterfaceTranslations();assert.equal(translateUi(source,'en'),'EN text');}finally{globalThis.fetch=old;}
+});

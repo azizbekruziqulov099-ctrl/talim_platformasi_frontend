@@ -10,6 +10,14 @@ test('browser remains default before and after admin Groq status arrives', () =>
   assert.equal(preferredDictationMethod('live', { browser: true, live: false }), 'browser');
 });
 
+test('Uzbek dictation prefers Groq when the admin has it, browser otherwise', () => {
+  assert.equal(preferredDictationMethod('auto', { browser: true, recording: true, live: true }, 'uz'), 'live');
+  assert.equal(preferredDictationMethod('auto', { browser: true, recording: true }, 'uz'), 'recording');
+  assert.equal(preferredDictationMethod('auto', { browser: true }, 'uz'), 'browser');
+  assert.equal(preferredDictationMethod('auto', { browser: true, live: true }, 'ru'), 'browser');
+  assert.equal(preferredDictationMethod('browser', { browser: true, live: true }, 'uz'), 'browser');
+});
+
 test('without browser recognition a configured admin gets live capture before stop-only recording', () => {
   assert.equal(preferredDictationMethod('auto', { recording: true, live: true }), 'live');
   assert.equal(preferredDictationMethod('auto', { live: true }), 'live');
