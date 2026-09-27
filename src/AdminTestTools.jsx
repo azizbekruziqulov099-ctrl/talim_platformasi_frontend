@@ -6,6 +6,9 @@ import {gradeLabel, institutionLabel, lessonLabel} from './curriculum/catalog.js
 import { useCurriculum } from "./curriculum/CurriculumScope.jsx";
 import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
+import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
+
+const DarsXonasiPreview = React.lazy(() => import("./lesson/DarsXonasi.jsx"));
 
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
@@ -653,6 +656,9 @@ export function KitobMiyaBolimi({ token }) {
   const [jarayon, setJarayon] = useState("");
   const [xato, setXato] = useState("");
   const [importlar, setImportlar] = useState([]);
+  const [darslar, setDarslar] = useState([]);
+  const [darsQidiruv, setDarsQidiruv] = useState("");
+  const [korish, setKorish] = useState(null);
 
   const tarixniYukla = () => {
     fetch(`${API_BASE}/api/admin/ai_miya_importlar?token=${encodeURIComponent(token)}`)
@@ -664,8 +670,15 @@ export function KitobMiyaBolimi({ token }) {
       .catch(() => {});
   };
 
+  const darslarniYukla = () => {
+    fetch(`${API_BASE}/api/admin/ai_miya_darslar?token=${encodeURIComponent(token)}`)
+      .then(async (r) => { const d = await r.json(); if (!r.ok) throw new Error(d.detail || "Darslar yuklanmadi"); setDarslar(d.darslar || []); })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     tarixniYukla();
+    darslarniYukla();
   }, [token]);
 
   const tekshir = async () => {
@@ -726,6 +739,7 @@ export function KitobMiyaBolimi({ token }) {
         setTekshiruv((old) => ({ ...old, status: "published", nashrNatija: d }));
       }
       tarixniYukla();
+      darslarniYukla();
     } catch (e) {
       setXato(e.message);
     } finally {
@@ -746,7 +760,7 @@ export function KitobMiyaBolimi({ token }) {
         style={{ background: "linear-gradient(135deg,#153A55 0%,#1B4B7A 58%,#2D8B8B 100%)" }}>
         <div className="p-5">
           <p className="text-xs uppercase tracking-[0.16em] opacity-75">{__kbUi("Yagona bilim manbasi")}</p>
-          <h2 className="text-xl font-bold mt-1">{__kbUi("🧠 Kitob → pedagogik AI miya")}</h2>
+          <h2 className="text-xl font-bold mt-1">{__kbUi("📘 Kitob darslari (AI miya)")}</h2>
           <p className="text-sm mt-2 leading-relaxed opacity-90">{__kbUi("Bir kitob — bir Excel. Avval tekshiriladi, keyin qoralama saqlanadi, faqat siz nashr qilgach o'quvchi, o'qituvchi va to'garakka chiqadi.")}</p>
         </div>
         <div className="grid grid-cols-3 border-t text-center text-[11px]"
@@ -770,7 +784,7 @@ export function KitobMiyaBolimi({ token }) {
             style={{ backgroundColor: "#EAF1F7" }}>📥</div>
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-sm" style={{ color: "#2B2B2B" }}>{__kbUi("1. Universal shablonni oling")}</h3>
-            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{__kbUi("12 varaq: kitob, DTS, bilim, tushuntirish, misol, mashq, ishora, xatolar, metodika, to'garak, lug'at/media va tekshiruv.")}</p>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{__kbUi("Faqat 2 varaq: KITOB va MAVZULAR. Bir qator — bitta tushuncha: tushuntirish, doska, rasm, misollar, masala va «Tushunmadim» variantlari shu qatorda. Testlar yozilmaydi — mavzu kodi bo'yicha Test bazasidan olinadi. Rasmni katakka qo'yish kifoya.")}</p>
             <a
               href={`${API_BASE}/api/admin/ai_miya_shablon?token=${encodeURIComponent(token)}`}
               className="mt-3 inline-flex px-4 py-2.5 rounded-xl text-xs font-semibold text-white"
@@ -785,12 +799,12 @@ export function KitobMiyaBolimi({ token }) {
         <p className="text-xs mb-3" style={{ color: "#8A8578" }}>{__kbUi("Bu bosqich jonli bilimga hech narsa yozmaydi. Topic code, manba, sahifa, ID va bog'lanish xatolari qatorigacha ko'rsatiladi.")}</p>
         <label className="block rounded-xl border-2 border-dashed p-4 text-center cursor-pointer"
           style={{ borderColor: fayl ? "#2D8B8B" : "#D8D3C7", backgroundColor: fayl ? "#EEF7F5" : "#FAF8F2" }}>
-          <input type="file" accept=".xlsx" className="hidden"
+          <input type="file" accept=".xlsx,.zip" className="hidden"
             onChange={(e) => { setFayl(e.target.files?.[0] || null); setTekshiruv(null); setXato(""); }} />
           <p className="text-sm font-semibold" style={{ color: fayl ? "#246D6D" : "#5A5648" }}>
-            {fayl ? __kbUi(`✓ ${fayl.name}`) : __kbUi("Excel faylni tanlang")}
+            {fayl ? __kbUi(`✓ ${fayl.name}`) : __kbUi("Excel yoki ZIP (Excel + rasmlar) faylni tanlang")}
           </p>
-          <p className="text-[11px] mt-1" style={{ color: "#8A8578" }}>{__kbUi("Faqat .xlsx · har safar bitta kitob")}</p>
+          <p className="text-[11px] mt-1" style={{ color: "#8A8578" }}>{__kbUi(".xlsx yoki .zip (bitta .xlsx + PNG/JPG rasmlar) · har safar bitta kitob")}</p>
         </label>
         <button onClick={tekshir} disabled={!fayl || !!jarayon}
           className="w-full mt-3 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
@@ -823,6 +837,12 @@ export function KitobMiyaBolimi({ token }) {
               ["Kitob", tekshiruv.summary?.kitoblar || 0],
               ["Mavzu", tekshiruv.summary?.mavzular || 0],
               ["Xato", tekshiruv.summary?.xatolar || 0],
+              ["Tushuncha", tekshiruv.summary?.tushunchalar ?? tekshiruv.summary?.varoqlar?.["03_BILIM"] ?? 0],
+              ["Dars qadami", tekshiruv.summary?.varoqlar?.["11_DARS_SSENARIY"] || 0],
+              ["«Tushunmadim» varianti", tekshiruv.summary?.varoqlar?.["12_TUSHUNMADIM"] || 0],
+              ["Rasm", tekshiruv.summary?.rasmlar || 0],
+              ["Ogohlantirish", tekshiruv.summary?.ogohlantirishlar || 0],
+              ["Mashq", tekshiruv.summary?.varoqlar?.["05_MISOLLAR"] || 0],
             ].map(([label, value]) => (
               <div key={label} className="bg-white p-3 text-center">
                 <p className="text-lg font-bold" style={{ color: "#1B4B7A" }}>{value}</p>
@@ -841,10 +861,35 @@ export function KitobMiyaBolimi({ token }) {
               ))}
             </div>
           )}
+          {(tekshiruv.summary?.joylashuv || []).length > 0 && (
+            <div className="p-4 border-t space-y-1.5" style={{ borderColor: "#E5E1D8" }}>
+              <p className="text-xs font-bold" style={{ color: "#1B4B7A" }}>{__kbUi("Darslar qayerda chiqadi")}</p>
+              {tekshiruv.summary.joylashuv.map((j) => (
+                <div key={j.topic_code} className="rounded-lg p-2 text-xs flex flex-wrap justify-between gap-2"
+                  style={{ backgroundColor: j.korinadi ? "#EEF7F2" : "#FFF3E6", color: j.korinadi ? "#25683B" : "#8A4B12" }}>
+                  <span><b>{j.mavzu || j.topic_code}</b> <span style={{ opacity: .7 }}>{j.topic_code}</span></span>
+                  <span>{j.korinadi ? "✓ " : "⚠ "}{__kbUi(j.joy)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {(tekshiruv.warnings || []).length > 0 && (
+            <div className="p-4 max-h-48 overflow-y-auto space-y-2 border-t" style={{ borderColor: "#E5E1D8" }}>
+              {tekshiruv.warnings.slice(0, 30).map((e, i) => (
+                <div key={`w-${e.sheet}-${e.row}-${e.column}-${i}`} className="rounded-xl p-3 text-xs"
+                  style={{ backgroundColor: "#FFF8E6", color: "#7A5716" }}>
+                  <b>{e.sheet} · {e.row}{__kbUi("-qator · ")}{e.column || __kbUi("varaq")}</b>
+                  <p className="mt-0.5">{e.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="p-4 border-t" style={{ borderColor: "#E5E1D8" }}>
             {tekshiruv.status === "published" ? (
               <div className="rounded-xl p-3 text-sm font-semibold text-center"
-                style={{ backgroundColor: "#E7F4EC", color: "#25683B" }}>{__kbUi("✓ Kitob bilimi AI miyaga nashr qilindi")}</div>
+                style={{ backgroundColor: "#E7F4EC", color: "#25683B" }}>{__kbUi("✓ Kitob bilimi AI miyaga nashr qilindi")}
+                {tekshiruv.nashrNatija?.testlar && <span className="block text-xs font-normal mt-1">{__kbUi(`Test bo‘limiga: ${tekshiruv.nashrNatija.testlar.qoshildi} ta yangi, ${tekshiruv.nashrNatija.testlar.yangilandi} ta yangilangan savol`)}</span>}
+              </div>
             ) : tekshiruv.status === "draft_imported" || tekshiruv.importNatija ? (
               <button onClick={() => nashrQil()} disabled={!!jarayon}
                 className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
@@ -859,6 +904,45 @@ export function KitobMiyaBolimi({ token }) {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <h3 className="font-bold text-sm">{__kbUi("Nashr qilingan kitob darslari")} <span className="font-normal" style={{ color: "#8A8578" }}>({darslar.length})</span></h3>
+          <input type="search" value={darsQidiruv} onChange={(e) => setDarsQidiruv(e.target.value)} placeholder={__kbUi("Mavzu yoki kod…")}
+            className="px-3 py-1.5 rounded-lg border text-xs" style={{ borderColor: "#D8D3C7" }} />
+        </div>
+        {!darslar.length && <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Hali nashr qilingan dars yo‘q. Yuqoridagi shablonni to‘ldirib, tekshiring va nashr qiling.")}</p>}
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {darslar.filter((d) => !darsQidiruv.trim() || `${d.mavzu} ${d.topic_code}`.toLowerCase().includes(darsQidiruv.trim().toLowerCase())).slice(0, 100).map((d) => (
+            <div key={d.topic_code} className="rounded-xl border p-3" style={{ borderColor: d.korinadi ? "#ECE8DF" : "#F0C58F" }}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{d.mavzu || d.topic_code}</p>
+                  <p className="text-[11px]" style={{ color: d.korinadi ? "#25683B" : "#8A4B12" }}>{d.korinadi ? "✓ " : "⚠ "}{__kbUi(d.joy)}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "#8A8578" }}>{d.topic_code} · {__kbUi(`${d.qadam} qadam · ${d.variant} «tushunmadim» · ${d.test} test savoli`)}{d.kitob ? ` · ${d.kitob}` : ""}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => setKorish(d)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-white" style={{ backgroundColor: "#1E3A32" }}>{__kbUi("Ko‘rish")}</button>
+                  <a href={lessonDownloadUrl(API_BASE, token, d.topic_code, "pdf")} download className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border" style={{ borderColor: "#D8D3C7" }}>PDF</a>
+                  <a href={lessonDownloadUrl(API_BASE, token, d.topic_code, "docx")} download className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border" style={{ borderColor: "#D8D3C7" }}>Word</a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {korish && (
+        <div className="rounded-2xl border p-3 bg-white" style={{ borderColor: "#1E3A32" }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold">{__kbUi("O‘quvchi ko‘radigan dars")}: {korish.mavzu || korish.topic_code}</p>
+            <button type="button" onClick={() => setKorish(null)} className="px-3 py-1.5 rounded-lg text-xs border" style={{ borderColor: "#D8D3C7" }}>{__kbUi("Yopish")}</button>
+          </div>
+          <React.Suspense fallback={<p className="p-4 text-xs text-center">{__kbUi("Yuklanmoqda…")}</p>}>
+            <DarsXonasiPreview apiBase={API_BASE} token={token} topicCode={korish.topic_code} />
+          </React.Suspense>
         </div>
       )}
 

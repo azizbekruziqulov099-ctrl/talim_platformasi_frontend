@@ -208,7 +208,7 @@ export function dictationSupport(access,environment=globalThis) {
 // English keep the free browser engine first.
 export function preferredDictationMethod(method, support, language) {
  if (['browser','recording','live'].includes(method) && support[method]) return method;
- const order = ['uz','auto'].includes(language) ? ['live','recording','browser'] : ['browser','live','recording'];
+ const order = ['uz','auto'].includes(language) ? ['recording','live','browser'] : ['browser','live','recording'];
  return order.find(key => support[key]) || 'browser';
 }
 

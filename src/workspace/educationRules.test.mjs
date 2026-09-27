@@ -13,7 +13,7 @@ test('new Google account opens education home then asks for profile only on stud
 test('a school grade opens tests directly and never becomes a college course',()=>{
  for(const grade of ['1','11','7-sinf']) {
   const user={role:'oquvchi',class:grade};
-  assert.equal(initialEducationTab(user),'test');assert.equal(educationRole(user),'oquvchi');
+  assert.equal(initialEducationTab(user),'mavzular');assert.equal(educationRole(user),'oquvchi');
  }
  assert.equal(learningReady({role:'oquvchi',class:'12'}),false);
 });
@@ -21,7 +21,7 @@ test('student chosen in bot is retained until course form and language are saved
  const user={role:'oquvchi',education_role:'talaba',education_ready:false};
  assert.equal(educationRole(user),'talaba');assert.equal(needsEducation(user,'test'),true);
  user.class='2 kurs'; user.learning_profile={kurs:2,talim_bosqichi:'bakalavr',talim_shakli:'kechki',talim_tili:'ru'};
- assert.equal(initialEducationTab(user),'test');assert.equal(needsEducation(user,'test'),false);
+ assert.equal(initialEducationTab(user),'mavzular');assert.equal(needsEducation(user,'test'),false);
  assert.equal(user.universitet_id,undefined);
 });
 test('teacher and parent open their correct workspaces',()=>{

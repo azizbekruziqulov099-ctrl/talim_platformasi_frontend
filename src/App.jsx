@@ -1,4 +1,5 @@
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
+import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
 import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
 import {EducationHome} from './workspace/EducationSetup.jsx';
@@ -628,6 +629,7 @@ const InstituteWorkspace = _samtmLazyRetry(
   () => import("./institute/InstituteWorkspace.jsx"),
 );
 const KabutarPanel = _samtmLazyRetry(() => import("./kabutar/KabutarPanel.jsx"));
+const DarsXonasi = _samtmLazyRetry(() => import("./lesson/DarsXonasi.jsx"));
 const MUASSASA_TURI_RANG = {
   maktab: { ikon: "🏫", nom: "Maktab", rang: "#1B4B7A", yengil: "#EAF1F7", korinish: "maktab_rahbariyat" },
   universitet: { ikon: "🎓", nom: "Institut", rang: "#5B4B8A", yengil: "#F1EEF8", korinish: "institut_workspace" },
@@ -2393,20 +2395,29 @@ function AdminTab({ token, oldindanTanlangan }) {
     <div className="px-5 pt-6 pb-4">
       <h1 className="text-2xl font-bold mb-4" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}><InterfaceText text={__kbUi("Shablonlar")}/></h1>
 
-      <div className="grid grid-cols-2 gap-2 mb-5">
-        <button onClick={() => bolimniOch("miya")}
-          className="col-span-2 py-3 rounded-xl font-semibold text-sm"
-          style={bolim === "miya"
-            ? { background: "linear-gradient(135deg,#1B4B7A,#2D8B8B)", color: "#fff" }
-            : { backgroundColor: "#EEF7F5", color: "#246D6D", border: "1px solid #A8D2C8" }}>{__kbUi("🧠 Kitob miyasi · yangi universal import")}</button>
-        <button type="button" onClick={testMenyusiniAlmashtir}
-          aria-expanded={bolim === "test"} aria-controls="test-shablon-import-tanlov"
-          className="col-span-2 py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "test"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>{__kbUi("🧪 Test shablon va import")}</button>
+      <p className="text-sm mb-3" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Tartib: 1) mavzular ro‘yxati → 2) kitob darslari → 3) testlar. Hammasi DTS mavzu kodi orqali bog‘lanadi va o‘quvchining «O‘rganish» bo‘limida birga chiqadi.")}</p>
+      <div className="grid gap-2 mb-5 sm:grid-cols-2">
+        {[
+          ["topik", "📋 1. Mavzular ro‘yxati", "DTS mavzu kodlari va nomlari (topik shablon). Kitob darsi va testlar shu kodlarga ulanadi.", "#1B4B7A"],
+          ["miya", "📘 2. Kitob darslari (AI miya)", "KITOB + MAVZULAR shabloni: tushuntirish, doska, rasm, misollar, «Tushunmadim». Nashrdan keyin dars xonasida chiqadi.", "#2D8B8B"],
+          ["test", "🧪 3. Test shablon va import", "Mavzu kodi bo‘yicha savollar. Dars oxirida va «Testlar» bo‘limida chiqadi.", "#1B4B7A"],
+          ["tushuntirish", "🤖 AI tushuntirishlar", "Kitob darsi bo‘lmagan mavzular uchun AI ustoz tushuntirishlari.", "#6E45A1"],
+          ["sinov", "🧪 Sinov muhiti", "O‘zgarishlarni o‘quvchi ko‘zi bilan sinab ko‘rish.", "#C89B3C"],
+        ].map(([key, title, hint, color]) => {
+          const active = bolim === key;
+          return (
+            <button key={key} type="button" aria-pressed={active}
+              {...(key === "test" ? { "aria-expanded": bolim === "test", "aria-controls": "test-shablon-import-tanlov" } : {})}
+              onClick={() => (key === "test" ? testMenyusiniAlmashtir() : bolimniOch(key))}
+              className={`text-left rounded-xl p-3 border ${key === "miya" ? "sm:col-span-2" : ""}`}
+              style={active ? { backgroundColor: color, borderColor: color, color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#2B2B2B" }}>
+              <span className="block text-sm font-semibold">{__kbUi(title)}</span>
+              <span className="block text-xs mt-1" style={{ opacity: .8 }}>{__kbUi(hint)}</span>
+            </button>
+          );
+        })}
         {bolim === "test" && (
-          <div id="test-shablon-import-tanlov" className="col-span-2 grid grid-cols-2 gap-2 rounded-xl p-2"
+          <div id="test-shablon-import-tanlov" className="sm:col-span-2 grid grid-cols-2 gap-2 rounded-xl p-2"
             style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}>
             <button type="button" onClick={() => setTestRejimi("shablon")}
               className="py-2.5 rounded-xl font-semibold text-sm"
@@ -2420,21 +2431,6 @@ function AdminTab({ token, oldindanTanlangan }) {
                 : { backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #B7D3E8" }}>{__kbUi("📤 Import")}</button>
           </div>
         )}
-        <button onClick={() => bolimniOch("topik")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "topik"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>{__kbUi("📋 Topik shablon")}</button>
-        <button onClick={() => bolimniOch("tushuntirish")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "tushuntirish"
-            ? { backgroundColor: "#1B4B7A", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#5A5648", border: "1px solid #E5E1D8" }}>{__kbUi("🤖 Tushuntirish")}</button>
-        <button onClick={() => bolimniOch("sinov")}
-          className="py-2.5 rounded-xl font-semibold text-sm"
-          style={bolim === "sinov"
-            ? { backgroundColor: "#C89B3C", color: "#fff" }
-            : { backgroundColor: "#fff", color: "#8A5A1C", border: "1px solid #F5DFA3" }}>{__kbUi("🧪 Sinov muhiti")}</button>
       </div>
 
       {bolim === "miya" && <KitobMiyaBolimi token={token} />}
@@ -9016,7 +9012,7 @@ function AiJavobBloklari({ javob, onQuickReply }) {
   );
 }
 
-function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = null }) {
+function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = null, onOpenTest = null }) {
   useKbInterfaceLocale();
   const [sozlama, setSozlama] = useState(null);
   const fallbackType=profileInstitutionType(foydalanuvchi);
@@ -9033,12 +9029,15 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
   const [yuborilmoqda, setYuborilmoqda] = useState(false);
   const [xato, setXato] = useState("");
+  const [darsXonasi, setDarsXonasi] = useState(() => Boolean(initialTarget?.topic_code));
   const oxiriRef = useRef(null);
 
   useEffect(()=>{
     sectionChosen.current=false;
     if(initialTarget?.institution_type)setCatalogType(initialTarget.institution_type);
     if(initialTarget?.dars_turi)setCatalogLesson(initialTarget.dars_turi);
+    // «O'rganish» tugmasidan kelinsa — avval dars xonasi (doska) ochiladi.
+    if(initialTarget?.topic_code)setDarsXonasi(true);
   },[initialTarget?.nonce]);
 
   useEffect(() => {
@@ -9172,6 +9171,28 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
         </select>
       </div>
 
+      <div className="grid grid-cols-2 gap-2 mb-3" role="group" aria-label={__kbUi("O‘rganish usuli")}>
+        {[[true, "🏫 Dars xonasi"], [false, "💬 AI ustoz suhbati"]].map(([value, label]) => (
+          <button key={label} type="button" onClick={() => setDarsXonasi(value)} aria-pressed={darsXonasi === value}
+            className="px-3 py-2.5 rounded-xl text-xs font-semibold border"
+            style={darsXonasi === value
+              ? { backgroundColor: "#1E3A32", color: "#F2F0E6", borderColor: "#1E3A32" }
+              : { backgroundColor: "#fff", color: "#5A5648", borderColor: "#E5E1D8" }}>
+            {__kbUi(label)}
+          </button>
+        ))}
+      </div>
+
+      {darsXonasi && topicCode ? (
+        <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} /></div>}>
+          <DarsXonasi apiBase={API_BASE} token={token} topicCode={topicCode} fan={joriyFan?.fan || ""}
+            grade={joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade || ""}
+            jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")}
+            onChat={() => setDarsXonasi(false)}
+            onOpenTest={onOpenTest ? () => onOpenTest({ topic_code: topicCode, grade: joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade, subject: joriyFan?.fan }) : undefined}
+            onOpenTopic={(code) => { const f = visibleSubjects.find((x) => x.mavzular.some((m) => m.topic_code === code)); if (f) { setFan(f.kalit); setTopicCode(code); } }} />
+        </React.Suspense>
+      ) : <>
       <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2">
         {AI_USTOZ_REJIMLARI.map((r) => (
           <button key={r.kalit} onClick={() => rejimOzgar(r.kalit)}
@@ -9232,6 +9253,7 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
           <Send size={18} />
         </button>
       </div>
+      </>}
     </div>
   );
 }
@@ -9383,6 +9405,15 @@ function AiOchiqDarsKonstruktori({ token, onOrtga }) {
                 className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }} />
               <p className="text-[10px] mt-1" style={{ color: "#A16B22" }}>{__kbUi("Bu sinfda nashr qilingan Kitob miyasi topilmadi; admin avval import va nashr qilishi kerak.")}</p>
             </>
+          )}
+          {topicCode && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span className="text-[11px]" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Kitobdagi tayyor dars:")}</span>
+              {[["pdf", "⬇ PDF"], ["docx", "⬇ Word"]].map(([format, label]) => (
+                <a key={format} href={lessonDownloadUrl(API_BASE, token, topicCode, format)} download
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border" style={{ borderColor: "#C9D3CE", color: "#1E3A32", backgroundColor: "#fff" }}>{__kbUi(label)}</a>
+              ))}
+            </div>
           )}
         </div>
         <div>
@@ -12999,13 +13030,14 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
             { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
+  // O'quvchi / talaba / bog'cha / markaz: asosiy yo'l — O'rganish (fan → mavzu → dars → test).
   return [
-      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
-    { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
-    { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
+    { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
+    { kalit: "test", nom: "Testlar", ikon: PencilLine },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
-    { kalit: "test", nom: "Test", ikon: PencilLine },
-        { kalit: "profil", nom: "Profil", ikon: User },
+    { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
+    { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
+    { kalit: "profil", nom: "Profil", ikon: User },
   ];
 }
 
@@ -14661,6 +14693,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       )}
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "mavzular" && (
         <LearnerTopics apiBase={API_BASE} token={token} user={foydalanuvchi}
+          jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")}
           onOpenLesson={korinishRoli === "oqituvchi" ? null : (topic) => {
             setTalimYoliDarsNishoni({...topic,nonce:Date.now()});setTab("ai_ustoz");
           }}
@@ -14669,7 +14702,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
           }} />
       )}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
-        <AiOquvchiUstozBolimi token={token} foydalanuvchi={foydalanuvchi} initialTarget={talimYoliDarsNishoni} />
+        <AiOquvchiUstozBolimi token={token} foydalanuvchi={foydalanuvchi} initialTarget={talimYoliDarsNishoni} onOpenTest={(topic) => { setTalimYoliTestNishoni({ ...topic, nonce: Date.now() }); setTab("test"); }} />
       )}
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab

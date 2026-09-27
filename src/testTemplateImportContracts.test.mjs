@@ -9,7 +9,7 @@ const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
 test("admin test tools stay closed until the parent and a child choice are clicked", () => {
   assert.match(app, /const \[bolim, setBolim\] = useState\(null\)/);
   assert.match(app, /Test shablon va import/);
-  assert.match(app, /aria-expanded=\{bolim === "test"\}/);
+  assert.match(app, /"aria-expanded": bolim === "test"/);
   assert.match(app, /setTestRejimi\("shablon"\)/);
   assert.match(app, /setTestRejimi\("import"\)/);
   assert.doesNotMatch(app, /useState\(oldindanTanlangan[^\n]+\? "test"/);

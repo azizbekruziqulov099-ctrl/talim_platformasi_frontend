@@ -245,7 +245,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
   </div>
   {error&&mode==='read'&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{__kbUi(error)}</p>}
   {notice&&<p role="status" className="text-sm text-green-800">{__kbUi(notice)}</p>}
-  {mode==='read'&&accessError&&<div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{__kbUi(accessError)}</p><button type="button" className={`${button} mt-2`} onClick={()=>setStatusAttempt(value=>value+1)}>{__kbUi('Qayta tekshirish')}</button></div>}
+  {accessError&&<div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{__kbUi(accessError)}</p><button type="button" className={`${button} mt-2`} onClick={()=>setStatusAttempt(value=>value+1)}>{__kbUi('Qayta tekshirish')}</button></div>}
   {mode==='read'&&!access&&!accessError&&<p role="status" className="text-sm text-slate-500">{__kbUi("Ovoz xizmati tekshirilmoqda…")}</p>}
   <section hidden={mode!=='read'} aria-label={__kbUi('Matnni o‘qish')} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
    <label className="block text-sm font-semibold text-slate-700">{__kbUi("O‘qiladigan matn")}<textarea value={text} onChange={event=>setText(event.target.value)} disabled={reading!=='idle'} maxLength={50000} rows={11}
@@ -273,6 +273,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
     {selectedMethod==='browser'&&browserStatus.phase==='error'&&(support.live||support.recording)&&<button type="button" className={button} onClick={()=>changeDictationMethod(support.live?'live':'recording',true)}>{__kbUi('Groq bilan yozishni boshlash')}</button>}
    </div>}
    {support.reason&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(support.reason)}</p>}
+   {access&&!access.dictation_available&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi('Groq ovoz xizmati ulanmagan: backendda GROQ_API_KEY yo‘q. Groq kaliti bepul olinadi (console.groq.com → API Keys), keyin Railway’dagi backend xizmatiga GROQ_API_KEY qo‘shib, qayta Deploy qiling.')}</p>}
    {!support.reason&&uzbekWarning&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(uzbekWarning)}</p>}
    {fallback&&<div role="status" className="rounded-xl bg-sky-50 p-3 text-sm text-sky-900">
     <p>{__kbUi(fallback)}</p>

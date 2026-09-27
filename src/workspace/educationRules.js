@@ -14,7 +14,7 @@ export function learningReady(user) {
   return false;
 }
 export function initialEducationTab(user) {
-  return user?.is_admin ? 'admin' : user?.role === 'oqituvchi' ? 'oqituvchi' : user?.role === 'ota-ona' ? 'farzand' : learningReady(user) ? 'test' : 'home';
+  return user?.is_admin ? 'admin' : user?.role === 'oqituvchi' ? 'oqituvchi' : user?.role === 'ota-ona' ? 'farzand' : learningReady(user) ? 'mavzular' : 'home';
 }
 export function needsEducation(user, tab) {
   return ['test', 'mavzular', 'ai_ustoz', 'bilim'].includes(tab) && !learningReady(user);
