@@ -2188,3 +2188,18 @@ button {
   .premium-side-nav > p { display:none; }
   .premium-side-link { font-size:11px; grid-template-columns:28px 1fr; gap:8px; }
 }
+
+/* REV79: Shablon sahifasi — zamonaviy bosqich kartalari */
+.shablon-hero{display:flex;gap:14px;align-items:center;margin-bottom:14px;padding:18px;border-radius:22px;color:#fff;background:linear-gradient(120deg,#123a5e,#1b4b7a 50%,#2d8b8b);box-shadow:0 18px 40px -28px #123a5e}
+.shablon-hero h1{margin:0 0 4px;font-size:22px;font-weight:850}
+.shablon-hero p{margin:0;font-size:12.5px;line-height:1.55;opacity:.88}
+.shablon-hero-icon{flex:none;width:48px;height:48px;border-radius:15px;display:grid;place-items:center;font-size:24px;background:#ffffff24}
+.shablon-step{position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s;box-shadow:inset 4px 0 0 var(--step,#1b4b7a)}
+.shablon-step:hover{transform:translateY(-2px);box-shadow:inset 4px 0 0 var(--step,#1b4b7a),0 12px 26px -20px #1b2a3a}
+.shablon-step.is-active{box-shadow:0 14px 30px -18px var(--step,#1b4b7a)}
+@media (prefers-reduced-motion:reduce){.shablon-step{transition:none}}
+/* REV79: tepadagi akkaunt ogohlantirishi chap menyu ostida qolmasin */
+@media (min-width:1121px){.kb-account-notice.kb-account-notice{margin-left:276px}}
+@media (max-width:1120px) and (min-width:821px){.kb-account-notice.kb-account-notice{margin-left:104px}}
+.samtm-yon-yopiq .kb-account-notice.kb-account-notice{margin-left:12px}
+.shablon-hero h1,.shablon-hero p{color:#fff!important}

@@ -31,7 +31,8 @@ export function LearnerCurriculumHeader({viewer,type,lesson,onType,onLesson,fall
  return <section className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-3" aria-label={__kbUi("Mavzu va test bo‘limlari")}>
   <InstitutionTabs types={types} value={type} onChange={onType} disabled={disabled}/>
   {type==='universitet'&&<>
-   {profile&&<p className="mt-3 text-xs leading-relaxed text-slate-600">{profile.yonalish_nomi} · {__kbUi(FORM_LABELS[profile.talim_shakli])} · {__kbUi(profile.talim_tili?.toUpperCase())} · {profile.kurs}{__kbUi("-kurs · ")}{profile.semestr ? __kbUi(`${semesterPairLabel(profile.kurs)}`) : __kbUi('Semestrni profilda tanlang')}</p>}
+   {profile&&!profile.kurs&&<p className="mt-3 text-xs leading-relaxed text-slate-600">{__kbUi('Barcha institut mavzulari ochiq. Kursingizni Profilda tanlasangiz, o‘zingizga mos fanlar birinchi chiqadi.')}</p>}
+   {profile&&profile.kurs&&<p className="mt-3 text-xs leading-relaxed text-slate-600">{profile.yonalish_nomi} · {__kbUi(FORM_LABELS[profile.talim_shakli])} · {__kbUi(profile.talim_tili?.toUpperCase())} · {profile.kurs}{__kbUi("-kurs · ")}{profile.semestr ? __kbUi(`${semesterPairLabel(profile.kurs)}`) : __kbUi('Semestrni profilda tanlang')}</p>}
    <LessonTabs includeAll value={lesson} onChange={onLesson} disabled={disabled}/>
   </>}
  </section>;

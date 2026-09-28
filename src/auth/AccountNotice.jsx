@@ -20,7 +20,7 @@ export default function AccountNotice({ user, onOpenSettings }) {
   const [closed, setClosed] = useState(hidden);
   if (!kind || closed === kind) return null;
   const text = risk
-    ? __kbUi("Akkauntingiz Telegram yoki Gmail’ga ulanmagan — parol unutilsa hisob yo‘qolishi mumkin. Ulang, shunda bu ogohlantirish yo‘qoladi.")
+    ? __kbUi("Akkauntingiz Telegram yoki Gmail’ga ulanmagan — boshqa qurilmadan kira olmaysiz va natijalar yo‘qolishi mumkin. Bir daqiqada ulang, shunda bu ogohlantirish yo‘qoladi.")
     : __kbUi(`Siz «${ROLE_NAMES[accountRole(user)] || "—"}» sifatida ro‘yxatdasiz, kirishda «${ROLE_NAMES[chosen]}» tanlandi. Rolni Sozlamalar → Rolim bo‘limida o‘zgartirasiz.`);
   return <div className={`kb-account-notice ${risk ? "is-risk" : ""}`} role="status">
     <span aria-hidden="true">{risk ? "⚠️" : "ℹ️"}</span>

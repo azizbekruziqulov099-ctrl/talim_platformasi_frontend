@@ -39,6 +39,8 @@ import * as __kbRev35_module4 from "./workspace/kabutarWorkspaceClient.js";
 
 import * as __kbRev35_module3 from "./workspace/EducationSetup.jsx";
 import JoinInstitution from "./workspace/JoinInstitution.jsx";
+import MeningInstitutim, { AdminInstitutHayoti, AdminInstitutTanlash } from "./institute/InstitutHayoti.jsx";
+import { accountRole as _kbAccountRole } from "./auth/loginMemory.js";
 
 // Included from workspace/AccountSecurity.jsx; implementation preserved.
 const __kbRev35_module5 = (() => {
@@ -2403,11 +2405,15 @@ function AdminTab({ token, oldindanTanlangan }) {
   };
 
   return (
-    <div className="px-5 pt-6 pb-4">
-      <h1 className="text-2xl font-bold mb-4" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}><InterfaceText text={__kbUi("Shablonlar")}/></h1>
-
-      <p className="text-sm mb-3" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Tartib: 1) mavzular ro‘yxati → 2) kitob darslari → 3) testlar. Hammasi DTS mavzu kodi orqali bog‘lanadi va o‘quvchining «O‘rganish» bo‘limida birga chiqadi.")}</p>
-      <div className="grid gap-2 mb-5 sm:grid-cols-2">
+    <div className="px-5 pt-6 pb-4 shablon-v79">
+      <header className="shablon-hero">
+        <span className="shablon-hero-icon" aria-hidden="true">🧩</span>
+        <div>
+          <h1><InterfaceText text={__kbUi("Shablonlar")}/></h1>
+          <p>{__kbUi("Tartib: 1) mavzular ro‘yxati → 2) kitob darslari → 3) testlar. Hammasi DTS mavzu kodi orqali bog‘lanadi va o‘quvchining «O‘rganish» bo‘limida birga chiqadi.")}</p>
+        </div>
+      </header>
+      <div className="grid gap-2.5 mb-5 sm:grid-cols-2 shablon-steps">
         {[
           ["topik", "📋 1. Mavzular ro‘yxati", "DTS mavzu kodlari va nomlari (topik shablon). Kitob darsi va testlar shu kodlarga ulanadi.", "#1B4B7A"],
           ["miya", "📘 2. Kitob darslari (AI miya)", "KITOB + MAVZULAR shabloni: tushuntirish, doska, rasm, misollar, «Tushunmadim». Nashrdan keyin dars xonasida chiqadi.", "#2D8B8B"],
@@ -2420,8 +2426,8 @@ function AdminTab({ token, oldindanTanlangan }) {
             <button key={key} type="button" aria-pressed={active}
               {...(key === "test" ? { "aria-expanded": bolim === "test", "aria-controls": "test-shablon-import-tanlov" } : {})}
               onClick={() => (key === "test" ? testMenyusiniAlmashtir() : bolimniOch(key))}
-              className={`text-left rounded-xl p-3 border ${key === "miya" ? "sm:col-span-2" : ""}`}
-              style={active ? { backgroundColor: color, borderColor: color, color: "#fff" } : { backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#2B2B2B" }}>
+              className={`shablon-step text-left rounded-2xl p-3.5 border ${active ? "is-active" : ""} ${key === "miya" ? "sm:col-span-2" : ""}`}
+              style={active ? { "--step": color, backgroundColor: color, borderColor: color, color: "#fff" } : { "--step": color, backgroundColor: "#fff", borderColor: "#E5E1D8", color: "#2B2B2B" }}>
               <span className="block text-sm font-semibold">{__kbUi(title)}</span>
               <span className="block text-xs mt-1" style={{ opacity: .8 }}>{__kbUi(hint)}</span>
             </button>
@@ -2584,7 +2590,7 @@ function AdminMuassasaSozlamalari({ token, onOrtga }) {
     ["maktab", "🏫", "Maktab", "1–11-sinf fanlari, o‘quv reja va metod kunlari"],
     ["bogcha", "🧸", "Bog‘cha", "Bog‘cha uchun alohida markaziy andoza"],
     ["markaz", "🎓", "O‘quv markazi", "Markazlar uchun alohida markaziy andoza"],
-    ["universitet", "🏛️", "Institut / universitet", "Oliy ta‘lim uchun alohida markaziy andoza"],
+    ["universitet", "🏛️", "Institut / universitet", "Institut sahifasi, muqova rasmi va muhim sanalar"],
   ];
   useEffect(() => registerPhoneBackHandler("admin-muassasa-settings", () => {
     if (!type) return false;
@@ -2592,7 +2598,8 @@ function AdminMuassasaSozlamalari({ token, onOrtga }) {
     return true;
   }, 110), [type]);
   if (type === "maktab") return <AdminMaktabMarkaziySozlamalari token={token} onOrtga={() => setType(null)} />;
-  return <div className="px-5 pt-6 pb-8"><button type="button" onClick={onOrtga} className="flex items-center gap-2 mb-4"><ChevronLeft size={16}/><InterfaceText text={__kbUi(" Muassasalar")}/></button><div className="rounded-3xl border bg-white p-5"><span className="premium-eyebrow">{__kbUi("ADMIN MARKAZI")}</span><h1 className="text-2xl font-black mt-1">{__kbUi("Muassasa sozlamalari")}</h1><p className="text-sm mt-1" style={{ color: "#6F777B" }}>{__kbUi("Muassasa turini tanlang. Har bir tur o‘z sozlamasiga ega; ma’lumotlar bir-biriga aralashmaydi.")}</p><div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">{types.map(([key, icon, title, text]) => <button key={key} onClick={() => setType(key)} className="text-left p-5 rounded-2xl border"><span className="text-2xl">{__kbUi(icon)}</span><b className="block mt-2">{__kbUi(title)}</b><small style={{ color: "#6F777B" }}>{__kbUi(text)}</small></button>)}</div>{type && type !== "maktab" && <div className="mt-4 p-4 rounded-xl" style={{ background: "#FFF6E7", color: "#8A5A1C" }}>{__kbUi("Bu muassasa turi uchun sozlama alohida yaratiladi. Hozir Maktab sozlamasi faol.")}</div>}</div></div>;
+  if (type === "universitet") return <AdminInstitutTanlash token={token} apiBase={API_BASE} onBack={() => setType(null)} />;
+  return <div className="px-5 pt-6 pb-8"><button type="button" onClick={onOrtga} className="flex items-center gap-2 mb-4"><ChevronLeft size={16}/><InterfaceText text={__kbUi(" Muassasalar")}/></button><div className="rounded-3xl border bg-white p-5"><span className="premium-eyebrow">{__kbUi("ADMIN MARKAZI")}</span><h1 className="text-2xl font-black mt-1">{__kbUi("Muassasa sozlamalari")}</h1><p className="text-sm mt-1" style={{ color: "#6F777B" }}>{__kbUi("Muassasa turini tanlang. Har bir tur o‘z sozlamasiga ega; ma’lumotlar bir-biriga aralashmaydi.")}</p><div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">{types.map(([key, icon, title, text]) => <button key={key} onClick={() => setType(key)} className="text-left p-5 rounded-2xl border"><span className="text-2xl">{__kbUi(icon)}</span><b className="block mt-2">{__kbUi(title)}</b><small style={{ color: "#6F777B" }}>{__kbUi(text)}</small></button>)}</div>{type && type !== "maktab" && type !== "universitet" && <div className="mt-4 p-4 rounded-xl" style={{ background: "#FFF6E7", color: "#8A5A1C" }}>{__kbUi("Bu muassasa turi uchun sozlama alohida yaratiladi. Hozir Maktab sozlamasi faol.")}</div>}</div></div>;
 }
 
 function AdminMuassasalarTab({ token }) {
@@ -4468,6 +4475,7 @@ function UniversitetlarBolimi({ token }) {
   const [rahbar, setRahbar] = useState(null);
   const [rahbarIsmi, setRahbarIsmi] = useState("");
   const [kirishNatija, setKirishNatija] = useState(null);
+  const [hayot, setHayot] = useState(null); // REV79: { universitet, tab } — talabalar / sahifa
 
   const formniTozala = () => { setNomi(""); setViloyat(""); setTuman(""); setKurs(""); setYonalish(""); setRahbar(null); setRahbarIsmi(""); setFormOchiq(false); setXato(""); };
 
@@ -4613,6 +4621,7 @@ function UniversitetlarBolimi({ token }) {
     // beramiz. Uning onBack'i workspaceUniversity'ni yopib, shu komponent
     // saqlab turgan fakultetlar ro'yxatiga qaytaradi.
     if (workspaceUniversity) return false;
+    if (hayot) { setHayot(null); return true; }
     if (formOchiq) {
       formniTozala();
       return true;
@@ -4623,7 +4632,9 @@ function UniversitetlarBolimi({ token }) {
     }
     // Universitetlar ildizida Kabinet o'zining real tab tarixiga qaytadi.
     return false;
-  }), [formOchiq, holat, workspaceUniversity]);
+  }), [formOchiq, holat, workspaceUniversity, hayot]);
+
+  if (hayot) return <AdminInstitutHayoti token={token} apiBase={API_BASE} universitet={hayot.universitet} initialTab={hayot.tab} onBack={() => { setHayot(null); universitetlarniYukla(); }} />;
 
   if (workspaceUniversity) {
     return (
@@ -4747,6 +4758,10 @@ function UniversitetlarBolimi({ token }) {
               </div>
               <ChevronRight size={16} style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }} />
             </button>
+            <div className="flex flex-wrap gap-2 px-4 pb-3">
+              <button type="button" onClick={() => setHayot({ universitet: u, tab: "talabalar" })} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl" style={{ background: "#F1ECFB", color: "#5B3FA0" }}>👥 {__kbUi("Talabalar — kurs va guruhlar")}<b className="ml-1 px-1.5 rounded-full" style={{ background: "#fff" }}>{Number(u.talaba_soni) || 0}</b></button>
+              <button type="button" onClick={() => setHayot({ universitet: u, tab: "sahifa" })} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl" style={{ background: "#FFF4DE", color: "#94600F" }}>📅 {__kbUi("Muhim sanalar va sahifa")}</button>
+            </div>
             <TalabaParolQatori token={token} universitet={u} onYangilandi={(yangi) => setUniversitetlar((old) => old.map((x) => (x.id === yangi.id ? { ...x, ...yangi } : x)))} />
             </div>
           ))}
@@ -13079,6 +13094,9 @@ function PastkiMenyu({
   const { t: uiT } = useInterface();
   const aktivRang = rang || "#1B4B7A";
   const bandlar = menyuBandlariniOl(rol, qoshimchaBand);
+  // REV79: talabaga «Mening institutim» (guruhim, kursim, muhim sanalar).
+  const talabaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && (_kbAccountRole(foydalanuvchi) === "talaba" || /kurs/i.test(String(foydalanuvchi?.class || "")));
+  if (talabaMi) bandlar.splice(1, 0, { kalit: "institutim", nom: "Mening institutim", ikon: GraduationCap });
   if (taqdimotMavjud) bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
   const profilBandi = bandlar.find((band) => band.kalit === "profil");
   const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
@@ -13088,7 +13106,7 @@ function PastkiMenyu({
       ? "O‘qituvchi"
       : rol === "ota-ona"
         ? "Ota-ona"
-        : "O‘quvchi";
+        : talabaMi ? "Talaba" : "O‘quvchi";
   const ism = foydalanuvchi?.full_name || rolNomi;
   const boshHarf = ism.trim().split(/\s+/).slice(0, 2).map((q) => q[0]).join("").toUpperCase() || "TA";
 
@@ -14440,6 +14458,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     oqituvchi_analitika: ["Statistikalar", "Ish joyi, guruh va o‘quvchi tahlili"],
     farzand: ["Farzand tahlili", "Bilim, faollik va keyingi qadamlar"],
     bilim: ["Mening tahlilim", "Barcha ta’lim muhitlaridagi rivojim"],
+    institutim: ["Mening institutim", "Guruhim, kursim va muhim sanalar"],
     ai_ustoz: ["AI Ustoz", "Sizga mos individual dars"],
     mavzular: ["Mavzular", "Ta’limingizga mos fan va mavzular"],
     test: ["Test markazi", "Bilimni tekshirish va mustahkamlash"],
@@ -14733,6 +14752,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
           onOpenTest={(topic) => {
             setTalimYoliTestNishoni({...topic,nonce:Date.now()});setTab("test");
           }} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "institutim" && (
+        <MeningInstitutim token={token} apiBase={API_BASE} onOpenProfile={() => setTab("profil")} />
       )}
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
         <AiOquvchiUstozBolimi token={token} foydalanuvchi={foydalanuvchi} initialTarget={talimYoliDarsNishoni} onOpenTest={(topic) => { setTalimYoliTestNishoni({ ...topic, nonce: Date.now() }); setTab("test"); }} />

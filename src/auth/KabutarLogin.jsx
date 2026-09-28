@@ -44,7 +44,8 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const [telegramKey, setTelegramKey] = useState(0);
   const [configError, setConfigError] = useState("");
   const [configAttempt, setConfigAttempt] = useState(0);
-  const [method, setMethod] = useState("telegram");
+  const [method, setMethod] = useState("");
+  const [quickRole, setQuickRole] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [identifier, setIdentifier] = useState("");
@@ -148,11 +149,33 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     }
     if (account.method === "google" && googleEnabled) { startGoogle(); return; }
     if (account.method === "password") { chooseMethod("password"); setIdentifier(account.identifier || ""); return; }
+    if (account.method === "quick") { setError("Bu akkaunt Telegram yoki Gmail’ga ulanmagan edi va sessiyasi tugagan. Rolni bosib yangidan boshlang yoki Telegram orqali kiring."); return; }
     chooseMethod("telegram"); setTelegramKey((value) => value + 1);
     setError("Sessiya tugagan. Telegram botdan yangi kod olib kiring — bir daqiqa.");
   };
 
-  return <main className="kb-login-page kb-login-compact">
+  // REV79: rolni bosish — darhol kirish (shu qurilmada yangi akkaunt). Oldin kirganlar pastdan.
+  const quickStart = async (next) => {
+    if (commandBusy.current || resuming) return;
+    pickRole(next);
+    commandBusy.current = true;
+    const id = ++commandId.current;
+    command.current?.abort();
+    const controller = new AbortController();
+    command.current = controller;
+    setBusy(true); setQuickRole(next); setError("");
+    try {
+      const data = await authRequest(apiBase, "/auth/quick/start", { body: { role: next }, signal: controller.signal });
+      if (mounted.current && id === commandId.current) finish({ ...data, method: "quick" });
+    } catch (err) {
+      if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);
+    } finally {
+      if (mounted.current && id === commandId.current) { commandBusy.current = false; setBusy(false); setQuickRole(""); }
+    }
+  };
+  const toggleMethod = (next) => { if (method === next) chooseMethod(""); else chooseMethod(next); };
+
+  return <main className="kb-login-page kb-login-compact kb-login-v79">
     <div className="kb-login-shell">
       <header className="kb-login-header">
         <a className="kb-login-brand" href="#kabutar-signin" aria-label={uiT("Kabutar bosh sahifasi")}>
@@ -165,39 +188,45 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
       <div className="kb-login-main kb-login-main-single">
         <section className="kb-login-access" id="kabutar-signin" aria-labelledby="kabutar-signin-title">
           <div className="kb-login-card">
-            <h2 id="kabutar-signin-title"><InterfaceText text={__kbUi("Kirish")}/></h2>
+            {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text={__kbUi("Xush kelibsiz!")}/></h3><p><InterfaceText text={__kbUi("Sahifa ochilmoqda…")}/></p></div> : <>
+              <h2 id="kabutar-signin-title"><InterfaceText text={__kbUi("Kim sifatida kirasiz?")}/></h2>
+              <p className="kb-login-lead-v79"><InterfaceText text={__kbUi("Bosing — darhol kirasiz. Ro‘yxatdan o‘tish shart emas.")}/></p>
 
-            {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text={__kbUi("Kirish tasdiqlandi")}/></h3><p><InterfaceText text={__kbUi("Kabutaringiz ochilmoqda…")}/></p></div> : <>
+              {error && <div className="kb-login-error" role="alert">{__kbUi(error)}<button type="button" onClick={() => setError("")} aria-label={uiT("Xato xabarini yopish")}><X size={16}/></button></div>}
+
+              <div className="kb-login-role-cards" role="group" aria-label={uiT("Rol")}>
+                {LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
+                  <span className="kb-login-role-emoji" aria-hidden="true">{icon}</span>
+                  <b>{uiT(name)}</b>
+                  <small>{uiT(hint)}</small>
+                  <span className="kb-login-role-go" aria-hidden="true">{quickRole === id ? <LoaderCircle size={16} className="kb-login-spin"/> : <ArrowRight size={16}/>}</span>
+                </button>)}
+              </div>
+
               {accounts.length > 0 && <div className="kb-login-saved" aria-label={uiT("Shu qurilmada kirgan akkauntlar")}>
-                <p className="kb-login-step"><InterfaceText text={__kbUi("Oldin kirgansiz — bosing:")}/></p>
+                <p className="kb-login-step"><InterfaceText text={__kbUi("Oldin kirgansiz — davom eting:")}/></p>
                 {accounts.map((account) => <div key={account.user_id} className="kb-login-saved-item">
                   <button type="button" onClick={() => resume(account)} disabled={Boolean(resuming) || busy}>
                     <span className="kb-login-avatar" aria-hidden="true">{String(account.name || "?").trim().charAt(0).toUpperCase()}</span>
-                    <span className="kb-login-saved-text"><b>{account.name}</b><small>{[ROLE_NAMES[account.role] && uiT(ROLE_NAMES[account.role]), account.token ? uiT("tez kirish") : methodLabel(account.method)].filter(Boolean).join(" · ")}</small></span>
+                    <span className="kb-login-saved-text"><b>{account.name}</b><small>{[ROLE_NAMES[account.role] && uiT(ROLE_NAMES[account.role]), account.token ? uiT("bir bosishda") : methodLabel(account.method)].filter(Boolean).join(" · ")}</small></span>
                     {resuming === String(account.user_id) ? <LoaderCircle size={17} className="kb-login-spin"/> : <ChevronRight size={17}/>}
                   </button>
                   <button type="button" className="kb-login-saved-remove" aria-label={uiT("Bu qurilmadan olib tashlash")} title={uiT("Bu qurilmadan olib tashlash")} onClick={() => setAccounts(forgetAccount(account.user_id))}><X size={14}/></button>
                 </div>)}
               </div>}
 
-              <p className="kb-login-step"><InterfaceText text={__kbUi("1. Kim sifatida kirasiz?")}/></p>
-              <div className="kb-login-roles" role="radiogroup" aria-label={uiT("Rol")}>
-                {LOGIN_ROLES.map(([id, name, icon]) => <button key={id} type="button" role="radio" aria-checked={role === id} className={role === id ? "is-selected" : ""} onClick={() => pickRole(id)}><span aria-hidden="true">{icon}</span>{uiT(name)}</button>)}
+              <div className="kb-login-divider"><span/><InterfaceText text={__kbUi("Akkauntingiz bormi? Shu orqali kiring")}/><span/></div>
+              <div className="kb-login-mini-methods" role="group" aria-label={uiT("Kirish usuli")}>
+                <button type="button" className={`kb-mini-tg${method === "telegram" ? " is-open" : ""}`} onClick={() => toggleMethod("telegram")} aria-expanded={method === "telegram"}><Send size={15}/>{__kbUi("Telegram")}</button>
+                <button type="button" className="kb-mini-google" disabled={busy || !googleEnabled} onClick={startGoogle}><GoogleMark/>{__kbUi("Google")}</button>
+                <button type="button" className={`kb-mini-pass${method === "password" ? " is-open" : ""}`} onClick={() => toggleMethod("password")} aria-expanded={method === "password"}><LockKeyhole size={15}/><InterfaceText text={__kbUi("Parol")}/></button>
               </div>
-              <p className="kb-login-role-note"><InterfaceText text={__kbUi("Rol yangi akkauntga qo‘yiladi. Keyin uni faqat Sozlamalardan o‘zgartirasiz.")}/></p>
-
-              <p className="kb-login-step"><InterfaceText text={__kbUi("2. Qanday kirasiz?")}/></p>
-              <div className="kb-login-methods" role="group" aria-label={uiT("Kirish usuli")}>
-                <button type="button" className={method === "telegram" ? "is-selected" : ""} onClick={() => chooseMethod("telegram")} aria-pressed={method === "telegram"}><Send size={16}/>{__kbUi(" Telegram")}</button>
-                <button type="button" className={method === "password" ? "is-selected" : ""} onClick={() => chooseMethod("password")} aria-pressed={method === "password"}><LockKeyhole size={16}/><InterfaceText text={__kbUi(" Parol")}/></button>
-              </div>
-
-              {error && <div className="kb-login-error" role="alert">{__kbUi(error)}<button type="button" onClick={() => setError("")} aria-label={uiT("Xato xabarini yopish")}><X size={16}/></button></div>}
               {configError && !config && <div className="kb-login-service-error" role="status"><p>{__kbUi(configError)}</p><button type="button" onClick={() => setConfigAttempt((attempt) => attempt + 1)}><InterfaceText text={__kbUi("Qayta tekshirish")}/></button></div>}
+              {config && !googleEnabled && method === "google" && <p className="kb-login-poll-notice"><InterfaceText text={__kbUi("Google orqali kirish hozir sozlanmagan.")}/></p>}
 
-              {method === "telegram" && <TelegramCodeLogin key={telegramKey} apiBase={apiBase} config={config} onAuthenticated={(data) => finish({ ...data, method: "telegram" })}/>}
+              {method === "telegram" && <div className="kb-login-method-panel"><TelegramCodeLogin key={telegramKey} apiBase={apiBase} config={config} onAuthenticated={(data) => finish({ ...data, method: "telegram" })}/></div>}
 
-              {method === "password" && <form className="kb-login-password-form" onSubmit={loginWithPassword}>
+              {method === "password" && <form className="kb-login-password-form kb-login-method-panel" onSubmit={loginWithPassword}>
                 <label htmlFor="kabutar-login-identifier"><InterfaceText text={__kbUi("Telefon, KB raqami, nik yoki email")}/></label>
                 <input id="kabutar-login-identifier" name="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={uiT("+998… yoki KB-123456")} maxLength={254} required disabled={busy}/>
                 <label htmlFor="kabutar-login-password"><InterfaceText text={__kbUi("Parol")}/></label>
@@ -206,13 +235,9 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                 {config && !passwordEnabled && <p className="kb-login-poll-notice"><InterfaceText text={__kbUi("Parol orqali kirish hozir mavjud emas.")}/></p>}
                 <button type="button" className="kb-login-text-button" onClick={() => chooseMethod("telegram")}><InterfaceText text={__kbUi("Parol esingizdan chiqdimi? Telegram orqali kiring")}/></button>
               </form>}
-
-              <div className="kb-login-divider"><span/><InterfaceText text={__kbUi("yoki")}/><span/></div>
-              <button type="button" className="kb-login-google" disabled={busy || !googleEnabled} onClick={startGoogle}><GoogleMark/><span><InterfaceText text={__kbUi("Google (Gmail) orqali kirish")}/></span><ChevronRight size={17}/></button>
-              {config && !googleEnabled && <p className="kb-login-poll-notice"><InterfaceText text={__kbUi("Google orqali kirish hozir sozlanmagan.")}/></p>}
             </>}
           </div>
-          <div className="kb-login-card-foot"><Check size={15}/><span><InterfaceText text={__kbUi("Bir hisob: suhbatlar va ta’lim. Telegram yoki Gmail ulangan hisob yo‘qolmaydi.")}/></span></div>
+          <div className="kb-login-card-foot"><Check size={15}/><span><InterfaceText text={__kbUi("Kirgach Telegram yoki Gmail ulang — akkauntingiz va natijalaringiz hech qachon yo‘qolmaydi.")}/></span></div>
         </section>
       </div>
     </div>

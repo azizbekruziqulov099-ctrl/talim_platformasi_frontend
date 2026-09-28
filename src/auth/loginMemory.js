@@ -65,7 +65,8 @@ export function rememberAccount(user, token, login = null, store) {
     user_id: user.user_id,
     name: String(user.full_name || user.ism || old.name || 'Akkaunt').slice(0, 80),
     role: accountRole(user) || old.role || '',
-    method: login?.method || old.method || (identities.telegram ? 'telegram' : identities.google ? 'google' : 'password'),
+    // Tez kirilgan akkaunt keyin Telegram/Gmail'ga ulansa — usul ham yangilanadi.
+    method: login?.method || (old.method && !(old.method === 'quick' && (identities.telegram || identities.google)) ? old.method : '') || (identities.telegram ? 'telegram' : identities.google ? 'google' : 'password'),
     identifier: login?.method === 'password' ? login.identifier : old.identifier || '',
     phone: user.phone_masked || old.phone || '',
     token: typeof token === 'string' ? token : old.token || '',
@@ -113,5 +114,5 @@ export function roleMismatch(user, chosen) {
 }
 
 export function methodLabel(method) {
-  return { telegram: 'Telegram', google: 'Google', password: 'Parol' }[method] || 'Kirish';
+  return { telegram: 'Telegram', google: 'Google', password: 'Parol', quick: 'Tez kirish' }[method] || 'Kirish';
 }

@@ -130,3 +130,33 @@
 @media(max-width:420px){.kb-security-roles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kb-login-courses{border:1px solid var(--kb-line);background:#fff;border-radius:12px;padding:8px 13px;font-weight:700;font-size:13px;color:var(--kb-ink);cursor:pointer;margin-right:8px}
 .kb-login-compact .kb-login-header nav{display:flex;align-items:center}
+/* REV79: rolni bosib darhol kirish — katta rol kartalari, pastda ixcham Telegram/Google/Parol */
+.kb-login-v79 .kb-login-card{padding:28px 26px 24px;border-radius:28px;background:linear-gradient(180deg,#fff 0%,#fbfdfa 100%)}
+.kb-login-v79 .kb-login-card h2{font-size:26px;letter-spacing:-.8px;margin:0}
+.kb-login-lead-v79{font-size:13px;color:var(--kb-muted);margin:6px 0 16px!important;line-height:1.55}
+.kb-login-role-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kb-login-role-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:15px 14px 14px;border-radius:18px;border:1px solid var(--kb-line);background:var(--role-bg,#f4f8f5);color:var(--kb-ink);transition:transform .16s,box-shadow .16s,border-color .16s;min-height:108px;overflow:hidden}
+.kb-login-role-card:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 26px -14px #1d4d4a66;border-color:var(--role-ink,#087b74)}
+.kb-login-role-card:active:not(:disabled){transform:scale(.98)}
+.kb-login-role-card.is-last{box-shadow:0 0 0 2px var(--role-ink,#087b74) inset}
+.kb-login-role-emoji{font-size:28px;line-height:1;margin-bottom:6px}
+.kb-login-role-card b{font-size:15px;font-weight:800}
+.kb-login-role-card small{font-size:11.5px;color:var(--kb-muted);line-height:1.35}
+.kb-login-role-go{position:absolute;right:12px;top:12px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#fff;color:var(--role-ink,#087b74);box-shadow:0 2px 6px #0000000f}
+.kb-role-oquvchi{--role-bg:#eef6ff;--role-ink:#1f6fb2}
+.kb-role-talaba{--role-bg:#f2eefb;--role-ink:#6146a5}
+.kb-role-oqituvchi{--role-bg:#eaf6ef;--role-ink:#2f7d5b}
+.kb-role-ota-ona{--role-bg:#fff5e6;--role-ink:#a8641c}
+.kb-login-v79 .kb-login-saved{margin-top:16px}
+.kb-login-v79 .kb-login-divider{margin:18px 0 10px;font-size:11px;text-align:center}
+.kb-login-mini-methods{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.kb-login-mini-methods button{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;border:1px solid var(--kb-line);background:#fff;font-size:12.5px;font-weight:700;color:var(--kb-ink);transition:background .15s,border-color .15s}
+.kb-login-mini-methods button:hover:not(:disabled){background:#f3f7f4}
+.kb-login-mini-methods .kb-mini-tg{color:#1d7fc2}
+.kb-login-mini-methods .kb-mini-tg.is-open{background:#e8f4fc;border-color:#9fcdee}
+.kb-login-mini-methods .kb-mini-pass.is-open{background:#eef4f0;border-color:#b9d3c4}
+.kb-login-mini-methods svg{flex:none}
+.kb-login-method-panel{margin-top:14px;padding:14px;border:1px solid var(--kb-line);border-radius:16px;background:#fbfcfa;animation:kb-login-open .22s ease both}
+.kb-login-method-panel.kb-login-password-form label:first-child{margin-top:0}
+@keyframes kb-login-open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media(max-width:420px){.kb-login-role-card{min-height:96px;padding:12px}.kb-login-role-emoji{font-size:24px}.kb-login-v79 .kb-login-card{padding:22px 16px 18px}}
