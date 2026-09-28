@@ -1,23 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import katex from "katex";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
-import { splitCourseMath } from "../courses/CourseText.jsx";
+import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
 import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, visibleLines } from "./darsXonasiRules.js";
 import "./dars-xonasi.css";
-
-// Doskadagi matn: oddiy matn React orqali, formulalar faqat KaTeX (trust:false).
-function BoardText({ text }) {
-  const parts = useMemo(() => splitCourseMath(text).map((part) => {
-    if (!part.math || part.math.length > 3000) return part;
-    try {
-      return { ...part, html: katex.renderToString(part.math, { displayMode: false, throwOnError: true, trust: false, strict: "ignore", maxExpand: 200, maxSize: 20, output: "html" }) };
-    } catch { return part; }
-  }), [text]);
-  return <>{parts.map((part, i) => part.html
-    ? <span key={i} className="dx-math" dangerouslySetInnerHTML={{ __html: part.html }} />
-    : <React.Fragment key={i}>{part.text ?? part.source}</React.Fragment>)}</>;
-}
 
 function TeacherAvatar() {
   return <svg viewBox="0 0 64 64" width="60" height="60" aria-hidden="true">
@@ -144,7 +130,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const cue = boardCues(s.doska, s.ovoz || s.doska);
     say(cue.spoken || s.doska, () => {
       setStepFinished(true);
-      if (autoplay && s.turi !== "birga") setTimeout(() => { if (playingRef.current) go(next + 1, true); }, 1000);
+      // «birga» va «amaliy» qadamida o'quvchi o'zi ishlaydi — dars shu yerda kutadi.
+      if (autoplay && s.turi !== "birga" && s.turi !== "amaliy") setTimeout(() => { if (playingRef.current) go(next + 1, true); }, 1000);
     });
   }, [steps, questions.length, say, hush, onOpenTest]);
 
@@ -230,7 +217,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     <header className="dx-head">
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
-        <p>{[lesson.topic?.fan, lesson.topic?.sinf && `${lesson.topic.sinf}-sinf`, lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>
+        <p>{[lesson.topic?.fan, lesson.topic?.sinf && (/^\d+$/.test(String(lesson.topic.sinf)) ? `${lesson.topic.sinf}-sinf` : String(lesson.topic.sinf)), lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>
       </div>
       <div className="dx-head-actions">
         <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>
@@ -252,7 +239,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {lesson.topic?.maqsad && <div className="dx-line dx-small">{lesson.topic.maqsad}</div>}
             <div className="dx-line dx-small">{steps.length}{__kbUi(" qadam")}{questions.length ? ` · ${questions.length}${__kbUi(" ta savol")}` : ""}</div>
           </>}
-          {mode === "lesson" && step && <>
+          {mode === "lesson" && step && step.turi === "amaliy" && <>
+            {step.sarlavha && <h3 className="dx-title"><BoardText text={step.sarlavha} /></h3>}
+            <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} />
+          </>}
+          {mode === "lesson" && step && step.turi !== "amaliy" && <>
             {steps[range[0]]?.sarlavha && <h3 className="dx-title"><BoardText text={steps[range[0]].sarlavha} /></h3>}
             <div className="dx-lines">
               {range.flatMap((i) => {

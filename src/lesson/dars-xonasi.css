@@ -82,3 +82,43 @@
 }
 .dx-head-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
 .dx-link{text-decoration:none;padding:5px 10px;font-size:12px}
+/* Amaliy qism: sharti ko'rinadi, yechimi keyin ochiladi (dars xonasi va kitob kodi oynasi) */
+.dx-amaliy{display:grid;gap:12px}
+.dx-amaliy-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dx-kind{font:700 12px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--dx-yellow)}
+.dx-code{font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;background:#F2F0E6;color:#1E3A32;border-radius:6px;padding:2px 8px;letter-spacing:.04em}
+.dx-task{font:16px/1.55 system-ui,sans-serif;color:var(--dx-chalk);background:#0002;border:1px solid #ffffff26;border-radius:8px;padding:10px 14px;max-height:340px;overflow:auto}
+.dx-task p{margin:0 0 6px;max-width:75ch}.dx-task p:last-child{margin:0}
+.dx-task:focus-visible{outline:3px solid var(--dx-blue);outline-offset:2px}
+.dx-amaliy .dx-opts button{font-size:17px}
+.dx-opts .is-picked{background:#9FD3E633;border-color:var(--dx-blue)}
+.dx-solution{border-top:2px dashed #ffffff40;padding-top:10px;display:grid;gap:6px}
+.dx-solution h4{margin:0;font-size:24px;color:var(--dx-yellow)}
+.dx-solution .dx-line{font-size:22px;line-height:1.35}
+.dx-amaliy-actions .dx-btn{font-size:13px}
+.dx-note{font:13px system-ui,sans-serif;color:var(--dx-dim)}
+/* Kitob kodi: tepadagi qisqa maydon */
+.kk-top{display:flex;align-items:stretch;gap:0;min-width:0}
+.kk-top-input{width:108px;min-width:0;border:1px solid #E5E1D8;border-right:0;border-radius:14px 0 0 14px;padding:0 10px;font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:#1B4B7A;background:#fff;text-transform:uppercase}
+.kk-top-input::placeholder{font-family:system-ui,sans-serif;letter-spacing:0;text-transform:none;color:#8A8578;font-weight:600}
+.kk-top-input:focus{outline:2px solid #1B4B7A;outline-offset:-2px}
+.samtm-top-switch .kk-top .kk-top-btn{border-radius:0 14px 14px 0;padding:11px 12px;gap:4px}
+.kk-top-label{font-size:13px}
+.samtm-top-mid{display:flex;gap:6px;align-items:stretch;min-width:0}
+@media (max-width:640px){.kk-top-input{display:none}.samtm-top-switch .kk-top .kk-top-btn{border-radius:14px;padding:11px 10px}.kk-top-label{display:none}}
+/* Kitob kodi oynasi */
+.kk-backdrop{position:fixed;inset:0;z-index:2147483300;background:#0F1D1A99;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.kk-modal{width:min(980px,100%);background:var(--dx-paper);border-radius:14px;padding:14px;box-shadow:0 24px 60px -20px #000a}
+.kk-head{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.kk-search{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.kk-search label{font:600 13px system-ui,sans-serif}
+.kk-search input{width:170px;max-width:100%;padding:8px 10px;border:1px solid var(--dx-line);border-radius:8px;font:700 15px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;text-transform:uppercase;background:#fff;color:#1C2926}
+.kk-close{flex:none}
+.kk-hint,.kk-error{margin:0;font:14px/1.5 system-ui,sans-serif;padding:10px 12px;border-radius:8px}
+.kk-hint{background:#EEF3F0;color:#1C2926}.kk-error{background:#FBE9E6;color:#8A2A1E}
+.kk-meta{display:grid;gap:2px}.kk-meta strong{font-size:17px}.kk-meta span{font-size:12.5px;color:var(--dx-muted)}
+.kk-board{min-height:260px}
+.kk-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.kk-voice{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dx-muted)}
+.kk-voice i{width:8px;height:8px;border-radius:50%;background:#B7C4BD}.kk-voice.is-on i{background:#2F7D5B;animation:dx-pulse 1s infinite}
+.kk-ask{background:#fff;border:1px solid var(--dx-line);border-radius:10px;padding:10px}

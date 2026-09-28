@@ -23,6 +23,7 @@ import * as __kbRev35_external0 from "react";
 import * as __kbRev35_external1 from "lucide-react";
 import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
+import KitobKodQidiruv from "./lesson/KitobKod.jsx";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
@@ -2433,7 +2434,11 @@ function AdminTab({ token, oldindanTanlangan }) {
         )}
       </div>
 
-      {bolim === "miya" && <KitobMiyaBolimi token={token} />}
+      {bolim === "miya" && (
+        <CurriculumBoundary token={token} title={__kbUi("Kitob darslari: qaysi o‘quvchilar uchun?")}>
+          <KitobMiyaBolimi token={token} fanTanlash />
+        </CurriculumBoundary>
+      )}
       {bolim === "test" && testRejimi === "shablon" && (
         <TestShablonBolimi key="shablon" token={token} oldindanTanlangan={oldindanTanlangan} mode="shablon" />
       )}
@@ -14541,7 +14546,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         <div className="samtm-top-spacer" aria-hidden="true" />
         <div className="samtm-top-switch" ref={topSwitchRef}>
           <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>🧭 <InterfaceText text={__kbUi("Ta’lim maydoni")}/></button>
-          <KabutarAssistantButton open={assistantOpen} onClick={() => setAssistantOpen(value => !value)} />
+          <div className="samtm-top-mid">
+            <KabutarAssistantButton open={assistantOpen} onClick={() => setAssistantOpen(value => !value)} />
+            <KitobKodQidiruv apiBase={API_BASE} token={token} />
+          </div>
           <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}><MessageCircle size={16} />{__kbUi(" Kabutar")}{kabutarTezKunda ? <span className="samtm-tez-kunda">{uiT("tez kunda")}</span> : kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
           <InterfaceSettingsButton/>
           {!readOnly && <button type="button" className="kb-account-top-button" aria-label={uiT("Akkaunt va kirish sozlamalari")} title={uiT("Akkaunt va kirish")} onClick={() => setAccountOpen(true)}><User size={18} /></button>}

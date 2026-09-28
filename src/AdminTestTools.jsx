@@ -649,7 +649,95 @@ export function ModeratsiyaTab({ token }) {
 }
 
 
-export function KitobMiyaBolimi({ token }) {
+// Tanlangan bo'lim (maktab / institut / bog'cha / markaz) → sinf/kurs → fan:
+// mavzu kodi va nomi test katalogidagidek oldindan yozilgan shablon.
+function AiMiyaFanShabloni({ token }) {
+  useKbInterfaceLocale();
+  const { fetch: scopedFetch, scope } = useCurriculum();
+  const [sinflar, setSinflar] = useState([]);
+  const [sinf, setSinf] = useState("");
+  const [fanlar, setFanlar] = useState([]);
+  const [fan, setFan] = useState("");
+  const [busy, setBusy] = useState("");
+  const [xato, setXato] = useState("");
+
+  useEffect(() => {
+    setSinflar([]); setSinf(""); setFanlar([]); setFan(""); setXato("");
+    if (!scope?.id) return;
+    scopedFetch(`${API_BASE}/api/admin/topik_sinflar?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.from(new Set([...(d.oddiy || []), ...(d.talaba || []), ...(d.togarak || [])]));
+        setSinflar(list);
+        const first = scope.grade && list.includes(scope.grade) ? scope.grade : list[0];
+        if (first) setSinf(first);
+      })
+      .catch((e) => setXato(e.message || "Sinflar yuklanmadi"));
+  }, [scope?.id, token]);
+
+  useEffect(() => {
+    setFanlar([]); setFan("");
+    if (!sinf || !scope?.id) return;
+    setBusy("fan");
+    scopedFetch(`${API_BASE}/api/admin/topik_fanlar?sinf=${encodeURIComponent(sinf)}&token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => { const list = d.fanlar || []; setFanlar(list); if (list[0]) setFan(`${list[0].nom}|||${list[0].dars_turi || ""}`); })
+      .catch((e) => setXato(e.message || "Fanlar yuklanmadi"))
+      .finally(() => setBusy(""));
+  }, [sinf, scope?.id, token]);
+
+  const yuklab = async () => {
+    if (!fan || busy) return;
+    const [nom, darsTuri] = fan.split("|||");
+    setBusy("yuklab"); setXato("");
+    try {
+      const params = new URLSearchParams({ sinf, fan: nom, dars_turi: darsTuri || "", token });
+      const res = await scopedFetch(`${API_BASE}/api/admin/ai_miya_shablon_fan?${params}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url; link.download = `AI_miya_${nom}_${sinf}.xlsx`.replace(/\s+/g, "_");
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {
+      setXato(e.message || "Shablon yuklanmadi");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const tanlangan = fanlar.find((f) => `${f.nom}|||${f.dars_turi || ""}` === fan);
+  return (
+    <div className="mt-3 rounded-xl border p-3 space-y-2" style={{ borderColor: "#A8D2C8", backgroundColor: "#F3FAF7" }}>
+      <p className="text-xs font-semibold" style={{ color: "#246D6D" }}>{__kbUi("Fan bo‘yicha tayyor shablon (mavzu kodlari va nomlari test katalogidan olinadi)")}</p>
+      {!scope?.id ? (
+        <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Yuqorida bo‘limni tanlang: maktab, institut, bog‘cha yoki markaz.")}</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-[1fr_2fr_auto] items-end">
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>{__kbUi("Sinf / kurs")}
+            <select value={sinf} onChange={(e) => setSinf(e.target.value)} className="mt-1 w-full px-2.5 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: "#D8D3C7" }}>
+              {sinflar.map((s) => <option key={s} value={s}>{gradeLabel(scope.institution_type || "maktab", s) || s}</option>)}
+            </select>
+          </label>
+          <label className="text-[11px] font-semibold" style={{ color: "#5A5648" }}>{__kbUi("Fan")}
+            <select value={fan} onChange={(e) => setFan(e.target.value)} disabled={busy === "fan"} className="mt-1 w-full px-2.5 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: "#D8D3C7" }}>
+              {fanlar.map((f) => <option key={`${f.nom}|||${f.dars_turi || ""}`} value={`${f.nom}|||${f.dars_turi || ""}`}>{f.nom}{f.dars_turi ? ` · ${lessonLabel(f.dars_turi)}` : ""} ({f.mavzu_soni} {__kbUi("mavzu")})</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={yuklab} disabled={!fan || !!busy}
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-white" style={{ backgroundColor: "#2D8B8B", opacity: !fan || busy ? .5 : 1 }}>
+            {busy === "yuklab" ? __kbUi("Tayyorlanmoqda…") : __kbUi("📥 Shablonni olish")}
+          </button>
+        </div>
+      )}
+      {scope?.id && !sinflar.length && !xato && <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Bu bo‘limda hali mavzular yo‘q — avval «Mavzular ro‘yxati» shablonini yuklang.")}</p>}
+      {tanlangan && <p className="text-[11px]" style={{ color: "#5A5648" }}>{__kbUi(`Faylda ${tanlangan.mavzu_soni} ta mavzu tayyor turadi: har biriga tushuntirish, doska, misol va «Tushunmadim» ni yozasiz.`)}</p>}
+      {xato && <p className="text-xs" style={{ color: "#A32D2D" }}>{__kbUi(xato)}</p>}
+    </div>
+  );
+}
+
+export function KitobMiyaBolimi({ token, fanTanlash = false }) {
   useKbInterfaceLocale();
   const [fayl, setFayl] = useState(null);
   const [tekshiruv, setTekshiruv] = useState(null);
@@ -783,13 +871,14 @@ export function KitobMiyaBolimi({ token }) {
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
             style={{ backgroundColor: "#EAF1F7" }}>📥</div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm" style={{ color: "#2B2B2B" }}>{__kbUi("1. Universal shablonni oling")}</h3>
-            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{__kbUi("Faqat 2 varaq: KITOB va MAVZULAR. Bir qator — bitta tushuncha: tushuntirish, doska, rasm, misollar, masala va «Tushunmadim» variantlari shu qatorda. Testlar yozilmaydi — mavzu kodi bo'yicha Test bazasidan olinadi. Rasmni katakka qo'yish kifoya.")}</p>
+            <h3 className="font-bold text-sm" style={{ color: "#2B2B2B" }}>{__kbUi("1. Shablonni oling")}</h3>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8578" }}>{__kbUi("Bir varaq — bir mavzu. Qatorlar: 1-tushuncha, 2-tushuncha … keyin misol, masala, topshiriq va testlar (yechimi keyin ochiladi). Har amaliy qatorga kitob kodi beriladi (XB-03-A01): kodni kitobga bosing — o'quvchi kodni kiritsa yechim AI doskada chiqadi. Rasmni katakka qo'yish kifoya.")}</p>
+            {fanTanlash && <AiMiyaFanShabloni token={token} />}
             <a
               href={`${API_BASE}/api/admin/ai_miya_shablon?token=${encodeURIComponent(token)}`}
-              className="mt-3 inline-flex px-4 py-2.5 rounded-xl text-xs font-semibold text-white"
-              style={{ backgroundColor: "#1B4B7A" }}
-            >{__kbUi("📊 AI miya Excel shablonini yuklab olish")}</a>
+              className="mt-3 inline-flex px-4 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ backgroundColor: "#fff", color: "#1B4B7A", border: "1px solid #B7D3E8" }}
+            >{__kbUi("📊 Bo‘sh shablon (mavzularni o‘zim yozaman)")}</a>
           </div>
         </div>
       </div>
@@ -842,7 +931,9 @@ export function KitobMiyaBolimi({ token }) {
               ["«Tushunmadim» varianti", tekshiruv.summary?.varoqlar?.["12_TUSHUNMADIM"] || 0],
               ["Rasm", tekshiruv.summary?.rasmlar || 0],
               ["Ogohlantirish", tekshiruv.summary?.ogohlantirishlar || 0],
-              ["Mashq", tekshiruv.summary?.varoqlar?.["05_MISOLLAR"] || 0],
+              ["Kitob kodi", tekshiruv.summary?.kitob_kodlari ?? 0],
+              ["Test", tekshiruv.summary?.testlar ?? tekshiruv.summary?.varoqlar?.["06_MASHQLAR"] ?? 0],
+              ["Misol", tekshiruv.summary?.varoqlar?.["05_MISOLLAR"] || 0],
             ].map(([label, value]) => (
               <div key={label} className="bg-white p-3 text-center">
                 <p className="text-lg font-bold" style={{ color: "#1B4B7A" }}>{value}</p>
