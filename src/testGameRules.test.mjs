@@ -93,10 +93,11 @@ test("lives and terminal responses remain server-owned", () => {
   assert.equal(isGameTerminalResponse({ status: "next", question: {} }), false);
 });
 
-test("game counts are always complete 4 plus 1 rounds and capped at 25", () => {
+test("game counts are always complete 4 plus 1 rounds and capped at 100", () => {
   assert.deepEqual(gameQuestionOptions(4), []);
   assert.deepEqual(gameQuestionOptions(17), [5, 10, 15]);
-  assert.deepEqual(gameQuestionOptions(100), [5, 10, 15, 20, 25]);
+  assert.deepEqual(gameQuestionOptions(100), [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100]);
+  assert.deepEqual(gameQuestionOptions(45), [5, 10, 15, 20, 25, 30, 40]);
 });
 
 test("start payload deduplicates topic codes and rejects non-round counts", () => {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {educationRole,initialEducationTab,learningReady,needsEducation} from './educationRules.js';
+import {educationRole,initialEducationTab,learningReady,needsEducation,talabaProfileComplete} from './educationRules.js';
 import {telegramChallenge,restoreTelegramChallenge} from '../auth/authClient.js';
 
 test('new Google account opens education home then asks for profile only on study actions',()=>{
@@ -17,11 +17,13 @@ test('a school grade opens tests directly and never becomes a college course',()
  }
  assert.equal(learningReady({role:'oquvchi',class:'12'}),false);
 });
-test('student chosen in bot is retained until course form and language are saved',()=>{
+test('talaba is never blocked: all institute tests open, profile only ranks own program first',()=>{
  const user={role:'oquvchi',education_role:'talaba',education_ready:false};
- assert.equal(educationRole(user),'talaba');assert.equal(needsEducation(user,'test'),true);
+ assert.equal(educationRole(user),'talaba');assert.equal(needsEducation(user,'test'),false);
+ assert.equal(talabaProfileComplete(user),false);
  user.class='2 kurs'; user.learning_profile={kurs:2,talim_bosqichi:'bakalavr',talim_shakli:'kechki',talim_tili:'ru'};
  assert.equal(initialEducationTab(user),'mavzular');assert.equal(needsEducation(user,'test'),false);
+ assert.equal(talabaProfileComplete(user),true);
  assert.equal(user.universitet_id,undefined);
 });
 test('teacher and parent open their correct workspaces',()=>{

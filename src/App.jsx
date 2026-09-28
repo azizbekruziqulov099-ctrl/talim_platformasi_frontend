@@ -14652,7 +14652,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
             <CourseWorkspace key={token} apiBase={API_BASE} token={token} user={foydalanuvchi} active={tab === "kurslar" && !kabutarOchiq} initialCourseId={courseNavigation.courseId} initialMode={courseNavigation.mode} onClose={() => { setCoursesOpened(false); setTab(korinishRoli === "oqituvchi" ? "oqituvchi" : korinishRoli === "ota-ona" ? "farzand" : korinishRoli === "admin" ? "admin" : "bilim"); }} />
           </React.Suspense>}
       </div>}
-      {korinishRoli === "admin" && tab === "admin" && <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} /></>}
+      {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
@@ -14725,6 +14725,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       )}
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "mavzular" && (
         <LearnerTopics apiBase={API_BASE} token={token} user={foydalanuvchi}
+          onEducationSetup={foydalanuvchi?.is_admin || foydalanuvchi?.talaba_profili ? undefined : () => setEducationEditing(true)}
           jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")}
           onOpenLesson={korinishRoli === "oqituvchi" ? null : (topic) => {
             setTalimYoliDarsNishoni({...topic,nonce:Date.now()});setTab("ai_ustoz");

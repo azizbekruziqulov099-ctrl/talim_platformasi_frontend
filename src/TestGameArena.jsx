@@ -1,6 +1,7 @@
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
+import GameJourney from "./test/GameJourney.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
@@ -201,7 +202,7 @@ function learningSteps(subjectName = "") {
   return ["Savolni tushundim", "Kerakli bilimni esladim", "Variantlarni tekshirdim"];
 }
 
-export function GameModePicker({ value, onChange, gradeBand = "applicant", accent, profile, playerGender, onPlayerGenderChange, subjectName = "", topicName = "", availableQuestions = null, grade }) {
+export function GameModePicker({ value, onChange, gradeBand = "applicant", accent, profile, playerGender, onPlayerGenderChange, subjectName = "", topicName = "", availableQuestions = null, grade, autoMode = false, onAutoMode }) {
   useKbInterfaceLocale();
   const age = AGE_BANDS[gradeBand] || AGE_BANDS.applicant;
   const chosen = modeForId(value);
@@ -211,9 +212,13 @@ export function GameModePicker({ value, onChange, gradeBand = "applicant", accen
     <GameProfileStrip profile={profile} accent={accent} />
     <header className="edu-game-head"><div><small>{__kbUi("BILIM BILAN SARGUZASHT")}</small><h2>{__kbUi("Bugun qaysi o‘yinni tanlaysiz?")}</h2><p>{__kbUi("Bir mavzu, beshta usul. Har bir javobdan nimadir o‘rganing.")}</p></div><span className="edu-game-badge">{__kbUi("5 ta o‘yin")}</span></header>
     {(subjectName || topicName) ? <p className="edu-game-topic"><strong>{subjectName || __kbUi("Tanlangan mavzular")}</strong><span>{topicName}</span></p> : null}
+    <button type="button" className={`edu-game-auto ${autoMode ? "is-selected" : ""}`} aria-pressed={autoMode} onClick={() => onAutoMode?.()}>
+      <strong>{__kbUi("✨ Mos o‘yinni o‘zi tanlasin")}</strong>
+      <small>{__kbUi("10 tagacha — tezkor o‘yin, 15–30 — sarguzasht, 40–100 — katta qurilish va marafon. Kurs testlarida mantiqiy tahlil o‘yinlari. Har to‘g‘ri javob butun test bo‘ylab manzarani quradi.")}</small>
+    </button>
     <div className="edu-game-cards" role="group" aria-label={__kbUi("Beshta o‘yin")}>
-      {GAME_MODES.map(mode => <button type="button" key={mode.id} className={`edu-game-card ${chosen.id === mode.id ? "is-selected" : ""}`} aria-pressed={chosen.id === mode.id} onClick={() => onChange?.(mode.id)} style={{ "--edu-color": mode.colors[0], "--edu-tint": `${mode.colors[1]}35` }}>
-        <span className="edu-game-cover"><img src={GAME_SCENE_COVERS[mode.id]} alt={__kbUi(`${mode.name} o‘yin sahnasi`)} loading="lazy" width="1280" height="720" /><span className="edu-game-icon" aria-hidden="true">{__kbUi(EDUCATIONAL_GAMES[mode.id].icon)}</span></span><strong>{__kbUi(mode.name)}</strong><p>{__kbUi(EDUCATIONAL_GAMES[mode.id].goal)}</p><small className="edu-game-mechanic">{__kbUi(EDUCATIONAL_GAMES[mode.id].mechanic)}</small><span className="edu-game-tag">{chosen.id === mode.id ? __kbUi("✓ Tanlandi") : __kbUi("Tanlash →")}</span>
+      {GAME_MODES.map(mode => <button type="button" key={mode.id} className={`edu-game-card ${!autoMode && chosen.id === mode.id ? "is-selected" : ""}`} aria-pressed={!autoMode && chosen.id === mode.id} onClick={() => onChange?.(mode.id)} style={{ "--edu-color": mode.colors[0], "--edu-tint": `${mode.colors[1]}35` }}>
+        <span className="edu-game-cover"><img src={GAME_SCENE_COVERS[mode.id]} alt={__kbUi(`${mode.name} o‘yin sahnasi`)} loading="lazy" width="1280" height="720" /><span className="edu-game-icon" aria-hidden="true">{__kbUi(EDUCATIONAL_GAMES[mode.id].icon)}</span></span><strong>{__kbUi(mode.name)}</strong><p>{__kbUi(EDUCATIONAL_GAMES[mode.id].goal)}</p><small className="edu-game-mechanic">{__kbUi(EDUCATIONAL_GAMES[mode.id].mechanic)}</small><span className="edu-game-tag">{!autoMode && chosen.id === mode.id ? __kbUi("✓ Tanlandi") : __kbUi("Tanlash →")}</span>
       </button>)}
     </div>
     <div className="edu-game-detail" style={{ "--edu-color": chosen.colors[0], "--edu-tint": `${chosen.colors[1]}28` }}>
@@ -779,6 +784,7 @@ export default function TestGameArena({
   playerProfile,
   subjectName = "",
   topicName = "",
+  level = "",
 }) {
   useKbInterfaceLocale();
   const initialFailure = isFailureTerminal(initialSession) ? initialSession : null;
@@ -1519,16 +1525,20 @@ export default function TestGameArena({
   }, [feedbackTransitionKey, stopConfirm, holdExplanation]);
 
   if (result) {
+    const journeyTotal = Number(result.total || session?.question_count || learningLog.length || 0);
     return (
-      <ResultScreen
-        result={result}
-        learningLog={learningLog}
-        apiBase={apiBase}
-        mode={mode}
-        gradeBand={gradeBand}
-        onSetup={() => { if (stopReadRef.current) stopReadRef.current(); onBackToSetup(); }}
-        onTopics={() => { if (stopReadRef.current) stopReadRef.current(); onBackToTopics(); }}
-      />
+      <>
+        {journeyTotal > 0 && learningLog.length > 0 && <div className="gj-result-wrap"><GameJourney total={journeyTotal} log={learningLog} band={gradeBand} level={level} grade={playerProfile?.class} finished /></div>}
+        <ResultScreen
+          result={result}
+          learningLog={learningLog}
+          apiBase={apiBase}
+          mode={mode}
+          gradeBand={gradeBand}
+          onSetup={() => { if (stopReadRef.current) stopReadRef.current(); onBackToSetup(); }}
+          onTopics={() => { if (stopReadRef.current) stopReadRef.current(); onBackToTopics(); }}
+        />
+      </>
     );
   }
   if (terminalFailure) {
@@ -1609,6 +1619,7 @@ export default function TestGameArena({
         </div>
       </header>
       <div className="game-overall-track" role="progressbar" aria-label={__kbUi("O'yin jarayoni")} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(overallProgress)}><span style={{ width: `${overallProgress}%` }} /></div>
+      <GameJourney total={question.total} log={learningLog} currentPosition={question.position} band={gradeBand} level={level} grade={playerProfile?.class || question?.grade} />
 
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
         <div className="game-stage-content">

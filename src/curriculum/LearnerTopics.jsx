@@ -6,6 +6,9 @@ import {LearnerCurriculumHeader} from './CurriculumTabs.jsx';
 import {catalogTopicKey,gradeLabel,institutionLabel,matchingSubjects,profileInstitutionType} from './catalog.js';
 import {filterTopics,subjectStats,topicTarget,viewerHeadline} from './learnerTopicsRules.js';
 import {lessonDownloadUrl} from '../lesson/darsXonasiRules.js';
+import UniversityFilters from './UniversityFilters.jsx';
+import {catalogSubjectDetails} from './adminTestCatalog.js';
+import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActive} from './universityFilters.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
 const SUBJECT_KEY = 'kabutar:learn:subject';
@@ -13,7 +16,7 @@ const readSaved = () => { try { return window.localStorage.getItem(SUBJECT_KEY) 
 const save = value => { try { window.localStorage.setItem(SUBJECT_KEY, value); } catch { /* storage optional */ } };
 
 // O'quvchi / talaba / bog'cha / markaz: bitta sahifada Fan → Mavzu → Dars yoki Test.
-export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTest,jins='qiz'}) {
+export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTest,onEducationSetup,jins='qiz'}) {
   useKbInterfaceLocale();
  const [type,setType]=useState(()=>profileInstitutionType(user));
  const [lesson,setLesson]=useState('all');
@@ -42,7 +45,12 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   return()=>controller.abort();
  },[apiBase,token,type,user?.talaba_profili?.yangilangan_at,user?.class]);
 
- const subjects=matchingSubjects(catalog?.fanlar||[],type,lesson);
+ const [uniFilter,setUniFilter]=useState(null);
+ const universityBrowse=universityBrowseActive(catalog?.viewer,type);
+ const uniFilterValue=uniFilter||initialUniversityFilter(catalog?.viewer);
+ const matched=matchingSubjects(catalog?.fanlar||[],type,lesson);
+ // REV77: talaba barcha institut mavzularini ko'radi; filtr bilan o'z yo'nalishini tanlaydi.
+ const subjects=universityBrowse?filterUniversitySubjects(matched,uniFilterValue):matched;
  const current=subjects.find(subject=>subject.kalit===subjectKey)||subjects[0];
  const groups=useMemo(()=>current?filterTopics(current,query,filter):[],[current,query,filter]);
  const teacher=Boolean(catalog?.viewer?.teacher);
@@ -67,8 +75,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   {loading?<p role="status" className="p-6 text-center text-slate-500">{__kbUi("Mavzular yuklanmoqda…")}</p>
    : catalog?.profil_sozlanmagan ? <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{teacher?__kbUi('Profilingizda faol ish joyini tanlang.'):__kbUi('Ta’lim profilingizni to‘ldiring: muassasa, yo‘nalish, ta’lim shakli, til, kurs, semestr va guruh mos bo‘lishi kerak.')}</p>
    : error&&!subjects.length ? null
-   : !subjects.length ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">{__kbUi("Bu bo‘limga mos mavzular hali kiritilmagan.")}</p>
+   : !subjects.length && !(universityBrowse&&matched.length) ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">{__kbUi("Bu bo‘limga mos mavzular hali kiritilmagan.")}</p>
    : <>
+    {universityBrowse&&<UniversityFilters subjects={matched} viewer={catalog?.viewer} value={uniFilterValue} onChange={value=>{setUniFilter(value);setSubjectKey('');}} onEducationSetup={onEducationSetup}/>}
     <section aria-label={__kbUi("Fanlar")}>
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
      <div className="flex gap-2 overflow-x-auto pb-1">
@@ -77,6 +86,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
         className="shrink-0 rounded-xl border px-3 py-2 text-left"
         style={active?{background:'#1B4B7A',borderColor:'#1B4B7A',color:'#fff'}:{background:'#fff',borderColor:'#D5DCE3',color:'#1E293B'}}>
         <span className="block text-sm font-semibold"><TranslatedContent text={subject.nom} showStatus={false}/>{subject.dars_turi_nomi?` · ${__kbUi(subject.dars_turi_nomi)}`:''}</span>
+        {universityBrowse&&<span className="block max-w-[260px] truncate text-[10.5px] opacity-80">{subject.mine?'🎯 ':''}{catalogSubjectDetails(subject)}</span>}
         <span className="block text-[11px] opacity-80">{__kbUi(`${stats.topics} mavzu · ${stats.lessons} dars · ${stats.tested} testli`)}</span>
        </button>;})}
      </div>

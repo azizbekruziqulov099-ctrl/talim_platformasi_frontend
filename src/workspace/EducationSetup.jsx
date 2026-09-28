@@ -23,7 +23,6 @@ export default function EducationSetup({ apiBase, token, user = null, initialRol
     event.preventDefault(); if (busy) return;
     if (!role) { setError('Kim sifatida foydalanishingizni tanlang.'); return; }
     if (role === 'oquvchi' && !grade) { setError('Sinfingizni tanlang.'); return; }
-    if (role === 'talaba' && !course) { setError('Kursingizni tanlang.'); return; }
     setBusy(true); setError('');
     try {
       const data = await workspaceRequest(apiBase, '/auth/profile/education', token, { method: 'POST', body: {
@@ -52,7 +51,7 @@ export default function EducationSetup({ apiBase, token, user = null, initialRol
         {role === 'oquvchi' && <label>{t('Sinfingiz')}<select value={grade} onChange={e => setGrade(e.target.value)} required><option value="">{t('Sinfni tanlang')}</option>{Array.from({ length: 11 }, (_, i) => <option key={i+1} value={i+1}>{i+1}{t('-sinf')}</option>)}</select></label>}
         {role === 'talaba' && <>
           <label>{t('Bosqich')}<select value={degree} onChange={e => { setDegree(e.target.value); setCourse(''); }}><option value="bakalavr">{t('Bakalavr')}</option><option value="magistr">{t('Magistr')}</option></select></label>
-          <label>{t('Kursingiz')}<select value={course} onChange={e => setCourse(e.target.value)} required><option value="">{t('Kursni tanlang')}</option>{Array.from({ length: degree === 'magistr' ? 2 : 6 }, (_, i) => <option key={i+1} value={i+1}>{i+1}{t('-kurs')}</option>)}</select></label>
+          <label>{t('Kursingiz')}<select value={course} onChange={e => setCourse(e.target.value)}><option value="">{t('Keyin tanlayman — hamma testlar')}</option>{Array.from({ length: degree === 'magistr' ? 2 : 6 }, (_, i) => <option key={i+1} value={i+1}>{i+1}{t('-kurs')}</option>)}</select></label>
           <label>{t('Ta’lim shakli')}<select value={form} onChange={e => setForm(e.target.value)}>{[['kunduzgi','Kunduzgi'],['kechki','Kechki'],['sirtqi','Sirtqi'],['masofaviy','Masofaviy']].map(([k,n]) => <option key={k} value={k}>{t(n)}</option>)}</select></label>
         </>}
         <label>{t('Ta’lim tili')}<select value={language} onChange={e => setLanguage(e.target.value)}>{[['uz','O‘zbekcha'],['ru','Ruscha'],['tj','Tojikcha'],['en','Inglizcha'],['kk','Qoraqalpoqcha'],['kz','Qozoqcha']].map(([k,n]) => <option key={k} value={k}>{t(n)}</option>)}</select></label>

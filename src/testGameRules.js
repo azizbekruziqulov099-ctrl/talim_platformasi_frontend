@@ -98,6 +98,8 @@ export function normalizeGradeBand(value) {
 
 export function gradeBandForClass(value) {
   const text = String(value ?? "").trim().toLowerCase().replace(/-sinf$/i, "");
+  // REV78: «2 kurs» — talaba; kichik sinf (1–4) bosqichi emas, kattalar bosqichi.
+  if (/kurs/.test(text)) return "applicant";
   const match = text.match(/(?:^|\D)(\d{1,2})(?:\D|$)/);
   if (!match) return "applicant";
   const grade = Number(match[1]);
@@ -318,15 +320,17 @@ export function formatGameTimerSeconds(value) {
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+// REV78: kichik (5–10), o'rta (15–30), katta (40–60) va marafon (80–100) o'yinlar.
+export const GAME_QUESTION_COUNTS = [5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100];
 export function gameQuestionOptions(availableCount) {
-  const max = Math.min(25, Math.floor(Math.max(0, Number(availableCount) || 0) / 5) * 5);
-  return [5, 10, 15, 20, 25].filter((count) => count <= max);
+  const max = Math.min(100, Math.floor(Math.max(0, Number(availableCount) || 0) / 5) * 5);
+  return GAME_QUESTION_COUNTS.filter((count) => count <= max);
 }
 
 export function buildGameStartPayload({ token, topicCodes, questionCount, gameMode }) {
   if (!token) throw new Error("Kirish sessiyasi topilmadi");
   if (!GAME_MODE_IDS.includes(gameMode)) throw new Error("O'yin turini tanlang");
-  if (![5, 10, 15, 20, 25].includes(Number(questionCount))) {
+  if (!GAME_QUESTION_COUNTS.includes(Number(questionCount))) {
     throw new Error("Savollar soni 5 talik bosqichlarda bo'ladi");
   }
   const codes = [...new Set((topicCodes || []).map((value) => String(value || "").trim()).filter(Boolean))];

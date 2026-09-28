@@ -7,10 +7,9 @@ export function learningReady(user) {
   const role = educationRole(user);
   if (user?.is_admin || ['oqituvchi', 'ota-ona'].includes(role)) return true;
   if (role === 'oquvchi') return /^(?:[1-9]|1[01])(?:-sinf)?$/.test(String(user?.class || '').trim());
-  if (role === 'talaba') {
-    const p = user?.talaba_profili || user?.learning_profile;
-    return !!(p?.kurs >= 1 && p.kurs <= (p.talim_bosqichi === 'magistr' ? 2 : 6) && p.talim_shakli && p.talim_tili);
-  }
+  // REV77: talaba bloklanmaydi — barcha institut testlari va mavzulari ochiq. Kurs/yo'nalish
+  // sozlansa, katalogda unga mos fanlar birinchi chiqadi (talabaProfileComplete).
+  if (role === 'talaba') return true;
   return false;
 }
 export function initialEducationTab(user) {
@@ -18,4 +17,9 @@ export function initialEducationTab(user) {
 }
 export function needsEducation(user, tab) {
   return ['test', 'mavzular', 'ai_ustoz', 'bilim'].includes(tab) && !learningReady(user);
+}
+
+export function talabaProfileComplete(user) {
+  const p = user?.talaba_profili || user?.learning_profile;
+  return !!(p?.kurs >= 1 && p.kurs <= (p.talim_bosqichi === 'magistr' ? 2 : 6) && p.talim_shakli && p.talim_tili);
 }

@@ -2165,3 +2165,26 @@ button {
 .premium-page-stage { scroll-margin-top:160px; }
 .premium-page-stage :is(table,pre) { max-width:100%; }
 @media (max-width:540px) { .premium-topbar { gap:12px; padding-block:14px; } .premium-topbar h1 { font-size:23px; } .premium-role-pill { font-size:10px; } }
+
+/* REV78: chap menyu balandlikka moslashadi — admin menyulari ham ekranga sig'adi. */
+@media (min-width:821px) {
+  .premium-sidebar { padding-top:clamp(10px,2.4vh,27px); padding-bottom:clamp(8px,1.6vh,20px); }
+  .premium-side-brand { padding-bottom:clamp(8px,1.8vh,22px); }
+  .premium-role-card { margin-top:clamp(6px,1.6vh,18px); padding:clamp(6px,1vh,11px); }
+  .premium-side-nav { gap:clamp(2px,.5vh,6px); margin-top:clamp(6px,1.4vh,16px); scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.25) transparent; }
+  .premium-side-nav::-webkit-scrollbar { display:block; width:4px; }
+  .premium-side-nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,.25); border-radius:4px; }
+  .premium-side-link { min-height:clamp(32px,5.2vh,46px); padding-block:clamp(3px,.8vh,9px); }
+  .premium-side-icon { width:clamp(26px,3.8vh,33px); height:clamp(26px,3.8vh,33px); }
+  .premium-side-profile { margin-top:clamp(4px,1vh,10px); padding-top:clamp(4px,1vh,10px); }
+  .premium-side-status { margin-top:clamp(4px,1vh,10px); padding:clamp(6px,1.1vh,13px); }
+}
+@media (min-width:821px) and (max-height:820px) {
+  .premium-side-status { display:none; }
+  .premium-side-brand span { display:none; }
+}
+@media (min-width:821px) and (max-height:700px) {
+  .premium-role-card { display:none; }
+  .premium-side-nav > p { display:none; }
+  .premium-side-link { font-size:11px; grid-template-columns:28px 1fr; gap:8px; }
+}

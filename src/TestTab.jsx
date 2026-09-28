@@ -7,10 +7,15 @@ import {useInterface as useKbInterfaceLocale} from './interface/InterfacePrefere
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
 import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey,catalogGrade} from './curriculum/catalog.js';
 import {catalogSubjectDetails, searchCatalog} from './curriculum/adminTestCatalog.js';
+import UniversityFilters from './curriculum/UniversityFilters.jsx';
+import { TIER_INFO, gameSizeTier, recommendedGameMode } from './test/gameJourneyRules.js';
+const GAME_MODE_NAMES = Object.fromEntries(GAME_MODES.map((mode) => [mode.id, mode.name]));
+import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActive} from './curriculum/universityFilters.js';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
 import {
+  GAME_MODES,
   buildGameStartPayload,
   gameErrorMessage,
   gameQuestionOptions,
@@ -436,12 +441,17 @@ export default function TestTab({
   // uchun bu "vaqtincha o'z sinfini chetlab o'tish" rejimi.
   const [boshqaSinflarRejimi, setBoshqaSinflarRejimi] = useState(false);
   const [fanlar, setFanlar] = useState([]);
+  const [oyinAvto, setOyinAvto] = useState(true);
   const fallbackType=catalogBrowse?.type || curriculumScope?.institution_type || profileInstitutionType(foydalanuvchi || {class:sinf});
   const [catalogType,setCatalogType]=useState(fallbackType);
   const [catalogLesson,setCatalogLesson]=useState(curriculumScope?.dars_turi || 'all');
   const [catalogViewer,setCatalogViewer]=useState(null);
+  // REV77: talaba hamma institut testlarini ko'radi; filtr — o'z yo'nalishi yoki istalgan institut.
+  const [uniFilter,setUniFilter]=useState(null);
+  const universityBrowse=!curriculumScope&&!catalogBrowse&&universityBrowseActive(catalogViewer,catalogType);
+  const uniFilterValue=uniFilter||initialUniversityFilter(catalogViewer);
   const sectionChosen=useRef(false);
-  const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher ? null : catalogGrade(catalogType, catalogViewer?.grade || sinf);
+  const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher || (universityBrowse && !uniFilterValue.mine) ? null : catalogGrade(catalogType, catalogViewer?.grade || sinf);
 
   const [tanlanganSinf, setTanlanganSinf] = useState(catalogBrowse?.initialGrade || null);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -543,12 +553,13 @@ export default function TestTab({
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
   const sinflarRoyxati = useMemo(() => {
     const bySinf = {};
-    const subjects = faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson);
-    searchCatalog(subjects, catalogBrowse ? catalogSearch : '').forEach((fan) => {
+    const matched = faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson);
+    const subjects = universityBrowse && faolTuri !== "togarak" ? filterUniversitySubjects(matched, uniFilterValue) : matched;
+    searchCatalog(subjects, catalogBrowse || universityBrowse ? catalogSearch : '').forEach((fan) => {
       fan.sinflar.forEach((s) => {
         const grade = catalogGrade(catalogType, s.sinf) || s.sinf;
         if (!bySinf[grade]) bySinf[grade] = { sinf: grade, fanlar: [] };
-        bySinf[grade].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.dars_turi_nomi ? `${fan.nom} · ${fan.dars_turi_nomi}` : fan.nom, details: catalogBrowse ? catalogSubjectDetails(fan) : '', mavzular: s.mavzular });
+        bySinf[grade].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.dars_turi_nomi ? `${fan.nom} · ${fan.dars_turi_nomi}` : fan.nom, details: catalogBrowse || universityBrowse ? catalogSubjectDetails(fan) : '', mavzular: s.mavzular });
       });
     });
     return Object.values(bySinf).sort((a, b) => {
@@ -556,7 +567,7 @@ export default function TestTab({
       if (raqamA && raqamB) return parseInt(a.sinf, 10) - parseInt(b.sinf, 10);
       return String(a.sinf).localeCompare(String(b.sinf), 'uz', { numeric: true });
     });
-  }, [fanlar, catalogType, catalogLesson, faolTuri, catalogSearch, Boolean(catalogBrowse)]);
+  }, [fanlar, catalogType, catalogLesson, faolTuri, catalogSearch, Boolean(catalogBrowse), universityBrowse, uniFilterValue.mine, uniFilterValue.institution, uniFilterValue.program, uniFilterValue.form, uniFilterValue.language]);
 
   // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
   const faolSinf = (boshqaSinflarRejimi || !profilSinfi) ? tanlanganSinf : profilSinfi;
@@ -632,7 +643,9 @@ export default function TestTab({
     setTanlanganKodlar([]);setAralashRejim(false);setBoshqaSinflarRejimi(false);setXato('');
   };
   const catalogHeader=curriculumScope||catalogBrowse||faolTuri==='togarak'?null:<><LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'all')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>{onEducationSetup && <button type="button" onClick={onEducationSetup} className="mb-4 text-sm font-semibold text-sky-900">{__kbUi('Sinf yoki kursni o‘zgartirish')}</button>}</>;
-  const catalogSearchControl = catalogBrowse && <label className="mb-4 block text-sm font-semibold text-slate-700">
+  const universityControl = universityBrowse && faolTuri !== 'togarak' && <UniversityFilters subjects={matchingSubjects(fanlar,catalogType,catalogLesson)} viewer={catalogViewer} value={uniFilterValue}
+    onChange={value => { setUniFilter(value); setTanlanganSinf(null); setOchiqFan(null); setTanlanganMavzu(null); setTanlanganKodlar([]); }} onEducationSetup={onEducationSetup}/>;
+  const catalogSearchControl = (catalogBrowse || universityBrowse) && <label className="mb-4 block text-sm font-semibold text-slate-700">
     <span className="mb-1 block">{__kbUi('Fan yoki mavzuni qidirish')}</span>
     <input type="search" value={catalogSearch} onChange={event => { setCatalogSearch(event.target.value); setClosedSubjects([]); }}
       placeholder={__kbUi('Fan, mavzu nomi yoki kodi…')} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"/>
@@ -1027,6 +1040,9 @@ export default function TestTab({
     }
   };
 
+  // REV78: savollar soni va darajaga mos o'yin turi avtomatik tanlanadi (qo'lda tanlasa — o'shasi).
+  const oyinDarajasi = catalogType === 'universitet' || /kurs/i.test(String(tanlanganMavzu?.sinf || sinf || '')) ? 'universitet' : '';
+  const oyinTuriSoni = (soni) => oyinAvto ? recommendedGameMode(soni, { level: oyinDarajasi, grade: tanlanganMavzu?.sinf || sinf }) : oyinRejimi;
   const oyinniBoshlash = async (soni) => {
     if (testBoshlanmoqdaRef.current) return;
     testBoshlanmoqdaRef.current = true;
@@ -1037,7 +1053,7 @@ export default function TestTab({
         token,
         topicCodes: tanlanganMavzu?.kodlar || [tanlanganMavzu?.topic_code],
         questionCount: soni,
-        gameMode: oyinRejimi,
+        gameMode: oyinTuriSoni(soni),
       });
       const res = await fetch(`${API_BASE}/api/oyin/boshlash`, {
         method: "POST",
@@ -1273,6 +1289,7 @@ export default function TestTab({
           initialSession={oyinSessiya}
           subjectName={tanlanganMavzu?.fanNomi || ""}
           topicName={tanlanganMavzu?.nomi || ""}
+          level={oyinDarajasi}
           playerProfile={{ ...foydalanuvchi, jins: oyinQahramonJinsi, class: sinf || foydalanuvchi?.class }}
           accent={rang}
           onRead={ovozniOqi}
@@ -1385,7 +1402,7 @@ export default function TestTab({
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "oyin" ? { borderColor: rang, backgroundColor: `${rang}12` } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
               <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("🎮 O'yinli test")}</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("5 xil o'yin, har 5-savolda nazorat, 3 jon va bilim ochkolari")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("10 dan 100 tagacha: o'yin hajm va darajaga moslanadi, javob bergan sari manzara quriladi")}</p>
             </button>
           </div>
         </div>
@@ -1394,7 +1411,9 @@ export default function TestTab({
           <React.Suspense fallback={<div className="py-8 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: rang }} /></div>}>
             <GameModePicker
               value={oyinRejimi}
-              onChange={setOyinRejimi}
+              onChange={(value) => { setOyinRejimi(value); setOyinAvto(false); }}
+              autoMode={oyinAvto}
+              onAutoMode={() => setOyinAvto(true)}
               gradeBand={oyinYoshBosqichi}
               grade={tanlanganMavzu?.sinf || sinf || tanlanganSinf || joriySinfMalumoti?.sinf}
               subjectName={tanlanganMavzu.fanNomi}
@@ -1448,13 +1467,13 @@ export default function TestTab({
             </p>
           ) : (
             <>
-              <div className={`grid ${testRejimi === "oyin" ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-3"} gap-2 mb-2.5`}>
+              <div className={`grid ${testRejimi === "oyin" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"} gap-2 mb-2.5`}>
                 {variantlar.map((n) => (
                   <button key={n} onClick={() => testniBoshlash(n)}
                     className="py-3.5 rounded-xl border font-semibold text-center text-sm"
                     style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
                     <span className="block">{n}{__kbUi(" ta")}</span>
-                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5}{__kbUi(" ta nazorat savoli")}</span>}
+                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{__kbUi(TIER_INFO[gameSizeTier(n)].title)}{oyinAvto ? ` · ${__kbUi(GAME_MODE_NAMES[oyinTuriSoni(n)] || '')}` : ''}</span>}
                   </button>
                 ))}
               </div>
@@ -1839,13 +1858,14 @@ export default function TestTab({
         <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
           {faolTuri === "togarak" ? __kbUi("Boshqa sinflar (to'garak)") : catalogBrowse ? __kbUi(catalogType === 'universitet' ? 'Kurslar' : 'Sinflar va guruhlar') : __kbUi("Test yechish")}
         </h1>
+        {universityControl}
         {catalogSearchControl}
         {catalogError}
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
-        ) : sinflarRoyxati.length === 0 && (faolTuri === "togarak" || catalogBrowse) ? (
+        ) : sinflarRoyxati.length === 0 && (faolTuri === "togarak" || catalogBrowse || universityBrowse) ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi(catalogBrowse ? (catalogSearch ? 'Qidiruvga mos fan yoki mavzu topilmadi.' : 'Bu bo‘limda hali tayyor test yo‘q.') : "Hozircha to'garak sinflari mavjud emas.")}</p>
+            <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi(catalogBrowse || universityBrowse ? (catalogSearch ? 'Qidiruvga mos fan yoki mavzu topilmadi.' : 'Bu bo‘limda hali tayyor test yo‘q.') : "Hozircha to'garak sinflari mavjud emas.")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -1901,6 +1921,7 @@ export default function TestTab({
         <button onClick={() => { setBoshqaSinflarRejimi(true); setFaolTuri("togarak"); setTanlanganSinf(null); }}
           className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>{__kbUi("📚 Boshqa (to'garak) guruhlarni ko'rish →")}</button>
       )}
+      {universityControl}
       {catalogSearchControl}
       {catalogError}
       {aralashRejim && (
