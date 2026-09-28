@@ -100,3 +100,33 @@
 .kb-registration-invite{padding:11px 13px;background:#f7f9f3;border:1px solid #e2e9dc;border-radius:10px;margin:17px 0}.kb-registration-invite summary{font-size:11px;font-weight:650;color:var(--kb-teal);cursor:pointer;line-height:1.6}.kb-registration-invite p{font-size:10px;line-height:1.7;color:var(--kb-muted);margin-top:9px}.kb-registration-invite input{text-transform:uppercase;letter-spacing:.8px}
 
 .kb-login-code-form input{text-align:center;font-size:26px;letter-spacing:8px;font-variant-numeric:tabular-nums}.kb-login-code-form .kb-login-primary{margin-top:14px}.kb-login-request-label{margin-top:16px;font-size:11px;color:var(--kb-muted)}.kb-login-request-label summary{cursor:pointer}.kb-login-request-label p{font-variant-numeric:tabular-nums;letter-spacing:3px;padding:8px 0}
+/* REV76: bitta sodda kirish oynasi — rol, oldingi akkauntlar, usul */
+.kb-login-main-single{display:flex!important;justify-content:center;padding:28px 0 40px!important}
+.kb-login-main-single .kb-login-access{width:min(460px,100%)}
+.kb-login-compact .kb-login-card h2{font-size:28px;margin-bottom:14px}
+.kb-login-step{font-size:12px;font-weight:700;color:var(--kb-ink);margin:14px 0 8px!important}
+.kb-login-roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.kb-login-roles button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;border:1px solid var(--kb-line);border-radius:12px;background:#fff;font-size:12px;font-weight:650;color:var(--kb-ink);cursor:pointer}
+.kb-login-roles button span{font-size:19px}
+.kb-login-roles button.is-selected{border-color:var(--kb-teal);background:#e8f3ec;box-shadow:0 0 0 2px #cfe6d7}
+.kb-login-role-note{font-size:10.5px;color:var(--kb-muted);margin-top:6px!important;line-height:1.5}
+.kb-login-saved{display:grid;gap:6px;margin-bottom:6px}
+.kb-login-saved-item{display:flex;align-items:stretch;gap:4px}
+.kb-login-saved-item>button:first-child{flex:1;display:flex;align-items:center;gap:10px;min-width:0;padding:9px 11px;border:1px solid var(--kb-line);border-radius:12px;background:#fbfcf9;text-align:left;cursor:pointer}
+.kb-login-saved-item>button:first-child:hover{background:#f1f7f2}
+.kb-login-avatar{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--kb-teal);color:#fff;font-weight:750}
+.kb-login-saved-text{display:flex;flex-direction:column;min-width:0;flex:1}.kb-login-saved-text b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kb-login-saved-text small{font-size:11px;color:var(--kb-muted)}
+.kb-login-saved-remove{flex:none;width:30px;border:0;background:transparent;color:var(--kb-muted);cursor:pointer;border-radius:8px}.kb-login-saved-remove:hover{background:#f3eeee;color:#9a3b30}
+@media(max-width:420px){.kb-login-roles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kb-account-notice{display:flex;align-items:center;gap:10px;margin:6px 12px 0;padding:7px 10px 7px 12px;border-radius:12px;background:#eef4f8;border:1px solid #d3e1ea;color:#23394a;font-size:12.5px;line-height:1.45}
+.kb-account-notice.is-risk{background:#fff7e6;border-color:#f0d9a6;color:#5b4210}
+.kb-account-notice p{margin:0;flex:1;min-width:0}
+.kb-account-notice-action{flex:none;border:0;border-radius:9px;padding:6px 11px;font-weight:700;font-size:12px;background:#1b4b7a;color:#fff;cursor:pointer}
+.kb-account-notice.is-risk .kb-account-notice-action{background:#8a5a1c}
+.kb-account-notice-close{flex:none;border:0;background:transparent;font-size:18px;line-height:1;color:inherit;opacity:.6;cursor:pointer;padding:2px 4px}
+.kb-security-roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0}
+.kb-security-roles button{padding:9px 4px;border:1px solid #d9dfd8;border-radius:10px;background:#fff;font-weight:650;font-size:12px;cursor:pointer}
+.kb-security-roles button[aria-pressed="true"]{border-color:#2d6e5b;background:#e8f3ec}
+@media(max-width:420px){.kb-security-roles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kb-login-courses{border:1px solid var(--kb-line);background:#fff;border-radius:12px;padding:8px 13px;font-weight:700;font-size:13px;color:var(--kb-ink);cursor:pointer;margin-right:8px}
+.kb-login-compact .kb-login-header nav{display:flex;align-items:center}

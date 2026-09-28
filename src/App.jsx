@@ -24,6 +24,8 @@ import * as __kbRev35_external1 from "lucide-react";
 import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 import KitobKodQidiruv from "./lesson/KitobKod.jsx";
+import AccountNotice from "./auth/AccountNotice.jsx";
+import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
@@ -61,7 +63,7 @@ const authEndpoint = __kbRev35_module1["authEndpoint"];
 const workspaceRequest = __kbRev35_module4["workspaceRequest"];
 
 
-function AccountSecurity({ apiBase, token, onToken, onClose, onLogout, initialTelegramOpen = false }) {
+function AccountSecurity({ apiBase, token, onToken, onClose, onLogout, initialTelegramOpen = false, onChangeRole }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const [profile, setProfile] = useState(null);
@@ -251,6 +253,14 @@ function AccountSecurity({ apiBase, token, onToken, onClose, onLogout, initialTe
           }}/>} 
           <p className="kb-work-note">{__kbUi("Google yoki Telegram boshqa Kabutar hisobiga ulangan bo‘lsa, hisoblar avtomatik birlashtirilmaydi.")}</p>
         </section>
+        {onChangeRole && <section aria-labelledby="kb-role-heading">
+          <h3 id="kb-role-heading">{__kbUi("Rolim")}</h3>
+          <p className="kb-work-note">{__kbUi("Hozirgi rol: ")}<b>{__kbUi(LOGIN_ROLE_NAMES[profile.education_role === "talaba" || profile.learning_profile?.role === "talaba" ? "talaba" : profile.education_role] || "—")}</b>{__kbUi(". Xohlagan paytda almashtirasiz.")}</p>
+          <div className="kb-security-roles" role="group" aria-label={__kbUi("Rolni tanlash")}>
+            {LOGIN_ROLES.map(([id, name, icon]) => { const current = (profile.learning_profile?.role === "talaba" ? "talaba" : profile.education_role) === id; return <button key={id} type="button" aria-pressed={current} disabled={Boolean(busy)} onClick={() => { if (!current) onChangeRole(id); }}>{icon} {__kbUi(name)}</button>; })}
+          </div>
+          <p className="kb-work-note">{__kbUi("Diqqat: rol o‘zgarsa, sinf/kurs va til sozlamalarini ham to‘ldirasiz. To‘ldirilmasa testlar va mavzular sizga mos chiqmaydi. Muassasaga ulangan hisobda rolni muassasa belgilaydi.")}</p>
+        </section>}
         <section aria-labelledby="kb-discovery-heading">
           <h3 id="kb-discovery-heading"><AtSign size={18}/>{__kbUi(" Sizni qanday topishsin?")}</h3>
           <p className="kb-work-note">{__kbUi("KB raqamingiz doimiy qoladi. Nik qo‘shsangiz, odamlar sizni @nik orqali ham topadi.")}</p>
@@ -12138,7 +12148,7 @@ function AdminRuxsatlarBolimi({ token }) {
   );
 }
 
-function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, adminKorinish, onKorinishOzgar, rang }) {
+function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, adminKorinish, onKorinishOzgar, rang, onRolAlmashtir }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const profilRangi = rang || "#1B4B7A";
@@ -12925,6 +12935,15 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
       ) : (
         <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
           <p className="text-xs font-medium mb-2" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Rolingiz")}</p>
+          {onRolAlmashtir ? <><div className="grid grid-cols-2 gap-2">
+            {LOGIN_ROLES.map(([v, l, icon]) => { const joriy = loginAccountRole(foydalanuvchi) === v; return (
+              <button key={v} type="button" onClick={() => { if (!joriy) onRolAlmashtir(v); }}
+                className="py-2.5 rounded-lg border text-xs font-medium"
+                style={{ borderColor: joriy ? "#1B4B7A" : "#E5E1D8", backgroundColor: joriy ? "#1B4B7A" : "#FFFFFF", color: joriy ? "#FFFFFF" : "#5A5648" }}>
+                {icon} {__kbUi(l)}
+              </button>); })}
+          </div>
+          <p className="text-xs mt-2" style={{ color: "#8A8578" }}>{__kbUi("Rol xohlagan paytda almashadi. Keyin sinf/kurs sozlamalarini to‘ldiring — aks holda testlar va mavzular mos chiqmaydi.")}</p></> :
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(rolNomlari).map(([v, l]) => (
               <button key={v} onClick={() => rolTanlandi(v)}
@@ -12937,7 +12956,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
                 {__kbUi(l)}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       )}
       </ProfileAccordion>
@@ -14113,6 +14132,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const [educationReload, setEducationReload] = useState(0);
   const [talimYuklangan, setTalimYuklangan] = useState(true);
   const [educationEditing, setEducationEditing] = useState(false);
+  const [educationRoleChoice, setEducationRoleChoice] = useState("");
+  // Rol faqat Sozlamalardan o'zgaradi: tanlangan rol bilan ta'lim sozlamalari oynasi ochiladi.
+  const rolniAlmashtir = useCallback((role) => { saveLoginRole(role); setAccountOpen(false); setEducationRoleChoice(role); setEducationEditing(true); setTab("home"); }, []);
   const [courseNavigation, setCourseNavigation] = useState({ courseId: initialCourseId, mode: "catalog", nonce: 0 });
   const [coursesOpened, setCoursesOpened] = useState(Boolean(initialCourses || initialCourseId));
   const [presentationsOpened, setPresentationsOpened] = useState(false);
@@ -14282,8 +14304,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     workspaceRequest(API_BASE, "/auth/men", token, { signal: controller.signal })
       .then((u) => {
         if (controller.signal.aborted) return;
+        if (!readOnly) rememberAccount(u, token, takeLoginMethod());
         setFoydalanuvchi(u);
-        setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : initialEducationTab(u)));
+        setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || initialEducationTab(u)));
         setHolat("tayyor");
       }).catch((error) => {
         if (controller.signal.aborted) return;
@@ -14556,7 +14579,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         </div>
       </>}
       <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} />
-      {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} />}
+      {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} onChangeRole={foydalanuvchi?.is_admin ? undefined : rolniAlmashtir} />}
       {kabutarYuklangan && kabutarTezKunda && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
         <div className="samtm-tez-kunda-panel" role="status">
           <span aria-hidden="true">🕊️</span>
@@ -14582,10 +14605,11 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         </React.Suspense>
       </div>}
       {talimYuklangan && <div style={{ display: kabutarOchiq ? "none" : "block" }}>
+      {!readOnly && <AccountNotice user={foydalanuvchi} onOpenSettings={() => setAccountOpen(true)} />}
       {membershipNotice && <div className="kb-app-notice" role="status"><span>{__kbUi(membershipNotice)}</span><button type="button" aria-label={__kbUi("Xabarni yopish")} onClick={() => setMembershipNotice("")}>×</button></div>}
       {educationLoadError && <div className="kb-app-error" role="alert"><p>{__kbUi(educationLoadError)}</p><button className="kb-work-primary" onClick={() => setEducationReload((n) => n + 1)}><InterfaceText text={__kbUi("Qayta urinish")}/></button></div>}
       {(educationEditing || needsEducation(foydalanuvchi, tab)) && !foydalanuvchi?.is_admin ?
-        <EducationSetup apiBase={API_BASE} token={token} user={foydalanuvchi} target={tab} onBack={() => { setEducationEditing(false); setTab("home"); }} onComplete={(joined) => { setEducationEditing(false); if (joined?.profile) { institutionJoined(joined); setMembershipNotice(""); } else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
+        <EducationSetup key={educationRoleChoice || "setup"} apiBase={API_BASE} token={token} user={foydalanuvchi} target={tab} initialRole={educationRoleChoice || (loginAccountRole(foydalanuvchi) ? "" : savedLoginRole())} onBack={() => { setEducationEditing(false); setEducationRoleChoice(""); setTab("home"); }} onComplete={(joined) => { setEducationEditing(false); setEducationRoleChoice(""); if (joined?.profile) { institutionJoined(joined); setMembershipNotice(""); } else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
           <button type="button" className="samtm-muassasa-main" onClick={() => { if (korinishRoli === "oquvchi") { setTanlanganMuassasa(m); setTab("bilim"); kabutarniOch(false); } else muassasaniTanla(m); }} title={__kbUi(`${m.muassasa_nomi || meta.nom} — ${meta.nom} ta’lim maydoni`)}>
@@ -14728,7 +14752,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
 
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} onInstitutionJoined={institutionJoined}
-          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} />
+          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} onRolAlmashtir={rolniAlmashtir} />
       )}
       </SectionErrorBoundary>
           </div>
@@ -14769,12 +14793,15 @@ function _boshlangichYolniOl() {
     korishToken: fragment.get("korish_token"),
     korishIsm: fragment.get("korish_ism"),
     korishYozish: fragment.get("korish_yozish") === "1",
+    // Botdagi «Test ishlash / Mavzu o'rganish» tugmasi: bir martalik chipta bilan kodsiz kirish.
+    tgTicket: /^[A-Za-z0-9_-]{24,80}$/.test(fragment.get("tg_ticket") || "") ? fragment.get("tg_ticket") : null,
+    tgGo: fragment.get("go") || "",
   };
   // 60 soniyalik OAuth ticket fragmenti (va eski oqimdan qolishi mumkin
   // bo'lgan sezgir query'lar) birinchi render boshlanishidayoq tarixdan o'chadi.
   if (
     ["token", "email", "ism"].some((key) => q.has(key))
-    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism", "korish_yozish"].some((key) => fragment.has(key))
+    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism", "korish_yozish", "tg_ticket", "go"].some((key) => fragment.has(key))
   ) {
     window.history.replaceState({}, document.title, p);
   }
@@ -14782,6 +14809,24 @@ function _boshlangichYolniOl() {
 }
 
 const SAMTM_TOKEN_STORAGE_KEY = "samtm_login_token_v1";
+const BOT_START_TAB_KEY = "kabutar:bot-start-tab:v1";
+const BOT_TABS = { test: "test", organish: "mavzular", mavzular: "mavzular", natija: "home", home: "home" };
+function botStartTab() {
+  try { const tab = window.sessionStorage.getItem(BOT_START_TAB_KEY) || ""; window.sessionStorage.removeItem(BOT_START_TAB_KEY); return tab; } catch { return ""; }
+}
+const telegramTicketPromises = new Map();
+function redeemTelegramTicket(ticket) {
+  if (telegramTicketPromises.has(ticket)) return telegramTicketPromises.get(ticket);
+  const pending = fetch(`${API_BASE}/auth/telegram/ticket/redeem`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticket }),
+  }).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.token) throw new Error(typeof data.detail === "string" ? data.detail : "Botdagi havola eskirgan. Botda /kabinet bosib yangisini oling.");
+    return data;
+  });
+  telegramTicketPromises.set(ticket, pending);
+  return pending;
+}
 const COURSE_RETURN_KEY = "kabutar:course-return:v47";
 function readCourseReturn() {
   try { const value = JSON.parse(window.sessionStorage.getItem(COURSE_RETURN_KEY) || "null");
@@ -14835,6 +14880,7 @@ export default function App() {
   const [token, setToken] = useState(() => yol.korishToken || _saqlanganTokenniOl());
   useEffect(()=>{setTranslationSession(token);return()=>setTranslationSession(null);},[token]);
   const [oauthYuklanmoqda, setOauthYuklanmoqda] = useState(Boolean(yol.oauthTicket));
+  const [tgYuklanmoqda, setTgYuklanmoqda] = useState(Boolean(yol.tgTicket));
   const [oauthProfil, setOauthProfil] = useState(null);
   const [loginError, setLoginError] = useState(yol.oauthXato || "");
   const [notice, setNotice] = useState(yol.oauthXato || "");
@@ -14858,7 +14904,8 @@ export default function App() {
   const sessiyaniTozala = useCallback((expiredToken) => {
     if (!korishRejimi && expiredToken && _saqlanganTokenniOl() && _saqlanganTokenniOl() !== expiredToken) return;
     sessionEpoch.current += 1; persistSession(null); setToken(null);
-    setLoginError("Sessiyangiz yakunlandi. Hisobingizga qayta kiring.");
+    if (!korishRejimi) dropSavedToken(expiredToken);
+    setLoginError("Sessiyangiz yakunlandi. Pastdagi ro‘yxatdan akkauntingizni bosib qayta kiring.");
   }, [korishRejimi, persistSession]);
   const kirildi = useCallback((nextToken) => {
     sessionEpoch.current += 1; persistSession(nextToken);
@@ -14875,6 +14922,7 @@ export default function App() {
     if (sessionEpoch.current !== startedEpoch || (_saqlanganTokenniOl() && _saqlanganTokenniOl() !== token)) return;
     try { window.sessionStorage.removeItem("kabutar_google_link_intent"); } catch { /* blocked storage */ }
     clearTelegramLinkIntent(); setTelegramLinkOpen(false);
+    if (!korishRejimi) dropSavedToken(token);
     sessionEpoch.current += 1; persistSession(null);
     setOauthProfil(null); setNotice(""); setLoginError(""); setToken(null);
   }, [token, persistSession]);
@@ -14892,6 +14940,19 @@ export default function App() {
     window.addEventListener("storage", changed);
     return () => window.removeEventListener("storage", changed);
   }, [korishRejimi]);
+
+  useEffect(() => {
+    if (!yol.tgTicket) return undefined;
+    let cancelled = false;
+    redeemTelegramTicket(yol.tgTicket).then((data) => {
+      if (cancelled) return;
+      const tab = BOT_TABS[yol.tgGo];
+      if (tab) { try { window.sessionStorage.setItem(BOT_START_TAB_KEY, tab); } catch { /* bosh sahifa ochiladi */ } }
+      kirildi(data.token);
+    }).catch((error) => { if (!cancelled) { setLoginError(error.message); setNotice(error.message); } })
+      .finally(() => { if (!cancelled) setTgYuklanmoqda(false); });
+    return () => { cancelled = true; };
+  }, [yol.tgTicket, yol.tgGo, kirildi]);
 
   useEffect(() => {
     if (!yol.oauthTicket) return;
@@ -14925,6 +14986,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [yol.oauthTicket, kirildi]);
 
+  if (tgYuklanmoqda) return <Qobiq><div className="py-10 text-center" role="status"><Loader2 size={26} className="animate-spin mx-auto mb-3" /><p>{__kbUi("Telegram orqali kirilmoqda…")}</p></div></Qobiq>;
   if (oauthYuklanmoqda) return <Qobiq><div className="py-10 text-center" role="status"><Loader2 size={26} className="animate-spin mx-auto mb-3" /><p>{__kbUi("Google tasdig‘i tekshirilmoqda…")}</p></div></Qobiq>;
   if (oauthProfil) return <KabutarRegistration {...oauthProfil} apiBase={API_BASE} onAuthenticated={kirildi} onCancel={() => { setOauthProfil(null); setLoginError(""); }} />;
   if (token && korishRejimi) return <div style={{ paddingTop: 42 }} ref={(el) => { if (el) document.documentElement.style.setProperty("--samtm-top-offset", "42px"); }}>
@@ -14936,5 +14998,5 @@ export default function App() {
   </div>;
   if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
-  return <><KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} /><button type="button" onClick={() => setPublicCourses(true)} style={{ position: "fixed", top: 12, right: 12, zIndex: 40, padding: "10px 16px", borderRadius: 14, background: "var(--ui-surface, #ffffff)", color: "var(--ui-text, #17394b)", border: "1px solid var(--ui-border, #d9e4ea)", fontWeight: 700, boxShadow: "0 4px 20px #17394b15" }}>{__kbUi("Kurslarni ko‘rish")}</button></>;
+  return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} onCourses={() => setPublicCourses(true)} />;
 }

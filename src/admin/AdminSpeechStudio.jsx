@@ -10,12 +10,21 @@ import {BrowserDictation,browserDictationSupport,browserDictationStatus,browserU
 import {dictationFallbackMessage,transcribeRecording} from './transcriptionClient.js';
 
 const fallbackKey=apiBase=>`kabutar:speech-browser:${apiBase}`;
+// Server xizmati ishlamasa brauzerga o'tish faqat 10 daqiqa eslab qolinadi — keyin server yana sinab ko'riladi.
+const FALLBACK_TTL=10*60*1000;
 function savedFallback(apiBase) {
- try{return sessionStorage.getItem(fallbackKey(apiBase))||'';}catch{return '';}
+ try{
+  const raw=sessionStorage.getItem(fallbackKey(apiBase))||'';
+  const [at,...rest]=raw.split('|');
+  if(!raw||!Number(at)||Date.now()-Number(at)>FALLBACK_TTL){sessionStorage.removeItem(fallbackKey(apiBase));return '';}
+  return rest.join('|');
+ }catch{return '';}
 }
 function rememberFallback(apiBase,message) {
- try{if(message)sessionStorage.setItem(fallbackKey(apiBase),message);else sessionStorage.removeItem(fallbackKey(apiBase));}catch{/* storage may be disabled */}
+ try{if(message)sessionStorage.setItem(fallbackKey(apiBase),`${Date.now()}|${message}`);else sessionStorage.removeItem(fallbackKey(apiBase));}catch{/* storage may be disabled */}
 }
+// Vaqtinchalik uzilish (timeout, ulanish) keyingi yozuvlarni brauzerga o'tkazmaydi.
+const temporaryFailure=message=>/^STT_(?:TIMEOUT|CONNECTION)(?:\b|:)/.test(String(message));
 
 export default function AdminSpeechStudio({apiBase,token}) {
   useKbInterfaceLocale();
@@ -112,7 +121,8 @@ export default function AdminSpeechStudio({apiBase,token}) {
    if(captureStalled){
     if(!browserDictationSupport().browser){continueDictationRef.current=false;setMethod('recording');setError('Mikrofonning jonli yozish usuli ishlamadi. “Ovoz yozib yuborish” usulida mikrofonni qayta yoqing.');return;}
     setNotice(hint);
-   }else{serverAccessRef.current=false;rememberFallback(apiBase,hint);setFallback(hint);}
+   }else if(temporaryFailure(message)){setError('Ovoz xizmati bu safar javob bermadi. Yozuvni qayta yuboring — keyingi yozuvlar yana server orqali boradi.');continueDictationRef.current=false;return;}
+   else{serverAccessRef.current=false;rememberFallback(apiBase,hint);setFallback(hint);}
    setMethod('browser');setRunningMethod('browser');setError('');
    // Finish recorder cleanup first. Stop/cancel, file conversion, and leaving
    // the section must never reopen a microphone after a delayed HTTP response.
@@ -270,15 +280,15 @@ export default function AdminSpeechStudio({apiBase,token}) {
    <p className="text-sm text-slate-600">{__kbUi(selectedMethod==='live'?'Mikrofonni yoqing va gapiring. Ovoz qismlab yuboriladi; xizmat javob bergan sari matn shu yerda chiqadi.':selectedMethod==='browser'?'Mikrofonni yoqing va gapiring. Tanish xizmati qaytargan so‘zlar gapirayotganingizda matnga tushadi.':'Mikrofonni yoqing va gapiring. Tugatish tugmasini bosgach, yozuv matnga aylantiriladi.')}</p>
    {error&&<div role="alert" className="space-y-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
     <p>{__kbUi(error)}</p>
-    {selectedMethod==='browser'&&browserStatus.phase==='error'&&(support.live||support.recording)&&<button type="button" className={button} onClick={()=>changeDictationMethod(support.live?'live':'recording',true)}>{__kbUi('Groq bilan yozishni boshlash')}</button>}
+    {selectedMethod==='browser'&&browserStatus.phase==='error'&&(support.live||support.recording)&&<button type="button" className={button} onClick={()=>changeDictationMethod(support.live?'live':'recording',true)}>{__kbUi('AI orqali yozishni boshlash')}</button>}
    </div>}
    {support.reason&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(support.reason)}</p>}
-   {access&&!access.dictation_available&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi('Groq ovoz xizmati ulanmagan: backendda GROQ_API_KEY yo‘q. Groq kaliti bepul olinadi (console.groq.com → API Keys), keyin Railway’dagi backend xizmatiga GROQ_API_KEY qo‘shib, qayta Deploy qiling.')}</p>}
+   {access&&!access.dictation_available&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi('AI ovoz xizmati ulanmagan: Railway’dagi backend xizmatiga OPENAI_API_KEY, GEMINI_API_KEY yoki GROQ_API_KEY dan birini qo‘shing — kalit qo‘shilgach o‘zbekcha gapirib yozish ishlaydi.')}</p>}
    {!support.reason&&uzbekWarning&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(uzbekWarning)}</p>}
    {fallback&&<div role="status" className="rounded-xl bg-sky-50 p-3 text-sm text-sky-900">
     <p>{__kbUi(fallback)}</p>
     {savedAudio&&<p className="mt-1">{__kbUi('Avvalgi ovoz saqlandi. Matnga tushmagan so‘zlarni qayta ayting yoki yozuvni keyinroq qayta yuboring.')}</p>}
-    {access?.admin&&access?.dictation_available&&<button type="button" disabled={dictationBusy} className={`${button} mt-2`} onClick={()=>{rememberFallback(apiBase,'');setFallback('');setMethod(globalThis.MediaRecorder?'recording':'live');setError('');}}>{__kbUi('Groqni qayta sinash')}</button>}
+    {access?.admin&&access?.dictation_available&&<button type="button" disabled={dictationBusy} className={`${button} mt-2`} onClick={()=>{rememberFallback(apiBase,'');setFallback('');setMethod(globalThis.MediaRecorder?'recording':'live');setError('');}}>{__kbUi('AI xizmatini qayta sinash')}</button>}
    </div>}
    <div className="flex flex-wrap items-center gap-3">
     {!dictationBusy?<button type="button" className={`${button} !bg-sky-900 !text-white`} disabled={Boolean(support.reason)} onClick={startDictation}>{__kbUi('Mikrofonni yoqish')}</button>
@@ -288,9 +298,9 @@ export default function AdminSpeechStudio({apiBase,token}) {
    </div>
    {selectedMethod==='live'&&dictationBusy&&recording!=='starting'&&<div className="flex items-center gap-3 text-xs text-slate-600">{activity.level!==null&&<meter aria-label={__kbUi('Mikrofon ovozi')} min="0" max="1" value={activity.level} className="h-3 w-28"/>}<span>{activity.seconds} {__kbUi('soniya')}</span>{activity.quiet&&<span>{__kbUi('Oxirgi bo‘lakda nutq eshitilmadi. Mikrofonga yaqinroq gapiring.')}</span>}</div>}
    <label className="block text-sm font-semibold text-slate-700">{__kbUi('Gapiradigan tilingiz')}<select value={dictationLanguage==='auto'&&!autoDictation?'uz':dictationLanguage} disabled={dictationBusy} onChange={event=>setDictationLanguage(event.target.value)} className="mt-2 block w-full rounded-xl border p-2.5">{['uz','ru','en'].map(code=><option key={code} value={code}>{__kbUi(languageNames[code])}</option>)}{autoDictation&&<option value="auto">{__kbUi('Avtomatik aniqlash')}</option>}</select></label>
-   {(support.live||support.recording)&&<div className="space-y-2"><p className="text-xs text-slate-600">{__kbUi('O‘zbekcha uchun Groq avtomatik tanlanadi (brauzer o‘zbek tilini yaxshi tanimaydi). Ruscha va inglizcha uchun brauzer ishlatiladi. Yozish boshlanmasa, shu yerdan boshqa usulga o‘ting.')}</p><div className="flex flex-wrap gap-2" role="group" aria-label={__kbUi('Gapirib yozish usuli')}>{[['browser','Brauzer orqali yozish'],['recording','Ovoz yozib yuborish'],['live','Groq orqali jonli yozish']].filter(([key])=>support[key]).map(([key,label])=><button key={key} type="button" disabled={dictationBusy&&selectedMethod===key} aria-pressed={selectedMethod===key} className={`${button} ${selectedMethod===key?'!border-sky-800 !bg-sky-50':''}`} onClick={()=>changeDictationMethod(key)}>{__kbUi(label)}</button>)}</div></div>}
+   {(support.live||support.recording)&&<div className="space-y-2"><p className="text-xs text-slate-600">{__kbUi('O‘zbekcha uchun AI xizmati avtomatik tanlanadi (brauzer o‘zbek tilini yaxshi tanimaydi). Ruscha va inglizcha uchun brauzer ishlatiladi. Yozish boshlanmasa, shu yerdan boshqa usulga o‘ting.')}</p><div className="flex flex-wrap gap-2" role="group" aria-label={__kbUi('Gapirib yozish usuli')}>{[['browser','Brauzer orqali yozish'],['recording','Ovoz yozib yuborish'],['live','AI orqali jonli yozish']].filter(([key])=>support[key]).map(([key,label])=><button key={key} type="button" disabled={dictationBusy&&selectedMethod===key} aria-pressed={selectedMethod===key} className={`${button} ${selectedMethod===key?'!border-sky-800 !bg-sky-50':''}`} onClick={()=>changeDictationMethod(key)}>{__kbUi(label)}</button>)}</div></div>}
    <label className="flex gap-2 text-sm text-slate-700"><input type="checkbox" checked={commands} disabled={dictationBusy} onChange={event=>setCommands(event.target.checked)}/>{__kbUi("“Nuqta”, “vergul”, “so‘roq belgisi”, “yangi abzas” buyruqlarini tinish belgilariga aylantirish")}</label>
-   <p className="text-xs text-slate-500">{autoDictation?__kbUi('Har yozuv 2 daqiqagacha. Ovozingiz Groq xizmatida matnga aylantiriladi.'):__kbUi('Brauzer ovozni o‘z tanish xizmatiga yuborishi mumkin.')}</p>
+   <p className="text-xs text-slate-500">{autoDictation?__kbUi('Har yozuv 2 daqiqagacha. Ovozingiz AI xizmatida (OpenAI / Gemini / Groq) matnga aylantiriladi.'):__kbUi('Brauzer ovozni o‘z tanish xizmatiga yuborishi mumkin.')}</p>
    <p className="text-xs text-slate-500">{__kbUi('Telefon klaviaturasida mikrofon bo‘lsa, matn maydoniga bosib, undan ham foydalanishingiz mumkin.')}</p>
    <label className="block text-sm font-semibold text-slate-700">{__kbUi("Yozilgan matn")}<textarea value={interim?appendDictation(dictation,interim,commands&&dictationLanguage==='uz'):dictation} readOnly={dictationBusy} onChange={event=>setDictation(event.target.value)} rows={10} className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-base font-normal leading-relaxed" placeholder={__kbUi("Gapirganlaringiz shu yerda yoziladi…")}/></label>
    <div className="flex flex-wrap gap-2">

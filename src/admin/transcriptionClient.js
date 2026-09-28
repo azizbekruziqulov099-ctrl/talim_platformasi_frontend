@@ -6,9 +6,9 @@ export const MAX_AUDIO_BYTES=8*1024*1024;
 // A service limit switches engines; an invalid file or expired login does not.
 export function dictationFallbackMessage(error) {
  const message=String(error?.message||error||'');
- if(/^STT_LIMIT(?:\b|:)/.test(message))return 'Groq limiti tugadi. Keyingi gaplar brauzer orqali yoziladi.';
+ if(/^STT_LIMIT(?:\b|:)/.test(message))return 'Ovoz xizmati limiti tugadi. Keyingi gaplar brauzer orqali yoziladi.';
  if(/^STT_(?:NOT_CONFIGURED|PROVIDER_KEY|PROVIDER_ACCESS|CONNECTION|TIMEOUT|MODEL)(?:\b|:)/.test(message))
-  return 'Groq hozir ishlamayapti. Keyingi gaplar brauzer orqali yoziladi.';
+  return 'Ovoz xizmati hozir javob bermadi. Keyingi gaplar brauzer orqali yoziladi.';
  return '';
 }
 

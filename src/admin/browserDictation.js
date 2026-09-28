@@ -214,6 +214,6 @@ export function preferredDictationMethod(method, support, language) {
 
 export function browserUzbekWarning(language, support) {
  return ['uz','auto'].includes(language) && support?.browser && !support.live && !support.recording
-  ? 'Diqqat: Chrome va Edge brauzerlari o‘zbek tilini gapirib yozishda deyarli tanimaydi. O‘zbekcha ishonchli ishlashi uchun backend (Railway) sozlamalariga GROQ_API_KEY qo‘shing — shunda Groq orqali yozish avtomatik yoqiladi.'
+  ? 'Diqqat: Chrome va Edge brauzerlari o‘zbek tilini gapirib yozishda deyarli tanimaydi. O‘zbekcha ishonchli ishlashi uchun backend (Railway) sozlamalariga OPENAI_API_KEY, GEMINI_API_KEY yoki GROQ_API_KEY qo‘shing — shunda AI orqali yozish avtomatik yoqiladi.'
   : '';
 }
