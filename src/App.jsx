@@ -249,6 +249,12 @@ function AccountSecurity({ apiBase, token, onToken, onClose, onLogout, initialTe
           </div>
           {telegramOpen && <TelegramSignIn apiBase={apiBase} token={token} mode="link" onCancel={() => setTelegramOpen(false)} onAuthenticated={(data) => {
             setTelegramOpen(false);
+            if (data?.switched && data?.token) {
+              // REV79: bu Telegram eski akkauntga tegishli — bo'sh tez akkauntdan o'sha akkauntga o'tamiz.
+              try { window.sessionStorage.setItem("kabutar:switched-notice", "Bu Telegram eski akkauntingizga ulangan edi — o‘sha akkauntga o‘tdingiz. Testlaringiz va natijalaringiz joyida."); } catch { /* ixtiyoriy */ }
+              onToken?.(data.token);
+              return;
+            }
             setNotice("Telegram shu hisobingizga ulandi.");
             if (data?.token) onToken?.(data.token);
             setRetry((value) => value + 1);
@@ -258,11 +264,11 @@ function AccountSecurity({ apiBase, token, onToken, onClose, onLogout, initialTe
         {onChangeRole && <section aria-labelledby="kb-role-heading">
           <h3 id="kb-role-heading">{__kbUi("Rolim")}</h3>
           <p className="kb-work-note">{__kbUi("Hozirgi rol: ")}<b>{__kbUi(LOGIN_ROLE_NAMES[profile.education_role === "talaba" || profile.learning_profile?.role === "talaba" ? "talaba" : profile.education_role] || "—")}</b>{__kbUi(". Xohlagan paytda almashtirasiz.")}</p>
-          <div className="kb-security-roles" role="group" aria-label={__kbUi("Rolni tanlash")}>
+          {profile.role_locked ? <p className="kb-role-locked">🔒 {__kbUi(profile.role_lock_reason === "admin" ? "Administrator rolini bu yerdan almashtirib bo‘lmaydi." : profile.role_lock_reason === "institut" ? "Siz institutga talaba sifatida ulangansiz. Rolni almashtirish uchun avval Profil → «Institut va kurs» bo‘limidan institutdan chiqing." : "Akkauntingiz muassasaga ulangan — rolingizni muassasa belgilaydi. O‘zgartirish uchun muassasa rahbariga murojaat qiling.")}</p> : <><div className="kb-security-roles" role="group" aria-label={__kbUi("Rolni tanlash")}>
             {LOGIN_ROLES.map(([id, name, icon]) => { const current = (profile.learning_profile?.role === "talaba" ? "talaba" : profile.education_role) === id; return <button key={id} type="button" aria-pressed={current} disabled={Boolean(busy)} onClick={() => { if (!current) onChangeRole(id); }}>{icon} {__kbUi(name)}</button>; })}
           </div>
           <p className="kb-work-note">{__kbUi("Diqqat: rol o‘zgarsa, sinf/kurs va til sozlamalarini ham to‘ldirasiz. To‘ldirilmasa testlar va mavzular sizga mos chiqmaydi. Muassasaga ulangan hisobda rolni muassasa belgilaydi.")}</p>
-        </section>}
+        </>}</section>}
         <section aria-labelledby="kb-discovery-heading">
           <h3 id="kb-discovery-heading"><AtSign size={18}/>{__kbUi(" Sizni qanday topishsin?")}</h3>
           <p className="kb-work-note">{__kbUi("KB raqamingiz doimiy qoladi. Nik qo‘shsangiz, odamlar sizni @nik orqali ham topadi.")}</p>
@@ -12950,7 +12956,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
       ) : (
         <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
           <p className="text-xs font-medium mb-2" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Rolingiz")}</p>
-          {onRolAlmashtir ? <><div className="grid grid-cols-2 gap-2">
+          {onRolAlmashtir && foydalanuvchi?.role_locked ? <p className="text-xs leading-relaxed" style={{ color: "#5A5648" }}>🔒 {__kbUi(foydalanuvchi.role_lock_reason === "institut" ? "Siz institutga talaba sifatida ulangansiz. Rolni almashtirish uchun avval pastdagi «Institut va kurs» bo‘limidan institutdan chiqing." : "Akkauntingiz muassasaga ulangan — rolingizni muassasa belgilaydi.")}</p> : onRolAlmashtir ? <><div className="grid grid-cols-2 gap-2">
             {LOGIN_ROLES.map(([v, l, icon]) => { const joriy = loginAccountRole(foydalanuvchi) === v; return (
               <button key={v} type="button" onClick={() => { if (!joriy) onRolAlmashtir(v); }}
                 className="py-2.5 rounded-lg border text-xs font-medium"
@@ -14152,7 +14158,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   const [educationEditing, setEducationEditing] = useState(false);
   const [educationRoleChoice, setEducationRoleChoice] = useState("");
   // Rol faqat Sozlamalardan o'zgaradi: tanlangan rol bilan ta'lim sozlamalari oynasi ochiladi.
-  const rolniAlmashtir = useCallback((role) => { saveLoginRole(role); setAccountOpen(false); setEducationRoleChoice(role); setEducationEditing(true); setTab("home"); }, []);
+  const rolniAlmashtir = useCallback((role) => { setAccountOpen(false); setEducationRoleChoice(role); setEducationEditing(true); setTab("home"); }, []);
   const [courseNavigation, setCourseNavigation] = useState({ courseId: initialCourseId, mode: "catalog", nonce: 0 });
   const [coursesOpened, setCoursesOpened] = useState(Boolean(initialCourses || initialCourseId));
   const [presentationsOpened, setPresentationsOpened] = useState(false);
@@ -14322,7 +14328,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     workspaceRequest(API_BASE, "/auth/men", token, { signal: controller.signal })
       .then((u) => {
         if (controller.signal.aborted) return;
-        if (!readOnly) rememberAccount(u, token, takeLoginMethod());
+        if (!readOnly) { rememberAccount(u, token, takeLoginMethod()); if (loginAccountRole(u)) saveLoginRole(loginAccountRole(u)); }
         setFoydalanuvchi(u);
         setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || initialEducationTab(u)));
         setHolat("tayyor");
@@ -14931,6 +14937,7 @@ export default function App() {
     setLoginError("Sessiyangiz yakunlandi. Pastdagi ro‘yxatdan akkauntingizni bosib qayta kiring.");
   }, [korishRejimi, persistSession]);
   const kirildi = useCallback((nextToken) => {
+    try { const switchedNotice = window.sessionStorage.getItem("kabutar:switched-notice"); if (switchedNotice) { window.sessionStorage.removeItem("kabutar:switched-notice"); setNotice(switchedNotice); } } catch { /* ixtiyoriy */ }
     sessionEpoch.current += 1; persistSession(nextToken);
     setLoginError(""); setOauthProfil(null); setToken(nextToken);
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
@@ -14989,8 +14996,11 @@ export default function App() {
         const currentToken = _saqlanganTokenniOl();
         if (!currentToken || !linkIntent || linkIntent.session !== currentToken || Date.now() - Number(linkIntent.createdAt) > 600000 || !Number.isFinite(Number(linkIntent.createdAt))) throw new Error("Kirish sessiyasi o‘zgargan yoki ulash muddati tugagan. Profil sozlamalaridan Google ulashni qayta boshlang.");
         if (!data.oauth_grant || !data.email) throw new Error("Google hisobini ulash tasdig‘i olinmadi. Profil sozlamalaridan qayta boshlang.");
-        await workspaceRequest(API_BASE, "/auth/google/link", currentToken, { method: "POST", body: { email: data.email, oauth_grant: data.oauth_grant } });
-        if (!cancelled && sessionEpoch.current === startedEpoch && _saqlanganTokenniOl() === currentToken) setNotice("Google hisobi akkauntingizga ulandi.");
+        const linked = await workspaceRequest(API_BASE, "/auth/google/link", currentToken, { method: "POST", body: { email: data.email, oauth_grant: data.oauth_grant } });
+        if (!cancelled && sessionEpoch.current === startedEpoch && _saqlanganTokenniOl() === currentToken) {
+          if (linked?.switched && linked?.token) { kirildi(linked.token); setNotice("Bu Gmail eski akkauntingizga ulangan edi — o‘sha akkauntga o‘tdingiz. Testlaringiz va natijalaringiz joyida."); }
+          else setNotice("Google hisobi akkauntingizga ulandi.");
+        }
       } else if (data.holat === "kirdi" && data.token) {
         if (data.intent === "telegram") setTelegramLinkOpen(true);
         kirildi(data.token);

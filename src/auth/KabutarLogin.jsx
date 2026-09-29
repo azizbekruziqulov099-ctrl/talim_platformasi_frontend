@@ -190,9 +190,24 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
           <div className="kb-login-card">
             {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text={__kbUi("Xush kelibsiz!")}/></h3><p><InterfaceText text={__kbUi("Sahifa ochilmoqda…")}/></p></div> : <>
               <h2 id="kabutar-signin-title"><InterfaceText text={__kbUi("Kim sifatida kirasiz?")}/></h2>
-              <p className="kb-login-lead-v79"><InterfaceText text={__kbUi("Bosing — darhol kirasiz. Ro‘yxatdan o‘tish shart emas.")}/></p>
+              <p className="kb-login-lead-v79"><InterfaceText text={__kbUi("Yangi bo‘lsangiz — bosing va darhol kirasiz.")}/></p>
 
               {error && <div className="kb-login-error" role="alert">{__kbUi(error)}<button type="button" onClick={() => setError("")} aria-label={uiT("Xato xabarini yopish")}><X size={16}/></button></div>}
+
+              {accounts.length > 0 && <div className="kb-login-saved" aria-label={uiT("Shu qurilmada kirgan akkauntlar")}>
+                <p className="kb-login-step"><InterfaceText text={__kbUi("Oldin kirgansiz — shu yerdan davom eting:")}/></p>
+                {accounts.map((account) => <div key={account.user_id} className="kb-login-saved-item">
+                  <button type="button" onClick={() => resume(account)} disabled={Boolean(resuming) || busy}>
+                    <span className="kb-login-avatar" aria-hidden="true">{String(account.name || "?").trim().charAt(0).toUpperCase()}</span>
+                    <span className="kb-login-saved-text"><b>{account.name}</b><small>{[ROLE_NAMES[account.role] && uiT(ROLE_NAMES[account.role]), account.token ? uiT("bir bosishda") : methodLabel(account.method)].filter(Boolean).join(" · ")}</small></span>
+                    {resuming === String(account.user_id) ? <LoaderCircle size={17} className="kb-login-spin"/> : <ChevronRight size={17}/>}
+                  </button>
+                  <button type="button" className="kb-login-saved-remove" aria-label={uiT("Bu qurilmadan olib tashlash")} title={uiT("Bu qurilmadan olib tashlash")} onClick={() => setAccounts(forgetAccount(account.user_id))}><X size={14}/></button>
+                </div>)}
+              </div>}
+              {accounts.length === 0 && <button type="button" className="kb-login-old-hint" onClick={() => { chooseMethod("telegram"); setTimeout(() => document.querySelector(".kb-login-method-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 60); }}>
+                <span aria-hidden="true">👋</span><span><b>{__kbUi("Oldin ro‘yxatdan o‘tganmisiz?")}</b> {__kbUi("Telegram bilan kiring — testlaringiz va natijalaringiz o‘sha akkauntda.")}</span><ChevronRight size={16}/>
+              </button>}
 
               <div className="kb-login-role-cards" role="group" aria-label={uiT("Rol")}>
                 {LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
@@ -203,17 +218,6 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                 </button>)}
               </div>
 
-              {accounts.length > 0 && <div className="kb-login-saved" aria-label={uiT("Shu qurilmada kirgan akkauntlar")}>
-                <p className="kb-login-step"><InterfaceText text={__kbUi("Oldin kirgansiz — davom eting:")}/></p>
-                {accounts.map((account) => <div key={account.user_id} className="kb-login-saved-item">
-                  <button type="button" onClick={() => resume(account)} disabled={Boolean(resuming) || busy}>
-                    <span className="kb-login-avatar" aria-hidden="true">{String(account.name || "?").trim().charAt(0).toUpperCase()}</span>
-                    <span className="kb-login-saved-text"><b>{account.name}</b><small>{[ROLE_NAMES[account.role] && uiT(ROLE_NAMES[account.role]), account.token ? uiT("bir bosishda") : methodLabel(account.method)].filter(Boolean).join(" · ")}</small></span>
-                    {resuming === String(account.user_id) ? <LoaderCircle size={17} className="kb-login-spin"/> : <ChevronRight size={17}/>}
-                  </button>
-                  <button type="button" className="kb-login-saved-remove" aria-label={uiT("Bu qurilmadan olib tashlash")} title={uiT("Bu qurilmadan olib tashlash")} onClick={() => setAccounts(forgetAccount(account.user_id))}><X size={14}/></button>
-                </div>)}
-              </div>}
 
               <div className="kb-login-divider"><span/><InterfaceText text={__kbUi("Akkauntingiz bormi? Shu orqali kiring")}/><span/></div>
               <div className="kb-login-mini-methods" role="group" aria-label={uiT("Kirish usuli")}>

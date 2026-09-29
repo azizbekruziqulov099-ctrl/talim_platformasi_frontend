@@ -160,3 +160,8 @@
 .kb-login-method-panel.kb-login-password-form label:first-child{margin-top:0}
 @keyframes kb-login-open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media(max-width:420px){.kb-login-role-card{min-height:96px;padding:12px}.kb-login-role-emoji{font-size:24px}.kb-login-v79 .kb-login-card{padding:22px 16px 18px}}
+.kb-login-old-hint{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 12px;padding:10px 12px;border-radius:14px;border:1px dashed #9fcdee;background:#f2f9fe;color:#17466b;text-align:left;font-size:12.5px;line-height:1.45}
+.kb-login-old-hint span:first-child{font-size:20px}
+.kb-login-old-hint svg{flex:none;margin-left:auto;color:#1d7fc2}
+.kb-login-v79 .kb-login-saved{margin:0 0 14px}
+.kb-role-locked{margin:6px 0;padding:10px 12px;border-radius:12px;background:#f6f3ea;color:#5a4a1f;font-size:13px;line-height:1.5}
