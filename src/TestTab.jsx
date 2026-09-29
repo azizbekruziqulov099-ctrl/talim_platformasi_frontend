@@ -1,5 +1,5 @@
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
-import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
+import { splitSpeechText, selectBrowserVoice, stripSpeechTags } from "./speech/language.js";
 import TranslatedContent from './interface/TranslatedContent.jsx';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
 import {uiText as __kbUi} from './interface/interfaceRuntime.js';
@@ -22,6 +22,8 @@ import {
   gradeBandForClass,
 } from "./testGameRules.js";
 import LearningQuest from "./test/LearningQuest.jsx";
+import KidQuiz from "./test/KidQuiz.jsx";
+import { isPreschoolLearner } from "./test/kidQuizRules.js";
 import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
@@ -390,7 +392,7 @@ function Matn({ matn, latex }) {
   // xom LaTeX buyrug'ini ham taniydi. is_latex bayrog'iga qaramay, TEGLAR/
   // buyruq o'zi bor-yo'qligini ham tekshiradi — AI ba'zan bayroqni to'g'ri
   // qo'ymasligi yoki teglarni butunlay unutishi mumkin.
-  const toza = tegsizKorsat(matn) || "";
+  const toza = stripSpeechTags(tegsizKorsat(matn) || "");
   const bormi = toza.includes("$") || toza.includes("[lat]") || toza.includes("\\");
   if (!bormi) return <>{toza}<ContentTranslationStatus translation={translation}/></>;
   const qismlar = toza.split(_LATEX_BOLISH_REGEX);
@@ -769,7 +771,7 @@ export default function TestTab({
         res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : data.detail?.message || "Savollar yuklanmadi");
       setSavollar(data.savollar);
       testUrinishIdRef.current = data.attempt_id;
       if (!testUrinishIdRef.current) throw new Error("Server test urinishini yaratolmadi. 015 migratsiyasini tekshiring.");
@@ -1120,7 +1122,7 @@ export default function TestTab({
     if (timerRef.current) clearInterval(timerRef.current);
     if (holat !== "savollar" || testRejimi !== "bir_bir" || joriyNatija || !savollar[joriySavol]) return;
     const s = savollar[joriySavol];
-    if (!s.time_limit) { setQolganVaqt(null); return; }
+    if (!s.time_limit || bogchaRejim) { setQolganVaqt(null); return; }
     setQolganVaqt(s.time_limit);
     timerRef.current = setInterval(() => {
       setQolganVaqt((v) => {
@@ -1138,6 +1140,12 @@ export default function TestTab({
 
   // "bir_bir" (eski, mashq) rejimi uchun — javobni DARHOL tekshiradi va
   // to'g'ri/noto'g'rini shu zahoti ko'rsatadi.
+  // REV80: bog'cha bolasi — savollar birma-bir, vaqt va avtomatik o'tish yo'q, ovoz bilan.
+  const bogchaRejim = isPreschoolLearner(foydalanuvchi, tanlanganMavzu?.sinf || sinf);
+  useEffect(() => {
+    if (bogchaRejim && testRejimi !== "bir_bir") setTestRejimi("bir_bir");
+  }, [bogchaRejim, testRejimi]);
+
   const javobBerVaTekshir = async (savolId, harf) => {
     if (javobTekshirilmoqdaRef.current.has(savolId) || joriyNatija) return;
     javobTekshirilmoqdaRef.current.add(savolId);
@@ -1186,7 +1194,7 @@ export default function TestTab({
   // Oddiy testda izoh 4 soniya ko'rinadi va keyin avtomatik o'tadi.
   // O'quvchi kutishni xohlamasa tugmani bosib darhol o'tishi mumkin.
   useEffect(() => {
-    if (!joriyNatija) { setAvtoQoldi(null); return; }
+    if (!joriyNatija || bogchaRejim) { setAvtoQoldi(null); return; }
     setAvtoQoldi(4);
     const sanoqId = setInterval(() => setAvtoQoldi((oldingi) => Math.max(0, (oldingi || 1) - 1)), 1000);
     avtoRef.current = setTimeout(keyingiSavolga, 4000);
@@ -1366,6 +1374,19 @@ export default function TestTab({
     );
   }
 
+  if (holat === "songi" && bogchaRejim) {
+    // REV80: bog'cha bolasi sozlamalarni ko'rmaydi — mavzudagi savollar (5 tagacha) darhol boshlanadi.
+    const jami = Math.max(0, Math.floor(Number(mosSoni) || 0));
+    return <div className="kq-root kq-start">
+      <button type="button" className="kq-nav-btn is-ghost" style={{ maxWidth: 160 }} onClick={() => setHolat("mavzular")}>⬅ {__kbUi("Orqaga")}</button>
+      <div className="kq-mascot"><span className="kq-bird" aria-hidden="true">🕊️</span><p className="kq-bubble">{__kbUi("Tayyormisan? Keling, o‘ynaymiz!")}</p></div>
+      <h2 className="kq-start-title">{tanlanganMavzu?.track === "review" ? __kbUi("🎲 Aralash takror") : stripSpeechTags(tanlanganMavzu?.nomi || "")}</h2>
+      {xato && <p className="kq-bubble" role="alert">{__kbUi(xato)}</p>}
+      <button type="button" className="kq-nav-btn kq-start-btn" disabled={yuklanmoqda || mosSoni === null || jami < 1}
+        onClick={() => savollarniYukla(Math.min(jami, tanlanganMavzu?.track === "review" ? 8 : 5))}>{yuklanmoqda || mosSoni === null ? "…" : __kbUi("🎮 Boshladik!")}</button>
+    </div>;
+  }
+
   if (holat === "songi") {
     const jami = Math.max(0, Math.floor(Number(mosSoni) || 0));
     // Mavjud bankdan ko'p savol so'ramaymiz; bitta oddiy urinish 100 tagacha.
@@ -1493,11 +1514,29 @@ export default function TestTab({
     );
   }
 
+  if (holat === "savollar" && testRejimi === "bir_bir" && bogchaRejim && savollar[joriySavol]) {
+    return <><KidQuiz savol={savollar[joriySavol]} index={joriySavol} total={savollar.length}
+      natija={joriyNatija} tekshirilmoqda={javobTekshirilmoqdaId === savollar[joriySavol].id}
+      correctCount={toGriSoni} jins={foydalanuvchi?.jins}
+      onAnswer={(harf) => javobBerVaTekshir(savollar[joriySavol].id, harf)}
+      onNext={keyingiSavolga} speak={ovozniOqi} onStop={() => setToxtatishModali(true)} />
+      {toxtatishModali && <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+        <div className="w-full max-w-sm rounded-3xl p-5 text-center" style={{ backgroundColor: "#FFFFFF" }}>
+          <p className="text-4xl mb-2">🕊️</p>
+          <p className="font-bold mb-4" style={{ color: "#3b2a06" }}>{__kbUi("O'yinni tugatamizmi?")}</p>
+          <div className="flex gap-2.5">
+            <button onClick={() => setToxtatishModali(false)} className="flex-1 py-3 rounded-2xl text-sm font-bold" style={{ background: "#fff8ec", color: "#3b2a06" }}>{__kbUi("Davom etamiz")}</button>
+            <button onClick={toxtatish} className="flex-1 py-3 rounded-2xl text-sm font-bold text-white" style={{ backgroundColor: "#c77d0a" }}>{__kbUi("Tugatish")}</button>
+          </div>
+        </div>
+      </div>}</>;
+  }
+
   if (holat === "savollar" && testRejimi === "bir_bir") {
     const s = savollar[joriySavol];
     const oxirgi = joriySavol === savollar.length - 1;
     const yozuvli = s.question_type === "write_answer";
-    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "");
     const javobBerilgan = !!joriyNatija;
     const javobKutilmoqda = javobTekshirilmoqdaId === s.id;
 
@@ -1555,7 +1594,7 @@ export default function TestTab({
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
           {__kbUi((() => {
-            const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
+            const ovozMatni = yozuvli ? s.question : `${s.question}. ${[["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => String(v ?? "").trim()).map(([h, v]) => `${h}) ${v}`).join(". ")}`;
             const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
             return (
               <div className="shrink-0 flex flex-col items-end gap-1">
@@ -1703,7 +1742,7 @@ export default function TestTab({
         <div className="px-5 pt-5 space-y-5">
           {savollar.map((s, i) => {
             const yozuvli = s.question_type === "write_answer";
-            const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+            const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "");
             const javobBerilgan = javoblar[s.id] !== undefined;
 
             return (
@@ -1722,7 +1761,7 @@ export default function TestTab({
                 <h2 className="text-lg font-semibold mb-4 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
                   <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
                   {__kbUi((() => {
-                    const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
+                    const ovozMatni = yozuvli ? s.question : `${s.question}. ${[["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => String(v ?? "").trim()).map(([h, v]) => `${h}) ${v}`).join(". ")}`;
                     const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
                     return (
                       <div className="shrink-0 flex flex-col items-end gap-1">

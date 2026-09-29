@@ -122,3 +122,32 @@
 .kk-voice{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dx-muted)}
 .kk-voice i{width:8px;height:8px;border-radius:50%;background:#B7C4BD}.kk-voice.is-on i{background:#2F7D5B;animation:dx-pulse 1s infinite}
 .kk-ask{background:#fff;border:1px solid var(--dx-line);border-radius:10px;padding:10px}
+/* REV80: dars maydoni tinglovchiga moslashadi */
+.dx-aud-talaba .dx-board{background:#1f2a3a}
+.dx-aud-bogcha{--kid-a:#f6b73c;--kid-b:#fff8ec}
+.dx-aud-bogcha.dx-theme-boy{--kid-a:#3f9be0;--kid-b:#eef7ff}
+.dx-aud-bogcha.dx-theme-girl{--kid-a:#e76fa9;--kid-b:#fff0f7}
+.dx-aud-bogcha .dx-board{background:linear-gradient(160deg,#2f6b4f,#24573f)}
+.dx-aud-bogcha .dx-line{font-size:clamp(22px,4.6vw,34px);line-height:1.35}
+.dx-aud-bogcha .dx-title{font-size:clamp(22px,4.2vw,30px)}
+.dx-aud-bogcha .dx-controls .dx-btn{min-height:52px;font-size:16px;font-weight:800;border-radius:16px}
+.dx-aud-bogcha .dx-controls .dx-primary{background:var(--kid-a);border-color:var(--kid-a)}
+.dx-aud-bogcha .dx-bubble{font-size:17px;background:var(--kid-b)}
+.dx-bird{display:grid;place-items:center;width:100%;height:100%;font-size:40px;animation:dx-bird 2.4s ease-in-out infinite}
+.dx-aud-bogcha .is-speaking .dx-bird{animation:dx-bird-talk .5s ease-in-out infinite}
+@keyframes dx-bird{50%{transform:translateY(-4px)}}
+@keyframes dx-bird-talk{50%{transform:scale(1.08) rotate(-4deg)}}
+.dx-stars{background:#fff4d1;color:#8a5a00;font-weight:900}
+.dx-q{display:flex;align-items:center;gap:10px}
+.dx-listen{flex:none;width:48px;height:48px;border-radius:50%;border:0;background:var(--kid-a,#f6b73c);font-size:22px;cursor:pointer}
+.dx-kid-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.dx-kid-opts button{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:130px;border-radius:22px;border:3px solid #ffffff40;background:#ffffff14;color:#fff;cursor:pointer;transition:transform .15s}
+.dx-kid-opts button:hover:not(:disabled){transform:translateY(-3px);border-color:var(--kid-a)}
+.dx-kid-opts button.is-ok{border-color:#7ee08a;background:#7ee08a33}
+.dx-kid-opts button.is-no{border-color:#ffb357;background:#ffb35722}
+.dx-kid-opts button.is-dim{opacity:.4}
+.dx-kid-pic{font-size:clamp(52px,11vw,76px);line-height:1;margin-top:10px}
+.dx-kid-word{font-size:20px;font-weight:900}
+@media(prefers-reduced-motion:reduce){.dx-bird{animation:none!important}}
+.dx-board .dx-title{color:var(--dx-yellow)!important} /* umumiy h3 qoidasi doskadagi sarlavhani qoraytirmasin */
+.dx-next{background:#2f7d5b!important;color:#fff!important;border-color:#2f7d5b!important;font-weight:800}

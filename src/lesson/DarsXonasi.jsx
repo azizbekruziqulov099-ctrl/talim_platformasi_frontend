@@ -3,6 +3,9 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
 import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, visibleLines } from "./darsXonasiRules.js";
+import { stripSpeechTags } from "../speech/language.js";
+import { kidOptions } from "../test/kidQuizRules.js";
+import { lessonAudience, audienceLabels } from "./lessonAudience.js";
 import "./dars-xonasi.css";
 
 function TeacherAvatar() {
@@ -19,7 +22,7 @@ function TeacherAvatar() {
   </svg>;
 }
 
-export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", onOpenTest, onOpenTopic, onChat }) {
+export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, onOpenTest, onOpenTopic, onChat }) {
   useKbInterfaceLocale();
   const [lesson, setLesson] = useState(null);
   const [error, setError] = useState("");
@@ -49,6 +52,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const rateRef = useRef(rate);
   rateRef.current = rate;
 
+  // REV80: dars maydoni tinglovchiga moslashadi — bog'cha bolasi, o'quvchi, talaba.
+  const audience = lessonAudience(learnerRole, grade || lesson?.topic?.sinf);
+  const kid = audience === "bogcha";
+  const labels = audienceLabels(audience);
+  const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";
   const steps = lesson?.steps || [];
   const step = idx >= 0 ? steps[idx] : null;
   const questions = lesson?.savollar || [];
@@ -68,7 +76,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     hush();
     const my = tokenRef.current;
     const clean = speakableText(text);
-    setBubble(text || "");
+    setBubble(stripSpeechTags(text || ""));
     if (!clean) { done?.(); return; }
     const words = String(text || "").split(/\s+/).filter(Boolean);
     setSpeaking(true);
@@ -105,7 +113,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(topicCode)}?${new URLSearchParams({ token })}`, { signal: controller.signal })
       .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || "Dars yuklanmadi"); return d; })
-      .then((d) => { setLesson(d); setBubble(__kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
+      .then((d) => { setLesson(d); setBubble(__kbUi(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? "Salom, do‘stim! Men Kabutar qushchaman. «Boshladik!» tugmasini bos — birga o‘ynab o‘rganamiz!" : "Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
@@ -186,6 +194,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
   const pick = (k) => {
     if (picked !== null) return;
+    if (kid) {
+      const q = questions[testIndex];
+      setPicked(k);
+      if (k === q.togri) { setScore((x) => x + 1); say(__kbUi("Barakalla! To‘g‘ri!") + " " + (q.izoh || "")); }
+      else say(__kbUi("Hechqisi yo‘q! To‘g‘ri javob yashil rasmda.") + " " + (q.izoh || ""));
+      return;
+    }
     const q = questions[testIndex];
     setPicked(k);
     if (k === q.togri) { setScore((x) => x + 1); say(__kbUi("To‘g‘ri!"), () => setTimeout(() => nextQuestion(), 700)); }
@@ -198,6 +213,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       return i + 1;
     });
   };
+  useEffect(() => {
+    if (!kid || mode !== "test" || !questions[testIndex]) return;
+    const t = setTimeout(() => say(questions[testIndex].savol), 300);
+    return () => clearTimeout(t);
+  }, [kid, mode, testIndex]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mode !== "result" || !questions.length) return;
     const pass = score / questions.length >= 0.7;
@@ -213,15 +233,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const q = mode === "test" ? questions[testIndex] : null;
   const pass = questions.length ? score / questions.length >= 0.7 : true;
 
-  return <section className="dx-root" aria-label={__kbUi("Dars xonasi")}>
+  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme}`} aria-label={__kbUi("Dars xonasi")}>
     <header className="dx-head">
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
         <p>{[lesson.topic?.fan, lesson.topic?.sinf && (/^\d+$/.test(String(lesson.topic.sinf)) ? `${lesson.topic.sinf}-sinf` : String(lesson.topic.sinf)), lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>
       </div>
       <div className="dx-head-actions">
-        <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>
-        <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>
+        {!kid && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
+        {!kid && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
+        {kid && questions.length > 0 && <span className="dx-chip dx-stars">⭐ {score}</span>}
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
     </header>
@@ -273,10 +294,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           </>}
           {mode === "test" && q && <div className="dx-test">
             <h3 className="dx-title">{__kbUi("Test")} · {testIndex + 1} / {questions.length}</h3>
-            <div className="dx-q"><BoardText text={q.savol} /></div>
-            <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
-              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={o} /></button>)}</div>
-            {picked !== null && picked !== q.togri && <div className="dx-why"><p>{q.izoh}</p><button type="button" className="dx-btn dx-primary" onClick={nextQuestion}>{__kbUi("Keyingi savol")}</button></div>}
+            <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} />{kid && <button type="button" className="dx-listen" onClick={() => say(q.savol)} aria-label={__kbUi("Qayta eshitish")}>🔊</button>}</div>
+            {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o]))).map((o, k) => <button key={k} type="button" onClick={() => pick(k)} disabled={picked !== null}
+              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"}><span className="dx-kid-pic">{o.picture || o.letter}</span>{o.word && <span className="dx-kid-word">{o.word}</span>}</button>)}</div>
+            : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
+              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
+            {picked !== null && (kid || picked !== q.togri) && <div className="dx-why">{!kid && <p>{q.izoh}</p>}<button type="button" className="dx-btn dx-primary" onClick={nextQuestion}>{__kbUi(testIndex + 1 >= questions.length ? (kid ? "Yulduzlarni ko‘rish ⭐" : "Natija") : (kid ? "Keyingisi ➜" : "Keyingi savol"))}</button></div>}
           </div>}
           {mode === "end" && <div className="dx-test">
             <h3 className="dx-title">{__kbUi("Dars tugadi")}</h3>
@@ -285,6 +308,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               {questions.length > 0 && <button type="button" className="dx-btn dx-primary" onClick={startQuiz}>{__kbUi(`Shu yerda ${questions.length} ta savol`)}</button>}
               {onOpenTest && <button type="button" className="dx-btn" onClick={onOpenTest}>{__kbUi("Test bo‘limida to‘liq test")}</button>}
               <button type="button" className="dx-btn" onClick={() => { setPlaying(false); go(0, false); }}>{__kbUi("Darsni qaytadan ko‘rish")}</button>
+              {nextLesson && <button type="button" className="dx-btn dx-next" onClick={() => { hush(); nextLesson.open(); }}>{__kbUi("Keyingi dars")}: {nextLesson.title} ➜</button>}
             </div>
             {!questions.length && !onOpenTest && <p className="dx-why">{__kbUi("Bu mavzu uchun Test bazasida savol hali yo‘q.")}</p>}
           </div>}
@@ -295,6 +319,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             <div className="dx-row">
               {!pass && <button type="button" className="dx-btn dx-primary" onClick={() => { setPlaying(false); go(Math.max(0, steps.findIndex((s) => s.turi === "qoida")), false); }}>{__kbUi("Qoidani qayta ko‘rish")}</button>}
               {onOpenTest && <button type="button" className="dx-btn" onClick={onOpenTest}>{__kbUi("To‘liq testni ishlash")}</button>}
+              {nextLesson && <button type="button" className="dx-btn dx-next" onClick={() => { hush(); nextLesson.open(); }}>{__kbUi("Keyingi dars")}: {nextLesson.title} ➜</button>}
             </div>
           </div>}
         </div>
@@ -303,16 +328,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
       <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")}>
         <div className="dx-teacher-head">
-          <div className="dx-avatar"><TeacherAvatar /></div>
-          <div><strong>{__kbUi("AI o‘qituvchi")}</strong><span className="dx-state"><i />{speaking ? __kbUi("Gapirmoqda…") : playing ? __kbUi("Tinglayapti") : __kbUi("Pauza")}</span></div>
+          <div className="dx-avatar">{kid ? <span className="dx-bird" aria-hidden="true">🕊️</span> : <TeacherAvatar />}</div>
+          <div><strong>{__kbUi(labels.teacher)}</strong><span className="dx-state"><i />{speaking ? __kbUi("Gapirmoqda…") : playing ? __kbUi("Tinglayapti") : __kbUi("Pauza")}</span></div>
         </div>
         <div className="dx-bubble">{words.map((w, i) => <span key={i} className={i === word ? "is-on" : ""}>{w} </span>)}</div>
-        <form className="dx-ask" onSubmit={(e) => { e.preventDefault(); ask(); }}>
+        {!kid && <form className="dx-ask" onSubmit={(e) => { e.preventDefault(); ask(); }}>
           <label htmlFor={`dx-ask-${topicCode}`}>{__kbUi("O‘qituvchiga savol")}</label>
           <div className="dx-row"><input id={`dx-ask-${topicCode}`} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={__kbUi("Masalan: nega maxraj o‘zgarmaydi?")} disabled={asking} />
             <button type="submit" className="dx-btn" disabled={asking || !question.trim()}>{asking ? "…" : __kbUi("So‘rash")}</button></div>
           {askReply && <p className="dx-reply">{askReply}</p>}
-        </form>
+        </form>}
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""}</p>}
       </aside>
     </div>
@@ -325,17 +350,17 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     </div>}
 
     <div className="dx-controls">
-      <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={togglePlay}>{playing ? __kbUi("❚❚ Pauza") : mode === "idle" ? __kbUi("▶ Darsni boshlash") : mode === "result" || mode === "end" ? __kbUi("↺ Qaytadan") : __kbUi("▶ Davom etish")}</button>
-      <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi("‹ Oldingi")}</button>
-      <button type="button" className="dx-btn" disabled={mode !== "lesson"} onClick={() => go(idx + 1)}>{__kbUi("Keyingi ›")}</button>
+      <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={togglePlay}>{playing ? __kbUi("❚❚ Pauza") : mode === "idle" ? __kbUi(labels.start) : mode === "result" || mode === "end" ? __kbUi("↺ Qaytadan") : __kbUi("▶ Davom etish")}</button>
+      <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi(kid ? "⬅ Orqaga" : "‹ Oldingi")}</button>
+      <button type="button" className="dx-btn" disabled={mode !== "lesson"} onClick={() => go(idx + 1)}>{__kbUi(kid ? "Oldinga ➡" : "Keyingi ›")}</button>
       <button type="button" className="dx-btn" disabled={!step && !variant} onClick={() => { if (variant) { say(variant.ovoz); return; } if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => setStepFinished(true)); } }}>{__kbUi("↻ Qayta ayt")}</button>
-      <button type="button" className="dx-btn dx-help" disabled={mode !== "lesson"} onClick={dunno}>{__kbUi("Tushunmadim")}</button>
+      <button type="button" className="dx-btn dx-help" disabled={mode !== "lesson"} onClick={dunno}>{__kbUi(kid ? "🙋 Yana tushuntir" : "Tushunmadim")}</button>
       <span className="dx-spacer" />
-      <label className="dx-speed">{__kbUi("Tezlik")}
+      {!kid && <label className="dx-speed">{__kbUi("Tezlik")}
         <select value={rate} onChange={(e) => setRate(Number(e.target.value))}>
           <option value={0.85}>{__kbUi("Sekin")}</option><option value={1}>{__kbUi("O‘rtacha")}</option><option value={1.2}>{__kbUi("Tez")}</option>
         </select>
-      </label>
+      </label>}
     </div>
   </section>;
 }

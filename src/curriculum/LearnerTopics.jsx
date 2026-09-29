@@ -9,6 +9,9 @@ import {lessonDownloadUrl} from '../lesson/darsXonasiRules.js';
 import UniversityFilters from './UniversityFilters.jsx';
 import {catalogSubjectDetails} from './adminTestCatalog.js';
 import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActive} from './universityFilters.js';
+import { accountRole } from '../auth/loginMemory.js';
+import { capitalizeTopic, kidTopicColor, kidTopicEmoji } from './kidTopics.js';
+import './kidTopics.css';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
 const SUBJECT_KEY = 'kabutar:learn:subject';
@@ -54,18 +57,25 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const current=subjects.find(subject=>subject.kalit===subjectKey)||subjects[0];
  const groups=useMemo(()=>current?filterTopics(current,query,filter):[],[current,query,filter]);
  const teacher=Boolean(catalog?.viewer?.teacher);
+ const kid=!teacher&&accountRole(user)==='bogcha';
+ // REV81: uzluksiz o'rganish — dars tugagach keyingi darsga o'tish (guruh ichidagi tartib bo'yicha).
+ const openLesson=(group,topic)=>{
+  const list=group.mavzular.filter(t=>t.dars_bor);const i=list.indexOf(topic);const next=i>=0?list[i+1]:null;
+  setClassroom({...topicTarget(current,group,topic,type),_next:next?{title:next.nomi,open:()=>openLesson(group,next)}:null});
+ };
  const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');};
 
- if(classroom) return <div className="space-y-3">
+ if(classroom) return <div className="space-y-3 lt-root">
   <button type="button" onClick={()=>setClassroom(null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{__kbUi("← Mavzularga qaytish")}</button>
   <React.Suspense fallback={<p className="p-6 text-center text-slate-500">{__kbUi("Dars yuklanmoqda…")}</p>}>
-   <DarsXonasi apiBase={apiBase} token={token} topicCode={classroom.lesson_code} fan={classroom.fan} grade={classroom.grade} jins={jins}
+   <DarsXonasi apiBase={apiBase} token={token} topicCode={classroom.lesson_code} fan={classroom.fan} grade={classroom.grade} jins={jins} learnerGender={user?.jins||''} learnerRole={accountRole(user)}
     onOpenTest={onOpenTest&&classroom.savol_soni>0?()=>onOpenTest({...classroom,topic_code:classroom.topic_codes?.[0]||classroom.topic_code}):undefined}
+    nextLesson={classroom._next?{title:capitalizeTopic(classroom._next.title),open:classroom._next.open}:null}
     onChat={onOpenLesson?()=>onOpenLesson(classroom):undefined}/>
   </React.Suspense>
  </div>;
 
- return <div className="space-y-4">
+ return <div className="space-y-4 lt-root">
   <div><h2 className="text-xl font-bold text-slate-800">{teacher?__kbUi("Mavzular"):__kbUi("O‘rganish")}</h2>
    <p className="mt-1 text-sm text-slate-600">{__kbUi(viewerHeadline(catalog?.viewer,type,institutionLabel(type)))}</p></div>
   <LearnerCurriculumHeader viewer={catalog?.viewer} type={type} lesson={lesson} fallbackType={profileInstitutionType(user)}
@@ -92,8 +102,8 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
      </div>
     </section>
     <section aria-label={__kbUi("Mavzular")} className="space-y-3">
-     <p className="text-xs font-semibold text-slate-600">{__kbUi("2. Mavzuni toping")}</p>
-     <div className="flex flex-wrap gap-2">
+     {!kid&&<><p className="text-xs font-semibold text-slate-600">{__kbUi("2. Mavzuni toping")}</p>
+     <div className="flex flex-wrap gap-2 lt-search-row">
       <input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder={__kbUi("Mavzu nomini yozing…")}
        aria-label={__kbUi("Mavzu qidirish")} className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"/>
       <div className="flex gap-1" role="group" aria-label={__kbUi("Saralash")}>
@@ -101,19 +111,40 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
         className="rounded-lg border px-3 py-2 text-xs font-semibold"
         style={filter===key?{background:'#1E3A32',borderColor:'#1E3A32',color:'#F2F0E6'}:{background:'#fff',borderColor:'#D5DCE3',color:'#334155'}}>{__kbUi(label)}</button>)}
       </div>
-     </div>
+     </div></>}
      {!groups.length&&<p className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-500">{__kbUi("Shartga mos mavzu topilmadi.")}</p>}
-     {groups.map(group=><div key={group.sinf}>
+     {kid&&groups.map(group=><div key={`kid-${group.sinf}`}>
+      <p className="kt-age">🧸 {__kbUi(gradeLabel(type,group.sinf))}</p>
+      <ul className="kt-grid">{group.mavzular.map((topic,i)=>{const target=topicTarget(current,group,topic,type);
+       return <li key={catalogTopicKey(topic)} className="kt-card" style={{'--kt-bg':kidTopicColor(i)}}>
+        <span className="kt-no">{i+1}</span>
+        <span className="kt-emoji" aria-hidden="true">{kidTopicEmoji(topic.nomi,i)}</span>
+        <p className="kt-title"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/></p>
+        <div className="kt-actions">
+         {topic.dars_bor&&<button type="button" className="kt-learn" onClick={()=>openLesson(group,topic)}>{__kbUi("▶ O‘rganamiz")}</button>}
+         {topic.savol_soni>0&&onOpenTest&&<button type="button" className="kt-play" onClick={()=>onOpenTest({...target,topic_code:topic.topic_codes[0]})}>{__kbUi("🎮 O‘ynaymiz")}</button>}
+        </div>
+       </li>;})}
+       {onOpenTest&&group.mavzular.some(t=>t.savol_soni>0)&&<li className="kt-card kt-review" style={{'--kt-bg':'#FFF1C9'}}>
+        <span className="kt-emoji" aria-hidden="true">🎲</span>
+        <p className="kt-title">{__kbUi("Aralash takror")}</p>
+        <p className="kt-note">{__kbUi("Hamma o‘rganganlarimizdan savollar — har kuni o‘ynasa bo‘ladi!")}</p>
+        <div className="kt-actions"><button type="button" className="kt-play" onClick={()=>{const tested=group.mavzular.filter(t=>t.savol_soni>0);const first=tested[0];
+         onOpenTest({...topicTarget(current,group,first,type),topic_code:first.topic_codes[0],topic_codes:tested.flatMap(t=>t.topic_codes),track:'review'});}}>{__kbUi("🎮 Boshladik")}</button></div>
+       </li>}
+      </ul>
+     </div>)}
+     {!kid&&groups.map(group=><div key={group.sinf}>
       <p className="mb-2 text-xs font-semibold text-slate-500">{__kbUi(gradeLabel(type,group.sinf))}</p>
       <ul className="space-y-2">{group.mavzular.map(topic=>{const target=topicTarget(current,group,topic,type);
        return <li key={catalogTopicKey(topic)} className="rounded-xl border border-slate-200 bg-white p-3">
-        <p className="text-sm font-medium text-slate-800"><TranslatedContent text={topic.nomi} showStatus={false}/>{topic.semestr > 0 && <small className="block text-xs text-slate-500">{topic.semestr}{__kbUi("-semestr")}</small>}</p>
+        <p className="text-sm font-medium text-slate-800"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>{topic.semestr > 0 && <small className="block text-xs text-slate-500">{topic.semestr}{__kbUi("-semestr")}</small>}</p>
         <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
          {topic.dars_bor&&<span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800">{__kbUi("📘 Kitob darsi")}</span>}
          <span className={`rounded-full px-2 py-0.5 ${topic.savol_soni?'bg-sky-50 text-sky-800':'bg-slate-100 text-slate-500'}`}>{topic.savol_soni?__kbUi(`📝 ${topic.savol_soni} ta test savoli`):__kbUi('Test hali yo‘q')}</span>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-         {!teacher&&topic.dars_bor&&<button type="button" onClick={()=>setClassroom(target)} className="rounded-lg px-3 py-2 text-xs font-semibold text-white" style={{background:'#1E3A32'}}>{__kbUi("▶ Darsni boshlash")}</button>}
+         {!teacher&&topic.dars_bor&&<button type="button" onClick={()=>openLesson(group,topic)} className="rounded-lg px-3 py-2 text-xs font-semibold text-white" style={{background:'#1E3A32'}}>{__kbUi("▶ Darsni boshlash")}</button>}
          {!teacher&&!topic.dars_bor&&onOpenLesson&&<button type="button" onClick={()=>onOpenLesson(target)} className="rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-900">{__kbUi("💬 AI ustoz bilan o‘rganish")}</button>}
          {topic.savol_soni>0&&onOpenTest&&<button type="button" onClick={()=>onOpenTest({...target,topic_code:topic.topic_codes[0]})} className="rounded-lg bg-sky-900 px-3 py-2 text-xs font-semibold text-white">{__kbUi("Test ishlash")}</button>}
          {teacher&&topic.dars_bor&&[['pdf','⬇ Dars PDF'],['docx','⬇ Dars Word']].map(([format,label])=><a key={format} href={lessonDownloadUrl(apiBase,token,target.lesson_code,format)} download
