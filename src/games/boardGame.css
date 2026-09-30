@@ -181,3 +181,24 @@
 .sh-hint { background: #eafaf0; border: 2px solid #3ddc84; border-radius: 14px; padding: 10px 12px; margin: 10px auto 0; max-width: 620px; font-weight: 700; text-align: center; }
 .sh-hint b { font-size: 1.1rem; margin-right: 4px; }
 .sh-undo { margin-top: 10px; }
+/* REV93: o'yin maydoni — taxta imkon qadar katta. Telefonda: raqib, taxta, men, tugmalar. Keng ekranda: taxta chapda. */
+.sh-game { max-width: 1180px; }
+.sh-arena { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "opp" "board" "me" "rest"; justify-items: center; }
+.sh-a-opp { grid-area: opp; width: 100%; } .sh-a-board { grid-area: board; width: 100%; } .sh-a-me { grid-area: me; width: 100%; } .sh-a-rest { grid-area: rest; width: 100%; }
+.sh-arena .sh-board-wrap, .sh-arena .cx-wrap, .sh-arena .sh-player { width: min(100%, max(320px, calc(100svh - 330px)), 640px); }
+@media (min-width: 900px) {
+  .sh-arena { grid-template-columns: auto minmax(260px, 340px); grid-template-rows: auto auto 1fr; grid-template-areas: "board opp" "board me" "board rest"; column-gap: 22px; align-items: start; justify-items: stretch; }
+  .sh-a-board { width: auto; }
+  .sh-arena .sh-board-wrap, .sh-arena .cx-wrap { width: min(calc(100svh - 290px), calc(100vw - 720px), 760px); min-width: 340px; }
+  .sh-arena .sh-player { width: 100%; margin: 0 0 10px; }
+  .sh-a-rest .sh-row { justify-content: flex-start; }
+  .sh-a-rest .sh-status { text-align: left; }
+}
+/* REV93: umumiy yurish animatsiyalari (shashka va shaxmat) */
+@keyframes bd-slide { from { transform: translate(calc(var(--dx, 0) * 100cqw / 8), calc(var(--dy, 0) * 100cqw / 8)) scale(1.12); } 70% { transform: translate(0, 0) scale(1.08); } to { transform: none; } }
+@keyframes bd-taken { 0% { transform: scale(1); opacity: 1; filter: none; } 35% { transform: scale(1.25) rotate(-12deg); opacity: .95; filter: brightness(1.4); } 100% { transform: scale(.2) rotate(30deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cx-piece.is-arriving, .sh-piece.is-arriving, .cx-ghost, .sh-taken { animation-duration: .01s; } }
+.sh-arena { scroll-margin-top: 160px; }
+@media (min-width: 900px) { .sh-arena { scroll-margin-top: 200px; } }
+body:has(.sh-game) #samtm-install-app { display: none !important; }
+.sh-ver { opacity: .55; font-weight: 600; }

@@ -4,6 +4,7 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { checkAnswer, speakableText } from "./darsXonasiRules.js";
+import { stripSpeechTags } from "../speech/language.js";
 import { conditionLines, nextShown, optionState } from "./kitobKodRules.js";
 
 // Doskadagi matn: oddiy matn React orqali, formulalar faqat KaTeX (trust:false).
@@ -53,7 +54,7 @@ export function useBoardVoice(apiBase, jins = "qiz") {
 
 /** Amaliy topshiriq doskasi: sharti ko'rinadi, yechimi «Yechimni ko'rsatish» bosilganda
  *  o'qituvchi ovozi bilan qadamma-qadam yoziladi. Dars xonasi va kitob kodi oynasi bir xil ishlatadi. */
-export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved }) {
+export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false }) {
   useKbInterfaceLocale();
   const steps = item?.yechim || [];
   const options = item?.variantlar || [];
@@ -65,7 +66,9 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const runRef = useRef(0);
 
   const stop = useCallback(() => { runRef.current += 1; setRunning(false); hush?.(); }, [hush]);
-  useEffect(() => { stop(); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV93: yangi topshiriq ochilganda o'qituvchi ovozini O'CHIRMAYMIZ (dars xonasi shu payt shartni o'qiyapti) —
+  // faqat o'zimizning yechim ko'rsatishni to'xtatamiz. Oldin bu ovozni kesib, dars shu qadamda to'xtab qolardi.
+  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { runRef.current += 1; }, []);
 
   const reveal = useCallback((from = 0) => {
@@ -104,11 +107,11 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   };
 
   if (!item) return null;
-  const lines = conditionLines(item.shart);
+  const lines = conditionLines(stripSpeechTags(item.shart));
   return <div className="dx-amaliy">
     <div className="dx-amaliy-head">
       <span className="dx-kind">{__kbUi(item.turi_nomi || "Topshiriq")}</span>
-      {item.kod && <span className="dx-code" title={__kbUi("Kitobdagi kod")}>{item.kod}</span>}
+      {item.kod && !kid && <span className="dx-code" title={__kbUi("Kitobdagi kod")}>{item.kod}</span>}
     </div>
     <div className="dx-task" tabIndex={0} aria-label={__kbUi("Topshiriq sharti")}>
       {lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}
@@ -128,12 +131,13 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       <h4>{__kbUi("Yechim")}</h4>
       {steps.slice(0, shown).map((s, i) => <div key={i} className={`dx-line ${i === shown - 1 && running ? "is-new" : ""}`}><BoardText text={s.doska} /></div>)}
     </div>}
-    <div className="dx-row dx-amaliy-actions">
+    {/* REV93: bog'chada tugmalar yo'q — dars o'zi o'qiydi, kutadi, maqtaydi va davom etadi */}
+    {!kid && <div className="dx-row dx-amaliy-actions">
       {steps.length > 0 && !running && shown < steps.length && <button type="button" className="dx-btn dx-primary" onClick={() => reveal(shown)}>{shown ? __kbUi("▶ Davom ettirish") : __kbUi("▶ Yechimni ko‘rsatish")}</button>}
       {running && <button type="button" className="dx-btn" onClick={stop}>{__kbUi("❚❚ To‘xtatish")}</button>}
       {steps.length > 1 && shown < steps.length && <button type="button" className="dx-btn" onClick={() => { stop(); setShown(steps.length); }}>{__kbUi("Hammasini ko‘rsatish")}</button>}
       {shown > 0 && !running && <button type="button" className="dx-btn" onClick={() => { stop(); setShown(0); setPicked(null); setFeedback(null); }}>{__kbUi("↺ Yechimni yashirish")}</button>}
       {!steps.length && <span className="dx-note">{__kbUi("Bu topshiriq uchun yechim kiritilmagan.")}</span>}
-    </div>
+    </div>}
   </div>;
 }

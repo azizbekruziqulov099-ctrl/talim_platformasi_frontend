@@ -7,6 +7,7 @@ import {
 import { TournamentList, TournamentView } from "./Turnir.jsx";
 import { isTournamentCode } from "./turnirRules.js";
 import "./boardGame.css";
+import { APP_VERSION } from "../appVersion.js";
 import "./turnir.css";
 
 async function call(apiBase, path, token, body) {
@@ -97,6 +98,12 @@ export default function BoardGame({
     return () => { stop = true; clearInterval(id); };
   }, [apiBase, token, code, P]);
   useEffect(() => { setConfirmResign(false); setHint(null); }, [state?.versiya, state?.kod]);
+  // REV93: o'yin ochilganda taxta ekranga to'liq sig'sin — o'yin maydoniga o'tiladi.
+  useEffect(() => {
+    if (!state?.kod) return;
+    const t = setTimeout(() => { try { document.querySelector(".sh-arena")?.scrollIntoView({ block: "start", behavior: "smooth" }); } catch { /* eski brauzer */ } }, 150);
+    return () => clearTimeout(t);
+  }, [state?.kod]);
   useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 200); return () => clearInterval(id); }, []);
 
   // Do'st havolasi bilan kelgan o'yinchi avtomatik qo'shiladi.
@@ -311,11 +318,14 @@ export default function BoardGame({
     <header className="sh-top">
       <button type="button" className="sh-back" onClick={state.turnir_kod ? () => toTournament(state.turnir_kod) : toMenu}>← {__kbUi(state.turnir_kod ? "Turnir" : "Menyu")}</button>
       <span className="sh-mode">{state.turnir_kod ? `🏆 ${__kbUi("Turnir")} · ${state.tur}-${__kbUi("tur")}` : state.turi === "bot" ? `🤖 ${__kbUi(BOT_LEVELS[(state.bot_daraja || 2) - 1].nomi)}` : state.turi === "dost" ? `👫 ${state.kod}` : `🌐 ${__kbUi("Onlayn")}`}
-        {state.nazorat !== "cheksiz" && <small> · {state.nazorat}</small>}{state.reytingli && <small> · {__kbUi("reytingli")}</small>}</span>
+        {state.nazorat !== "cheksiz" && <small> · {state.nazorat}</small>}{state.reytingli && <small> · {__kbUi("reytingli")}</small>}<small className="sh-ver"> · {APP_VERSION}</small></span>
     </header>
-    {bar(theirs, opp)}
-    {renderBoard({ state, me, myTurn, busy, onMove: move, hint: hint?.yurish || null })}
-    {bar(mine, me)}
+    {/* REV93: katta ekranda taxta chapda (baland), o'yinchilar va tugmalar o'ngda; telefonda — ustma-ust */}
+    <div className="sh-arena">
+    <div className="sh-a-opp">{bar(theirs, opp)}</div>
+    <div className="sh-a-board">{renderBoard({ state, me, myTurn, busy, onMove: move, hint: hint?.yurish || null })}</div>
+    <div className="sh-a-me">{bar(mine, me)}</div>
+    <div className="sh-a-rest">
     <p className="sh-status" aria-live="polite">
       {state.holat === "davom" && (firstLeft !== null && myTurn
         ? `⏳ ${__kbUi("Birinchi yurishni qiling")}: ${firstLeft} ${__kbUi("soniya")}`
@@ -341,6 +351,8 @@ export default function BoardGame({
       <summary>📜 {__kbUi("Yurishlar")} ({state.tarix.length})</summary>
       <ol>{Array.from({ length: Math.ceil(state.tarix.length / 2) }, (_, i) => <li key={i}><span>{i + 1}.</span><b>{formatMove(state.tarix[2 * i])}</b><b>{formatMove(state.tarix[2 * i + 1] || "")}</b></li>)}</ol>
     </details>}
+    </div>
+    </div>
     {result && <div className="sh-result" role="dialog" aria-label={__kbUi(result.title)}>
       <div className={`sh-result-card is-${state.sabab === "bekor" ? "bekor" : state.natija || "durang"}`}>
         <span className="sh-result-emoji" aria-hidden="true">{result.emoji}</span>

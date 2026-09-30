@@ -6,10 +6,10 @@ import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, v
 import { stripSpeechTags } from "../speech/language.js";
 import { kidOptions } from "../test/kidQuizRules.js";
 import ListenText from "../speech/ListenText.jsx";
-import SpeakPractice from "../speech/SpeakPractice.jsx";
-import { practiceTarget } from "../speech/speakRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
 import { markLessonDone } from "../curriculum/kidProgress.js";
+import { kidRate, kidTaskModel } from "./kidLessonRules.js";
+import { APP_VERSION } from "../appVersion.js";
 import { finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
 import "./dars-xonasi.css";
 
@@ -61,6 +61,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [limitText, setLimitText] = useState("");
   const [kidResult, setKidResult] = useState(null);
   const audioRef = useRef(null);
+  const kidRef = useRef(false);
+  const gradeRef = useRef("");
   const tokenRef = useRef(0);
   const playingRef = useRef(false);
   playingRef.current = playing;
@@ -68,12 +70,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   speakingRef.current = speaking;
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  const idxRef = useRef(idx);
+  idxRef.current = idx;
   const rateRef = useRef(rate);
   rateRef.current = rate;
 
   // REV80: dars maydoni tinglovchiga moslashadi — bog'cha bolasi, o'quvchi, talaba.
   const audience = lessonAudience(learnerRole, grade || lesson?.topic?.sinf);
   const kid = audience === "bogcha";
+  kidRef.current = kid;
+  gradeRef.current = grade || lesson?.topic?.sinf || "";
   const labels = audienceLabels(audience);
   const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";
   const steps = lesson?.steps || [];
@@ -111,7 +117,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       tick();
     };
     try {
-      const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins });
+      const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins, ...(kidRef.current ? { tezlik: kidRate(gradeRef.current) } : {}) });
       const audio = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`);
       audio.playbackRate = rateRef.current;
       audioRef.current = audio;
@@ -160,10 +166,21 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setIdx(next); setMode("lesson"); setStepFinished(false);
     const s = steps[next];
     const cue = boardCues(s.doska, s.ovoz || s.doska);
-    say(cue.spoken || s.doska, () => {
+    // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
+    const spoken = kid ? String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "") : (cue.spoken || s.doska);
+    say(spoken, () => {
       setStepFinished(true);
       // «birga» va «amaliy» qadamida o'quvchi o'zi ishlaydi — dars shu yerda kutadi.
-      if (autoplay && s.turi !== "birga" && s.turi !== "amaliy") setTimeout(() => { if (playingRef.current) go(next + 1, true); }, 1000);
+      if (autoplay && kid && s.turi === "amaliy") {
+        // REV93: bog'chada topshiriq (qo'shiq, harakat, o'yin) — bolaga bajarishga vaqt, keyin maqtov va davom. Tugma kerak emas.
+        // Bajarganini tekshirib bo'lmaydi — shuning uchun «Barakalla» demaymiz, to'g'ri javobni birga aytamiz.
+        const praise = kidTaskModel(s.ovoz || s.doska);
+        setTimeout(() => { if (playingRef.current && idxRef.current === next) say(praise, () => setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, 900)); }, 4000);
+        return;
+      }
+      // So'z o'rgatiladigan qadam («Men bilan takrorla») — bola qaytarib aytishi uchun biroz ko'proq kutiladi.
+      const pause = kid && /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.test(s.ovoz || "") ? 2600 : 1000;
+      if (autoplay && s.turi !== "birga" && s.turi !== "amaliy") setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, pause);
     });
   }, [steps, questions.length, say, hush, onOpenTest, kid]);
 
@@ -331,7 +348,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           </>}
           {mode === "lesson" && step && step.turi === "amaliy" && <>
             {step.sarlavha && <h3 className="dx-title"><BoardText text={step.sarlavha} /></h3>}
-            <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} />
+            <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} kid={kid} />
           </>}
           {mode === "lesson" && step && step.turi !== "amaliy" && <>
             {steps[range[0]]?.sarlavha && <h3 className="dx-title"><BoardText text={steps[range[0]].sarlavha} /></h3>}
@@ -345,8 +362,6 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>
             {range.filter((i) => steps[i].rasm).map((i) => <img key={`img-${steps[i].id}`} className="dx-pic" src={mediaUrl(steps[i].rasm)} alt="" loading="lazy" />)}
             {/* REV89: til darsida bola iborani o'zi aytadi — mikrofon tanib, yulduz beradi */}
-            {kid && practiceTarget(step) && <SpeakPractice phrase={practiceTarget(step).phrase} lang={practiceTarget(step).lang}
-              onBefore={() => { setPlaying(false); hush(); }} say={say} />}
             {step.turi === "birga" && step.javob && <form className="dx-answer" onSubmit={submitAnswer}>
               <input value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={__kbUi("Javobingiz")} placeholder={step.savol || __kbUi("Javob")} autoComplete="off" />
               <button type="submit" className="dx-btn dx-primary">{__kbUi("Tekshirish")}</button>
@@ -429,7 +444,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             <button type="submit" className="dx-btn" disabled={asking || !question.trim()}>{asking ? "…" : __kbUi("So‘rash")}</button></div>
           {askReply && <p className="dx-reply">{askReply}</p>}
         </form>}
-        {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""}</p>}
+        {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>
     </div>
 

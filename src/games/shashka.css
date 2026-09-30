@@ -30,3 +30,8 @@
   .sh-board-wrap { padding: 6px; border-radius: 12px; }
 }
 .sh-cell.is-hint { box-shadow: inset 0 0 0 4px #3ddc84; }
+/* REV93: dona sirpanib boradi, urilgan dona «sochilib» yo'qoladi; o'lcham katakka moslashadi */
+.sh-cell { min-width: 0; min-height: 0; }
+.sh-piece { font-size: calc(100cqw / 8 * .4); }
+.sh-piece.is-arriving { z-index: 3; animation: bd-slide .34s cubic-bezier(.2,.8,.25,1) both; }
+.sh-taken { position: absolute; z-index: 2; pointer-events: none; animation: bd-taken .7s ease-out forwards; }

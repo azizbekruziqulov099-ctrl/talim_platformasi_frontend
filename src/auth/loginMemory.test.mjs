@@ -50,3 +50,15 @@ test('config keshi', () => {
   saveAuthConfig({ google: { enabled: true } }, s);
   assert.deepEqual(cachedAuthConfig(s), { google: { enabled: true } });
 });
+
+test("REV94: oddiy qurilmada 5 ta, admin kirgan qurilmada 20 ta akkaunt; tez akkaunt chiqishda saqlanadi", async () => {
+  const { rememberAccount, savedAccounts, keepsSessionOnLogout } = await import("./loginMemory.js");
+  const mem = new Map(); const store = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v), removeItem: (k) => mem.delete(k) };
+  for (let i = 1; i <= 8; i += 1) rememberAccount({ user_id: i, full_name: `U${i}` }, `t${i}`, { method: "quick" }, store);
+  assert.equal(savedAccounts(store).length, 5);
+  rememberAccount({ user_id: 99, full_name: "Admin", is_admin: true }, "ta", { method: "google" }, store);
+  for (let i = 10; i <= 40; i += 1) rememberAccount({ user_id: i, full_name: `U${i}` }, `t${i}`, { method: "quick" }, store);
+  assert.equal(savedAccounts(store).length, 20);
+  assert.equal(keepsSessionOnLogout("t40", store), true);
+  assert.equal(keepsSessionOnLogout("ta", store), false);
+});

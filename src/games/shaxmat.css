@@ -34,3 +34,10 @@
 .cx-promo button.cx-piece small { font-size: .7rem; font-weight: 800; color: #333; text-shadow: none; }
 .cx-promo button.cx-piece.is-w { color: #fff; }
 @media (max-width: 560px) { .cx-promo button.cx-piece { width: 60px; height: 72px; font-size: 2.1rem; } }
+/* REV93: taxta o'lchami figuraga qarab kengaymaydi (kesilib qolmaydi); figura katak o'lchamiga moslashadi */
+.cx-board, .sh-board { container-type: inline-size; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.cx-cell { min-width: 0; min-height: 0; overflow: visible; }
+.cx-piece { font-size: calc(100cqw / 8 * .78); }
+@supports not (width: 1cqw) { .cx-piece { font-size: clamp(1.1rem, 4.2vw, 3rem); } }
+.cx-piece.is-arriving { z-index: 3; animation: bd-slide .34s cubic-bezier(.2,.8,.25,1) both; }
+.cx-ghost { position: absolute; z-index: 2; pointer-events: none; animation: bd-taken .7s ease-out forwards; }

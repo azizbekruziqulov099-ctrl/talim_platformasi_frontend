@@ -13,7 +13,11 @@ const ROLE_KEY = 'kabutar:login-role:v1';
 const ACCOUNTS_KEY = 'kabutar:saved-accounts:v1';
 const LAST_KEY = 'kabutar:last-login:v1';
 const CONFIG_KEY = 'kabutar:auth-config:v1';
+// REV94: shu qurilmada eslab qolinadigan akkauntlar: oddiy foydalanuvchiga 5 ta, admin kirgan qurilmada 20 ta.
 const MAX_ACCOUNTS = 5;
+const MAX_ACCOUNTS_ADMIN = 20;
+const ADMIN_DEVICE_KEY = 'kabutar:admin-device:v1';   // bu qurilmada admin kirgan — ro'yxat kengroq
+const limitFor = (list, store) => (read(ADMIN_DEVICE_KEY, false, store) || list.some((item) => item && item.admin) ? MAX_ACCOUNTS_ADMIN : MAX_ACCOUNTS);
 
 function storage(store) {
   if (store) return store;
@@ -55,7 +59,9 @@ export function takeLoginMethod(store) {
 
 export function savedAccounts(store) {
   const list = read(ACCOUNTS_KEY, [], store);
-  return Array.isArray(list) ? list.filter((item) => item && item.user_id != null).slice(0, MAX_ACCOUNTS) : [];
+  if (!Array.isArray(list)) return [];
+  const clean = list.filter((item) => item && item.user_id != null);
+  return clean.slice(0, limitFor(clean, store));
 }
 
 export function rememberAccount(user, token, login = null, store) {
@@ -72,9 +78,12 @@ export function rememberAccount(user, token, login = null, store) {
     identifier: login?.method === 'password' ? login.identifier : old.identifier || '',
     phone: user.phone_masked || old.phone || '',
     token: typeof token === 'string' ? token : old.token || '',
+    admin: Boolean(user.is_admin || old.admin),
     at: Date.now(),
   };
-  const next = [entry, ...list.filter((item) => String(item.user_id) !== String(user.user_id))].slice(0, MAX_ACCOUNTS);
+  if (user.is_admin) write(ADMIN_DEVICE_KEY, true, store);
+  const all = [entry, ...list.filter((item) => String(item.user_id) !== String(user.user_id))];
+  const next = all.slice(0, limitFor(all, store));
   write(ACCOUNTS_KEY, next, store);
   return next;
 }
@@ -85,6 +94,13 @@ export function dropToken(token, store) {
   const next = savedAccounts(store).map((item) => item.token === token ? { ...item, token: '' } : item);
   write(ACCOUNTS_KEY, next, store);
   return next;
+}
+
+/** REV94: «Tez kirish» akkaunti (Telegram/Gmail'siz) — boshqa kirish yo'li yo'q. Shu qurilmadan chiqilganda
+ *  uning sessiyasi bekor qilinmaydi (aks holda akkaunt butunlay yo'qoladi) — ro'yxatdan bir bosishda qaytiladi. */
+export function keepsSessionOnLogout(token, store) {
+  const item = savedAccounts(store).find((entry) => entry.token && entry.token === token);
+  return Boolean(item && item.method === 'quick');
 }
 
 export function forgetAccount(userId, store) {

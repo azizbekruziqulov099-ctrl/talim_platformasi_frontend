@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import BoardGame from "./BoardGame.jsx";
 import { boardCells, clickSquare, movablePieces, nextSteps } from "./shashkaRules.js";
+import { lastMoveAnimation } from "./moveAnim.js";
 import "./shashka.css";
 
 const RULES = [
@@ -23,6 +24,8 @@ function ShashkaBoard({ state, me, myTurn, busy, onMove, hint }) {
   const last = state.oxirgi;
   const lastSquares = new Set(last?.p || []);
   const lastCaps = new Set(last?.c || []);
+  const anim = lastMoveAnimation(state, me === "b");   // REV93: dona sirpanib boradi
+  const capturedSide = last?.s === "w" ? "b" : "w";
 
   const onSquare = async (name) => {
     if (busy || !myTurn) return;
@@ -44,8 +47,9 @@ function ShashkaBoard({ state, me, myTurn, busy, onMove, hint }) {
         return <button key={cell.index} type="button" className={cls} disabled={!cell.dark} aria-label={cell.name} onClick={() => onSquare(cell.name)}>
           {cell.rankLabel && <em className="sh-rank">{cell.rankLabel}</em>}
           {cell.fileLabel && <em className="sh-file">{cell.fileLabel}</em>}
-          {lastCaps.has(cell.name) && !cell.piece && <span className="sh-ghost" aria-hidden="true" />}
-          {cell.piece && <span className={`sh-piece is-${cell.piece.side} ${cell.piece.king ? "is-king" : ""}`}>{cell.piece.king ? "👑" : ""}</span>}
+          {lastCaps.has(cell.name) && !cell.piece && <><span key={`g-${anim?.key}`} className={`sh-piece sh-taken is-${capturedSide}`} aria-hidden="true" /><span className="sh-ghost" aria-hidden="true" /></>}
+          {cell.piece && <span key={anim && anim.to === cell.name ? `m-${anim.key}` : "p"} className={`sh-piece is-${cell.piece.side} ${cell.piece.king ? "is-king" : ""} ${anim && anim.to === cell.name ? "is-arriving" : ""}`}
+            style={anim && anim.to === cell.name ? { "--dx": anim.dx, "--dy": anim.dy } : undefined}>{cell.piece.king ? "👑" : ""}</span>}
         </button>;
       })}
     </div>

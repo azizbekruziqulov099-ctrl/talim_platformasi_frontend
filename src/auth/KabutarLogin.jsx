@@ -48,6 +48,8 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const [method, setMethod] = useState("");
   const [quickRole, setQuickRole] = useState("");
   const [ageOpen, setAgeOpen] = useState(false);
+  // REV94: rolni bosganda — shu roldagi eski akkauntga kiradi (yangi akkaunt faqat «➕ Yangi akkaunt» bilan).
+  const [newMode, setNewMode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [identifier, setIdentifier] = useState("");
@@ -159,6 +161,8 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   // REV79: rolni bosish — darhol kirish (shu qurilmada yangi akkaunt). Oldin kirganlar pastdan.
   const quickStart = async (next, ageGroup = "") => {
     if (commandBusy.current || resuming) return;
+    const existing = !newMode && accounts.find((a) => a.role === next && a.token);
+    if (existing) { resume(existing); return; }
     if (next === "bogcha" && !ageGroup) { setAgeOpen(true); pickRole(next); return; }
     pickRole(next);
     commandBusy.current = true;
@@ -212,6 +216,11 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                 <span aria-hidden="true">👋</span><span><b>{__kbUi("Oldin ro‘yxatdan o‘tganmisiz?")}</b> {__kbUi("Telegram bilan kiring — testlaringiz va natijalaringiz o‘sha akkauntda.")}</span><ChevronRight size={16}/>
               </button>}
 
+              {accounts.some((a) => a.token) && <p className="kb-login-new-hint">
+                {newMode
+                  ? <>{__kbUi("Yangi akkaunt ochiladi — rolni tanlang.")} <button type="button" onClick={() => setNewMode(false)}>{__kbUi("Bekor")}</button></>
+                  : <>{__kbUi("Rolni bossangiz — shu roldagi akkauntingizga kirasiz.")} <button type="button" onClick={() => setNewMode(true)}>➕ {__kbUi("Yangi akkaunt ochish")}</button></>}
+              </p>}
               <div className="kb-login-role-cards" role="group" aria-label={uiT("Rol")}>
                 {LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
                   <span className="kb-login-role-emoji" aria-hidden="true">{icon}</span>

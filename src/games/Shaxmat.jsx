@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import BoardGame from "./BoardGame.jsx";
 import ShaxmatMaktab from "./ShaxmatMaktab.jsx";
-import { GLYPHS, PIECE_NAMES, capturedPieces, chessCells, chessClick, figurine, targetsFrom } from "./chessRules.js";
+import { GLYPHS, PIECE_NAMES, capturedPieces, chessCells, chessClick, figurine, parseFen, targetsFrom } from "./chessRules.js";
+import { lastMoveAnimation } from "./moveAnim.js";
 import "./shaxmat.css";
 
 const RULES = [
@@ -16,6 +17,8 @@ const RULES = [
   "Onlayn o‘yinda soat bor: vaqtingiz tugasa yutqazasiz. Bot bilan mashqda 💡 Maslahat va ↩️ Qaytarish bor.",
 ];
 
+const squareIndex = (name) => ("abcdefgh".indexOf(name[0])) + (Number(name.slice(1)) - 1) * 8;
+
 function ChessBoard({ state, me, myTurn, busy, onMove, hint }) {
   const [selected, setSelected] = useState(null);
   const [promotion, setPromotion] = useState(null);
@@ -26,6 +29,18 @@ function ChessBoard({ state, me, myTurn, busy, onMove, hint }) {
   const last = new Set((state.oxirgi?.p || []).slice(0, 2));
   const lost = capturedPieces(state.pozitsiya);
   const opp = me === "w" ? "b" : "w";
+  // REV93: oxirgi yurish — figura eski katakdan sirpanib keladi, urilgan figura «sochilib» yo'qoladi.
+  const anim = lastMoveAnimation(state, me === "b");
+  const prevRef = useRef({ key: null, fen: null, before: null });
+  if (anim && prevRef.current.key !== anim.key) prevRef.current = { key: anim.key, fen: state.pozitsiya, before: prevRef.current.fen };
+  else if (!anim) prevRef.current = { key: null, fen: state.pozitsiya, before: null };
+  const ghosts = new Map();
+  if (anim && prevRef.current.before) {
+    const was = parseFen(prevRef.current.before);
+    const now = parseFen(state.pozitsiya);
+    const mover = now.find((pc, i) => pc && i === squareIndex(anim.to))?.side;
+    was.forEach((pc, i) => { if (pc && mover && pc.side !== mover && (!now[i] || now[i].side === mover)) ghosts.set(i, pc); });
+  }
 
   const submit = async (path) => { setSelected(null); setPromotion(null); await onMove(path); };
   const onSquare = (name) => {
@@ -63,7 +78,9 @@ function ChessBoard({ state, me, myTurn, busy, onMove, hint }) {
           return <button key={cell.index} type="button" className={cls} aria-label={label} onClick={() => onSquare(cell.name)}>
             {cell.rankLabel && <em className="cx-rank">{cell.rankLabel}</em>}
             {cell.fileLabel && <em className="cx-file">{cell.fileLabel}</em>}
-            {cell.piece && <span className={`cx-piece is-${cell.piece.side}`}>{GLYPHS[cell.piece.type]}</span>}
+            {ghosts.has(cell.index) && <span key={`g-${anim.key}`} className={`cx-piece cx-ghost is-${ghosts.get(cell.index).side}`} aria-hidden="true">{GLYPHS[ghosts.get(cell.index).type]}</span>}
+            {cell.piece && <span key={anim && anim.to === cell.name ? `m-${anim.key}` : "p"} className={`cx-piece is-${cell.piece.side} ${anim && anim.to === cell.name ? "is-arriving" : ""}`}
+              style={anim && anim.to === cell.name ? { "--dx": anim.dx, "--dy": anim.dy } : undefined}>{GLYPHS[cell.piece.type]}</span>}
           </button>;
         })}
       </div>

@@ -187,3 +187,5 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 @keyframes dx-go{50%{transform:scale(1.05)}}
 .dx-kid-end .dx-btn{background:#ffffff1c;color:#fff;border-color:#ffffff40}
 @media(prefers-reduced-motion:reduce){.dx-kid-opts button.is-hot,.dx-kid-opts button.is-waiting,.dx-kid-go,.dx-kid-stars span.is-on{animation:none}}
+/* REV93: bog'chada topshiriq doskasi — katta, o'qilishi oson */
+.dx-aud-bogcha .dx-amaliy .dx-task{font-size:clamp(20px,3.6vw,26px);line-height:1.45;background:#ffffff12;border-color:#ffffff30}

@@ -25,7 +25,7 @@ import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 import KitobKodQidiruv from "./lesson/KitobKod.jsx";
 import AccountNotice from "./auth/AccountNotice.jsx";
-import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
+import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, keepsSessionOnLogout as keepsQuickSession, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
@@ -15042,14 +15042,16 @@ export default function App() {
   }, [persistSession]);
   const chiqish = useCallback(async (allDevices = false) => {
     const startedEpoch = sessionEpoch.current;
-    if (token) {
+    // REV94: Telegram/Gmail'siz «tez» akkaunt shu qurilmadan chiqilganda o'chirilmaydi — ro'yxatdan qaytib kiriladi.
+    const keepQuick = !allDevices && !korishRejimi && keepsQuickSession(token);
+    if (token && !keepQuick) {
       try { await workspaceRequest(API_BASE, "/auth/logout", token, { method: "POST", body: { all_devices: allDevices } }); }
       catch (error) { if (error.status !== 401) throw error; }
     }
     if (sessionEpoch.current !== startedEpoch || (_saqlanganTokenniOl() && _saqlanganTokenniOl() !== token)) return;
     try { window.sessionStorage.removeItem("kabutar_google_link_intent"); } catch { /* blocked storage */ }
     clearTelegramLinkIntent(); setTelegramLinkOpen(false);
-    if (!korishRejimi) dropSavedToken(token);
+    if (!korishRejimi && !keepQuick) dropSavedToken(token);
     sessionEpoch.current += 1; persistSession(null);
     setOauthProfil(null); setNotice(""); setLoginError(""); setToken(null);
   }, [token, persistSession]);
