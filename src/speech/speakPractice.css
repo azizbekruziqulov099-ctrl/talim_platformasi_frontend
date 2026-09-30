@@ -1,0 +1,14 @@
+/* REV89: gapirish mashqi — katta mikrofon tugmasi, yulduzlar. */
+.sp-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.sp-mic { display: inline-flex; align-items: center; gap: 10px; border: 0; cursor: pointer; border-radius: 999px; padding: 10px 20px 10px 12px;
+  background: linear-gradient(135deg, #ff5fa2, #ffb400); color: #fff; font-weight: 900; font-size: 1.05rem; box-shadow: 0 8px 18px rgba(255,95,162,.35); }
+.sp-mic span { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.25); font-size: 1.5rem; }
+.sp-box.is-listening .sp-mic span { animation: sp-pulse 1s ease-in-out infinite; }
+.sp-mic:disabled { opacity: .85; cursor: default; }
+.sp-result { margin: 0; font-weight: 800; background: #fff; border-radius: 14px; padding: 8px 12px; color: #1d2733; }
+.sp-result.is-3 { background: #eafaf0; }
+.sp-result.is-0 { background: #fff4e5; }
+.sp-stars { margin-right: 6px; letter-spacing: .1em; }
+.sp-note { margin: 0; font-weight: 700; color: #a15c00; }
+@keyframes sp-pulse { 50% { transform: scale(1.18); background: rgba(255,255,255,.45); } }
+@media (prefers-reduced-motion: reduce) { .sp-box * { animation: none !important; } }

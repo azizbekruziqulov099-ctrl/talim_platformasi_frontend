@@ -1,6 +1,9 @@
 // Detect the three reading languages supported by the education content.
 // Reading is Uzbek unless an explicit content tag chooses another language.
 export const SPEECH_LOCALES = { uz: 'uz-UZ', en: 'en-US', ru: 'ru-RU' };
+// REV88: bog'cha til kitoblari — matndagi [de]…[/de] kabi teglar shu tilning ovozida o'qiladi.
+export const CONTENT_LOCALES = { ...SPEECH_LOCALES, de: 'de-DE', fr: 'fr-FR', es: 'es-ES', ar: 'ar-SA', tr: 'tr-TR', zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR' };
+const TAG_PATTERN = '(uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)';
 export function protectSpeechMath(value) {
   const formulas=[];
   const text=String(value).replace(/\[lat\][\s\S]*?\[\/lat\]|\$\$[\s\S]*?\$\$|\$[^$\n]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/gi,formula=>{
@@ -38,7 +41,7 @@ export function splitSpeechText(value, fallback = 'uz') {
       result.push({ til: language, matn: protectedMath.restore(sentence) });
     }
   };
-  const tags = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
+  const tags = new RegExp(`\\[${TAG_PATTERN}\\]([\\s\\S]*?)\\[\\/\\1\\]`, 'gi');
   let previous = 0, match;
   while ((match = tags.exec(text))) {
     untagged(text.slice(previous, match.index));
@@ -60,4 +63,9 @@ export function selectBrowserVoice(voices, language, gender) {
     const name = String(voice.name || '').toLowerCase();
     return names.some(key => name.includes(key)) || (male ? /\bmale\b/.test(name) : /\bfemale\b/.test(name));
   }) || null; // Unknown gender uses the server's explicit female/male voice.
+}
+
+// REV80: ekranda til teglarini ko'rsatmaslik: "Qaysi [en]cat[/en]?" → "Qaysi cat?"
+export function stripSpeechTags(value) {
+  return String(value ?? '').replace(new RegExp(`\\[${TAG_PATTERN}\\]([\\s\\S]*?)\\[\\/\\1\\]`, 'gi'), '$2');
 }

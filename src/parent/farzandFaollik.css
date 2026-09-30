@@ -1,0 +1,30 @@
+/* REV91: ota-ona — farzandning bugungi darslari */
+.ff-root{background:#fff;border:1px solid #e5e1d8;border-radius:18px;padding:14px 16px;margin-bottom:12px;display:grid;gap:10px;color:#2b2b2b}
+.ff-head{display:grid;gap:2px}
+.ff-head h3{margin:0;font-size:16px;font-weight:800}
+.ff-head small{color:#8a8578;font-size:12px}
+.ff-live{margin:0;display:flex;gap:8px;align-items:flex-start;border-radius:12px;padding:10px 12px;font-weight:700;font-size:14px;line-height:1.35}
+.ff-live.is-live{background:#e9f7ee;color:#1f6b3a}
+.ff-live.is-pause{background:#fff4e0;color:#8a5200}
+.ff-live.is-away{background:#fdecec;color:#9b2c2c}
+.ff-live.is-done{background:#eef6ff;color:#1b4b7a}
+.ff-live.is-none{background:#f5f3ee;color:#5a5648}
+.ff-plan{display:flex;flex-wrap:wrap;gap:6px}
+.ff-plan span{background:#f7f5f0;border-radius:999px;padding:4px 10px;font-size:12.5px}
+.ff-plan span.is-full{background:#e9f7ee}
+.ff-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ff-list li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border-radius:12px;padding:8px 10px;background:#faf9f6}
+.ff-list li.is-open{background:#fffaf0}
+.ff-time{font-variant-numeric:tabular-nums;font-size:12px;color:#5a5648;font-weight:700}
+.ff-main{display:grid;min-width:0}
+.ff-main b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ff-main small{color:#8a8578;font-size:12px}
+.ff-res{font-size:12.5px;font-weight:700;text-align:right;white-space:nowrap}
+.ff-res em{font-style:normal}
+.ff-half{color:#b0553a}
+.ff-week{display:flex;gap:6px;align-items:flex-end;justify-content:space-between;padding:4px 2px 0}
+.ff-day{flex:1;display:grid;justify-items:center;gap:2px;font-size:11px;color:#8a8578}
+.ff-day i{display:block;width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:#e5e1d8}
+.ff-day i.is-on{background:#57b86f}
+.ff-day b{color:#2b2b2b;font-size:11px}
+.ff-muted{margin:0;color:#8a8578;font-size:12px;line-height:1.4}

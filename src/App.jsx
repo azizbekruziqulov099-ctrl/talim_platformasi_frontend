@@ -464,11 +464,14 @@ import {
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
 import { initializeSamtmPwa, registerPhoneBackHandler } from "./pwa/samtmPwa.js";
+import { BATTLE_CODE_KEY, normalizeCode } from "./battle/battleRules.js";
+import { SHASHKA_CODE_KEY } from "./games/shashkaRules.js";
+import { SHAXMAT_CODE_KEY } from "./games/chessRules.js";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import {
   ChevronRight, ChevronDown, ChevronLeft, TrendingUp, BarChart3, Bell, User,
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
-  Flame, Star, CalendarCheck, Trophy, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
+  Flame, Star, CalendarCheck, Trophy, Swords, Gamepad2, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
   Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search, Baby,
   UserRoundPlus, MessageCircle,
 } from "lucide-react";
@@ -499,6 +502,10 @@ const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
 const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
+const LazyBellashuv = _samtmLazyRetry(() => import("./battle/Bellashuv.jsx"));
+const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
+const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
+const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
 const StudentScheduleWorkspace = _samtmLazyRetry(() => import("./student/StudentScheduleWorkspace.jsx"));
 // Talaba (1–11 sinfdan tashqari): qo'shilish oqimi, profil kartasi va o'z paralar jadvali
 const TalabaQoshilish = _samtmLazyRetry(() => import("./student/TalabaQoshilish.jsx"));
@@ -507,6 +514,8 @@ const TalabaHaftalikJadval = _samtmLazyRetry(() => import("./student/TalabaHafta
 // users.class "2 kurs" / "1 kurs magistr" — talaba; maktab jadvali va 1–11 tugmalari ularga tegmaydi
 const sinfTalabaMi = (qiymat) => /^\s*[1-6]\s*-?\s*kurs(?:\s+magistr)?\s*$/i.test(String(qiymat || ""));
 const MilitaryRoutine = _samtmLazyRetry(() => import("./school/MilitaryRoutine.jsx"));
+// REV91: ota-ona — farzandning bugungi darslari jonli.
+const FarzandFaollik = _samtmLazyRetry(() => import("./parent/FarzandFaollik.jsx"));
 const lazyAdminTestTool = (exportName) =>
   _samtmLazyRetry(() =>
     import("./AdminTestTools.jsx").then((module) => ({ default: module[exportName] })),
@@ -537,6 +546,11 @@ function lazyPanel(Component, props) {
 }
 
 function TestTab(props) { return lazyPanel(LazyTestTab, props); }
+function Bellashuv(props) { return lazyPanel(LazyBellashuv, props); }
+function Shashka(props) { return lazyPanel(LazyShashka, props); }
+function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
+function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
+const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat"]);
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
   const { fetch: scopedFetch, scope } = useCurriculum();
@@ -860,7 +874,7 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
   );
 }
 
-const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU" };
+const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU", de: "de-DE", fr: "fr-FR", es: "es-ES", ar: "ar-SA", tr: "tr-TR", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR" };
 
 function _ovozTiliniTuzat(til) {
   const kalit = String(til || "").trim().toLowerCase().replace("_", "-").split("-", 1)[0];
@@ -9188,7 +9202,7 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
         style={{ background: "linear-gradient(135deg,#1B4B7A,#2D6E8B)" }}>
         <div className="relative z-10">
           <p className="text-xs opacity-80">{__kbUi("Sizning shaxsiy yordamchingiz")}</p>
-          <h1 className="text-xl font-bold mt-0.5">🧠 <InterfaceText text={__kbUi("AI Ustoz")}/></h1>
+          <h1 className="text-xl font-bold mt-0.5" style={{ color: "#fff" }}>🧠 <InterfaceText text={__kbUi("AI Ustoz")}/></h1>
           <p className="text-xs mt-1 opacity-90">
             {__kbUi(gradeLabel(catalogType,sozlama?.sinf))} · {catalogType==='universitet'?__kbUi(lessonLabel(catalogLesson)):__kbUi(institutionLabel(catalogType))}
           </p>
@@ -9224,6 +9238,7 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
           <DarsXonasi apiBase={API_BASE} token={token} topicCode={topicCode} fan={joriyFan?.fan || ""}
             grade={joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade || ""}
             jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")}
+            learnerGender={foydalanuvchi?.jins || ""} learnerRole={loginAccountRole(foydalanuvchi)}
             onChat={() => setDarsXonasi(false)}
             onOpenTest={onOpenTest ? () => onOpenTest({ topic_code: topicCode, grade: joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade, subject: joriyFan?.fan }) : undefined}
             onOpenTopic={(code) => { const f = visibleSubjects.find((x) => x.mavzular.some((m) => m.topic_code === code)); if (f) { setFan(f.kalit); setTopicCode(code); } }} />
@@ -9277,7 +9292,7 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
       </div>
 
       {xato && <p className="text-xs mb-2" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
-      <div className="flex gap-2 sticky bottom-20">
+      <div className="flex gap-2 sticky bottom-20 p-2 rounded-2xl z-10" style={{ background: "rgba(247,245,240,.96)", boxShadow: "0 -6px 18px -12px rgba(16,42,67,.35)", backdropFilter: "blur(6px)" }}>
         <textarea value={matn} onChange={(e) => setMatn(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); yubor(); } }}
           rows={2} placeholder={__kbUi("Savol yoki javobingizni yozing…")}
@@ -12046,6 +12061,7 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
       ) : tanlanganBola ? (
         <>
           <div className="px-3 sm:px-5 pt-3">
+            <FarzandFaollik apiBase={API_BASE} token={token} childId={tanlanganBola} />
             <MilitaryRoutine token={token} apiBase={API_BASE} childId={tanlanganBola} readOnly />
             {sinfTalabaMi(farzandlar.find((bola) => Number(bola.user_id) === Number(tanlanganBola))?.class) ? (
               <p className="rounded-2xl border bg-white p-4 text-sm mb-3" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)", color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("🎓 Farzandingiz talaba — paralar jadvalini o'zi boshqaradi, maktab jadvali tuzilmaydi.")}</p>
@@ -13065,6 +13081,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
+      { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
             { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
@@ -13079,6 +13096,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   return [
     { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
     { kalit: "test", nom: "Testlar", ikon: PencilLine },
+    { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
     { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
@@ -13103,6 +13121,16 @@ function PastkiMenyu({
   // REV79: talabaga «Mening institutim» (guruhim, kursim, muhim sanalar).
   const talabaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && (_kbAccountRole(foydalanuvchi) === "talaba" || /kurs/i.test(String(foydalanuvchi?.class || "")));
   if (talabaMi) bandlar.splice(1, 0, { kalit: "institutim", nom: "Mening institutim", ikon: GraduationCap });
+  // REV80: bog'cha bolasi — sodda menyu: o'rganamiz, o'yin-testlar, to'garaklar, profil.
+  const bogchaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && _kbAccountRole(foydalanuvchi) === "bogcha";
+  if (bogchaMi) {
+    bandlar.splice(0, bandlar.length,
+      { kalit: "mavzular", nom: "O‘rganamiz", ikon: BookOpen },
+      { kalit: "test", nom: "O‘yin va testlar", ikon: PencilLine },
+      { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
+      { kalit: "kurslar", nom: "To‘garaklar", ikon: BookOpen },
+      { kalit: "profil", nom: "Profil", ikon: User });
+  }
   if (taqdimotMavjud) bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
   const profilBandi = bandlar.find((band) => band.kalit === "profil");
   const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
@@ -13112,7 +13140,7 @@ function PastkiMenyu({
       ? "O‘qituvchi"
       : rol === "ota-ona"
         ? "Ota-ona"
-        : talabaMi ? "Talaba" : "O‘quvchi";
+        : talabaMi ? "Talaba" : bogchaMi ? "Bog‘cha bolasi" : "O‘quvchi";
   const ism = foydalanuvchi?.full_name || rolNomi;
   const boshHarf = ism.trim().split(/\s+/).slice(0, 2).map((q) => q[0]).join("").toUpperCase() || "TA";
 
@@ -13174,7 +13202,7 @@ function PastkiMenyu({
       </aside>
 
       <nav className="premium-mobile-nav">
-        <div style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(70px, 1fr))` }}>
+        <div style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(${bandlar.length > 6 ? 56 : 0}px, 1fr))` }}>
           {bandlar.map((band) => bandTugmasi(band, false))}
         </div>
       </nav>
@@ -14185,6 +14213,30 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
   }, [token, foydalanuvchi?.user_id, foydalanuvchi?.role, foydalanuvchi?.class, foydalanuvchi?.is_admin, readOnly, profileReload, membershipRevision]);
   const [bilimData, setBilimData] = useState(null);
   const [tab, setTab] = useState(null); // rol aniqlangach o'rnatiladi
+  // REV82: onlayn bellashuv — havola kodi (#bellashuv=KOD) yoki testdagi mavzudan xona ochish.
+  const [bellashuv, setBellashuv] = useState(() => ({ kod: peekGameCode(BATTLE_CODE_KEY), createFrom: null, nonce: 0 }));
+  // REV83: shashka — do'st taklifi havolasi (#shashka=KOD).
+  const [shashka, setShashka] = useState(() => ({ kod: peekGameCode(SHASHKA_CODE_KEY), nonce: 0 }));
+  // REV85: shaxmat — do'st taklifi havolasi (#shaxmat=KOD).
+  const [shaxmat, setShaxmat] = useState(() => ({ kod: peekGameCode(SHAXMAT_CODE_KEY), nonce: 0 }));
+  useEffect(() => {
+    const key = tab === "bellashuv" ? BATTLE_CODE_KEY : tab === "shashka" ? SHASHKA_CODE_KEY : tab === "shaxmat" ? SHAXMAT_CODE_KEY : "";
+    if (key) { try { window.sessionStorage.removeItem(key); } catch { /* ixtiyoriy */ } }
+  }, [tab]);
+  useEffect(() => {
+    const hashChanged = () => {
+      const battle = gameCodeFromHash(window.location.hash, "bellashuv");
+      const checkers = gameCodeFromHash(window.location.hash, "shashka");
+      const chess = gameCodeFromHash(window.location.hash, "shaxmat");
+      if (!battle && !checkers && !chess) return;
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      if (battle) { setBellashuv({ kod: battle, createFrom: null, nonce: Date.now() }); setTab("bellashuv"); }
+      else if (checkers) { setShashka({ kod: checkers, nonce: Date.now() }); setTab("shashka"); }
+      else { setShaxmat({ kod: chess, nonce: Date.now() }); setTab("shaxmat"); }
+    };
+    window.addEventListener("hashchange", hashChanged);
+    return () => window.removeEventListener("hashchange", hashChanged);
+  }, []);
   const [xatoMatn, setXatoMatn] = useState("");
   const [muassasalarim, setMuassasalarim] = useState([]);
   const [muassasalarYuklandi, setMuassasalarYuklandi] = useState(false);
@@ -14330,7 +14382,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         if (controller.signal.aborted) return;
         if (!readOnly) { rememberAccount(u, token, takeLoginMethod()); if (loginAccountRole(u)) saveLoginRole(loginAccountRole(u)); }
         setFoydalanuvchi(u);
-        setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || initialEducationTab(u)));
+        setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || (!readOnly && bellashuv.kod ? "bellashuv" : !readOnly && shashka.kod ? "shashka" : !readOnly && shaxmat.kod ? "shaxmat" : "") || initialEducationTab(u)));
         setHolat("tayyor");
       }).catch((error) => {
         if (controller.signal.aborted) return;
@@ -14465,6 +14517,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     farzand: ["Farzand tahlili", "Bilim, faollik va keyingi qadamlar"],
     bilim: ["Mening tahlilim", "Barcha ta’lim muhitlaridagi rivojim"],
     institutim: ["Mening institutim", "Guruhim, kursim va muhim sanalar"],
+    bellashuv: ["Bellashuv", "Do‘stlar bilan onlayn test o‘yini"],
+    oyinlar: ["O‘yinlar", "Bellashuv, shashka va aql o‘yinlari"],
+    shashka: ["Shashka", "Bot, onlayn raqib yoki do‘st bilan"],
+    shaxmat: ["Shaxmat", "Bot, onlayn raqib yoki do‘st bilan"],
     ai_ustoz: ["AI Ustoz", "Sizga mos individual dars"],
     mavzular: ["Mavzular", "Ta’limingizga mos fan va mavzular"],
     test: ["Test markazi", "Bilimni tekshirish va mustahkamlash"],
@@ -14652,7 +14708,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
               <h1>{uiT(tabMalumoti[0])}</h1>
             </div>
             <div className="premium-top-actions">
-              <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : uiT("O‘quvchi")}</span>
+              <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : educationRole(foydalanuvchi) === "bogcha" ? uiT("Bog‘cha bolasi") : uiT("O‘quvchi")}</span>
               <button onClick={() => tabTanlandi("xabar")} aria-label={uiT("Xabarlar")}><Bell size={18} /></button>
               <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar"
                 aria-label={uiT("Profil va sozlamalar")} title={uiT("Profil va sozlamalar")}>
@@ -14776,7 +14832,33 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
           onOyinProfilYangilandi={setOyinProfil}
           onTestFaollik={setTestDavomida}
           initialTarget={talimYoliTestNishoni}
+          onBattle={readOnly ? undefined : (createFrom) => { setBellashuv({ kod: "", createFrom, nonce: Date.now() }); setTab("bellashuv"); }}
         />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "oyinlar" && (
+        <OyinlarMarkazi onOpen={(key) => {
+          if (key === "bellashuv") setBellashuv({ kod: "", createFrom: null, nonce: Date.now() });
+          if (key === "shashka") setShashka({ kod: "", nonce: Date.now() });
+          if (key === "shaxmat" || key === "shaxmat_maktab") setShaxmat({ kod: "", nonce: Date.now(), maktab: key === "shaxmat_maktab" });
+          setTab(key === "shaxmat_maktab" ? "shaxmat" : key);
+        }} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "shaxmat" && (
+        <Shaxmat key={shaxmat.nonce} apiBase={API_BASE} token={token}
+          kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
+          initialCode={shaxmat.kod} startInSchool={Boolean(shaxmat.maktab)} onClose={() => { setShaxmat({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "shashka" && (
+        <Shashka key={shashka.nonce} apiBase={API_BASE} token={token}
+          kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
+          initialCode={shashka.kod} onClose={() => { setShashka({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "bellashuv" && (
+        <Bellashuv key={bellashuv.nonce} apiBase={API_BASE} token={token}
+          kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
+          initialCode={bellashuv.kod} createFrom={bellashuv.createFrom}
+          onClose={() => { setBellashuv({ kod: "", createFrom: null, nonce: Date.now() }); setTab("oyinlar"); }}
+          onPickTopic={() => setTab("test")} />
       )}
 
       {tab === "profil" && (
@@ -14786,7 +14868,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
       </SectionErrorBoundary>
           </div>
         </main>
-      <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : tab}
+      <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : OYIN_TABLARI.has(tab) ? "oyinlar" : tab}
         onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida}
         qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} taqdimotMavjud={presentationsAllowed && !readOnly} />
       </div>
@@ -14826,11 +14908,18 @@ function _boshlangichYolniOl() {
     tgTicket: /^[A-Za-z0-9_-]{24,80}$/.test(fragment.get("tg_ticket") || "") ? fragment.get("tg_ticket") : null,
     tgGo: fragment.get("go") || "",
   };
+  // REV82: #bellashuv=KOD — kirishdan (Telegram/Google) keyin ham yo'qolmasin.
+  const battleKod = gameCodeFromHash(window.location.hash, "bellashuv");
+  if (battleKod) { try { window.sessionStorage.setItem(BATTLE_CODE_KEY, battleKod); } catch { /* shu oynada qoladi */ } }
+  const shashkaKod = gameCodeFromHash(window.location.hash, "shashka");
+  if (shashkaKod) { try { window.sessionStorage.setItem(SHASHKA_CODE_KEY, shashkaKod); } catch { /* shu oynada qoladi */ } }
+  const shaxmatKod = gameCodeFromHash(window.location.hash, "shaxmat");
+  if (shaxmatKod) { try { window.sessionStorage.setItem(SHAXMAT_CODE_KEY, shaxmatKod); } catch { /* shu oynada qoladi */ } }
   // 60 soniyalik OAuth ticket fragmenti (va eski oqimdan qolishi mumkin
   // bo'lgan sezgir query'lar) birinchi render boshlanishidayoq tarixdan o'chadi.
   if (
     ["token", "email", "ism"].some((key) => q.has(key))
-    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism", "korish_yozish", "tg_ticket", "go"].some((key) => fragment.has(key))
+    || ["oauth_ticket", "oauth_xato", "korish_token", "korish_ism", "korish_yozish", "tg_ticket", "go", "bellashuv", "shashka", "shaxmat"].some((key) => fragment.has(key))
   ) {
     window.history.replaceState({}, document.title, p);
   }
@@ -14839,6 +14928,14 @@ function _boshlangichYolniOl() {
 
 const SAMTM_TOKEN_STORAGE_KEY = "samtm_login_token_v1";
 const BOT_START_TAB_KEY = "kabutar:bot-start-tab:v1";
+function gameCodeFromHash(hash, key) {
+  const kod = normalizeCode(new URLSearchParams(String(hash || "").replace(/^#/, "")).get(key) || "");
+  return kod.length === 6 ? kod : "";
+}
+// O'qish toza (StrictMode initializer'ni ikki marta chaqiradi); kalit ochilgandan keyin effektda o'chiriladi.
+function peekGameCode(storageKey) {
+  try { return normalizeCode(window.sessionStorage.getItem(storageKey) || ""); } catch { return ""; }
+}
 const BOT_TABS = { test: "test", organish: "mavzular", mavzular: "mavzular", natija: "home", home: "home" };
 function botStartTab() {
   try { const tab = window.sessionStorage.getItem(BOT_START_TAB_KEY) || ""; window.sessionStorage.removeItem(BOT_START_TAB_KEY); return tab; } catch { return ""; }

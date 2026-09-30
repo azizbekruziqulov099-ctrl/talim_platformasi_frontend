@@ -76,8 +76,19 @@ function removeInstallButton() {
   document.getElementById("samtm-install-app")?.remove();
 }
 
+// REV80: o'rnatish tugmasi yopilsa 7 kun chiqmaydi — telefonda kontentni to'sib turmasin.
+const INSTALL_HIDE_KEY = "samtm:install-hidden-until";
+function installHidden() {
+  try { return Number(window.localStorage.getItem(INSTALL_HIDE_KEY) || 0) > Date.now(); } catch { return false; }
+}
+function hideInstallForAWeek() {
+  try { window.localStorage.setItem(INSTALL_HIDE_KEY, String(Date.now() + 7 * 24 * 3600 * 1000)); } catch { /* storage ixtiyoriy */ }
+  removeInstallButton();
+}
+
 function installButton(text, mode, onClick) {
   removeInstallButton();
+  if (installHidden()) return null;
   const button = document.createElement("button");
   button.id = "samtm-install-app";
   button.type = "button";
@@ -93,6 +104,13 @@ function installButton(text, mode, onClick) {
     fontWeight: "800", fontSize: "13px", boxShadow: "0 10px 28px rgba(23,50,71,.28)",
   });
   button.addEventListener("click", onClick);
+  const close = document.createElement("span");
+  close.textContent = "✕";
+  close.setAttribute("role", "button");
+  close.setAttribute("aria-label", "Yopish");
+  Object.assign(close.style, { marginLeft: "10px", padding: "2px 6px", borderRadius: "8px", background: "rgba(255,255,255,.18)", fontWeight: "900" });
+  close.addEventListener("click", (event) => { event.stopPropagation(); hideInstallForAWeek(); });
+  button.appendChild(close);
   document.body.appendChild(button);
   return button;
 }

@@ -41,7 +41,10 @@ function prose(value,lang){
  text=text.replace(/(?<![\p{L}\p{N}_])(?<!\d[.,])\d+(?:[.,]\d+)?(?!\d|[.,]\d)/gu,n=>numberWords(n,lang));
  return text.replace(/_{2,}/g,{uz:' bo‘sh joy ',ru:' пропуск ',en:' blank '}[lang]);
 }
+const PLAIN_LANGUAGES=new Set(['ru','de','fr','es','ar','tr','zh','ja','ko']);
 export function prepareSpeech(value,lang='uz'){
+ // REV88: chet tili bo'lagi o'z ovozida — o'zbekcha qoidalar qo'llanmaydi.
+ if(PLAIN_LANGUAGES.has(lang)&&!data.WORDS[lang])return String(value||'').replace(/<[^>]*>/g,' ').replace(/\[\/?(?:uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi,'').replace(/\s+/g,' ').trim();
  lang=data.WORDS[lang]?lang:'uz';value=tagRawMath(String(value||''));let previous=0;const parts=[];
  for(const match of value.matchAll(mathSpans())){parts.push(prose(value.slice(previous,match.index),lang),speakMathTags(match[0],lang));previous=match.index+match[0].length;}
  parts.push(prose(value.slice(previous),lang));let text=parts.join('');if(lang==='uz')text=normalizeUzbek(text);

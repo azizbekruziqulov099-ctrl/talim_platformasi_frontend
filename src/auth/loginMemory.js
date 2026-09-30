@@ -6,6 +6,7 @@ export const LOGIN_ROLES = [
   ['talaba', 'Talaba', '🎓', 'Institut, universitet'],
   ['oqituvchi', 'O‘qituvchi', '✏️', 'Dars va sinflar'],
   ['ota-ona', 'Ota-ona', '🌱', 'Farzand ta’limi'],
+  ['bogcha', 'Bog‘cha bolasi', '🧸', '2–7 yosh, ovozli darslar'],
 ];
 export const ROLE_NAMES = Object.fromEntries(LOGIN_ROLES.map(([id, name]) => [id, name]));
 const ROLE_KEY = 'kabutar:login-role:v1';
@@ -36,6 +37,7 @@ export function saveLoginRole(role, store) {
 // Foydalanuvchining haqiqiy ta'lim roli (talaba alohida qiymat sifatida saqlanmaydi).
 export function accountRole(user) {
   const learning = user?.learning_profile?.role || user?.education_role;
+  if (learning === 'bogcha' || user?.bogcha_mi) return 'bogcha';
   if (learning === 'talaba' || user?.talaba_mi || user?.talaba_profili) return 'talaba';
   if (ROLE_NAMES[learning]) return learning;
   return ROLE_NAMES[user?.role] ? user.role : '';

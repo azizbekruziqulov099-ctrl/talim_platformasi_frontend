@@ -23,6 +23,7 @@ import {
 } from "./testGameRules.js";
 import LearningQuest from "./test/LearningQuest.jsx";
 import KidQuiz from "./test/KidQuiz.jsx";
+import KidStart from "./test/KidStart.jsx";
 import { isPreschoolLearner } from "./test/kidQuizRules.js";
 import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
@@ -175,7 +176,7 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
   );
 }
 
-const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU" };
+const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU", de: "de-DE", fr: "fr-FR", es: "es-ES", ar: "ar-SA", tr: "tr-TR", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR" };
 
 function _ovozTiliniTuzat(til) {
   const kalit = String(til || "").trim().toLowerCase().replace("_", "-").split("-", 1)[0];
@@ -428,6 +429,7 @@ export default function TestTab({
   curriculumScope = null,
   catalogBrowse = null,
   onEducationSetup,
+  onBattle,
 }) {
   useKbInterfaceLocale();
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
@@ -1374,17 +1376,19 @@ export default function TestTab({
     );
   }
 
+  // REV82: shu mavzudan do'stlar bilan onlayn bellashuv xonasi.
+  const bellashuvManbasi = () => ({
+    topic_codes: (tanlanganMavzu?.kodlar?.length ? tanlanganMavzu.kodlar : [tanlanganMavzu?.topic_code]).filter(Boolean),
+    nomi: tanlanganMavzu?.track === "review" ? "Aralash takror" : stripSpeechTags(tanlanganMavzu?.nomi || ""),
+  });
+
   if (holat === "songi" && bogchaRejim) {
     // REV80: bog'cha bolasi sozlamalarni ko'rmaydi — mavzudagi savollar (5 tagacha) darhol boshlanadi.
     const jami = Math.max(0, Math.floor(Number(mosSoni) || 0));
-    return <div className="kq-root kq-start">
-      <button type="button" className="kq-nav-btn is-ghost" style={{ maxWidth: 160 }} onClick={() => setHolat("mavzular")}>⬅ {__kbUi("Orqaga")}</button>
-      <div className="kq-mascot"><span className="kq-bird" aria-hidden="true">🕊️</span><p className="kq-bubble">{__kbUi("Tayyormisan? Keling, o‘ynaymiz!")}</p></div>
-      <h2 className="kq-start-title">{tanlanganMavzu?.track === "review" ? __kbUi("🎲 Aralash takror") : stripSpeechTags(tanlanganMavzu?.nomi || "")}</h2>
-      {xato && <p className="kq-bubble" role="alert">{__kbUi(xato)}</p>}
-      <button type="button" className="kq-nav-btn kq-start-btn" disabled={yuklanmoqda || mosSoni === null || jami < 1}
-        onClick={() => savollarniYukla(Math.min(jami, tanlanganMavzu?.track === "review" ? 8 : 5))}>{yuklanmoqda || mosSoni === null ? "…" : __kbUi("🎮 Boshladik!")}</button>
-    </div>;
+    return <KidStart title={tanlanganMavzu?.track === "review" ? __kbUi("🎲 Aralash takror") : stripSpeechTags(tanlanganMavzu?.nomi || "")}
+      ready={!yuklanmoqda && mosSoni !== null && jami >= 1} error={xato}
+      onStart={() => savollarniYukla(Math.min(jami, tanlanganMavzu?.track === "review" ? 8 : 5))}
+      onBack={() => setHolat("mavzular")} onBattle={onBattle && jami >= 3 ? () => onBattle(bellashuvManbasi()) : null} />;
   }
 
   if (holat === "songi") {
@@ -1403,6 +1407,18 @@ export default function TestTab({
         <p className="mb-2 text-xs font-semibold text-sky-900">{__kbUi(institutionLabel(catalogType))}{catalogType==='universitet'?__kbUi(` → ${lessonLabel(catalogLesson)}`):__kbUi('')}</p>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
+        {onBattle && jami >= 3 && (
+          <button type="button" onClick={() => onBattle(bellashuvManbasi())}
+            className="w-full rounded-2xl p-4 mb-4 text-left flex items-center gap-3 border-2"
+            style={{ borderColor: "#6C3CE0", background: "linear-gradient(135deg,#F4EFFF,#FFF5EC)" }}>
+            <span className="text-3xl" aria-hidden="true">⚔️</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Do‘stlar bilan bellashuv")}</span>
+              <span className="block text-xs" style={{ color: "#5D6B7A" }}>{__kbUi("Xona oching, kodni yuboring — kim birinchi to‘g‘ri topsa, ko‘proq ochko oladi")}</span>
+            </span>
+            <ChevronRight size={18} style={{ color: "#6C3CE0" }} />
+          </button>
+        )}
 
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
           <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("🧭 Test uslubi")}</p>

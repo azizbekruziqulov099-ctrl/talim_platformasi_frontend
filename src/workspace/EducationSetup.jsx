@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { workspaceRequest } from './kabutarWorkspaceClient.js';
-import { educationRole } from './educationRules.js';
+import { PRESCHOOL_GROUPS, educationRole, preschoolGroup } from './educationRules.js';
 import JoinInstitution from './JoinInstitution.jsx';
 import TalabaQoshilish from '../student/TalabaQoshilish.jsx';
 import { useInterface } from '../interface/InterfacePreferences.jsx';
 import './workspace.css';
 
-const roles = [['oquvchi', 'O‘quvchi', '1–11-sinf', '📚'], ['talaba', 'Talaba', 'Institut va universitet', '🎓'], ['oqituvchi', 'O‘qituvchi', 'Darslar va ish maydoni', '✏️'], ['ota-ona', 'Ota-ona', 'Farzandingiz ta’limi', '🌱']];
+const roles = [['oquvchi', 'O‘quvchi', '1–11-sinf', '📚'], ['talaba', 'Talaba', 'Institut va universitet', '🎓'], ['oqituvchi', 'O‘qituvchi', 'Darslar va ish maydoni', '✏️'], ['ota-ona', 'Ota-ona', 'Farzandingiz ta’limi', '🌱'], ['bogcha', 'Bog‘cha bolasi', '2–7 yosh, ovozli darslar', '🧸']];
 export default function EducationSetup({ apiBase, token, user = null, initialRole = '', onComplete, onBack, target = 'test' }) {
   const { t } = useInterface();
   const [joining, setJoining] = useState('');
   const [role, setRole] = useState(initialRole || educationRole(user));
   const [grade, setGrade] = useState(/^\d+$/.test(String(user?.class || '')) ? String(user.class) : '');
+  const [ageGroup, setAgeGroup] = useState(preschoolGroup(user?.yosh_guruhi || user?.learning_profile?.age_group || user?.class));
   const p = user?.learning_profile || {};
   const [course, setCourse] = useState(String(p.kurs || ''));
   const [degree, setDegree] = useState(p.talim_bosqichi || 'bakalavr');
@@ -23,11 +24,13 @@ export default function EducationSetup({ apiBase, token, user = null, initialRol
     event.preventDefault(); if (busy) return;
     if (!role) { setError('Kim sifatida foydalanishingizni tanlang.'); return; }
     if (role === 'oquvchi' && !grade) { setError('Sinfingizni tanlang.'); return; }
+    if (role === 'bogcha' && !ageGroup) { setError('Bolaning yoshini tanlang.'); return; }
     setBusy(true); setError('');
     try {
       const data = await workspaceRequest(apiBase, '/auth/profile/education', token, { method: 'POST', body: {
         role, class: role === 'oquvchi' ? Number(grade) : null, language,
         course: role === 'talaba' ? Number(course) : null, study_form: form, degree,
+        age_group: role === 'bogcha' ? ageGroup : null,
         subject: role === 'oqituvchi' ? subject.trim() || null : null,
       }});
       onComplete?.(data);
@@ -48,6 +51,7 @@ export default function EducationSetup({ apiBase, token, user = null, initialRol
         <small>{t('Quyidagi ma’lumotlarni tanlab davom etishingiz mumkin.')}</small>
       </div>}
       {role && <div className="kb-education-fields" id="education-details">
+        {role === 'bogcha' && <div className="kb-age-groups" role="radiogroup" aria-label={t('Bolaning yoshi')}><span>{t('Bolaning yoshi')}</span><div>{PRESCHOOL_GROUPS.map((g) => <button key={g} type="button" role="radio" aria-checked={ageGroup === g} className={ageGroup === g ? 'selected' : ''} onClick={() => { setAgeGroup(g); setError(''); }}>{g.replace('-', '–')}</button>)}</div></div>}
         {role === 'oquvchi' && <label>{t('Sinfingiz')}<select value={grade} onChange={e => setGrade(e.target.value)} required><option value="">{t('Sinfni tanlang')}</option>{Array.from({ length: 11 }, (_, i) => <option key={i+1} value={i+1}>{i+1}{t('-sinf')}</option>)}</select></label>}
         {role === 'talaba' && <>
           <label>{t('Bosqich')}<select value={degree} onChange={e => { setDegree(e.target.value); setCourse(''); }}><option value="bakalavr">{t('Bakalavr')}</option><option value="magistr">{t('Magistr')}</option></select></label>
