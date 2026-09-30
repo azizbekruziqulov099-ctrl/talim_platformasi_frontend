@@ -1,13 +1,31 @@
+import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
+import { splitSpeechText, selectBrowserVoice, stripSpeechTags } from "./speech/language.js";
+import TranslatedContent from './interface/TranslatedContent.jsx';
+import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
+import {uiText as __kbUi} from './interface/interfaceRuntime.js';
+import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
+import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
+import {matchingSubjects,targetLesson,gradeLabel,institutionLabel,lessonLabel,profileInstitutionType,catalogTopicKey,catalogGrade} from './curriculum/catalog.js';
+import {catalogSubjectDetails, searchCatalog} from './curriculum/adminTestCatalog.js';
+import UniversityFilters from './curriculum/UniversityFilters.jsx';
+import { TIER_INFO, gameSizeTier, recommendedGameMode } from './test/gameJourneyRules.js';
+const GAME_MODE_NAMES = Object.fromEntries(GAME_MODES.map((mode) => [mode.id, mode.name]));
+import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActive} from './curriculum/universityFilters.js';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import katex from "katex";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
 import {
+  GAME_MODES,
   buildGameStartPayload,
   gameErrorMessage,
   gameQuestionOptions,
   gradeBandForClass,
 } from "./testGameRules.js";
 import LearningQuest from "./test/LearningQuest.jsx";
+import KidQuiz from "./test/KidQuiz.jsx";
+import KidStart from "./test/KidStart.jsx";
+import { isPreschoolLearner } from "./test/kidQuizRules.js";
+import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
 const TestGameArena = React.lazy(() => import("./TestGameArena.jsx"));
@@ -92,6 +110,8 @@ function _latexMatniniAjrat(qism) {
 }
 
 const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) {
+  const translation=useTranslatedContent(matn);
+  matn=translation.text;
   // $...$ , [lat]...[/lat] VA belgisiz xom LaTeX buyrug'i — uchalasi ham
   // xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
   const qismlar = useMemo(() => (matn || "").split(_LATEX_BOLISH_REGEX), [matn]);
@@ -109,7 +129,7 @@ const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) 
         }
         return <span key={i}>{qism}</span>;
       })}
-    </p>
+    <ContentTranslationStatus translation={translation}/></p>
   );
 });
 
@@ -141,6 +161,7 @@ function latexniOzbekchaOqishga(latex) {
 // ko'rsatadi — Web Speech API'ning "boundary" hodisasi bilan bog'lanadi
 // (tashqi, pullik TTS xizmat SHART emas — brauzerning o'zi o'qiydi).
 function OqiladiganMatn({ matn, joriySozIndeksi }) {
+  useKbInterfaceLocale();
   const sozlar = useMemo(() => matn.split(/(\s+)/), [matn]);
   return (
     <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "#2B2B2B" }}>
@@ -155,7 +176,7 @@ function OqiladiganMatn({ matn, joriySozIndeksi }) {
   );
 }
 
-const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU" };
+const OVOZ_TIL_LANG = { uz: "uz-UZ", en: "en-US", ru: "ru-RU", de: "de-DE", fr: "fr-FR", es: "es-ES", ar: "ar-SA", tr: "tr-TR", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR" };
 
 function _ovozTiliniTuzat(til) {
   const kalit = String(til || "").trim().toLowerCase().replace("_", "-").split("-", 1)[0];
@@ -166,111 +187,16 @@ function _ovozJinsiniTuzat(jins) {
   return ["ogil", "o'g'il", "erkak", "male", "boy"].includes(String(jins || "").trim().toLowerCase()) ? "ogil" : "qiz";
 }
 
-function _ovozQismlargaBol(matn, asosiyTil = "uz") {
-  const xom = String(matn || "");
-  // Tegsiz matn hech qachon brauzer/profilning inglizcha standart ovoziga
-  // tushmaydi. Asosiy til qat'iy o'zbekcha; faqat [en] va [ru] teglari
-  // ichidagi bo'laklar o'z tiliga o'tadi. Parametr eski chaqiruvlar bilan
-  // moslik uchun qoldirilgan.
-  const standart = "uz";
-  const naqsh = /\[(uz|en|ru)\]([\s\S]*?)\[\/\1\]/gi;
-  const qismlar = [];
-  let oxiri = 0;
-  let mos;
-  while ((mos = naqsh.exec(xom)) !== null) {
-    const oldingi = xom.slice(oxiri, mos.index);
-    if (oldingi.trim()) qismlar.push({ til: standart, matn: oldingi });
-    if (mos[2].trim()) qismlar.push({ til: _ovozTiliniTuzat(mos[1]), matn: mos[2] });
-    oxiri = naqsh.lastIndex;
-  }
-  const qolgan = xom.slice(oxiri);
-  if (qolgan.trim()) qismlar.push({ til: standart, matn: qolgan });
-  return qismlar.length > 0 ? qismlar : [{ til: standart, matn: xom }];
+function _ovozQismlargaBol(matn) {
+  return splitSpeechText(matn);
 }
 
 function _brauzerOvoziniTanla(til, jins) {
-  const voices = globalThis.speechSynthesis?.getVoices?.() || [];
-  const lang = OVOZ_TIL_LANG[_ovozTiliniTuzat(til)].toLowerCase();
-  const mosOvozlar = voices.filter((voice) => String(voice.lang || "").toLowerCase().replace("_", "-").split("-")[0] === lang.split("-")[0]);
-  if (mosOvozlar.length === 0) return null;
-  const erkakKalitlari = ["male", "david", "guy", "dmitry", "sardor", "mark"];
-  const ayolKalitlari = ["female", "zira", "samantha", "jenny", "svetlana", "madina", "anna"];
-  const kalitlar = _ovozJinsiniTuzat(jins) === "ogil" ? erkakKalitlari : ayolKalitlari;
-  return mosOvozlar.find((voice) => kalitlar.some((kalit) => String(voice.name || "").toLowerCase().includes(kalit))) || mosOvozlar[0];
-}
-
-function _xorijiyMatnniOvozgaTayyorla(matn, til) {
-  const lugat = til === "ru"
-    ? { frac: (a, b) => `${a} делённое на ${b}`, sqrt: (x) => `квадратный корень из ${x}`, square: (x) => `${x} в квадрате`, cube: (x) => `${x} в кубе`, power: (x, n) => `${x} в степени ${n}`, "+": " плюс ", "-": " минус ", "×": " умножить на ", "·": " умножить на ", "*": " умножить на ", "÷": " разделить на ", "=": " равно ", "≤": " меньше или равно ", "≥": " больше или равно ", "≠": " не равно ", "<": " меньше ", ">": " больше " }
-    : { frac: (a, b) => `${a} over ${b}`, sqrt: (x) => `square root of ${x}`, square: (x) => `${x} squared`, cube: (x) => `${x} cubed`, power: (x, n) => `${x} to the power of ${n}`, "+": " plus ", "-": " minus ", "×": " times ", "·": " times ", "*": " times ", "÷": " divided by ", "=": " equals ", "≤": " less than or equal to ", "≥": " greater than or equal to ", "≠": " not equal to ", "<": " less than ", ">": " greater than " };
-  let t = String(matn || "");
-  t = t.replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "$1").replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/\\(?:left|right)/g, "");
-  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (_, a, b) => ` ${lugat.frac(a, b)} `);
-  t = t.replace(/\\sqrt\s*\{([^{}]+)\}/g, (_, x) => ` ${lugat.sqrt(x)} `);
-  t = t.replace(/([0-9A-Za-zА-Яа-я]+)\s*\^\s*\{?(\d+)\}?/g, (_, x, n) => ` ${n === "2" ? lugat.square(x) : n === "3" ? lugat.cube(x) : lugat.power(x, n)} `);
-  for (const [re, belgi] of [[/\\times/g, "×"], [/\\cdot/g, "·"], [/\\div/g, "÷"], [/\\leq/g, "≤"], [/\\geq/g, "≥"], [/\\neq/g, "≠"]]) t = t.replace(re, belgi);
-  t = t.replace(/\\pi\b/g, " pi ");
-  for (const belgi of ["≤", "≥", "≠", "+", "-", "×", "·", "*", "÷", "=", "<", ">"])
-    t = t.replace(new RegExp(`\\s*${belgi.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`, "g"), lugat[belgi]);
-  t = t.replace(/\\[A-Za-z]+|[{}]/g, " ");
-  return t.replace(/\s+/g, " ").trim();
+  return selectBrowserVoice(globalThis.speechSynthesis?.getVoices?.() || [], _ovozTiliniTuzat(til), _ovozJinsiniTuzat(jins));
 }
 
 function _matnniOvozgaTayyorla(matn, til = "uz") {
-  // LaTeX belgilangan (yoki belgisiz) kasrlarni tabiiy o'zbekcha nutqqa
-  // aylantiradi — masalan \tfrac{1}{2} → "ikkidan bir", 6\tfrac{1}{2}
-  // (aralash son) → "olti butun ikkidan bir". Shuningdek: o'lchov
-  // birliklari (kg, sm, km...) to'liq so'zga, va matematik o'zgaruvchilar
-  // (x, y, z, n — songa yopishgan bo'lsa ham, masalan "2x") o'z nomiga
-  // ("iks", "igrik"...) aylantiriladi — xom holda o'qish tushunarsiz
-  // eshitilgani uchun kerak.
-  if (!matn) return "";
-  til = _ovozTiliniTuzat(til);
-  if (til !== "uz") return _xorijiyMatnniOvozgaTayyorla(matn, til);
-  let t = matn;
-  t = t.replace(/\[lat\]([^]*?)\[\/lat\]/g, "$1");
-  t = t.replace(/\$([^$]+)\$/g, "$1");
-  t = t.replace(/(\d)\s*(\\(?:tfrac|dfrac|cfrac|frac))/g, "$1 butun $2");
-  t = t.replace(/\\(?:tfrac|dfrac|cfrac|frac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "$2 dan $1");
-  t = t.replace(/\\sqrt\s*\{([^{}]*)\}/g, "$1 ning kvadrat ildizi");
-  t = t.replace(/\\times/g, " marta ");
-  t = t.replace(/\\cdot/g, " marta ");
-  t = t.replace(/\\div/g, " bo'lib ");
-  t = t.replace(/\\pm/g, " plyus-minus ");
-  t = t.replace(/\\leq/g, " kichik yoki teng ");
-  t = t.replace(/\\geq/g, " katta yoki teng ");
-  t = t.replace(/\\neq/g, " teng emas ");
-  t = t.replace(/\\infty/g, " cheksizlik ");
-  t = t.replace(/\\approx/g, " taxminan teng ");
-  t = t.replace(/\\pi\b/g, " pi ");
-  t = t.replace(/([0-9a-zA-Z]+)\s*\^\s*\{?(\d+)\}?/g, (_, asos, daraja) => {
-    if (daraja === "2") return ` ${asos} kvadrat `;
-    if (daraja === "3") return ` ${asos} kub `;
-    return ` ${asos} ning ${daraja}-darajasi `;
-  });
-  const birliklar = [
-    [/\bkm\/soat\b/gi, " kilometr soatiga "],
-    [/\bkg\b/gi, " kilogramm "], [/\bgr\b/gi, " gramm "],
-    [/\bmm\b/gi, " millimetr "], [/\bsm\b/gi, " santimetr "], [/\bkm\b/gi, " kilometr "],
-    [/\bml\b/gi, " millilitr "], [/\bl\b/gi, " litr "],
-    [/\bsm2\b|\bsm²\b/gi, " kvadrat santimetr "], [/\bm2\b|\bm²\b/gi, " kvadrat metr "],
-    [/\bsm3\b|\bsm³\b/gi, " kub santimetr "], [/\bm3\b|\bm³\b/gi, " kub metr "],
-    [/\bm\b/g, " metr "],
-  ];
-  for (const [re, almashtir] of birliklar) t = t.replace(re, almashtir);
-  const ozgaruvchilar = { x: "iks", y: "igrik", z: "zet", n: "en" };
-  t = t.replace(/(?<![a-zA-Zʻʼ'])([xyzn])(?![a-zA-Zʻʼ'])/g, (m, harf) => ` ${ozgaruvchilar[harf]} `);
-  t = t.replace(/°C/g, " daraja Selsiy ");
-  t = t.replace(/%/g, " foiz ");
-  t = t.replace(/≤/g, " kichik yoki teng ").replace(/≥/g, " katta yoki teng ").replace(/≠/g, " teng emas ");
-  t = t.replace(/\+/g, " plyus ").replace(/−|-/g, " minus ");
-  t = t.replace(/[×·*]/g, " ko'paytirilgan ").replace(/÷/g, " bo'lingan ").replace(/=/g, " teng ");
-  t = t.replace(/</g, " kichik ").replace(/>/g, " katta ");
-  t = t.replace(/\$/g, "");
-  t = t.replace(/_{2,}/g, " bo'sh joy "); // "___" (bo'sh joy) — "pastki chiziq" deb o'qilmasin
-  t = t.replace(/[_`#]+/g, "");
-  return t.replace(/\s+/g, " ").trim();
+  return prepareSpeech(matn, _ovozTiliniTuzat(til));
 }
 
 function OvozliOqishTugmasi({
@@ -283,24 +209,33 @@ function OvozliOqishTugmasi({
   asosiyTil = "uz",
   ovozJinsi = "qiz",
 }) {
+  useKbInterfaceLocale();
   const [tezlik, setTezlik] = useState(1);
   const [pauzada, setPauzada] = useState(false);
+  const [talaffuzXatosi, setTalaffuzXatosi] = useState("");
   const audioRef = useRef(null);
+  const speechRunRef = useRef(0);
   const oqilyaptimi = oqilayotganId === kontentId;
 
   const boshla = (boshlanishTezligi) => {
-    window.speechSynthesis.cancel();
+    const run = ++speechRunRef.current;
+    const current = () => speechRunRef.current === run;
+    window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
     setPauzada(false);
-    const qismlar = _ovozQismlargaBol(matn, asosiyTil)
+    setTalaffuzXatosi("");
+    let qismlar;
+    try { qismlar = _ovozQismlargaBol(matn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
+    } catch(error) { setTalaffuzXatosi(error.message); return; }
     const brauzerOvozlari = qismlar.map((qism) => _brauzerOvoziniTanla(qism.til, ovozJinsi));
     let qismIndeksi = 0;
     const tugadi = () => {
+      if (!current()) return;
       audioRef.current = null;
       setOqilayotganId(null);
       setJoriySozIndeksi(-1);
@@ -311,6 +246,7 @@ function OvozliOqishTugmasi({
         matn: String(matn || ""),
         jins: _ovozJinsiniTuzat(ovozJinsi),
         asosiy_til: "uz",
+        revision: SPEECH_REVISION,
       });
       const audio = new Audio(`${API_BASE}/api/ovoz?${qs.toString()}`);
       audio.playbackRate = boshlanishTezligi;
@@ -322,6 +258,7 @@ function OvozliOqishTugmasi({
       return;
     }
     const keyingisiniOqi = () => {
+      if (!current()) return;
       if (qismIndeksi >= qismlar.length) { tugadi(); return; }
       const joriyQismIndeksi = qismIndeksi++;
       const qism = qismlar[joriyQismIndeksi];
@@ -334,6 +271,7 @@ function OvozliOqishTugmasi({
       utterance.rate = boshlanishTezligi;
       utterance.pitch = _ovozJinsiniTuzat(ovozJinsi) === "ogil" ? 0.92 : 1.04;
       utterance.onboundary = (e) => {
+        if (!current()) return;
         if (e.name && e.name !== "word") return;
         let idx = 0;
         for (let i = 0; i < sozPozitsiyalari.length; i++) {
@@ -343,7 +281,7 @@ function OvozliOqishTugmasi({
       };
       utterance.onend = keyingisiniOqi;
       utterance.onerror = tugadi;
-      window.speechSynthesis.speak(utterance);
+      window.speechSynthesis?.speak(utterance);
     };
     setOqilayotganId(kontentId);
     keyingisiniOqi();
@@ -356,12 +294,13 @@ function OvozliOqishTugmasi({
       setPauzada(!pauzada);
       return;
     }
-    if (pauzada) { window.speechSynthesis.resume(); setPauzada(false); }
-    else { window.speechSynthesis.pause(); setPauzada(true); }
+    if (pauzada) { window.speechSynthesis?.resume(); setPauzada(false); }
+    else { window.speechSynthesis?.pause(); setPauzada(true); }
   };
 
   const toxtat = () => {
-    window.speechSynthesis.cancel();
+    speechRunRef.current++;
+    window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -381,33 +320,36 @@ function OvozliOqishTugmasi({
   };
 
   useEffect(() => () => {
+    speechRunRef.current++;
+    window.speechSynthesis?.cancel();
     if (audioRef.current) audioRef.current.pause();
   }, []);
 
   return (
     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+      {talaffuzXatosi && <span role="alert" className="text-xs text-red-700">{talaffuzXatosi}</span>}
       <button onClick={() => (oqilyaptimi ? toxtat() : boshla(tezlik))}
         className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-        {oqilyaptimi ? "⏹ To'xtatish" : "🔊 O'qib berish"}
+        {oqilyaptimi ? __kbUi("⏹ To'xtatish") : __kbUi("🔊 O'qib berish")}
       </button>
       {oqilyaptimi && (
         <button onClick={pauzaYokiDavomEttir}
           className="text-xs font-semibold px-3 py-1.5 rounded-lg" style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-          {pauzada ? "▶ Davom" : "⏸ Pauza"}
+          {pauzada ? __kbUi("▶ Davom") : __kbUi("⏸ Pauza")}
         </button>
       )}
       {[0.75, 1, 1.25, 1.5].map((t) => (
         <button key={t} onClick={() => tezlikOzgar(t)}
           className="text-xs font-semibold px-2.5 py-1.5 rounded-lg"
           style={tezlik === t ? { backgroundColor: "#1B4B7A", color: "#fff" } : { backgroundColor: "#F7F5F0", color: "#8A8578" }}>
-          {t}x
-        </button>
+          {__kbUi(t)}{__kbUi("x")}</button>
       ))}
     </div>
   );
 }
 
 function SavolRasmi({ rasmId }) {
+  useKbInterfaceLocale();
   const [holat, setHolat] = useState("yuklanmoqda"); // yuklanmoqda | tayyor | xato
   useEffect(() => { setHolat("yuklanmoqda"); }, [rasmId]);
 
@@ -425,7 +367,7 @@ function SavolRasmi({ rasmId }) {
           String(rasmId).startsWith("/api/") ? `${API_BASE}${rasmId}`
           : /^https?:\/\//i.test(String(rasmId)) ? rasmId
           : `${API_BASE}/api/rasm/${rasmId}`
-        } alt=""
+        } alt={__kbUi("")}
         className="w-full rounded-xl object-contain"
         style={{ maxHeight: "260px", backgroundColor: "#EFEBE1", display: holat === "yuklanmoqda" ? "none" : "block" }}
         onLoad={() => setHolat("tayyor")}
@@ -444,13 +386,16 @@ function tegsizKorsat(matn) {
 }
 
 function Matn({ matn, latex }) {
+  const translation=useTranslatedContent(matn);
+  matn=translation.text;
+  useKbInterfaceLocale();
   // Umumiy yordamchidan foydalanadi — $...$, [lat]...[/lat] va belgisiz
   // xom LaTeX buyrug'ini ham taniydi. is_latex bayrog'iga qaramay, TEGLAR/
   // buyruq o'zi bor-yo'qligini ham tekshiradi — AI ba'zan bayroqni to'g'ri
   // qo'ymasligi yoki teglarni butunlay unutishi mumkin.
-  const toza = tegsizKorsat(matn) || "";
+  const toza = stripSpeechTags(tegsizKorsat(matn) || "");
   const bormi = toza.includes("$") || toza.includes("[lat]") || toza.includes("\\");
-  if (!bormi) return <>{toza}</>;
+  if (!bormi) return <>{toza}<ContentTranslationStatus translation={translation}/></>;
   const qismlar = toza.split(_LATEX_BOLISH_REGEX);
   return (
     <>
@@ -466,7 +411,7 @@ function Matn({ matn, latex }) {
         }
         return <span key={i}>{q}</span>;
       })}
-    </>
+    <ContentTranslationStatus translation={translation}/></>
   );
 }
 
@@ -481,7 +426,12 @@ export default function TestTab({
   oyinProfil = null,
   onOyinProfilYangilandi,
   initialTarget = null,
+  curriculumScope = null,
+  catalogBrowse = null,
+  onEducationSetup,
+  onBattle,
 }) {
+  useKbInterfaceLocale();
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
   // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
@@ -495,7 +445,23 @@ export default function TestTab({
   // uchun bu "vaqtincha o'z sinfini chetlab o'tish" rejimi.
   const [boshqaSinflarRejimi, setBoshqaSinflarRejimi] = useState(false);
   const [fanlar, setFanlar] = useState([]);
-  const [tanlanganSinf, setTanlanganSinf] = useState(null); // admin uchun: tanlangan sinf raqami
+  const [oyinAvto, setOyinAvto] = useState(true);
+  const fallbackType=catalogBrowse?.type || curriculumScope?.institution_type || profileInstitutionType(foydalanuvchi || {class:sinf});
+  const [catalogType,setCatalogType]=useState(fallbackType);
+  const [catalogLesson,setCatalogLesson]=useState(curriculumScope?.dars_turi || 'all');
+  const [catalogViewer,setCatalogViewer]=useState(null);
+  // REV77: talaba hamma institut testlarini ko'radi; filtr — o'z yo'nalishi yoki istalgan institut.
+  const [uniFilter,setUniFilter]=useState(null);
+  const universityBrowse=!curriculumScope&&!catalogBrowse&&universityBrowseActive(catalogViewer,catalogType);
+  const uniFilterValue=uniFilter||initialUniversityFilter(catalogViewer);
+  const sectionChosen=useRef(false);
+  const profilSinfi=catalogViewer?.admin || catalogViewer?.teacher || (universityBrowse && !uniFilterValue.mine) ? null : catalogGrade(catalogType, catalogViewer?.grade || sinf);
+
+  const [tanlanganSinf, setTanlanganSinf] = useState(catalogBrowse?.initialGrade || null);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [closedSubjects, setClosedSubjects] = useState([]);
+  const [catalogReload, setCatalogReload] = useState(0);
+  const browseQuery = new URLSearchParams(catalogBrowse?.filters || {}).toString();
   const [ochiqFan, setOchiqFan] = useState(null);
   const [savollar, setSavollar] = useState([]);
   const [tanlanganMavzu, setTanlanganMavzu] = useState(null);
@@ -516,7 +482,10 @@ export default function TestTab({
 
   useEffect(() => {
     if (!initialTarget?.nonce) return;
-    const targetGrade = String(initialTarget.grade || "").trim();
+    sectionChosen.current=false;
+    if(initialTarget.institution_type)setCatalogType(initialTarget.institution_type);
+    if(initialTarget.dars_turi)setCatalogLesson(initialTarget.dars_turi);
+    const targetGrade = String(initialTarget.grade || initialTarget.sinf || "").trim();
     setHolat("mavzular");
     setFaolTuri("oddiy");
     setTanlanganSinf(targetGrade || sinf || null);
@@ -544,18 +513,16 @@ export default function TestTab({
   }, [holat, onTestFaollik]);
 
   useEffect(() => {
-    const qs = new URLSearchParams({ turi: faolTuri });
+    const qs = new URLSearchParams({ turi: faolTuri, institution_type: catalogType });
+    for (const [key, value] of new URLSearchParams(browseQuery)) qs.set(key, value);
+    if(curriculumScope?.id && curriculumScope.institution_type===catalogType)qs.set('scope_id',String(curriculumScope.id));
+    if (token) qs.set("token", token);
     // boshqaSinflarRejimi paytida o'quvchining O'Z sinfi bilan CHEKLAMAYMIZ —
     // aks holda to'garak/maxsus guruhlar bo'yicha qidiruv natija bermaydi.
-    if (sinf && !boshqaSinflarRejimi) qs.set("sinf", sinf);
+    if (!token && !boshqaSinflarRejimi && catalogGrade(catalogType, sinf)) qs.set("sinf", catalogGrade(catalogType, sinf));
     const url = `${API_BASE}/api/mavzular?${qs.toString()}`;
-    const keshlangan = MAVZULAR_XOTIRA_KESHI.get(url);
-    if (keshlangan && Date.now() - keshlangan.vaqt < MAVZULAR_KESH_MS) {
-      setFanlar(keshlangan.fanlar);
-      setYuklanmoqda(false);
-      return undefined;
-    }
     setYuklanmoqda(true);
+    setFanlar([]);
     const controller = new AbortController();
     fetch(url, { signal: controller.signal })
       .then(async (r) => {
@@ -564,63 +531,87 @@ export default function TestTab({
         return d;
       })
       .then((d) => {
+        if (controller.signal.aborted) return;
         const yangiFanlar = d.fanlar || [];
-        MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
+        setCatalogViewer(d.viewer || null);
+        if (!curriculumScope && !catalogBrowse && d.viewer?.preferred_type && ((!sectionChosen.current && !initialTarget?.institution_type) || !d.viewer.types.includes(catalogType)) && catalogType!==d.viewer.preferred_type) setCatalogType(d.viewer.preferred_type);
+        if (initialTarget?.nonce && talimYoliNishoniRef.current!==initialTarget.nonce) {
+          const target=targetLesson(yangiFanlar,initialTarget.topic_codes || [initialTarget.topic_code]);
+          if(target)setCatalogLesson(target);
+        }
+        if (!token) MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
+        setXato(d.profil_sozlanmagan ? (d.viewer?.teacher ? "Profilingizda faol ish joyini tanlang." : "Ta’lim profilingizda sinf yoki yo‘nalish, ta’lim shakli, til va semestrni to‘ldiring.") : "");
         setFanlar(yangiFanlar);
         setYuklanmoqda(false);
       })
       .catch((e) => {
-        if (e.name !== "AbortError") {
-          setXato("Mavzularni yuklab bo'lmadi");
+        if (!controller.signal.aborted && e.name !== "AbortError") {
+          setXato(e.message || "Mavzularni yuklab bo'lmadi");
           setYuklanmoqda(false);
         }
       });
     return () => controller.abort();
-  }, [sinf, faolTuri, boshqaSinflarRejimi]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, curriculumScope?.id, curriculumScope?.institution_type, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at, browseQuery, catalogReload]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
   const sinflarRoyxati = useMemo(() => {
     const bySinf = {};
-    fanlar.forEach((fan) => {
+    const matched = faolTuri === "togarak" ? fanlar : matchingSubjects(fanlar,catalogType,catalogLesson);
+    const subjects = universityBrowse && faolTuri !== "togarak" ? filterUniversitySubjects(matched, uniFilterValue) : matched;
+    searchCatalog(subjects, catalogBrowse || universityBrowse ? catalogSearch : '').forEach((fan) => {
       fan.sinflar.forEach((s) => {
-        if (!bySinf[s.sinf]) bySinf[s.sinf] = { sinf: s.sinf, fanlar: [] };
-        bySinf[s.sinf].fanlar.push({ qisqa: fan.qisqa, nom: fan.nom, mavzular: s.mavzular });
+        const grade = catalogGrade(catalogType, s.sinf) || s.sinf;
+        if (!bySinf[grade]) bySinf[grade] = { sinf: grade, fanlar: [] };
+        bySinf[grade].fanlar.push({ qisqa: fan.kalit || fan.qisqa, nom: fan.dars_turi_nomi ? `${fan.nom} · ${fan.dars_turi_nomi}` : fan.nom, details: catalogBrowse || universityBrowse ? catalogSubjectDetails(fan) : '', mavzular: s.mavzular });
       });
     });
     return Object.values(bySinf).sort((a, b) => {
       const raqamA = /^\d+$/.test(a.sinf), raqamB = /^\d+$/.test(b.sinf);
       if (raqamA && raqamB) return parseInt(a.sinf, 10) - parseInt(b.sinf, 10);
-      return String(a.sinf).localeCompare(String(b.sinf));
+      return String(a.sinf).localeCompare(String(b.sinf), 'uz', { numeric: true });
     });
-  }, [fanlar]);
+  }, [fanlar, catalogType, catalogLesson, faolTuri, catalogSearch, Boolean(catalogBrowse), universityBrowse, uniFilterValue.mine, uniFilterValue.institution, uniFilterValue.program, uniFilterValue.form, uniFilterValue.language]);
 
   // O'quvchi uchun sinf tashqaridan berilgan (o'z sinfi) — sinf tanlash bosqichi kerak emas.
-  const faolSinf = (boshqaSinflarRejimi || !sinf) ? tanlanganSinf : sinf;
+  const faolSinf = (boshqaSinflarRejimi || !profilSinfi) ? tanlanganSinf : profilSinfi;
   const joriySinfMalumoti = faolSinf
     ? sinflarRoyxati.find((s) => String(s.sinf) === String(faolSinf))
     : null;
 
   useEffect(() => {
+    if (joriySinfMalumoti?.fanlar.length === 1) setOchiqFan(joriySinfMalumoti.fanlar[0].qisqa);
+  }, [joriySinfMalumoti]);
+
+  useEffect(() => {
     if (!initialTarget?.nonce || yuklanmoqda || talimYoliNishoniRef.current === initialTarget.nonce) return;
-    const targetGrade = String(initialTarget.grade || faolSinf || sinf || "");
+    const targetGrade = String(initialTarget.grade || initialTarget.sinf || faolSinf || sinf || "");
     const classInfo = sinflarRoyxati.find((item) => String(item.sinf) === targetGrade);
     if (!classInfo) return;
+    const requestedCodes = new Set((initialTarget.topic_codes || [initialTarget.topic_code]).filter(Boolean).map(String));
     let found = null;
     for (const fanItem of classInfo.fanlar) {
       const topic = fanItem.mavzular.find((item) => (
-        (item.topic_codes || []).includes(initialTarget.topic_code)
-        || item.nomi === initialTarget.topic_name
+        (item.topic_codes || []).some((code) => requestedCodes.has(String(code)))
+        || (!requestedCodes.size && item.nomi === (initialTarget.topic_name || initialTarget.nomi)
+          && (!initialTarget.fan || fanItem.nom === initialTarget.fan))
       ));
       if (topic) {
         found = { fanItem, topic };
         break;
       }
     }
-    if (!found) return;
+    if (!found) {
+      setXato("Bu DTS mavzusi uchun tayyor test hali topilmadi. Boshqa mavzuni tanlashingiz mumkin.");
+      talimYoliNishoniRef.current = initialTarget.nonce;
+      return;
+    }
+    const selectedCodes = Array.isArray(initialTarget.topic_codes) && initialTarget.topic_codes.length
+      ? [...new Set(classInfo.fanlar.flatMap((fanItem) => fanItem.mavzular.flatMap((item) => item.topic_codes || [])))].filter((code) => requestedCodes.has(String(code)))
+      : found.topic.topic_codes;
     setTanlanganMavzu({
       aralash: true,
-      kodlar: found.topic.topic_codes,
+      kodlar: selectedCodes,
       nomi: found.topic.nomi,
       fanNomi: found.fanItem.nom,
       savol_soni: found.topic.savol_soni,
@@ -649,12 +640,30 @@ export default function TestTab({
   };
 
   const [aralashRejim, setAralashRejim] = useState(false);
+  const changeCatalog=(type,lesson=catalogLesson)=>{
+    sectionChosen.current=true;
+    setCatalogType(type);setCatalogLesson(lesson);setFaolTuri('oddiy');
+    setTanlanganSinf(null);setOchiqFan(null);setTanlanganMavzu(null);
+    setTanlanganKodlar([]);setAralashRejim(false);setBoshqaSinflarRejimi(false);setXato('');
+  };
+  const catalogHeader=curriculumScope||catalogBrowse||faolTuri==='togarak'?null:<><LearnerCurriculumHeader viewer={catalogViewer} type={catalogType} lesson={catalogLesson} fallbackType={fallbackType} onType={type=>changeCatalog(type,'all')} onLesson={lesson=>changeCatalog(catalogType,lesson)}/>{onEducationSetup && <button type="button" onClick={onEducationSetup} className="mb-4 text-sm font-semibold text-sky-900">{__kbUi('Sinf yoki kursni o‘zgartirish')}</button>}</>;
+  const universityControl = universityBrowse && faolTuri !== 'togarak' && <UniversityFilters subjects={matchingSubjects(fanlar,catalogType,catalogLesson)} viewer={catalogViewer} value={uniFilterValue}
+    onChange={value => { setUniFilter(value); setTanlanganSinf(null); setOchiqFan(null); setTanlanganMavzu(null); setTanlanganKodlar([]); }} onEducationSetup={onEducationSetup}/>;
+  const catalogSearchControl = (catalogBrowse || universityBrowse) && <label className="mb-4 block text-sm font-semibold text-slate-700">
+    <span className="mb-1 block">{__kbUi('Fan yoki mavzuni qidirish')}</span>
+    <input type="search" value={catalogSearch} onChange={event => { setCatalogSearch(event.target.value); setClosedSubjects([]); }}
+      placeholder={__kbUi('Fan, mavzu nomi yoki kodi…')} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"/>
+  </label>;
+  const catalogError = xato && <div role="alert" className="mb-4 text-sm text-amber-900"><p>{__kbUi(xato)}</p>
+    {catalogBrowse && <button type="button" className="mt-2 rounded-lg border px-3 py-2 font-semibold" disabled={yuklanmoqda} onClick={() => setCatalogReload(value => value + 1)}>{__kbUi('Qayta urinish')}</button>}
+  </div>;
+
   const [tanlanganKodlar, setTanlanganKodlar] = useState([]); // [{nomi, topic_codes, savol_soni}]
 
   const aralashToggle = (m) => {
     setTanlanganKodlar((prev) =>
-      prev.some((k) => k.nomi === m.nomi)
-        ? prev.filter((k) => k.nomi !== m.nomi)
+      prev.some((k) => catalogTopicKey(k) === catalogTopicKey(m))
+        ? prev.filter((k) => catalogTopicKey(k) !== catalogTopicKey(m))
         : [...prev, m]
     );
   };
@@ -707,10 +716,10 @@ export default function TestTab({
             ...umumiy,
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
+            body: JSON.stringify({ token, topic_codes: tanlanganMavzu.kodlar || [], qiyinlik: qiyinlik || undefined, rasimli, vaqtli, yozuvli }),
           })
         : (() => {
-            const qs = new URLSearchParams();
+            const qs = new URLSearchParams({ token });
             if (qiyinlik) qs.set("qiyinlik", qiyinlik);
             if (rasimli !== null) qs.set("rasimli", rasimli);
             if (vaqtli !== null) qs.set("vaqtli", vaqtli);
@@ -764,7 +773,7 @@ export default function TestTab({
         res = await fetch(`${API_BASE}/api/test/${tanlanganMavzu.topic_code}?${qs.toString()}`);
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : data.detail?.message || "Savollar yuklanmadi");
       setSavollar(data.savollar);
       testUrinishIdRef.current = data.attempt_id;
       if (!testUrinishIdRef.current) throw new Error("Server test urinishini yaratolmadi. 015 migratsiyasini tekshiring.");
@@ -831,9 +840,11 @@ export default function TestTab({
     const asosiyTil = "uz";
     const ovozJinsi = _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz");
     const xomMatn = String(matn || "").replace(/\s+/g, " ").trim();
-    const ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
+    let ovozQismlari;
+    try { ovozQismlari = _ovozQismlargaBol(xomMatn, asosiyTil)
       .map((qism) => ({ ...qism, tayyor: _matnniOvozgaTayyorla(qism.matn, qism.til) }))
       .filter((qism) => qism.tayyor);
+    } catch(error) { ovozniToxtat(); setOvozXatosi(error.message); return Promise.resolve({status:"error"}); }
     const ovozKaliti = `${asosiyTil}|${ovozJinsi}|${xomMatn}`;
     if (!ovozQismlari.length) {
       setOvozXatosi("O'qiladigan matn topilmadi.");
@@ -952,7 +963,7 @@ export default function TestTab({
       if (sorovIndeksi >= sorovlar.length) { yakunla("ended"); return; }
       const segment = ++ijro.segment;
       const segmentJoriymi = () => joriymi() && ijro.segment === segment;
-      const ovozQs = new URLSearchParams({ matn: sorovlar[sorovIndeksi++], jins: ovozJinsi, asosiy_til: asosiyTil });
+      const ovozQs = new URLSearchParams({ matn: sorovlar[sorovIndeksi++], jins: ovozJinsi, asosiy_til: asosiyTil, revision: SPEECH_REVISION });
       const manzil = `${API_BASE}/api/ovoz?${ovozQs.toString()}`;
       try {
         // Reuse one media element so a continued recording keeps the initial
@@ -1006,6 +1017,11 @@ export default function TestTab({
   const [yakunlashTasdiqi, setYakunlashTasdiqi] = useState(false);
   const umumiyTimerRef = useRef(null);
   const savolReflari = useRef({}); // {index: DOM element} — raqam bosilganda shu savolga aylantirish uchun
+  useEffect(() => {
+    if (holat !== "savollar" || testRejimi !== "hammasi") return;
+    const frame = requestAnimationFrame(() => savolReflari.current[0]?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [holat, testRejimi]);
 
   // "bir_bir" (eski, mashq) rejimi uchun — bitta-bitta savol, darhol
   // to'g'ri/noto'g'ri ko'rsatish, avtomatik keyingisiga o'tish.
@@ -1028,6 +1044,9 @@ export default function TestTab({
     }
   };
 
+  // REV78: savollar soni va darajaga mos o'yin turi avtomatik tanlanadi (qo'lda tanlasa — o'shasi).
+  const oyinDarajasi = catalogType === 'universitet' || /kurs/i.test(String(tanlanganMavzu?.sinf || sinf || '')) ? 'universitet' : '';
+  const oyinTuriSoni = (soni) => oyinAvto ? recommendedGameMode(soni, { level: oyinDarajasi, grade: tanlanganMavzu?.sinf || sinf }) : oyinRejimi;
   const oyinniBoshlash = async (soni) => {
     if (testBoshlanmoqdaRef.current) return;
     testBoshlanmoqdaRef.current = true;
@@ -1038,7 +1057,7 @@ export default function TestTab({
         token,
         topicCodes: tanlanganMavzu?.kodlar || [tanlanganMavzu?.topic_code],
         questionCount: soni,
-        gameMode: oyinRejimi,
+        gameMode: oyinTuriSoni(soni),
       });
       const res = await fetch(`${API_BASE}/api/oyin/boshlash`, {
         method: "POST",
@@ -1105,7 +1124,7 @@ export default function TestTab({
     if (timerRef.current) clearInterval(timerRef.current);
     if (holat !== "savollar" || testRejimi !== "bir_bir" || joriyNatija || !savollar[joriySavol]) return;
     const s = savollar[joriySavol];
-    if (!s.time_limit) { setQolganVaqt(null); return; }
+    if (!s.time_limit || bogchaRejim) { setQolganVaqt(null); return; }
     setQolganVaqt(s.time_limit);
     timerRef.current = setInterval(() => {
       setQolganVaqt((v) => {
@@ -1123,6 +1142,12 @@ export default function TestTab({
 
   // "bir_bir" (eski, mashq) rejimi uchun — javobni DARHOL tekshiradi va
   // to'g'ri/noto'g'rini shu zahoti ko'rsatadi.
+  // REV80: bog'cha bolasi — savollar birma-bir, vaqt va avtomatik o'tish yo'q, ovoz bilan.
+  const bogchaRejim = isPreschoolLearner(foydalanuvchi, tanlanganMavzu?.sinf || sinf);
+  useEffect(() => {
+    if (bogchaRejim && testRejimi !== "bir_bir") setTestRejimi("bir_bir");
+  }, [bogchaRejim, testRejimi]);
+
   const javobBerVaTekshir = async (savolId, harf) => {
     if (javobTekshirilmoqdaRef.current.has(savolId) || joriyNatija) return;
     javobTekshirilmoqdaRef.current.add(savolId);
@@ -1171,7 +1196,7 @@ export default function TestTab({
   // Oddiy testda izoh 4 soniya ko'rinadi va keyin avtomatik o'tadi.
   // O'quvchi kutishni xohlamasa tugmani bosib darhol o'tishi mumkin.
   useEffect(() => {
-    if (!joriyNatija) { setAvtoQoldi(null); return; }
+    if (!joriyNatija || bogchaRejim) { setAvtoQoldi(null); return; }
     setAvtoQoldi(4);
     const sanoqId = setInterval(() => setAvtoQoldi((oldingi) => Math.max(0, (oldingi || 1) - 1)), 1000);
     avtoRef.current = setTimeout(keyingiSavolga, 4000);
@@ -1188,13 +1213,14 @@ export default function TestTab({
     const keyingiIndex = savollar.findIndex((s, i) => i > joriyIndex && javoblar[s.id] === undefined);
     const nishon = keyingiIndex !== -1 ? keyingiIndex : savollar.findIndex((s) => javoblar[s.id] === undefined);
     if (nishon !== -1 && savolReflari.current[nishon]) {
-      savolReflari.current[nishon].scrollIntoView({ behavior: "smooth", block: "center" });
+      raqamgaOt(nishon);
     }
   };
 
   const raqamgaOt = (index) => {
     if (savolReflari.current[index]) {
-      savolReflari.current[index].scrollIntoView({ behavior: "smooth", block: "center" });
+      savolReflari.current[index].focus({ preventScroll: true });
+      savolReflari.current[index].scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -1273,6 +1299,7 @@ export default function TestTab({
           initialSession={oyinSessiya}
           subjectName={tanlanganMavzu?.fanNomi || ""}
           topicName={tanlanganMavzu?.nomi || ""}
+          level={oyinDarajasi}
           playerProfile={{ ...foydalanuvchi, jins: oyinQahramonJinsi, class: sinf || foydalanuvchi?.class }}
           accent={rang}
           onRead={ovozniOqi}
@@ -1306,24 +1333,21 @@ export default function TestTab({
             <span className="text-2xl font-bold" style={{ color: rangi }}>{natija.foiz}%</span>
           </div>
           <h1 className="text-xl font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
-          <p className="text-sm mb-6" style={{ color: "#8A8578" }}>{natija.togri} / {natija.jami} to'g'ri</p>
+          <p className="text-sm mb-6" style={{ color: "#8A8578" }}>{natija.togri} / {natija.jami}{__kbUi(" to'g'ri")}</p>
         </div>
 
         {natija.ochko && (
           <div className="rounded-2xl p-4 bg-white border mb-5" style={{ borderColor: "#E5E1D8" }}>
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className="text-xs" style={{ color: "#8A8578" }}>Oddiy test natijasi</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Oddiy test natijasi")}</p>
                 <p className="text-lg font-bold" style={{ color: "#2B2B2B" }}>{natija.ochko.score_1000 || 0} / 1000</p>
               </div>
               <span className="px-3 py-1.5 rounded-full text-sm font-bold" style={{ color: "#7A5412", backgroundColor: "#FFF3CD" }}>
-                +{natija.ochko.awarded_points || 0} ochko
-              </span>
+                +{natija.ochko.awarded_points || 0}{__kbUi(" ochko")}</span>
             </div>
             {natija.ochko.daily_first_test_points > 0 && (
-              <p className="text-xs mb-3" style={{ color: "#5A5648" }}>
-                Bugungi birinchi tugallangan test uchun +{natija.ochko.daily_first_test_points} bonus.
-              </p>
+              <p className="text-xs mb-3" style={{ color: "#5A5648" }}>{__kbUi("Bugungi birinchi tugallangan test uchun +")}{natija.ochko.daily_first_test_points}{__kbUi(" bonus.")}</p>
             )}
             <React.Suspense fallback={<div className="h-10" />}>
               <GameProfileStrip profile={natija.ochko.profile} accent={rang} compact />
@@ -1333,9 +1357,7 @@ export default function TestTab({
 
         {natija.xatolar && natija.xatolar.length > 0 && (
           <div className="mb-6">
-            <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>
-              ❌ Xato javoblar ({natija.xatolar.length} ta)
-            </p>
+            <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("❌ Xato javoblar (")}{natija.xatolar.length}{__kbUi(" ta)")}</p>
             <div className="space-y-3">
               {natija.xatolar.map((x) => (
                 <div key={x.savol_id} className="rounded-xl p-4 border" style={{ borderColor: "#F3D3D3", backgroundColor: "#FCEBEB" }}>
@@ -1349,11 +1371,24 @@ export default function TestTab({
           </div>
         )}
 
-        <button onClick={qaytaBoshlash} className="w-full py-3.5 rounded-xl font-semibold text-white text-center" style={{ backgroundColor: "#1B4B7A" }}>
-          Boshqa mavzu
-        </button>
+        <button onClick={qaytaBoshlash} className="w-full py-3.5 rounded-xl font-semibold text-white text-center" style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("Boshqa mavzu")}</button>
       </div>
     );
+  }
+
+  // REV82: shu mavzudan do'stlar bilan onlayn bellashuv xonasi.
+  const bellashuvManbasi = () => ({
+    topic_codes: (tanlanganMavzu?.kodlar?.length ? tanlanganMavzu.kodlar : [tanlanganMavzu?.topic_code]).filter(Boolean),
+    nomi: tanlanganMavzu?.track === "review" ? "Aralash takror" : stripSpeechTags(tanlanganMavzu?.nomi || ""),
+  });
+
+  if (holat === "songi" && bogchaRejim) {
+    // REV80: bog'cha bolasi sozlamalarni ko'rmaydi — mavzudagi savollar (5 tagacha) darhol boshlanadi.
+    const jami = Math.max(0, Math.floor(Number(mosSoni) || 0));
+    return <KidStart title={tanlanganMavzu?.track === "review" ? __kbUi("🎲 Aralash takror") : stripSpeechTags(tanlanganMavzu?.nomi || "")}
+      ready={!yuklanmoqda && mosSoni !== null && jami >= 1} error={xato}
+      onStart={() => savollarniYukla(Math.min(jami, tanlanganMavzu?.track === "review" ? 8 : 5))}
+      onBack={() => setHolat("mavzular")} onBattle={onBattle && jami >= 3 ? () => onBattle(bellashuvManbasi()) : null} />;
   }
 
   if (holat === "songi") {
@@ -1368,30 +1403,43 @@ export default function TestTab({
     );
     return (
       <div className="px-5 pt-6 pb-4">
-        <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>Ortga</button>
+        <button onClick={() => setHolat("mavzular")} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "#5A5648" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EAF1F7" }}><ChevronLeft size={15} style={{ color: "#1B4B7A" }} strokeWidth={2.5} /></span>{__kbUi("Ortga")}</button>
+        <p className="mb-2 text-xs font-semibold text-sky-900">{__kbUi(institutionLabel(catalogType))}{catalogType==='universitet'?__kbUi(` → ${lessonLabel(catalogLesson)}`):__kbUi('')}</p>
         <h1 className="text-lg font-bold mb-1" style={{ color: "#2B2B2B" }}>{tanlanganMavzu.nomi}</h1>
         <p className="text-xs mb-5" style={{ color: "#8A8578" }}>{tanlanganMavzu.fanNomi}</p>
+        {onBattle && jami >= 3 && (
+          <button type="button" onClick={() => onBattle(bellashuvManbasi())}
+            className="w-full rounded-2xl p-4 mb-4 text-left flex items-center gap-3 border-2"
+            style={{ borderColor: "#6C3CE0", background: "linear-gradient(135deg,#F4EFFF,#FFF5EC)" }}>
+            <span className="text-3xl" aria-hidden="true">⚔️</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-bold" style={{ color: "#2B2B2B" }}>{__kbUi("Do‘stlar bilan bellashuv")}</span>
+              <span className="block text-xs" style={{ color: "#5D6B7A" }}>{__kbUi("Xona oching, kodni yuboring — kim birinchi to‘g‘ri topsa, ko‘proq ochko oladi")}</span>
+            </span>
+            <ChevronRight size={18} style={{ color: "#6C3CE0" }} />
+          </button>
+        )}
 
         <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🧭 Test uslubi</p>
+          <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("🧭 Test uslubi")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button onClick={() => testUslubiniTanla("bir_bir")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "bir_bir" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📖 Bittalab</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun</p>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("📖 Bittalab")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Har javobdan keyin darhol to'g'ri/noto'g'ri ko'rinadi — mashq uchun")}</p>
             </button>
             <button onClick={() => testUslubiniTanla("hammasi")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "hammasi" ? { borderColor: "#1B4B7A", backgroundColor: "#EAF1F7" } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>📜 Hammasi birga</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>Natija faqat yakunlaganda ko'rinadi — imtihon uslubida</p>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("📜 Hammasi birga")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("Natija faqat yakunlaganda ko'rinadi — imtihon uslubida")}</p>
             </button>
             <button onClick={() => testUslubiniTanla("oyin")}
               className="rounded-xl p-3.5 text-left border-2"
               style={testRejimi === "oyin" ? { borderColor: rang, backgroundColor: `${rang}12` } : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF" }}>
-              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>🎮 O'yinli test</p>
-              <p className="text-xs" style={{ color: "#8A8578" }}>5 xil o'yin, har 5-savolda nazorat, 3 jon va bilim ochkolari</p>
+              <p className="text-sm font-semibold mb-0.5" style={{ color: "#2B2B2B" }}>{__kbUi("🎮 O'yinli test")}</p>
+              <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("10 dan 100 tagacha: o'yin hajm va darajaga moslanadi, javob bergan sari manzara quriladi")}</p>
             </button>
           </div>
         </div>
@@ -1400,7 +1448,9 @@ export default function TestTab({
           <React.Suspense fallback={<div className="py-8 text-center"><Loader2 size={22} className="animate-spin mx-auto" style={{ color: rang }} /></div>}>
             <GameModePicker
               value={oyinRejimi}
-              onChange={setOyinRejimi}
+              onChange={(value) => { setOyinRejimi(value); setOyinAvto(false); }}
+              autoMode={oyinAvto}
+              onAutoMode={() => setOyinAvto(true)}
               gradeBand={oyinYoshBosqichi}
               grade={tanlanganMavzu?.sinf || sinf || tanlanganSinf || joriySinfMalumoti?.sinf}
               subjectName={tanlanganMavzu.fanNomi}
@@ -1415,7 +1465,7 @@ export default function TestTab({
         ) : (
           <>
             <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>🎯 Qiyinlik darajasi</p>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("🎯 Qiyinlik darajasi")}</p>
               <div className="flex gap-2 flex-wrap">
                 {[
                   ["", "🎲 Aralash"], ["oson", "🟢 Oson"], ["o'rta", "🟡 O'rta"],
@@ -1426,14 +1476,14 @@ export default function TestTab({
                     style={qiyinlik === qiym
                       ? { backgroundColor: "#1B4B7A", color: "#fff" }
                       : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-                    {nom}
+                    {__kbUi(nom)}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="rounded-2xl p-5 bg-white border mb-4" style={{ borderColor: "#E5E1D8" }}>
-              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>⚙️ Qo'shimcha sozlamalar</p>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#2B2B2B" }}>{__kbUi("⚙️ Qo'shimcha sozlamalar")}</p>
               <UchXilTanlov nom="🖼️ Rasm" qiymat={rasimli} onOzgar={setRasimli} haNomi="Rasmli" yoqNomi="Rasmsiz" />
               <UchXilTanlov nom="⏱️ Vaqt" qiymat={vaqtli} onOzgar={setVaqtli} haNomi="Vaqtli" yoqNomi="Vaqtsiz" />
               <UchXilTanlov nom="✍️ Javob turi" qiymat={yozuvli} onOzgar={setYozuvli} haNomi="Yozuvli" yoqNomi="Tugmali" />
@@ -1442,55 +1492,67 @@ export default function TestTab({
         )}
 
         <div className="rounded-2xl p-5 bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>
-            🔢 Nechta savol yechasiz?
-            {mosSoni === null && <Loader2 size={14} className="animate-spin" style={{ color: "#8A8578" }} />}
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "#2B2B2B" }}>{__kbUi("🔢 Nechta savol yechasiz?")}{mosSoni === null && <Loader2 size={14} className="animate-spin" style={{ color: "#8A8578" }} />}
           </p>
           {mosSoni === null ? (
-            <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>Mos savollar soni tekshirilmoqda...</p>
+            <p className="text-xs py-3 text-center" style={{ color: "#8A8578" }}>{__kbUi("Mos savollar soni tekshirilmoqda...")}</p>
           ) : (testRejimi === "oyin" ? variantlar.length === 0 : mosSoni === 0) ? (
             <p className="text-xs py-3 text-center rounded-xl" style={{ color: "#B0553A", backgroundColor: "#FCEBEB" }}>
               {testRejimi === "oyin"
-                ? "O'yin uchun kamida 5 ta to'liq, 4 variantli savol kerak."
-                : "Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang."}
+                ? __kbUi("O'yin uchun kamida 5 ta to'liq, 4 variantli savol kerak.")
+                : __kbUi("Bu sozlamalar bo'yicha mos savol topilmadi — boshqa sozlamani tanlang.")}
             </p>
           ) : (
             <>
-              <div className={`grid ${testRejimi === "oyin" ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-3"} gap-2 mb-2.5`}>
+              <div className={`grid ${testRejimi === "oyin" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"} gap-2 mb-2.5`}>
                 {variantlar.map((n) => (
                   <button key={n} onClick={() => testniBoshlash(n)}
                     className="py-3.5 rounded-xl border font-semibold text-center text-sm"
                     style={{ borderColor: "#E5E1D8", backgroundColor: "#F7F5F0", color: "#2B2B2B" }}>
-                    <span className="block">{n} ta</span>
-                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{n / 5} ta nazorat savoli</span>}
+                    <span className="block">{n}{__kbUi(" ta")}</span>
+                    {testRejimi === "oyin" && <span className="block text-[10px] mt-0.5 font-medium" style={{ color: "#8A8578" }}>{__kbUi(TIER_INFO[gameSizeTier(n)].title)}{oyinAvto ? ` · ${__kbUi(GAME_MODE_NAMES[oyinTuriSoni(n)] || '')}` : ''}</span>}
                   </button>
                 ))}
               </div>
               {testRejimi !== "oyin" && jami <= 100 && (
                 <button onClick={() => testniBoshlash(jami)}
                   className="w-full py-3.5 rounded-xl font-semibold text-white text-center text-sm"
-                  style={{ backgroundColor: "#1B4B7A" }}>
-                  🚀 Hammasi ({jami} ta)
-                </button>
+                  style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("🚀 Hammasi (")}{jami}{__kbUi(" ta)")}</button>
               )}
               {testRejimi !== "oyin" && jami > 100 && (
-                <p className="text-xs mt-3" style={{ color: "#5A5648" }}>
-                  Bankda {jami} ta mos savol bor. Bitta urinishda 100 tagacha savol ishlaysiz.
-                </p>
+                <p className="text-xs mt-3" style={{ color: "#5A5648" }}>{__kbUi("Bankda ")}{jami}{__kbUi(" ta mos savol bor. Bitta urinishda 100 tagacha savol ishlaysiz.")}</p>
               )}
             </>
           )}
-          {xato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{xato}</p>}
+          {xato && <p className="text-xs mt-3" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
         </div>
       </div>
     );
+  }
+
+  if (holat === "savollar" && testRejimi === "bir_bir" && bogchaRejim && savollar[joriySavol]) {
+    return <><KidQuiz savol={savollar[joriySavol]} index={joriySavol} total={savollar.length}
+      natija={joriyNatija} tekshirilmoqda={javobTekshirilmoqdaId === savollar[joriySavol].id}
+      correctCount={toGriSoni} jins={foydalanuvchi?.jins}
+      onAnswer={(harf) => javobBerVaTekshir(savollar[joriySavol].id, harf)}
+      onNext={keyingiSavolga} speak={ovozniOqi} onStop={() => setToxtatishModali(true)} />
+      {toxtatishModali && <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+        <div className="w-full max-w-sm rounded-3xl p-5 text-center" style={{ backgroundColor: "#FFFFFF" }}>
+          <p className="text-4xl mb-2">🕊️</p>
+          <p className="font-bold mb-4" style={{ color: "#3b2a06" }}>{__kbUi("O'yinni tugatamizmi?")}</p>
+          <div className="flex gap-2.5">
+            <button onClick={() => setToxtatishModali(false)} className="flex-1 py-3 rounded-2xl text-sm font-bold" style={{ background: "#fff8ec", color: "#3b2a06" }}>{__kbUi("Davom etamiz")}</button>
+            <button onClick={toxtatish} className="flex-1 py-3 rounded-2xl text-sm font-bold text-white" style={{ backgroundColor: "#c77d0a" }}>{__kbUi("Tugatish")}</button>
+          </div>
+        </div>
+      </div>}</>;
   }
 
   if (holat === "savollar" && testRejimi === "bir_bir") {
     const s = savollar[joriySavol];
     const oxirgi = joriySavol === savollar.length - 1;
     const yozuvli = s.question_type === "write_answer";
-    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+    const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "");
     const javobBerilgan = !!joriyNatija;
     const javobKutilmoqda = javobTekshirilmoqdaId === s.id;
 
@@ -1522,15 +1584,14 @@ export default function TestTab({
               ✓ {toGriSoni}
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FCEBEB", color: "#A32D2D" }}>
-              ✗ {xatoSoni}
+              ✗ {__kbUi(xatoSoni)}
             </span>
           </div>
           <div className="flex items-center gap-2">
             {qolganVaqt !== null && !javobBerilgan && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: qolganVaqt <= 5 ? "#FCEBEB" : "#F1EFE8", color: qolganVaqt <= 5 ? "#A32D2D" : "#5A5648" }}>
-                ⏱ {qolganVaqt}s
-              </span>
+                ⏱ {qolganVaqt}{__kbUi("s")}</span>
             )}
             <button onClick={() => setToxtatishModali(true)}
               className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
@@ -1548,32 +1609,31 @@ export default function TestTab({
 
         <h2 className="text-lg font-semibold mb-5 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
           <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-          {(() => {
-            const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
+          {__kbUi((() => {
+            const ovozMatni = yozuvli ? s.question : `${s.question}. ${[["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => String(v ?? "").trim()).map(([h, v]) => `${h}) ${v}`).join(". ")}`;
             const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
             return (
               <div className="shrink-0 flex flex-col items-end gap-1">
                 <div className="flex items-center gap-1">
                   <button onClick={() => ovozniOqi(ovozMatni)}
                     aria-busy={shuOqilmoqda && ovozHolati === "yuklanmoqda"}
-                    aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda" : "Ovoz chiqarib o'qish"}
+                    aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda") : __kbUi("Ovoz chiqarib o'qish")}
                     className="w-9 h-9 rounded-full flex items-center justify-center"
                     style={{
                       backgroundColor: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#FFF3CD" : "#EAF1F7",
                       color: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#8A5A1C" : "#1B4B7A",
                     }}
-                    title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda..." : "Ovoz chiqarib o'qish"}>
+                    title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda...") : __kbUi("Ovoz chiqarib o'qish")}>
                     {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
-                      : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
-                      : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
-                      : "🔊"}
+                      : shuOqilmoqda && ovozHolati === "oynamoqda" ? __kbUi("⏸️")
+                      : shuOqilmoqda && ovozHolati === "pauzada" ? __kbUi("▶️")
+                      : __kbUi("🔊")}
                   </button>
                   {shuOqilmoqda && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
                     <button onClick={() => setOvozTezlikOchiq((o) => !o)}
                       className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
                       style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                      {ovozTezligi}x
-                    </button>
+                      {ovozTezligi}{__kbUi("x")}</button>
                   )}
                 </div>
                 {shuOqilmoqda && ovozTezlikOchiq && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
@@ -1582,14 +1642,13 @@ export default function TestTab({
                       <button key={t} onClick={() => { ovozTezliginiOzgartir(t); setOvozTezlikOchiq(false); }}
                         className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                         style={t === ovozTezligi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { color: "#5A5648" }}>
-                        {t}x
-                      </button>
+                        {__kbUi(t)}{__kbUi("x")}</button>
                     ))}
                   </div>
                 )}
               </div>
             );
-          })()}
+          })())}
         </h2>
 
         {yozuvli ? (
@@ -1598,7 +1657,7 @@ export default function TestTab({
               onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
               disabled={javobBerilgan || javobKutilmoqda}
               onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && !javobKutilmoqda && (yozibJavob[s.id] || "").trim()) javobBerVaTekshir(s.id, yozibJavob[s.id].trim()); }}
-              placeholder="Javobingizni yozing..."
+              placeholder={__kbUi("Javobingizni yozing...")}
               className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
               style={javobBerilgan
                 ? { borderColor: joriyNatija.togrimi ? "#639922" : "#E24B4A", backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB" }
@@ -1608,7 +1667,7 @@ export default function TestTab({
                 disabled={javobKutilmoqda || !(yozibJavob[s.id] || "").trim()}
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm"
                 style={{ backgroundColor: "#1B4B7A", opacity: !javobKutilmoqda && (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
-                {javobKutilmoqda ? "Tekshirilmoqda..." : "Javobni yuborish"}
+                {javobKutilmoqda ? __kbUi("Tekshirilmoqda...") : __kbUi("Javobni yuborish")}
               </button>
             )}
           </div>
@@ -1637,13 +1696,13 @@ export default function TestTab({
         {javobBerilgan && (
           <div className="rounded-xl p-5 mb-4 border-2" style={{ backgroundColor: joriyNatija.togrimi ? "#EAF3DE" : "#FCEBEB", borderColor: joriyNatija.togrimi ? "#639922" : "#C64040" }}>
             {joriyNatija.togrimi ? (
-              <p className="text-lg font-bold" style={{ color: "#285B0B" }}>✓ To‘g‘ri javob: {joriyNatija.togri_javob}</p>
+              <p className="text-lg font-bold" style={{ color: "#285B0B" }}>{__kbUi("✓ To‘g‘ri javob: ")}{joriyNatija.togri_javob}</p>
             ) : (
               <AralashMatn matn={`✗ Noto‘g‘ri. To‘g‘ri javob: ${joriyNatija.togri_javob}`} className="text-lg font-bold" style={{ color: "#8F2020" }} />
             )}
             {joriyNatija.tushuntirish && (
               <div className="mt-3 pt-3 border-t" style={{ borderColor: joriyNatija.togrimi ? "#B9D39F" : "#E3B5B5" }}>
-                <b className="block text-sm mb-1" style={{ color: "#27394A" }}>Izoh:</b>
+                <b className="block text-sm mb-1" style={{ color: "#27394A" }}>{__kbUi("Izoh:")}</b>
                 <AralashMatn matn={joriyNatija.tushuntirish} className="text-base leading-7 font-medium" style={{ color: "#27394A" }} />
               </div>
             )}
@@ -1652,30 +1711,24 @@ export default function TestTab({
 
         {javobBerilgan ? (
           <button onClick={keyingiSavolga} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-            {oxirgi ? `Yakunlash${avtoQoldi ? ` (${avtoQoldi})` : ""}` : `Keyingi savol${avtoQoldi ? ` (${avtoQoldi})` : ""}`}
+            {oxirgi ? __kbUi(`Yakunlash${avtoQoldi ? ` (${avtoQoldi})` : ""}`) : __kbUi(`Keyingi savol${avtoQoldi ? ` (${avtoQoldi})` : ""}`)}
           </button>
         ) : (
           <p className="text-center text-xs" style={{ color: "#B0AA98" }}>
-            {javobKutilmoqda ? "Javob tekshirilmoqda..." : "Javobni tanlang"}
+            {javobKutilmoqda ? __kbUi("Javob tekshirilmoqda...") : __kbUi("Javobni tanlang")}
           </p>
         )}
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
-              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-                Hozirgacha javob bergan {Object.keys(javoblar).length} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
-              </p>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>{__kbUi("⏹ Testni to'xtatasizmi?")}</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>{__kbUi("Hozirgacha javob bergan ")}{Object.keys(javoblar).length}{__kbUi(" ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.")}</p>
               <div className="flex gap-2.5">
                 <button onClick={() => setToxtatishModali(false)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  Davom etish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Davom etish")}</button>
                 <button onClick={toxtatish}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
-                  Ha, to'xtatish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>{__kbUi("Ha, to'xtatish")}</button>
               </div>
             </div>
           </div>
@@ -1699,55 +1752,23 @@ export default function TestTab({
             correctCount={0}
           />
         </div>
-        {/* Yopishqoq yuqori panel — umumiy vaqt, hisob, o'tkazish/to'xtatish */}
-        <div className="sticky top-0 z-20 px-5 pt-4 pb-3" style={{ backgroundColor: "#F7F5F0", borderBottom: "1px solid #E5E1D8" }}>
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-medium" style={{ color: "#8A8578" }}>{jamiJavoblangan} / {savollar.length} javob berildi</span>
-            <div className="flex items-center gap-2">
-              {umumiyVaqt !== null && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: umumiyVaqt <= 30 ? "#FCEBEB" : "#F1EFE8", color: umumiyVaqt <= 30 ? "#A32D2D" : "#5A5648" }}>
-                  ⏱ {Math.floor(umumiyVaqt / 60)}:{String(umumiyVaqt % 60).padStart(2, "0")}
-                </span>
-              )}
-              <button onClick={() => setToxtatishModali(true)}
-                className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F1EFE8", color: "#A32D2D" }}>
-                ⏹ To'xtatish
-              </button>
-            </div>
-          </div>
-          {/* Savol raqamlari — endi bir qatorga sig'masa, PASTGA (yangi qatorga)
-              tushadi, gorizontal aylantirish shart emas, hammasi darhol ko'rinadi. */}
-          <div className="flex gap-1.5 flex-wrap">
-            {savollar.map((s, i) => {
-              const javobBormi = javoblar[s.id] !== undefined;
-              return (
-                <button key={s.id} onClick={() => raqamgaOt(i)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2"
-                  style={javobBormi
-                    ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0", color: "#8A5A1C" }
-                    : { borderColor: "#E5E1D8", backgroundColor: "#FFFFFF", color: "#5A5648" }}>
-                  {i + 1}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <QuestionNavigator questions={savollar} answers={javoblar} remaining={umumiyVaqt}
+          onJump={raqamgaOt} onStop={() => setToxtatishModali(true)} onFinish={() => setYakunlashTasdiqi(true)} />
 
         <div className="px-5 pt-5 space-y-5">
           {savollar.map((s, i) => {
             const yozuvli = s.question_type === "write_answer";
-            const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]];
+            const variantlar = [["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== "");
             const javobBerilgan = javoblar[s.id] !== undefined;
 
             return (
               <div key={s.id} ref={(el) => { savolReflari.current[i] = el; }}
-                className="rounded-2xl p-4 bg-white border" style={{
+                tabIndex={-1} className="test-question-card rounded-2xl p-4 bg-white border" style={{
                   borderColor: javobBerilgan ? "#F5DFA3" : "#E5E1D8",
                   contentVisibility: "auto",
                   containIntrinsicSize: "520px",
                 }}>
-                <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}-savol</p>
+                <p className="text-xs font-medium mb-3" style={{ color: "#8A8578" }}>{i + 1}{__kbUi("-savol")}</p>
 
                 {s.rasm_id && (haqiqiyRasmKodimi(s.rasm_id)
                   ? <SavolRasmi rasmId={s.rasm_id} />
@@ -1755,32 +1776,31 @@ export default function TestTab({
 
                 <h2 className="text-lg font-semibold mb-4 flex items-start gap-2" style={{ color: "#2B2B2B" }}>
                   <span className="flex-1"><Matn matn={s.question} latex={s.is_latex} /></span>
-                  {(() => {
-                    const ovozMatni = yozuvli ? s.question : `${s.question}. A) ${s.option_a}. B) ${s.option_b}. C) ${s.option_c}. D) ${s.option_d}`;
+                  {__kbUi((() => {
+                    const ovozMatni = yozuvli ? s.question : `${s.question}. ${[["A", s.option_a], ["B", s.option_b], ["C", s.option_c], ["D", s.option_d]].filter(([, v]) => String(v ?? "").trim()).map(([h, v]) => `${h}) ${v}`).join(". ")}`;
                     const shuOqilmoqda = ovozKorinadiganMatnRef.current === String(ovozMatni || "").replace(/\s+/g, " ").trim();
                     return (
                       <div className="shrink-0 flex flex-col items-end gap-1">
                         <div className="flex items-center gap-1">
                           <button onClick={() => ovozniOqi(ovozMatni)}
                             aria-busy={shuOqilmoqda && ovozHolati === "yuklanmoqda"}
-                            aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda" : "Ovoz chiqarib o'qish"}
+                            aria-label={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda") : __kbUi("Ovoz chiqarib o'qish")}
                             className="w-9 h-9 rounded-full flex items-center justify-center"
                             style={{
                               backgroundColor: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#FFF3CD" : "#EAF1F7",
                               color: shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "#8A5A1C" : "#1B4B7A",
                             }}
-                            title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? "Ovoz tayyorlanmoqda..." : "Ovoz chiqarib o'qish"}>
+                            title={shuOqilmoqda && ovozHolati === "yuklanmoqda" ? __kbUi("Ovoz tayyorlanmoqda...") : __kbUi("Ovoz chiqarib o'qish")}>
                             {shuOqilmoqda && ovozHolati === "yuklanmoqda" ? <Loader2 size={16} className="animate-spin" />
-                              : shuOqilmoqda && ovozHolati === "oynamoqda" ? "⏸️"
-                              : shuOqilmoqda && ovozHolati === "pauzada" ? "▶️"
-                              : "🔊"}
+                              : shuOqilmoqda && ovozHolati === "oynamoqda" ? __kbUi("⏸️")
+                              : shuOqilmoqda && ovozHolati === "pauzada" ? __kbUi("▶️")
+                              : __kbUi("🔊")}
                           </button>
                           {shuOqilmoqda && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
                             <button onClick={() => setOvozTezlikOchiq((o) => !o)}
                               className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
                               style={{ backgroundColor: "#EAF1F7", color: "#1B4B7A" }}>
-                              {ovozTezligi}x
-                            </button>
+                              {ovozTezligi}{__kbUi("x")}</button>
                           )}
                         </div>
                         {shuOqilmoqda && ovozTezlikOchiq && (ovozHolati === "oynamoqda" || ovozHolati === "pauzada") && (
@@ -1789,14 +1809,13 @@ export default function TestTab({
                               <button key={t} onClick={() => { ovozTezliginiOzgartir(t); setOvozTezlikOchiq(false); }}
                                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                                 style={t === ovozTezligi ? { backgroundColor: "#1B4B7A", color: "#fff" } : { color: "#5A5648" }}>
-                                {t}x
-                              </button>
+                                {__kbUi(t)}{__kbUi("x")}</button>
                             ))}
                           </div>
                         )}
                       </div>
                     );
-                  })()}
+                  })())}
                 </h2>
 
                 {yozuvli ? (
@@ -1805,16 +1824,14 @@ export default function TestTab({
                       onChange={(e) => setYozibJavob((prev) => ({ ...prev, [s.id]: e.target.value }))}
                       disabled={javobBerilgan}
                       onKeyDown={(e) => { if (e.key === "Enter" && !javobBerilgan && (yozibJavob[s.id] || "").trim()) javobYoz(s.id, yozibJavob[s.id].trim()); }}
-                      placeholder="Javobingizni yozing..."
+                      placeholder={__kbUi("Javobingizni yozing...")}
                       className="w-full px-4 py-3.5 rounded-xl border text-sm mb-3"
                       style={javobBerilgan ? { borderColor: "#C89B3C", backgroundColor: "#FDF3E0" } : { borderColor: "#E5E1D8" }} />
                     {!javobBerilgan && (
                       <button onClick={() => (yozibJavob[s.id] || "").trim() && javobYoz(s.id, yozibJavob[s.id].trim())}
                         disabled={!(yozibJavob[s.id] || "").trim()}
                         className="w-full py-3 rounded-xl font-semibold text-white text-sm"
-                        style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>
-                        Javobni belgilash
-                      </button>
+                        style={{ backgroundColor: "#1B4B7A", opacity: (yozibJavob[s.id] || "").trim() ? 1 : 0.5 }}>{__kbUi("Javobni belgilash")}</button>
                     )}
                   </div>
                 ) : (
@@ -1839,41 +1856,24 @@ export default function TestTab({
                 )}
 
                 {!javobBerilgan && (
-                  <button onClick={() => savolniOtkazib(i)} className="w-full text-center text-xs font-medium mt-3" style={{ color: "#8A8578" }}>
-                    O'tkazib yuborish →
-                  </button>
+                  <button onClick={() => savolniOtkazib(i)} className="w-full text-center text-xs font-medium mt-3" style={{ color: "#8A8578" }}>{__kbUi("O'tkazib yuborish →")}</button>
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* Kichik, burchakdagi "Yakunlash" tugmasi — endi butun kenglikni
-            egallamaydi, va bosilganda tasdiqlash so'raladi. */}
-        <div className="fixed bottom-20 right-5 z-20">
-          <button onClick={() => setYakunlashTasdiqi(true)}
-            className="rounded-full px-5 py-3 font-semibold text-white text-sm shadow-lg flex items-center gap-1.5"
-            style={{ backgroundColor: "#1B4B7A" }}>
-            ✓ Yakunlash
-          </button>
-        </div>
 
         {toxtatishModali && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>⏹ Testni to'xtatasizmi?</p>
-              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-                Hozirgacha javob bergan {jamiJavoblangan} ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.
-              </p>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>{__kbUi("⏹ Testni to'xtatasizmi?")}</p>
+              <p className="text-sm mb-5" style={{ color: "#5A5648" }}>{__kbUi("Hozirgacha javob bergan ")}{jamiJavoblangan}{__kbUi(" ta savolingiz saqlanadi, qolganlari javobsiz hisoblanadi.")}</p>
               <div className="flex gap-2.5">
                 <button onClick={() => setToxtatishModali(false)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  Davom etish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Davom etish")}</button>
                 <button onClick={toxtatish}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>
-                  Ha, to'xtatish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#A32D2D" }}>{__kbUi("Ha, to'xtatish")}</button>
               </div>
             </div>
           </div>
@@ -1882,20 +1882,15 @@ export default function TestTab({
         {yakunlashTasdiqi && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             <div className="w-full max-w-sm rounded-2xl p-5" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 12px 32px rgba(43,43,43,0.18)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>✓ Testni yakunlaysizmi?</p>
+              <p className="font-semibold mb-2" style={{ color: "#2B2B2B" }}>{__kbUi("✓ Testni yakunlaysizmi?")}</p>
               <p className="text-sm mb-5" style={{ color: "#5A5648" }}>
-                {jamiJavoblangan} / {savollar.length} savolga javob berdingiz.
-                {jamiJavoblangan < savollar.length ? " Qolganlari javobsiz hisoblanadi." : ""}
+                {jamiJavoblangan} / {savollar.length}{__kbUi(" savolga javob berdingiz.")}{jamiJavoblangan < savollar.length ? __kbUi(" Qolganlari javobsiz hisoblanadi.") : __kbUi("")}
               </p>
               <div className="flex gap-2.5">
                 <button onClick={() => setYakunlashTasdiqi(false)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>
-                  Davom etish
-                </button>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: "#E5E1D8", color: "#5A5648" }}>{__kbUi("Davom etish")}</button>
                 <button onClick={() => { setYakunlashTasdiqi(false); yakunla(); }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>
-                  Ha, yakunlash
-                </button>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("Ha, yakunlash")}</button>
               </div>
             </div>
           </div>
@@ -1906,46 +1901,49 @@ export default function TestTab({
 
   // holat === "mavzular"
   // Sinf ko'rsatilmasa (admin) va hali sinf tanlanmagan bo'lsa — avval sinflar ro'yxati.
-  if ((!sinf || boshqaSinflarRejimi) && !tanlanganSinf) {
+  if ((!profilSinfi || boshqaSinflarRejimi) && !tanlanganSinf) {
     return (
       <div className="px-5 pt-6 pb-4">
+        {catalogHeader}
         {faolTuri === "togarak" && (
           <button onClick={() => { setFaolTuri("oddiy"); setBoshqaSinflarRejimi(false); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
-            {sinf ? "← O'z sinfimga qaytish" : "← Oddiy sinflarga qaytish"}
+            {sinf ? __kbUi("← O'z sinfimga qaytish") : __kbUi("← Oddiy sinflarga qaytish")}
           </button>
         )}
         <h1 className="text-2xl font-bold mb-5" style={{ color: "#2B2B2B" }}>
-          {faolTuri === "togarak" ? "Boshqa sinflar (to'garak)" : "Test yechish"}
+          {faolTuri === "togarak" ? __kbUi("Boshqa sinflar (to'garak)") : catalogBrowse ? __kbUi(catalogType === 'universitet' ? 'Kurslar' : 'Sinflar va guruhlar') : __kbUi("Test yechish")}
         </h1>
-        {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+        {universityControl}
+        {catalogSearchControl}
+        {catalogError}
         {yuklanmoqda ? (
           <div className="py-10 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>
-        ) : sinflarRoyxati.length === 0 && faolTuri === "togarak" ? (
+        ) : sinflarRoyxati.length === 0 && (faolTuri === "togarak" || catalogBrowse || universityBrowse) ? (
           <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-            <p className="text-sm" style={{ color: "#8A8578" }}>Hozircha to'garak sinflari mavjud emas.</p>
+            <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi(catalogBrowse || universityBrowse ? (catalogSearch ? 'Qidiruvga mos fan yoki mavzu topilmadi.' : 'Bu bo‘limda hali tayyor test yo‘q.') : "Hozircha to'garak sinflari mavjud emas.")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {sinflarRoyxati.map((s) => {
               const jamiMavzu = s.fanlar.reduce((sum, f) => sum + f.mavzular.length, 0);
               return (
-                <button key={s.sinf} onClick={() => setTanlanganSinf(s.sinf)}
+                <button key={s.sinf} onClick={() => { setTanlanganSinf(s.sinf); setClosedSubjects([]); }}
                   className="rounded-2xl p-5 text-center bg-white border"
                   style={{ borderColor: "#E5E1D8" }}>
                   <p className="text-xl font-bold mb-1" style={{ color: "#1B4B7A" }}>
-                    {faolTuri === "togarak" ? s.sinf : `${s.sinf}-sinf`}
+                    {faolTuri === "togarak" ? s.sinf : __kbUi(gradeLabel(catalogType,s.sinf))}
                   </p>
-                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.fanlar.length} fan · {jamiMavzu} mavzu</p>
+                  <p className="text-xs" style={{ color: "#8A8578" }}>{s.fanlar.length}{__kbUi(" fan · ")}{jamiMavzu}{__kbUi(" mavzu")}</p>
                 </button>
               );
             })}
-            {faolTuri === "oddiy" && !sinf && (
+            {faolTuri === "oddiy" && !sinf && !catalogBrowse && (
               <button onClick={() => setFaolTuri("togarak")}
                 className="rounded-2xl p-5 text-center bg-white border-2 border-dashed"
                 style={{ borderColor: "#C4BFAF" }}>
                 <p className="text-xl mb-1">📚</p>
-                <p className="text-sm font-semibold" style={{ color: "#5A5648" }}>Boshqa sinflar</p>
-                <p className="text-xs" style={{ color: "#8A8578" }}>to'garak guruhlari</p>
+                <p className="text-sm font-semibold" style={{ color: "#5A5648" }}>{__kbUi("Boshqa sinflar")}</p>
+                <p className="text-xs" style={{ color: "#8A8578" }}>{__kbUi("to'garak guruhlari")}</p>
               </button>
             )}
           </div>
@@ -1958,54 +1956,57 @@ export default function TestTab({
   const sinfMalumoti = joriySinfMalumoti;
   return (
     <div className="px-5 pt-6" style={{ paddingBottom: aralashRejim && tanlanganKodlar.length > 0 ? "84px" : "16px" }}>
-      {(!sinf || boshqaSinflarRejimi) && (
-        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>
-          ← Sinflar
-        </button>
+      {catalogHeader}
+      {(!profilSinfi || boshqaSinflarRejimi) && !catalogBrowse?.initialGrade && (
+        <button onClick={() => { setTanlanganSinf(null); setOchiqFan(null); }} className="text-sm mb-4" style={{ color: "#8A8578" }}>{__kbUi(catalogType === 'universitet' ? '← Kurslar' : '← Sinflar')}</button>
       )}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold" style={{ color: "#2B2B2B" }}>
-          {sinfMalumoti ? (faolTuri === "togarak" ? `${sinfMalumoti.sinf} testlari` : `${sinfMalumoti.sinf}-sinf testlari`) : "Test yechish"}
+          {sinfMalumoti ? (faolTuri === "togarak" ? __kbUi(`${sinfMalumoti.sinf} testlari`) : __kbUi(`${gradeLabel(catalogType,sinfMalumoti.sinf)} testlari`)) : __kbUi("Test yechish")}
         </h1>
         <button onClick={() => { setAralashRejim(!aralashRejim); setTanlanganKodlar([]); }}
           className="text-xs font-semibold px-3 py-1.5 rounded-full"
           style={aralashRejim
             ? { backgroundColor: "#1B4B7A", color: "#fff" }
             : { backgroundColor: "#F7F5F0", color: "#5A5648" }}>
-          {aralashRejim ? "✕ Aralash rejimi" : "🔀 Bir nechta mavzu"}
+          {aralashRejim ? __kbUi("✕ Aralash rejimi") : __kbUi("🔀 Bir nechta mavzu")}
         </button>
       </div>
-      {sinf && !boshqaSinflarRejimi && (
+      {sinf && !boshqaSinflarRejimi && !catalogBrowse && (
         <button onClick={() => { setBoshqaSinflarRejimi(true); setFaolTuri("togarak"); setTanlanganSinf(null); }}
-          className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>
-          📚 Boshqa (to'garak) guruhlarni ko'rish →
-        </button>
+          className="text-xs font-medium mb-4" style={{ color: "#1B4B7A" }}>{__kbUi("📚 Boshqa (to'garak) guruhlarni ko'rish →")}</button>
       )}
-      {xato && <p className="text-sm mb-4" style={{ color: "#B0553A" }}>{xato}</p>}
+      {universityControl}
+      {catalogSearchControl}
+      {catalogError}
       {aralashRejim && (
         <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ backgroundColor: "#EAF1F7" }}>
-          <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>
-            👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.
-          </p>
+          <p className="text-xs font-medium" style={{ color: "#1B4B7A" }}>{__kbUi("👆 Fanni oching va xohlagan mavzularni belgilang — bir nechta fandan ham bo'lishi mumkin.")}</p>
           <span className="text-sm font-bold shrink-0 ml-2" style={{ color: "#1B4B7A" }}>{tanlanganKodlar.length}</span>
         </div>
       )}
-      {!sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
+      {catalogBrowse && yuklanmoqda ? <div role="status" className="py-10 text-center">{__kbUi('Testlar yuklanmoqda…')}</div> : !sinfMalumoti || sinfMalumoti.fanlar.length === 0 ? (
         <div className="rounded-2xl p-6 text-center bg-white border" style={{ borderColor: "#E5E1D8" }}>
-          <p className="text-sm" style={{ color: "#8A8578" }}>Bu sinfda hozircha test mavjud emas.</p>
+          <p className="text-sm" style={{ color: "#8A8578" }}>{__kbUi(catalogSearch ? 'Qidiruvga mos fan yoki mavzu topilmadi.' : 'Tanlangan bo‘limda sizga mos test hali kiritilmagan.')}</p>
+          {onEducationSetup && <button type="button" className="mt-4 rounded-xl border px-4 py-3 text-sm font-semibold" onClick={onEducationSetup}>{__kbUi("Sinf yoki kursni tekshirish")}</button>}
         </div>
       ) : (
         <div className="space-y-3">
           {sinfMalumoti.fanlar.map((fan) => {
-            const ochiq = ochiqFan === fan.qisqa;
+            const ochiq = catalogBrowse && catalogType === 'universitet' ? !closedSubjects.includes(fan.qisqa) : ochiqFan === fan.qisqa;
             return (
               <div key={fan.qisqa} className="rounded-2xl overflow-hidden border bg-white" style={{ borderColor: "#E5E1D8" }}>
-                <button onClick={() => setOchiqFan(ochiq ? null : fan.qisqa)} className="w-full flex items-center justify-between p-4">
-                  <span className="font-semibold text-sm" style={{ color: "#2B2B2B" }}>{fan.nom}</span>
+                <button type="button" aria-expanded={ochiq} onClick={() => {
+                  if (catalogBrowse && catalogType === 'universitet') setClosedSubjects(old => ochiq ? [...old, fan.qisqa] : old.filter(key => key !== fan.qisqa));
+                  else setOchiqFan(ochiq ? null : fan.qisqa);
+                }} className="w-full flex items-center justify-between gap-3 p-4 text-left">
+                  <span className="min-w-0 font-semibold text-sm" style={{ color: "#2B2B2B" }}><TranslatedContent text={fan.nom} showStatus={false}/>
+                    {fan.details && <span className="mt-1 block break-words text-xs font-normal text-slate-600">{__kbUi(fan.details)}</span>}
+                  </span>
                   {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}
                 </button>
                 {ochiq && (
-                  <MavzuRoyxati fan={fan} aralashRejim={aralashRejim} tanlanganKodlar={tanlanganKodlar}
+                  <MavzuRoyxati key={catalogBrowse ? catalogSearch : fan.qisqa} fan={fan} aralashRejim={aralashRejim} tanlanganKodlar={tanlanganKodlar}
                     onToggle={aralashToggle} onTanla={mavzuBoslandi} />
                 )}
               </div>
@@ -2019,9 +2020,7 @@ export default function TestTab({
           <div className="max-w-md mx-auto">
             <button onClick={aralashTestBoshlandi}
               className="w-full py-3.5 rounded-xl font-semibold text-white text-sm shadow-lg"
-              style={{ backgroundColor: "#1B4B7A" }}>
-              🚀 Aralash test boshlash ({tanlanganKodlar.length} mavzu tanlandi)
-            </button>
+              style={{ backgroundColor: "#1B4B7A" }}>{__kbUi("🚀 Aralash test boshlash (")}{tanlanganKodlar.length}{__kbUi(" mavzu tanlandi)")}</button>
           </div>
         </div>
       )}
@@ -2030,6 +2029,7 @@ export default function TestTab({
 }
 
 function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
+  useKbInterfaceLocale();
   const variantlar = [[null, "Barchasi"], [true, haNomi], [false, yoqNomi]];
   return (
     <div className="flex items-center justify-between mb-3 last:mb-0">
@@ -2050,22 +2050,21 @@ function UchXilTanlov({ nom, qiymat, onOzgar, haNomi, yoqNomi }) {
 }
 
 function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla }) {
+  useKbInterfaceLocale();
   const [sahifa, setSahifa] = useState(0);
   const JAMI_SAHIFA = Math.ceil(fan.mavzular.length / 10) || 1;
   const korinadigan = fan.mavzular.slice(sahifa * 10, sahifa * 10 + 10);
-  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => m.nomi === k.nomi)).length;
+  const shuFandaTanlangan = tanlanganKodlar.filter((k) => fan.mavzular.some((m) => catalogTopicKey(m) === catalogTopicKey(k))).length;
 
   return (
     <div className="px-4 pb-4 space-y-2">
       {aralashRejim && shuFandaTanlangan > 0 && (
-        <p className="text-xs font-semibold px-1 pb-1" style={{ color: "#1B4B7A" }}>
-          ✓ Bu fandan {shuFandaTanlangan} ta mavzu tanlandi
-        </p>
+        <p className="text-xs font-semibold px-1 pb-1" style={{ color: "#1B4B7A" }}>{__kbUi("✓ Bu fandan ")}{shuFandaTanlangan}{__kbUi(" ta mavzu tanlandi")}</p>
       )}
       {korinadigan.map((m) => {
-        const tanlanganmi = tanlanganKodlar.some((k) => k.nomi === m.nomi);
+        const tanlanganmi = tanlanganKodlar.some((k) => catalogTopicKey(k) === catalogTopicKey(m));
         return (
-          <button key={m.nomi}
+          <button key={catalogTopicKey(m)}
             onClick={() => aralashRejim ? onToggle(m) : onTanla(fan, m)}
             className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border-2"
             style={{
@@ -2079,9 +2078,9 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
                   {tanlanganmi && <span className="text-white text-xs">✓</span>}
                 </span>
               )}
-              <span className="text-sm text-left" style={{ color: "#2B2B2B" }}>{m.nomi}</span>
+              <span className="text-sm text-left" style={{ color: "#2B2B2B" }}><TranslatedContent text={m.nomi} showStatus={false}/>{m.semestr > 0 && <small className="block text-xs opacity-70">{m.semestr}{__kbUi("-semestr")}</small>}</span>
             </span>
-            <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{m.savol_soni} ta</span>
+            <span className="text-xs shrink-0" style={{ color: "#8A8578" }}>{m.savol_soni}{__kbUi(" ta")}</span>
           </button>
         );
       })}
@@ -2089,18 +2088,13 @@ function MavzuRoyxati({ fan, aralashRejim, tanlanganKodlar, onToggle, onTanla })
         <div className="flex items-center justify-between pt-1">
           <button onClick={() => setSahifa((s) => Math.max(0, s - 1))} disabled={sahifa === 0}
             className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>
-            ← Oldingi
-          </button>
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa === 0 ? "#C4BFAF" : "#5A5648" }}>{__kbUi("← Oldingi")}</button>
           <span className="text-xs" style={{ color: "#8A8578" }}>{sahifa + 1} / {JAMI_SAHIFA}</span>
           <button onClick={() => setSahifa((s) => Math.min(JAMI_SAHIFA - 1, s + 1))} disabled={sahifa >= JAMI_SAHIFA - 1}
             className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= JAMI_SAHIFA - 1 ? "#C4BFAF" : "#5A5648" }}>
-            Keyingi →
-          </button>
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E1D8", color: sahifa >= JAMI_SAHIFA - 1 ? "#C4BFAF" : "#5A5648" }}>{__kbUi("Keyingi →")}</button>
         </div>
       )}
     </div>
   );
 }
-
