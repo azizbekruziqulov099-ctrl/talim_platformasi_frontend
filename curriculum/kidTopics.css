@@ -1,0 +1,51 @@
+.kt-age{margin:4px 0 10px;font-size:15px;font-weight:900;color:#5a3f08}
+.kt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;list-style:none;margin:0;padding:0}
+.kt-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:18px 14px 14px;border-radius:26px;background:var(--kt-bg,#FFE7B3);box-shadow:0 10px 24px -18px #0008;transition:transform .15s}
+.kt-card:hover{transform:translateY(-3px) rotate(-.4deg)}
+.kt-no{position:absolute;top:10px;left:12px;width:28px;height:28px;border-radius:50%;background:#fff;font-weight:900;font-size:13px;display:grid;place-items:center;color:#5a3f08}
+.kt-emoji{font-size:64px;line-height:1.1;filter:drop-shadow(0 6px 8px #0002)}
+.kt-title{margin:0;font-size:18px;font-weight:900;color:#2b2106;min-height:2.6em;display:flex;align-items:center}
+.kt-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.kt-actions button{border:0;border-radius:16px;padding:11px 14px;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 6px 14px -10px #0008}
+.kt-learn{background:#2f7d5b;color:#fff}
+.kt-play{background:#fff;color:#2b2106}
+@media(max-width:520px){.kt-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.kt-emoji{font-size:48px}.kt-title{font-size:15px}.kt-actions button{padding:9px 10px;font-size:13px}.kt-card{padding:14px 8px 10px;border-radius:22px}}
+/* REV80: telefon — qidiruv qatori sig'sin */
+@media(max-width:520px){.lt-search-row>input{flex-basis:100%}.lt-search-row>div{width:100%}.lt-search-row>div>button{flex:1}}
+.kt-review{border:3px dashed #f0c14b}
+.kt-note{margin:0;font-size:12.5px;color:#5a3f08;font-weight:700}
+/* REV90: bog'cha — fan tanlash katta rasmli tugmalar, o'tilgan dars ✅/⭐, keyingi dars «Bugun shu!» */
+.kt-subjects{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x mandatory}
+.kt-subject{flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:104px;padding:10px 12px 8px;border-radius:22px;border:3px solid transparent;background:#fff;box-shadow:0 6px 16px -12px #0008;cursor:pointer}
+.kt-subject.is-on{border-color:#f0a93b;background:#fff4d6}
+.kt-subject-emoji{font-size:40px;line-height:1.1}
+.kt-subject-name{font-size:13px;font-weight:900;color:#2b2106;text-transform:none}
+button.kt-emoji{border:0;background:none;padding:0;cursor:pointer;border-radius:20px}
+button.kt-emoji:disabled{cursor:default}
+.kt-title{gap:6px;justify-content:center}
+.kt-say{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:#ffffffb0;font-size:16px;cursor:pointer}
+.kt-stars{font-size:18px;letter-spacing:2px;color:#e0a100}
+.kt-card.is-done{box-shadow:inset 0 0 0 3px #57b86f,0 10px 24px -18px #0008}
+.kt-card.is-done .kt-no{background:#57b86f;color:#fff}
+.kt-card.is-next{box-shadow:0 0 0 4px #f0a93b,0 16px 30px -16px #f0a93b;animation:kt-pulse 1.8s ease-in-out infinite}
+.kt-today{position:absolute;top:-12px;right:10px;background:#f0a93b;color:#fff;font-weight:900;font-size:13px;padding:4px 10px;border-radius:999px;box-shadow:0 4px 10px -4px #0006}
+@keyframes kt-pulse{50%{transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.kt-card.is-next{animation:none}}
+@media(max-width:520px){.kt-subject{min-width:88px;padding:8px}.kt-subject-emoji{font-size:34px}.kt-say{width:30px;height:30px;font-size:14px}}
+/* REV91: kunlik reja — bugungi darslar, qulflangan (ertaga ochiladigan) kartalar, butun karta bosiladi */
+.kt-day{display:flex;align-items:center;gap:14px;margin:4px 0 12px;padding:12px 16px;border-radius:20px;background:#fff;box-shadow:0 8px 20px -14px #0008;border:2px solid #f3e3b8}
+.kt-day.is-over{background:#effaf0;border-color:#bfe6c7}
+.kt-day-dots{display:flex;gap:6px}
+.kt-day-dots i{width:22px;height:22px;border-radius:50%;background:#efe6d2;box-shadow:inset 0 0 0 2px #e2d3ad}
+.kt-day-dots i.is-open{background:linear-gradient(90deg,#f0a93b 50%,#efe6d2 50%)}
+.kt-day-dots i.is-done{background:#57b86f;box-shadow:none}
+.kt-day-text{display:grid;gap:2px}
+.kt-day-text b{font-size:16px;color:#2b2106}
+.kt-day-text small{font-size:13px;color:#6a5a2e;font-weight:700}
+.kt-card{cursor:pointer}
+.kt-card.is-locked{filter:grayscale(.75);opacity:.62;cursor:default}
+.kt-card.is-locked .kt-emoji{filter:blur(.5px)}
+.kt-lock-note{font-weight:900;color:#5a4a1e;background:#ffffffb0;border-radius:999px;padding:6px 12px;font-size:14px}
+button.kt-emoji{position:relative}
+.kt-play-badge{position:absolute;right:-6px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:#2f7d5b;color:#fff;font-size:14px;display:grid;place-items:center;box-shadow:0 4px 10px -4px #0008;filter:none}
+@media(max-width:520px){.kt-day{padding:10px 12px;gap:10px}.kt-day-dots i{width:18px;height:18px}.kt-play-badge{width:26px;height:26px;font-size:12px}}
