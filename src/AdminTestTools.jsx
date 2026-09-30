@@ -982,11 +982,19 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
                 {tekshiruv.nashrNatija?.testlar && <span className="block text-xs font-normal mt-1">{__kbUi(`Test bo‘limiga: ${tekshiruv.nashrNatija.testlar.qoshildi} ta yangi, ${tekshiruv.nashrNatija.testlar.yangilandi} ta yangilangan savol`)}</span>}
               </div>
             ) : tekshiruv.status === "draft_imported" || tekshiruv.importNatija ? (
+              <>
+              {/* REV92: saqlanmay qolgan qatorlar — qolgani saqlandi, bular aytiladi */}
+              {tekshiruv.importNatija?.otkazilganlar?.length > 0 && <div className="rounded-xl p-3 mb-3 text-xs" style={{ backgroundColor: "#FFF4D8", color: "#6A4B00" }}>
+                <b className="block text-sm mb-1">{__kbUi(`⚠️ ${tekshiruv.importNatija.counts?.otkazildi || tekshiruv.importNatija.otkazilganlar.length} ta qator saqlanmadi — qolgan ${tekshiruv.importNatija.counts?.units ?? ""} tasi saqlandi`)}</b>
+                <ul className="space-y-1 max-h-48 overflow-auto">{tekshiruv.importNatija.otkazilganlar.map((x, i) => <li key={i}>{x.varaq}{x.qator ? `, ${x.qator}-qator` : ""} · <code>{x.kod}</code> — {x.sabab}</li>)}</ul>
+                <span className="block mt-1">{__kbUi("Nashr qilish mumkin. Tuzatilgach, faylni qayta yuklasangiz faqat shu qatorlar qo‘shiladi.")}</span>
+              </div>}
               <button onClick={() => nashrQil()} disabled={!!jarayon}
                 className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
                 style={{ backgroundColor: "#C89B3C", opacity: jarayon ? .5 : 1 }}>
                 {jarayon.startsWith("nashr-") ? <><Loader2 size={17} className="animate-spin" />{__kbUi(" Nashr qilinmoqda…")}</> : __kbUi("✅ Tasdiqlash va AI miyaga nashr qilish")}
               </button>
+              </>
             ) : (
               <button onClick={qoralamaImport} disabled={!tekshiruv.tayyor || !!jarayon}
                 className="w-full py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2"
