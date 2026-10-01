@@ -23,7 +23,7 @@ export function audioFileBlob(file) {
 }
 
 // A 200 HTML page, empty JSON and a hanging request must not look like success.
-export async function transcribeRecording({apiBase,token,blob,language='auto',signal,
+export async function transcribeRecording({apiBase,token,blob,language='auto',signal,basePath='/api/admin/speech',
  fetchImpl=globalThis.fetch,timeoutMs=75000,setTimer=setTimeout,clearTimer=clearTimeout}) {
  const controller=new AbortController();let timedOut=false;
  const abort=()=>controller.abort();
@@ -32,7 +32,7 @@ export async function transcribeRecording({apiBase,token,blob,language='auto',si
  const timer=setTimer(()=>{timedOut=true;controller.abort();},timeoutMs);
  try {
   if(controller.signal.aborted)throw new DOMException('Aborted','AbortError');
-  const response=await fetchImpl(`${String(apiBase).replace(/\/+$/,'')}/api/admin/speech/dictate?${new URLSearchParams({token,language})}`,{
+  const response=await fetchImpl(`${String(apiBase).replace(/\/+$/,'')}${basePath}/dictate?${new URLSearchParams({token,language})}`,{
    method:'POST',headers:{'Content-Type':blob.type||'audio/webm'},body:blob,signal:controller.signal});
   const data=await response.json().catch(()=>null);
   if(!response.ok) {

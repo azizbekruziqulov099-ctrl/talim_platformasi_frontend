@@ -26,7 +26,7 @@ function rememberFallback(apiBase,message) {
 // Vaqtinchalik uzilish (timeout, ulanish) keyingi yozuvlarni brauzerga o'tkazmaydi.
 const temporaryFailure=message=>/^STT_(?:TIMEOUT|CONNECTION)(?:\b|:)/.test(String(message));
 
-export default function AdminSpeechStudio({apiBase,token}) {
+export default function AdminSpeechStudio({apiBase,token,basePath='/api/admin/speech',title=''}) {
   useKbInterfaceLocale();
  const [access,setAccess]=useState(null);
  const [accessError,setAccessError]=useState('');
@@ -87,7 +87,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
   setFallback(savedFallback(apiBase));
   setAccess(null);setAccessError('');setError('');
   const timeout=setTimeout(()=>{controller.abort();setAccessError('Ovoz xizmatini tekshirish cho‘zildi. Qayta tekshirishni bosing.');},15000);
-  fetch(`${apiBase}/api/admin/speech/status?${new URLSearchParams({token})}`,{signal:controller.signal})
+  fetch(`${apiBase}${basePath}/status?${new URLSearchParams({token})}`,{signal:controller.signal})
    .then(async response=>{const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.detail||(response.status===404?'Ovoz xizmati manzili topilmadi. Backend yangilanishini tekshiring.':'Admin ruxsati tasdiqlanmadi'));if(!data.admin)throw new Error('Ovoz xizmatidan noto‘g‘ri javob keldi. Backend manzilini tekshiring.');return data;})
    .then(data=>{if(!controller.signal.aborted)setAccess(data);})
    .catch(err=>{if(!controller.signal.aborted)setAccessError(err.message||'Ovoz xizmati bilan aloqa yo‘q. Qayta tekshiring.');})
@@ -100,7 +100,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
   const alive=callback=>(...args)=>{if(active)callback(...args);};
   const reader=new SpeechReader({onState:alive(setReading),onProgress:alive((done,total)=>setProgress([done,total])),onError:alive(setError),
    fetchAudio:async(value,speaker,signal,language)=>{
-    const response=await fetch(`${apiBase}/api/admin/speech/read?${new URLSearchParams({token})}`,{
+    const response=await fetch(`${apiBase}${basePath}/read?${new URLSearchParams({token})}`,{
      method:'POST',headers:{'Content-Type':'application/json'},signal,body:JSON.stringify({text:value,voice:speaker,language})});
     if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.detail||'Ovoz xizmati javob bermadi');}
     return response.blob();
@@ -138,7 +138,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
   });
   const transcribe=(blob,signal,language)=>{
    if(!serverAccessRef.current)return Promise.reject(new Error('STT_NOT_CONFIGURED: Brauzer orqali yozish tanlangan.'));
-   return transcribeRecording({apiBase,token,blob,signal,language});
+   return transcribeRecording({apiBase,token,blob,signal,language,basePath});
   };
   const recorder=new AudioDictation({onState:alive(setRecording),onError:serverError,onRecording:alive(setSavedAudio),
    onText:receiveText(true),transcribe});
@@ -248,7 +248,7 @@ export default function AdminSpeechStudio({apiBase,token}) {
  };
  const button='rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-40';
  return <div className="mx-auto min-w-0 max-w-4xl space-y-5 pb-24" data-speech-revision="65">
-  <div><h2 className="text-xl font-bold text-slate-800">{__kbUi("Ovozli matn")}</h2><p className="mt-1 text-sm text-slate-600">{__kbUi("Matnni o‘z tilida o‘qish va gapirib yozish.")}</p></div>
+  <div><h2 className="text-xl font-bold text-slate-800">{__kbUi(title||"Ovozli matn")}</h2><p className="mt-1 text-sm text-slate-600">{__kbUi("Matnni o‘z tilida o‘qish va gapirib yozish.")}</p></div>
   <div className="grid grid-cols-2 gap-2" role="group" aria-label={__kbUi("Ovozli matn rejimi")}>
    {[['read','Matnni o‘qish'],['dictate','Gapirib yozish']].map(([key,label])=><button key={key} type="button" onClick={()=>switchMode(key)} aria-pressed={mode===key}
     className={`${button} ${mode===key?'!border-sky-800 !bg-sky-900 !text-white':''}`}>{__kbUi(label)}</button>)}
@@ -283,8 +283,10 @@ export default function AdminSpeechStudio({apiBase,token}) {
     {selectedMethod==='browser'&&browserStatus.phase==='error'&&(support.live||support.recording)&&<button type="button" className={button} onClick={()=>changeDictationMethod(support.live?'live':'recording',true)}>{__kbUi('AI orqali yozishni boshlash')}</button>}
    </div>}
    {support.reason&&<p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(support.reason)}</p>}
-   {access&&!access.dictation_available&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi('AI ovoz xizmati ulanmagan: Railway’dagi backend xizmatiga OPENAI_API_KEY, GEMINI_API_KEY yoki GROQ_API_KEY dan birini qo‘shing — kalit qo‘shilgach o‘zbekcha gapirib yozish ishlaydi.')}</p>}
-   {!support.reason&&uzbekWarning&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(uzbekWarning)}</p>}
+   {/* REV96: qaysi AI xizmati ishlayapti, qaysi biri limitdan dam olmoqda — aniq ko'rinadi */}
+   {access?.holat?.length>0&&<p className="text-xs text-slate-500">{__kbUi('Ovozni matnga aylantirish xizmatlari')}: {access.holat.map((h,i)=><span key={i} className={h.holat==='dam'?'text-amber-700':'text-emerald-700'}>{i?' · ':''}{h.xizmat} {h.kalit} — {h.holat==='dam'?`${h.sabab==='limit'?'limit tugagan':h.sabab==='kalit'?'kalit xato':h.sabab}, ${Math.ceil(h.qolgan_soniya/60)} daqiqadan keyin qayta`:'tayyor'}</span>)}</p>}
+   {access&&!access.dictation_available&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(access.rol==='oqituvchi'?'AI ovoz xizmati hozir ulanmagan — administrator sozlagach o‘zbekcha gapirib yozish to‘liq ishlaydi. Hozircha brauzer orqali yozish ishlaydi.':'AI ovoz xizmati ulanmagan: Railway’dagi backend xizmatiga OPENAI_API_KEY, GEMINI_API_KEY yoki GROQ_API_KEY dan birini qo‘shing — kalit qo‘shilgach o‘zbekcha gapirib yozish ishlaydi.')}</p>}
+   {!support.reason&&uzbekWarning&&<p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{__kbUi(access?.rol==='oqituvchi'?'Diqqat: brauzer o‘zbekcha nutqni to‘liq tanimasligi mumkin — yozilgan matnni tekshirib oling.':uzbekWarning)}</p>}
    {fallback&&<div role="status" className="rounded-xl bg-sky-50 p-3 text-sm text-sky-900">
     <p>{__kbUi(fallback)}</p>
     {savedAudio&&<p className="mt-1">{__kbUi('Avvalgi ovoz saqlandi. Matnga tushmagan so‘zlarni qayta ayting yoki yozuvni keyinroq qayta yuboring.')}</p>}

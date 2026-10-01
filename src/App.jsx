@@ -10,6 +10,8 @@ import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import LearnerTopics from './curriculum/LearnerTopics.jsx';
 import AdminSpeechStudio from './admin/AdminSpeechStudio.jsx';
+import Kutubxonam from './teacher/Kutubxonam.jsx';
+import TogarakJurnal from './teacher/TogarakJurnal.jsx';
 import SectionErrorBoundary from './workspace/AppErrorBoundary.jsx';
 import {LearnerCurriculumHeader} from './curriculum/CurriculumTabs.jsx';
 import {matchingSubjects,gradeLabel,semesterPairLabel,institutionLabel,lessonLabel,profileInstitutionType} from './curriculum/catalog.js';
@@ -6684,7 +6686,7 @@ function _haftaBoshi(d) {
   return n;
 }
 
-function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar, onMavzular, onSozlamalar }) {
+function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar, onMavzular, onSozlamalar, onJurnal }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const [korinishTuri, setKorinishTuri] = useState("hafta"); // "hafta" | "oy"
@@ -6842,6 +6844,10 @@ function TogarakKalendarReja({ token, togarakId, togarakNomi, onOrtga, onAzolar,
     <div className="px-5 pt-6 pb-4">
       <button onClick={onOrtga} className="flex items-center gap-2 mb-4 -ml-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}><span className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}><ChevronLeft size={15} style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} strokeWidth={2.5} /></span>{__kbUi("To'garaklarim")}</button>
       <h1 className="text-xl font-bold mb-1" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{togarakNomi}</h1>
+      {onJurnal && <button onClick={onJurnal} className="w-full rounded-2xl px-4 py-3 mb-2 text-left text-white flex items-center gap-3" style={{ backgroundColor: "#28735A" }}>
+        <span className="text-2xl" aria-hidden="true">📋</span>
+        <span><b className="block text-sm">{__kbUi("Davomat va to‘lovlar")}</b><small className="text-xs opacity-90">{__kbUi("Bugungi yo‘qlama · oylik to‘lov · kim qarzdor")}</small></span>
+      </button>}
       <div className="grid grid-cols-3 gap-2 mb-5">
         <button onClick={onAzolar} className="rounded-2xl bg-white border flex flex-col items-center justify-center gap-1.5 py-3.5" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
           <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)" }}>
@@ -10986,7 +10992,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
     try {
       const res = await fetch(`${API_BASE}/api/oqituvchi/togarak/${t.id}/azolar?token=${encodeURIComponent(token)}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : (data.detail?.message || "Guruhni ochib bo‘lmadi"));
       setAzolar(data.azolar || []);
       setTanlangan(t);
       setHolat("kalendar_reja");
@@ -11781,9 +11787,14 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
       <TogarakKalendarReja token={token} togarakId={tanlangan.id} togarakNomi={tanlangan.nomi}
         onOrtga={() => { setHolat("togaraklar"); setTanlangan(null); setBahoQoyilayotgan(null); }}
         onAzolar={() => setHolat("azolar")}
+        onJurnal={() => setHolat("jurnal")}
         onMavzular={() => setHolat("mavzular_boshqarish")}
         onSozlamalar={() => setHolat("sozlamalar")} />
     );
+  }
+
+  if (holat === "jurnal") {
+    return <TogarakJurnal apiBase={API_BASE} token={token} togarakId={tanlangan.id} onOrtga={() => setHolat("kalendar_reja")} />;
   }
 
   if (holat === "mavzular_boshqarish") {
@@ -11798,11 +11809,39 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
   return (
     <div className="px-5 pt-6 pb-4">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{__kbUi("Dars guruhlarim")}</h1>
-        <button onClick={() => yaratishniOch()}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white"
-          style={{ backgroundColor: "#C89B3C" }}>+ <InterfaceText text={__kbUi("Yangi")}/></button>
+        <h1 className="text-2xl font-bold" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{__kbUi("Guruhlarim")}</h1>
       </div>
+      {/* REV96: to'garaklar endi eng tepada — qidirib yurish shart emas */}
+      <p className="text-xs mb-3" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi(`Har guruhda ${CLUB_STUDENT_LIMIT} tagacha o‘quvchi. Guruhni bossangiz — o‘quvchilar, darslar (mavzular), davomat va to‘lovlar.`)}</p>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <button onClick={() => yaratishniOch()} className="rounded-2xl px-3 py-3 text-sm font-bold text-white" style={{ backgroundColor: "#C89B3C" }}>+ {__kbUi("To‘garak ochish")}</button>
+        <button onClick={() => yaratishniOch({ guruhTuri: "repetitor", guruhMaqsadi: "repetitor" })} className="rounded-2xl px-3 py-3 text-sm font-bold text-white" style={{ backgroundColor: "#28735A" }}>+ {__kbUi("Repetitor guruhi")}</button>
+      </div>
+      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
+      {togaraklar.length === 0 ? (
+        <button onClick={() => yaratishniOch()}
+          className="w-full rounded-2xl p-8 text-center border-2 border-dashed"
+          style={{ borderColor: "#C4BFAF" }}>
+          <p className="text-sm font-medium mb-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Hali to'garagingiz yo'q")}</p>
+          <p className="text-xs" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi("Bosib, birinchisini yarating")}</p>
+        </button>
+      ) : (
+        <div className="space-y-2.5 mb-5">
+          {togaraklar.map((t) => (
+            <button key={t.id} onClick={() => togarakOch(t)}
+              className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-white border text-left"
+              style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{t.nomi}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi(groupTypeLabel(t.guruh_turi))} · {t.fan}</p>
+              </div>
+              <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)", color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }}>
+                {t.azo_soni || 0}/{__kbUi(normalizedClubCapacity(t.max_talaba))}{__kbUi(" o‘quvchi")}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <h2 className="text-sm font-bold mt-5 mb-2" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Ish joyi va AI vositalari")}</h2>
 
       {faolSamariMuassasalar.length > 1 && (
         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
@@ -11878,30 +11917,6 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
           </div>
         );
       })())}
-      {xato && <p className="text-sm mb-3" style={{ color: "#B0553A" }}>{__kbUi(xato)}</p>}
-      {togaraklar.length === 0 ? (
-        <button onClick={() => yaratishniOch()}
-          className="w-full rounded-2xl p-8 text-center border-2 border-dashed"
-          style={{ borderColor: "#C4BFAF" }}>
-          <p className="text-sm font-medium mb-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Hali to'garagingiz yo'q")}</p>
-          <p className="text-xs" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi("Bosib, birinchisini yarating")}</p>
-        </button>
-      ) : (
-        <div className="space-y-2.5">
-          {togaraklar.map((t) => (
-            <button key={t.id} onClick={() => togarakOch(t)}
-              className="w-full flex items-center justify-between px-4 py-4 rounded-2xl bg-white border text-left"
-              style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: "var(--ui-legacy-color-2b2b2b, #2B2B2B)" }}>{t.nomi}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi(groupTypeLabel(t.guruh_turi))} · {t.fan}</p>
-              </div>
-              <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "var(--ui-legacy-background-eaf1f7, #EAF1F7)", color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }}>
-                {t.azo_soni || 0}/{__kbUi(normalizedClubCapacity(t.max_talaba))}{__kbUi(" o‘quvchi")}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -13077,7 +13092,10 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     return [
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       ...(qoshimchaBand ? [qoshimchaBand] : []),
-      { kalit: "oqituvchi", nom: qoshimchaBand ? "To‘garak va AI vositalari" : "Ish maydoni", ikon: Users },
+      // REV96: to'garak endi aniq nom bilan ko'rinadi; kutubxona va ovoz vositasi alohida band.
+      { kalit: "oqituvchi", nom: "To‘garak va repetitorlik", ikon: Users },
+      { kalit: "kutubxonam", nom: "Kutubxonam", ikon: Folder },
+      { kalit: "ovoz", nom: "Ovoz ⇄ Matn", ikon: Mic },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
@@ -14512,7 +14530,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
     admin_ovoz: ["Ovozli matn", "O‘zbekcha o‘qish va gapirib yozish"],
     admin_statistikalar: ["Statistikalar", "Tizimdan aniq o‘quvchigacha"],
     admin_moderatsiya: ["Moderatsiya", "Sifat va xavfsizlik nazorati"],
-    oqituvchi: ["Ish maydoni", "Sinf, guruh va to‘garaklar"],
+    oqituvchi: ["To‘garak va repetitorlik", "Guruhlar (50 tagacha o‘quvchi), darslar, to‘lov va davomat"],
+    kutubxonam: ["Kutubxonam", "Hujjatlaringiz polka va qatorlarda — AI yordamchi topib beradi"],
+    ovoz: ["Ovoz ⇄ Matn", "Matnni ovozga, ovozni matnga"],
     oqituvchi_analitika: ["Statistikalar", "Ish joyi, guruh va o‘quvchi tahlili"],
     farzand: ["Farzand tahlili", "Bilim, faollik va keyingi qadamlar"],
     bilim: ["Mening tahlilim", "Barcha ta’lim muhitlaridagi rivojim"],
@@ -14753,6 +14773,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
           birInstitutAvtoOchishRef={birInstitutAvtoOchishRef}
         /> : <div className="py-16 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} /><p className="text-sm mt-3" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi("Ish joyingiz aniqlanmoqda…")}</p></div>
       )}
+      {korinishRoli === "oqituvchi" && tab === "kutubxonam" && <Kutubxonam apiBase={API_BASE} token={token} />}
+      {korinishRoli === "oqituvchi" && tab === "ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} basePath="/api/speech" title="Ovoz ⇄ Matn" />}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi_analitika" && (
         <TeacherAnalyticsPanel
           token={token}

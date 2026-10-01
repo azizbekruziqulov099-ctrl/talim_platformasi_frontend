@@ -1,7 +1,7 @@
 // To'lovlar hozircha o'chirilgan: to'garaklar cheksiz va bepul (organizationTrialRules.PAYMENTS_ENABLED bilan birga yoqiladi)
 export const TEACHER_FREE_CLUB_LIMIT = Number.POSITIVE_INFINITY;
 export const SECOND_CLUB_PRICE_UZS = 0;
-export const CLUB_STUDENT_LIMIT = 25;
+export const CLUB_STUDENT_LIMIT = 50;   // REV96: to'garak va repetitor guruhida 50 tagacha bola
 
 export function apiErrorMessage(detail, fallback = "Xato yuz berdi") {
   if (typeof detail === "string" && detail.trim()) return detail;

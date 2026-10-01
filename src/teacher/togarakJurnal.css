@@ -1,0 +1,49 @@
+/* REV96: to'garak jurnali — yo'qlama va to'lovlar */
+.tj-root{max-width:880px;margin:0 auto;padding:22px 16px 28px;display:grid;gap:10px;color:#2b2b2b}
+.tj-root h1{margin:0;font-size:21px;font-weight:800}
+.tj-back{justify-self:start;border:0;background:#eaf1f7;color:#1b4b7a;border-radius:12px;padding:6px 12px;font-weight:700}
+.tj-sub,.tj-muted{margin:0;color:#8a8578;font-size:13px}
+.tj-empty{padding:18px;border:2px dashed #c4bfaf;border-radius:16px;color:#5a5648;text-align:center}
+.tj-msg{margin:0;padding:10px 14px;border-radius:14px;background:#e7f4ee;color:#28735a;font-weight:600;cursor:pointer}
+.tj-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f0ede5;border-radius:16px;padding:4px}
+.tj-tabs button{border:0;background:transparent;border-radius:12px;padding:10px;font-weight:800;color:#8a8578}
+.tj-tabs button.is-on{background:#fff;color:#1b4b7a;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tj-card{display:grid;gap:10px;background:#fff;border:1px solid #e5e1d8;border-radius:18px;padding:14px}
+.tj-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tj-bar label{display:flex;gap:6px;align-items:center;font-weight:700;font-size:14px}
+.tj-bar input{border:1px solid #e5e1d8;border-radius:10px;padding:6px 8px}
+.tj-month{min-width:120px;text-align:center}
+.tj-btn{border:1px solid #e5e1d8;background:#fff;border-radius:12px;padding:7px 12px;font-weight:700;color:#1b4b7a;white-space:nowrap}
+.tj-btn:disabled{opacity:.5}
+.tj-primary{background:#28735a;border-color:#28735a;color:#fff}
+.tj-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.tj-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:9px 10px;border-radius:14px;border:1px solid #e5e1d8;border-left-width:5px}
+.tj-row.is-keldi{border-left-color:#28735a}
+.tj-row.is-kech{border-left-color:#c0762b}
+.tj-row.is-kelmadi{border-left-color:#b0553a}
+.tj-row.is-none{border-left-color:#d8d3c7}
+.tj-name{display:grid;min-width:0}
+.tj-name b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tj-name small{color:#8a8578;font-size:12px}
+.tj-seg{display:flex;gap:4px}
+.tj-seg button{border:1px solid #e5e1d8;background:#f7f5f0;border-radius:10px;padding:6px 9px;font-size:13px;font-weight:700;color:#5a5648}
+.tj-seg button.is-on.is-keldi{background:#e7f4ee;border-color:#28735a;color:#28735a}
+.tj-seg button.is-on.is-kech{background:#fdf3e0;border-color:#c0762b;color:#8a5a1c}
+.tj-seg button.is-on.is-kelmadi{background:#fcebeb;border-color:#b0553a;color:#9b2c2c}
+.tj-note{grid-column:1/-1;border:1px solid #e5e1d8;border-radius:10px;padding:7px 10px;font-size:13px}
+.tj-save{position:sticky;bottom:72px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;padding-top:6px}
+.tj-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.tj-sum span{display:grid;gap:2px;padding:9px;border-radius:14px;background:#f7f5f0}
+.tj-sum small{font-size:11px;color:#8a8578}
+.tj-sum b{font-size:14px}
+.tj-sum .is-ok b{color:#28735a}
+.tj-sum .is-bad b{color:#9b2c2c}
+.tj-pay{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.tj-pay input{width:110px;border:1px solid #e5e1d8;border-radius:10px;padding:6px 8px;font-size:13px}
+@media (max-width:560px){
+  .tj-row{grid-template-columns:1fr}
+  .tj-seg button span{display:none}
+  .tj-seg button{flex:1;font-size:16px}
+  .tj-sum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tj-pay{justify-content:flex-start}
+}
