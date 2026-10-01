@@ -1,9 +1,13 @@
-export const PRESCHOOL_GROUPS = ['2-3 yosh', '3-4 yosh', '4-5 yosh', '5-6 yosh', '6-7 yosh'];
-// REV80: bog'cha yosh guruhi — "3-4 yosh" (sinf o'rnida saqlanadi).
+// REV97: bog'cha yosh guruhlari faqat uchta: 2-3, 4-5, 6-7 yosh (sinf o'rnida saqlanadi).
+export const PRESCHOOL_GROUPS = ['2-3 yosh', '4-5 yosh', '6-7 yosh'];
+// Eski profillar («3-4», «5-6») yangi guruhga o'qiladi — bola qotib qolmasin.
+export const LEGACY_PRESCHOOL_GROUPS = { '3-4 yosh': '2-3 yosh', '5-6 yosh': '4-5 yosh' };
 export function preschoolGroup(value) {
   const text = String(value || '').replace(/[–—]/g, '-').toLowerCase();
   const m = /(?<!\d)([2-6])\s*-\s*([3-7])(?!\d)/.exec(text);
-  return m && Number(m[2]) === Number(m[1]) + 1 ? `${m[1]}-${m[2]} yosh` : '';
+  if (!m || Number(m[2]) !== Number(m[1]) + 1) return '';
+  const group = `${m[1]}-${m[2]} yosh`;
+  return LEGACY_PRESCHOOL_GROUPS[group] || group;
 }
 export function educationRole(user) {
   if (user?.bogcha_mi || user?.education_role === 'bogcha' || user?.learning_profile?.role === 'bogcha') return 'bogcha';

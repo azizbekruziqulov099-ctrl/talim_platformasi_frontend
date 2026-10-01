@@ -17,7 +17,9 @@ test("kid options keep only filled variants and split picture from word", () => 
 });
 
 test("preschool learner, age groups and lesson audience", () => {
-  assert.equal(preschoolGroup("3–4 yosh"), "3-4 yosh");
+  assert.equal(preschoolGroup("4–5 yosh"), "4-5 yosh");
+  assert.equal(preschoolGroup("3-4 yosh"), "2-3 yosh");   // REV97: eski guruh yangisiga o‘qiladi
+  assert.equal(preschoolGroup("5-6 yosh"), "4-5 yosh");
   assert.equal(preschoolGroup("4-6"), "");
   const kid = { role: "oquvchi", education_role: "bogcha", learning_profile: { role: "bogcha", age_group: "5-6 yosh" }, class: "5-6 yosh" };
   assert.equal(educationRole(kid), "bogcha");

@@ -36,3 +36,18 @@ test("to‘garak jurnali: oy, summa va CSV", () => {
   assert.match(lines[2], /Qisman$/);
   assert.equal(lines.at(-1), "Qarz;200");
 });
+
+import { groupRows, rowKey, selectionSummary } from "./admin/miyaRules.js";
+import { PRESCHOOL_GROUPS, preschoolGroup } from "./workspace/educationRules.js";
+
+test("REV97: bog‘cha guruhlari 2-3 / 4-5 / 6-7 va miya tarkibi", () => {
+  assert.deepEqual(PRESCHOOL_GROUPS, ["2-3 yosh", "4-5 yosh", "6-7 yosh"]);
+  assert.equal(preschoolGroup("3-4 yosh"), "2-3 yosh");
+  assert.equal(preschoolGroup("6–7 yosh"), "6-7 yosh");
+  const rows = [{ sinf: "3-4 yosh", fan: "Matematika", miya_darslar: 10, mavzular: 3, testlar: 5 }, { sinf: "3-4 yosh", fan: "Rus tili", miya_darslar: 2, mavzular: 1, testlar: 0 }, { sinf: "5", fan: "Matematika", miya_darslar: 1, mavzular: 1, testlar: 1 }];
+  assert.deepEqual(groupRows(rows).map(([g, r]) => [g, r.length]), [["3-4 yosh", 2], ["5", 1]]);
+  assert.equal(rowKey(rows[0]), "3-4 yosh::matematika");
+  const s = selectionSummary(rows.slice(0, 2), { miya: true, testlar: true });
+  assert.equal(s.text, "12 ta miya darsi, 5 ta test");
+  assert.equal(selectionSummary(rows, {}).any, false);
+});

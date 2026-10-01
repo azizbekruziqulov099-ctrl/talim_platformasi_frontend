@@ -7,6 +7,7 @@ import { useCurriculum } from "./curriculum/CurriculumScope.jsx";
 import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
 import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
+import MiyaTarkibi from "./admin/MiyaTarkibi.jsx";
 
 const DarsXonasiPreview = React.lazy(() => import("./lesson/DarsXonasi.jsx"));
 
@@ -865,6 +866,8 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
           ))}
         </div>
       </div>
+
+      <MiyaTarkibi apiBase={API_BASE} token={token} />
 
       <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-start gap-3">
@@ -2006,6 +2009,6 @@ function ScopeGradeInput({scope,value,onChange}) {
   return <label className="mb-4 block text-xs font-semibold text-slate-600">{school?__kbUi('Sinf'):scope.institution_type==='bogcha'?__kbUi('Yosh guruhi'):__kbUi('Kurs yoki guruh nomi')}
     {school?<select value={value} onChange={e=>onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><option value="">{__kbUi("Sinfni tanlang")}</option>{__kbUi(Array.from({length:11},(_,i)=><option key={i+1} value={String(i+1)}>{i+1}{__kbUi("-sinf")}</option>))}</select>
     :<><input value={value} onChange={e=>onChange(e.target.value)} list={`curriculum-groups-${scope.id}`} placeholder={scope.institution_type==='bogcha'?__kbUi('Masalan: 5–6 yosh'):__kbUi('Masalan: A1 yoki Abituriyent')} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"/>
-      <datalist id={`curriculum-groups-${scope.id}`}>{(scope.institution_type==='bogcha'?['3-4 yosh','4-5 yosh','5-6 yosh','6-7 yosh']:['A1','A2','B1','B2','Abituriyent']).map(g=><option key={g} value={g}/>)}</datalist></>}
+      <datalist id={`curriculum-groups-${scope.id}`}>{(scope.institution_type==='bogcha'?['2-3 yosh','4-5 yosh','6-7 yosh']:['A1','A2','B1','B2','Abituriyent']).map(g=><option key={g} value={g}/>)}</datalist></>}
   </label>;
 }
