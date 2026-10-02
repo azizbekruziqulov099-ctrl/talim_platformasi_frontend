@@ -66,3 +66,16 @@ export function kabuSpeech(text) {
     .replace(/\bgu-?gu(-gu)*\b!?/gi, "Bip-bip!")
     .replace(/\bqushcha\b/gi, "robot");
 }
+
+/** REV99: doska matnidagi emojilar → kitob rasmlari (takrorlanmasdan, tartib bilan). */
+export function emojiPictures(text, map) {
+  if (!map) return [];
+  const out = [];
+  for (const tok of String(text || "").split(/\s+/)) {
+    const key = tok.replace(/\uFE0F/g, "");
+    if (!key || (/[\p{L}\p{N}]/u.test(key) && !key.includes("\u20E3"))) continue;
+    const url = map[key];
+    if (url && !out.includes(url)) out.push(url);
+  }
+  return out;
+}

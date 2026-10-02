@@ -11,7 +11,7 @@ import { KID_PITCH, kidRate, kidTaskModel } from "./kidLessonRules.js";
 import { APP_VERSION } from "../appVersion.js";
 import { finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
 import KidStage from "../kid/KidStage.jsx";
-import { kabuMood, kabuSpeech, stepActions, stickerKeys } from "../kid/kidStageRules.js";
+import { emojiPictures, kabuMood, kabuSpeech, stepActions, stickerKeys } from "../kid/kidStageRules.js";
 import { stickerUrl } from "../kid/stickers.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import "./dars-xonasi.css";
@@ -36,7 +36,10 @@ function TeacherAvatar() {
 }
 
 /** REV98: test variantidagi so'z jonli rasmga mos kelsa — emoji o'rniga o'sha rasm. */
-function kidOptionPic(o) {
+function kidOptionPic(o, rasmlar, mediaUrl) {
+  // REV99: kitobdagi jonli rasm (emoji bo'yicha) — bo'lmasa so'zga mos ichki rasm
+  const own = rasmlar?.[String(o?.picture || "").replace(/\uFE0F/g, "")];
+  if (own) return mediaUrl ? mediaUrl(own) : own;
   const key = stickerKeys(o?.word || "", 1)[0];
   return key ? stickerUrl(key) : null;
 }
@@ -356,6 +359,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!kid || !step || mode !== "lesson") return [];
     const own = [variant?.rasm, step.rasm].filter(Boolean).slice(0, 1).map((u) => ({ src: mediaUrl(u), rev: picRev }));
     if (own.length) return own;
+    // REV99: doskadagi emojilar (masalan «Top-chi» o'yini: 👋 🙋 🐱) → kitobdagi jonli rasmlar, bosib o'ynaladi
+    const fromBoard = emojiPictures(step.doska, lesson?.rasmlar).slice(0, 3).map((u, i) => ({ src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}` }));
+    if (fromBoard.length) return fromBoard;
+    // topshiriq/o'yin qadamida o'z rasmi bo'lmasa — shu darsda o'rganilgan so'zlarning rasmlari (bosib topadi)
+    if (step.turi === "amaliy") {
+      const lessonPics = [...new Set(steps.map((x) => x.rasm).filter(Boolean))].slice(0, 3);
+      if (lessonPics.length) return lessonPics.map((u, i) => ({ src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}` }));
+    }
     return stickerKeys(kidSrc).map((key) => ({ src: stickerUrl(key), svg: true, key, label: key, rev: picRev })).filter((x) => x.src);
   })();
   const kidMood = kidPhase || (mode === "idle" || mode === "bridge" ? "wave" : speaking ? kabuMood(step, "speaking") : mode === "lesson" ? kabuMood(step, "waiting") : mode === "result" ? "happy" : "");
@@ -435,7 +446,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               : <><h3 className="dx-title">{__kbUi("Test")} · {testIndex + 1} / {questions.length}</h3>
                 <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} /></div></>}
             {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), q.savol).map((o, k) => <div key={k} className="dx-kid-wrap"><button type="button" onClick={() => pick(k)} disabled={picked !== null}
-              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o) ? <img className="dx-kid-img" src={kidOptionPic(o)} alt="" draggable="false" /> : <span className="dx-kid-pic">{o.picture || (o.listen ? k + 1 : o.letter)}</span>}</button>
+              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl)} alt="" draggable="false" /> : <span className="dx-kid-pic">{o.picture || (o.listen ? k + 1 : o.letter)}</span>}</button>
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
               className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}

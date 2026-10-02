@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { kabuMood, kabuSpeech, stepActions, stickerKeys } from "./kid/kidStageRules.js";
+import { emojiPictures, kabuMood, kabuSpeech, stepActions, stickerKeys } from "./kid/kidStageRules.js";
 import { KID_PITCH } from "./lesson/kidLessonRules.js";
 
 test("REV98: so‘zdan jonli rasm — inglizcha bo‘lak birinchi", () => {
@@ -25,4 +25,11 @@ test("REV98: matndagi qahramon robot Kabu, ovoz iliqroq", () => {
   assert.equal(kabuSpeech("Salom, bolajonlar! Men — Kabutar qushcha. Gu-gu!"), "Salom, bolajonlar! Men — robot Kabu. Bip-bip!");
   assert.equal(kabuSpeech("Men Kabutar qushchaman."), "Men robot Kabuman.");
   assert.match(KID_PITCH, /^\+\d+Hz$/);
+});
+
+test("REV99: doskadagi emoji → kitob rasmi", () => {
+  const map = { "👋": "/a", "🙋": "/b", "2⃣": "/c" };
+  assert.deepEqual(emojiPictures("👋  🙋  👋\nHello", map), ["/a", "/b"]);
+  assert.deepEqual(emojiPictures("2️⃣ two", map), ["/c"]);
+  assert.deepEqual(emojiPictures("🐱 cat", null), []);
 });

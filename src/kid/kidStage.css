@@ -28,7 +28,7 @@
 .ks-notes{left:4%;top:2%;width:38%;max-width:170px}
 .ks-note{animation:ks-float 2.4s ease-in-out var(--d) infinite;transform-box:fill-box;transform-origin:center}
 @keyframes ks-float{0%{transform:translateY(16px);opacity:0}25%{opacity:1}100%{transform:translateY(-40px);opacity:0}}
-.ks-clap{right:4%;top:4%;width:30%;max-width:150px}
+.ks-clap{left:4%;top:4%;width:26%;max-width:130px}
 .ks-palm{transform-box:fill-box;animation:ks-clapL .7s ease-in-out infinite}
 .ks-palm-r{animation-name:ks-clapR}
 @keyframes ks-clapL{0%,100%{transform:translateX(-8px) rotate(-8deg)}50%{transform:translateX(6px) rotate(0)}}
