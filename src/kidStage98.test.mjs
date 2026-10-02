@@ -24,6 +24,7 @@ test("REV98: topshiriq harakatlari va robot holati", () => {
 test("REV98: matndagi qahramon robot Kabu, ovoz iliqroq", () => {
   assert.equal(kabuSpeech("Salom, bolajonlar! Men — Kabutar qushcha. Gu-gu!"), "Salom, bolajonlar! Men — robot Kabu. Bip-bip!");
   assert.equal(kabuSpeech("Men Kabutar qushchaman."), "Men robot Kabuman.");
+  assert.equal(kabuSpeech("[en]I am Kabutar the bird. Kabutar loves sports.[/en]"), "[en]I am Kabu the robot. Kabu loves sports.[/en]");
   assert.match(KID_PITCH, /^\+\d+Hz$/);
 });
 

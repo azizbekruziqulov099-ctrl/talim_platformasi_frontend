@@ -64,7 +64,10 @@ export function kabuSpeech(text) {
   return String(text || "")
     .replace(/kabutar\s+qushcha(?:man|dir)?/gi, (m) => (/man$/i.test(m) ? "robot Kabuman" : "robot Kabu"))
     .replace(/\bgu-?gu(-gu)*\b!?/gi, "Bip-bip!")
-    .replace(/\bqushcha\b/gi, "robot");
+    .replace(/\bqushcha\b/gi, "robot")
+    // REV100: chet tili bo'laklarida ham qahramon — robot Kabu
+    .replace(/\bKabutar the bird\b/g, "Kabu the robot")
+    .replace(/\bKabutar\b/g, "Kabu");
 }
 
 /** REV99: doska matnidagi emojilar → kitob rasmlari (takrorlanmasdan, tartib bilan). */
