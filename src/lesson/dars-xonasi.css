@@ -189,3 +189,25 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 @media(prefers-reduced-motion:reduce){.dx-kid-opts button.is-hot,.dx-kid-opts button.is-waiting,.dx-kid-go,.dx-kid-stars span.is-on{animation:none}}
 /* REV93: bog'chada topshiriq doskasi — katta, o'qilishi oson */
 .dx-aud-bogcha .dx-amaliy .dx-task{font-size:clamp(20px,3.6vw,26px);line-height:1.45;background:#ffffff12;border-color:#ffffff30}
+/* REV98: bog'cha — qora doska o'rniga yorug' sahna, yozuvsiz; robot Kabu ustoz */
+.dx-aud-bogcha .dx-room{grid-template-columns:minmax(0,1fr)}
+.dx-aud-bogcha .dx-frame{background:transparent;padding:0;box-shadow:none}
+.dx-aud-bogcha .dx-ledge{display:none}
+.dx-aud-bogcha .dx-board{background:transparent!important;color:#1B2340;padding:0;min-height:0;font-family:inherit}
+.dx-aud-bogcha .dx-test{display:grid;gap:10px}
+.dx-kid-ask{display:flex;align-items:center;justify-content:center;gap:10px}
+.dx-kid-ask .ks-stage{flex:0 1 220px}
+.dx-listen-big{width:64px;height:64px;border-radius:50%;border:0;background:#FFB703;font-size:30px;box-shadow:0 6px 0 #D99A00;cursor:pointer;animation:dx-listen-pulse 1.8s ease-in-out infinite}
+@keyframes dx-listen-pulse{50%{transform:scale(1.08)}}
+.dx-aud-bogcha .dx-kid-opts button{background:#fff;border:4px solid #fff;color:#1B2340;box-shadow:0 6px 18px rgba(27,35,64,.12);min-height:140px}
+.dx-aud-bogcha .dx-kid-opts button.is-ok{border-color:#2EC4B6;background:#E4F7F4}
+.dx-aud-bogcha .dx-kid-opts button.is-no{border-color:#FF9F7A;background:#FFF1EA;animation:dx-kid-shake .45s ease-in-out}
+@keyframes dx-kid-shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.dx-kid-img{display:block;width:84%;max-width:180px;aspect-ratio:1;object-fit:contain;margin:6px auto 0;animation:ks-breathe 3s ease-in-out infinite}
+.dx-aud-bogcha .dx-kid-end{color:#1B2340}
+.dx-aud-bogcha .dx-kid-end .dx-title{color:#1B2340!important}
+.dx-kid-ver{margin:4px 0 0;text-align:right;font-size:10px;color:#9aa3b5}
+.dx-aud-bogcha .dx-kid-note{color:#56627F}
+.dx-aud-bogcha .dx-kid-end .dx-btn{background:#fff;color:#1B2340;border-color:#E2E8F2}
+.dx-aud-bogcha .dx-kid-opts .dx-kid-pic{font-size:clamp(72px,18vw,104px);animation:ks-bob 2.6s ease-in-out infinite}
+.dx-kid-ask .ks-stage{flex:0 1 200px}

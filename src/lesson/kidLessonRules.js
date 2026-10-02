@@ -18,3 +18,6 @@ export function kidTaskModel(text) {
   return `Keling, birga aytamiz: ${phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}]`).join(" ")} Endi davom etamiz!`;
 }
 
+
+// REV98: robot Kabu ovozi — biroz yuqoriroq va iliqroq (edge-tts pitch, Hz).
+export const KID_PITCH = "+8Hz";
