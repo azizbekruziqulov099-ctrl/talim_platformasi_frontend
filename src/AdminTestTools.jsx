@@ -953,6 +953,9 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
                   <p className="mt-0.5">{e.message}</p>
                 </div>
               ))}
+              {Math.max(tekshiruv.summary?.xatolar || 0, tekshiruv.errors.length) > 50 && (
+                <p className="text-xs font-semibold px-1" style={{ color: "#8C352B" }}>{__kbUi(`… yana ${Math.max(tekshiruv.summary?.xatolar || 0, tekshiruv.errors.length) - 50} ta xato bor (jami ${Math.max(tekshiruv.summary?.xatolar || 0, tekshiruv.errors.length)}). Avval yuqoridagilarni tuzating — qolganlari ko‘pincha xuddi shu sababli.`)}</p>
+              )}
             </div>
           )}
           {(tekshiruv.summary?.joylashuv || []).length > 0 && (
@@ -1902,6 +1905,13 @@ export function TopikShablonBolimi({ token }) {
           <div className="rounded-xl p-3 mb-3 text-sm" style={{ backgroundColor: "#EAF3DE", color: "#2B2B2B" }}>
             <p>{__kbUi("✅ Yaratildi: ")}<b>{toliqNatija.yaratildi}</b></p>
             <p>{__kbUi("♻️ Allaqachon mavjud edi: ")}<b>{toliqNatija.mavjud}</b></p>
+            {toliqNatija.tiklandi > 0 && <p>{__kbUi("🔁 Qayta tiklandi (avval o‘chirilgan edi): ")}<b>{toliqNatija.tiklandi}</b></p>}
+            {toliqNatija.boshqa_blokda > 0 && (
+              <div className="rounded-lg px-2.5 py-2 mt-2 text-xs" style={{ backgroundColor: "#FDF3E0", color: "#8A5A1C" }}>
+                <p className="font-semibold">⚠️ <b>{toliqNatija.boshqa_blokda}</b>{__kbUi(" ta mavzu shu fanda boshqa blokda ham bor — nusxa ochildi. Kitob darslari qaysi nusxaga ulanishini bilmaydi: ortiqchasini «Topik mavzular»dan o‘chiring.")}</p>
+                {(toliqNatija.boshqa_blok_namunalari || []).map((x, i) => <p key={i} className="mt-0.5">{x}</p>)}
+              </div>
+            )}
             {toliqNatija.xato > 0 && (
               <>
                 <p style={{ color: "#A32D2D" }}>{__kbUi("❌ Xato: ")}<b>{__kbUi(toliqNatija.xato)}</b></p>
@@ -2008,7 +2018,7 @@ function ScopeGradeInput({scope,value,onChange}) {
   const school=scope.institution_type==='maktab';
   return <label className="mb-4 block text-xs font-semibold text-slate-600">{school?__kbUi('Sinf'):scope.institution_type==='bogcha'?__kbUi('Yosh guruhi'):__kbUi('Kurs yoki guruh nomi')}
     {school?<select value={value} onChange={e=>onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><option value="">{__kbUi("Sinfni tanlang")}</option>{__kbUi(Array.from({length:11},(_,i)=><option key={i+1} value={String(i+1)}>{i+1}{__kbUi("-sinf")}</option>))}</select>
-    :<><input value={value} onChange={e=>onChange(e.target.value)} list={`curriculum-groups-${scope.id}`} placeholder={scope.institution_type==='bogcha'?__kbUi('Masalan: 5–6 yosh'):__kbUi('Masalan: A1 yoki Abituriyent')} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"/>
+    :<><input value={value} onChange={e=>onChange(e.target.value)} list={`curriculum-groups-${scope.id}`} placeholder={scope.institution_type==='bogcha'?__kbUi('Masalan: 6-7 yosh'):__kbUi('Masalan: A1 yoki Abituriyent')} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"/>
       <datalist id={`curriculum-groups-${scope.id}`}>{(scope.institution_type==='bogcha'?['2-3 yosh','4-5 yosh','6-7 yosh']:['A1','A2','B1','B2','Abituriyent']).map(g=><option key={g} value={g}/>)}</datalist></>}
   </label>;
 }
