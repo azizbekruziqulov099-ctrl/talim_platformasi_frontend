@@ -25,6 +25,7 @@ import LearningQuest from "./test/LearningQuest.jsx";
 import KidQuiz from "./test/KidQuiz.jsx";
 import KidStart from "./test/KidStart.jsx";
 import { isPreschoolLearner } from "./test/kidQuizRules.js";
+import { screenTime } from "./kid/screenTime.js";
 import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
@@ -1225,7 +1226,7 @@ export default function TestTab({
   };
 
   const yakunla = async () => {
-    if (yakunlanmoqdaRef.current) return;
+    if (yakunlanmoqdaRef.current) return null;
     yakunlanmoqdaRef.current = true;
     setYuklanmoqda(true);
     const ro_yxat = Object.entries(javoblar).map(([id, tanlangan]) => ({
@@ -1258,8 +1259,10 @@ export default function TestTab({
         onOyinProfilYangilandi(data.ochko.profile);
       }
       setHolat("natija");
+      return true;
     } catch (e) {
       setXato(e.message || "Natijani yuborib bo'lmadi");
+      return false;
     } finally {
       yakunlanmoqdaRef.current = false;
       setYuklanmoqda(false);
@@ -1276,6 +1279,16 @@ export default function TestTab({
     yakunla();
   };
 
+  // REV102: bog'cha bolasi «Tugatish»ni bossa — o'yin ALBATTA tugaydi. Natija saqlansa natija ekrani,
+  // saqlanmasa (tarmoq/server xatosi) yoki hali javob bo'lmasa — mavzular ro'yxatiga qaytadi.
+  const toxtatishBola = async () => {
+    setToxtatishModali(false);
+    ovozniToxtat();
+    if (!Object.keys(javoblar).length) { qaytaBoshlash(); return; }
+    const saqlandi = await yakunla();
+    if (saqlandi === false) qaytaBoshlash();
+  };
+
   const qaytaBoshlash = () => {
     javobTekshirilmoqdaRef.current.clear();
     yakunlanmoqdaRef.current = false;
@@ -1285,6 +1298,21 @@ export default function TestTab({
     setUmumiyVaqt(null); setYozibJavob({}); setJoriySavol(0); setJoriyNatija(null);
     setOyinSessiya(null);
   };
+
+  // REV103: bog'cha bolasining kunlik vaqti — ota-ona test mavzusini ko'radi; vaqt to'liq tugaganda
+  // (bola testni tugatib olishi uchun berilgan 10 daqiqadan keyin) ovoz to'xtaydi va bajarilgan javoblar saqlanadi.
+  const toxtatishBolaRef = useRef(null);
+  toxtatishBolaRef.current = toxtatishBola;
+  const testFaol = holat === "savollar" || holat === "oyin";
+  useEffect(() => {
+    if (!testFaol || !tanlanganMavzu) return undefined;
+    screenTime.setDetail(`Test: «${tanlanganMavzu.nomi || tanlanganMavzu.fanNomi || "test"}»`);
+    return () => screenTime.setDetail("");
+  }, [testFaol, tanlanganMavzu]);
+  useEffect(() => screenTime.onBlock(() => {
+    if (bogchaRejim && holat === "savollar") toxtatishBolaRef.current?.();
+    else ovozniToxtat();
+  }), [bogchaRejim, holat, ovozniToxtat]);
 
   if (yuklanmoqda) {
     return <div className="px-5 pt-16 text-center"><Loader2 size={24} className="animate-spin mx-auto" style={{ color: "#1B4B7A" }} /></div>;
@@ -1535,14 +1563,15 @@ export default function TestTab({
       natija={joriyNatija} tekshirilmoqda={javobTekshirilmoqdaId === savollar[joriySavol].id}
       correctCount={toGriSoni} jins={foydalanuvchi?.jins}
       onAnswer={(harf) => javobBerVaTekshir(savollar[joriySavol].id, harf)}
-      onNext={keyingiSavolga} speak={ovozniOqi} onStop={() => setToxtatishModali(true)} />
+      onNext={keyingiSavolga} speak={ovozniOqi} paused={toxtatishModali}
+      onStop={() => { ovozniToxtat(); setToxtatishModali(true); }} />
       {toxtatishModali && <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
         <div className="w-full max-w-sm rounded-3xl p-5 text-center" style={{ backgroundColor: "#FFFFFF" }}>
           <p className="text-4xl mb-2">🕊️</p>
           <p className="font-bold mb-4" style={{ color: "#3b2a06" }}>{__kbUi("O'yinni tugatamizmi?")}</p>
           <div className="flex gap-2.5">
             <button onClick={() => setToxtatishModali(false)} className="flex-1 py-3 rounded-2xl text-sm font-bold" style={{ background: "#fff8ec", color: "#3b2a06" }}>{__kbUi("Davom etamiz")}</button>
-            <button onClick={toxtatish} className="flex-1 py-3 rounded-2xl text-sm font-bold text-white" style={{ backgroundColor: "#c77d0a" }}>{__kbUi("Tugatish")}</button>
+            <button onClick={toxtatishBola} className="flex-1 py-3 rounded-2xl text-sm font-bold text-white" style={{ backgroundColor: "#c77d0a" }}>{__kbUi("Tugatish")}</button>
           </div>
         </div>
       </div>}</>;

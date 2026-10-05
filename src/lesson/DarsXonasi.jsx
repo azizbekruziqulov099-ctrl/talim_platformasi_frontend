@@ -1,17 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
 import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, visibleLines } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
-import { kidOptions } from "../test/kidQuizRules.js";
+import { contentLanguage, kidCorrectSpeech, kidOptions } from "../test/kidQuizRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
 import { markLessonDone } from "../curriculum/kidProgress.js";
-import { KID_PITCH, kidRate, kidTaskModel } from "./kidLessonRules.js";
+import { KID_PITCH, kidRate, kidRepeatSpeech, kidTakrorStep, kidTaskModel } from "./kidLessonRules.js";
 import { APP_VERSION } from "../appVersion.js";
-import { finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
+import { answerSpeed, finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
+import { screenTime } from "../kid/screenTime.js";
 import KidStage from "../kid/KidStage.jsx";
-import { emojiPictures, kabuMood, kabuSpeech, stepActions, stickerKeys } from "../kid/kidStageRules.js";
+import { emojiPictures, isReviewQuestion, kabuMood, kabuSpeech, kindBadge, kindCue, pictureFor, stepActions, stepKind, stickerKeys } from "../kid/kidStageRules.js";
 import { stickerUrl } from "../kid/stickers.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import "./dars-xonasi.css";
@@ -36,9 +37,9 @@ function TeacherAvatar() {
 }
 
 /** REV98: test variantidagi so'z jonli rasmga mos kelsa — emoji o'rniga o'sha rasm. */
-function kidOptionPic(o, rasmlar, mediaUrl) {
-  // REV99: kitobdagi jonli rasm (emoji bo'yicha) — bo'lmasa so'zga mos ichki rasm
-  const own = rasmlar?.[String(o?.picture || "").replace(/\uFE0F/g, "")];
+function kidOptionPic(o, rasmlar, mediaUrl, rasmSozlar = null) {
+  // REV99/REV102: kitobdagi jonli rasm — avval emoji + so'z bo'yicha, keyin emoji; bo'lmasa so'zga mos ichki rasm
+  const own = pictureFor(o?.picture, o?.word, rasmlar, rasmSozlar);
   if (own) return mediaUrl ? mediaUrl(own) : own;
   const key = stickerKeys(o?.word || "", 1)[0];
   return key ? stickerUrl(key) : null;
@@ -71,6 +72,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [hot, setHot] = useState(-1);
   const [waiting, setWaiting] = useState(false);
   const [limitText, setLimitText] = useState("");
+  const [limitKind, setLimitKind] = useState("");
   const [kidResult, setKidResult] = useState(null);
   // REV98: robot Kabu — quvonish/dalda holati va sakrash; rasmni bosganda qayta jonlanadi.
   const [kidPhase, setKidPhase] = useState("");
@@ -91,6 +93,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   idxRef.current = idx;
   const rateRef = useRef(rate);
   rateRef.current = rate;
+  const prefetched = useRef(new Set());
+  // REV103: savolga javob vaqti (ota-onaga «tezlik» ko'rsatkichi): savol o'qilib, variantlar ko'rsatilgandan — bosilgunicha.
+  const questionDone = useRef(0);
+  const askedAt = useRef(0);
+  const answerTimes = useRef([]);
 
   // REV80: dars maydoni tinglovchiga moslashadi — bog'cha bolasi, o'quvchi, talaba.
   const audience = lessonAudience(learnerRole, grade || lesson?.topic?.sinf);
@@ -99,8 +106,25 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   gradeRef.current = grade || lesson?.topic?.sinf || "";
   const labels = audienceLabels(audience);
   const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";
-  const steps = lesson?.steps || [];
+  const steps = useMemo(() => lesson?.steps || [], [lesson]);
   const step = idx >= 0 ? steps[idx] : null;
+  // REV102: har qadam turi — takror (o'tgan darslar) yoki yangi bilim; bolaga belgi, rang va ovoz bilan ko'rsatiladi.
+  const kinds = useMemo(() => steps.reduce((out, s, i) => {
+    // uzun tushuntirish bo'laklarga bo'linsa, keyingi bo'lak sarlavhasiz keladi — oldingisining turini oladi
+    const prev = steps[i - 1];
+    out.push(prev && !s.sarlavha && s.sahna && s.sahna === prev.sahna ? out[i - 1] : stepKind(s, lesson?.topic?.mavzu));
+    return out;
+  }, []), [steps, lesson]);
+  // Shu darsda o'rgatiladigan yangi so'zlarning rasmlari — o'yin qadamida o'tgan darslar rasmi chiqmasin.
+  const newPics = useMemo(() => {
+    const out = new Set();
+    steps.forEach((s, i) => {
+      if (kinds[i] !== "new") return;
+      if (s.rasm) out.add(s.rasm);
+      emojiPictures(s.doska, lesson?.rasmlar, lesson?.rasm_sozlar).forEach((u) => out.add(u));
+    });
+    return out;
+  }, [steps, kinds, lesson]);
   const questions = lesson?.savollar || [];
   const downloadUrl = (format) => lessonDownloadUrl(apiBase, token, topicCode, format);
   const mediaUrl = useCallback((url) => (!url ? null : url.startsWith("/") ? `${String(apiBase).replace(/\/+$/, "")}${url}` : url), [apiBase]);
@@ -112,16 +136,33 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setSpeaking(false); setWord(-1);
   }, []);
 
-  // O'qituvchi ovozi: serverdagi o'zbekcha TTS (/api/ovoz). Ovoz ishlamasa ham
-  // so'zlar ketma-ket yonadi va dars to'xtab qolmaydi.
-  const say = useCallback((text, done) => {
+  // O'qituvchi ovozi: serverdagi TTS (/api/ovoz). REV102: ovoz yuklanmasa bir marta qayta so'raladi
+  // (server uzilgan bo'lakni qayta yaratadi); baribir bo'lmasa so'zlar jim yonadi va dars to'xtab qolmaydi.
+  // takror — bog'chada so'z o'rgatish qadami: «Men bilan ayt: Green» dan keyin bolaga 1.5–3 soniya vaqt.
+  const ovozUrl = useCallback((clean, takror = false, attempt = 0) => {
+    const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins,
+      ...(kidRef.current ? { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH } : {}),
+      ...(takror ? { takror: "1" } : {}), ...(attempt ? { q: String(attempt) } : {}) });
+    return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`;
+  }, [apiBase, jins]);
+  const spokenFor = useCallback((text) => speakableText(kidRef.current ? kabuSpeech(text) : text), []);
+  // Keyingi qadam ovozi oldindan tayyorlanadi — server uni keshlaydi, bola kutmaydi.
+  const prefetch = useCallback((text, takror = false) => {
+    const clean = spokenFor(text);
+    if (!clean.replace(/⏸/g, "").trim()) return;
+    const url = ovozUrl(clean, takror);
+    if (prefetched.current.has(url)) return;
+    prefetched.current.add(url);
+    try { fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => {}); } catch { /* eski brauzer */ }
+  }, [ovozUrl, spokenFor]);
+  const say = useCallback((text, done, opts = {}) => {
     hush();
     const my = tokenRef.current;
     if (kidRef.current) text = kabuSpeech(text);   // REV98: bog'chada ustoz — robot Kabu
     const clean = speakableText(text);
-    setBubble(stripSpeechTags(text || ""));
-    if (!clean) { done?.(); return; }
-    const words = String(text || "").split(/\s+/).filter(Boolean);
+    setBubble(stripSpeechTags(text || "").replace(/\s*⏸\s*/g, " ").trim());
+    if (!clean.replace(/⏸/g, "").trim()) { done?.(); return; }
+    const words = String(text || "").replace(/⏸/g, " ").split(/\s+/).filter(Boolean);
     setSpeaking(true);
     const finish = () => { if (my !== tokenRef.current) return; setSpeaking(false); setWord(-1); audioRef.current = null; done?.(); };
     const fallback = () => {
@@ -134,21 +175,42 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       };
       tick();
     };
-    try {
-      const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins, ...(kidRef.current ? { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH } : {}) });
-      const audio = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`);
+    const play = (attempt) => {
+      let audio;
+      try { audio = new Audio(ovozUrl(clean, opts.takror, attempt)); } catch { fallback(); return; }
       audio.playbackRate = rateRef.current;
       audioRef.current = audio;
+      let started = false, failed = false;
+      const fail = (err) => {
+        if (failed || my !== tokenRef.current) return;
+        failed = true; clearTimeout(stall);
+        if (started) { finish(); return; }   // yarmida uzildi — boshidan takrorlamaymiz, darsni davom ettiramiz
+        try { audio.pause(); audio.src = ""; } catch { /* allaqachon yopilgan */ }
+        if (attempt < 1 && err?.name !== "NotAllowedError") play(attempt + 1); else fallback();
+      };
+      const stall = setTimeout(() => { if (!started) fail(); }, 15000);
+      audio.onplaying = () => { started = true; clearTimeout(stall); };
       audio.ontimeupdate = () => {
         if (my !== tokenRef.current || !audio.duration || !Number.isFinite(audio.duration)) return;
         setWord(Math.min(words.length - 1, Math.floor((audio.currentTime / audio.duration) * words.length)));
       };
-      audio.onended = finish;
-      let failed = false;
-      audio.onerror = () => { if (!failed && my === tokenRef.current) { failed = true; fallback(); } };
-      audio.play().catch(() => { if (!failed && my === tokenRef.current) { failed = true; fallback(); } });
-    } catch { fallback(); }
-  }, [apiBase, hush, jins]);
+      audio.onended = () => { clearTimeout(stall); finish(); };
+      audio.onerror = () => fail();
+      audio.play().catch((err) => fail(err));
+    };
+    play(0);
+  }, [hush, ovozUrl]);
+
+  // Qadamda aytiladigan gap (go() va oldindan yuklash uchun bir xil — server keshi mos tushadi).
+  const stepSpeech = useCallback((s, i) => {
+    const cue = boardCues(s.doska, s.ovoz || s.doska);
+    if (!kid) return cue.spoken || s.doska;
+    // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
+    const spoken = String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "");
+    // REV102: takrordan yangiga o'tishda robot aytadi: «Avval o'tganlarni eslaymiz!» / «Endi — yangi so'z!»
+    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu);
+    return kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken);   // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan
+  }, [kid, kinds, lesson]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -169,6 +231,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (next >= steps.length) {
       hush(); setPlaying(false); setStepFinished(true);
       if (kid) {   // REV91: bog'chada tugma bosilmaydi — dars tugashi bilan o'yin o'zi boshlanadi
+        answerTimes.current = [];
         if (questions.length) { say(__kbUi("Barakalla! Endi o‘ynaymiz!"), () => { setMode("test"); setTestIndex(0); setScore(0); setPicked(null); }); setMode("bridge"); }
         else setMode("result");
         return;
@@ -183,9 +246,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (next < 0) return;
     setIdx(next); setMode("lesson"); setStepFinished(false);
     const s = steps[next];
-    const cue = boardCues(s.doska, s.ovoz || s.doska);
-    // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
-    const spoken = kid ? String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "") : (cue.spoken || s.doska);
+    const spoken = stepSpeech(s, next);
+    [next + 1, next + 2].forEach((j) => { if (steps[j]) prefetch(stepSpeech(steps[j], j), kid && kidTakrorStep(steps[j])); });
+    if (kid && next > 0 && kinds[next] !== kinds[next - 1]) { if (kinds[next] === "new") chime(); else if (kinds[next] === "review") soft(); }
     say(spoken, () => {
       setStepFinished(true);
       // «birga» va «amaliy» qadamida o'quvchi o'zi ishlaydi — dars shu yerda kutadi.
@@ -199,10 +262,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // So'z o'rgatiladigan qadam («Men bilan takrorla») — bola qaytarib aytishi uchun biroz ko'proq kutiladi.
       const pause = kid && /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.test(s.ovoz || "") ? 2600 : 1000;
       if (autoplay && s.turi !== "birga" && s.turi !== "amaliy") setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, pause);
-    });
-  }, [steps, questions.length, say, hush, onOpenTest, kid]);
+    }, { takror: kid && kidTakrorStep(s) });
+  }, [steps, questions.length, say, hush, onOpenTest, kid, stepSpeech, prefetch, kinds]);
 
   const startQuiz = () => {
+    answerTimes.current = [];
     setMode("test"); setTestIndex(0); setScore(0); setPicked(null);
     say(__kbUi("Savolni o‘qing va javobni tanlang."));
   };
@@ -270,10 +334,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (picked !== null) return;
     if (kid) {
       const q = questions[testIndex];
+      const from = askedAt.current || questionDone.current;   // savol o'qilayotganda bosilgani — tezlikka kirmaydi
+      if (from) answerTimes.current.push(Date.now() - from);
+      askedAt.current = 0; questionDone.current = 0;
       setPicked(k);
       setHot(-1); setWaiting(false);
       const after = () => setTimeout(() => { if (modeRef.current === "test") nextQuestion(); }, 900);
-      if (k === q.togri) { setScore((x) => x + 1); flashPhase("happy"); say(__kbUi("Barakalla! To‘g‘ri!") + " " + (q.izoh || ""), after); }
+      // REV102: til darsida maqtov o'sha tilda («Well done!»)
+      if (k === q.togri) { setScore((x) => x + 1); flashPhase("happy"); say(kidCorrectSpeech(testIndex, contentLanguage(q.savol, q.variantlar), q.izoh) || __kbUi("Barakalla! To‘g‘ri!"), after); }
       else { flashPhase("enc"); say(__kbUi("Hechqisi yo‘q! To‘g‘ri javob yashil rasmda.") + " " + (q.izoh || ""), after); }
       return;
     }
@@ -294,12 +362,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const opts = kidOptions(Object.fromEntries(qq.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), qq.savol);
     const audio = opts.map((o, k) => ({ k, o })).filter(({ o }) => o.listen === "audio");
     setHot(-1); setWaiting(false);
+    askedAt.current = 0; questionDone.current = 0;
     const next = (i) => {
-      if (i >= audio.length) { setHot(-1); setWaiting(true); return; }
+      if (i >= audio.length) { setHot(-1); setWaiting(true); askedAt.current = Date.now(); return; }
       setHot(audio[i].k);
       say(audio[i].o.speech, () => setTimeout(() => next(i + 1), 250));
     };
-    say(qq.savol, () => setTimeout(() => next(0), 300));
+    say(qq.savol, () => { questionDone.current = Date.now(); setTimeout(() => next(0), 300); });
   }, [say]);
   useEffect(() => {
     if (!kid || mode !== "test" || !questions[testIndex]) return;
@@ -311,16 +380,42 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!kid || !lesson || mode !== "idle") return undefined;
     let stop = false;
     (async () => {
+      const today = screenTime.current();
       const res = kidPlan ? await startLesson(apiBase, token, { darsKod: topicCode, fan: kidPlan.fan, mavzu: kidPlan.mavzu || lesson.topic?.mavzu, jamiQadam: steps.length })
-        : { ok: true, tracked: false };
+        : today?.tugadi?.dars && !today.kuzatilmaydi   // REV103: reja tashqarisidan ochilgan dars ham dars vaqti tugagan bo'lsa ochilmaydi
+          ? { ok: false, limit: true, vaqt: true, xabar: __kbUi("Bugungi dars vaqti tugadi. Barakalla! Endi biroz o‘ynasang bo‘ladi.") }
+          : { ok: true, tracked: false };
       if (stop) return;
-      if (res.limit) { setLimitText(res.xabar); setMode("limit"); say(__kbUi("Bugungi yangi darslar tugadi. Ertaga yana o‘ynaymiz! Hozir o‘tilgan darslarni takrorlasang bo‘ladi.")); return; }
+      if (res.limit) {
+        setLimitText(res.xabar); setLimitKind(res.vaqt ? "vaqt" : "limit"); setMode("limit");
+        // REV103: bugungi dars VAQTI tugagan — robot shuni aytadi (o'yin vaqti bo'lsa, o'yinlar ochiq)
+        say(res.vaqt ? (res.xabar || __kbUi("Bugungi dars vaqti tugadi. Endi biroz o‘ynasang bo‘ladi."))
+          : __kbUi("Bugungi yangi darslar tugadi. Ertaga yana o‘ynaymiz! Hozir o‘tilgan darslarni takrorlasang bo‘ladi."));
+        return;
+      }
       if (res.tracked) kidTracker.start({ apiBase, token, darsKod: topicCode, isPlaying: () => playingRef.current || speakingRef.current || modeRef.current === "test" });
       setTimeout(() => { if (!stop && modeRef.current === "idle") { beep(); setPlaying(true); go(0, true); } }, 700);
     })();
     return () => { stop = true; };
   }, [kid, lesson]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (kid && idx >= 0) kidTracker.step(idx + 1); }, [kid, idx]);
+  // REV103: kunlik vaqt — ota-ona «nima qildi» ro'yxatida dars nomi; dars ketayotganda vaqt tugasa, tugatib olishiga imkon;
+  // to'liq tugaganda (10 daqiqadan keyin) ovoz to'xtaydi.
+  useEffect(() => {
+    if (!kid || !lesson) return undefined;
+    screenTime.setDetail(`Dars: «${lesson.topic?.mavzu || topicCode}»`);
+    return () => screenTime.setDetail("");
+  }, [kid, lesson, topicCode]);
+  useEffect(() => { if (kid) screenTime.setBusy("dars", ["lesson", "test", "bridge"].includes(mode)); }, [kid, mode]);
+  useEffect(() => () => screenTime.setBusy("dars", false), []);
+  useEffect(() => screenTime.onBlock((view) => {
+    hush(); setPlaying(false);
+    // vaqt to'liq tugadi (10 daqiqalik kutishdan keyin) — dars shu yerda yopiladi, qayta ochilsa ham davom etmaydi
+    if (kidRef.current && (view === "dars" || view === "jami") && ["idle", "lesson", "test", "bridge"].includes(modeRef.current)) {
+      setLimitText(__kbUi(view === "jami" ? "Bugun vaqting tugadi. Ertaga uchrashamiz!" : "Bugungi dars vaqti tugadi. Endi biroz o‘ynasang bo‘ladi."));
+      setLimitKind("vaqt"); setMode("limit");
+    }
+  }), [hush]);
   useEffect(() => () => { if (kidTracker.active() === topicCode) kidTracker.detach(); }, [topicCode]);
   useEffect(() => {
     if (!kid || mode !== "result") return;
@@ -330,7 +425,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const wasTracked = kidTracker.active() === topicCode;
     if (wasTracked) kidTracker.finish();
     (async () => {
-      const res = wasTracked || kidPlan ? await finishLesson(apiBase, token, { darsKod: topicCode, togri: score, jami: questions.length }) : null;
+      const res = wasTracked || kidPlan ? await finishLesson(apiBase, token, { darsKod: topicCode, togri: score, jami: questions.length, ortachaMs: answerSpeed(answerTimes.current) }) : null;
       const out = { yulduz: res?.yulduz || local, bugunTugadi: Boolean(res?.bugun_tugadi), qoldi: res?.qoldi };
       setKidResult(out);
       onKidFinished?.(out, res?.reja || null);
@@ -355,20 +450,27 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV98: bog'cha sahnasi — yozuv yo'q: robot, jonli rasm va harakat belgilari.
   const kidSrc = kid && step ? `${step.ovoz || ""} ${step.doska || ""}` : "";
   const kidActs = kid && step && mode === "lesson" ? stepActions(kidSrc) : [];
+  const kidKind = kid && mode === "lesson" ? kinds[idx] || "" : "";
   const kidPics = (() => {
     if (!kid || !step || mode !== "lesson") return [];
-    const own = [variant?.rasm, step.rasm].filter(Boolean).slice(0, 1).map((u) => ({ src: mediaUrl(u), rev: picRev }));
-    if (own.length) return own;
+    const pic = (u, i) => ({ src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}` });
+    if (variant?.rasm) return [pic(variant.rasm, 0)];
     // REV99: doskadagi emojilar (masalan «Top-chi» o'yini: 👋 🙋 🐱) → kitobdagi jonli rasmlar, bosib o'ynaladi
-    const fromBoard = emojiPictures(step.doska, lesson?.rasmlar).slice(0, 3).map((u, i) => ({ src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}` }));
-    if (fromBoard.length) return fromBoard;
-    // topshiriq/o'yin qadamida o'z rasmi bo'lmasa — shu darsda o'rganilgan so'zlarning rasmlari (bosib topadi)
-    if (step.turi === "amaliy") {
-      const lessonPics = [...new Set(steps.map((x) => x.rasm).filter(Boolean))].slice(0, 3);
-      if (lessonPics.length) return lessonPics.map((u, i) => ({ src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}` }));
+    const board = emojiPictures(step.doska, lesson?.rasmlar, lesson?.rasm_sozlar);
+    if (kidKind === "game") {
+      // REV102: yangi darsdagi o'yinda faqat shu darsda o'rgatilgan so'zlarning rasmlari (o'tgan darslar rasmi chalg'itardi)
+      const mine = board.filter((u) => newPics.has(u));
+      const list = (mine.length ? mine : [...newPics]).slice(0, 3);
+      if (list.length) return list.map(pic);
+    } else if (board.length >= 2) {
+      return board.slice(0, 3).map(pic);   // bir qadamda 2–3 so'z («🟢 Green, 👏 Clap») — hammasining rasmi
     }
+    if (step.rasm) return [pic(step.rasm, 0)];
+    if (board.length) return board.slice(0, 3).map(pic);
+    if (kidKind !== "new") return [];   // kirish, xulosa, takror, o'yin — begona stiker chiqmaydi
     return stickerKeys(kidSrc).map((key) => ({ src: stickerUrl(key), svg: true, key, label: key, rev: picRev })).filter((x) => x.src);
   })();
+  const badge = kindBadge(kidKind);
   const kidMood = kidPhase || (mode === "idle" || mode === "bridge" ? "wave" : speaking ? kabuMood(step, "speaking") : mode === "lesson" ? kabuMood(step, "waiting") : mode === "result" ? "happy" : "");
   const STICKER_SAY = { hello: "Hello!", red: "Red!", three: "Three!", big: "Big!", small: "Small!", cat: "Cat!", apple: "Apple!", jump: "I can jump!" };
   const tapKid = (i) => {
@@ -394,13 +496,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     </header>
     <div className="dx-steps" role="group" aria-label={__kbUi("Dars qadamlari")}>
       {steps.map((s, i) => <button key={s.id} type="button" aria-label={`${i + 1}`} onClick={() => { setPlaying(false); go(i, false); }}
-        className={`dx-step ${i < idx || ["test", "result", "end"].includes(mode) ? "is-done" : i === idx ? "is-now" : ""}`} />)}
+        className={`dx-step ${i < idx || ["test", "result", "end"].includes(mode) ? "is-done" : i === idx ? "is-now" : ""} ${kid ? `k-${kinds[i]}` : ""}`} />)}
     </div>
 
     <div className="dx-room">
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <KidStage mood={kidMood} celebrate={celebrate} pictures={kidPics} actions={kidActs} speaking={speaking} onTap={tapKid} />}
+          {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status"><span aria-hidden="true">{badge[0]}</span><small>{__kbUi(badge[1])}</small></div>}
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}><KidStage mood={kidMood} celebrate={celebrate} pictures={kidPics} actions={kidActs} speaking={speaking} onTap={tapKid} /></div>}
           {!kid && mode === "idle" && <>
             <h3 className="dx-title">{__kbUi("Bugungi dars")}</h3>
             <div className="dx-line">{lesson.topic?.mavzu}</div>
@@ -441,12 +544,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>}
           </>}
           {mode === "test" && q && <div className="dx-test">
+            {kid && isReviewQuestion(q) && <div className="dx-kind is-review" role="status"><span aria-hidden="true">🔁</span><small>{__kbUi("Takrorlash")}</small></div>}
             {kid ? <div className="dx-kid-ask"><KidStage compact mood={kidPhase || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} />
               <button type="button" className="dx-listen dx-listen-big" onClick={() => readQuestion(q)} aria-label={__kbUi("Qayta eshitish")}>🔊</button></div>
               : <><h3 className="dx-title">{__kbUi("Test")} · {testIndex + 1} / {questions.length}</h3>
                 <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} /></div></>}
             {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), q.savol).map((o, k) => <div key={k} className="dx-kid-wrap"><button type="button" onClick={() => pick(k)} disabled={picked !== null}
-              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl)} alt="" draggable="false" /> : <span className="dx-kid-pic">{o.picture || (o.listen ? k + 1 : o.letter)}</span>}</button>
+              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : <span className="dx-kid-pic">{o.picture || (o.listen ? k + 1 : o.letter)}</span>}</button>
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
               className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
@@ -464,8 +568,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {!questions.length && !onOpenTest && <p className="dx-why">{__kbUi("Bu mavzu uchun Test bazasida savol hali yo‘q.")}</p>}
           </div>}
           {kid && mode === "limit" && <div className="dx-kid-end">
-            <span className="dx-kid-big" aria-hidden="true">🌙</span>
-            <h3 className="dx-title">{__kbUi("Bugungi yangi darslar tugadi")}</h3>
+            <span className="dx-kid-big" aria-hidden="true">{limitKind === "vaqt" ? "⏰" : "🌙"}</span>
+            <h3 className="dx-title">{__kbUi(limitKind === "vaqt" ? "Bugungi dars vaqti tugadi" : "Bugungi yangi darslar tugadi")}</h3>
             <p className="dx-kid-note">{__kbUi(limitText || "Yangi dars ertaga ochiladi. O‘tilgan darslarni takrorlash va o‘yinlar ochiq.")}</p>
             {onClose && <button type="button" className="dx-kid-go" onClick={() => { hush(); onClose(); }}>🏠 {__kbUi("Darslarga qaytish")}</button>}
           </div>}

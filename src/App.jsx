@@ -518,6 +518,8 @@ const sinfTalabaMi = (qiymat) => /^\s*[1-6]\s*-?\s*kurs(?:\s+magistr)?\s*$/i.tes
 const MilitaryRoutine = _samtmLazyRetry(() => import("./school/MilitaryRoutine.jsx"));
 // REV91: ota-ona — farzandning bugungi darslari jonli.
 const FarzandFaollik = _samtmLazyRetry(() => import("./parent/FarzandFaollik.jsx"));
+// REV103: bog'cha bolasining kunlik vaqti (dars + erkin o'yin) — vaqt tugasa ekran yopiladi, «Ertaga uchrashamiz».
+const KidTimeGuard = _samtmLazyRetry(() => import("./kid/KidTimeGuard.jsx"));
 const lazyAdminTestTool = (exportName) =>
   _samtmLazyRetry(() =>
     import("./AdminTestTools.jsx").then((module) => ({ default: module[exportName] })),
@@ -14482,6 +14484,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
 
   // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
   const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
+  // REV103: kunlik vaqt faqat bog'cha bolasining o'z hisobida (admin ko'rish rejimida hisoblanmaydi).
+  const bogchaVaqti = !readOnly && !foydalanuvchi?.is_admin && korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona"
+    && _kbAccountRole(foydalanuvchi) === "bogcha";
   const joriyRang = joriyRangniHisobla(foydalanuvchi, korinishRoli);
 
   // O'qituvchining pastki menyusiga MUASSASA turiga qarab moslashuvchan
@@ -14680,6 +14685,11 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
         </div>
       </>}
       <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} />
+      {bogchaVaqti && token && <React.Suspense fallback={null}>
+        <KidTimeGuard apiBase={API_BASE} token={token} userId={foydalanuvchi?.user_id || ""} tab={tab} overlay={kabutarOchiq ? "Kabutar" : ""} busy={testDavomida}
+          jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")} grade={foydalanuvchi?.class || ""}
+          onGo={(keyingi) => { kabutarniOch(false); tabTanlandi(keyingi); }} onLogout={onLogout} />
+      </React.Suspense>}
       {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} onChangeRole={foydalanuvchi?.is_admin ? undefined : rolniAlmashtir} />}
       {kabutarYuklangan && kabutarTezKunda && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
         <div className="samtm-tez-kunda-panel" role="status">

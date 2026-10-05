@@ -1,0 +1,39 @@
+/* REV103: bog'cha — kunlik vaqt tugadi / 5 daqiqa qoldi */
+.ktg-veil{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:radial-gradient(circle at 50% 18%,#3d4f9c 0%,#22285a 55%,#151938 100%);overflow:auto;overscroll-behavior:contain}
+.ktg-veil.is-dars{background:radial-gradient(circle at 50% 18%,#47b27a 0%,#227a57 60%,#17553e 100%)}
+.ktg-veil.is-oyin{background:radial-gradient(circle at 50% 18%,#f5b74a 0%,#d9822b 60%,#a85a17 100%)}
+.ktg-card{width:min(440px,100%);background:#fffdf7;border-radius:28px;padding:18px 18px 20px;text-align:center;color:#2b2b2b;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);display:grid;gap:10px;justify-items:center;animation:ktg-in .35s ease-out}
+.ktg-sky{font-size:30px;letter-spacing:6px;line-height:1}
+.ktg-robot{width:150px;max-width:46vw}
+.ktg-robot>*{width:100%;height:auto}
+.ktg-card h2{margin:0;font-size:24px;font-weight:900;color:#2c3473}
+.ktg-veil.is-dars .ktg-card h2{color:#1d6b49}
+.ktg-veil.is-oyin .ktg-card h2{color:#9a5212}
+.ktg-text{margin:0;font-size:16px;line-height:1.45;font-weight:700;color:#4a4a5a}
+.ktg-listen{width:64px;height:64px;border-radius:50%;border:0;background:#eef0ff;font-size:30px;cursor:pointer;
+  box-shadow:0 6px 16px rgba(44,52,115,.18)}
+.ktg-listen:active{transform:scale(.94)}
+.ktg-go{min-width:220px;min-height:64px;border:0;border-radius:22px;font-size:22px;font-weight:900;color:#fff;cursor:pointer;
+  background:linear-gradient(180deg,#5cc98c,#2f9e64);box-shadow:0 10px 24px rgba(47,158,100,.35);animation:ktg-pulse 1.8s ease-in-out infinite}
+.ktg-veil.is-oyin .ktg-go{background:linear-gradient(180deg,#6aa8ff,#3a74d9);box-shadow:0 10px 24px rgba(58,116,217,.35)}
+.ktg-left,.ktg-sum,.ktg-note{margin:0;font-size:14px;color:#5a5648}
+.ktg-sum{background:#f3f1ea;border-radius:14px;padding:8px 12px}
+.ktg-parent{margin-top:4px;border:0;background:none;color:#8a8578;font-size:12px;text-decoration:underline;cursor:pointer}
+.ktg-gate{display:grid;gap:6px;width:100%;font-size:13px;color:#5a5648}
+.ktg-gate>div{display:flex;gap:6px;justify-content:center}
+.ktg-gate input{width:72px;padding:8px;border:1px solid #d8d3c6;border-radius:10px;font-size:16px;text-align:center}
+.ktg-gate button{padding:8px 12px;border-radius:10px;border:1px solid #d8d3c6;background:#fff;font-weight:700;cursor:pointer}
+.ktg-gate button[type=submit]{background:#2c3473;color:#fff;border-color:#2c3473}
+.ktg-gate small{color:#b0553a}
+.ktg-toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147483590;
+  display:flex;gap:10px;align-items:center;max-width:calc(100vw - 32px);padding:12px 18px;border-radius:999px;background:#fff6dd;
+  color:#7a4b00;font-weight:800;font-size:15px;box-shadow:0 12px 30px rgba(0,0,0,.22);animation:ktg-in .3s ease-out;cursor:pointer}
+.ktg-toast span{font-size:24px}
+@keyframes ktg-in{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.ktg-toast{animation-name:ktg-toast-in}
+@keyframes ktg-toast-in{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes ktg-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@media (max-height:640px){.ktg-robot{width:96px}.ktg-sky{font-size:22px}.ktg-card{gap:7px;padding:14px}}
+@media (prefers-reduced-motion:reduce){.ktg-card,.ktg-toast,.ktg-go{animation:none}}

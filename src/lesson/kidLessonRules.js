@@ -15,7 +15,35 @@ export function kidTaskModel(text) {
     return "";
   });
   if (!phrases.length) return "Qani, davom etamiz!";
-  return `Keling, birga aytamiz: ${phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}]`).join(" ")} Endi davom etamiz!`;
+  // REV102: har iboradan keyin «⏸» — server bolaga qaytarish uchun 1.5–3 soniya jimlik qo'yadi.
+  return `Keling, birga aytamiz: ${phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}] ⏸`).join(" ")} Endi davom etamiz!`;
+}
+
+const FOREIGN = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
+const TOGETHER_END = /(?:(?:men\s+bilan\s+)?(?:birga\s+)?(?:ayt|takrorla|qaytar)\w*|say it together|say it with me|repeat after me)\s*[!.:]?\s*$/i;
+const NOT_TARGET = /^(?:say it together|say it with me|repeat after me|look|listen|listen and repeat|again|one more time|your turn|now you|good job|well done|great job)$/i;
+
+/** REV102: qadam «Qani, birga aytamiz!» bilan tugasa-yu, undan keyin so'z aytilmasa — bola nimani aytishini bilmaydi.
+ *  Shu qadamdagi chet so'zlar (4 tagacha) qayta aytiladi, har biridan keyin «⏸» (bolaga qaytarish vaqti). */
+export function kidRepeatSpeech(text) {
+  const src = String(text || "");
+  const plain = src.replace(FOREIGN, "$2").trim();
+  if (!TOGETHER_END.test(plain)) return src;
+  const phrases = [];
+  for (const m of src.matchAll(FOREIGN)) {
+    const lang = m[1].toLowerCase();
+    const body = m[2].trim().replace(/[.!?。！？]+$/u, "");
+    if (!body || /[:：]$/.test(body) || body.split(/\s+/).length > 4 || NOT_TARGET.test(body)) continue;
+    if (!phrases.some((p) => p.lang === lang && p.body.toLowerCase() === body.toLowerCase())) phrases.push({ lang, body });
+    if (phrases.length >= 4) break;
+  }
+  if (!phrases.length) return src;
+  return `${src} ${phrases.map((p) => `[${p.lang}]${p.body}.[/${p.lang}] ⏸`).join(" ")}`;
+}
+
+/** REV102: so'z o'rgatiladigan qadam — server «Men bilan ayt: Green» dan keyin bolaga vaqt qoldiradi. */
+export function kidTakrorStep(step) {
+  return ["qoida", "tushuntirish"].includes(step?.turi);
 }
 
 

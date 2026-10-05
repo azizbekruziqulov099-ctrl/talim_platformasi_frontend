@@ -7,6 +7,6 @@ test("REV95: yoshga qarab ovoz tezligi va topshiriqdan keyin namuna (maqtovsiz)"
   assert.equal(kidRate("6–7 yosh"), "-5%");
   assert.equal(kidRate(""), "-8%");
   assert.equal(kidTaskModel("Nima deysiz? [en]Thank you![/en] Qo'l silkiting: [en]Bye![/en]"),
-    "Keling, birga aytamiz: [en]Thank you![/en] [en]Bye![/en] Endi davom etamiz!");
+    "Keling, birga aytamiz: [en]Thank you![/en] ⏸ [en]Bye![/en] ⏸ Endi davom etamiz!");
   assert.equal(kidTaskModel("Qarsak chaling!"), "Qani, davom etamiz!");
 });

@@ -28,19 +28,29 @@ export async function fetchDayPlan(apiBase, token) {
   return res.json();
 }
 
-/** Darsni boshlash. Kunlik reja tugagan bo'lsa — {limit: true, xabar}; tarmoq xatosida dars baribir ochiladi. */
+/** Darsni boshlash. Kunlik reja tugagan bo'lsa — {limit: true, xabar}; REV103: bugungi dars VAQTI tugagan bo'lsa —
+ *  {limit: true, vaqt: true, xabar}. Tarmoq xatosida dars baribir ochiladi. */
 export async function startLesson(apiBase, token, { darsKod, fan, mavzu, jamiQadam }) {
   try {
     const d = await post(apiBase, token, '/api/bola/dars/boshla', { dars_kod: darsKod, fan: fan || '', mavzu: String(mavzu || '').slice(0, 200), jami_qadam: jamiQadam || 0 });
     return { ok: true, tracked: !d.kuzatilmaydi, reja: d.reja || null };
   } catch (e) {
-    if (e.status === 409 && e.code === 'limit') return { ok: false, limit: true, xabar: e.message, reja: null };
+    if (e.status === 409 && (e.code === 'limit' || e.code === 'vaqt')) return { ok: false, limit: true, vaqt: e.code === 'vaqt', xabar: e.message, reja: null };
     return { ok: true, tracked: false, offline: true };
   }
 }
 
-export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0 }) {
-  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami }); } catch { return null; }
+/** REV103: savolga javob vaqti (ms) — mediana: bola chalg'ib ketgan bitta uzun savol o'rtachani buzmaydi. */
+export function answerSpeed(times) {
+  const list = (times || []).map(Number).filter((n) => Number.isFinite(n) && n > 0).map((n) => Math.min(60000, Math.max(300, n))).sort((a, b) => a - b);
+  if (!list.length) return 0;
+  const mid = Math.floor(list.length / 2);
+  return Math.round(list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2);
+}
+
+export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0 }) {
+  const ortacha_ms = Math.max(0, Math.min(120000, Math.round(Number(ortachaMs) || 0)));
+  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms }); } catch { return null; }
 }
 
 /** Kartalar tartibida qaysi darslar ochiq: o'tilgan/bugun ochilgan — ochiq; qolganidan kunlik qoldiq qadar yangi. */

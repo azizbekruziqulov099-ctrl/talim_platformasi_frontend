@@ -10,7 +10,7 @@ import UniversityFilters from './UniversityFilters.jsx';
 import {catalogSubjectDetails} from './adminTestCatalog.js';
 import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActive} from './universityFilters.js';
 import { accountRole } from '../auth/loginMemory.js';
-import { capitalizeTopic, kidSubjectEmoji, kidTopicColor, kidTopicEmoji } from './kidTopics.js';
+import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopicEmoji } from './kidTopics.js';
 import { lessonStars } from './kidProgress.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import './kidTopics.css';
@@ -154,15 +154,16 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       return <div key={`kid-${group.sinf}`}>
       <p className="kt-age">🧸 {__kbUi(gradeLabel(type,group.sinf))}</p>
       <ul className="kt-grid">{group.mavzular.map((topic,i)=>{const target=topicTarget(current,group,topic,type);
-       const stars=starsOf(topic,target,i);const isNext=i===next;const locked=topic.dars_bor&&!unlock[i]?.open;
+       const stars=starsOf(topic,target,i);const isNext=i===next;const locked=topic.dars_bor&&!unlock[i]?.open;const review=isReviewTopic(topic.nomi);
        const open=()=>{if(locked){sayName(__kbUi("Bu dars ertaga ochiladi"));return;}if(topic.dars_bor)openLesson(group,topic);};
-       return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${stars?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''}`} style={{'--kt-bg':kidTopicColor(i)}}
+       return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${stars?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''} ${review?'is-review':''}`} style={{'--kt-bg':review?'#EDE3FF':kidTopicColor(i)}}
         onClick={e=>{if(e.target.closest('button'))return;open();}}>
         <span className="kt-no">{stars?'✓':locked?'🔒':i+1}</span>
         {isNext&&<span className="kt-today">{__kbUi("Bugun shu!")}</span>}
         <button type="button" className="kt-emoji" aria-label={__kbUi(locked?"Ertaga ochiladi":"O‘rganamiz")} disabled={!topic.dars_bor} onClick={open}>{kidTopicEmoji(topic.nomi,i)}{!locked&&topic.dars_bor&&<span className="kt-play-badge" aria-hidden="true">▶</span>}</button>
         <p className="kt-title"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>
          <button type="button" className="kt-say" aria-label={__kbUi("Nomini eshitish")} onClick={()=>sayName(capitalizeTopic(topic.nomi))}>🔊</button></p>
+        <span className={`kt-kind ${review?'is-review':'is-new'}`}>{review?__kbUi("🔁 Takrorlash"):__kbUi("✨ Yangi mavzu")}</span>
         {stars>0&&<span className="kt-stars" aria-label={`${stars} ⭐`}>{'⭐'.repeat(stars)}{'☆'.repeat(3-stars)}</span>}
         {locked&&<span className="kt-lock-note">🌙 {__kbUi("Ertaga")}</span>}
         {!locked&&topic.savol_soni>0&&onOpenTest&&(stars>0||!topic.dars_bor)&&<div className="kt-actions">

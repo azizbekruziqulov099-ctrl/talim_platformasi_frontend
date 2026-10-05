@@ -1,4 +1,6 @@
 // REV80: bog'cha mavzulari — katta rasmli kartalar uchun emoji va ranglar (sof funksiyalar).
+// REV102: takrorlash darsi kartasi boshqacha rangda va «🔁 Takrorlash» belgisi bilan.
+export { isReviewTopic } from '../kid/kidStageRules.js';
 const KEYS = [
   // REV90: har dars o'z rasmiga ega bo'lsin (o'qiy olmaydigan bola kartani rasmidan taniydi)
   [/o.?tgan yil/i, '🔁'], [/xayrli tong|xayrli tun|tong|kech\b|morning|night/i, '🌅'], [/shifokor|doctor/i, '🩺'], [/avtobus|\bbus\b/i, '🚌'], [/mashina|\bcar\b/i, '🚗'],

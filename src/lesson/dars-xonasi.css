@@ -211,3 +211,22 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-aud-bogcha .dx-kid-end .dx-btn{background:#fff;color:#1B2340;border-color:#E2E8F2}
 .dx-aud-bogcha .dx-kid-opts .dx-kid-pic{font-size:clamp(72px,18vw,104px);animation:ks-bob 2.6s ease-in-out infinite}
 .dx-kid-ask .ks-stage{flex:0 1 200px}
+/* REV102: takror va yangi bilim yaqqol ajralsin — belgi, rang va ramka (o'qiy olmaydigan bola rang va belgidan taniydi) */
+.dx-kind{display:flex;width:max-content;max-width:100%;align-items:center;gap:6px;margin:0 auto 8px;padding:6px 14px 6px 10px;border-radius:999px;font-weight:900;color:#fff;box-shadow:0 6px 14px -8px #0007;animation:dx-kind-in .35s ease-out}
+.dx-kind span{font-size:22px;line-height:1}
+.dx-kind small{font-size:14px;letter-spacing:.2px}
+.dx-kind.is-review{background:#7c4dce}
+.dx-kind.is-new{background:#e39a12}
+.dx-kind.is-game{background:#2f8f5b}
+.dx-kind.is-summary{background:#2c7bb6}
+.dx-kind-frame{width:100%;border-radius:28px;transition:box-shadow .3s,background .3s}
+.dx-kind-frame.k-review{box-shadow:inset 0 0 0 4px #b89af0;background:#f4eeff}
+.dx-kind-frame.k-new{box-shadow:inset 0 0 0 4px #f6c35b;background:#fff8e6}
+.dx-kind-frame.k-game{box-shadow:inset 0 0 0 4px #8fd3a9}
+.dx-aud-bogcha .dx-step.k-review{background:#d9cdf3}.dx-aud-bogcha .dx-step.k-review.is-done,.dx-aud-bogcha .dx-step.k-review.is-now{background:#7c4dce}
+.dx-aud-bogcha .dx-step.k-new{background:#f6e2b4}.dx-aud-bogcha .dx-step.k-new.is-done,.dx-aud-bogcha .dx-step.k-new.is-now{background:#e39a12}
+.dx-aud-bogcha .dx-step.k-game{background:#cdebd8}.dx-aud-bogcha .dx-step.k-game.is-done,.dx-aud-bogcha .dx-step.k-game.is-now{background:#2f8f5b}
+.dx-aud-bogcha .dx-step.is-now{transform:scaleY(1.6)}
+@keyframes dx-kind-in{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.dx-kind{animation:none}}
+@media(max-width:520px){.dx-kind span{font-size:18px}.dx-kind small{font-size:12.5px}.dx-kind-frame{border-radius:22px}}
