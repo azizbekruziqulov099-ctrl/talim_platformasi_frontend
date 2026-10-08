@@ -48,9 +48,12 @@ export function answerSpeed(times) {
   return Math.round(list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2);
 }
 
-export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0 }) {
+export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0, ovozTogri = 0, ovozJami = 0 }) {
   const ortacha_ms = Math.max(0, Math.min(120000, Math.round(Number(ortachaMs) || 0)));
-  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms }); } catch { return null; }
+  // REV105: dars oxiridagi ovozli tekshiruv natijasi (ota-onaga ham boradi)
+  const ovoz_jami = Math.max(0, Math.min(50, Math.round(Number(ovozJami) || 0)));
+  const ovoz_togri = Math.max(0, Math.min(ovoz_jami, Math.round(Number(ovozTogri) || 0)));
+  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}) }); } catch { return null; }
 }
 
 /** Kartalar tartibida qaysi darslar ochiq: o'tilgan/bugun ochilgan — ochiq; qolganidan kunlik qoldiq qadar yangi. */

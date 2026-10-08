@@ -230,3 +230,31 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 @keyframes dx-kind-in{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 @media(prefers-reduced-motion:reduce){.dx-kind{animation:none}}
 @media(max-width:520px){.dx-kind span{font-size:18px}.dx-kind small{font-size:12.5px}.dx-kind-frame{border-radius:22px}}
+
+/* REV105: dars oxiridagi ovozli tekshiruv — «Takrorlang!» (doskada, bo'r uslubida) */
+.dx-voice{display:grid;justify-items:center;gap:14px;text-align:center;padding:4px 0}
+.dx-voice .dx-title{justify-self:start}
+.dx-voice-phrase{display:grid;gap:4px;max-width:34ch}
+.dx-voice-phrase small{font:600 13px system-ui,sans-serif;color:var(--dx-dim)}
+.dx-voice-phrase b{font-size:clamp(28px,5vw,40px);line-height:1.15;color:var(--dx-chalk)}
+.dx-voice-dots{display:flex;gap:10px;font-size:20px}
+.dx-voice-dots span{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:2px dashed #ffffff40;font-family:system-ui,sans-serif}
+.dx-voice-dots span.is-now{border:2px solid var(--dx-yellow)}
+.dx-voice-dots span.is-ok{border-color:transparent;background:#f1d06a33}
+.dx-voice-dots span.is-no{border-color:#ffffff25;color:var(--dx-dim)}
+.dx-voice-mic{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:none;color:var(--dx-chalk);cursor:pointer;font:700 15px system-ui,sans-serif}
+.dx-voice-mic>span{display:grid;place-items:center;width:96px;height:96px;border-radius:50%;font-size:46px;background:var(--dx-yellow);box-shadow:0 10px 26px -10px #000c}
+.dx-voice-mic.is-on>span{background:#ef6b5b;animation:dx-voice-pulse 1.1s ease-in-out infinite}
+.dx-voice-mic:disabled{cursor:default}
+.dx-voice-mic:disabled:not(.is-on)>span{opacity:.55}
+.dx-voice.is-kid .dx-voice-mic>span{width:132px;height:132px;font-size:64px}
+.dx-voice-kid{width:min(260px,70%)}
+.dx-voice-heard{margin:0;font:500 15px/1.5 system-ui,sans-serif;color:var(--dx-dim);max-width:46ch}
+.dx-voice-heard span{color:var(--dx-yellow);margin-right:4px}
+.dx-voice-stars{margin:0;font-size:38px;min-height:46px}
+.dx-voice-note{margin:0;max-width:46ch;font:500 14px/1.6 system-ui,sans-serif;color:var(--dx-chalk);background:#0003;border-radius:10px;padding:10px 12px}
+.dx-voice-actions{justify-content:center}
+.dx-voice.is-kid .dx-voice-actions .dx-btn{font-size:26px;padding:8px 16px}
+.dx-voice-score{font:700 16px system-ui,sans-serif;color:var(--dx-yellow)}
+@keyframes dx-voice-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 #ef6b5b88}50%{transform:scale(1.07);box-shadow:0 0 0 18px #ef6b5b00}}
+@media(prefers-reduced-motion:reduce){.dx-voice-mic.is-on>span{animation:none}}
