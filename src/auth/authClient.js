@@ -38,7 +38,13 @@ export async function authRequest(apiBase, path, { body, signal, timeout = AUTH_
   } catch (error) {
     if (timedOut) throw new Error("Server javobi kechikdi. Internetni tekshirib, qayta urinib ko‘ring.");
     if (error?.name === "AbortError" || signal?.aborted) throw error;
-    if (error instanceof TypeError) throw new Error("Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.");
+    if (error instanceof TypeError) {
+      // REV107: internet bor-yo'qligini ajratamiz — ko'pincha internet emas, server qayta ishga tushayotgan bo'ladi.
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      throw Object.assign(new Error(offline
+        ? "Internet aloqasi yo‘q. Internetni yoqib, qayta urinib ko‘ring."
+        : "Server hozir javob bermadi (yangilanish yoki qayta ishga tushish bo‘lishi mumkin). 10–20 soniyadan keyin qayta bosing."), { network: true });
+    }
     throw error;
   } finally {
     clearTimeout(timer);

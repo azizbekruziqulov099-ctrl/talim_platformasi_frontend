@@ -444,6 +444,26 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     }
   }), [hush]);
   useEffect(() => () => { if (kidTracker.active() === topicCode) kidTracker.detach(); }, [topicCode]);
+  // REV106: dars boshlangach — faqat dars: butun ekran, menyular, yon panel va yordamchilar yashiriladi.
+  const focus = ["lesson", "ovoz", "test", "bridge", "end", "result", "limit"].includes(mode);
+  useEffect(() => {
+    document.body.classList.toggle("kb-focus-dars", focus);
+    return () => document.body.classList.remove("kb-focus-dars");
+  }, [focus]);
+  useEffect(() => {
+    if (!focus) return undefined;
+    const key = (e) => { if (e.key === "Escape" && !kidRef.current) exitRef.current?.(); };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [focus]);
+  const exitLesson = () => {
+    hush(); setPlaying(false); setMenu(false); setVariant(null);
+    if (kid && onClose) { onClose(); return; }
+    setMode("idle"); setIdx(-1);
+    setBubble(__kbUi(kid ? "Yana o‘ynaymizmi? ▶ ni bos!" : "Dars to‘xtatildi. «Darsni boshlash» bilan qaytadan boshlang."));
+  };
+  const exitRef = useRef(exitLesson);
+  exitRef.current = exitLesson;
   useEffect(() => {
     if (!kid || mode !== "result") return;
     const local = !questions.length ? 1 : score / questions.length >= 0.7 ? 3 : score > 0 ? 2 : 1;
@@ -508,8 +528,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     say(p?.key ? `[en]${STICKER_SAY[p.key]}[/en]` : en || __kbUi("Barakalla!"));
   };
 
-  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme}`} aria-label={__kbUi("Dars xonasi")}>
+  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""}`} aria-label={__kbUi("Dars xonasi")}>
     <header className="dx-head">
+      {focus && <button type="button" className="dx-exit" onClick={exitLesson} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? "🏠" : "✕"}</button>}
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
         {!kid && <p>{[lesson.topic?.fan, lesson.topic?.sinf && (/^\d+$/.test(String(lesson.topic.sinf)) ? `${lesson.topic.sinf}-sinf` : String(lesson.topic.sinf)), lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>}

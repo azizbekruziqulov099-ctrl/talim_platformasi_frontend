@@ -158,6 +158,7 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
   const clockOffset = useRef(0);
   const expiredAttempt = useRef(null);
   const downloadUrls = useRef(new Set());
+  const [fileLink, setFileLink] = useState(null);   // REV106: tayyor PDF/Word havolasi
   const voice = useAssistantVoice(base, open && Boolean(token));
   answersRef.current = answers;
   attemptRef.current = attempt;
@@ -381,7 +382,21 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
 
   const download = async (format, key = false) => {
     if (!attempt || operation.current) return;
-    const op = { kind: "download" }; operation.current = op; setBusy(`download-${format}-${key}`); setError("");
+    const op = { kind: "download" }; operation.current = op; setBusy(`download-${format}-${key}`); setError(""); setFileLink(null);
+    // REV106: avval bir martalik havola — telefon, Telegram va PWA ichida ham ochiladi (blob yuklab olish u yerda jim qolardi).
+    try {
+      const link = await request(`/attempt/${encodeURIComponent(attempt.attempt_id)}/export-link?format=${format}&answer_key=${key ? "true" : "false"}`, { method: "POST" });
+      if (operation.current !== op) return;
+      if (link?.path) {
+        setFileLink({ url: `${base}${link.path}`, format, key });
+        operation.current = null; setBusy("");
+        return;
+      }
+    } catch (err) {
+      if (operation.current !== op || err.name === "AbortError") return;
+      if (!/topilmadi|not found|So‘rov bajarilmadi/i.test(err.message || "")) { setError(err.message); operation.current = null; setBusy(""); return; }
+      // eski backend (havola yo'li yo'q) — quyidagi to'g'ridan-to'g'ri yuklab olishga o'tamiz
+    }
     try {
       const blob = await request(`/attempt/${encodeURIComponent(attempt.attempt_id)}/export?format=${format}&answer_key=${key ? "true" : "false"}`, { download: true });
       if (operation.current !== op) return;
@@ -446,6 +461,8 @@ export default function KabutarAssistant({ open = false, onClose, token, apiBase
         <div><FileText size={21} /><span><strong>{__kbUi("Qog‘ozda ham mashq qiling")}</strong><small>{__kbUi("Savollar va javob kaliti alohida PDF faylda.")}</small></span></div>
         <div className="ka-actions"><button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf")}><Download size={16} />{busy === "download-pdf-false" ? __kbUi("PDF tayyorlanmoqda…") : __kbUi("PDF — savollar")}</button>
           {keysAllowed && <button type="button" className="ka-secondary" disabled={interactionDisabled} onClick={() => download("pdf", true)}><Download size={16} />{busy === "download-pdf-true" ? __kbUi("Kalit tayyorlanmoqda…") : __kbUi("PDF — javob kaliti")}</button>}</div>
+        {fileLink && <a className="ka-file-ready" href={fileLink.url} target="_blank" rel="noopener noreferrer" download onClick={() => setTimeout(() => setFileLink(null), 1500)}>
+          <FileText size={18} /><span><strong>{__kbUi(fileLink.key ? "Javob kaliti tayyor" : "PDF tayyor")}</strong><small>{__kbUi("Ochish yoki yuklab olish uchun bosing (5 daqiqa amal qiladi)")}</small></span></a>}
         {!keysAllowed && <p className="ka-hint">{__kbUi("Javoblaringizni test yakunida ko‘rasiz. Alohida kalit o‘qituvchi yoki administrator uchun.")}</p>}
       </section>}
     {!recoveryChecked && !readOnly && <div className="ka-recovery" role="status">{busy === "recover" ? __kbUi("Saqlangan test tekshirilmoqda…") : <>{__kbUi("Oldingi testni tekshirish uchun ")}<button className="ka-link" type="button" onClick={() => { setError(""); setRecoveryRetry((current) => current + 1); }}>{__kbUi("qayta urinib ko‘ring")}</button>.</>}</div>}

@@ -172,7 +172,16 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     command.current = controller;
     setBusy(true); setQuickRole(next); setError("");
     try {
-      const data = await authRequest(apiBase, "/auth/quick/start", { body: { role: next, age_group: ageGroup || undefined }, signal: controller.signal });
+      const body = { role: next, age_group: ageGroup || undefined };
+      let data;
+      try { data = await authRequest(apiBase, "/auth/quick/start", { body, signal: controller.signal }); }
+      catch (first) {
+        // REV107: server bir lahza javob bermasa — 2.5 soniyadan keyin o'zi bir marta qayta urinadi.
+        if (!first?.network || controller.signal.aborted) throw first;
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        if (controller.signal.aborted) throw first;
+        data = await authRequest(apiBase, "/auth/quick/start", { body, signal: controller.signal });
+      }
       if (mounted.current && id === commandId.current) finish({ ...data, method: "quick" });
     } catch (err) {
       if (mounted.current && id === commandId.current && !controller.signal.aborted) setError(err.message);

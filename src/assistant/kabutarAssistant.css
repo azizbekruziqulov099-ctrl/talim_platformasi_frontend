@@ -59,3 +59,7 @@
 .ka-result .ka-result-guidance{font-size:12px;line-height:1.7;margin-top:12px;max-width:430px;color:#436b5d}
 @media(max-width:600px){.samtm-top-switch .ka-launch,.ka-launch{width:44px;min-width:44px;padding:3px;gap:0}.ka-panel,.ka-panel.ka-wide{border-radius:17px}.ka-header{padding:10px 11px}.ka-tabs{padding:6px 9px}.ka-tabs>button{padding:7px 8px;font-size:10px}.ka-chat-scroll{padding:13px 11px}.ka-compose{padding:10px 11px 7px}.ka-body{padding:14px 12px}}
 @media(max-height:520px){.ka-header{padding:7px 11px}.ka-header p,.ka-footer{display:none}.ka-avatar,.ka-avatar .ka-robot{width:34px;height:34px}.ka-compose textarea{max-height:74px}.ka-tabs{padding:4px 9px}}
+/* REV106: tayyor fayl havolasi — telefon va Telegram ichida ham ochiladi */
+.ka-file-ready{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px 14px;border-radius:14px;background:#087f78;color:#fff;text-decoration:none}
+.ka-file-ready span{display:grid;gap:2px}.ka-file-ready strong{font-size:14px}.ka-file-ready small{font-size:11.5px;opacity:.85}
+.ka-file-ready:focus-visible{outline:3px solid #25a89d;outline-offset:2px}

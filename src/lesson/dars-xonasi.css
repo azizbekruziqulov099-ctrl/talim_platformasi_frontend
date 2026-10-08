@@ -258,3 +258,16 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-voice-score{font:700 16px system-ui,sans-serif;color:var(--dx-yellow)}
 @keyframes dx-voice-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 #ef6b5b88}50%{transform:scale(1.07);box-shadow:0 0 0 18px #ef6b5b00}}
 @media(prefers-reduced-motion:reduce){.dx-voice-mic.is-on>span{animation:none}}
+
+/* REV106: diqqat rejimi — dars boshlangach butun ekran faqat dars uchun */
+.dx-root.dx-focus{position:fixed;inset:0;z-index:2147483000;overflow:auto;overscroll-behavior:contain;
+  background:var(--ui-bg,#eef3f0);padding:max(12px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+  align-content:start}
+.dx-root.dx-focus .dx-room{max-width:1180px;width:100%;margin:0 auto}
+.dx-root.dx-focus .dx-head,.dx-root.dx-focus .dx-steps,.dx-root.dx-focus .dx-controls{max-width:1180px;width:100%;margin-inline:auto}
+.dx-head{align-items:center}
+.dx-exit{flex:none;display:grid;place-items:center;width:42px;height:42px;margin-right:4px;border:1px solid var(--dx-line);border-radius:12px;background:var(--dx-paper);color:var(--dx-ink);font-size:18px;font-weight:800;cursor:pointer}
+.dx-aud-bogcha .dx-exit{width:52px;height:52px;font-size:26px;border-radius:16px}
+.dx-exit:focus-visible{outline:3px solid #25a89d;outline-offset:2px}
+.dx-root.dx-focus .dx-controls{position:sticky;bottom:0;z-index:2;padding-block:10px;background:linear-gradient(transparent,var(--ui-bg,#eef3f0) 35%)}
+.dx-root.dx-focus .dx-head>div:not(.dx-head-actions){flex:1;min-width:0}

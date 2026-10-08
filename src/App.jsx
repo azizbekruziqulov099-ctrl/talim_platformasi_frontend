@@ -31,6 +31,7 @@ import { clearFamily, isFamilyProfileUser, isProfileSession, readFamily, writeFa
 import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, keepsSessionOnLogout as keepsQuickSession, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const FamilyProfiles = __kbRev35_external0.lazy(() => import("./auth/FamilyProfiles.jsx"));
+const TeacherSubjects = __kbRev35_external0.lazy(() => import("./teacher/TeacherSubjects.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
 import * as __kbRev35_module1 from "./auth/authClient.js";
@@ -14217,6 +14218,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   useAudiencePresence(API_BASE, token, !readOnly);
   const [holat, setHolat] = useState("yuklanmoqda");
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
+  const [fanTanlash, setFanTanlash] = useState(false);   // REV106: o'qituvchi «Fanlarim»
   useEffect(() => {
     setPresentationsAllowed(false);
     if (!token || !foydalanuvchi?.user_id || readOnly) return;
@@ -14353,6 +14355,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   // pastki menyu orqali boshqa bo'limga o'tib bo'lmaydi, avval test
   // "To'xtatish" yoki "Yakunlash" bilan yakunlanishi kerak.
   const [testDavomida, setTestDavomida] = useState(false);
+  // REV106: test yechilayotganda — faqat test: menyular, yon panel va yordamchilar yashiriladi.
+  useEffect(() => {
+    if (readOnly) return undefined;
+    document.body.classList.toggle("kb-focus-test", testDavomida);
+    return () => document.body.classList.remove("kb-focus-test");
+  }, [testDavomida, readOnly]);
   const [talimYoliTestNishoni, setTalimYoliTestNishoni] = useState(null);
   const [talimYoliDarsNishoni, setTalimYoliDarsNishoni] = useState(null);
   const kabinetHistoryRef = useRef([]);
@@ -14486,6 +14494,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
 
   // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
   const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
+  // REV106: o'qituvchi kirishda fanlarini tanlaydi; tanlamaguncha boshqa bo'limlar ochilmaydi.
+  const oqituvchiMi = !readOnly && !foydalanuvchi?.is_admin && foydalanuvchi?.role === "oqituvchi";
+  const oqituvchiFanlari = foydalanuvchi?.learning_profile?.fanlar || [];
+  const fanSorash = oqituvchiMi && (fanTanlash || !oqituvchiFanlari.length);
   // REV103: kunlik vaqt faqat bog'cha bolasining o'z hisobida (admin ko'rish rejimida hisoblanmaydi).
   const bogchaVaqti = !readOnly && !foydalanuvchi?.is_admin && korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona"
     && _kbAccountRole(foydalanuvchi) === "bogcha";
@@ -14721,7 +14733,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {!readOnly && <AccountNotice user={foydalanuvchi} onOpenSettings={() => setAccountOpen(true)} />}
       {membershipNotice && <div className="kb-app-notice" role="status"><span>{__kbUi(membershipNotice)}</span><button type="button" aria-label={__kbUi("Xabarni yopish")} onClick={() => setMembershipNotice("")}>×</button></div>}
       {educationLoadError && <div className="kb-app-error" role="alert"><p>{__kbUi(educationLoadError)}</p><button className="kb-work-primary" onClick={() => setEducationReload((n) => n + 1)}><InterfaceText text={__kbUi("Qayta urinish")}/></button></div>}
-      {(educationEditing || needsEducation(foydalanuvchi, tab)) && !foydalanuvchi?.is_admin ?
+      {fanSorash && !(educationEditing || needsEducation(foydalanuvchi, tab)) ? <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}>
+        <TeacherSubjects apiBase={API_BASE} token={token} required={!oqituvchiFanlari.length} onClose={() => setFanTanlash(false)}
+          onSaved={(fanlar) => { setFoydalanuvchi((u) => ({ ...u, learning_profile: { ...(u?.learning_profile || {}), fanlar } })); setFanTanlash(false); window.location.reload(); }} />
+      </React.Suspense> : (educationEditing || needsEducation(foydalanuvchi, tab)) && !foydalanuvchi?.is_admin ?
         <EducationSetup key={educationRoleChoice || "setup"} apiBase={API_BASE} token={token} user={foydalanuvchi} target={tab} initialRole={educationRoleChoice || (loginAccountRole(foydalanuvchi) ? "" : savedLoginRole())} onBack={() => { setEducationEditing(false); setEducationRoleChoice(""); setTab("home"); }} onComplete={(joined) => { setEducationEditing(false); setEducationRoleChoice(""); if (joined?.profile) { institutionJoined(joined); setMembershipNotice(""); } else { setMuassasalarYuklandi(false); setProfileReload((n) => n + 1); } }} /> : <>
       {mavjudMuassasalar.length > 0 && !foydalanuvchi?.is_admin && <div className={`samtm-muassasa-strip ${yonMenyuOchiq ? "" : "yon-yopiq"}`}>
         {mavjudMuassasalar.map((m, i) => { const meta = MUASSASA_TURI_RANG[m.turi]; const on = faolMuassasa && faolMuassasa.turi === m.turi && String(faolMuassasa.muassasa_id) === String(m.muassasa_id); return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className={`samtm-muassasa-card ${on ? "on" : ""}`} style={{ "--m-rang": meta.rang, "--m-yengil": meta.yengil }}>
@@ -14744,6 +14759,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
               {!readOnly && onProfiles && (isFamilyProfileUser(foydalanuvchi)
                 ? <button type="button" className="kb-family-switch" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profilni almashtirish")} title={uiT("Profilni almashtirish")}><Users size={16} /><span>{(foydalanuvchi?.full_name || "").split(/\s+/)[0]}</span></button>
                 : <button type="button" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profillar")} title={uiT("Profillar: bitta akkauntda 10 tagacha")}><Users size={18} /></button>)}
+              {oqituvchiMi && oqituvchiFanlari.length > 0 && <button type="button" className="kb-family-switch" onClick={() => setFanTanlash(true)} title={oqituvchiFanlari.join(", ")} aria-label={uiT("Fanlarim")}><BookOpen size={16} /><span>{uiT("Fanlarim")}</span></button>}
               <button onClick={() => tabTanlandi("xabar")} aria-label={uiT("Xabarlar")}><Bell size={18} /></button>
               <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar"
                 aria-label={uiT("Profil va sozlamalar")} title={uiT("Profil va sozlamalar")}>

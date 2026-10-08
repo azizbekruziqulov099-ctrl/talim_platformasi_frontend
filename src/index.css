@@ -2218,3 +2218,11 @@ button {
   .premium-mobile-link{min-width:0;padding:8px 2px 9px;font-size:9px;line-height:1.15;text-align:center}
   .premium-mobile-link > span:last-child{max-width:100%;overflow-wrap:anywhere}
 }
+
+/* REV106: diqqat rejimi — dars yoki test ketayotganda boshqa hamma narsa yashiriladi */
+body.kb-focus-dars, body.kb-focus-test { overflow: hidden; }
+body.kb-focus-test { overflow: auto; }
+body:is(.kb-focus-dars, .kb-focus-test) :is(.premium-sidebar, .premium-mobile-nav, .premium-topbar, .samtm-muassasa-strip,
+  .samtm-yon-toggle, .samtm-top-switch, .samtm-top-spacer, .ka-panel, .kb-account-notice) { display: none !important; }
+body.kb-focus-test .premium-app-main { margin-left: 0 !important; padding-bottom: 0 !important; }
+body.kb-focus-test .premium-page-stage { max-width: 980px; margin-inline: auto; }
