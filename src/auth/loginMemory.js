@@ -38,6 +38,12 @@ export function saveLoginRole(role, store) {
   if (ROLE_NAMES[role]) write(ROLE_KEY, role, store);
 }
 
+// REV104: bitta akkaunt ichidagi profil (egasi learning_profile.family_owner da).
+export function isFamilyProfile(user) {
+  const owner = user?.learning_profile?.family_owner;
+  return owner !== undefined && owner !== null && owner !== '';
+}
+
 // Foydalanuvchining haqiqiy ta'lim roli (talaba alohida qiymat sifatida saqlanmaydi).
 export function accountRole(user) {
   const learning = user?.learning_profile?.role || user?.education_role;
@@ -66,6 +72,8 @@ export function savedAccounts(store) {
 
 export function rememberAccount(user, token, login = null, store) {
   if (!user || user.user_id == null) return savedAccounts(store);
+  // REV104: akkaunt ichidagi profil (bola) qurilma ro'yxatiga alohida akkaunt bo'lib tushmaydi.
+  if (isFamilyProfile(user)) return savedAccounts(store);
   const list = savedAccounts(store);
   const old = list.find((item) => String(item.user_id) === String(user.user_id)) || {};
   const identities = user.identities || {};
@@ -121,14 +129,14 @@ export function saveAuthConfig(config, store) {
 // kirilgan hisob parol unutilsa yo'qolishi mumkin. Ulangach ogohlantirish o'z-o'zidan yo'qoladi.
 export function accountRisk(user) {
   const identities = user?.identities;
-  if (!identities || user?.is_admin) return '';
+  if (!identities || user?.is_admin || isFamilyProfile(user)) return '';
   if (identities.telegram || identities.google) return '';
   return 'unlinked';
 }
 
 export function roleMismatch(user, chosen) {
   const actual = accountRole(user);
-  return Boolean(chosen && actual && chosen !== actual && !user?.is_admin);
+  return Boolean(chosen && actual && chosen !== actual && !user?.is_admin && !isFamilyProfile(user));
 }
 
 export function methodLabel(method) {

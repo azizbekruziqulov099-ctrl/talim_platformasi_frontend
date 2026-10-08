@@ -1,0 +1,146 @@
+/* REV104: «Kim o‘rganadi?» — bitta akkaunt ichidagi profillar. */
+.kb-family-overlay {
+  --fam-ink: #153843;
+  --fam-muted: #5f777c;
+  --fam-teal: #087f78;
+  --fam-line: #d9e7e3;
+  --fam-kid: #b53b67;
+  --fam-kid-bg: #fff0f4;
+  --fam-pupil: #0b7978;
+  --fam-pupil-bg: #e8f5f2;
+  --fam-uni: #5b4b8a;
+  --fam-uni-bg: #f1eef9;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #062e3dcc;
+  color: var(--fam-ink);
+  font-family: inherit;
+}
+.kb-family-sheet {
+  width: min(760px, 100%);
+  max-height: 92dvh;
+  overflow: auto;
+  border-radius: 28px;
+  background: #fff;
+  padding: 28px 28px 22px;
+  box-shadow: 0 30px 90px #03202d55;
+}
+.kb-family-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+.kb-family-head h2 { margin: 0; font-size: clamp(26px, 4.6vw, 38px); line-height: 1.1; letter-spacing: -0.03em; font-weight: 800; }
+.kb-family-head p { margin: 8px 0 0; font-size: 13px; color: var(--fam-muted); }
+.kb-family-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border: 0; border-radius: 12px; background: #eef5f2; color: var(--fam-ink); cursor: pointer; }
+
+.kb-family-error { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #edb9ad; border-radius: 12px; background: #fff1ee; color: #9b382b; font-size: 13px; }
+.kb-family-loading { display: flex; align-items: center; gap: 10px; color: var(--fam-muted); font-size: 14px; margin: 28px 0; }
+.kb-family-note { margin: 18px 0 0; padding: 12px 14px; border-radius: 12px; background: #f4f9f6; color: var(--fam-muted); font-size: 12.5px; line-height: 1.65; }
+
+.kb-family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 14px; }
+.kb-family-cell { position: relative; display: flex; }
+.kb-family-tile {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 10px 14px;
+  border: 1px solid var(--fam-line);
+  border-radius: 22px;
+  background: #fff;
+  color: var(--fam-ink);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.kb-family-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: currentColor; }
+.kb-family-tile:disabled { cursor: default; opacity: 0.6; }
+.kb-family-tile strong { font-size: 14px; font-weight: 750; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-family-tile small { font-size: 11.5px; color: var(--fam-muted); }
+.kb-family-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 36px;
+  font-weight: 800;
+  background: #eef5f2;
+}
+.kb-family-face img { width: 100%; height: 100%; object-fit: cover; }
+.kb-family-spin { position: absolute; color: #fff; background: #0008; border-radius: 50%; padding: 4px; width: 32px; height: 32px; }
+.kb-family-tile.role-bogcha { color: var(--fam-kid); }
+.kb-family-tile.role-bogcha .kb-family-face { background: var(--fam-kid-bg); }
+.kb-family-tile.role-oquvchi { color: var(--fam-pupil); }
+.kb-family-tile.role-oquvchi .kb-family-face { background: var(--fam-pupil-bg); }
+.kb-family-tile.role-talaba { color: var(--fam-uni); }
+.kb-family-tile.role-talaba .kb-family-face { background: var(--fam-uni-bg); }
+.kb-family-tile.owner .kb-family-face { background: var(--fam-ink); color: #fff; font-size: 30px; }
+.kb-family-tile.add { border-style: dashed; color: var(--fam-teal); }
+.kb-family-tile.add .kb-family-face { background: transparent; border: 2px dashed #b9d8d1; }
+.kb-family-tile[class*="role-"] strong { color: var(--fam-ink); }
+.kb-family-edit-mark { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f1f6f4; color: var(--fam-ink); }
+.kb-family-cell.managing .kb-family-tile { border-style: dashed; }
+.kb-family-del { position: absolute; top: -8px; left: -8px; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid #fff; border-radius: 50%; background: #fbe4dd; color: #9b382b; cursor: pointer; }
+
+.kb-family-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 22px; padding-top: 16px; border-top: 1px solid #e6efeb; }
+.kb-family-text { display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border: 1px solid var(--fam-line); border-radius: 12px; background: #f1f7f4; color: var(--fam-ink); font-size: 13px; font-weight: 700; cursor: pointer; }
+.kb-family-text.quiet { background: none; border-color: transparent; color: var(--fam-muted); }
+.kb-family-text.danger { background: #fff1ee; border-color: #f0c8bd; color: #9b382b; }
+.kb-family-text:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.kb-family-form { display: grid; gap: 20px; }
+.kb-family-form label { display: grid; gap: 8px; }
+.kb-family-form label > span, .kb-family-form legend { font-size: 13px; font-weight: 750; color: var(--fam-ink); margin-bottom: 8px; padding: 0; }
+.kb-family-form fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.kb-family-form input { min-height: 48px; padding: 12px 14px; border: 1px solid #ccdeda; border-radius: 13px; font: inherit; font-size: 16px; color: var(--fam-ink); }
+.kb-family-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kb-family-types button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border: 1px solid var(--fam-line); border-radius: 16px; background: #fff; color: var(--fam-ink); text-align: left; cursor: pointer; }
+.kb-family-types button span { font-size: 24px; }
+.kb-family-types button b { font-size: 13.5px; }
+.kb-family-types button small { font-size: 11px; color: var(--fam-muted); }
+.kb-family-types button.on { border: 2px solid var(--fam-teal); padding: 13px; background: #eaf8f1; }
+.kb-family-ages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.kb-family-ages.grades { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
+.kb-family-ages button { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 64px; border: 1px solid var(--fam-line); border-radius: 16px; background: #fff; color: var(--fam-ink); cursor: pointer; }
+.kb-family-ages.grades button { min-height: 48px; }
+.kb-family-ages button b { font-size: 24px; line-height: 1; font-weight: 800; }
+.kb-family-ages button small { font-size: 10.5px; color: var(--fam-muted); margin-top: 3px; }
+.kb-family-ages button.on { background: var(--fam-kid); border-color: var(--fam-kid); color: #fff; }
+.kb-family-ages.grades button.on { background: var(--fam-pupil); border-color: var(--fam-pupil); }
+.kb-family-ages button.on small { color: #ffffffcc; }
+.kb-family-hint { margin: 10px 0 0; font-size: 12.5px; color: var(--fam-muted); }
+.kb-family-more { margin-top: 10px; font-size: 12.5px; }
+.kb-family-more summary { cursor: pointer; color: var(--fam-teal); font-weight: 700; }
+.kb-family-groups { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.kb-family-groups button { padding: 9px 14px; border: 1px solid var(--fam-line); border-radius: 999px; background: #fff; color: var(--fam-ink); font-weight: 700; cursor: pointer; }
+.kb-family-groups button.on { background: var(--fam-ink); border-color: var(--fam-ink); color: #fff; }
+.kb-family-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding-top: 6px; }
+.kb-family-primary { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 12px 22px; border: 0; border-radius: 13px; background: var(--fam-teal); color: #fff; font-weight: 800; font-size: 14px; cursor: pointer; }
+.kb-family-primary:disabled { opacity: 0.55; cursor: wait; }
+
+.kb-family-overlay :is(button, input, summary):focus-visible { outline: 3px solid #25a89d; outline-offset: 2px; }
+
+/* Profil sessiyasida tepadagi «profilni almashtirish» tugmasi */
+.kb-family-switch { display: inline-flex !important; align-items: center; gap: 6px; width: auto !important; padding: 0 12px !important; border-radius: 999px !important; font-size: 12px; font-weight: 800; }
+
+@media (max-width: 650px) {
+  .kb-family-overlay { padding: 0; align-items: end; }
+  .kb-family-sheet { border-radius: 26px 26px 0 0; padding: 22px 18px max(18px, env(safe-area-inset-bottom)); max-height: 94dvh; }
+  .kb-family-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .kb-family-types { grid-template-columns: 1fr; }
+  .kb-family-types button { flex-direction: row; align-items: center; gap: 12px; }
+  .kb-family-ages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kb-family-actions { justify-content: stretch; }
+  .kb-family-actions > * { flex: 1; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kb-family-tile { transition: none; }
+  .kb-family-tile:hover:not(:disabled) { transform: none; }
+}

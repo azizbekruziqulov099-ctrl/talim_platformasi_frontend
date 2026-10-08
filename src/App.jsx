@@ -27,8 +27,10 @@ import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 import KitobKodQidiruv from "./lesson/KitobKod.jsx";
 import AccountNotice from "./auth/AccountNotice.jsx";
+import { clearFamily, isFamilyProfileUser, isProfileSession, readFamily, writeFamily } from "./auth/familyProfiles.js";
 import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, keepsSessionOnLogout as keepsQuickSession, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
+const FamilyProfiles = __kbRev35_external0.lazy(() => import("./auth/FamilyProfiles.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
 import * as __kbRev35_module1 from "./auth/authClient.js";
@@ -14192,7 +14194,7 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   );
 }
 
-function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false, initialCourses = false, initialCourseId = null }) {
+function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readOnly = false, initialCourses = false, initialCourseId = null }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -14739,6 +14741,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, readOnly = false,
             </div>
             <div className="premium-top-actions">
               <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : educationRole(foydalanuvchi) === "bogcha" ? uiT("Bog‘cha bolasi") : uiT("O‘quvchi")}</span>
+              {!readOnly && onProfiles && (isFamilyProfileUser(foydalanuvchi)
+                ? <button type="button" className="kb-family-switch" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profilni almashtirish")} title={uiT("Profilni almashtirish")}><Users size={16} /><span>{(foydalanuvchi?.full_name || "").split(/\s+/)[0]}</span></button>
+                : <button type="button" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profillar")} title={uiT("Profillar: bitta akkauntda 10 tagacha")}><Users size={18} /></button>)}
               <button onClick={() => tabTanlandi("xabar")} aria-label={uiT("Xabarlar")}><Bell size={18} /></button>
               <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar"
                 aria-label={uiT("Profil va sozlamalar")} title={uiT("Profil va sozlamalar")}>
@@ -15059,8 +15064,17 @@ export default function App() {
     if (korishRejimi) return;
     try { if (value) window.localStorage.setItem(SAMTM_TOKEN_STORAGE_KEY, value); else window.localStorage.removeItem(SAMTM_TOKEN_STORAGE_KEY); } catch { /* current tab still works */ }
   }, [korishRejimi]);
+  const [familyOpen, setFamilyOpen] = useState(false);   // REV104: «Kim o‘rganadi?» oynasi
   const sessiyaniTozala = useCallback((expiredToken) => {
     if (!korishRejimi && expiredToken && _saqlanganTokenniOl() && _saqlanganTokenniOl() !== expiredToken) return;
+    const family = korishRejimi ? null : readFamily();
+    if (family && expiredToken && family.profileToken === expiredToken && family.ownerToken !== expiredToken) {
+      // Profil sessiyasi tugadi — asosiy akkauntga qaytib, profil tanlash oynasini ochamiz.
+      writeFamily({ ...family, profileToken: "" });
+      sessionEpoch.current += 1; persistSession(family.ownerToken); setToken(family.ownerToken); setFamilyOpen(true);
+      return;
+    }
+    if (family && expiredToken && family.ownerToken === expiredToken) clearFamily();
     sessionEpoch.current += 1; persistSession(null); setToken(null);
     if (!korishRejimi) dropSavedToken(expiredToken);
     setLoginError("Sessiyangiz yakunlandi. Pastdagi ro‘yxatdan akkauntingizni bosib qayta kiring.");
@@ -15074,6 +15088,15 @@ export default function App() {
   }, [persistSession]);
   const chiqish = useCallback(async (allDevices = false) => {
     const startedEpoch = sessionEpoch.current;
+    // REV104: profildan chiqish = profil sessiyasini yopib, «Kim o‘rganadi?» oynasiga qaytish.
+    if (!korishRejimi && isProfileSession(token)) {
+      const family = readFamily();
+      try { await workspaceRequest(API_BASE, "/auth/logout", token, { method: "POST", body: { all_devices: false } }); }
+      catch (error) { if (error.status !== 401) throw error; }
+      writeFamily({ ...family, profileToken: "" });
+      sessionEpoch.current += 1; persistSession(family.ownerToken); setToken(family.ownerToken); setFamilyOpen(true);
+      return;
+    }
     // REV94: Telegram/Gmail'siz «tez» akkaunt shu qurilmadan chiqilganda o'chirilmaydi — ro'yxatdan qaytib kiriladi.
     const keepQuick = !allDevices && !korishRejimi && keepsQuickSession(token);
     if (token && !keepQuick) {
@@ -15084,9 +15107,52 @@ export default function App() {
     try { window.sessionStorage.removeItem("kabutar_google_link_intent"); } catch { /* blocked storage */ }
     clearTelegramLinkIntent(); setTelegramLinkOpen(false);
     if (!korishRejimi && !keepQuick) dropSavedToken(token);
+    if (!korishRejimi) { const family = readFamily(); if (family && family.ownerToken === token) clearFamily(); }
     sessionEpoch.current += 1; persistSession(null);
     setOauthProfil(null); setNotice(""); setLoginError(""); setToken(null);
   }, [token, persistSession]);
+
+  // REV104: profillar — ega tokeni bilan ochiladi; profil ichidan ham (almashtirish uchun).
+  const profillarniOch = useCallback(() => {
+    if (korishRejimi || !token) return;
+    const family = readFamily();
+    if (!(family && family.profileToken === token)) writeFamily({ ownerToken: token, profileToken: "" });
+    setFamilyOpen(true);
+  }, [korishRejimi, token]);
+  const profilYopilsin = async (family) => {
+    if (family?.profileToken && family.profileToken !== family.ownerToken) {
+      try { await workspaceRequest(API_BASE, "/auth/logout", family.profileToken, { method: "POST", body: { all_devices: false } }); } catch { /* sessiya baribir tugaydi */ }
+    }
+  };
+  const profilgaKir = async (profileToken) => {
+    const family = readFamily();
+    if (!family) return;
+    if (family.profileToken) await profilYopilsin(family);   // oldingi profil sessiyasi yopiladi
+    writeFamily({ ...family, profileToken });
+    setFamilyOpen(false);
+    kirildi(profileToken);
+  };
+  const egagaQayt = async () => {
+    const family = readFamily();
+    setFamilyOpen(false);
+    if (!family || family.ownerToken === token) return;
+    await profilYopilsin(family);
+    writeFamily({ ...family, profileToken: "" });
+    kirildi(family.ownerToken);
+  };
+  const egaChiqsin = async () => {
+    const family = readFamily();
+    setFamilyOpen(false);
+    if (family && family.profileToken && family.profileToken === token) {
+      await profilYopilsin(family);
+      try { await workspaceRequest(API_BASE, "/auth/logout", family.ownerToken, { method: "POST", body: { all_devices: false } }); } catch { /* eskirgan bo'lsa ham chiqamiz */ }
+      dropSavedToken(family.ownerToken); clearFamily();
+      sessionEpoch.current += 1; persistSession(null); setNotice(""); setLoginError(""); setToken(null);
+      return;
+    }
+    await chiqish(false);
+  };
+  const familyFromProfile = isProfileSession(token);
 
   useEffect(() => { initializeSamtmPwa(); }, []);
   useEffect(() => {
@@ -15160,7 +15226,7 @@ export default function App() {
     </div>
     <Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} readOnly />
   </div>;
-  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} /></>;
+  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} onProfiles={profillarniOch} />{familyOpen && readFamily() && <React.Suspense fallback={null}><FamilyProfiles apiBase={API_BASE} ownerToken={readFamily().ownerToken} closable={familyFromProfile || readFamily().ownerToken === token} onEnter={profilgaKir} onOwner={egagaQayt} onLogout={egaChiqsin} onClose={() => setFamilyOpen(false)} /></React.Suspense>}</>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
   return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} onCourses={() => setPublicCourses(true)} />;
 }
