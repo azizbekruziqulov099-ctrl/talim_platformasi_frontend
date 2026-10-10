@@ -1,0 +1,47 @@
+/* REV86: Shaxmat maktabi — darslar xaritasi, tushuntirish, mashq taxtasi. */
+.sm-root { max-width: 760px; }
+.sm-progress { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
+.sm-bar { flex: 1; height: 14px; border-radius: 999px; background: #e9e4da; overflow: hidden; }
+.sm-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffb400, #ff7a3d); border-radius: 999px; transition: width .4s ease; }
+.sm-unit { margin-top: 16px; }
+.sm-unit h3 { font-size: 1.1rem; margin: 0 0 10px !important; }
+.sm-lessons { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.sm-lesson { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 14px 10px; border: 0; border-radius: 18px; background: #fff; color: var(--sh-ink); cursor: pointer; box-shadow: 0 8px 20px rgba(29,39,51,.08); border-bottom: 5px solid #6c9a4e; transition: transform .12s ease; }
+.sm-lesson:not(:disabled):hover { transform: translateY(-3px); }
+.sm-lesson.is-done { border-bottom-color: #ffb400; background: #fffbef; }
+.sm-lesson.is-locked { opacity: .5; cursor: default; border-bottom-color: #c9c9c9; }
+.sm-lesson-emoji { font-size: 2.2rem; line-height: 1; width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: #eef5e8; }
+.sm-lesson small { color: var(--sh-muted); font-weight: 700; letter-spacing: .05em; }
+.sm-intro { display: grid; gap: 10px; justify-items: center; text-align: center; background: #fff; border-radius: 24px; padding: 22px 18px; margin-top: 12px; box-shadow: 0 12px 28px rgba(29,39,51,.08); }
+.sm-intro h2 { font-size: 1.7rem; }
+.sm-intro p { margin: 0; font-size: 1.06rem; line-height: 1.5; max-width: 560px; }
+.sm-big-emoji { font-size: 4rem; line-height: 1; }
+.sm-stars-big { font-size: 2.6rem !important; letter-spacing: .1em; }
+.sm-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.sm-dots { display: flex; gap: 6px; }
+.sm-dots i { width: 14px; height: 14px; border-radius: 50%; background: #e2ddd2; }
+.sm-dots i.is-done { background: #2f9e54; }
+.sm-dots i.is-now { background: #ffb400; box-shadow: 0 0 0 3px rgba(255,180,0,.3); }
+.sm-exercise { display: grid; gap: 8px; justify-items: center; }
+.sm-task { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 10px 14px; width: min(100%, 620px); box-shadow: 0 6px 16px rgba(29,39,51,.06); }
+.sm-task p { flex: 1; margin: 0; font-weight: 900; font-size: 1.12rem; }
+.sm-listen { border: 0; background: #eef5e8; border-radius: 50%; width: 42px; height: 42px; font-size: 1.2rem; cursor: pointer; flex: none; }
+.sm-counter { margin: 0; font-weight: 800; color: var(--sh-muted); }
+.sm-board { width: min(100%, max(290px, calc(100svh - 380px))) !important; }
+.sm-board.is-shake { animation: sm-shake .4s ease; }
+.sm-star { position: absolute; z-index: 2; font-size: clamp(1.1rem, 5vw, 2rem); animation: sm-twinkle 1.6s ease-in-out infinite; pointer-events: none; }
+.sm-star.is-on-piece { top: 0; right: 2px; font-size: clamp(.8rem, 3vw, 1.1rem); }
+.cx-cell.is-wrong { animation: sm-shake .4s ease; background: #ff8a8a !important; }
+.cx-cell.is-found { background: #7be495 !important; }
+.sm-msg { min-height: 1.5em; margin: 2px 0 0; font-weight: 900; text-align: center; font-size: 1.08rem; }
+.sm-msg.is-ok { color: #1f8a45; }
+.sm-msg.is-bad { color: #c62838; }
+.sm-finish .sh-row { margin-top: 6px; }
+@keyframes sm-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@keyframes sm-twinkle { 50% { transform: scale(1.18); } }
+@media (max-width: 560px) { .sm-lessons { grid-template-columns: 1fr 1fr; } .sm-intro h2 { font-size: 1.4rem; } }
+.sm-entry { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border: 0; cursor: pointer; margin-bottom: 12px; padding: 14px 16px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #2f7d3b, #6c9a4e); box-shadow: 0 12px 26px rgba(47,125,59,.28); }
+.sm-entry > span:first-child { font-size: 2.4rem; }
+.sm-entry b { display: block; font-size: 1.2rem; }
+.sm-entry small { display: block; opacity: .92; font-weight: 600; }
+.sm-entry i { margin-left: auto; font-style: normal; font-size: 2rem; }
