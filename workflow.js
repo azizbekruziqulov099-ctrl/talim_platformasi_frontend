@@ -1,227 +1,243 @@
-export const ONBOARDING_STEPS = [
+export const SCHOOL_TYPES = [
   {
-    key: "basics",
-    label: "Asosiy ma'lumot",
-    anchor: "kg-name",
-    message:
-      "Avval bog'chaning platformadagi nomi va hududini kiritamiz. Bu yuridik ro'yxatdan o'tkazish emas, raqamli ish maydonidir.",
+    value: "public_general",
+    label: "Oddiy davlat maktabi",
+    ownership: "public",
+    hint: "Umumta'lim maktabining standart 45 daqiqalik tartibi",
   },
   {
-    key: "schedule",
-    label: "Ish tartibi",
-    anchor: "kg-work-start",
-    message:
-      "Endi ish kunlari va vaqtini tanlaymiz. Kalendar, davomat va xodimlar rejasi keyin shu tartibga tayanadi.",
+    value: "public_idum",
+    label: "IDUM",
+    ownership: "public",
+    hint: "Ixtisoslashtirilgan davlat umumta'lim maktabi",
   },
   {
-    key: "groups",
-    label: "Guruhlar",
-    anchor: "kg-group-name",
-    message:
-      "Guruhlarni nomi, yosh oralig'i, sig'imi va xonasi bilan kiritamiz. Istasangiz guruhni bog'cha ochilgandan keyin ham qo'shasiz.",
+    value: "public_presidential",
+    label: "Prezident maktabi",
+    ownership: "public",
+    hint: "Maxsus ta'lim modeli va kengaytirilgan resurslar",
   },
   {
-    key: "team",
-    label: "Jamoa",
-    anchor: "kg-team-info",
-    message:
-      "Bog'cha ochilgach xodimlarga maxsus taklif kodi beriladi. Har kim faqat o'z lavozimiga mos menyularni ko'radi.",
-  },
-  {
-    key: "preview",
-    label: "Tekshirish",
-    anchor: "kg-preview",
-    message:
-      "Oxirgi tekshiruv. Men ma'lumotni o'zgartirmayman va sizning tasdig'ingizsiz bog'chani yaratmayman.",
+    value: "private_general",
+    label: "Xususiy maktab",
+    ownership: "private",
+    hint: "Dars va tanaffus vaqtini maktab o'zi belgilaydi",
   },
 ];
 
-export const ROLE_TOURS = {
-  director: [
-    {
-      key: "overview",
-      anchor: "kg-menu-overview",
-      message:
-        "Bosh sahifada guruh, xodim, bola, bugungi davomat va yaqin kalendar holati jamlanadi.",
-    },
-    {
-      key: "groups",
-      anchor: "kg-menu-groups",
-      message:
-        "Guruhlar bo'limida yosh oralig'i, xona, sig'im va tarbiyachini boshqarasiz.",
-    },
-    {
-      key: "staff",
-      anchor: "kg-menu-staff",
-      message:
-        "Xodimlar bo'limida lavozimga mos taklif kodi yaratasiz va qo'shilish so'rovlarini tasdiqlaysiz.",
-    },
-    {
-      key: "children",
-      anchor: "kg-menu-children",
-      message:
-        "Bolalar bo'limida guruh va ota-ona aloqa ma'lumotlari tartibli saqlanadi.",
-    },
-    {
-      key: "attendance",
-      anchor: "kg-menu-attendance",
-      message:
-        "Davomat bo'limida guruh kesimida kelgan, kechikkan va kelmagan bolalar belgilanadi.",
-    },
-    {
-      key: "daily_reports",
-      anchor: "kg-menu-daily_reports",
-      message:
-        "Kunlik hisobot ovqatlanish, uyqu, kayfiyat va mashg'ulotni bola kesimida saqlaydi.",
-    },
-    {
-      key: "calendar",
-      anchor: "kg-menu-calendar",
-      message:
-        "Kalendar barcha jarayonning tayanchi. Voqea e'lon qilinishidan oldin siz alohida tasdiqlaysiz.",
-    },
-    {
-      key: "payments",
-      anchor: "kg-menu-payments",
-      message:
-        "Xususiy bog'chada to'lov rejasi, oylik hisob va tasdiqlangan to'lov shu bo'limda boshqariladi.",
-    },
-    {
-      key: "settings",
-      anchor: "kg-menu-settings",
-      message:
-        "Sozlamalarda ish vaqti, ish kunlari, sig'im va AI yordamchi ko'rinishini o'zgartirasiz.",
-    },
-  ],
-  educator: [
-    {
-      key: "overview",
-      anchor: "kg-menu-overview",
-      message:
-        "Bu sizning ish holatingiz: guruhlar, bolalar, bugungi davomat va yaqin tadbirlar.",
-    },
-    {
-      key: "groups",
-      anchor: "kg-menu-groups",
-      message:
-        "Guruhlar bo'limidan o'zingizga biriktirilgan guruh va bolalarni ko'rasiz.",
-    },
-    {
-      key: "children",
-      anchor: "kg-menu-children",
-      message:
-        "Bolalar bo'limida faqat vakolatingiz doirasidagi ro'yxat va zarur aloqa ma'lumoti ko'rinadi.",
-    },
-    {
-      key: "attendance",
-      anchor: "kg-menu-attendance",
-      message:
-        "Davomatni har bola uchun bir bosishda belgilang; xato bo'lsa shu kun ichida tuzatasiz.",
-    },
-    {
-      key: "daily_reports",
-      anchor: "kg-menu-daily_reports",
-      message:
-        "Kunlik hisobotda ovqatlanish, uyqu, kayfiyat va faoliyatni har bir bola uchun saqlaysiz.",
-    },
-    {
-      key: "calendar",
-      anchor: "kg-menu-calendar",
-      message:
-        "Kalendar bugungi mashg'ulot va tadbirlarni ketma-ket ko'rsatadi.",
-    },
-  ],
-  accountant: [
-    {
-      key: "overview",
-      anchor: "kg-menu-overview",
-      message:
-        "Bosh sahifada sizga tegishli moliyaviy ko'rsatkich va yaqin muddatlar ko'rinadi.",
-    },
-    {
-      key: "payments",
-      anchor: "kg-menu-payments",
-      message:
-        "To'lovlar bo'limida reja yaratasiz, oy hisoblarini chiqarasiz va kelgan to'lovni tasdiqlab yozasiz.",
-    },
-    {
-      key: "calendar",
-      anchor: "kg-menu-calendar",
-      message:
-        "Kalendar to'lov muddati va umumiy bog'cha tadbirlarini ko'rsatadi.",
-    },
-  ],
-  nurse: [
-    {
-      key: "overview",
-      anchor: "kg-menu-overview",
-      message: "Sizga bolalar sog'lig'i, davomat va kunlik holat bo'limlari ochilgan.",
-    },
-    {
-      key: "children",
-      anchor: "kg-menu-children",
-      message:
-        "Bolalar bo'limida allergiya va zarur aloqa ma'lumotini ko'rasiz.",
-    },
-    {
-      key: "attendance",
-      anchor: "kg-menu-attendance",
-      message:
-        "Davomatda kelish holati va sog'liq sababli yo'qlikni guruh kesimida ko'rasiz.",
-    },
-    {
-      key: "daily_reports",
-      anchor: "kg-menu-daily_reports",
-      message:
-        "Kunlik hisobotda bolaning kayfiyati, ovqatlanishi va uyqusini tekshirasiz.",
-    },
-    {
-      key: "calendar",
-      anchor: "kg-menu-calendar",
-      message: "Kalendar tibbiy ko'rik va umumiy tadbirlarni ko'rsatadi.",
-    },
-  ],
-  staff: [
-    {
-      key: "overview",
-      anchor: "kg-menu-overview",
-      message:
-        "Sizga faqat lavozimingiz uchun ruxsat berilgan bo'limlar ko'rsatiladi.",
-    },
-    {
-      key: "calendar",
-      anchor: "kg-menu-calendar",
-      message:
-        "Kalendar orqali bugungi vazifa va yaqin tadbirlarni ko'rasiz.",
-    },
-  ],
+export const SCHOOL_ROLES = {
+  system_admin: "Tizim administratori",
+  owner: "Mulkdor",
+  founder: "Ta'sischi",
+  director: "Direktor",
+  academic_deputy: "O'quv ishlari bo'yicha direktor o'rinbosari",
+  spiritual_deputy: "Ma'naviy-ma'rifiy ishlar bo'yicha direktor o'rinbosari",
+  administrator: "Administrator",
+  methodist: "Metodist",
+  teacher: "O'qituvchi",
+  homeroom_teacher: "Sinf rahbari",
+  psychologist: "Psixolog",
+  social_pedagogue: "Ijtimoiy pedagog",
+  librarian: "Kutubxonachi",
+  nurse: "Hamshira",
+  accountant: "Hisobchi",
+  it_admin: "IT administrator",
+  laboratory_assistant: "Laborant",
+  security: "Qo'riqlash xodimi",
 };
 
-export function tourForRoles(roles = []) {
-  if (
-    roles.some((role) =>
-      [
-        "owner",
-        "founder",
-        "director",
-        "deputy_director",
-        "administrator",
-        "system_admin",
-      ].includes(
-        role,
-      ),
-    )
-  ) {
-    return ROLE_TOURS.director;
-  }
-  if (
-    roles.some((role) =>
-      ["educator", "assistant_educator", "methodist"].includes(role),
-    )
-  ) {
-    return ROLE_TOURS.educator;
-  }
-  if (roles.includes("accountant")) return ROLE_TOURS.accountant;
-  if (roles.includes("nurse")) return ROLE_TOURS.nurse;
-  return ROLE_TOURS.staff;
+export const ONBOARDING_STEPS = [
+  {
+    key: "identity",
+    label: "Maktab",
+    anchor: "school-name",
+    message:
+      "Maktab turi, nomi va hududini tanlang. Men maydonlarni tushuntiraman, lekin ma'lumotni sizning o'rningizga tasdiqlamayman.",
+  },
+  {
+    key: "shifts",
+    label: "Smena",
+    anchor: "school-shifts",
+    message:
+      "Bir yoki ikki smenani tanlang. Davlat maktabida 45 daqiqalik dars, 5 daqiqalik tanaffus va uchinchi darsdan keyin 10 daqiqa tavsiya etiladi.",
+  },
+  {
+    key: "buildings",
+    label: "Bino va xona",
+    anchor: "school-buildings",
+    message:
+      "Bino, qavat va xonalarni kiriting. Dars jadvali bir vaqtda bitta xonaga ikki sinfni qo'ymaslik uchun shu ma'lumotdan foydalanadi.",
+  },
+  {
+    key: "classes",
+    label: "Sinf va parallel",
+    anchor: "school-classes",
+    message:
+      "Maktabdagi sinflar va A, B, D kabi parallellarni belgilang. Keyin o'quvchilar shu sinflarga biriktiriladi.",
+  },
+  {
+    key: "staff",
+    label: "Xodimlar",
+    anchor: "school-staff",
+    message:
+      "Rahbariyat va o'qituvchilar keyin taklif orqali qo'shiladi. Har kim faqat lavozimiga mos menyuni ko'radi.",
+  },
+  {
+    key: "workload",
+    label: "Fan va yuklama",
+    anchor: "school-workload",
+    message:
+      "Fanlar, sinflar va haftalik soatlarni tekshiring. O'qituvchi, sinf va xona yuklamasi dars jadvalining asosidir.",
+  },
+  {
+    key: "calendar",
+    label: "O'quv kalendari",
+    anchor: "school-calendar",
+    message:
+      "O'quv yili, ish kunlari, sanasi qat'iy bayram va ta'tillarni belgilang. Bekor bo'lgan darsning aniq sanasi alohida istisno sifatida saqlanadi.",
+  },
+  {
+    key: "review",
+    label: "Tekshirish",
+    anchor: "school-review",
+    message:
+      "Hamma sozlamani tekshiring. Maktab faqat siz tasdiqlash tugmasini bosganingizdan keyin yaratiladi.",
+  },
+];
+
+const MANAGEMENT_MENU = [
+  "overview",
+  "timetable",
+  "calendar",
+  "attendance",
+  "grades",
+  "classes",
+  "teachers",
+  "workloads",
+  "buildings",
+  "payments",
+  "settings",
+];
+
+const ROLE_MENU = {
+  director: MANAGEMENT_MENU,
+  academic_deputy: MANAGEMENT_MENU,
+  administrator: MANAGEMENT_MENU,
+  owner: MANAGEMENT_MENU,
+  founder: MANAGEMENT_MENU,
+  system_admin: MANAGEMENT_MENU,
+  methodist: [
+    "overview",
+    "timetable",
+    "calendar",
+    "grades",
+    "teachers",
+    "workloads",
+  ],
+  spiritual_deputy: [
+    "overview",
+    "calendar",
+    "attendance",
+    "classes",
+    "teachers",
+  ],
+  teacher: ["overview", "timetable", "calendar", "attendance", "grades"],
+  homeroom_teacher: [
+    "overview",
+    "timetable",
+    "calendar",
+    "attendance",
+    "grades",
+    "classes",
+  ],
+  psychologist: ["overview", "calendar", "attendance", "classes"],
+  librarian: ["overview", "calendar"],
+  nurse: ["overview", "calendar", "attendance", "classes"],
+  accountant: ["overview", "calendar", "payments", "settings"],
+  security: ["overview", "calendar"],
+};
+
+export function menuForRoles(roles = []) {
+  const allowed = new Set(["overview"]);
+  roles.forEach((role) => {
+    (ROLE_MENU[role] || ["overview", "calendar"]).forEach((item) =>
+      allowed.add(item),
+    );
+  });
+  return MANAGEMENT_MENU.filter((item) => allowed.has(item));
+}
+
+export function visibleMenuForWorkspace(roles = [], workspace = {}) {
+  return menuForRoles(roles).filter(
+    (key) =>
+      key !== "payments" ||
+      workspace.ownership_type === "private" ||
+      workspace.school_type === "private_general",
+  );
+}
+
+const TOUR_MESSAGES = {
+  overview:
+    "Bosh sahifada smena, bugungi dars, davomat va jadval ogohlantirishlari jamlanadi.",
+  timetable:
+    "Jadval avval qoralama yaratiladi. To'qnashuvlar tekshirilgach vakolatli rahbar alohida tasdiqlab e'lon qiladi.",
+  calendar:
+    "Kalendar dars, bayram, ta'til, nazorat va qo'shimcha mashg'ulotlarni bitta vaqt tizimiga bog'laydi.",
+  attendance:
+    "Davomat sinf va sana bo'yicha belgilanadi. Siz faqat vakolatingizdagi sinflarni ko'rasiz.",
+  grades:
+    "Baholar fan, sinf, davr va topshiriq bilan yoziladi; har bir o'zgarish tarixda saqlanadi.",
+  classes:
+    "Sinf va parallel, sinf rahbari, smena va o'quvchilar shu bo'limda boshqariladi.",
+  teachers:
+    "O'qituvchining bo'sh vaqti, metod kuni va ketma-ket dars cheklovlari shu yerda belgilanadi.",
+  workloads:
+    "Fan yuklamasini o'qituvchi va sinfga bog'lang. Haftalik soat jadval generatoriga uzatiladi.",
+  buildings:
+    "Bino, qavat va xonalar jadvaldagi xona to'qnashuvini oldini oladi.",
+  payments:
+    "To'lovlar faqat xususiy maktabda ko'rinadi. Yangi v2 hisob-kitobi tayyor bo'lmaguncha eski moliya alohida Legacy oynasida qoladi.",
+  settings:
+    "Maktabning asosiy sozlamalari faqat vakolatli foydalanuvchi tasdig'i bilan o'zgaradi.",
+};
+
+export function tourForSchoolRoles(roles = []) {
+  return menuForRoles(roles).map((key) => ({
+    key,
+    anchor: `school-menu-${key}`,
+    message: TOUR_MESSAGES[key],
+  }));
+}
+
+export function defaultBellSchedule({
+  ownershipType = "public",
+  shifts = 1,
+} = {}) {
+  const isPublic = ownershipType === "public";
+  return {
+    lesson_minutes: 45,
+    short_break_minutes: 5,
+    long_break_after_lesson: 3,
+    long_break_minutes: 10,
+    custom_times_enabled: !isPublic,
+    shifts: [
+      {
+        number: 1,
+        starts_at: "08:00",
+        max_lessons: Number(shifts) === 2 ? 6 : 7,
+      },
+      ...(Number(shifts) === 2
+        ? [{ number: 2, starts_at: "13:10", max_lessons: 6 }]
+        : []),
+    ],
+  };
+}
+
+export function normalizeSectionLetters(value) {
+  const letters = String(value || "")
+    .toUpperCase()
+    .split(/[\s,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return [...new Set(letters)].slice(0, 20);
 }
