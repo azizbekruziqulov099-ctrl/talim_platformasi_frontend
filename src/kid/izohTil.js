@@ -15,8 +15,25 @@ export function darsIzohi(steps = []) {
   return m ? m[1].toLowerCase() : "uz";
 }
 
-/** O'rganiladigan til: qisqa (≤4 so'z) teglangan bo'laklarning eng ko'p uchragani, izoh tilidan boshqasi. */
-export function darsTiliIzoh(steps = [], izoh = "uz") {
+const FAN_TILI = [[/ingliz|english/i, "en"], [/rus|russian|русск/i, "ru"], [/arab/i, "ar"], [/turk/i, "tr"], [/nemis|german/i, "de"],
+  [/fransuz|french/i, "fr"], [/ispan|spanish/i, "es"], [/koreys|korean/i, "ko"], [/yapon|japan/i, "ja"], [/xitoy|chinese/i, "zh"]];
+const TIL_EMAS = /matem|atrof|tabiat|mantiq|logic|math|nature|science|sanoq/i;
+
+/** REV121: fan nomidan o'rganiladigan til. «Matematika (izoh: rus)» — null (til darsi emas); noma'lum fan — undefined. */
+export function fanTili(fan = "") {
+  const f = String(fan || "").replace(/\(\s*izoh[^)]*\)/gi, "");
+  if (!f.trim()) return undefined;
+  if (TIL_EMAS.test(f)) return null;
+  const hit = FAN_TILI.find(([re]) => re.test(f));
+  return hit ? hit[1] : undefined;
+}
+
+/** O'rganiladigan til: qisqa (≤4 so'z) teglangan bo'laklarning eng ko'p uchragani, izoh tilidan boshqasi.
+ *  REV121: fan nomi berilsa — avval undan (matematika/atrof-muhit/mantiq rus izohida ham til darsi emas). */
+export function darsTiliIzoh(steps = [], izoh = "uz", fan = "") {
+  const byFan = fanTili(fan);
+  if (byFan === null) return null;
+  if (byFan) return byFan;
   const count = {};
   for (const s of steps) {
     for (const m of String(s?.ovoz || "").matchAll(TAGS)) {
@@ -79,6 +96,17 @@ export const GAPLAR = {
     "O'tgan safar «{name}» darsini o'tgandik.": "В прошлый раз у нас был урок «{name}».",
     "Esingdami?": "Помнишь?", "Bu nima? ⏸": "Что это? ⏸", "Endi yangi darsga o'tamiz!": "А теперь — новый урок!",
     "👋 Salom!": "👋 Привет!", "Bugungi ob-havo": "Погода сегодня", "🔁 Esingdami?": "🔁 Помнишь?",
+    // REV121: o'yin, natija, test
+    "Qani, top: {p}": "Ну-ка, найди: {p}", "Barmog'ing bilan bos: {p}": "Нажми пальчиком: {p}",
+    "Bu emas. Yana qidir!": "Не то. Поищи ещё!", "Mana u: {p}": "Вот он: {p}", "Topding! Yulduzcha seniki!": "Нашёл! Звёздочка твоя!",
+    "Barakalla! O'yinda {n} ta yulduzcha yig'ding!": "Молодец! В игре ты собрал звёздочек: {n}!",
+    "Hechqisi yo'q, keyingi safar albatta topasan!": "Ничего, в следующий раз обязательно найдёшь!",
+    "Barakalla! Endi o'ynaymiz!": "Молодец! А теперь поиграем!", "Barakalla! To'g'ri!": "Молодец! Правильно!",
+    "Hechqisi yo'q! To'g'ri javob yashil rasmda.": "Ничего страшного! Правильный ответ — на зелёной картинке.",
+    "Barakalla! Uchta yulduz! Sen zo'rsan!": "Молодец! Три звезды! Ты супер!",
+    "Yaxshi harakat! Yana o'ynasak, yulduzlar ko'payadi!": "Хорошая попытка! Сыграем ещё — звёзд станет больше!",
+    "Bu safar yulduzcha yo'q. Qani, yana bir bor urinib ko'ramiz!": "В этот раз звёздочек нет. Давай попробуем ещё раз!",
+    "Xayrli tong!": "Доброе утро!", "Xayrli kech!": "Добрый вечер!",
   },
   en: {
     "Endi sen ayt: {p}": "Now you say it: {p}",
@@ -107,6 +135,17 @@ export const GAPLAR = {
     "O'tgan safar «{name}» darsini o'tgandik.": "Last time we had the lesson «{name}».",
     "Esingdami?": "Do you remember?", "Bu nima? ⏸": "What is it? ⏸", "Endi yangi darsga o'tamiz!": "Now let's start a new lesson!",
     "👋 Salom!": "👋 Hello!", "Bugungi ob-havo": "Today's weather", "🔁 Esingdami?": "🔁 Do you remember?",
+    // REV121: game, result, test
+    "Qani, top: {p}": "Can you find it? {p}", "Barmog'ing bilan bos: {p}": "Tap it with your finger: {p}",
+    "Bu emas. Yana qidir!": "Not that one. Look again!", "Mana u: {p}": "Here it is: {p}", "Topding! Yulduzcha seniki!": "You found it! A star for you!",
+    "Barakalla! O'yinda {n} ta yulduzcha yig'ding!": "Well done! You collected {n} stars in the game!",
+    "Hechqisi yo'q, keyingi safar albatta topasan!": "That's okay, next time you'll find it!",
+    "Barakalla! Endi o'ynaymiz!": "Well done! Now let's play!", "Barakalla! To'g'ri!": "Well done! That's right!",
+    "Hechqisi yo'q! To'g'ri javob yashil rasmda.": "That's okay! The right answer is the green picture.",
+    "Barakalla! Uchta yulduz! Sen zo'rsan!": "Well done! Three stars! You're great!",
+    "Yaxshi harakat! Yana o'ynasak, yulduzlar ko'payadi!": "Good try! Play again to get more stars!",
+    "Bu safar yulduzcha yo'q. Qani, yana bir bor urinib ko'ramiz!": "No stars this time. Let's try once more!",
+    "Xayrli tong!": "Good morning!", "Xayrli kech!": "Good evening!",
   },
 };
 

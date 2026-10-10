@@ -331,3 +331,20 @@ export const OCHILISH_LUGAT = {
   "yes": "是的！"
  }
 };
+
+// REV121: kechki salom va tungi osmon (kechasi «Quyosh charaqlayapti» demaymiz) — 10 tilda.
+const KECHKI = {
+  en: { evening: "Good evening!", starry: "The stars are shining." },
+  ru: { evening: "Добрый вечер!", starry: "Светят звёзды." },
+  ar: { evening: "مَسَاءُ الْخَيْر!", starry: "النُّجُومُ تَلْمَع." },
+  tr: { evening: "İyi akşamlar!", starry: "Yıldızlar parlıyor." },
+  de: { evening: "Guten Abend!", starry: "Die Sterne leuchten." },
+  fr: { evening: "Bonsoir !", starry: "Les étoiles brillent." },
+  es: { evening: "¡Buenas tardes!", starry: "Brillan las estrellas." },
+  ko: { evening: "좋은 저녁이에요!", starry: "별이 반짝여요." },
+  ja: { evening: "こんばんは！", starry: "ほしが きらきら してるよ。" },
+  zh: { evening: "晚上好！", starry: "星星在闪闪发光。" },
+};
+for (const [til, words] of Object.entries(KECHKI)) {
+  if (OCHILISH_LUGAT[til]) Object.assign(OCHILISH_LUGAT[til], words);
+}

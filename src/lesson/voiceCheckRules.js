@@ -46,7 +46,11 @@ function add(out, item, limit) {
  * 2) til darsi — chet tilidagi qisqa so'z/iboralar ([en]Green[/en]);
  * 3) boshqa fanlar — qoida va xulosa qatorlari (formulasiz, qisqa gaplar).
  */
-export function voiceCheckItems(lesson, audience = 'oquvchi') {
+export function voiceCheckItems(lesson, audience = 'oquvchi', opts = {}) {
+  // REV121: til darsi bo'lmasa (matematika, atrof-muhit, mantiq) izoh tilidagi teglar «chet so'z» emas —
+  // takrorlash uchun doska qatorlari olinadi va ular izoh tilida tekshiriladi.
+  const tilYoq = opts.tilYoq === true;
+  const izoh = opts.izoh && opts.izoh !== 'uz' ? opts.izoh : 'uz';
   const lim = VOICE_LIMITS[audience] || VOICE_LIMITS.oquvchi;
   const out = [];
   const given = Array.isArray(lesson?.ovozli_tekshiruv) ? lesson.ovozli_tekshiruv : [];
@@ -57,7 +61,7 @@ export function voiceCheckItems(lesson, audience = 'oquvchi') {
   if (out.length) return out;
 
   const steps = Array.isArray(lesson?.steps) ? lesson.steps : [];
-  for (const s of steps) {
+  for (const s of tilYoq ? [] : steps) {
     for (const m of String(s?.ovoz || '').matchAll(FOREIGN)) {
       const phrase = cleanLine(m[2]).replace(/[.!?。！？]+$/u, '');
       const n = words(phrase).length;
@@ -76,7 +80,7 @@ export function voiceCheckItems(lesson, audience = 'oquvchi') {
       const line = cleanLine(raw).replace(/[.!?]+$/u, '');
       const n = words(line).length;
       if (n < 2 || n > lim.uzMaxWords || !speakableLine(line)) continue;
-      add(out, { lang: 'uz', phrase: line }, lim.count);
+      add(out, { lang: tilYoq ? izoh : 'uz', phrase: line }, lim.count);
     }
   }
   return out;

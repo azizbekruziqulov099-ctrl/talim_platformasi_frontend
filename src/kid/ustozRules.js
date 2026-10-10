@@ -1,10 +1,10 @@
 // REV110: jonli ustoz — qaysi ustoz, qaysi xona, qaysi poza (sof funksiyalar, brauzersiz sinaladi).
 
-/** Fan nomiga qarab ustoz: matematika — Sardor aka, atrof-olam — Malika opa, tillar va ona tili — Nilufar opa. */
+/** Fan nomiga qarab ustoz: matematika va mantiq — Sardor aka, atrof-olam — Malika opa, tillar va ona tili — Nilufar opa. */
 export function ustozFor(fan = "") {
   const f = String(fan).toLowerCase();
-  if (/matem|sanoq|hisob|math/.test(f)) return "sardor";
-  if (/atrof|tabiat|olam|science|nature/.test(f)) return "malika";
+  if (/matem|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return "sardor";
+  if (/atrof|tabiat|olam|science|nature|окружа|природ/.test(f)) return "malika";
   return "nilufar";
 }
 

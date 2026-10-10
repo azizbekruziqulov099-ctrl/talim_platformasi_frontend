@@ -161,3 +161,70 @@ export function kindCue(kind, prevKind, text = "", topicName = "", izoh = "uz") 
   if (kind === "new" && prevKind) return allEnglish ? "[en]Now, a new word![/en]" : foreign ? "Endi — yangi so‘z!" : "Endi — yangi bilim!";
   return "";
 }
+
+// ── REV121: doska kartalari va «Top-chi» o'yini ──
+const TAGS_ALL = /\[\/?(?:uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi;
+const LEAD_MARK = /^[\s🔁🕊✨️]+/u;
+const PIC_PREFIX = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[#*0-9]️?⃣|️|‍|\p{Emoji_Modifier}|[+=?❓])+)\s+(.+)$/u;
+
+/** Doskadagi rasm-belgilar (emoji, son, ishora) — har qator yoki guruh («  » bilan ajratilgan) alohida karta.
+ *  Sanoq saqlanadi («🍎🍎🍎» — uchta olma), so'zlar tashlanadi (bola o'qimaydi, ustoz aytadi). */
+export function boardCards(text, limit = 4) {
+  const out = [];
+  for (const raw of String(text || "").replace(TAGS_ALL, "").split(/\n+|\s{2,}/)) {
+    const kept = raw.split(/\s+/).filter((tok) => tok && !/\p{L}/u.test(tok)).join(" ")
+      .replace(LEAD_MARK, "").replace(/[\s,.;:—–-]+$/u, "").trim();
+    if (!kept || !/[\p{Extended_Pictographic}\p{N}❓]/u.test(kept)) continue;
+    if (!out.includes(kept)) out.push(kept);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** Test savolidagi rasmli qism («🔴🔵🔴🔵❓ Keyingisi qaysi?» → «🔴🔵🔴🔵❓»). Bo'lmasa — «». */
+export function questionCard(savol) {
+  return boardCards(savol, 1)[0] || "";
+}
+
+/** Karta uzunligi (grafema soni) — shrift o'lchami shunga qarab tanlanadi. */
+export function cardSize(text) {
+  const t = String(text || "").replace(/\s+/g, "");
+  let n = 0;
+  try { n = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(t)].length; } catch { n = Math.ceil(t.length / 2); }
+  return n <= 2 ? "xl" : n <= 4 ? "lg" : n <= 7 ? "md" : "sm";
+}
+
+/** «Top-chi» o'yini nishonlari: doskadagi har guruh — bitta nishon; so'zi shu darsning yangi bilim qadamlari
+ *  sarlavhasidan («🐱🐱 Bir xil», «🍎 Apple — olma»). Kamida 2 ta topilsa — o'yin, aks holda []. */
+export function lessonWords(steps = [], kinds = []) {
+  const words = new Map();
+  steps.forEach((s, i) => {
+    if (kinds[i] !== "new") return;
+    const m = PIC_PREFIX.exec(String(s?.sarlavha || "").replace(TAGS_ALL, "").trim());
+    if (!m) return;
+    const key = m[1].replace(/️/g, "");
+    const word = m[2].split(/\s+[—–-]\s+/)[0].trim();
+    if (word && !words.has(key)) words.set(key, word);
+  });
+  return words;
+}
+
+export function gameTargets(step, steps = [], kinds = []) {
+  const words = lessonWords(steps, kinds);
+  const out = [];
+  for (const g of String(step?.doska || "").replace(TAGS_ALL, "").split(/\s{2,}|\n+/).map((x) => x.trim()).filter(Boolean)) {
+    const key = g.replace(/️/g, "");
+    const word = words.get(key);
+    if (word && !out.some((x) => x.key === key)) out.push({ key, emoji: g, word });
+  }
+  return out.length >= 2 ? out.slice(0, 4) : [];
+}
+
+/** Bola o'yinda nechta yulduz oldi — darsning umumiy natijasi (test + o'yin). 0 ta to'g'ri — 0 yulduz. */
+export function kidStars(togri, jami) {
+  const t = Math.max(0, Number(togri) || 0), j = Math.max(0, Number(jami) || 0);
+  if (!j) return 1;
+  if (!t) return 0;
+  const r = t / j;
+  return r >= 0.8 ? 3 : r >= 0.5 ? 2 : 1;
+}

@@ -273,3 +273,19 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-root.dx-focus .dx-head>div:not(.dx-head-actions){flex:1;min-width:0}
 /* REV110: suhbatdagi rasmli savol — katta belgi */
 .dx-voice-emoji{font-size:clamp(64px,14vw,120px);line-height:1;text-align:center;animation:us-pop .5s ease-out both}
+/* REV121: bog'cha testi — savoldagi rasmlar (naqsh, sanoq, ortiqchasi) katta oq kartada */
+.dx-kid-ask{flex-wrap:wrap}
+.dx-kid-qcard{flex:1 1 260px;max-width:560px;min-height:84px;display:grid;place-items:center;padding:10px 16px;border-radius:18px;background:#fff;
+  box-shadow:0 4px 14px #0002,inset 0 0 0 3px #ffe7a3;text-align:center;line-height:1.15;overflow-wrap:anywhere;
+  font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif;animation:dx-qcard .45s cubic-bezier(.2,.9,.3,1.3) both}
+.dx-kid-qcard.sz-xl{font-size:clamp(56px,12vw,96px)}
+.dx-kid-qcard.sz-lg{font-size:clamp(44px,9vw,76px)}
+.dx-kid-qcard.sz-md{font-size:clamp(32px,6.5vw,58px)}
+.dx-kid-qcard.sz-sm{font-size:clamp(24px,4.6vw,42px)}
+@keyframes dx-qcard{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.dx-kid-qcard{animation:none}}
+/* ko'p emojili variant («🍬🍬🍬🍬🍬», «🤖🤖🤖🤖») sig'sin */
+.dx-aud-bogcha .dx-kid-opts .dx-kid-pic{overflow-wrap:anywhere;line-height:1.1;text-align:center}
+.dx-aud-bogcha .dx-kid-opts .dx-kid-pic.sz-lg{font-size:clamp(44px,10vw,72px)}
+.dx-aud-bogcha .dx-kid-opts .dx-kid-pic.sz-md{font-size:clamp(30px,6.5vw,50px)}
+.dx-aud-bogcha .dx-kid-opts .dx-kid-pic.sz-sm{font-size:clamp(22px,4.6vw,36px)}

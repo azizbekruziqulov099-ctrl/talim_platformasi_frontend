@@ -1,11 +1,48 @@
-/* REV110: jonli ustoz sahnasi */
+/* REV110 / REV121: jonli ustoz sahnasi — sinfxona, deraza (kun vaqti va ob-havo), chiroq, doska */
 .us-stage{position:relative;width:100%;aspect-ratio:1586/992;max-width:100%;overflow:hidden;border-radius:18px;background:#e9e1d3;contain:layout paint}
 .us-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.us-board{position:absolute;display:flex;align-items:center;justify-content:space-evenly;gap:3%;padding:2%;box-sizing:border-box}
-.us-pic{all:unset;cursor:pointer;flex:1 1 0;min-width:0;height:92%;display:block;animation:us-pop .5s cubic-bezier(.2,.9,.3,1.3) both;animation-delay:calc(var(--i) * .18s)}
-.us-pic img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 4px 6px #0003)}
-.us-pic:focus-visible{outline:3px solid #ffd166;outline-offset:3px;border-radius:12px}
-.us-teacher{position:absolute;left:2.5%;bottom:1.5%;height:86%;transform-origin:50% 100%;animation:us-enter .55s cubic-bezier(.2,.8,.3,1.15) both,us-breathe 3.6s ease-in-out .55s infinite}
+.us-clipdef{position:absolute;width:0;height:0;overflow:hidden}
+
+/* ── doska: rasmlar oq kartochkalarda — yashil doskada ham, kechqurun ham aniq ko'rinadi ── */
+.us-board{position:absolute;display:flex;align-items:center;justify-content:space-evenly;gap:3%;padding:2.5%;box-sizing:border-box}
+/* yaqinlashgan doska: sahnaning o'ng qismi, oq panel; rasmlar kartochkada katta */
+.us-board.is-zoom{left:26%;top:5%;width:72%;height:88%;padding:3%;gap:3%;background:linear-gradient(#fffefa,#f6f2e6);border:clamp(3px,.9vw,8px) solid #c58d55;
+  border-radius:14px;box-shadow:0 10px 26px #0004,inset 0 0 0 2px #efe3cc;animation:us-zoom .45s cubic-bezier(.2,.8,.3,1.1) both}
+.us-board.is-zoom .us-pic{height:92%;box-shadow:0 4px 12px #0002,inset 0 0 0 2px #f1e8d6}
+.us-board.is-zoom.n1 .us-pic{max-width:70%}
+.us-board.is-zoom.n2 .us-pic{max-width:47%}
+.us-board.is-zoom.n3 .us-pic{max-width:31%}
+.us-board.is-zoom.n4{flex-wrap:wrap;align-content:space-evenly}
+.us-board.is-zoom.n4 .us-pic{flex:0 0 46%;max-width:46%;height:45%}
+@keyframes us-zoom{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
+.us-board.is-panel{background:linear-gradient(#fffefa,#f7f4ea);border:clamp(3px,.8vw,7px) solid #c58d55;border-radius:10px;box-shadow:0 8px 18px #0003,inset 0 0 0 2px #efe3cc}
+.us-board.is-panel::after{content:"";position:absolute;left:8%;right:8%;bottom:-6%;height:5%;background:#b07a45;border-radius:4px;box-shadow:0 3px 6px #0003}
+.us-pic{all:unset;cursor:pointer;flex:1 1 0;min-width:0;max-width:46%;height:90%;box-sizing:border-box;display:grid;place-items:center;padding:6px;
+  background:#fffffff2;border-radius:14px;box-shadow:0 3px 10px #0003;container-type:size;
+  animation:us-pop .5s cubic-bezier(.2,.9,.3,1.3) both;animation-delay:calc(var(--i) * .18s);transition:box-shadow .25s,transform .25s,opacity .25s}
+.us-board.n1 .us-pic{max-width:62%}
+.us-board.n4 .us-pic{max-width:24%}
+.us-pic img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 3px 4px #0002)}
+.us-emoji{display:block;text-align:center;line-height:1.12;overflow-wrap:anywhere;font-size:5vw;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif}
+/* emoji kartochkaga sig'adigan eng katta o'lchamda (kerak bo'lsa 2–3 qatorga bo'linadi) */
+.us-pic.sz-xl .us-emoji{font-size:min(62cqh,72cqw)}
+.us-pic.sz-lg .us-emoji{font-size:min(40cqh,40cqw)}
+.us-pic.sz-md .us-emoji{font-size:min(26cqh,27cqw)}
+.us-pic.sz-sm .us-emoji{font-size:min(19cqh,19cqw)}
+.us-pic:focus-visible{outline:3px solid #ffd166;outline-offset:3px}
+/* o'yin: to'g'ri — yashil, xato — qizil silkinish, yordam — sariq miltillash */
+.us-pic.is-ok{box-shadow:0 0 0 5px #2bb07f,0 6px 16px #2bb07f88;animation:us-yes .6s ease-out both}
+.us-pic.is-no{box-shadow:0 0 0 5px #e5484d;animation:us-no .45s ease-in-out both}
+.us-pic.is-hint{box-shadow:0 0 0 5px #ffd166,0 0 22px 6px #ffd166aa;animation:us-hint 1s ease-in-out infinite}
+.us-pic.is-dim{opacity:.45}
+.us-pic.is-wait{animation:us-wait 1.6s ease-in-out infinite;animation-delay:calc(var(--i) * .25s)}
+@keyframes us-yes{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1.04)}}
+@keyframes us-no{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6%)}40%,80%{transform:translateX(6%)}}
+@keyframes us-hint{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes us-wait{0%,100%{transform:translateY(0)}50%{transform:translateY(-3%)}}
+
+/* ── ustoz ── */
+.us-teacher{position:absolute;left:2.5%;bottom:1.5%;height:86%;pointer-events:none;transform-origin:50% 100%;animation:us-enter .55s cubic-bezier(.2,.8,.3,1.15) both,us-breathe 3.6s ease-in-out .55s infinite}
 .us-stage.is-speaking .us-teacher{animation:us-enter .55s cubic-bezier(.2,.8,.3,1.15) both,us-talk .5s ease-in-out .55s infinite alternate}
 .us-body{width:100%;height:100%;display:block;filter:drop-shadow(0 6px 10px #0002)}
 .us-face{position:absolute;pointer-events:none}
@@ -13,8 +50,8 @@
 @keyframes us-talk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-.6%) rotate(-.6deg)}}
 @keyframes us-enter{from{transform:translateX(-30%);opacity:0}to{transform:none;opacity:1}}
 @keyframes us-pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){.us-teacher,.us-pic{animation:none!important}}
-/* REV110: xona mavzuga moslashadi — ramka, javon, pol */
+
+/* ── xona bezaklari ── */
 .us-frame{position:absolute;display:block;background:#fffdf7;border-radius:3px;box-shadow:inset 0 0 0 1px #e8dfcf}
 .us-frame img{box-sizing:border-box;padding:10%}
 .us-frame img,.us-floor img{width:100%;height:100%;object-fit:contain;animation:us-pop .6s ease-out both}
@@ -23,59 +60,95 @@
 .us-shelf img{width:100%;height:100%;object-fit:contain}
 .us-floor{position:absolute;display:flex;align-items:flex-end;justify-content:center}
 .us-floor img{object-position:50% 100%;filter:drop-shadow(0 6px 4px #0003)}
-/* deraza: ob-havo */
-.us-window{position:absolute;overflow:hidden;pointer-events:none;mix-blend-mode:normal}
-.us-window i{position:absolute;inset:-50% 0 0 0;display:block}
-.us-window.havo-quyosh{background:radial-gradient(circle at 80% 10%,#fff6c070,transparent 60%)}
-.us-window.havo-quyosh i:first-child{background:radial-gradient(circle at 80% 12%,#ffe58a 0 6%,#ffe58a55 7% 14%,transparent 15%);inset:0;animation:us-glow 4s ease-in-out infinite}
-.us-window.havo-bulut{background:#cfd8e066}
-.us-window.havo-bulut i{inset:auto;width:60%;height:18%;border-radius:50%;background:#fff;box-shadow:14px -8px 0 4px #fff;opacity:.9;animation:us-drift 14s linear infinite}
-.us-window.havo-bulut i:nth-child(1){top:8%;left:-60%}.us-window.havo-bulut i:nth-child(2){top:24%;left:-60%;animation-delay:-6s;width:45%}.us-window.havo-bulut i:nth-child(3){top:40%;left:-60%;animation-delay:-10s;width:50%}
-.us-window.havo-yomgir{background:#8fa3b566}
-.us-window.havo-yomgir i{background:repeating-linear-gradient(100deg,transparent 0 9px,#ffffffa0 9px 10px,transparent 10px 22px);background-size:100% 40px;animation:us-rain .5s linear infinite}
-.us-window.havo-yomgir i:nth-child(2){animation-duration:.7s;opacity:.6}.us-window.havo-yomgir i:nth-child(3){display:none}
-.us-window.havo-qor{background:#dfe7ee66}
-.us-window.havo-qor i{background-image:radial-gradient(#fff 0 2px,transparent 3px),radial-gradient(#fff 0 1.5px,transparent 2.5px);background-size:28px 28px,19px 19px;background-position:0 0,10px 12px;animation:us-snow 6s linear infinite}
-.us-window.havo-qor i:nth-child(2){animation-duration:9s;opacity:.7}.us-window.havo-qor i:nth-child(3){display:none}
-@keyframes us-glow{0%,100%{opacity:.8}50%{opacity:1}}
-@keyframes us-drift{to{transform:translateX(260%)}}
-@keyframes us-rain{to{transform:translateY(40px)}}
-@keyframes us-snow{to{transform:translateY(50%)}}
-@media (prefers-reduced-motion:reduce){.us-window i,.us-frame img,.us-floor img{animation:none!important}}
-/* REV111: kun vaqti — xona yorug'ligi (bitta qatlam, GPU'da arzon) */
-.us-light{position:absolute;inset:0;pointer-events:none;transition:background 1.2s ease,opacity 1.2s ease;opacity:0}
-.vaqt-tong .us-light{opacity:1;background:linear-gradient(115deg,#ffbccb90,#ffe0b070 45%,#c8dcff55);mix-blend-mode:multiply}
-.vaqt-kech .us-light{opacity:1;background:linear-gradient(110deg,#ff8a45a0,#ff7a3a80 45%,#5a3d7a80);mix-blend-mode:multiply}
-.vaqt-tun .us-light{opacity:1;background:radial-gradient(ellipse at 30% 30%,#ffe6a822 0 25%,transparent 55%),linear-gradient(#1b2350b0,#141a3cc0);mix-blend-mode:multiply}
-.vaqt-tun .us-teacher,.vaqt-tun .us-board{filter:brightness(.92)}
-/* deraza osmoni */
-.us-window .us-sky{position:absolute;inset:0;display:block;transition:background 1.2s}
-.us-window.vaqt-tong .us-sky{background:linear-gradient(#ffc2b3cc,#ffe8c8aa)}
-.us-window.vaqt-kun .us-sky{background:transparent}
-.us-window.vaqt-kech .us-sky{background:linear-gradient(#ff8a5ccc,#ffb36baa 60%,#7a5aa0aa)}
-.us-window.vaqt-tun .us-sky{background:linear-gradient(#0d1438f2,#1f2a5ce6);box-shadow:inset 0 0 0 1px #0002}
-.us-window.vaqt-tun .us-sky::before{content:"";position:absolute;inset:0;background-image:radial-gradient(#fff 0 1px,transparent 1.5px),radial-gradient(#fff 0 .8px,transparent 1.3px);background-size:23px 19px,31px 27px;background-position:3px 4px,12px 9px;animation:us-twinkle 3s ease-in-out infinite alternate}
-.us-window .us-sun{position:absolute;top:8%;right:12%;width:22%;aspect-ratio:1;border-radius:50%;display:block;text-decoration:none}
-.us-window.vaqt-tun .us-sun{background:radial-gradient(circle at 35% 35%,#fffbe6,#f3e7b8);box-shadow:0 0 12px 4px #fff6c855;transform:scale(.8)}
-.us-window.vaqt-tun .us-sun::after{content:"";position:absolute;inset:-4% -4% 8% 18%;border-radius:50%;background:#16204a}
-.us-window.vaqt-kech .us-sun{background:#ffb347;box-shadow:0 0 18px 6px #ff9a3c88;top:auto;bottom:6%}
-.us-window.vaqt-tong .us-sun{background:#ffe08a;box-shadow:0 0 14px 5px #ffd36b88;top:auto;bottom:14%;right:auto;left:10%}
-.us-window.vaqt-kun .us-sun{display:none}
-.us-window.havo-bulut .us-sun,.us-window.havo-yomgir .us-sun,.us-window.havo-qor .us-sun,.us-window.havo-momaqaldiroq .us-sun{opacity:.25}
-/* momaqaldiroq: yomg'ir + vaqti-vaqti bilan chaqmoq */
-.us-window.havo-momaqaldiroq{background:#5a6a7a88}
-.us-window.havo-momaqaldiroq i{position:absolute;inset:-50% 0 0 0;display:block;background:repeating-linear-gradient(100deg,transparent 0 8px,#ffffffb0 8px 9px,transparent 9px 18px);background-size:100% 36px;animation:us-rain .35s linear infinite}
-.us-window.havo-momaqaldiroq i:nth-child(n+4){display:none}
-.us-window .us-flash{position:absolute;inset:0;display:none;font-style:normal}
-.us-window.havo-momaqaldiroq .us-flash{display:block;background:#fff;opacity:0;animation:us-flash 7s linear infinite}
-.vaqt-tun .us-light{animation:none}
+
+/* ── kun vaqti: xona yorug'ligi (devor va pol; doska va ustoz bu qatlam ustida — qorong'ilashmaydi) ── */
+.us-light{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:multiply;transition:opacity 1.2s ease,background 1.2s ease}
+.vaqt-tong .us-light{opacity:1;background:linear-gradient(115deg,#ffd9d2,#fff0dc 50%,#e6eeff)}
+.vaqt-kech .us-light{opacity:1;background:linear-gradient(110deg,#f4b98f,#f7cfa8 50%,#c9b3d9)}
+.vaqt-tun .us-light{opacity:1;background:linear-gradient(#8e93bb,#a3a2c0)}
+/* chiroq: kechqurun va kechasi yonadi */
+.us-lamp{position:absolute;left:var(--lx,50%);top:0;width:6.5%;height:10%;transform:translateX(-50%);pointer-events:none}
+.us-lamp span{position:absolute;display:block}
+.us-lamp-cord{left:calc(50% - 1px);top:0;width:2px;height:42%;background:#6b5a48}
+.us-lamp-shade{left:8%;right:8%;top:40%;height:42%;background:linear-gradient(#f2c66d,#d99a3c);clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);box-shadow:0 2px 3px #0003}
+.us-lamp-bulb{left:38%;width:24%;top:76%;aspect-ratio:1;border-radius:50%;background:#e9e2cf;transition:background .4s,box-shadow .4s}
+.us-stage.is-lamp .us-lamp-bulb{background:#fffbe6;box-shadow:0 0 10px 5px #ffe9a8,0 0 30px 14px #ffd76a88;animation:us-lamp-on 1.4s ease-out both}
+.us-stage.is-lamp .us-lamp-shade{background:linear-gradient(#ffd97f,#f2b552)}
+.us-lamp-glow{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;transition:opacity 1s ease;
+  background:radial-gradient(ellipse 48% 78% at var(--lx,50%) 6%,#ffeec0b0,#ffe0a040 48%,transparent 78%)}
+.us-stage.is-lamp .us-lamp-glow{opacity:1;animation:us-lamp-on 1.4s ease-out both}
+@keyframes us-lamp-on{0%{opacity:0}12%{opacity:1}18%{opacity:.25}30%{opacity:1}36%{opacity:.5}50%,100%{opacity:1}}
+
+/* ── deraza: shisha bo'laklari ichida jonli osmon (kun / tong / kech / tun × quyosh / bulut / yomg'ir / qor / momaqaldiroq) ── */
+.us-window{position:absolute;overflow:hidden;pointer-events:none}
+.us-window>span{position:absolute;display:block}
+.us-window .us-sky{inset:0;background:linear-gradient(#3fa4f0,#8fd0ff 62%,#d4efff);transition:background 1.2s}
+.us-window.havo-bulut .us-sky{background:linear-gradient(#93a8bd,#cfdbe6)}
+.us-window.havo-yomgir .us-sky,.us-window.havo-momaqaldiroq .us-sky{background:linear-gradient(#55687d,#8395a7)}
+.us-window.havo-qor .us-sky{background:linear-gradient(#aebccb,#e7edf3)}
+.us-window.vaqt-tong .us-sky{background:linear-gradient(#ff9e88,#ffcfa6 50%,#fff0d2)}
+.us-window.vaqt-kech .us-sky{background:linear-gradient(#4e3f86,#d9695a 55%,#ffad66)}
+.us-window.vaqt-tun .us-sky{background:linear-gradient(#050920,#121b47 60%,#1f2b63)}
+.us-window.vaqt-tong:not(.havo-quyosh) .us-sky,.us-window.vaqt-kech:not(.havo-quyosh) .us-sky{filter:saturate(.45) brightness(.82)}
+/* quyosh: nurlari aylanadi, yaltiraydi */
+.us-window .us-sun{display:none;width:40%;aspect-ratio:1;top:8%;right:10%;border-radius:50%;background:radial-gradient(circle,#fffbe0 0 30%,#ffd84a 31% 54%,transparent 56%);animation:us-glow 3s ease-in-out infinite}
+.us-window .us-sun::before{content:"";position:absolute;inset:-45%;border-radius:50%;background:repeating-conic-gradient(#ffe68a66 0 9deg,transparent 9deg 22deg);animation:us-spin 16s linear infinite;
+  -webkit-mask:radial-gradient(circle,#000 35%,transparent 70%);mask:radial-gradient(circle,#000 35%,transparent 70%)}
+.us-window.havo-quyosh.vaqt-kun .us-sun,.us-window.havo-bulut.vaqt-kun .us-sun{display:block}
+.us-window.havo-bulut.vaqt-kun .us-sun{opacity:.55}
+.us-window.vaqt-tong.havo-quyosh .us-sun{display:block;top:auto;bottom:16%;right:auto;left:8%;filter:hue-rotate(-12deg) saturate(1.2)}
+.us-window.vaqt-kech.havo-quyosh .us-sun{display:block;top:auto;bottom:10%;width:52%;filter:hue-rotate(-28deg) saturate(1.5)}
+.us-window.vaqt-kech.havo-quyosh .us-sun::before,.us-window.vaqt-tong.havo-quyosh .us-sun::before{opacity:.6}
+/* oy va yulduzlar — faqat kechasi */
+.us-window .us-moon{display:none;width:30%;aspect-ratio:1;top:9%;right:14%;border-radius:50%;background:#fff2c2;box-shadow:0 0 14px 5px #fff2c255;animation:us-moon 5s ease-in-out infinite}
+.us-window .us-moon::after{content:"";position:absolute;inset:-8% -10% 18% 30%;border-radius:50%;background:#0a1030}
+.us-window .us-stars{display:none;inset:0;background-image:radial-gradient(#fff 0 1px,transparent 1.7px),radial-gradient(#fffbe0 0 1.4px,transparent 2.2px),radial-gradient(#cfe0ff 0 .9px,transparent 1.5px);
+  background-size:23px 27px,41px 33px,17px 21px;background-position:4px 6px,15px 13px,9px 2px;animation:us-twinkle 2.4s ease-in-out infinite alternate}
+.us-window.vaqt-tun .us-moon,.us-window.vaqt-tun .us-stars{display:block}
+.us-window.vaqt-tun:not(.havo-quyosh) .us-stars{opacity:.25}
+.us-window.vaqt-tun:not(.havo-quyosh) .us-moon{opacity:.35}
+/* bulutlar suzadi */
+.us-window .us-cloud{display:none;left:-70%;width:62%;height:13%;border-radius:999px;background:#fff;opacity:.95;animation:us-drift 30s linear infinite}
+.us-window .us-cloud::before,.us-window .us-cloud::after{content:"";position:absolute;border-radius:50%;background:inherit}
+.us-window .us-cloud::before{width:46%;height:150%;left:14%;bottom:30%}
+.us-window .us-cloud::after{width:34%;height:120%;right:16%;bottom:35%}
+.us-window .us-cloud.c1{top:14%}
+.us-window .us-cloud.c2{top:34%;width:50%;animation-delay:-12s;animation-duration:38s}
+.us-window .us-cloud.c3{top:52%;width:56%;animation-delay:-23s;animation-duration:33s}
+.us-window.havo-quyosh:not(.vaqt-tun) .us-cloud.c1,.us-window.havo-quyosh:not(.vaqt-tun) .us-cloud.c2{display:block;opacity:.85}
+.us-window:not(.havo-quyosh) .us-cloud{display:block}
+.us-window.havo-bulut .us-cloud{background:#f4f7fa;animation-duration:22s}
+.us-window.havo-yomgir .us-cloud,.us-window.havo-momaqaldiroq .us-cloud{background:#7d8c9d;animation-duration:18s}
+.us-window.havo-qor .us-cloud{background:#dfe6ee}
+.us-window.vaqt-kech .us-cloud{background:#ffc3a3}
+.us-window.vaqt-tun .us-cloud{background:#29335e;opacity:.95}
+/* tepaliklar — derazadan tashqaridagi yer */
+.us-window .us-hills{left:-15%;right:-15%;bottom:-1%;height:20%;background:radial-gradient(55% 100% at 25% 100%,#5bb257 97%,transparent 100%),radial-gradient(65% 85% at 78% 100%,#46a04a 97%,transparent 100%)}
+.us-window.vaqt-tong .us-hills{filter:brightness(.92) sepia(.15)}
+.us-window.vaqt-kech .us-hills{filter:brightness(.6) sepia(.4)}
+.us-window.vaqt-tun .us-hills{filter:brightness(.22) saturate(.4)}
+.us-window.havo-qor .us-hills{background:radial-gradient(55% 100% at 25% 100%,#f4f8fb 97%,transparent 100%),radial-gradient(65% 85% at 78% 100%,#e2eaf2 97%,transparent 100%)}
+.us-window.havo-qor.vaqt-tun .us-hills{filter:brightness(.5)}
+/* yomg'ir va qor */
+.us-window .us-fall{display:none;inset:-50% -10% 0 -10%}
+.us-window.havo-yomgir .us-fall,.us-window.havo-momaqaldiroq .us-fall{display:block;background:repeating-linear-gradient(104deg,transparent 0 7px,#ffffffb8 7px 8px,transparent 8px 17px);background-size:100% 34px;animation:us-rain .42s linear infinite}
+.us-window.havo-yomgir .us-fall.f2,.us-window.havo-momaqaldiroq .us-fall.f2{background-size:100% 26px;opacity:.55;animation-duration:.62s}
+.us-window.vaqt-tun.havo-yomgir .us-fall,.us-window.vaqt-tun.havo-momaqaldiroq .us-fall{filter:brightness(.8) hue-rotate(200deg)}
+.us-window.havo-qor .us-fall{display:block;background-image:radial-gradient(#fff 0 2.2px,transparent 3px),radial-gradient(#fff 0 1.5px,transparent 2.3px);background-size:26px 26px,17px 19px;background-position:0 0,9px 11px;animation:us-snow 7s linear infinite}
+.us-window.havo-qor .us-fall.f2{animation-duration:11s;opacity:.7;background-size:37px 37px,23px 27px}
+.us-window.is-windy .us-fall{rotate:-14deg;inset:-60% -35% 0 -35%}
+.us-window.is-windy .us-cloud{animation-duration:12s}
+/* momaqaldiroq: chaqmoq */
+.us-window .us-flash{display:none;inset:0;background:#fff;opacity:0}
+.us-window.havo-momaqaldiroq .us-flash{display:block;animation:us-flash 7s linear infinite}
 .us-stage:has(.havo-momaqaldiroq) .us-light{animation:us-flash-room 7s linear infinite}
-/* jonliroq yomg'ir/qor: ikki qatlam, har xil tezlik; shamolda qiyshayadi */
-.us-window.havo-yomgir i:nth-child(3){display:block;animation-duration:.42s;opacity:.45;background-size:100% 30px}
-.us-window.havo-qor i:nth-child(3){display:block;animation-duration:12s;opacity:.5;background-size:41px 41px}
-.us-window.is-windy i{transform-origin:50% 0;rotate:-14deg;inset:-60% -30% 0 -30%}
-.us-window.is-windy.havo-bulut i,.us-window.is-windy.havo-quyosh i{animation-duration:7s}
-@keyframes us-twinkle{from{opacity:.55}to{opacity:1}}
+@keyframes us-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
+@keyframes us-spin{to{transform:rotate(360deg)}}
+@keyframes us-moon{0%,100%{box-shadow:0 0 12px 4px #fff2c244}50%{box-shadow:0 0 20px 8px #fff2c277}}
+@keyframes us-twinkle{from{opacity:.45}to{opacity:1}}
+@keyframes us-drift{to{transform:translateX(320%)}}
+@keyframes us-rain{to{transform:translateY(34px)}}
+@keyframes us-snow{to{transform:translateY(45%)}}
 @keyframes us-flash{0%,61%,63.5%,66%,100%{opacity:0}62%,65%{opacity:.85}}
 @keyframes us-flash-room{0%,61%,63.5%,66%,100%{opacity:1}62%,65%{opacity:.4}}
-@media (prefers-reduced-motion:reduce){.us-window .us-sky::before,.us-flash,.us-light{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.us-teacher,.us-pic,.us-window span,.us-window span::before,.us-frame img,.us-floor img,.us-lamp-glow,.us-lamp-bulb,.us-light{animation:none!important}}

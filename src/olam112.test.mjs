@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SAHNALAR, fanEshiklari, qoshnilar } from './kid/olamRules.js';
+import { SAHNALAR, fanEshiklari, qavatSoni, qoshnilar } from './kid/olamRules.js';
 
 test('har nuqta mavjud sahnaga olib boradi, orqaga yo‘l bor', () => {
   for (const [id, s] of Object.entries(SAHNALAR)) {
@@ -13,8 +13,12 @@ test('har nuqta mavjud sahnaga olib boradi, orqaga yo‘l bor', () => {
   assert.deepEqual(qoshnilar('bino').sort(), ['hayvonot', 'hovli', 'koridor', 'sport']);
 });
 
-test('fanlar eshiklarga taqsimlanadi, ortiqchasi pastki qatorda', () => {
+test('REV121: fanlar eshiklarga taqsimlanadi, 4 tadan ortig\'i — 2-qavatda (zinapoya bilan)', () => {
   const f = fanEshiklari([1, 2, 3, 4, 5].map((n) => ({ kalit: `f${n}`, nom: `Fan ${n}` })));
-  assert.equal(f.filter((x) => x.joy).length, 4);
-  assert.equal(f[4].joy, null);
+  assert.ok(f.every((x) => x.joy));
+  assert.deepEqual(f.map((x) => x.qavat), [0, 0, 0, 0, 1]);
+  assert.deepEqual(f[4].joy, f[0].joy);
+  assert.equal(qavatSoni([]), 1);
+  assert.equal(qavatSoni(f), 2);
+  assert.equal(qavatSoni(Array.from({ length: 13 }, (_, i) => ({ kalit: `k${i}` }))), 4);
 });

@@ -10,10 +10,17 @@ export function lessonStars(code, storage = store()) {
   return Number(read(storage)[code] || 0);
 }
 
+/** REV121: dars o'tilganmi (yulduzi 0 bo'lsa ham — bola darsni oxirigacha o'tdi). */
+export function lessonDone(code, storage = store()) {
+  return Boolean(code) && Object.prototype.hasOwnProperty.call(read(storage), code);
+}
+
+/** Dars tugadi: yulduz 0–3 (hech biri to'g'ri bo'lmasa — 0, lekin dars «o'tildi» deb belgilanadi). */
 export function markLessonDone(code, stars = 1, storage = store()) {
   if (!code) return 0;
   const all = read(storage);
-  const best = Math.max(Number(all[code] || 0), Math.min(3, Math.max(1, Number(stars) || 1)));
+  const n = Number.isFinite(Number(stars)) ? Number(stars) : 1;
+  const best = Math.max(Number(all[code] || 0), Math.min(3, Math.max(0, n)));
   all[code] = best;
   try { storage?.setItem(KEY, JSON.stringify(all)); } catch { /* optional */ }
   return best;
@@ -22,5 +29,5 @@ export function markLessonDone(code, stars = 1, storage = store()) {
 /** Birinchi o'tilmagan darsning tartib raqami (hammasi o'tilgan bo'lsa -1). */
 export function nextLessonIndex(codes, storage = store()) {
   const all = read(storage);
-  return codes.findIndex((code) => code && !all[code]);
+  return codes.findIndex((code) => code && !Object.prototype.hasOwnProperty.call(all, code));
 }

@@ -16,6 +16,8 @@ export function kidTaskModel(text, izoh = "uz") {
   const phrases = [];
   String(text || "").replace(/\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi, (_, lang, body) => {
     const clean = body.trim();
+    // REV121: izoh tilidagi (rus/ingliz) tushuntirish — o'rganiladigan ibora emas, takrorlatilmaydi
+    if (lang.toLowerCase() === izoh) return "";
     if (clean && !phrases.some((p) => p.body === clean)) phrases.push({ lang: lang.toLowerCase(), body: clean });
     return "";
   });

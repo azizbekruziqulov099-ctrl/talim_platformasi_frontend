@@ -30,10 +30,19 @@ export const SAHNALAR = {
     nuqtalar: [{ id: "tepalik", x: 55, y: 55, emoji: "🛝", nom: "Sirpanchiq", amal: "sakra" }] },
 };
 
-/** Fan eshiklari: birinchi 4 fan — yo'lakdagi eshiklarga, qolganlari — pastdagi eshiklar qatoriga. */
+/** REV121: bir qavatdagi eshiklar soni. Fan ko'p bo'lsa — yuqori qavatlar (zinapoyadan chiqiladi). */
+export const QAVATDA = SAHNALAR.koridor.eshiklar.length;
+export const ZINA = { yuqori: { x: 60, y: 84 }, past: { x: 40, y: 84 } };
+
+/** Fan eshiklari: har qavatda 4 ta eshik; 5-fandan boshlab 2-qavat, 9-dan 3-qavat va h.k. */
 export function fanEshiklari(fanlar = []) {
   const joylar = SAHNALAR.koridor.eshiklar;
-  return fanlar.map((f, i) => ({ ...f, joy: joylar[i] || null }));
+  return fanlar.map((f, i) => ({ ...f, qavat: Math.floor(i / QAVATDA), joy: joylar[i % QAVATDA] }));
+}
+
+/** Nechta qavat kerak (kamida 1). */
+export function qavatSoni(fanlar = []) {
+  return Math.max(1, Math.ceil(fanlar.length / QAVATDA));
 }
 
 /** Sahnadan qo'shni sahnalar (oldindan yuklash uchun). */

@@ -38,7 +38,9 @@ const SUBJECTS = [
   [/jismoniy|sport/i, '⚽'], [/shaxmat/i, '♟️'], [/mantiq/i, '🧩'],
 ];
 export function kidSubjectEmoji(name) {
-  const hit = SUBJECTS.find(([re]) => re.test(String(name || '')));
+  // REV121: «Arab tili (izoh: rus)» — qavs ichidagi izoh tili fanni aniqlashga aralashmasin
+  const fan = String(name || '').replace(/\(\s*izoh[^)]*\)/gi, '');
+  const hit = SUBJECTS.find(([re]) => re.test(fan));
   return hit ? hit[1] : '📚';
 }
 export function kidTopicEmoji(name, index = 0) {

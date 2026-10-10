@@ -19,6 +19,12 @@
 .ol-fx.fx-gol{animation:ol-goal 1s cubic-bezier(.3,.7,.4,1) forwards}
 .ol-fx.fx-hayvon{animation:ol-jump 1.1s ease-out forwards}
 .ol-soon{position:absolute;right:10px;bottom:10px;font-size:22px;opacity:.6}
+/* REV121: yo'lak qavatlari — zinapoya nuqtasi va har qavatning o'z rangi */
+.ol-spot.is-stairs{background:#e6f4ff;border-color:#4ea8de}
+.ol-spot.is-stairs small{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font:800 13px/1 system-ui,sans-serif;background:#4ea8de;color:#fff;padding:3px 7px;border-radius:999px;white-space:nowrap}
+.ol-scene.qavat-1 .ol-bg{filter:hue-rotate(32deg) saturate(1.05)}
+.ol-scene.qavat-2 .ol-bg{filter:hue-rotate(-38deg) saturate(1.05)}
+.ol-scene.qavat-3 .ol-bg{filter:hue-rotate(80deg)}
 .ol-doors{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .ol-door{font-size:36px;width:72px;height:88px;border-radius:14px 14px 6px 6px;border:4px solid #c98b4a;background:linear-gradient(#f7d7a6,#e8b778);cursor:pointer;box-shadow:0 4px 10px #0003}
 .ol-class{position:relative;display:grid;gap:12px}
@@ -48,3 +54,7 @@
 @keyframes ol-rain{to{transform:translateY(60px)}}
 @keyframes ol-snow{to{transform:translateY(40%)}}
 @media (prefers-reduced-motion:reduce){.ol-scene,.ol-spot,.ol-start,.ol-havo i,.ol-fx{animation:none!important}}
+/* REV121: tashqi sahnalarda kechasi qorong'iroq (sinfxonada chiroq yoniq — u yerda yengilroq) */
+.ol-scene.vaqt-tong .us-light{background:linear-gradient(115deg,#ffbccb90,#ffe0b070 45%,#c8dcff55)}
+.ol-scene.vaqt-kech .us-light{background:linear-gradient(110deg,#ff8a45a0,#ff7a3a80 45%,#5a3d7a80)}
+.ol-scene.vaqt-tun .us-light{background:radial-gradient(ellipse at 30% 30%,#ffe6a822 0 25%,transparent 55%),linear-gradient(#1b2350b0,#141a3cc0)}

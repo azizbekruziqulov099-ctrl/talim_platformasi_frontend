@@ -35,7 +35,17 @@ export const USTOZLAR = {
 
 // REV110: xona joylari (foizda): doska, deraza (ob-havo), devordagi ramka, javon, pol — mavzuga qarab to'ladi.
 export const XONALAR = {
-  matematika: { src: u("./ustoz/xona/matematika_960.webp"), src2x: u("./ustoz/xona/matematika_1600.webp"), doska: { l: 40.9, t: 19.4, w: 42.4, h: 37.1 }, deraza: { l: 0, t: 0, w: 6.2, h: 48 }, devor: { l: 27.4, t: 14.5, w: 8.2, h: 22 }, javon: null, pol: { l: 77, t: 80, w: 18, h: 17 } },
-  onatili: { src: u("./ustoz/xona/onatili_960.webp"), src2x: u("./ustoz/xona/onatili_1600.webp"), doska: { l: 77.9, t: 24, w: 19.2, h: 43 }, deraza: { l: 69.5, t: 4, w: 17.5, h: 35 }, devor: { l: 26.3, t: 10, w: 9, h: 24 }, javon: { l: 44.5, t: 23.5, w: 11.5, h: 7.5 }, pol: { l: 36, t: 64, w: 13, h: 14 } },
-  atrofolam: { src: u("./ustoz/xona/atrofolam_960.webp"), src2x: u("./ustoz/xona/atrofolam_1600.webp"), doska: { l: 50.8, t: 7.9, w: 30.6, h: 33 }, deraza: { l: 88, t: 1, w: 12, h: 35 }, devor: { l: 39.8, t: 5.5, w: 6.8, h: 16.5 }, javon: null, pol: { l: 50, t: 80, w: 20, h: 16 } },
+  matematika: { src: u("./ustoz/xona/matematika_960.webp"), src2x: u("./ustoz/xona/matematika_1600.webp"), doska: { l: 40.9, t: 19.4, w: 42.4, h: 37.1 }, deraza: { l: 0, t: 0, w: 6.2, h: 48 },
+    // REV121: derazaning shisha bo'laklari (rom va gullar ustiga osmon chizilmaydi), shiftdagi chiroq
+    oyna: [[[0, 0], [4.6, 0], [5.3, 2], [5.3, 12.3], [0, 9]], [[0, 11.7], [5.3, 15], [5.3, 29], [0, 27.2]], [[0, 30], [5.3, 31.8], [5.3, 41], [0, 41]]],
+    chiroq: { x: 25 }, devor: { l: 27.4, t: 14.5, w: 8.2, h: 22 }, javon: null, pol: { l: 77, t: 80, w: 18, h: 17 } },
+  onatili: { src: u("./ustoz/xona/onatili_960.webp"), src2x: u("./ustoz/xona/onatili_1600.webp"), doska: { l: 25.5, t: 11, w: 43, h: 45, panel: true }, deraza: { l: 69.5, t: 4, w: 17.5, h: 35 },
+    // REV121: mol'bert juda kichik edi (rasmlar mayda) — devorda katta oq doska; deraza bo'laklari bayroqcha va mol'bertsiz
+    oyna: [[[69.6, 11], [73.4, 11], [73.4, 32.5], [69.6, 32.5]], [[75.4, 9.5], [83.6, 9.5], [83.6, 21.8], [82.4, 21.8], [79.7, 38.5], [75.4, 38.5]]],
+    chiroq: { x: 47 }, devor: { l: 80, t: 28.5, w: 14.5, h: 30 }, javon: null, pol: { l: 36, t: 64, w: 13, h: 14 } },   // ramka — mol'bertdagi qog'oz
+  atrofolam: { src: u("./ustoz/xona/atrofolam_960.webp"), src2x: u("./ustoz/xona/atrofolam_1600.webp"), doska: { l: 50.8, t: 7.9, w: 30.6, h: 33 }, deraza: { l: 88, t: 0, w: 12, h: 42 },
+    oyna: [[[89.3, 1.5], [92.4, 1.5], [92.4, 14.5], [89.3, 14.5]], [[93.4, 0], [100, 0], [100, 9.7], [93.4, 12.5]],
+      [[89.3, 15.5], [92.4, 15.5], [92.4, 23.5], [89.3, 23.5]], [[93.4, 14.6], [100, 11.8], [100, 28], [93.4, 29.5]],
+      [[93.4, 31.3], [100, 30.2], [100, 41], [93.4, 41]]],
+    chiroq: { x: 33 }, devor: { l: 39.8, t: 5.5, w: 6.8, h: 16.5 }, javon: null, pol: { l: 50, t: 80, w: 20, h: 16 } },
 };

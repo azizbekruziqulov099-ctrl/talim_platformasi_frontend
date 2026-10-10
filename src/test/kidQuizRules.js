@@ -71,6 +71,15 @@ export function dropLeadingPraise(text) {
   return out;
 }
 
+const ANY_PRAISE = /^(\s*(?:\[(?:en|ru|uz)\])?\s*)(?:barakalla|zo['‘’ʻ]r|ofarin|qoyil|ajoyib|to['‘’ʻ]g['‘’ʻ]ri|молодец|умница|здорово|супер|верно|правильно|отлично|well done|great job|awesome|super|right|excellent|bravo)[!.,]*\s*/i;
+
+/** REV121: izoh qaysi tilda bo'lsa ham boshidagi maqtovni olib tashlaydi (xato javobdan keyin «Barakalla» demaslik uchun). */
+export function dropPraiseAny(text) {
+  let out = String(text ?? '');
+  for (let k = 0; k < 2 && ANY_PRAISE.test(out); k += 1) out = out.replace(ANY_PRAISE, '$1');
+  return out.replace(/\[(en|ru|uz)\]\s*\[\/\1\]/g, '').trim();
+}
+
 /** To'g'ri javobdan keyin aytiladigan gap: til darsida maqtov o'sha tilda, keyin izoh (o'zbekcha maqtovsiz). */
 export function kidCorrectSpeech(i, lang, izoh = '') {
   const text = String(izoh ?? '').trim();
