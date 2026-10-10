@@ -3,16 +3,27 @@ import { SAHNALAR, fanEshiklari, qoshnilar, sahnaSrc } from "./olamRules.js";
 import { ustozFor } from "./ustozRules.js";
 import UstozSahna from "./UstozSahna.jsx";
 import "./olam.css";
+import bino_960 from "./olam/bino_960.webp";
+import bino_1600 from "./olam/bino_1600.webp";
+import koridor_960 from "./olam/koridor_960.webp";
+import koridor_1600 from "./olam/koridor_1600.webp";
+import zal_960 from "./olam/zal_960.webp";
+import zal_1600 from "./olam/zal_1600.webp";
+import sport_960 from "./olam/sport_960.webp";
+import sport_1600 from "./olam/sport_1600.webp";
+import hayvonot_960 from "./olam/hayvonot_960.webp";
+import hayvonot_1600 from "./olam/hayvonot_1600.webp";
+import hovli_960 from "./olam/hovli_960.webp";
 
-const u = (p) => new URL(p, import.meta.url).href;
-// REV112: sahna rasmlari (Vite xeshlangan nom bilan chiqaradi — CDN va brauzer uzoq saqlaydi)
+// REV120: sahna rasmlari statik import — Vite ularni build'ga aniq qo'shadi
+// (oldingi new URL(p, import.meta.url) yordamchi funksiya ichida bo'lgani uchun production'da fon rasm chiqmasdi).
 const RASMLAR = {
-  bino: { k960: u("./olam/bino_960.webp"), k1600: u("./olam/bino_1600.webp") },
-  koridor: { k960: u("./olam/koridor_960.webp"), k1600: u("./olam/koridor_1600.webp") },
-  zal: { k960: u("./olam/zal_960.webp"), k1600: u("./olam/zal_1600.webp") },
-  sport: { k960: u("./olam/sport_960.webp"), k1600: u("./olam/sport_1600.webp") },
-  hayvonot: { k960: u("./olam/hayvonot_960.webp"), k1600: u("./olam/hayvonot_1600.webp") },
-  hovli: { k960: u("./olam/hovli_960.webp") },
+  bino: { k960: bino_960, k1600: bino_1600 },
+  koridor: { k960: koridor_960, k1600: koridor_1600 },
+  zal: { k960: zal_960, k1600: zal_1600 },
+  sport: { k960: sport_960, k1600: sport_1600 },
+  hayvonot: { k960: hayvonot_960, k1600: hayvonot_1600 },
+  hovli: { k960: hovli_960 },
 };
 
 // Nuqta rasm chetidan chiqib ketmasin (telefonda ham to'liq ko'rinsin)
