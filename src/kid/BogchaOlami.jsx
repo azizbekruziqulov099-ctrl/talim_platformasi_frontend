@@ -1,0 +1,104 @@
+import React, { useEffect, useRef, useState } from "react";
+import { SAHNALAR, fanEshiklari, qoshnilar, sahnaSrc } from "./olamRules.js";
+import { ustozFor } from "./ustozRules.js";
+import UstozSahna from "./UstozSahna.jsx";
+import "./olam.css";
+
+const u = (p) => new URL(p, import.meta.url).href;
+// REV112: sahna rasmlari (Vite xeshlangan nom bilan chiqaradi — CDN va brauzer uzoq saqlaydi)
+const RASMLAR = {
+  bino: { k960: u("./olam/bino_960.webp"), k1600: u("./olam/bino_1600.webp") },
+  koridor: { k960: u("./olam/koridor_960.webp"), k1600: u("./olam/koridor_1600.webp") },
+  zal: { k960: u("./olam/zal_960.webp"), k1600: u("./olam/zal_1600.webp") },
+  sport: { k960: u("./olam/sport_960.webp"), k1600: u("./olam/sport_1600.webp") },
+  hayvonot: { k960: u("./olam/hayvonot_960.webp"), k1600: u("./olam/hayvonot_1600.webp") },
+  hovli: { k960: u("./olam/hovli_960.webp") },
+};
+
+// Nuqta rasm chetidan chiqib ketmasin (telefonda ham to'liq ko'rinsin)
+const cx = (x) => `${Math.min(93, Math.max(7, x))}%`;
+const cy = (y) => `${Math.min(90, Math.max(10, y))}%`;
+const keng = () => { try { return (globalThis.innerWidth || 0) * (globalThis.devicePixelRatio || 1) > 1300; } catch { return false; } };
+
+/**
+ * REV112: Bog'cha olami — bolaning bosh ekrani. Bino oldidan boshlanadi; yo'lakdagi har eshik — bitta fan sinfxonasi,
+ * u yerda o'sha fan ustozi kutib oladi. Zal, sport maydoni, hayvonot bog'i va hovlida kichik o'yinlar bor.
+ * Ob-havo va kun vaqti haqiqiy (tashqarida yomg'ir yog'sa — hovlida ham yog'adi, kechasi qorong'i).
+ * fanlar: [{ kalit, nom, emoji }] · onFan(kalit) — sinfda «Darsni boshlash» bosilganda.
+ */
+export default function BogchaOlami({ fanlar = [], onFan, say, havo = "quyosh", vaqt = "kun", boshlash = "bino", nextLabel = "" }) {
+  const [joy, setJoy] = useState(boshlash);
+  const [ketish, setKetish] = useState(null);     // {x,y} — o'sha nuqtaga yaqinlashib o'tadi
+  const [effekt, setEffekt] = useState(null);     // {x,y,emoji,turi,n}
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  const eshiklar = fanEshiklari(fanlar);
+  const sinf = typeof joy === "object" ? eshiklar.find((f) => f.kalit === joy.sinf) : null;
+  const s = sinf ? null : SAHNALAR[joy] || SAHNALAR.bino;
+
+  // Qo'shni sahnalarni oldindan yuklab qo'yamiz — o'tish bir zumda bo'lsin
+  useEffect(() => {
+    if (!s || typeof Image === "undefined") return;
+    qoshnilar(joy).forEach((id) => { const im = new Image(); im.src = sahnaSrc(RASMLAR, id, keng()); });
+  }, [joy]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const bor = (keyingi, x = 50, y = 50, nom = "") => {
+    setKetish({ x, y });
+    if (nom) say?.(nom);
+    setTimeout(() => { if (alive.current) { setJoy(keyingi); setKetish(null); setEffekt(null); } }, 420);
+  };
+  const amal = (n) => {
+    setEffekt({ x: n.x, y: n.y, emoji: n.emoji, turi: n.amal, n: Date.now() });
+    if (n.nom) say?.(n.nom);
+  };
+
+  if (sinf) {
+    return <div className="ol-root">
+      <div className="ol-bar">
+        <button type="button" className="ol-back" onClick={() => setJoy("koridor")} aria-label="Yo'lakka qaytish">⬅️ 🚪</button>
+        <span className="ol-title" aria-hidden="true">{sinf.emoji} {sinf.nom}</span>
+      </div>
+      <div className="ol-class">
+        <UstozSahna ustoz={ustozFor(sinf.nom)} mood="wave" havo={havo} vaqt={vaqt} pictures={[]} />
+        <button type="button" className="ol-start" onClick={() => onFan?.(sinf.kalit)}>
+          <span aria-hidden="true">▶</span><b>{nextLabel || "Darsni boshlaymiz!"}</b>
+        </button>
+      </div>
+    </div>;
+  }
+
+  const tashqi = s.tashqi;
+  const src = sahnaSrc(RASMLAR, joy, false);
+  const src2 = RASMLAR[joy]?.k1600;
+  return <div className="ol-root">
+    <div className="ol-bar">
+      {s.orqaga ? <button type="button" className="ol-back" onClick={() => bor(s.orqaga, 50, 95)} aria-label="Orqaga">⬅️ {SAHNALAR[s.orqaga].emoji}</button> : <span />}
+      <span className="ol-title" aria-hidden="true">{s.emoji} {s.nom}</span>
+    </div>
+    <div key={joy} className={`ol-scene vaqt-${vaqt} ${ketish ? "is-leaving" : ""}`}
+      style={ketish ? { transformOrigin: `${ketish.x}% ${ketish.y}%` } : undefined}>
+      <img className="ol-bg" src={src} srcSet={src2 ? `${src} 960w, ${src2} 1600w` : undefined} sizes="(max-width: 1000px) 100vw, 1000px" alt="" decoding="async" />
+      {tashqi && <div className={`ol-havo havo-${havo}`} aria-hidden="true"><i /><i /></div>}
+      <div className="us-light" aria-hidden="true" />
+      {s.vaqtinchalik && <span className="ol-soon" aria-hidden="true">🖼️</span>}
+      {s.nuqtalar.map((n) => <button key={n.id} type="button" className={`ol-spot ${n.ga ? "is-go" : "is-play"}`}
+        style={{ left: cx(n.x), top: cy(n.y) }} aria-label={n.nom}
+        onClick={() => (n.ga ? bor(n.ga, n.x, n.y, n.nom) : amal(n))}>
+        <span>{n.emoji}</span>
+      </button>)}
+      {joy === "koridor" && eshiklar.filter((f) => f.joy).map((f) => <button key={f.kalit} type="button" className="ol-spot is-door"
+        style={{ left: cx(f.joy.x), top: cy(f.joy.y) }} aria-label={f.nom}
+        onClick={() => { say?.(f.nom); bor({ sinf: f.kalit }, f.joy.x, f.joy.y); }}>
+        <span>{f.emoji}</span>
+      </button>)}
+      {effekt && <span key={effekt.n} className={`ol-fx fx-${effekt.turi}`} style={{ left: cx(effekt.x), top: cy(effekt.y) }} aria-hidden="true">
+        {effekt.turi === "konsert" ? "🎵🎶✨" : effekt.turi === "gol" ? "⚽" : effekt.turi === "sakra" ? "⭐✨⭐" : effekt.emoji}
+      </span>}
+    </div>
+    {joy === "koridor" && eshiklar.some((f) => !f.joy) && <div className="ol-doors" aria-label="Boshqa sinflar">
+      {eshiklar.filter((f) => !f.joy).map((f) => <button key={f.kalit} type="button" className="ol-door" aria-label={f.nom}
+        onClick={() => { say?.(f.nom); bor({ sinf: f.kalit }); }}>{f.emoji}</button>)}
+    </div>}
+  </div>;
+}

@@ -141,8 +141,19 @@ export function kindBadge(kind) {
 }
 
 /** Takrordan yangiga (va aksincha) o'tganda robot buni aytadi. Matn butunlay inglizcha bo'lsa — inglizcha. */
-export function kindCue(kind, prevKind, text = "", topicName = "") {
+const CUE = {
+  ru: { review: "[ru]Сначала вспомним пройденное![/ru]", word: "[ru]А теперь — новое слово![/ru]", know: "[ru]А теперь — новое знание![/ru]" },
+  en: { review: "[en]Let’s remember![/en]", word: "[en]Now, a new word![/en]", know: "[en]Now, something new![/en]" },
+};
+
+export function kindCue(kind, prevKind, text = "", topicName = "", izoh = "uz") {
   if (kind === prevKind || isReviewTopic(topicName)) return "";
+  // REV111: miya rus yoki ingliz tilida tushuntirilsa — ustoz ham shu tilda gapiradi
+  if (CUE[izoh]) {
+    if (kind === "review") return CUE[izoh].review;
+    if (kind === "new" && prevKind) return /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.test(String(text)) ? CUE[izoh].word : CUE[izoh].know;
+    return "";
+  }
   const raw = String(text || "");
   const foreign = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.test(raw);
   const allEnglish = /\[en\]/i.test(raw) && !raw.replace(/\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\][\s\S]*?\[\/\1\]/gi, "").replace(/[^\p{L}]/gu, "");

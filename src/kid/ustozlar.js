@@ -1,0 +1,37 @@
+// REV110: jonli ustozlar — pozalar, yuz kadrlari (gapirish, pirpiratish) va xonalar. Avtomatik yasalgan (tools: ustoz_assets).
+// Rasmlar Vite orqali xeshlangan nom bilan chiqadi — CDN va brauzer ularni uzoq saqlaydi.
+const u = (p) => new URL(p, import.meta.url).href;
+
+export const USTOZLAR = {
+  sardor: {
+    1: { src: u("./ustoz/sardor/poza_1.webp"), w: 193, h: 497, yuz: { x: 36.269, y: 10.865, w: 40.933, h: 11.871, kadr: [u("./ustoz/sardor/yuz_1_1.webp"), u("./ustoz/sardor/yuz_1_2.webp"), u("./ustoz/sardor/yuz_1_3.webp"), u("./ustoz/sardor/yuz_1_4.webp"), u("./ustoz/sardor/yuz_1_5.webp"), u("./ustoz/sardor/yuz_1_6.webp")] } },
+    2: { src: u("./ustoz/sardor/poza_2.webp"), w: 220, h: 496, yuz: { x: 40.455, y: 11.089, w: 35.909, h: 11.895, kadr: [u("./ustoz/sardor/yuz_2_1.webp"), u("./ustoz/sardor/yuz_2_2.webp"), u("./ustoz/sardor/yuz_2_3.webp"), u("./ustoz/sardor/yuz_2_4.webp"), u("./ustoz/sardor/yuz_2_5.webp"), u("./ustoz/sardor/yuz_2_6.webp")] } },
+    3: { src: u("./ustoz/sardor/poza_3.webp"), w: 351, h: 499 },
+    4: { src: u("./ustoz/sardor/poza_4.webp"), w: 188, h: 491 },
+    5: { src: u("./ustoz/sardor/poza_5.webp"), w: 289, h: 495 },
+    6: { src: u("./ustoz/sardor/poza_6.webp"), w: 262, h: 484 },
+  },
+  nilufar: {
+    1: { src: u("./ustoz/nilufar/poza_1.webp"), w: 220, h: 522, yuz: { x: 33.636, y: 2.682, w: 30.0, h: 14.176, kadr: [u("./ustoz/nilufar/yuz_1_1.webp"), u("./ustoz/nilufar/yuz_1_2.webp"), u("./ustoz/nilufar/yuz_1_3.webp"), u("./ustoz/nilufar/yuz_1_4.webp"), u("./ustoz/nilufar/yuz_1_5.webp"), u("./ustoz/nilufar/yuz_1_6.webp")] } },
+    2: { src: u("./ustoz/nilufar/poza_2.webp"), w: 235, h: 520, yuz: { x: 34.043, y: 2.885, w: 28.511, h: 14.423, kadr: [u("./ustoz/nilufar/yuz_2_1.webp"), u("./ustoz/nilufar/yuz_2_2.webp"), u("./ustoz/nilufar/yuz_2_3.webp"), u("./ustoz/nilufar/yuz_2_4.webp"), u("./ustoz/nilufar/yuz_2_5.webp"), u("./ustoz/nilufar/yuz_2_6.webp")] } },
+    3: { src: u("./ustoz/nilufar/poza_3.webp"), w: 307, h: 521, yuz: { x: 22.15, y: 2.687, w: 21.498, h: 14.203, kadr: [u("./ustoz/nilufar/yuz_3_1.webp"), u("./ustoz/nilufar/yuz_3_2.webp"), u("./ustoz/nilufar/yuz_3_3.webp"), u("./ustoz/nilufar/yuz_3_4.webp"), u("./ustoz/nilufar/yuz_3_5.webp"), u("./ustoz/nilufar/yuz_3_6.webp")] } },
+    4: { src: u("./ustoz/nilufar/poza_4.webp"), w: 207, h: 510 },
+    5: { src: u("./ustoz/nilufar/poza_5.webp"), w: 235, h: 512 },
+    6: { src: u("./ustoz/nilufar/poza_6.webp"), w: 253, h: 506, yuz: { x: 57.312, y: 3.162, w: 26.482, h: 14.822, kadr: [u("./ustoz/nilufar/yuz_6_1.webp"), u("./ustoz/nilufar/yuz_6_2.webp"), u("./ustoz/nilufar/yuz_6_3.webp"), u("./ustoz/nilufar/yuz_6_4.webp"), u("./ustoz/nilufar/yuz_6_5.webp"), u("./ustoz/nilufar/yuz_6_6.webp")] } },
+  },
+  malika: {
+    1: { src: u("./ustoz/malika/poza_1.webp"), w: 201, h: 510, yuz: { x: 30.348, y: 6.667, w: 38.806, h: 15.686, kadr: [u("./ustoz/malika/yuz_1_1.webp"), u("./ustoz/malika/yuz_1_2.webp"), u("./ustoz/malika/yuz_1_3.webp"), u("./ustoz/malika/yuz_1_4.webp"), u("./ustoz/malika/yuz_1_5.webp"), u("./ustoz/malika/yuz_1_6.webp")] } },
+    2: { src: u("./ustoz/malika/poza_2.webp"), w: 245, h: 510 },
+    3: { src: u("./ustoz/malika/poza_3.webp"), w: 300, h: 508 },
+    4: { src: u("./ustoz/malika/poza_4.webp"), w: 229, h: 504 },
+    5: { src: u("./ustoz/malika/poza_5.webp"), w: 303, h: 501 },
+    6: { src: u("./ustoz/malika/poza_6.webp"), w: 244, h: 499, yuz: { x: 19.672, y: 6.814, w: 32.377, h: 16.232, kadr: [u("./ustoz/malika/yuz_6_1.webp"), u("./ustoz/malika/yuz_6_2.webp"), u("./ustoz/malika/yuz_6_3.webp"), u("./ustoz/malika/yuz_6_4.webp"), u("./ustoz/malika/yuz_6_5.webp"), u("./ustoz/malika/yuz_6_6.webp")] } },
+  },
+};
+
+// REV110: xona joylari (foizda): doska, deraza (ob-havo), devordagi ramka, javon, pol — mavzuga qarab to'ladi.
+export const XONALAR = {
+  matematika: { src: u("./ustoz/xona/matematika_960.webp"), src2x: u("./ustoz/xona/matematika_1600.webp"), doska: { l: 40.9, t: 19.4, w: 42.4, h: 37.1 }, deraza: { l: 0, t: 0, w: 6.2, h: 48 }, devor: { l: 27.4, t: 14.5, w: 8.2, h: 22 }, javon: null, pol: { l: 77, t: 80, w: 18, h: 17 } },
+  onatili: { src: u("./ustoz/xona/onatili_960.webp"), src2x: u("./ustoz/xona/onatili_1600.webp"), doska: { l: 77.9, t: 24, w: 19.2, h: 43 }, deraza: { l: 69.5, t: 4, w: 17.5, h: 35 }, devor: { l: 26.3, t: 10, w: 9, h: 24 }, javon: { l: 44.5, t: 23.5, w: 11.5, h: 7.5 }, pol: { l: 36, t: 64, w: 13, h: 14 } },
+  atrofolam: { src: u("./ustoz/xona/atrofolam_960.webp"), src2x: u("./ustoz/xona/atrofolam_1600.webp"), doska: { l: 50.8, t: 7.9, w: 30.6, h: 33 }, deraza: { l: 88, t: 1, w: 12, h: 35 }, devor: { l: 39.8, t: 5.5, w: 6.8, h: 16.5 }, javon: null, pol: { l: 50, t: 80, w: 20, h: 16 } },
+};
