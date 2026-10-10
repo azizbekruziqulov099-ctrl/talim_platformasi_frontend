@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { SAHNALAR, ZINA, fanEshiklari, qavatSoni, qoshnilar, sahnaSrc } from "./olamRules.js";
 import { ustozFor } from "./ustozRules.js";
 import UstozSahna from "./UstozSahna.jsx";
+import { useKeepLight } from "./useKeepLight.js";
 import "./olam.css";
 import bino_960 from "./olam/bino_960.webp";
 import bino_1600 from "./olam/bino_1600.webp";
@@ -43,6 +44,7 @@ export default function BogchaOlami({ fanlar = [], onFan, say, havo = "quyosh", 
   const [effekt, setEffekt] = useState(null);     // {x,y,emoji,turi,n}
   const [qavat, setQavat] = useState(0);          // REV121: yo'lak qavati (fan ko'p bo'lsa — 2-, 3-qavat)
   const alive = useRef(true);
+  useKeepLight(true);
   useEffect(() => () => { alive.current = false; }, []);
 
   const eshiklar = fanEshiklari(fanlar);

@@ -1,4 +1,4 @@
-import {translateUi,subscribeTranslation,translationSnapshot,translationStatus,checkTranslationService,setInterfaceRuntimeLocale} from './interfaceRuntime.js';
+import {translateUi,subscribeTranslation,translationSnapshot,translationStatus,checkTranslationService,setInterfaceRuntimeLocale,ensureLocalePack,localePackReady} from './interfaceRuntime.js';
 import React, { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Globe2, Laptop, Moon, SlidersHorizontal, Sun, X } from 'lucide-react';
@@ -29,23 +29,39 @@ export function InterfaceProvider({ children }) {
     window.addEventListener('storage', stored);
     return () => { unsubscribe(dark, darkChanged); unsubscribe(motion, motionChanged); window.removeEventListener('storage', stored); };
   }, []);
+  const [, setPackTick] = useState(0);
+  const packReady = localePackReady(preferences.locale);
+  useEffect(() => { if (!packReady) ensureLocalePack(preferences.locale).finally(() => setPackTick(n => n + 1)); }, [preferences.locale, packReady]);
   const updateInterface = useCallback(patch => {
     const next = normalizeInterface({ ...current.current, ...(patch && typeof patch === 'object' ? patch : {}) });
+    // REV121: yangi til paketi avval yuklanadi, keyin butun sahifa bir zumda shu tilga o'tadi (yarim tarjima bo'lmaydi)
+    if (next.locale !== current.current.locale && !localePackReady(next.locale)) {
+      ensureLocalePack(next.locale).finally(() => { if (current.current.locale !== next.locale) updateInterfaceRef.current(patch); });
+      return;
+    }
     current.current = next; setPreferences(next);
     try { const storage = localStore(); if (!storage) throw new Error('storage'); storage.setItem(INTERFACE_KEY, JSON.stringify(next)); setStorageError(''); }
     catch { setStorageError('Saqlashga ruxsat yo‘q. Sozlamalar shu oynada ishlaydi.'); }
   }, []);
+  const updateInterfaceRef = useRef(updateInterface);
+  updateInterfaceRef.current = updateInterface;
   const resolvedTheme = preferences.theme === 'system' ? (systemDark ? 'dark' : 'light') : preferences.theme;
   const reduceMotion = preferences.motion === 'reduced' || (preferences.motion === 'system' && systemMotion);
   useLayoutEffect(() => {
-    document.documentElement.dataset.kbTheme = resolvedTheme;
+    // REV121: tungi rejim butun sahifaga bir xil qoida bilan (ranglar teskari, rasmlar asl holida) — har bir yozuv
+    // fon bilan doim kontrastda qoladi, «qoramtil fonda qoramtil yozuv» bo'lmaydi. Eski qisman qoidalar o'chirildi.
+    document.documentElement.dataset.kbTheme = 'light';
+    document.documentElement.dataset.kbDark = resolvedTheme === 'dark' ? '1' : '0';
     document.documentElement.dataset.kbMotion = reduceMotion ? 'reduced' : 'full';
     document.documentElement.lang = INTERFACE_LOCALES.find(item => item.value === preferences.locale)?.lang || 'uz-Latn';
-    document.documentElement.style.colorScheme = resolvedTheme;
+    document.documentElement.style.colorScheme = 'light';
   }, [resolvedTheme, reduceMotion, preferences.locale]);
   const t = useCallback((text, values) => translateUi(text, preferences.locale, values), [preferences.locale,translationRevision]);
   const value = useMemo(() => ({ ...preferences, resolvedTheme, reduceMotion, storageError, updateInterface, t, translationRevision, translationStatus:translationStatus() }), [preferences, resolvedTheme, reduceMotion, storageError, updateInterface, t, translationRevision]);
-  return <InterfaceContext.Provider value={value}>{children}</InterfaceContext.Provider>;
+  // REV121: til almashsa butun ilova qayta chiziladi — har bir yozuv (obuna bo'lmagan komponentlar ham) yangi tilda bo'ladi
+  return <InterfaceContext.Provider value={value}>{packReady
+    ? <React.Fragment key={preferences.locale}>{children}</React.Fragment>
+    : <div className="kb-locale-loading" role="status" aria-live="polite">…</div>}</InterfaceContext.Provider>;
 }
 export function useInterface() { return useContext(InterfaceContext) || fallback; }
 export function InterfaceText({ text }) { return useInterface().t(text); }
@@ -67,7 +83,7 @@ export function InterfaceSettings({ compact = false }) {
       <a className="kb-translation-attribution" href="https://translate.google.com" target="_blank" rel="noopener noreferrer" translate="no">Google Translate</a>
     </fieldset>
     <fieldset><legend>{t('Ko‘rinish')}</legend><div className="kb-interface-themes">{[{ value: 'system', label: 'Tizimga mos', Icon: Laptop }, { value: 'light', label: 'Yorug‘', Icon: Sun }, { value: 'dark', label: 'Tungi', Icon: Moon }].map(({ value, label, Icon }) => <label key={value} className={theme === value ? 'is-selected' : ''}>
-      <input type="radio" name={`${id}-theme`} value={value} checked={theme === value} onChange={() => updateInterface({ theme: value })}/><span className={`kb-theme-preview kb-theme-preview--${value}`} aria-hidden="true"><i/><i/><i/></span><span><Icon size={16}/>{t(label)}</span>
+      <input type="radio" name={`${id}-theme`} value={value} checked={theme === value} onChange={() => updateInterface({ theme: value })}/><span className={`kb-theme-preview kb-theme-preview--${value} kb-keep-colors`} aria-hidden="true"><i/><i/><i/></span><span><Icon size={16}/>{t(label)}</span>
     </label>)}</div></fieldset>
     <label className="kb-interface-motion"><span><strong>{t('Harakatlarni kamaytirish')}</strong><small>{t('Ko‘zga tinchroq, animatsiyalar kamroq.')}</small></span><input type="checkbox" role="switch" checked={reduceMotion} onChange={event => updateInterface({ motion: event.target.checked ? 'reduced' : 'full' })}/></label>
     {storageError && <p className="kb-interface-error" role="status">{t(storageError)}</p>}

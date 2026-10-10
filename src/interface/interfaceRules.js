@@ -6,13 +6,12 @@ import { ACCOUNT_TRANSLATION_ROWS } from './interfaceAccountMessages.js';
 import { CHAT_TRANSLATION_ROWS } from './interfaceChatMessages.js';
 
 export const INTERFACE_KEY = 'kabutar:interface:v1';
+// REV121: sayt uch tilda — o'zbek, rus, ingliz (har biri to'liq tarjima qilingan). Eski tanlov (kirill, turk,
+// qozoq) saqlangan bo'lsa — o'zbekchaga qaytadi.
 export const INTERFACE_LOCALES = Object.freeze([
   { value: 'uz', label: 'O‘zbekcha', lang: 'uz-Latn' },
-  { value: 'uz-Cyrl', label: 'Ўзбекча', lang: 'uz-Cyrl' },
   { value: 'ru', label: 'Русский', lang: 'ru' },
   { value: 'en', label: 'English', lang: 'en' },
-  { value: 'tr', label: 'Türkçe', lang: 'tr' },
-  { value: 'kk', label: 'Қазақша', lang: 'kk' },
 ]);
 export const DEFAULT_INTERFACE = Object.freeze({ locale: 'uz', theme: 'system', motion: 'system', translateContent: false });
 export const normalizeInterfaceKey = text => String(text).trim().replace(/[‘’ʻʼ`]/g, "'").replace(/\s+/g, ' ');

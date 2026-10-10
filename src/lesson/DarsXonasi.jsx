@@ -13,6 +13,7 @@ import { answerSpeed, finishLesson, kidTracker, startLesson } from "../kid/kidAc
 import { screenTime } from "../kid/screenTime.js";
 import KidStage from "../kid/KidStage.jsx";
 import UstozSahna from "../kid/UstozSahna.jsx";
+import { useKeepLight } from "../kid/useKeepLight.js";
 import { havoTuri, kunVaqti, ustozFor } from "../kid/ustozRules.js";
 import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
@@ -130,6 +131,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const audience = lessonAudience(learnerRole, grade || lesson?.topic?.sinf);
   const kid = audience === "bogcha";
   kidRef.current = kid;
+  useKeepLight(kid);   // REV121: tungi rejimda ham bolalar darsi yorqin
   gradeRef.current = grade || lesson?.topic?.sinf || "";
   const labels = audienceLabels(audience);
   const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";

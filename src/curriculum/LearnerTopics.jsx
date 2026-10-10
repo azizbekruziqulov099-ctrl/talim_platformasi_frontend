@@ -12,6 +12,7 @@ import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActiv
 import { accountRole } from '../auth/loginMemory.js';
 import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopicEmoji } from './kidTopics.js';
 import { lessonDone, lessonStars } from './kidProgress.js';
+import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
@@ -62,6 +63,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const groups=useMemo(()=>current?filterTopics(current,query,filter):[],[current,query,filter]);
  const teacher=Boolean(catalog?.viewer?.teacher);
  const kid=!teacher&&accountRole(user)==='bogcha';
+ useKeepLight(kid);   // REV121: bolalar ro'yxati tungi rejimda ham yorqin
  // REV91: bog'cha — kunlik reja (har fandan kuniga 2 ta yangi dars, dam olish kunlari 3 ta). Server tekshiradi.
  const [plan,setPlan]=useState(null);
  const planFan=current?.nom||'';

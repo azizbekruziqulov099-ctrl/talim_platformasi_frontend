@@ -41,7 +41,7 @@ export const onTranslationSessionChange=cb=>{sessionListeners.add(cb);return()=>
 export function setTranslationSession(value){if(token===(value||''))return;token=value||'';sessionRevision++;for(const cb of sessionListeners)cb();emit();}
 const cacheKey=(target,source)=>`${target}\0${source}`;
 function schedule(){if(!timer&&!active)timer=setTimeout(flush,40);}
-function enqueue(target,source){if(target==='uz'||target==='uz-Cyrl'||(blocked.get(target)||0)>Date.now())return;loadStored(target);if(translated.has(cacheKey(target,source)))return;pending.set(cacheKey(target,source),{target,source});schedule();}
+function enqueue(target,source){if(target==='uz'||target==='uz-Cyrl'||(blocked.get(target)||0)>Date.now()||packs.get(target)==='loading')return;loadStored(target);if(translated.has(cacheKey(target,source)))return;pending.set(cacheKey(target,source),{target,source});schedule();}
 
 // ── Bepul brauzer tarjimasi ─────────────────────────────────────────────
 // Backendda GOOGLE_TRANSLATE_API_KEY bo'lmasa ham interfeys tanlangan tilga
@@ -141,6 +141,23 @@ export function translateUi(text,target='uz',values){
  if(values&&typeof values==='object')output=output.replace(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m);return output;
 }
 export const uiText=text=>translateUi(text,locale);
+// ── REV121: to'liq oflayn tarjima paketlari (ru, en) ───────────────────────
+// Interfeys matnlari oldindan tarjima qilingan; paket faqat shu til tanlanganda yuklanadi (alohida chunk).
+// Paketda yo'q matnlar (yangi qo'shilganlari) — avvalgidek brauzer tarjimasi orqali.
+const PACKS={ru:()=>import('./locales/ru.js'),en:()=>import('./locales/en.js')};
+const packs=new Map();   // til → 'loading' | 'done' | 'failed'
+export const localePackReady=target=>!PACKS[target]||packs.get(target)==='done'||packs.get(target)==='failed';
+export function ensureLocalePack(target){
+ if(localePackReady(target))return Promise.resolve(true);
+ if(packs.get(target)==='loading')return packs.get(target+':p');
+ packs.set(target,'loading');
+ const p=PACKS[target]().then(m=>{
+  const data=m.default||{};let n=0;
+  for(const[source,value]of Object.entries(data)){const key=normalizeInterfaceKey(source);if(registered.has(key)&&typeof value==='string'&&samePlaceholders(key,value)){translated.set(cacheKey(target,key),value);n++;}}
+  packs.set(target,'done');emit();return n>0;
+ }).catch(()=>{packs.set(target,'failed');emit();return false;});
+ packs.set(target+':p',p);return p;
+}
 export function installInterfaceTranslations(target,entries){for(const[source,value]of Object.entries(entries)){const key=normalizeInterfaceKey(source);if(registered.has(key)&&samePlaceholders(key,value))translated.set(cacheKey(target,key),value);}emit();}
-export function resetTranslationRuntime(){clearTimeout(timer);timer=null;clearTimeout(saveTimer);saveTimer=null;dirty.clear();stored.clear();pending.clear();translated.clear();blocked.clear();resolved.clear();locale='uz';status='unknown';}
+export function resetTranslationRuntime(){packs.clear();clearTimeout(timer);timer=null;clearTimeout(saveTimer);saveTimer=null;dirty.clear();stored.clear();pending.clear();translated.clear();blocked.clear();resolved.clear();locale='uz';status='unknown';}
 export async function flushInterfaceTranslations(){clearTimeout(timer);timer=null;await flush();}
