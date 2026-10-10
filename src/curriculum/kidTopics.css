@@ -55,3 +55,6 @@ button.kt-emoji{position:relative}
 .kt-kind.is-new{background:#ffffffc8;color:#9a5b00}
 .kt-card.is-review{border:3px dashed #a98be6}
 @media(max-width:520px){.kt-kind{font-size:11px;padding:3px 8px}}
+/* REV112: bog'cha olamiga qaytish tugmasi */
+.kt-olam-back{font-size:34px;line-height:1;width:64px;height:64px;border-radius:50%;border:0;background:#fff;box-shadow:0 4px 12px #0002;cursor:pointer}
+.kt-olam-back:focus-visible{outline:4px solid #ffd166;outline-offset:3px}

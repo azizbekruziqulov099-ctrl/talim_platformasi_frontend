@@ -14,6 +14,8 @@ import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopi
 import { lessonStars } from './kidProgress.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import './kidTopics.css';
+import BogchaOlami from '../kid/BogchaOlami.jsx';
+import { useHavo } from '../kid/useHavo.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
 const SUBJECT_KEY = 'kabutar:learn:subject';
@@ -81,6 +83,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const voice=useRef(null);
  const sayName=text=>{try{voice.current?.pause();const a=new Audio(`${String(apiBase).replace(/\/+$/,'')}/api/ovoz?${new URLSearchParams({matn:String(text||'').slice(0,200),jins})}`);voice.current=a;a.play().catch(()=>{});}catch{/* ovoz ixtiyoriy */}};
  const nextRef=useRef(null);
+ // REV112: bog'cha bolasi uchun bosh ekran — bog'cha olami (bino, yo'lak, sinfxonalar, zal, hovli…)
+ const [olam,setOlam]=useState(true);
+ const ob=useHavo(apiBase,!kid);
  useEffect(()=>{if(kid&&!classroom&&nextRef.current)try{nextRef.current.scrollIntoView({block:'center',behavior:'smooth'});}catch{/* eski brauzer */}},[kid,classroom,current?.kalit,loading]);
 
  if(classroom) return <div className="space-y-3 lt-root">
@@ -96,7 +101,13 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   </React.Suspense>
  </div>;
 
+ if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
+  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:sub.nom,emoji:kidSubjectEmoji(sub.nom)}))}
+   onFan={key=>{chooseSubject(key);setOlam(false);}} say={sayName} havo={ob.havo} vaqt={ob.vaqt}/>
+ </div>;
+
  return <div className="space-y-4 lt-root">
+  {kid&&<button type="button" className="kt-olam-back" onClick={()=>setOlam(true)} aria-label={__kbUi("Bog‘chaga qaytish")}>🏫</button>}
   {!kid&&<div><h2 className="text-xl font-bold text-slate-800">{teacher?__kbUi("Mavzular"):__kbUi("O‘rganish")}</h2>
    <p className="mt-1 text-sm text-slate-600">{__kbUi(viewerHeadline(catalog?.viewer,type,institutionLabel(type)))}</p></div>}
   {!kid&&<LearnerCurriculumHeader viewer={catalog?.viewer} type={type} lesson={lesson} fallbackType={profileInstitutionType(user)}
