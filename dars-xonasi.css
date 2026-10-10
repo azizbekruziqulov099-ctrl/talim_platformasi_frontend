@@ -1,0 +1,189 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap");
+.dx-root{--dx-board:#1E3A32;--dx-board2:#244539;--dx-chalk:#F2F0E6;--dx-dim:#C9CFC4;--dx-yellow:#F1D06A;--dx-blue:#9FD3E6;--dx-wood:#7E5236;--dx-wood2:#A06C49;
+  --dx-paper:var(--ui-surface,#FBFCFA);--dx-ink:var(--ui-text,#1C2926);--dx-muted:var(--ui-muted,#4F605B);--dx-line:var(--ui-border,#CBD5D0);
+  display:grid;gap:12px;color:var(--dx-ink);min-width:0}
+.dx-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.dx-head h2{margin:0;font-size:18px;font-weight:700;text-wrap:balance}
+.dx-head p{margin:2px 0 0;font-size:12.5px;color:var(--dx-muted)}
+.dx-chip{flex:none;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--dx-line);background:var(--dx-paper);font-variant-numeric:tabular-nums}
+.dx-steps{display:flex;gap:5px}
+.dx-step{flex:1;min-width:10px;height:7px;border-radius:4px;border:0;padding:0;background:#C6D1CB;cursor:pointer}
+.dx-step.is-done{background:#7FA898}.dx-step.is-now{background:var(--dx-board)}
+.dx-room{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px;align-items:start}
+@media (max-width:900px){.dx-room{grid-template-columns:minmax(0,1fr)}}
+.dx-frame{background:linear-gradient(180deg,var(--dx-wood2),var(--dx-wood));padding:10px;border-radius:10px;box-shadow:0 10px 24px -14px #0008;min-width:0}
+.dx-board{position:relative;min-height:340px;background:radial-gradient(120% 90% at 30% 20%,var(--dx-board2),var(--dx-board));border-radius:4px;color:var(--dx-chalk);padding:20px 22px 24px;overflow:hidden;font-family:"Caveat","Comic Sans MS",cursive}
+.dx-title{margin:0 0 8px;font-size:28px;font-weight:700;color:var(--dx-yellow);line-height:1.15}
+.dx-lines{display:grid;gap:8px}
+.dx-line{font-size:27px;line-height:1.3;overflow-wrap:anywhere}
+.dx-line.is-new{animation:dx-write .9s steps(18,end) both}
+.dx-line.dx-rule{color:var(--dx-yellow)}
+.dx-small{font-size:21px;color:var(--dx-dim)}
+.dx-math .katex{font-size:1.05em;color:inherit}
+.dx-pic{display:block;max-width:min(100%,360px);max-height:220px;margin-top:10px;border-radius:6px;background:#fff;animation:dx-fade .5s both}
+@keyframes dx-write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes dx-fade{from{opacity:0}to{opacity:1}}
+.dx-ledge{height:9px;margin:8px -10px -10px;background:var(--dx-wood);border-radius:0 0 10px 10px}
+.dx-answer{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:inherit}
+.dx-answer input{font:600 17px system-ui,sans-serif;padding:8px 12px;border-radius:8px;border:2px solid var(--dx-dim);background:#0003;color:var(--dx-chalk);width:170px;max-width:100%}
+.dx-ok{color:#9FE0B8;font:600 14px system-ui,sans-serif}.dx-no{color:#F2A49B;font:600 14px system-ui,sans-serif}
+.dx-variant{position:absolute;inset:12px;background:#FBFCFA;color:#1C2926;border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start;overflow:auto;box-shadow:0 12px 30px -10px #000a;font-family:system-ui,sans-serif;animation:dx-fade .25s both}
+.dx-variant p{margin:0;line-height:1.55;max-width:62ch}
+.dx-tag{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#1C6C8C}
+.dx-variant-board{font:700 26px/1.2 "Caveat","Comic Sans MS",cursive;color:var(--dx-board)}
+.dx-test{display:grid;gap:12px}
+.dx-q{font-size:28px;line-height:1.25}
+.dx-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.dx-opts{grid-template-columns:minmax(0,1fr)}}
+.dx-opts button{text-align:left;font:inherit;font-size:21px;background:#0002;color:var(--dx-chalk);border:1px solid #ffffff40;border-radius:9px;padding:10px 12px;cursor:pointer}
+.dx-opts button:hover{background:#0004}
+.dx-opts .is-ok{background:#2F7D5B;border-color:#2F7D5B}.dx-opts .is-no{background:#B4483C;border-color:#B4483C}
+.dx-why{font:15px/1.5 system-ui,sans-serif;background:#0003;border-radius:8px;padding:10px 12px;display:grid;gap:8px;justify-items:start}
+.dx-why p{margin:0}
+.dx-score{font-size:46px;font-weight:700;color:var(--dx-yellow)}
+.dx-teacher{background:var(--dx-paper);border:1px solid var(--dx-line);border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0}
+.dx-teacher-head{display:flex;gap:10px;align-items:center}
+.dx-avatar{width:60px;height:60px;border-radius:50%;overflow:hidden;flex:none}
+.dx-teacher strong{display:block;font-size:14px}
+.dx-state{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dx-muted)}
+.dx-state i{width:8px;height:8px;border-radius:50%;background:#B7C4BD}
+.is-speaking .dx-state i{background:#2F7D5B;animation:dx-pulse 1s infinite}
+.dx-mouth{transform-box:fill-box;transform-origin:center}
+.is-speaking .dx-mouth{animation:dx-talk .28s infinite alternate}
+@keyframes dx-pulse{50%{opacity:.3}}@keyframes dx-talk{to{transform:scaleY(.35)}}
+.dx-bubble{background:#EEF3F0;color:#1C2926;border-radius:10px;padding:10px 12px;font-size:14.5px;line-height:1.55;min-height:88px;max-height:220px;overflow:auto}
+.dx-bubble .is-on{background:#F7E3A4;border-radius:3px}
+.dx-ask{display:grid;gap:6px}
+.dx-ask label{font-size:12.5px;font-weight:600}
+.dx-ask input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--dx-line);border-radius:8px;font:inherit;background:#fff;color:#1C2926}
+.dx-reply{margin:0;font-size:13px;line-height:1.5;background:#F4F7F5;color:#1C2926;border-left:3px solid #1C6C8C;padding:8px 10px;border-radius:4px;white-space:pre-wrap;max-height:200px;overflow:auto}
+.dx-source{margin:0;font-size:11.5px;color:var(--dx-muted)}
+.dx-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dx-menu{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:#FFF8E6;border:1px solid #E8C77A;border-radius:10px;color:#3A2E12}
+.dx-menu p{width:100%;margin:0;font-size:13px;font-weight:600}
+.dx-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--dx-paper);border:1px solid var(--dx-line);border-radius:12px;padding:9px}
+.dx-btn{font:600 13.5px system-ui,sans-serif;border-radius:9px;border:1px solid #C9D3CE;background:#fff;color:#1C2926;padding:8px 13px;cursor:pointer}
+.dx-btn:hover{background:#F1F5F3}
+.dx-btn:disabled{opacity:.45;cursor:default}
+.dx-btn:focus-visible,.dx-opts button:focus-visible,.dx-step:focus-visible{outline:3px solid #1C6C8C;outline-offset:2px}
+.dx-primary{background:var(--dx-board);color:var(--dx-chalk);border-color:var(--dx-board)}
+.dx-primary:hover{background:#2A5044}
+.dx-help{background:#FFF3D6;border-color:#E8C77A}
+.dx-spacer{flex:1}
+.dx-speed{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--dx-muted)}
+.dx-speed select{font:inherit;padding:5px;border-radius:7px;border:1px solid var(--dx-line)}
+.dx-status,.dx-empty{padding:28px 12px;text-align:center;color:var(--dx-muted);display:grid;gap:12px;justify-items:center}
+@media (prefers-reduced-motion:reduce){.dx-root *{animation:none!important}}
+@media (max-width:900px){
+  .dx-board{min-height:240px;padding:16px 16px 20px}
+  .dx-title{font-size:25px}.dx-line{font-size:24px}
+  .dx-bubble{min-height:0}
+  .dx-controls{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 6px 20px -10px #0005}
+}
+.dx-head-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end}
+.dx-link{text-decoration:none;padding:5px 10px;font-size:12px}
+/* Amaliy qism: sharti ko'rinadi, yechimi keyin ochiladi (dars xonasi va kitob kodi oynasi) */
+.dx-amaliy{display:grid;gap:12px}
+.dx-amaliy-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dx-kind{font:700 12px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--dx-yellow)}
+.dx-code{font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;background:#F2F0E6;color:#1E3A32;border-radius:6px;padding:2px 8px;letter-spacing:.04em}
+.dx-task{font:16px/1.55 system-ui,sans-serif;color:var(--dx-chalk);background:#0002;border:1px solid #ffffff26;border-radius:8px;padding:10px 14px;max-height:340px;overflow:auto}
+.dx-task p{margin:0 0 6px;max-width:75ch}.dx-task p:last-child{margin:0}
+.dx-task:focus-visible{outline:3px solid var(--dx-blue);outline-offset:2px}
+.dx-amaliy .dx-opts button{font-size:17px}
+.dx-opts .is-picked{background:#9FD3E633;border-color:var(--dx-blue)}
+.dx-solution{border-top:2px dashed #ffffff40;padding-top:10px;display:grid;gap:6px}
+.dx-solution h4{margin:0;font-size:24px;color:var(--dx-yellow)}
+.dx-solution .dx-line{font-size:22px;line-height:1.35}
+.dx-amaliy-actions .dx-btn{font-size:13px}
+.dx-note{font:13px system-ui,sans-serif;color:var(--dx-dim)}
+/* Kitob kodi: tepadagi qisqa maydon */
+.kk-top{display:flex;align-items:stretch;gap:0;min-width:0}
+.kk-top-input{width:108px;min-width:0;border:1px solid #E5E1D8;border-right:0;border-radius:14px 0 0 14px;padding:0 10px;font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:#1B4B7A;background:#fff;text-transform:uppercase}
+.kk-top-input::placeholder{font-family:system-ui,sans-serif;letter-spacing:0;text-transform:none;color:#8A8578;font-weight:600}
+.kk-top-input:focus{outline:2px solid #1B4B7A;outline-offset:-2px}
+.samtm-top-switch .kk-top .kk-top-btn{border-radius:0 14px 14px 0;padding:11px 12px;gap:4px}
+.kk-top-label{font-size:13px}
+.samtm-top-mid{display:flex;gap:6px;align-items:stretch;min-width:0}
+@media (max-width:640px){.kk-top-input{display:none}.samtm-top-switch .kk-top .kk-top-btn{border-radius:14px;padding:11px 10px}.kk-top-label{display:none}}
+/* Kitob kodi oynasi */
+.kk-backdrop{position:fixed;inset:0;z-index:2147483300;background:#0F1D1A99;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.kk-modal{width:min(980px,100%);background:var(--dx-paper);border-radius:14px;padding:14px;box-shadow:0 24px 60px -20px #000a}
+.kk-head{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.kk-search{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.kk-search label{font:600 13px system-ui,sans-serif}
+.kk-search input{width:170px;max-width:100%;padding:8px 10px;border:1px solid var(--dx-line);border-radius:8px;font:700 15px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;text-transform:uppercase;background:#fff;color:#1C2926}
+.kk-close{flex:none}
+.kk-hint,.kk-error{margin:0;font:14px/1.5 system-ui,sans-serif;padding:10px 12px;border-radius:8px}
+.kk-hint{background:#EEF3F0;color:#1C2926}.kk-error{background:#FBE9E6;color:#8A2A1E}
+.kk-meta{display:grid;gap:2px}.kk-meta strong{font-size:17px}.kk-meta span{font-size:12.5px;color:var(--dx-muted)}
+.kk-board{min-height:260px}
+.kk-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.kk-voice{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dx-muted)}
+.kk-voice i{width:8px;height:8px;border-radius:50%;background:#B7C4BD}.kk-voice.is-on i{background:#2F7D5B;animation:dx-pulse 1s infinite}
+.kk-ask{background:#fff;border:1px solid var(--dx-line);border-radius:10px;padding:10px}
+/* REV80: dars maydoni tinglovchiga moslashadi */
+.dx-aud-talaba .dx-board{background:#1f2a3a}
+.dx-aud-bogcha{--kid-a:#f6b73c;--kid-b:#fff8ec}
+.dx-aud-bogcha.dx-theme-boy{--kid-a:#3f9be0;--kid-b:#eef7ff}
+.dx-aud-bogcha.dx-theme-girl{--kid-a:#e76fa9;--kid-b:#fff0f7}
+.dx-aud-bogcha .dx-board{background:linear-gradient(160deg,#2f6b4f,#24573f)}
+.dx-aud-bogcha .dx-line{font-size:clamp(22px,4.6vw,34px);line-height:1.35}
+.dx-aud-bogcha .dx-title{font-size:clamp(22px,4.2vw,30px)}
+.dx-aud-bogcha .dx-controls .dx-btn{min-height:52px;font-size:16px;font-weight:800;border-radius:16px}
+.dx-aud-bogcha .dx-controls .dx-primary{background:var(--kid-a);border-color:var(--kid-a)}
+.dx-aud-bogcha .dx-bubble{font-size:17px;background:var(--kid-b)}
+.dx-bird{display:grid;place-items:center;width:100%;height:100%;font-size:40px;animation:dx-bird 2.4s ease-in-out infinite}
+.dx-aud-bogcha .is-speaking .dx-bird{animation:dx-bird-talk .5s ease-in-out infinite}
+@keyframes dx-bird{50%{transform:translateY(-4px)}}
+@keyframes dx-bird-talk{50%{transform:scale(1.08) rotate(-4deg)}}
+.dx-stars{background:#fff4d1;color:#8a5a00;font-weight:900}
+.dx-q{display:flex;align-items:center;gap:10px}
+.dx-listen{flex:none;width:48px;height:48px;border-radius:50%;border:0;background:var(--kid-a,#f6b73c);font-size:22px;cursor:pointer}
+.dx-kid-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.dx-kid-opts button{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:130px;border-radius:22px;border:3px solid #ffffff40;background:#ffffff14;color:#fff;cursor:pointer;transition:transform .15s}
+.dx-kid-opts button:hover:not(:disabled){transform:translateY(-3px);border-color:var(--kid-a)}
+.dx-kid-opts button.is-ok{border-color:#7ee08a;background:#7ee08a33}
+.dx-kid-opts button.is-no{border-color:#ffb357;background:#ffb35722}
+.dx-kid-opts button.is-dim{opacity:.4}
+.dx-kid-pic{font-size:clamp(52px,11vw,76px);line-height:1;margin-top:10px}
+.dx-kid-word{font-size:20px;font-weight:900}
+@media(prefers-reduced-motion:reduce){.dx-bird{animation:none!important}}
+.dx-root .dx-board .dx-title{color:var(--dx-yellow)!important} /* umumiy h3 qoidasi doskadagi sarlavhani qoraytirmasin */
+.dx-next{background:#2f7d5b!important;color:#fff!important;border-color:#2f7d5b!important;font-weight:800}
+
+/* REV89: tinglab tanlash va gapirish mashqi */
+.dx-kid-wrap{position:relative;display:grid}
+.dx-kid-hear{position:absolute;top:8px;right:8px;width:44px;height:44px;border-radius:50%;border:0;background:#ffb400;color:#fff;font-size:1.25rem;cursor:pointer;box-shadow:0 4px 10px #0003;z-index:2}
+.dx-listen-q .lt-hear{display:inline-grid;place-items:center;width:48px;height:48px;margin:0 6px;border-radius:50%;border:0;background:#ffb400;color:#fff;font-size:1.4rem;cursor:pointer;vertical-align:middle}
+/* REV90: bog'cha boshqaruvi — katta belgilar bitta qatorda, telefonda doskani to'smaydi */
+.dx-kid-controls{display:grid;grid-template-columns:1.3fr repeat(4,1fr);gap:8px}
+.dx-kid-controls .dx-spacer{display:none}
+.dx-aud-bogcha .dx-kid-controls .dx-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;padding:6px 4px}
+.dx-kid-ico{font-size:28px;line-height:1}
+.dx-kid-cap{font-size:11.5px;font-weight:800;line-height:1.1;white-space:nowrap}
+@media (max-width:900px){
+  .dx-aud-bogcha .dx-board{min-height:200px}
+}
+@media (max-width:400px){.dx-kid-ico{font-size:24px}.dx-kid-cap{font-size:10.5px}.dx-kid-controls{gap:5px;padding:6px}}
+/* Dars va o'yin paytida chalg'ituvchi suzuvchi tugma va ogohlantirish chiqmaydi */
+body:has(.dx-aud-bogcha) #samtm-install-app,body:has(.kq-root) #samtm-install-app{display:none!important}
+body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notice{display:none!important}
+.dx-kid-opts .dx-kid-hear{min-height:0;width:44px;height:44px;padding:0;display:grid;place-items:center;border:0;border-radius:50%;background:#ffb400;flex-direction:row}
+/* REV91: bog'cha — 3 ta katta tugma; variant aytilganda qimirlaydi; natija ekrani */
+.dx-kid-controls{grid-template-columns:1.4fr 1fr 1fr}
+.dx-kid-opts button.is-hot{animation:dx-hot .55s ease-in-out infinite;border-color:var(--kid-a);box-shadow:0 0 0 4px #ffffff30,0 10px 24px -8px var(--kid-a)}
+.dx-kid-opts button.is-waiting{animation:dx-wait 2.4s ease-in-out infinite;animation-delay:calc(var(--i,0) * .3s)}
+@keyframes dx-hot{0%,100%{transform:rotate(0) scale(1.04)}25%{transform:rotate(-3deg) scale(1.07)}75%{transform:rotate(3deg) scale(1.07)}}
+@keyframes dx-wait{0%,70%,100%{transform:none}80%{transform:rotate(-2deg) translateY(-3px)}90%{transform:rotate(2deg) translateY(-3px)}}
+.dx-kid-end{display:grid;justify-items:center;gap:14px;text-align:center;padding:18px 6px;font-family:system-ui,sans-serif}
+.dx-kid-big{font-size:72px;line-height:1;animation:dx-fade .4s both}
+.dx-kid-note{margin:0;font-size:19px;font-weight:700;color:var(--dx-chalk)}
+.dx-kid-stars{display:flex;gap:10px}
+.dx-kid-stars span{font-size:62px;filter:grayscale(1) opacity(.35);transform:scale(.6);transition:all .4s}
+.dx-kid-stars span.is-on{filter:none;transform:scale(1);animation:dx-star .6s both;animation-delay:calc(var(--i) * .35s)}
+@keyframes dx-star{0%{transform:scale(.3) rotate(-30deg);opacity:0}70%{transform:scale(1.25) rotate(8deg);opacity:1}100%{transform:scale(1)}}
+.dx-kid-go{border:0;border-radius:22px;padding:18px 34px;font:900 22px system-ui,sans-serif;background:var(--kid-a,#f6b73c);color:#fff;cursor:pointer;box-shadow:0 12px 26px -10px #000a;animation:dx-go 1.8s ease-in-out infinite}
+@keyframes dx-go{50%{transform:scale(1.05)}}
+.dx-kid-end .dx-btn{background:#ffffff1c;color:#fff;border-color:#ffffff40}
+@media(prefers-reduced-motion:reduce){.dx-kid-opts button.is-hot,.dx-kid-opts button.is-waiting,.dx-kid-go,.dx-kid-stars span.is-on{animation:none}}
