@@ -8,6 +8,7 @@ import React, { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, ChevronLeft, Loader2 } from "lucide-react";
 import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import MiyaTarkibi from "./admin/MiyaTarkibi.jsx";
+import PaketYuklash from "./admin/PaketYuklash.jsx";
 
 const DarsXonasiPreview = React.lazy(() => import("./lesson/DarsXonasi.jsx"));
 
@@ -868,6 +869,9 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
       </div>
 
       <MiyaTarkibi apiBase={API_BASE} token={token} />
+
+      {/* REV121: bitta ZIP (papkalari bilan) yoki ko'p Excel — mavzular va miyalar birdan o'rnatiladi */}
+      <PaketYuklash token={token} onDone={() => { tarixniYukla(); darslarniYukla(); }} />
 
       <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-start gap-3">
