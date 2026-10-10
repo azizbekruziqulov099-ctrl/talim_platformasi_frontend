@@ -12,6 +12,12 @@ import { APP_VERSION } from "../appVersion.js";
 import { answerSpeed, finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
 import { screenTime } from "../kid/screenTime.js";
 import KidStage from "../kid/KidStage.jsx";
+import UstozSahna from "../kid/UstozSahna.jsx";
+import { havoTuri, kunVaqti, ustozFor } from "../kid/ustozRules.js";
+import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
+import { darsIzohi, darsTiliIzoh } from "../kid/izohTil.js";
+import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
+import { suhbatSavollari } from "../kid/suhbat.js";
 import { emojiPictures, isReviewQuestion, kabuMood, kabuSpeech, kindBadge, kindCue, pictureFor, stepActions, stepKind, stickerKeys } from "../kid/kidStageRules.js";
 import { stickerUrl } from "../kid/stickers.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
@@ -79,6 +85,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [kidResult, setKidResult] = useState(null);
   // REV105: dars oxirida ovozli tekshiruv («Takrorlang!») — natija {togri, jami} yoki null.
   const [voice, setVoice] = useState(null);
+  // REV110: derazadagi ob-havo (dars boshida serverdan keladi; kelguncha — fasl bo'yicha)
+  const [havo, setHavo] = useState(() => havoTuri());
+  const [harorat, setHarorat] = useState(null);
+  const [kunduz, setKunduz] = useState(null);
+  const [shamol, setShamol] = useState(false);
+  const [vaqt, setVaqt] = useState(() => kunVaqti());
   const voiceRef = useRef(null);
   voiceRef.current = voice;
   // REV98: robot Kabu — quvonish/dalda holati va sakrash; rasmni bosganda qayta jonlanadi.
@@ -113,7 +125,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   gradeRef.current = grade || lesson?.topic?.sinf || "";
   const labels = audienceLabels(audience);
   const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";
-  const steps = useMemo(() => lesson?.steps || [], [lesson]);
+  // REV110: bog'chada dars ustozning o'z salomi, bugungi ob-havo va o'tgan darsdan savol bilan boshlanadi.
+  const oldingi = useMemo(() => (lesson ? oxirgiDars(topicCode) : null), [lesson, topicCode]);
+  // REV111: miya qaysi tilda tushuntirilgan (o'zbek / rus / ingliz) va qaysi til o'rgatiladi
+  const izoh = useMemo(() => darsIzohi(lesson?.steps || []), [lesson]);
+  const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh), [lesson, izoh]);
+  const opening = useMemo(() => (kid && lesson?.steps?.length ? ochilish({
+    ustoz: ustozFor(fan || lesson?.topic?.fan), til: darsTil, izoh, havo, harorat, oldingi, vaqt,
+    grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000),
+  }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, izoh, vaqt]);
+  const steps = useMemo(() => [...opening, ...(lesson?.steps || [])], [lesson, opening]);
   const step = idx >= 0 ? steps[idx] : null;
   // REV102: har qadam turi — takror (o'tgan darslar) yoki yangi bilim; bolaga belgi, rang va ovoz bilan ko'rsatiladi.
   const kinds = useMemo(() => steps.reduce((out, s, i) => {
@@ -133,7 +154,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     return out;
   }, [steps, kinds, lesson]);
   const questions = lesson?.savollar || [];
-  const voiceItems = useMemo(() => (lesson ? voiceCheckItems(lesson, audience) : []), [lesson, audience]);
+  // REV110: bog'chada takrorlashdan keyin ustoz bilan suhbat — faqat bola bilgan so'zlardan, yoshga qarab murakkablashadi.
+  const bilgan = useMemo(() => (kid && lesson && darsTil ? bilganSozlar(darsTil) : []), [kid, lesson, darsTil]);
+  const voiceItems = useMemo(() => {
+    if (!lesson) return [];
+    const base = voiceCheckItems(lesson, audience);
+    if (!kid) return base;
+    const til = darsTil;
+    const dars = darsSozlari(steps.slice(opening.length), kinds.slice(opening.length));
+    return [...base.slice(0, 3), ...suhbatSavollari({ til, grade: grade || lesson?.topic?.sinf, bilgan, dars, kun: Math.floor(Date.now() / 86400000) })];
+  }, [lesson, audience, kid, steps, kinds, opening, bilgan, grade, darsTil]);
   const voiceReady = voiceItems.length > 0 && speechRecognitionAvailable(globalThis);
   const downloadUrl = (format) => lessonDownloadUrl(apiBase, token, topicCode, format);
   const mediaUrl = useCallback((url) => (!url ? null : url.startsWith("/") ? `${String(apiBase).replace(/\/+$/, "")}${url}` : url), [apiBase]);
@@ -217,9 +247,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
     const spoken = String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "");
     // REV102: takrordan yangiga o'tishda robot aytadi: «Avval o'tganlarni eslaymiz!» / «Endi — yangi so'z!»
-    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu);
+    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, izoh);
     return kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken);   // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan
-  }, [kid, kinds, lesson]);
+  }, [kid, kinds, lesson, izoh]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -232,6 +262,28 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
   }, [apiBase, token, topicCode, hush]);
+
+  // REV110: bugungi ob-havo (server soatiga bir marta oladi va keshlaydi)
+  useEffect(() => {
+    if (!kid || !lesson) return undefined;
+    const c = new AbortController();
+    let shahar = "toshkent";
+    try { shahar = globalThis.localStorage?.getItem("kabutar:shahar") || shahar; } catch { /* */ }
+    fetch(`${String(apiBase).replace(/\/+$/, "")}/api/bogcha/havo?${new URLSearchParams({ shahar })}`, { signal: c.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) { setHavo(havoTuri(d.kod)); setHarorat(d.harorat ?? null); setKunduz(d.kunduz ?? null); setShamol(Number(d.shamol) >= 30); } })
+      .catch(() => { /* ob-havo bo'lmasa — fasl bo'yicha */ });
+    return () => c.abort();
+  }, [kid, lesson, apiBase]);
+
+  // REV111: kun vaqti (tong/kun/kech/tun) — har 5 daqiqada tekshiriladi, xona va deraza shunga qarab
+  useEffect(() => {
+    if (!kid) return undefined;
+    const tick = () => setVaqt(kunVaqti(new Date().getHours(), kunduz));
+    tick();
+    const t = setInterval(tick, 300000);
+    return () => clearInterval(t);
+  }, [kid, kunduz]);
 
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = rate; }, [rate]);
 
@@ -280,7 +332,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       if (autoplay && kid && s.turi === "amaliy") {
         // REV93: bog'chada topshiriq (qo'shiq, harakat, o'yin) — bolaga bajarishga vaqt, keyin maqtov va davom. Tugma kerak emas.
         // Bajarganini tekshirib bo'lmaydi — shuning uchun «Barakalla» demaymiz, to'g'ri javobni birga aytamiz.
-        const praise = kidTaskModel(s.ovoz || s.doska);
+        const praise = kidTaskModel(s.ovoz || s.doska, izoh);
         setTimeout(() => { if (playingRef.current && idxRef.current === next) say(praise, () => setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, 900)); }, 4000);
         return;
       }
@@ -468,6 +520,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!kid || mode !== "result") return;
     const local = !questions.length ? 1 : score / questions.length >= 0.7 ? 3 : score > 0 ? 2 : 1;
     markLessonDone(topicCode, local);
+    // REV110: o'rgangan so'zlarini eslab qolamiz — keyingi dars boshida ustoz shulardan so'raydi
+    eslab({ code: topicCode, mavzu: lesson?.topic?.mavzu || "", sozlar: darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) });
     setKidResult({ yulduz: local });
     const wasTracked = kidTracker.active() === topicCode;
     if (wasTracked) kidTracker.finish();
@@ -551,7 +605,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status"><span aria-hidden="true">{badge[0]}</span><small>{__kbUi(badge[1])}</small></div>}
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}><KidStage mood={kidMood} celebrate={celebrate} pictures={kidPics} actions={kidActs} speaking={speaking} onTap={tapKid} /></div>}
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={kidPics} mavzuRasmlar={[...newPics].map(mediaUrl)} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking} onTap={tapKid} /></div>}
           {!kid && mode === "idle" && <>
             <h3 className="dx-title">{__kbUi("Bugungi dars")}</h3>
             <div className="dx-line">{lesson.topic?.mavzu}</div>
@@ -591,7 +645,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               </div>
             </div>}
           </>}
-          {mode === "ovoz" && <VoiceCheck key={topicCode} items={voiceItems} audience={audience} say={say} hush={hush} speaking={speaking} onDone={voiceDone} />}
+          {mode === "ovoz" && <VoiceCheck key={topicCode} items={voiceItems} audience={audience} say={say} hush={hush} speaking={speaking} onDone={voiceDone} bilgan={bilgan} izoh={izoh} />}
           {mode === "test" && q && <div className="dx-test">
             {kid && isReviewQuestion(q) && <div className="dx-kind is-review" role="status"><span aria-hidden="true">🔁</span><small>{__kbUi("Takrorlash")}</small></div>}
             {kid ? <div className="dx-kid-ask"><KidStage compact mood={kidPhase || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} />

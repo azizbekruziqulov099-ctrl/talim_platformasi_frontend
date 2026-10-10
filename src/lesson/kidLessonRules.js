@@ -7,16 +7,23 @@ export function kidRate(grade) {
 }
 
 /** REV95: topshiriq oxirida — maqtov emas, namuna: undagi chet tilidagi iboralarni bola bilan birga aytamiz. */
-export function kidTaskModel(text) {
+const TASK = {
+  ru: { go: "[ru]Ну что, продолжаем![/ru]", lead: "[ru]Давай скажем вместе:[/ru]", end: "[ru]А теперь продолжаем![/ru]" },
+  en: { go: "[en]Let’s go on![/en]", lead: "[en]Let’s say it together:[/en]", end: "[en]Now let’s go on![/en]" },
+};
+
+export function kidTaskModel(text, izoh = "uz") {
   const phrases = [];
   String(text || "").replace(/\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi, (_, lang, body) => {
     const clean = body.trim();
     if (clean && !phrases.some((p) => p.body === clean)) phrases.push({ lang: lang.toLowerCase(), body: clean });
     return "";
   });
-  if (!phrases.length) return "Qani, davom etamiz!";
+  const T = TASK[izoh];
+  if (!phrases.length) return T ? T.go : "Qani, davom etamiz!";
   // REV102: har iboradan keyin «⏸» — server bolaga qaytarish uchun 1.5–3 soniya jimlik qo'yadi.
-  return `Keling, birga aytamiz: ${phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}] ⏸`).join(" ")} Endi davom etamiz!`;
+  const list = phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}] ⏸`).join(" ");
+  return T ? `${T.lead} ${list} ${T.end}` : `Keling, birga aytamiz: ${list} Endi davom etamiz!`;
 }
 
 const FOREIGN = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;

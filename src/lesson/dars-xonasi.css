@@ -271,3 +271,5 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-exit:focus-visible{outline:3px solid #25a89d;outline-offset:2px}
 .dx-root.dx-focus .dx-controls{position:sticky;bottom:0;z-index:2;padding-block:10px;background:linear-gradient(transparent,var(--ui-bg,#eef3f0) 35%)}
 .dx-root.dx-focus .dx-head>div:not(.dx-head-actions){flex:1;min-width:0}
+/* REV110: suhbatdagi rasmli savol — katta belgi */
+.dx-voice-emoji{font-size:clamp(64px,14vw,120px);line-height:1;text-align:center;animation:us-pop .5s ease-out both}
