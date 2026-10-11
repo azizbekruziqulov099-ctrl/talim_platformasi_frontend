@@ -139,7 +139,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV110: bog'chada dars ustozning o'z salomi, bugungi ob-havo va o'tgan darsdan savol bilan boshlanadi.
   const oldingi = useMemo(() => (lesson ? oxirgiDars(topicCode) : null), [lesson, topicCode]);
   // REV111: miya qaysi tilda tushuntirilgan (o'zbek / rus / ingliz) va qaysi til o'rgatiladi
-  const izoh = useMemo(() => darsIzohi(lesson?.steps || []), [lesson]);
+  const izoh = useMemo(() => darsIzohi(lesson?.steps || [], fan || lesson?.topic?.fan || ""), [lesson, fan]);
   const izohRef = useRef("uz");
   izohRef.current = izoh;
   // REV121: matematika / atrof-muhit / mantiq — til darsi emas (rus izohidagi teglar «o'rganiladigan til» emas)
