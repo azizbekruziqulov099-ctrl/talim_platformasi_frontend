@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { workspaceRequest } from './kabutarWorkspaceClient.js';
-import { PRESCHOOL_GROUPS, educationRole, preschoolGroup } from './educationRules.js';
+import { PRESCHOOL_GROUPS, educationRole, preschoolGroup, schoolGrade } from './educationRules.js';
 import JoinInstitution from './JoinInstitution.jsx';
 import TalabaQoshilish from '../student/TalabaQoshilish.jsx';
 import { useInterface } from '../interface/InterfacePreferences.jsx';
 import './workspace.css';
 
-const roles = [['oquvchi', 'O‘quvchi', '1–11-sinf', '📚'], ['talaba', 'Talaba', 'Institut va universitet', '🎓'], ['oqituvchi', 'O‘qituvchi', 'Darslar va ish maydoni', '✏️'], ['ota-ona', 'Ota-ona', 'Farzandingiz ta’limi', '🌱'], ['bogcha', 'Bog‘cha bolasi', '2–7 yosh, ovozli darslar', '🧸']];
+const roles = [['bogcha', 'Bog‘cha bolasi', '2–7 yosh, ovozli darslar', '🧸'], ['oquvchi', 'O‘quvchi', 'Maktab, 1–11-sinf', '📚'], ['talaba', 'Talaba', 'Institut va universitet', '🎓'], ['oqituvchi', 'O‘qituvchi', 'Darslar va ish maydoni', '✏️'], ['ota-ona', 'Ota-ona', 'Farzandingiz ta’limi', '🌱']];
 export default function EducationSetup({ apiBase, token, user = null, initialRole = '', onComplete, onBack, target = 'test' }) {
   const { t } = useInterface();
   const [joining, setJoining] = useState('');
   const [role, setRole] = useState(initialRole || educationRole(user));
-  const [grade, setGrade] = useState(/^\d+$/.test(String(user?.class || '')) ? String(user.class) : '');
+  const [grade, setGrade] = useState(schoolGrade(user?.class));   // REV122: «5-sinf» ham o'qiladi
   const [ageGroup, setAgeGroup] = useState(preschoolGroup(user?.yosh_guruhi || user?.learning_profile?.age_group || user?.class));
   const p = user?.learning_profile || {};
   const [course, setCourse] = useState(String(p.kurs || ''));

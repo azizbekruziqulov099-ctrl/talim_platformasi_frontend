@@ -6,6 +6,13 @@ export function kidRate(grade) {
   return from <= 2 ? "-18%" : from === 3 ? "-15%" : from === 4 ? "-12%" : from === 5 ? "-8%" : "-5%";
 }
 
+/** REV122: jonli ustoz (odam) — kichiklarga sal sekinroq, lekin tabiiy suhbat tezligida (robotdek cho'zilmaydi). */
+export function ustozRate(grade) {
+  const m = /(\d)\s*[-–]\s*(\d)/.exec(String(grade || ""));
+  const from = m ? Number(m[1]) : 5;
+  return from <= 3 ? "-10%" : from <= 5 ? "-6%" : "-3%";
+}
+
 /** REV95: topshiriq oxirida — maqtov emas, namuna: undagi chet tilidagi iboralarni bola bilan birga aytamiz. */
 const TASK = {
   ru: { go: "[ru]Ну что, продолжаем![/ru]", lead: "[ru]Давай скажем вместе:[/ru]", end: "[ru]А теперь продолжаем![/ru]" },

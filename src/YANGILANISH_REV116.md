@@ -126,3 +126,15 @@ src/kid/kidStageRules.js, src/curriculum/LearnerTopics.jsx, kidTopics.css.
   - o'zgargan bo'lsa — o'sha kitob yangi versiyaga yangilanadi;
   - mavzular «oldin bor» deb qayta yaratilmaydi.
 - **Paket hajmi:** bitta paketda 400 tagacha Excel bo'lishi mumkin.
+
+## REV122 — admin «O‘quvchi ko‘zi bilan», izoh tili, tungi rejim, jonli ustozlar
+
+- **Admin → «O‘quvchi ko‘zi bilan»** (menyu va Profil → Kabinet ko‘rinishi): Bog‘cha (2–3 / 4–5 / 6–7 yosh), Maktab (1–11-sinf), O‘quv markaz, Institut. Bog‘cha olami, rasmli darslar, o‘yinlar, testlar — bola ko‘rgandek. Ko‘rish rejimida kunlik cheklov yo‘q, hamma darslar ochiq, bola kuzatuviga yozilmaydi. Admin uchun hech qachon «🔒 Ertaga» yo‘q.
+- **Tuzatildi:** `Eye` belgisi App.jsx da yuqori darajada import qilinmagan edi — admin menyusiga qo‘shilsa butun kabinet ochilmay qolardi.
+- **Izoh tili:** fan uch variantda («Arab tili», «… (izoh: rus)», «… (izoh: ingliz)»). Interfeys tili uz → o‘zbekcha, ru → ruscha, en → inglizcha izohli variant chiqadi (mos variant bo‘lmasa — o‘zbekchasi). Fan nomlari interfeys tilida, ovozi ham o‘sha tilda.
+- **Bayroqlar** SVG rasm — Windows’da «SA», «GB» harflari chiqmaydi.
+- **Profil:** «Hozir: 🧸 Bog‘cha bolasi · 4–5 yosh» kabi aniq ko‘rinadi; «✏️ Yoshni / Sinfni / Kursni o‘zgartirish». «5-sinf» ko‘rinishidagi sinf ham o‘qiladi.
+- **Tungi rejim:** butun ilova ikki marta teskari bo‘lib kulrang-xira chiqardi (fon-rasmli konteyner) — tuzatildi; yon menyu to‘q holicha qoladi. Umumiy sarlavha qoidasi endi komponent rangini bosib ketmaydi (oq sarlavhalar ko‘rinadi). Bog‘cha sahnalarida kechasi ichkarida chiroq yoniq — xira emas.
+- **Jonli ustoz:** og‘iz ovozga mos (ovoz balandligi tahlili) — jimlikda, ovoz yuklanayotganda yopiq; yuz bo‘lagi chetlari silliq. Ustoz odamdek gapiradi («Bip-bip», «Men robot Kabu» → «Men Nilufar opaman»), o‘z ovozida (Sardor aka — erkak), ohang ko‘tarilmaydi. Robot Kabu test ekranida o‘z uslubida.
+- **O‘yin:** bola ustoz gapini kutmasdan bosishi mumkin; rasmni bosganda nomi aytiladi.
+- **Ovozli tekshiruv:** til darsida bugun o‘rganilgan so‘zlar darsning o‘z tilida.

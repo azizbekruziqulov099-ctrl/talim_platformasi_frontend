@@ -16,7 +16,10 @@ import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
+import FanBelgi from '../kid/FanBelgi.jsx';
 import { useHavo } from '../kid/useHavo.js';
+import { guruhMos } from '../admin/previewRules.js';
+import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
 const SUBJECT_KEY = 'kabutar:learn:subject';
@@ -24,9 +27,10 @@ const readSaved = () => { try { return window.localStorage.getItem(SUBJECT_KEY) 
 const save = value => { try { window.localStorage.setItem(SUBJECT_KEY, value); } catch { /* storage optional */ } };
 
 // O'quvchi / talaba / bog'cha / markaz: bitta sahifada Fan → Mavzu → Dars yoki Test.
-export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTest,onEducationSetup,jins='qiz'}) {
-  useKbInterfaceLocale();
- const [type,setType]=useState(()=>profileInstitutionType(user));
+// REV122: preview={type,sinf} — admin «O'quvchi ko'zi bilan»: tanlangan muassasa turi/sinf, kunlik cheklov va kuzatuvsiz.
+export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTest,onEducationSetup,jins='qiz',preview=null}) {
+  const {locale}=useKbInterfaceLocale();
+ const [type,setType]=useState(()=>preview?.type||profileInstitutionType(user));
  const [lesson,setLesson]=useState('all');
  const [catalog,setCatalog]=useState(null);
  const [loading,setLoading]=useState(true);
@@ -35,7 +39,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const [filter,setFilter]=useState('all');
  const [subjectKey,setSubjectKey]=useState(readSaved);
  const [classroom,setClassroom]=useState(null);
- const chosen=useRef(false);
+ const chosen=useRef(Boolean(preview?.type));
  useEffect(()=>{
   const controller=new AbortController();
   const params=new URLSearchParams({token,institution_type:type,faqat_testli:'false'});
@@ -56,18 +60,18 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const [uniFilter,setUniFilter]=useState(null);
  const universityBrowse=universityBrowseActive(catalog?.viewer,type);
  const uniFilterValue=uniFilter||initialUniversityFilter(catalog?.viewer);
- const matched=matchingSubjects(catalog?.fanlar||[],type,lesson);
+ const matched=matchingSubjects(izohTanla(catalog?.fanlar||[],locale),type,lesson).filter(sub=>!preview?.sinf||(sub.sinflar||[]).some(g=>guruhMos(g.sinf,preview.sinf)));
  // REV77: talaba barcha institut mavzularini ko'radi; filtr bilan o'z yo'nalishini tanlaydi.
  const subjects=universityBrowse?filterUniversitySubjects(matched,uniFilterValue):matched;
  const current=subjects.find(subject=>subject.kalit===subjectKey)||subjects[0];
- const groups=useMemo(()=>current?filterTopics(current,query,filter):[],[current,query,filter]);
+ const groups=useMemo(()=>current?filterTopics(current,query,filter).filter(g=>guruhMos(g.sinf,preview?.sinf)):[],[current,query,filter,preview?.sinf]);
  const teacher=Boolean(catalog?.viewer?.teacher);
  const kid=!teacher&&accountRole(user)==='bogcha';
  useKeepLight(kid);   // REV121: bolalar ro'yxati tungi rejimda ham yorqin
  // REV91: bog'cha — kunlik reja (har fandan kuniga 2 ta yangi dars, dam olish kunlari 3 ta). Server tekshiradi.
  const [plan,setPlan]=useState(null);
  const planFan=current?.nom||'';
- const loadPlan=React.useCallback(()=>{if(!kid)return;fetchDayPlan(apiBase,token).then(setPlan).catch(()=>setPlan(null));},[kid,apiBase,token]);
+ const loadPlan=React.useCallback(()=>{if(!kid||preview)return;fetchDayPlan(apiBase,token).then(setPlan).catch(()=>setPlan(null));},[kid,apiBase,token,preview]);
  useEffect(()=>{if(kid&&!classroom)loadPlan();},[kid,classroom,loadPlan]);
  const unlockOf=group=>unlockLessons(group.mavzular.map(t=>t.dars_bor?topicTarget(current,group,t,type).lesson_code:''),plan,planFan);
  // REV81: uzluksiz o'rganish — dars tugagach keyingi darsga o'tish (guruh ichidagi tartib bo'yicha).
@@ -83,7 +87,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');};
  // REV90: o'qiy olmaydigan bola uchun — kartadagi nomni ovoz bilan aytadi.
  const voice=useRef(null);
- const sayName=text=>{try{voice.current?.pause();const a=new Audio(`${String(apiBase).replace(/\/+$/,'')}/api/ovoz?${new URLSearchParams({matn:String(text||'').slice(0,200),jins})}`);voice.current=a;a.play().catch(()=>{});}catch{/* ovoz ixtiyoriy */}};
+ const sayName=(text,inglizcha=false)=>{try{voice.current?.pause();const m=String(text||'').slice(0,200);/* REV122: ruscha (kirill) yoki inglizcha nom — o'z tilidagi ovozda */const tm=/[А-Яа-яЁё]/.test(m)?`[ru]${m}[/ru]`:inglizcha?`[en]${m}[/en]`:m;const a=new Audio(`${String(apiBase).replace(/\/+$/,'')}/api/ovoz?${new URLSearchParams({matn:tm,jins})}`);voice.current=a;a.play().catch(()=>{});}catch{/* ovoz ixtiyoriy */}};
  const nextRef=useRef(null);
  // REV112: bog'cha bolasi uchun bosh ekran — bog'cha olami (bino, yo'lak, sinfxonalar, zal, hovli…)
  const [olam,setOlam]=useState(true);
@@ -97,15 +101,16 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
     onOpenTest={onOpenTest&&classroom.savol_soni>0?()=>onOpenTest({...classroom,topic_code:classroom.topic_codes?.[0]||classroom.topic_code}):undefined}
     nextLesson={classroom._next?{title:capitalizeTopic(classroom._next.title),open:classroom._next.open}:null}
     onChat={onOpenLesson?()=>onOpenLesson(classroom):undefined}
-    kidPlan={kid?{fan:planFan,mavzu:capitalizeTopic(classroom._topic||'')}:null}
+    kidPlan={kid&&!preview?{fan:planFan,mavzu:capitalizeTopic(classroom._topic||'')}:null}
     onKidFinished={(_,reja)=>{if(reja)setPlan(p=>p?{...p,...reja}:p);}}
+    cheklovsiz={Boolean(preview||user?.is_admin)}
     onClose={()=>setClassroom(null)}/>
   </React.Suspense>
  </div>;
 
  if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
-  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:sub.nom,emoji:kidSubjectEmoji(sub.nom)}))}
-   onFan={key=>{chooseSubject(key);setOlam(false);}} say={sayName} havo={ob.havo} vaqt={ob.vaqt}/>
+  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),emoji:kidSubjectEmoji(sub.nom)}))}
+   onFan={key=>{chooseSubject(key);setOlam(false);}} say={(t,o)=>sayName(t,Boolean(o?.en))} havo={ob.havo} vaqt={ob.vaqt}/>
  </div>;
 
  return <div className="space-y-4 lt-root">
@@ -125,9 +130,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
     {kid&&<section aria-label={__kbUi("Fanlar")} className="kt-subjects">
      {subjects.map(subject=>{const active=subject.kalit===current?.kalit;
       return <button key={subject.kalit} type="button" aria-pressed={active} className={`kt-subject ${active?'is-on':''}`}
-       onClick={()=>{chooseSubject(subject.kalit);sayName(subject.nom);}}>
-       <span className="kt-subject-emoji" aria-hidden="true">{kidSubjectEmoji(subject.nom)}</span>
-       <span className="kt-subject-name"><TranslatedContent text={subject.nom} showStatus={false}/></span>
+       onClick={()=>{chooseSubject(subject.kalit);sayName(fanNomiTil(subject.nom,locale),fanNomiTil(subject.nom,locale)!==fanNomiTil(subject.nom,'uz')&&String(locale).startsWith('en'));}}>
+       <span className="kt-subject-emoji" aria-hidden="true"><FanBelgi emoji={kidSubjectEmoji(subject.nom)}/></span>
+       <span className="kt-subject-name"><TranslatedContent text={fanNomiTil(subject.nom,locale)} showStatus={false}/></span>
       </button>;})}
     </section>}
     {!kid&&<section aria-label={__kbUi("Fanlar")}>
@@ -137,7 +142,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
        return <button key={subject.kalit} type="button" aria-pressed={active} onClick={()=>chooseSubject(subject.kalit)}
         className="shrink-0 rounded-xl border px-3 py-2 text-left"
         style={active?{background:'#1B4B7A',borderColor:'#1B4B7A',color:'#fff'}:{background:'#fff',borderColor:'#D5DCE3',color:'#1E293B'}}>
-        <span className="block text-sm font-semibold"><TranslatedContent text={subject.nom} showStatus={false}/>{subject.dars_turi_nomi?` · ${__kbUi(subject.dars_turi_nomi)}`:''}</span>
+        <span className="block text-sm font-semibold"><TranslatedContent text={fanNomiTil(subject.nom,locale)} showStatus={false}/>{subject.dars_turi_nomi?` · ${__kbUi(subject.dars_turi_nomi)}`:''}</span>
         {universityBrowse&&<span className="block max-w-[260px] truncate text-[10.5px] opacity-80">{subject.mine?'🎯 ':''}{catalogSubjectDetails(subject)}</span>}
         <span className="block text-[11px] opacity-80">{__kbUi(`${stats.topics} mavzu · ${stats.lessons} dars · ${stats.tested} testli`)}</span>
        </button>;})}
@@ -169,7 +174,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       return <div key={`kid-${group.sinf}`}>
       <p className="kt-age">🧸 {__kbUi(gradeLabel(type,group.sinf))}</p>
       <ul className="kt-grid">{group.mavzular.map((topic,i)=>{const target=topicTarget(current,group,topic,type);
-       const stars=starsOf(topic,target,i);const done=doneOf(topic,target,i);const isNext=i===next;const locked=topic.dars_bor&&!unlock[i]?.open;const review=isReviewTopic(topic.nomi);
+       const stars=starsOf(topic,target,i);const done=doneOf(topic,target,i);const isNext=i===next;/* REV122: admin uchun hamma mavzu ochiq */const locked=!preview&&!user?.is_admin&&topic.dars_bor&&!unlock[i]?.open;const review=isReviewTopic(topic.nomi);
        const open=()=>{if(locked){sayName(__kbUi("Bu dars ertaga ochiladi"));return;}if(topic.dars_bor)openLesson(group,topic);};
        return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${done?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''} ${review?'is-review':''}`} style={{'--kt-bg':review?'#EDE3FF':kidTopicColor(i)}}
         onClick={e=>{if(e.target.closest('button'))return;open();}}>
@@ -177,11 +182,11 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
         {isNext&&<span className="kt-today">{__kbUi("Bugun shu!")}</span>}
         <button type="button" className="kt-emoji" aria-label={__kbUi(locked?"Ertaga ochiladi":"O‘rganamiz")} disabled={!topic.dars_bor} onClick={open}>{kidTopicEmoji(topic.nomi,i)}{!locked&&topic.dars_bor&&<span className="kt-play-badge" aria-hidden="true">▶</span>}</button>
         <p className="kt-title"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>
-         <button type="button" className="kt-say" aria-label={__kbUi("Nomini eshitish")} onClick={()=>sayName(capitalizeTopic(topic.nomi))}>🔊</button></p>
+         <button type="button" className="kt-say" aria-label={__kbUi("Nomini eshitish")} onClick={()=>sayName(capitalizeTopic(topic.nomi),fanIzohi(current?.nom)==='en')}>🔊</button></p>
         <span className={`kt-kind ${review?'is-review':'is-new'}`}>{review?__kbUi("🔁 Takrorlash"):__kbUi("✨ Yangi mavzu")}</span>
         {done&&<span className="kt-stars" aria-label={`${stars} ⭐`}>{'⭐'.repeat(stars)}{'☆'.repeat(3-stars)}</span>}
         {locked&&<span className="kt-lock-note">🌙 {__kbUi("Ertaga")}</span>}
-        {!locked&&topic.savol_soni>0&&onOpenTest&&(done||!topic.dars_bor)&&<div className="kt-actions">
+        {!locked&&topic.savol_soni>0&&onOpenTest&&(done||!topic.dars_bor||preview)&&<div className="kt-actions">
          <button type="button" className="kt-play" onClick={()=>onOpenTest({...target,topic_code:topic.topic_codes[0]})}>{__kbUi("🎮 O‘ynaymiz")}</button>
         </div>}
        </li>;})}

@@ -36,3 +36,27 @@ export function talabaProfileComplete(user) {
   const p = user?.talaba_profili || user?.learning_profile;
   return !!(p?.kurs >= 1 && p.kurs <= (p.talim_bosqichi === 'magistr' ? 2 : 6) && p.talim_shakli && p.talim_tili);
 }
+
+// REV122: profilda joriy rol aniq ko'rinsin: «🧸 Bog‘cha bolasi · 4–5 yosh», «📚 O‘quvchi · 5-sinf», «🎓 Talaba · 2-kurs».
+const ROLE_LABELS = { bogcha: ['🧸', 'Bog‘cha bolasi'], oquvchi: ['📚', 'O‘quvchi'], talaba: ['🎓', 'Talaba'],
+  oqituvchi: ['✏️', 'O‘qituvchi'], 'ota-ona': ['🌱', 'Ota-ona'], mustaqil: ['📚', 'O‘quvchi'] };
+export function schoolGrade(value) {
+  const m = /^\s*(\d{1,2})\s*(?:-?\s*sinf)?\s*$/i.exec(String(value ?? ''));
+  return m && Number(m[1]) >= 1 && Number(m[1]) <= 11 ? String(Number(m[1])) : '';
+}
+export function roleDetail(user, t = (x) => x) {
+  const role = educationRole(user);
+  const label = ROLE_LABELS[role];
+  if (!label) return '';
+  const head = `${label[0]} ${t(label[1])}`;
+  if (role === 'bogcha') {
+    const g = preschoolGroup(user?.yosh_guruhi || user?.learning_profile?.age_group || user?.class);
+    return g ? `${head} · ${t(g.replace('-', '–'))}` : head;
+  }
+  if (role === 'oquvchi') { const g = schoolGrade(user?.class); return g ? `${head} · ${g}${t('-sinf')}` : head; }
+  if (role === 'talaba') {
+    const k = user?.talaba_profili?.kurs || user?.learning_profile?.kurs || (/(\d)\s*kurs/i.exec(String(user?.class || '')) || [])[1];
+    return k ? `${head} · ${k}${t('-kurs')}` : head;
+  }
+  return head;
+}

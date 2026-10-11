@@ -188,9 +188,9 @@ html[data-kb-theme="dark"] :is(.kb-login-pending-note,.kb-login-method-copy,.kb-
    Shu sababli inline rangli har qanday yozuv ham fon bilan kontrastda bo'ladi. Bolalar sahifalari
    (bog'cha darsi, bog'cha olami) yorqin bo'lib qoladi — html[data-kb-kid="1"]. */
 html[data-kb-dark="1"]:not([data-kb-kid="1"]) { background:#fff; filter: invert(0.9) hue-rotate(180deg); }
-html[data-kb-dark="1"]:not([data-kb-kid="1"]) :is(img, video, canvas, picture, iframe, object, embed, .kb-keep-colors),
-html[data-kb-dark="1"]:not([data-kb-kid="1"]) [style*="background-image"],
-html[data-kb-dark="1"]:not([data-kb-kid="1"]) [style*="url("] { filter: invert(1) hue-rotate(180deg); }
-html[data-kb-dark="1"]:not([data-kb-kid="1"]) :is(img, video, canvas, picture, iframe) :is(img, video, canvas),
-html[data-kb-dark="1"]:not([data-kb-kid="1"]) [style*="background-image"] :is(img, video, canvas, [style*="background-image"]),
-html[data-kb-dark="1"]:not([data-kb-kid="1"]) .kb-keep-colors :is(img, video, canvas, [style*="background-image"]) { filter: none; }
+/* REV122: faqat rasm/video va ICHIDA HECH NARSA YO'Q fon-rasmli bloklar asl rangga qaytariladi.
+   Avval «background-image» li butun ilova konteyneri ham qaytarilardi — sahifa ikki marta teskari bo'lib,
+   hammasi bir xil kulrang-xira, yozuvlar ko'rinmas edi. Gradient fonlar teskari qoladi (to'q rejimga mos). */
+html[data-kb-dark="1"]:not([data-kb-kid="1"]) :is(img, video, canvas, picture, iframe, object, embed, .kb-keep-colors, .premium-sidebar, .shablon-hero),
+html[data-kb-dark="1"]:not([data-kb-kid="1"]) [style*="url("]:not(:has(*)) { filter: invert(1) hue-rotate(180deg); }
+html[data-kb-dark="1"]:not([data-kb-kid="1"]) :is(picture, .kb-keep-colors, .premium-sidebar, .shablon-hero) :is(img, video, canvas, picture, [style*="url("]) { filter: none; }   /* o'zi to'q bloklar to'qligicha qoladi */

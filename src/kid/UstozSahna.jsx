@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { USTOZLAR, XONALAR } from "./ustozlar.js";
 import { GAPIR, KULGI, PIRPIRAT, XONA, bezak, blinkDelay, pozaFor } from "./ustozRules.js";
 import { cardSize } from "./kidStageRules.js";
+import { mouthFrame } from "./lipSync.js";
 import "./ustozSahna.css";
 
 /**
@@ -9,22 +10,36 @@ import "./ustozSahna.css";
  * Ustoz gapirganda og'zi ochilib-yopiladi, vaqti-vaqti bilan ko'zini pirpiratadi, vaziyatga qarab pozasi almashadi
  * (salom beradi, doskani ko'rsatadi, o'ylaydi, quvonadi, tinglaydi). Hammasi CSS + rasm almashtirish — telefonni qiynamaydi.
  */
-export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, listening = false, pictures = [], mavzuRasmlar = [], havo = "quyosh", vaqt = "kun", shamol = false, onTap, celebrate = 0, children }) {
+export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, listening = false, pictures = [], mavzuRasmlar = [], havo = "quyosh", vaqt = "kun", shamol = false, onTap, celebrate = 0, children }) {
   const xonaKey = XONALAR[XONA[ustoz]] ? XONA[ustoz] : "onatili";
   const xona = XONALAR[xonaKey];
   const poza = pozaFor(mood, { hasPics: pictures.length > 0, listening });
   const p = (USTOZLAR[ustoz] || USTOZLAR.nilufar)[poza];
   const [kadr, setKadr] = useState(1);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
-  // Gapirish: og'iz kadrlari almashadi.
+  // REV122: og'iz OVOZGA mos qimirlaydi (mouth() — ovoz balandligi). Ovoz hali boshlanmagan yoki jimlikda — og'iz yopiq.
+  // Tahlil tayyor bo'lmasa (yoki ovoz yo'q, so'zlar jim yonsa) — sokin ritm. Kadr faqat o'zgarganda yangilanadi.
+  const [ochiq, setOchiq] = useState(false);   // ovoz haqiqatan yangrayaptimi (tanani yengil tebratish uchun)
   useEffect(() => {
-    if (!speaking || !p.yuz) { setKadr(poza === 5 ? KULGI : 1); return undefined; }
-    let i = 0;
-    const t = setInterval(() => { i = (i + 1) % GAPIR.length; setKadr(GAPIR[i]); }, 130);
-    return () => clearInterval(t);
-  }, [speaking, p, poza]);
+    const yopiq = poza === 5 ? KULGI : 1;
+    if (!speaking || !p.yuz) { setKadr(yopiq); setOchiq(false); return undefined; }
+    let raf = 0, last = -1, prev = 0, i = 0, tick = 0, since = 0, on = null;
+    const loop = (now) => {
+      const lv = typeof mouth === "function" ? mouth() : -1;
+      let f;
+      if (lv == null) f = yopiq;
+      else if (lv < 0) { if (now - tick > 150) { tick = now; i = (i + 1) % GAPIR.length; } f = GAPIR[i]; }
+      else { f = mouthFrame(lv, prev); prev = lv; if (f === 1) f = yopiq; }
+      if (on !== (lv != null)) { on = lv != null; setOchiq(on); }   // ovoz haqiqatan yangrayaptimi
+      // juda tez almashmasin (kamida 70 ms) — og'iz «miltillamaydi»
+      if (f !== last && now - since > 70) { last = f; since = now; setKadr(f); }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [speaking, p, poza, mouth]);
 
   // Pirpiratish: gapirmayotganda har 2,5–5 soniyada.
   useEffect(() => {
@@ -53,7 +68,7 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
   const oyna = dz && xona.oyna ? xona.oyna.map((poly) => poly.map(([x, y]) => `${((x - dz.l) / dz.w).toFixed(4)},${((y - dz.t) / dz.h).toFixed(4)}`).join(" ")) : null;
   const clip = oyna ? { clipPath: `url(#${oynaId})`, WebkitClipPath: `url(#${oynaId})` } : {};
   const chiroqYoniq = vaqt === "kech" || vaqt === "tun";
-  return <div className={`us-stage vaqt-${vaqt} ${speaking ? "is-speaking" : ""} ${chiroqYoniq ? "is-lamp" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
+  return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${chiroqYoniq ? "is-lamp" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
     <img className="us-bg" src={xona.src} srcSet={`${xona.src} 960w, ${xona.src2x} 1600w`} sizes="(max-width: 900px) 100vw, 900px" alt="" decoding="async" />
     <div className="us-light" aria-hidden="true" />
     {oyna && <svg className="us-clipdef" width="0" height="0" aria-hidden="true" focusable="false"><defs><clipPath id={oynaId} clipPathUnits="objectBoundingBox">

@@ -41,7 +41,7 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
     clipRef.current?.cancel(); clipRef.current = null;
   };
   const keepClip = (url) => { dropClip(myClipRef.current); myClipRef.current = url || null; setMyClip(url || null); };
-  useEffect(() => () => { alive.current = false; stopRec(); dropClip(myClipRef.current); }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; stopRec(); dropClip(myClipRef.current); }; }, []);
 
   const finishAll = useCallback((list) => {
     setPhase("done");

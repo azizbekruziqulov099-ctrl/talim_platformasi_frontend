@@ -4,7 +4,7 @@
 export function ustozFor(fan = "") {
   const f = String(fan).toLowerCase();
   if (/matem|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return "sardor";
-  if (/atrof|tabiat|olam|science|nature|окружа|природ/.test(f)) return "malika";
+  if (/atrof|tabiat|olam|science|nature|world around|окружа|природ/.test(f)) return "malika";
   return "nilufar";
 }
 

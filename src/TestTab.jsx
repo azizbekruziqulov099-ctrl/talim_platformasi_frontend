@@ -24,6 +24,7 @@ import {
 import LearningQuest from "./test/LearningQuest.jsx";
 import KidQuiz from "./test/KidQuiz.jsx";
 import KidStart from "./test/KidStart.jsx";
+import { fanNomiTil, izohTanla } from "./curriculum/izohTanlov.js";
 import { isPreschoolLearner } from "./test/kidQuizRules.js";
 import { screenTime } from "./kid/screenTime.js";
 import QuestionNavigator from "./test/QuestionNavigator.jsx";
@@ -432,7 +433,7 @@ export default function TestTab({
   onEducationSetup,
   onBattle,
 }) {
-  useKbInterfaceLocale();
+  const { locale: interfeysTili } = useKbInterfaceLocale();
   // DB'da sinf ba'zan "5", ba'zan "5-sinf" shaklida saqlangan (bot tomonidan
   // turli joyda turlicha yozilgan) — shu yerda BIR MARTA tozalab, hammasi
   // shu tozalangan qiymatdan foydalanadi, aks holda solishtirish mos kelmaydi.
@@ -542,7 +543,8 @@ export default function TestTab({
         }
         if (!token) MAVZULAR_XOTIRA_KESHI.set(url, { fanlar: yangiFanlar, vaqt: Date.now() });
         setXato(d.profil_sozlanmagan ? (d.viewer?.teacher ? "Profilingizda faol ish joyini tanlang." : "Ta’lim profilingizda sinf yoki yo‘nalish, ta’lim shakli, til va semestrni to‘ldiring.") : "");
-        setFanlar(yangiFanlar);
+        // REV122: o'quvchiga faqat interfeys tiliga mos izohli fanlar (admin katalogida — hammasi)
+        setFanlar(curriculumScope || catalogBrowse ? yangiFanlar : izohTanla(yangiFanlar, interfeysTili));
         setYuklanmoqda(false);
       })
       .catch((e) => {
@@ -552,7 +554,7 @@ export default function TestTab({
         }
       });
     return () => controller.abort();
-  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, curriculumScope?.id, curriculumScope?.institution_type, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at, browseQuery, catalogReload]);
+  }, [sinf, faolTuri, boshqaSinflarRejimi, token, catalogType, curriculumScope?.id, curriculumScope?.institution_type, initialTarget?.nonce, foydalanuvchi?.talaba_profili?.yangilangan_at, browseQuery, catalogReload, interfeysTili]);
 
   // Fan→Sinf→Mavzu ma'lumotini Sinf→Fan→Mavzu ko'rinishiga aylantiramiz —
   // har sinfga faqat O'SHA sinfning fan/mavzulari ko'rinishi uchun.
@@ -2029,7 +2031,7 @@ export default function TestTab({
                   if (catalogBrowse && catalogType === 'universitet') setClosedSubjects(old => ochiq ? [...old, fan.qisqa] : old.filter(key => key !== fan.qisqa));
                   else setOchiqFan(ochiq ? null : fan.qisqa);
                 }} className="w-full flex items-center justify-between gap-3 p-4 text-left">
-                  <span className="min-w-0 font-semibold text-sm" style={{ color: "#2B2B2B" }}><TranslatedContent text={fan.nom} showStatus={false}/>
+                  <span className="min-w-0 font-semibold text-sm" style={{ color: "#2B2B2B" }}><TranslatedContent text={curriculumScope || catalogBrowse ? fan.nom : fanNomiTil(fan.nom, interfeysTili)} showStatus={false}/>
                     {fan.details && <span className="mt-1 block break-words text-xs font-normal text-slate-600">{__kbUi(fan.details)}</span>}
                   </span>
                   {ochiq ? <ChevronDown size={18} style={{ color: "#8A8578" }} /> : <ChevronRight size={18} style={{ color: "#8A8578" }} />}

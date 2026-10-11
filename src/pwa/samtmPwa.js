@@ -1,3 +1,4 @@
+import { uiText } from "../interface/interfaceRuntime.js";
 const BACK_HANDLERS = new Map();
 const GUARD_KEY = "__samtm_phone_back_guard__";
 export const SAMTM_PWA_RELEASE = "samtm-pwa-route-progress-safe-v2.5.0";
@@ -93,7 +94,7 @@ function installButton(text, mode, onClick) {
   button.id = "samtm-install-app";
   button.type = "button";
   button.dataset.installMode = mode;
-  button.textContent = text;
+  button.textContent = uiText(text);   // REV122: interfeys tilida
   button.setAttribute("aria-label", mode === "native"
     ? "Ta’lim AI ilovasini bosh ekranga o‘rnatish"
     : "Ta’lim AI ilovasini bosh ekranga qo‘shish yo‘riqnomasini ochish");
@@ -107,7 +108,7 @@ function installButton(text, mode, onClick) {
   const close = document.createElement("span");
   close.textContent = "✕";
   close.setAttribute("role", "button");
-  close.setAttribute("aria-label", "Yopish");
+  close.setAttribute("aria-label", uiText("Yopish"));
   Object.assign(close.style, { marginLeft: "10px", padding: "2px 6px", borderRadius: "8px", background: "rgba(255,255,255,.18)", fontWeight: "900" });
   close.addEventListener("click", (event) => { event.stopPropagation(); hideInstallForAWeek(); });
   button.appendChild(close);
@@ -145,7 +146,7 @@ function showManualInstallButton() {
     const message = ios
       ? "Safari pastidagi Ulashish (□↑) tugmasini bosing, keyin “Bosh ekranga qo‘shish”ni tanlang."
       : "Brauzer menyusini oching va “Ilovani o‘rnatish” yoki “Bosh ekranga qo‘shish”ni tanlang.";
-    window.alert?.(message);
+    window.alert?.(uiText(message));
     dispatchPwaStatus("manual-install-help", { platform: ios ? "ios" : "other" });
   });
   dispatchPwaStatus("manual-install-available", { platform: ios ? "ios" : "other" });

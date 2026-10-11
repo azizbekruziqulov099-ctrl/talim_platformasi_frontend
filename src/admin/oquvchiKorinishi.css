@@ -1,0 +1,32 @@
+/* REV122: admin «O'quvchi ko'zi bilan» */
+.ok-root { min-width: 0; }
+.ok-hero { display: flex; gap: 14px; align-items: flex-start; padding: 18px; border-radius: 20px; background: #fff; border: 1px solid #E5E1D8; margin-bottom: 16px; }
+.ok-hero-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: #EAF1F7; flex-shrink: 0; }
+.ok-hero h1 { font-size: 20px; font-weight: 800; color: #1B4B7A; margin: 0; }
+.ok-hero p { font-size: 13px; color: #5A5648; margin: 4px 0 0; line-height: 1.5; }
+.ok-turlar { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.ok-tur { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 18px; border-radius: 20px;
+  background: var(--ok-fon); border: 2px solid transparent; color: #2B2B2B; cursor: pointer; transition: transform .15s, border-color .15s, box-shadow .15s; }
+.ok-tur:hover, .ok-tur:focus-visible { transform: translateY(-2px); border-color: var(--ok-rang); box-shadow: 0 10px 24px rgba(0,0,0,.08); outline: none; }
+.ok-tur-ikon { font-size: 44px; line-height: 1; }
+.ok-tur-nom { font-size: 17px; font-weight: 800; color: var(--ok-rang); }
+.ok-tur-izoh { font-size: 12.5px; color: #5A5648; line-height: 1.45; flex: 1; }
+.ok-tur-btn { margin-top: 6px; padding: 7px 14px; border-radius: 999px; background: var(--ok-rang); color: #fff; font-size: 13px; font-weight: 700; }
+.ok-eslatma { margin-top: 12px; font-size: 12px; color: #8A8578; }
+
+.ok-bar { position: relative; z-index: 2; padding: 10px 12px 8px; background: var(--ok-fon); border-bottom: 2px solid var(--ok-rang); }
+.ok-bar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ok-bar-badge { font-size: 12px; font-weight: 800; color: #fff; background: var(--ok-rang); padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.ok-bar-turlar { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ok-bar-turlar::-webkit-scrollbar, .ok-guruhlar::-webkit-scrollbar { display: none; }
+.ok-guruhlar { margin-top: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.ok-chip { border: 1.5px solid rgba(0,0,0,.12); background: #fff; color: #2B2B2B; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.ok-chip.is-small { padding: 4px 10px; font-size: 12px; }
+.ok-chip.is-on { background: var(--ok-rang); border-color: var(--ok-rang); color: #fff; }
+.ok-chiq { margin-left: auto; border: 0; background: #fff; color: #A32D2D; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.ok-bar-izoh { margin: 6px 0 0; font-size: 11.5px; color: #5A5648; }
+.ok-orqaga { margin-bottom: 10px; border: 1px solid #CBD5E1; background: #fff; color: #334155; border-radius: 10px; padding: 8px 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+@media (max-width: 520px) {
+  .ok-hero { padding: 14px; }
+  .ok-bar-turlar { order: 3; flex-basis: 100%; }
+}

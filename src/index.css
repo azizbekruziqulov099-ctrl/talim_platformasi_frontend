@@ -722,10 +722,9 @@ button {
 }
 
 /* REV80: o'z rangi yozilgan sarlavha (masalan, to'q fondagi oq nom) majburan to'q qilinmaydi */
-.premium-page-stage h1:not([style*="color"]),
-.premium-page-stage h2:not([style*="color"]),
-.premium-page-stage h3:not([style*="color"]) {
-  color: #102a43 !important;
+/* REV122: nol aniqlik (:where) va !important'siz — komponentning o'z rangi (oq sarlavha, text-white…) har doim ustun */
+:where(.premium-page-stage :is(h1, h2, h3):not([style*="color"])) {
+  color: #102a43;
   letter-spacing: -0.025em;
 }
 

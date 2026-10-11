@@ -3,7 +3,7 @@ import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
 import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
 import {EducationHome} from './workspace/EducationSetup.jsx';
-import {educationRole, initialEducationTab, needsEducation} from './workspace/educationRules.js';
+import {educationRole, initialEducationTab, needsEducation, roleDetail} from './workspace/educationRules.js';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
 import {setTranslationSession} from './interface/interfaceRuntime.js';
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
@@ -478,7 +478,7 @@ import {
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Swords, Gamepad2, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
   Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search, Baby,
-  UserRoundPlus, MessageCircle,
+  UserRoundPlus, MessageCircle, Eye,
 } from "lucide-react";
 
 // Deploydan keyin brauzer eski chunk nomini eslab qolsa oq ekran bermaydi:
@@ -507,6 +507,7 @@ const StudentAnalyticsDashboard = lazyAnalytics("StudentAnalyticsDashboard");
 const StudentLearningPathDashboard = lazyAnalytics("StudentLearningPathDashboard");
 const TeacherAnalyticsPanel = lazyAnalytics("TeacherAnalyticsPanel");
 const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
+const LazyOquvchiKorinishi = _samtmLazyRetry(() => import("./admin/OquvchiKorinishi.jsx"));
 const LazyBellashuv = _samtmLazyRetry(() => import("./battle/Bellashuv.jsx"));
 const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
@@ -12205,7 +12206,7 @@ function AdminRuxsatlarBolimi({ token }) {
   );
 }
 
-function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, adminKorinish, onKorinishOzgar, rang, onRolAlmashtir }) {
+function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, adminKorinish, onKorinishOzgar, rang, onRolAlmashtir, onOquvchiKorinishi }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const profilRangi = rang || "#1B4B7A";
@@ -12970,11 +12971,14 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
         </ProfileAccordion>
       )}
 
-      <ProfileAccordion icon="🎭" title={foydalanuvchi?.is_admin ? __kbUi("Kabinet ko'rinishi") : __kbUi("Rol sozlamalari")} summary={foydalanuvchi?.is_admin ? "Admin, o'quvchi, ota-ona yoki o'qituvchi" : `Joriy rol: ${rolNomlari[foydalanuvchi?.role] || "—"}`}>
+      <ProfileAccordion icon="🎭" title={foydalanuvchi?.is_admin ? __kbUi("Kabinet ko'rinishi") : __kbUi("Rol sozlamalari")} summary={foydalanuvchi?.is_admin ? "Admin, o'quvchi, ota-ona yoki o'qituvchi" : `${__kbUi("Joriy rol:")} ${roleDetail(foydalanuvchi, __kbUi) || "—"}`}>
       {foydalanuvchi?.is_admin ? (
         <div className="rounded-2xl p-4 bg-white border mb-4 shadow-sm" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}>
           <p className="text-xs font-medium mb-1" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Rol ko‘rinishini almashtirish")}</p>
           <p className="text-xs mb-3" style={{ color: "var(--ui-legacy-color-8a8578, #8A8578)" }}>{__kbUi("Admin, o‘quvchi, ota-ona va o‘qituvchi kabinetlarini alohida sinang. Bu administrator huquqingizni o‘chirmaydi.")}</p>
+          {onOquvchiKorinishi && <button type="button" onClick={onOquvchiKorinishi}
+            className="w-full mb-3 py-3 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#E8743B" }}>
+            {__kbUi("👁 Bog‘cha, maktab, markaz yoki institut o‘quvchisi ko‘zi bilan ko‘rish →")}</button>}
           <div className="grid grid-cols-2 gap-2">
             {[["admin", "🛠 Admin"], ["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
               <button key={v} onClick={() => onKorinishOzgar(v)}
@@ -12994,12 +12998,18 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
           <p className="text-xs font-medium mb-2" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Rolingiz")}</p>
           {onRolAlmashtir && foydalanuvchi?.role_locked ? <p className="text-xs leading-relaxed" style={{ color: "#5A5648" }}>🔒 {__kbUi(foydalanuvchi.role_lock_reason === "institut" ? "Siz institutga talaba sifatida ulangansiz. Rolni almashtirish uchun avval pastdagi «Institut va kurs» bo‘limidan institutdan chiqing." : "Akkauntingiz muassasaga ulangan — rolingizni muassasa belgilaydi.")}</p> : onRolAlmashtir ? <><div className="grid grid-cols-2 gap-2">
             {LOGIN_ROLES.map(([v, l, icon]) => { const joriy = loginAccountRole(foydalanuvchi) === v; return (
-              <button key={v} type="button" onClick={() => { if (!joriy) onRolAlmashtir(v); }}
+              <button key={v} type="button" aria-pressed={joriy} onClick={() => onRolAlmashtir(v)}
                 className="py-2.5 rounded-lg border text-xs font-medium"
                 style={{ borderColor: joriy ? "#1B4B7A" : "#E5E1D8", backgroundColor: joriy ? "#1B4B7A" : "#FFFFFF", color: joriy ? "#FFFFFF" : "#5A5648" }}>
                 {icon} {__kbUi(l)}
               </button>); })}
           </div>
+          {roleDetail(foydalanuvchi, __kbUi) && <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: "#EAF1F7" }}>
+            <span className="text-xs font-semibold flex-1 min-w-0" style={{ color: "#1B4B7A" }}>{__kbUi("Hozir:")} {roleDetail(foydalanuvchi, __kbUi)}</span>
+            {["bogcha", "oquvchi", "talaba"].includes(loginAccountRole(foydalanuvchi)) && <button type="button" onClick={() => onRolAlmashtir(loginAccountRole(foydalanuvchi))}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor: "#1B4B7A" }}>
+              {__kbUi(loginAccountRole(foydalanuvchi) === "bogcha" ? "✏️ Yoshni o‘zgartirish" : loginAccountRole(foydalanuvchi) === "talaba" ? "✏️ Kursni o‘zgartirish" : "✏️ Sinfni o‘zgartirish")}</button>}
+          </div>}
           <p className="text-xs mt-2" style={{ color: "#8A8578" }}>{__kbUi("Rol xohlagan paytda almashadi. Keyin sinf/kurs sozlamalarini to‘ldiring — aks holda testlar va mavzular mos chiqmaydi.")}</p></> :
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(rolNomlari).map(([v, l]) => (
@@ -13085,6 +13095,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 },
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
+      { kalit: "admin_korinish", nom: "O‘quvchi ko‘zi bilan", ikon: Eye },
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
@@ -14546,6 +14557,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     admin_muassasalar: ["Muassasalar", "Ro'yxat, yaratish va boshqaruv markazi"],
     admin_testlar: ["Testlar", "Savollar va natijalarni boshqarish"],
     admin_mavzular: ["Mavzular", "DTS va ta’lim mazmuni"],
+    admin_korinish: ["O‘quvchi ko‘zi bilan", "Bog‘cha, maktab, markaz yoki institut o‘quvchisi ko‘rinishi"],
     admin_ovoz: ["Ovozli matn", "O‘zbekcha o‘qish va gapirib yozish"],
     admin_statistikalar: ["Statistikalar", "Tizimdan aniq o‘quvchigacha"],
     admin_moderatsiya: ["Moderatsiya", "Sifat va xavfsizlik nazorati"],
@@ -14795,6 +14807,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminStatisticsTab token={token} /></>
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
+      {korinishRoli === "admin" && tab === "admin_korinish" && lazyPanel(LazyOquvchiKorinishi, { apiBase: API_BASE, token, admin: foydalanuvchi, Tests: TestTab,
+        jins: _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz") })}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
         ishJoyiAniqlandi ? <OqituvchiTab onOpenCourses={openCourses}
           token={token}
@@ -14916,7 +14930,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
 
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} onInstitutionJoined={institutionJoined}
-          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} onRolAlmashtir={rolniAlmashtir} />
+          adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} onRolAlmashtir={rolniAlmashtir}
+          onOquvchiKorinishi={foydalanuvchi?.is_admin ? () => { setAdminKorinish("admin"); setTab("admin_korinish"); } : undefined} />
       )}
       </SectionErrorBoundary>
           </div>
