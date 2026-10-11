@@ -559,7 +559,8 @@ function Bellashuv(props) { return lazyPanel(LazyBellashuv, props); }
 function Shashka(props) { return lazyPanel(LazyShashka, props); }
 function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
 function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
-const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat"]);
+const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi"]);
+const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
   const { fetch: scopedFetch, scope } = useCurriculum();
@@ -14939,12 +14940,19 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         />
       )}
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "oyinlar" && (
-        <OyinlarMarkazi onOpen={(key) => {
+        <OyinlarMarkazi kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"} onOpen={(key) => {
           if (key === "bellashuv") setBellashuv({ kod: "", createFrom: null, nonce: Date.now() });
           if (key === "shashka") setShashka({ kod: "", nonce: Date.now() });
           if (key === "shaxmat" || key === "shaxmat_maktab") setShaxmat({ kod: "", nonce: Date.now(), maktab: key === "shaxmat_maktab" });
           setTab(key === "shaxmat_maktab" ? "shaxmat" : key);
         }} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi") && (
+        <React.Suspense fallback={<p className="p-6 text-center text-slate-500">⏳</p>}>
+          <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : "xonalar"} apiBase={API_BASE}
+            grade={foydalanuvchi?.yosh_guruhi || foydalanuvchi?.learning_profile?.age_group || foydalanuvchi?.class || ""}
+            cheklovsiz={Boolean(foydalanuvchi?.is_admin)} onClose={() => setTab("oyinlar")} />
+        </React.Suspense>
       )}
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "shaxmat" && (
         <Shaxmat key={shaxmat.nonce} apiBase={API_BASE} token={token}
