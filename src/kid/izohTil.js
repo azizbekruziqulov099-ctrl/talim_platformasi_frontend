@@ -158,8 +158,18 @@ export const GAPLAR = {
 };
 
 /** Shablon → izoh tilidagi gap (teglangan). vars ichidagilar o'zgarishsiz qo'yiladi. */
+// REV125: kalit tutuq belgisidan qat'i nazar topiladi («to'g'ri» = «to‘g‘ri») — aks holda o'zbekcha gap chet ovozida o'qilardi
+const tutuq = (t) => String(t).replace(/[‘’ʻʼ`´]/g, "'");
+const GAP_INDEX = {};
+function gapTarjima(izoh, tpl) {
+  const lugat = GAPLAR[izoh];
+  if (!lugat) return null;
+  if (!GAP_INDEX[izoh]) GAP_INDEX[izoh] = new Map(Object.entries(lugat).map(([k, v]) => [tutuq(k), v]));
+  return lugat[tpl] || GAP_INDEX[izoh].get(tutuq(tpl)) || null;
+}
+
 export function gap(izoh, tpl, vars = {}) {
-  const src = (izoh && izoh !== "uz" && GAPLAR[izoh]?.[tpl]) || tpl;
+  const src = (izoh && izoh !== "uz" && gapTarjima(izoh, tpl)) || tpl;
   const keys = Object.keys(vars);
   if (!keys.length) return birlashtir(izohTeg(src, izoh));
   // avval shablonni teglaymiz (o'zgaruvchilar belgisi bilan), keyin o'zgaruvchilarni qo'yamiz — ular tegdan tashqarida qoladi

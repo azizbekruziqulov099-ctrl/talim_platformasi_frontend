@@ -141,6 +141,9 @@ export function translateUi(text,target='uz',values){
  if(values&&typeof values==='object')output=output.replace(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m);return output;
 }
 export const uiText=text=>translateUi(text,locale);
+// REV125: ovoz uchun — interfeys tiliga o'giriladi va o'sha til tegiga olinadi (rus/ingliz gap o'zbek ovozida o'qilmasin)
+export const interfaceLocale=()=>locale;
+export const uiSpeech=text=>{const t=translateUi(String(text||''),locale);return (locale==='ru'||locale==='en')&&t?`[${locale}]${t}[/${locale}]`:t;};
 // ── REV121: to'liq oflayn tarjima paketlari (ru, en) ───────────────────────
 // Interfeys matnlari oldindan tarjima qilingan; paket faqat shu til tanlanganda yuklanadi (alohida chunk).
 // Paketda yo'q matnlar (yangi qo'shilganlari) — avvalgidek brauzer tarjimasi orqali.

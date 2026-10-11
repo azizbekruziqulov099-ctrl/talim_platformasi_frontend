@@ -5,7 +5,7 @@ import {recognitionError} from './speechText.js';
 export class BrowserDictation {
  constructor({Recognition=globalThis.SpeechRecognition||globalThis.webkitSpeechRecognition,
   mediaDevices=globalThis.navigator?.mediaDevices,onStatus=()=>{},
-  onState=()=>{},onText=()=>{},onInterim=()=>{},onError=()=>{},setTimer=setTimeout,clearTimer=clearTimeout}={}) {
+  onState=()=>{},onText=()=>{},onInterim=()=>{},onError=()=>{},setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=(id)=>clearTimeout(id)}={}) {
   Object.assign(this,{Recognition,mediaDevices,onStatus,onState,onText,onInterim,onError,setTimer,clearTimer});
   this.session=null;this.timer=null;
  }

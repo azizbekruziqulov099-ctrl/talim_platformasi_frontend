@@ -26,6 +26,7 @@ import * as __kbRev35_external1 from "lucide-react";
 import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 import KitobKodQidiruv from "./lesson/KitobKod.jsx";
+import { kitobKodimi } from "./lesson/kitobKodRules.js";
 import AccountNotice from "./auth/AccountNotice.jsx";
 import { clearFamily, isFamilyProfileUser, isProfileSession, readFamily, writeFamily } from "./auth/familyProfiles.js";
 import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, keepsSessionOnLogout as keepsQuickSession, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
@@ -14206,6 +14207,24 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
   );
 }
 
+// REV125: «Yordamchi» va «Kod» — bitta maydon. Kitob kodi (XB-03-A01) yozilsa — yechim, boshqa matn — yordamchiga savol.
+function YordamchiKod({ open, onAssistant, onCode }) {
+  useKbInterfaceLocale();
+  const [value, setValue] = useState("");
+  const submit = (event) => {
+    event.preventDefault();
+    const v = value.trim();
+    if (!v) { onAssistant(""); return; }
+    if (kitobKodimi(v)) onCode(v); else onAssistant(v);
+    setValue("");
+  };
+  return <form className={`samtm-help ${open ? "is-open" : ""}`} role="search" onSubmit={submit}>
+    <button type="button" className="samtm-help-bot" onClick={() => onAssistant("")} aria-expanded={Boolean(open)} title={__kbUi("AI yordamchi")} aria-label={__kbUi("AI yordamchi")}>🤖<span>{__kbUi("Yordamchi")}</span></button>
+    <input value={value} onChange={(e) => setValue(e.target.value)} placeholder={__kbUi("Savol yoki kitobdagi kod…")} aria-label={__kbUi("Yordamchiga savol yoki kitobdagi kod")} autoComplete="off" spellCheck={false} />
+    <button type="submit" className="samtm-help-go" aria-label={__kbUi("Yuborish")} title={__kbUi("Kod bo‘lsa — yechim, savol bo‘lsa — yordamchi javobi")}>➜</button>
+  </form>;
+}
+
 function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readOnly = false, initialCourses = false, initialCourseId = null }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
@@ -14218,6 +14237,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   const [educationReload, setEducationReload] = useState(0);
   const [talimYuklangan, setTalimYuklangan] = useState(true);
   const [educationEditing, setEducationEditing] = useState(false);
+  const [assistantSeed, setAssistantSeed] = useState(null);   // REV125: yagona «Yordamchi / Kod» maydonidan savol
+  const [kodTrigger, setKodTrigger] = useState(null);
   const [educationRoleChoice, setEducationRoleChoice] = useState("");
   // Rol faqat Sozlamalardan o'zgaradi: tanlangan rol bilan ta'lim sozlamalari oynasi ochiladi.
   const rolniAlmashtir = useCallback((role) => { setAccountOpen(false); setEducationRoleChoice(role); setEducationEditing(true); setTab("home"); }, []);
@@ -14665,6 +14686,18 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       `}</style>
       <style>{`
         .samtm-top-switch{position:fixed;left:0;right:0;top:var(--samtm-top-offset,0px);z-index:2147483100;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:6px;padding:8px 10px;background:rgba(247,245,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid #E5E1D8}
+        .samtm-top-switch{grid-template-columns:auto minmax(0,1fr) auto auto!important;align-items:center;border-bottom:3px solid var(--space-color,#1B4B7A)!important}
+        .samtm-top-switch.is-talim{--space-color:#1B4B7A}
+        .samtm-top-switch.is-kabutar{--space-color:#0D7A77}
+        .samtm-space{display:flex;gap:0;padding:3px;border-radius:16px;background:#EEEAE0;border:1px solid #E0DACC}
+        .samtm-space button{border:0!important;border-radius:13px!important;background:transparent!important;color:#6B6658!important;box-shadow:none!important;padding:9px 14px!important}
+        .samtm-space button.on{background:var(--space-color)!important;color:#fff!important;box-shadow:0 6px 18px rgba(0,0,0,.18)!important;transform:translateY(-1px)}
+        .samtm-help{display:flex;align-items:center;gap:4px;min-width:0;max-width:560px;width:100%;justify-self:center;padding:3px;border-radius:16px;background:#fff;border:1.5px solid #D9E3EA}
+        .samtm-help:focus-within,.samtm-help.is-open{border-color:var(--space-color);box-shadow:0 0 0 3px rgba(27,75,122,.12)}
+        .samtm-help .samtm-help-bot{flex:none;border:0!important;background:#EAF4F2!important;color:#0D7A77!important;padding:7px 11px!important;border-radius:12px!important;font-size:13px!important;gap:5px!important}
+        .samtm-help input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:600 14px/1.2 system-ui,sans-serif;color:#21384C;padding:8px 6px}
+        .samtm-help .samtm-help-go{flex:none;border:0!important;background:var(--space-color)!important;color:#fff!important;padding:7px 12px!important;border-radius:12px!important}
+        @media(max-width:720px){.samtm-top-switch{grid-template-columns:auto auto auto!important}.samtm-help{grid-column:1/-1;grid-row:2;max-width:none}.samtm-help .samtm-help-bot span{display:none}.samtm-space button{padding:8px 10px!important;font-size:13px!important}}
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
@@ -14676,7 +14709,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-tez-kunda-panel>span{display:block;font-size:44px;margin-bottom:8px}
         .samtm-tez-kunda-panel>h2{font-size:22px;font-weight:800;color:#1B4B7A;margin:0 0 8px}
         .samtm-tez-kunda-panel>p{font-size:14px;line-height:1.55;color:#5A5648;margin:0 0 20px}
-        .samtm-top-spacer{height:64px}
+        .samtm-top-spacer{height:calc(var(--samtm-portal-top,64px) - var(--samtm-top-offset,0px))}
         .samtm-test-active .samtm-top-switch,.samtm-test-active .samtm-top-spacer{display:none!important}
         .samtm-test-active{--samtm-portal-top:0px!important}
         .samtm-muassasa-strip{display:flex;gap:8px;padding:10px 12px 4px;overflow-x:auto;align-items:stretch;margin-left:264px}
@@ -14699,18 +14732,21 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       `}</style>
       {tab !== "test" && !testDavomida && <>
         <div className="samtm-top-spacer" aria-hidden="true" />
-        <div className="samtm-top-switch" ref={topSwitchRef}>
-          <button type="button" className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>🧭 <InterfaceText text={__kbUi("Ta’lim maydoni")}/></button>
-          <div className="samtm-top-mid">
-            <KabutarAssistantButton open={assistantOpen} onClick={() => setAssistantOpen(value => !value)} />
-            <KitobKodQidiruv apiBase={API_BASE} token={token} />
+        {/* REV125: qayerda turganingiz aniq — «Ta'lim maydoni | Kabutar» bitta yorliqli tanlov, faoli rangli va ostidagi chiziq shu rangda.
+            «Yordamchi» va «Kod» — bitta maydon: kitob kodi yozilsa yechim ochiladi, oddiy savol yozilsa — yordamchiga boradi. */}
+        <div className={`samtm-top-switch ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
+          <div className="samtm-space" role="tablist" aria-label={uiT("Bo‘lim")}>
+            <button type="button" role="tab" aria-selected={!kabutarOchiq} className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>🧭 <InterfaceText text={__kbUi("Ta’lim maydoni")}/></button>
+            <button type="button" role="tab" aria-selected={kabutarOchiq} className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}><MessageCircle size={16} />{__kbUi(" Kabutar")}{kabutarTezKunda ? <span className="samtm-tez-kunda">{uiT("tez kunda")}</span> : kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
           </div>
-          <button type="button" className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}><MessageCircle size={16} />{__kbUi(" Kabutar")}{kabutarTezKunda ? <span className="samtm-tez-kunda">{uiT("tez kunda")}</span> : kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+          <YordamchiKod open={assistantOpen} onAssistant={(text) => { setAssistantSeed(text ? { text, n: Date.now() } : null); setAssistantOpen(text ? true : (v) => !v); }}
+            onCode={(code) => setKodTrigger({ code, n: Date.now() })} />
+          <KitobKodQidiruv apiBase={API_BASE} token={token} hideBar trigger={kodTrigger} />
           <InterfaceSettingsButton/>
           {!readOnly && <button type="button" className="kb-account-top-button" aria-label={uiT("Akkaunt va kirish sozlamalari")} title={uiT("Akkaunt va kirish")} onClick={() => setAccountOpen(true)}><User size={18} /></button>}
         </div>
       </>}
-      <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} />
+      <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} seed={assistantSeed} />
       {bogchaVaqti && token && <React.Suspense fallback={null}>
         <KidTimeGuard apiBase={API_BASE} token={token} userId={foydalanuvchi?.user_id || ""} tab={tab} overlay={kabutarOchiq ? "Kabutar" : ""} busy={testDavomida}
           jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")} grade={foydalanuvchi?.class || ""}

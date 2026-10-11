@@ -5,7 +5,7 @@ import {MAX_AUDIO_BYTES} from './transcriptionClient.js';
 export class LiveRecorder {
  constructor({transcribe,onText=()=>{},onState=()=>{},onError=()=>{},onRecording=()=>{},onActivity=()=>{},
   mediaDevices=globalThis.navigator?.mediaDevices,Recorder=globalThis.MediaRecorder,
-  setTimer=setTimeout,clearTimer=clearTimeout,now=()=>performance.now()}={}) {
+  setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=(id)=>clearTimeout(id),now=()=>performance.now()}={}) {
   Object.assign(this,{transcribe,onText,onState,onError,onRecording,onActivity,mediaDevices,Recorder,setTimer,clearTimer,now});
   this.session=null;this.phase='idle';
  }

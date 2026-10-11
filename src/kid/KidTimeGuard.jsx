@@ -4,6 +4,7 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import RobotKabu from "./RobotKabu.jsx";
 import { KID_PITCH, kidRate } from "../lesson/kidLessonRules.js";
 import { chime, soft } from "./kidSounds.js";
+import { uiSpeech } from "../interface/interfaceRuntime.js";
 import { guardView, hoursText, screenCategory, screenName, screenTime, tashkentDay, timeText, warnText } from "./screenTime.js";
 import "./kidTimeGuard.css";
 
@@ -50,7 +51,7 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
     if (!text) return;
     try {
       if (audio.current) audio.current.pause();
-      const params = new URLSearchParams({ matn: text, jins: jins || "qiz", tezlik: kidRate(grade), ohang: KID_PITCH });
+      const params = new URLSearchParams({ matn: uiSpeech(text), jins: jins || "qiz", tezlik: kidRate(grade), ohang: KID_PITCH });   // REV125: interfeys tilida
       const player = new Audio(`${String(apiBase || "").replace(/\/+$/, "")}/api/ovoz?${params}`);
       audio.current = player;
       player.play().catch(() => { /* brauzer ovozga ruxsat bermadi — yozuv va rasm baribir ko'rinadi */ });

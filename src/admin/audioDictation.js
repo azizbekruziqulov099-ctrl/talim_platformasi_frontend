@@ -10,7 +10,7 @@ function stopTracks(stream) {
 // Keep the complete recording until the user discards it, even after a failed upload.
 export class AudioDictation {
   constructor({ transcribe, onText, onState, onError, onRecording=()=>{}, mediaDevices = globalThis.navigator?.mediaDevices,
-    Recorder = globalThis.MediaRecorder, setTimer = setTimeout, clearTimer = clearTimeout }) {
+    Recorder = globalThis.MediaRecorder, setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = (id) => clearTimeout(id) }) {
     Object.assign(this, { transcribe, onText, onState, onError, onRecording, mediaDevices, Recorder, setTimer, clearTimer });
     this.generation = 0; this.busy = false; this.phase='idle';this.lastRecording=null;
   }

@@ -1,3 +1,4 @@
+import { uiText } from "../interface/interfaceRuntime.js";
 // REV103: bog'cha bolasining kunlik vaqti — butun platformada (dars + erkin o'yin).
 // Ilova ko'rinib turgan har 30 soniyada, ekran almashganda va ilova yashirilganda/qaytganda serverga qisqa signal boradi.
 // Server oldingi signaldan beri o'tgan vaqtni (ko'pi bilan 45 s) OLDINGI ekran hisobiga yozadi va bugungi holatni qaytaradi.
@@ -49,7 +50,7 @@ export function guardView(status, cat, busy, graceSince, now) {
 /** Bolaga robot ovozida aytiladigan gap (server matni bilan bir xil). */
 export function timeText(view, status) {
   if (view === "jami") {
-    return `Bugun vaqting tugadi! Bugun ${hoursText(status?.jami?.limit || 120)} o‘qib-o‘ynading. Ko‘zlaring dam olsin. Ertaga uchrashamiz!`;
+    return `Bugun vaqting tugadi! Bugun ${uiText(hoursText(status?.jami?.limit || 120))} o‘qib-o‘ynading. Ko‘zlaring dam olsin. Ertaga uchrashamiz!`;
   }
   if (view === "dars") return "Bugungi dars vaqti tugadi. Barakalla! Endi biroz o‘ynasang bo‘ladi.";
   if (view === "oyin") return "O‘yin vaqti tugadi. Endi dars qilamiz!";

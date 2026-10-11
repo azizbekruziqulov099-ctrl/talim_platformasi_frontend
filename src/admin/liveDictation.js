@@ -29,7 +29,7 @@ function stopStream(stream){try{for(const track of stream?.getTracks()||[])try{t
 export class LiveDictation {
  constructor({transcribe,onText=()=>{},onState=()=>{},onError=()=>{},onRecording=()=>{},onActivity=()=>{},
   mediaDevices=globalThis.navigator?.mediaDevices,AudioContext=globalThis.AudioContext||globalThis.webkitAudioContext,
-  setTimer=setTimeout,clearTimer=clearTimeout,Recorder=globalThis.MediaRecorder,now}={}) {
+  setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=(id)=>clearTimeout(id),Recorder=globalThis.MediaRecorder,now}={}) {
   if(Recorder)return new LiveRecorder({transcribe,onText,onState,onError,onRecording,onActivity,mediaDevices,Recorder,setTimer,clearTimer,now});
   Object.assign(this,{transcribe,onText,onState,onError,onRecording,onActivity,mediaDevices,AudioContext,setTimer,clearTimer});
   this.session=null;this.phase='idle';

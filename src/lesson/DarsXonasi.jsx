@@ -140,6 +140,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const oldingi = useMemo(() => (lesson ? oxirgiDars(topicCode) : null), [lesson, topicCode]);
   // REV111: miya qaysi tilda tushuntirilgan (o'zbek / rus / ingliz) va qaysi til o'rgatiladi
   const izoh = useMemo(() => darsIzohi(lesson?.steps || []), [lesson]);
+  const izohRef = useRef("uz");
+  izohRef.current = izoh;
   // REV121: matematika / atrof-muhit / mantiq — til darsi emas (rus izohidagi teglar «o'rganiladigan til» emas)
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
   const opening = useMemo(() => (kid && lesson?.steps?.length ? ochilish({
@@ -229,6 +231,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const my = tokenRef.current;
     // REV98: qahramon — robot Kabu; REV122: sinfxonada gapiruvchi jonli ustoz — u odamdek gapiradi (robot iboralarisiz)
     if (kidRef.current) text = ustozGapiryapti() ? ustozNutqi(kabuSpeech(text), ustozRef.current) : kabuSpeech(text);
+    // REV125: bog'chada tegsiz qolgan gap (interfeys tarjimasi) — izoh tilining o'z ovozida o'qiladi, o'zbek ovozida emas
+    if (kidRef.current && izohRef.current !== "uz") text = izohTeg(text, izohRef.current);
     const clean = speakableText(text);
     setBubble(stripSpeechTags(text || "").replace(/\s*⏸\s*/g, " ").trim());
     if (!clean.replace(/⏸/g, "").trim()) { done?.(); return; }

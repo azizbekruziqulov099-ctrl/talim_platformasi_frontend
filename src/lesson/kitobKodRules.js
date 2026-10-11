@@ -40,3 +40,11 @@ export function optionState(index, picked, correct) {
   if (index === correct) return "ok";
   return index === picked ? "no" : "";
 }
+
+// REV125: «Yordamchi» va «Kod» — bitta maydon. Kitob kodi (XB-03-A01) yozilsa — yechim, boshqa matn — yordamchiga savol.
+export function kitobKodimi(value) {
+  const v = String(value || "").trim();
+  if (!v || v.length > 24 || !/\d/.test(v)) return false;
+  if (v.split(/\s+/).length > 3) return false;
+  return /^[\p{L}\d][\p{L}\d\-–—_. ]*$/u.test(v) && cleanCode(v).replace(/-/g, "").length >= 4;
+}

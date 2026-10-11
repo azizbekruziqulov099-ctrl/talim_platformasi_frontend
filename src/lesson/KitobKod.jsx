@@ -10,7 +10,8 @@ const DarsXonasi = React.lazy(() => import("./DarsXonasi.jsx"));
 
 /** Tepadagi «Ta'lim maydoni | Yordamchi | Kabutar» qatoridagi qisqa kod maydoni.
  *  Kitobdagi kodni (XB-03-A01) yozsa — topshiriq sharti va yechimi AI doskada ochiladi. */
-export default function KitobKodQidiruv({ apiBase, token, jins = "qiz" }) {
+// REV125: hideBar — tepadagi alohida kod maydoni ko'rsatilmaydi (yagona «Yordamchi / Kod» maydonidan trigger={code,n} keladi)
+export default function KitobKodQidiruv({ apiBase, token, jins = "qiz", hideBar = false, trigger = null }) {
   useKbInterfaceLocale();
   const [code, setCode] = useState("");
   const [open, setOpen] = useState(false);
@@ -37,6 +38,12 @@ export default function KitobKodQidiruv({ apiBase, token, jins = "qiz" }) {
       .then((item) => { if (!controller.signal.aborted) setState({ loading: false, error: "", item }); })
       .catch((e) => { if (!controller.signal.aborted) setState({ loading: false, error: e.message, item: null }); });
   }, [apiBase, token, voice]);
+
+  useEffect(() => {
+    if (!trigger?.n) return;
+    const value = cleanCode(trigger.code);
+    setCode(value); search(value);
+  }, [trigger?.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const close = useCallback(() => { abortRef.current?.abort(); voice.hush(); setOpen(false); setLesson(false); }, [voice]);
   useEffect(() => {
@@ -110,6 +117,7 @@ export default function KitobKodQidiruv({ apiBase, token, jins = "qiz" }) {
     </section>
   </div>, document.body);
 
+  if (hideBar) return modal || null;
   return <>
     <form className="kk-top" role="search" onSubmit={(e) => { e.preventDefault(); search(code); }}>
       <input className="kk-top-input" value={code} onChange={(e) => setCode(cleanCode(e.target.value))} placeholder={__kbUi("Kod")}

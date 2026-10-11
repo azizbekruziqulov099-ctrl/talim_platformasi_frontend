@@ -114,11 +114,17 @@ function TopicChoice({ topic, checked, onChange, disabled }) {
   </label>;
 }
 
-export default function KabutarAssistant({ open = false, onClose, token, apiBase = "", user, readOnly = false }) {
+export default function KabutarAssistant({ open = false, onClose, token, apiBase = "", user, readOnly = false, seed = null }) {
   useKbInterfaceLocale();
   const base = String(apiBase).replace(/\/+$/, "");
   const [messages, setMessages] = useState(() => [messageItem("assistant", INTRO)]);
   const [input, setInput] = useState("");
+  // REV125: tepadagi yagona «Yordamchi / Kod» maydonidan yozilgan savol — yordamchi oynasiga tushadi
+  useEffect(() => {
+    if (!seed?.n || !seed.text) return;
+    setInput(seed.text); setTab("chat");
+    setTimeout(() => { try { document.getElementById("ka-message-input")?.focus(); } catch { /* ixtiyoriy */ } }, 120);
+  }, [seed?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   const [draft, setDraft] = useState(() => initialAssistantDraft(user));
   const [catalog, setCatalog] = useState({ topics: [], subjects: [], capabilities: {} });
   const [knownTopics, setKnownTopics] = useState({});
