@@ -127,14 +127,13 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
    : !subjects.length && !(universityBrowse&&matched.length) ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">{__kbUi("Bu bo‘limga mos mavzular hali kiritilmagan.")}</p>
    : <>
     {universityBrowse&&<UniversityFilters subjects={matched} viewer={catalog?.viewer} value={uniFilterValue} onChange={value=>{setUniFilter(value);setSubjectKey('');}} onEducationSetup={onEducationSetup}/>}
-    {kid&&<section aria-label={__kbUi("Fanlar")} className="kt-subjects">
-     {subjects.map(subject=>{const active=subject.kalit===current?.kalit;
-      return <button key={subject.kalit} type="button" aria-pressed={active} className={`kt-subject ${active?'is-on':''}`}
-       onClick={()=>{chooseSubject(subject.kalit);sayName(fanNomiTil(subject.nom,locale),fanNomiTil(subject.nom,locale)!==fanNomiTil(subject.nom,'uz')&&String(locale).startsWith('en'));}}>
-       <span className="kt-subject-emoji" aria-hidden="true"><FanBelgi emoji={kidSubjectEmoji(subject.nom)}/></span>
-       <span className="kt-subject-name"><TranslatedContent text={fanNomiTil(subject.nom,locale)} showStatus={false}/></span>
-      </button>;})}
-    </section>}
+    {/* REV123: bola fanga kirgach — faqat shu fan (boshqa fanlar ko'rinmaydi; boshqa fanga bog'cha yo'lagidan o'tiladi) */}
+    {kid&&current&&<div className="kt-subjects is-one" aria-label={__kbUi("Fan")}>
+     <button type="button" className="kt-subject is-on" onClick={()=>sayName(fanNomiTil(current.nom,locale),fanNomiTil(current.nom,locale)!==fanNomiTil(current.nom,'uz')&&String(locale).startsWith('en'))}>
+      <span className="kt-subject-emoji" aria-hidden="true"><FanBelgi emoji={kidSubjectEmoji(current.nom)}/></span>
+      <span className="kt-subject-name"><TranslatedContent text={fanNomiTil(current.nom,locale)} showStatus={false}/></span>
+     </button>
+    </div>}
     {!kid&&<section aria-label={__kbUi("Fanlar")}>
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
      <div className="flex gap-2 overflow-x-auto pb-1">

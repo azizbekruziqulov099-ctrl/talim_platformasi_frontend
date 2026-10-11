@@ -21,7 +21,9 @@ test('salom, ob-havo va o‘tgan dars — o‘rganilayotgan tilda, ustozning o�
 test('2–3 yosh: qisqa; til darsi bo‘lmasa — faqat o‘zbekcha', () => {
   const kichik = ochilish({ ustoz: 'nilufar', til: 'en', havo: 'quyosh', grade: '2-3 yosh', oldingi: { mavzu: 'X', sozlar: [{ say: 'cat' }, { say: 'dog' }] } });
   assert.doesNotMatch(kichik[0].ovoz, /How are you/);
-  assert.equal(kichik[2].doska.split('\n').length, 1);
+  // REV123: takror puxta — kichiklar ham 2 ta so'zni eslaydi, har biri birga takrorlanadi
+  assert.equal(kichik[2].doska.split('\n').length, 2);
+  assert.match(kichik[2].ovoz, /Birga aytamiz/);
   const uz = ochilish({ ustoz: 'sardor', til: null, havo: 'yomgir' });
   assert.equal(uz.length, 2);
   assert.doesNotMatch(uz.map((s) => s.ovoz).join(' '), /\[/);

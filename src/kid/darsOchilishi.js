@@ -121,11 +121,12 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
   });
 
   // 3) O'tgan dars — 1–3 so'zni bola o'zi eslaydi
-  const sozlar = (oldingi?.sozlar || []).filter((x) => x?.say).slice(0, kichik ? 1 : 3);
+  // REV123: takror puxta — kichiklar 2 ta, kattalar 3 ta so'zni eslaydi; har biridan keyin birga takrorlanadi
+  const sozlar = (oldingi?.sozlar || []).filter((x) => x?.say).slice(0, kichik ? 2 : 3);
   if (oldingi?.mavzu && sozlar.length) {
     const tl = oldingi.til || til;
     const tag = (x) => (tl ? `[${tl}]${x}[/${tl}]` : x);
-    const savol = sozlar.map((x) => `${x.emoji ? x.emoji + " " : ""}${g("Bu nima? ⏸")} ${tag(x.say)}!`).join(" ");
+    const savol = sozlar.map((x) => `${x.emoji ? x.emoji + " " : ""}${g("Bu nima? ⏸")} ${tag(x.say)}! ${g("Birga aytamiz: {p} ⏸", { p: tag(x.say) })}`).join(" ");
     out.push({
       turi: "kirish", _ochilish: "takror", sarlavha: gap(izoh, "🔁 Esingdami?").replace(/\[\/?\w\w\]/g, ""),
       ovoz: `${g("O'tgan safar «{name}» darsini o'tgandik.", { name: z(oldingi.mavzu) })} ${L && tl === til ? t("remember") : g("Esingdami?")} ${savol} ${z(pick(fel.maqtov))} ${g("Endi yangi darsga o'tamiz!")}`,

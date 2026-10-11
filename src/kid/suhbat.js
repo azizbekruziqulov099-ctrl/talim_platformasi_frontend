@@ -14,11 +14,14 @@ function yoshi(grade) {
 }
 
 /** Savol: { lang, ask, qabul:[...], namuna, emoji?, turi:"suhbat" } */
-export function suhbatSavollari({ til, grade = "", bilgan = [], dars = [], kun = 0 } = {}) {
+// REV123: savol oldidan ustoz izoh tilida nima so'ralayotganini aytadi (bola chet tilidagi savolni tushunmay qolmasin).
+export function suhbatSavollari({ til, grade = "", bilgan = [], dars = [], kun = 0, izoh = "uz" } = {}) {
   const L = OCHILISH_LUGAT[til];
   if (!L) return [];
   const yosh = yoshi(grade);
   const tag = (x) => `[${til}]${x}[/${til}]`;
+  const g = (tpl, vars) => gap(izoh, tpl, vars);
+  const sora = g("Men so'rayman, sen javob ber:");
   const out = [];
   // Rasmli savol: shu darsdan bitta, oldingi darslardan bitta (bola bilgan so'z) — emojisi bor so'zlar
   const pool = [...dars, ...bilgan].filter((w) => w?.say && w?.emoji && w.say.split(/\s+/).length <= 3);
@@ -28,10 +31,12 @@ export function suhbatSavollari({ til, grade = "", bilgan = [], dars = [], kun =
   const fromOld = pics.find((w) => w !== fromDars && !dars.some((d) => d.say === w.say));
   for (const w of [fromDars, fromOld].filter(Boolean).slice(0, yosh <= 2 ? 1 : 2)) {
     out.push({ turi: "suhbat", lang: til, emoji: w.emoji, phrase: w.say,
-      ask: `${w.emoji} ${tag(L.what)} ⏸`, qabul: [w.say], namuna: w.say });
+      ask: yosh <= 3 ? `${w.emoji} ${g("Rasmga qara! Bu — {p}. Endi sen ayt!", { p: tag(w.say) })}`
+        : `${w.emoji} ${g("Rasmga qara. Men so'rayman:")} ${tag(L.what)} ⏸ ${g("Shu tilda javob ber!")}`,
+      qabul: [w.say], namuna: w.say });
   }
   if (yosh >= 4) {
-    out.push({ turi: "suhbat", lang: til, phrase: L.fine2, ask: tag(L.how), qabul: [L.fine2, L.fine, L.happy], namuna: L.fine });
+    out.push({ turi: "suhbat", lang: til, phrase: L.fine2, ask: `${sora} ${tag(L.how)} ⏸`, qabul: [L.fine2, L.fine, L.happy], namuna: L.fine });
   }
   if (yosh >= 5) {
     const pool6 = [
@@ -41,7 +46,7 @@ export function suhbatSavollari({ til, grade = "", bilgan = [], dars = [], kun =
       { phrase: L.yescan, ask: tag(L.canswim), qabul: [L.yescan, L.nocan, L.yes], namuna: L.yescan },
     ];
     const n = yosh >= 6 ? 2 : 1;
-    for (let i = 0; i < n; i += 1) out.push({ turi: "suhbat", lang: til, ...pool6[(Math.abs(kun) + i) % pool6.length] });
+    for (let i = 0; i < n; i += 1) { const q = pool6[(Math.abs(kun) + i) % pool6.length]; out.push({ turi: "suhbat", lang: til, ...q, ask: `${sora} ${q.ask} ⏸` }); }
   }
   return out;
 }

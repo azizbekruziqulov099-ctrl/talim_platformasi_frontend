@@ -4,13 +4,17 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, kidCorrectSpeech, kidOptions, kidPraiseLabel, kidTheme } from "./kidQuizRules.js";
 import ListenText from "../speech/ListenText.jsx";
+import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
+import { gap } from "../kid/izohTil.js";
 import "./kidQuiz.css";
 
 /** REV80/REV91: bog'cha bolasi uchun test — savol ovoz bilan o'qiladi, variantlar birma-bir aytiladi (aytilayotgani
  *  qimirlaydi), keyin hammasi yengil qimirlab kutadi — bola rasmning o'zini bosadi. Javobdan keyin maqtov yoki dalda
  *  aytiladi va keyingi savol o'zi keladi: tugma bosish shart emas. Vaqt va «jon» yo'q. */
-export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, correctCount, jins, onAnswer, onNext, speak, onStop, paused = false }) {
-  useKbInterfaceLocale();
+// REV123: rasm — darsdagi jonli rasm (rasmlar/rasm_sozlar), raqam — katta son; gaplar interfeys (izoh) tilida.
+export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, correctCount, jins, onAnswer, onNext, speak, onStop, paused = false, rasm = null }) {
+  const { locale } = useKbInterfaceLocale();
+  const izoh = ["ru", "en"].includes(String(locale || "").slice(0, 2)) ? String(locale).slice(0, 2) : "uz";
   const [history, setHistory] = useState([]); // [{savol, tanlangan, natija}]
   const [viewing] = useState(null); // REV91: bolaga orqaga-oldinga tugmalari yo'q — doim joriy savol
   const [chosen, setChosen] = useState("");
@@ -66,8 +70,8 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
     setHistory((h) => (h.some((x) => x.savol.id === savol.id) ? h : [...h, { savol, tanlangan: chosen, natija }]));
     const right = options.find((o) => o.letter === natija.togri_javob);
     const text = natija.togrimi
-      ? kidCorrectSpeech(index, lang, natija.tushuntirish)
-      : `Hechqisi yo'q! To'g'ri javob — ${right ? right.speech : natija.togri_javob}. ${natija.tushuntirish || ""}`;
+      ? kidCorrectSpeech(index, lang || (izoh !== "uz" ? izoh : ""), natija.tushuntirish)
+      : `${gap(izoh, "Hechqisi yo'q! To'g'ri javob — {p}.", { p: right ? right.speech : natija.togri_javob })} ${natija.tushuntirish || ""}`;
     const my = ++seq.current;
     setHot(""); setWaiting(false);
     // Maqtov/dalda aytib bo'lingach keyingi savol o'zi keladi (to'xtatish oynasi ochiq bo'lsa — kutadi).
@@ -79,7 +83,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
         nextRef.current?.();
       }, 900);
     });
-  }, [natija, savol, viewing, chosen, options, index, speak, lang]);
+  }, [natija, savol, viewing, chosen, options, index, speak, lang, izoh]);
   useEffect(() => {
     if (paused) {
       seq.current += 1; setHot(""); setWaiting(false);
@@ -107,7 +111,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
   const mood = !done ? (tekshirilmoqda ? "think" : "ask") : current.natija.togrimi ? "happy" : "cheer";
   const bubble = !done
     ? (tekshirilmoqda ? "Qani, ko'raylik…" : "Eshit va rasmni bos!")
-    : current.natija.togrimi ? kidPraiseLabel(viewing ?? index, lang) : "Hechqisi yo'q, birga o'rganamiz!";
+    : current.natija.togrimi ? kidPraiseLabel(viewing ?? index, lang || (izoh !== "uz" ? izoh : "")) : "Hechqisi yo'q, birga o'rganamiz!";
 
   return <section className={`kq-root kq-${theme}`} aria-live="polite">
     <header className="kq-top">
@@ -119,7 +123,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
     </header>
 
     <div className="kq-mascot">
-      <span className={`kq-bird is-${mood}`} aria-hidden="true">🕊️</span>
+      <span className={`kq-bird is-${mood}`} aria-hidden="true">🤖</span>
       <p className="kq-bubble">{__kbUi(bubble)}</p>
     </div>
 
@@ -132,7 +136,9 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
       {options.map((o, i) => <div key={o.letter} className="kq-opt-wrap">
         <button type="button" style={{ "--i": i }} className={`kq-option ${stateOf(o.letter)} ${o.listen ? `is-listen-${o.listen}` : ""} ${!done && hot === o.letter ? "is-hot" : ""} ${!done && waiting ? "is-waiting" : ""}`} disabled={done || tekshirilmoqda || viewing !== null}
           onClick={() => pick(o.letter, o.word)} aria-label={o.listen && !done ? `${i + 1}` : undefined}>
-          <span className="kq-pic" aria-hidden="true">{o.picture || (o.listen ? `${i + 1}` : o.letter)}</span>
+          {(() => { const img = rasm ? kidOptionPic(o, rasm.rasmlar, rasm.media, rasm.rasm_sozlar) : null; const son = keycapNumber(o.picture);
+            return img ? <img className="kq-img" src={img} alt="" draggable="false" /> : son ? <span className="kq-pic kb-num" aria-hidden="true">{son}</span>
+              : <span className="kq-pic" aria-hidden="true">{o.picture || (o.listen ? `${i + 1}` : o.letter)}</span>; })()}
           {/* Tinglash rejimida so'z javobdan keyin ko'rinadi — avval quloq bilan tanlaydi. */}
           {o.word && (!o.listen || done) && <span className="kq-word">{o.word}</span>}
           {done && o.letter === current.natija.togri_javob && <span className="kq-mark">✓</span>}

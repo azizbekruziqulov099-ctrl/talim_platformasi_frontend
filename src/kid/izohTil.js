@@ -107,6 +107,10 @@ export const GAPLAR = {
     "Yaxshi harakat! Yana o'ynasak, yulduzlar ko'payadi!": "Хорошая попытка! Сыграем ещё — звёзд станет больше!",
     "Bu safar yulduzcha yo'q. Qani, yana bir bor urinib ko'ramiz!": "В этот раз звёздочек нет. Давай попробуем ещё раз!",
     "Xayrli tong!": "Доброе утро!", "Xayrli kech!": "Добрый вечер!",
+    "Rasmga qara! Bu — {p}. Endi sen ayt!": "Посмотри на картинку! Это — {p}. Теперь скажи ты!",
+    "Rasmga qara. Men so'rayman:": "Посмотри на картинку. Я спрошу:", "Shu tilda javob ber!": "Ответь на этом языке!",
+    "Men so'rayman, sen javob ber:": "Я спрошу, а ты ответь:", "Birga aytamiz: {p} ⏸": "Скажем вместе: {p} ⏸",
+    "Hechqisi yo'q! To'g'ri javob — {p}.": "Ничего страшного! Правильный ответ — {p}.",
   },
   en: {
     "Endi sen ayt: {p}": "Now you say it: {p}",
@@ -146,6 +150,10 @@ export const GAPLAR = {
     "Yaxshi harakat! Yana o'ynasak, yulduzlar ko'payadi!": "Good try! Play again to get more stars!",
     "Bu safar yulduzcha yo'q. Qani, yana bir bor urinib ko'ramiz!": "No stars this time. Let's try once more!",
     "Xayrli tong!": "Good morning!", "Xayrli kech!": "Good evening!",
+    "Rasmga qara! Bu — {p}. Endi sen ayt!": "Look at the picture! This is {p}. Now you say it!",
+    "Rasmga qara. Men so'rayman:": "Look at the picture. I'll ask:", "Shu tilda javob ber!": "Answer in this language!",
+    "Men so'rayman, sen javob ber:": "I'll ask, and you answer:", "Birga aytamiz: {p} ⏸": "Let's say it together: {p} ⏸",
+    "Hechqisi yo'q! To'g'ri javob — {p}.": "That's okay! The right answer is {p}.",
   },
 };
 

@@ -12,7 +12,10 @@ test('yoshga qarab savollar ko‘payadi va murakkablashadi', () => {
   assert.equal(s23.length, 1);
   assert.equal(s45.length, 3);
   assert.equal(s67.length, 5);
-  assert.match(s23[0].ask, /🐱 \[en\]What is it\?\[\/en\]/);
+  // REV123: 2–3 yoshga ustoz avval o'zi aytib beradi, keyin bola takrorlaydi; kattalarga savol oldidan izoh tilida tushuntirish
+  assert.match(s23[0].ask, /🐱 Rasmga qara! Bu — \[en\]cat\[\/en\]\. Endi sen ayt!/);
+  assert.match(s45[0].ask, /Men so'rayman:.*\[en\]What is it\?\[\/en\]/);
+  assert.match(suhbatSavollari({ til: 'en', grade: '4-5 yosh', bilgan, dars, izoh: 'ru' })[0].ask, /\[ru\]Посмотри на картинку/);
   assert.ok(s67.some((q) => /What's your name|How old|Do you like|Can you swim/.test(q.ask)));
   assert.deepEqual(suhbatSavollari({ til: null, grade: '6-7 yosh' }), []);
 });

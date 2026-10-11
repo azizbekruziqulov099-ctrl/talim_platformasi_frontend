@@ -154,3 +154,9 @@
 @keyframes us-flash{0%,61%,63.5%,66%,100%{opacity:0}62%,65%{opacity:.85}}
 @keyframes us-flash-room{0%,61%,63.5%,66%,100%{opacity:1}62%,65%{opacity:.4}}
 @media (prefers-reduced-motion:reduce){.us-teacher,.us-pic,.us-window span,.us-window span::before,.us-frame img,.us-floor img,.us-lamp-glow,.us-lamp-bulb,.us-light{animation:none!important}}
+/* REV123: doskadagi rasmlar jonli — sekin tebranadi/«nafas oladi» (har biri o'z vaqtida); raqam — katta son kartasi */
+.us-pic img,.us-pic .us-emoji{animation:us-alive 3.4s ease-in-out infinite;animation-delay:calc(var(--i, 0) * -.8s);transform-origin:50% 80%}
+.us-pic.is-wait img,.us-pic.is-wait .us-emoji{animation:us-alive 1.6s ease-in-out infinite}
+@keyframes us-alive{0%,100%{transform:translateY(0) rotate(0) scale(1)}30%{transform:translateY(-3.5%) rotate(-2.5deg) scale(1.03)}65%{transform:translateY(1%) rotate(2deg) scale(.985)}}
+.us-emoji.kb-num{display:inline-block;font:900 1em/1 system-ui,sans-serif;color:#fff;background:linear-gradient(#63b3ff,#2f74db);padding:.1em .3em .14em;border-radius:.2em;box-shadow:0 .07em 0 #1f4f9c,0 .14em .3em #0003}
+@media (prefers-reduced-motion:reduce){.us-pic img,.us-pic .us-emoji{animation:none!important}}

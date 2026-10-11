@@ -85,3 +85,12 @@ test('flags render as pictures (Windows shows «SA» letters for flag emoji)', (
   assert.equal(flagCode('🔢'), '');
   for (const c of ['GB', 'RU', 'DE', 'FR', 'ES', 'TR', 'JP', 'CN', 'KR', 'SA']) assert.match(flagSrc(c), /^data:image\/svg\+xml/);
 });
+
+test('REV123: number stickers become big numbers; options use the lesson picture', async () => {
+  const { keycapNumber } = await import('./kid/sanKarta.js');
+  const { pictureFor } = await import('./kid/kidStageRules.js');
+  assert.equal(keycapNumber('1️⃣3️⃣'), '13');
+  assert.equal(keycapNumber('🔟'), '10');
+  assert.equal(keycapNumber('🍎'), '');
+  assert.equal(pictureFor('⭐', 'star', { '⭐': '/api/ai_miya_media/7' }, {}), '/api/ai_miya_media/7');
+});

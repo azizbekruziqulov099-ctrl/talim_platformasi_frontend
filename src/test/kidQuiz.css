@@ -60,3 +60,14 @@
 .kq-start-btn.is-auto{position:relative;overflow:hidden}
 .kq-start-btn.is-auto::after{content:"";position:absolute;left:0;bottom:0;height:6px;background:#ffffffa8;animation:kq-fill var(--kq-auto,3s) linear forwards}
 @keyframes kq-fill{from{width:0}to{width:100%}}
+/* REV123: variantda darsdagi jonli rasm; raqam — stiker emas, katta son kartasi; rasmlar jonli (sekin «nafas oladi») */
+.kq-img{display:block;width:78%;max-width:170px;aspect-ratio:1;object-fit:contain;pointer-events:none;
+  filter:drop-shadow(0 4px 6px #0002);animation:kq-alive 3.2s ease-in-out infinite;animation-delay:calc(var(--i, 0) * -.7s)}
+.kq-option.is-hot .kq-img{animation:kq-hop .5s ease-in-out infinite alternate}
+.kq-option.is-right .kq-img{animation:kq-hop .45s ease-in-out 3 alternate}
+@keyframes kq-alive{0%,100%{transform:translateY(0) rotate(0) scale(1)}35%{transform:translateY(-4%) rotate(-2deg) scale(1.03)}70%{transform:translateY(1%) rotate(1.5deg) scale(.99)}}
+@keyframes kq-hop{from{transform:translateY(0) scale(1)}to{transform:translateY(-9%) scale(1.07)}}
+.kb-num{display:inline-block;font:900 clamp(44px,10vw,72px)/1 system-ui,sans-serif;color:#fff;letter-spacing:.02em;
+  background:linear-gradient(#63b3ff,#2f74db);padding:.12em .34em .16em;border-radius:.22em;box-shadow:0 .07em 0 #1f4f9c,0 .14em .3em #0003;
+  animation:kq-alive 3.2s ease-in-out infinite;animation-delay:calc(var(--i, 0) * -.7s)}
+@media (prefers-reduced-motion:reduce){.kq-img,.kb-num,.kq-option.is-hot .kq-img{animation:none}}

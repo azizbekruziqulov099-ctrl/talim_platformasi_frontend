@@ -1150,6 +1150,25 @@ export default function TestTab({
   useEffect(() => {
     if (bogchaRejim && testRejimi !== "bir_bir") setTestRejimi("bir_bir");
   }, [bogchaRejim, testRejimi]);
+  // REV123: bog'cha testida variantlar — darsdagi jonli rasmlar (stiker emas). Shu mavzu(lar) darsidan rasm xaritasi olinadi.
+  const [kidRasm, setKidRasm] = useState(null);
+  const kidKodlar = bogchaRejim && tanlanganMavzu
+    ? [...new Set([tanlanganMavzu.lesson_code, ...(tanlanganMavzu.kodlar || []), tanlanganMavzu.topic_code].filter(Boolean).map(String))].slice(0, 8).join(",")
+    : "";
+  useEffect(() => {
+    if (!kidKodlar || !token) { setKidRasm(null); return undefined; }
+    let stop = false;
+    const base = String(API_BASE).replace(/\/+$/, "");
+    Promise.all(kidKodlar.split(",").map((kod) => fetch(`${base}/api/dars_xonasi/${encodeURIComponent(kod)}?${new URLSearchParams({ token })}`)
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)))
+      .then((list) => {
+        if (stop) return;
+        const rasmlar = {}, rasm_sozlar = {};
+        for (const d of list) { if (d) { Object.assign(rasmlar, d.rasmlar || {}); Object.assign(rasm_sozlar, d.rasm_sozlar || {}); } }
+        setKidRasm({ rasmlar, rasm_sozlar, media: (u) => (u && u.startsWith("/") ? `${base}${u}` : u) });
+      });
+    return () => { stop = true; };
+  }, [kidKodlar, token]);
 
   const javobBerVaTekshir = async (savolId, harf) => {
     if (javobTekshirilmoqdaRef.current.has(savolId) || joriyNatija) return;
@@ -1565,7 +1584,7 @@ export default function TestTab({
       natija={joriyNatija} tekshirilmoqda={javobTekshirilmoqdaId === savollar[joriySavol].id}
       correctCount={toGriSoni} jins={foydalanuvchi?.jins}
       onAnswer={(harf) => javobBerVaTekshir(savollar[joriySavol].id, harf)}
-      onNext={keyingiSavolga} speak={ovozniOqi} paused={toxtatishModali}
+      onNext={keyingiSavolga} speak={ovozniOqi} paused={toxtatishModali} rasm={kidRasm}
       onStop={() => { ovozniToxtat(); setToxtatishModali(true); }} />
       {toxtatishModali && <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
         <div className="w-full max-w-sm rounded-3xl p-5 text-center" style={{ backgroundColor: "#FFFFFF" }}>

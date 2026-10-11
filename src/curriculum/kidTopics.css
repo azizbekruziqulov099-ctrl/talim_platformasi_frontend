@@ -58,3 +58,6 @@ button.kt-emoji{position:relative}
 /* REV112: bog'cha olamiga qaytish tugmasi */
 .kt-olam-back{font-size:34px;line-height:1;width:64px;height:64px;border-radius:50%;border:0;background:#fff;box-shadow:0 4px 12px #0002;cursor:pointer}
 .kt-olam-back:focus-visible{outline:4px solid #ffd166;outline-offset:3px}
+/* REV123: fanga kirilganda faqat shu fan kartasi */
+.kt-subjects.is-one{justify-content:center;overflow:visible}
+.kt-subjects.is-one .kt-subject{min-width:160px;cursor:default}
