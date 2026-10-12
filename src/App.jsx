@@ -13098,6 +13098,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "admin_korinish", nom: "O‘quvchi ko‘zi bilan", ikon: Eye },
+      { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },   // REV129: admin ham barcha o'yinlarni ko'radi (cheklovsiz)
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
@@ -14939,7 +14940,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           onBattle={readOnly ? undefined : (createFrom) => { setBellashuv({ kod: "", createFrom, nonce: Date.now() }); setTab("bellashuv"); }}
         />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "oyinlar" && (
+      {korinishRoli !== "ota-ona" && tab === "oyinlar" && (
         <OyinlarMarkazi kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"} onOpen={(key) => {
           if (key === "bellashuv") setBellashuv({ kod: "", createFrom: null, nonce: Date.now() });
           if (key === "shashka") setShashka({ kod: "", nonce: Date.now() });
@@ -14947,7 +14948,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           setTab(key === "shaxmat_maktab" ? "shaxmat" : key);
         }} />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi" || tab === "til_maktab") && (
+      {korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi" || tab === "til_maktab") && (
         <React.Suspense fallback={<p className="p-6 text-center text-slate-500">⏳</p>}>
           <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : tab === "til_maktab" ? "maktab" : "xonalar"} apiBase={API_BASE}
             sinf={foydalanuvchi?.class || foydalanuvchi?.sinf || foydalanuvchi?.learning_profile?.class || ""}
@@ -14955,17 +14956,17 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             cheklovsiz={Boolean(foydalanuvchi?.is_admin)} onClose={() => setTab("oyinlar")} />
         </React.Suspense>
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "shaxmat" && (
+      {korinishRoli !== "ota-ona" && tab === "shaxmat" && (
         <Shaxmat key={shaxmat.nonce} apiBase={API_BASE} token={token}
           kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
           initialCode={shaxmat.kod} startInSchool={Boolean(shaxmat.maktab)} onClose={() => { setShaxmat({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "shashka" && (
+      {korinishRoli !== "ota-ona" && tab === "shashka" && (
         <Shashka key={shashka.nonce} apiBase={API_BASE} token={token}
           kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
           initialCode={shashka.kod} onClose={() => { setShashka({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "bellashuv" && (
+      {korinishRoli !== "ota-ona" && tab === "bellashuv" && (
         <Bellashuv key={bellashuv.nonce} apiBase={API_BASE} token={token}
           kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
           initialCode={bellashuv.kod} createFrom={bellashuv.createFrom}

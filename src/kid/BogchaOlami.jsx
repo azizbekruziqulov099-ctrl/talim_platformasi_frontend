@@ -6,6 +6,9 @@ import FanBelgi from "./FanBelgi.jsx";
 import { uiText as T } from "../interface/interfaceRuntime.js";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { useKeepLight } from "./useKeepLight.js";
+import { fanTili } from "./izohTil.js";
+import { fanIzohi } from "../curriculum/izohTanlov.js";
+const TilXonalari = React.lazy(() => import("./xonalar/TilXonalari.jsx"));
 import "./olam.css";
 import bino_960 from "./olam/bino_960.webp";
 import bino_1600 from "./olam/bino_1600.webp";
@@ -45,12 +48,13 @@ const keng = () => { try { return (globalThis.innerWidth || 0) * (globalThis.dev
  * Ob-havo va kun vaqti haqiqiy (tashqarida yomg'ir yog'sa — hovlida ham yog'adi, kechasi qorong'i).
  * fanlar: [{ kalit, nom, emoji }] · onFan(kalit) — sinfda «Darsni boshlash» bosilganda.
  */
-export default function BogchaOlami({ fanlar = [], onFan, say, havo = "quyosh", vaqt = "kun", boshlash = "bino", nextLabel = "" }) {
+export default function BogchaOlami({ fanlar = [], onFan, say, havo = "quyosh", vaqt = "kun", boshlash = "bino", nextLabel = "", apiBase = "", grade = "" }) {
   // REV123: bola qayerda turgani eslab qolinadi (darsdan qaytganda yoki sahifa qayta chizilganda yana boshidan yurmaydi)
   const [joy, setJoyRaw] = useState(() => eslab()?.joy ?? boshlash);
   const [qavat, setQavatRaw] = useState(() => Number(eslab()?.qavat) || 0);   // REV121: yo'lak qavati
   const [kirish, setKirish] = useState(null);     // {x,y} — yangi sahna shu nuqtadan «ochiladi»
   const [effekt, setEffekt] = useState(null);     // {x,y,emoji,turi,n}
+  const [oyin, setOyin] = useState(false);        // REV127: til fanining o'yin xonalari
   useKeepLight(true);
   const setJoy = (v) => { setJoyRaw(v); saqla({ joy: v, qavat }); };
   const setQavat = (q) => { setQavatRaw(q); saqla({ joy, qavat: q }); };
@@ -103,10 +107,19 @@ export default function BogchaOlami({ fanlar = [], onFan, say, havo = "quyosh", 
     if (n.nom) ayt(n.nom);
   };
 
+  // REV127: til fani sinfida — «O'yin xonalari» (takrorlash va gapirish uchun 5 ta tajriba xonasi)
+  const sinfTili = sinf ? fanTili(sinf.asl || sinf.nom) : null;
+  if (sinf && oyin && sinfTili) {
+    return <div className="ol-root">
+      <React.Suspense fallback={<p className="ol-loading">🎮 …</p>}>
+        <TilXonalari apiBase={apiBase} til={sinfTili} izoh={fanIzohi(sinf.asl || sinf.nom)} grade={grade} onClose={() => setOyin(false)} />
+      </React.Suspense>
+    </div>;
+  }
   if (sinf) {
     return <div className="ol-root">
       <div className="ol-bar">
-        <button type="button" className="ol-back" onClick={() => { const q = sinf.qavat || 0; setKirish(null); setQavatRaw(q); setJoyRaw("koridor"); saqla({ joy: "koridor", qavat: q }); }} aria-label={T("Yo'lakka qaytish")}>⬅️ 🚪</button>
+        <button type="button" className="ol-back" onClick={() => { const q = sinf.qavat || 0; setOyin(false); setKirish(null); setQavatRaw(q); setJoyRaw("koridor"); saqla({ joy: "koridor", qavat: q }); }} aria-label={T("Yo'lakka qaytish")}>⬅️ 🚪</button>
         <span className="ol-title" aria-hidden="true"><FanBelgi emoji={sinf.emoji} /> {sinf.nom}</span>
       </div>
       <div className="ol-class">
@@ -114,6 +127,9 @@ export default function BogchaOlami({ fanlar = [], onFan, say, havo = "quyosh", 
         <button type="button" className="ol-start" onClick={() => onFan?.(sinf.kalit)}>
           <span aria-hidden="true">▶</span><b>{nextLabel || T("Darsni boshlaymiz!")}</b>
         </button>
+        {sinfTili && <button type="button" className="ol-start ol-play" onClick={() => { ayt("O‘yin xonalari"); setOyin(true); }}>
+          <span aria-hidden="true">🎮</span><b>{T("O‘yin xonalari")}</b>
+        </button>}
       </div>
     </div>;
   }

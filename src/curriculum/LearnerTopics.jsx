@@ -109,7 +109,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  </div>;
 
  if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
-  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),emoji:kidSubjectEmoji(sub.nom)}))}
+  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom)}))} apiBase={apiBase} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
    onFan={key=>{chooseSubject(key);setOlam(false);}} say={(t,o)=>sayName(t,Boolean(o?.en))} havo={ob.havo} vaqt={ob.vaqt}/>
  </div>;
 
