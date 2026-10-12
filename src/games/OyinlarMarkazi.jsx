@@ -5,6 +5,7 @@ import "./boardGame.css";
 
 const GAMES = [
   { key: "til_xonalari", emoji: "🏠", title: "Til o‘yin xonalari", text: "7 ta xona, 9 xil o‘yin: 10 tilda so‘z o‘rganish va gapirish (2–7 yosh)", color: "#0D7A77" },
+  { key: "til_maktab", emoji: "📚", title: "Maktab: til o‘yinlari", text: "1–11 sinf: har sinfga bir yillik dastur — so‘z, gap, yozish va gapirish, 10 tilda", color: "#C2571B", katta: true },
   { key: "til_mashqi", emoji: "🗣️", title: "Gapirish va yozish mashqi", text: "Kattalar uchun, grammatikasiz: 12 ta hayotiy vaziyat — tinglab, takrorlab, yozib o‘rganing", color: "#1B4B7A", katta: true },
   { key: "bellashuv", emoji: "⚔️", title: "Bellashuv", text: "Do‘stlar bilan bir vaqtda test — kim birinchi to‘g‘ri topadi?", color: "#6c3ce0" },
   { key: "shashka", emoji: "⛀", title: "Shashka", text: "Bot bilan (4 daraja), onlayn raqib yoki do‘st bilan", color: "#b5541c" },

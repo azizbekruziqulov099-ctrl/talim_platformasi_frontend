@@ -559,7 +559,7 @@ function Bellashuv(props) { return lazyPanel(LazyBellashuv, props); }
 function Shashka(props) { return lazyPanel(LazyShashka, props); }
 function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
 function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
-const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi"]);
+const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
@@ -14947,9 +14947,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           setTab(key === "shaxmat_maktab" ? "shaxmat" : key);
         }} />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi") && (
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi" || tab === "til_maktab") && (
         <React.Suspense fallback={<p className="p-6 text-center text-slate-500">⏳</p>}>
-          <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : "xonalar"} apiBase={API_BASE}
+          <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : tab === "til_maktab" ? "maktab" : "xonalar"} apiBase={API_BASE}
+            sinf={foydalanuvchi?.class || foydalanuvchi?.sinf || foydalanuvchi?.learning_profile?.class || ""}
             grade={foydalanuvchi?.yosh_guruhi || foydalanuvchi?.learning_profile?.age_group || foydalanuvchi?.class || ""}
             cheklovsiz={Boolean(foydalanuvchi?.is_admin)} onClose={() => setTab("oyinlar")} />
         </React.Suspense>

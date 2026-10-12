@@ -4,9 +4,11 @@ import { fanNomiTil } from "../curriculum/izohTanlov.js";
 import { interfaceLocale, uiText as T } from "../interface/interfaceRuntime.js";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import "./tilMashqi.css";
+import { sinfRaqami } from "../maktab/maktabRules.js";
 
 const TilXonalari = React.lazy(() => import("../kid/xonalar/TilXonalari.jsx"));
 const TilMashqi = React.lazy(() => import("./TilMashqi.jsx"));
+const MaktabTil = React.lazy(() => import("../maktab/MaktabTil.jsx"));   // REV129
 
 /** O'rganiladigan 10 til (bayroq va fan nomi bilan). */
 export const OQITILADIGAN = [
@@ -21,9 +23,9 @@ export const izohTili = (loc = interfaceLocale()) => (String(loc).startsWith("ru
 
 /**
  * REV128: «O'yinlar» bo'limidan til tanlab kirish: bolalar — o'yin xonalari, kattalar — gapirish va yozish mashqi.
- * tur: "xonalar" | "mashq".
+ * tur: "xonalar" | "mashq" | "maktab" (REV129: 1–11 sinf).
  */
-export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", cheklovsiz = false, onClose }) {
+export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", sinf = "", cheklovsiz = false, onClose }) {
   useInterface();
   const loc = interfaceLocale();
   const [til, setTil] = useState(() => eslab());
@@ -36,6 +38,8 @@ export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", c
     return <React.Suspense fallback={<p className="tm-hint">⏳</p>}>
       {tur === "mashq"
         ? <TilMashqi apiBase={apiBase} til={til} izoh={izoh} onClose={() => setOchiq(false)} />
+        : tur === "maktab"
+        ? <MaktabTil apiBase={apiBase} til={til} izoh={izoh} sinf={sinfRaqami(sinf) || 1} cheklovsiz={cheklovsiz} sarlavha={sarlavha} onClose={() => setOchiq(false)} />
         : <TilXonalari apiBase={apiBase} til={til} izoh={izoh} grade={grade} cheklovsiz={cheklovsiz} sarlavha={sarlavha} onClose={() => setOchiq(false)} />}
     </React.Suspense>;
   }
@@ -43,7 +47,7 @@ export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", c
   return <div className="tm-root">
     <div className="tm-bar">
       <button type="button" className="tm-back" onClick={onClose} aria-label={T("Orqaga")}>⬅️</button>
-      <div><b className="tm-title">{tur === "mashq" ? `🗣️ ${T("Gapirish va yozish mashqi")}` : `🏠 ${T("Til o‘yin xonalari")}`}</b>
+      <div><b className="tm-title">{tur === "mashq" ? `🗣️ ${T("Gapirish va yozish mashqi")}` : tur === "maktab" ? `📚 ${T("Maktab: til o‘yinlari")}` : `🏠 ${T("Til o‘yin xonalari")}`}</b>
         <small className="tm-sub">{T("Qaysi tilni o‘rganamiz?")}</small></div>
     </div>
     <div className="tt-grid">
