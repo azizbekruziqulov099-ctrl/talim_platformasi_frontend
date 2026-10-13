@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { USTOZLAR, XONALAR } from "./ustozlar.js";
-import { GAPIR, KULGI, PIRPIRAT, XONA, bezak, blinkDelay, pozaFor } from "./ustozRules.js";
+import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, pozaFor } from "./ustozRules.js";
 import { cardSize } from "./kidStageRules.js";
 import { mouthFrame } from "./lipSync.js";
 import { keycapNumber } from "./sanKarta.js";
@@ -11,7 +11,7 @@ import "./ustozSahna.css";
  * Ustoz gapirganda og'zi ochilib-yopiladi, vaqti-vaqti bilan ko'zini pirpiratadi, vaziyatga qarab pozasi almashadi
  * (salom beradi, doskani ko'rsatadi, o'ylaydi, quvonadi, tinglaydi). Hammasi CSS + rasm almashtirish — telefonni qiynamaydi.
  */
-export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, listening = false, pictures = [], mavzuRasmlar = [], havo = "quyosh", vaqt = "kun", shamol = false, onTap, celebrate = 0, children }) {
+export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, doskaYoq = false, onTap, celebrate = 0, children }) {
   const xonaKey = XONALAR[XONA[ustoz]] ? XONA[ustoz] : "onatili";
   const xona = XONALAR[xonaKey];
   const poza = pozaFor(mood, { hasPics: pictures.length > 0, listening });
@@ -61,31 +61,28 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
   useEffect(() => { if (typeof Image !== "undefined" && p.yuz) p.yuz.kadr.forEach((s) => { const im = new Image(); im.src = s; }); }, [p]);
 
   const d = xona.doska;
-  const bz = bezak(mavzuRasmlar, xona, pictures.map((x) => x.src).filter(Boolean));
   const box = (r) => ({ left: `${r.l}%`, top: `${r.t}%`, width: `${r.w}%`, height: `${r.h}%` });
-  // REV121: deraza shishasi (rom, bayroqcha, gul ustiga osmon chizilmaydi) — deraza qutisiga nisbatan 0..1 koordinatalar
+  // REV140: deraza shishasi — rasmdan aniq olingan niqob (osmon rom, bayroqcha, gul, parda ustiga chiqmaydi).
+  // Kunduzi quyoshli havoda rasmning o'z manzarasi qoladi; boshqa holatlarda manzara ustidan rang beriladi
+  // (tong — pushti, kech — shafaq, tun — to'q ko'k) va oy, yulduz, bulut, yomg'ir, qor qo'shiladi.
   const dz = xona.deraza;
-  const oynaId = `us-oyna-${xonaKey}`;
-  const oyna = dz && xona.oyna ? xona.oyna.map((poly) => poly.map(([x, y]) => `${((x - dz.l) / dz.w).toFixed(4)},${((y - dz.t) / dz.h).toFixed(4)}`).join(" ")) : null;
-  const clip = oyna ? { clipPath: `url(#${oynaId})`, WebkitClipPath: `url(#${oynaId})` } : {};
+  const niqob = xona.osmon ? { WebkitMaskImage: `url(${xona.osmon})`, maskImage: `url(${xona.osmon})`, WebkitMaskSize: "100% 100%", maskSize: "100% 100%", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" } : {};
   const chiroqYoniq = vaqt === "kech" || vaqt === "tun";
-  return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${chiroqYoniq ? "is-lamp" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
+  const holat = `havo-${havo} vaqt-${vaqt} ${shamol ? "is-windy" : ""}`;
+  return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${chiroqYoniq ? "is-lamp" : ""} ${derazaga ? "is-deraza" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
     <img className="us-bg" src={xona.src} srcSet={`${xona.src} 960w, ${xona.src2x} 1600w`} sizes="(max-width: 900px) 100vw, 900px" alt="" decoding="async" />
     <div className="us-light" aria-hidden="true" />
-    {oyna && <svg className="us-clipdef" width="0" height="0" aria-hidden="true" focusable="false"><defs><clipPath id={oynaId} clipPathUnits="objectBoundingBox">
-      {oyna.map((pts) => <polygon key={pts} points={pts} />)}</clipPath></defs></svg>}
-    {dz && <div className={`us-window havo-${havo} vaqt-${vaqt} ${shamol ? "is-windy" : ""} ${oyna ? "has-panes" : ""}`} style={{ ...box(dz), ...clip }} aria-hidden="true">
-      <span className="us-sky" /><span className="us-stars" /><span className="us-sun" /><span className="us-moon" />
+    {dz && xona.osmon && <div className={`us-tint ${holat}`} style={{ ...box(dz), ...niqob }} aria-hidden="true" />}
+    {dz && xona.osmon && <div className={`us-window ${holat}`} style={{ ...box(dz), ...niqob, "--oy-t": `${xona.oy?.t ?? 18}cqh`, "--oy-r": `${xona.oy?.r ?? 20}cqw` }} aria-hidden="true">
+      <span className="us-stars" /><span className="us-moon" />
       <span className="us-cloud c1" /><span className="us-cloud c2" /><span className="us-cloud c3" />
-      <span className="us-hills" /><span className="us-fall" /><span className="us-fall f2" /><span className="us-flash" />
+      <span className="us-fall" /><span className="us-fall f2" /><span className="us-flash" />
     </div>}
-    {bz.devor && <div className="us-frame" style={box(xona.devor)} aria-hidden="true"><img key={bz.devor} src={bz.devor} alt="" /></div>}
-    {bz.javon.length > 0 && <div className="us-shelf" style={box(xona.javon)} aria-hidden="true">{bz.javon.map((s2) => <span key={s2}><img src={s2} alt="" /></span>)}</div>}
-    {bz.pol && <div className="us-floor" style={box(xona.pol)} aria-hidden="true"><img key={bz.pol} src={bz.pol} alt="" /></div>}
+    {dz && xona.osmon && derazaga && <div className="us-deraza-nur" style={{ ...box(dz), ...niqob }} aria-hidden="true" />}
     {xona.chiroq && <div className="us-lamp" aria-hidden="true"><span className="us-lamp-cord" /><span className="us-lamp-shade" /><span className="us-lamp-bulb" /></div>}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
-    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} n${Math.min(4, pictures.length)}`} style={pictures.length ? undefined : box(d)}>
+    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(4, pictures.length)}`} style={pictures.length ? undefined : box(d)}>
       {pictures.map((pic, i) => <button key={`${pic.src || pic.emoji}-${pic.rev || 0}-${i}`} type="button"
         className={`us-pic ${pic.emoji && !pic.src ? `is-emoji sz-${cardSize(pic.emoji)}` : ""} ${pic.holat ? `is-${pic.holat}` : ""}`} style={{ "--i": i }}
         onClick={() => onTap?.(i)} aria-label={pic.label || "rasm"}>

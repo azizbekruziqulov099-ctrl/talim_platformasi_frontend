@@ -1,10 +1,10 @@
 // REV112: bugungi ob-havo va kun vaqti (bog'cha olami va dars sahnasi uchun). Server 30 daqiqada bir marta oladi.
 import { useEffect, useState } from "react";
-import { havoTuri, kunVaqti } from "./ustozRules.js";
+import { havoTuri, quyoshVaqti } from "./ustozRules.js";
 
 export function useHavo(apiBase, yoq = false) {
   const [d, setD] = useState({ havo: havoTuri(), harorat: null, kunduz: null, shamol: false });
-  const [vaqt, setVaqt] = useState(() => kunVaqti());
+  const [vaqt, setVaqt] = useState(() => quyoshVaqti());
   useEffect(() => {
     if (yoq || !apiBase) return undefined;
     const c = new AbortController();
@@ -18,10 +18,11 @@ export function useHavo(apiBase, yoq = false) {
   }, [apiBase, yoq]);
   useEffect(() => {
     if (yoq) return undefined;
-    const tick = () => setVaqt(kunVaqti(new Date().getHours(), d.kunduz));
+    // REV140: quyosh bo'yicha (soat mintaqasi va serverga bog'liq emas)
+    const tick = () => setVaqt(quyoshVaqti(new Date()));
     tick();
-    const t = setInterval(tick, 300000);
+    const t = setInterval(tick, 60000);
     return () => clearInterval(t);
-  }, [d.kunduz, yoq]);
+  }, [yoq]);
   return { ...d, vaqt };
 }

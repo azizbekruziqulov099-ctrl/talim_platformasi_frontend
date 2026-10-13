@@ -14,7 +14,7 @@ test('salom, ob-havo va o‘tgan dars — o‘rganilayotgan tilda, ustozning o�
   assert.match(st[0].ovoz, /\[ru\]Привет!\[\/ru\]/);
   assert.match(st[1].ovoz, /\[ru\]Идёт снег\.\[\/ru\]/);
   assert.match(st[1].ovoz, /sovuq/);
-  assert.match(st[2].ovoz, /🐱 Bu nima\? ⏸ \[ru\]кошка\[\/ru\]/);
+  assert.match(st[2].ovoz, /🐱 Bu — \[ru\]кошка\[\/ru\]\./);   // REV140: avval ustoz nomini aytadi
   assert.ok(st.every((s) => s.turi === 'kirish' && s.doska));
 });
 

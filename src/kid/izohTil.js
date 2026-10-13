@@ -113,7 +113,7 @@ export const GAPLAR = {
     "Tashqari sovuq: {p} Issiq kiyin!": "На улице холодно: {p} Одевайся тепло!",
     "Tashqari issiq: {p} Ko'p suv ich!": "На улице жарко: {p} Пей больше воды!",
     "O'tgan safar «{name}» darsini o'tgandik.": "В прошлый раз у нас был урок «{name}».",
-    "Esingdami?": "Помнишь?", "Bu nima? ⏸": "Что это? ⏸", "Endi yangi darsga o'tamiz!": "А теперь — новый урок!",
+    "Esingdami?": "Помнишь?", "Bu nima? ⏸": "Что это? ⏸", "Bu — {p}.": "Это — {p}.", "Endi yangi darsga o'tamiz!": "А теперь — новый урок!",
     "👋 Salom!": "👋 Привет!", "Bugungi ob-havo": "Погода сегодня", "🔁 Esingdami?": "🔁 Помнишь?",
     // REV121: o'yin, natija, test
     "Qani, top: {p}": "Ну-ка, найди: {p}", "Barmog'ing bilan bos: {p}": "Нажми пальчиком: {p}",
@@ -156,7 +156,7 @@ export const GAPLAR = {
     "Tashqari sovuq: {p} Issiq kiyin!": "It's cold outside: {p} Dress warmly!",
     "Tashqari issiq: {p} Ko'p suv ich!": "It's hot outside: {p} Drink lots of water!",
     "O'tgan safar «{name}» darsini o'tgandik.": "Last time we had the lesson «{name}».",
-    "Esingdami?": "Do you remember?", "Bu nima? ⏸": "What is it? ⏸", "Endi yangi darsga o'tamiz!": "Now let's start a new lesson!",
+    "Esingdami?": "Do you remember?", "Bu nima? ⏸": "What is it? ⏸", "Bu — {p}.": "This is {p}.", "Endi yangi darsga o'tamiz!": "Now let's start a new lesson!",
     "👋 Salom!": "👋 Hello!", "Bugungi ob-havo": "Today's weather", "🔁 Esingdami?": "🔁 Do you remember?",
     // REV121: game, result, test
     "Qani, top: {p}": "Can you find it? {p}", "Barmog'ing bilan bos: {p}": "Tap it with your finger: {p}",

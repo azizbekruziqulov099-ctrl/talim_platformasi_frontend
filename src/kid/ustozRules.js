@@ -62,6 +62,51 @@ export function havoTuri(kod, oy = new Date().getMonth() + 1) {
   return [12, 1, 2].includes(oy) ? "bulut" : "quyosh";
 }
 
+// REV140: kun vaqti endi QUYOSHNING haqiqiy holatidan hisoblanadi (shahar koordinatasi + qurilmaning mutlaq vaqti).
+// Oldin soat (getHours) va server «is_day» belgisi aralashardi — qurilma soat mintaqasi boshqacha bo'lsa yoki server
+// eski/xato belgi bersa, kunduzi derazada oy va yulduzlar chiqib qolardi. Endi internet va soat mintaqasiga bog'liq emas.
+export const SHAHAR_KOORD = {
+  toshkent: [41.31, 69.28], samarqand: [39.65, 66.96], buxoro: [39.77, 64.42], andijon: [40.78, 72.34],
+  fargona: [40.39, 71.78], namangan: [41.0, 71.67], qarshi: [38.86, 65.79], termiz: [37.22, 67.28],
+  navoiy: [40.1, 65.37], jizzax: [40.12, 67.84], guliston: [40.49, 68.78], urganch: [41.55, 60.63],
+  nukus: [42.46, 59.6], nurafshon: [41.04, 69.36],
+};
+
+/** Saqlangan shahar (yoki Toshkent) koordinatasi: [kenglik, uzunlik]. */
+export function shaharKoord(nom = null) {
+  let n = nom;
+  if (n == null) { try { n = globalThis.localStorage?.getItem("kabutar:shahar"); } catch { n = null; } }
+  const key = String(n || "").toLowerCase().replace(/[^a-z]/g, "");
+  return SHAHAR_KOORD[key] || SHAHAR_KOORD.toshkent;
+}
+
+const RAD = Math.PI / 180;
+/** Quyoshning ufqdan balandligi (gradus) va tushgacha/tushdan keyinligi. Aniqligi ~0.5° — kun vaqti uchun yetarli. */
+export function quyoshHolati(sana = new Date(), lat = 41.31, lon = 69.28) {
+  const d = sana.getTime() / 86400000 - 10957.5;                     // J2000 dan beri kunlar
+  const g = (357.529 + 0.98560028 * d) * RAD;
+  const q = 280.459 + 0.98564736 * d;
+  const L = (q + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * RAD;
+  const e = (23.439 - 0.00000036 * d) * RAD;
+  const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / RAD;
+  const dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const gmst = (280.46061837 + 360.98564736629 * d) % 360;
+  let h = (gmst + lon - ra) % 360;
+  if (h > 180) h -= 360;
+  if (h <= -180) h += 360;
+  const balandlik = Math.asin(Math.sin(lat * RAD) * Math.sin(dec) + Math.cos(lat * RAD) * Math.cos(dec) * Math.cos(h * RAD)) / RAD;
+  return { balandlik, ertalab: h < 0 };
+}
+
+/** Kun vaqti quyosh bo'yicha: baland — kun, ufq atrofida — tong/kech, ufqdan 6° pastda — tun. */
+export function quyoshVaqti(sana = new Date(), koord = null) {
+  const [lat, lon] = koord || shaharKoord();
+  const { balandlik, ertalab } = quyoshHolati(sana, lat, lon);
+  if (balandlik >= 6) return "kun";
+  if (balandlik <= -6) return "tun";
+  return ertalab ? "tong" : "kech";
+}
+
 /** REV111: kun vaqti — xona yorug'ligi va derazadagi osmon. kunduz: serverdan (Open-Meteo is_day: 1/0), bo'lmasa soatga qarab. */
 export function kunVaqti(soat = new Date().getHours(), kunduz = null) {
   const h = Number(soat);

@@ -251,3 +251,27 @@ export function darsBoshi(steps = [], topicName = "") {
   }
   return { takror, qolgan };
 }
+
+/** REV140: ustoz gapirayotgan so'zlarning rasmlari — qadamda emoji bo'lmasa ham doska bo'sh qolmaydi.
+ *  wordMap: kitobdagi rasm_sozlar («🍎|olma» → url). Matnda so'z (yoki ibora) butun so'z sifatida uchrasa — uning rasmi,
+ *  matndagi tartib bilan, takrorlanmasdan. */
+export function matnRasmlari(text, wordMap, limit = 3) {
+  if (!wordMap) return [];
+  const matn = ` ${normWord(String(text || "").replace(/\[\/?[a-z]{2}\]/gi, " "))} `;
+  if (matn.trim() === "") return [];
+  const topildi = [];
+  for (const [k, url] of Object.entries(wordMap)) {
+    const soz = normWord(k.split("|").slice(1).join("|"));
+    if (!soz || soz.length < 2 || !url) continue;
+    const i = matn.indexOf(` ${soz} `);
+    if (i >= 0) topildi.push({ i, url, n: soz.length });
+  }
+  // uzunroq ibora avval (bir joyda «qizil olma» va «olma» bo'lsa — iborasi), keyin matndagi tartib
+  topildi.sort((a, b) => a.i - b.i || b.n - a.n);
+  const out = [];
+  for (const x of topildi) {
+    if (!out.includes(x.url)) out.push(x.url);
+    if (out.length >= limit) break;
+  }
+  return out;
+}

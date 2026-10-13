@@ -9,7 +9,10 @@ export const USTOZ_ISMI = {
   sardor: { uz: "Sardor aka", ru: "Сардор ака", en: "Mr Sardor" },
 };
 
-const tozala = (s) => s.replace(/[ \t]{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").replace(/^\s+/, "").replace(/(^|[.!?]\s+|\]\s*)([,.!])\s*/g, "$1");
+// REV140: ortiqcha tinish belgisi faqat gap boshida yoki OCHILUVCHI teg ([en]) dan keyin olinadi. Oldin yopiluvchi teg
+// ([/en]) dan keyingi nuqta ham o'chirilardi — «[en]apple[/en]. Endi sen ayt» → «…[/en]Endi», gaplar orasida pauza
+// yo'qolib, ustoz nutqi shoshqaloq va g'ayritabiiy chiqardi.
+const tozala = (s) => s.replace(/[ \t]{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").replace(/^\s+/, "").replace(/(^|[.!?]\s+|\[[a-z]{2}\]\s*)([,.!])\s*/g, "$1");
 
 export function ustozNutqi(text, ustoz = "nilufar") {
   const ism = USTOZ_ISMI[ustoz] || USTOZ_ISMI.nilufar;

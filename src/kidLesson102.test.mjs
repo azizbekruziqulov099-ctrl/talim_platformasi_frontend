@@ -5,14 +5,15 @@ import { contentLanguage, dropLeadingPraise, kidCorrectSpeech, kidPraise, kidPra
 
 test("REV102: «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan qayta aytiladi", () => {
   const step = "🟢 [en]Green.[/en] — yashil. 👏 [en]Clap.[/en] — qarsak. Qani, birga aytamiz!";
-  assert.equal(kidRepeatSpeech(step), `${step} [en]Green.[/en] ⏸ [en]Clap.[/en] ⏸`);
+  // REV140: ustoz har so'zni ikki marta aytadi, keyin bolaga jimlik
+  assert.equal(kidRepeatSpeech(step), `${step} [en]Green.[/en] [en]Green![/en] ⏸ [en]Clap.[/en] [en]Clap![/en] ⏸`);
   // so'z buyruqdan keyin allaqachon aytilgan — o'zgarmaydi
   const taught = "Qara, bu — [en]Green.[/en] Men bilan ayt: [en]Green.[/en]";
   assert.equal(kidRepeatSpeech(taught), taught);
   // butun gap bitta inglizcha bo'lakda (6–7 yosh) — server o'zi pauza qo'yadi, matn o'zgarmaydi
   assert.equal(kidRepeatSpeech("[en]Apple. Banana. Say it together![/en]"), "[en]Apple. Banana. Say it together![/en]");
   assert.equal(kidRepeatSpeech("[en]Apple.[/en] [en]Banana.[/en] [en]Say it together![/en]"),
-    "[en]Apple.[/en] [en]Banana.[/en] [en]Say it together![/en] [en]Apple.[/en] ⏸ [en]Banana.[/en] ⏸");
+    "[en]Apple.[/en] [en]Banana.[/en] [en]Say it together![/en] [en]Apple.[/en] [en]Apple![/en] ⏸ [en]Banana.[/en] [en]Banana![/en] ⏸");
   assert.equal(kidRepeatSpeech("Bugun sanashni o'rgandik. Qani, birga aytamiz!"), "Bugun sanashni o'rgandik. Qani, birga aytamiz!");
   assert.equal(kidTakrorStep({ turi: "qoida" }), true);
   assert.equal(kidTakrorStep({ turi: "xulosa" }), false);

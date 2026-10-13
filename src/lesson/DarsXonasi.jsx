@@ -7,7 +7,7 @@ import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
 import { markLessonDone } from "../curriculum/kidProgress.js";
-import { KID_PITCH, kidRate, ustozRate, kidRepeatSpeech, kidTakrorStep, kidTaskModel } from "./kidLessonRules.js";
+import { KID_PITCH, kidRate, ustozRate, kidRepeatSpeech, kidTakrorStep, kidTaskModel, ismOldin } from "./kidLessonRules.js";
 import { APP_VERSION } from "../appVersion.js";
 import { answerSpeed, finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
 import { screenTime } from "../kid/screenTime.js";
@@ -16,12 +16,12 @@ import { ustozNutqi } from "../kid/ustozNutqi.js";
 import KidStage from "../kid/KidStage.jsx";
 import UstozSahna from "../kid/UstozSahna.jsx";
 import { useKeepLight } from "../kid/useKeepLight.js";
-import { havoTuri, kunVaqti, ustozFor } from "../kid/ustozRules.js";
+import { havoTuri, quyoshVaqti, ustozFor } from "../kid/ustozRules.js";
 import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi } from "../kid/kidStageRules.js";
+import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari } from "../kid/kidStageRules.js";
 import { stickerUrl } from "../kid/stickers.js";
 import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
@@ -92,9 +92,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV110: derazadagi ob-havo (dars boshida serverdan keladi; kelguncha — fasl bo'yicha)
   const [havo, setHavo] = useState(() => havoTuri());
   const [harorat, setHarorat] = useState(null);
-  const [kunduz, setKunduz] = useState(null);
   const [shamol, setShamol] = useState(false);
-  const [vaqt, setVaqt] = useState(() => kunVaqti());
+  const [vaqt, setVaqt] = useState(() => quyoshVaqti());
   const voiceRef = useRef(null);
   voiceRef.current = voice;
   // REV98: robot Kabu — quvonish/dalda holati va sakrash; rasmni bosganda qayta jonlanadi.
@@ -319,7 +318,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const spoken = String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "");
     // REV102: takrordan yangiga o'tishda robot aytadi: «Avval o'tganlarni eslaymiz!» / «Endi — yangi so'z!»
     const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, izoh);
-    return kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken);   // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan
+    // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan; REV140: «Endi sen ayt: X» — avval ustoz X ni ikki marta aytadi
+    return ismOldin(kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken, { doska: s.doska, izoh }));
   }, [kid, kinds, lesson, izoh]);
   // REV139: dars ochilganda birinchi ikki qadam ovozi sekin-asta (1.5 soniyadan keyin) oldindan tayyorlanadi —
   // «Boshlash» bosilganda kutilmaydi; qolganlari dars davomida navbatma-navbat (keyingi 2 qadam) tayyorlanadi.
@@ -351,19 +351,19 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     try { shahar = globalThis.localStorage?.getItem("kabutar:shahar") || shahar; } catch { /* */ }
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/bogcha/havo?${new URLSearchParams({ shahar })}`, { signal: c.signal })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) { setHavo(havoTuri(d.kod)); setHarorat(d.harorat ?? null); setKunduz(d.kunduz ?? null); setShamol(Number(d.shamol) >= 30); } })
+      .then((d) => { if (d) { setHavo(havoTuri(d.kod)); setHarorat(d.harorat ?? null); setShamol(Number(d.shamol) >= 30); } })
       .catch(() => { /* ob-havo bo'lmasa — fasl bo'yicha */ });
     return () => c.abort();
   }, [kid, lesson, apiBase]);
 
-  // REV111: kun vaqti (tong/kun/kech/tun) — har 5 daqiqada tekshiriladi, xona va deraza shunga qarab
+  // REV111 / REV140: kun vaqti (tong/kun/kech/tun) — quyoshning haqiqiy holatidan (shahar + mutlaq vaqt), har daqiqada
   useEffect(() => {
     if (!kid) return undefined;
-    const tick = () => setVaqt(kunVaqti(new Date().getHours(), kunduz));
+    const tick = () => setVaqt(quyoshVaqti(new Date()));
     tick();
-    const t = setInterval(tick, 300000);
+    const t = setInterval(tick, 60000);
     return () => clearInterval(t);
-  }, [kid, kunduz]);
+  }, [kid]);
 
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = rate; }, [rate]);
 
@@ -762,7 +762,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV122: rasm qaysi so'zniki ekanini eslab qolamiz — bosilganda nomi aytiladi
     const pic = (u, i) => ({ src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}`, ...picWord(u) });
     if (variant?.rasm) return [pic(variant.rasm, 0)];
-    if (step._ochilish === "havo") return [];   // ob-havo qadamida bola derazaga qaraydi — doska yopmasin
+    // REV140: salomlashish va ob-havo qadamida doskaga belgi-stikerlar (👋 🙂 😊) chiqmaydi — ustoz qo'l silkitadi,
+    // ob-havoda bola derazaga qaraydi (deraza nurlanadi)
+    if (step._ochilish === "salom" || step._ochilish === "havo") return [];
     // REV121: o'yin — nishonlar (rasm yoki emoji karta), holati bilan: kutilmoqda / to'g'ri / xato / mana u
     if (game && game.stepIdx === idx) {
       return game.targets.map((t, i) => ({ src: t.src || "", emoji: t.src ? "" : t.emoji, rev: picRev, label: t.word,
@@ -784,7 +786,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (step.rasm) return [pic(step.rasm, 0)];
     if (board.length) return board.slice(0, 3).map(pic);
     if (cards.length) return cards;
-    if (kidKind !== "new") return [];   // kirish, xulosa, takror, o'yin — begona stiker chiqmaydi
+    // REV140: doska bo'sh qolmasin — ustoz aytayotgan so'zlarning kitobdagi rasmlari; kirish va xulosada — bugungi rasmlar
+    const aytilgan = matnRasmlari(`${step.sarlavha || ""} ${kidSrc}`, lesson?.rasm_sozlar);
+    if (aytilgan.length) return aytilgan.map(pic);
+    if ((kidKind === "intro" || kidKind === "summary") && !step._ochilish && newPics.size) return [...newPics].slice(0, 3).map(pic);
+    if (kidKind !== "new") return [];   // takror, o'yin — begona stiker chiqmaydi
     return stickerKeys(kidSrc).map((key) => ({ src: stickerUrl(key), svg: true, key, label: key, rev: picRev })).filter((x) => x.src);
   })();
   const badge = kindBadge(kidKind);
@@ -827,7 +833,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status"><span aria-hidden="true">{badge[0]}</span><small>{__kbUi(badge[1])}</small></div>}
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={kidPics} mavzuRasmlar={[...newPics].map(mediaUrl)} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} onTap={tapKid} /></div>}
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={kidPics} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} onTap={tapKid} /></div>}
           {!kid && mode === "idle" && <>
             <h3 className="dx-title">{__kbUi("Bugungi dars")}</h3>
             <div className="dx-line">{lesson.topic?.mavzu}</div>

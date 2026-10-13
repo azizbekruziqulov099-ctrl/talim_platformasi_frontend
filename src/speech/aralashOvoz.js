@@ -6,6 +6,10 @@
 const TEG = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko|uz)\]([\s\S]*?)\[\/\1\]/gi;
 const LOKAL = { en: "en", ru: "ru", de: "de", fr: "fr", es: "es", ar: "ar", tr: "tr", zh: "zh", ja: "ja", ko: "ko" };
 const harfBor = (s) => /[\p{L}\p{N}]/u.test(String(s || ""));
+// REV140: brauzer ovozi emojini nomi bilan o'qiydi («red apple», «яблоко») — gap g'alati chiqardi. Emoji, belgi va
+// tire-chiziqlar olib tashlanadi (server o'zi ham shunday qiladi).
+const EMOJI = /(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u20E3\uFE0F\u200D]|\p{Emoji_Modifier})+/gu;
+export const brauzerMatni = (s) => String(s || "").replace(/⏸/g, " ").replace(EMOJI, " ").replace(/[|•→←↔＝=_*#~^]+/g, " ").replace(/\s+([,.!?;:])/g, "$1").replace(/\s+/g, " ").trim();
 
 /** Matnni bo'laklarga ajratadi: [{ til: "uz" | "en" | …, matn }]. Tegsiz matn — o'zbekcha. */
 export function segmentlar(text) {
@@ -52,8 +56,10 @@ export function reja(text, { ovozlar = null, takror = false } = {}) {
   };
   for (const seg of segmentlar(text)) {
     const ovoz = seg.til !== "uz" ? brauzerOvozi(seg.til, ovozlar) : null;
-    if (ovoz && harfBor(seg.matn)) {
-      qosh({ tur: "brauzer", til: seg.til, matn: seg.matn.replace(/⏸/g, " ").trim(), ovoz });
+    if (ovoz && harfBor(brauzerMatni(seg.matn))) {
+      qosh({ tur: "brauzer", til: seg.til, matn: brauzerMatni(seg.matn), ovoz });
+      const n = (seg.matn.match(/⏸/g) || []).length;   // so'zdan keyingi jimlik (bola qaytarishi uchun) saqlanadi
+      if (n) qosh({ tur: "pauza", ms: n * (takror ? 1800 : 900) });
       continue;
     }
     const matn = seg.til === "uz" ? seg.matn : `[${seg.til}]${seg.matn}[/${seg.til}]`;
@@ -81,6 +87,16 @@ export function aralashOqi(text, serverUrl, opts = {}) {
   const qadamlar = reja(text, { takror });
   let i = -1, toxtadi = false, audio = null, timer = null;
   const synth = globalThis.speechSynthesis;
+  // REV140: o'zbekcha bo'laklar BOSHIDAN birdaniga yuklana boshlaydi — chet so'zdan keyin o'zbekcha davom etganda
+  // har safar serverni kutib, gap uzilib-uzilib chiqmasin (tabiiy, ravon nutq).
+  const tayyor = new Map();
+  try {
+    qadamlar.forEach((q, j) => {
+      if (q.tur !== "server" || typeof Audio === "undefined") return;
+      const a = new Audio(); a.preload = "auto"; a.src = serverUrl(q.matn);
+      tayyor.set(j, a);
+    });
+  } catch { /* eski brauzer — navbat bilan yuklanadi */ }
   const tozala = () => {
     clearTimeout(timer); timer = null;
     if (audio) { try { audio.onended = audio.onerror = null; audio.pause(); audio.src = ""; } catch { /* */ } audio = null; }
@@ -110,7 +126,8 @@ export function aralashOqi(text, serverUrl, opts = {}) {
     let tugadi = false;
     const tamom = () => { if (tugadi) return; tugadi = true; keyingi(); };
     try {
-      const a = new Audio(serverUrl(q.matn));
+      const a = tayyor.get(i) || new Audio(serverUrl(q.matn));
+      tayyor.delete(i);
       audio = a;
       a.playbackRate = playbackRate;
       a.onended = tamom;
@@ -125,6 +142,8 @@ export function aralashOqi(text, serverUrl, opts = {}) {
     stop() {
       if (toxtadi) return;
       toxtadi = true; tozala();
+      for (const a of tayyor.values()) { try { a.src = ""; } catch { /* */ } }
+      tayyor.clear();
       try { synth?.cancel(); } catch { /* */ }
     },
     get qadamlar() { return qadamlar; },

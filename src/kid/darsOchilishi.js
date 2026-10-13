@@ -93,7 +93,7 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     ovoz: L
       ? (kichik
         ? `${vaqtSalom}${z(pick(fel.salom))} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸`
-        : `${vaqtSalom}${z(pick(fel.salom))} ${t(salom)} ⏸ ${t("how")} ⏸ ${z(fel.javob)} ${g("Sen ham shunday javob ber: {p} ⏸", { p: t("fine") })}`)
+        : `${vaqtSalom}${z(pick(fel.salom))} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸ ${t("how")} ⏸ ${z(fel.javob)} ${g("Sen ham shunday javob ber: {p} ⏸", { p: t("fine") })}`)
       : `${vaqtSalom}${z(pick(fel.salom))} ${g("Qalaysan? ⏸")} ${z(fel.javob)}`,
     doska: L ? (kichik ? `👋 ${L[salom]}` : `👋 ${L[salom]}\n🙂 ${L.how}\n😊 ${L.fine}`) : "👋",
   });
@@ -126,7 +126,8 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
   if (oldingi?.mavzu && sozlar.length) {
     const tl = oldingi.til || til;
     const tag = (x) => (tl ? `[${tl}]${x}[/${tl}]` : x);
-    const savol = sozlar.map((x) => `${x.emoji ? x.emoji + " " : ""}${g("Bu nima? ⏸")} ${tag(x.say)}! ${g("Birga aytamiz: {p} ⏸", { p: tag(x.say) })}`).join(" ");
+    // REV140: avval ustoz so'zni o'zi aytadi (nomini) va takrorlaydi, keyin bola birga aytadi
+    const savol = sozlar.map((x) => `${x.emoji ? x.emoji + " " : ""}${g("Bu — {p}.", { p: tag(x.say) })} ${g("Birga aytamiz: {p} ⏸", { p: tag(x.say) })}`).join(" ");
     out.push({
       turi: "kirish", _ochilish: "takror", sarlavha: gap(izoh, "🔁 Esingdami?").replace(/\[\/?\w\w\]/g, ""),
       ovoz: `${g("O'tgan safar «{name}» darsini o'tgandik.", { name: z(oldingi.mavzu) })} ${L && tl === til ? t("remember") : g("Esingdami?")} ${savol} ${z(pick(fel.maqtov))} ${g("Endi yangi darsga o'tamiz!")}`,
