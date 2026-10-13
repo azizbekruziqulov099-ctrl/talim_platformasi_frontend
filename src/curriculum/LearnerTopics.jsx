@@ -88,7 +88,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');};
  // REV90: o'qiy olmaydigan bola uchun — kartadagi nomni ovoz bilan aytadi.
  const voice=useRef(null);
- const sayName=(text,inglizcha=false)=>{try{voice.current?.pause();const m=String(text||'').slice(0,200);/* REV122: ruscha (kirill) yoki inglizcha nom — o'z tilidagi ovozda */const tm=/[А-Яа-яЁё]/.test(m)?`[ru]${m}[/ru]`:inglizcha?`[en]${m}[/en]`:m;const a=new Audio(`${String(apiBase).replace(/\/+$/,'')}/api/ovoz?${new URLSearchParams({matn:tm,jins})}`);voice.current=a;a.play().catch(()=>{});}catch{/* ovoz ixtiyoriy */}};
+ const sayName=(text,inglizcha=false)=>{try{voice.current?.pause();const m=String(text||'').slice(0,200);/* REV122: ruscha (kirill) yoki inglizcha nom — o'z tilidagi ovozda */const tm=/[А-Яа-яЁё]/.test(m)?`[ru]${m}[/ru]`:inglizcha?`[en]${m}[/en]`:m;const a=new Audio(`${String(apiBase).replace(/\/+$/,'')}/api/ovoz?k=133&${new URLSearchParams({matn:tm,jins})}`);voice.current=a;a.play().catch(()=>{});}catch{/* ovoz ixtiyoriy */}};
  const nextRef=useRef(null);
  // REV112: bog'cha bolasi uchun bosh ekran — bog'cha olami (bino, yo'lak, sinfxonalar, zal, hovli…)
  const [olam,setOlam]=useState(true);

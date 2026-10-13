@@ -60,7 +60,7 @@ export default function TilMashqi({ apiBase = "", til = "en", izoh = "uz", onClo
     setGapiryapti(kim);
     try {
       const params = new URLSearchParams({ matn: String(text).slice(0, 1500), jins, tezlik: sekin ? "-30%" : "-5%" });
-      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`);
+      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`);
       audio.current = a;
       a.onended = end; a.onerror = end;
       a.play().catch(() => setTimeout(end, 1500));

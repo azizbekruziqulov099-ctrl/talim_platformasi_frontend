@@ -84,7 +84,7 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     const end = () => { if (fin) return; fin = true; if (alive.current && my === token.current) done?.(); };
     try {
       const params = new URLSearchParams({ matn: String(text).slice(0, 1500), jins: "qiz", tezlik: sekin ? "-30%" : sinf <= 4 ? "-15%" : "-5%" });
-      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`);
+      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`);
       audio.current = a; a.onended = end; a.onerror = end;
       a.play().catch(() => setTimeout(end, 1200));
       setTimeout(end, Math.min(20000, 5000 + String(text).length * 150));

@@ -88,7 +88,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
     try {
       const params = new URLSearchParams({ matn: String(text).slice(0, 1500), jins: ovozJinsi(kim),
         tezlik: kim ? ustozRate(grade) : kidRate(grade) });
-      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`);
+      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`);
       audio.current = a;
       a.onended = end; a.onerror = end;
       a.play().catch(() => setTimeout(end, 1500));

@@ -24,7 +24,7 @@ function useVoice(apiBase, enabled) {
     if (!enabled || !text) return;
     try {
       audio.current?.pause();
-      const a = new Audio(`${apiBase}/api/ovoz?${new URLSearchParams({ matn: String(text).slice(0, 600) })}`);
+      const a = new Audio(`${apiBase}/api/ovoz?k=133&${new URLSearchParams({ matn: String(text).slice(0, 600) })}`);
       audio.current = a;
       a.play().catch(() => {});
     } catch { /* ovoz ixtiyoriy */ }

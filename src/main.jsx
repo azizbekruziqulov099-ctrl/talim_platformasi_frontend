@@ -8,6 +8,18 @@ import "./index.css";
 import App from "./App.jsx";
 import { InterfaceProvider } from "./interface/InterfacePreferences.jsx";
 
+// REV133: yangi deploydan keyin ochiq turgan sahifa eski (o'chirilgan) bo'lak faylini so'rasa — sahifa bir marta
+// o'zi yangilanadi (aks holda darsni bosganda hech narsa bo'lmay qolardi). Qayta xato bo'lsa — odatdagi xato ekrani.
+try {
+  window.addEventListener("vite:preloadError", (event) => {
+    let avval = false;
+    try { avval = window.sessionStorage.getItem("samtm_chunk_reload") === "1"; window.sessionStorage.setItem("samtm_chunk_reload", "1"); } catch { /* jim */ }
+    if (!avval) { event.preventDefault?.(); window.location.reload(); }
+  });
+  // sahifa yaxshi ochilgach belgi tozalanadi — keyingi deployda ham bir marta yangilansin
+  window.setTimeout(() => { try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ } }, 20000);
+} catch { /* eski brauzer */ }
+
 // Keep the root error screen in the entry module (REV34).
 class AppErrorBoundary extends React.Component {
   static contextType=InterfaceContext;

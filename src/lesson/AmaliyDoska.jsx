@@ -40,7 +40,7 @@ export function useBoardVoice(apiBase, jins = "qiz") {
     const finish = () => { if (my !== runRef.current) return; setSpeaking(false); audioRef.current = null; done?.(); };
     const fallback = () => { setTimeout(finish, Math.min(9000, 700 + clean.length * 45)); };
     try {
-      const audio = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${new URLSearchParams({ matn: clean.slice(0, 1500), jins })}`);
+      const audio = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: clean.slice(0, 1500), jins })}`);
       audioRef.current = audio;
       let failed = false;
       audio.onended = finish;

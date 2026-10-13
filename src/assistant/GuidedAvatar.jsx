@@ -82,6 +82,7 @@ function speakUzbek(
   }
 
   const url = new URL(`${base}/api/ovoz`, window.location.origin);
+  url.searchParams.set("k", "133");   // REV133: brauzerdagi eski (buzilgan) ovoz keshini chetlab o'tish
   url.searchParams.set("matn", text.slice(0, 1500));
   url.searchParams.set("jins", variant === "male" ? "ogil" : "qiz");
   url.searchParams.set("revision", SPEECH_REVISION);

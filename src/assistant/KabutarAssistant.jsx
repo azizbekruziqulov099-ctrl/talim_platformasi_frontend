@@ -88,7 +88,7 @@ function useAssistantVoice(apiBase, enabled) {
       if (!current()) return;
       if (run.index >= chunks.length) { stop(); return; }
       const params = new URLSearchParams({ matn: chunks[run.index], jins: "qiz", asosiy_til: "uz", revision: SPEECH_REVISION });
-      audio.src = `${apiBase}/api/ovoz?${params.toString()}`;
+      audio.src = `${apiBase}/api/ovoz?k=133&${params.toString()}`;
       setVoice({ id, status: "loading", error: "" });
       clearTimeout(run.timer);
       run.timer = setTimeout(fail, 18000);

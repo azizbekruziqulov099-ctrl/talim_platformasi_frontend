@@ -220,7 +220,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
       ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH }) : {}),
       ...(takror ? { takror: "1" } : {}), ...(attempt ? { q: String(attempt) } : {}) });
-    return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?${params}`;
+    return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`;
   }, [apiBase, jins]);
   const spokenFor = useCallback((text) => speakableText(kidRef.current ? kabuSpeech(text) : text), []);
   // Keyingi qadam ovozi oldindan tayyorlanadi — server uni keshlaydi, bola kutmaydi.
