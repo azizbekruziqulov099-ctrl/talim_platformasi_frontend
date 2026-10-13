@@ -3,7 +3,7 @@ import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePrefer
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import aurora from './assets/aurora.png';
+import aurora from './assets/aurora.webp';   // REV130: 1.3 MB png o'rniga yengil webp
 import { getLayoutSpec } from './layouts';
 
 export const ACCENTS = { cyan: '#06b6d4', blue: '#3b82f6', violet: '#8b5cf6', green: '#10b981', amber: '#f59e0b' };

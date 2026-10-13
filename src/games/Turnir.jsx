@@ -90,7 +90,14 @@ export function TournamentView({ call, P, game, title, tkod, onOpenGame, onBack,
       }
     };
     load();
-    const id = setInterval(load, 2500);
+    // REV130: sahifa yashirin bo'lsa yoki oldingi so'rov hali qaytmagan bo'lsa — yangi so'rov yuborilmaydi
+    // (sekin internetda so'rovlar to'planib, ilova qotib qolmasin; serverga ham ortiqcha yuk tushmasin).
+    const band = { v: false };
+    const id = setInterval(() => {
+      if (band.v || globalThis.document?.hidden) return;
+      band.v = true;
+      Promise.resolve(load()).finally(() => { band.v = false; });
+    }, 2500);
     const tick = setInterval(() => setTick((x) => x + 1), 1000);
     return () => { stop = true; clearInterval(id); clearInterval(tick); };
   }, [call, P, tkod]); // eslint-disable-line react-hooks/exhaustive-deps

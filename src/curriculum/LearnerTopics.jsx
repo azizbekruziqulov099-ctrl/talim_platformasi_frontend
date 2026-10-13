@@ -17,7 +17,6 @@ import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.j
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
 import FanBelgi from '../kid/FanBelgi.jsx';
-import { useHavo } from '../kid/useHavo.js';
 import { guruhMos } from '../admin/previewRules.js';
 import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
@@ -82,7 +81,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
    const left=(plan.fanlar?.[planFan]?.qoldi??plan.limit)-(self.isNew?1:0);
    if(!nu.known&&left<=0)next=null;   // keyingi yangi dars ertaga ochiladi
   }
-  setClassroom({...topicTarget(current,group,topic,type),_topic:topic.nomi,_next:next?{title:next.nomi,open:()=>openLesson(group,next)}:null});
+  // REV130: dars boshida takrorlanadigan «o'tgan mavzu» — ro'yxatdagi oldingi oddiy dars (takror darslari hisoblanmaydi)
+  const prevTopic=i>0?[...list.slice(0,i)].reverse().find(t=>!isReviewTopic(t.nomi)):null;
+  setClassroom({...topicTarget(current,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(current,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next)}:null});
  };
  const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');};
  // REV90: o'qiy olmaydigan bola uchun — kartadagi nomni ovoz bilan aytadi.
@@ -91,7 +92,6 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const nextRef=useRef(null);
  // REV112: bog'cha bolasi uchun bosh ekran — bog'cha olami (bino, yo'lak, sinfxonalar, zal, hovli…)
  const [olam,setOlam]=useState(true);
- const ob=useHavo(apiBase,!kid);
  useEffect(()=>{if(kid&&!classroom&&nextRef.current)try{nextRef.current.scrollIntoView({block:'center',behavior:'smooth'});}catch{/* eski brauzer */}},[kid,classroom,current?.kalit,loading]);
 
  if(classroom) return <div className="space-y-3 lt-root">
@@ -99,6 +99,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   <React.Suspense fallback={<p className="p-6 text-center text-slate-500">{__kbUi("Dars yuklanmoqda…")}</p>}>
    <DarsXonasi apiBase={apiBase} token={token} topicCode={classroom.lesson_code} fan={classroom.fan} grade={classroom.grade} jins={jins} learnerGender={user?.jins||''} learnerRole={accountRole(user)}
     onOpenTest={onOpenTest&&classroom.savol_soni>0?()=>onOpenTest({...classroom,topic_code:classroom.topic_codes?.[0]||classroom.topic_code}):undefined}
+    oldingiKod={classroom._prev||''}
     nextLesson={classroom._next?{title:capitalizeTopic(classroom._next.title),open:classroom._next.open}:null}
     onChat={onOpenLesson?()=>onOpenLesson(classroom):undefined}
     kidPlan={kid&&!preview?{fan:planFan,mavzu:capitalizeTopic(classroom._topic||'')}:null}
@@ -110,7 +111,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
 
  if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
   <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom)}))} apiBase={apiBase} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
-   onFan={key=>{chooseSubject(key);setOlam(false);}} say={(t,o)=>sayName(t,Boolean(o?.en))} havo={ob.havo} vaqt={ob.vaqt}/>
+   onFan={key=>{chooseSubject(key);setOlam(false);}} say={t=>sayName(t,String(locale||'').startsWith('en'))}/>
  </div>;
 
  return <div className="space-y-4 lt-root">

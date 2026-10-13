@@ -60,7 +60,14 @@ export default function Bellashuv({ apiBase, token, kid = false, initialCode = "
       } catch (e) { if (!stop) setError(e.message); }
     };
     load();
-    const id = setInterval(load, 1000);
+    // REV130: sahifa yashirin bo'lsa yoki oldingi so'rov hali qaytmagan bo'lsa — yangi so'rov yuborilmaydi
+    // (sekin internetda so'rovlar to'planib, ilova qotib qolmasin; serverga ham ortiqcha yuk tushmasin).
+    const band = { v: false };
+    const id = setInterval(() => {
+      if (band.v || globalThis.document?.hidden) return;
+      band.v = true;
+      Promise.resolve(load()).finally(() => { band.v = false; });
+    }, 1000);
     return () => { stop = true; clearInterval(id); };
   }, [apiBase, token, code]);
   useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 200); return () => clearInterval(id); }, []);

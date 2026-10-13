@@ -21,7 +21,7 @@ import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys } from "../kid/kidStageRules.js";
+import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi } from "../kid/kidStageRules.js";
 import { stickerUrl } from "../kid/stickers.js";
 import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
@@ -49,7 +49,7 @@ function TeacherAvatar() {
   </svg>;
 }
 
-export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false }) {
+export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false }) {
   useKbInterfaceLocale();
   const [lesson, setLesson] = useState(null);
   const [error, setError] = useState("");
@@ -137,7 +137,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const labels = audienceLabels(audience);
   const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";
   // REV110: bog'chada dars ustozning o'z salomi, bugungi ob-havo va o'tgan darsdan savol bilan boshlanadi.
-  const oldingi = useMemo(() => (lesson ? oxirgiDars(topicCode) : null), [lesson, topicCode]);
+  // REV130: dars boshida faqat O'TGAN mavzu (ro'yxatdagi oldingi dars) takrorlanadi — boshqa fandan yoki eski darsdan emas.
+  const boshi = useMemo(() => (kid ? darsBoshi(lesson?.steps || [], lesson?.topic?.mavzu || "") : { takror: [], qolgan: lesson?.steps || [] }), [kid, lesson]);
+  const oldingi = useMemo(() => {
+    if (!lesson || boshi.takror.length || !oldingiKod) return null;   // miyada o'tgan mavzu takrori bo'lsa — o'shasi yetadi
+    const o = oxirgiDars(topicCode);
+    return o && o.code === oldingiKod ? o : null;
+  }, [lesson, topicCode, oldingiKod, boshi]);
   // REV111: miya qaysi tilda tushuntirilgan (o'zbek / rus / ingliz) va qaysi til o'rgatiladi
   const izoh = useMemo(() => darsIzohi(lesson?.steps || [], fan || lesson?.topic?.fan || ""), [lesson, fan]);
   const izohRef = useRef("uz");
@@ -148,7 +154,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     ustoz: ustozFor(fan || lesson?.topic?.fan), til: darsTil, izoh, havo, harorat, oldingi, vaqt,
     grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000),
   }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, izoh, vaqt]);
-  const steps = useMemo(() => [...opening, ...(lesson?.steps || [])], [lesson, opening]);
+  const steps = useMemo(() => [...opening, ...boshi.takror, ...boshi.qolgan], [opening, boshi]);
   const step = idx >= 0 ? steps[idx] : null;
   // REV102: har qadam turi — takror (o'tgan darslar) yoki yangi bilim; bolaga belgi, rang va ovoz bilan ko'rsatiladi.
   const kinds = useMemo(() => steps.reduce((out, s, i) => {

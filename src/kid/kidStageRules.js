@@ -228,3 +228,26 @@ export function kidStars(togri, jami) {
   const r = t / j;
   return r >= 0.8 ? 3 : r >= 0.5 ? 2 : 1;
 }
+
+/**
+ * REV130: bog'cha darsi boshida faqat O'TGAN mavzu takrorlanadi.
+ * Miyadagi «🔁 Eslaymiz» qadamlaridan faqat birinchisi (1 dars oldingi mavzu) qoladi va dars boshiga — salom va
+ * ob-havodan keyinga — ko'chiriladi; 3 dars oldingi va boshqa aralash takrorlar olib tashlanadi.
+ * Butun mavzu takror bo'lsa («1-bo'lim takrori», «O'tgan yilni eslaymiz») — dars o'zgarmaydi.
+ * Natija: { takror: [...], qolgan: [...] }.
+ */
+export function darsBoshi(steps = [], topicName = "") {
+  if (!Array.isArray(steps) || isReviewTopic(topicName)) return { takror: [], qolgan: Array.isArray(steps) ? steps : [] };
+  const takror = [], qolgan = [];
+  let guruh = 0, oldingiTakror = false, prev = null;
+  for (const s of steps) {
+    // uzun qadam bo'laklarga bo'linsa, sarlavhasiz davomi oldingisining turini oladi
+    const davomi = Boolean(prev && !s?.sarlavha && s?.sahna && s.sahna === prev.sahna);
+    const takrorMi = davomi ? oldingiTakror : stepKind(s, topicName) === "review";
+    if (takrorMi && !davomi) guruh += 1;
+    if (takrorMi) { if (guruh === 1) takror.push(s); }
+    else qolgan.push(s);
+    oldingiTakror = takrorMi; prev = s;
+  }
+  return { takror, qolgan };
+}
