@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { aralashKerak, aralashOqi } from "../speech/aralashOvoz.js";
 import { VAZIYATLAR, MASHQ_IZOH } from "./mashqLugat.js";
 import { BOLAKLI, bolaklar, bolakTogri, gapBaho, yozuvniTekshir, holatlar, belgila, vaziyatHolati } from "./mashqRules.js";
 import { aralashtir, kunRaqami, PUXTA } from "../kid/xonalar/xonaRules.js";
@@ -58,6 +59,14 @@ export default function TilMashqi({ apiBase = "", til = "en", izoh = "uz", onClo
     let fin = false;
     const end = () => { if (fin) return; fin = true; if (alive.current && my === token.current) { setGapiryapti(null); done?.(); } };
     setGapiryapti(kim);
+    // REV139: chet tildagi so'zlarni qurilma ovozi o'qiydi, o'zbekchasi — serverdan (Azure limiti tejaladi)
+    if (aralashKerak(text)) {
+      const ctl = aralashOqi(String(text).slice(0, 1500), (m) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ ...{ jins, tezlik: sekin ? "-30%" : "-5%" }, matn: m })}`,
+        { rate: sekin ? 0.7 : 0.95, onEnd: end });
+      audio.current = { pause: () => ctl.stop() };
+      setTimeout(end, Math.min(30000, 8000 + String(text).length * 170));
+      return;
+    }
     try {
       const params = new URLSearchParams({ matn: String(text).slice(0, 1500), jins, tezlik: sekin ? "-30%" : "-5%" });
       const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`);

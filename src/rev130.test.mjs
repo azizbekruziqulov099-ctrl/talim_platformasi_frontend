@@ -81,3 +81,38 @@ test('REV130: Railway start command keeps working — preview script now runs th
   assert.equal(pkg.scripts.preview, 'node server.mjs');
   assert.match(pkg.scripts.start, /^node server\.mjs/);
 });
+
+test('REV138: izoh variant with lessons wins when the interface-language variant has none', async () => {
+  const { izohTanla } = await import('./curriculum/izohTanlov.js');
+  const fan = (nom, dars) => ({ nom, dars_turi: '', institution_type: 'bogcha', sinflar: [{ sinf: '4-5 yosh', mavzular: [{ nomi: 'Salom', dars_bor: dars }] }] });
+  const list = [fan('Ingliz tili', false), fan('Ingliz tili (izoh: rus)', true), fan('Ingliz tili (izoh: ingliz)', false), fan('Mantiq', true)];
+  assert.deepEqual(izohTanla(list, 'uz').map((f) => f.nom), ['Ingliz tili (izoh: rus)', 'Mantiq']);
+  // haqiqiy holat: o'zbekcha izohli kitob yo'q, ruscha va inglizchasi bor — o'zbek interfeysida ruscha izoh
+  const arab = [fan('Arab tili', false), fan('Arab tili (izoh: ingliz)', true), fan('Arab tili (izoh: rus)', true)];
+  assert.deepEqual(izohTanla(arab, 'uz').map((f) => f.nom), ['Arab tili (izoh: rus)']);
+  assert.deepEqual(izohTanla(arab, 'en').map((f) => f.nom), ['Arab tili (izoh: ingliz)']);
+  const hamma = [fan('Arab tili', true), fan('Arab tili (izoh: rus)', true)];
+  assert.deepEqual(izohTanla(hamma, 'ru').map((f) => f.nom), ['Arab tili (izoh: rus)']);   // mos variantda dars bor — o'sha
+  assert.deepEqual(izohTanla(hamma, 'uz').map((f) => f.nom), ['Arab tili']);
+  const yoq = [fan('Turk tili', false), fan('Turk tili (izoh: rus)', false)];
+  assert.deepEqual(izohTanla(yoq, 'uz').map((f) => f.nom), ['Turk tili']);                // hech birida dars yo'q — avvalgidek
+});
+
+test('REV139: mixed speech — Uzbek parts go to the server, foreign words to the device voice when it has one', async () => {
+  const { segmentlar, reja, aralashKerak, brauzerOvozi } = await import('./speech/aralashOvoz.js');
+  const ovozlar = [{ name: 'Google US English', lang: 'en-US', localService: false }, { name: 'Microsoft Irina', lang: 'ru-RU', localService: true },
+    { name: 'Google русский', lang: 'ru-RU', localService: false }];
+  assert.deepEqual(segmentlar('Salom! [en]Good morning![/en] Endi sen ayt: [en]Hello[/en] ⏸'), [
+    { til: 'uz', matn: 'Salom!' }, { til: 'en', matn: 'Good morning!' }, { til: 'uz', matn: 'Endi sen ayt:' }, { til: 'en', matn: 'Hello' }, { til: 'uz', matn: '⏸' }]);
+  assert.equal(brauzerOvozi('ru', ovozlar).name, 'Google русский');   // Google ovozi afzal
+  assert.equal(brauzerOvozi('ko', ovozlar), null);
+  const r = reja('Salom! [en]Good morning![/en] Endi sen ayt: [en]Hello[/en] ⏸', { ovozlar, takror: true });
+  assert.deepEqual(r.map((q) => q.tur), ['server', 'brauzer', 'server', 'brauzer', 'pauza']);
+  assert.equal(r[4].ms, 1800);
+  // qurilmada koreyscha ovoz yo'q — koreys so'zi o'zbekcha bilan birga serverga (teg saqlanadi)
+  const k = reja('Bu — [ko]안녕[/ko]! Yana ayt.', { ovozlar });
+  assert.deepEqual(k, [{ tur: 'server', matn: 'Bu — [ko]안녕[/ko] ! Yana ayt.' }]);
+  assert.equal(aralashKerak('Faqat o\'zbekcha gap.', ovozlar), false);
+  assert.equal(aralashKerak('[en]Apple[/en]', ovozlar), true);
+  assert.equal(aralashKerak('[en]Apple[/en]', []), false);   // ovoz yo'q qurilma — avvalgidek server
+});

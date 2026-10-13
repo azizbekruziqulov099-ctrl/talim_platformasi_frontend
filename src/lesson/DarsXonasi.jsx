@@ -28,6 +28,7 @@ import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import VoiceCheck from "./VoiceCheck.jsx";
 import { voiceCheckItems } from "./voiceCheckRules.js";
 import { speechRecognitionAvailable } from "../speech/speakRules.js";
+import { aralashKerak, aralashOqi, reja as ovozReja } from "../speech/aralashOvoz.js";
 import "./dars-xonasi.css";
 
 /** REV90: bog'cha boshqaruv tugmasi — katta belgi, ostida kichik yozuv (o'qiy olmaydigan bola belgidan taniydi). */
@@ -105,6 +106,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV122: og'iz ovozga mos — {lv: konvert, audio} ; fallback — so'zlar jim yonganda oddiy ritm
   const lipRef = useRef(null);
   const fallbackTalk = useRef(false);
+  const aralashRef = useRef(null);   // REV139: o'zbekcha — server, chet tili — brauzer ovozi
+  const sozTimer = useRef(null);
   const kidRef = useRef(false);
   const gradeRef = useRef("");
   const tokenRef = useRef(0);
@@ -198,6 +201,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     tokenRef.current += 1;
     const audio = audioRef.current; audioRef.current = null;
     if (audio) { try { audio.pause(); audio.src = ""; } catch { /* already released */ } }
+    try { aralashRef.current?.stop(); } catch { /* */ } aralashRef.current = null;
+    clearTimeout(sozTimer.current);
     setSpeaking(false); setWord(-1); lipRef.current = null; fallbackTalk.current = false;
   }, []);
   // Og'iz holati: null — jim (yopiq), 0..1 — ovoz balandligi, -1 — ovoz ketyapti, lekin tahlil hali tayyor emas.
@@ -227,10 +232,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const prefetch = useCallback((text, takror = false) => {
     const clean = spokenFor(text);
     if (!clean.replace(/⏸/g, "").trim()) return;
-    const url = ovozUrl(clean, takror);
-    if (prefetched.current.has(url)) return;
-    prefetched.current.add(url);
-    try { fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => {}); } catch { /* eski brauzer */ }
+    // REV139: aralash gapda faqat server o'qiydigan (o'zbekcha) bo'laklar oldindan tayyorlanadi
+    const urls = aralashKerak(clean) ? ovozReja(clean, { takror }).filter((q) => q.tur === "server").map((q) => ovozUrl(q.matn, takror)) : [ovozUrl(clean, takror)];
+    for (const url of urls) {
+      if (prefetched.current.has(url)) continue;
+      prefetched.current.add(url);
+      try { fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => {}); } catch { /* eski brauzer */ }
+    }
   }, [ovozUrl, spokenFor]);
   const say = useCallback((text, done, opts = {}) => {
     hush();
@@ -244,7 +252,23 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!clean.replace(/⏸/g, "").trim()) { done?.(); return; }
     const words = String(text || "").replace(/⏸/g, " ").split(/\s+/).filter(Boolean);
     setSpeaking(true);
-    const finish = () => { if (my !== tokenRef.current) return; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
+    const finish = () => { if (my !== tokenRef.current) return; clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
+    // REV139: gapda chet tildagi so'z bo'lsa — o'zbekcha bo'laklar serverdan, chet tildagilari qurilma ovozidan
+    if (aralashKerak(clean)) {
+      fallbackTalk.current = true;
+      let w = 0;
+      const sozYonsin = () => {
+        if (my !== tokenRef.current || w >= words.length) return;
+        setWord(w);
+        sozTimer.current = setTimeout(sozYonsin, (300 + (words[w++] || "").length * 34) / rateRef.current);
+      };
+      sozYonsin();
+      aralashRef.current = aralashOqi(clean, (m) => ovozUrl(m, opts.takror), {
+        rate: (kidRef.current ? 0.85 : 0.95) * rateRef.current, playbackRate: rateRef.current, takror: Boolean(opts.takror),
+        onEnd: () => { if (my === tokenRef.current) finish(); },
+      });
+      return;
+    }
     const fallback = () => {
       fallbackTalk.current = true;
       let i = 0;
@@ -297,6 +321,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, izoh);
     return kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken);   // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan
   }, [kid, kinds, lesson, izoh]);
+  // REV139: dars ochilganda birinchi ikki qadam ovozi sekin-asta (1.5 soniyadan keyin) oldindan tayyorlanadi —
+  // «Boshlash» bosilganda kutilmaydi; qolganlari dars davomida navbatma-navbat (keyingi 2 qadam) tayyorlanadi.
+  useEffect(() => {
+    if (!steps.length || mode !== "idle") return undefined;
+    const t = setTimeout(() => {
+      [0, 1].forEach((j) => { if (steps[j]) prefetch(stepSpeech(steps[j], j), kid && kidTakrorStep(steps[j])); });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [steps, mode, prefetch, stepSpeech, kid]);
 
   useEffect(() => {
     const controller = new AbortController();

@@ -8,6 +8,7 @@ import {
 import { yozuvniTekshir, bolakTogri, gapBaho } from "../til/mashqRules.js";
 import { tik, oqi as vaqtOqi, holat as vaqtHolati, FAOL } from "../kid/xonalar/oyinVaqti.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
+import { aralashKerak, aralashOqi } from "../speech/aralashOvoz.js";
 import { uiText as T } from "../interface/interfaceRuntime.js";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import "./maktab.css";
@@ -82,6 +83,15 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     const my = ++token.current;
     let fin = false;
     const end = () => { if (fin) return; fin = true; if (alive.current && my === token.current) done?.(); };
+    // REV139: chet tildagi so'zlarni qurilma ovozi o'qiydi, o'zbekchasi — serverdan
+    if (aralashKerak(text)) {
+      const tezlik = sekin ? "-30%" : sinf <= 4 ? "-15%" : "-5%";
+      const ctl = aralashOqi(String(text).slice(0, 1500), (m) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: m, jins: "qiz", tezlik })}`,
+        { rate: sekin ? 0.65 : sinf <= 4 ? 0.85 : 0.95, onEnd: end });
+      audio.current = { pause: () => ctl.stop() };
+      setTimeout(end, Math.min(25000, 6000 + String(text).length * 170));
+      return;
+    }
     try {
       const params = new URLSearchParams({ matn: String(text).slice(0, 1500), jins: "qiz", tezlik: sekin ? "-30%" : sinf <= 4 ? "-15%" : "-5%" });
       const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`);

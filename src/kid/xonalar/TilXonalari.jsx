@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { aralashKerak, aralashOqi } from "../../speech/aralashOvoz.js";
 import { XONALAR, SOZLAR, BUYRUQLAR, BUYRUQ_MEN } from "./xonaLugat.js";
 import { RASMLAR, FONLAR } from "./rasmlar.js";
 import {
@@ -85,6 +86,14 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
     const end = () => { if (fin) return; fin = true; if (alive.current && my === token.current) { setGapir(null); done?.(); } };
     if (!String(text || "").trim()) { end(); return; }
     setGapir(kim || "ustoz");
+    // REV139: chet tildagi so'zlarni qurilma ovozi o'qiydi, o'zbekchasi — serverdan (Azure limiti tejaladi)
+    if (aralashKerak(text)) {
+      const ctl = aralashOqi(String(text).slice(0, 1500), (m) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ ...Object.fromEntries(new URLSearchParams({ jins: ovozJinsi(kim), tezlik: kim ? ustozRate(grade) : kidRate(grade) })), matn: m })}`,
+        { rate: 0.85, onEnd: end });
+      audio.current = { pause: () => ctl.stop() };
+      setTimeout(end, Math.min(30000, 8000 + String(text).length * 170));
+      return;
+    }
     try {
       const params = new URLSearchParams({ matn: String(text).slice(0, 1500), jins: ovozJinsi(kim),
         tezlik: kim ? ustozRate(grade) : kidRate(grade) });

@@ -27,9 +27,16 @@ export function izohTanla(fanlar = [], locale = 'uz') {
     guruh.get(key).push(f);
   }
   const keep = new Set();
+  // REV138: darsi bor variant afzal — interfeys tiliga mos variantda dars yo'q bo'lsa (masalan, miya «izoh: rus»
+  // bilan yuklangan), darsi bor variant ko'rsatiladi. Aks holda mavzular ko'rinadi-yu, bosganda ochilmasdi.
+  const darsli = (fl) => fl.some((f) => (f?.sinflar || []).some((g) => (g?.mavzular || []).some((t) => t?.dars_bor)));
   for (const list of guruh.values()) {
     const by = (t) => list.filter((f) => fanIzohi(f?.nom) === t);
-    const tanlov = by(til).length ? by(til) : by('uz').length ? by('uz') : by(fanIzohi(list[0]?.nom));
+    const eski = by(til).length ? by(til) : by('uz').length ? by('uz') : by(fanIzohi(list[0]?.nom));
+    // o'zbek bolasi uchun ruscha izoh inglizchadan tushunarliroq: uz → ru → en
+    const navbat = til === 'en' ? ['en', 'uz', 'ru'] : til === 'ru' ? ['ru', 'uz', 'en'] : ['uz', 'ru', 'en'];
+    const tartib = [eski, ...[...navbat, ...list.map((f) => fanIzohi(f?.nom))].map(by)].filter((x) => x.length);
+    const tanlov = tartib.find(darsli) || eski;
     tanlov.forEach((f) => keep.add(f));
   }
   return fanlar.filter((f) => keep.has(f));
