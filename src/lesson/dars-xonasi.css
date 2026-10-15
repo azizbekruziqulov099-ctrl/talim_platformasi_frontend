@@ -291,3 +291,36 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-aud-bogcha .dx-kid-opts .dx-kid-pic.sz-sm{font-size:clamp(22px,4.6vw,36px)}
 /* REV123: raqam — stiker emas, katta son kartasi */
 .dx-kid-pic.kb-num{display:inline-block;font:900 clamp(40px,9vw,64px)/1 system-ui,sans-serif;color:#fff;background:linear-gradient(#63b3ff,#2f74db);padding:.12em .34em .16em;border-radius:.22em;box-shadow:0 .07em 0 #1f4f9c,0 .14em .3em #0003;animation:ks-breathe 3s ease-in-out infinite}
+/* REV145: til darsida bola so'zni mikrofonga aytadi — sahna ustida katta, aniq belgi */
+.dx-kind-frame{position:relative}
+.dx-mic-soz{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;
+  padding:10px 20px 10px 12px;border-radius:999px;background:#fff;box-shadow:0 6px 22px #0003;border:3px solid #ef6b5b;
+  max-width:calc(100% - 24px);animation:dx-kind-in .25s ease-out}
+.dx-mic-soz b{font-size:clamp(22px,6vw,34px);color:#1f2a44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dx-mic-soz small{font-size:14px;color:#5b6478;font-weight:700}
+.dx-mic-ikon{display:grid;place-items:center;width:52px;height:52px;flex:none;border-radius:50%;background:#ef6b5b;color:#fff;font-size:28px}
+.dx-mic-soz.is-tingla .dx-mic-ikon{animation:dx-voice-pulse 1.2s ease-in-out infinite}
+.dx-mic-soz.is-ok{border-color:#3fbf7f}.dx-mic-soz.is-ok .dx-mic-ikon{background:#3fbf7f;animation:dx-star .5s ease-out}
+.dx-mic-soz.is-yana{border-color:#f6c35b}.dx-mic-soz.is-yana .dx-mic-ikon{background:#f6c35b}
+.dx-mic-soz.is-no{border-color:#b89af0}.dx-mic-soz.is-no .dx-mic-ikon{background:#b89af0}
+@media(max-width:520px){.dx-mic-soz{bottom:8px;padding:8px 14px 8px 8px;gap:8px}.dx-mic-ikon{width:42px;height:42px;font-size:22px}.dx-mic-soz small{display:none}}
+@media(prefers-reduced-motion:reduce){.dx-mic-soz,.dx-mic-soz .dx-mic-ikon{animation:none!important}}
+/* REV145: «Bugun o'rgandim» — natija ekranida so'zlar rasmi bilan */
+.dx-kid-words{display:grid;gap:6px;justify-items:center;width:100%}
+.dx-kid-words>small{font-weight:800;color:#5b6478;font-size:14px}
+.dx-kid-words ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.dx-kid-words li{position:relative;display:grid;justify-items:center;gap:2px;min-width:78px;padding:8px 10px;border-radius:16px;background:#fff;border:2px solid #e8e3d8}
+.dx-kid-words li.is-ok{border-color:#3fbf7f;background:#effaf3}
+.dx-kid-words img{width:52px;height:52px;object-fit:contain}
+.dx-kid-words li>span{font-size:40px;line-height:1.1}
+.dx-kid-words b{font-size:17px;color:#1f2a44}
+.dx-kid-words i{position:absolute;top:-8px;right:-6px;font-style:normal;font-size:18px}
+/* REV145: «Bugun o'rganamiz» — dars oldidan maqsad */
+.dx-goal{display:grid;gap:6px;justify-items:center;margin-top:10px;padding:10px 12px;border-radius:18px;background:#fff8e6;border:2px dashed #f6c35b}
+.dx-goal>small{font-weight:800;color:#8a5a00;font-size:14px}
+.dx-goal ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.dx-goal li{display:inline-flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:4px 12px 4px 6px;box-shadow:0 1px 4px #0001}
+.dx-goal img{width:34px;height:34px;object-fit:contain}
+.dx-goal li>span{font-size:26px}
+.dx-goal b{font-size:17px;color:#1f2a44}
+.dx-goal p{margin:0;text-align:center;font-weight:700;color:#5a4a00;font-size:14px;line-height:1.4}

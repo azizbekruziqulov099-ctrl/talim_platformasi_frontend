@@ -32,6 +32,10 @@ export function TelegramSignIn(props) {
   return <TelegramCodeLogin {...props}/>;
 }
 
+// REV146: server javob bermaganda ko'rsatiladigan bitta, tushunarli xabar (tarmoq xatosi bilan bir xil matn)
+const SERVER_DOWN = "Server hozir javob bermadi (yangilanish yoki qayta ishga tushish bo‘lishi mumkin). 10–20 soniyadan keyin qayta bosing.";
+const isServerDownText = (text) => text === SERVER_DOWN;
+
 export default function KabutarLogin({ apiBase = "", onAuthenticated, initialError = "", onCourses }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
@@ -43,7 +47,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const [accounts, setAccounts] = useState(() => savedAccounts());
   const [resuming, setResuming] = useState("");
   const [telegramKey, setTelegramKey] = useState(0);
-  const [configError, setConfigError] = useState("");
+  const [, setConfigError] = useState("");
   const [configAttempt, setConfigAttempt] = useState(0);
   const [method, setMethod] = useState("");
   const [quickRole, setQuickRole] = useState("");
@@ -78,11 +82,17 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     const controller = new AbortController();
     setConfigLoading(true);
     setConfigError("");
+    let retry = null;
     authRequest(apiBase, "/auth/config", { signal: controller.signal })
-      .then((data) => { if (!controller.signal.aborted) { setConfig(data); saveAuthConfig(data); } })
-      .catch((err) => { if (!controller.signal.aborted) setConfigError(err.message); })
+      .then((data) => { if (!controller.signal.aborted) { setConfig(data); saveAuthConfig(data); setConfigError(""); setError((e) => (isServerDownText(e) ? "" : e)); } })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setConfigError(err.message);
+        // REV146: server qayta ishga tushayotgan bo'lsa — o'zi har 8 soniyada tekshiradi (2 daqiqagacha), tugma bosish shart emas
+        if (configAttempt < 15) retry = setTimeout(() => setConfigAttempt((n) => n + 1), 8000);
+      })
       .finally(() => { if (!controller.signal.aborted) setConfigLoading(false); });
-    return () => controller.abort();
+    return () => { controller.abort(); clearTimeout(retry); };
   }, [apiBase, configAttempt]);
 
   const finish = useCallback((data) => {
@@ -144,12 +154,28 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     if (account.role) pickRole(account.role);
     if (account.token) {
       setResuming(String(account.user_id));
+      // REV146: server javob bermasa — bosish «osilib» qolmaydi: 12 soniyada to'xtaydi, 2 marta o'zi qayta uradi.
+      // Token FAQAT server «sessiya tugagan» (401/403) desa o'chadi — 502/503 (server qayta ishga tushyapti) da saqlanadi,
+      // aks holda Telegram/Gmail'ga ulanmagan akkaunt butunlay yo'qolardi.
+      let natija = "tarmoq";
       try {
-        const response = await fetch(authEndpoint(apiBase, "/auth/men"), { headers: { Authorization: `Bearer ${account.token}`, Accept: "application/json" }, cache: "no-store" });
-        if (response.ok) { finish({ token: account.token }); return; }
-        setAccounts(dropToken(account.token));
-      } catch { /* tarmoq xatosi — pastdagi usul bilan davom etadi */ }
-      finally { if (mounted.current) setResuming(""); }
+        for (let urinish = 0; urinish < 3 && mounted.current; urinish += 1) {
+          if (urinish) await new Promise((resolve) => setTimeout(resolve, 2500 * urinish));
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 12000);
+          try {
+            const response = await fetch(authEndpoint(apiBase, "/auth/men"), { headers: { Authorization: `Bearer ${account.token}`, Accept: "application/json" }, cache: "no-store", signal: controller.signal });
+            if (response.ok) { natija = "ok"; break; }
+            if (response.status === 401 || response.status === 403) { natija = "tugagan"; break; }
+            natija = "tarmoq";   // 5xx — server hali tayyor emas
+          } catch { natija = "tarmoq"; }
+          finally { clearTimeout(timer); }
+        }
+      } finally { if (mounted.current) setResuming(""); }
+      if (!mounted.current) return;
+      if (natija === "ok") { finish({ token: account.token }); return; }
+      if (natija === "tarmoq") { setError(SERVER_DOWN); return; }
+      setAccounts(dropToken(account.token));
     }
     if (account.method === "google" && googleEnabled) { startGoogle(); return; }
     if (account.method === "password") { chooseMethod("password"); setIdentifier(account.identifier || ""); return; }
@@ -174,13 +200,14 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     try {
       const body = { role: next, age_group: ageGroup || undefined };
       let data;
-      try { data = await authRequest(apiBase, "/auth/quick/start", { body, signal: controller.signal }); }
-      catch (first) {
-        // REV107: server bir lahza javob bermasa — 2.5 soniyadan keyin o'zi bir marta qayta urinadi.
-        if (!first?.network || controller.signal.aborted) throw first;
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-        if (controller.signal.aborted) throw first;
-        data = await authRequest(apiBase, "/auth/quick/start", { body, signal: controller.signal });
+      // REV107/146: server bir lahza javob bermasa — o'zi yana 2 marta (2.5 va 5 soniyadan keyin) qayta urinadi.
+      for (let urinish = 0; ; urinish += 1) {
+        try { data = await authRequest(apiBase, "/auth/quick/start", { body, signal: controller.signal }); break; }
+        catch (err) {
+          if (!err?.network || controller.signal.aborted || urinish >= 2) throw err;
+          await new Promise((resolve) => setTimeout(resolve, 2500 * (urinish + 1)));
+          if (controller.signal.aborted) throw err;
+        }
       }
       if (mounted.current && id === commandId.current) finish({ ...data, method: "quick" });
     } catch (err) {
@@ -250,7 +277,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                 <button type="button" className="kb-mini-google" disabled={busy || !googleEnabled} onClick={startGoogle}><GoogleMark/>{__kbUi("Google")}</button>
                 <button type="button" className={`kb-mini-pass${method === "password" ? " is-open" : ""}`} onClick={() => toggleMethod("password")} aria-expanded={method === "password"}><LockKeyhole size={15}/><InterfaceText text={__kbUi("Parol")}/></button>
               </div>
-              {configError && !config && <div className="kb-login-service-error" role="status"><p>{__kbUi(configError)}</p><button type="button" onClick={() => setConfigAttempt((attempt) => attempt + 1)}><InterfaceText text={__kbUi("Qayta tekshirish")}/></button></div>}
+              {/* REV146: sozlama kelmasa ham qizil xato ko'rsatilmaydi — tugmalar baribir ishlaydi, sozlama fonda o'zi qayta so'raladi */}
               {config && !googleEnabled && method === "google" && <p className="kb-login-poll-notice"><InterfaceText text={__kbUi("Google orqali kirish hozir sozlanmagan.")}/></p>}
 
               {method === "telegram" && <div className="kb-login-method-panel"><TelegramCodeLogin key={telegramKey} apiBase={apiBase} config={config} onAuthenticated={(data) => finish({ ...data, method: "telegram" })}/></div>}

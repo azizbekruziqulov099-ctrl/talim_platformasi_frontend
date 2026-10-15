@@ -104,15 +104,21 @@ test('REV139: mixed speech — Uzbek parts go to the server, foreign words to th
     { name: 'Google русский', lang: 'ru-RU', localService: false }];
   assert.deepEqual(segmentlar('Salom! [en]Good morning![/en] Endi sen ayt: [en]Hello[/en] ⏸'), [
     { til: 'uz', matn: 'Salom!' }, { til: 'en', matn: 'Good morning!' }, { til: 'uz', matn: 'Endi sen ayt:' }, { til: 'en', matn: 'Hello' }, { til: 'uz', matn: '⏸' }]);
-  assert.equal(brauzerOvozi('ru', ovozlar).name, 'Google русский');   // Google ovozi afzal
+  // REV140: rus tili har doim serverning tabiiy ovozida; robot (oddiy) ovozlar ishlatilmaydi
+  assert.equal(brauzerOvozi('ru', ovozlar), null);
+  assert.equal(brauzerOvozi('en', ovozlar).name, 'Google US English');
+  assert.equal(brauzerOvozi('en', [{ name: 'Microsoft David', lang: 'en-US', localService: true }]), null);
+  assert.equal(brauzerOvozi('en', [{ name: 'Microsoft Aria Online (Natural)', lang: 'en-US', localService: false }]).name, 'Microsoft Aria Online (Natural)');
+  assert.equal(aralashKerak('Bu — [ru]Привет![/ru]', ovozlar, { qurilma: true }), false);
   assert.equal(brauzerOvozi('ko', ovozlar), null);
-  const r = reja('Salom! [en]Good morning![/en] Endi sen ayt: [en]Hello[/en] ⏸', { ovozlar, takror: true });
+  const r = reja('Salom! [en]Good morning![/en] Endi sen ayt: [en]Hello[/en] ⏸', { ovozlar, takror: true, qurilma: true });
   assert.deepEqual(r.map((q) => q.tur), ['server', 'brauzer', 'server', 'brauzer', 'pauza']);
   assert.equal(r[4].ms, 1800);
   // qurilmada koreyscha ovoz yo'q — koreys so'zi o'zbekcha bilan birga serverga (teg saqlanadi)
-  const k = reja('Bu — [ko]안녕[/ko]! Yana ayt.', { ovozlar });
+  const k = reja('Bu — [ko]안녕[/ko]! Yana ayt.', { ovozlar, qurilma: true });
   assert.deepEqual(k, [{ tur: 'server', matn: 'Bu — [ko]안녕[/ko] ! Yana ayt.' }]);
-  assert.equal(aralashKerak('Faqat o\'zbekcha gap.', ovozlar), false);
-  assert.equal(aralashKerak('[en]Apple[/en]', ovozlar), true);
-  assert.equal(aralashKerak('[en]Apple[/en]', []), false);   // ovoz yo'q qurilma — avvalgidek server
+  assert.equal(aralashKerak('Faqat o\'zbekcha gap.', ovozlar, { qurilma: true }), false);
+  assert.equal(aralashKerak('[en]Apple[/en]', ovozlar, { qurilma: true }), true);
+  assert.equal(aralashKerak('[en]Apple[/en]', ovozlar), false);   // REV145: odatda hamma tillar serverda
+  assert.equal(aralashKerak('[en]Apple[/en]', [], { qurilma: true }), false);   // ovoz yo'q qurilma — avvalgidek server
 });

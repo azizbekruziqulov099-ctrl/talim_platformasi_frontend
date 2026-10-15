@@ -15,7 +15,8 @@ const PRAISE = ["To‘g‘ri! Aniq aytdingiz.", "Barakalla, to‘g‘ri.", "Yaxs
  * REV105: dars oxiridagi ovozli tekshiruv. Ustoz iborani aytadi, mikrofon o'zi yoqiladi,
  * bola/o'quvchi/talaba takrorlaydi — brauzer tanib, yulduz beradi. Har iboraga 2 urinish.
  * REV110: xato bo'lsa ustoz bolaning O'Z ovozini qayta eshittiradi («Sen shunday aytding…»), keyin to'g'risini aytib,
- * yana urinishga undaydi. Yozuv faqat qurilma xotirasida, serverga yuborilmaydi. Bog'chada 3 urinish.
+ * yana urinishga undaydi. Yozuv faqat qurilma xotirasida, serverga yuborilmaydi. REV145: bog'chada ham 2 urinish;
+ * natija ro'yxati (qaysi so'zni aytdi) onDone ning ikkinchi argumenti — ota-ona hisobotiga boradi.
  */
 export default function VoiceCheck({ items, audience = "oquvchi", say, hush, speaking = false, onDone, bilgan = [], izoh = "uz" }) {
   const kid = audience === "bogcha";
@@ -51,7 +52,7 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
       ? (izoh !== "uz" ? gap(izoh, good ? "Barakalla! Hammasini aytding!" : "Yaxshi harakat! Keyingi safar yana aytamiz.")
         : good ? __kbUi("Barakalla! Hammasini aytding!") : __kbUi("Yaxshi harakat! Keyingi safar yana aytamiz."))
       : __kbUi(`Ovozli tekshiruv tugadi: ${sum.togri} / ${sum.jami}.`),
-      () => setTimeout(() => { if (alive.current) onDone?.(sum); }, 500));
+      () => setTimeout(() => { if (alive.current) onDone?.(sum, list); }, 500));
   }, [kid, say, onDone]);
 
   const record = useCallback((ok, heard, stars, g = null) => {
@@ -149,7 +150,7 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
   const stopAll = () => {
     stopRec(); hush?.();
     const list = [...resultsRef.current];
-    onDone?.(voiceSummary(list));
+    onDone?.(voiceSummary(list), list);
   };
 
   if (!item && phase !== "done") return null;

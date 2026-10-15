@@ -1,3 +1,7 @@
+// REV145: HAMMA TILLAR — serverdagi tabiiy (Azure neyron) ovozda. Qurilma ovozi (speechSynthesis) robotdek va
+// ustozning jinsini bilmaydi (Sardor aka ayol ovozida gapirardi) — u faqat server umuman javob bermasa, zaxira sifatida
+// ishlatiladi (qurilmadaOqi). Quyidagi aralash o'qish faqat qurilma: true berilganda yoqiladi.
+export const QURILMA_OVOZI = false;
 // REV139: aralash ovoz — o'zbekcha bo'laklar serverdan (Azure, bir marta yaratilib bazada saqlanadi),
 // chet tildagi bo'laklar (Hello, Привет, 안녕…) qurilmaning o'z bepul ovozi (speechSynthesis) bilan o'qiladi.
 // Shunda Azure'ning bepul oylik limiti faqat o'zbekchaga sarflanadi. Qurilmada o'sha tilning ovozi bo'lmasa
@@ -35,19 +39,27 @@ try {
   globalThis.speechSynthesis?.addEventListener?.("voiceschanged", yangila);
 } catch { /* eski brauzer */ }
 
-/** Shu til uchun eng yaxshi brauzer ovozi (Google / Natural / Online ovozlar afzal) yoki null. */
+// REV140: rus tili har doim serverdagi tabiiy (neyron) ovozda o'qiladi — qurilmalardagi ruscha ovozlar
+// (Windows «Irina», Android «compact» va h.k.) robotdek, urg'ularni xato qo'yadi. Server ovozi bir marta yaratilib,
+// bazada saqlanadi — keyingi safar limit sarflanmaydi.
+export const SERVERDA = new Set(["ru"]);
+// Faqat sifatli brauzer ovozi ishlatiladi (Google, Microsoft «Online (Natural)», Apple «Enhanced/Premium»).
+// Qurilmada faqat oddiy (robot) ovoz bo'lsa — bo'lak serverga beriladi.
+const SIFATLI = /google|natural|online|neural|premium|enhanced/i;
+
+/** Shu til uchun sifatli brauzer ovozi yoki null (null — bo'lak serverda o'qiladi). */
 export function brauzerOvozi(til, ovozlar = null) {
   const kod = LOKAL[til];
-  if (!kod) return null;
+  if (!kod || SERVERDA.has(til)) return null;
   if (!ovozlar && !OVOZLAR.length) yangila();
-  const ro = (ovozlar || OVOZLAR).filter((v) => String(v.lang || "").toLowerCase().replace("_", "-").startsWith(kod));
+  const ro = (ovozlar || OVOZLAR).filter((v) => String(v.lang || "").toLowerCase().replace("_", "-").startsWith(kod) && SIFATLI.test(v.name || ""));
   if (!ro.length) return null;
   const ball = (v) => (/google/i.test(v.name) ? 3 : 0) + (/natural|online|neural|premium|enhanced/i.test(v.name) ? 2 : 0) + (v.localService ? 0 : 1);
   return [...ro].sort((a, b) => ball(b) - ball(a))[0];
 }
 
 /** Reja: ketma-ket bo'laklar — { tur: "server", matn } (teglar saqlanadi) | { tur: "brauzer", til, matn, ovoz } | { tur: "pauza", ms }. */
-export function reja(text, { ovozlar = null, takror = false } = {}) {
+export function reja(text, { ovozlar = null, takror = false, qurilma = QURILMA_OVOZI } = {}) {
   const out = [];
   const qosh = (q) => {
     const prev = out[out.length - 1];
@@ -55,7 +67,7 @@ export function reja(text, { ovozlar = null, takror = false } = {}) {
     out.push(q);
   };
   for (const seg of segmentlar(text)) {
-    const ovoz = seg.til !== "uz" ? brauzerOvozi(seg.til, ovozlar) : null;
+    const ovoz = qurilma && seg.til !== "uz" ? brauzerOvozi(seg.til, ovozlar) : null;
     if (ovoz && harfBor(brauzerMatni(seg.matn))) {
       qosh({ tur: "brauzer", til: seg.til, matn: brauzerMatni(seg.matn), ovoz });
       const n = (seg.matn.match(/⏸/g) || []).length;   // so'zdan keyingi jimlik (bola qaytarishi uchun) saqlanadi
@@ -74,8 +86,43 @@ export function reja(text, { ovozlar = null, takror = false } = {}) {
 }
 
 /** Aralash o'qish kerakmi: kamida bitta chet tildagi bo'lakni brauzer o'qiy oladi. */
-export function aralashKerak(text, ovozlar = null) {
-  return reja(text, { ovozlar }).some((q) => q.tur === "brauzer");
+export function aralashKerak(text, ovozlar = null, { qurilma = QURILMA_OVOZI } = {}) {
+  return reja(text, { ovozlar, qurilma }).some((q) => q.tur === "brauzer");
+}
+
+/**
+ * REV145: zaxira — server ovoz bera olmasa, gap qurilma ovozida o'qiladi (jim qolgandan yaxshi). Har bo'lak o'z tilida;
+ * qurilmada shu tilning ovozi bo'lmasa — bo'lak o'tkazib yuboriladi. Qaytaradi: stop().
+ */
+export function qurilmadaOqi(text, { rate = 0.9, onEnd } = {}) {
+  const synth = globalThis.speechSynthesis;
+  let toxtadi = false, timer = null;
+  const tamomla = () => { if (toxtadi) return; toxtadi = true; clearTimeout(timer); onEnd?.(); };
+  if (!synth || typeof SpeechSynthesisUtterance === "undefined") { timer = setTimeout(tamomla, 400); return { stop() { toxtadi = true; clearTimeout(timer); } }; }
+  if (!OVOZLAR.length) yangila();
+  const bolaklar = segmentlar(text).map((b) => ({ ...b, matn: brauzerMatni(b.matn) })).filter((b) => harfBor(b.matn));
+  let i = -1;
+  const keyingi = () => {
+    if (toxtadi) return;
+    i += 1;
+    if (i >= bolaklar.length) { tamomla(); return; }
+    const b = bolaklar[i];
+    const kod = b.til === "uz" ? "uz" : LOKAL[b.til];
+    const ovoz = OVOZLAR.find((v) => String(v.lang || "").toLowerCase().replace("_", "-").startsWith(kod));
+    if (!ovoz && b.til !== "uz") { keyingi(); return; }
+    let tugadi = false;
+    const bitdi = () => { if (tugadi) return; tugadi = true; clearTimeout(timer); setTimeout(keyingi, 150); };
+    try {
+      const u = new SpeechSynthesisUtterance(b.matn);
+      if (ovoz) { u.voice = ovoz; u.lang = ovoz.lang; } else u.lang = "uz-UZ";
+      u.rate = rate; u.onend = bitdi; u.onerror = bitdi;
+      synth.speak(u);
+      timer = setTimeout(bitdi, 3000 + b.matn.length * 160 / Math.max(0.5, rate));
+    } catch { bitdi(); }
+  };
+  try { synth.cancel(); } catch { /* */ }
+  keyingi();
+  return { stop() { if (toxtadi) return; toxtadi = true; clearTimeout(timer); try { synth.cancel(); } catch { /* */ } } };
 }
 
 /**

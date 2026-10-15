@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { aralashKerak, aralashOqi } from "../../speech/aralashOvoz.js";
 import { XONALAR, SOZLAR, BUYRUQLAR, BUYRUQ_MEN } from "./xonaLugat.js";
 import { RASMLAR, FONLAR } from "./rasmlar.js";
@@ -13,6 +14,7 @@ import { kidRate, ustozRate } from "../../lesson/kidLessonRules.js";
 import { eslab } from "../sozBoyligi.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
 import { useInterface } from "../../interface/InterfacePreferences.jsx";
+import HarakatYoli from "../harakat/HarakatYoli.jsx";
 import "./xonalar.css";
 
 const REJIM = {
@@ -35,6 +37,8 @@ const Rasm = ({ id, className = "" }) => (RANGLAR[id]
   : RASMLAR[id]
     ? <img className={className} src={RASMLAR[id]} alt="" draggable="false" />
     : <span className={`${className} is-emoji`} aria-hidden="true">{SOZLAR[id]?.emoji || BUYRUQ_HAMMA.find((b) => b.id === id)?.emoji || "⭐"}</span>);
+/** REV144: xona telefonda butun ekranni egallaydi (sahifa sarlavhasi ostida, body ichida chiziladi). */
+const ekranda = (el) => (globalThis.document?.body ? createPortal(el, globalThis.document.body) : el);
 const kut = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -397,6 +401,18 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   </div>;
 
   // — xonalar ro'yxati —
+  // REV144: xona ochiq paytda orqadagi sahifa aylanmasin; ustoz ko'rsatgan narsa telefonda ekranga suriladi
+  useEffect(() => {
+    if (!xonaId || !globalThis.document?.body) return undefined;
+    const b = globalThis.document.body, eski = b.style.overflow;
+    b.style.overflow = "hidden";
+    return () => { b.style.overflow = eski; };
+  }, [xonaId]);
+  useEffect(() => {
+    if (!faol) return;
+    const el = globalThis.document?.querySelector(".xo-ekran .is-faol");
+    try { el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }); } catch { /* eski brauzer */ }
+  }, [faol]);
   if (!x) {
     return <div className="xo-root">
       <div className="xo-bar">
@@ -405,6 +421,10 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}>⏳ {vaqt.qoldi}′</span>}
       </div>
       {vaqtTosiq}
+      {/* REV141: asosiy — bosqichma-bosqich «Harakat o'yinlari» yo'li; so'z xonalari yo'lning bosqichlari sifatida ochiladi */}
+      <HarakatYoli til={til} izoh={izoh} grade={grade} ayt={ayt} jim={jim} gapiryapti={Boolean(gapir)}
+        xonaYulduz={(id) => saqlangan[id]?.yulduz || 0} onXona={xonagaKir} ochiq={cheklovsiz || vaqt.holat === "ok"} cheklovsiz={cheklovsiz} />
+      <details className="xo-hamma"><summary>🏠 {T("Barcha so‘z xonalari")}</summary>
       <div className="xo-list">
         {XONALAR.map((r) => {
           const s = saqlangan[r.id] || {};
@@ -417,13 +437,14 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
           </button>;
         })}
       </div>
+      </details>
     </div>;
   }
 
   const kashfQilingan = new Set(saqlangan[xonaId]?.kashf || []);
   const savol = oyin?.list[oyin.i];
   const overlay = oyin && ["xotira", "ortiqcha", "yoqoldi", "buyruq"].includes(oyin.rejim);
-  return <div className="xo-root">
+  return ekranda(<div className={`xo-root xo-ekran ${overlay ? "xo-fit" : ""}`} role="dialog" aria-modal="true">
     <div className="xo-bar">
       <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}>⬅️</button>
       <b className="xo-title">{x.emoji} {T(x.nom)}</b>
@@ -437,11 +458,11 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
       </button>)}
     </div>
     <div className="xo-scroll">
-      <div className={`xo-sahna xo-sahna--${xonaId} ${x.fon ? "has-fon" : ""}`} style={{ aspectRatio: String(x.nisbat) }}>
+      <div className={`xo-sahna xo-sahna--${xonaId} ${x.fon ? "has-fon" : ""}`} style={{ aspectRatio: String(x.nisbat), "--nisbat": x.nisbat }}>
         {x.fon && FONLAR[x.fon] ? <img className="xo-fon" src={FONLAR[x.fon]} alt="" draggable="false" /> : <Bezak id={xonaId} />}
         {joylar.map((p) => {
           if (p.hs) {
-            const cls = ["xo-hs", faol === p.id ? "is-faol" : "", xato?.id === p.id ? "is-xato" : ""].filter(Boolean).join(" ");
+            const cls = ["xo-hs", faol === p.id ? "is-faol" : "", gapir === p.id ? "is-gapir" : "", xato?.id === p.id ? "is-xato" : ""].filter(Boolean).join(" ");
             return <button key={`hs-${p.id}-${xato?.id === p.id ? xato.n : 0}`} type="button" className={cls}
               style={{ left: `${p.x - p.w / 2}%`, top: `${p.y - p.h / 2}%`, width: `${p.w}%`, height: `${p.h}%` }}
               aria-label={soz(p.id, til)} onClick={() => bosildi(p.id)} />;
@@ -511,7 +532,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
             r === "yordam" ? savol.kim : r === "buyruq" ? "teacher" : null);
         }}>🔊</button>}
     </div>
-  </div>;
+  </div>);
 }
 
 /** Fon rasmi bo'lmagan xonalar bezagi (CSS bilan chizilgan). */

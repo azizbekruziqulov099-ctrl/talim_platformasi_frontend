@@ -86,7 +86,7 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
       {pictures.map((pic, i) => <button key={`${pic.src || pic.emoji}-${pic.rev || 0}-${i}`} type="button"
         className={`us-pic ${pic.emoji && !pic.src ? `is-emoji sz-${cardSize(pic.emoji)}` : ""} ${pic.holat ? `is-${pic.holat}` : ""}`} style={{ "--i": i }}
         onClick={() => onTap?.(i)} aria-label={pic.label || "rasm"}>
-        {pic.src ? <img src={pic.src} alt="" draggable="false" /> : keycapNumber(pic.emoji) ? <span className="us-emoji kb-num">{keycapNumber(pic.emoji)}</span> : <span className="us-emoji">{pic.emoji}</span>}
+        {pic.src ? <img className={pic.anim ? `an-${pic.anim}` : undefined} src={pic.src} alt="" draggable="false" /> : keycapNumber(pic.emoji) ? <span className="us-emoji kb-num">{keycapNumber(pic.emoji)}</span> : <span className={`us-emoji ${pic.anim ? `an-${pic.anim}` : ""}`}>{pic.emoji}</span>}
       </button>)}
       {children}
     </div>

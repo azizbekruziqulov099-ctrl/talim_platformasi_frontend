@@ -26,6 +26,10 @@ export async function authRequest(apiBase, path, { body, signal, timeout = AUTH_
     const data = await response.json().catch(() => null);
     if (!response.ok) {
       const detail = typeof data?.detail === "string" ? data.detail : typeof data?.error === "string" ? data.error : "";
+      // REV146: 502/503/504 — server qayta ishga tushmoqda (Railway). Tarmoq xatosi kabi: kirish o'zi qayta urinadi.
+      if ([502, 503, 504].includes(response.status) && !detail) {
+        throw Object.assign(new Error("Server hozir javob bermadi (yangilanish yoki qayta ishga tushish bo‘lishi mumkin). 10–20 soniyadan keyin qayta bosing."), { network: true, status: response.status });
+      }
       const error = new Error(detail || (response.status === 429
         ? "Urinishlar ko‘payib ketdi. Biroz kutib, qayta urinib ko‘ring."
         : response.status === 404 ? "Kirish xizmati hali yangilanmagan. Boshqa kirish usulini tanlang."

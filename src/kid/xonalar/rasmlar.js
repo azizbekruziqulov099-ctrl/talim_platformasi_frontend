@@ -306,10 +306,14 @@ import f_hovli from "./fon/hovli.webp";
 import f_oshxona from "./fon/oshxona.webp";
 import f_shahar from "./fon/shahar.webp";
 import f_sinf from "./fon/sinf.webp";
+import f_men from "./fon/men.webp";
+import f_havo from "./fon/havo.webp";
 export const FONLAR = {
   bolalar: f_bolalar,
   hovli: f_hovli,
   oshxona: f_oshxona,
   shahar: f_shahar,
   sinf: f_sinf,
+  men: f_men,
+  havo: f_havo,
 };

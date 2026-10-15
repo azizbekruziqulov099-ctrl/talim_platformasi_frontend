@@ -64,7 +64,7 @@ test('REV140: ustoz nutqida yopiluvchi tegdan keyingi nuqta saqlanadi (gaplar or
 test('REV140: brauzer ovozi emoji nomlarini o‘qimaydi', () => {
   assert.equal(brauzerMatni('Look: 🍎🍌🍇 Apple! ⏸'), 'Look: Apple!');
   const v = [{ lang: 'en-US', name: 'Google US English', localService: false }];
-  const r = reja('Qara: [en]🔴🔵 Red, blue![/en] ⏸', { ovozlar: v });
+  const r = reja('Qara: [en]🔴🔵 Red, blue![/en] ⏸', { ovozlar: v, qurilma: true });
   assert.deepEqual(r.map((q) => q.tur), ['server', 'brauzer', 'pauza']);
   assert.equal(r[1].matn, 'Red, blue!');
 });

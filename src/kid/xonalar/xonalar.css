@@ -103,6 +103,7 @@
 .xo-hs { position: absolute; border: 0; background: transparent; border-radius: 14px; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
 .xo-hs:hover, .xo-hs:focus-visible { outline: 3px dashed rgba(255,255,255,.9); outline-offset: -3px; background: rgba(255,255,255,.12); }
 .xo-hs.is-faol { outline: 4px solid #FFB800; outline-offset: -4px; background: rgba(255,214,74,.25); animation: xo-hs 1s ease-in-out infinite; z-index: 1; }
+.xo-hs.is-gapir { outline: 3px solid #fff; outline-offset: -3px; background: rgba(255,255,255,.18); animation: xo-hs 1s ease-in-out infinite; }
 .xo-hs.is-xato { animation: xo-shake-c .45s; background: rgba(248,113,113,.25); }
 @keyframes xo-hs { 0%, 100% { background: rgba(255,214,74,.15); } 50% { background: rgba(255,214,74,.38); } }
 .xo-item.is-tanlandi { filter: drop-shadow(0 0 8px #22A06B); }
@@ -147,3 +148,13 @@
 .xo-sahna--havo { background: #CDEBFA; }
 .xb-devor-men { inset: 0; background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.7) 0 8%, transparent 9%), radial-gradient(circle at 80% 30%, rgba(255,255,255,.6) 0 6%, transparent 7%); }
 .xo-sahna.has-fon .xo-pic { filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
+
+/* REV144: xona telefonda butun ekranda — sahna balandlikka moslanadi (rasmlar katta), kerak bo'lsa yonga suriladi */
+.xo-ekran { position: fixed; top: var(--samtm-portal-top, 0px); left: 0; right: 0; bottom: 0; z-index: 2147483000; overflow-y: auto; overscroll-behavior: contain;
+  padding: 8px 10px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(180deg, #fbf7ff, #f3f8ff); box-sizing: border-box; }
+.xo-ekran > * { max-width: 1400px; margin-left: auto; margin-right: auto; width: 100%; }
+.xo-ekran .xo-scroll { display: flex; overscroll-behavior-x: contain; }
+.xo-ekran .xo-sahna { --xh: max(300px, min(calc(100dvh - var(--samtm-portal-top, 0px) - 190px), calc((min(100vw, 1400px) - 20px) / var(--nisbat, 1.3) * 1.6))); flex: none;
+  min-width: 0; height: var(--xh); width: calc(var(--xh) * var(--nisbat, 1.3)); aspect-ratio: auto !important; margin: 0 auto; }
+.xo-ekran.xo-fit .xo-sahna { --xh: min(calc(100dvh - var(--samtm-portal-top, 0px) - 190px), calc((min(100vw, 1400px) - 20px) / var(--nisbat, 1.3))); }
+@media (max-width: 700px) { .xo-ekran .xo-item { width: calc(var(--s) * 1.3%) !important; } }

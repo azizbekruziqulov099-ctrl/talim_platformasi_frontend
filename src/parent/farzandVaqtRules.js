@@ -50,3 +50,45 @@ export function ratingText(reyting, guruh = "") {
   const where = guruh ? `${guruh} guruhida` : "Tengdoshlari ichida";
   return `${where} ${reyting.orin}-o‘rin (${reyting.jami} bola ichida) · ⭐ ${reyting.yulduz} yulduz (7 kun)`;
 }
+
+// ── REV145: ota-ona uchun aniq, mantiqiy hisobot (ichma-ich ochiladi) ──
+
+/** Dars bahosi — oddiy so'z bilan. */
+export function bahoInfo(r) {
+  if (!r?.tugadi) return { cls: "is-half", matn: "Tugallanmagan" };
+  if (!r.jami) return { cls: "is-plain", matn: "Tugatdi" };
+  const baho = r.baho || (r.togri / r.jami >= 0.8 ? "alo" : r.togri / r.jami >= 0.5 ? "yaxshi" : "mashq");
+  return { alo: { cls: "is-top", matn: "A’lo" }, yaxshi: { cls: "is-good", matn: "Yaxshi" }, mashq: { cls: "is-low", matn: "Mashq kerak" } }[baho]
+    || { cls: "is-plain", matn: "Tugatdi" };
+}
+
+/** Kun xulosasi — yuqoridagi 4 ta katta raqam uchun. */
+export function kunXulosa(darslar = [], vaqt = null) {
+  const list = Array.isArray(darslar) ? darslar : [];
+  const tugadi = list.filter((r) => r.tugadi);
+  const togri = tugadi.reduce((n, r) => n + (Number(r.togri) || 0), 0);
+  const jami = tugadi.reduce((n, r) => n + (Number(r.jami) || 0), 0);
+  const sozlar = new Map();
+  for (const r of list) for (const w of r.sozlar || []) {
+    const k = String(w.soz || "").toLowerCase();
+    if (k) sozlar.set(k, Boolean(sozlar.get(k)) || w.aytdi === true);
+  }
+  const darsDaqiqa = list.reduce((n, r) => n + (Number(r.daqiqa) || 0), 0);
+  return {
+    darslar: list.length, tugadi: tugadi.length, togri, jami, foiz: jami ? Math.round((togri / jami) * 100) : null,
+    sozJami: sozlar.size, sozAytdi: [...sozlar.values()].filter(Boolean).length,
+    daqiqa: vaqt?.jami ? Number(vaqt.jami.daqiqa) || 0 : darsDaqiqa,
+    limit: vaqt?.jami ? Number(vaqt.jami.limit) || 0 : 0,
+  };
+}
+
+/** Darsdan keyin ota-onaga bitta aniq maslahat (uyda nima qilish kerak): { matn, sozlar } yoki null. */
+export function maslahat(r) {
+  if (!r) return null;
+  if (!r.tugadi) return { matn: "Dars yarim qoldi — farzandingiz bilan oxirigacha birga ko‘ring.", sozlar: [] };
+  const aytmagan = (r.sozlar || []).filter((w) => w.aytdi === false).map((w) => w.soz);
+  if (aytmagan.length) return { matn: "Uyda shu so‘zlarni birga ayting:", sozlar: aytmagan };
+  if (r.jami && r.togri / r.jami < 0.5) return { matn: "Bu darsni ertaga yana bir bor takrorlash foydali.", sozlar: [] };
+  if ((Number(r.chalgish) || 0) >= 3) return { matn: "Dars paytida tez-tez chalg‘idi — tinch joyda, telefon bildirishnomalarisiz o‘tkazing.", sozlar: [] };
+  return null;
+}

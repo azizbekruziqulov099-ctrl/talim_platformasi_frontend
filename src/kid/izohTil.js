@@ -130,6 +130,7 @@ export const GAPLAR = {
     "Rasmga qara. Men so'rayman:": "Посмотри на картинку. Я спрошу:", "Shu tilda javob ber!": "Ответь на этом языке!",
     "Men so'rayman, sen javob ber:": "Я спрошу, а ты ответь:", "Birga aytamiz: {p} ⏸": "Скажем вместе: {p} ⏸",
     "Hechqisi yo'q! To'g'ri javob — {p}.": "Ничего страшного! Правильный ответ — {p}.",
+    "Yaxshi harakat! Mana bunday: {p}": "Хорошая попытка! Вот так: {p}",
   },
   en: {
     "Endi sen ayt: {p}": "Now you say it: {p}",
@@ -173,6 +174,7 @@ export const GAPLAR = {
     "Rasmga qara. Men so'rayman:": "Look at the picture. I'll ask:", "Shu tilda javob ber!": "Answer in this language!",
     "Men so'rayman, sen javob ber:": "I'll ask, and you answer:", "Birga aytamiz: {p} ⏸": "Let's say it together: {p} ⏸",
     "Hechqisi yo'q! To'g'ri javob — {p}.": "That's okay! The right answer is {p}.",
+    "Yaxshi harakat! Mana bunday: {p}": "Good try! Like this: {p}",
   },
 };
 

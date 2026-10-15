@@ -12,15 +12,13 @@ test('til darsi: chet tilidagi qisqa iboralar olinadi, «repeat after me» olinm
   assert.deepEqual(items, [{ lang: 'en', phrase: 'Green' }, { lang: 'en', phrase: 'Red' }]);
 });
 
-test('boshqa fan: qoida qatorlari, formulasiz', () => {
+test('REV145: boshqa fan (til darsi emas) — mikrofon bilan tekshiruv yo‘q', () => {
   const lesson = { steps: [
     { turi: 'kirish', doska: 'Bugun kasrlarni o‘rganamiz' },
     { turi: 'qoida', doska: '$\\frac{a}{b}$ kasr\nKasrning maxraji nolga teng bo‘lmaydi\nSurat — yuqoridagi son' },
   ] };
-  const items = voiceCheckItems(lesson, 'oquvchi');
-  assert.equal(items[0].phrase, 'Kasrning maxraji nolga teng bo‘lmaydi');
-  assert.ok(items.every((x) => !x.phrase.includes('$')));
-  assert.ok(items.length <= 3);
+  assert.deepEqual(voiceCheckItems(lesson, 'oquvchi'), []);
+  assert.deepEqual(voiceCheckItems({ steps: [{ turi: 'qoida', ovoz: '[ru]Красный[/ru]', doska: 'Qizil' }] }, 'bogcha', { tilYoq: true }), []);
 });
 
 test('darsda berilgan ro‘yxat ustun turadi', () => {

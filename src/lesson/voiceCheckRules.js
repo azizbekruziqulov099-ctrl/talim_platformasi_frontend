@@ -8,8 +8,9 @@ const LEAD = /^[\s\-–—•*·>]+|^\d+[.)]\s*|^[^\p{L}\p{N}]+/u;
 
 /** Har tinglovchiga nechta ibora va qancha uzunlik. */
 export const VOICE_LIMITS = {
-  // REV110: bog'chada ko'proq gapirsin — darsning 5 tagacha iborasi, 6 so'zgacha gap, 3 urinish.
-  bogcha: { count: 5, maxWords: 6, uzMaxWords: 5, tries: 3 },
+  // REV110: bog'chada ko'proq gapirsin — darsning 5 tagacha iborasi, 6 so'zgacha gap.
+  // REV145: urinish 3 emas — 2 ta (bola zerikmasin; ikkinchisida «yaqin» ham qabul).
+  bogcha: { count: 5, maxWords: 6, uzMaxWords: 5, tries: 2 },
   oquvchi: { count: 3, maxWords: 6, uzMaxWords: 12, tries: 2 },
   talaba: { count: 3, maxWords: 8, uzMaxWords: 16, tries: 2 },
 };
@@ -27,14 +28,6 @@ function cleanLine(line) {
     .trim();
 }
 
-/** Ovoz bilan aytib tekshirib bo'lmaydigan qator: formula, LaTeX, ko'p raqam/belgi. */
-function speakableLine(line) {
-  if (!line || /[$\\{}^=<>|]/.test(line)) return false;
-  const letters = (line.match(/\p{L}/gu) || []).length;
-  const digits = (line.match(/\p{N}/gu) || []).length;
-  return letters >= 4 && digits <= 3;
-}
-
 function add(out, item, limit) {
   const key = `${item.lang}:${item.phrase.toLowerCase()}`;
   if (out.length < limit && !out.some((x) => `${x.lang}:${x.phrase.toLowerCase()}` === key)) out.push(item);
@@ -44,13 +37,11 @@ function add(out, item, limit) {
  * Darsdan takrorlatiladigan iboralar:
  * 1) darsda alohida berilgan bo'lsa (lesson.ovozli_tekshiruv) — o'shalar;
  * 2) til darsi — chet tilidagi qisqa so'z/iboralar ([en]Green[/en]);
- * 3) boshqa fanlar — qoida va xulosa qatorlari (formulasiz, qisqa gaplar).
+ * REV145: boshqa fanlarda — tekshiruv yo'q (bo'sh ro'yxat).
  */
 export function voiceCheckItems(lesson, audience = 'oquvchi', opts = {}) {
-  // REV121: til darsi bo'lmasa (matematika, atrof-muhit, mantiq) izoh tilidagi teglar «chet so'z» emas —
-  // takrorlash uchun doska qatorlari olinadi va ular izoh tilida tekshiriladi.
+  // REV121: til darsi bo'lmasa (matematika, atrof-muhit, mantiq) izoh tilidagi teglar «chet so'z» emas.
   const tilYoq = opts.tilYoq === true;
-  const izoh = opts.izoh && opts.izoh !== 'uz' ? opts.izoh : 'uz';
   const lim = VOICE_LIMITS[audience] || VOICE_LIMITS.oquvchi;
   const out = [];
   const given = Array.isArray(lesson?.ovozli_tekshiruv) ? lesson.ovozli_tekshiruv : [];
@@ -71,18 +62,8 @@ export function voiceCheckItems(lesson, audience = 'oquvchi', opts = {}) {
   }
   if (out.length) return out;
 
-  const ranked = [
-    ...steps.filter((s) => ['qoida', 'xulosa'].includes(s?.turi)),
-    ...steps.filter((s) => !['qoida', 'xulosa', 'amaliy'].includes(s?.turi)),
-  ];
-  for (const s of ranked) {
-    for (const raw of String(s?.doska || '').split(/\n+/)) {
-      const line = cleanLine(raw).replace(/[.!?]+$/u, '');
-      const n = words(line).length;
-      if (n < 2 || n > lim.uzMaxWords || !speakableLine(line)) continue;
-      add(out, { lang: tilYoq ? izoh : 'uz', phrase: line }, lim.count);
-    }
-  }
+  // REV145: oddiy fanlarda (matematika, atrof-muhit, mantiq…) mikrofon bilan takrorlatilmaydi — faqat til darslarida.
+  // Doska qatorlarini o'qitish ma'nosiz edi; dars berilgan ro'yxati (ovozli_tekshiruv) bo'lsa — yuqorida olingan.
   return out;
 }
 

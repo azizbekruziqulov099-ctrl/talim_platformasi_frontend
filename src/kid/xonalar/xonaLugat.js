@@ -237,75 +237,77 @@ export const IZOH = {
   tugadi: { uz: "Zo‘r o‘ynading! Yulduzchalar seniki!", ru: "Отлично поиграли! Звёздочки твои!", en: "Great playing! The stars are yours!" },
 };
 
-/** Xonalar (REV128: rassom fonlari bilan). fon — fon rasmi (bo'lmasa CSS bezak), nisbat — kenglik/balandlik.
+/** Xonalar (REV128: rassom fonlari bilan; REV144: yangi chizilgan fonlar — fondagi narsa va odamlar «hs» bosiladigan joy). fon — fon rasmi (bo'lmasa CSS bezak), nisbat — kenglik/balandlik.
  *  joylar: [id, x, y, s, a?] — markaz (foizda), s — kenglik (% sahna kengligi), a — rasm nisbati (kenglik/balandlik, standart 1;
  *  qahramonlar — 0.45). hs: [id, x, y, w, h] — fondagi narsaning o'zi (ko'rinmas bosiladigan joy: muzlatkich, karavot, doska…). */
 const ODAM_A = 0.45;
-const qatorJoy = (ids, y, x0, x1, s) => ids.map((id, i) => [id, ids.length > 1 ? x0 + ((x1 - x0) * i) / (ids.length - 1) : (x0 + x1) / 2, y, s]);
-const javon = (ids, x0, dx, sirt, s) => ids.map((id, i) => { const x = x0 + dx * i; return [id, +x.toFixed(2), +(sirt(x) - (s * 1.276) / 2).toFixed(2), s]; });
 
 export const XONALAR = [
-  { id: "oshxona", nom: "Oshxona", emoji: "🍳", fon: "oshxona", nisbat: 995 / 780, odamlar: ["mother", "father"],
+  { id: "oshxona", nom: "Oshxona", emoji: "🍳", fon: "oshxona", nisbat: 1990 / 1560, odamlar: ["mother", "father"],
     joylar: [
-      ...javon(["apple", "banana", "lemon", "orange", "grapes", "strawberry", "tomato", "cucumber"], 17, 6.2, (x) => 8.3 + (x - 11) * 0.1415, 5.5),
-      ...javon(["bread", "cheese", "egg", "tea", "juice", "milk", "water", "sweets"], 15.5, 6.4, (x) => 26 + (x - 12) * 0.03, 5.8),
-      ["soup", 14, 51.5, 6.5], ["rice", 23.5, 51, 6.5], ["cake", 33, 50.5, 6.5],
-      ["chicken", 48, 60.5, 6], ["carrot", 56, 61.5, 5.5], ["potato", 63.5, 62.5, 6], ["icecream", 71.5, 61, 5, 0.45],
-      ["father", 6, 80, 9, ODAM_A], ["mother", 91, 81, 9, ODAM_A],
+      ["apple", 28.5, 4.6, 4.6], ["banana", 34.21, 4.6, 4.6], ["lemon", 39.93, 4.6, 4.6], ["orange", 45.64, 4.6, 4.6],
+      ["grapes", 51.36, 4.6, 4.6], ["strawberry", 57.07, 4.6, 4.6], ["tomato", 62.79, 4.6, 4.6], ["cucumber", 68.5, 4.6, 4.6],
+      ["bread", 28.5, 14.3, 4.8], ["cheese", 34.21, 14.3, 4.8], ["egg", 39.93, 14.3, 4.8], ["tea", 45.64, 14.3, 4.8],
+      ["juice", 51.36, 14.3, 4.8], ["milk", 57.07, 14.3, 4.8], ["water", 62.79, 14.3, 4.8], ["sweets", 68.5, 14.3, 4.8],
+      ["soup", 38, 66, 6], ["rice", 47.5, 71, 5.5], ["cake", 68, 66, 6.5], ["chicken", 79, 70, 6],
+      ["icecream", 85.5, 63, 3.2, ODAM_A], ["carrot", 50.5, 40.6, 4.2], ["potato", 67.6, 41, 4.3], ["father", 95, 84, 8, ODAM_A],
     ],
-    hs: [["fridge", 79.5, 25, 30, 38], ["stove", 66, 50, 26, 7]] },
-  { id: "bolalar", nom: "Bolalar xonasi", emoji: "🧸", fon: "bolalar", nisbat: 1035 / 780, odamlar: ["sister", "brother", "granny"],
+    hs: [["mother", 16.5, 48, 15, 62], ["fridge", 93.5, 41, 13, 62], ["stove", 80.5, 52, 19, 22]] },
+  { id: "bolalar", nom: "Bolalar xonasi", emoji: "🧸", fon: "bolalar", nisbat: 2070 / 1560, odamlar: ["sister", "brother", "granny"],
     joylar: [
-      ...["coat", "hat", "scarf", "gloves", "dress", "tshirt", "shorts", "trousers", "socks", "umbrella"].map((id, i) => [id, [39.5, 45, 50.5, 56, 61.5, 67.2, 72.8, 78.3, 84, 89.5][i], 33.5, 5]),
-      ["shoes", 8, 82, 7], ["boots", 17.5, 89, 7],
-      ["teddy", 52.5, 53, 6], ["doll", 63, 53, 6], ["robot", 73.5, 53, 6], ["blocks", 54, 64.5, 6], ["drum", 63.3, 64.5, 4.8], ["car", 72.3, 64.5, 6],
-      ["ball", 54, 86, 6.5], ["kite", 67, 82, 7], ["book", 79, 90, 6.5], ["balloon", 36, 50, 5],
-      ["sister", 27, 77, 8, ODAM_A], ["granny", 42, 78, 8, ODAM_A], ["brother", 87, 84, 8, ODAM_A],
+      ["tshirt", 34, 67, 5], ["dress", 44, 67, 5], ["shorts", 54, 67, 5], ["trousers", 64, 67, 5],
+      ["doll", 27, 77, 5], ["robot", 37.4, 77, 5], ["drum", 47.8, 77, 5], ["kite", 58.2, 77, 5],
+      ["balloon", 68.6, 77, 5], ["socks", 79, 77, 5], ["hat", 36, 87, 5], ["scarf", 46, 87, 5],
+      ["gloves", 56, 87, 5], ["umbrella", 66, 87, 5], ["shoes", 31, 57, 4.5], ["boots", 43.5, 57, 4.5],
+      ["sister", 24, 55, 6.5, ODAM_A], ["granny", 87.5, 72, 7, ODAM_A], ["brother", 96, 84, 7, ODAM_A],
     ],
-    hs: [["window", 15, 30, 26, 58], ["bed", 92, 66, 16, 36]] },
-  { id: "hovli", nom: "Hovli", emoji: "🌳", fon: "hovli", nisbat: 1312 / 816, odamlar: ["boy", "girl", "grandpa", "gardener", "baby"],
+    hs: [["coat", 36.5, 28, 8, 20], ["teddy", 61, 8, 9, 13], ["car", 53.5, 26, 9, 8], ["ball", 73.5, 25, 7, 10], ["book", 51, 38, 6, 11], ["blocks", 8, 93, 16, 13], ["bed", 89, 47, 22, 40], ["window", 13, 17, 26, 34]] },
+  { id: "hovli", nom: "Hovli", emoji: "🌳", fon: "hovli", nisbat: 2624 / 1632, odamlar: ["boy", "girl", "grandpa", "gardener", "baby"],
     joylar: [
-      ["sun", 92, 10, 6.5], ["rainbow", 28, 15, 11], ["bird", 62, 22, 5],
-      ["flower", 72, 66, 9], ["horse", 88, 70, 8], ["bike", 48, 66, 7],
-      ["cat", 5, 88, 6], ["dog", 14, 88, 6], ["frog", 23, 90, 5.5], ["rabbit", 32, 88, 5.5], ["duck", 50, 90, 5.5],
-      ["hen", 65, 88, 6], ["sheep", 75, 90, 7], ["cow", 86, 88, 8],
-      ["baby", 8, 68, 4.5, ODAM_A], ["boy", 34, 66, 5.5, ODAM_A], ["girl", 60, 62, 5.5, ODAM_A], ["gardener", 79, 52, 5.5, ODAM_A], ["grandpa", 96, 52, 5.5, ODAM_A],
+      ["rainbow", 44, 12, 12], ["bird", 64, 7, 4.5], ["horse", 43, 63, 7], ["bike", 96, 79, 6],
+      ["cat", 36, 89, 5.2], ["frog", 44.67, 89, 5.2], ["rabbit", 53.33, 89, 5.2], ["duck", 62, 89, 5.2],
+      ["hen", 70.67, 89, 5.2], ["sheep", 79.33, 89, 5.2], ["cow", 88, 89, 5.2], ["baby", 36, 74, 3.4, ODAM_A],
+      ["grandpa", 48, 56, 4.2, ODAM_A],
     ],
-    hs: [["tree", 78, 31, 13, 22], ["fence", 22, 51, 16, 11], ["sand", 18, 70, 26, 14]] },
-  { id: "shahar", nom: "Shahar", emoji: "🏙️", fon: "shahar", nisbat: 1035 / 776, odamlar: ["doctor", "police", "firefighter", "pilot", "builder", "farmer", "cook", "driver"],
+    hs: [["sun", 82, 10, 9, 14], ["boy", 58, 61, 12, 24], ["girl", 84, 63, 11, 26], ["dog", 66.5, 72, 10, 14], ["flower", 17, 73, 26, 22], ["tree", 8, 22, 16, 40], ["gardener", 27, 46, 11, 46], ["fence", 93, 53, 12, 8]] },
+  { id: "shahar", nom: "Shahar", emoji: "🏙️", fon: "shahar", nisbat: 2070 / 1552, odamlar: ["doctor", "police", "firefighter", "pilot", "builder", "farmer", "cook", "driver"],
     joylar: [
-      ["plane", 28, 12, 13], ["helicopter", 62, 17, 11],
-      ["taxi", 53, 62, 8], ["ambulance", 41, 72, 11], ["fireengine", 64, 71, 11], ["policecar", 30, 89, 13], ["bus", 70, 89, 20, 1.79],
-      ["trafficlight", 74, 56, 4.5, 0.45], ["car", 50, 90, 9],
-      ["doctor", 4, 80, 5, ODAM_A], ["police", 10, 80, 5, ODAM_A], ["firefighter", 16, 80, 5, ODAM_A], ["pilot", 22, 70, 5, ODAM_A],
-      ["cook", 80, 70, 5, ODAM_A], ["builder", 82, 84, 5, ODAM_A], ["farmer", 88, 84, 5, ODAM_A], ["driver", 94, 84, 5, ODAM_A],
+      ["plane", 42, 10, 10], ["helicopter", 80, 9, 9], ["ambulance", 44, 67, 10], ["fireengine", 80, 66, 11],
+      ["policecar", 62, 70, 10], ["trafficlight", 44.5, 49, 3.2, ODAM_A], ["doctor", 33, 86, 5, ODAM_A], ["police", 42, 86, 5, ODAM_A],
+      ["firefighter", 51, 86, 5, ODAM_A], ["pilot", 60, 86, 5, ODAM_A], ["builder", 69, 86, 5, ODAM_A], ["farmer", 78, 86, 5, ODAM_A],
+      ["cook", 87, 86, 5, ODAM_A], ["driver", 96, 86, 5, ODAM_A],
     ],
-    hs: [["shop", 7, 64, 13, 18], ["house", 93, 30, 14, 44], ["road", 55, 55, 8, 6]] },
-  { id: "sinf", nom: "Sinfxona", emoji: "🏫", fon: "sinf", nisbat: 1312 / 816, odamlar: ["teacher"],
+    hs: [["bus", 59.5, 51, 9, 7], ["car", 52.5, 55, 11, 9], ["taxi", 73.5, 54, 8, 6], ["shop", 6, 30, 12, 22], ["house", 92, 27, 16, 40], ["road", 90, 74, 16, 8]] },
+  { id: "sinf", nom: "Sinfxona", emoji: "🏫", fon: "sinf", nisbat: 2624 / 1632, odamlar: ["teacher"],
     joylar: [
-      ...qatorJoy(["red", "blue", "green", "yellow"], 30, 37, 64, 5), ...qatorJoy(["pink", "purple", "black", "white"], 43, 37, 64, 5),
-      ["pen", 7, 63.5, 5], ["pencil", 14, 63.5, 5], ["ruler", 29, 63.5, 5], ["notebook", 36, 63.5, 5],
-      ["book", 64, 63.5, 5], ["crayons", 71, 63.5, 5], ["scissors", 86, 63.5, 5], ["schoolbag", 93, 63.5, 5],
-      ["teacher", 77, 42, 6, ODAM_A],
+      ["red", 40, 18, 4.2], ["blue", 48, 18, 4.2], ["green", 56, 18, 4.2], ["yellow", 64, 18, 4.2],
+      ["pink", 40, 32, 4.2], ["purple", 48, 32, 4.2], ["black", 56, 32, 4.2], ["white", 64, 32, 4.2],
+      ["pen", 7, 64.5, 4], ["pencil", 14, 64.5, 4], ["ruler", 22, 64.5, 4.5], ["notebook", 44, 68.5, 4.5],
+      ["crayons", 56, 68.5, 4], ["scissors", 74, 63.5, 4], ["schoolbag", 91, 63.5, 4.5], ["clock", 71, 5, 3.4],
     ],
-    hs: [["board", 50, 37, 40, 30], ["clock", 50, 16, 6, 10], ["window", 11, 30, 13, 48], ["chair", 12, 82, 10, 14], ["desk", 47, 60, 14, 4]] },
-  { id: "men", nom: "Tanam va his-tuyg‘ularim", emoji: "🙋", fon: null, nisbat: 1.6, odamlar: [],
+    hs: [["teacher", 27, 32, 11, 35], ["board", 52.5, 28, 37, 37], ["window", 6, 22, 13, 44], ["desk", 20, 57, 34, 12], ["chair", 52, 82, 15, 20], ["book", 10, 50, 7, 6]] },
+  { id: "men", nom: "Tanam va his-tuyg‘ularim", emoji: "🙋", fon: "men", nisbat: 2080 / 1560, odamlar: [],
     joylar: [
-      ...qatorJoy(["head", "eyes", "ears", "nose", "mouth"], 17, 12, 88, 7.5), ...qatorJoy(["hands", "feet", "knees", "fingers", "shoulders"], 40, 12, 88, 7.5),
-      ...qatorJoy(["happy", "sad", "cold", "hot", "hungry"], 63, 12, 88, 7.5), ...qatorJoy(["jump", "run", "swim", "sing", "dance", "draw"], 86, 9, 91, 7),
-    ],
-    hs: [] },
-  { id: "havo", nom: "Ob-havo va fasllar", emoji: "🌦️", fon: null, nisbat: 1.6, odamlar: ["boy", "girl", "grandpa"],
-    joylar: [
-      ...qatorJoy(["rainbow", "cloud", "sun", "rain", "wind"], 14, 12, 88, 8), ...qatorJoy(["snow", "spring", "summer", "autumn", "winter"], 38, 12, 88, 8),
-      ...qatorJoy(["morning", "evening", "night", "snowman", "umbrella", "kite"], 62, 9, 91, 7.5),
-      ["tree", 50, 84, 10, 0.87], ["boy", 20, 84, 5, ODAM_A], ["girl", 33, 84, 5, ODAM_A], ["grandpa", 80, 84, 5, ODAM_A],
+      ["head", 25, 63, 7.2], ["eyes", 35, 63, 7.2], ["ears", 45, 63, 7.2], ["nose", 55, 63, 7.2],
+      ["mouth", 65, 63, 7.2], ["hands", 75, 63, 7.2], ["feet", 85, 63, 7.2], ["knees", 16, 76, 7.2],
+      ["fingers", 28.67, 76, 7.2], ["shoulders", 41.33, 76, 7.2], ["happy", 54, 76, 7.2], ["sad", 66.67, 76, 7.2],
+      ["cold", 79.33, 76, 7.2], ["hot", 92, 76, 7.2], ["hungry", 24, 89, 7.2], ["jump", 34.33, 89, 7.2],
+      ["run", 44.67, 89, 7.2], ["swim", 55, 89, 7.2], ["sing", 65.33, 89, 7.2], ["dance", 75.67, 89, 7.2],
+      ["draw", 86, 89, 7.2],
     ],
     hs: [] },
+  { id: "havo", nom: "Ob-havo va fasllar", emoji: "🌦️", fon: "havo", nisbat: 2080 / 1560, odamlar: ["boy", "girl", "grandpa"],
+    joylar: [
+      ["rainbow", 41, 9, 8], ["rain", 57, 31, 5.5], ["wind", 73, 31, 5.5], ["snow", 88, 42, 5.5],
+      ["umbrella", 61, 70, 5], ["snowman", 93.5, 69, 5], ["spring", 57, 83, 5.8], ["summer", 64.5, 83, 5.8],
+      ["autumn", 72, 83, 5.8], ["winter", 79.5, 83, 5.8], ["morning", 57, 93, 5.8], ["evening", 64.5, 93, 5.8],
+      ["night", 72, 93, 5.8], ["kite", 79.5, 93, 5.8], ["girl", 14, 79, 4.5, ODAM_A], ["grandpa", 7, 62, 4.5, ODAM_A],
+    ],
+    hs: [["sun", 62, 22, 10, 13], ["tree", 93, 35, 13, 60], ["boy", 37, 52, 22, 52], ["cloud", 50, 14, 12, 10]] },
 ];
 // Har xona: narsalar ro'yxati (joylar + fondagi narsalar, qahramonlarsiz)
 for (const x of XONALAR) {
-  x.narsalar = [...x.joylar.map((j) => j[0]).filter((id) => !x.odamlar.includes(id)), ...x.hs.map((h) => h[0])];
+  x.narsalar = [...x.joylar.map((j) => j[0]), ...x.hs.map((h) => h[0])].filter((id) => !x.odamlar.includes(id));
 }
 
 /** «Yordam ber» topshiriqlari: kim so'raydi, qaysi narsa kerak, gap 11 tilda. */

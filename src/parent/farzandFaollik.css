@@ -62,3 +62,52 @@
 .ff-insight li small{color:#5a5648;font-size:12.5px;line-height:1.4}
 .ff-rank{margin:0;font-weight:800;font-size:13.5px;color:#1b4b7a;background:#eef6ff;border-radius:10px;padding:8px 10px}
 .ff-sum{margin:0;font-size:13px;font-weight:700;color:#1f6b3a}
+/* REV145: aniq tuzilma — 4 ta asosiy raqam, ichma-ich ochiladigan bo'limlar va darslar */
+.ff-head h3{font-size:17px}
+.ff-head .ff-live{margin-top:6px}
+.ff-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ff-kpi{display:grid;justify-items:start;gap:0;text-align:left;border:1px solid #ece8de;background:#fdfcf9;border-radius:14px;padding:10px 10px 9px;cursor:pointer;color:inherit;font:inherit;min-width:0}
+.ff-kpi:hover,.ff-kpi:focus-visible{border-color:#3a74d9;background:#f4f8ff;outline:none}
+.ff-kpi>span{font-size:18px;line-height:1}
+.ff-kpi b{font-size:24px;font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums;color:#1f2a44}
+.ff-kpi em{font-style:normal;font-size:12px;font-weight:700;color:#5a5648}
+.ff-kpi small{font-size:11px;color:#8a8578;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@media(max-width:560px){.ff-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ff-root{padding:12px}}
+.ff-sec{border:1px solid #efece4;border-radius:14px;background:#fdfcf9;overflow:hidden}
+.ff-sec.is-open{background:#fff}
+.ff-sec-head{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;width:100%;border:0;background:none;padding:11px 12px;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.ff-sec-head b{font-size:14.5px;font-weight:800}
+.ff-sec-head small{font-size:12px;color:#5a5648;font-weight:700;white-space:nowrap}
+.ff-sec-head i{font-style:normal;color:#8a8578}
+.ff-sec-body{display:grid;gap:8px;padding:0 12px 12px}
+.ff-lessons{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ff-lesson{border-radius:12px;background:#faf9f6;border:1px solid transparent}
+.ff-lesson.is-open{border-color:#e5e1d8;background:#fff}
+.ff-lesson-head{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;width:100%;border:0;background:none;padding:9px 10px;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.ff-lesson-head i{font-style:normal;color:#8a8578}
+.ff-badge{font-size:12px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.ff-badge.is-top{background:#e3f6ea;color:#1f6b3a}
+.ff-badge.is-good{background:#eaf2ff;color:#1b4b7a}
+.ff-badge.is-low{background:#fff1df;color:#8a5200}
+.ff-badge.is-half{background:#fdecec;color:#9b2c2c}
+.ff-badge.is-plain{background:#f1efe9;color:#5a5648}
+.ff-lesson-body{display:grid;gap:8px;padding:2px 12px 12px}
+.ff-row{display:grid;grid-template-columns:auto minmax(40px,1fr) auto;gap:8px;align-items:center;font-size:13px}
+.ff-row>span:first-child{color:#5a5648;font-weight:700;white-space:nowrap}
+.ff-row b{font-variant-numeric:tabular-nums;text-align:right}
+.ff-meter{position:relative;height:9px;border-radius:999px;background:#ece8de;overflow:hidden}
+.ff-meter i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:#3a74d9}
+.ff-meter i.is-top{background:#57b86f}.ff-meter i.is-low{background:#e39a12}
+.ff-words-box{display:grid;gap:5px;font-size:13px}
+.ff-words-box>span{color:#5a5648;font-weight:700}
+.ff-words{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.ff-words li{display:inline-flex;gap:4px;align-items:center;border-radius:999px;padding:4px 10px;background:#f1efe9;font-weight:700;font-size:13px}
+.ff-words li.is-ok{background:#e3f6ea;color:#1f6b3a}
+.ff-words li.is-try{background:#fff1df;color:#8a5200}
+.ff-tip{margin:0;font-size:13px;line-height:1.4;background:#fffbea;border-radius:10px;padding:8px 10px;color:#5a4a00}
+.ff-day{border:0;background:none;padding:4px 0;border-radius:10px;cursor:pointer;font:inherit}
+.ff-day.is-sel{background:#eef3ff;box-shadow:inset 0 0 0 2px #3a74d9}
+.ff-daybox{display:grid;gap:8px;border-top:1px dashed #e5e1d8;padding-top:8px}
+.ff-daybox h5{margin:0;font-size:13.5px;font-weight:800}
+.ff-daystats{margin:0;display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
+.ff-daystats span{background:#f7f5f0;border-radius:999px;padding:3px 9px;font-weight:700}

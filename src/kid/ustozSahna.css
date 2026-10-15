@@ -152,3 +152,61 @@
 @keyframes us-alive{0%,100%{transform:translateY(0) rotate(0) scale(1)}30%{transform:translateY(-3.5%) rotate(-2.5deg) scale(1.03)}65%{transform:translateY(1%) rotate(2deg) scale(.985)}}
 .us-emoji.kb-num{display:inline-block;font:900 1em/1 system-ui,sans-serif;color:#fff;background:linear-gradient(#63b3ff,#2f74db);padding:.1em .3em .14em;border-radius:.2em;box-shadow:0 .07em 0 #1f4f9c,0 .14em .3em #0003}
 @media (prefers-reduced-motion:reduce){.us-pic img,.us-pic .us-emoji{animation:none!important}}
+/* REV144: har rasm o'z ma'nosiga mos 1–2 soniyalik harakat qiladi (paydo bo'lganda va bosilganda), keyin tinch turadi.
+   Oddiy «nafas olish» o'rniga — sakrash, yurish, uchish, aylanish, suzish… */
+.us-pic img[class*="an-"],.us-pic .us-emoji[class*="an-"]{animation-duration:1.7s;animation-timing-function:ease-in-out;animation-iteration-count:1;animation-fill-mode:both;
+  animation-delay:calc(var(--i, 0) * .25s + .35s);transform-origin:50% 85%}
+.us-pic.is-wait img[class*="an-"],.us-pic.is-wait .us-emoji[class*="an-"]{animation-iteration-count:infinite;animation-duration:2.4s}
+.us-pic .an-chiq{animation-name:an-chiq}
+@keyframes an-chiq{0%{transform:scale(.6) translateY(10%)}35%{transform:scale(1.12) translateY(-6%)}60%{transform:scale(.96)}80%{transform:scale(1.03)}100%{transform:none}}
+.us-pic .an-sakra,.us-pic .an-sakrab_chiq{animation-name:an-sakra}
+@keyframes an-sakra{0%,100%{transform:none}12%{transform:scale(1.08,.9)}30%{transform:translateY(-26%) scale(.95,1.06)}48%{transform:translateY(0) scale(1.08,.92)}62%{transform:translateY(-12%)}78%{transform:translateY(0) scale(1.04,.96)}}
+.us-pic .an-yugur{animation-name:an-yugur}
+@keyframes an-yugur{0%{transform:translateX(-35%) rotate(-4deg)}20%{transform:translateX(-20%) translateY(-5%) rotate(4deg)}40%{transform:translateX(-6%) rotate(-4deg)}60%{transform:translateX(6%) translateY(-5%) rotate(4deg)}80%{transform:translateX(2%) rotate(-2deg)}100%{transform:none}}
+.us-pic .an-yur{animation-name:an-yur}
+@keyframes an-yur{0%{transform:translateX(-45%)}70%{transform:translateX(4%)}82%{transform:translateX(-2%) rotate(-1.5deg)}100%{transform:none}}
+.us-pic .an-suz{animation-name:an-suz}
+@keyframes an-suz{0%,100%{transform:none}20%{transform:translate(-10%,4%) rotate(-6deg)}45%{transform:translate(8%,-4%) rotate(6deg)}70%{transform:translate(-5%,3%) rotate(-4deg)}}
+.us-pic .an-kuyla{animation-name:an-kuyla}
+@keyframes an-kuyla{0%,100%{transform:none}15%,45%,75%{transform:scale(1.08) rotate(-3deg)}30%,60%,90%{transform:scale(.97) rotate(3deg)}}
+.us-pic .an-raqs{animation-name:an-raqs}
+@keyframes an-raqs{0%,100%{transform:none}20%{transform:rotate(-12deg) translateY(-4%)}40%{transform:rotate(12deg)}60%{transform:rotate(-10deg) translateY(-4%)}80%{transform:rotate(8deg)}}
+.us-pic .an-chiz{animation-name:an-chiz}
+@keyframes an-chiz{0%,100%{transform:none}25%{transform:translate(6%,-4%) rotate(4deg)}50%{transform:translate(-4%,4%) rotate(-3deg)}75%{transform:translate(5%,3%) rotate(3deg)}}
+.us-pic .an-uch{animation-name:an-uch}
+@keyframes an-uch{0%{transform:translate(-30%,20%) rotate(-8deg)}30%{transform:translate(-8%,-18%) rotate(6deg)}55%{transform:translate(10%,-6%) rotate(-4deg)}80%{transform:translate(3%,-10%) rotate(3deg)}100%{transform:none}}
+.us-pic .an-kotaril{animation-name:an-kotaril}
+@keyframes an-kotaril{0%{transform:translateY(30%) scale(.7)}60%{transform:translateY(-14%) rotate(-5deg)}80%{transform:translateY(-6%) rotate(4deg)}100%{transform:none}}
+.us-pic .an-lapang{animation-name:an-lapang}
+@keyframes an-lapang{0%,100%{transform:none}15%{transform:translateX(-6%) rotate(-7deg)}30%{transform:translateX(-2%) translateY(-6%) rotate(0)}45%{transform:translateX(2%) rotate(7deg)}60%{transform:translateX(6%) translateY(-6%) rotate(0)}80%{transform:rotate(-4deg)}}
+.us-pic .an-dumala{animation-name:an-dumala}
+@keyframes an-dumala{0%{transform:translateX(-40%) rotate(-360deg)}60%{transform:translateX(5%) rotate(15deg)}78%{transform:translateY(-10%)}90%{transform:translateY(0)}100%{transform:none}}
+.us-pic .an-nur{animation-name:an-nur}
+@keyframes an-nur{0%{transform:scale(.7) rotate(-40deg)}50%{transform:scale(1.12) rotate(15deg)}75%{transform:scale(.98) rotate(-5deg)}100%{transform:none}}
+.us-pic .an-tomchi{animation-name:an-tomchi}
+@keyframes an-tomchi{0%{transform:translateY(-25%)}40%{transform:translateY(4%)}55%{transform:translateY(-3%) scale(1.04,.96)}70%,100%{transform:none}}
+.us-pic .an-qor{animation-name:an-qor}
+@keyframes an-qor{0%{transform:translate(-8%,-30%) rotate(-20deg)}35%{transform:translate(6%,-12%) rotate(15deg)}70%{transform:translate(-4%,2%) rotate(-8deg)}100%{transform:none}}
+.us-pic .an-shamol{animation-name:an-shamol}
+@keyframes an-shamol{0%,100%{transform:none}20%{transform:translateX(12%) skewX(-10deg)}45%{transform:translateX(-8%) skewX(8deg)}70%{transform:translateX(6%) skewX(-5deg)}}
+.us-pic .an-suzib{animation-name:an-suzib}
+@keyframes an-suzib{0%{transform:translateX(-30%);opacity:.4}60%{transform:translateX(6%);opacity:1}100%{transform:none}}
+.us-pic .an-kamalak{animation-name:an-kamalak}
+@keyframes an-kamalak{0%{transform:scale(.3,.1);transform-origin:50% 100%}50%{transform:scale(1.1,1.08)}100%{transform:none}}
+.us-pic .an-aylan{animation-name:an-aylan}
+@keyframes an-aylan{0%{transform:rotate(-180deg) scale(.7)}70%{transform:rotate(12deg) scale(1.06)}100%{transform:none}}
+.us-pic .an-egil{animation-name:an-egil}
+@keyframes an-egil{0%,100%{transform:none}35%,65%{transform:translateY(6%) rotate(-6deg) scale(.96)}}
+.us-pic .an-titra{animation-name:an-titra}
+@keyframes an-titra{0%,100%{transform:none}10%,30%,50%,70%{transform:translateX(-4%)}20%,40%,60%,80%{transform:translateX(4%)}}
+.us-pic .an-terla{animation-name:an-terla}
+@keyframes an-terla{0%,100%{transform:none}30%{transform:scale(1.08) rotate(-3deg)}60%{transform:scale(.97) rotate(3deg)}}
+.us-pic .an-silkin{animation-name:an-silkin}
+@keyframes an-silkin{0%,100%{transform:none}20%{transform:rotate(-8deg)}40%{transform:rotate(8deg)}60%{transform:rotate(-5deg)}80%{transform:rotate(3deg)}}
+.us-pic .an-salom{animation-name:an-salom}
+@keyframes an-salom{0%,100%{transform:none}15%{transform:translateY(-8%)}30%{transform:rotate(-7deg)}45%{transform:rotate(7deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(4deg)}}
+.us-pic .an-tebran{animation-name:an-tebran;transform-origin:50% 0 !important}
+@keyframes an-tebran{0%,100%{transform:none}20%{transform:rotate(14deg)}45%{transform:rotate(-10deg)}70%{transform:rotate(6deg)}}
+.us-pic .an-puls{animation-name:an-puls}
+@keyframes an-puls{0%,100%{transform:none}25%{transform:scale(1.15)}50%{transform:scale(.94)}75%{transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.us-pic img[class*="an-"],.us-pic .us-emoji[class*="an-"]{animation:none!important}}

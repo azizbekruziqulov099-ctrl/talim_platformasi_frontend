@@ -48,12 +48,19 @@ export function answerSpeed(times) {
   return Math.round(list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2);
 }
 
-export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0, ovozTogri = 0, ovozJami = 0 }) {
+/** REV145: bugun o'rgangan so'zlar — [{soz, emoji, aytdi}] → serverga qisqa, xavfsiz ko'rinishda (ko'pi bilan 12 ta). */
+export function sozlarPaketi(sozlar) {
+  return (Array.isArray(sozlar) ? sozlar : []).map((w) => ({ soz: String(w?.soz || '').trim().slice(0, 60), emoji: String(w?.emoji || '').slice(0, 12),
+    aytdi: w?.aytdi === true ? true : w?.aytdi === false ? false : null })).filter((w) => w.soz).slice(0, 12);
+}
+
+export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0, ovozTogri = 0, ovozJami = 0, sozlar = [] }) {
   const ortacha_ms = Math.max(0, Math.min(120000, Math.round(Number(ortachaMs) || 0)));
   // REV105: dars oxiridagi ovozli tekshiruv natijasi (ota-onaga ham boradi)
   const ovoz_jami = Math.max(0, Math.min(50, Math.round(Number(ovozJami) || 0)));
   const ovoz_togri = Math.max(0, Math.min(ovoz_jami, Math.round(Number(ovozTogri) || 0)));
-  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}) }); } catch { return null; }
+  const paket = sozlarPaketi(sozlar);
+  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}), ...(paket.length ? { sozlar: paket } : {}) }); } catch { return null; }
 }
 
 /** Kartalar tartibida qaysi darslar ochiq: o'tilgan/bugun ochilgan — ochiq; qolganidan kunlik qoldiq qadar yangi. */

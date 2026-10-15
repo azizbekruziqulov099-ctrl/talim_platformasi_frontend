@@ -513,6 +513,7 @@ const LazyBellashuv = _samtmLazyRetry(() => import("./battle/Bellashuv.jsx"));
 const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
 const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
+const LazyChempionat = _samtmLazyRetry(() => import("./chempionat/Chempionat.jsx"));
 const StudentScheduleWorkspace = _samtmLazyRetry(() => import("./student/StudentScheduleWorkspace.jsx"));
 // Talaba (1–11 sinfdan tashqari): qo'shilish oqimi, profil kartasi va o'z paralar jadvali
 const TalabaQoshilish = _samtmLazyRetry(() => import("./student/TalabaQoshilish.jsx"));
@@ -559,7 +560,8 @@ function Bellashuv(props) { return lazyPanel(LazyBellashuv, props); }
 function Shashka(props) { return lazyPanel(LazyShashka, props); }
 function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
 function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
-const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab"]);
+function Chempionat(props) { return lazyPanel(LazyChempionat, props); }
+const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
@@ -14595,6 +14597,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     oyinlar: ["O‘yinlar", "Bellashuv, shashka va aql o‘yinlari"],
     shashka: ["Shashka", "Bot, onlayn raqib yoki do‘st bilan"],
     shaxmat: ["Shaxmat", "Bot, onlayn raqib yoki do‘st bilan"],
+    chempionat: ["Bolalar ligasi", "Jamoaviy chempionatlar va kuboklar"],
     ai_ustoz: ["AI Ustoz", "Sizga mos individual dars"],
     mavzular: ["Mavzular", "Ta’limingizga mos fan va mavzular"],
     test: ["Test markazi", "Bilimni tekshirish va mustahkamlash"],
@@ -14941,7 +14944,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         />
       )}
       {korinishRoli !== "ota-ona" && tab === "oyinlar" && (
-        <OyinlarMarkazi kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"} onOpen={(key) => {
+        <OyinlarMarkazi kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"} admin={Boolean(foydalanuvchi?.is_admin)} onOpen={(key) => {
           if (key === "bellashuv") setBellashuv({ kod: "", createFrom: null, nonce: Date.now() });
           if (key === "shashka") setShashka({ kod: "", nonce: Date.now() });
           if (key === "shaxmat" || key === "shaxmat_maktab") setShaxmat({ kod: "", nonce: Date.now(), maktab: key === "shaxmat_maktab" });
@@ -14965,6 +14968,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <Shashka key={shashka.nonce} apiBase={API_BASE} token={token}
           kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
           initialCode={shashka.kod} onClose={() => { setShashka({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
+      )}
+      {korinishRoli !== "ota-ona" && tab === "chempionat" && (
+        <Chempionat apiBase={API_BASE} token={token} onClose={() => setTab("oyinlar")} />
       )}
       {korinishRoli !== "ota-ona" && tab === "bellashuv" && (
         <Bellashuv key={bellashuv.nonce} apiBase={API_BASE} token={token}

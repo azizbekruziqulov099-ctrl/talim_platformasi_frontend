@@ -5,8 +5,8 @@ import { recorderSupported } from './speech/childRecorder.js';
 
 const item = { lang: 'en', phrase: 'Thank you' };
 
-test('bog‘cha: ko‘proq gapiradi va 3 marta urinadi', () => {
-  assert.equal(VOICE_LIMITS.bogcha.tries, 3);
+test('bog‘cha: ko‘proq gapiradi; REV145 — 3 emas, 2 marta urinadi', () => {
+  assert.equal(VOICE_LIMITS.bogcha.tries, 2);
   assert.ok(VOICE_LIMITS.bogcha.count >= 5);
 });
 
