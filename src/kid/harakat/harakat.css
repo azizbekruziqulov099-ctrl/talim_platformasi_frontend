@@ -153,7 +153,10 @@
   background:linear-gradient(180deg,#fbf7ff,#f3f8ff);padding:max(8px,env(safe-area-inset-top)) 10px max(12px,env(safe-area-inset-bottom));
   align-content:center}
 .hy-ish>*{width:100%;max-width:860px;margin-left:auto;margin-right:auto}
-.hy-ish .hs-sahna{aspect-ratio:auto;max-width:none;max-height:none;height:min(calc(min(100vw - 20px, 860px) * .75), calc(100dvh - 250px - var(--samtm-portal-top,0px)));min-height:220px}
-@media (max-aspect-ratio:4/5){.hy-ish .hs-sahna{height:min(calc(100vw - 20px), calc(100dvh - 250px - var(--samtm-portal-top,0px)))}}
+/* REV148: kompyuterda (keng, past ekran) sahna 4:3 nisbatini saqlaydi — eni balandligiga qarab, rasm qirqilmaydi
+   (avval eni butun ekran, bo'yi past bo'lib, eshik kabi rasmlarning yuqori-pasti kesilib qolardi) */
+.hy-ish .hs-sahna{--hh:max(220px, min(calc(min(100vw - 20px, 860px) * .75), calc(100dvh - 250px - var(--samtm-portal-top,0px))));
+  aspect-ratio:auto;max-height:none;height:var(--hh);width:min(100%, calc(var(--hh) * 4 / 3));max-width:none}
+@media (max-aspect-ratio:4/5){.hy-ish .hs-sahna{--hh:max(220px, min(calc((100vw - 20px) * .9), calc(100dvh - 250px - var(--samtm-portal-top,0px))));width:100%}}
 .hy-ish .hy-kartalar{max-width:620px}
 .hy-ish .hy-bar{font-size:18px}

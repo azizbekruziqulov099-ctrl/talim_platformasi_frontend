@@ -225,3 +225,56 @@ export function srsYoz(til, id, togri, st = store(), bugun = kunRaqami()) {
   yoz(data, st);
   return data[k];
 }
+
+/**
+ * REV148: xona qismlari — narsalar yaqinligiga qarab guruhlarga bo'linadi (har qismda 3–4 ta narsa). Har qism uchun
+ * kamera to'rtburchagi (sahna foizida, sahna nisbatida): o'yinda kamera shu qismga yaqinlashadi — narsalar 2–3 barobar
+ * katta ko'rinadi (kichik ekranda ham aniq). Qaytaradi: [{ ids, x, y, w, h }] o'qish tartibida (yuqoridan pastga, chapdan o'ngga).
+ */
+const tomonOl = (g, chet) => Math.max(
+  Math.max(...g.map((q) => q.cx + q.w / 2)) - Math.min(...g.map((q) => q.cx - q.w / 2)) + 2 * chet,
+  Math.max(...g.map((q) => q.cy + q.h / 2)) - Math.min(...g.map((q) => q.cy - q.h / 2)) + 2 * chet);
+export function qismlar(xonaId, { har = 4, minTomon = 34, maxTomon = 56, chet = 5 } = {}) {
+  const x = xona(xonaId);
+  if (!x) return [];
+  const n = Number(x.nisbat) || 4 / 3;
+  const quti = joylash(xonaId).map((p) => {
+    const w = p.hs ? p.w : p.s;
+    const h = p.hs ? p.h : (p.s * n) / (p.a || 1);
+    return { id: p.id, cx: p.x, cy: p.y, w, h, X: p.x, Y: p.y / n };
+  });
+  const qoldi = [...quti].sort((a, b) => (Math.floor(a.cy / 22) - Math.floor(b.cy / 22)) || (a.cx - b.cx));
+  const guruhlar = [];
+  while (qoldi.length) {
+    const bosh = qoldi.shift();
+    const g = [bosh];
+    const nomzod = qoldi.map((q) => ({ q, d: Math.hypot(q.X - bosh.X, q.Y - bosh.Y) })).filter((v) => v.d < 30).sort((a, b) => a.d - b.d);
+    for (const { q } of nomzod) {
+      if (g.length >= har) break;
+      if (tomonOl([...g, q], chet) > maxTomon) continue;   // qism juda kattalashib ketmasin (kamera yaqinlashishi kamaymasin)
+      g.push(q); qoldi.splice(qoldi.indexOf(q), 1);
+    }
+    guruhlar.push(g);
+  }
+  // juda kichik (1 ta narsali) guruhni eng yaqin guruhga qo'shamiz — qismlar soni ortiqcha ko'paymasin
+  for (let i = guruhlar.length - 1; i >= 0 && guruhlar.length > 2; i -= 1) {
+    if (guruhlar[i].length > 1) continue;
+    const [p] = guruhlar[i];
+    let eng = -1, d = Infinity;
+    guruhlar.forEach((g, j) => { if (j === i) return; for (const q of g) { const dd = Math.hypot(q.X - p.X, q.Y - p.Y); if (dd < d) { d = dd; eng = j; } } });
+    if (eng >= 0 && d < 34 && guruhlar[eng].length < har + 1 && tomonOl([...guruhlar[eng], p], chet) <= maxTomon) { guruhlar[eng].push(p); guruhlar.splice(i, 1); }
+  }
+  const out = guruhlar.map((g) => {
+    const x0 = Math.min(...g.map((q) => q.cx - q.w / 2)), x1 = Math.max(...g.map((q) => q.cx + q.w / 2));
+    const y0 = Math.min(...g.map((q) => q.cy - q.h / 2)), y1 = Math.max(...g.map((q) => q.cy + q.h / 2));
+    const tomon = Math.min(100, Math.max(minTomon, x1 - x0 + 2 * chet, y1 - y0 + 2 * chet));
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    const px = Math.max(0, Math.min(100 - tomon, cx - tomon / 2));
+    const py = Math.max(0, Math.min(100 - tomon, cy - tomon / 2));
+    return { ids: g.map((q) => q.id), x: +px.toFixed(2), y: +py.toFixed(2), w: +tomon.toFixed(2), h: +tomon.toFixed(2) };
+  });
+  return out.sort((a, b) => (Math.floor((a.y + a.h / 2) / 25) - Math.floor((b.y + b.h / 2) / 25)) || (a.x - b.x));
+}
+
+/** Narsa qaysi qismda (indeks), topilmasa -1. */
+export const qismIndeks = (qs, id) => qs.findIndex((q) => q.ids.includes(id));

@@ -20,7 +20,7 @@ function qolJoyi(S, k) {
  * sahna shunga qarab jonlanadi. demo — ustoz ko'rsatadi (qo'l belgisi harakatni bajaradi, bola tegsa ham o'zgarmaydi).
  * onTayyor — harakat bajarilib, sahna oxirigacha o'ynagach bir marta chaqiriladi. yordam — qo'l belgisi maslahat beradi.
  */
-export default function HarakatSahna({ id, demo = false, faol = true, yordam = false, onTayyor, onDemo, onFaollik }) {
+export default function HarakatSahna({ id, demo = false, faol = true, yordam = false, qolsiz = false, onTayyor, onDemo, onFaollik }) {
   const h = harakat(id);
   const S = SAHNA[id];
   const quti = useRef(null);
@@ -91,7 +91,7 @@ export default function HarakatSahna({ id, demo = false, faol = true, yordam = f
     <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
       {S.C({ a: holat.a, tayyor: holat.tayyor, joy: holat.joy })}
     </svg>
-    {(demo || (yordam && !holat.tayyor)) && <span className={`hs-qol hs-qol--${imo} ${demo ? "" : "is-yordam"}`}
+    {!qolsiz && (demo || (yordam && !holat.tayyor)) && <span className={`hs-qol hs-qol--${imo} ${demo ? "" : "is-yordam"}`}
       style={qolJoyi(S, kor.current)} aria-hidden="true">👆</span>}
     {!demo && h.imo.tur === "ushla" && !holat.tayyor && <span className="hs-halqa" style={{ "--p": holat.a }} aria-hidden="true" />}
     {!demo && h.imo.tur === "tez" && !holat.tayyor && holat.a > 0 && <span className="hs-chiziq" style={{ "--p": holat.a }} aria-hidden="true" />}

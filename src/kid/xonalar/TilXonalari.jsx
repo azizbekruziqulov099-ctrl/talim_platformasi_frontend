@@ -6,7 +6,7 @@ import { RASMLAR, FONLAR } from "./rasmlar.js";
 import {
   soz, manosi, teg, gap, izohGap, izohMatn, yoshGuruhi, rejimlar, savollar, buyruqVariantlari,
   baho, ovozJinsi, joylash, natija, saqlash, hammasi, xona as xonaTop, srsOl, srsYoz, xonaPuxta,
-  xotiraKartalar, yoqoldiSavol, ortiqchaSavol, tartibSavol, raundSoni,
+  xotiraKartalar, yoqoldiSavol, ortiqchaSavol, tartibSavol, raundSoni, qismlar, qismIndeks,
 } from "./xonaRules.js";
 import { tik, oqi, holat as vaqtHolati, FAOL } from "./oyinVaqti.js";
 import { CONTENT_LOCALES } from "../../speech/language.js";
@@ -40,6 +40,15 @@ const Rasm = ({ id, className = "" }) => (RANGLAR[id]
 /** REV144: xona telefonda butun ekranni egallaydi (sahifa sarlavhasi ostida, body ichida chiziladi). */
 const ekranda = (el) => (globalThis.document?.body ? createPortal(el, globalThis.document.body) : el);
 const kut = (ms) => new Promise((r) => setTimeout(r, ms));
+/** REV148: kamera — qism to'liq ko'rinadigan eng katta yaqinlashish (ko'pi bilan 3×). k — sahna bo'yi / xona rasmi bo'yi. */
+function kameraHisob(q, k = 1) {
+  const z = Math.max(1, Math.min(3, 100 / q.w, (100 * k) / q.h));
+  const vw = 100 / z, vh = (100 * k) / z;
+  const cx = q.x + q.w / 2, cy = q.y + q.h / 2;
+  const x = Math.max(0, Math.min(100 - vw, cx - vw / 2));
+  const y = vh >= 100 ? (100 - vh) / 2 : Math.max(0, Math.min(100 - vh, cy - vh / 2));
+  return { z: +z.toFixed(3), x: +x.toFixed(2), y: +y.toFixed(2) };
+}
 
 /**
  * REV127–128: O'yin xonalari — til darsidan keyin takrorlash va gapirish uchun 7 ta tajriba xonasi
@@ -131,6 +140,27 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
 
   const x = xonaTop(xonaId);
   const joylar = useMemo(() => (xonaId ? joylash(xonaId) : []), [xonaId]);
+  // REV148: xona qismlarga bo'linadi — kamera qismga yaqinlashadi, narsalar katta ko'rinadi. -1 — butun xona.
+  const qs = useMemo(() => (xonaId ? qismlar(xonaId, { har: 3 }) : []), [xonaId]);
+  const [qism, setQism] = useState(0);
+  const qismRef = useRef(0);
+  qismRef.current = qism;
+  const qismga = (id) => { const i = qismIndeks(qs, id); if (i >= 0) setQism(i); };
+  useEffect(() => {
+    const el = sahnaRef.current;
+    const n = Number(xonaTop(xonaId)?.nisbat) || 4 / 3;
+    if (!el) return undefined;
+    const olch = () => { const r = el.getBoundingClientRect(); if (r.width > 0 && r.height > 0) setKorinish(+((n * r.height) / r.width).toFixed(3)); };
+    olch();
+    const RO = globalThis.ResizeObserver;
+    if (!RO) { globalThis.addEventListener?.("resize", olch); return () => globalThis.removeEventListener?.("resize", olch); }
+    const ro = new RO(olch); ro.observe(el);
+    return () => ro.disconnect();
+  }, [xonaId, qism >= 0]);
+  const surish = useRef(null);       // barmoq bilan qism almashtirish
+  const sahnaRef = useRef(null);
+  const [korinish, setKorinish] = useState(1);   // sahna bo'yi / xona rasmi bo'yi (telefonda sahna balandroq bo'ladi)
+  const surildi = useRef(0);
   const saqlangan = natija()[til] || {};
   const srs = srsOl(til);
   const yordamchi = (id) => (izoh !== til ? izohGap("manosi", izoh, { t: soz(id, til), til, i: manosi(id, izoh) }) : "");
@@ -195,6 +225,10 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   const savolBer = async (o) => {
     const q = o.list[o.i];
     setXato(null); setMik("");
+    // REV148: savoldagi narsa turgan qism ochiladi (katta guruh — butun xona: o'zi qidiradi)
+    if (o.rejim === "top" || o.rejim === "ayt") { if (yosh === "katta" && o.rejim === "top") setQism(-1); else qismga(q.id); }
+    else if (o.rejim === "yordam") { if (yosh === "katta") setQism(-1); else qismga(q.javob); }
+    else if (o.rejim === "tartib") setQism(-1);
     if (o.rejim === "top") {
       setFaol(null);
       setMatn({ asosiy: gap("korsat", til, soz(q.id, til)), izoh: izoh !== til ? manosi(q.id, izoh) : "" });
@@ -279,7 +313,14 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
       const yangi = !(saqlangan[xonaId]?.kashf || []).includes(id);
       if (yangi) { saqlash(til, xonaId, { kashf: [id] }); setYangi((v) => v + 1); }
       const kim = x?.odamlar.includes(id) ? id : null;
-      ayt(teg(soz(id, til), til), () => { if (yosh !== "katta" || yangi) ayt(yordamchi(id)); }, kim);
+      // REV148: qismdagi hamma narsa kashf qilinsa — keyingi qism o'zi ochiladi
+      const qi = qismRef.current;
+      const korilgan = new Set([...(saqlangan[xonaId]?.kashf || []), id]);
+      const qismTugadi = yangi && qi >= 0 && qs[qi] && qs[qi].ids.includes(id) && qs[qi].ids.every((v) => korilgan.has(v)) && qi < qs.length - 1;
+      ayt(teg(soz(id, til), til), () => {
+        const keyin = () => { if (qismTugadi && alive.current && qismRef.current === qi) setTimeout(() => { if (alive.current && qismRef.current === qi) setQism(qi + 1); }, 500); };
+        if (yosh !== "katta" || yangi) ayt(yordamchi(id), keyin); else keyin();
+      }, kim);
       return;
     }
     if (o.rejim === "tartib") {
@@ -388,7 +429,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   const xonagaKir = (id) => {
     if (vaqt.holat !== "ok" && !cheklovsiz) return;
     jim();
-    setXonaId(id); setRejim("kashf"); setOyin(null); setFaol(null); setMatn(null); setTamom(null);
+    setXonaId(id); setRejim("kashf"); setOyin(null); setFaol(null); setMatn(null); setTamom(null); setQism(0);
     const r = XONALAR.find((v) => v.id === id);
     ayt(`${teg(gap("salom", til), til)} ${izohGap("kashf", izoh, { til })}`.trim(), null, r?.odamlar[0] || null);
   };
@@ -444,6 +485,8 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   const kashfQilingan = new Set(saqlangan[xonaId]?.kashf || []);
   const savol = oyin?.list[oyin.i];
   const overlay = oyin && ["xotira", "ortiqcha", "yoqoldi", "buyruq"].includes(oyin.rejim);
+  const qq = !overlay && qism >= 0 ? qs[qism] : null;
+  const kamera = qq ? kameraHisob(qq, korinish) : null;
   return ekranda(<div className={`xo-root xo-ekran ${overlay ? "xo-fit" : ""}`} role="dialog" aria-modal="true">
     <div className="xo-bar">
       <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}>⬅️</button>
@@ -458,7 +501,16 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
       </button>)}
     </div>
     <div className="xo-scroll">
-      <div className={`xo-sahna xo-sahna--${xonaId} ${x.fon ? "has-fon" : ""}`} style={{ aspectRatio: String(x.nisbat), "--nisbat": x.nisbat }}>
+      <div ref={sahnaRef} className={`xo-sahna xo-sahna--${xonaId} ${x.fon ? "has-fon" : ""} ${kamera ? "is-zoom" : ""}`} style={{ aspectRatio: kamera ? undefined : String(x.nisbat), "--nisbat": x.nisbat }}
+        onPointerDown={(e) => { surish.current = { x: e.clientX, y: e.clientY }; }}
+        onPointerUp={(e) => {
+          const b = surish.current; surish.current = null;
+          if (!b || overlay || qism < 0) return;
+          const dx = e.clientX - b.x, dy = e.clientY - b.y;
+          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { surildi.current = Date.now(); setQism((v) => Math.max(0, Math.min(qs.length - 1, v + (dx < 0 ? 1 : -1)))); }
+        }}
+        onClickCapture={(e) => { if (Date.now() - surildi.current < 400) { e.stopPropagation(); e.preventDefault(); } }}>
+        <div className="xo-kamera" style={kamera ? { transform: `scale(${kamera.z}) translate(${-kamera.x}%, ${-kamera.y}%)`, "--z": kamera.z } : undefined}>
         {x.fon && FONLAR[x.fon] ? <img className="xo-fon" src={FONLAR[x.fon]} alt="" draggable="false" /> : <Bezak id={xonaId} />}
         {joylar.map((p) => {
           if (p.hs) {
@@ -478,6 +530,12 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
             {gapir === p.id && <span className="xo-bubble" aria-hidden="true">💬</span>}
           </button>;
         })}
+        </div>
+        {/* REV148: qismlar orasida o'tish — katta o'qlar, nuqtalar, butun xona */}
+        {!overlay && qs.length > 1 && <>
+          {qism > 0 && <button type="button" className="xo-qism-ot is-chap" onClick={() => setQism(qism - 1)} aria-label={T("Oldingi qism")}>◀</button>}
+          {qism >= 0 && qism < qs.length - 1 && <button type="button" className="xo-qism-ot is-ong" onClick={() => setQism(qism + 1)} aria-label={T("Keyingi qism")}>▶</button>}
+        </>}
         {overlay && <div className={`xo-tray xo-tray--${oyin.rejim}`}>
           {oyin.rejim === "xotira" && <div className={`xo-memo n${oyin.kartalar.length}`}>
             {oyin.kartalar.map((c) => {
@@ -511,6 +569,14 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         {vaqtTosiq}
       </div>
     </div>
+    {!overlay && qs.length > 1 && <div className="xo-qism-qator">
+      <div className="xo-qism-nav">
+            <button type="button" className={`xo-qism-uy ${qism < 0 ? "is-on" : ""}`} onClick={() => setQism(qism < 0 ? 0 : -1)}
+              aria-label={T(qism < 0 ? "Yaqinlashtirish" : "Butun xona")}>{qism < 0 ? "🔍" : "🏠"}</button>
+            {qs.map((q, i) => <button key={i} type="button" className={`xo-qism-n ${i === qism ? "is-on" : ""} ${q.ids.every((v) => kashfQilingan.has(v)) ? "is-bor" : ""}`}
+              onClick={() => setQism(i)} aria-label={`${i + 1}`} />)}
+          </div>
+    </div>}
     <div className="xo-panel" aria-live="polite">
       {oyin && oyin.rejim !== "xotira" && <span className="xo-step">{oyin.i + 1}/{oyin.list.length}</span>}
       <div className="xo-text">

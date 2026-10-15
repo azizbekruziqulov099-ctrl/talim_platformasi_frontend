@@ -324,3 +324,6 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-goal li>span{font-size:26px}
 .dx-goal b{font-size:17px;color:#1f2a44}
 .dx-goal p{margin:0;text-align:center;font-weight:700;color:#5a4a00;font-size:14px;line-height:1.4}
+/* REV148b: past (keng) ekranda sinfxona va doska BUTUNICHA ko'rinsin — sahna ekran balandligiga sig'adi, pastki
+   tugmalar doskani yopmaydi (avval 1366×640 da doskaning yarmi tugmalar ostida qolardi). Telefonda — to'liq kenglik. */
+.dx-root.dx-focus .us-stage{width:min(100%,calc((100dvh - 244px) * 1586 / 992));min-width:min(100%,420px);margin-inline:auto}

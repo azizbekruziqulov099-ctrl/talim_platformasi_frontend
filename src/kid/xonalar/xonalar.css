@@ -158,3 +158,44 @@
   min-width: 0; height: var(--xh); width: calc(var(--xh) * var(--nisbat, 1.3)); aspect-ratio: auto !important; margin: 0 auto; }
 .xo-ekran.xo-fit .xo-sahna { --xh: min(calc(100dvh - var(--samtm-portal-top, 0px) - 190px), calc((min(100vw, 1400px) - 20px) / var(--nisbat, 1.3))); }
 @media (max-width: 700px) { .xo-ekran .xo-item { width: calc(var(--s) * 1.3%) !important; } }
+/* REV148: xona qismlari — kamera qismga yaqinlashadi (narsalar katta), o'qlar va nuqtalar bilan o'tiladi */
+.xo-kamera { position: absolute; left: 0; top: 0; width: 100%; height: auto; aspect-ratio: var(--nisbat, 1.3); transform-origin: 0 0; transition: transform .6s cubic-bezier(.3,.8,.3,1); will-change: transform; }
+.xo-sahna.is-zoom { min-width: 0; }
+.xo-sahna.is-zoom .xo-pic { filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+.xo-qism-ot { all: unset; box-sizing: border-box; position: absolute; top: 50%; transform: translateY(-50%); z-index: 4; cursor: pointer;
+  width: clamp(44px, 9vw, 60px); height: clamp(44px, 9vw, 60px); border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255,255,255,.88); color: #2b2140; font-size: clamp(20px, 4.5vw, 28px); box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+.xo-qism-ot.is-chap { left: 8px; } .xo-qism-ot.is-ong { right: 8px; }
+.xo-qism-ot:active { transform: translateY(-50%) scale(.92); }
+.xo-qism-qator { display: flex; justify-content: center; margin: 6px auto 0; }
+.xo-qism-nav { display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.85); box-shadow: 0 3px 10px rgba(0,0,0,.15); max-width: calc(100% - 20px); flex-wrap: wrap; justify-content: center; }
+.xo-qism-n { all: unset; cursor: pointer; width: 13px; height: 13px; border-radius: 50%; background: #d9d2e8; }
+.xo-qism-n.is-bor { background: #8fdcc0; }
+.xo-qism-n.is-on { background: #ffb703; transform: scale(1.3); }
+.xo-qism-uy { all: unset; cursor: pointer; font-size: 20px; line-height: 1; padding: 2px 4px; }
+.xo-qism-ot:focus-visible, .xo-qism-n:focus-visible, .xo-qism-uy:focus-visible { outline: 3px solid #5b8def; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .xo-kamera { transition: none; } }
+/* yaqinlashtirilganda sahna ekranga to'liq sig'adi — yonga surish kerak emas (qism o'qlar bilan almashadi) */
+.xo-sahna.is-zoom { aspect-ratio: var(--nisbat, 1.3); }
+.xo-ekran .xo-sahna.is-zoom { --xh: max(220px, min(calc(100dvh - var(--samtm-portal-top, 0px) - 232px), calc((min(100vw, 1400px) - 20px) * 1.15)));
+  height: var(--xh); width: min(calc(min(100vw, 1400px) - 20px), calc(var(--xh) * 1.9)); aspect-ratio: auto !important; }
+/* REV148b: xona ekrani — sahna iloji boricha KATTA (butun xona ham, qism ham). Bezaklar ixcham, bo'sh joy qolmaydi.
+   --xo-chrome: sahnadan tashqaridagi qismlar (sarlavha, o'yin turlari, nuqtalar, pastki matn) balandligi. */
+.xo-ekran { --xo-chrome: 222px; gap: 8px; }
+.xo-ekran .xo-panel { min-height: 52px; padding: 6px 12px; }
+.xo-ekran .xo-qism-qator { margin-top: 0; }
+.xo-ekran .xo-mode { padding: 6px 12px; }
+.xo-ekran .xo-sahna, .xo-ekran .xo-sahna.is-zoom {
+  --xh: max(260px, min(calc(100dvh - var(--samtm-portal-top, 0px) - var(--xo-chrome)), calc((min(100vw, 1400px) - 20px) * 1.6))); height: var(--xh); }
+.xo-ekran .xo-sahna:not(.is-zoom) { width: calc(var(--xh) * var(--nisbat, 1.3)); }
+.xo-ekran .xo-sahna.is-zoom { width: min(calc(min(100vw, 1400px) - 20px), calc(var(--xh) * 1.9)); }
+.xo-ekran.xo-fit .xo-sahna { --xh: min(calc(100dvh - var(--samtm-portal-top, 0px) - var(--xo-chrome)), calc((min(100vw, 1400px) - 20px) / var(--nisbat, 1.3))); }
+/* keng ekranda sarlavha va o'yin turlari bitta qatorda — sahnaga yana ~50px */
+@media (min-width: 900px) {
+  .xo-ekran { --xo-chrome: 168px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: start; column-gap: 12px; }
+  .xo-ekran > * { grid-column: 1 / -1; }
+  .xo-ekran > .xo-bar { grid-column: 1; }
+  .xo-ekran > .xo-modes { grid-column: 2; align-self: center; }
+  .xo-ekran > .xo-bar .xo-title { flex: none; }
+}

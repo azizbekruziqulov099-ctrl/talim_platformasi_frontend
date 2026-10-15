@@ -12,6 +12,8 @@ import { XONALAR } from "../xonalar/xonaLugat.js";
 import { HR } from "./rasmlar.js";
 import { eslab } from "../sozBoyligi.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
+import JonliYol from "../jonli/JonliYol.jsx";
+import GapirYol from "../jonli/GapirYol.jsx";
 import "./harakat.css";
 
 /** REV144: o'yin telefonda butun ekranni egallaydi — sahifa sarlavhasi va menyular ustidan (body ichida) chiziladi. */
@@ -301,6 +303,10 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
       <h3><span aria-hidden="true">🏁</span> {T("Katta sinov")}</h3>
       <div className="hy-tugunlar">{tugunlar.filter((t) => !t.bolim && t.tur !== "takror").map((t, i) => <Tugun key={t.id} t={t} i={i} p={p} til={til} izoh={izoh} onBos={() => tugunBos(t)} xonaYulduz={xonaYulduz} />)}</div>
     </section>
+    {/* REV148: 120 bosqichli jonli o'yinlar — narsalar bilan (ushla, yarim ko'rinadi, qutiga sol, pufak…) */}
+    <JonliYol til={til} izoh={izoh} ayt={(text, done) => ayt?.(text, done, "teacher")} jim={jim} cheklovsiz={cheklovsiz} />
+    {/* REV148: 160 bosqichli «Ayt — bo'ladi!» — bola gapiradi, to'g'ri aytsa sahnada o'sha narsa bo'ladi */}
+    <GapirYol til={til} izoh={izoh} ayt={(text, done) => ayt?.(text, done, "teacher")} jim={jim} cheklovsiz={cheklovsiz} />
   </div>;
 }
 
