@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v7-speech-pdf-64";
+const CACHE = "samtm-shell-v10-rev145";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -65,6 +65,16 @@ self.addEventListener("fetch", event => {
     return;
   }
   if (!isStaticAsset(url) || request.headers.has("Authorization")) return;
+  // REV130: build fayllari nomida xesh bor (o'zgarmaydi) — avval keshdan, tarmoqqa chiqmasdan (sekin internetda qotmaydi).
+  if (url.pathname.startsWith("/assets/") && /-[A-Za-z0-9_-]{6,}\.[a-z0-9]+$/.test(url.pathname)) {
+    event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(async response => {
+      if (mayStore(response) && matchesAssetType(url, response)) {
+        await caches.open(CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
+      }
+      return response;
+    })));
+    return;
+  }
   event.respondWith(
     fetch(request).then(async response => {
       if (!matchesAssetType(url, response)) {

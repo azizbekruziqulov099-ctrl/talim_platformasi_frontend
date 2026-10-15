@@ -28,19 +28,39 @@ export async function fetchDayPlan(apiBase, token) {
   return res.json();
 }
 
-/** Darsni boshlash. Kunlik reja tugagan bo'lsa — {limit: true, xabar}; tarmoq xatosida dars baribir ochiladi. */
+/** Darsni boshlash. Kunlik reja tugagan bo'lsa — {limit: true, xabar}; REV103: bugungi dars VAQTI tugagan bo'lsa —
+ *  {limit: true, vaqt: true, xabar}. Tarmoq xatosida dars baribir ochiladi. */
 export async function startLesson(apiBase, token, { darsKod, fan, mavzu, jamiQadam }) {
   try {
     const d = await post(apiBase, token, '/api/bola/dars/boshla', { dars_kod: darsKod, fan: fan || '', mavzu: String(mavzu || '').slice(0, 200), jami_qadam: jamiQadam || 0 });
     return { ok: true, tracked: !d.kuzatilmaydi, reja: d.reja || null };
   } catch (e) {
-    if (e.status === 409 && e.code === 'limit') return { ok: false, limit: true, xabar: e.message, reja: null };
+    if (e.status === 409 && (e.code === 'limit' || e.code === 'vaqt')) return { ok: false, limit: true, vaqt: e.code === 'vaqt', xabar: e.message, reja: null };
     return { ok: true, tracked: false, offline: true };
   }
 }
 
-export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0 }) {
-  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami }); } catch { return null; }
+/** REV103: savolga javob vaqti (ms) — mediana: bola chalg'ib ketgan bitta uzun savol o'rtachani buzmaydi. */
+export function answerSpeed(times) {
+  const list = (times || []).map(Number).filter((n) => Number.isFinite(n) && n > 0).map((n) => Math.min(60000, Math.max(300, n))).sort((a, b) => a - b);
+  if (!list.length) return 0;
+  const mid = Math.floor(list.length / 2);
+  return Math.round(list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2);
+}
+
+/** REV145: bugun o'rgangan so'zlar — [{soz, emoji, aytdi}] → serverga qisqa, xavfsiz ko'rinishda (ko'pi bilan 12 ta). */
+export function sozlarPaketi(sozlar) {
+  return (Array.isArray(sozlar) ? sozlar : []).map((w) => ({ soz: String(w?.soz || '').trim().slice(0, 60), emoji: String(w?.emoji || '').slice(0, 12),
+    aytdi: w?.aytdi === true ? true : w?.aytdi === false ? false : null })).filter((w) => w.soz).slice(0, 12);
+}
+
+export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0, ovozTogri = 0, ovozJami = 0, sozlar = [] }) {
+  const ortacha_ms = Math.max(0, Math.min(120000, Math.round(Number(ortachaMs) || 0)));
+  // REV105: dars oxiridagi ovozli tekshiruv natijasi (ota-onaga ham boradi)
+  const ovoz_jami = Math.max(0, Math.min(50, Math.round(Number(ovozJami) || 0)));
+  const ovoz_togri = Math.max(0, Math.min(ovoz_jami, Math.round(Number(ovozTogri) || 0)));
+  const paket = sozlarPaketi(sozlar);
+  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}), ...(paket.length ? { sozlar: paket } : {}) }); } catch { return null; }
 }
 
 /** Kartalar tartibida qaysi darslar ochiq: o'tilgan/bugun ochilgan — ochiq; qolganidan kunlik qoldiq qadar yangi. */

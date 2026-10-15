@@ -48,3 +48,10 @@
 .tr-mark.is-loss { color: #b42318; font-weight: 900; }
 .tr-mark.is-draw { color: #6a4b00; font-weight: 900; }
 @media (max-width: 520px) { .tr-head h2 { font-size: 1.3rem; } .tr-table { font-size: .82rem; } .tr-pairs li { grid-template-columns: 22px 1fr auto 1fr; font-size: .9rem; } }
+/* REV143: jamoaviy liga */
+.tr-team-me h3 { margin: 0 0 6px; }
+.tr-team-members { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.tr-team-members span { background: #f3efe6; border-radius: 999px; padding: 3px 10px; font-size: .85rem; font-weight: 600; }
+.tr-team-members span.is-me { background: #ffd75e; font-weight: 800; }
+.tr-team-tag { margin-right: 4px; font-size: 1rem; }
+.tr-name small { display: block; font-weight: 500; }
