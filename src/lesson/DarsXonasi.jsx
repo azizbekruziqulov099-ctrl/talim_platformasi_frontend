@@ -21,8 +21,7 @@ import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari } from "../kid/kidStageRules.js";
-import { stickerUrl } from "../kid/stickers.js";
+import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
 import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
@@ -119,6 +118,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const fallbackTalk = useRef(false);
   const aralashRef = useRef(null);   // REV139: o'zbekcha — server, chet tili — brauzer ovozi
   const sozTimer = useRef(null);
+  const sayWords = useRef([]);   // REV153: hozirgi gap so'zlari (word — shu ro'yxatdagi tartib)
   const kidRef = useRef(false);
   const gradeRef = useRef("");
   const tokenRef = useRef(0);
@@ -268,6 +268,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setBubble(stripSpeechTags(text || "").replace(/\s*⏸\s*/g, " ").trim());
     if (!clean.replace(/⏸/g, "").trim()) { done?.(); return; }
     const words = String(text || "").replace(/⏸/g, " ").split(/\s+/).filter(Boolean);
+    sayWords.current = words;
     setSpeaking(true);
     const finish = () => { if (my !== tokenRef.current) return; clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
     // REV139: gapda chet tildagi so'z bo'lsa — o'zbekcha bo'laklar serverdan, chet tildagilari qurilma ovozidan
@@ -898,27 +899,51 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const board = emojiPictures(step.doska, lesson?.rasmlar, lesson?.rasm_sozlar);
     // REV121: rasm bo'lmasa — doskadagi emoji kartalar, sanoq saqlanadi («🍎🍎🍎» — uchta olma, «🔴🔵🔴🔵» — naqsh)
     const cards = boardCards(step.doska).map((e, i) => karta(e, { label: `rasm ${i + 1}` }));
+    // REV153: doska bandi → rasm: rassom chizgani (so'z yoki belgi bo'yicha) → kitob rasmi → belgi kartasi
+    const nomlar = lessonWords(steps, kinds);
+    const bandlar = doskaBandlari(step.doska);
+    const band = (b, i) => {
+      const soz = b.soz || nomlar.get(b.emoji.replace(/\uFE0F/g, "")) || "";
+      const extra = { label: soz || `rasm ${i + 1}`, soz, belgi: b.emoji, rev: picRev };
+      if (sanoqKarta(b.emoji)) return { emoji: b.emoji, src: "", ...extra };
+      const ch = (darsTil === "en" && soz && (() => { const id = sozId({ soz, emoji: "" }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })())
+        || emojiRasm(b.emoji, RASM_HAMMA, darsTil === "en" ? soz : "");
+      if (ch?.src) return { src: ch.src, anim: harakatTuri(ch.id || sozId({ soz, emoji: b.emoji })), ...extra };
+      const own = pictureFor(b.emoji, soz, lesson?.rasmlar, lesson?.rasm_sozlar);
+      if (own) return { src: mediaUrl(own), anim: harakatTuri(sozId({ soz, emoji: b.emoji })), ...extra };
+      return { emoji: b.emoji, src: "", anim: harakatTuri(sozId({ emoji: b.emoji })), ...extra };
+    };
     if (kidKind === "game") {
       // REV102: yangi darsdagi o'yinda faqat shu darsda o'rgatilgan so'zlarning rasmlari (o'tgan darslar rasmi chalg'itardi)
       const mine = board.filter((u) => newPics.has(u));
-      const list = (mine.length ? mine : [...newPics]).slice(0, 3);
+      const list = (mine.length ? mine : [...newPics]).slice(0, 6);
       if (list.length) return list.map(pic);
       if (cards.length) return cards;
+    } else if (bandlar.length >= 2) {
+      // REV153: bir qadamda bir nechta narsa («👋 Hello / 🙋 Hi», «🟢 Green, 👏 Clap») — HAMMASI chiqadi (6 tagacha),
+      // har biri o'z so'zi bilan: ustoz qaysi birini aytsa yoki bola qaysi birini aytishi kerak bo'lsa — o'shasi kattalashadi
+      return bandlar.map(band);
     } else if (board.length >= 2) {
-      return board.slice(0, 3).map(pic);   // bir qadamda 2–3 so'z («🟢 Green, 👏 Clap») — hammasining rasmi
+      return board.slice(0, 6).map(pic);
     }
     if (step.rasm) return [pic(step.rasm, 0)];
-    if (board.length) return board.slice(0, 3).map(pic);
+    if (bandlar.length === 1 && !sanoqKarta(bandlar[0].emoji)) return [band(bandlar[0], 0)];
+    if (board.length) return board.slice(0, 6).map(pic);
     if (cards.length) return cards;
     // REV140: doska bo'sh qolmasin — ustoz aytayotgan so'zlarning kitobdagi rasmlari; kirish va xulosada — bugungi rasmlar
     const aytilgan = matnRasmlari(`${step.sarlavha || ""} ${kidSrc}`, lesson?.rasm_sozlar);
     if (aytilgan.length) return aytilgan.map(pic);
-    if ((kidKind === "intro" || kidKind === "summary") && !step._ochilish && newPics.size) return [...newPics].slice(0, 3).map(pic);
+    if ((kidKind === "intro" || kidKind === "summary") && !step._ochilish && newPics.size) return [...newPics].slice(0, 6).map(pic);
     if (kidKind !== "new") return [];   // takror, o'yin — begona stiker chiqmaydi
     // REV151: kod bilan chizilgan stikerlar o'rniga — rassom rasmlari (bo'lsa)
+    // REV153: kod bilan chizilgan SVG stikerlar butunlay olib tashlandi — faqat rassom rasmlari («three» — son kartasi)
     const CHIZILGAN = { hello: RASM_HAMMA.d_hello, red: RASM_HAMMA.d_red, big: RASM_HAMMA.d_big, small: RASM_HAMMA.d_small, cat: RASM_HAMMA.cat, apple: RASM_HAMMA.apple, jump: RASM_HAMMA["d_can-jump"] };
-    return stickerKeys(kidSrc).map((key) => (CHIZILGAN[key] ? { src: CHIZILGAN[key], key, label: key, rev: picRev } : { src: stickerUrl(key), svg: true, key, label: key, rev: picRev })).filter((x) => x.src);
+    return stickerKeys(kidSrc).map((key) => (CHIZILGAN[key] ? { src: CHIZILGAN[key], key, label: key, rev: picRev } : key === "three" ? { emoji: "3️⃣", src: "", key, label: key, rev: picRev } : null)).filter(Boolean);
   })();
+  // REV153: aytilayotgan (yoki bola aytishi kerak bo'lgan) rasm kattalashadi, qolganlari bir oz xiralashadi
+  const faol = kid && mode === "lesson" && !(game && game.stepIdx === idx) && !variant
+    ? faolRasm(kidPics, sayWords.current, speaking ? word : -1, mikSoz && mikSoz.holat !== "no" ? mikSoz.phrase : "") : -1;
+  const doskaRasmlari = faol >= 0 ? kidPics.map((p, i) => ({ ...p, faol: i === faol })) : kidPics;
   const badge = kindBadge(kidKind);
   const kidMood = kidPhase || (mode === "idle" || mode === "bridge" ? "wave" : speaking ? kabuMood(step, "speaking") : mode === "lesson" ? kabuMood(step, "waiting") : mode === "result" ? "happy" : "");
   const STICKER_SAY = { hello: "Hello!", red: "Red!", three: "Three!", big: "Big!", small: "Small!", cat: "Cat!", apple: "Apple!", jump: "I can jump!" };
@@ -959,7 +984,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status"><span aria-hidden="true">{badge[0]}</span><small>{__kbUi(badge[1])}</small></div>}
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={kidPics} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} onTap={tapKid} />
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid} />
             {mikSoz && mode === "lesson" && <div className={`dx-mic-soz is-${mikSoz.holat}`} role="status" aria-live="polite">
               <span className="dx-mic-ikon" aria-hidden="true">{mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"}</span>
               <b lang={mikSoz.lang}>{mikSoz.phrase}</b>

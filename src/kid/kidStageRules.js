@@ -275,3 +275,73 @@ export function matnRasmlari(text, wordMap, limit = 3) {
   }
   return out;
 }
+
+/**
+ * REV153: doskadagi har narsa alohida band: «👋 Hello!\nпривет\n🙋 Hi!» → [{emoji:"👋",soz:"Hello"},{emoji:"🙋",soz:"Hi"}].
+ * Bir qatorda bir nechta («🟢 Green, 👏 Clap») ham ajratiladi; tarjima qatori (belgisiz) tashlanadi. 6 tagacha — hammasi
+ * doskada chiqadi (oldin 2–3 tasi chiqib, qolgani yo'qolardi).
+ */
+export function doskaBandlari(text, limit = 6) {
+  const out = [];
+  const qosh = (b) => {
+    if (!b || !b.emoji) return;
+    const soz = b.soz.split(/\s+[—–-]\s+|[,;:(]/)[0].replace(/[!?.…]+$/u, "").trim();
+    const key = `${b.emoji.replace(/️/g, "")}|${normWord(soz)}`;
+    if (out.length < limit && !out.some((x) => x.key === key)) out.push({ emoji: b.emoji, soz, key });
+  };
+  for (const raw of String(text || "").replace(TAGS_ALL, "").split(/\n+|\s{2,}/)) {
+    const toks = raw.replace(LEAD_MARK, "").trim().split(/\s+/).filter(Boolean);
+    let cur = null;
+    for (const tok of toks) {
+      if (isEmojiToken(tok) && /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3❓]/u.test(tok)) {
+        if (cur && cur.soz) { qosh(cur); cur = null; }
+        cur = cur ? { ...cur, emoji: cur.emoji + tok } : { emoji: tok, soz: "" };
+        if (/[,;]$/.test(tok)) { qosh(cur); cur = null; }
+      } else if (cur) {
+        cur.soz = cur.soz ? `${cur.soz} ${tok}` : tok;
+        if (/[,;]$/.test(tok)) { qosh(cur); cur = null; }
+      }
+    }
+    qosh(cur);
+  }
+  return out;
+}
+
+/** Sanoq yoki naqsh kartasimi («🍎🍎🍎», «🔴🔵🔴🔵❓», «3️⃣») — bunda rasm emas, belgilar soni ko'rsatiladi. */
+export function sanoqKarta(emoji) {
+  const e = String(emoji || "").replace(/️/g, "");
+  if (/[\p{N}❓?+=]/u.test(e)) return true;
+  let g = [];
+  try { g = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(e)].map((x) => x.segment); } catch { g = [...e]; }
+  return g.length > 1 && new Set(g).size < g.length;
+}
+
+/**
+ * REV153: doskada bir nechta rasm bo'lsa — hozir qaysi biri haqida gapirilyapti (o'sha kattalashadi, qolganlari xiralashadi).
+ * pics: [{soz, emoji}] · sozlar: ustoz gapining so'zlari · at: hozirgi so'z tartibi (-1 — gapirmayapti) ·
+ * mik: bola aytishi kerak bo'lgan so'z («Endi sen ayt: Hello»). Topilmasa -1 (hammasi teng).
+ */
+export function faolRasm(pics = [], sozlar = [], at = -1, mik = "") {
+  if (!Array.isArray(pics) || pics.length < 2) return -1;
+  const kalit = pics.map((p) => ({ s: normWord(p?.soz || "").split(" ").filter(Boolean), e: String(p?.emoji || p?.belgi || "").replace(/️/g, "") }));
+  if (mik) {
+    const m = normWord(mik);
+    const i = kalit.findIndex((k) => k.s.length && k.s.join(" ") === m);
+    if (i >= 0) return i;
+    const j = kalit.findIndex((k) => k.s.length && (m.startsWith(k.s.join(" ")) || k.s.join(" ").startsWith(m)));
+    if (j >= 0) return j;
+  }
+  if (!(at >= 0)) return -1;
+  const raw = sozlar.slice(0, at + 1).map((t) => String(t || "").replace(TAGS_ALL, ""));
+  const tok = raw.map((t) => normWord(t));
+  let best = -1, bestAt = -1;
+  kalit.forEach((k, pi) => {
+    let last = -1;
+    for (let i = tok.length - 1; i >= 0 && last < 0; i -= 1) {
+      if (k.e && raw[i].replace(/️/g, "").includes(k.e)) last = i;
+      else if (k.s.length && tok[i] === k.s[0] && k.s.every((w, j) => tok[i + j] === w || (i + j >= tok.length && j > 0))) last = i;
+    }
+    if (last > bestAt) { bestAt = last; best = pi; }
+  });
+  return best;
+}

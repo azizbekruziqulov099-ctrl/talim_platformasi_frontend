@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { USTOZLAR, XONALAR } from "./ustozlar.js";
+import { OG_RASM, USTOZLAR, XONALAR } from "./ustozlar.js";
 import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, pozaFor } from "./ustozRules.js";
 import { cardSize } from "./kidStageRules.js";
-import { mouthFrame } from "./lipSync.js";
+import { OGIZ, mouthFrame, ogizShakli, ritmShakli } from "./lipSync.js";
 import { keycapNumber } from "./sanKarta.js";
 import "./ustozSahna.css";
 
@@ -11,12 +11,18 @@ import "./ustozSahna.css";
  * Ustoz gapirganda og'zi ochilib-yopiladi, vaqti-vaqti bilan ko'zini pirpiratadi, vaziyatga qarab pozasi almashadi
  * (salom beradi, doskani ko'rsatadi, o'ylaydi, quvonadi, tinglaydi). Hammasi CSS + rasm almashtirish — telefonni qiynamaydi.
  */
-export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, doskaYoq = false, onTap, celebrate = 0, children }) {
+export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, doskaYoq = false, onTap, celebrate = 0, children }) {
   const xonaKey = XONALAR[XONA[ustoz]] ? XONA[ustoz] : "onatili";
   const xona = XONALAR[xonaKey];
   const poza = pozaFor(mood, { hasPics: pictures.length > 0, listening });
-  const p = (USTOZLAR[ustoz] || USTOZLAR.nilufar)[poza];
+  const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
+  const p = t[poza];
+  const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;
   const [kadr, setKadr] = useState(1);
+  // REV153: gapirganda og'iz — lab varag'idagi 10 shakldan (ovoz balandligi + aytilayotgan so'zning unlilari). -1 — chizilgan og'iz.
+  const [og, setOg] = useState(-1);
+  const sozRef = useRef(soz);
+  sozRef.current = soz;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
@@ -25,21 +31,28 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
   const [ochiq, setOchiq] = useState(false);   // ovoz haqiqatan yangrayaptimi (tanani yengil tebratish uchun)
   useEffect(() => {
     const yopiq = poza === 5 ? KULGI : 1;
-    if (!speaking || !p.yuz) { setKadr(yopiq); setOchiq(false); return undefined; }
-    let raf = 0, last = -1, prev = 0, i = 0, tick = 0, since = 0, on = null;
+    if (!speaking || (!p.yuz && !p.og)) { setKadr(yopiq); setOg(-1); setOchiq(false); return undefined; }
+    let raf = 0, last = -1, prev = 0, i = 0, tick = 0, since = 0, on = null, oldSoz = null;
+    const holat = { soz: "", bogin: 0, past: true };
+    if (p.og) setKadr(1);
     const loop = (now) => {
       const lv = typeof mouth === "function" ? mouth() : -1;
       let f;
-      if (lv == null) f = yopiq;
+      if (p.og) {
+        if (sozRef.current !== oldSoz) { oldSoz = sozRef.current; holat.soz = oldSoz; holat.bogin = 0; holat.past = true; i = 0; }
+        if (lv == null) f = 0;
+        else if (lv < 0) { if (now - tick > 120) { tick = now; i += 1; } f = ritmShakli(i, holat.soz); }
+        else { f = ogizShakli(lv, prev, holat); prev = lv; }
+      } else if (lv == null) f = yopiq;
       else if (lv < 0) { if (now - tick > 150) { tick = now; i = (i + 1) % GAPIR.length; } f = GAPIR[i]; }
       else { f = mouthFrame(lv, prev); prev = lv; if (f === 1) f = yopiq; }
       if (on !== (lv != null)) { on = lv != null; setOchiq(on); }   // ovoz haqiqatan yangrayaptimi
       // juda tez almashmasin (kamida 70 ms) — og'iz «miltillamaydi»
-      if (f !== last && now - since > 70) { last = f; since = now; setKadr(f); }
+      if (f !== last && now - since > 70) { last = f; since = now; if (p.og) setOg(f); else setKadr(f); }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); setOg(-1); };
   }, [speaking, p, poza, mouth]);
 
   // Pirpiratish: gapirmayotganda har 2,5–5 soniyada.
@@ -59,6 +72,7 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
 
   // Kadrlarni oldindan yuklab qo'yamiz (birinchi gapirishda miltillamasin).
   useEffect(() => { if (typeof Image !== "undefined" && p.yuz) p.yuz.kadr.forEach((s) => { const im = new Image(); im.src = s; }); }, [p]);
+  useEffect(() => { if (typeof Image !== "undefined" && p.og) ogRasm.forEach((s) => { const im = new Image(); im.src = s; }); }, [p, ogRasm]);
 
   const d = xona.doska;
   const box = (r) => ({ left: `${r.l}%`, top: `${r.t}%`, width: `${r.w}%`, height: `${r.h}%` });
@@ -82,9 +96,9 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
     {xona.chiroq && <div className="us-lamp" aria-hidden="true"><span className="us-lamp-cord" /><span className="us-lamp-shade" /><span className="us-lamp-bulb" /></div>}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
-    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(4, pictures.length)}`} style={pictures.length ? undefined : box(d)}>
+    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(d)}>
       {pictures.map((pic, i) => <button key={`${pic.src || pic.emoji}-${pic.rev || 0}-${i}`} type="button"
-        className={`us-pic ${pic.emoji && !pic.src ? `is-emoji sz-${cardSize(pic.emoji)}` : ""} ${pic.holat ? `is-${pic.holat}` : ""}`} style={{ "--i": i }}
+        className={`us-pic ${pic.emoji && !pic.src ? `is-emoji sz-${cardSize(pic.emoji)}` : ""} ${pic.holat ? `is-${pic.holat}` : ""} ${pic.faol ? "is-faol" : ""}`} style={{ "--i": i }}
         onClick={() => onTap?.(i)} aria-label={pic.label || "rasm"}>
         {pic.src ? <img className={pic.anim ? `an-${pic.anim}` : undefined} src={pic.src} alt="" draggable="false" /> : keycapNumber(pic.emoji) ? <span className="us-emoji kb-num">{keycapNumber(pic.emoji)}</span> : <span className={`us-emoji ${pic.anim ? `an-${pic.anim}` : ""}`}>{pic.emoji}</span>}
       </button>)}
@@ -94,6 +108,10 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
       <img className="us-body" src={p.src} alt="" draggable="false" decoding="async" />
       {p.yuz && kadr !== 1 && <img className="us-face" src={p.yuz.kadr[kadr - 1]} alt="" draggable="false"
         style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
+      {p.og && og >= 0 && <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin }} aria-hidden="true">
+        <i className="us-og-teri" />
+        <img src={ogRasm[og]} alt="" draggable="false" style={{ width: `${OGIZ[og][0] * 95}%`, top: `${50 + OGIZ[og][2] * 100}%` }} />
+      </span>}
     </div>
   </div>;
 }

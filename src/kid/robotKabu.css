@@ -15,3 +15,18 @@
 .kabu-burst.go i{animation:kabu-fly 1s cubic-bezier(.2,.7,.3,1) var(--d) both}
 @keyframes kabu-fly{0%{transform:translate(0,0) scale(.2) rotate(0);opacity:1}75%{opacity:1}100%{transform:translate(var(--x),var(--y)) scale(1) rotate(200deg);opacity:0}}
 @media (prefers-reduced-motion:reduce){.kabu-box *{animation:none!important;transition:none!important}}
+/* REV153: rassom chizgan Kabu */
+.kabu-rasm{aspect-ratio:362/420;width:100%}
+.kabu-rasm .kabu-hop{width:100%;height:100%}
+.kabu-rasm .kabu-img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 10px #0002);animation:kr-in .35s ease-out both,kr-float 3.4s ease-in-out .35s infinite;transform-origin:50% 100%}
+.kabu-rasm.is-talk .kabu-img{animation:kr-in .35s ease-out both,kr-talk .45s ease-in-out .35s infinite alternate}
+.kabu-yulduz{position:absolute;inset:0;pointer-events:none}
+.kabu-yulduz img{position:absolute;left:45%;top:35%;width:16%;opacity:0}
+.kabu-yulduz.go img{animation:kr-star .9s ease-out both;animation-delay:calc(var(--i) * .05s)}
+.kabu-yulduz.go img:nth-child(1){--x:-120%;--y:-140%}.kabu-yulduz.go img:nth-child(2){--x:130%;--y:-150%}.kabu-yulduz.go img:nth-child(3){--x:-190%;--y:10%}
+.kabu-yulduz.go img:nth-child(4){--x:200%;--y:0%}.kabu-yulduz.go img:nth-child(5){--x:0%;--y:-220%}
+@keyframes kr-in{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes kr-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3%)}}
+@keyframes kr-talk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-1.5%) rotate(-1.2deg)}}
+@keyframes kr-star{0%{opacity:0;transform:translate(0,0) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1) rotate(40deg)}}
+@media (prefers-reduced-motion:reduce){.kabu-rasm *{animation:none!important}}

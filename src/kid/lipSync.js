@@ -62,3 +62,41 @@ export function loadEnvelope(url, fetcher = typeof fetch === "function" ? fetch 
   if (cache.size > 40) cache.delete(cache.keys().next().value);
   return p;
 }
+
+// REV153: og'iz — rassom chizgan lab varag'idagi 10 shakl (oldingi 3 ta xira kadr o'rniga). Har shakl: [eni, bo'yi,
+// pastga siljishi] — yopiq og'iz eniga nisbatan. 0 yopiq · 1 lablar jips · 2 sal ochiq · 3 keng «a» · 4 tabassum «e»
+// 5 kichik «u» · 6 katta «o» · 7 tishlar «s/i» · 8 til «l» · 9 o'rtacha «a/e».
+export const OGIZ = [[1.042, 0.284, 0], [0.993, 0.298, 0.004], [0.938, 0.453, 0.051], [0.945, 0.765, 0.144], [1.031, 0.429, 0.044],
+  [0.609, 0.481, 0.059], [0.561, 0.713, 0.129], [0.962, 0.343, 0.018], [0.851, 0.599, 0.095], [0.99, 0.484, 0.06]];
+// unli turi → [past ovozda, baland ovozda]
+const UNLI_SHAKL = { a: [9, 3], o: [5, 6], u: [5, 5], e: [7, 4], i: [7, 4], x: [2, 8] };
+const UNLI_HARF = [
+  [/[aаяáàâäāا]/, "a"], [/[oоёóöōو]/, "o"], [/[uуюúüūўۇ]/, "u"], [/[eэеéèêëə]/, "e"], [/[iиыyíïīيى]/, "i"],
+];
+
+/** So'zdagi unlilar ketma-ketligi (o'zbek, rus, ingliz, arab va boshqa yozuvlar): «Hello» → ["e","o"]. */
+export function unlilar(soz) {
+  const t = String(soz || "").replace(/\[\/?[a-z]{2}\]/gi, "").toLowerCase().replace(/o['‘’ʻ]/g, "o").replace(/g['‘’ʻ]/g, "g");
+  const out = [];
+  for (const ch of t) {
+    const hit = UNLI_HARF.find(([re]) => re.test(ch));
+    if (hit && out[out.length - 1] !== hit[1]) out.push(hit[1]);
+  }
+  return out;
+}
+
+/** Ovoz balandligi + aytilayotgan so'z → og'iz shakli (0..9). holat — chaqiruvchida saqlanadigan obyekt {soz, bogin, past}. */
+export function ogizShakli(level, prevLevel = 0, holat = {}) {
+  if (!(level > 0.12)) { holat.past = true; return prevLevel > 0.3 ? 1 : 0; }
+  if (holat.past !== false && level > 0.2) { holat.bogin = (holat.bogin || 0) + 1; holat.past = false; }   // yangi bo'g'in
+  const u = unlilar(holat.soz);
+  const tur = u.length ? u[((holat.bogin || 1) - 1) % u.length] : "x";
+  return UNLI_SHAKL[tur][level >= 0.45 ? 1 : 0];
+}
+
+/** Ovoz tahlili bo'lmaganda (qurilma ovozi) — so'z unlilariga qarab sokin ritm: ochiq → yarim → yopiq. */
+export function ritmShakli(qadam, soz) {
+  const u = unlilar(soz);
+  const tur = u.length ? u[Math.floor(qadam / 3) % u.length] : "x";
+  return [UNLI_SHAKL[tur][1], UNLI_SHAKL[tur][0], 0][qadam % 3];
+}

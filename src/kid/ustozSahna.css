@@ -14,6 +14,17 @@
 .us-board.is-zoom.n3 .us-pic{max-width:31%}
 .us-board.is-zoom.n4{flex-wrap:wrap;align-content:space-evenly}
 .us-board.is-zoom.n4 .us-pic{flex:0 0 46%;max-width:46%;height:45%}
+/* REV153: 5–6 ta narsa — ikki qator, uchtadan (hammasi ko'rinadi) */
+.us-board.is-zoom.n5,.us-board.is-zoom.n6{flex-wrap:wrap;align-content:space-evenly}
+.us-board.is-zoom.n5 .us-pic,.us-board.is-zoom.n6 .us-pic{flex:0 0 30%;max-width:30%;height:45%}
+/* REV153: ustoz qaysi narsani aytayotgan bo'lsa (yoki bola qaysini aytishi kerak bo'lsa) — o'sha katta, boshqalari kichik va xira */
+.us-board.has-faol .us-pic{transition:max-width .35s ease,flex-grow .35s ease,opacity .35s ease,transform .35s ease,filter .35s ease}
+.us-board.has-faol .us-pic:not(.is-faol){opacity:.4;filter:saturate(.55);transform:scale(.86)}
+.us-board.has-faol .us-pic.is-faol{position:relative;z-index:2;box-shadow:0 0 0 4px #ffd166,0 8px 22px #0003}
+.us-board.is-zoom.has-faol.n2 .us-pic.is-faol,.us-board.is-zoom.has-faol.n3 .us-pic.is-faol{flex-grow:2.6;max-width:62%}
+.us-board.is-zoom.has-faol.n2 .us-pic:not(.is-faol){max-width:30%}
+.us-board.is-zoom.has-faol.n3 .us-pic:not(.is-faol){max-width:18%}
+.us-board.is-zoom.has-faol.n4 .us-pic.is-faol,.us-board.is-zoom.has-faol.n5 .us-pic.is-faol,.us-board.is-zoom.has-faol.n6 .us-pic.is-faol{transform:scale(1.16)}
 @keyframes us-zoom{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
 .us-board.is-panel{background:linear-gradient(#fffefa,#f7f4ea);border:clamp(3px,.8vw,7px) solid #c58d55;border-radius:10px;box-shadow:0 8px 18px #0003,inset 0 0 0 2px #efe3cc}
 .us-board.is-panel::after{content:"";position:absolute;left:8%;right:8%;bottom:-6%;height:5%;background:#b07a45;border-radius:4px;box-shadow:0 3px 6px #0003}
@@ -48,6 +59,11 @@
 .us-face{position:absolute;pointer-events:none;
   /* REV122: yuz bo'lagi chetlari silliq qo'shiladi — «qirqib yopishtirilgan» to'rtburchak ko'rinmaydi */
   -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 52%,#000 72%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 52%,#000 72%,transparent 100%)}
+/* REV153: og'iz — lab varag'idagi aniq shakllar; ostida chizilgan og'iz teri rangidagi yumshoq dog' bilan yashiriladi */
+.us-og{position:absolute;aspect-ratio:1/1;transform:translate(-50%,-50%);pointer-events:none}
+.us-og-teri{position:absolute;left:52%;top:50%;width:185%;height:100%;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(closest-side,var(--teri) 62%,transparent 100%)}
+.us-og img{position:absolute;left:50%;height:auto;transform:translate(-50%,-50%);display:block;image-rendering:auto}
 @keyframes us-breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.006,1.012)}}
 @keyframes us-talk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-.3%) rotate(-.3deg)}}
 @keyframes us-enter{from{transform:translateX(-30%);opacity:0}to{transform:none;opacity:1}}
@@ -210,3 +226,6 @@
 .us-pic .an-puls{animation-name:an-puls}
 @keyframes an-puls{0%,100%{transform:none}25%{transform:scale(1.15)}50%{transform:scale(.94)}75%{transform:scale(1.06)}}
 @media (prefers-reduced-motion:reduce){.us-pic img[class*="an-"],.us-pic .us-emoji[class*="an-"]{animation:none!important}}
+/* REV153: rasm kartadan chiqib ketmasin (4–6 ta bo'lganda ham) */
+.us-pic{grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
+.us-pic img{min-width:0;min-height:0;max-width:100%;max-height:100%}

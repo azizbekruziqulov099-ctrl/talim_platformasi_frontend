@@ -6,31 +6,41 @@ let RASM = {};
 try { RASM = import.meta.glob("./ustoz/**/*.webp", { eager: true, query: "?url", import: "default" }); } catch { RASM = {}; }
 const u = (p) => RASM[p] || p;
 
+// REV153: og — og'iz markazi va eni (pozaga nisbatan foizda) hamda atrofidagi teri rangi (eski og'iz yashiriladi)
 export const USTOZLAR = {
   sardor: {
-    1: { src: u("./ustoz/sardor/poza_1.webp"), w: 193, h: 497, yuz: { x: 36.269, y: 10.865, w: 40.933, h: 11.871, kadr: [u("./ustoz/sardor/yuz_1_1.webp"), u("./ustoz/sardor/yuz_1_2.webp"), u("./ustoz/sardor/yuz_1_3.webp"), u("./ustoz/sardor/yuz_1_4.webp"), u("./ustoz/sardor/yuz_1_5.webp"), u("./ustoz/sardor/yuz_1_6.webp")] } },
-    2: { src: u("./ustoz/sardor/poza_2.webp"), w: 220, h: 496, yuz: { x: 40.455, y: 11.089, w: 35.909, h: 11.895, kadr: [u("./ustoz/sardor/yuz_2_1.webp"), u("./ustoz/sardor/yuz_2_2.webp"), u("./ustoz/sardor/yuz_2_3.webp"), u("./ustoz/sardor/yuz_2_4.webp"), u("./ustoz/sardor/yuz_2_5.webp"), u("./ustoz/sardor/yuz_2_6.webp")] } },
+    lab: "erkak",
+    1: { src: u("./ustoz/sardor/poza_1.webp"), w: 193, h: 497, yuz: { x: 36.269, y: 10.865, w: 40.933, h: 11.871, kadr: [u("./ustoz/sardor/yuz_1_1.webp"), u("./ustoz/sardor/yuz_1_2.webp"), u("./ustoz/sardor/yuz_1_3.webp"), u("./ustoz/sardor/yuz_1_4.webp"), u("./ustoz/sardor/yuz_1_5.webp"), u("./ustoz/sardor/yuz_1_6.webp")] }, og: { x: 54.16, y: 18.42, w: 14.45, skin: "#f8a878" } },
+    2: { src: u("./ustoz/sardor/poza_2.webp"), w: 220, h: 496, yuz: { x: 40.455, y: 11.089, w: 35.909, h: 11.895, kadr: [u("./ustoz/sardor/yuz_2_1.webp"), u("./ustoz/sardor/yuz_2_2.webp"), u("./ustoz/sardor/yuz_2_3.webp"), u("./ustoz/sardor/yuz_2_4.webp"), u("./ustoz/sardor/yuz_2_5.webp"), u("./ustoz/sardor/yuz_2_6.webp")] }, og: { x: 56.15, y: 18.66, w: 12.68, skin: "#faac7a" } },
     3: { src: u("./ustoz/sardor/poza_3.webp"), w: 351, h: 499 },
     4: { src: u("./ustoz/sardor/poza_4.webp"), w: 188, h: 491 },
     5: { src: u("./ustoz/sardor/poza_5.webp"), w: 289, h: 495 },
     6: { src: u("./ustoz/sardor/poza_6.webp"), w: 262, h: 484 },
   },
   nilufar: {
-    1: { src: u("./ustoz/nilufar/poza_1.webp"), w: 220, h: 522, yuz: { x: 33.636, y: 2.682, w: 30.0, h: 14.176, kadr: [u("./ustoz/nilufar/yuz_1_1.webp"), u("./ustoz/nilufar/yuz_1_2.webp"), u("./ustoz/nilufar/yuz_1_3.webp"), u("./ustoz/nilufar/yuz_1_4.webp"), u("./ustoz/nilufar/yuz_1_5.webp"), u("./ustoz/nilufar/yuz_1_6.webp")] } },
-    2: { src: u("./ustoz/nilufar/poza_2.webp"), w: 235, h: 520, yuz: { x: 34.043, y: 2.885, w: 28.511, h: 14.423, kadr: [u("./ustoz/nilufar/yuz_2_1.webp"), u("./ustoz/nilufar/yuz_2_2.webp"), u("./ustoz/nilufar/yuz_2_3.webp"), u("./ustoz/nilufar/yuz_2_4.webp"), u("./ustoz/nilufar/yuz_2_5.webp"), u("./ustoz/nilufar/yuz_2_6.webp")] } },
-    3: { src: u("./ustoz/nilufar/poza_3.webp"), w: 307, h: 521, yuz: { x: 22.15, y: 2.687, w: 21.498, h: 14.203, kadr: [u("./ustoz/nilufar/yuz_3_1.webp"), u("./ustoz/nilufar/yuz_3_2.webp"), u("./ustoz/nilufar/yuz_3_3.webp"), u("./ustoz/nilufar/yuz_3_4.webp"), u("./ustoz/nilufar/yuz_3_5.webp"), u("./ustoz/nilufar/yuz_3_6.webp")] } },
+    lab: "ayol",
+    1: { src: u("./ustoz/nilufar/poza_1.webp"), w: 220, h: 522, yuz: { x: 33.636, y: 2.682, w: 30.0, h: 14.176, kadr: [u("./ustoz/nilufar/yuz_1_1.webp"), u("./ustoz/nilufar/yuz_1_2.webp"), u("./ustoz/nilufar/yuz_1_3.webp"), u("./ustoz/nilufar/yuz_1_4.webp"), u("./ustoz/nilufar/yuz_1_5.webp"), u("./ustoz/nilufar/yuz_1_6.webp")] }, og: { x: 52.5, y: 14.83, w: 10.5, skin: "#fdc693" } },
+    2: { src: u("./ustoz/nilufar/poza_2.webp"), w: 235, h: 520, yuz: { x: 34.043, y: 2.885, w: 28.511, h: 14.423, kadr: [u("./ustoz/nilufar/yuz_2_1.webp"), u("./ustoz/nilufar/yuz_2_2.webp"), u("./ustoz/nilufar/yuz_2_3.webp"), u("./ustoz/nilufar/yuz_2_4.webp"), u("./ustoz/nilufar/yuz_2_5.webp"), u("./ustoz/nilufar/yuz_2_6.webp")] }, og: { x: 51.9, y: 15.22, w: 9.96, skin: "#fdc691" } },
+    3: { src: u("./ustoz/nilufar/poza_3.webp"), w: 307, h: 521, yuz: { x: 22.15, y: 2.687, w: 21.498, h: 14.203, kadr: [u("./ustoz/nilufar/yuz_3_1.webp"), u("./ustoz/nilufar/yuz_3_2.webp"), u("./ustoz/nilufar/yuz_3_3.webp"), u("./ustoz/nilufar/yuz_3_4.webp"), u("./ustoz/nilufar/yuz_3_5.webp"), u("./ustoz/nilufar/yuz_3_6.webp")] }, og: { x: 35.67, y: 14.86, w: 7.52, skin: "#fdc490" } },
     4: { src: u("./ustoz/nilufar/poza_4.webp"), w: 207, h: 510 },
     5: { src: u("./ustoz/nilufar/poza_5.webp"), w: 235, h: 512 },
-    6: { src: u("./ustoz/nilufar/poza_6.webp"), w: 253, h: 506, yuz: { x: 57.312, y: 3.162, w: 26.482, h: 14.822, kadr: [u("./ustoz/nilufar/yuz_6_1.webp"), u("./ustoz/nilufar/yuz_6_2.webp"), u("./ustoz/nilufar/yuz_6_3.webp"), u("./ustoz/nilufar/yuz_6_4.webp"), u("./ustoz/nilufar/yuz_6_5.webp"), u("./ustoz/nilufar/yuz_6_6.webp")] } },
+    6: { src: u("./ustoz/nilufar/poza_6.webp"), w: 253, h: 506, yuz: { x: 57.312, y: 3.162, w: 26.482, h: 14.822, kadr: [u("./ustoz/nilufar/yuz_6_1.webp"), u("./ustoz/nilufar/yuz_6_2.webp"), u("./ustoz/nilufar/yuz_6_3.webp"), u("./ustoz/nilufar/yuz_6_4.webp"), u("./ustoz/nilufar/yuz_6_5.webp"), u("./ustoz/nilufar/yuz_6_6.webp")] }, og: { x: 73.9, y: 15.84, w: 9.25, skin: "#fdc28d" } },
   },
   malika: {
-    1: { src: u("./ustoz/malika/poza_1.webp"), w: 201, h: 510, yuz: { x: 30.348, y: 6.667, w: 38.806, h: 15.686, kadr: [u("./ustoz/malika/yuz_1_1.webp"), u("./ustoz/malika/yuz_1_2.webp"), u("./ustoz/malika/yuz_1_3.webp"), u("./ustoz/malika/yuz_1_4.webp"), u("./ustoz/malika/yuz_1_5.webp"), u("./ustoz/malika/yuz_1_6.webp")] } },
+    lab: "ayol",
+    1: { src: u("./ustoz/malika/poza_1.webp"), w: 201, h: 510, yuz: { x: 30.348, y: 6.667, w: 38.806, h: 15.686, kadr: [u("./ustoz/malika/yuz_1_1.webp"), u("./ustoz/malika/yuz_1_2.webp"), u("./ustoz/malika/yuz_1_3.webp"), u("./ustoz/malika/yuz_1_4.webp"), u("./ustoz/malika/yuz_1_5.webp"), u("./ustoz/malika/yuz_1_6.webp")] }, og: { x: 45.45, y: 19.74, w: 11.16, skin: "#fdb577" } },
     2: { src: u("./ustoz/malika/poza_2.webp"), w: 245, h: 510 },
     3: { src: u("./ustoz/malika/poza_3.webp"), w: 300, h: 508 },
     4: { src: u("./ustoz/malika/poza_4.webp"), w: 229, h: 504 },
     5: { src: u("./ustoz/malika/poza_5.webp"), w: 303, h: 501 },
-    6: { src: u("./ustoz/malika/poza_6.webp"), w: 244, h: 499, yuz: { x: 19.672, y: 6.814, w: 32.377, h: 16.232, kadr: [u("./ustoz/malika/yuz_6_1.webp"), u("./ustoz/malika/yuz_6_2.webp"), u("./ustoz/malika/yuz_6_3.webp"), u("./ustoz/malika/yuz_6_4.webp"), u("./ustoz/malika/yuz_6_5.webp"), u("./ustoz/malika/yuz_6_6.webp")] } },
+    6: { src: u("./ustoz/malika/poza_6.webp"), w: 244, h: 499, yuz: { x: 19.672, y: 6.814, w: 32.377, h: 16.232, kadr: [u("./ustoz/malika/yuz_6_1.webp"), u("./ustoz/malika/yuz_6_2.webp"), u("./ustoz/malika/yuz_6_3.webp"), u("./ustoz/malika/yuz_6_4.webp"), u("./ustoz/malika/yuz_6_5.webp"), u("./ustoz/malika/yuz_6_6.webp")] }, og: { x: 32.21, y: 20.3, w: 9.3, skin: "#fdb87a" } },
   },
+};
+
+// REV153: og'iz shakllari (lab varag'i, 10 ta) — ayol va erkak ustoz uchun
+export const OG_RASM = {
+  ayol: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => u(`./ustoz/og/og_ayol_${i}.webp`)),
+  erkak: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => u(`./ustoz/og/og_erkak_${i}.webp`)),
 };
 
 // REV110: xona joylari (foizda): doska, deraza (ob-havo), devordagi ramka, javon, pol — mavzuga qarab to'ladi.
