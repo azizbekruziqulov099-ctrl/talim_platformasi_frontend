@@ -327,3 +327,7 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 /* REV148b: past (keng) ekranda sinfxona va doska BUTUNICHA ko'rinsin — sahna ekran balandligiga sig'adi, pastki
    tugmalar doskani yopmaydi (avval 1366×640 da doskaning yarmi tugmalar ostida qolardi). Telefonda — to'liq kenglik. */
 .dx-root.dx-focus .us-stage{width:min(100%,calc((100dvh - 244px) * 1586 / 992));min-width:min(100%,420px);margin-inline:auto}
+/* REV153: sanoq varianti — emoji o'rniga chizilgan rasmlar qatori */
+.kb-qator{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px;width:88%;max-width:200px;margin:6px auto 0;aspect-ratio:1;align-content:center}
+.kb-qator img{width:30%;height:auto;object-fit:contain;filter:drop-shadow(0 2px 3px #0002)}
+.kb-qator b{font:800 clamp(28px,7vw,44px)/1 system-ui,sans-serif;color:#c8553d}

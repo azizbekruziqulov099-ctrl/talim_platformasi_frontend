@@ -21,9 +21,9 @@ import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
-import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
-import { emojiRasm, harakatTuri, sozId } from "../kid/rasmHarakat.js";
+import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm, belgilar } from "../kid/kidStageRules.js";
+import { keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
+import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
@@ -444,7 +444,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVoice(sum || { togri: 0, jami: 0 }); voiceRef.current = sum || { togri: 0, jami: 0 }; afterLesson();
   };
   // REV145: so'z rasmi — rassom chizgan rasm (inglizcha so'z yoki emoji orqali)
-  const sozRasmi = (soz, emoji) => { const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
+  const sozRasmi = (soz, emoji) => { const mt = matnId(soz); if (mt && RASM_HAMMA[mt]) return { id: mt, src: RASM_HAMMA[mt] }; const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
   // REV145: bugun o'rgangan so'zlar va bola ularni aytdimi — bola natija ekranida va ota-ona hisobotida
   const bugungiSozlar = () => (darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [])
     .map((w) => { const k = w.say.toLowerCase(); return { soz: w.say, emoji: w.emoji || "", aytdi: k in aytganlar.current ? aytganlar.current[k] : null }; });
@@ -890,7 +890,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV121: o'yin — nishonlar (rasm yoki emoji karta), holati bilan: kutilmoqda / to'g'ri / xato / mana u
     if (game && game.stepIdx === idx) {
       return game.targets.map((t, i) => {
-        const r = t.src ? null : (emojiRasm(t.emoji, RASM_HAMMA) || (() => { const id = sozId({ soz: darsTil === "en" ? t.word : "", emoji: t.emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })());
+        const mt = t.src ? null : matnId(t.word);
+        const r = t.src ? null : ((mt && RASM_HAMMA[mt] ? { id: mt, src: RASM_HAMMA[mt] } : null) || emojiRasm(t.emoji, RASM_HAMMA) || (() => { const id = sozId({ soz: darsTil === "en" ? t.word : "", emoji: t.emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })());
         return { src: t.src || r?.src || "", emoji: t.src || r ? "" : t.emoji, rev: picRev, label: t.word,
           anim: harakatTuri(sozId({ soz: t.word, emoji: t.emoji })), holat: game.holat[i] || (game.kutish ? "wait" : "") };
       });
@@ -905,10 +906,19 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const band = (b, i) => {
       const soz = b.soz || nomlar.get(b.emoji.replace(/\uFE0F/g, "")) || "";
       const extra = { label: soz || `rasm ${i + 1}`, soz, belgi: b.emoji, rev: picRev };
-      if (sanoqKarta(b.emoji)) return { emoji: b.emoji, src: "", ...extra };
-      const ch = (darsTil === "en" && soz && (() => { const id = sozId({ soz, emoji: "" }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })())
+      if (sanoqKarta(b.emoji)) {
+        // REV153: sanoq/naqsh — har belgi o'rniga rassom chizgan rasm («🍎🍎🍎» → uchta chizilgan olma), «❓» — so'roq
+        const g = belgilar(b.emoji);
+        const qator = g.length <= 12 && !/[\p{N}+=]/u.test(b.emoji) ? g.map((x) => (/^[❓?]$/.test(x) ? { t: "?" } : (emojiRasm(x, RASM_HAMMA) ? { src: emojiRasm(x, RASM_HAMMA).src } : null))) : null;
+        if (qator && qator.every(Boolean) && qator.some((x) => x.src)) return { emoji: b.emoji, src: "", qator, ...extra };
+        return { emoji: b.emoji, src: "", ...extra };
+      }
+      // REV153: so'z istalgan tilda yoki doskadagi tarjimasi («🔴 أَحْمَر / qizil») bo'yicha ham topiladi
+      const mid = matnId(soz, b.mano || []);
+      const ch = (mid && RASM_HAMMA[mid] ? { id: mid, src: RASM_HAMMA[mid] } : null)
+        || (darsTil === "en" && soz && (() => { const id = sozId({ soz, emoji: "" }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })())
         || emojiRasm(b.emoji, RASM_HAMMA, darsTil === "en" ? soz : "");
-      if (ch?.src) return { src: ch.src, anim: harakatTuri(ch.id || sozId({ soz, emoji: b.emoji })), ...extra };
+      if (ch?.src) return { src: ch.src, anim: harakatTuri(ch.id || sozId({ soz, emoji: b.emoji })), chizilgan: true, ...extra };
       const own = pictureFor(b.emoji, soz, lesson?.rasmlar, lesson?.rasm_sozlar);
       if (own) return { src: mediaUrl(own), anim: harakatTuri(sozId({ soz, emoji: b.emoji })), ...extra };
       return { emoji: b.emoji, src: "", anim: harakatTuri(sozId({ emoji: b.emoji })), ...extra };
@@ -926,6 +936,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     } else if (board.length >= 2) {
       return board.slice(0, 6).map(pic);
     }
+    // REV153: bitta narsa — rassom rasmi bo'lsa, kitobdagi (eski, o'yinchoq) rasm o'rniga o'sha
+    const yakka = bandlar.length === 1 ? band(bandlar[0], 0) : null;
+    if (yakka?.chizilgan || yakka?.qator) return [yakka];
     if (step.rasm) return [pic(step.rasm, 0)];
     if (bandlar.length === 1 && !sanoqKarta(bandlar[0].emoji)) return [band(bandlar[0], 0)];
     if (board.length) return board.slice(0, 6).map(pic);
@@ -1051,7 +1064,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               : <><h3 className="dx-title">{__kbUi("Test")} · {testIndex + 1} / {questions.length}</h3>
                 <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} /></div></>}
             {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), q.savol).map((o, k) => <div key={k} className="dx-kid-wrap"><button type="button" onClick={() => pick(k)} disabled={picked !== null}
-              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")}`}>{o.picture || (o.listen ? k + 1 : o.letter)}</span>)}</button>
+              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : kidOptionQator(o.picture) ? <span className="kb-qator" aria-hidden="true">{kidOptionQator(o.picture).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")}`}>{o.picture || (o.listen ? k + 1 : o.letter)}</span>)}</button>
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
               className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}

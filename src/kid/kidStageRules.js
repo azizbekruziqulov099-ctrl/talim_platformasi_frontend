@@ -287,10 +287,12 @@ export function doskaBandlari(text, limit = 6) {
     if (!b || !b.emoji) return;
     const soz = b.soz.split(/\s+[—–-]\s+|[,;:(]/)[0].replace(/[!?.…]+$/u, "").trim();
     const key = `${b.emoji.replace(/️/g, "")}|${normWord(soz)}`;
-    if (out.length < limit && !out.some((x) => x.key === key)) out.push({ emoji: b.emoji, soz, key });
+    if (out.length < limit && !out.some((x) => x.key === key)) out.push({ emoji: b.emoji, soz, key, mano: [] });
   };
   for (const raw of String(text || "").replace(TAGS_ALL, "").split(/\n+|\s{2,}/)) {
     const toks = raw.replace(LEAD_MARK, "").trim().split(/\s+/).filter(Boolean);
+    // belgisiz qator — oldingi narsaning tarjimasi/o'qilishi («qizil», «ahmar») — rasmni topish uchun saqlanadi
+    if (out.length && toks.length && !toks.some((t) => isEmojiToken(t) && /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3❓]/u.test(t))) { out[out.length - 1].mano.push(toks.join(" ")); continue; }
     let cur = null;
     for (const tok of toks) {
       if (isEmojiToken(tok) && /[\p{Extended_Pictographic}\p{Regional_Indicator}\u20E3❓]/u.test(tok)) {
@@ -309,11 +311,17 @@ export function doskaBandlari(text, limit = 6) {
 
 /** Sanoq yoki naqsh kartasimi («🍎🍎🍎», «🔴🔵🔴🔵❓», «3️⃣») — bunda rasm emas, belgilar soni ko'rsatiladi. */
 export function sanoqKarta(emoji) {
-  const e = String(emoji || "").replace(/️/g, "");
-  if (/[\p{N}❓?+=]/u.test(e)) return true;
-  let g = [];
-  try { g = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(e)].map((x) => x.segment); } catch { g = [...e]; }
-  return g.length > 1 && new Set(g).size < g.length;
+  const e = String(emoji || "").replace(/\uFE0F/g, "");
+  if (/[\p{N}+=]/u.test(e)) return true;   // son, sana, misol («2+3»)
+  const g = belgilar(e).filter((x) => !/^[❓?]$/.test(x));
+  if (!g.length) return true;               // faqat «❓»
+  return g.length > 1 && new Set(g).size < g.length;   // «🍎🍎🍎», «🔴🔵🔴🔵❓» — sanoq/naqsh; «🎂❓» — ibora
+}
+
+/** Belgilar (grafemalar) ro'yxati: «🍎🍎🍎» → ["🍎","🍎","🍎"]. */
+export function belgilar(text) {
+  const e = String(text || "").replace(/\uFE0F/g, "");
+  try { return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(e)].map((x) => x.segment).filter((x) => x.trim()); } catch { return [...e].filter((x) => x.trim()); }
 }
 
 /**

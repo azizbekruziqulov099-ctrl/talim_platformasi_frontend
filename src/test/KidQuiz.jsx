@@ -4,7 +4,9 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, kidCorrectSpeech, kidOptions, kidPraiseLabel, kidTheme } from "./kidQuizRules.js";
 import ListenText from "../speech/ListenText.jsx";
-import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
+import { keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
+import { kabuRasm } from "../kid/jonli/jonliRasm.js";
+import { kabuPoza } from "../kid/RobotKabu.jsx";
 import { gap } from "../kid/izohTil.js";
 import "./kidQuiz.css";
 
@@ -123,7 +125,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
     </header>
 
     <div className="kq-mascot">
-      <span className={`kq-bird is-${mood}`} aria-hidden="true">🤖</span>
+      <img className={`kq-bird is-${mood}`} src={kabuRasm(kabuPoza(mood === "happy" ? "happy" : mood === "think" ? "think" : mood === "cheer" ? "enc" : "talk"))} alt="" draggable="false" aria-hidden="true" />
       <p className="kq-bubble">{__kbUi(bubble)}</p>
     </div>
 
@@ -137,7 +139,9 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
         <button type="button" style={{ "--i": i }} className={`kq-option ${stateOf(o.letter)} ${o.listen ? `is-listen-${o.listen}` : ""} ${!done && hot === o.letter ? "is-hot" : ""} ${!done && waiting ? "is-waiting" : ""}`} disabled={done || tekshirilmoqda || viewing !== null}
           onClick={() => pick(o.letter, o.word)} aria-label={o.listen && !done ? `${i + 1}` : undefined}>
           {(() => { const img = rasm ? kidOptionPic(o, rasm.rasmlar, rasm.media, rasm.rasm_sozlar) : null; const son = keycapNumber(o.picture);
+            const qator = !img && !son ? kidOptionQator(o.picture) : null;
             return img ? <img className="kq-img" src={img} alt="" draggable="false" /> : son ? <span className="kq-pic kb-num" aria-hidden="true">{son}</span>
+              : qator ? <span className="kb-qator" aria-hidden="true">{qator.map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span>
               : <span className="kq-pic" aria-hidden="true">{o.picture || (o.listen ? `${i + 1}` : o.letter)}</span>; })()}
           {/* Tinglash rejimida so'z javobdan keyin ko'rinadi — avval quloq bilan tanlaydi. */}
           {o.word && (!o.listen || done) && <span className="kq-word">{o.word}</span>}

@@ -1,5 +1,6 @@
 // REV151: bog'cha darslari uchun rassom chizgan rasmlar (avtomatik ro'yxat). Kalit — «d_» + darsRasmMeta.js dagi id.
 import { RASMLAR } from "./xonalar/rasmlar.js";
+import { JR } from "./jonli/jonliRasm.js";
 import d_apple_please from "./dars/rasm/apple-please.webp";
 import d_basket from "./dars/rasm/basket.webp";
 import d_bathroom from "./dars/rasm/bathroom.webp";
@@ -263,4 +264,6 @@ export const DARS_RASM = {
   "d_zebra": d_zebra,
 };
 /** Xonalar va darslar rasmlari birga — emoji/so'z bo'yicha topilgan id shu yerdan olinadi. */
-export const RASM_HAMMA = { ...RASMLAR, ...DARS_RASM };
+// REV153: o'yinlar uchun chizilgan yulduz, quti, pufak — darsda ham (⭐ 📦 🫧)
+export const JONLI_DARS = { j_yulduz: JR.yulduz, j_quti: JR.quti, j_pufak: JR.pufak };
+export const RASM_HAMMA = { ...RASMLAR, ...DARS_RASM, ...JONLI_DARS };

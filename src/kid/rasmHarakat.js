@@ -24,6 +24,8 @@ function emojiXarita() {
   const dars = {};
   for (const m of DARS_RASM_META) { const e = tozala(m.emoji); if (e && !sanoq[e]) (dars[e] = dars[e] || []).push(`d_${m.id}`); }
   for (const [e, ids] of Object.entries(dars)) if (ids.length === 1) EMOJI_ID[e] = ids[0];
+  // REV153: o'yinlardagi chizilgan rasmlar (yulduz, quti, pufak) — darsda ham
+  for (const [e, id] of Object.entries({ "⭐": "j_yulduz", "🌟": "j_yulduz", "📦": "j_quti", "🫧": "j_pufak" })) if (!EMOJI_ID[e]) EMOJI_ID[e] = id;
   return EMOJI_ID;
 }
 
@@ -34,6 +36,43 @@ export function sozId({ soz = "", emoji = "" } = {}) {
   const ibora = iboraNorm(soz);
   if (ibora && DARS_SOZ()[ibora]) return DARS_SOZ()[ibora];
   return emojiXarita()[tozala(emoji)] || null;
+}
+
+// REV153: so'z yoki ma'nosi (istalgan tilda: o'zbek, rus, ingliz, nemis, arab, xitoy…) → chizilgan rasm id.
+// Oldin faqat inglizcha so'z yoki emoji bo'yicha topilardi — arab/nemis/rus darslarida bir emoji ikki ma'noda
+// (🔴 qizil / to'xta) bo'lsa rasm chiqmay, emoji qolardi. Endi doskadagi tarjima («qizil») ham hisobga olinadi.
+const ARTIKL = /^(?:the|a|an|der|die|das|le|la|les|l|el|los|las|un|une|al)\s+|^(?:l['’]|al-)/;
+export const matnNorm = (t) => String(t || "").normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
+  .replace(/\[\/?[a-z]{2}\]/g, "").replace(/[’‘ʻʼ`´]/g, "'").replace(/^[\s—–\-:,]+|[\s!?.,;:…«»"()]+$/gu, "").replace(/\s+/g, " ").trim();
+let MATN_ID = null;
+function matnXarita() {
+  if (MATN_ID) return MATN_ID;
+  const m = new Map();
+  const qosh = (t, id) => {
+    const a = matnNorm(t);
+    if (!a) return;
+    for (const k of [a, a.replace(ARTIKL, "").replace(/^ال/, "")]) {
+      if (!k || k.length < 2 && !/[\u3040-\u9fff\uac00-\ud7af]/u.test(k)) continue;
+      const old = m.get(k);
+      // dars rasmi (d_…) va xona rasmi bir xil so'z bo'lsa — dars rasmi; ikki xil narsaga to'g'ri kelsa — noaniq
+      if (old === undefined) m.set(k, id); else if (old !== id && !(old && old.startsWith("d_") && !id.startsWith("d_"))) m.set(k, null);
+    }
+  };
+  for (const d of DARS_RASM_META) { for (const w of d.soz || []) qosh(w, `d_${d.id}`); for (const w of d.uz || []) qosh(w, `d_${d.id}`); }
+  for (const [id, s] of Object.entries(SOZLAR)) for (const w of Object.values(s.w || {})) qosh(w, id);
+  MATN_ID = m;
+  return m;
+}
+/** Matn (so'z, ibora yoki tarjima) → rasm id; topilmasa yoki noaniq bo'lsa — null. */
+export function matnId(...matnlar) {
+  const m = matnXarita();
+  for (const t of matnlar.flat()) {
+    const a = matnNorm(t);
+    if (!a) continue;
+    const bosh = a.split(/\s+[—–-]\s+|[,!?.;:]\s*/)[0].trim();   // gapning birinchi bo'lagi («salom! isming nima?» → «salom»)
+    for (const k of [a, a.replace(ARTIKL, "").replace(/^ال/, ""), bosh, bosh.replace(ARTIKL, "")]) { const id = k && m.get(k); if (id) return id; }
+  }
+  return null;
 }
 
 /** Bitta emoji uchun chizilgan rasm (xonalar rasmi). rasmlar — {id: url}. Bir nechta emoji (sanoq) — null. */
@@ -49,7 +88,10 @@ export function emojiRasm(emoji, rasmlar, soz = "") {
     }
   }
   const id = emojiXarita()[e];
-  return id && rasmlar?.[id] ? { id, src: rasmlar[id] } : null;
+  if (id && rasmlar?.[id]) return { id, src: rasmlar[id] };
+  // REV153: xona so'zining rasmi hali chizilmagan, lekin shu belgili dars rasmi bor (🔴 → d_red)
+  const dars = DARS_RASM_META.filter((m) => tozala(m.emoji) === e && rasmlar?.[`d_${m.id}`]);
+  return dars.length === 1 ? { id: `d_${dars[0].id}`, src: rasmlar[`d_${dars[0].id}`] } : null;
 }
 
 const MAXSUS = {

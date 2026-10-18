@@ -66,3 +66,17 @@ test('REV153: SVG stiker va SVG robot darsda ishlatilmaydi', () => {
   assert.match(u, /og: \{ x: /);
   assert.match(src('./kid/UstozSahna.jsx'), /us-og/);
 });
+
+test('REV153: so\'z istalgan tilda yoki tarjimasi bo\'yicha chizilgan rasm topiladi', async () => {
+  const { matnId, emojiRasm } = await import('./kid/rasmHarakat.js');
+  assert.equal(matnId('qizil'), 'd_red');
+  assert.equal(matnId('أَحْمَر'), 'red');
+  assert.equal(matnId('der Apfel'), 'apple');
+  assert.equal(matnId('кошка'), 'cat');
+  assert.equal(matnId('salom! isming nima?'), 'd_hello');
+  assert.equal(matnId('to\'xtaymiz'), null);
+  assert.deepEqual(doskaBandlari('🔴 أَحْمَر\nahmar\nqizil')[0].mano, ['ahmar', 'qizil']);
+  assert.equal(emojiRasm('🔴', { d_red: 'r.webp' })?.id, 'd_red', 'xona rasmi yo\'q — dars rasmi');
+  assert.equal(emojiRasm('⭐', { j_yulduz: 'y.webp' })?.id, 'j_yulduz');
+  assert.equal(sanoqKarta('🎂❓'), false, 'ibora — sanoq emas');
+});
