@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { SAHNA } from "./sahnalar.jsx";
+import { JR } from "../jonli/jonliRasm.js";
 import { harakat, imoTanish, sahnaKorinish, qutiga, sahnaga } from "./harakatRules.js";
 
 const ONIY = new Set(["bos", "ikki"]);
@@ -92,7 +93,7 @@ export default function HarakatSahna({ id, demo = false, faol = true, yordam = f
       {S.C({ a: holat.a, tayyor: holat.tayyor, joy: holat.joy })}
     </svg>
     {!qolsiz && (demo || (yordam && !holat.tayyor)) && <span className={`hs-qol hs-qol--${imo} ${demo ? "" : "is-yordam"}`}
-      style={qolJoyi(S, kor.current)} aria-hidden="true">👆</span>}
+      style={qolJoyi(S, kor.current)} aria-hidden="true"><img className="hs-qol-rasm" src={JR.qol} alt="" draggable="false" /></span>}
     {!demo && h.imo.tur === "ushla" && !holat.tayyor && <span className="hs-halqa" style={{ "--p": holat.a }} aria-hidden="true" />}
     {!demo && h.imo.tur === "tez" && !holat.tayyor && holat.a > 0 && <span className="hs-chiziq" style={{ "--p": holat.a }} aria-hidden="true" />}
   </div>;

@@ -153,3 +153,61 @@ span.jo-pic{display:grid;place-items:center;font-size:48px}
 @media (prefers-reduced-motion:reduce){.ga-oyin *{animation-duration:.01s!important;animation-iteration-count:1!important}}
 /* harakat sahnasi doim 4:3 — butunicha ko'rinadi (eshik, mashina, savat chetda qirqilmaydi) */
 .ga-oyin--harakat .ga-sahna{min-height:0}
+
+/* ── REV149: rassom chizgan sahnalar, Kabu ustoz, savat, quti, buta, pufak, loy va ko'pik ── */
+.jo-oyin[style*="--fon"] .jo-sahna{background:var(--fon) center/cover no-repeat,#eaf6ff}
+.jo-korsatma{display:flex;align-items:center;justify-content:center;gap:10px;text-align:left}
+.jo-korsatma p{margin:0;flex:0 1 auto}
+.jo-kabu{flex:none;width:clamp(58px,14vw,84px);height:auto;filter:drop-shadow(0 4px 6px #0002);animation:jo-kabu-uch 2.6s ease-in-out infinite}
+.jo-kabu.is-qarsak,.jo-kabu.is-hurra{animation:jo-kabu-sakra .5s ease-in-out 3}
+.jo-kabu.is-salom{animation:jo-kabu-bosh .6s ease-in-out 2}
+@keyframes jo-kabu-uch{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes jo-kabu-sakra{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px) scale(1.05)}}
+@keyframes jo-kabu-bosh{0%,100%{transform:rotate(0)}30%{transform:rotate(-8deg)}70%{transform:rotate(8deg)}}
+/* ushla — to'qilgan savat, ushlanganlar savat ichiga tushadi */
+.jo-savat{background:none;padding:0;bottom:2%;width:clamp(150px,34vmin,230px);display:block}
+.jo-savat-rasm{display:block;width:100%;height:auto;position:relative;z-index:2;filter:drop-shadow(0 6px 8px #0003)}
+.jo-savat-ichi{position:absolute;left:12%;right:12%;top:30%;height:34%;display:flex;justify-content:center;align-items:flex-end;z-index:1}
+.jo-savat-pic{width:30%;height:auto;aspect-ratio:1;margin:0 -4%;animation:jo-tush .45s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes jo-tush{from{transform:translateY(-120%) scale(.6);opacity:0}to{transform:none;opacity:1}}
+/* yarim — haqiqiy buta ortidan mo'ralaydi */
+img.jo-buta{position:absolute;left:-12%;right:auto;width:124%;height:auto;bottom:-4%;border-radius:0;background:none;box-shadow:none;object-fit:contain;filter:drop-shadow(0 -4px 6px #0002)}
+.jo-sahna--tanlov .jo-variant{background:#ffffffe6;backdrop-filter:blur(2px)}
+/* soya — sahna pardasi oldida qora soya */
+.jo-oyin--soya .jo-sir .is-soya{filter:brightness(0) opacity(.82) drop-shadow(0 10px 14px #0005)}
+/* qutiga — narsalar patnisda, quti chizilgan */
+.jo-narsalar{position:relative}
+.jo-patnis{position:absolute;left:50%;bottom:4%;width:min(96%,620px);transform:translateX(-50%);pointer-events:none;z-index:0;filter:drop-shadow(0 6px 8px #0002)}
+.jo-quti{width:clamp(170px,40vmin,270px);aspect-ratio:1.46}
+.jo-quti-rasm{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 10px #0003)}
+.jo-quti-pic{top:-18%;z-index:1}
+/* pufak — chizilgan kamalak pufak */
+.jo-oyin[style*="--pufak-rasm"] .jo-pufak{background:var(--pufak-rasm) center/contain no-repeat;box-shadow:none;padding:17%}
+/* aylantir — rassom chizgan qo'l aylanib ko'rsatadi */
+img.jo-aylana-qol{width:clamp(44px,10vmin,70px);height:auto;font-size:0;animation:jo-qol-aylan 2.4s ease-in-out infinite;transform-origin:50% 100%;filter:drop-shadow(0 4px 6px #0003)}
+@keyframes jo-qol-aylan{0%{transform:rotate(-30deg) translateX(-10px)}50%{transform:rotate(30deg) translateX(10px)}100%{transform:rotate(-30deg) translateX(-10px)}}
+.jo-sahna--aylantir .jo-gildirak{background:#ffffffd9}
+/* tozala — barmoq ostida sovun ko'pigi */
+.jo-kopik{position:absolute;width:38%;height:auto;transform:translate(-50%,-50%);pointer-events:none;z-index:3;animation:jo-kopik .5s ease-in-out infinite alternate}
+@keyframes jo-kopik{from{transform:translate(-50%,-50%) scale(.92) rotate(-4deg)}to{transform:translate(-50%,-50%) scale(1.05) rotate(4deg)}}
+/* kattalashtir / yakun — konfetti */
+img.jo-portla{width:min(80%,420px);height:auto;font-size:0;top:45%;pointer-events:none}
+.jo-tamom{position:relative;overflow:hidden;align-content:center}
+.jo-konfetti{position:absolute;inset:0;margin:auto;width:min(92%,520px);height:auto;pointer-events:none;animation:jo-konfetti 1.2s ease-out both}
+@keyframes jo-konfetti{from{transform:scale(.3) rotate(-20deg);opacity:0}60%{opacity:1}to{transform:scale(1) rotate(0);opacity:.9}}
+.jo-yulduzlar{position:relative;display:flex;gap:clamp(8px,3vw,20px);align-items:flex-end}
+.jo-yulduzlar img{width:clamp(64px,18vw,110px);height:auto;animation:jo-kel .5s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i) * .25s);filter:drop-shadow(0 6px 8px #0003)}
+.jo-yulduzlar img:nth-child(2){margin-bottom:5%}
+.jo-yulduzlar img.is-yoq{filter:grayscale(1) opacity(.3)}
+@media (prefers-reduced-motion:reduce){.jo-kabu,.jo-konfetti,.jo-kopik,img.jo-aylana-qol{animation:none!important}}
+/* REV149: «Ayt — bo'ladi!» — Kabu ustoz, chizilgan fonlar, konfetti */
+.ga-sahna{background-size:cover;background-position:center}
+.ga-kabu{flex:none;width:clamp(56px,13vw,80px);height:auto;filter:drop-shadow(0 4px 6px #0002);animation:jo-kabu-uch 2.6s ease-in-out infinite}
+.ga-oyin .is-bajar ~ .ga-karta .ga-kabu{animation:jo-kabu-sakra .5s ease-in-out 3}
+img.ga-uchqun{width:130%;height:auto;inset:auto;left:-15%;top:-15%;font-size:0}
+.ga-jonlan{background:#ffffffd9}
+.jo-patnis{top:50%;bottom:auto;width:min(94%,560px);transform:translate(-50%,-22%)}
+.jo-sudra{z-index:1}
+.ga-jonlan .ga-rasm,.ga-jonlan .ga-emoji{position:relative;z-index:1}
+img.ga-uchqun{z-index:0}
+@media (max-height:700px) and (min-width:700px){.jo-quti{width:clamp(130px,30vmin,220px)}.jo-sudra,.jo-tushuvchi{width:clamp(90px,22vmin,150px)}}

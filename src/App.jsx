@@ -1672,7 +1672,7 @@ function TalimYoli({ bolaId, fan, rang, onYopish, token }) {
   const [korinish, setKorinish] = useState("royxat"); // "royxat" | "yol"
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/bola/${bolaId}/yol?fan=${encodeURIComponent(fan)}`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/yol?fan=${encodeURIComponent(fan)}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => { if (d.detail) throw new Error(d.detail); setMalumot(d); setYuklanmoqda(false); })
       .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -1754,7 +1754,7 @@ function TalimYoli({ bolaId, fan, rang, onYopish, token }) {
   );
 }
 
-function TogarakYoli({ bolaId, togarakId, onYopish }) {
+function TogarakYoli({ bolaId, togarakId, onYopish, token }) {
   useKbInterfaceLocale();
   const [malumot, setMalumot] = useState(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(true);
@@ -1762,7 +1762,7 @@ function TogarakYoli({ bolaId, togarakId, onYopish }) {
   const [korinish, setKorinish] = useState("royxat"); // "royxat" | "yol"
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/bola/${bolaId}/togarak_yoli/${togarakId}`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/togarak_yoli/${togarakId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => { if (d.detail) throw new Error(d.detail); setMalumot(d); setYuklanmoqda(false); })
       .catch((e) => { setXato(e.message || "Yuklab bo'lmadi"); setYuklanmoqda(false); });
@@ -1891,7 +1891,7 @@ function ReaksiyaOyini({ token, bolaId, onYopish }) {
   const kutishTaymerRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/bola/${bolaId}/reaksiya_tarixi`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/reaksiya_tarixi`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setTarix)
       .catch(() => {});
@@ -1923,7 +1923,7 @@ function ReaksiyaOyini({ token, bolaId, onYopish }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, millisekund: ms }),
       });
-      const yangiTarix = await fetch(`${API_BASE}/api/bola/${bolaId}/reaksiya_tarixi`).then((r) => r.json());
+      const yangiTarix = await fetch(`${API_BASE}/api/bola/${bolaId}/reaksiya_tarixi`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json());
       setTarix(yangiTarix);
     } catch { /* natija saqlanmasa ham o'yin davom etaveradi */ }
   };
@@ -1992,7 +1992,7 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
 
   useEffect(() => {
     if (!bolaId) return;
-    fetch(`${API_BASE}/api/bola/${bolaId}/togaraklarim`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/togaraklarim`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setMenTogaraklarim(d.togaraklar || []))
       .catch(() => {});
@@ -2000,7 +2000,7 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
 
   useEffect(() => {
     if (!bolaId) return;
-    fetch(`${API_BASE}/api/bola/${bolaId}/bugungi_tavsiya`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/bugungi_tavsiya`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setBugungiTavsiya(d))
       .catch(() => setBugungiTavsiya({ tavsiyalar: [] }));
@@ -2008,7 +2008,7 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
 
   useEffect(() => {
     if (!bolaId) return;
-    fetch(`${API_BASE}/api/bola/${bolaId}/haftalik_xulosa`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/haftalik_xulosa`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setHaftalik(d))
       .catch(() => {});
@@ -2024,7 +2024,7 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
 
   useEffect(() => {
     if (!bolaId) return;
-    fetch(`${API_BASE}/api/bola/${bolaId}/qiyinlik_tahlili`)
+    fetch(`${API_BASE}/api/bola/${bolaId}/qiyinlik_tahlili`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setQiyinlikTahlili(d))
       .catch(() => {});
@@ -2295,7 +2295,7 @@ function BilimTab({ data, bolaId, rang, token, otaOnaUchun }) {
       </div>
 
       {yolFani && bolaId && <TalimYoli token={token} bolaId={bolaId} fan={yolFani.fan} rang={yolFani.rang} onYopish={() => setYolFani(null)} />}
-      {togarakYoliId && bolaId && <TogarakYoli bolaId={bolaId} togarakId={togarakYoliId} onYopish={() => setTogarakYoliId(null)} />}
+      {togarakYoliId && bolaId && <TogarakYoli token={token} bolaId={bolaId} togarakId={togarakYoliId} onYopish={() => setTogarakYoliId(null)} />}
     </div>
   );
 }
@@ -11953,7 +11953,7 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
   const [sogliqSaqlandi, setSogliqSaqlandi] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`)
+    fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => {
         const royxat = d.farzandlar || [];
@@ -11967,7 +11967,7 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
   useEffect(() => {
     if (!tanlanganBola) return;
     setBilimData(null);
-    fetch(`${API_BASE}/api/bola/${tanlanganBola}/bilim`)
+    fetch(`${API_BASE}/api/bola/${tanlanganBola}/bilim`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setBilimData(d))
       .catch(() => setBilimData(null));
@@ -12318,7 +12318,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
   const [farzandMuvaffaqiyat, setFarzandMuvaffaqiyat] = useState("");
 
   const farzandlarniYukla = () => {
-    fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`)
+    fetch(`${API_BASE}/api/ota/${foydalanuvchi.user_id}/farzandlar`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setFarzandlar(d.farzandlar || []))
       .catch(() => {});

@@ -85,6 +85,13 @@ const server = http.createServer((req, res) => {
   const headers = {
     "Content-Type": item.tur, "Cache-Control": keshSarlavha(full, urlPath), ETag: item.etag,
     "X-Content-Type-Options": "nosniff", Vary: "Accept-Encoding",
+    // REV152 (xavfsizlik): faqat HTTPS; sayt begona sahifa ichiga (ramkaga) qo'yilmaydi (Telegram ilovasidan tashqari);
+    // plaginlar va <base> almashtirish taqiqlangan; mikrofon/kamera faqat saytning o'zida.
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy": "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "microphone=(self), camera=(self), geolocation=(self), payment=()",
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   };
   if ((req.headers["if-none-match"] || "") === item.etag) { res.writeHead(304, headers); res.end(); return; }
   const qabul = String(req.headers["accept-encoding"] || "");

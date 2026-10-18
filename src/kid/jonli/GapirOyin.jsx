@@ -7,9 +7,13 @@ import { tingla } from "../../lesson/sozAytish.js";
 import { GAPIR_RAUND, gapirDaraja, gapirBaho, gapirIzohMatn, gapirYulduz, iboraEmoji, iboraManosi, iboraMatn } from "./gapirRules.js";
 import { chime, soft } from "../kidSounds.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
+import { Tamom } from "./JonliOyin.jsx";
+import { JR, kabuRasm } from "./jonliRasm.js";
 import "./jonli.css";
 
 const IZOH = ["uz", "ru", "en"];
+/** Iboraning chizilgan rasmi: narsa — o'zi, sinf/tana buyrug'i — rassom chizgan harakat yoki a'zo rasmi (emoji emas). */
+const rasmId = (ib) => (ib?.tur === "narsa" ? ib.id : ib?.tur === "buyruq" ? String(ib.id).replace(/^men_/, "") : null);
 // ustoz gapi davomiyligi (taxminiy) — ovoz tugaganini bildirmasa ham mikrofon ustoz gapi ustiga ochilmasin
 const gapVaqti = (s) => Math.min(11000, 1600 + String(s || "").replace(/\[\/?\w+\]/g, "").length * 75);
 let mikYoqXotira = false;   // bu sahifada mikrofon yo'qligi bir marta aniqlansa — qayta so'ralmaydi
@@ -122,29 +126,30 @@ export default function GapirOyin({ n, til = "en", izoh = "uz", ayt, onYakun, on
 
   const qaytaEshit = () => { mikTox(); token.current += 1; setFaza("ustoz"); keyin(ustozGapi(ib?.tur === "harakat" ? "harakat" : ib?.tur === "narsa" ? "narsa" : "buyruq"), tinglash); };
 
+  // Kabu ustoz: gapirganda qo'l cho'zadi, bola gapirganda tinglaydi, to'g'ri bo'lsa qarsak chaladi, xato bo'lsa ko'rsatadi
+  const oxirgi = yigildi[yigildi.length - 1];
+  const kabuPoza = faza === "gapir" || faza === "aytdim" ? "tingla" : faza === "bajar" ? (oxirgi?.togri ? "qarsak" : "korsat") : urinish ? "korsat" : "salom";
   return <div className={`jo-oyin ga-oyin ga-oyin--${ib?.tur || "tamom"}`}>
     <div className="jo-bar">
       <button type="button" className="jo-back" onClick={() => { mikTox(); onChiq?.(); }} aria-label={T("Orqaga")}>⬅️</button>
       <b><span aria-hidden="true">🎤</span> {T("Ayt — bo‘ladi!")} · {d.n + 1}</b>
       <span className="jo-hisob">{Math.min(raund + 1, GAPIR_RAUND)}/{GAPIR_RAUND}{xato ? ` · ${"❌".repeat(Math.min(3, xato))}` : ""}</span>
     </div>
-    {tamom ? <div className="jo-tamom" role="status">
-      <span aria-hidden="true">🎉</span>
-      <b>{[1, 2, 3].map((k) => (k <= tamom ? "⭐" : "☆")).join("")}</b>
-    </div> : <>
-      <div className={`ga-sahna is-${faza}`}>
+    {tamom ? <Tamom yulduz={tamom} /> : <>
+      <div className={`ga-sahna is-${faza}`} style={ib?.tur === "harakat" ? undefined : { backgroundImage: `url(${ib?.tur === "narsa" ? JR.fon_stol : JR.fon_sahna})` }}>
         {ib?.tur === "harakat"
           ? <HarakatSahna key={`${d.n}-${raund}`} id={ib.id} demo={faza === "bajar"} faol={false} qolsiz onDemo={() => setTimeout(() => { if (alive.current) keyingi(); }, 500)} />
           : <div className={`ga-jonlan ga-jonlan--${ib?.tur} ${faza === "bajar" ? "is-jonli" : ""}`} key={`${d.n}-${raund}`}>
-            {ib?.tur === "narsa" && RASMLAR[ib.id]
-              ? <img className="ga-rasm" src={RASMLAR[ib.id]} alt="" draggable="false" />
+            {RASMLAR[rasmId(ib)]
+              ? <img className="ga-rasm" src={RASMLAR[rasmId(ib)]} alt="" draggable="false" />
               : <span className="ga-emoji" aria-hidden="true">{iboraEmoji(ib)}</span>}
             {faza !== "bajar" && <span className="ga-zzz" aria-hidden="true">💤</span>}
-            {faza === "bajar" && <span className="ga-uchqun" aria-hidden="true">✨</span>}
+            {faza === "bajar" && yigildi[yigildi.length - 1]?.togri && <img className="ga-uchqun" src={JR.konfetti} alt="" draggable="false" aria-hidden="true" />}
           </div>}
         <div className="ga-javon" aria-hidden="true">{yigildi.map((y, i) => <Belgi key={i} ib={y} />)}</div>
       </div>
       <div className="ga-karta">
+        <img className="ga-kabu" src={kabuRasm(kabuPoza)} alt="" draggable="false" aria-hidden="true" />
         <button type="button" className="ga-eshit" onClick={qaytaEshit} aria-label={T("Qayta eshitish")}>🔊</button>
         <div className="ga-matn">
           <b dir="auto">{matn}</b>
@@ -161,6 +166,6 @@ export default function GapirOyin({ n, til = "en", izoh = "uz", ayt, onYakun, on
 }
 
 function Belgi({ ib }) {
-  if (ib?.tur === "narsa" && RASMLAR[ib.id]) return <img className={`ga-belgi ${ib.togri ? "" : "is-xato"}`} src={RASMLAR[ib.id]} alt="" draggable="false" />;
+  if (RASMLAR[rasmId(ib)]) return <img className={`ga-belgi ${ib.togri ? "" : "is-xato"}`} src={RASMLAR[rasmId(ib)]} alt="" draggable="false" />;
   return <span className={`ga-belgi ${ib?.togri ? "" : "is-xato"}`}>{ib?.tur === "harakat" ? "🎬" : iboraEmoji(ib)}</span>;
 }

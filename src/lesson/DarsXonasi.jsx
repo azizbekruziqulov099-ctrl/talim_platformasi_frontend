@@ -25,6 +25,7 @@ import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReview
 import { stickerUrl } from "../kid/stickers.js";
 import { keycapNumber, kidOptionPic } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, sozId } from "../kid/rasmHarakat.js";
+import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import VoiceCheck from "./VoiceCheck.jsx";
@@ -442,7 +443,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVoice(sum || { togri: 0, jami: 0 }); voiceRef.current = sum || { togri: 0, jami: 0 }; afterLesson();
   };
   // REV145: so'z rasmi — rassom chizgan rasm (inglizcha so'z yoki emoji orqali)
-  const sozRasmi = (soz, emoji) => { const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASMLAR[id] ? { id, src: RASMLAR[id] } : emojiRasm(emoji, RASMLAR); };
+  const sozRasmi = (soz, emoji) => { const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
   // REV145: bugun o'rgangan so'zlar va bola ularni aytdimi — bola natija ekranida va ota-ona hisobotida
   const bugungiSozlar = () => (darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [])
     .map((w) => { const k = w.say.toLowerCase(); return { soz: w.say, emoji: w.emoji || "", aytdi: k in aytganlar.current ? aytganlar.current[k] : null }; });
@@ -877,8 +878,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!kid || !step || mode !== "lesson") return [];
     // REV122: rasm qaysi so'zniki ekanini eslab qolamiz — bosilganda nomi aytiladi
     // REV144: har rasm o'z ma'nosiga mos 1–2 soniyalik harakat qiladi (anim); emoji karta — chizilgan rasm bilan
-    const pic = (u, i) => { const w = picWord(u); return { src: mediaUrl(u), rev: picRev, label: `rasm ${i + 1}`, ...w, anim: harakatTuri(sozId({ soz: w.soz, emoji: w.belgi })) }; };
-    const karta = (e, extra = {}) => { const r = emojiRasm(e, RASMLAR); return { emoji: e, src: r?.src || "", anim: harakatTuri(r?.id || sozId({ emoji: e })), rev: picRev, ...extra }; };
+    // REV151: kitob rasmi o'rniga — shu so'zning rassom chizgan rasmi (bo'lsa)
+    const pic = (u, i) => { const w = picWord(u); const ch = (w.soz || w.belgi) ? sozRasmi(w.soz, w.belgi) : null; return { src: ch?.src || mediaUrl(u), rev: picRev, label: `rasm ${i + 1}`, ...w, anim: harakatTuri(sozId({ soz: w.soz, emoji: w.belgi })) }; };
+    const qatorSozi = (e) => { const q = String(step?.doska || "").split(/\n+/).find((l) => l.includes(e)); return q ? q.slice(q.indexOf(e) + e.length).split(/[,!?.]/)[0].trim() : ""; };
+    const karta = (e, extra = {}) => { const r = emojiRasm(e, RASM_HAMMA, darsTil === "en" ? qatorSozi(e) : ""); return { emoji: e, src: r?.src || "", anim: harakatTuri(r?.id || sozId({ emoji: e })), rev: picRev, ...extra }; };
     if (variant?.rasm) return [pic(variant.rasm, 0)];
     // REV140: salomlashish va ob-havo qadamida doskaga belgi-stikerlar (👋 🙂 😊) chiqmaydi — ustoz qo'l silkitadi,
     // ob-havoda bola derazaga qaraydi (deraza nurlanadi)
@@ -886,7 +889,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV121: o'yin — nishonlar (rasm yoki emoji karta), holati bilan: kutilmoqda / to'g'ri / xato / mana u
     if (game && game.stepIdx === idx) {
       return game.targets.map((t, i) => {
-        const r = t.src ? null : emojiRasm(t.emoji, RASMLAR);
+        const r = t.src ? null : (emojiRasm(t.emoji, RASM_HAMMA) || (() => { const id = sozId({ soz: darsTil === "en" ? t.word : "", emoji: t.emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })());
         return { src: t.src || r?.src || "", emoji: t.src || r ? "" : t.emoji, rev: picRev, label: t.word,
           anim: harakatTuri(sozId({ soz: t.word, emoji: t.emoji })), holat: game.holat[i] || (game.kutish ? "wait" : "") };
       });
@@ -912,7 +915,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (aytilgan.length) return aytilgan.map(pic);
     if ((kidKind === "intro" || kidKind === "summary") && !step._ochilish && newPics.size) return [...newPics].slice(0, 3).map(pic);
     if (kidKind !== "new") return [];   // takror, o'yin — begona stiker chiqmaydi
-    return stickerKeys(kidSrc).map((key) => ({ src: stickerUrl(key), svg: true, key, label: key, rev: picRev })).filter((x) => x.src);
+    // REV151: kod bilan chizilgan stikerlar o'rniga — rassom rasmlari (bo'lsa)
+    const CHIZILGAN = { hello: RASM_HAMMA.d_hello, red: RASM_HAMMA.d_red, big: RASM_HAMMA.d_big, small: RASM_HAMMA.d_small, cat: RASM_HAMMA.cat, apple: RASM_HAMMA.apple, jump: RASM_HAMMA["d_can-jump"] };
+    return stickerKeys(kidSrc).map((key) => (CHIZILGAN[key] ? { src: CHIZILGAN[key], key, label: key, rev: picRev } : { src: stickerUrl(key), svg: true, key, label: key, rev: picRev })).filter((x) => x.src);
   })();
   const badge = kindBadge(kidKind);
   const kidMood = kidPhase || (mode === "idle" || mode === "bridge" ? "wave" : speaking ? kabuMood(step, "speaking") : mode === "lesson" ? kabuMood(step, "waiting") : mode === "result" ? "happy" : "");

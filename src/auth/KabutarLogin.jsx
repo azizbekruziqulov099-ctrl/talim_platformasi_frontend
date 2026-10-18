@@ -3,6 +3,7 @@ import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePrefer
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Bird, Check, CheckCircle2, ChevronRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Send, X } from "lucide-react";
 import { authEndpoint, authRequest, challengeStorageKey } from "./authClient.js";
+import { redirectIfWrongSite } from "./siteGuard.js";
 import "./kabutar-login.css";
 import TelegramCodeLogin from "./TelegramCodeLogin.jsx";
 import { readTelegramLinkIntent } from "./telegramCodeClient.js";
@@ -84,7 +85,12 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
     setConfigError("");
     let retry = null;
     authRequest(apiBase, "/auth/config", { signal: controller.signal })
-      .then((data) => { if (!controller.signal.aborted) { setConfig(data); saveAuthConfig(data); setConfigError(""); setError((e) => (isServerDownText(e) ? "" : e)); } })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        // REV147: sahifa boshqa (ruxsat etilmagan) manzildan ochilgan — kirish bu yerda ishlamaydi, asosiy saytga o'tamiz
+        if (redirectIfWrongSite(data)) { setError("Asosiy saytga o‘tilmoqda…"); return; }
+        setConfig(data); saveAuthConfig(data); setConfigError(""); setError((e) => (isServerDownText(e) ? "" : e));
+      })
       .catch((err) => {
         if (controller.signal.aborted) return;
         setConfigError(err.message);

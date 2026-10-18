@@ -2,7 +2,8 @@
 
 export const KIND_ICON = { word: "📄", pdf: "📕", excel: "📊", slides: "🖥️", image: "🖼️", boshqa: "📎" };
 export const KIND_LABEL = { word: "Word", pdf: "PDF", excel: "Excel", slides: "Taqdimot", image: "Rasm", boshqa: "Fayl" };
-export const ACCEPT = ".pdf,.doc,.docx,.rtf,.odt,.xls,.xlsx,.csv,.ods,.ppt,.pptx,.odp,.txt,.md,.jpg,.jpeg,.png,.webp,.gif,.zip,.rar,.mp3,.m4a,.mp4";
+// REV152: faqat Word, Excel, PDF va rasm (server ham qattiq tekshiradi)
+export const ACCEPT = ".pdf,.docx,.xlsx,.jpg,.jpeg,.png,.webp";
 
 export function formatSize(bytes) {
   const n = Number(bytes) || 0;

@@ -251,7 +251,7 @@ export default function Kutubxonam({ apiBase, token, onOrtga }) {
           </select>}
         </div>
         <input ref={fileRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => upload(e.target.files)} />
-        <small className="kt-muted">{__kbUi(`Word, PDF, Excel, taqdimot, rasm · bitta fayl ${formatSize(data.hajm?.fayl_limit)} gacha · bir xil fayl ikki marta saqlanmaydi`)}</small>
+        <small className="kt-muted">{__kbUi(`Word (.docx), Excel (.xlsx), PDF, rasm · bitta fayl ${formatSize(data.hajm?.fayl_limit)} gacha · bir xil fayl ikki marta saqlanmaydi`)}</small>
       </section>
 
       <section className="kt-shelves" aria-label={__kbUi("Polkalar")}>

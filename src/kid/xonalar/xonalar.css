@@ -199,3 +199,7 @@
   .xo-ekran > .xo-modes { grid-column: 2; align-self: center; }
   .xo-ekran > .xo-bar .xo-title { flex: none; }
 }
+/* REV149: qism o'qlari — chizilgan to'q sariq o'q */
+.xo-qism-ot { background: rgba(255,255,255,.92); }
+.xo-strelka { width: 70%; height: auto; display: block; pointer-events: none; }
+.xo-strelka.is-chap { transform: scaleX(-1); }

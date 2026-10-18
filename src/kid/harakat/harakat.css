@@ -160,3 +160,8 @@
 @media (max-aspect-ratio:4/5){.hy-ish .hs-sahna{--hh:max(220px, min(calc((100vw - 20px) * .9), calc(100dvh - 250px - var(--samtm-portal-top,0px))));width:100%}}
 .hy-ish .hy-kartalar{max-width:620px}
 .hy-ish .hy-bar{font-size:18px}
+/* REV149: ko'rsatkich — rassom chizgan qo'l (emoji o'rniga) */
+.hs-qol-rasm{display:block;height:1.35em;width:auto;filter:drop-shadow(0 4px 6px #0004)}
+.hs-sahna .hs-konfetti-rasm{animation:hs-konfetti-rasm 1.4s ease-out both;transform-box:fill-box;transform-origin:50% 40%}
+@keyframes hs-konfetti-rasm{0%{transform:scale(.3);opacity:0}35%{opacity:1}100%{transform:scale(1.1) translateY(24px);opacity:.85}}
+.hs-sahna .hs-yulduzcha{transform-box:fill-box;transform-origin:50% 50%}

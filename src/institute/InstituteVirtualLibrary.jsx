@@ -92,7 +92,7 @@ function UploadModal({ folder, apiBase, token, onClose, onDone }) {
   };
   return <Modal title={__kbUi(`“${folder.nomi}” papkasiga hujjat`)} onClose={onClose}>
     <button type="button" className="ivl-drop" onClick={() => inputRef.current?.click()}><Upload size={27} /><b>{file ? file.name : __kbUi("PDF, Word, Excel, PPT yoki rasm tanlang")}</b><small>{__kbUi("Eng ko‘pi 30 MB")}</small></button>
-    <input ref={inputRef} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.csv,.jpg,.jpeg,.png,.webp,.zip" onChange={e => setFile(e.target.files?.[0] || null)} />
+    <input ref={inputRef} hidden type="file" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png,.webp" onChange={e => setFile(e.target.files?.[0] || null)} />
     <label>{__kbUi("Ko‘rinadigan nom")}<input value={form.nomi} onChange={e => setForm({ ...form, nomi: e.target.value })} placeholder={file?.name || __kbUi("Hujjat nomi")} /></label>
     <label>{__kbUi("Izoh")}<textarea value={form.izoh} onChange={e => setForm({ ...form, izoh: e.target.value })} placeholder={__kbUi("Hujjat haqida qisqa ma’lumot")} /></label>
     <label>{__kbUi("Teglar")}<input value={form.teglar} onChange={e => setForm({ ...form, teglar: e.target.value })} placeholder={__kbUi("bitiruv ishi, 2026, pedagogika")} /></label>

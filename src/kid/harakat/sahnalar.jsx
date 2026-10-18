@@ -1,6 +1,7 @@
 import React from "react";
 import { RASMLAR } from "../xonalar/rasmlar.js";
 import { HR } from "./rasmlar.js";
+import { JR } from "../jonli/jonliRasm.js";
 
 // REV144: harakat sahnalari — rassom chizgan rasmlar (fon + harakatlanuvchi qismlar), SVG 400×300 ichida.
 // Har sahna a (0..1 — harakat qanchalik bajarilgani, silliqlangan) va tayyor (bajarildi) bilan chiziladi:
@@ -24,12 +25,11 @@ function Sp({ n, cx, by, h, op = 1, rot = 0, sx = 1, sy = 1, ox = 0.5, oy = 0.5,
 }
 const Soya = ({ cx, cy, rx, op = 0.22 }) => <ellipse cx={cx} cy={cy} rx={rx} ry={rx * 0.22} fill="#000" opacity={op} />;
 
+// REV150: konfetti va yulduzcha — rassom chizgan rasmlar (avvalgi kod bilan chizilgan to'rtburchak va yulduz o'rniga)
 function Konfetti() {
-  return <g className="hs-konfetti">{Array.from({ length: 18 }, (_, i) => <rect key={i} x={20 + (i * 53) % 360} y={-10 - (i * 37) % 60} width="8" height="12" rx="2"
-    fill={["#FF6B8A", "#FFC542", "#4CC6A1", "#5B8DEF", "#B76DF2"][i % 5]} style={{ "--d": `${(i % 6) * 0.08}s`, "--r": `${(i * 47) % 360}deg` }} />)}</g>;
+  return <image className="hs-konfetti-rasm" href={JR.konfetti} x="40" y="-10" width="320" height="298" preserveAspectRatio="xMidYMid meet" />;
 }
-const Yulduzcha = ({ x, y, s = 1 }) => <path className="hs-yulduzcha" transform={`translate(${x} ${y}) scale(${s})`}
-  d="M0 -14 L4 -4 L14 -4 L6 3 L9 13 L0 7 L-9 13 L-6 3 L-14 -4 L-4 -4Z" fill="#FFD84A" stroke="#E0A800" strokeWidth="1.5" />;
+const Yulduzcha = ({ x, y, s = 1 }) => <image className="hs-yulduzcha" href={JR.yulduz} x={x - 18 * s} y={y - 17 * s} width={36 * s} height={34 * s} />;
 
 // ── uy ──
 function Eshik({ a, tayyor, yop }) {

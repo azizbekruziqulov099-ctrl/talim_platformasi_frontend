@@ -15,6 +15,7 @@ import { eslab } from "../sozBoyligi.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
 import { useInterface } from "../../interface/InterfacePreferences.jsx";
 import HarakatYoli from "../harakat/HarakatYoli.jsx";
+import { JR } from "../jonli/jonliRasm.js";
 import "./xonalar.css";
 
 const REJIM = {
@@ -533,8 +534,8 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         </div>
         {/* REV148: qismlar orasida o'tish — katta o'qlar, nuqtalar, butun xona */}
         {!overlay && qs.length > 1 && <>
-          {qism > 0 && <button type="button" className="xo-qism-ot is-chap" onClick={() => setQism(qism - 1)} aria-label={T("Oldingi qism")}>◀</button>}
-          {qism >= 0 && qism < qs.length - 1 && <button type="button" className="xo-qism-ot is-ong" onClick={() => setQism(qism + 1)} aria-label={T("Keyingi qism")}>▶</button>}
+          {qism > 0 && <button type="button" className="xo-qism-ot is-chap" onClick={() => setQism(qism - 1)} aria-label={T("Oldingi qism")}><img className="xo-strelka is-chap" src={JR.strelka} alt="" draggable="false" /></button>}
+          {qism >= 0 && qism < qs.length - 1 && <button type="button" className="xo-qism-ot is-ong" onClick={() => setQism(qism + 1)} aria-label={T("Keyingi qism")}><img className="xo-strelka" src={JR.strelka} alt="" draggable="false" /></button>}
         </>}
         {overlay && <div className={`xo-tray xo-tray--${oyin.rejim}`}>
           {oyin.rejim === "xotira" && <div className={`xo-memo n${oyin.kartalar.length}`}>
