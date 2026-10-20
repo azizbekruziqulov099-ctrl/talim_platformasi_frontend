@@ -2,6 +2,7 @@
 // darsdan so'raydi. Sof funksiyalar (brauzersiz sinaladi). «⏸» — bolaga javob berish uchun jimlik (TTS qo'yadi).
 import { OCHILISH_LUGAT } from "./ochilishLugat.js";
 import { FEL_IZOH, birlashtir, gap, izohTeg } from "./izohTil.js";
+import { iboraNorm, sinfIborasimi } from "./sinfIboralari.js";
 
 const FOREIGN = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
 const NOT_TARGET = /^(?:say it together|say it with me|repeat after me|look|listen|listen and repeat|again|one more time|your turn|now you|good job|well done|great job|hello everyone)$/i;
@@ -140,24 +141,73 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
 }
 
 /**
- * Tugagan darsdan eslab qolinadigan so'zlar: yangi bilim qadamlaridagi qisqa chet so'zlar (4 so'zgacha),
- * emojisi doskadagi shu so'z yozilgan qatordan olinadi.
+ * Tugagan darsdan eslab qolinadigan so'zlar (darsning o'rganiladigan so'zlari).
+ * REV156: so'z avvalo QADAM SARLAVHASIDAN olinadi («👋 Привет! — salom» → 👋 Привет!) — ovozdagi har teg so'z emas:
+ * «Твоя очередь!», «Ещё раз!», «Слушай!» kabi ustoz buyruqlari ro'yxatga, mikrofon so'roviga va rasmga kirmaydi.
+ * Sarlavhada so'z bo'lmasa — ovozdagi qisqa teglar (sinf buyruqlarisiz).
  */
+const SARLAVHA_SOZ = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[#*0-9]\uFE0F?\u20E3|\uFE0F|\u200D|\p{Emoji_Modifier})+)\s+(.+)$/u;
+export function qadamSozi(s) {
+  const head = String(s?.sarlavha || "").replace(/\[\/?[a-z]{2}\]/gi, "").trim();
+  if (/^🔁/u.test(head)) return null;
+  const m = SARLAVHA_SOZ.exec(head);
+  if (!m) return null;
+  const say = m[2].split(/\s+[—–]\s+/)[0].trim().replace(/[.!?。！？]+$/u, "").trim();
+  if (!say || say.split(/\s+/).length > 5 || sinfIborasimi(say) || /[·:：]/.test(say)) return null;
+  const ovoz = String(s?.ovoz || "");
+  const k = iboraNorm(say);
+  let til = null;
+  for (const t of ovoz.matchAll(FOREIGN)) { if (iboraNorm(t[2]) === k) { til = t[1].toLowerCase(); break; } }
+  if (!til) return null;   // so'z ovozda o'rganiladigan til tegida aytilmagan — bu so'z o'rgatish qadami emas
+  return { say, emoji: m[1].replace(/\uFE0F/g, "").trim(), til };
+}
 export function darsSozlari(steps = [], kinds = [], limit = 6) {
   const out = [];
+  const bor = (say) => out.some((x) => iboraNorm(x.say) === iboraNorm(say));
   steps.forEach((s, i) => {
-    if (kinds[i] && kinds[i] !== "new") return;
+    if (out.length >= limit || (kinds[i] && kinds[i] !== "new")) return;
+    const q = qadamSozi(s);
+    if (q) { if (!bor(q.say)) out.push(q); return; }
+    // sarlavhasiz eski miya: ovozdagi teglar (ustoz buyruqlari tashlab ketiladi)
     const lines = String(s?.doska || "").split(/\n+/);
     for (const m of String(s?.ovoz || "").matchAll(FOREIGN)) {
       const say = m[2].trim().replace(/[.!?。！？]+$/u, "");
-      if (!say || say.split(/\s+/).length > 4 || NOT_TARGET.test(say) || /[:：⏸]/.test(say)) continue;
-      if (out.some((x) => x.say.toLowerCase() === say.toLowerCase())) continue;
+      if (!say || say.split(/\s+/).length > 4 || NOT_TARGET.test(say) || sinfIborasimi(say) || /[:：⏸]/.test(say)) continue;
+      if (bor(say)) continue;
       const line = lines.find((l) => l.toLowerCase().includes(say.toLowerCase())) || "";
-      let emoji = (line.match(/^[\p{Extended_Pictographic}‍️⃣#*0-9]+/u) || [""])[0].trim();
+      let emoji = (line.match(/^[\p{Extended_Pictographic}\u200D\uFE0F\u20E3#*0-9]+/u) || [""])[0].trim();
       if (!/[\p{Extended_Pictographic}\u20e3]/u.test(emoji)) emoji = "";
       out.push({ say, emoji, til: m[1].toLowerCase() });
       if (out.length >= limit) return;
     }
   });
   return out;
+}
+
+// REV156: dars miyasidagi «kirish» qadami ustoz salomlashgandan keyin keladi — undagi salom va «Men — Kabutar qushcha»
+// kabi gaplar takror bo'lmasin. Gaplar til teglari bilan birga bo'linadi; salom/tanishtiruv gaplari tashlanadi.
+const SALOM_GAP = /^(?:salom|assalomu|assalom|xayrli (?:tong|kun|kech)|привет|здравствуй|здравствуйте|добр(?:ое|ый) (?:утро|день|вечер)|hello|hi|hey|good (?:morning|afternoon|evening)|bip|gu-gu|бип|гу-гу|beep|coo|men\s*[—–-]|я\s*[—–-]|i'?m\b|i am\b|mening ismim\s*[—–-]|меня зовут\s+(?:kabu|кабу|kabutar|кабутар)|my name is (?:kabu|kabutar))(?![\p{L}])/iu;
+export function kirishniTozala(step) {
+  if (!step) return null;
+  const ovoz = String(step.ovoz || "");
+  const bolaklar = [];
+  let last = 0;
+  const TEG = /\[(uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
+  for (const m of ovoz.matchAll(TEG)) {
+    if (m.index > last) bolaklar.push({ til: null, matn: ovoz.slice(last, m.index) });
+    bolaklar.push({ til: m[1].toLowerCase(), matn: m[2] });
+    last = m.index + m[0].length;
+  }
+  if (last < ovoz.length) bolaklar.push({ til: null, matn: ovoz.slice(last) });
+  const qoldi = [];
+  for (const b of bolaklar) {
+    const gaplar = b.matn.split(/(?<=[.!?…])\s+/).map((g) => g.trim()).filter(Boolean)
+      .filter((g) => !SALOM_GAP.test(g.replace(/^[^\p{L}]+/u, "")));
+    if (!gaplar.length) continue;
+    const matn = gaplar.join(" ");
+    qoldi.push(b.til ? `[${b.til}]${matn}[/${b.til}]` : matn);
+  }
+  const yangi = qoldi.join(" ").replace(/\s{2,}/g, " ").trim();
+  if (!/\p{L}{2}/u.test(yangi.replace(/\[\/?[a-z]{2}\]/gi, ""))) return null;
+  return { ...step, ovoz: yangi };
 }

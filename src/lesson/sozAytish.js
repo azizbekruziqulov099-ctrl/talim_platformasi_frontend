@@ -2,16 +2,19 @@
 // jami 2 urinish). Sof qismi (so'zni ajratish, baho) brauzersiz sinaladi; tingla() — brauzer SpeechRecognition.
 import { gradeSpeech } from "../speech/speakRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
+import { iboraNorm, sinfIborasimi } from "../kid/sinfIboralari.js";
 
 const TEG = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([^[\]]{1,60}?)\[\/\1\]/gi;
 const BUYRUQ_SOZ = /^(?:say it together|say it with me|repeat after me|look|listen|listen and repeat|again|one more time|your turn|now you|now you say it|good job|well done|great job|let'?s go|hello everyone|bye bye|let'?s say it together)$/i;
 
-function chunkSozi(bolak, til) {
+function chunkSozi(bolak, til, maqsad = null) {
   let topildi = null;
   for (const m of bolak.matchAll(TEG)) {
     if (m[1].toLowerCase() !== til) continue;
     const phrase = m[2].trim().replace(/[.!?。！？]+$/u, "").trim();
-    if (!phrase || phrase.split(/\s+/).length > 4 || BUYRUQ_SOZ.test(phrase) || /[:：]$/.test(phrase)) continue;
+    if (!phrase || phrase.split(/\s+/).length > 4 || BUYRUQ_SOZ.test(phrase) || sinfIborasimi(phrase) || /[:：]$/.test(phrase)) continue;
+    // REV156: qadamning o'z so'zi ma'lum bo'lsa — bola faqat O'SHANI aytadi (ustoz buyrug'i yoki boshqa ibora emas)
+    if (maqsad && maqsad.size && !maqsad.has(iboraNorm(phrase))) continue;
     topildi = phrase;
   }
   return topildi;
@@ -21,8 +24,9 @@ function chunkSozi(bolak, til) {
  * Gap «⏸» (bolaga qaytarish joyi) bo'yicha bo'laklarga ajratiladi: [{ matn, soz }]. soz — shu bo'lakdan keyin bola
  * aytadigan o'rganiladigan tildagi qisqa ibora ({lang, phrase}) yoki null. Bir so'z ikki marta so'ralmaydi, jami ≤3.
  */
-export function sozBolaklari(spoken, til) {
+export function sozBolaklari(spoken, til, maqsadlar = []) {
   const s = String(spoken || "");
+  const maqsad = new Set((maqsadlar || []).map(iboraNorm).filter(Boolean));
   const qismlar = s.split("⏸");
   const out = [];
   const korilgan = new Set();
@@ -30,7 +34,7 @@ export function sozBolaklari(spoken, til) {
     const matn = q.replace(/\s{2,}/g, " ").trim();
     let soz = null;
     if (til && k < qismlar.length - 1 && korilgan.size < 3) {
-      const p = chunkSozi(q, til);
+      const p = chunkSozi(q, til, maqsad);
       if (p && !korilgan.has(p.toLowerCase())) { korilgan.add(p.toLowerCase()); soz = { lang: til, phrase: p }; }
     }
     if (matn || soz) out.push({ matn, soz });
@@ -39,8 +43,8 @@ export function sozBolaklari(spoken, til) {
 }
 
 /** Gapdagi bola aytishi kerak bo'lgan so'zlar: [{ lang, phrase }] (takrorlanmaydi, ko'pi bilan 3 ta). */
-export function aytiladiganSozlar(spoken, til) {
-  return sozBolaklari(spoken, til).map((b) => b.soz).filter(Boolean);
+export function aytiladiganSozlar(spoken, til, maqsadlar = []) {
+  return sozBolaklari(spoken, til, maqsadlar).map((b) => b.soz).filter(Boolean);
 }
 
 /** Bola aytgani to'g'rimi. Bog'cha bolasi uchun yumshoq: 2-urinishda «yaqin» ham qabul. */

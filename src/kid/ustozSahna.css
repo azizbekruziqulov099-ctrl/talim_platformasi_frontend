@@ -46,6 +46,13 @@
 .us-pic.is-no{box-shadow:0 0 0 5px #e5484d;animation:us-no .45s ease-in-out both}
 .us-pic.is-hint{box-shadow:0 0 0 5px #ffd166,0 0 22px 6px #ffd166aa;animation:us-hint 1s ease-in-out infinite}
 .us-pic.is-dim{opacity:.45}
+/* REV156: topilgan rasm — ✓ belgisi qoladi */
+.us-board .us-pic{position:relative}
+.us-pic.is-done{box-shadow:0 0 0 4px #2bb07f;opacity:.92}
+.us-tick{position:absolute;right:6%;top:6%;width:clamp(26px,28%,54px);aspect-ratio:1;border-radius:50%;background:#2bb07f;box-shadow:0 3px 10px #0004;display:grid;place-items:center;z-index:3;animation:us-tick .45s cubic-bezier(.3,1.6,.5,1) both;pointer-events:none}
+.us-tick svg{width:68%;height:68%;fill:none;stroke:#fff;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;animation:us-tick-d .35s .15s ease-out forwards}
+@keyframes us-tick{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes us-tick-d{to{stroke-dashoffset:0}}
 .us-pic.is-wait{animation:us-wait 1.6s ease-in-out infinite;animation-delay:calc(var(--i) * .25s)}
 @keyframes us-yes{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1.04)}}
 @keyframes us-no{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6%)}40%,80%{transform:translateX(6%)}}

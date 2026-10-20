@@ -2,11 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import { stripSpeechTags } from "../speech/language.js";
-import { contentLanguage, kidCorrectSpeech, kidOptions, kidPraiseLabel, kidTheme } from "./kidQuizRules.js";
-import ListenText from "../speech/ListenText.jsx";
+import { contentLanguage, kidCorrectSpeech, kidOptions, kidTheme } from "./kidQuizRules.js";
 import { keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
-import { kabuRasm } from "../kid/jonli/jonliRasm.js";
-import { kabuPoza } from "../kid/RobotKabu.jsx";
+import RobotKabu from "../kid/RobotKabu.jsx";
 import { gap } from "../kid/izohTil.js";
 import "./kidQuiz.css";
 import { B } from "../kid/Belgi.jsx";
@@ -112,9 +110,6 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
     return "is-dim";
   };
   const mood = !done ? (tekshirilmoqda ? "think" : "ask") : current.natija.togrimi ? "happy" : "cheer";
-  const bubble = !done
-    ? (tekshirilmoqda ? "Qani, ko'raylik…" : "Eshit va rasmni bos!")
-    : current.natija.togrimi ? kidPraiseLabel(viewing ?? index, lang || (izoh !== "uz" ? izoh : "")) : "Hechqisi yo'q, birga o'rganamiz!";
 
   return <section className={`kq-root kq-${theme}`} aria-live="polite">
     <header className="kq-top">
@@ -126,12 +121,12 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
     </header>
 
     <div className="kq-mascot">
-      <img className={`kq-bird is-${mood}`} src={kabuRasm(kabuPoza(mood === "happy" ? "happy" : mood === "think" ? "think" : mood === "cheer" ? "enc" : "talk"))} alt="" draggable="false" aria-hidden="true" />
-      <p className="kq-bubble">{__kbUi(bubble)}</p>
+      {/* REV156: jonli (harakatlanadigan) Kabu qaytdi; bolaga ekranda gap yozilmaydi — hammasi ovozda */}
+      <div className={`kq-bird kq-robot is-${mood}`}><RobotKabu mood={mood === "happy" ? "happy" : mood === "think" ? "think" : mood === "cheer" ? "enc" : "talk"} /></div>
     </div>
 
     <div className="kq-question">
-      <h2><ListenText text={current.savol.question} speak={speak} /></h2>
+      <h2 className="kq-sr">{stripSpeechTags(current.savol.question)}</h2>
       <button type="button" className="kq-listen" onClick={() => readAll(current.savol)} aria-label={__kbUi("Savolni qayta eshitish")}><B e="🔊" /></button>
     </div>
 

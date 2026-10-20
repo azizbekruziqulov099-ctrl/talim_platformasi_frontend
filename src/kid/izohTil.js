@@ -117,7 +117,7 @@ export const GAPLAR = {
     "👋 Salom!": "👋 Привет!", "Bugungi ob-havo": "Погода сегодня", "🔁 Esingdami?": "🔁 Помнишь?",
     // REV121: o'yin, natija, test
     "Qani, top: {p}": "Ну-ка, найди: {p}", "Barmog'ing bilan bos: {p}": "Нажми пальчиком: {p}",
-    "Bu emas. Yana qidir!": "Не то. Поищи ещё!", "Mana u: {p}": "Вот он: {p}", "Topding! Yulduzcha seniki!": "Нашёл! Звёздочка твоя!",
+    "Bu emas. Yana qidir!": "Не то. Поищи ещё!", "Bu emas. Yana qidir: {p}": "Не то. Найди: {p}", "Mana u: {p}": "Вот он: {p}", "Topding! Yulduzcha seniki!": "Нашёл! Звёздочка твоя!",
     "Barakalla! O'yinda {n} ta yulduzcha yig'ding!": "Молодец! В игре ты собрал звёздочек: {n}!",
     "Hechqisi yo'q, keyingi safar albatta topasan!": "Ничего, в следующий раз обязательно найдёшь!",
     "Barakalla! Endi o'ynaymiz!": "Молодец! А теперь поиграем!", "Barakalla! To'g'ri!": "Молодец! Правильно!",
@@ -161,7 +161,7 @@ export const GAPLAR = {
     "👋 Salom!": "👋 Hello!", "Bugungi ob-havo": "Today's weather", "🔁 Esingdami?": "🔁 Do you remember?",
     // REV121: game, result, test
     "Qani, top: {p}": "Can you find it? {p}", "Barmog'ing bilan bos: {p}": "Tap it with your finger: {p}",
-    "Bu emas. Yana qidir!": "Not that one. Look again!", "Mana u: {p}": "Here it is: {p}", "Topding! Yulduzcha seniki!": "You found it! A star for you!",
+    "Bu emas. Yana qidir!": "Not that one. Look again!", "Bu emas. Yana qidir: {p}": "Not that one. Find: {p}", "Mana u: {p}": "Here it is: {p}", "Topding! Yulduzcha seniki!": "You found it! A star for you!",
     "Barakalla! O'yinda {n} ta yulduzcha yig'ding!": "Well done! You collected {n} stars in the game!",
     "Hechqisi yo'q, keyingi safar albatta topasan!": "That's okay, next time you'll find it!",
     "Barakalla! Endi o'ynaymiz!": "Well done! Now let's play!", "Barakalla! To'g'ri!": "Well done! That's right!",

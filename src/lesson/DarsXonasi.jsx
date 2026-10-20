@@ -17,7 +17,9 @@ import KidStage from "../kid/KidStage.jsx";
 import UstozSahna from "../kid/UstozSahna.jsx";
 import { useKeepLight } from "../kid/useKeepLight.js";
 import { havoTuri, quyoshVaqti, ustozFor } from "../kid/ustozRules.js";
-import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
+import { darsSozlari, kirishniTozala, ochilish, qadamSozi } from "../kid/darsOchilishi.js";
+// REV156: qadamning o'z so'zi (mikrofon faqat shuni so'raydi)
+const qadamMaqsadi = (st) => { const q = qadamSozi(st); return q ? [q.say] : []; };
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
@@ -169,7 +171,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     ustoz: ustozFor(fan || lesson?.topic?.fan), til: darsTil, izoh, havo, harorat, oldingi, vaqt,
     grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000),
   }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, izoh, vaqt]);
-  const steps = useMemo(() => [...opening, ...boshi.takror, ...boshi.qolgan], [opening, boshi]);
+  // REV156: ustoz ochilishda salomlashgan — darsning o'z «kirish» qadamidagi salom/«Men — …» gaplari olib tashlanadi
+  // va mavzu kirishi TAKRORDAN OLDIN keladi (oldin takrordan keyin yana «Salom, bolajonlar!» deyardi).
+  const steps = useMemo(() => {
+    if (!opening.length) return [...boshi.takror, ...boshi.qolgan];
+    const qolgan = [...boshi.qolgan];
+    const kirishlar = [];
+    while (qolgan.length && qolgan[0]?.turi === "kirish") { const t = kirishniTozala(qolgan.shift()); if (t) kirishlar.push(t); }
+    return [...opening, ...kirishlar, ...boshi.takror, ...qolgan];
+  }, [opening, boshi]);
   const step = idx >= 0 ? steps[idx] : null;
   // REV102: har qadam turi — takror (o'tgan darslar) yoki yangi bilim; bolaga belgi, rang va ovoz bilan ko'rsatiladi.
   const kinds = useMemo(() => steps.reduce((out, s, i) => {
@@ -200,7 +210,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const dars = darsSozlari(steps.slice(opening.length), kinds.slice(opening.length));
     // REV122: til darsida — avval BUGUN o'rganilgan so'zlar, darsning o'z tilida (salomlashish/eski takror emas);
     // boshqa tildagi (masalan, izoh tilidagi) iboralar aralashmaydi.
-    const bugun = til ? dars.filter((w) => w.til === til).map((w) => ({ lang: til, phrase: w.say })) : [];
+    const bugun = til ? dars.filter((w) => w.til === til).map((w) => ({ lang: til, phrase: w.say, emoji: w.emoji || "" })) : [];
     const mos = til ? base.filter((x) => x.lang === til) : base;
     const seen = new Set();
     const asosiy = [...bugun, ...mos].filter((x) => { const k = x.phrase.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
@@ -353,7 +363,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const s = steps[j];
     if (!s) return;
     const spoken = stepSpeech(s, j);
-    if (micRejim() && j >= opening.length && spoken.includes("⏸")) sozBolaklari(spoken, darsTil).forEach((b) => prefetch(b.matn, false));
+    if (micRejim() && j >= opening.length && spoken.includes("⏸")) sozBolaklari(spoken, darsTil, qadamMaqsadi(steps[j])).forEach((b) => prefetch(b.matn, false));
     else if (micRejim() && j >= opening.length && kinds[j] === "new" && kidTakrorStep(s)) prefetch(spoken, false);
     else prefetch(spoken, kid && kidTakrorStep(s));
   };
@@ -527,7 +537,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     };
     // salomlashish/ob-havo suhbati (ochilish) — savol-javob, u yerda so'z aytdirilmaydi; faqat darsning o'zida
     if (micRejim() && next >= opening.length) {
-      let list = spoken.includes("⏸") ? sozBolaklari(spoken, darsTil) : [];
+      let list = spoken.includes("⏸") ? sozBolaklari(spoken, darsTil, qadamMaqsadi(s)) : [];
       // yangi so'z o'rgatilgan qadamda «⏸» bo'lmasa ham — oxirida ustoz so'raydi: «Endi sen ayt: Bye» (har so'z bir marta)
       if (!list.some((b) => b.soz) && kinds[next] === "new" && kidTakrorStep(s)) {
         const yangi = darsSozlari([s], ["new"], 2).filter((w) => w.til === darsTil && !sorilgan.current.has(w.say.toLowerCase()));
@@ -563,10 +573,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   };
   const dunno = () => {
     if (kid) {   // REV98: bog'cha bolasi menyuni o'qiy olmaydi — robot o'zi boshqacha (sekinroq) qayta tushuntiradi
+      // REV156: faqat SHU QISM sekinroq qayta tushuntiriladi; keyingi qadamdan tezlik avvalgidek (oldin butun dars sekinlashardi)
       const first = (lesson?.variants?.[step?.id] || [])[0];
+      const avvalgi = rateRef.current;
+      const qaytar = () => { setRate(avvalgi); rateRef.current = avvalgi; };
       setPlaying(false); setRate(0.85); rateRef.current = 0.85; setPicRev((r) => r + 1);
-      if (first) { setVariant(first); say(first.ovoz || first.doska, () => { setVariant(null); setPlaying(true); go(idx + 1, true); }); return; }
-      if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => { setStepFinished(true); setPlaying(true); go(idx + 1, true); }); }
+      if (first) { setVariant(first); say(first.ovoz || first.doska, () => { qaytar(); setVariant(null); setPlaying(true); go(idx + 1, true); }); return; }
+      if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => { qaytar(); setStepFinished(true); setPlaying(true); go(idx + 1, true); }); }
+      else qaytar();
       return;
     }
     setPlaying(false); hush(); setMenu(true);
@@ -634,78 +648,79 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         const own = pictureFor(t.emoji, t.word, lesson?.rasmlar, lesson?.rasm_sozlar);
         return { ...t, src: own ? mediaUrl(own) : "" };
       });
-      const g = { stepIdx, targets: withPics, order, k: 0, tries: 0, found: 0, waiting: false, again: false };
+      const g = { stepIdx, targets: withPics, order, k: 0, tries: 0, found: 0, waiting: false, again: 0, hint: false, topilgan: [] };
       gameRef.current = g;
       gameRes.current[stepIdx] = { found: 0, total: targets.length };
       gameApi.current.totals();
       setGame({ stepIdx, targets: withPics, holat: {}, kutish: false });
       setTimeout(() => { if (gameApi.current.alive(g)) gameApi.current.round(g); }, 600);
     },
+    // REV156: o'yin bola BOSGUNCHA kutadi (o'zi o'tib ketmaydi). Topilgan rasmda ✓ belgisi qoladi.
+    // Bosmasa — ustoz so'zni yana aytadi; ikkinchi marta ham bosmasa yoki 2 marta adashsa — to'g'ri rasm yonib turadi,
+    // lekin baribir bolaning o'zi bosishini kutadi.
+    holat(g, patch = {}) {
+      const h = {};
+      (g.topilgan || []).forEach((i) => { h[i] = "done"; });
+      return { ...h, ...patch };
+    },
     round(g) {
       if (!gameApi.current.alive(g)) return;
       if (g.k >= g.order.length) { gameApi.current.end(g); return; }
       const t = g.targets[g.order[g.k]];
-      g.tries = 0; g.again = false;
-      // REV122: bola ustoz gapini kutmasdan ham bosishi mumkin — bosish darhol qabul qilinadi
+      g.tries = 0; g.again = 0; g.hint = false;
       g.waiting = true;
-      gameApi.current.paint(g, { holat: {}, kutish: true });
+      gameApi.current.paint(g, { holat: gameApi.current.holat(g), kutish: true });
       say(gap(izoh, "Qani, top: {p}", { p: soz(t) }), () => {
         if (!gameApi.current.alive(g) || !g.waiting) return;
-        g.waiting = true; gameApi.current.paint(g, { kutish: true });
-        gameApi.current.wait(g, 9000, () => gameApi.current.timeout(g));
+        gameApi.current.wait(g, 10000, () => gameApi.current.timeout(g));
       });
     },
     timeout(g) {
-      const t = g.targets[g.order[g.k]];
-      g.waiting = false; gameApi.current.paint(g, { kutish: false });
-      if (!g.again) {   // bir marta qayta so'raymiz
-        g.again = true;
-        g.waiting = true; gameApi.current.paint(g, { kutish: true });
-        say(gap(izoh, "Barmog'ing bilan bos: {p}", { p: soz(t) }), () => {
-          if (!gameApi.current.alive(g) || !g.waiting) return;
-          g.waiting = true; gameApi.current.paint(g, { kutish: true });
-          gameApi.current.wait(g, 7000, () => gameApi.current.reveal(g));
-        });
-        return;
-      }
-      gameApi.current.reveal(g);
-    },
-    reveal(g) {
+      if (!g.waiting) return;
       const i = g.order[g.k];
-      g.waiting = false; clearTimeout(gameTimer.current);
-      gameApi.current.paint(g, { holat: { [i]: "hint" }, kutish: false });
-      say(gap(izoh, "Mana u: {p}", { p: soz(g.targets[i]) }), () => gameApi.current.wait(g, 900, () => { g.k += 1; gameApi.current.round(g); }));
+      const t = g.targets[i];
+      g.again += 1;
+      if (g.again >= 2) g.hint = true;
+      gameApi.current.paint(g, { holat: gameApi.current.holat(g, g.hint ? { [i]: "hint" } : {}), kutish: true });
+      say(gap(izoh, "Barmog'ing bilan bos: {p}", { p: soz(t) }), () => {
+        if (!gameApi.current.alive(g) || !g.waiting) return;
+        gameApi.current.wait(g, 12000, () => gameApi.current.timeout(g));
+      });
     },
     tap(i) {
       const g = gameRef.current;
-      if (!g || !g.waiting || !gameApi.current.alive(g)) return false;
+      if (!g || !gameApi.current.alive(g)) return false;
+      if ((g.topilgan || []).includes(i)) return true;   // topilgani — qayta bosilsa hech narsa
+      if (!g.waiting) return true;
       const want = g.order[g.k];
       clearTimeout(gameTimer.current);
-      g.waiting = false;
       if (i === want) {
-        const first = g.tries === 0;
+        g.waiting = false;
+        const first = g.tries === 0 && !g.hint;
         if (first) { g.found += 1; gameRes.current[g.stepIdx] = { found: g.found, total: g.targets.length }; gameApi.current.totals(); }
+        g.topilgan = [...(g.topilgan || []), i];
         flashPhase("happy");
-        gameApi.current.paint(g, { holat: { [i]: "ok" }, kutish: false });
+        gameApi.current.paint(g, { holat: gameApi.current.holat(g, { [i]: "ok" }), kutish: false });
+        hush();
         const praise = kidPraise(g.k + g.found, gTil);
-        say(first ? `${praise} ${gap(izoh, "Topding! Yulduzcha seniki!")}` : praise, () => gameApi.current.wait(g, 700, () => { g.k += 1; gameApi.current.round(g); }));
+        say(first ? `${praise} ${gap(izoh, "Topding! Yulduzcha seniki!")}` : praise, () => gameApi.current.wait(g, 600, () => { g.k += 1; gameApi.current.round(g); }));
         return true;
       }
       g.tries += 1;
+      if (g.tries >= 2) g.hint = true;
       flashPhase("enc");
-      gameApi.current.paint(g, { holat: { [i]: "no" }, kutish: false });
-      if (g.tries >= 2) { setTimeout(() => { if (gameApi.current.alive(g)) gameApi.current.reveal(g); }, 500); return true; }
-      setTimeout(() => { if (gameApi.current.alive(g) && !g.waiting && g.tries < 2) { g.waiting = true; gameApi.current.paint(g, { holat: {}, kutish: true }); } }, 450);
-      say(gap(izoh, "Bu emas. Yana qidir!"), () => {
-        if (!gameApi.current.alive(g)) return;
-        g.waiting = true; gameApi.current.paint(g, { holat: {}, kutish: true });
-        gameApi.current.wait(g, 8000, () => gameApi.current.timeout(g));
+      gameApi.current.paint(g, { holat: gameApi.current.holat(g, { [i]: "no" }), kutish: true });
+      setTimeout(() => { if (gameApi.current.alive(g) && g.waiting) gameApi.current.paint(g, { holat: gameApi.current.holat(g, g.hint ? { [want]: "hint" } : {}), kutish: true }); }, 650);
+      hush();
+      say(gap(izoh, "Bu emas. Yana qidir: {p}", { p: soz(g.targets[want]) }), () => {
+        if (!gameApi.current.alive(g) || !g.waiting) return;
+        gameApi.current.wait(g, 12000, () => gameApi.current.timeout(g));
       });
       return true;
     },
     end(g) {
       const n = g.found;
-      gameApi.current.paint(g, { holat: {}, kutish: false });
+      gameApi.current.paint(g, { holat: gameApi.current.holat(g), kutish: false });
       const text = n > 0 ? sonliGap("Barakalla! O'yinda {n} ta yulduzcha yig'ding!", n) : gap(izoh, "Hechqisi yo'q, keyingi safar albatta topasan!");
       if (n > 0) flashPhase("happy", 2200);
       say(text, () => gameApi.current.wait(g, 800, () => { gameRef.current = null; setGame(null); go(g.stepIdx + 1, true); }));
@@ -999,23 +1014,22 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     <div className="dx-room">
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
-          {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status"><span aria-hidden="true">{badge[0]}</span><small>{__kbUi(badge[1])}</small></div>}
+          {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid} />
             {mikSoz && mode === "lesson" && <div className={`dx-mic-soz is-${mikSoz.holat}`} role="status" aria-live="polite">
               <span className="dx-mic-ikon" aria-hidden="true"><B e={mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"} /></span>
-              <b lang={mikSoz.lang}>{mikSoz.phrase}</b>
-              {mikSoz.holat === "tingla" && <small>{__kbUi(mikSoz.urinish ? "Yana bir bor ayt!" : "Endi sen ayt!")}</small>}
+              {/* REV156: bolaga yozuv yo'q — so'zni ustoz aytadi; ekranda faqat mikrofon holati */}
+              <b className="dx-sr" lang={mikSoz.lang}>{mikSoz.phrase}</b>
             </div>}</div>}
           {/* REV145: dars boshida (salomlashish va kirish qismida) — bugun nimani o'rganadi (bola ham, yonidagi ota-ona ham aniq ko'radi) */}
           {kid && (mode === "idle" || (mode === "lesson" && idx <= opening.length)) && (() => {
             const sozlar = darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)).slice(0, 5) : [];
-            const maqsad = !sozlar.length && izoh === "uz" ? String(lesson.topic?.maqsad || "").trim() : "";
-            if (!sozlar.length && !maqsad) return null;
+            if (!sozlar.length) return null;
             return <div className="dx-goal" aria-label={__kbUi("Bugun o‘rganamiz")}>
-              <small><B e="🎯" /> {__kbUi("Bugun o‘rganamiz")}</small>
-              {sozlar.length ? <ul>{sozlar.map((w) => { const r = sozRasmi(w.say, w.emoji); return <li key={w.say}>
-                {r ? <img src={r.src} alt="" draggable="false" /> : w.emoji ? <span aria-hidden="true">{w.emoji}</span> : null}<b lang={darsTil}>{w.say}</b></li>; })}</ul>
-                : <p>{maqsad}</p>}
+              {/* REV156: 2–7 yosh — ekranda gap/yozuv yo'q: faqat 🎯 va bugungi so'zlarning rasmlari */}
+              <small aria-hidden="true"><B e="🎯" /></small>
+              <ul>{sozlar.map((w) => { const r = sozRasmi(w.say, w.emoji); return <li key={w.say} aria-label={w.say}>
+                {r ? <img src={r.src} alt="" draggable="false" /> : w.emoji ? <span aria-hidden="true">{w.emoji}</span> : null}</li>; })}</ul>
             </div>;
           })()}
           {!kid && mode === "idle" && <>
@@ -1057,9 +1071,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               </div>
             </div>}
           </>}
-          {mode === "ovoz" && <VoiceCheck key={topicCode} items={voiceItems} audience={audience} say={say} hush={hush} speaking={speaking} onDone={voiceDone} bilgan={bilgan} izoh={izoh} />}
+          {mode === "ovoz" && <VoiceCheck key={topicCode} items={voiceItems} audience={audience} say={say} hush={hush} speaking={speaking} onDone={voiceDone} bilgan={bilgan} izoh={izoh} rasm={(it) => (it?.emoji || it?.phrase ? sozRasmi(it.phrase, it.emoji) : null)} />}
           {mode === "test" && q && <div className="dx-test">
-            {kid && isReviewQuestion(q) && <div className="dx-kind is-review" role="status"><span aria-hidden="true">🔁</span><small>{__kbUi("Takrorlash")}</small></div>}
+            {kid && isReviewQuestion(q) && <div className="dx-kind is-review" role="status" aria-label={__kbUi("Takrorlash")}><span aria-hidden="true">🔁</span></div>}
             {kid ? <div className="dx-kid-ask"><KidStage compact mood={kidPhase || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} />
               {/* REV121: savoldagi rasmlar (naqsh, sanoq, ortiqchasi) — bola ko'rib o'ylaydi */}
               {questionCard(q.savol) && <div className={`dx-kid-qcard sz-${cardSize(questionCard(q.savol))}`} aria-hidden="true">{questionCard(q.savol)}</div>}
@@ -1147,7 +1161,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     {menu && <div className="dx-menu" role="group" aria-label={__kbUi("Qayta tushuntirish usuli")}>
       <p>{__kbUi("Qaysi usulda qayta tushuntiray?")}</p>
       {list.map((v) => <button key={v.id} type="button" className="dx-btn" onClick={() => openVariant(v)}>{__kbUi(v.nom)}</button>)}
-      <button type="button" className="dx-btn" onClick={() => { setMenu(false); setRate(0.85); rateRef.current = 0.85; if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => setStepFinished(true)); } }}>{__kbUi("Sekinroq qayta ayt")}</button>
+      <button type="button" className="dx-btn" onClick={() => { setMenu(false); const avvalgi = rateRef.current; setRate(0.85); rateRef.current = 0.85; if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => { setRate(avvalgi); rateRef.current = avvalgi; setStepFinished(true); }); } }}>{__kbUi("Sekinroq qayta ayt")}</button>
       <button type="button" className="dx-btn" onClick={() => { setMenu(false); ask(`${__kbUi("Shu qismni tushunmadim, boshqacha tushuntiring")}: ${step?.doska || ""} ${step?.ovoz || ""}`.slice(0, 900)); }}>{__kbUi("AI ustozdan so‘rash")}</button>
     </div>}
 

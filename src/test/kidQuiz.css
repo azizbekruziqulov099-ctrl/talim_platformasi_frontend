@@ -75,3 +75,10 @@
 .kb-qator{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px;width:88%;max-width:200px;margin:6px auto 0;aspect-ratio:1;align-content:center}
 .kb-qator img{width:30%;height:auto;object-fit:contain;filter:drop-shadow(0 2px 3px #0002)}
 .kb-qator b{font:800 clamp(28px,7vw,44px)/1 system-ui,sans-serif;color:#c8553d}
+
+/* REV156: savol matni ekranda ko'rinmaydi (bola o'qimaydi — eshitadi), faqat ekran o'quvchi uchun */
+.kq-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kq-question{justify-content:center}
+.kq-question .kq-listen{width:clamp(64px,16vw,84px);height:clamp(64px,16vw,84px);font-size:clamp(28px,7vw,40px)}
+.kq-robot{width:clamp(96px,26vw,140px)}
+.kq-mascot{justify-content:center}

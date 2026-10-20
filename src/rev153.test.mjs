@@ -57,10 +57,10 @@ test('REV153: og\'iz — 10 shakl, unliga qarab', () => {
   for (const t of ['ayol', 'erkak']) for (let i = 0; i < 10; i++) assert.ok(fs.statSync(new URL(`./kid/ustoz/og/og_${t}_${i}.webp`, import.meta.url)).size < 20000);
 });
 
-test('REV153: SVG stiker va SVG robot darsda ishlatilmaydi', () => {
+test('REV153: SVG stiker darsda ishlatilmaydi (REV156: jonli SVG Kabu foydalanuvchi so\'rovi bilan qaytdi)', () => {
   assert.doesNotMatch(src('./lesson/DarsXonasi.jsx'), /stickerUrl|stickers\.js/);
   assert.doesNotMatch(src('./kid/optionPic.js'), /stickerUrl|stickers\.js/);
-  assert.doesNotMatch(src('./kid/RobotKabu.jsx'), /KABU_MARKUP|dangerouslySetInnerHTML/);
+  assert.match(src('./kid/RobotKabu.jsx'), /KABU_MARKUP/);
   assert.doesNotMatch(src('./kid/KidStage.jsx'), /<svg/);
   const u = src('./kid/ustozlar.js');
   assert.match(u, /og: \{ x: /);

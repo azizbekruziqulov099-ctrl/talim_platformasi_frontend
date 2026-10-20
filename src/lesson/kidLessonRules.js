@@ -92,6 +92,11 @@ export function ismOldin(text) {
     if (!body || body.split(/\s+/).length > 5 || NOT_TARGET.test(body)) return m;
     const w = (b) => `[${til}]${b}[/${til}]`;
     const ikki = oldinAytilganmi(butun.slice(0, offset), body) ? w(`${body}!`) : `${w(`${body}.`)} ${w(`${body}!`)}`;
+    // REV156: buyruq teg O'RTASIDA bo'lsa («[ru]Послушай и повтори:[/ru] [ru]Спасибо![/ru]») — tartib o'zgarmaydi,
+    // aks holda so'z tegning ichiga tushib, teglar buzilardi («[ru]Послушай и [ru]Спасибо.[/ru]… повтори![/ru]»).
+    const oldin = butun.slice(0, offset);
+    const ochiqQoldi = !ochiq && /\[(?:uz|ru|en)\](?![\s\S]*\[\/(?:uz|ru|en)\])[^\[]*$/i.test(oldin);
+    if (ochiqQoldi) return `${buyruq}:${yopiq || ""} ${ikki} ⏸`;
     return `${ikki} ${ochiq || ""}${buyruq}!${yopiq || ""} ⏸`;
   });
   s = s.replace(KOLON_UZ, (m, buyruq, soz, _p, offset, butun) => {

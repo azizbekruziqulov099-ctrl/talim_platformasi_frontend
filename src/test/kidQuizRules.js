@@ -21,7 +21,7 @@ export function kidOptions(savol, question = savol?.question ?? savol?.savol) {
       // REV89: til kitobida variant teglanadi ([en]cat[/en]) — bola so'zni o'qimaydi, ESHITADI.
       const tag = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.exec(o.raw);
       const lang = tag ? tag[1].toLowerCase() : '';
-      return { ...o, picture, word, lang, speech: lang ? `[${lang}]${word}[/${lang}]` : word, listen: listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word))) };
+      return { ...o, picture, word, lang, speech: lang ? `[${lang}]${word}[/${lang}]` : word, listen: listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word)), asked.size > 0) };
     });
 }
 
@@ -102,8 +102,10 @@ const answerKey = (t) => String(t || '').toLowerCase().replace(/[‘’ʻʼ`´']
 
 /** Tinglash rejimi: «picture» — faqat rasm; «audio» — rasm + 🔊 (ibora yoki rasmsiz variant); «» — oddiy.
  *  echoed — savolning o'zi shu iborani aytadi: rasmli variant o'qilmaydi (aks holda bola eshitib, javobni topib oladi). */
-export function listenMode(lang, picture, word, asksForeign = true, echoed = false) {
+export function listenMode(lang, picture, word, asksForeign = true, echoed = false, savoldaSoz = false) {
   if (!lang) return '';
+  // REV156: savol o'zi so'zni aytsa («Top: Привет») — hech bir variant o'qilmaydi (qolganini eshitib, javobni topib olardi)
+  if (savoldaSoz) return 'picture';
   const phrase = /\s/.test(String(word || '').trim());
   if (picture && echoed) return 'picture';
   return picture && !phrase && asksForeign ? 'picture' : 'audio';

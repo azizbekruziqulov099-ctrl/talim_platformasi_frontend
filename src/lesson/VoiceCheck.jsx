@@ -19,7 +19,7 @@ const PRAISE = ["To‘g‘ri! Aniq aytdingiz.", "Barakalla, to‘g‘ri.", "Yaxs
  * yana urinishga undaydi. Yozuv faqat qurilma xotirasida, serverga yuborilmaydi. REV145: bog'chada ham 2 urinish;
  * natija ro'yxati (qaysi so'zni aytdi) onDone ning ikkinchi argumenti — ota-ona hisobotiga boradi.
  */
-export default function VoiceCheck({ items, audience = "oquvchi", say, hush, speaking = false, onDone, bilgan = [], izoh = "uz" }) {
+export default function VoiceCheck({ items, audience = "oquvchi", say, hush, speaking = false, onDone, bilgan = [], izoh = "uz", rasm = null }) {
   const kid = audience === "bogcha";
   const tries = (VOICE_LIMITS[audience] || VOICE_LIMITS.oquvchi).tries;
   const [i, setI] = useState(0);
@@ -163,7 +163,10 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
       ? <div className="dx-voice-kid"><KidStage compact mood={mood} celebrate={celebrate} speaking={speaking} /></div>
       : <h3 className="dx-title">{__kbUi("Ovozli tekshiruv")} · {Math.min(i + 1, items.length)} / {items.length}</h3>}
 
-    {kid && item?.emoji && phase !== "done" && <div className="dx-voice-emoji" aria-hidden="true">{item.emoji}</div>}
+    {/* REV156: bola qaysi so'zni aytishini RASMDAN biladi (oldin faqat mikrofon turardi — nimani aytish noma'lum edi) */}
+    {kid && item && phase !== "done" && (() => { const r = rasm?.(item); return r?.src
+      ? <div className="dx-voice-rasm" key={`${i}-${item.phrase}`} aria-hidden="true"><img src={r.src} alt="" draggable="false" /></div>
+      : item.emoji ? <div className="dx-voice-emoji" aria-hidden="true">{item.emoji}</div> : null; })()}
     {!kid && item && phase !== "done" && <div className="dx-voice-phrase">
       <small>{__kbUi("Takrorlang:")}</small>
       <b lang={item.lang}>{item.phrase}</b>

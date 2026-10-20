@@ -108,6 +108,8 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
         onClick={() => onTap?.(i)} aria-label={pic.label || "rasm"}>
         {pic.qator ? <span className={`us-qator q${Math.min(pic.qator.length, 12)}`}>{pic.qator.map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" style={{ "--j": j }} /> : <b key={j}>{x.t}</b>)}</span>
           : pic.src ? <img className={pic.anim ? `an-${pic.anim}` : undefined} src={pic.src} alt="" draggable="false" /> : keycapNumber(pic.emoji) ? <span className="us-emoji kb-num">{keycapNumber(pic.emoji)}</span> : <span className={`us-emoji ${pic.anim ? `an-${pic.anim}` : ""}`}>{pic.emoji}</span>}
+        {/* REV156: o'yinda topilgan rasm — yashil ✓ (ptichka) */}
+        {(pic.holat === "ok" || pic.holat === "done") && <span className="us-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" /></svg></span>}
       </button>)}
       {children}
     </div>

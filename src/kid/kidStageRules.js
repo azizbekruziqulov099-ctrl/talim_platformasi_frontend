@@ -217,6 +217,18 @@ export function gameTargets(step, steps = [], kinds = []) {
     const word = words.get(key);
     if (word && !out.some((x) => x.key === key)) out.push({ key, emoji: g, word });
   }
+  // REV156: «🎲 Top-chi» qadami miyadan doskasi matn bo'lib keladi (emojisiz) — o'yin umuman boshlanmasdi.
+  // Shunday bo'lsa, ovozda aytilgan shu darsning so'zlari (aytilish tartibida) nishon bo'ladi.
+  if (out.length < 2 && /🎲/u.test(String(step?.sarlavha || "") + String(step?.doska || ""))) {
+    const ovoz = String(step?.ovoz || "");
+    const norm = (t) => normWord(String(t || "").replace(TAGS_ALL, ""));
+    const teglar = [...ovoz.matchAll(/\[(?:en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/(?:en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi)].map((m) => norm(m[1]));
+    for (const t of teglar) {
+      for (const [key, word] of words) {
+        if (norm(word) === t && !out.some((x) => x.key === key)) out.push({ key, emoji: key, word });
+      }
+    }
+  }
   return out.length >= 2 ? out.slice(0, 4) : [];
 }
 

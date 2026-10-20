@@ -331,3 +331,23 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .kb-qator{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px;width:88%;max-width:200px;margin:6px auto 0;aspect-ratio:1;align-content:center}
 .kb-qator img{width:30%;height:auto;object-fit:contain;filter:drop-shadow(0 2px 3px #0002)}
 .kb-qator b{font:800 clamp(28px,7vw,44px)/1 system-ui,sans-serif;color:#c8553d}
+
+/* REV156: ovozli takrorlash — aytiladigan so'zning rasmi */
+.dx-voice-rasm{display:grid;place-items:center;width:min(220px,46vw,24vh);aspect-ratio:1;margin:4px auto 0;background:#fff;border-radius:24px;box-shadow:0 8px 24px #0002;animation:us-pop .5s ease-out both}
+.dx-voice-rasm img{width:86%;height:86%;object-fit:contain}
+.dx-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* REV156: bolalar ekrani — yozuvsiz: rasmli maqsad kartasi va mikrofon belgisi kattaroq */
+.dx-goal ul{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.dx-goal li{width:clamp(64px,18vw,96px);aspect-ratio:1;display:grid;place-items:center;padding:0;background:#fff;border-radius:18px;box-shadow:0 3px 10px #0001}
+.dx-goal li img{width:82%;height:82%;object-fit:contain}
+.dx-goal li span{font-size:clamp(34px,9vw,52px)}
+.dx-mic-soz .dx-mic-ikon{font-size:clamp(30px,8vw,44px)}
+/* REV156: kompyuterda (keng ekran) «bugun o'rganamiz» rasmlari sahna ustida (pastki o'ngda) — tugmalar ostida qolmaydi */
+@media (min-width:701px){
+  .dx-aud-bogcha .dx-goal{position:absolute;right:14px;bottom:14px;z-index:4;margin:0;padding:8px 10px;background:#fff8e6ee;backdrop-filter:blur(2px);max-width:46%}
+  .dx-aud-bogcha .dx-goal li{width:clamp(52px,7vw,80px)}
+}
+/* REV156: ovozli takrorlash ekranga sig'adi (telefon va kompyuter) — o'lchamlar ekran balandligiga qarab */
+.dx-voice.is-kid{gap:10px}
+.dx-voice.is-kid .dx-voice-kid{width:min(240px,62%,20vh)}
+.dx-voice.is-kid .dx-voice-mic>span{width:min(132px,15vh);height:min(132px,15vh);font-size:min(64px,7vh)}
