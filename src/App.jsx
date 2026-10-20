@@ -1,4 +1,5 @@
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
+import __kbEmblema from "./brand/emblema.webp";
 import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
 import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
@@ -14694,6 +14695,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-top-switch{grid-template-columns:auto minmax(0,1fr) auto auto!important;align-items:center;border-bottom:3px solid var(--space-color,#1B4B7A)!important}
         .samtm-top-switch.is-talim{--space-color:#1B4B7A}
         .samtm-top-switch.is-kabutar{--space-color:#0D7A77}
+        .samtm-chap{display:flex;align-items:center;gap:8px;min-width:0}
+        .samtm-emblema{width:38px;height:38px;border-radius:12px;flex:none;display:block;box-shadow:0 4px 12px rgba(8,123,116,.25)}
+        @media(max-width:420px){.samtm-emblema{width:32px;height:32px;border-radius:10px}.samtm-chap{gap:6px}}
         .samtm-space{display:flex;gap:0;padding:3px;border-radius:16px;background:#EEEAE0;border:1px solid #E0DACC}
         .samtm-space button{border:0!important;border-radius:13px!important;background:transparent!important;color:#6B6658!important;box-shadow:none!important;padding:9px 14px!important}
         .samtm-space button.on{background:var(--space-color)!important;color:#fff!important;box-shadow:0 6px 18px rgba(0,0,0,.18)!important;transform:translateY(-1px)}
@@ -14740,9 +14744,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         {/* REV125: qayerda turganingiz aniq — «Ta'lim maydoni | Kabutar» bitta yorliqli tanlov, faoli rangli va ostidagi chiziq shu rangda.
             «Yordamchi» va «Kod» — bitta maydon: kitob kodi yozilsa yechim ochiladi, oddiy savol yozilsa — yordamchiga boradi. */}
         <div className={`samtm-top-switch ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
+          <div className="samtm-chap">
+          <img className="samtm-emblema" src={__kbEmblema} alt={uiT("Kabutar")} title={uiT("Kabutar — suhbat va ta’lim")} width="38" height="38" />
           <div className="samtm-space" role="tablist" aria-label={uiT("Bo‘lim")}>
             <button type="button" role="tab" aria-selected={!kabutarOchiq} className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>🧭 <InterfaceText text={__kbUi("Ta’lim maydoni")}/></button>
             <button type="button" role="tab" aria-selected={kabutarOchiq} className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}><MessageCircle size={16} />{__kbUi(" Kabutar")}{kabutarTezKunda ? <span className="samtm-tez-kunda">{uiT("tez kunda")}</span> : kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+          </div>
           </div>
           <YordamchiKod open={assistantOpen} onAssistant={(text) => { setAssistantSeed(text ? { text, n: Date.now() } : null); setAssistantOpen(text ? true : (v) => !v); }}
             onCode={(code) => setKodTrigger({ code, n: Date.now() })} />

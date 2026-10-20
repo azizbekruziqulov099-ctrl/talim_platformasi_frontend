@@ -10,6 +10,19 @@ import { uiText as T } from "../../interface/interfaceRuntime.js";
 import { Tamom } from "./JonliOyin.jsx";
 import { JR, kabuRasm } from "./jonliRasm.js";
 import "./jonli.css";
+import { B } from "../Belgi.jsx";
+import { SAHNA_RASM } from "./sahnaHarakatRasm.js";
+
+/** REV154: rassom chizgan «oldin → keyin» sahna: to'g'ri aytilsa sahna o'zgaradi, so'ng keyingi ibora. */
+function SahnaFoto({ rasm, bajar, onDemo }) {
+  const r = SAHNA_RASM[rasm];
+  useEffect(() => { if (!bajar) return undefined; const t = setTimeout(() => onDemo?.(), 2200); return () => clearTimeout(t); }, [bajar]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!r) return null;
+  return <div className={`ga-foto ${bajar ? "is-keyin" : ""}`}>
+    <img className="ga-foto-oldin" src={r.oldin} alt="" draggable="false" />
+    <img className="ga-foto-keyin" src={r.keyin} alt="" draggable="false" />
+  </div>;
+}
 
 const IZOH = ["uz", "ru", "en"];
 /** Iboraning chizilgan rasmi: narsa — o'zi, sinf/tana buyrug'i — rassom chizgan harakat yoki a'zo rasmi (emoji emas). */
@@ -131,14 +144,16 @@ export default function GapirOyin({ n, til = "en", izoh = "uz", ayt, onYakun, on
   const kabuPoza = faza === "gapir" || faza === "aytdim" ? "tingla" : faza === "bajar" ? (oxirgi?.togri ? "qarsak" : "korsat") : urinish ? "korsat" : "salom";
   return <div className={`jo-oyin ga-oyin ga-oyin--${ib?.tur || "tamom"}`}>
     <div className="jo-bar">
-      <button type="button" className="jo-back" onClick={() => { mikTox(); onChiq?.(); }} aria-label={T("Orqaga")}>⬅️</button>
-      <b><span aria-hidden="true">🎤</span> {T("Ayt — bo‘ladi!")} · {d.n + 1}</b>
-      <span className="jo-hisob">{Math.min(raund + 1, GAPIR_RAUND)}/{GAPIR_RAUND}{xato ? ` · ${"❌".repeat(Math.min(3, xato))}` : ""}</span>
+      <button type="button" className="jo-back" onClick={() => { mikTox(); onChiq?.(); }} aria-label={T("Orqaga")}><B e="⬅️" /></button>
+      <b><span aria-hidden="true"><B e="🎤" /></span> {T("Ayt — bo‘ladi!")} · {d.n + 1}</b>
+      <span className="jo-hisob">{Math.min(raund + 1, GAPIR_RAUND)}/{GAPIR_RAUND}{xato ? <> · {Array.from({ length: Math.min(3, xato) }, (_, i) => <B key={i} e="❌" />)}</> : ""}</span>
     </div>
     {tamom ? <Tamom yulduz={tamom} /> : <>
       <div className={`ga-sahna is-${faza}`} style={ib?.tur === "harakat" ? undefined : { backgroundImage: `url(${ib?.tur === "narsa" ? JR.fon_stol : JR.fon_sahna})` }}>
         {ib?.tur === "harakat"
-          ? <HarakatSahna key={`${d.n}-${raund}`} id={ib.id} demo={faza === "bajar"} faol={false} qolsiz onDemo={() => setTimeout(() => { if (alive.current) keyingi(); }, 500)} />
+          ? (String(ib.id).startsWith("sahna_")
+            ? <SahnaFoto key={`${d.n}-${raund}`} rasm={String(ib.id).slice(6)} bajar={faza === "bajar"} onDemo={() => { if (alive.current) keyingi(); }} />
+            : <HarakatSahna key={`${d.n}-${raund}`} id={ib.id} demo={faza === "bajar"} faol={false} qolsiz onDemo={() => setTimeout(() => { if (alive.current) keyingi(); }, 500)} />)
           : <div className={`ga-jonlan ga-jonlan--${ib?.tur} ${faza === "bajar" ? "is-jonli" : ""}`} key={`${d.n}-${raund}`}>
             {RASMLAR[rasmId(ib)]
               ? <img className="ga-rasm" src={RASMLAR[rasmId(ib)]} alt="" draggable="false" />
@@ -150,16 +165,16 @@ export default function GapirOyin({ n, til = "en", izoh = "uz", ayt, onYakun, on
       </div>
       <div className="ga-karta">
         <img className="ga-kabu" src={kabuRasm(kabuPoza)} alt="" draggable="false" aria-hidden="true" />
-        <button type="button" className="ga-eshit" onClick={qaytaEshit} aria-label={T("Qayta eshitish")}>🔊</button>
+        <button type="button" className="ga-eshit" onClick={qaytaEshit} aria-label={T("Qayta eshitish")}><B e="🔊" /></button>
         <div className="ga-matn">
           <b dir="auto">{matn}</b>
           {lang !== til && <small dir="auto">{manosi}</small>}
           {eshitildi && faza !== "bajar" && <i dir="auto">🗣️ «{eshitildi}»</i>}
         </div>
         {faza === "aytdim" || mikYoq
-          ? <button type="button" className="ga-mik is-aytdim" disabled={faza === "bajar" || faza === "ustoz"} onClick={() => bajar(true)}>✅ {T("Aytdim")}</button>
+          ? <button type="button" className="ga-mik is-aytdim" disabled={faza === "bajar" || faza === "ustoz"} onClick={() => bajar(true)}><B e="✅" /> {T("Aytdim")}</button>
           : <button type="button" className={`ga-mik ${faza === "gapir" ? "is-tingla" : ""}`} disabled={faza === "bajar"}
-            onClick={tinglash} aria-label={T("Gapir")}><span aria-hidden="true">🎤</span>{faza === "gapir" ? T("Gapir!") : urinish ? T("Yana") : T("Gapir")}</button>}
+            onClick={tinglash} aria-label={T("Gapir")}><span aria-hidden="true"><B e="🎤" /></span>{faza === "gapir" ? T("Gapir!") : urinish ? T("Yana") : T("Gapir")}</button>}
       </div>
     </>}
   </div>;
@@ -167,5 +182,5 @@ export default function GapirOyin({ n, til = "en", izoh = "uz", ayt, onYakun, on
 
 function Belgi({ ib }) {
   if (RASMLAR[rasmId(ib)]) return <img className={`ga-belgi ${ib.togri ? "" : "is-xato"}`} src={RASMLAR[rasmId(ib)]} alt="" draggable="false" />;
-  return <span className={`ga-belgi ${ib?.togri ? "" : "is-xato"}`}>{ib?.tur === "harakat" ? "🎬" : iboraEmoji(ib)}</span>;
+  return <span className={`ga-belgi ${ib?.togri ? "" : "is-xato"}`}>{ib?.tur === "harakat" ? <B n="tur_harakat" e="🎬" /> : iboraEmoji(ib)}</span>;
 }

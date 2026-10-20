@@ -118,6 +118,8 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
       ? `${g("Derazaga qara! {p} ⏸", { p: t("weather") })} ${havoGapi} ${t(hk)}${qoshimcha}${chiroq} ${g("Endi sen ayt: {p}", { p: t(hk) })} ⏸`
       : `${g("Derazaga qara! Bugun havo qanday? ⏸")} ${havoGapi}${chiroq}`,
     doska: L ? `${belgi} ${L[hk]}` : `${belgi}`,
+    // REV154: deraza oldida ko'rsatiladigan ob-havo rasmi (havo_quyosh, havo_tun, havo_kech …)
+    _havo: tunda ? (h === "quyosh" ? "tun" : h) : vaqt === "kech" && h === "quyosh" ? "kech" : vaqt === "tong" && h === "quyosh" ? "tong" : h,
   });
 
   // 3) O'tgan dars — 1–3 so'zni bola o'zi eslaydi

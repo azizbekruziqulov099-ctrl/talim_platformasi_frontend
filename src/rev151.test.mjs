@@ -19,6 +19,6 @@ test('REV151: so‘z va emoji bo‘yicha rassom rasmi topiladi; umumiy emoji yon
   assert.equal(emojiRasm('🦁', R)?.id, 'd_lion');
   assert.equal(emojiRasm('👋', R, 'Hello')?.id, 'd_hello');
   assert.equal(emojiRasm('👋', R, 'Goodbye, see you')?.id, 'd_goodbye-see-you');
-  assert.equal(emojiRasm('🙋', R, 'Hi'), null, 'mos rasm yo‘q — noto‘g‘ri rasm chiqmaydi');
+  assert.equal(emojiRasm('🙋', R, 'Hi')?.id, 'd_hi', 'REV154: «Hi» rasmi chizildi');
   assert.equal(harakatTuri('d_hello'), 'salom');
 });

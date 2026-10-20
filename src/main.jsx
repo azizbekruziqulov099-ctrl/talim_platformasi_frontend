@@ -5,8 +5,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "katex/dist/katex.min.css";
 import "./index.css";
+import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
 import App from "./App.jsx";
 import { InterfaceProvider } from "./interface/InterfacePreferences.jsx";
+
+rasmTiklashniYoq();   // REV154: yuklanmagan rasm o'zi qayta yuklanadi
 
 // REV133: yangi deploydan keyin ochiq turgan sahifa eski (o'chirilgan) bo'lak faylini so'rasa — sahifa bir marta
 // o'zi yangilanadi (aks holda darsni bosganda hech narsa bo'lmay qolardi). Qayta xato bo'lsa — odatdagi xato ekrani.

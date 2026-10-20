@@ -7,6 +7,7 @@ import { VOICE_LIMITS, gradeVoice, voiceCoach, voiceGiveUp, voicePassed, voicePr
 import { disableRecorder, dropClip, playClip, startClip } from "../speech/childRecorder.js";
 import { suhbatJavob, tahlil } from "../kid/suhbat.js";
 import { gap } from "../kid/izohTil.js";
+import { B } from "../kid/Belgi.jsx";
 
 const PRAISE_KID = ["Barakalla! Juda to‘g‘ri aytding!", "Zo‘r! Ana shunday!", "Ofarin! Sen zo‘rsan!"];
 const PRAISE = ["To‘g‘ri! Aniq aytdingiz.", "Barakalla, to‘g‘ri.", "Yaxshi, to‘g‘ri takrorladingiz."];
@@ -174,7 +175,7 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
 
     {phase !== "done" && <button type="button" className={`dx-voice-mic ${listening ? "is-on" : ""}`}
       onClick={() => listen()} disabled={listening || speaking} aria-label={__kbUi(listening ? "Eshityapman" : "Mikrofonni yoqish")}>
-      <span aria-hidden="true">{listening ? "👂" : "🎤"}</span>
+      <span aria-hidden="true"><B e={listening ? "👂" : "🎤"} /></span>
       {!kid && <b>{__kbUi(listening ? "Eshityapman… ayting" : speaking ? "Tinglang…" : "Mikrofonni bosib ayting")}</b>}
     </button>}
 
@@ -185,14 +186,14 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
       <span aria-label={`${last.stars} / 3`}>{"⭐".repeat(last.stars)}{"☆".repeat(3 - last.stars)}</span>
       {last.heard ? <> {__kbUi("Eshitildi:")} «{last.heard}»</> : <> {__kbUi("Ovoz eshitilmadi — balandroq va aniqroq ayting.")}</>}
     </p>}
-    {last && kid && phase !== "listen" && <p className="dx-voice-stars" aria-label={`${last.stars} / 3`}>{"⭐".repeat(Math.max(0, last.stars))}</p>}
+    {last && kid && phase !== "listen" && <p className="dx-voice-stars" aria-label={`${last.stars} / 3`}>{Array.from({ length: Math.max(0, last.stars) }, (_, k) => <B key={k} e="⭐" />)}</p>}
 
     {phase !== "done" && <div className="dx-row dx-voice-actions">
       <button type="button" className="dx-btn" onClick={() => { stopRec(); say(item.ask && !attempt ? item.ask : voicePrompt(item, kid, attempt, izoh)); }} disabled={listening}>
-        {kid ? "🔁" : __kbUi("↻ Yana eshitish")}
+        {kid ? <B e="🔁" /> : __kbUi("↻ Yana eshitish")}
       </button>
       {myClip && <button type="button" className="dx-btn" onClick={hearMe} disabled={listening || speaking} aria-label={__kbUi("O‘z ovozimni eshitish")}>
-        {kid ? "🔊" : __kbUi("🔊 O‘z ovozimni eshitish")}
+        {kid ? <B e="🔊" /> : __kbUi("🔊 O‘z ovozimni eshitish")}
       </button>}
       <button type="button" className="dx-btn" onClick={skip}>{kid ? "⏭️" : __kbUi("O‘tkazib yuborish")}</button>
       {!kid && <button type="button" className="dx-btn" onClick={stopAll}>{__kbUi("Tekshiruvni tugatish")}</button>}

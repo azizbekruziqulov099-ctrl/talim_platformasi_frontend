@@ -5,6 +5,8 @@ import { ArrowLeft, ArrowRight, Bird, CheckCircle2, LoaderCircle, MessageCircle 
 import { authRequest } from "./authClient.js";
 import { claimInstitution, institutionCodeError, normalizeInstitutionCode } from "../workspace/membershipClient.js";
 import "./kabutar-login.css";
+import "./kirish-tanishuv.css";
+import emblema from "../brand/emblema.webp";
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "../interface/InterfacePreferences.jsx";
 
 export default function KabutarRegistration({ apiBase = "", email = "", ism = "", oauthGrant = "", onAuthenticated, onCancel }) {
@@ -62,7 +64,7 @@ export default function KabutarRegistration({ apiBase = "", email = "", ism = ""
   }
 
   return <main className="kb-login-page kb-registration-page"><div className="kb-registration-shell"><div className="kb-registration-interface"><InterfaceSettingsButton/></div>
-    <div className="kb-login-brand"><span className="kb-login-brand-mark"><Bird size={29}/></span><span>{__kbUi("Kabutar")}<span className="kb-login-brand-caption"><InterfaceText text={__kbUi("YAQINROQ BO‘LING. O‘SIB BORING.")}/></span></span></div>
+    <div className="kb-login-brand"><span className="kb-login-brand-mark kb-login-emblem"><img src={emblema} alt="" width="44" height="44"/></span><span>{__kbUi("Kabutar")}<span className="kb-login-brand-caption"><InterfaceText text={__kbUi("YAQINROQ BO‘LING. O‘SIB BORING.")}/></span></span></div>
     <section className="kb-login-card kb-registration-card" aria-labelledby="kb-registration-heading">
       <span className="kb-registration-verified"><CheckCircle2 size={16}/><InterfaceText text={__kbUi(" Google hisobingiz tasdiqlandi")}/></span>
       <h1 id="kb-registration-heading">{uiT(accountCreated ? "Hisobingiz yaratildi" : "Sizni qanday chaqiraylik?")}</h1>

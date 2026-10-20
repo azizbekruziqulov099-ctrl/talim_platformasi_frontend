@@ -148,7 +148,21 @@ import r_water from "./rasm/water.webp";
 import r_wind from "./rasm/wind.webp";
 import r_window from "./rasm/window.webp";
 import r_winter from "./rasm/winter.webp";
+import r_board from "./rasm/board.webp";
+import r_desk from "./rasm/desk.webp";
+import r_fence from "./rasm/fence.webp";
+import r_fridge from "./rasm/fridge.webp";
+import r_road from "./rasm/road.webp";
+import r_sand from "./rasm/sand.webp";
+import r_stove from "./rasm/stove.webp";
 export const RASMLAR = {
+  board: r_board,
+  desk: r_desk,
+  fence: r_fence,
+  fridge: r_fridge,
+  road: r_road,
+  sand: r_sand,
+  stove: r_stove,
   ambulance: r_ambulance,
   apple: r_apple,
   aunt: r_aunt,

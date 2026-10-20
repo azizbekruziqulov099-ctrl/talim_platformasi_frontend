@@ -21,8 +21,8 @@ import { darsSozlari, ochilish } from "../kid/darsOchilishi.js";
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm, belgilar } from "../kid/kidStageRules.js";
-import { keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
+import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
+import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
@@ -33,10 +33,11 @@ import { speechRecognitionAvailable } from "../speech/speakRules.js";
 import { aralashKerak, aralashOqi, qurilmadaOqi, reja as ovozReja } from "../speech/aralashOvoz.js";
 import { aytdiMi, sozBolaklari, tingla } from "./sozAytish.js";
 import "./dars-xonasi.css";
+import { B, belgiSrc } from "../kid/Belgi.jsx";
 
 /** REV90: bog'cha boshqaruv tugmasi — katta belgi, ostida kichik yozuv (o'qiy olmaydigan bola belgidan taniydi). */
 function KidIcon({ icon, label }) {
-  return <><span className="dx-kid-ico" aria-hidden="true">{icon}</span><small className="dx-kid-cap">{__kbUi(label)}</small></>;
+  return <><span className="dx-kid-ico" aria-hidden="true"><B e={icon} /></span><small className="dx-kid-cap">{__kbUi(label)}</small></>;
 }
 
 function TeacherAvatar() {
@@ -908,9 +909,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       const extra = { label: soz || `rasm ${i + 1}`, soz, belgi: b.emoji, rev: picRev };
       if (sanoqKarta(b.emoji)) {
         // REV153: sanoq/naqsh — har belgi o'rniga rassom chizgan rasm («🍎🍎🍎» → uchta chizilgan olma), «❓» — so'roq
-        const g = belgilar(b.emoji);
-        const qator = g.length <= 12 && !/[\p{N}+=]/u.test(b.emoji) ? g.map((x) => (/^[❓?]$/.test(x) ? { t: "?" } : (emojiRasm(x, RASM_HAMMA) ? { src: emojiRasm(x, RASM_HAMMA).src } : null))) : null;
-        if (qator && qator.every(Boolean) && qator.some((x) => x.src)) return { emoji: b.emoji, src: "", qator, ...extra };
+        const qator = belgiQatori(b.emoji);
+        if (qator) return { emoji: b.emoji, src: "", qator, ...extra };
         return { emoji: b.emoji, src: "", ...extra };
       }
       // REV153: so'z istalgan tilda yoki doskadagi tarjimasi («🔴 أَحْمَر / qizil») bo'yicha ham topiladi
@@ -919,6 +919,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         || (darsTil === "en" && soz && (() => { const id = sozId({ soz, emoji: "" }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })())
         || emojiRasm(b.emoji, RASM_HAMMA, darsTil === "en" ? soz : "");
       if (ch?.src) return { src: ch.src, anim: harakatTuri(ch.id || sozId({ soz, emoji: b.emoji })), chizilgan: true, ...extra };
+      // REV153: juftlik/guruh («🐰➡🥕», «🐔🥚») — har biri chizilgan bo'lsa, rasmlar qatori
+      const qator = belgiQatori(b.emoji);
+      if (qator) return { emoji: b.emoji, src: "", qator, chizilgan: true, ...extra };
       const own = pictureFor(b.emoji, soz, lesson?.rasmlar, lesson?.rasm_sozlar);
       if (own) return { src: mediaUrl(own), anim: harakatTuri(sozId({ soz, emoji: b.emoji })), ...extra };
       return { emoji: b.emoji, src: "", anim: harakatTuri(sozId({ emoji: b.emoji })), ...extra };
@@ -976,7 +979,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
   return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""}`} aria-label={__kbUi("Dars xonasi")}>
     <header className="dx-head">
-      {focus && <button type="button" className="dx-exit" onClick={exitLesson} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? "🏠" : "✕"}</button>}
+      {focus && <button type="button" className="dx-exit" onClick={exitLesson} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
         {!kid && <p>{[lesson.topic?.fan, lesson.topic?.sinf && (/^\d+$/.test(String(lesson.topic.sinf)) ? `${lesson.topic.sinf}-sinf` : String(lesson.topic.sinf)), lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>}
@@ -985,7 +988,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         {!kid && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
         {!kid && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
         {kid && (questions.length > 0 || gameTotal > 0) && <span className="dx-chip dx-stars" aria-label={`${score + gameScore} ⭐`}>⭐ {score + gameScore}</span>}
-        <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? "🎤" : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
+        <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
     </header>
     <div className="dx-steps" role="group" aria-label={__kbUi("Dars qadamlari")}>
@@ -997,9 +1000,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status"><span aria-hidden="true">{badge[0]}</span><small>{__kbUi(badge[1])}</small></div>}
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid} />
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid} />
             {mikSoz && mode === "lesson" && <div className={`dx-mic-soz is-${mikSoz.holat}`} role="status" aria-live="polite">
-              <span className="dx-mic-ikon" aria-hidden="true">{mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"}</span>
+              <span className="dx-mic-ikon" aria-hidden="true"><B e={mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"} /></span>
               <b lang={mikSoz.lang}>{mikSoz.phrase}</b>
               {mikSoz.holat === "tingla" && <small>{__kbUi(mikSoz.urinish ? "Yana bir bor ayt!" : "Endi sen ayt!")}</small>}
             </div>}</div>}
@@ -1009,7 +1012,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             const maqsad = !sozlar.length && izoh === "uz" ? String(lesson.topic?.maqsad || "").trim() : "";
             if (!sozlar.length && !maqsad) return null;
             return <div className="dx-goal" aria-label={__kbUi("Bugun o‘rganamiz")}>
-              <small>🎯 {__kbUi("Bugun o‘rganamiz")}</small>
+              <small><B e="🎯" /> {__kbUi("Bugun o‘rganamiz")}</small>
               {sozlar.length ? <ul>{sozlar.map((w) => { const r = sozRasmi(w.say, w.emoji); return <li key={w.say}>
                 {r ? <img src={r.src} alt="" draggable="false" /> : w.emoji ? <span aria-hidden="true">{w.emoji}</span> : null}<b lang={darsTil}>{w.say}</b></li>; })}</ul>
                 : <p>{maqsad}</p>}
@@ -1060,7 +1063,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {kid ? <div className="dx-kid-ask"><KidStage compact mood={kidPhase || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} />
               {/* REV121: savoldagi rasmlar (naqsh, sanoq, ortiqchasi) — bola ko'rib o'ylaydi */}
               {questionCard(q.savol) && <div className={`dx-kid-qcard sz-${cardSize(questionCard(q.savol))}`} aria-hidden="true">{questionCard(q.savol)}</div>}
-              <button type="button" className="dx-listen dx-listen-big" onClick={() => readQuestion(q)} aria-label={__kbUi("Qayta eshitish")}>🔊</button></div>
+              <button type="button" className="dx-listen dx-listen-big" onClick={() => readQuestion(q)} aria-label={__kbUi("Qayta eshitish")}><B e="🔊" /></button></div>
               : <><h3 className="dx-title">{__kbUi("Test")} · {testIndex + 1} / {questions.length}</h3>
                 <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} /></div></>}
             {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), q.savol).map((o, k) => <div key={k} className="dx-kid-wrap"><button type="button" onClick={() => pick(k)} disabled={picked !== null}
@@ -1087,19 +1090,19 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             <span className="dx-kid-big" aria-hidden="true">{limitKind === "vaqt" ? "⏰" : "🌙"}</span>
             <h3 className="dx-title">{__kbUi(limitKind === "vaqt" ? "Bugungi dars vaqti tugadi" : "Bugungi yangi darslar tugadi")}</h3>
             <p className="dx-kid-note">{__kbUi(limitText || "Yangi dars ertaga ochiladi. O‘tilgan darslarni takrorlash va o‘yinlar ochiq.")}</p>
-            {onClose && <button type="button" className="dx-kid-go" onClick={() => { hush(); onClose(); }}>🏠 {__kbUi("Darslarga qaytish")}</button>}
+            {onClose && <button type="button" className="dx-kid-go" onClick={() => { hush(); onClose(); }}><B e="🏠" /> {__kbUi("Darslarga qaytish")}</button>}
           </div>}
           {kid && mode === "result" && <div className="dx-kid-end">
             <KidStage compact mood={kidMood} celebrate={celebrate} speaking={speaking} />
-            <div className="dx-kid-stars" aria-label={`${kidResult?.yulduz ?? 0} ⭐`}>{[1, 2, 3].map((n) => <span key={n} className={n <= (kidResult?.yulduz ?? 0) ? "is-on" : ""} style={{ "--i": n }}>⭐</span>)}</div>
+            <div className="dx-kid-stars" aria-label={`${kidResult?.yulduz ?? 0} ⭐`}>{[1, 2, 3].map((n) => <span key={n} className={n <= (kidResult?.yulduz ?? 0) ? "is-on" : ""} style={{ "--i": n }}><B e="⭐" /></span>)}</div>
             {(questions.length > 0 || gameTotal > 0) && <p className="dx-kid-note">{score + gameScore} / {questions.length + gameTotal} ✓</p>}
-            {voice?.jami > 0 && <p className="dx-kid-note">🎤 {voice.togri} / {voice.jami}</p>}
+            {voice?.jami > 0 && <p className="dx-kid-note"><B e="🎤" /> {voice.togri} / {voice.jami}</p>}
             {/* REV145: «Bugun o'rgandim» — har so'z rasmi bilan; aytgan so'ziga yulduz */}
             {kidResult?.sozlar?.length > 0 && <div className="dx-kid-words" aria-label={__kbUi("Bugun o‘rgandim")}>
               <small>{__kbUi("Bugun o‘rgandim")}</small>
               <ul>{kidResult.sozlar.map((w) => { const r = sozRasmi(w.soz, w.emoji); return <li key={w.soz} className={w.aytdi ? "is-ok" : ""}>
                 {r ? <img src={r.src} alt="" draggable="false" /> : w.emoji ? <span aria-hidden="true">{w.emoji}</span> : null}
-                <b lang={darsTil}>{w.soz}</b>{w.aytdi && <i aria-label={__kbUi("aytdi")}>⭐</i>}</li>; })}</ul>
+                <b lang={darsTil}>{w.soz}</b>{w.aytdi && <i aria-label={__kbUi("aytdi")}><B e="⭐" /></i>}</li>; })}</ul>
             </div>}
             {nextLesson && !kidResult?.bugunTugadi
               ? <button type="button" className="dx-kid-go" onClick={() => { hush(); nextLesson.open(); }}>▶ {__kbUi("Keyingi dars")}</button>
@@ -1126,7 +1129,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
       {!kid && <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")}>
         <div className="dx-teacher-head">
-          <div className="dx-avatar">{kid ? <span className="dx-bird" aria-hidden="true">🕊️</span> : <TeacherAvatar />}</div>
+          <div className="dx-avatar">{kid ? <span className="dx-bird" aria-hidden="true"><B e="🕊️" /></span> : <TeacherAvatar />}</div>
           <div><strong>{__kbUi(labels.teacher)}</strong><span className="dx-state"><i />{speaking ? __kbUi("Gapirmoqda…") : playing ? __kbUi("Tinglayapti") : __kbUi("Pauza")}</span></div>
         </div>
         <div className="dx-bubble">{words.map((w, i) => <span key={i} className={i === word ? "is-on" : ""}>{w} </span>)}</div>

@@ -9,6 +9,7 @@ import { kabuRasm } from "../kid/jonli/jonliRasm.js";
 import { kabuPoza } from "../kid/RobotKabu.jsx";
 import { gap } from "../kid/izohTil.js";
 import "./kidQuiz.css";
+import { B } from "../kid/Belgi.jsx";
 
 /** REV80/REV91: bog'cha bolasi uchun test — savol ovoz bilan o'qiladi, variantlar birma-bir aytiladi (aytilayotgani
  *  qimirlaydi), keyin hammasi yengil qimirlab kutadi — bola rasmning o'zini bosadi. Javobdan keyin maqtov yoki dalda
@@ -120,7 +121,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
       <div className="kq-dots" aria-label={__kbUi(`${index + 1} / ${total}`)}>
         {Array.from({ length: total }, (_, i) => <span key={i} className={i < history.length ? (history[i]?.natija?.togrimi ? "is-star" : "is-done") : i === index ? "is-now" : ""}>{i < history.length && history[i]?.natija?.togrimi ? "★" : ""}</span>)}
       </div>
-      <span className="kq-stars">⭐ {correctCount}</span>
+      <span className="kq-stars"><B e="⭐" /> {correctCount}</span>
       {onStop && <button type="button" className="kq-stop" onClick={onStop} aria-label={__kbUi("To'xtatish")}>✕</button>}
     </header>
 
@@ -131,7 +132,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
 
     <div className="kq-question">
       <h2><ListenText text={current.savol.question} speak={speak} /></h2>
-      <button type="button" className="kq-listen" onClick={() => readAll(current.savol)} aria-label={__kbUi("Savolni qayta eshitish")}>🔊</button>
+      <button type="button" className="kq-listen" onClick={() => readAll(current.savol)} aria-label={__kbUi("Savolni qayta eshitish")}><B e="🔊" /></button>
     </div>
 
     <div className={`kq-options kq-n${options.length}`}>

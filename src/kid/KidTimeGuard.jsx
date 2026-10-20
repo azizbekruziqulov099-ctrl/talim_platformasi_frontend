@@ -7,6 +7,7 @@ import { chime, soft } from "./kidSounds.js";
 import { uiSpeech } from "../interface/interfaceRuntime.js";
 import { guardView, hoursText, screenCategory, screenName, screenTime, tashkentDay, timeText, warnText } from "./screenTime.js";
 import "./kidTimeGuard.css";
+import { B } from "./Belgi.jsx";
 
 const TITLES = { jami: "Bugun vaqting tugadi", dars: "Dars vaqti tugadi", oyin: "O‘yin vaqti tugadi" };
 
@@ -93,7 +94,7 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
   }, [toast]);
 
   if (!view) {
-    return toast ? <div className="ktg-toast" role="status" onClick={() => setToast("")}><span aria-hidden="true">⏳</span>{__kbUi(toast)}</div> : null;
+    return toast ? <div className="ktg-toast" role="status" onClick={() => setToast("")}><span aria-hidden="true"><B e="⏳" /></span>{__kbUi(toast)}</div> : null;
   }
 
   const openGate = () => {
@@ -108,11 +109,11 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
 
   return <div className={`ktg-veil is-${view}`} role="dialog" aria-modal="true" aria-label={__kbUi(TITLES[view])}>
     <div className="ktg-card">
-      <div className="ktg-sky" aria-hidden="true">{view === "jami" ? "🌙 ✨ ⭐" : view === "dars" ? "🎮 ⭐" : "📚 ⭐"}</div>
+      <div className="ktg-sky" aria-hidden="true">{view === "jami" ? <><B e="🌙" /> <B e="⭐" /></> : view === "dars" ? <><B e="🎮" /> <B e="⭐" /></> : <><B e="📚" /> <B e="⭐" /></>}</div>
       <div className="ktg-robot"><RobotKabu mood={view === "jami" ? "wave" : "happy"} /></div>
       <h2>{__kbUi(TITLES[view])}</h2>
       <p className="ktg-text">{__kbUi(text)}</p>
-      <button type="button" className="ktg-listen" onClick={() => say(text)} aria-label={__kbUi("Qayta eshitish")}>🔊</button>
+      <button type="button" className="ktg-listen" onClick={() => say(text)} aria-label={__kbUi("Qayta eshitish")}><B e="🔊" /></button>
       {view === "dars" && <button type="button" className="ktg-go" onClick={() => onGo?.("oyinlar")}>🎮 {__kbUi("O‘yinlar")}</button>}
       {view === "oyin" && <button type="button" className="ktg-go" onClick={() => onGo?.("mavzular")}>📚 {__kbUi("Darslar")}</button>}
       {view !== "jami" && status?.[view === "dars" ? "oyin" : "dars"] && <p className="ktg-left">

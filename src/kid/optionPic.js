@@ -1,5 +1,5 @@
 // REV123: test variantining rasmi — bog'cha darsi va «O'ynaymiz» testida bir xil qoida.
-import { belgilar, pictureFor, sanoqKarta, stickerKeys } from "./kidStageRules.js";
+import { belgilar, pictureFor, stickerKeys } from "./kidStageRules.js";
 import { emojiRasm, matnId, sozId } from "./rasmHarakat.js";
 import { RASM_HAMMA } from "./darsRasm.js";
 import { RASMLAR } from "./xonalar/rasmlar.js";
@@ -18,14 +18,20 @@ export function kidOptionPic(o, rasmlar, mediaUrl, rasmSozlar = null) {
   return (key && CHIZILGAN[key]) || null;
 }
 
-/** REV153: sanoq/naqsh varianti («🍎🍎🍎», «🔴🔵❓») — har belgi o'rniga chizilgan rasm; bo'lmasa null (emoji qoladi). */
-export function kidOptionQator(picture) {
-  const p = String(picture || "");
-  if (!p || !sanoqKarta(p) || /[\p{N}+=]/u.test(p)) return null;
-  const g = belgilar(p);
+// REV153: belgilar qatori — har belgi o'rniga chizilgan rasm, strelka va «?» — oddiy belgi sifatida.
+const ISHORA = { "❓": "?", "?": "?", "➡": "→", "→": "→", "⬅": "←", "⬆": "↑", "⬇": "↓", "↔": "↔", "↕": "↕", "🔁": "↻", "🔄": "↻", "➕": "+", "➖": "−", "🟰": "=", "✅": "✓", "❌": "✗", "🚫": "✗" };
+export function belgiQatori(emoji) {
+  const p = String(emoji || "");
+  if (!p || /[\p{N}+=]/u.test(p.replace(/[➕➖🟰]/gu, ""))) return null;
+  const g = belgilar(p).filter((x) => !/^[\[\]]$/.test(x));
   if (g.length < 2 || g.length > 12) return null;
-  const q = g.map((x) => (/^[❓?]$/.test(x) ? { t: "?" } : (emojiRasm(x, RASM_HAMMA) ? { src: emojiRasm(x, RASM_HAMMA).src } : null)));
+  const q = g.map((x) => (ISHORA[x] ? { t: ISHORA[x] } : (emojiRasm(x, RASM_HAMMA) ? { src: emojiRasm(x, RASM_HAMMA).src } : null)));
   return q.every(Boolean) && q.some((x) => x.src) ? q : null;
+}
+
+/** REV153: sanoq/naqsh varianti («🍎🍎🍎», «🔴🔵❓») yoki juftlik («🐰➡🥕») — chizilgan rasmlar qatori; bo'lmasa null. */
+export function kidOptionQator(picture) {
+  return belgiQatori(picture);
 }
 
 export { keycapNumber } from "./sanKarta.js";

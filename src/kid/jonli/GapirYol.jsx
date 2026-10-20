@@ -4,6 +4,8 @@ import GapirOyin from "./GapirOyin.jsx";
 import { GAPIR_JAMI, GAPIR_POGONA, GAPIR_TUR, GAPIR_BELGI, gapirTuri, gapirNatija, gapirNavbat, gapirOchiq, gapirYoz } from "./gapirRules.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
 import "./jonli.css";
+import { B } from "../Belgi.jsx";
+const TUR_BELGI = { "🚪": "tur_harakat", "🍎": "tur_narsa", "💬": "tur_gap", "🙋": "tur_buyruq", "🎲": "tur_aralash" };
 
 const ekranda = (el) => (globalThis.document?.body ? createPortal(el, globalThis.document.body) : el);
 const POGONA_NOM = { uz: "{n}-pog‘ona", ru: "Уровень {n}", en: "Level {n}" };
@@ -32,7 +34,7 @@ export default function GapirYol({ til = "en", izoh = "uz", ayt, jim, cheklovsiz
   const chiq = () => { jim?.(); setOchiq(null); setTugadi(null); };
 
   return <section className="hy-bolim jo-yol ga-yol" aria-label={T("Ayt — bo‘ladi!")}>
-    <h3><span aria-hidden="true">🎤</span> {T("Ayt — bo‘ladi!")} <small>⭐ {yulduzJami} · {Object.keys(natija).length}/{GAPIR_JAMI}</small></h3>
+    <h3><span aria-hidden="true"><B e="🎤" /></span> {T("Ayt — bo‘ladi!")} <small><B e="⭐" /> {yulduzJami} · {Object.keys(natija).length}/{GAPIR_JAMI}</small></h3>
     {Array.from({ length: Math.min(GAPIR_POGONA, korsat) }, (_, p) => {
       const boshi = p * GAPIR_TUR;
       const yopiq = !cheklovsiz && boshi > navbat;
@@ -46,8 +48,8 @@ export default function GapirYol({ til = "en", izoh = "uz", ayt, jim, cheklovsiz
             const y = Number(natija[n]) || 0;
             return <button key={n} type="button" className={`jo-bosqich ${ok ? "" : "is-qulf"} ${n === navbat ? "is-navbat" : ""}`}
               onClick={() => boshla(n)} aria-label={`${n + 1}. ${T("Ayt — bo‘ladi!")}${ok ? "" : ` — ${T("yopiq")}`}`}>
-              <span aria-hidden="true">{ok ? emoji : "🔒"}</span><b>{n + 1}</b>
-              <small aria-hidden="true">{y ? "⭐".repeat(y) : ""}</small>
+              <span aria-hidden="true">{ok ? <B n={TUR_BELGI[emoji]} e={emoji} /> : <B e="🔒" />}</span><b>{n + 1}</b>
+              <small aria-hidden="true">{Array.from({ length: y }, (_, k) => <B key={k} e="⭐" />)}</small>
             </button>;
           })}
         </div>
@@ -57,9 +59,9 @@ export default function GapirYol({ til = "en", izoh = "uz", ayt, jim, cheklovsiz
     {ochiq != null && ekranda(<div className="jo-ekran" role="dialog" aria-modal="true">
       <GapirOyin key={`${ochiq}-${oyinK}`} n={ochiq} til={til} izoh={izoh} ayt={ayt} onChiq={chiq} onYakun={yakun} />
       {tugadi && <div className="hy-natija-btn jo-keyingi">
-        <button type="button" onClick={() => boshla(tugadi.n)}>🔁 {T("Yana o‘ynash")}</button>
-        {tugadi.n + 1 < GAPIR_JAMI && <button type="button" className="is-asosiy" onClick={() => boshla(tugadi.n + 1)}>▶ {T("Keyingisi")}</button>}
-        <button type="button" onClick={chiq}>🗺️ {T("Yo‘lga qaytish")}</button>
+        <button type="button" onClick={() => boshla(tugadi.n)}><B e="🔁" /> {T("Yana o‘ynash")}</button>
+        {tugadi.n + 1 < GAPIR_JAMI && <button type="button" className="is-asosiy" onClick={() => boshla(tugadi.n + 1)}><B e="▶" /> {T("Keyingisi")}</button>}
+        <button type="button" onClick={chiq}><B e="🗺️" /> {T("Yo‘lga qaytish")}</button>
       </div>}
     </div>)}
   </section>;

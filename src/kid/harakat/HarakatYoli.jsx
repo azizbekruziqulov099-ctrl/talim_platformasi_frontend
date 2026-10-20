@@ -15,6 +15,7 @@ import { uiText as T } from "../../interface/interfaceRuntime.js";
 import JonliYol from "../jonli/JonliYol.jsx";
 import GapirYol from "../jonli/GapirYol.jsx";
 import "./harakat.css";
+import { B } from "../Belgi.jsx";
 
 /** REV144: o'yin telefonda butun ekranni egallaydi — sahifa sarlavhasi va menyular ustidan (body ichida) chiziladi. */
 const ekranda = (el) => (globalThis.document?.body ? createPortal(el, globalThis.document.body) : el);
@@ -226,8 +227,8 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
     const s = buyruq(id, til, false);
     return ekranda(<div className="hy-ish" role="dialog" aria-modal="true">
       <div className="hy-bar">
-        <button type="button" className="hy-back" onClick={chiqish} aria-label={T("Yo‘lga qaytish")}>⬅️</button>
-        <b>📖 {BOLIMLAR.find((b) => b.id === ish.bolim)?.nom[izoh === "uz" || izoh === "ru" || izoh === "en" ? izoh : "uz"]}</b>
+        <button type="button" className="hy-back" onClick={chiqish} aria-label={T("Yo‘lga qaytish")}><B e="⬅️" /></button>
+        <b><B e="📖" /> {BOLIMLAR.find((b) => b.id === ish.bolim)?.nom[izoh === "uz" || izoh === "ru" || izoh === "en" ? izoh : "uz"]}</b>
         <span className="hy-nuqtalar">{ish.list.map((x, i) => <i key={x} className={i < ish.i ? "is-bor" : i === ish.i ? "is-hozir" : ""} />)}</span>
       </div>
       <HarakatSahna key={`${id}-${ish.faza}`} id={id} demo={ish.faza === "demo"} faol={ish.faza === "sen"} yordam={ish.yordam}
@@ -235,8 +236,8 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
       <div className="hy-panel">
         <UstozBurchak />
         <div className="hy-matn"><b dir="auto">{s}</b>{izoh !== til && <small>{manosi(id, izoh, false)}</small>}
-          <em>{ish.faza === "demo" ? `👀 ${izohMatn("qara", izoh)}` : `👆 ${izohMatn(imoKalit(harakat(id).imo), izoh)}`}</em></div>
-        <button type="button" className="hy-again" aria-label={T("Yana eshitish")} onClick={() => say(`${teg(s, til)} ${teg(buyruq(id, til, toliq), til)}`)}>🔊</button>
+          <em>{ish.faza === "demo" ? <><B e="👀" /> {izohMatn("qara", izoh)}</> : `👆 ${izohMatn(imoKalit(harakat(id).imo), izoh)}`}</em></div>
+        <button type="button" className="hy-again" aria-label={T("Yana eshitish")} onClick={() => say(`${teg(s, til)} ${teg(buyruq(id, til, toliq), til)}`)}><B e="🔊" /></button>
       </div>
     </div>);
   }
@@ -247,9 +248,9 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
     const cheksiz = ish.tur === "cheksiz";
     return ekranda(<div className="hy-ish" role="dialog" aria-modal="true">
       <div className="hy-bar">
-        <button type="button" className="hy-back" onClick={chiqish} aria-label={T("Yo‘lga qaytish")}>⬅️</button>
+        <button type="button" className="hy-back" onClick={chiqish} aria-label={T("Yo‘lga qaytish")}><B e="⬅️" /></button>
         <b>{TUGUN_BELGI[ish.tur === "bugun" ? "takror" : ish.tur]} {T(ish.tur === "bugun" ? "Bugungi takror" : TUGUN_NOM[ish.tur])}</b>
-        {cheksiz ? <span className="hy-hisob">{"❤️".repeat(ish.jon)}{"🤍".repeat(Math.max(0, 3 - ish.jon))} · ⭐ {ish.ball}</span>
+        {cheksiz ? <span className="hy-hisob">{Array.from({ length: ish.jon }, (_, i) => <B key={`j${i}`} e="❤️" />)}{Array.from({ length: Math.max(0, 3 - ish.jon) }, (_, i) => <B key={`b${i}`} e="🤍" />)} · <B e="⭐" /> {ish.ball}</span>
           : <span className="hy-hisob">{ish.i + 1}/{ish.raund.length} · ⭐ {ish.togri}</span>}
       </div>
       {cheksiz && ish.faza === "tanla" && <i key={ish.k} className="hy-vaqt" style={{ "--s": `${cheksizVaqt(ish.ball, yosh)}s` }} onAnimationEnd={vaqtTugadi} aria-hidden="true" />}
@@ -263,8 +264,8 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
       <div className="hy-panel">
         <UstozBurchak />
         <div className="hy-matn"><b dir="auto">{cmd}</b>
-          {ish.faza === "bajar" ? <em>👆 {izohMatn(imoKalit(harakat(q.id).imo), izoh)}</em> : <em>🖐️ {izohMatn("tanla", izoh)}</em>}</div>
-        <button type="button" className="hy-again" aria-label={T("Yana eshitish")} onClick={() => say(teg(cmd, til))}>🔊</button>
+          {ish.faza === "bajar" ? <em>👆 {izohMatn(imoKalit(harakat(q.id).imo), izoh)}</em> : <em><B e="🖐️" /> {izohMatn("tanla", izoh)}</em>}</div>
+        <button type="button" className="hy-again" aria-label={T("Yana eshitish")} onClick={() => say(teg(cmd, til))}><B e="🔊" /></button>
       </div>
     </div>);
   }
@@ -272,25 +273,25 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
   return <div className="hy-yol" ref={yolRef}>
     {natijaK && <div className="hy-natija" role="status">
       <span aria-hidden="true">🎉</span>
-      {natijaK.tur === "cheksiz" ? <b>⭐ {natijaK.ball} · 🏆 {natijaK.eng}</b>
+      {natijaK.tur === "cheksiz" ? <b><B e="⭐" /> {natijaK.ball} · <B e="🏆" /> {natijaK.eng}</b>
         : natijaK.tur === "organ" ? <b>{T("Barakalla! Yangi harakatlarni o‘rganding")}</b>
-          : <b>{"⭐".repeat(natijaK.yulduz || 1)} {natijaK.togri}/{natijaK.jami}</b>}
+          : <b>{Array.from({ length: natijaK.yulduz || 1 }, (_, k) => <B key={k} e="⭐" />)} {natijaK.togri}/{natijaK.jami}</b>}
       <div className="hy-natija-btn">
-        {natijaK.tur !== "organ" && natijaK.tur !== "cheksiz" && <button type="button" onClick={() => oyinBoshla(natijaK.tur, natijaK.tugunId, natijaK.pool)}>🔁 {T("Yana o‘ynash")}</button>}
-        {natijaK.tur === "cheksiz" && <button type="button" onClick={() => tugunBos({ id: "cheksiz", tur: "cheksiz", holat: "ochiq" })}>🔁 {T("Yana o‘ynash")}</button>}
-        {navbatdagi && navbatdagi.tur !== "cheksiz" && <button type="button" className="is-asosiy" onClick={() => tugunBos(navbatdagi)}>▶ {T("Keyingisi")}</button>}
-        <button type="button" onClick={() => setNatijaK(null)}>🗺️ {T("Yo‘lga qaytish")}</button>
+        {natijaK.tur !== "organ" && natijaK.tur !== "cheksiz" && <button type="button" onClick={() => oyinBoshla(natijaK.tur, natijaK.tugunId, natijaK.pool)}><B e="🔁" /> {T("Yana o‘ynash")}</button>}
+        {natijaK.tur === "cheksiz" && <button type="button" onClick={() => tugunBos({ id: "cheksiz", tur: "cheksiz", holat: "ochiq" })}><B e="🔁" /> {T("Yana o‘ynash")}</button>}
+        {navbatdagi && navbatdagi.tur !== "cheksiz" && <button type="button" className="is-asosiy" onClick={() => tugunBos(navbatdagi)}><B e="▶" /> {T("Keyingisi")}</button>}
+        <button type="button" onClick={() => setNatijaK(null)}><B e="🗺️" /> {T("Yo‘lga qaytish")}</button>
       </div>
-      {ertaga && <p className="hy-ertaga-matn">🌙 {izohMatn("ertaga", izoh)}</p>}
+      {ertaga && <p className="hy-ertaga-matn"><B e="🌙" /> {izohMatn("ertaga", izoh)}</p>}
     </div>}
     {!cheklovsiz && navbatdagi?.tur !== "cheksiz" && (navbatdagi || ertaga) && <div className={`hy-kunlik ${ertaga ? "is-tolgan" : ""}`}
       role="status" aria-label={`${izohMatn("bugunDars", izoh)}: ${bugunN}/${limit}`}>
-      <span>📅 {izohMatn("bugunDars", izoh)}</span>
+      <span><B e="📅" /> {izohMatn("bugunDars", izoh)}</span>
       <span className="hy-kunlik-nuqta" aria-hidden="true">{Array.from({ length: limit }, (_, k) => <i key={k} className={k < bugunN ? "is-bor" : ""} />)}</span>
-      {ertaga && <small>🌙 {izohMatn("ertagaQisqa", izoh)}</small>}
+      {ertaga && <small><B e="🌙" /> {izohMatn("ertagaQisqa", izoh)}</small>}
     </div>}
     {bugun.length >= 2 && <button type="button" className="hy-bugun" onClick={() => oyinBoshla("bugun", null, bugun)} disabled={!ochiq}>
-      🔁 {T("Bugungi takror")} <small>({bugun.length})</small></button>}
+      <B e="🔁" /> {T("Bugungi takror")} <small>({bugun.length})</small></button>}
     {BOLIMLAR.map((b, bi) => {
       const bt = tugunlar.filter((t) => t.bolim === b.id || (t.tur === "takror" && t.gacha === bi + 1));
       return <section key={b.id} className={`hy-bolim hy-bolim--${b.id}`}>
@@ -300,7 +301,7 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
       </section>;
     })}
     <section className="hy-bolim hy-bolim--oxir">
-      <h3><span aria-hidden="true">🏁</span> {T("Katta sinov")}</h3>
+      <h3><span aria-hidden="true"><B e="🏁" /></span> {T("Katta sinov")}</h3>
       <div className="hy-tugunlar">{tugunlar.filter((t) => !t.bolim && t.tur !== "takror").map((t, i) => <Tugun key={t.id} t={t} i={i} p={p} til={til} izoh={izoh} onBos={() => tugunBos(t)} xonaYulduz={xonaYulduz} />)}</div>
     </section>
     {/* REV148: 120 bosqichli jonli o'yinlar — narsalar bilan (ushla, yarim ko'rinadi, qutiga sol, pufak…) */}
@@ -314,15 +315,15 @@ function Tugun({ t, i, p, izoh, onBos, xonaYulduz }) {
   const y = (p.yulduz || {})[t.id] || 0;
   const xona = t.tur === "xona" ? XONALAR.find((x) => x.id === t.xona) : null;
   const nom = xona ? `${xona.emoji} ${T(xona.nom)}` : T(TUGUN_NOM[t.tur]);
-  const belgi = t.holat === "qulf" ? <Belgi k="qulf" emoji="🔒" /> : t.holat === "ertaga" ? "🌙" : <Belgi k={t.tur} emoji={TUGUN_BELGI[t.tur]} />;
+  const belgi = t.holat === "qulf" ? <Belgi k="qulf" emoji="🔒" /> : t.holat === "ertaga" ? <B e="🌙" /> : <Belgi k={t.tur} emoji={TUGUN_BELGI[t.tur]} />;
   return <button type="button" className={`hy-tugun is-${t.holat} hy-tugun--${t.tur}`} style={{ "--i": i }} onClick={onBos}
     aria-label={`${nom}${t.holat === "qulf" ? ` — ${T("yopiq")}` : t.holat === "ertaga" ? ` — ${izohMatn("ertagaQisqa", izoh)}` : ""}`}>
     <span className="hy-tugun-doira" aria-hidden="true">{belgi}</span>
     <b>{nom}</b>
     {t.holat === "ertaga" ? <small>{izohMatn("ertagaQisqa", izoh)}</small>
-      : t.tur === "cheksiz" ? <small>🏆 {p.cheksiz || 0}</small>
+      : t.tur === "cheksiz" ? <small><B e="🏆" /> {p.cheksiz || 0}</small>
       : t.tur === "xona" ? <small>⭐ {Math.min(3, xonaYulduz(t.xona))}/3</small>
         : (t.tur === "oyna" || t.tur === "takror") ? <small aria-hidden="true">{[1, 2, 3].map((k) => (k <= y ? "⭐" : "☆")).join("")}</small>
-          : <small aria-hidden="true">{t.holat === "tugadi" ? "✅" : ""}</small>}
+          : <small aria-hidden="true">{t.holat === "tugadi" ? <B e="✅" /> : ""}</small>}
   </button>;
 }

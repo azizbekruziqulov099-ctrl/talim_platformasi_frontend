@@ -1,7 +1,7 @@
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Bird, Check, CheckCircle2, ChevronRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Send, X } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, ChevronRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Send, X } from "lucide-react";
 import { authEndpoint, authRequest, challengeStorageKey } from "./authClient.js";
 import { redirectIfWrongSite } from "./siteGuard.js";
 import "./kabutar-login.css";
@@ -11,6 +11,8 @@ import { InterfaceText, InterfaceSettingsButton, useInterface } from "../interfa
 import { LOGIN_ROLES, ROLE_NAMES, cachedAuthConfig, dropToken, forgetAccount, loginRole, methodLabel, rememberLoginMethod, saveAuthConfig, saveLoginRole, savedAccounts } from "./loginMemory.js";
 import { saveTelegramPhone } from "./telegramCodeClient.js";
 import { PRESCHOOL_GROUPS } from "../workspace/educationRules.js";
+import emblema from "../brand/emblema.webp";
+import { KirishHero, KirishImkoniyatlar } from "./KirishTanishuv.jsx";
 
 function GoogleMark() {
   return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.8-1.76-5.6-4.12H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.93a6 6 0 0 1 0-3.86V7.48H3.06a10 10 0 0 0 0 9.04l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.48l3.34 2.59c.8-2.36 3-4.12 5.6-4.12Z"/></svg>;
@@ -61,6 +63,9 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  // REV155: tanishtiruv — tanlangan rol (bo'sh = hammasi) va «shu sifatida boshlash» bosilganda yoritiladigan karta
+  const [tanRol, setTanRol] = useState("");
+  const [yoritRol, setYoritRol] = useState("");
   const mounted = useRef(false);
   const command = useRef(null);
   const commandId = useRef(0);
@@ -222,19 +227,25 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
       if (mounted.current && id === commandId.current) { commandBusy.current = false; setBusy(false); setQuickRole(""); }
     }
   };
+  const boshlaRol = (next) => {
+    setYoritRol(next);
+    document.getElementById("kabutar-signin")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => { if (mounted.current) setYoritRol(""); }, 2600);
+  };
   const toggleMethod = (next) => { if (method === next) chooseMethod(""); else chooseMethod(next); };
 
   return <main className="kb-login-page kb-login-compact kb-login-v79">
     <div className="kb-login-shell">
       <header className="kb-login-header">
         <a className="kb-login-brand" href="#kabutar-signin" aria-label={uiT("Kabutar bosh sahifasi")}>
-          <span className="kb-login-brand-mark"><Bird size={29} strokeWidth={1.8}/></span>
+          <span className="kb-login-brand-mark kb-login-emblem"><img src={emblema} alt="" width="44" height="44"/></span>
           <span>{__kbUi("Kabutar")}<span className="kb-login-brand-caption"><InterfaceText text={__kbUi("SUHBAT VA TA’LIM")}/></span></span>
         </a>
         <nav aria-label={uiT("Bosh sahifa")}>{onCourses && <button type="button" className="kb-login-courses" onClick={onCourses}><InterfaceText text={__kbUi("Kurslar")}/></button>}<InterfaceSettingsButton/></nav>
       </header>
 
-      <div className="kb-login-main kb-login-main-single">
+      <div className="kb-login-main kb-login-main-kt">
+        <KirishHero rol={tanRol} onRol={setTanRol}/>
         <section className="kb-login-access" id="kabutar-signin" aria-labelledby="kabutar-signin-title">
           <div className="kb-login-card">
             {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text={__kbUi("Xush kelibsiz!")}/></h3><p><InterfaceText text={__kbUi("Sahifa ochilmoqda…")}/></p></div> : <>
@@ -264,7 +275,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                   : <>{__kbUi("Rolni bossangiz — shu roldagi akkauntingizga kirasiz.")} <button type="button" onClick={() => setNewMode(true)}>➕ {__kbUi("Yangi akkaunt ochish")}</button></>}
               </p>}
               <div className="kb-login-role-cards" role="group" aria-label={uiT("Rol")}>
-                {LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
+                {LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}${yoritRol === id ? " is-yorit" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
                   <span className="kb-login-role-emoji" aria-hidden="true">{icon}</span>
                   <b>{uiT(name)}</b>
                   <small>{uiT(hint)}</small>
@@ -302,6 +313,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
           <div className="kb-login-card-foot"><Check size={15}/><span><InterfaceText text={__kbUi("Kirgach Telegram yoki Gmail ulang — akkauntingiz va natijalaringiz hech qachon yo‘qolmaydi.")}/></span></div>
         </section>
       </div>
+      <KirishImkoniyatlar rol={tanRol} onRol={setTanRol} onBoshla={boshlaRol}/>
     </div>
   </main>;
 }

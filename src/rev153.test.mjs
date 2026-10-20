@@ -80,3 +80,14 @@ test('REV153: so\'z istalgan tilda yoki tarjimasi bo\'yicha chizilgan rasm topil
   assert.equal(emojiRasm('⭐', { j_yulduz: 'y.webp' })?.id, 'j_yulduz');
   assert.equal(sanoqKarta('🎂❓'), false, 'ibora — sanoq emas');
 });
+
+test('REV154: yuklanmagan rasm qayta so\'raladi, service worker rasmni ushlamaydi', async () => {
+  const { qaytaManzil } = await import('./pwa/rasmTiklash.js');
+  assert.equal(qaytaManzil('https://a.uz/assets/x-AB12CD.webp', 'k1'), 'https://a.uz/assets/x-AB12CD.webp?r=k1');
+  assert.equal(qaytaManzil('data:image/webp;base64,AAA'), null);
+  assert.equal(qaytaManzil(''), null);
+  const sw = fs.readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8');
+  assert.match(sw, /request\.destination === "image"/);
+  assert.match(sw, /event\.waitUntil\(caches\.open/);
+  assert.match(src('./main.jsx'), /rasmTiklashniYoq\(\)/);
+});

@@ -17,6 +17,7 @@ import { useInterface } from "../../interface/InterfacePreferences.jsx";
 import HarakatYoli from "../harakat/HarakatYoli.jsx";
 import { JR } from "../jonli/jonliRasm.js";
 import "./xonalar.css";
+import { B } from "../Belgi.jsx";
 
 const REJIM = {
   kashf: { emoji: "🔍", nom: "Kashf qil" },
@@ -437,9 +438,9 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   const chiq = () => { jim(); if (xonaId) { setXonaId(null); setOyin(null); setMatn(null); setTamom(null); } else onClose?.(); };
 
   const vaqtTosiq = !cheklovsiz && vaqt.holat !== "ok" && <div className="xo-vaqt" role="alert">
-    <span aria-hidden="true">{vaqt.holat === "tanaffus" ? "🧘" : "🌙"}</span>
+    <span aria-hidden="true">{vaqt.holat === "tanaffus" ? "🧘" : <B e="🌙" />}</span>
     <b>{izohMatn(vaqt.holat === "tanaffus" ? "tanaffus" : "kunTugadi", izoh)}</b>
-    {vaqt.holat === "tanaffus" && <small>⏳ {vaqt.qoldi} {T("daq.")}</small>}
+    {vaqt.holat === "tanaffus" && <small><B e="⏳" /> {vaqt.qoldi} {T("daq.")}</small>}
   </div>;
 
   // — xonalar ro'yxati —
@@ -458,22 +459,22 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   if (!x) {
     return <div className="xo-root">
       <div className="xo-bar">
-        <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}>⬅️</button>
+        <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}><B e="⬅️" /></button>
         <b className="xo-title">🎮 {sarlavha || T("O‘yin xonalari")}</b>
-        {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}>⏳ {vaqt.qoldi}′</span>}
+        {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}><B e="⏳" /> {vaqt.qoldi}′</span>}
       </div>
       {vaqtTosiq}
       {/* REV141: asosiy — bosqichma-bosqich «Harakat o'yinlari» yo'li; so'z xonalari yo'lning bosqichlari sifatida ochiladi */}
       <HarakatYoli til={til} izoh={izoh} grade={grade} ayt={ayt} jim={jim} gapiryapti={Boolean(gapir)}
         xonaYulduz={(id) => saqlangan[id]?.yulduz || 0} onXona={xonagaKir} ochiq={cheklovsiz || vaqt.holat === "ok"} cheklovsiz={cheklovsiz} />
-      <details className="xo-hamma"><summary>🏠 {T("Barcha so‘z xonalari")}</summary>
+      <details className="xo-hamma"><summary><B e="🏠" /> {T("Barcha so‘z xonalari")}</summary>
       <div className="xo-list">
         {XONALAR.map((r) => {
           const s = saqlangan[r.id] || {};
           const puxta = Math.round(xonaPuxta(r.id, srs) * 100);
           return <button key={r.id} type="button" className={`xo-card xo-card--${r.id}`} onClick={() => xonagaKir(r.id)} disabled={!cheklovsiz && vaqt.holat !== "ok"}>
-            {r.fon && FONLAR[r.fon] ? <img className="xo-card-fon" src={FONLAR[r.fon]} alt="" /> : <span className="xo-card-emoji" aria-hidden="true">{r.emoji}</span>}
-            <b>{r.emoji} {T(r.nom)}</b>
+            {r.fon && FONLAR[r.fon] ? <img className="xo-card-fon" src={FONLAR[r.fon]} alt="" /> : <span className="xo-card-emoji" aria-hidden="true"><B n={`xona_${r.id}`} e={r.emoji} /></span>}
+            <b><B n={`xona_${r.id}`} e={r.emoji} /> {T(r.nom)}</b>
             <small>⭐ {s.yulduz || 0} · 🏅 {puxta}%</small>
             <i className="xo-progress" style={{ "--p": `${puxta}%` }} aria-hidden="true" />
           </button>;
@@ -490,15 +491,15 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   const kamera = qq ? kameraHisob(qq, korinish) : null;
   return ekranda(<div className={`xo-root xo-ekran ${overlay ? "xo-fit" : ""}`} role="dialog" aria-modal="true">
     <div className="xo-bar">
-      <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}>⬅️</button>
-      <b className="xo-title">{x.emoji} {T(x.nom)}</b>
-      {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}>⏳ {vaqt.qoldi}′</span>}
+      <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}><B e="⬅️" /></button>
+      <b className="xo-title"><B n={`xona_${x.id}`} e={x.emoji} /> {T(x.nom)}</b>
+      {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}><B e="⏳" /> {vaqt.qoldi}′</span>}
       <span className="xo-stars" aria-label={T("Yulduzlar")}>⭐ {(saqlangan[xonaId]?.yulduz || 0) + (oyin?.yulduz || 0)}</span>
     </div>
     <div className="xo-modes" role="tablist">
       {rejimlar(yosh, xonaId).map((r) => <button key={r} type="button" role="tab" aria-selected={rejim === r}
         className={`xo-mode ${rejim === r ? "is-on" : ""}`} onClick={() => boshla(r)} disabled={!cheklovsiz && vaqt.holat !== "ok"}>
-        <span aria-hidden="true">{REJIM[r].emoji}</span> {T(REJIM[r].nom)}
+        <span aria-hidden="true"><B n={`rejim_${r}`} e={REJIM[r].emoji} /></span> {T(REJIM[r].nom)}
       </button>)}
     </div>
     <div className="xo-scroll">
@@ -543,7 +544,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
               const ochiq = oyin.ochiq.includes(c.k) || oyin.topilgan.includes(c.id);
               return <button key={c.k} type="button" className={`xo-memo-card ${ochiq ? "is-open" : ""} ${oyin.topilgan.includes(c.id) ? "is-done" : ""}`}
                 onClick={() => kartaOch(c.k)} aria-label={ochiq ? soz(c.id, til) : "?"}>
-                {ochiq ? <Rasm id={c.id} className="xo-pic" /> : <span className="xo-memo-back" aria-hidden="true">🕊️</span>}
+                {ochiq ? <Rasm id={c.id} className="xo-pic" /> : <span className="xo-memo-back" aria-hidden="true"><B e="🕊️" /></span>}
               </button>;
             })}
           </div>}
@@ -564,8 +565,8 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         </div>}
         {tamom && <div className="xo-tamom" role="status">
           <span aria-hidden="true">🎉</span><b>⭐ × {tamom.yulduz}</b>
-          <button type="button" onClick={() => boshla(rejim)}>🔁 {T("Yana o‘ynash")}</button>
-          <button type="button" onClick={() => boshla("kashf")}>🔍 {T("Kashf qil")}</button>
+          <button type="button" onClick={() => boshla(rejim)}><B e="🔁" /> {T("Yana o‘ynash")}</button>
+          <button type="button" onClick={() => boshla("kashf")}><B n="rejim_kashf" e="🔍" /> {T("Kashf qil")}</button>
         </div>}
         {vaqtTosiq}
       </div>
@@ -573,7 +574,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
     {!overlay && qs.length > 1 && <div className="xo-qism-qator">
       <div className="xo-qism-nav">
             <button type="button" className={`xo-qism-uy ${qism < 0 ? "is-on" : ""}`} onClick={() => setQism(qism < 0 ? 0 : -1)}
-              aria-label={T(qism < 0 ? "Yaqinlashtirish" : "Butun xona")}>{qism < 0 ? "🔍" : "🏠"}</button>
+              aria-label={T(qism < 0 ? "Yaqinlashtirish" : "Butun xona")}><B e={qism < 0 ? "🔍" : "🏠"} /></button>
             {qs.map((q, i) => <button key={i} type="button" className={`xo-qism-n ${i === qism ? "is-on" : ""} ${q.ids.every((v) => kashfQilingan.has(v)) ? "is-bor" : ""}`}
               onClick={() => setQism(i)} aria-label={`${i + 1}`} />)}
           </div>
@@ -584,8 +585,8 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         {matn?.asosiy ? <b dir="auto">{matn.asosiy}</b> : <b className="is-hint">{izohMatn(rejim, izoh)}</b>}
         {matn?.izoh && <small dir="auto">{matn.izoh}</small>}
       </div>
-      {savol && oyin?.rejim === "ayt" && mik === "tinglayapti" && <span className="xo-mic is-on" aria-label={T("Gapir…")}>🎤</span>}
-      {savol && oyin?.rejim === "ayt" && mik === "tugma" && <button type="button" className="xo-said" onClick={aytdim}>✅ {T("Aytdim")}</button>}
+      {savol && oyin?.rejim === "ayt" && mik === "tinglayapti" && <span className="xo-mic is-on" aria-label={T("Gapir…")}><B e="🎤" /></span>}
+      {savol && oyin?.rejim === "ayt" && mik === "tugma" && <button type="button" className="xo-said" onClick={aytdim}><B e="✅" /> {T("Aytdim")}</button>}
       {matn?.asosiy && <button type="button" className="xo-again" aria-label={T("Yana eshitish")}
         onClick={() => {
           const r = oyin?.rejim;
@@ -597,7 +598,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
                     : faol ? teg(soz(faol, til), til) : "";
           ayt(text, r === "ayt" && mik === "" ? () => tingla(savol.id, oyinRef.current) : null,
             r === "yordam" ? savol.kim : r === "buyruq" ? "teacher" : null);
-        }}>🔊</button>}
+        }}><B e="🔊" /></button>}
     </div>
   </div>);
 }

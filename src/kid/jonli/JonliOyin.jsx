@@ -6,6 +6,7 @@ import { chime, pop, soft } from "../kidSounds.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
 import { JR, JONLI_FON, kabuRasm } from "./jonliRasm.js";
 import "./jonli.css";
+import { B } from "../Belgi.jsx";
 
 const Pic = ({ id, className = "", style }) => (RASMLAR[id]
   ? <img className={`jo-pic ${className}`} style={style} src={RASMLAR[id]} alt="" draggable="false" />
@@ -56,9 +57,9 @@ export default function JonliOyin({ n, til = "en", izoh = "uz", ayt, onYakun, on
   const Oyin = { ushla: Ushla, yarim: Tanlov, soya: Tanlov, qutiga: Qutiga, pufak: Pufak, aylantir: Aylantir, tozala: Tozala, kattalashtir: Kattalashtir }[d.tur];
   return <div className={`jo-oyin jo-oyin--${d.tur}`} style={{ "--fon": JONLI_FON[d.tur] ? `url(${JONLI_FON[d.tur]})` : undefined, "--pufak-rasm": `url(${JR.pufak})` }}>
     <div className="jo-bar">
-      <button type="button" className="jo-back" onClick={onChiq} aria-label={T("Orqaga")}>⬅️</button>
-      <b><span aria-hidden="true">{d.emoji}</span> {jonliMatn(d.tur, "nom", izoh)} · {d.n + 1}</b>
-      <span className="jo-hisob">{d.tur !== "ushla" ? `${Math.min(raund + 1, d.raund)}/${d.raund} · ` : ""}{"❌".repeat(Math.min(3, xato))}</span>
+      <button type="button" className="jo-back" onClick={onChiq} aria-label={T("Orqaga")}><B e="⬅️" /></button>
+      <b><span aria-hidden="true"><B n={`tur_${d.tur}`} e={d.emoji} /></span> {jonliMatn(d.tur, "nom", izoh)} · {d.n + 1}</b>
+      <span className="jo-hisob">{d.tur !== "ushla" ? `${Math.min(raund + 1, d.raund)}/${d.raund} · ` : ""}{Array.from({ length: Math.min(3, xato) }, (_, i) => <B key={i} e="❌" />)}</span>
     </div>
     {tamom ? <Tamom yulduz={tamom} /> : <Oyin {...props} />}
     <div className="jo-korsatma"><img className={`jo-kabu is-${tamom ? "hurra" : kabu}`} src={kabuRasm(tamom ? (tamom >= 3 ? "hurra" : "zor") : kabu)} alt="" draggable="false" />

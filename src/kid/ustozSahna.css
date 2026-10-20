@@ -236,3 +236,10 @@
 .us-qator.q4 img{width:40%;max-height:44%}
 .us-qator b{font:800 min(18cqh,18cqw)/1 system-ui,sans-serif;color:#c8553d}
 .us-qator.q5,.us-qator.q6{flex-wrap:nowrap;gap:2%}.us-qator.q5 img,.us-qator.q6 img{width:16%;max-height:40%}
+/* REV154: chiroq va ob-havo rasmlari */
+.us-lamp.has-img{width:8%;height:16%}
+.us-lamp-img{width:100%;height:100%;object-fit:contain;object-position:50% 0;display:block;filter:drop-shadow(0 3px 4px #0003)}
+.us-havo-rasm{position:absolute;width:18%;aspect-ratio:1;object-fit:contain;pointer-events:none;z-index:3;filter:drop-shadow(0 6px 10px #0004);animation:us-havo-in .7s cubic-bezier(.2,.8,.3,1.2) both,us-havo-suz 3.2s ease-in-out .7s infinite}
+@keyframes us-havo-in{from{opacity:0;transform:scale(.6) translateY(10%)}to{opacity:1;transform:none}}
+@keyframes us-havo-suz{0%,100%{transform:translateY(0)}50%{transform:translateY(-4%)}}
+@media (prefers-reduced-motion:reduce){.us-havo-rasm{animation:none}}

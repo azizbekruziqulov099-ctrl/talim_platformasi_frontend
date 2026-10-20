@@ -4,6 +4,7 @@ import JonliOyin from "./JonliOyin.jsx";
 import { JAMI, POGONA, TURLAR, jonliMatn, jonliNatija, jonliNavbat, jonliOchiq, jonliYoz } from "./jonliRules.js";
 import { uiText as T } from "../../interface/interfaceRuntime.js";
 import "./jonli.css";
+import { B } from "../Belgi.jsx";
 
 const ekranda = (el) => (globalThis.document?.body ? createPortal(el, globalThis.document.body) : el);
 const POGONA_NOM = { uz: "{n}-pog‘ona", ru: "Уровень {n}", en: "Level {n}" };
@@ -45,8 +46,8 @@ export default function JonliYol({ til = "en", izoh = "uz", ayt, jim, cheklovsiz
             const y = Number(natija[n]) || 0;
             return <button key={n} type="button" className={`jo-bosqich ${ok ? "" : "is-qulf"} ${n === navbat ? "is-navbat" : ""}`}
               onClick={() => boshla(n)} aria-label={`${n + 1}. ${jonliMatn(t.id, "nom", izoh)}${ok ? "" : ` — ${T("yopiq")}`}`}>
-              <span aria-hidden="true">{ok ? t.emoji : "🔒"}</span><b>{n + 1}</b>
-              <small aria-hidden="true">{y ? "⭐".repeat(y) : ""}</small>
+              <span aria-hidden="true">{ok ? <B n={`tur_${t.id}`} e={t.emoji} /> : <B e="🔒" />}</span><b>{n + 1}</b>
+              <small aria-hidden="true">{Array.from({ length: y }, (_, k) => <B key={k} e="⭐" />)}</small>
             </button>;
           })}
         </div>
@@ -56,9 +57,9 @@ export default function JonliYol({ til = "en", izoh = "uz", ayt, jim, cheklovsiz
     {ochiq != null && ekranda(<div className="jo-ekran" role="dialog" aria-modal="true">
       <JonliOyin key={`${ochiq}-${oyinK}`} n={ochiq} til={til} izoh={izoh} ayt={ayt} onChiq={chiq} onYakun={yakun} />
       {tugadi && <div className="hy-natija-btn jo-keyingi">
-        <button type="button" onClick={() => boshla(tugadi.n)}>🔁 {T("Yana o‘ynash")}</button>
-        {tugadi.n + 1 < JAMI && <button type="button" className="is-asosiy" onClick={() => boshla(tugadi.n + 1)}>▶ {T("Keyingisi")}</button>}
-        <button type="button" onClick={chiq}>🗺️ {T("Yo‘lga qaytish")}</button>
+        <button type="button" onClick={() => boshla(tugadi.n)}><B e="🔁" /> {T("Yana o‘ynash")}</button>
+        {tugadi.n + 1 < JAMI && <button type="button" className="is-asosiy" onClick={() => boshla(tugadi.n + 1)}><B e="▶" /> {T("Keyingisi")}</button>}
+        <button type="button" onClick={chiq}><B e="🗺️" /> {T("Yo‘lga qaytish")}</button>
       </div>}
     </div>)}
   </section>;

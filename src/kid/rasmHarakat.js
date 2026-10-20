@@ -23,7 +23,11 @@ function emojiXarita() {
   // REV151: darslar uchun chizilgan rasmlar (id «d_…») — xonalar so'zlarida yo'q emojilar uchun
   const dars = {};
   for (const m of DARS_RASM_META) { const e = tozala(m.emoji); if (e && !sanoq[e]) (dars[e] = dars[e] || []).push(`d_${m.id}`); }
-  for (const [e, ids] of Object.entries(dars)) if (ids.length === 1) EMOJI_ID[e] = ids[0];
+  for (const [e, ids] of Object.entries(dars)) {
+    if (ids.length === 1) { EMOJI_ID[e] = ids[0]; continue; }
+    const asos = ids.filter((id) => !id.slice(2).includes("-"));   // REV153: 🐍 snake / snake-cant-walk → snake
+    if (asos.length === 1) EMOJI_ID[e] = asos[0];
+  }
   // REV153: o'yinlardagi chizilgan rasmlar (yulduz, quti, pufak) — darsda ham
   for (const [e, id] of Object.entries({ "⭐": "j_yulduz", "🌟": "j_yulduz", "📦": "j_quti", "🫧": "j_pufak" })) if (!EMOJI_ID[e]) EMOJI_ID[e] = id;
   return EMOJI_ID;
@@ -75,10 +79,14 @@ export function matnId(...matnlar) {
   return null;
 }
 
+const OXSHASH = { "🐇": "🐰", "🐈": "🐱", "🐕": "🐶", "🐩": "🐶", "🐎": "🐴", "🐄": "🐮", "🚆": "🚂", "🚃": "🚂", "🌞": "☀", "🌤": "☀",
+  "💚": "🟢", "💜": "🟣", "🩵": "🔵", "💙": "🔵", "🐒": "🐵", "🐠": "🐟", "🍰": "🎂", "🐈⬛": "🐱" };
+
 /** Bitta emoji uchun chizilgan rasm (xonalar rasmi). rasmlar — {id: url}. Bir nechta emoji (sanoq) — null. */
 export function emojiRasm(emoji, rasmlar, soz = "") {
-  const e = tozala(emoji);
-  if (!e || /\s/.test(e)) return null;
+  const e0 = tozala(emoji);
+  if (!e0 || /\s/.test(e0)) return null;
+  const e = OXSHASH[e0] || e0;   // REV153: o'xshash belgi — bir xil rasm (🐇 → 🐰, 💚 → 🟢)
   // REV151: bir emoji bir nechta dars so'zida (👋 Hello / 👋 Goodbye) — yonidagi so'z bo'yicha aniqlanadi
   const ibora = iboraNorm(soz);
   if (ibora) {

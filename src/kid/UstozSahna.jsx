@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { OG_RASM, USTOZLAR, XONALAR } from "./ustozlar.js";
+import { BELGI } from "./Belgi.jsx";
 import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, pozaFor } from "./ustozRules.js";
 import { cardSize } from "./kidStageRules.js";
 import { OGIZ, mouthFrame, ogizShakli, ritmShakli } from "./lipSync.js";
@@ -11,7 +12,7 @@ import "./ustozSahna.css";
  * Ustoz gapirganda og'zi ochilib-yopiladi, vaqti-vaqti bilan ko'zini pirpiratadi, vaziyatga qarab pozasi almashadi
  * (salom beradi, doskani ko'rsatadi, o'ylaydi, quvonadi, tinglaydi). Hammasi CSS + rasm almashtirish — telefonni qiynamaydi.
  */
-export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, doskaYoq = false, onTap, celebrate = 0, children }) {
+export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, celebrate = 0, children }) {
   const xonaKey = XONALAR[XONA[ustoz]] ? XONA[ustoz] : "onatili";
   const xona = XONALAR[xonaKey];
   const poza = pozaFor(mood, { hasPics: pictures.length > 0, listening });
@@ -93,7 +94,12 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
       <span className="us-fall" /><span className="us-fall f2" /><span className="us-flash" />
     </div>}
     {dz && xona.osmon && derazaga && <div className="us-deraza-nur" style={{ ...box(dz), ...niqob }} aria-hidden="true" />}
-    {xona.chiroq && <div className="us-lamp" aria-hidden="true"><span className="us-lamp-cord" /><span className="us-lamp-shade" /><span className="us-lamp-bulb" /></div>}
+    {/* REV154: shiftdagi chiroq — rassom rasmi (o'chiq / yoniq) */}
+    {xona.chiroq && (BELGI.chiroq_ochiq && BELGI.chiroq_yoniq
+      ? <div className="us-lamp has-img" aria-hidden="true"><img className="us-lamp-img" src={chiroqYoniq ? BELGI.chiroq_yoniq : BELGI.chiroq_ochiq} alt="" draggable="false" /></div>
+      : <div className="us-lamp" aria-hidden="true"><span className="us-lamp-cord" /><span className="us-lamp-shade" /><span className="us-lamp-bulb" /></div>)}
+    {/* REV154: ob-havo qadamida — deraza oldida bugungi ob-havo rasmi */}
+    {dz && derazaga && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={{ left: `${Math.min(84, Math.max(2, dz.l + dz.w / 2 - 9))}%`, top: `${Math.max(2, dz.t + dz.h / 2 - 12)}%` }} />}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
     <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(d)}>

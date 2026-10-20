@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v10-rev153";
+const CACHE = "samtm-shell-v12-rev155";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -65,11 +65,18 @@ self.addEventListener("fetch", event => {
     return;
   }
   if (!isStaticAsset(url) || request.headers.has("Authorization")) return;
+  // REV154: rasm, ovoz va shriftlar service worker orqali o'tmaydi — brauzerning o'z keshi (1 yillik, o'zgarmas
+  // nomli fayllar) ishlaydi. Oldin rasm ham shu yerda keshlanardi: telefon xotirasi to'lsa yoki eski kesh buzilsa,
+  // rasmlar «singan» chiqardi va sahifa qotardi.
+  if (request.destination === "image" || request.destination === "audio" || request.destination === "font"
+    || /\.(?:webp|png|jpe?g|gif|svg|avif|ico|mp3|woff2?|ttf)$/i.test(url.pathname)) return;
   // REV130: build fayllari nomida xesh bor (o'zgarmaydi) — avval keshdan, tarmoqqa chiqmasdan (sekin internetda qotmaydi).
   if (url.pathname.startsWith("/assets/") && /-[A-Za-z0-9_-]{6,}\.[a-z0-9]+$/.test(url.pathname)) {
-    event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(async response => {
+    event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(response => {
+      // REV154: javob darhol beriladi, keshga yozish orqada (sahifa kutib qolmaydi)
       if (mayStore(response) && matchesAssetType(url, response)) {
-        await caches.open(CACHE).then(cache => cache.put(request, response.clone())).catch(() => {});
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
       }
       return response;
     })));

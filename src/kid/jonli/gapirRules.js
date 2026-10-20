@@ -2,7 +2,11 @@
 // «Close the door!» desa eshik yopiladi, «Turn on the light!» — chiroq yonadi, «apple» — olma jonlanib javonga chiqadi.
 // 160 bosqich (20 pog'ona × 8), har bosqichda 3 ta ibora. Iboralar hayotdan: 20 harakat (qisqa va to'liq buyruq),
 // xonalardagi ~150 narsa, sinf va tana buyruqlari (jami 200 dan ortiq ibora). Sof qoidalar (brauzersiz sinaladi).
-import { HARAKATLAR } from "../harakat/harakatLugat.js";
+import { HARAKATLAR as IMOLI } from "../harakat/harakatLugat.js";
+import { aralashHarakatlar } from "./sahnaHarakatLugat.js";
+// REV154: imo-ishorali 20 harakat + rassom chizgan 15 ta «oldin/keyin» sahna, navbatma-navbat
+const HARAKATLAR = aralashHarakatlar(IMOLI);
+export const GAPIR_HARAKATLAR = HARAKATLAR;
 import { XONALAR, SOZLAR, BUYRUQLAR, BUYRUQ_MEN } from "../xonalar/xonaLugat.js";
 import { gradeSpeech } from "../../speech/speakRules.js";
 import { aytishShakllari } from "../xonalar/xonaRules.js";
