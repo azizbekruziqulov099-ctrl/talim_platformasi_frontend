@@ -5,6 +5,7 @@ import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, pozaFor } from "./ustozRules.
 import { cardSize } from "./kidStageRules.js";
 import { OGIZ, mouthFrame, ogizShakli, ritmShakli } from "./lipSync.js";
 import { keycapNumber } from "./sanKarta.js";
+import { soatBurchaklari } from "./devorSoat.js";
 import "./ustozSahna.css";
 
 /**
@@ -12,6 +13,31 @@ import "./ustozSahna.css";
  * Ustoz gapirganda og'zi ochilib-yopiladi, vaqti-vaqti bilan ko'zini pirpiratadi, vaziyatga qarab pozasi almashadi
  * (salom beradi, doskani ko'rsatadi, o'ylaydi, quvonadi, tinglaydi). Hammasi CSS + rasm almashtirish — telefonni qiynamaydi.
  */
+/** REV158: ob-havo rasmi joyi — deraza o'ng tomonda bo'lsa deraza oldida, ustoz tomonda (chapda) bo'lsa doskada. */
+/** REV158: devordagi soat — haqiqiy vaqtni ko'rsatadi (rasmdagi millar ustidan yangi siferblat). */
+function DevorSoat({ soat }) {
+  const [vaqt, setVaqt] = useState(() => new Date());
+  useEffect(() => { const t = setInterval(() => setVaqt(new Date()), 1000); return () => clearInterval(t); }, []);
+  const b = soatBurchaklari(vaqt);
+  const mil = (gr, uz, en, rang) => <line x1="50" y1="50" x2={50 + uz * Math.sin(gr * Math.PI / 180)} y2={50 - uz * Math.cos(gr * Math.PI / 180)}
+    stroke={rang} strokeWidth={en} strokeLinecap="round" />;
+  return <svg className="us-soat" viewBox="0 0 100 100" style={{ left: `${soat.x}%`, top: `${soat.y}%`, width: `${soat.w}%` }} aria-hidden="true">
+    <circle cx="50" cy="50" r="49.5" fill={soat.yuz} />
+    {Array.from({ length: 12 }, (_, i) => { const a = (i + 1) * 30 * Math.PI / 180;
+      return <text key={i} x={50 + 37 * Math.sin(a)} y={50 - 37 * Math.cos(a) + 5.6} textAnchor="middle" fontSize="15" fontWeight="700" fill="#222" fontFamily="Arial, Helvetica, sans-serif">{i + 1}</text>; })}
+    {mil(b.soat, 23, 5.2, "#1b1b1b")}
+    {mil(b.daqiqa, 33, 3.6, "#1b1b1b")}
+    {mil(b.soniya, 36, 1.3, "#d63a2f")}
+    <circle cx="50" cy="50" r="4" fill="#1b1b1b" /><circle cx="50" cy="50" r="1.6" fill="#d63a2f" />
+  </svg>;
+}
+
+export function havoJoyi(dz, doska) {
+  const markaz = dz.l + dz.w / 2;
+  if (markaz < 35 && doska) return { left: `${Math.min(80, doska.l + doska.w / 2 - 9)}%`, top: `${Math.max(2, doska.t + doska.h / 2 - 16)}%` };
+  return { left: `${Math.min(84, Math.max(36, markaz - 9))}%`, top: `${Math.max(2, dz.t + dz.h / 2 - 12)}%` };
+}
+
 export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, celebrate = 0, children }) {
   const xonaKey = XONALAR[XONA[ustoz]] ? XONA[ustoz] : "onatili";
   const xona = XONALAR[xonaKey];
@@ -86,6 +112,7 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
   const holat = `havo-${havo} vaqt-${vaqt} ${shamol ? "is-windy" : ""}`;
   return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${chiroqYoniq ? "is-lamp" : ""} ${derazaga ? "is-deraza" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
     <img className="us-bg" src={xona.src} srcSet={`${xona.src} 960w, ${xona.src2x} 1600w`} sizes="(max-width: 900px) 100vw, 900px" alt="" decoding="async" />
+    {xona.soat && <DevorSoat soat={xona.soat} />}
     <div className="us-light" aria-hidden="true" />
     {dz && xona.osmon && <div className={`us-tint ${holat}`} style={{ ...box(dz), ...niqob }} aria-hidden="true" />}
     {dz && xona.osmon && <div className={`us-window ${holat}`} style={{ ...box(dz), ...niqob, "--oy-t": `${xona.oy?.t ?? 18}cqh`, "--oy-r": `${xona.oy?.r ?? 20}cqw` }} aria-hidden="true">
@@ -99,7 +126,9 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
       ? <div className="us-lamp has-img" aria-hidden="true"><img className="us-lamp-img" src={chiroqYoniq ? BELGI.chiroq_yoniq : BELGI.chiroq_ochiq} alt="" draggable="false" /></div>
       : <div className="us-lamp" aria-hidden="true"><span className="us-lamp-cord" /><span className="us-lamp-shade" /><span className="us-lamp-bulb" /></div>)}
     {/* REV154: ob-havo qadamida — deraza oldida bugungi ob-havo rasmi */}
-    {dz && derazaga && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={{ left: `${Math.min(84, Math.max(2, dz.l + dz.w / 2 - 9))}%`, top: `${Math.max(2, dz.t + dz.h / 2 - 12)}%` }} />}
+    {/* REV158: deraza ustoz turgan tomonda bo'lsa (matematika xonasi — chap chekka), rasm ustozning yuziga tushardi —
+        u holda ob-havo rasmi bo'sh doskaning o'rtasida ko'rsatiladi */}
+    {dz && derazaga && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={havoJoyi(dz, xona.doska)} />}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
     <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(d)}>
@@ -117,9 +146,12 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
       <img className="us-body" src={p.src} alt="" draggable="false" decoding="async" />
       {p.yuz && kadr !== 1 && <img className="us-face" src={p.yuz.kadr[kadr - 1]} alt="" draggable="false"
         style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
-      {p.og && og >= 0 && <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin }} aria-hidden="true">
-        <i className="us-og-teri" />
-        <img src={ogRasm[og]} alt="" draggable="false" style={{ width: `${OGIZ[og][0] * 95}%`, top: `${50 + OGIZ[og][2] * 100}%` }} />
+      {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
+      {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
+        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin }}>
+          <i className="us-og-teri" />
+          <img src={ogRasm[og]} alt="" draggable="false" style={{ width: `${OGIZ[og][0] * 95}%`, top: `${50 + OGIZ[og][2] * 100}%` }} />
+        </span>
       </span>}
     </div>
   </div>;

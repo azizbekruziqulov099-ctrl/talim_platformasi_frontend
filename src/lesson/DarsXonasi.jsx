@@ -19,12 +19,14 @@ import { useKeepLight } from "../kid/useKeepLight.js";
 import { havoTuri, quyoshVaqti, ustozFor } from "../kid/ustozRules.js";
 import { darsSozlari, kirishniTozala, ochilish, qadamSozi } from "../kid/darsOchilishi.js";
 // REV156: qadamning o'z so'zi (mikrofon faqat shuni so'raydi)
+// REV157: bog'cha guruhi yoshi («4-5 yosh» → 4); topilmasa — 0 (izoh rejimi)
+const kidYoshi = (g) => { const m = /(\d)\s*[-–]\s*\d/.exec(String(g || "")); return m ? Number(m[1]) : 0; };
 const qadamMaqsadi = (st) => { const q = qadamSozi(st); return q ? [q.say] : []; };
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
 import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
-import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
+import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
@@ -167,10 +169,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   izohRef.current = izoh;
   // REV121: matematika / atrof-muhit / mantiq — til darsi emas (rus izohidagi teglar «o'rganiladigan til» emas)
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
+  // REV157: 4–7 yoshli til darsida ustoz o'zi ham faqat o'rganilayotgan tilda gapiradi («Now you say it», «Find…»).
+  // 2–3 va 3–4 yosh — izoh tilida (o'zbek / rus / ingliz) tushuntiriladi.
+  const immersiya = Boolean(kid && darsTil && kidYoshi(grade || lesson?.topic?.sinf) >= 4);
+  const tIzoh = immersiya ? darsTil : izoh;
   const opening = useMemo(() => (kid && lesson?.steps?.length ? ochilish({
-    ustoz: ustozFor(fan || lesson?.topic?.fan), til: darsTil, izoh, havo, harorat, oldingi, vaqt,
-    grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000),
-  }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, izoh, vaqt]);
+    ustoz: ustozFor(fan || lesson?.topic?.fan), til: darsTil, izoh: tIzoh, havo, harorat, oldingi, vaqt,
+    grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000), aslIzoh: izoh, sana: new Date(),
+  }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, tIzoh, izoh, vaqt]);
   // REV156: ustoz ochilishda salomlashgan — darsning o'z «kirish» qadamidagi salom/«Men — …» gaplari olib tashlanadi
   // va mavzu kirishi TAKRORDAN OLDIN keladi (oldin takrordan keyin yana «Salom, bolajonlar!» deyardi).
   const steps = useMemo(() => {
@@ -211,14 +217,20 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV122: til darsida — avval BUGUN o'rganilgan so'zlar, darsning o'z tilida (salomlashish/eski takror emas);
     // boshqa tildagi (masalan, izoh tilidagi) iboralar aralashmaydi.
     const bugun = til ? dars.filter((w) => w.til === til).map((w) => ({ lang: til, phrase: w.say, emoji: w.emoji || "" })) : [];
+    // REV158: o'tgan darsning HAMMA so'zlari (takror) va bugungi HAMMA yangi so'zlar so'raladi — oldin faqat 3 tasi edi,
+    // 3–4 ta so'z bo'lsa ba'zisi qolib ketardi
+    const takrorSoz = [
+      ...(oldingi?.sozlar || []).filter((w) => w?.say).map((w) => ({ lang: oldingi.til || til, phrase: w.say, emoji: w.emoji || "" })),
+      ...darsSozlari(boshi.takror, boshi.takror.map(() => "new"), 8).filter((w) => w.til === til).map((w) => ({ lang: til, phrase: w.say, emoji: w.emoji || "" })),
+    ].filter((x) => x.lang === til);
     const mos = til ? base.filter((x) => x.lang === til) : base;
     const seen = new Set();
-    const asosiy = [...bugun, ...mos].filter((x) => { const k = x.phrase.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
+    const asosiy = [...takrorSoz, ...bugun, ...(bugun.length ? [] : mos)].filter((x) => { const k = x.phrase.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 12);
     // REV145: oxirida Kabu bugungi so'zlarni yana aytdiradi (har biriga 2 urinish) + bitta qisqa suhbat savoli — uzun va zerikarli bo'lmasin
-    const suhbat = suhbatSavollari({ til, grade: grade || lesson?.topic?.sinf, bilgan, dars, kun: Math.floor(Date.now() / 86400000), izoh })
+    const suhbat = suhbatSavollari({ til, grade: grade || lesson?.topic?.sinf, bilgan, dars, kun: Math.floor(Date.now() / 86400000), izoh: tIzoh })
       .filter((x) => !seen.has(String(x.phrase || "").toLowerCase())).slice(0, 1);
     return [...asosiy, ...suhbat];
-  }, [lesson, audience, kid, steps, kinds, opening, bilgan, grade, darsTil, izoh]);
+  }, [lesson, audience, kid, steps, kinds, opening, bilgan, grade, darsTil, izoh, tIzoh, oldingi, boshi]);
   const voiceReady = voiceItems.length > 0 && speechRecognitionAvailable(globalThis);
   const downloadUrl = (format) => lessonDownloadUrl(apiBase, token, topicCode, format);
   const mediaUrl = useCallback((url) => (!url ? null : url.startsWith("/") ? `${String(apiBase).replace(/\/+$/, "")}${url}` : url), [apiBase]);
@@ -351,10 +363,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
     const spoken = String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "");
     // REV102: takrordan yangiga o'tishda robot aytadi: «Avval o'tganlarni eslaymiz!» / «Endi — yangi so'z!»
-    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, izoh);
+    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, tIzoh);
     // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan; REV140: «Endi sen ayt: X» — avval ustoz X ni ikki marta aytadi
     return ismOldin(kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken, { doska: s.doska, izoh }));
-  }, [kid, kinds, lesson, izoh]);
+  }, [kid, kinds, lesson, izoh, tIzoh]);
   // REV145: mikrofon bilan so'z aytish rejimi — faqat bog'cha til darsida, brauzer ovozni taniy olsa va ruxsat rad etilmagan bo'lsa.
   // Oddiy fanlarda (matematika, atrof-muhit…) mikrofon so'ralmaydi.
   const micRejim = () => Boolean(kid && darsTil && !mikYoq.current && speechRecognitionAvailable(globalThis));
@@ -436,7 +448,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     {
       if (kid) {   // REV91: bog'chada tugma bosilmaydi — dars tugashi bilan o'yin o'zi boshlanadi
         answerTimes.current = [];
-        if (questions.length) { say(izoh !== "uz" ? gap(izoh, "Barakalla! Endi o'ynaymiz!") : __kbUi("Barakalla! Endi o‘ynaymiz!"), () => { setMode("test"); setTestIndex(0); setScore(0); setPicked(null); }); setMode("bridge"); }
+        if (questions.length) { say(tIzoh !== "uz" ? gap(tIzoh, "Barakalla! Endi o'ynaymiz!") : __kbUi("Barakalla! Endi o‘ynaymiz!"), () => { setMode("test"); setTestIndex(0); setScore(0); setPicked(null); }); setMode("bridge"); }
         else setMode("result");
         return;
       }
@@ -479,21 +491,22 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       if (g.ok) {
         jimSanoq.current = 0;
         chime(); setCelebrate((c) => c + 1);
-        say(gap(izoh, MIC_MAQTOV[(sorilgan.current.size - 1) % MIC_MAQTOV.length], { p }), () => { if (my === qadamRef.current) { setMikSoz(null); keyingi(); } });
+        say(gap(tIzoh, MIC_MAQTOV[(sorilgan.current.size - 1) % MIC_MAQTOV.length], { p }), () => { if (my === qadamRef.current) { setMikSoz(null); keyingi(); } });
         setMikSoz({ ...soz, holat: "ok" });
         return;
       }
-      if (urinish === 0) {
+      // REV158: bola ketma-ket jim bo'lsa ham mikrofon O'CHIRILMAYDI (oldin 2 so'zdan keyin dars oxirigacha so'ralmasdi —
+      // «faqat 1 ta narsani so'radi»). Jim bo'lsa — har so'z bir marta so'raladi (qayta urinishsiz), dars sekinlashmaydi.
+      if (urinish === 0 && !(jimSanoq.current >= 2 && !alts.length)) {
         soft();
-        say(alts.length ? gap(izoh, "Yana bir bor ayt: {p}", { p }) : gap(izoh, "Ovozing eshitilmadi. Balandroq va dadil ayt: {p}", { p }),
+        say(alts.length ? gap(tIzoh, "Yana bir bor ayt: {p}", { p }) : gap(tIzoh, "Ovozing eshitilmadi. Balandroq va dadil ayt: {p}", { p }),
           () => { if (my === qadamRef.current) sozniEshit(soz, 1, my, keyingi); });
         setMikSoz({ ...soz, holat: "yana" });
         return;
       }
       // ikki urinishda ham hech narsa eshitilmadi — ikki so'z ketma-ket shunday bo'lsa, mikrofon shu darsda boshqa so'ralmaydi
       jimSanoq.current = alts.length ? 0 : jimSanoq.current + 1;
-      if (jimSanoq.current >= 2) mikYoq.current = true;
-      say(gap(izoh, "Yaxshi harakat! Mana bunday: {p}", { p }), () => { if (my === qadamRef.current) { setMikSoz(null); keyingi(); } });
+      say(gap(tIzoh, "Yaxshi harakat! Mana bunday: {p}", { p }), () => { if (my === qadamRef.current) { setMikSoz(null); keyingi(); } });
       setMikSoz({ ...soz, holat: "no" });
     });
   };
@@ -526,7 +539,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       if (autoplay && kid && s.turi === "amaliy") {
         // REV93: bog'chada topshiriq (qo'shiq, harakat, o'yin) — bolaga bajarishga vaqt, keyin maqtov va davom. Tugma kerak emas.
         // Bajarganini tekshirib bo'lmaydi — shuning uchun «Barakalla» demaymiz, to'g'ri javobni birga aytamiz.
-        const praise = kidTaskModel(s.ovoz || s.doska, izoh);
+        const praise = kidTaskModel(s.ovoz || s.doska, izoh, tIzoh, immersiya ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)).map((w) => w.say) : []);
         setTimeout(() => { if (playingRef.current && idxRef.current === next) say(praise, () => setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, 900)); }, 4000);
         return;
       }
@@ -540,9 +553,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       let list = spoken.includes("⏸") ? sozBolaklari(spoken, darsTil, qadamMaqsadi(s)) : [];
       // yangi so'z o'rgatilgan qadamda «⏸» bo'lmasa ham — oxirida ustoz so'raydi: «Endi sen ayt: Bye» (har so'z bir marta)
       if (!list.some((b) => b.soz) && kinds[next] === "new" && kidTakrorStep(s)) {
-        const yangi = darsSozlari([s], ["new"], 2).filter((w) => w.til === darsTil && !sorilgan.current.has(w.say.toLowerCase()));
+        const yangi = darsSozlari([s], ["new"], 6).filter((w) => w.til === darsTil && !sorilgan.current.has(w.say.toLowerCase()));
         if (yangi.length) list = [{ matn: spoken.replace(/\s*⏸\s*/g, " ").trim(), soz: null, pauza: false },
-          ...yangi.map((w) => ({ matn: gap(izoh, "Endi sen ayt: {p}", { p: `[${darsTil}]${w.say}[/${darsTil}]` }), soz: { lang: darsTil, phrase: w.say } }))];
+          ...yangi.map((w) => ({ matn: gap(tIzoh, "Endi sen ayt: {p}", { p: `[${darsTil}]${w.say}[/${darsTil}]` }), soz: { lang: darsTil, phrase: w.say } }))];
       }
       if (list.some((b) => b.soz && !sorilgan.current.has(b.soz.phrase.toLowerCase()))) {
         micBilan = true;
@@ -631,7 +644,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // ikkinchi xato yoki bosmasa — to'g'ri rasm ko'rsatiladi, yulduz berilmaydi. Hisob dars natijasiga qo'shiladi.
   const gTil = darsTil || (izoh !== "uz" ? izoh : "");
   const soz = (t) => (darsTil ? `[${darsTil}]${t.word}[/${darsTil}]` : izohTeg(t.word, izoh));
-  const sonliGap = (tpl, n) => gap(izoh, tpl, { n: String(n) }).replace(new RegExp(`\\[\\/${izoh}\\](\\d+)\\[${izoh}\\]`, "g"), "$1");
+  const sonliGap1 = (L, tpl, n) => gap(L, tpl, { n: String(n) }).replace(new RegExp(`\\[\\/${L}\\](\\d+)\\[${L}\\]`, "g"), "$1");
+  // REV158: til darsida yulduzlar soni va maqtov — O'RGANILAYOTGAN tilda (oldin o'zbekcha aytilardi);
+  // 2–4 yoshda (izoh rejimi) keyin izoh tilida ham. Boshqa fanlarda — izoh tilida.
+  const ikkiTil = (fn) => (darsTil && darsTil !== izoh ? (immersiya ? fn(darsTil) : `${fn(darsTil)} ${fn(izoh)}`) : fn(tIzoh));
+  const sonliGap = (tpl, n) => ikkiTil((L) => sonliGap1(L, tpl, n));
+  const yulduzGap = (tpl) => ikkiTil((L) => gap(L, tpl));
   const gameApi = useRef(null);
   gameApi.current = {
     alive(g) { return g && gameRef.current === g && playingRef.current && idxRef.current === g.stepIdx && modeRef.current === "lesson"; },
@@ -644,8 +662,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     },
     start(stepIdx, targets) {
       const order = targets.map((_, i) => i).sort(() => Math.random() - 0.5);
+      // REV158: o'yinda ham darsdagi rasmning AYNAN o'zi — avval rassom chizgan rasm, naqsh/sanoq bo'lsa rasmlar qatori;
+      // kitobdagi eski (o'yinchoqqa o'xshash) rasm faqat belgisi yo'q so'zga. Oldin o'yinda boshqa, darsda boshqa rasm chiqardi.
       const withPics = targets.map((t) => {
-        const own = pictureFor(t.emoji, t.word, lesson?.rasmlar, lesson?.rasm_sozlar);
+        const ch = sozRasmi(t.word, t.emoji);
+        if (ch?.src) return { ...t, src: ch.src };
+        const qator = belgiQatori(t.emoji);
+        if (qator) return { ...t, src: "", qator };
+        const own = t.emoji ? null : pictureFor(t.emoji, t.word, lesson?.rasmlar, lesson?.rasm_sozlar);
         return { ...t, src: own ? mediaUrl(own) : "" };
       });
       const g = { stepIdx, targets: withPics, order, k: 0, tries: 0, found: 0, waiting: false, again: 0, hint: false, topilgan: [] };
@@ -670,7 +694,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       g.tries = 0; g.again = 0; g.hint = false;
       g.waiting = true;
       gameApi.current.paint(g, { holat: gameApi.current.holat(g), kutish: true });
-      say(gap(izoh, "Qani, top: {p}", { p: soz(t) }), () => {
+      say(gap(tIzoh, "Qani, top: {p}", { p: soz(t) }), () => {
         if (!gameApi.current.alive(g) || !g.waiting) return;
         gameApi.current.wait(g, 10000, () => gameApi.current.timeout(g));
       });
@@ -682,7 +706,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       g.again += 1;
       if (g.again >= 2) g.hint = true;
       gameApi.current.paint(g, { holat: gameApi.current.holat(g, g.hint ? { [i]: "hint" } : {}), kutish: true });
-      say(gap(izoh, "Barmog'ing bilan bos: {p}", { p: soz(t) }), () => {
+      say(gap(tIzoh, "Barmog'ing bilan bos: {p}", { p: soz(t) }), () => {
         if (!gameApi.current.alive(g) || !g.waiting) return;
         gameApi.current.wait(g, 12000, () => gameApi.current.timeout(g));
       });
@@ -703,7 +727,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         gameApi.current.paint(g, { holat: gameApi.current.holat(g, { [i]: "ok" }), kutish: false });
         hush();
         const praise = kidPraise(g.k + g.found, gTil);
-        say(first ? `${praise} ${gap(izoh, "Topding! Yulduzcha seniki!")}` : praise, () => gameApi.current.wait(g, 600, () => { g.k += 1; gameApi.current.round(g); }));
+        say(first ? `${praise} ${yulduzGap("Topding! Yulduzcha seniki!")}` : praise, () => gameApi.current.wait(g, 600, () => { g.k += 1; gameApi.current.round(g); }));
         return true;
       }
       g.tries += 1;
@@ -712,7 +736,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       gameApi.current.paint(g, { holat: gameApi.current.holat(g, { [i]: "no" }), kutish: true });
       setTimeout(() => { if (gameApi.current.alive(g) && g.waiting) gameApi.current.paint(g, { holat: gameApi.current.holat(g, g.hint ? { [want]: "hint" } : {}), kutish: true }); }, 650);
       hush();
-      say(gap(izoh, "Bu emas. Yana qidir: {p}", { p: soz(g.targets[want]) }), () => {
+      say(gap(tIzoh, "Bu emas. Yana qidir: {p}", { p: soz(g.targets[want]) }), () => {
         if (!gameApi.current.alive(g) || !g.waiting) return;
         gameApi.current.wait(g, 12000, () => gameApi.current.timeout(g));
       });
@@ -721,7 +745,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     end(g) {
       const n = g.found;
       gameApi.current.paint(g, { holat: gameApi.current.holat(g), kutish: false });
-      const text = n > 0 ? sonliGap("Barakalla! O'yinda {n} ta yulduzcha yig'ding!", n) : gap(izoh, "Hechqisi yo'q, keyingi safar albatta topasan!");
+      const text = n > 0 ? sonliGap("Barakalla! O'yinda {n} ta yulduzcha yig'ding!", n) : yulduzGap("Hechqisi yo'q, keyingi safar albatta topasan!");
       if (n > 0) flashPhase("happy", 2200);
       say(text, () => gameApi.current.wait(g, 800, () => { gameRef.current = null; setGame(null); go(g.stepIdx + 1, true); }));
     },
@@ -740,12 +764,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       if (k === q.togri) {
         setScore((x) => x + 1); flashPhase("happy");
         const speech = darsTil ? kidCorrectSpeech(testIndex, contentLanguage(q.savol, q.variantlar), q.izoh)
-          : (q.izoh || (izoh !== "uz" ? gap(izoh, "Barakalla! To'g'ri!") : __kbUi("Barakalla! To‘g‘ri!")));
+          : (q.izoh || (tIzoh !== "uz" ? gap(tIzoh, "Barakalla! To'g'ri!") : __kbUi("Barakalla! To‘g‘ri!")));
         say(speech || __kbUi("Barakalla! To‘g‘ri!"), after);
       } else {
         // xato javobdan keyin «Barakalla» aytilmaydi — izohdan maqtov olib tashlanadi
         flashPhase("enc");
-        say(`${izoh !== "uz" ? gap(izoh, "Hechqisi yo'q! To'g'ri javob yashil rasmda.") : __kbUi("Hechqisi yo‘q! To‘g‘ri javob yashil rasmda.")} ${dropPraiseAny(q.izoh || "")}`.trim(), after);
+        say(`${tIzoh !== "uz" ? gap(tIzoh, "Hechqisi yo'q! To'g'ri javob yashil rasmda.") : __kbUi("Hechqisi yo‘q! To‘g‘ri javob yashil rasmda.")} ${dropPraiseAny(q.izoh || "")}`.trim(), after);
       }
       return;
     }
@@ -862,7 +886,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       onKidFinished?.(out, res?.reja || null);
     })();
     if (local > 0) flashPhase("happy", 3200); else flashPhase("enc", 2400);
-    const g3 = (uz, key) => (izoh !== "uz" ? gap(izoh, key) : __kbUi(uz));
+    const g3 = (uz, key) => (darsTil && darsTil !== izoh ? yulduzGap(key) : tIzoh !== "uz" ? gap(tIzoh, key) : __kbUi(uz));
     say(local === 3 ? g3("Barakalla! Uchta yulduz! Sen zo‘rsan!", "Barakalla! Uchta yulduz! Sen zo'rsan!")
       : local > 0 ? g3("Yaxshi harakat! Yana o‘ynasak, yulduzlar ko‘payadi!", "Yaxshi harakat! Yana o'ynasak, yulduzlar ko'payadi!")
         : g3("Bu safar yulduzcha yo‘q. Qani, yana bir bor urinib ko‘ramiz!", "Bu safar yulduzcha yo'q. Qani, yana bir bor urinib ko'ramiz!"));
@@ -896,7 +920,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV122: rasm qaysi so'zniki ekanini eslab qolamiz — bosilganda nomi aytiladi
     // REV144: har rasm o'z ma'nosiga mos 1–2 soniyalik harakat qiladi (anim); emoji karta — chizilgan rasm bilan
     // REV151: kitob rasmi o'rniga — shu so'zning rassom chizgan rasmi (bo'lsa)
-    const pic = (u, i) => { const w = picWord(u); const ch = (w.soz || w.belgi) ? sozRasmi(w.soz, w.belgi) : null; return { src: ch?.src || mediaUrl(u), rev: picRev, label: `rasm ${i + 1}`, ...w, anim: harakatTuri(sozId({ soz: w.soz, emoji: w.belgi })) }; };
+    const pic = (u, i) => {
+      const w = picWord(u); const ch = (w.soz || w.belgi) ? sozRasmi(w.soz, w.belgi) : null;
+      // REV158: rassom rasmi bo'lmasa — belgi kartasi (kitobdagi o'yinchoqsimon rasm emas); belgisiz rasm — kitobniki
+      if (!ch?.src && w.belgi) { const q = belgiQatori(w.belgi); return { emoji: w.belgi, src: "", qator: q || undefined, rev: picRev, label: w.soz || `rasm ${i + 1}`, ...w, anim: harakatTuri(sozId({ soz: w.soz, emoji: w.belgi })) }; }
+      return { src: ch?.src || mediaUrl(u), rev: picRev, label: `rasm ${i + 1}`, ...w, anim: harakatTuri(sozId({ soz: w.soz, emoji: w.belgi })) };
+    };
     const qatorSozi = (e) => { const q = String(step?.doska || "").split(/\n+/).find((l) => l.includes(e)); return q ? q.slice(q.indexOf(e) + e.length).split(/[,!?.]/)[0].trim() : ""; };
     const karta = (e, extra = {}) => { const r = emojiRasm(e, RASM_HAMMA, darsTil === "en" ? qatorSozi(e) : ""); return { emoji: e, src: r?.src || "", anim: harakatTuri(r?.id || sozId({ emoji: e })), rev: picRev, ...extra }; };
     if (variant?.rasm) return [pic(variant.rasm, 0)];
@@ -908,7 +937,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       return game.targets.map((t, i) => {
         const mt = t.src ? null : matnId(t.word);
         const r = t.src ? null : ((mt && RASM_HAMMA[mt] ? { id: mt, src: RASM_HAMMA[mt] } : null) || emojiRasm(t.emoji, RASM_HAMMA) || (() => { const id = sozId({ soz: darsTil === "en" ? t.word : "", emoji: t.emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })());
-        return { src: t.src || r?.src || "", emoji: t.src || r ? "" : t.emoji, rev: picRev, label: t.word,
+        return { src: t.src || r?.src || "", emoji: t.src || r ? "" : t.emoji, qator: t.src || r ? undefined : t.qator, rev: picRev, label: t.word,
           anim: harakatTuri(sozId({ soz: t.word, emoji: t.emoji })), holat: game.holat[i] || (game.kutish ? "wait" : "") };
       });
     }
@@ -929,7 +958,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         return { emoji: b.emoji, src: "", ...extra };
       }
       // REV153: so'z istalgan tilda yoki doskadagi tarjimasi («🔴 أَحْمَر / qizil») bo'yicha ham topiladi
-      const mid = matnId(soz, b.mano || []);
+      // REV158: son yoki vaqt («7:00», «2026») — so'z emas, rasm qidirilmaydi (oldin «7» sakkizoyoq rasmini topardi)
+      const mid = /^[\d\s:.,/-]+$/.test(soz) ? null : matnId(soz, b.mano || []);
       const ch = (mid && RASM_HAMMA[mid] ? { id: mid, src: RASM_HAMMA[mid] } : null)
         || (darsTil === "en" && soz && (() => { const id = sozId({ soz, emoji: "" }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })())
         || emojiRasm(b.emoji, RASM_HAMMA, darsTil === "en" ? soz : "");
@@ -937,8 +967,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // REV153: juftlik/guruh («🐰➡🥕», «🐔🥚») — har biri chizilgan bo'lsa, rasmlar qatori
       const qator = belgiQatori(b.emoji);
       if (qator) return { emoji: b.emoji, src: "", qator, chizilgan: true, ...extra };
-      const own = pictureFor(b.emoji, soz, lesson?.rasmlar, lesson?.rasm_sozlar);
-      if (own) return { src: mediaUrl(own), anim: harakatTuri(sozId({ soz, emoji: b.emoji })), ...extra };
+      // REV158: kitobdagi eski rasm (o'yinchoqqa o'xshaydi) ishlatilmaydi — belgi kartasi; darsning boshida ham,
+      // o'yinda ham, oxirida ham bir so'zga bitta rasm
       return { emoji: b.emoji, src: "", anim: harakatTuri(sozId({ emoji: b.emoji })), ...extra };
     };
     if (kidKind === "game") {
@@ -1022,14 +1052,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               <b className="dx-sr" lang={mikSoz.lang}>{mikSoz.phrase}</b>
             </div>}</div>}
           {/* REV145: dars boshida (salomlashish va kirish qismida) — bugun nimani o'rganadi (bola ham, yonidagi ota-ona ham aniq ko'radi) */}
-          {kid && (mode === "idle" || (mode === "lesson" && idx <= opening.length)) && (() => {
+          {/* REV158: doskada rasm bo'lsa (vaqt, takror) maqsad kartasi uning ustiga chiqmaydi */}
+          {kid && (mode === "idle" || (mode === "lesson" && idx <= opening.length && !doskaRasmlari.length)) && (() => {
             const sozlar = darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)).slice(0, 5) : [];
             if (!sozlar.length) return null;
             return <div className="dx-goal" aria-label={__kbUi("Bugun o‘rganamiz")}>
               {/* REV156: 2–7 yosh — ekranda gap/yozuv yo'q: faqat 🎯 va bugungi so'zlarning rasmlari */}
               <small aria-hidden="true"><B e="🎯" /></small>
               <ul>{sozlar.map((w) => { const r = sozRasmi(w.say, w.emoji); return <li key={w.say} aria-label={w.say}>
-                {r ? <img src={r.src} alt="" draggable="false" /> : w.emoji ? <span aria-hidden="true">{w.emoji}</span> : null}</li>; })}</ul>
+                {r ? <img src={r.src} alt="" draggable="false" /> : belgiQatori(w.emoji) ? <span className="dx-goal-qator" aria-hidden="true">{belgiQatori(w.emoji).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span>
+                  : w.emoji ? <span aria-hidden="true">{keycapNumber(w.emoji) || w.emoji}</span> : null}</li>; })}</ul>
             </div>;
           })()}
           {!kid && mode === "idle" && <>
@@ -1071,7 +1103,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               </div>
             </div>}
           </>}
-          {mode === "ovoz" && <VoiceCheck key={topicCode} items={voiceItems} audience={audience} say={say} hush={hush} speaking={speaking} onDone={voiceDone} bilgan={bilgan} izoh={izoh} rasm={(it) => (it?.emoji || it?.phrase ? sozRasmi(it.phrase, it.emoji) : null)} />}
+          {mode === "ovoz" && <VoiceCheck key={topicCode} items={voiceItems} audience={audience} say={say} hush={hush} speaking={speaking} onDone={voiceDone} bilgan={bilgan} izoh={tIzoh} rasm={(it) => (it?.emoji || it?.phrase ? sozRasmi(it.phrase, it.emoji) : null)} />}
           {mode === "test" && q && <div className="dx-test">
             {kid && isReviewQuestion(q) && <div className="dx-kind is-review" role="status" aria-label={__kbUi("Takrorlash")}><span aria-hidden="true">🔁</span></div>}
             {kid ? <div className="dx-kid-ask"><KidStage compact mood={kidPhase || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} />
@@ -1081,7 +1113,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               : <><h3 className="dx-title">{__kbUi("Test")} · {testIndex + 1} / {questions.length}</h3>
                 <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} /></div></>}
             {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), q.savol).map((o, k) => <div key={k} className="dx-kid-wrap"><button type="button" onClick={() => pick(k)} disabled={picked !== null}
-              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : kidOptionQator(o.picture) ? <span className="kb-qator" aria-hidden="true">{kidOptionQator(o.picture).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")}`}>{o.picture || (o.listen ? k + 1 : o.letter)}</span>)}</button>
+              className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : kidOptionQator(o.picture) ? <span className={`kb-qator ${qatorNaqshmi(kidOptionQator(o.picture)) ? "is-satr" : ""}`} aria-hidden="true">{kidOptionQator(o.picture).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")}`}>{o.picture || (o.listen ? k + 1 : o.letter)}</span>)}</button>
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
               className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
@@ -1115,7 +1147,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {kidResult?.sozlar?.length > 0 && <div className="dx-kid-words" aria-label={__kbUi("Bugun o‘rgandim")}>
               <small>{__kbUi("Bugun o‘rgandim")}</small>
               <ul>{kidResult.sozlar.map((w) => { const r = sozRasmi(w.soz, w.emoji); return <li key={w.soz} className={w.aytdi ? "is-ok" : ""}>
-                {r ? <img src={r.src} alt="" draggable="false" /> : w.emoji ? <span aria-hidden="true">{w.emoji}</span> : null}
+                {r ? <img src={r.src} alt="" draggable="false" /> : belgiQatori(w.emoji) ? <span className="dx-goal-qator" aria-hidden="true">{belgiQatori(w.emoji).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span>
+                  : w.emoji ? <span aria-hidden="true">{keycapNumber(w.emoji) || w.emoji}</span> : null}
                 <b lang={darsTil}>{w.soz}</b>{w.aytdi && <i aria-label={__kbUi("aytdi")}><B e="⭐" /></i>}</li>; })}</ul>
             </div>}
             {nextLesson && !kidResult?.bugunTugadi

@@ -1,3 +1,4 @@
+import { IMMERSIYA } from "./immersiyaTillari.js";
 // REV98: bog'cha darsi sahnasi — yozuvsiz tushuntirish uchun sof qoidalar (testlanadi).
 
 const APOS = /[ʻʼ’‘`´']/g;
@@ -145,6 +146,10 @@ const CUE = {
   ru: { review: "[ru]Сначала вспомним пройденное![/ru]", word: "[ru]А теперь — новое слово![/ru]", know: "[ru]А теперь — новое знание![/ru]" },
   en: { review: "[en]Let’s remember![/en]", word: "[en]Now, a new word![/en]", know: "[en]Now, something new![/en]" },
 };
+// REV157: 4–7 yosh — dars to'liq o'rganilayotgan tilda; o'tish gaplari ham shu tilda
+for (const [til, d] of Object.entries(IMMERSIYA)) {
+  if (!CUE[til]) CUE[til] = Object.fromEntries(Object.entries(d.CUE).map(([k, v]) => [k, `[${til}]${v}[/${til}]`]));
+}
 
 export function kindCue(kind, prevKind, text = "", topicName = "", izoh = "uz") {
   if (kind === prevKind || isReviewTopic(topicName)) return "";
@@ -227,6 +232,21 @@ export function gameTargets(step, steps = [], kinds = []) {
       for (const [key, word] of words) {
         if (norm(word) === t && !out.some((x) => x.key === key)) out.push({ key, emoji: key, word });
       }
+    }
+    // REV157: 4–7 yosh — o'yin gapi butunlay bitta tegda («[de]Spielzeit! … zeigst auf das Bild: Wie heißt du, Ich heiße.[/de]»):
+    // shu darsning so'zlari gap ichida qaysi tartibda aytilgan bo'lsa, o'shanday nishon bo'ladi
+    if (out.length < 2) {
+      const topilgan = [];
+      for (const t of teglar) {
+        const ichi = ` ${t} `;
+        for (const [key, word] of words) {
+          const w = norm(word);
+          const at = w ? ichi.indexOf(` ${w} `) : -1;
+          if (at >= 0 && !topilgan.some((x) => x.key === key)) topilgan.push({ key, word, at });
+        }
+        if (topilgan.length >= 2) break;
+      }
+      topilgan.sort((a, b) => a.at - b.at).forEach(({ key, word }) => { if (!out.some((x) => x.key === key)) out.push({ key, emoji: key, word }); });
     }
   }
   return out.length >= 2 ? out.slice(0, 4) : [];
@@ -365,3 +385,4 @@ export function faolRasm(pics = [], sozlar = [], at = -1, mik = "") {
   });
   return best;
 }
+

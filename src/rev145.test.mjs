@@ -17,10 +17,10 @@ test('REV145: o‘rgatilgan so‘z gap bo‘laklaridan topiladi — buyruq ibora
   assert.equal(pauzasiz('A ⏸ B ⏸'), 'A B');
 });
 
-test('REV145: haqiqiy dars gapi (kidRepeatSpeech/ismOldin) — har so‘z alohida so‘raladi, ko‘pi bilan 3', () => {
+test('REV145: haqiqiy dars gapi (kidRepeatSpeech/ismOldin) — har so‘z alohida so‘raladi (REV158: hammasi, 6 tagacha)', () => {
   const sp = ismOldin(kidRepeatSpeech('Ranglar: [en]Red[/en], [en]Blue[/en], [en]Green[/en], [en]Pink[/en]. Qani, birga aytamiz!', { doska: '' }));
   const sozlar = aytiladiganSozlar(sp, 'en').map((x) => x.phrase);
-  assert.deepEqual(sozlar, ['Red', 'Blue', 'Green'], sp);
+  assert.deepEqual(sozlar, ['Red', 'Blue', 'Green', 'Pink'], sp);   // REV158: 4 ta so'z — to'rttasi ham so'raladi
   assert.ok(sozlar.every((w) => ['Red', 'Blue', 'Green', 'Pink'].includes(w)));
 });
 

@@ -1,6 +1,8 @@
 /* REV110 / REV121: jonli ustoz sahnasi — sinfxona, deraza (kun vaqti va ob-havo), chiroq, doska */
 .us-stage{position:relative;width:100%;aspect-ratio:1586/992;max-width:100%;overflow:hidden;border-radius:18px;background:#e9e1d3;contain:layout paint}
 .us-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* REV158: devor soati — haqiqiy vaqt */
+.us-soat{position:absolute;aspect-ratio:1;height:auto;transform:translate(-50%,-50%);pointer-events:none;overflow:visible}
 .us-clipdef{position:absolute;width:0;height:0;overflow:hidden}
 
 /* ── doska: rasmlar oq kartochkalarda — yashil doskada ham, kechqurun ham aniq ko'rinadi ── */
@@ -67,6 +69,7 @@
   /* REV122: yuz bo'lagi chetlari silliq qo'shiladi — «qirqib yopishtirilgan» to'rtburchak ko'rinmaydi */
   -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 52%,#000 72%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 52%,#000 72%,transparent 100%)}
 /* REV153: og'iz — lab varag'idagi aniq shakllar; ostida chizilgan og'iz teri rangidagi yumshoq dog' bilan yashiriladi */
+.us-og-qatlam{position:absolute;inset:0;pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
 .us-og{position:absolute;aspect-ratio:1/1;transform:translate(-50%,-50%);pointer-events:none}
 .us-og-teri{position:absolute;left:52%;top:50%;width:185%;height:100%;transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(closest-side,var(--teri) 62%,transparent 100%)}
@@ -237,12 +240,16 @@
 .us-pic{grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
 .us-pic img{min-width:0;min-height:0;max-width:100%;max-height:100%}
 /* REV153: sanoq va naqsh — emoji o'rniga chizilgan rasmlar qatori («🍎🍎🍎» → uchta olma) */
-.us-qator{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;align-content:center;gap:4%;width:100%;height:100%}
+/* REV158: naqsh va qator HAR DOIM bitta satrda (🍎🍌🍎🍌, 🐱🐶🐰🐱🐶🐰) — tartib ko'rinsin; oldin 2×2, 2×3 bo'lib ketardi */
+.us-qator{display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;align-content:center;gap:2%;width:100%;height:100%}
 .us-qator img{width:28%;height:auto;max-height:44%;object-fit:contain;filter:drop-shadow(0 2px 3px #0002);animation:us-alive 3.4s ease-in-out infinite;animation-delay:calc(var(--j, 0) * -.4s)}
 .us-qator.q1 img{width:70%;max-height:90%}.us-qator.q2 img{width:44%;max-height:80%}.us-qator.q3 img{width:30%;max-height:70%}
-.us-qator.q4 img{width:40%;max-height:44%}
+.us-qator.q4 img{width:22%;max-height:60%}
 .us-qator b{font:800 min(18cqh,18cqw)/1 system-ui,sans-serif;color:#c8553d}
 .us-qator.q5,.us-qator.q6{flex-wrap:nowrap;gap:2%}.us-qator.q5 img,.us-qator.q6 img{width:16%;max-height:40%}
+.us-qator.q7 img,.us-qator.q8 img{width:11.5%;max-height:36%}.us-qator.q9 img,.us-qator.q10 img{width:9.2%;max-height:32%}
+.us-qator.q11 img,.us-qator.q12 img{width:7.8%;max-height:30%}
+.us-qator.q5 b,.us-qator.q6 b,.us-qator.q7 b,.us-qator.q8 b,.us-qator.q9 b,.us-qator.q10 b,.us-qator.q11 b,.us-qator.q12 b{font-size:min(11cqh,9cqw)}
 /* REV154: chiroq va ob-havo rasmlari */
 .us-lamp.has-img{width:8%;height:16%}
 .us-lamp-img{width:100%;height:100%;object-fit:contain;object-position:50% 0;display:block;filter:drop-shadow(0 3px 4px #0003)}

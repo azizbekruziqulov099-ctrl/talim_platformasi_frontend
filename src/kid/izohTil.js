@@ -2,6 +2,8 @@
 // Miyadagi matnlar allaqachon izoh tilida keladi; bu yerda — ustozning o'zi aytadigan tayyor gaplari (salom, ob-havo,
 // maqtov, «yana bir bor ayt»). Izoh tili rus/ingliz bo'lsa, gap shu til tegiga olinadi — o'z ovozida o'qilsin.
 
+import { IMMERSIYA } from "./immersiyaTillari.js";
+
 const TAGS = /\[(uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
 
 /** Miya qaysi tilda tushuntirilgan.
@@ -249,4 +251,10 @@ export const FEL_IZOH = {
 /** Yonma-yon bir xil teglar birlashtiriladi: «[ru]A[/ru] [ru]B[/ru]» → «[ru]A B[/ru]» (ovoz uzilmasin). */
 export function birlashtir(text) {
   return String(text).replace(/\[\/(uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\](\s*)\[\1\]/g, "$2");
+}
+
+// REV157: 4–7 yoshda dars to'liq o'rganilayotgan tilda — ustoz gaplari shu tilda ham bor (de, fr, es, ar, tr, zh, ja, ko)
+for (const [til, d] of Object.entries(IMMERSIYA)) {
+  if (!GAPLAR[til]) GAPLAR[til] = d.GAPLAR;
+  if (!FEL_IZOH[til]) FEL_IZOH[til] = d.FEL_IZOH;
 }

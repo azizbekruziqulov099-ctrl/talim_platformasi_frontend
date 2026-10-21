@@ -3,7 +3,7 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, kidCorrectSpeech, kidOptions, kidTheme } from "./kidQuizRules.js";
-import { keycapNumber, kidOptionPic, kidOptionQator } from "../kid/optionPic.js";
+import { keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import RobotKabu from "../kid/RobotKabu.jsx";
 import { gap } from "../kid/izohTil.js";
 import "./kidQuiz.css";
@@ -137,7 +137,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
           {(() => { const img = rasm ? kidOptionPic(o, rasm.rasmlar, rasm.media, rasm.rasm_sozlar) : null; const son = keycapNumber(o.picture);
             const qator = !img && !son ? kidOptionQator(o.picture) : null;
             return img ? <img className="kq-img" src={img} alt="" draggable="false" /> : son ? <span className="kq-pic kb-num" aria-hidden="true">{son}</span>
-              : qator ? <span className="kb-qator" aria-hidden="true">{qator.map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span>
+              : qator ? <span className={`kb-qator ${qatorNaqshmi(qator) ? "is-satr" : ""}`} aria-hidden="true">{qator.map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span>
               : <span className="kq-pic" aria-hidden="true">{o.picture || (o.listen ? `${i + 1}` : o.letter)}</span>; })()}
           {/* Tinglash rejimida so'z javobdan keyin ko'rinadi — avval quloq bilan tanlaydi. */}
           {o.word && (!o.listen || done) && <span className="kq-word">{o.word}</span>}

@@ -1,6 +1,8 @@
 // REV110: bog'cha darsining boshlanishi — ustoz o'z uslubida salomlashadi, bugungi ob-havoni aytadi va o'tgan
 // darsdan so'raydi. Sof funksiyalar (brauzersiz sinaladi). «⏸» — bolaga javob berish uchun jimlik (TTS qo'yadi).
+import { IMMERSIYA } from "./immersiyaTillari.js";
 import { OCHILISH_LUGAT } from "./ochilishLugat.js";
+import { kalendarQadami } from "./kalendar.js";
 import { FEL_IZOH, birlashtir, gap, izohTeg } from "./izohTil.js";
 import { iboraNorm, sinfIborasimi } from "./sinfIboralari.js";
 
@@ -54,6 +56,11 @@ export const VAQT_HAVO = {
   },
 };
 const CHIROQ = { uz: "Xonada chiroqni yoqdik — endi yorug'!", ru: "Свет в классе включён — теперь светло!", en: "The lights are on in our classroom — now it's bright!" };
+// REV157: 4–7 yosh — ochilish o'rganilayotgan tilda (nemis, fransuz, ispan, arab, turk, xitoy, yapon, koreys)
+for (const [til, d] of Object.entries(IMMERSIYA)) {
+  if (!VAQT_HAVO[til]) VAQT_HAVO[til] = d.VAQT_HAVO;
+  if (!CHIROQ[til]) CHIROQ[til] = d.CHIROQ;
+}
 
 /** Darsning o'rganiladigan tili: ovoz matnidagi birinchi [xx] teg. Til darsi bo'lmasa — null. */
 export function darsTili(steps = []) {
@@ -73,7 +80,7 @@ function yoshi(grade) {
  * Dars boshidagi qadamlar (dars qadamlari formatida): [salomlashish, ob-havo, o'tgan dars (bo'lsa)].
  * opts: { ustoz, til, havo: "quyosh"|"bulut"|"yomgir"|"qor", harorat, oldingi: {mavzu, sozlar:[{say, emoji}]}, grade, kun }
  */
-export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", harorat = null, oldingi = null, grade = "", kun = 0, izoh = "uz", vaqt = "kun" } = {}) {
+export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", harorat = null, oldingi = null, grade = "", kun = 0, izoh = "uz", vaqt = "kun", aslIzoh = null, sana = null } = {}) {
   const fel = (izoh !== "uz" && FEL_IZOH[izoh]?.[ustoz]) || FEL[ustoz] || FEL.nilufar;
   const L = til && OCHILISH_LUGAT[til] ? OCHILISH_LUGAT[til] : null;
   const t = (k) => (L ? `[${til}]${L[k]}[/${til}]` : "");
@@ -123,9 +130,15 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     _havo: tunda ? (h === "quyosh" ? "tun" : h) : vaqt === "kech" && h === "quyosh" ? "kech" : vaqt === "tong" && h === "quyosh" ? "tong" : h,
   });
 
-  // 3) O'tgan dars — 1–3 so'zni bola o'zi eslaydi
+  // REV158: 3) Vaqt — hafta kuni, fasl, oy, soat, yil (haqiqiy sana; yoshga va til darsiga qarab)
+  if (sana) {
+    const kq = kalendarQadami({ til, izoh: aslIzoh || (izoh === til ? "uz" : izoh), yosh: yoshi(grade), sana });
+    if (kq) out.push(kq);
+  }
+
+  // 4) O'tgan dars — 1–3 so'zni bola o'zi eslaydi
   // REV123: takror puxta — kichiklar 2 ta, kattalar 3 ta so'zni eslaydi; har biridan keyin birga takrorlanadi
-  const sozlar = (oldingi?.sozlar || []).filter((x) => x?.say).slice(0, kichik ? 2 : 3);
+  const sozlar = (oldingi?.sozlar || []).filter((x) => x?.say).slice(0, 6);   // REV158: o'tgan darsning hamma so'zlari (6 tagacha)
   if (oldingi?.mavzu && sozlar.length) {
     const tl = oldingi.til || til;
     const tag = (x) => (tl ? `[${tl}]${x}[/${tl}]` : x);
@@ -133,7 +146,8 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     const savol = sozlar.map((x) => `${x.emoji ? x.emoji + " " : ""}${g("Bu — {p}.", { p: tag(x.say) })} ${g("Birga aytamiz: {p} ⏸", { p: tag(x.say) })}`).join(" ");
     out.push({
       turi: "kirish", _ochilish: "takror", sarlavha: gap(izoh, "🔁 Esingdami?").replace(/\[\/?\w\w\]/g, ""),
-      ovoz: `${g("O'tgan safar «{name}» darsini o'tgandik.", { name: z(oldingi.mavzu) })} ${L && tl === til ? t("remember") : g("Esingdami?")} ${savol} ${z(pick(fel.maqtov))} ${g("Endi yangi darsga o'tamiz!")}`,
+      // REV157: 4–7 yosh (izoh = o'rganilayotgan til) — o'zbekcha mavzu nomi chet ovozida o'qilmasin, aytilmaydi
+      ovoz: `${izoh === til ? "" : g("O'tgan safar «{name}» darsini o'tgandik.", { name: z(oldingi.mavzu) })} ${L && tl === til ? t("remember") : g("Esingdami?")} ${savol} ${z(pick(fel.maqtov))} ${g("Endi yangi darsga o'tamiz!")}`,
       doska: sozlar.map((x) => `${x.emoji || "⭐"} ${x.say}`).join("\n"),
     });
   }
@@ -152,12 +166,13 @@ export function qadamSozi(s) {
   if (/^🔁/u.test(head)) return null;
   const m = SARLAVHA_SOZ.exec(head);
   if (!m) return null;
-  const say = m[2].split(/\s+[—–]\s+/)[0].trim().replace(/[.!?。！？]+$/u, "").trim();
+  const say = m[2].split(/\s+[—–]\s+/)[0].trim().replace(/[.!?。！？…]+$/u, "").trim();
   if (!say || say.split(/\s+/).length > 5 || sinfIborasimi(say) || /[·:：]/.test(say)) return null;
   const ovoz = String(s?.ovoz || "");
   const k = iboraNorm(say);
   let til = null;
-  for (const t of ovoz.matchAll(FOREIGN)) { if (iboraNorm(t[2]) === k) { til = t[1].toLowerCase(); break; } }
+  // REV157: «[de]Schau! Ich heiße …[/de]» — so'z ustoz buyrug'i bilan bitta tegda bo'lsa ham topiladi
+  for (const t of ovoz.matchAll(FOREIGN)) { const n = iboraNorm(t[2]); if (n === k || (k && ` ${n} `.includes(` ${k} `))) { til = t[1].toLowerCase(); break; } }
   if (!til) return null;   // so'z ovozda o'rganiladigan til tegida aytilmagan — bu so'z o'rgatish qadami emas
   return { say, emoji: m[1].replace(/\uFE0F/g, "").trim(), til };
 }

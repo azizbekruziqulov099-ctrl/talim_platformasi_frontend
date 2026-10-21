@@ -1,3 +1,4 @@
+import { IMMERSIYA } from "../kid/immersiyaTillari.js";
 // REV95: bog'cha darsi — sof yordamchilar.
 /** REV95: bog'cha ovozi yoshga qarab sekinroq: 3–4 yoshga eng sekin, 6–7 yoshga deyarli oddiy. */
 export function kidRate(grade) {
@@ -18,9 +19,35 @@ const TASK = {
   ru: { go: "[ru]Ну что, продолжаем![/ru]", lead: "[ru]Давай скажем вместе:[/ru]", end: "[ru]А теперь продолжаем![/ru]" },
   en: { go: "[en]Let’s go on![/en]", lead: "[en]Let’s say it together:[/en]", end: "[en]Now let’s go on![/en]" },
 };
+for (const [til, d] of Object.entries(IMMERSIYA)) {
+  if (!TASK[til]) TASK[til] = Object.fromEntries(Object.entries(d.TASK).map(([k, v]) => [k, `[${til}]${v}[/${til}]`]));
+}
 
-export function kidTaskModel(text, izoh = "uz") {
+/** gapTil — ustoz qaysi tilda gapiradi (REV157: 4–7 yoshda o'rganilayotgan til); izoh — qaysi til iborasi takrorlatilmaydi. */
+export function kidTaskModel(text, izoh = "uz", gapTil = izoh, maqsadlar = []) {
   const phrases = [];
+  // REV157: 4–7 yosh — topshiriq gapi butunlay o'rganilayotgan tilda; butun gap emas, faqat shu darsning so'zi bor
+  // qisqa gaplar birga aytiladi («Wie heißt du? Ich heiße Ali.»), ustoz buyruqlari («Komm, wir spielen!») emas
+  const nrm = (t) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const mq = (maqsadlar || []).map(nrm).filter(Boolean);
+  if (gapTil !== izoh && mq.length) {
+    for (const m of String(text || "").matchAll(/\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi)) {
+      const lang = m[1].toLowerCase();
+      for (const gapi of m[2].split(/(?<=[.!?。！？…])\s+/u)) {
+        // REV158: «Kabu: How many apples?», «Now you ask: How many pencils?» — gapiruvchi nomi va buyruq olib tashlanadi
+        let clean = gapi.trim();
+        const ikki = clean.lastIndexOf(":");
+        if (ikki > 0 && mq.some((w) => ` ${nrm(clean.slice(ikki + 1))} `.includes(` ${w} `))) clean = clean.slice(ikki + 1).trim();
+        const n = ` ${nrm(clean)} `;
+        if (!clean || clean.split(/\s+/).length > 6 || !mq.some((w) => n.includes(` ${w} `))) continue;
+        if (!phrases.some((p) => nrm(p.body) === nrm(clean))) phrases.push({ lang, body: clean });
+      }
+    }
+    const T = TASK[gapTil] || TASK[izoh];
+    if (!phrases.length) return T ? T.go : "Qani, davom etamiz!";
+    const list = phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}] ⏸`).join(" ");
+    return T ? `${T.lead} ${list} ${T.end}` : list;
+  }
   String(text || "").replace(/\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi, (_, lang, body) => {
     const clean = body.trim();
     // REV121: izoh tilidagi (rus/ingliz) tushuntirish — o'rganiladigan ibora emas, takrorlatilmaydi
@@ -28,7 +55,7 @@ export function kidTaskModel(text, izoh = "uz") {
     if (clean && !phrases.some((p) => p.body === clean)) phrases.push({ lang: lang.toLowerCase(), body: clean });
     return "";
   });
-  const T = TASK[izoh];
+  const T = TASK[gapTil] || TASK[izoh];
   if (!phrases.length) return T ? T.go : "Qani, davom etamiz!";
   // REV102: har iboradan keyin «⏸» — server bolaga qaytarish uchun 1.5–3 soniya jimlik qo'yadi.
   const list = phrases.slice(0, 3).map((p) => `[${p.lang}]${p.body}[/${p.lang}] ⏸`).join(" ");
@@ -74,8 +101,15 @@ export function kidRepeatSpeech(text, { doska = "", izoh = "uz" } = {}) {
 const BUYRUQ = "Endi sen ayt|Endi sen ham ayt|Sen ham ayt|Qani,? sen ham ayt|Birga aytamiz|Keling,? birga aytamiz|Men bilan ayt|Takrorla|Sen ham shunday javob ber|"
   + "Теперь ты скажи|Теперь скажи ты|Скажем вместе|Давай скажем вместе|Повтори|Скажи со мной|"
   + "Now you say it|Now you say|Let[’']s say it together|Say it with me|Repeat after me|You say it";
+// REV157: 4–7 yoshda ustoz o'rganilayotgan tilda buyuradi («Jetzt sagst du es: Hallo») — shu buyruqlar ham taniladi
+const qochir = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const BUYRUQ_IMM = [...new Set(Object.values(IMMERSIYA).flatMap((d) => ["Endi sen ayt: {p}", "Birga aytamiz: {p} ⏸", "Sen ham shunday javob ber: {p} ⏸"]
+  .map((k) => String(d.GAPLAR[k] || "").split("{p}")[0].replace(/\s*[:：]\s*$/u, "").trim()).filter(Boolean)))].map(qochir).join("|");
+const BUYRUQ_HAMMA = `${BUYRUQ}|${BUYRUQ_IMM}`;
 const TEG_SOZ = "\\[(en|ru|de|fr|es|ar|tr|zh|ja|ko|uz)\\]([^\\[\\]]{1,60}?)\\[\\/\\4\\]";   // \\4 — KOLON ichidagi til guruhi
-const KOLON = new RegExp(`(\\[(?:uz|ru|en)\\])?(${BUYRUQ})\\s*[:：]\\s*(\\[\\/(?:uz|ru|en)\\])?\\s*${TEG_SOZ}\\s*[.!]?\\s*(⏸)?`, "giu");
+// buyruq va so'z bitta teg ichida: «[de]Guten Abend! Jetzt sagst du es: Guten Abend![/de] ⏸»
+const KOLON_ICHI = new RegExp(`\\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\\]([^\\[\\]]*?)(${BUYRUQ_HAMMA})\\s*[:：]\\s*([^\\[\\]⏸:：]{1,60}?)\\s*[.!。！]?\\s*\\[\\/\\1\\](\\s*⏸)?`, "giu");
+const KOLON = new RegExp(`(\\[(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\\])?(${BUYRUQ_HAMMA})\\s*[:：]\\s*(\\[\\/(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\\])?\\s*${TEG_SOZ}\\s*[.!]?\\s*(⏸)?`, "giu");
 const KOLON_UZ = new RegExp(`(${BUYRUQ})\\s*[:：]\\s*([^\\s⏸.!?\\[\\]:][^⏸.!?\\[\\]:\\n]{0,40}?)\\s*[.!?]?\\s*(⏸|$)`, "giu");
 const sozToza = (s) => String(s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
@@ -87,6 +121,13 @@ function oldinAytilganmi(oldin, soz) {
 
 export function ismOldin(text) {
   let s = String(text || "");
+  // REV157: «[de]… Jetzt sagst du es: Hallo[/de] ⏸» → «[de]… Hallo. Hallo! Jetzt sagst du es![/de] ⏸»
+  s = s.replace(KOLON_ICHI, (m, til, oldi, buyruq, soz, _pauza, offset, butun) => {
+    const body = soz.trim().replace(/[.!?。！？]+$/u, "");
+    if (!body || body.split(/\s+/).length > 5 || NOT_TARGET.test(body)) return m;
+    const ikki = oldinAytilganmi(`${butun.slice(0, offset)} ${oldi}`, body) ? `${body}!` : `${body}. ${body}!`;
+    return `[${til}]${oldi}${ikki} ${buyruq}![/${til}] ⏸`;
+  });
   s = s.replace(KOLON, (m, ochiq, buyruq, yopiq, til, soz, _pauza, offset, butun) => {
     const body = soz.trim().replace(/[.!?。！？]+$/u, "");
     if (!body || body.split(/\s+/).length > 5 || NOT_TARGET.test(body)) return m;
@@ -95,7 +136,7 @@ export function ismOldin(text) {
     // REV156: buyruq teg O'RTASIDA bo'lsa («[ru]Послушай и повтори:[/ru] [ru]Спасибо![/ru]») — tartib o'zgarmaydi,
     // aks holda so'z tegning ichiga tushib, teglar buzilardi («[ru]Послушай и [ru]Спасибо.[/ru]… повтори![/ru]»).
     const oldin = butun.slice(0, offset);
-    const ochiqQoldi = !ochiq && /\[(?:uz|ru|en)\](?![\s\S]*\[\/(?:uz|ru|en)\])[^\[]*$/i.test(oldin);
+    const ochiqQoldi = !ochiq && /\[(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\](?![\s\S]*\[\/(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\])[^\[]*$/i.test(oldin);
     if (ochiqQoldi) return `${buyruq}:${yopiq || ""} ${ikki} ⏸`;
     return `${ikki} ${ochiq || ""}${buyruq}!${yopiq || ""} ⏸`;
   });

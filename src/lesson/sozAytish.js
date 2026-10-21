@@ -33,7 +33,7 @@ export function sozBolaklari(spoken, til, maqsadlar = []) {
   qismlar.forEach((q, k) => {
     const matn = q.replace(/\s{2,}/g, " ").trim();
     let soz = null;
-    if (til && k < qismlar.length - 1 && korilgan.size < 3) {
+    if (til && k < qismlar.length - 1 && korilgan.size < 6) {   // REV158: 3–6 ta so'z bo'lsa ham hammasi so'raladi
       const p = chunkSozi(q, til, maqsad);
       if (p && !korilgan.has(p.toLowerCase())) { korilgan.add(p.toLowerCase()); soz = { lang: til, phrase: p }; }
     }
