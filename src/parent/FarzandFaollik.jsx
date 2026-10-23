@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { bahoInfo, kunXulosa, levelDots, maslahat, minutesText, presence, ratingText, usageRows, weekStack } from "./farzandVaqtRules.js";
+import { BAHO_MATN, KURS, QISMLAR, bahoRangi, fanKaliti, ozgarish } from "./bogchaReja.js";
 import "./farzandFaollik.css";
 
 // REV145: matnning o'zgarmas qismi tarjima qilinadi, mavzu nomi va raqamlar — alohida (aks holda tarjima topilmasdi)
@@ -37,7 +38,8 @@ function DarsQator({ r, open, onToggle }) {
     <button type="button" className="ff-lesson-head" aria-expanded={open} onClick={onToggle}>
       <span className="ff-time">{r.boshlandi}</span>
       <span className="ff-main"><b>{r.mavzu || __kbUi("Dars")}</b><small>{r.fan}</small></span>
-      <span className={`ff-badge ${b.cls}`}>{__kbUi(b.matn)}</span>
+      {r.ai_baho ? <span className={`ff-ai ${bahoRangi(r.ai_baho.baho)}`} title={__kbUi("AI bahosi")}>{r.ai_baho.baho}</span>
+        : <span className={`ff-badge ${b.cls}`}>{__kbUi(b.matn)}</span>}
       <i aria-hidden="true">{open ? "▾" : "▸"}</i>
     </button>
     {open && <div className="ff-lesson-body">
@@ -58,9 +60,59 @@ function DarsQator({ r, open, onToggle }) {
       <div className="ff-row"><span>🎯 {__kbUi("Diqqat")}</span><span />
         <b>{r.chalgish ? `${r.chalgish} ${__kbUi("marta ilovadan chiqdi")}` : __kbUi("Chalg‘imadi")}</b></div>
       {!r.tugadi && r.jami_qadam ? <div className="ff-row"><span>⏸ {__kbUi("To‘xtagan joyi")}</span><span /><b>{Math.min(r.qadam, r.jami_qadam)}/{r.jami_qadam} {__kbUi("qadam")}</b></div> : null}
+      {r.ai_baho && <QismlarQator qism={r.ai_baho.qism} ball={r.ai_baho.ball} baho={r.ai_baho.baho} />}
       {tip && <p className="ff-tip">💡 {__kbUi(tip.matn)}{tip.sozlar.length ? <b> {tip.sozlar.join(", ")}</b> : null}</p>}
     </div>}
   </li>;
+}
+
+/** REV162: AI bahosining 4 qismi — aniqlik, gapirish, tezlik, puxtalik (ota-onaga tushunarli chiziqlar). */
+function QismlarQator({ qism, ball, baho }) {
+  return <div className="ff-qism">
+    <p className="ff-qism-head"><b>🤖 {__kbUi("AI bahosi")}: {baho} — {__kbUi(BAHO_MATN[baho])}</b><small>{ball}/100</small></p>
+    {QISMLAR.map(([k, emoji, nom, izoh]) => qism?.[k] == null ? null : <div key={k} className="ff-qism-row" title={__kbUi(izoh)}>
+      <span>{emoji} {__kbUi(nom)}</span>
+      <span className="ff-meter" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={qism[k]}><i className={bahoRangi(qism[k] >= 85 ? 5 : qism[k] >= 70 ? 4 : qism[k] >= 50 ? 3 : 2)} style={{ width: `${qism[k]}%` }} /></span>
+      <b>{qism[k]}%</b>
+    </div>)}
+  </div>;
+}
+
+/** REV162: bugungi umumiy AI bahosi — katta raqam, so'z bilan va 4 qism. */
+function BugungiBaho({ baho, yulduz }) {
+  if (!baho) return <div className="ff-grade is-empty"><span className="ff-grade-num">—</span>
+    <div><b>{__kbUi("Bugungi AI bahosi")}</b><small>{__kbUi("Farzandingiz bugun birinchi darsini tugatgach, baho shu yerda chiqadi.")}</small></div></div>;
+  return <div className={`ff-grade ${bahoRangi(baho.baho)}`}>
+    <span className="ff-grade-num" aria-label={`${baho.baho}`}>{baho.baho}</span>
+    <div className="ff-grade-body">
+      <b>{__kbUi("Bugungi AI bahosi")}: {__kbUi(baho.matn || BAHO_MATN[baho.baho])}</b>
+      <small>{baho.ball}/100 · {baho.darslar} {__kbUi("dars")}{yulduz ? ` · ⭐ ${yulduz}` : ""}</small>
+      <div className="ff-grade-parts">{QISMLAR.map(([k, emoji, nom, izoh]) => baho.qism?.[k] == null ? null :
+        <span key={k} title={__kbUi(izoh)}>{emoji} {__kbUi(nom)} <b>{baho.qism[k]}%</b></span>)}</div>
+    </div>
+  </div>;
+}
+
+/** REV162: shu hafta va o'tgan hafta — darslar, yulduzlar, so'zlar, o'rtacha baho; fanlar bo'yicha. */
+function HaftaTaqqos({ h }) {
+  if (!h?.shu) return null;
+  const a = h.shu, b = h.otgan || {};
+  const rows = [
+    ["📚", "Tugatilgan dars", a.tugadi, b.tugadi], ["⭐", "Yulduz", a.yulduz, b.yulduz],
+    ["📝", "O‘rgangan so‘z", a.sozlar, b.sozlar], ["🎤", "Aytgan so‘z", a.aytdi, b.aytdi],
+    ["🤖", "O‘rtacha baho", a.baho?.ball ?? 0, b.baho?.ball ?? 0],
+  ];
+  return <div className="ff-weeks">
+    <div className="ff-weeks-grid" role="table" aria-label={__kbUi("Shu hafta va o‘tgan hafta")}>
+      <span role="columnheader" /><b role="columnheader">{__kbUi("Shu hafta")}</b><b role="columnheader">{__kbUi("O‘tgan hafta")}</b>
+      {rows.map(([e, nom, x, y]) => { const o = ozgarish(x, y); return <React.Fragment key={nom}>
+        <span role="rowheader">{e} {__kbUi(nom)}</span>
+        <b className={o.farq > 0 ? "is-up" : o.farq < 0 ? "is-down" : ""}>{x || 0}{o.belgi ? <i aria-hidden="true"> {o.belgi}</i> : null}</b>
+        <span>{y || 0}</span></React.Fragment>; })}
+    </div>
+    {a.fanlar?.length > 0 && <div className="ff-plan">{a.fanlar.map((f) => <span key={f.fan}>
+      {KURS[fanKaliti(f.fan)]?.emoji || "📚"} <b>{f.fan || __kbUi("Dars")}</b> {f.tugadi}/{f.darslar}</span>)}</div>}
+  </div>;
 }
 
 function DarslarRoyxat({ list, openKey, setOpenKey, bosh }) {
@@ -211,7 +263,8 @@ export default function FarzandFaollik({ apiBase, token, childId }) {
   const vaqt = data.vaqt;
   const x = kunXulosa(bugun, vaqt);
   const fans = Object.entries(data.reja?.fanlar || {});
-  const rejaJami = Math.max(fans.length, 1) * (data.reja?.limit || 2);
+  const rj = data.reja?.reja && data.reja.reja.manba ? data.reja.reja : null;   // REV162: haftalik reja
+  const rejaJami = rj ? (rj.takror_kuni ? 0 : (rj.bugun_rejada || []).length) : Math.max(fans.length, 1) * (data.reja?.limit || 2);
   const kpi = [
     { id: "darslar", emoji: "📚", big: `${x.tugadi}`, unit: __kbUi("dars"), sub: `${__kbUi("reja")}: ${rejaJami}` },
     { id: "darslar", emoji: "✅", big: x.foiz === null ? "—" : `${x.foiz}%`, unit: __kbUi("to‘g‘ri"), sub: x.jami ? `${x.togri}/${x.jami} ${__kbUi("savol")}` : __kbUi("savol yo‘q") },
@@ -225,6 +278,8 @@ export default function FarzandFaollik({ apiBase, token, childId }) {
         <span>{__kbUi(live.text)}{data.jonli?.mavzu && data.jonli?.holat !== "yoq" ? <> — «{data.jonli.mavzu}»</> : null}{liveExtra ? ` · ${liveExtra}` : ""}</span></p>
     </header>
 
+    {data.bola?.bogcha && <BugungiBaho baho={data.baho_bugun} yulduz={bugun.reduce((n, r) => n + (r.tugadi ? Number(r.yulduz) || 0 : 0), 0)} />}
+
     <div className="ff-kpis">
       {kpi.map((k, i) => <button key={i} type="button" className="ff-kpi" onClick={() => ochVaBor(k.id)}>
         <span aria-hidden="true">{k.emoji}</span><b>{k.big}</b><em>{k.unit}</em><small>{k.sub}</small>
@@ -233,13 +288,22 @@ export default function FarzandFaollik({ apiBase, token, childId }) {
 
     <Bolim id="darslar" open={ochiq.has("darslar")} onToggle={toggle} emoji="📚" title="Bugungi darslar"
       summary={bugun.length ? `${x.tugadi}/${bugun.length} ${__kbUi("tugatildi")}` : __kbUi("hali yo‘q")}>
-      {fans.length > 0 && <div className="ff-plan">
+      {rj ? <div className="ff-plan">
+        {rj.takror_kuni ? <span>🔁 {__kbUi("Bugun yakshanba — takrorlash kuni")}</span>
+          : (rj.bugun_rejada || []).map((k) => { const done = fans.some(([fan, f]) => fanKaliti(fan) === k && f.tugadi > 0);
+            return <span key={k} className={done ? "is-full" : ""}>{KURS[k]?.emoji} <b>{__kbUi(KURS[k]?.nom || k)}</b> {done ? "✅" : "⏳"}</span>; })}
+      </div> : fans.length > 0 && <div className="ff-plan">
         {fans.map(([fan, f]) => <span key={fan} className={f.tugadi >= data.reja.limit ? "is-full" : ""}>
           <b>{fan || __kbUi("Dars")}</b> {f.tugadi}/{data.reja.limit} {f.tugadi >= data.reja.limit ? "✅" : ""}</span>)}
       </div>}
       <DarslarRoyxat list={bugun} openKey={openKey} setOpenKey={setOpenKey} bosh="Bugun hali dars qilinmagan. Darslar har kuni ochiladi — farzandingiz bilan birga boshlang." />
       {bugun.length > 0 && <p className="ff-muted">{__kbUi("Darsni bosing — natija, aytgan so‘zlari va uyda nima qilish kerakligi ochiladi.")}</p>}
     </Bolim>
+
+    {data.haftalar?.shu && <Bolim id="haftalar" open={ochiq.has("haftalar")} onToggle={toggle} emoji="📈" title="Shu hafta va o‘tgan hafta"
+      summary={data.haftalar.shu.baho ? `🤖 ${data.haftalar.shu.baho.baho} · ${data.haftalar.shu.tugadi} ${__kbUi("dars")}` : `${data.haftalar.shu.tugadi} ${__kbUi("dars")}`}>
+      <HaftaTaqqos h={data.haftalar} />
+    </Bolim>}
 
     <Bolim id="hafta" open={ochiq.has("hafta")} onToggle={toggle} emoji="📅" title="Oxirgi 7 kun"
       summary={`${(data.hafta || []).reduce((n, d) => n + (Number(d.tugatilgan) || 0), 0)} ${__kbUi("dars tugatildi")}`}>

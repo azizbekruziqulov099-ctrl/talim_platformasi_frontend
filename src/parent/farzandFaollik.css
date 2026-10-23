@@ -111,3 +111,26 @@
 .ff-daybox h5{margin:0;font-size:13.5px;font-weight:800}
 .ff-daystats{margin:0;display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
 .ff-daystats span{background:#f7f5f0;border-radius:999px;padding:3px 9px;font-weight:700}
+/* REV162: AI kundalik bahosi va hafta taqqoslash */
+.ff-grade{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border-radius:16px;padding:12px 14px;background:#f5f3ee;border:1px solid #ece8de}
+.ff-grade-num{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:30px;font-weight:900;color:#fff;background:#9a958a}
+.ff-grade-body{display:grid;gap:3px;min-width:0}
+.ff-grade b{font-size:15px}.ff-grade small{color:#6b6658;font-size:12.5px}
+.ff-grade-parts{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12.5px;color:#4a463c}
+.ff-grade-parts b{font-size:12.5px}
+.ff-grade.is-5{background:#e9f7ee;border-color:#cdebd6}.ff-grade.is-5 .ff-grade-num{background:#2f9a55}
+.ff-grade.is-4{background:#eef6ff;border-color:#d4e6fa}.ff-grade.is-4 .ff-grade-num{background:#2f6fbf}
+.ff-grade.is-3{background:#fff6e5;border-color:#f6e2b8}.ff-grade.is-3 .ff-grade-num{background:#d38b12}
+.ff-grade.is-2{background:#fdeeee;border-color:#f5d3d3}.ff-grade.is-2 .ff-grade-num{background:#c0463d}
+.ff-grade.is-empty .ff-grade-num{background:#d8d3c7}
+.ff-ai{min-width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:900;color:#fff;background:#9a958a;font-size:14px}
+.ff-ai.is-5{background:#2f9a55}.ff-ai.is-4{background:#2f6fbf}.ff-ai.is-3{background:#d38b12}.ff-ai.is-2{background:#c0463d}
+.ff-qism{display:grid;gap:5px;background:#fff;border:1px solid #efece4;border-radius:12px;padding:8px 10px}
+.ff-qism-head{margin:0;display:flex;justify-content:space-between;gap:8px;font-size:13px}.ff-qism-head small{color:#8a8578}
+.ff-qism-row{display:grid;grid-template-columns:minmax(96px,auto) 1fr auto;gap:8px;align-items:center;font-size:12.5px}
+.ff-meter i.is-5{background:#2f9a55}.ff-meter i.is-4{background:#2f6fbf}.ff-meter i.is-3{background:#d38b12}.ff-meter i.is-2{background:#c0463d}
+.ff-weeks{display:grid;gap:8px}
+.ff-weeks-grid{display:grid;grid-template-columns:1fr auto auto;gap:6px 14px;align-items:center;font-size:13px;background:#fdfcf9;border:1px solid #efece4;border-radius:12px;padding:10px 12px}
+.ff-weeks-grid>b{text-align:right;font-variant-numeric:tabular-nums}.ff-weeks-grid>span:not([role=rowheader]){text-align:right;color:#8a8578;font-variant-numeric:tabular-nums}
+.ff-weeks-grid>b[role=columnheader]{font-size:11.5px;color:#6b6658;text-transform:uppercase;letter-spacing:.03em}
+.ff-weeks-grid .is-up i{color:#2f9a55;font-style:normal}.ff-weeks-grid .is-down i{color:#c0463d;font-style:normal}

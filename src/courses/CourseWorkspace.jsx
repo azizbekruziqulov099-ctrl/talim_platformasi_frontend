@@ -225,6 +225,65 @@ function MyCourses({ apiBase, token, teaching, canTeach, capabilityLoading, onCr
   </div>;
 }
 
+// REV158: to'lov usulini tanlash — Click havolasi (Click'ga o'tib to'laydi), Paynet, istalgan bank kartasidan karta raqamiga
+const USUL_NOMI = { click: "Click", payme: "Payme", paynet: "Paynet", karta: "Bank kartasidan o‘tkazma" };
+const USUL_BELGI = { click: "💳", payme: "🔵", paynet: "🟢", karta: "🏦" };
+const kartaKorinish = (n) => String(n || "").replace(/(\d{4})(?=\d)/g, "$1 ");
+function NusxaTugma({ matn }) {
+  const [ok, setOk] = useState(false);
+  return <button type="button" className="course-button is-secondary course-copy" onClick={() => { try { navigator.clipboard?.writeText(matn).then(() => { setOk(true); setTimeout(() => setOk(false), 1800); }); } catch { /* eski brauzer */ } }}>{ok ? __kbUi("Nusxalandi ✓") : __kbUi("Nusxa olish")}</button>;
+}
+// REV160/161: AVTOMATIK to'lov (Click, Payme) — buyurtma kodi yaratiladi, tizim sahifasiga o'tadi; to'lov o'tishi bilan
+// server kursni o'zi ochadi. Shu kod bilan ilova ichidan ham to'lash mumkin.
+const AVTO_HOST = { click: /^https:\/\/my\.click\.uz\//, payme: /^https:\/\/checkout(\.test)?\.paycom\.uz\// };
+function AvtoTolov({ apiBase, token, courseId, tizim }) {
+  const [busy, setBusy] = useState(false); const [xato, setXato] = useState(""); const [kod, setKod] = useState("");
+  const tolash = async () => {
+    if (busy) return;
+    setBusy(true); setXato("");
+    try {
+      const d = await courseRequest(apiBase, token, `${ROOT}/courses/${courseId}/tolov-buyurtma`, { method: "POST", body: { return_url: globalThis.location?.href || "" } });
+      setKod(d?.kod || "");
+      const url = d?.havolalar?.[tizim];
+      if (url && AVTO_HOST[tizim]?.test(url)) globalThis.location.assign(url);
+      else throw new Error("To‘lov havolasi olinmadi");
+    } catch (err) { setXato(message(err)); setBusy(false); }
+  };
+  const nom = tizim === "payme" ? "Payme" : "Click";
+  return <div className="course-pay-box"><p>{__kbUi(tizim === "payme"
+    ? "Payme sahifasida istalgan Uzcard/Humo kartasidan yoki Payme ilovasidan to‘lang. To‘lov o‘tishi bilan kurs AVTOMATIK ochiladi — chek yuborish shart emas."
+    : "Click sahifasida istalgan Uzcard/Humo kartasidan yoki Click hamyonidan to‘lang. To‘lov o‘tishi bilan kurs AVTOMATIK ochiladi — chek yuborish shart emas.")}</p>
+    <button type="button" className="course-button" disabled={busy} onClick={tolash}>{busy ? __kbUi(`${nom} ochilmoqda…`) : __kbUi(`${nom} orqali to‘lash ↗`)}</button>
+    {kod && <small>{__kbUi("Buyurtma kodi: ")}<b>{kod}</b>{__kbUi(" — ilova ichida to‘lasangiz, shu kodni kiriting.")}</small>}
+    {xato && <Notice error>{__kbUi(xato)}</Notice>}</div>;
+}
+
+function PaymentMethods({ state, usul, setUsul, apiBase, token, courseId }) {
+  useKbInterfaceLocale();
+  if (state.loading) return <p>{__kbUi("To‘lov usullari yuklanmoqda…")}</p>;
+  if (state.error) return <Notice error>{__kbUi(message(state.error))}</Notice>;
+  const d = state.data || {};
+  const methods = d.methods || [];
+  if (!methods.length) return <p>{__kbUi("O‘qituvchi hali to‘lov usulini kiritmagan. To‘lovni o‘qituvchi bilan kelishib amalga oshiring, keyin chek raqamini yuboring.")}</p>;
+  return <div className="course-pay-methods">
+    <p className="course-pay-sum">{__kbUi("To‘lov summasi: ")}<b>{__kbUi(`${money(d.amount_uzs)} so‘m`)}</b>{__kbUi(` · ${d.period_days || 30} kun`)}</p>
+    <div className="course-pay-choice" role="radiogroup" aria-label={__kbUi("To‘lov usulini tanlang")}>
+      {methods.map((m) => <button type="button" key={m} role="radio" aria-checked={usul === m} className={`course-pay-option ${usul === m ? "is-on" : ""}`} onClick={() => setUsul(m)}><span aria-hidden="true">{USUL_BELGI[m]}</span>{__kbUi(USUL_NOMI[m])}</button>)}
+    </div>
+    {usul === "click" && d.click_avto && <AvtoTolov apiBase={apiBase} token={token} courseId={courseId} tizim="click" />}
+    {usul === "payme" && d.payme_avto && <AvtoTolov apiBase={apiBase} token={token} courseId={courseId} tizim="payme" />}
+    {usul === "click" && !d.click_avto && <div className="course-pay-box"><p>{__kbUi("Click sahifasiga o‘tib, istalgan Uzcard/Humo kartasidan yoki Click hamyonidan to‘lang. Summani aniq kiriting.")}</p>
+      <a className="course-button" href={d.click_url} target="_blank" rel="noopener noreferrer">{__kbUi("Click orqali to‘lash ↗")}</a></div>}
+    {usul === "paynet" && <div className="course-pay-box"><p>{__kbUi("Paynet ilovasi yoki shoxobchasi orqali to‘lang:")}</p>
+      {/^https:/.test(d.paynet) ? <a className="course-button" href={d.paynet} target="_blank" rel="noopener noreferrer">{__kbUi("Paynet orqali to‘lash ↗")}</a>
+        : <div className="course-pay-req"><b>{d.paynet}</b><NusxaTugma matn={d.paynet} /></div>}</div>}
+    {usul === "karta" && <div className="course-pay-box"><p>{__kbUi("Istalgan bank ilovasidan (Click, Payme, Paynet, Uzum, bankingiz) shu kartaga o‘tkazing:")}</p>
+      <div className="course-pay-req"><b className="course-pay-card">{kartaKorinish(d.card_number)}</b><NusxaTugma matn={d.card_number} /></div>
+      <small>{__kbUi("Karta egasi: ")}{d.card_holder}</small></div>}
+    {d.note && <p className="course-pay-note">{d.note}</p>}
+  </div>;
+}
+
 function CourseDetail({ apiBase, token, user, id, readOnly, onBack, onLogin, onEdit, active: isActive = true }) {
   useKbInterfaceLocale();
   const [revision, setRevision] = useState(0); const state = useCourseQuery(apiBase, token, `${ROOT}/courses/${id}`, revision);
@@ -232,6 +291,9 @@ function CourseDetail({ apiBase, token, user, id, readOnly, onBack, onLogin, onE
   const [freshProgress, setFreshProgress] = useState({});
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [info, setInfo] = useState("");
   const [reference, setReference] = useState(""); const [note, setNote] = useState(""); const [paymentForm, setPaymentForm] = useState(false);
+  // REV158: o'qituvchining to'lov usullari (Click havolasi, Paynet, karta) — o'quvchi tanlaydi va to'g'ridan-to'g'ri to'laydi
+  const [usul, setUsul] = useState("");
+  const rekvizit = useCourseQuery(apiBase, token, paymentForm && token && !readOnly ? `${ROOT}/courses/${id}/payment-details` : null, revision);
   const paymentKey = useRef(requestKey()); const actionLock = useRef(false); const active = useRef(true);
   const paymentHistory = useCourseQuery(apiBase, token, token && !readOnly ? `${ROOT}/courses/${id}/my-payment-requests` : null, revision);
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
@@ -255,7 +317,7 @@ function CourseDetail({ apiBase, token, user, id, readOnly, onBack, onLogin, onE
     if (actionLock.current) return;
     actionLock.current = true; setBusy(true); setError("");
     try {
-      await courseRequest(apiBase, token, `${ROOT}/courses/${id}/payment-request`, { method: "POST", body: { reference: reference.trim(), note: note.trim(), request_key: paymentKey.current } });
+      await courseRequest(apiBase, token, `${ROOT}/courses/${id}/payment-request`, { method: "POST", body: { reference: reference.trim(), note: note.trim(), request_key: paymentKey.current, method: usul } });
       if (!active.current) return;
       setInfo("So‘rovingiz yuborildi. O‘qituvchi haqiqiy to‘lovni tekshirib tasdiqlagach, kurs ochiladi.");
       setPaymentForm(false); setReference(""); setNote(""); paymentKey.current = requestKey(); setRevision((n) => n + 1);
@@ -281,7 +343,11 @@ function CourseDetail({ apiBase, token, user, id, readOnly, onBack, onLogin, onE
       </aside>
     </div>
     {error && <Notice error>{__kbUi(error)}</Notice>}{info && <Notice>{info}</Notice>}
-    {paymentForm && <form className="course-payment-form" onSubmit={sendPaymentRequest}><h3>{__kbUi("To‘lovni tekshirishga yuborish")}</h3><p>{__kbUi("O‘qituvchi bilan to‘lov usulini kelishing. Quyidagi so‘rovning o‘zi pul o‘tkazmaydi va kursni ochmaydi. Haqiqiy to‘lov tasdiqlangach 30 kunlik kirish huquqi beriladi.")}</p><label>{__kbUi("To‘lov ma’lumotnomasi")}<input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} required placeholder={__kbUi("Masalan: chek yoki o‘tkazma raqami")} /></label><label>{__kbUi("O‘qituvchiga izoh")}<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} rows={3} placeholder={__kbUi("To‘lov sanasi yoki qo‘shimcha izoh. Karta raqami va maxfiy kodlarni yozmang.")} /></label><div className="course-inline-actions"><button className="course-button" disabled={busy || !reference.trim()}>{busy ? __kbUi("Yuborilmoqda…") : __kbUi("Tekshirishga yuborish")}</button><button type="button" className="course-button is-secondary" onClick={() => setPaymentForm(false)}>{__kbUi("Yopish")}</button></div></form>}
+    {paymentForm && <form className="course-payment-form" onSubmit={sendPaymentRequest}><h3>{__kbUi("Kurs uchun to‘lov")}</h3>
+      <PaymentMethods state={rekvizit} usul={usul} setUsul={setUsul} apiBase={apiBase} token={token} courseId={id} />
+      {!((usul === "click" && rekvizit.data?.click_avto) || (usul === "payme" && rekvizit.data?.payme_avto)) && <><label>{__kbUi("Chek yoki o‘tkazma raqami")}<input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={120} required placeholder={__kbUi("Masalan: Click chek raqami yoki o‘tkazma ID")} /></label><label>{__kbUi("O‘qituvchiga izoh")}<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} rows={3} placeholder={__kbUi("To‘lov sanasi va kimning nomidan to‘langani. Karta raqami va maxfiy kodlarni yozmang.")} /></label>
+      <p>{__kbUi("To‘lagandan keyin «Tekshirishga yuborish»ni bosing. O‘qituvchi pul tushganini ko‘rib tasdiqlagach, kurs 30 kunga ochiladi.")}</p></>}
+      <div className="course-inline-actions">{!((usul === "click" && rekvizit.data?.click_avto) || (usul === "payme" && rekvizit.data?.payme_avto)) && <button className="course-button" disabled={busy || !reference.trim() || (rekvizit.data?.methods?.length > 0 && !usul)}>{busy ? __kbUi("Yuborilmoqda…") : __kbUi("Tekshirishga yuborish")}</button>}<button type="button" className="course-button is-secondary" onClick={() => setPaymentForm(false)}>{__kbUi("Yopish")}</button></div></form>}
     {token && Number(course.price_uzs) > 0 && !access.owner && <section className="course-payment-history"><div className="course-section-heading"><h3>{__kbUi("To‘lov so‘rovlarim")}</h3><button className="course-button is-secondary" onClick={() => setRevision((n) => n + 1)} disabled={paymentHistory.loading}>{__kbUi("Holatini yangilash")}</button></div>{paymentHistory.error && <Notice error>{__kbUi(message(paymentHistory.error))}</Notice>}{(paymentHistory.data?.items || []).map((request) => <div className="course-order" key={request.id}><strong>{__kbUi(money(request.amount_uzs))}{__kbUi(" so‘m · ")}{request.period_days || 30}{__kbUi(" kun")}</strong><span>{request.status === "approved" || request.status === "confirmed" ? __kbUi("To‘lov tasdiqlangan") : request.status === "rejected" ? __kbUi("Rad etilgan") : request.status === "cancelled" ? __kbUi("Bekor qilingan") : request.status === "expired" ? __kbUi("So‘rov muddati tugagan") : __kbUi("O‘qituvchi tekshirishi kutilmoqda")}</span><small>{__kbUi(dateLabel(request.created_at))}{request.reference ? __kbUi(` · ${request.reference}`) : __kbUi("")}</small>{request.decision_note && <p>{request.decision_note}</p>}</div>)}{!paymentHistory.loading && !paymentHistory.error && !paymentHistory.data?.items?.length && <p className="course-muted">{__kbUi("Hali so‘rov yuborilmagan.")}</p>}</section>}
 
     <div className="course-section-heading"><div><h3>{__kbUi("Kurs dasturi")}</h3><p>{__kbUi("Darsni ochib nazariya, video va mashqlar bilan tanishing.")}</p></div></div>

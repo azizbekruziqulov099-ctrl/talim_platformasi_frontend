@@ -194,3 +194,18 @@ html[data-kb-dark="1"]:not([data-kb-kid="1"]) { background:#fff; filter: invert(
 html[data-kb-dark="1"]:not([data-kb-kid="1"]) :is(img, video, canvas, picture, iframe, object, embed, .kb-keep-colors, .premium-sidebar, .shablon-hero),
 html[data-kb-dark="1"]:not([data-kb-kid="1"]) [style*="url("]:not(:has(*)) { filter: invert(1) hue-rotate(180deg); }
 html[data-kb-dark="1"]:not([data-kb-kid="1"]) :is(picture, .kb-keep-colors, .premium-sidebar, .shablon-hero) :is(img, video, canvas, picture, [style*="url("]) { filter: none; }   /* o'zi to'q bloklar to'qligicha qoladi */
+/* REV162: qisqa til tanlash (UZ / RU / EN) */
+.kb-lang{position:relative;display:inline-flex;flex:none}
+.kb-lang-button{display:inline-flex!important;align-items:center;gap:5px;height:38px;width:auto!important;padding:0 10px!important;border:1px solid #d9e3ea;border-radius:999px!important;background:#fff;color:#1b4b7a;font:800 12.5px/1 system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.kb-lang-button .kb-lang-code{letter-spacing:.04em;font-weight:900}
+.kb-lang-caret{font-size:10px;opacity:.7}
+.kb-lang-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:2147483100;list-style:none;margin:0;padding:6px;min-width:190px;background:#fff;border:1px solid #e5e1d8;border-radius:14px;box-shadow:0 14px 40px rgba(23,50,75,.18)}
+.kb-lang-menu button{display:grid!important;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px;width:100%!important;height:auto!important;padding:9px 10px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#21384c!important;font:700 14px/1.1 system-ui,sans-serif;text-align:left;cursor:pointer}
+.kb-lang-menu button:hover,.kb-lang-menu button.is-on{background:#eef5fb!important}
+.kb-lang-menu small{color:#8a8578;font-size:11px;font-weight:800}
+html[data-kb-dark="1"] .kb-lang-menu{background:#fff}
+.kb-interface-actions{display:inline-flex;align-items:center;gap:6px;flex:none}
+@media(max-width:520px){.kb-lang-button svg,.kb-lang-caret{display:none}.kb-lang-button{padding:0 9px!important;height:36px}.kb-interface-actions{gap:4px}}
+@media(max-width:520px){.samtm-top-switch .samtm-space button{white-space:nowrap;padding:8px 8px!important;font-size:12.5px!important}}
+.kb-lang-more{border-top:1px solid #efece4;margin-top:4px;padding-top:4px}
+@media(max-width:520px){.kb-interface-actions .kb-interface-button{display:none!important}}

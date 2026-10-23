@@ -525,6 +525,12 @@ const sinfTalabaMi = (qiymat) => /^\s*[1-6]\s*-?\s*kurs(?:\s+magistr)?\s*$/i.tes
 const MilitaryRoutine = _samtmLazyRetry(() => import("./school/MilitaryRoutine.jsx"));
 // REV91: ota-ona — farzandning bugungi darslari jonli.
 const FarzandFaollik = _samtmLazyRetry(() => import("./parent/FarzandFaollik.jsx"));
+// REV163: bola telefoni (ota-ona bergan kod bilan kirilgan) — profil almashtirish tugmasi ko'rinmaydi
+const BOLA_QURILMA = "kabutar:bola-qurilma";
+const bolaQurilmasi = () => { try { return window.localStorage.getItem(BOLA_QURILMA) === "1"; } catch { return false; } };
+// REV162: ota-ona markazi — kundalik (AI bahosi), haftalik reja, kurslar (narx, rozilik, to'lov), «O'zingiz sinab ko'ring».
+const BolaMarkazi = _samtmLazyRetry(() => import("./parent/BolaMarkazi.jsx"));
+const BogchaNarxlar = _samtmLazyRetry(() => import("./admin/BogchaNarxlar.jsx"));
 // REV103: bog'cha bolasining kunlik vaqti (dars + erkin o'yin) — vaqt tugasa ekran yopiladi, «Ertaga uchrashamiz».
 const KidTimeGuard = _samtmLazyRetry(() => import("./kid/KidTimeGuard.jsx"));
 const lazyAdminTestTool = (exportName) =>
@@ -12087,7 +12093,7 @@ function OtaOnaTab({ token, foydalanuvchi, rang }) {
       ) : tanlanganBola ? (
         <>
           <div className="px-3 sm:px-5 pt-3">
-            <FarzandFaollik apiBase={API_BASE} token={token} childId={tanlanganBola} />
+            <BolaMarkazi key={tanlanganBola} apiBase={API_BASE} token={token} childId={tanlanganBola} />
             <MilitaryRoutine token={token} apiBase={API_BASE} childId={tanlanganBola} readOnly />
             {sinfTalabaMi(farzandlar.find((bola) => Number(bola.user_id) === Number(tanlanganBola))?.class) ? (
               <p className="rounded-2xl border bg-white p-4 text-sm mb-3" style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)", color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("🎓 Farzandingiz talaba — paralar jadvalini o'zi boshqaradi, maktab jadvali tuzilmaydi.")}</p>
@@ -13103,6 +13109,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_korinish", nom: "O‘quvchi ko‘zi bilan", ikon: Eye },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },   // REV129: admin ham barcha o'yinlarni ko'radi (cheklovsiz)
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
+      { kalit: "admin_bogcha", nom: "Bog‘cha narxlari", ikon: Wallet },   // REV162
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
             { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
@@ -14235,6 +14242,13 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   const { t: uiT } = useInterface();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  // REV162: ota-ona paneli (kurs olish) «Gmail / Telegram ulash» tugmasi akkaunt oynasini ochadi
+  const [accountTelegram, setAccountTelegram] = useState(false);
+  useEffect(() => {
+    const open = (event) => { setAccountTelegram(Boolean(event?.detail?.telegram)); setAccountOpen(true); };
+    window.addEventListener("kb:open-account", open);
+    return () => window.removeEventListener("kb:open-account", open);
+  }, []);
   const [membershipNotice, setMembershipNotice] = useState("");
   const [membershipRevision, setMembershipRevision] = useState(0);
   const [profileReload, setProfileReload] = useState(0);
@@ -14764,7 +14778,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")} grade={foydalanuvchi?.class || ""}
           onGo={(keyingi) => { kabutarniOch(false); tabTanlandi(keyingi); }} onLogout={onLogout} />
       </React.Suspense>}
-      {accountOpen && !readOnly && <AccountSecurity apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} onClose={() => setAccountOpen(false)} onChangeRole={foydalanuvchi?.is_admin ? undefined : rolniAlmashtir} />}
+      {accountOpen && !readOnly && <AccountSecurity key={accountTelegram ? "tg" : "acc"} apiBase={API_BASE} token={token} onToken={onToken} onLogout={onLogout} initialTelegramOpen={accountTelegram} onClose={() => { setAccountOpen(false); setAccountTelegram(false); window.dispatchEvent(new CustomEvent("kb:account-closed")); }} onChangeRole={foydalanuvchi?.is_admin ? undefined : rolniAlmashtir} />}
       {kabutarYuklangan && kabutarTezKunda && <div className="samtm-kabutar-full" style={{ display: kabutarOchiq ? "block" : "none" }}>
         <div className="samtm-tez-kunda-panel" role="status">
           <span aria-hidden="true">🕊️</span>
@@ -14816,7 +14830,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             </div>
             <div className="premium-top-actions">
               <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : educationRole(foydalanuvchi) === "bogcha" ? uiT("Bog‘cha bolasi") : uiT("O‘quvchi")}</span>
-              {!readOnly && onProfiles && (isFamilyProfileUser(foydalanuvchi)
+              {!readOnly && onProfiles && !bolaQurilmasi() && (isFamilyProfileUser(foydalanuvchi)
                 ? <button type="button" className="kb-family-switch" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profilni almashtirish")} title={uiT("Profilni almashtirish")}><Users size={16} /><span>{(foydalanuvchi?.full_name || "").split(/\s+/)[0]}</span></button>
                 : <button type="button" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profillar")} title={uiT("Profillar: bitta akkauntda 10 tagacha")}><Users size={18} /></button>)}
               {oqituvchiMi && oqituvchiFanlari.length > 0 && <button type="button" className="kb-family-switch" onClick={() => setFanTanlash(true)} title={oqituvchiFanlari.join(", ")} aria-label={uiT("Fanlarim")}><BookOpen size={16} /><span>{uiT("Fanlarim")}</span></button>}
@@ -14848,6 +14862,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
+      {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode, scopeId) => { setShablonOldindanTanlangan({scopeId,codes:[topicCode]}); setTab("admin"); }} />
       )}
@@ -15198,6 +15213,7 @@ export default function App() {
     clearTelegramLinkIntent(); setTelegramLinkOpen(false);
     if (!korishRejimi && !keepQuick) dropSavedToken(token);
     if (!korishRejimi) { const family = readFamily(); if (family && family.ownerToken === token) clearFamily(); }
+    try { window.localStorage.removeItem(BOLA_QURILMA); } catch { /* ixtiyoriy */ }
     sessionEpoch.current += 1; persistSession(null);
     setOauthProfil(null); setNotice(""); setLoginError(""); setToken(null);
   }, [token, persistSession]);
@@ -15243,6 +15259,15 @@ export default function App() {
     await chiqish(false);
   };
   const familyFromProfile = isProfileSession(token);
+  // REV163: ?bola_kodi= havolasi shu qurilmada boshqa akkaunt ochiq turganda — so'raymiz, rozi bo'lsa chiqib, bola profiliga kiramiz
+  useEffect(() => {
+    if (korishRejimi || !token) return;
+    let kod = "";
+    try { const v = new URLSearchParams(window.location.search).get("bola_kodi") || ""; kod = /^\d{8}$/.test(v) ? v : ""; } catch { kod = ""; }
+    if (!kod) return;
+    if (window.confirm(__kbUi("Bu qurilmada farzandingiz profili ochilsinmi? Hozirgi akkauntdan shu qurilmada chiqiladi."))) { chiqish(false).catch(() => {}); return; }
+    try { const u = new URL(window.location.href); u.searchParams.delete("bola_kodi"); window.history.replaceState(null, "", u.toString()); } catch { /* */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { initializeSamtmPwa(); }, []);
   useEffect(() => {

@@ -70,7 +70,8 @@
   -webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 52%,#000 72%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 52%,#000 72%,transparent 100%)}
 /* REV153: og'iz — lab varag'idagi aniq shakllar; ostida chizilgan og'iz teri rangidagi yumshoq dog' bilan yashiriladi */
 .us-og-qatlam{position:absolute;inset:0;pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
-.us-og{position:absolute;aspect-ratio:1/1;transform:translate(-50%,-50%);pointer-events:none}
+/* REV164: og'iz yuz qiyaligiga mos buriladi (bosh egilgan pozalarda qiyshiq ko'rinmasin) */
+.us-og{position:absolute;aspect-ratio:1/1;transform:translate(-50%,-50%) rotate(var(--og-r,0deg));pointer-events:none}
 .us-og-teri{position:absolute;left:52%;top:50%;width:185%;height:100%;transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(closest-side,var(--teri) 62%,transparent 100%)}
 .us-og img{position:absolute;left:50%;height:auto;transform:translate(-50%,-50%);display:block;image-rendering:auto}

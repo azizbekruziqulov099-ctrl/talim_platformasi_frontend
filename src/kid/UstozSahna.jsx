@@ -32,6 +32,10 @@ function DevorSoat({ soat }) {
   </svg>;
 }
 
+// REV164: ustoz og'zi tabiiy bo'lsin — eng katta ochilgan shakllar (baqirgandek «O») o'rniga o'rtacha ochilgan shakl
+const OG_YUMSHOQ = { 3: 9, 6: 5, 8: 2 };
+export function ogYumshoq(i) { return OG_YUMSHOQ[i] ?? i; }
+
 export function havoJoyi(dz, doska) {
   const markaz = dz.l + dz.w / 2;
   if (markaz < 35 && doska) return { left: `${Math.min(80, doska.l + doska.w / 2 - 9)}%`, top: `${Math.max(2, doska.t + doska.h / 2 - 16)}%` };
@@ -148,9 +152,9 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
         style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
       {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
       {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
-        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin }}>
+        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
           <i className="us-og-teri" />
-          <img src={ogRasm[og]} alt="" draggable="false" style={{ width: `${OGIZ[og][0] * 95}%`, top: `${50 + OGIZ[og][2] * 100}%` }} />
+          <img src={ogRasm[ogYumshoq(og)]} alt="" draggable="false" style={{ width: `${OGIZ[ogYumshoq(og)][0] * 95}%`, top: `${50 + OGIZ[ogYumshoq(og)][2] * 100}%` }} />
         </span>
       </span>}
     </div>

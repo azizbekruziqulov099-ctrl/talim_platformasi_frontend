@@ -10,6 +10,14 @@ export const PROFILE_TYPES = [
   { id: 'oquvchi', label: 'O‘quvchi', icon: '📚', hint: '1–11-sinf' },
   { id: 'talaba', label: 'Talaba', icon: '🎓', hint: 'Institut' },
 ];
+// REV162: profil kim — ota-ona aniq belgilaydi (ro'yxatda shu yoziladi)
+export const RELATIONS = [
+  { id: 'farzandim', label: 'Farzandim', icon: '👧' },
+  { id: 'ikkinchi', label: 'Mening 2-akkauntim', icon: '👤' },
+  { id: 'oquvchim', label: 'O‘quvchim', icon: '🧑‍🎓' },
+  { id: 'boshqa', label: 'Boshqa', icon: '👥' },
+];
+export function relationLabel(id) { return RELATIONS.find((r) => r.id === id)?.label || ''; }
 export const KID_AGES = [2, 3, 4, 5, 6, 7];
 export const AGE_GROUPS = ['2-3 yosh', '4-5 yosh', '6-7 yosh'];
 export const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -62,6 +70,7 @@ export function profileSummary(profile) {
 /** Forma qiymatlari → API body (yaratish ham, tahrirlash ham). */
 export function profileBody(form) {
   const body = { name: String(form.name || '').replace(/\s+/g, ' ').trim().slice(0, 80), role: form.role };
+  if (RELATIONS.some((r) => r.id === form.relation)) body.relation = form.relation;
   if (form.role === 'bogcha') {
     if (form.age) body.age = Number(form.age);
     if (form.ageGroup && !form.age) body.age_group = form.ageGroup;

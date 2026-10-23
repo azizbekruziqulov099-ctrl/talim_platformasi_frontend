@@ -14,6 +14,7 @@ import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopi
 import { lessonDone, lessonStars } from './kidProgress.js';
 import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
+import { SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
 import FanBelgi from '../kid/FanBelgi.jsx';
@@ -78,7 +79,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   const list=group.mavzular.filter(t=>t.dars_bor);const i=list.indexOf(topic);let next=i>=0?list[i+1]:null;
   if(kid&&plan?.bogcha&&next){
    const u=unlockOf(group);const self=u[group.mavzular.indexOf(topic)]||{};const nu=u[group.mavzular.indexOf(next)]||{};
-   const left=(plan.fanlar?.[planFan]?.qoldi??plan.limit)-(self.isNew?1:0);
+   const rk=rejaKvotasi(plan,planFan);const left=(rk!==null?rk:(plan.fanlar?.[planFan]?.qoldi??plan.limit))-(self.isNew?1:0);
    if(!nu.known&&left<=0)next=null;   // keyingi yangi dars ertaga ochiladi
   }
   // REV130: dars boshida takrorlanadigan «o'tgan mavzu» — ro'yxatdagi oldingi oddiy dars (takror darslari hisoblanmaydi)
@@ -110,7 +111,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  </div>;
 
  if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
-  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom)}))} apiBase={apiBase} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
+  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom),holat:fanHolati(plan,sub.nom)}))} apiBase={apiBase} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
    onFan={key=>{chooseSubject(key);setOlam(false);}} say={t=>sayName(t,String(locale||'').startsWith('en'))}/>
  </div>;
 
@@ -160,7 +161,11 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       </div>
      </div></>}
      {!groups.length&&<p className="rounded-xl border border-dashed p-5 text-center text-sm text-slate-500">{__kbUi("Shartga mos mavzu topilmadi.")}</p>}
-     {kid&&(()=>{const day=todayProgress(plan,planFan);if(!day)return null;const over=day.tugadi>=day.limit;
+     {kid&&(()=>{const day=todayProgress(plan,planFan);if(!day)return null;
+      // REV162: haftalik reja — bugun bu fan rejada bo'lmasa, qachon ochilishi aytiladi
+      if(day.reja&&day.limit===0){const h=day.reja;const txt=<>{__kbUi(SABAB_MATN[h.turi]||SABAB_MATN.keyin)}{h.turi==='keyin'&&h.keyingi?<> {__kbUi("Keyingi dars")}: <b>{__kbUi(h.keyingi)}</b></>:null}</>;
+       return <div className="kt-day is-over" role="status"><span className="kt-day-text"><b>📅 {__kbUi("Haftalik reja")}</b><small>{txt}</small></span></div>;}
+      const over=day.tugadi>=day.limit;
       return <div className={`kt-day ${over?'is-over':''}`} role="status">
        <span className="kt-day-dots" aria-hidden="true">{Array.from({length:day.limit},(_,i)=><i key={i} className={i<day.tugadi?'is-done':i<day.ochildi?'is-open':''}/>)}</span>
        <span className="kt-day-text"><b>{over?__kbUi("🎉 Bugungi darslar tugadi!"):__kbUi(`Bugun: ${day.limit} ta yangi dars`)}</b>
@@ -175,7 +180,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       <p className="kt-age">🧸 {__kbUi(gradeLabel(type,group.sinf))}</p>
       <ul className="kt-grid">{group.mavzular.map((topic,i)=>{const target=topicTarget(current,group,topic,type);
        const stars=starsOf(topic,target,i);const done=doneOf(topic,target,i);const isNext=i===next;/* REV122: admin uchun hamma mavzu ochiq */const locked=!preview&&!user?.is_admin&&topic.dars_bor&&!unlock[i]?.open;const review=isReviewTopic(topic.nomi);
-       const open=()=>{if(locked){sayName(__kbUi("Bu dars ertaga ochiladi"));return;}if(topic.dars_bor)openLesson(group,topic);};
+       const open=()=>{if(locked){const h=todayProgress(plan,planFan)?.reja;sayName(h?.turi==='keyin'&&h.keyingi?`${__kbUi("Bu dars shu kuni ochiladi")}: ${__kbUi(h.keyingi)}`:__kbUi("Bu dars ertaga ochiladi"));return;}if(topic.dars_bor)openLesson(group,topic);};
        return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${done?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''} ${review?'is-review':''}`} style={{'--kt-bg':review?'#EDE3FF':kidTopicColor(i)}}
         onClick={e=>{if(e.target.closest('button'))return;open();}}>
         <span className="kt-no">{done?'✓':locked?'🔒':i+1}</span>

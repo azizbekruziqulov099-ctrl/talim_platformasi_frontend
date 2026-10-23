@@ -682,6 +682,29 @@ button {
   background: white;
 }
 
+/* REV162: «Profilni almashtirish» / «Fanlarim» — ism yozilgan keng tugma (profil CSS yuklanmasidan oldin ham to'g'ri) */
+.premium-top-actions button.kb-family-switch {
+  width: auto;
+  max-width: 150px;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.premium-top-actions button.kb-family-switch > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 420px) {
+  .premium-top-actions button.kb-family-switch { max-width: 110px; padding: 0 9px; }
+}
+
 .premium-top-actions .premium-top-avatar {
   color: white;
   border: 0;

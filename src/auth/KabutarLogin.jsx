@@ -13,6 +13,45 @@ import { saveTelegramPhone } from "./telegramCodeClient.js";
 import { PRESCHOOL_GROUPS } from "../workspace/educationRules.js";
 import emblema from "../brand/emblema.webp";
 import { KirishHero, KirishImkoniyatlar } from "./KirishTanishuv.jsx";
+import { XATO_MATN } from "../parent/bogchaReja.js";
+
+export const BOLA_QURILMA_KEY = "kabutar:bola-qurilma";
+/** REV163: havoladagi ?bola_kodi=12345678 (ota-ona «Bola telefonida ochish» orqali yuborgan). */
+export function urlBolaKodi() {
+  try { const v = new URLSearchParams(window.location.search).get("bola_kodi") || ""; return /^\d{8}$/.test(v) ? v : ""; } catch { return ""; }
+}
+
+/** REV163: bola telefonida faqat bola profiliga kirish — ota-ona bergan bir martalik 8 xonali kod bilan. */
+function BolaKodiLogin({ apiBase, onAuthenticated }) {
+  const [kod, setKod] = useState(() => urlBolaKodi());
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const auto = useRef(false);
+  const submit = async (event) => {
+    event?.preventDefault?.();
+    const code = kod.replace(/\D/g, "");
+    if (code.length !== 8) { setErr(XATO_MATN.kod_format); return; }
+    setBusy(true); setErr("");
+    try {
+      const res = await fetch(authEndpoint(apiBase, "/auth/profiles/device-login"), { method: "POST", cache: "no-store", credentials: "omit",
+        headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) { const d = data?.detail; throw new Error((d?.kod && XATO_MATN[d.kod]) || (typeof d === "string" ? d : d?.xabar) || "Kirish amalga oshmadi. Qayta urinib ko‘ring."); }
+      try { window.localStorage.setItem(BOLA_QURILMA_KEY, "1"); } catch { /* ixtiyoriy */ }
+      try { const u = new URL(window.location.href); u.searchParams.delete("bola_kodi"); window.history.replaceState(null, "", u.toString()); } catch { /* */ }
+      onAuthenticated({ token: data.token });
+    } catch (e) { setErr(e.message); setBusy(false); }
+  };
+  useEffect(() => { if (!auto.current && kod.length === 8) { auto.current = true; submit(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <form className="kb-login-password-form kb-login-method-panel kb-login-child" onSubmit={submit}>
+    <label htmlFor="kabutar-bola-kodi">{__kbUi("Ota-onangiz bergan 8 xonali kod")}</label>
+    <input id="kabutar-bola-kodi" inputMode="numeric" autoComplete="one-time-code" maxLength={9} value={kod}
+      onChange={(e) => setKod(e.target.value.replace(/[^\d ]/g, ""))} placeholder="1234 5678" />
+    {err && <p className="kb-login-poll-notice" role="alert">{__kbUi(err)}</p>}
+    <button className="kb-login-primary" type="submit" disabled={busy}>{busy ? <LoaderCircle size={19} className="kb-login-spin"/> : "👧"} {__kbUi("Farzand profiliga kirish")}</button>
+    <p className="kb-login-child-hint">{__kbUi("Kodni ota-ona o‘z telefonida oladi: «Kim o‘rganadi?» → farzand kartasi → «📱 Bola telefonida ochish».")}</p>
+  </form>;
+}
 
 function GoogleMark() {
   return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.8-1.76-5.6-4.12H3.06v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.93a6 6 0 0 1 0-3.86V7.48H3.06a10 10 0 0 0 0 9.04l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.48l3.34 2.59c.8-2.36 3-4.12 5.6-4.12Z"/></svg>;
@@ -52,7 +91,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const [telegramKey, setTelegramKey] = useState(0);
   const [, setConfigError] = useState("");
   const [configAttempt, setConfigAttempt] = useState(0);
-  const [method, setMethod] = useState("");
+  const [method, setMethod] = useState(() => (urlBolaKodi() ? "bola" : ""));
   const [quickRole, setQuickRole] = useState("");
   const [ageOpen, setAgeOpen] = useState(false);
   // REV94: rolni bosganda — shu roldagi eski akkauntga kiradi (yangi akkaunt faqat «➕ Yangi akkaunt» bilan).
@@ -292,12 +331,15 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
               <div className="kb-login-mini-methods" role="group" aria-label={uiT("Kirish usuli")}>
                 <button type="button" className={`kb-mini-tg${method === "telegram" ? " is-open" : ""}`} onClick={() => toggleMethod("telegram")} aria-expanded={method === "telegram"}><Send size={15}/>{__kbUi("Telegram")}</button>
                 <button type="button" className="kb-mini-google" disabled={busy || !googleEnabled} onClick={startGoogle}><GoogleMark/>{__kbUi("Google")}</button>
+                <button type="button" className={`kb-mini-child${method === "bola" ? " is-open" : ""}`} onClick={() => toggleMethod("bola")} aria-expanded={method === "bola"}>👧 {__kbUi("Bola kodi")}</button>
                 <button type="button" className={`kb-mini-pass${method === "password" ? " is-open" : ""}`} onClick={() => toggleMethod("password")} aria-expanded={method === "password"}><LockKeyhole size={15}/><InterfaceText text={__kbUi("Parol")}/></button>
               </div>
               {/* REV146: sozlama kelmasa ham qizil xato ko'rsatilmaydi — tugmalar baribir ishlaydi, sozlama fonda o'zi qayta so'raladi */}
               {config && !googleEnabled && method === "google" && <p className="kb-login-poll-notice"><InterfaceText text={__kbUi("Google orqali kirish hozir sozlanmagan.")}/></p>}
 
               {method === "telegram" && <div className="kb-login-method-panel"><TelegramCodeLogin key={telegramKey} apiBase={apiBase} config={config} onAuthenticated={(data) => finish({ ...data, method: "telegram" })}/></div>}
+
+              {method === "bola" && <BolaKodiLogin apiBase={apiBase} onAuthenticated={(data) => finish(data)}/>}
 
               {method === "password" && <form className="kb-login-password-form kb-login-method-panel" onSubmit={loginWithPassword}>
                 <label htmlFor="kabutar-login-identifier"><InterfaceText text={__kbUi("Telefon, KB raqami, nik yoki email")}/></label>

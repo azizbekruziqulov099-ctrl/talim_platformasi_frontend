@@ -2,6 +2,8 @@
 // Bitta kuzatuvchi (singleton): boshlangan, lekin tugamagan dars bo'lsa, ilova ochiq turgan har 30 soniyada
 // va ilova yashirilganda/qaytganda serverga qisqa signal yuboradi. Tarmoq xatosi darsni hech qachon to'xtatmaydi.
 
+import { fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
+
 const SIGNAL_MS = 30000;
 const IDLE_MS = 60000;   // shuncha vaqt dars ham ketmasa, bola ham hech narsaga tegmasa — «to'xtab turibdi»
 
@@ -35,7 +37,8 @@ export async function startLesson(apiBase, token, { darsKod, fan, mavzu, jamiQad
     const d = await post(apiBase, token, '/api/bola/dars/boshla', { dars_kod: darsKod, fan: fan || '', mavzu: String(mavzu || '').slice(0, 200), jami_qadam: jamiQadam || 0 });
     return { ok: true, tracked: !d.kuzatilmaydi, reja: d.reja || null };
   } catch (e) {
-    if (e.status === 409 && (e.code === 'limit' || e.code === 'vaqt')) return { ok: false, limit: true, vaqt: e.code === 'vaqt', xabar: e.message, reja: null };
+    // REV162: 'reja' — haftalik reja bo'yicha bugun shu fandan yangi dars yo'q (yakshanba, keyingi kun yoki navbatda)
+    if (e.status === 409 && (e.code === 'limit' || e.code === 'vaqt' || e.code === 'reja')) return { ok: false, limit: true, vaqt: e.code === 'vaqt', rejaXabar: e.code === 'reja', xabar: e.message, sabab: e.data?.sabab || '', keyingi: e.data?.keyingi || '', reja: null };
     return { ok: true, tracked: false, offline: true };
   }
 }
@@ -67,7 +70,9 @@ export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 
 export function unlockLessons(codes, plan, fan) {
   if (!plan || !plan.bogcha) return codes.map(() => ({ open: true, known: false, isNew: false }));
   const lessons = plan.darslar || {};
-  let quota = plan.fanlar?.[fan]?.qoldi ?? plan.limit ?? 2;
+  // REV162: haftalik reja bo'lsa — shu fan bugun rejadami (server hisoblaydi), aks holda eski «kuniga 2/3»
+  const rk = rejaKvotasi(plan, fan);
+  let quota = rk !== null ? rk : (plan.fanlar?.[fan]?.qoldi ?? plan.limit ?? 2);
   return codes.map((code) => {
     if (!code) return { open: false, known: false, isNew: false };
     if (lessons[code]) return { open: true, known: true, isNew: false, ...lessons[code] };
@@ -80,6 +85,11 @@ export function unlockLessons(codes, plan, fan) {
 export function todayProgress(plan, fan) {
   if (!plan || !plan.bogcha) return null;
   const f = plan.fanlar?.[fan] || { ochildi: 0, tugadi: 0 };
+  const h = fanHolati(plan, fan);
+  if (h) {   // REV162: reja — bugun shu fandan ochilganlari + qolgan kvota
+    const limit = f.ochildi + h.kvota;
+    return { limit, ochildi: f.ochildi, tugadi: f.tugadi, qoldi: h.kvota, damOlish: plan.dam_olish, kun: plan.kun, reja: h };
+  }
   return { limit: plan.limit, ochildi: f.ochildi, tugadi: f.tugadi, qoldi: Math.max(0, plan.limit - f.ochildi), damOlish: plan.dam_olish, kun: plan.kun };
 }
 

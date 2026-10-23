@@ -31,12 +31,22 @@ export default function BogchaOlami({ fanlar = [], onFan, say, apiBase = "", gra
     </div>;
   }
 
+  // REV163: haftalik reja — bugungi fanlar birinchi, har kartada «Bugun» yoki keyingi kun belgisi
+  const tartib = fanlar.some((f) => f.holat) ? [...fanlar].sort((a, b) => (a.holat?.turi === "bor" ? 0 : 1) - (b.holat?.turi === "bor" ? 0 : 1)) : fanlar;
+  const bugungi = fanlar.filter((f) => f.holat?.turi === "bor");
+  const takror = fanlar.some((f) => f.holat?.turi === "takror");
   return <div className="ol-root">
     <h2 className="ol-head">🏫 {T("Qaysi fanni o‘rganamiz?")}</h2>
+    {(bugungi.length > 0 || takror) && <p className="ol-today" role="status">{takror ? <>🔁 {T("Bugun yakshanba — takrorlash kuni")}</>
+      : <>⭐ {T("Bugungi darslar")}: {bugungi.map((f) => <span key={f.kalit} className="ol-today-chip"><FanBelgi emoji={f.emoji} /> {f.nom}</span>)}</>}</p>}
     <div className="ol-grid">
-      {fanlar.map((f, i) => {
+      {tartib.map((f, i) => {
         const til = fanTili(f.asl || f.nom);
-        return <div key={f.kalit} className="ol-fan" style={{ "--fan": RANGLAR[i % RANGLAR.length] }}>
+        const h = f.holat;
+        return <div key={f.kalit} className={`ol-fan ${h ? `is-${h.turi}` : ""}`} style={{ "--fan": RANGLAR[i % RANGLAR.length] }}>
+          {h?.turi === "bor" && <span className="ol-fan-badge is-bor">⭐ {T("Bugun")}</span>}
+          {h?.turi === "keyin" && h.keyingi && <span className="ol-fan-badge">📅 {T(h.keyingi)}</span>}
+          {h?.turi === "navbat" && <span className="ol-fan-badge">⏳ {T("Navbatda")}</span>}
           <button type="button" className="ol-fan-main" onClick={() => { say?.(f.nom); onFan?.(f.kalit); }}>
             <span className="ol-fan-emoji" aria-hidden="true"><FanBelgi emoji={f.emoji} /></span>
             <b>{f.nom}</b>

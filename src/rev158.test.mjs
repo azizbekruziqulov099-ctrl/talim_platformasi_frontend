@@ -16,7 +16,7 @@ test("every teacher pose has a mouth overlay (lips move in every pose)", () => {
     const blok = s.slice(s.indexOf(`  ${t}: {`), s.indexOf("\n  },", s.indexOf(`  ${t}: {`)));
     for (let p = 1; p <= 6; p += 1) {
       const line = blok.split("\n").find((l) => l.trim().startsWith(`${p}: {`));
-      assert.ok(line && /og: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, skin: "#[0-9a-f]{6}" \}/.test(line), `${t} ${p}`);
+      assert.ok(line && /og: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, (?:r: -?[\d.]+, )?skin: "#[0-9a-f]{6}" \}/.test(line), `${t} ${p}`);
     }
   }
   assert.match(src("./kid/UstozSahna.jsx"), /us-og-qatlam/);

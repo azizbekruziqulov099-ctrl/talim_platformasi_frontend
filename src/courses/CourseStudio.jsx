@@ -74,6 +74,54 @@ function TextField({ label, value, onChange, multiline = false, hint, ...rest })
 }
 function Help({ children }) { return <p className="cs-help">{children}</p>; }
 
+// REV158: o'qituvchining to'lov rekvizitlari — o'quvchi pulni to'g'ridan-to'g'ri shu hisobga o'tkazadi
+// (Click havolasi, Paynet, istalgan bank kartasidan karta raqamiga), keyin chek raqamini yuboradi.
+export const METHOD_LABEL = { click: "Click", paynet: "Paynet", karta: "Karta o‘tkazmasi" };
+function TeacherPaymentDetails({ apiBase, token }) {
+  useKbInterfaceLocale();
+  const [form, setForm] = useState({ click_url: "", paynet: "", card_number: "", card_holder: "", note: "" });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    let alive = true;
+    courseRequest(apiBase, token, "/api/kurslar/payment-details").then((d) => { if (alive) setForm({ click_url: d.click_url || "", paynet: d.paynet || "", card_number: d.card_number || "", card_holder: d.card_holder || "", note: d.note || "" }); })
+      .catch((e) => { if (alive) setError(e.message || "Rekvizitlar yuklanmadi."); }).finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [apiBase, token]);
+  const set = (k) => (v) => { setForm((f) => ({ ...f, [k]: v })); setNotice(""); };
+  async function save(event) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const d = await courseRequest(apiBase, token, "/api/kurslar/payment-details", { method: "PUT", body: form });
+      setForm({ click_url: d.click_url || "", paynet: d.paynet || "", card_number: d.card_number || "", card_holder: d.card_holder || "", note: d.note || "" });
+      setNotice(d.methods?.length ? "Saqlandi. O‘quvchilar endi shu usullardan birini tanlab to‘laydi." : "Saqlandi. Hech qanday usul kiritilmagan — o‘quvchiga «o‘qituvchi bilan kelishing» deb ko‘rsatiladi.");
+    } catch (e) { setError(e.message || "Saqlab bo‘lmadi."); }
+    finally { setBusy(false); }
+  }
+  return <section className="cs-card" aria-label={__kbUi("To‘lov rekvizitlari")}>
+    <div className="cs-section-heading"><div><h2>{__kbUi("To‘lov qabul qilish")}</h2>
+      <Help>{__kbUi("O‘quvchi pulni to‘g‘ridan-to‘g‘ri sizning hisobingizga o‘tkazadi — sayt pulni ushlamaydi. Bitta yoki bir nechta usulni kiriting; bu ma’lumot barcha pulli kurslaringizda ko‘rinadi.")}</Help></div></div>
+    {loading ? <p className="cs-help" role="status">{__kbUi("Yuklanmoqda…")}</p> : <form className="cs-fields" onSubmit={save}>
+      <TextField label="Click to‘lov havolasi" value={form.click_url} onChange={set("click_url")} placeholder="https://my.click.uz/…" inputMode="url" maxLength={500}
+        hint="Click Business ilovasida yaratilgan to‘lov havolasi (https://… click.uz). Bo‘sh qoldirsangiz, Click usuli ko‘rinmaydi." />
+      <TextField label="Paynet" value={form.paynet} onChange={set("paynet")} placeholder="Paynet hamyon raqami yoki https://paynet.uz/… havolasi" maxLength={500}
+        hint="Paynet Biznes hamyoningizning raqami/telefoni yoki to‘lov havolasi." />
+      <div className="cs-grid-two">
+        <TextField label="Karta raqami (Uzcard, Humo, Visa…)" value={form.card_number} onChange={set("card_number")} placeholder="8600 0000 0000 0000" inputMode="numeric" maxLength={23} autoComplete="off"
+          hint="O‘quvchi istalgan bank ilovasidan shu kartaga o‘tkazadi." />
+        <TextField label="Karta egasi (ism-familiya)" value={form.card_holder} onChange={set("card_holder")} maxLength={80} hint="O‘quvchi pulni to‘g‘ri odamga o‘tkazayotganini ko‘rsin." />
+      </div>
+      <TextField label="O‘quvchiga qisqa ko‘rsatma (ixtiyoriy)" value={form.note} onChange={set("note")} multiline rows={2} maxLength={500} placeholder="Masalan: to‘lov izohiga ism-familiyangizni yozing" />
+      {error && <p className="cs-error" role="alert">{__kbUi(error)}</p>}{notice && <p className="cs-advice" role="status">{__kbUi(notice)}</p>}
+      <div className="cs-actions"><button type="submit" className="cs-primary" disabled={busy}>{busy ? __kbUi("Saqlanmoqda…") : __kbUi("Saqlash")}</button></div>
+    </form>}
+  </section>;
+}
+
 function TeacherPayments({ apiBase, token, courseId }) {
   useKbInterfaceLocale();
   const [items, setItems] = useState([]);
@@ -133,7 +181,7 @@ function TeacherPayments({ apiBase, token, courseId }) {
   return <section className="cs-card" aria-label={__kbUi("Kurs uchun to‘lov so‘rovlari")}>
     <div className="cs-section-heading"><div><h2>{__kbUi("To‘lov so‘rovlari")}</h2><Help>{__kbUi("Pul tushganini o‘zingiz tekshiring. O‘quvchining xabar yuborishi obunani ochmaydi.")}</Help></div><button type="button" className="cs-secondary" disabled={loading} onClick={() => load()}>{__kbUi("Yangilash")}</button></div>
     {loading && <p className="cs-help" role="status">{__kbUi("To‘lovlar tekshirilmoqda…")}</p>}{error && <p className="cs-error" role="alert">{__kbUi(error)}</p>}{notice && <p className="cs-advice" role="status">{__kbUi(notice)}</p>}
-    <div className="cs-payments-list">{items.map(item => <article className="cs-payment" key={item.id}><div><strong>{item.user_name || __kbUi(`O‘quvchi ${item.user_id}`)}</strong><p>{__kbUi(money(item.amount_uzs))}{__kbUi(" so‘m · ")}{item.period_days || 30}{__kbUi(" kun")}</p><p className="cs-payment-meta">{item.created_at ? __kbUi(new Date(item.created_at).toLocaleString(__kbLocaleTag())) : __kbUi("")}</p><p>{__kbUi("To‘lov izohi: ")}{item.reference || __kbUi("—")}</p>{item.note && <p>{item.note}</p>}</div><div className="cs-actions"><button type="button" className="cs-primary" disabled={loading} onClick={() => openDecision(item, "confirm")}>{__kbUi("Tekshirish va tasdiqlash")}</button><button type="button" className="cs-secondary" disabled={loading} onClick={() => openDecision(item, "reject")}>{__kbUi("Rad etish")}</button></div></article>)}{!items.length && !loading && !error && <p className="cs-empty">{__kbUi("Hozir kutilayotgan to‘lov so‘rovi yo‘q.")}</p>}</div>
+    <div className="cs-payments-list">{items.map(item => <article className="cs-payment" key={item.id}><div><strong>{item.user_name || __kbUi(`O‘quvchi ${item.user_id}`)}</strong><p>{__kbUi(money(item.amount_uzs))}{__kbUi(" so‘m · ")}{item.period_days || 30}{__kbUi(" kun")}</p><p className="cs-payment-meta">{item.created_at ? __kbUi(new Date(item.created_at).toLocaleString(__kbLocaleTag())) : __kbUi("")}</p>{item.method && <p>{__kbUi("To‘lov usuli: ")}<b>{__kbUi(METHOD_LABEL[item.method] || item.method)}</b></p>}<p>{__kbUi("To‘lov izohi: ")}{item.reference || __kbUi("—")}</p>{item.note && <p>{item.note}</p>}</div><div className="cs-actions"><button type="button" className="cs-primary" disabled={loading} onClick={() => openDecision(item, "confirm")}>{__kbUi("Tekshirish va tasdiqlash")}</button><button type="button" className="cs-secondary" disabled={loading} onClick={() => openDecision(item, "reject")}>{__kbUi("Rad etish")}</button></div></article>)}{!items.length && !loading && !error && <p className="cs-empty">{__kbUi("Hozir kutilayotgan to‘lov so‘rovi yo‘q.")}</p>}</div>
     {cursor != null && <button type="button" className="cs-secondary" disabled={loading} onClick={() => load(cursor)}>{__kbUi("Keyingi so‘rovlar")}</button>}
     {decision && <div className="cs-confirm-backdrop"><div className="cs-confirm" role="alertdialog" aria-modal="true" aria-labelledby="cs-payment-title" onKeyDown={event => {
       if (event.key === "Escape" && !loading) setDecision(null);
@@ -417,6 +465,7 @@ export default function CourseStudio({ apiBase, token, courseId = null, onBack, 
           </>}
         </main>
       </div>}
+      {course && Number(course.price_uzs) > 0 && <TeacherPaymentDetails apiBase={apiBase} token={token} />}
       {course && Number(course.price_uzs) > 0 && <TeacherPayments key={course.id} apiBase={apiBase} token={token} courseId={course.id} />}
       {course && <section className="cs-card cs-publish"><div><h2>{__kbUi("4. Kursni o‘quvchilarga ochish")}</h2><Help>{Number(course.price_uzs) > 0 ? __kbUi(`${money(course.price_uzs)} so‘m / 30 kun. 2–3 ta bepul dars, qolganlari obuna bilan ochiladi.`) : __kbUi("Bepul kurs: o‘quvchi hisobiga kirib qo‘shiladi.")}{__kbUi(" Bepul sinov darslari uchun kurs paroli kerak emas. To‘lov tasdiqlanganidan keyin pulli darslar ochiladi.")}</Help></div><div className="cs-actions"><button type="button" className="cs-primary" disabled={Boolean(busy)} onClick={askPublish}>{course.status === "published" ? __kbUi("Nashr holatini tekshirish") : __kbUi("Kursni nashr qilish")}</button>{course.status === "published" && <button type="button" className="cs-secondary" disabled={Boolean(busy) || dirty} onClick={() => setConfirm({ kind: "archive" })}>{__kbUi("Kursni arxivlash")}</button>}</div></section>}
     </>}

@@ -10,6 +10,7 @@ import { markLessonDone } from "../curriculum/kidProgress.js";
 import { KID_PITCH, kidRate, ustozRate, kidRepeatSpeech, kidTakrorStep, kidTaskModel, ismOldin } from "./kidLessonRules.js";
 import { APP_VERSION } from "../appVersion.js";
 import { answerSpeed, finishLesson, kidTracker, startLesson } from "../kid/kidActivity.js";
+import { SABAB_MATN } from "../parent/bogchaReja.js";
 import { screenTime } from "../kid/screenTime.js";
 import { LIP_STEP, loadEnvelope } from "../kid/lipSync.js";
 import { ustozNutqi } from "../kid/ustozNutqi.js";
@@ -25,7 +26,7 @@ const qadamMaqsadi = (st) => { const q = qadamSozi(st); return q ? [q.say] : [];
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
+import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
@@ -184,8 +185,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const qolgan = [...boshi.qolgan];
     const kirishlar = [];
     while (qolgan.length && qolgan[0]?.turi === "kirish") { const t = kirishniTozala(qolgan.shift()); if (t) kirishlar.push(t); }
-    return [...opening, ...kirishlar, ...boshi.takror, ...qolgan];
-  }, [opening, boshi]);
+    const list = [...opening, ...kirishlar, ...boshi.takror, ...qolgan];
+    // REV164: bosib topiladigan o'yin yo'q darsga (matematika/mantiq takrori, uy topshirig'i darsi) — xulosadan oldin «Top-chi»
+    const dars = list.slice(opening.length);
+    const extra = qoshimchaOyin(dars, dars.map((x) => stepKind(x, lesson?.topic?.mavzu)),
+      tIzoh && tIzoh !== "uz" ? gap(tIzoh, "Barakalla! Endi o'ynaymiz!") : "Barakalla! Endi o‘ynaymiz!");
+    if (!extra) return list;
+    let at = list.length;
+    while (at > opening.length && list[at - 1]?.turi === "xulosa") at -= 1;
+    return [...list.slice(0, at), { ...extra, sahna: list[at - 1]?.sahna }, ...list.slice(at)];
+  }, [opening, boshi, lesson, tIzoh]);
   const step = idx >= 0 ? steps[idx] : null;
   // REV102: har qadam turi — takror (o'tgan darslar) yoki yangi bilim; bolaga belgi, rang va ovoz bilan ko'rsatiladi.
   const kinds = useMemo(() => steps.reduce((out, s, i) => {
@@ -815,9 +824,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           : { ok: true, tracked: false };
       if (stop) return;
       if (res.limit) {
-        setLimitText(res.xabar); setLimitKind(res.vaqt ? "vaqt" : "limit"); setMode("limit");
+        // REV162: haftalik reja sababi — interfeys tilida (uz/ru/en), kun nomi bilan
+        if (res.sabab && SABAB_MATN[res.sabab]) res.xabar = __kbUi(SABAB_MATN[res.sabab]) + (res.keyingi ? ` ${__kbUi("Keyingi dars")}: ${__kbUi(res.keyingi)}.` : "");
+        setLimitText(res.xabar); setLimitKind(res.vaqt ? "vaqt" : res.rejaXabar ? "reja" : "limit"); setMode("limit");
         // REV103: bugungi dars VAQTI tugagan — robot shuni aytadi (o'yin vaqti bo'lsa, o'yinlar ochiq)
-        say(res.vaqt ? (res.xabar || __kbUi("Bugungi dars vaqti tugadi. Endi biroz o‘ynasang bo‘ladi."))
+        say(res.vaqt || res.rejaXabar ? (res.xabar || __kbUi("Bugungi dars vaqti tugadi. Endi biroz o‘ynasang bo‘ladi."))
           : __kbUi("Bugungi yangi darslar tugadi. Ertaga yana o‘ynaymiz! Hozir o‘tilgan darslarni takrorlasang bo‘ladi."));
         return;
       }
@@ -1133,8 +1144,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {!questions.length && !onOpenTest && <p className="dx-why">{__kbUi("Bu mavzu uchun Test bazasida savol hali yo‘q.")}</p>}
           </div>}
           {kid && mode === "limit" && <div className="dx-kid-end">
-            <span className="dx-kid-big" aria-hidden="true">{limitKind === "vaqt" ? "⏰" : "🌙"}</span>
-            <h3 className="dx-title">{__kbUi(limitKind === "vaqt" ? "Bugungi dars vaqti tugadi" : "Bugungi yangi darslar tugadi")}</h3>
+            <span className="dx-kid-big" aria-hidden="true">{limitKind === "vaqt" ? "⏰" : limitKind === "reja" ? "📅" : "🌙"}</span>
+            <h3 className="dx-title">{__kbUi(limitKind === "vaqt" ? "Bugungi dars vaqti tugadi" : limitKind === "reja" ? "Haftalik reja" : "Bugungi yangi darslar tugadi")}</h3>
             <p className="dx-kid-note">{__kbUi(limitText || "Yangi dars ertaga ochiladi. O‘tilgan darslarni takrorlash va o‘yinlar ochiq.")}</p>
             {onClose && <button type="button" className="dx-kid-go" onClick={() => { hush(); onClose(); }}><B e="🏠" /> {__kbUi("Darslarga qaytish")}</button>}
           </div>}

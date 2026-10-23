@@ -214,7 +214,36 @@ export function lessonWords(steps = [], kinds = []) {
   return words;
 }
 
+/** REV164: o'yin uchun so'zlar — darsning yangi so'zlari; ular kam bo'lsa (takror darsi, uy topshirig'i darsi)
+ *  yangi bilim va takror qadamlari doskasidagi «🍎 Bitta» qatorlaridan ham olinadi. */
+export function tapWords(steps = [], kinds = []) {
+  const words = lessonWords(steps, kinds);
+  if (words.size >= 2) return words;
+  steps.forEach((s, i) => {
+    if (kinds[i] !== "new" && kinds[i] !== "review") return;
+    for (const line of String(s?.doska || "").replace(TAGS_ALL, "").split(/\n+/)) {
+      const m = PIC_PREFIX.exec(line.trim());
+      if (!m) continue;
+      const key = m[1].replace(/️/g, "");
+      const word = m[2].split(/\s+[—–-]\s+/)[0].trim();
+      if (word && !/^[\p{P}\s]+$/u.test(word) && !words.has(key)) words.set(key, word);
+    }
+  });
+  return words;
+}
+
+/** REV164: darsda bosib topiladigan o'yin bo'lmasa (masalan, faqat uy topshirig'i yoki harakatli o'yin) — tushuntirishdan
+ *  keyin «🎲 Top-chi» qadami qo'shiladi: shu darsning rasmlari, bola bosadi, topilganida ✓ chiqadi. Qaytaradi qadam yoki null. */
+export function qoshimchaOyin(steps = [], kinds = [], ovoz = "") {
+  if (steps.some((s, i) => s?.turi === "amaliy" && gameTargets(s, steps, kinds).length)) return null;
+  const words = [...tapWords(steps, kinds)].slice(0, 4);
+  if (words.length < 2) return null;
+  return { turi: "amaliy", sarlavha: "🎲", doska: "", ovoz, _sintetik: true,
+    _nishon: words.map(([key, word]) => ({ key, emoji: key, word })) };
+}
+
 export function gameTargets(step, steps = [], kinds = []) {
+  if (Array.isArray(step?._nishon) && step._nishon.length >= 2) return step._nishon.map(tozaNishon);
   const words = lessonWords(steps, kinds);
   const out = [];
   for (const g of String(step?.doska || "").replace(TAGS_ALL, "").split(/\s{2,}|\n+/).map((x) => x.trim()).filter(Boolean)) {
@@ -227,7 +256,9 @@ export function gameTargets(step, steps = [], kinds = []) {
   if (out.length < 2 && /🎲/u.test(String(step?.sarlavha || "") + String(step?.doska || ""))) {
     const ovoz = String(step?.ovoz || "");
     const norm = (t) => normWord(String(t || "").replace(TAGS_ALL, ""));
-    const teglar = [...ovoz.matchAll(/\[(?:en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/(?:en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi)].map((m) => norm(m[1]));
+    const tegli = [...ovoz.matchAll(/\[(?:en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/(?:en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi)].map((m) => norm(m[1]));
+    // REV164: o'zbekcha (izohsiz) matematika/mantiq darslarida o'yin gapi tegsiz keladi — butun gap ichidan qidiramiz
+    const teglar = tegli.length ? tegli : (ovoz.trim() ? [norm(ovoz)] : []);
     for (const t of teglar) {
       for (const [key, word] of words) {
         if (norm(word) === t && !out.some((x) => x.key === key)) out.push({ key, emoji: key, word });
@@ -249,7 +280,14 @@ export function gameTargets(step, steps = [], kinds = []) {
       topilgan.sort((a, b) => a.at - b.at).forEach(({ key, word }) => { if (!out.some((x) => x.key === key)) out.push({ key, emoji: key, word }); });
     }
   }
-  return out.length >= 2 ? out.slice(0, 4) : [];
+  return out.length >= 2 ? out.slice(0, 4).map(tozaNishon) : [];
+}
+
+// REV164: «🧒🍬 👧🍬 Bittadan» — so'z boshidagi qo'shimcha rasm belgilari ovozda o'qilmasin (rasm kalitda qoladi)
+const BOSH_BELGI = /^(?:[\p{Extended_Pictographic}\p{Regional_Indicator}\u{FE0F}\u{200D}\p{Emoji_Modifier}]+\s*)+/u;
+function tozaNishon(t) {
+  const word = String(t.word || "").replace(BOSH_BELGI, "").trim();
+  return word && word !== t.word ? { ...t, word } : t;
 }
 
 /** Bola o'yinda nechta yulduz oldi — darsning umumiy natijasi (test + o'yin). 0 ta to'g'ri — 0 yulduz. */

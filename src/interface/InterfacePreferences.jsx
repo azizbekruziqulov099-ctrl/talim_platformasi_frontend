@@ -101,8 +101,41 @@ function InterfaceDialog({ onClose }) {
     <button type="button" className="kb-interface-close" aria-label={t('Yopish')} onClick={onClose}><X size={20}/></button><InterfaceSettings/>
   </dialog>, document.body);
 }
+// REV162: saytlardagidek qisqa til tanlash — «UZ ▾» bosilsa uch til (o'z nomlari bilan), bir bosishda almashadi.
+const LANG_CODE = { uz: 'UZ', ru: 'RU', en: 'EN' };
+const LANG_FLAG = { uz: '🇺🇿', ru: '🇷🇺', en: '🇬🇧' };
+export function LanguageSwitch({ className = '', onSettings }) {
+  const { t, locale, updateInterface } = useInterface();
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  const id = useId();
+  useEffect(() => {
+    if (!open) return undefined;
+    const away = event => { if (box.current && !box.current.contains(event.target)) setOpen(false); };
+    const key = event => { if (event.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', away, true);
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', key); };
+  }, [open]);
+  const code = LANG_CODE[locale] || String(locale || 'uz').toUpperCase().slice(0, 2);
+  return <span className={`kb-lang ${className}`} ref={box}>
+    <button type="button" className="kb-lang-button" aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-list`}
+      aria-label={t('Ilova tili')} title={t('Ilova tili')} onClick={() => setOpen(v => !v)}>
+      <Globe2 size={15} aria-hidden="true"/><span className="kb-lang-code">{code}</span><span aria-hidden="true" className="kb-lang-caret">▾</span>
+    </button>
+    {open && <ul className="kb-lang-menu" role="listbox" id={`${id}-list`} aria-label={t('Ilova tili')}>
+      {INTERFACE_LOCALES.map(item => <li key={item.value}><button type="button" role="option" aria-selected={locale === item.value} lang={item.lang}
+        className={locale === item.value ? 'is-on' : ''} onClick={() => { setOpen(false); if (locale !== item.value) updateInterface({ locale: item.value }); }}>
+        <span aria-hidden="true">{LANG_FLAG[item.value] || '🌐'}</span><span>{item.label}</span><small>{LANG_CODE[item.value] || item.value}</small>
+        {locale === item.value && <Check size={14} aria-hidden="true"/>}
+      </button></li>)}
+      {onSettings && <li className="kb-lang-more"><button type="button" onClick={() => { setOpen(false); onSettings(); }}>
+        <SlidersHorizontal size={15} aria-hidden="true"/><span>{t('Til va ko‘rinish')}</span><small/></button></li>}
+    </ul>}
+  </span>;
+}
 export function InterfaceSettingsButton({ className = '', showLabel = false }) {
   const [open, setOpen] = useState(false);
   const { t } = useInterface();
-  return <><button type="button" className={`kb-interface-button ${className}`} aria-label={t('Til va ko‘rinish')} title={t('Til va ko‘rinish')} aria-haspopup="dialog" onClick={() => setOpen(true)}><SlidersHorizontal size={19}/>{showLabel && <span>{t('Til va ko‘rinish')}</span>}</button>{open && <InterfaceDialog onClose={() => setOpen(false)}/>}</>;
+  return <span className="kb-interface-actions"><LanguageSwitch onSettings={() => setOpen(true)}/><button type="button" className={`kb-interface-button ${className}`} aria-label={t('Til va ko‘rinish')} title={t('Til va ko‘rinish')} aria-haspopup="dialog" onClick={() => setOpen(true)}><SlidersHorizontal size={19}/>{showLabel && <span>{t('Til va ko‘rinish')}</span>}</button>{open && <InterfaceDialog onClose={() => setOpen(false)}/>}</span>;
 }
