@@ -39,7 +39,8 @@ export function hoursText(minutes) {
  *  graceSince — kutish boshlangan vaqt (keyingi chaqiruvga qaytariladi). */
 export function guardView(status, cat, busy, graceSince, now) {
   if (!status || status.kuzatilmaydi || !status.tugadi) return { view: null, graceSince: 0 };
-  const done = status.tugadi.jami ? "jami" : status.tugadi[cat] ? cat : null;
+  // REV167: «tun» — uxlash vaqti (ish kunlari 22:00, shanba 23:00 dan ertalabgacha) hamma narsani yopadi
+  const done = status.tugadi.tun ? "tun" : status.tugadi.jami ? "jami" : status.tugadi[cat] ? cat : null;
   // dars ketayotganda boshqa oynaga (masalan Kabutar) kirib-chiqish kutish vaqtini qaytadan boshlamaydi
   if (!done) return { view: null, graceSince: busy ? graceSince || 0 : 0 };
   if (!busy) return { view: done, graceSince: 0 };
@@ -49,6 +50,10 @@ export function guardView(status, cat, busy, graceSince, now) {
 
 /** Bolaga robot ovozida aytiladigan gap (server matni bilan bir xil). */
 export function timeText(view, status) {
+  if (view === "tun") {
+    const soat = Number(String(status?.tun?.ochiladi || "06:00").slice(0, 2)) || 6;
+    return `Hozir uxlash vaqti. Kabutar ham uxlayapti. Ertalab soat ${soat} dan keyin uchrashamiz. Xayrli tun!`;
+  }
   if (view === "jami") {
     return `Bugun vaqting tugadi! Bugun ${uiText(hoursText(status?.jami?.limit || 120))} o‘qib-o‘ynading. Ko‘zlaring dam olsin. Ertaga uchrashamiz!`;
   }
@@ -59,7 +64,7 @@ export function timeText(view, status) {
 
 /** 5 daqiqa (yoki kamroq) qolganda — bir marta ogohlantirish matni, aks holda null. */
 export function warnText(status, cat) {
-  if (!status || status.kuzatilmaydi || !status.tugadi || status.tugadi.jami || status.tugadi[cat]) return null;
+  if (!status || status.kuzatilmaydi || !status.tugadi || status.tugadi.tun || status.tugadi.jami || status.tugadi[cat]) return null;
   const left = Number(status[cat]?.qoldi);
   if (!(left > 0 && left <= WARN_LEFT_MINUTES)) return null;
   return `${cat === "dars" ? "Dars" : "O‘yin"} vaqtidan ${left} daqiqa qoldi.`;

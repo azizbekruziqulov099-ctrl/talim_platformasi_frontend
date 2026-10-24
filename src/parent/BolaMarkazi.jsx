@@ -66,7 +66,7 @@ function RejaBolim({ holat, apiBase, token, onHolat, goKurslar }) {
   const [tanlov, setTanlov] = useState(() => holat.reja.tanlangan || []);
   useEffect(() => { setTanlov(holat.reja.tanlangan || []); }, [holat]);
   const r = holat.reja, q = holat.qoida, obuna = holat.obuna;
-  const bepul = !holat.sozlama.obuna_majburiy;
+  const bepul = holat.imtiyoz ? Boolean(holat.imtiyoz.bepul_reja) : !holat.sozlama.obuna_majburiy;   // REV167: admin farzandi — bepul
   const save = async (fanlar) => {
     setBusy("save"); setError("");
     try { onHolat(await api(apiBase, token, "/api/bogcha/reja", { method: "PUT", body: { bola_id: holat.bola.user_id, fanlar } })); }
@@ -195,8 +195,10 @@ function KurslarBolim({ holat, apiBase, token, onHolat, reload }) {
   const tarif = holat.tariflar.find((t) => t.id === tarifId) || null;
   const q = holat.qoida;
   const ul = holat.ulanish || {};
-  const googleKerak = holat.google_yoqilgan && !ul.google;
-  const tgKerak = holat.sozlama.telegram_majburiy && !ul.telegram;
+  const adminBola = Boolean(holat.imtiyoz?.admin);   // REV167: administrator farzandi — to'lov va ulanish talab qilinmaydi
+  const googleKerak = holat.google_yoqilgan && !ul.google && !adminBola;
+  const tgKerak = holat.sozlama.telegram_majburiy && !ul.telegram && !adminBola;
+  const cheg = holat.chegirma;
   const xato = tanlovXatosi(fanlar, tarif, q);
   const tolovBor = holat.tolov?.click || holat.tolov?.payme;
   const preview = useMemo(() => haftalikReja(fanlar, q), [fanlar, q]);
@@ -250,6 +252,13 @@ function KurslarBolim({ holat, apiBase, token, onHolat, reload }) {
   };
 
   return <div className="bm-stack">
+    {adminBola ? <div className="bm-card bm-gift is-admin">
+      <h4>👑 {__kbUi("Administrator farzandi — barcha kurslar bepul")}</h4>
+      <p className="bm-muted">{__kbUi("To‘lov shart emas. Kurslarni «Reja» bo‘limida tanlang yoki pastda tarifni tanlab «Bepul boshlash» ni bosing.")}</p>
+    </div> : cheg && <div className="bm-card bm-gift">
+      <h4>🎁 {__kbUi("Sizga chegirma")}: −{cheg.foiz}%</h4>
+      <p className="bm-muted">{__kbUi(cheg.izoh)}{cheg.gacha ? ` · ${cheg.gacha} ${__kbUi("gacha")}` : ""}</p>
+    </div>}
     {obuna && <div className={`bm-card bm-sub ${obuna.faol ? "is-on" : "is-off"}`}>
       <h4>{obuna.faol ? "✅" : "⌛"} {__kbUi(obuna.faol ? "Obuna faol" : "Obuna muddati tugagan")}</h4>
       <p><b>{obuna.faol ? `${obuna.tugaydi}` : obuna.tugaydi}</b> {__kbUi("gacha")}{obuna.faol ? ` · ${obuna.qoldi_kun} ${__kbUi("kun qoldi")}` : ""}</p>
@@ -262,21 +271,23 @@ function KurslarBolim({ holat, apiBase, token, onHolat, reload }) {
       {googleKerak ? <>
         <p className="bm-muted">{__kbUi("Gmail — akkauntingizni yo‘qotmaslik va boshqa telefon yoki kompyuterdan kirish uchun. To‘lov shu akkauntga bog‘lanadi.")}</p>
         <button type="button" className="bm-secondary" onClick={() => openAccount(false)}>📧 {__kbUi("Gmail ulash")}</button>
-      </> : <p className="bm-ok">{__kbUi(holat.google_yoqilgan ? "Gmail ulangan" : "Kerak emas")}</p>}
+      </> : <p className="bm-ok">{__kbUi(adminBola && !ul.google ? "Administrator uchun shart emas" : holat.google_yoqilgan ? "Gmail ulangan" : "Kerak emas")}</p>}
     </Qadam>
     <Qadam n={2} done={!tgKerak} title="Telegram’ni ulang">
       {tgKerak ? <>
         <p className="bm-muted">{__kbUi("Farzandingiz darsni boshlaganda, tugatganda va har kuni 20:00 da bugungi AI bahosi Telegram’ingizga keladi.")}</p>
         <ol className="bm-howto"><li>{__kbUi("«Telegram ulash» tugmasini bosing")}</li><li>{__kbUi("Botda «Start» ni bosing va raqamingizni yuboring")}</li><li>{__kbUi("Shu sahifaga qayting — belgi yashil bo‘ladi")}</li></ol>
         <button type="button" className="bm-secondary" onClick={() => openAccount(true)}>✈️ {__kbUi("Telegram ulash")}</button>
-      </> : <p className="bm-ok">{__kbUi("Telegram ulangan — xabarlar keladi")}</p>}
+      </> : <p className="bm-ok">{__kbUi(adminBola && !ul.telegram ? "Administrator uchun shart emas" : "Telegram ulangan — xabarlar keladi")}</p>}
     </Qadam>
     <Qadam n={3} done={Boolean(tarif)} title="Tarifni tanlang" active>
       {!holat.tariflar.length ? <p className="bm-muted">{__kbUi("Tariflar hali e’lon qilinmagan. Tez orada.")}</p> :
         <div className="bm-tarifs">{holat.tariflar.map((t) => <button key={t.id} type="button" disabled={!t.mumkin} aria-pressed={t.id === tarifId}
           className={`bm-tarif ${t.id === tarifId ? "is-on" : ""}`} onClick={() => setTarifId(t.id)}>
           <b>{__kbUi(t.nom)}</b>
-          <span className="bm-price">{t.narx_uzs ? sum(t.narx_uzs) : __kbUi("Bepul")}<small>/{__kbUi("oy")}</small></span>
+          <span className="bm-price">{t.chegirma_foiz > 0 && t.asl_narx ? <s className="bm-old">{sum(t.asl_narx)}</s> : null}
+            {t.narx_uzs ? sum(t.narx_uzs) : __kbUi("Bepul")}<small>/{__kbUi("oy")}</small>
+            {t.chegirma_foiz > 0 && t.asl_narx ? <em className="bm-off">−{t.chegirma_foiz}%</em> : null}</span>
           <small>{t.toliq ? `${__kbUi("Yoshiga ruxsat etilgan hammasi")}: ${t.sigadi}` : `${t.sigadi} ${__kbUi("ta kurs")}`}</small>
           {t.kurslar?.length > 0 && <span className="bm-tarif-kurs">{t.kurslar.map((k) => <i key={k} title={__kbUi(KURS[k]?.nom || k)}>{KURS[k]?.emoji}</i>)}</span>}
           {t.qulf ? <em>🔒 {__kbUi("Sizga eski narx")}: {t.qulf_gacha} {__kbUi("gacha")}</em>

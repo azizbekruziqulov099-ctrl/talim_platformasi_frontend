@@ -40,3 +40,15 @@
 .bn-kurs summary{cursor:pointer;color:#1b4b7a;font-weight:800}
 .bn-kurs[open]{display:grid;gap:6px;background:#fff;border:1px solid #e5e1d8;border-radius:10px;padding:8px;min-width:280px}
 .bn-kurs small{color:#8a8578}
+/* REV167: kechki yopilish va chegirmalar */
+.bn-night{display:grid;gap:8px;background:#f6f4ff;border-radius:14px;padding:10px 12px}
+.bn-search{display:grid;gap:6px}
+.bn-results{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:260px;overflow:auto}
+.bn-results li{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#faf9f6;border-radius:10px;padding:6px 8px}
+.bn-results button{border:1px solid #e5e1d8;background:#fff;border-radius:999px;padding:5px 10px;font:700 13px/1 system-ui,sans-serif;cursor:pointer;color:#21384c}
+.bn-results small{color:#8a8578}
+.bn-kids{display:flex;flex-wrap:wrap;gap:4px}
+.bn-picked{margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#eaf1f7;border-radius:12px;padding:8px 12px}
+.bn-picked small{color:#5a5648}
+.bn-link{border:0;background:none;color:#1b4b7a;font-weight:800;cursor:pointer;padding:0 4px}
+.bn-save.is-danger{background:#fdecec;color:#9b2c2c}

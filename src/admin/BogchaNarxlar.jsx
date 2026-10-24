@@ -60,11 +60,16 @@ export default function BogchaNarxlar({ apiBase, token }) {
   const [yangi, setYangi] = useState({ nom: "", kurs_soni: 1, narx_uzs: 0, qulf_yil: 1, faol: false, tartib: 60, kurslar: [] });
   const [qolda, setQolda] = useState({ bola_id: "", fanlar: [], kun: 30, tarif_id: "" });
   const [filter, setFilter] = useState("");
+  const [tun, setTun] = useState(null);       // REV167: kechki yopilish
+  const [oila, setOila] = useState(null);     // REV167: oila chegirmasi
+  const [cheg, setCheg] = useState({ q: "", natija: [], tanlangan: null, turi: "ota", foiz: 10, gacha: "", izoh: "" });
   const load = useCallback(() => {
     api(apiBase, token, "/api/admin/bogcha").then((x) => {
       const v = { tariflar: [], obunalar: [], tarix: [], oxirgi_30_kun: { summa: 0, soni: 0 }, tolov: {}, yosh_qoida: {}, ...(x || {}),
         sozlama: { obuna_majburiy: false, telegram_majburiy: true, yosh_qoida: {}, ...(x?.sozlama || {}) } };
       setD(v); setRules(v.yosh_qoida); setError("");
+      setTun({ yoqilgan: true, kun: 22, shanba: 23, ertalab: 6, ...(v.sozlama.tun || {}) });
+      setOila({ 2: 0, 3: 0, ...(v.sozlama.oila_chegirma || {}) });
     }).catch((e) => setError(e.message));
   }, [apiBase, token]);
   useEffect(() => { load(); }, [load]);
@@ -76,6 +81,13 @@ export default function BogchaNarxlar({ apiBase, token }) {
   const s = d.sozlama;
   const saveSettings = (patch) => run(() => api(apiBase, token, "/api/admin/bogcha/sozlama", { method: "PUT",
     body: { obuna_majburiy: s.obuna_majburiy, telegram_majburiy: s.telegram_majburiy, yosh_qoida: s.yosh_qoida, ...patch } }), "Sozlamalar saqlandi");
+  const qidir = async (q) => {
+    setCheg((c) => ({ ...c, q }));
+    if (q.trim().length < 2) { setCheg((c) => ({ ...c, natija: [] })); return; }
+    try { const r = await api(apiBase, token, `/api/admin/bogcha/qidir?${new URLSearchParams({ q: q.trim() })}`); setCheg((c) => (c.q === q ? { ...c, natija: r.natija || [] } : c)); }
+    catch (e) { setError(e.message); }
+  };
+  const tanla = (user_id, ism, turi) => setCheg((c) => ({ ...c, tanlangan: { user_id, ism }, turi, natija: [], q: "" }));
   const subs = d.obunalar.filter((o) => !filter || `${o.bola} ${o.ota} ${o.bola_id}`.toLowerCase().includes(filter.toLowerCase()));
   return <div className="bn-root">
     <header className="bn-head">
@@ -118,6 +130,16 @@ export default function BogchaNarxlar({ apiBase, token }) {
         <span><b>{__kbUi("Yangi darslar faqat obuna bilan")}</b><small>{__kbUi("O‘chiq bo‘lsa — darslar bepul, ota-ona faqat haftalik rejani tuzadi. Yoqilsa — obunasiz bog‘cha bolasiga yangi dars ochilmaydi (takror va o‘yinlar ochiq). Adminlar va sinov profillari cheklanmaydi.")}</small></span></label>
       <label className="bn-toggle"><input type="checkbox" checked={s.telegram_majburiy} disabled={busy} onChange={(e) => saveSettings({ telegram_majburiy: e.target.checked })} />
         <span><b>{__kbUi("To‘lovdan oldin Telegram ulash majburiy")}</b><small>{__kbUi("Gmail (agar serverda Google kirish yoqilgan bo‘lsa) har doim talab qilinadi.")}</small></span></label>
+      {tun && <div className="bn-night">
+        <label className="bn-toggle"><input type="checkbox" checked={tun.yoqilgan} disabled={busy} onChange={(e) => setTun({ ...tun, yoqilgan: e.target.checked })} />
+          <span><b>🌙 {__kbUi("Kechasi platforma yopiladi (uxlash vaqti)")}</b><small>{__kbUi("Bog‘cha bolalari uchun. Belgilangan soatda ekranda «Uxlash vaqti» chiqadi, ertalab o‘zi ochiladi. Dars o‘rtasida bo‘lsa — tugatib olishi uchun 10 daqiqa beriladi.")}</small></span></label>
+        <div className="bn-form">
+          <label>{__kbUi("Ish kunlari va yakshanba — yopiladi")}<select value={tun.kun} onChange={(e) => setTun({ ...tun, kun: Number(e.target.value) })}>{[19, 20, 21, 22, 23, 24].map((h) => <option key={h} value={h}>{h === 24 ? "24:00" : `${h}:00`}</option>)}</select></label>
+          <label>{__kbUi("Shanba — yopiladi")}<select value={tun.shanba} onChange={(e) => setTun({ ...tun, shanba: Number(e.target.value) })}>{[19, 20, 21, 22, 23, 24].map((h) => <option key={h} value={h}>{h === 24 ? "24:00" : `${h}:00`}</option>)}</select></label>
+          <label>{__kbUi("Ertalab ochiladi")}<select value={tun.ertalab} onChange={(e) => setTun({ ...tun, ertalab: Number(e.target.value) })}>{[5, 6, 7, 8].map((h) => <option key={h} value={h}>{`0${h}:00`}</option>)}</select></label>
+        </div>
+        <button type="button" className="bn-save" disabled={busy} onClick={() => saveSettings({ tun })}>{__kbUi("Saqlash")}</button>
+      </div>}
       <h4>{__kbUi("Yoshga qarab qoidalar")}</h4>
       <div className="bn-table-wrap"><table className="bn-table bn-rules">
         <thead><tr><th>{__kbUi("Yosh")}</th><th>{__kbUi("Ish kuni darslari")}</th><th>{__kbUi("Shanba darslari")}</th><th>{__kbUi("Bir vaqtda kurs")}</th><th>{__kbUi("Shundan chet tili")}</th></tr></thead>
@@ -129,12 +151,53 @@ export default function BogchaNarxlar({ apiBase, token }) {
     </section>
 
     <section className="bn-card">
+      <h3>🎁 {__kbUi("Chegirmalar")}</h3>
+      <p className="bn-muted">{__kbUi("Administrator farzandlari (siz «Kim o‘rganadi?» orqali qo‘shgan profillar) — har doim bepul. Bir nechta chegirma to‘g‘ri kelsa, eng kattasi ishlaydi (qo‘shilmaydi). Narx qulfi asl narxdan hisoblanadi.")}</p>
+      {oila && <>
+        <h4>👨‍👩‍👧‍👦 {__kbUi("Oila chegirmasi (avtomatik)")}</h4>
+        <p className="bn-muted">{__kbUi("Bir ota-onaning nechanchi farzandi obuna bo‘lsa — shuncha foiz chegirma. 0 — chegirma yo‘q.")}</p>
+        <div className="bn-form">
+          <label>{__kbUi("2-farzand, %")}<input type="number" min={0} max={100} value={oila[2]} onChange={(e) => setOila({ ...oila, 2: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })} /></label>
+          <label>{__kbUi("3-va keyingi farzandlar, %")}<input type="number" min={0} max={100} value={oila[3]} onChange={(e) => setOila({ ...oila, 3: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })} /></label>
+        </div>
+        <button type="button" className="bn-save" disabled={busy} onClick={() => saveSettings({ oila_chegirma: oila })}>{__kbUi("Saqlash")}</button>
+      </>}
+      <h4>🙋 {__kbUi("Shaxsiy chegirma")}</h4>
+      <p className="bn-muted">{__kbUi("Ota-onaga bersangiz — uning barcha farzandlariga ishlaydi. Faqat bitta farzandga ham berish mumkin. 100% — bepul.")}</p>
+      {cheg.tanlangan ? <p className="bn-picked">{cheg.turi === "ota" ? "👪" : "🧒"} <b>{cheg.tanlangan.ism}</b> <small>#{cheg.tanlangan.user_id} · {__kbUi(cheg.turi === "ota" ? "ota-ona (barcha farzandlari)" : "faqat shu farzand")}</small>
+        <button type="button" className="bn-link" onClick={() => setCheg({ ...cheg, tanlangan: null })}>{__kbUi("O‘zgartirish")}</button></p>
+        : <div className="bn-search">
+          <input className="bn-filter" placeholder={__kbUi("Ota-ona yoki bola ismi yoki ID")} value={cheg.q} onChange={(e) => qidir(e.target.value)} />
+          {cheg.natija.length > 0 && <ul className="bn-results">{cheg.natija.map((u) => <li key={u.user_id}>
+            <button type="button" onClick={() => tanla(u.user_id, u.ism, u.bola ? "bola" : "ota")}>{u.bola ? "🧒" : "👪"} <b>{u.ism}</b> <small>#{u.user_id}</small></button>
+            {u.bolalar.length > 0 && <span className="bn-kids">{u.bolalar.map((k) => <button key={k.user_id} type="button" onClick={() => tanla(k.user_id, k.ism, "bola")}>🧒 {k.ism}</button>)}</span>}
+          </li>)}</ul>}
+        </div>}
+      <div className="bn-form">
+        <label>{__kbUi("Chegirma, %")}<input type="number" min={1} max={100} value={cheg.foiz} onChange={(e) => setCheg({ ...cheg, foiz: Math.max(1, Math.min(100, Number(e.target.value) || 1)) })} /></label>
+        <label>{__kbUi("Qachongacha (ixtiyoriy)")}<input type="date" value={cheg.gacha} onChange={(e) => setCheg({ ...cheg, gacha: e.target.value })} /></label>
+        <label>{__kbUi("Izoh (ota-onaga ko‘rinadi)")}<input value={cheg.izoh} maxLength={200} placeholder={__kbUi("Masalan: Ko‘p bolali oila")} onChange={(e) => setCheg({ ...cheg, izoh: e.target.value })} /></label>
+      </div>
+      <button type="button" className="bn-save" disabled={busy || !cheg.tanlangan} onClick={() => run(() => api(apiBase, token, "/api/admin/bogcha/chegirma", { method: "POST",
+        body: { turi: cheg.turi, user_id: cheg.tanlangan.user_id, foiz: cheg.foiz, gacha: cheg.gacha || null, izoh: cheg.izoh } }), "Chegirma saqlandi").then(() => setCheg({ ...cheg, tanlangan: null, izoh: "" }))}>🎁 {__kbUi("Chegirma berish")}</button>
+      {(d.chegirmalar || []).length > 0 && <div className="bn-table-wrap"><table className="bn-table">
+        <thead><tr><th>{__kbUi("Kimga")}</th><th>{__kbUi("Chegirma")}</th><th>{__kbUi("Qachongacha")}</th><th>{__kbUi("Izoh")}</th><th /></tr></thead>
+        <tbody>{d.chegirmalar.map((c) => <tr key={c.id} className={c.faol ? "" : "is-off"}>
+          <td>{c.turi === "ota" ? "👪" : "🧒"} {c.ism} <small>#{c.user_id} · {__kbUi(c.turi === "ota" ? "barcha farzandlari" : "faqat shu farzand")}</small></td>
+          <td><b>−{c.foiz}%</b>{c.foiz === 100 ? <small>{__kbUi("bepul")}</small> : null}</td><td>{c.gacha || "—"}</td><td>{c.izoh || "—"}</td>
+          <td><button type="button" className="bn-save is-danger" disabled={busy} onClick={() => run(() => api(apiBase, token, `/api/admin/bogcha/chegirma/${c.id}`, { method: "DELETE" }), "Chegirma bekor qilindi")}>{__kbUi("Bekor qilish")}</button></td>
+        </tr>)}</tbody>
+      </table></div>}
+    </section>
+
+    <section className="bn-card">
       <h3>👪 {__kbUi("Obunalar")}</h3>
       <input className="bn-filter" placeholder={__kbUi("Ism yoki ID bo‘yicha qidirish")} value={filter} onChange={(e) => setFilter(e.target.value)} />
       <div className="bn-table-wrap"><table className="bn-table">
         <thead><tr><th>{__kbUi("Bola")}</th><th>{__kbUi("Ota-ona")}</th><th>{__kbUi("Kurslar")}</th><th>{__kbUi("Narx")}</th><th>{__kbUi("Tugaydi")}</th><th>{__kbUi("Narx qulfi")}</th></tr></thead>
         <tbody>{subs.map((o) => <tr key={o.bola_id} className={o.faol ? "" : "is-off"}>
-          <td>{o.bola} <small>#{o.bola_id}</small></td><td>{o.ota} <small>#{o.ota_id}</small></td>
+          <td>{o.bola} <small>#{o.bola_id}</small></td><td>{o.ota} <small>#{o.ota_id}</small>
+            <button type="button" className="bn-link" title={__kbUi("Shu ota-onaga chegirma berish")} onClick={() => { tanla(o.ota_id, o.ota || `#${o.ota_id}`, "ota"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>🎁</button></td>
           <td>{o.fanlar.map((k) => KURS[k]?.emoji || k).join(" ")}</td><td>{sum(o.narx_uzs)}</td>
           <td>{o.tugaydi} {o.faol ? "✅" : "⌛"}</td><td>{o.narx_qulf_gacha || "—"}</td></tr>)}
           {!subs.length && <tr><td colSpan={6} className="bn-muted">{__kbUi("Hali obuna yo‘q")}</td></tr>}</tbody>

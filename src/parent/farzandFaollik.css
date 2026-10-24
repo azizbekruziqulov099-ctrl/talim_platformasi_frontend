@@ -147,3 +147,32 @@
 .ff-today-words span.is-ok{border-color:#cdebd6;background:#f3fbf5}.ff-today-words span.is-try{border-color:#f3d48a;background:#fff7e0}
 .ff-today-words i{font-style:normal;font-size:16px}
 .ff-today-btn{justify-self:start;border:0;border-radius:12px;background:#1b4b7a;color:#fff;font:800 14px/1.1 system-ui,sans-serif;padding:11px 16px;cursor:pointer}
+/* REV167: ota-ona kundaligi — oddiy so'z bilan */
+.ff-error{margin:0;background:#fdecec;color:#9b2c2c;border-radius:12px;padding:10px 12px;font-weight:700;font-size:13.5px}
+.ok-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ok-stats>div{display:grid;gap:2px;background:#fff;border:1px solid #e5e1d8;border-radius:14px;padding:10px 12px}
+.ok-stats span{font-size:20px;line-height:1}.ok-stats b{font-size:18px;color:#1b4b7a}.ok-stats small{font-size:12px;color:#6b6658;line-height:1.3}
+.ok-root{display:grid;gap:10px}
+.ok-head{display:grid;gap:8px}
+.ok-tabs{display:flex;gap:4px;padding:3px;border-radius:12px;background:#f1eee6;justify-self:start}
+.ok-tabs button{border:0;background:transparent;border-radius:10px;padding:7px 12px;font:800 13px/1 system-ui,sans-serif;color:#5a5648;cursor:pointer}
+.ok-tabs button.is-on{background:#fff;color:#1b4b7a;box-shadow:0 1px 6px #1b4b7a22}
+.ok-sum{margin:0;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13.5px;color:#3f3b32}
+.ok-days{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ok-day{border:1px solid #ece8de;border-radius:14px;padding:8px 10px;background:#fff}
+.ok-day.is-bugun{border-color:#9cc3ec;background:#f7fbff}
+.ok-day.is-keladi{background:#fcfbf8}
+.ok-day-title{margin:0 0 6px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:14px}
+.ok-day-title small{color:#8a8578}.ok-day-title em{font-style:normal;font-size:11.5px;font-weight:800;background:#1b4b7a;color:#fff;border-radius:999px;padding:2px 8px}
+.ok-day-star{margin-left:auto;font-weight:800;color:#b86b00;font-size:13px}
+.ok-day ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ok-line{display:grid;grid-template-columns:minmax(110px,auto) 1fr auto;gap:4px 10px;align-items:center;font-size:13.5px;padding:5px 8px;border-radius:10px;background:#faf9f6}
+.ok-line.is-done{background:#f3fbf5}.ok-line.is-miss{background:#fff7e8}.ok-line.is-today{background:#eef6ff}.ok-line.is-half{background:#fffaf0}
+.ok-line.is-review,.ok-line.is-free{display:block;color:#6b6658;background:transparent;padding-left:0}
+.ok-fan{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ok-topic{color:#3f3b32;min-width:0}
+.ok-result{display:inline-flex;align-items:center;gap:8px;justify-self:end;text-align:right}
+.ok-result small{color:#6b6658;font-size:12.5px}
+.ok-grade{font-style:normal;font-weight:800;font-size:12px;border-radius:999px;padding:3px 8px;color:#fff;background:#8a8578;white-space:nowrap}
+.ok-grade.is-5{background:#2f9a55}.ok-grade.is-4{background:#3b82f6}.ok-grade.is-3{background:#d97706}.ok-grade.is-2{background:#e2483d}
+@media(max-width:520px){.ok-line{grid-template-columns:1fr}.ok-result{justify-self:start}}

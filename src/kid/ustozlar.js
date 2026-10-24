@@ -7,16 +7,17 @@ try { RASM = import.meta.glob("./ustoz/**/*.webp", { eager: true, query: "?url",
 const u = (p) => RASM[p] || p;
 
 // REV158: og'iz endi HAMMA pozada (ko'rsatish, o'ylash, quvonish, tinglash ham) — ustoz gapirganda labi doim qimirlaydi.
+// REV167: tw — og'iz atrofidagi teri dog'ining eni (%, odatda 185); yuz yon tomonga burilgan pozada kichikroq — yonoq chizig'i o'chmaydi.
 // REV153: og — og'iz markazi va eni (pozaga nisbatan foizda) hamda atrofidagi teri rangi (eski og'iz yashiriladi)
 export const USTOZLAR = {
   sardor: {
     lab: "erkak",
     1: { src: u("./ustoz/sardor/poza_1.webp"), w: 193, h: 497, yuz: { x: 36.269, y: 10.865, w: 40.933, h: 11.871, kadr: [u("./ustoz/sardor/yuz_1_1.webp"), u("./ustoz/sardor/yuz_1_2.webp"), u("./ustoz/sardor/yuz_1_3.webp"), u("./ustoz/sardor/yuz_1_4.webp"), u("./ustoz/sardor/yuz_1_5.webp"), u("./ustoz/sardor/yuz_1_6.webp")] }, og: { x: 53.8, y: 18.6, w: 14.45, r: -3, skin: "#f8a878" } },
     2: { src: u("./ustoz/sardor/poza_2.webp"), w: 220, h: 496, yuz: { x: 40.455, y: 11.089, w: 35.909, h: 11.895, kadr: [u("./ustoz/sardor/yuz_2_1.webp"), u("./ustoz/sardor/yuz_2_2.webp"), u("./ustoz/sardor/yuz_2_3.webp"), u("./ustoz/sardor/yuz_2_4.webp"), u("./ustoz/sardor/yuz_2_5.webp"), u("./ustoz/sardor/yuz_2_6.webp")] }, og: { x: 56.4, y: 19.2, w: 12.68, r: -7, skin: "#faac7a" } },
-    3: { src: u("./ustoz/sardor/poza_3.webp"), w: 351, h: 499, og: { x: 27.5, y: 18.7, w: 10.5, r: -8, skin: "#fab386" } },
+    3: { src: u("./ustoz/sardor/poza_3.webp"), w: 351, h: 499, og: { x: 26.1, y: 18.45, w: 7.8, r: -13, tw: 150, skin: "#fab386" } },
     4: { src: u("./ustoz/sardor/poza_4.webp"), w: 188, h: 491, og: { x: 45.5, y: 19.5, w: 11, r: -11, skin: "#fbb789" } },
     5: { src: u("./ustoz/sardor/poza_5.webp"), w: 289, h: 495, og: { x: 51, y: 21.95, w: 11, r: -7, skin: "#f7b284" } },
-    6: { src: u("./ustoz/sardor/poza_6.webp"), w: 262, h: 484, og: { x: 33.5, y: 19.55, w: 11, r: -11, skin: "#fbb68a" } },
+    6: { src: u("./ustoz/sardor/poza_6.webp"), w: 262, h: 484, og: { x: 33.8, y: 19.5, w: 9.8, r: -11, tw: 160, skin: "#fbb68a" } },
   },
   nilufar: {
     lab: "ayol",

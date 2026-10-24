@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { bahoInfo, kunXulosa, levelDots, maslahat, minutesText, presence, ratingText, usageRows, weekStack } from "./farzandVaqtRules.js";
 import { BAHO_MATN, KURS, QISMLAR, bahoRangi, fanKaliti, haftaKuni, ozgarish } from "./bogchaReja.js";
-import { KundalikJadval, YutuqKarta } from "../kid/KidKundalik.jsx";
+import OtaKundalik, { YutuqQator } from "./OtaKundalik.jsx";
 import { bugungiXulosa, ertangiFanlar } from "../kid/kundalikRules.js";
 import "./farzandFaollik.css";
 
@@ -277,6 +277,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   const [ochiq, setOchiq] = useState(() => new Set(["darslar", "kundalik"]));
   const [openKey, setOpenKey] = useState("");
   const [kun, setKun] = useState("");
+  const [reload, setReload] = useState(0);
   const rootRef = useRef(null);
   useEffect(() => {
     let stop = false;
@@ -293,11 +294,15 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
     load();
     const id = setInterval(() => { if (document.visibilityState !== "hidden") load(); }, 20000);
     return () => { stop = true; clearInterval(id); };
-  }, [apiBase, token, childId]);
+  }, [apiBase, token, childId, reload]);
   const tahlil = useTahlil(apiBase, token, childId, Boolean(data?.bola?.bogcha));
 
-  if (error && !data) return null;
-  if (!data || (!data.bola?.bogcha && !data.bugun?.length && !data.hafta?.length)) return null;
+  // REV167: xato bo'lsa — bo'sh oyna emas, sababi va qayta urinish
+  if (error && !data) return <section className="ff-root"><p className="ff-error" role="alert">⚠️ {__kbUi(error)}</p>
+    <button type="button" className="ff-today-btn" onClick={() => { setError(""); setData(null); setReload((n) => n + 1); }}>🔄 {__kbUi("Qayta yuklash")}</button></section>;
+  if (!data && !error) return <p className="ff-muted" role="status">{__kbUi("Yuklanmoqda…")}</p>;
+  if (!data.bola?.bogcha && !data.bugun?.length && !data.hafta?.length) return <section className="ff-root">
+    <p className="ff-muted">{__kbUi("Farzandingiz hali dars qilmagan. Birinchi darsdan keyin bu yerda kundalik, baholar va tavsiyalar chiqadi.")}</p></section>;
   const toggle = (id) => setOchiq((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const ochVaBor = (id) => {
     setOchiq((s) => new Set(s).add(id));
@@ -328,7 +333,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
 
     {data.bola?.bogcha && <BugungiBaho baho={data.baho_bugun} yulduz={bugun.reduce((n, r) => n + (r.tugadi ? Number(r.yulduz) || 0 : 0), 0)} />}
 
-    {data.kundalik?.daraja && <YutuqKarta data={data.kundalik} compact />}
+    {data.kundalik?.daraja && <YutuqQator data={data.kundalik} />}
 
     <div className="ff-kpis">
       {kpi.map((k, i) => <button key={i} type="button" className="ff-kpi" onClick={() => ochVaBor(k.id)}>
@@ -352,8 +357,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
 
     {data.kundalik?.haftalar && <Bolim id="kundalik" open={ochiq.has("kundalik")} onToggle={toggle} emoji="📒" title="Haftalik kundalik"
       summary={`⭐ ${data.kundalik.haftalar[0]?.yulduz || 0} · ${data.kundalik.haftalar[0]?.darslar || 0} ${__kbUi("dars")}`}>
-      <KundalikJadval haftalar={data.kundalik.haftalar} nomlar={rj?.nomlar} />
-      <p className="ff-muted">👆 {__kbUi("Belgini bosing yoki ustiga olib boring — qaysi dars, nechta yulduz va baho.")}</p>
+      <OtaKundalik haftalar={data.kundalik.haftalar} nomlar={rj?.nomlar} />
     </Bolim>}
 
     {data.haftalar?.shu && <Bolim id="haftalar" open={ochiq.has("haftalar")} onToggle={toggle} emoji="📈" title="Shu hafta va o‘tgan hafta"

@@ -71,8 +71,69 @@ export function sanaQismlari(sana = new Date()) {
   const oy = sana.getMonth();
   const fasl = oy === 11 || oy <= 1 ? 0 : oy <= 4 ? 1 : oy <= 7 ? 2 : 3;
   const soat = sana.getHours() % 12 || 12;
-  return { kun, oy, fasl, soat, yil: sana.getFullYear() };
+  return { kun, oy, fasl, soat, daqiqa: sana.getMinutes(), yil: sana.getFullYear() };
 }
+
+// REV167: soat aniq aytiladi — «10 dan 5 daqiqa o'tdi», «10 yarim», «11 ga 3 daqiqa qoldi» (10:57 da «soat 10» demaydi).
+// Kichiklar (6 yoshgacha) — taxminiy, daqiqasiz: «10 dan o'tdi», «10 yarim», «11 ga yaqin».
+const ru_min = (m) => (m % 10 === 1 && m % 100 !== 11 ? "минута" : [2, 3, 4].includes(m % 10) && ![12, 13, 14].includes(m % 100) ? "минуты" : "минут");
+const RU_ORD = ["", "первого", "второго", "третьего", "четвёртого", "пятого", "шестого", "седьмого", "восьмого", "девятого", "десятого", "одиннадцатого", "двенадцатого"];
+const fr_h = (h) => (h === 1 ? "une heure" : `${h} heures`);
+const es_h = (h, t) => (h === 1 ? `Es la una${t}.` : `Son las ${h}${t}.`);
+const SOAT = {
+  uz: { aniq: (h) => `Hozir soat ${h}.`, otdi: (h, m) => `Hozir soat ${h} dan ${m} daqiqa o‘tdi.`, otdiT: (h) => `Hozir soat ${h} dan o‘tdi.`,
+    yarim: (h) => `Hozir soat ${h} yarim.`, qoldi: (h, m) => `Soat ${h} ga ${m} daqiqa qoldi.`, yaqin: (h) => `Hozir soat ${h} ga yaqin.` },
+  ru: { aniq: (h) => `Сейчас ровно ${h} ${ru_soat(h)}.`, otdi: (h, m) => `Сейчас ${h} ${ru_soat(h)} ${m} ${ru_min(m)}.`, otdiT: (h) => `Сейчас ${h} ${ru_soat(h)} с небольшим.`,
+    yarim: (h, h2) => `Сейчас половина ${RU_ORD[h2]}.`, qoldi: (h, m) => `Скоро ${h} ${ru_soat(h)}: осталось ${m} ${ru_min(m)}.`, yaqin: (h) => `Скоро ${h} ${ru_soat(h)}.` },
+  en: { aniq: (h) => `It's ${h} o'clock.`, otdi: (h, m) => `It's ${m} ${m === 1 ? "minute" : "minutes"} past ${h}.`, otdiT: (h) => `It's just after ${h} o'clock.`,
+    yarim: (h) => `It's half past ${h}.`, qoldi: (h, m) => `It's ${m} ${m === 1 ? "minute" : "minutes"} to ${h}.`, yaqin: (h) => `It's almost ${h} o'clock.` },
+  de: { aniq: (h) => `Es ist ${h} Uhr.`, otdi: (h, m) => `Es ist ${m} nach ${h}.`, otdiT: (h) => `Es ist kurz nach ${h}.`,
+    yarim: (h, h2) => `Es ist halb ${h2}.`, qoldi: (h, m) => `Es ist ${m} vor ${h}.`, yaqin: (h) => `Es ist gleich ${h} Uhr.` },
+  fr: { aniq: (h) => `Il est ${fr_h(h)}.`, otdi: (h, m) => `Il est ${fr_h(h)} ${m}.`, otdiT: (h) => `Il est un peu plus de ${fr_h(h)}.`,
+    yarim: (h) => `Il est ${fr_h(h)} et demie.`, qoldi: (h, m) => `Il est ${fr_h(h)} moins ${m}.`, yaqin: (h) => `Il est presque ${fr_h(h)}.` },
+  es: { aniq: (h) => es_h(h, ""), otdi: (h, m) => es_h(h, ` y ${m}`), otdiT: (h) => es_h(h, " y pico"),
+    yarim: (h) => es_h(h, " y media"), qoldi: (h, m) => es_h(h, ` menos ${m}`), yaqin: (h) => (h === 1 ? "Es casi la una." : `Son casi las ${h}.`) },
+  tr: { aniq: (h) => `Saat ${h}.`, otdi: (h, m) => `Saat ${h}.${String(m).padStart(2, "0")}.`, otdiT: (h, m) => `Saat ${h}.${String(m).padStart(2, "0")}.`,
+    yarim: (h) => `Saat ${h} buçuk.`, qoldi: (h, m, h0, m0) => `Saat ${h0}.${String(m0).padStart(2, "0")}. Az sonra saat ${h}.`, yaqin: (h) => `Az sonra saat ${h}.` },
+  ar: { aniq: (h) => `السَّاعَةُ الْآنَ ${h}.`, otdi: (h, m) => `السَّاعَةُ ${h} وَ ${m} دَقِيقَة.`, otdiT: (h) => `السَّاعَةُ ${h} وَقَلِيل.`,
+    yarim: (h) => `السَّاعَةُ ${h} وَالنِّصْف.`, qoldi: (h, m) => `السَّاعَةُ ${h} إِلَّا ${m} دَقِيقَة.`, yaqin: (h) => `قَرِيبًا السَّاعَةُ ${h}.` },
+  zh: { aniq: (h) => `现在是${h}点。`, otdi: (h, m) => `现在是${h}点${m}分。`, otdiT: (h) => `现在${h}点多。`,
+    yarim: (h) => `现在是${h}点半。`, qoldi: (h, m) => `现在差${m}分${h}点。`, yaqin: (h) => `快${h}点了。` },
+  ja: { aniq: (h) => `いまは ${h}じ です。`, otdi: (h, m) => `いまは ${h}じ ${m}ふん です。`, otdiT: (h) => `いまは ${h}じ すぎ です。`,
+    yarim: (h) => `いまは ${h}じはん です。`, qoldi: (h, m) => `${h}じ まで あと ${m}ふん です。`, yaqin: (h) => `もうすぐ ${h}じ です。` },
+  ko: { aniq: (h) => `지금은 ${h}시예요.`, otdi: (h, m) => `지금은 ${h}시 ${m}분이에요.`, otdiT: (h) => `지금은 ${h}시가 조금 넘었어요.`,
+    yarim: (h) => `지금은 ${h}시 반이에요.`, qoldi: (h, m) => `${h}시까지 ${m}분 남았어요.`, yaqin: (h) => `곧 ${h}시예요.` },
+};
+
+/** Soat va daqiqa → qaysi shakl: aniq | otdi | yarim | qoldi (6–7 yosh, daqiqa bilan) yoki taxminiy (kichiklar). */
+export function soatShakli(soat, daqiqa, yosh = 6) {
+  const h = soat % 12 || 12, m = Math.max(0, Math.min(59, Number(daqiqa) || 0));
+  const keyin = (h % 12) + 1;
+  if (yosh >= 6) {
+    if (m === 0) return { turi: "aniq", h };
+    if (m === 30) return { turi: "yarim", h, h2: keyin };
+    if (m < 30) return { turi: "otdi", h, m };
+    return { turi: "qoldi", h: keyin, m: 60 - m, h0: h, m0: m };
+  }
+  if (m <= 4) return { turi: "aniq", h };
+  if (m <= 24) return { turi: "otdiT", h, m };
+  if (m <= 35) return { turi: "yarim", h, h2: keyin };
+  return { turi: "yaqin", h: keyin, h0: h, m0: m };
+}
+
+/** Soatni aytish (til bo'yicha). */
+export function soatGapi(til, soat, daqiqa, yosh = 6) {
+  const L = SOAT[til] ? til : "uz";
+  const s = soatShakli(soat, daqiqa, yosh);
+  const f = SOAT[L][s.turi];
+  if (s.turi === "yarim") return f(s.h, s.h2);
+  if (s.turi === "qoldi") return f(s.h, s.m, s.h0, s.m0);
+  if (s.turi === "otdi" || s.turi === "otdiT") return f(s.h, s.m);
+  return f(s.h);
+}
+
+/** Doskadagi yozuv: 10:57. */
+export const soatYozuvi = (soat, daqiqa) => `${soat % 12 || 12}:${String(Math.max(0, Number(daqiqa) || 0)).padStart(2, "0")}`;
 
 const bosh = (t) => String(t).charAt(0).toLocaleUpperCase() + String(t).slice(1);
 
@@ -86,11 +147,13 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
   const I = GAP[izoh] ? izoh : "uz";
   const tg = (L, t) => (L === "uz" ? t : `[${L}]${t}[/${L}]`);
   const narsalar = [["kun", KUN, q.kun, "🗓️"]];
+  const soatAyt = (L) => soatGapi(L, q.soat, q.daqiqa, yosh);   // REV167
   if (yosh >= 3) narsalar.push(["oy", OY, q.oy, "📅"]);
   narsalar.push(["fasl", FASL, q.fasl, FASL_BELGI[q.fasl]]);
   if (yosh >= 4) narsalar.push(["soat", null, q.soat, "⏰"]);
   if (yosh >= 6) narsalar.push(["yil", null, q.yil, "🎆"]);
   const gapi = (L, k, lug, i) => {
+    if (k === "soat") return soatAyt(L);
     const g = GAP[L][k];
     if (typeof g === "function") return g(i);
     return g.replace("{d}", lug ? lug[L][i] : "").replace("{m}", lug ? lug[L][i] : "").replace("{s}", lug ? lug[L][i] : "").replace("{y}", String(i));
@@ -100,14 +163,14 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
   if (!T) {
     // boshqa fan — izoh tilida
     qismlar.push(tg(I, GAP[I].intro));
-    for (const [k, lug, i, belgi] of narsalar) { qismlar.push(tg(I, bosh(gapi(I, k, lug, i)))); doska.push(`${belgi} ${lug ? lug[I][i] : k === "soat" ? `${i}:00` : i}`); }
+    for (const [k, lug, i, belgi] of narsalar) { qismlar.push(tg(I, bosh(gapi(I, k, lug, i)))); doska.push(`${belgi} ${lug ? lug[I][i] : k === "soat" ? soatYozuvi(q.soat, q.daqiqa) : i}`); }
   } else if (yosh < 4) {
     // 2–4 yosh til darsi: izoh tilida, keyin o'rganilayotgan tilda, bola so'zni takrorlaydi
     qismlar.push(tg(I, GAP[I].intro));
     for (const [k, lug, i, belgi] of narsalar) {
       qismlar.push(tg(I, bosh(gapi(I, k, lug, i))), tg(T, bosh(gapi(T, k, lug, i))));
       if (lug) qismlar.push(`${tg(I, AYT[I])} ${tg(T, bosh(lug[T][i]))} ⏸`);
-      doska.push(`${belgi} ${lug ? lug[T][i] : k === "soat" ? `${i}:00` : i}`);
+      doska.push(`${belgi} ${lug ? lug[T][i] : k === "soat" ? soatYozuvi(q.soat, q.daqiqa) : i}`);
     }
   } else {
     // 4–7 yosh: to'liq o'rganilayotgan tilda; 4–5 yoshda kun va fasl so'zining tarjimasi bir marta
@@ -116,7 +179,7 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
       qismlar.push(tg(T, bosh(gapi(T, k, lug, i))));
       if (lug && yosh < 6 && (k === "kun" || k === "fasl")) qismlar.push(`— ${tg(I, lug[I][i])}.`);
       if (lug && k !== "oy") qismlar.push(`${tg(T, AYT[T])} ${tg(T, bosh(lug[T][i]))} ⏸`);
-      doska.push(`${belgi} ${lug ? lug[T][i] : k === "soat" ? `${i}:00` : i}`);
+      doska.push(`${belgi} ${lug ? lug[T][i] : k === "soat" ? soatYozuvi(q.soat, q.daqiqa) : i}`);
     }
   }
   const sarlavha = `🗓️ ${bosh(lug1(T || I, q.kun))}`;

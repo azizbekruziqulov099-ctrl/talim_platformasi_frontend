@@ -9,7 +9,7 @@ import { guardView, hoursText, screenCategory, screenName, screenTime, tashkentD
 import "./kidTimeGuard.css";
 import { B } from "./Belgi.jsx";
 
-const TITLES = { jami: "Bugun vaqting tugadi", dars: "Dars vaqti tugadi", oyin: "O‘yin vaqti tugadi" };
+const TITLES = { tun: "Uxlash vaqti", jami: "Bugun vaqting tugadi", dars: "Dars vaqti tugadi", oyin: "O‘yin vaqti tugadi" };
 
 function seenWarning(key) {
   try { return window.localStorage.getItem(key) === "1"; } catch { return false; }
@@ -71,7 +71,7 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
     spoken.current = view;
     screenTime.block(view);   // dars/test ovozi to'xtaydi
     setGate(null);
-    if (view === "jami") chime(); else soft();
+    if (view === "jami" || view === "tun") chime(); else soft();
     const t = setTimeout(() => say(timeText(view, screenTime.current())), 500);
     return () => clearTimeout(t);
   }, [view, say]);
@@ -109,18 +109,19 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
 
   return <div className={`ktg-veil is-${view}`} role="dialog" aria-modal="true" aria-label={__kbUi(TITLES[view])}>
     <div className="ktg-card">
-      <div className="ktg-sky" aria-hidden="true">{view === "jami" ? <><B e="🌙" /> <B e="⭐" /></> : view === "dars" ? <><B e="🎮" /> <B e="⭐" /></> : <><B e="📚" /> <B e="⭐" /></>}</div>
-      <div className="ktg-robot"><RobotKabu mood={view === "jami" ? "wave" : "happy"} /></div>
+      <div className="ktg-sky" aria-hidden="true">{view === "tun" ? <><B e="🌙" /> <B e="⭐" /> <B e="💤" /></> : view === "jami" ? <><B e="🌙" /> <B e="⭐" /></> : view === "dars" ? <><B e="🎮" /> <B e="⭐" /></> : <><B e="📚" /> <B e="⭐" /></>}</div>
+      <div className="ktg-robot"><RobotKabu mood={view === "jami" || view === "tun" ? "wave" : "happy"} /></div>
       <h2>{__kbUi(TITLES[view])}</h2>
       <p className="ktg-text">{__kbUi(text)}</p>
       <button type="button" className="ktg-listen" onClick={() => say(text)} aria-label={__kbUi("Qayta eshitish")}><B e="🔊" /></button>
       {view === "dars" && <button type="button" className="ktg-go" onClick={() => onGo?.("oyinlar")}>🎮 {__kbUi("O‘yinlar")}</button>}
       {view === "oyin" && <button type="button" className="ktg-go" onClick={() => onGo?.("mavzular")}>📚 {__kbUi("Darslar")}</button>}
-      {view !== "jami" && status?.[view === "dars" ? "oyin" : "dars"] && <p className="ktg-left">
+      {view !== "jami" && view !== "tun" && status?.[view === "dars" ? "oyin" : "dars"] && <p className="ktg-left">
         {__kbUi(view === "dars" ? "O‘yin vaqtidan qoldi:" : "Dars vaqtidan qoldi:")} <b>{__kbUi(hoursText(status[view === "dars" ? "oyin" : "dars"].qoldi))}</b></p>}
-      {view === "jami" && <>
-        <p className="ktg-sum">📚 {__kbUi("Dars")} <b>{__kbUi(hoursText(status?.dars?.daqiqa))}</b> · 🎮 {__kbUi("O‘yin")} <b>{__kbUi(hoursText(status?.oyin?.daqiqa))}</b></p>
-        <p className="ktg-note">{__kbUi("Platforma ertaga yana ochiladi.")}</p>
+      {view === "tun" && <p className="ktg-note">{__kbUi("Platforma ertalab soat")} <b>{status?.tun?.ochiladi || "06:00"}</b> {__kbUi("da ochiladi.")}</p>}
+      {(view === "jami" || view === "tun") && <>
+        {view === "jami" && <p className="ktg-sum">📚 {__kbUi("Dars")} <b>{__kbUi(hoursText(status?.dars?.daqiqa))}</b> · 🎮 {__kbUi("O‘yin")} <b>{__kbUi(hoursText(status?.oyin?.daqiqa))}</b></p>}
+        {view === "jami" && <p className="ktg-note">{__kbUi("Platforma ertaga yana ochiladi.")}</p>}
         {onLogout && !gate && <button type="button" className="ktg-parent" onClick={openGate}>{__kbUi("Ota-ona uchun: hisobdan chiqish")}</button>}
         {gate && <form className="ktg-gate" onSubmit={checkGate}>
           <label htmlFor="ktg-gate-input">{__kbUi("Hisobdan chiqish uchun hisoblang:")} <b>{gate.a} + {gate.b} = ?</b></label>

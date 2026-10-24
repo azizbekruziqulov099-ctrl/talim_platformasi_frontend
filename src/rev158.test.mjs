@@ -16,7 +16,7 @@ test("every teacher pose has a mouth overlay (lips move in every pose)", () => {
     const blok = s.slice(s.indexOf(`  ${t}: {`), s.indexOf("\n  },", s.indexOf(`  ${t}: {`)));
     for (let p = 1; p <= 6; p += 1) {
       const line = blok.split("\n").find((l) => l.trim().startsWith(`${p}: {`));
-      assert.ok(line && /og: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, (?:r: -?[\d.]+, )?skin: "#[0-9a-f]{6}" \}/.test(line), `${t} ${p}`);
+      assert.ok(line && /og: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, (?:r: -?[\d.]+, )?(?:tw: [\d.]+, )?skin: "#[0-9a-f]{6}" \}/.test(line), `${t} ${p}`);
     }
   }
   assert.match(src("./kid/UstozSahna.jsx"), /us-og-qatlam/);
@@ -36,7 +36,7 @@ test("wall clock shows real time", () => {
 
 test("calendar step: day, month, season, hour, year by age and lesson language", () => {
   const d = new Date(2026, 9, 21, 7, 52);
-  assert.deepEqual(sanaQismlari(d), { kun: 2, oy: 9, fasl: 3, soat: 7, yil: 2026 });
+  assert.deepEqual(sanaQismlari(d), { kun: 2, oy: 9, fasl: 3, soat: 7, daqiqa: 52, yil: 2026 });
   const uz23 = kalendarQadami({ til: null, izoh: "uz", yosh: 2, sana: d });
   assert.match(uz23.ovoz, /Bugun — chorshanba\. Hozir — kuz\./);
   const en23 = kalendarQadami({ til: "en", izoh: "uz", yosh: 2, sana: d });
@@ -46,7 +46,7 @@ test("calendar step: day, month, season, hour, year by age and lesson language",
   assert.match(de67.ovoz, /Wir haben das Jahr 2026/);
   const ru45 = kalendarQadami({ til: "ru", izoh: "uz", yosh: 4, sana: d });
   assert.match(ru45.ovoz, /\[ru\]Сегодня среда\.\[\/ru\] — chorshanba\./);   // 4–5: tarjima bir marta
-  assert.match(ru45.ovoz, /Сейчас 7 часов/);
+  assert.match(ru45.ovoz, /Скоро 8 часов\./);   // REV167: 7:52 — «7 soat» emas, «8 ga yaqin»
 });
 
 test("task model drops speaker names; mic asks every word of a step", () => {

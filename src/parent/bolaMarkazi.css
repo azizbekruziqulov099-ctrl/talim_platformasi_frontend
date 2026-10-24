@@ -119,3 +119,9 @@ button.bm-pick:disabled{opacity:.4;cursor:not-allowed}
 .bm-start{justify-self:stretch;font-size:16px;padding:14px 18px}
 .bm-progress{height:8px;border-radius:999px;background:#f1eee6;overflow:hidden}.bm-progress i{display:block;height:100%;background:#2f9a55;border-radius:999px;transition:width .3s}
 .bm-hard{display:grid;gap:6px;justify-items:center}
+/* REV167: chegirma va admin farzandi */
+.bm-gift{background:#fff7e6;border-color:#f3d48a}.bm-gift.is-admin{background:#f3f0ff;border-color:#d9cff7}
+.bm-gift h4{color:#7a4b00}.bm-gift.is-admin h4{color:#4c2f9a}
+.bm-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
+.bm-old{font-size:12.5px;color:#9a958a;font-weight:700}
+.bm-tarif em.bm-off,.bm-off{font-style:normal;font-size:11.5px;font-weight:900;color:#fff;background:#e2483d;border-radius:999px;padding:2px 6px}

@@ -37,3 +37,6 @@
 @keyframes ktg-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 @media (max-height:640px){.ktg-robot{width:96px}.ktg-sky{font-size:22px}.ktg-card{gap:7px;padding:14px}}
 @media (prefers-reduced-motion:reduce){.ktg-card,.ktg-toast,.ktg-go{animation:none}}
+/* REV167: uxlash vaqti — tungi osmon */
+.ktg-veil.is-tun{background:radial-gradient(circle at 50% 20%,#2a3a6b 0%,#141c38 70%)}
+.ktg-veil.is-tun .ktg-card{background:linear-gradient(180deg,#f5f3ff,#e9e5ff)}
