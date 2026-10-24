@@ -35,3 +35,12 @@
 .sh-piece { font-size: calc(100cqw / 8 * .4); }
 .sh-piece.is-arriving { z-index: 3; animation: bd-slide .34s cubic-bezier(.2,.8,.25,1) both; }
 .sh-taken { position: absolute; z-index: 2; pointer-events: none; animation: bd-taken .7s ease-out forwards; }
+/* REV166: damka xatosi — o'lcham «100cqw» katakka bog'liq bo'lishi uchun taxta o'zi konteyner (avval faqat shaxmat.css
+   yuklanganda ishlardi; aks holda ekran kengligi olinib, toj va dona katakdan kattalashib ketardi). */
+.sh-board { container-type: inline-size; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.sh-piece { min-width: 0; min-height: 0; overflow: visible; line-height: 1; }
+.sh-crown { width: 58%; height: auto; display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); pointer-events: none; }
+.sh-piece.is-b .sh-crown { filter: drop-shadow(0 0 2px rgba(255,214,102,.6)); }
+@supports not (width: 1cqw) { .sh-piece { font-size: clamp(.8rem, 3.6vw, 1.5rem); } }
+.sh-cell:focus { outline: none; }
+.sh-cell:focus-visible { outline: 3px solid #ffd166; outline-offset: -3px; }

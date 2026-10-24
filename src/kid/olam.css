@@ -20,3 +20,8 @@
 .ol-today{margin:0 0 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;font:800 15px/1.3 system-ui,sans-serif;color:#1f6b3a}
 .ol-today-chip{display:inline-flex;align-items:center;gap:4px;background:#e9f7ee;border-radius:999px;padding:4px 10px}
 .ol-today-chip img,.ol-today-chip svg{width:20px;height:20px}
+/* REV166: fan kartasida dars kunlari (Du · Cho · Sha) — bugungi kun ajralib turadi */
+.ol-fan-days{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;padding:0 8px 10px}
+.ol-fan-days i{font:800 12px/1 system-ui,sans-serif;font-style:normal;border-radius:999px;background:#ffffffb3;color:#5a5648;padding:5px 8px;box-shadow:0 1px 3px #0000000f}
+.ol-fan-days i.is-today{background:#2f9a55;color:#fff}
+.ol-today.is-rest{color:#7a4b00}

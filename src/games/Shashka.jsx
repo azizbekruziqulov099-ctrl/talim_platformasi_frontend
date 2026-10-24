@@ -15,7 +15,16 @@ const RULES = [
 ];
 
 /** Shashka taxtasi: donani tanlash → yashil nuqtalar → ko'p urishda qadam-baqadam. */
-function ShashkaBoard({ state, me, myTurn, busy, onMove, hint }) {
+// REV166: damka toji — emoji o'rniga SVG: har qurilmada bir xil, katakdan chiqib ketmaydi
+function Toj() {
+  return <svg className="sh-crown" viewBox="0 0 24 18" aria-hidden="true" focusable="false">
+    <path d="M2 15 L1 4 L7 9 L12 1 L17 9 L23 4 L22 15 Z" fill="#f6c343" stroke="#a8740c" strokeWidth="1.2" strokeLinejoin="round" />
+    <rect x="2" y="14.2" width="20" height="3" rx="1" fill="#e0a92a" stroke="#a8740c" strokeWidth="1" />
+    <circle cx="12" cy="9.5" r="1.7" fill="#3f7be0" /><circle cx="6.5" cy="11.5" r="1.1" fill="#e2483d" /><circle cx="17.5" cy="11.5" r="1.1" fill="#e2483d" />
+  </svg>;
+}
+
+export function ShashkaBoard({ state, me, myTurn, busy, onMove, hint }) {
   const [prefix, setPrefix] = useState([]);
   useEffect(() => { setPrefix([]); }, [state.versiya, state.kod]);
   const moves = myTurn ? state.mumkin || [] : [];
@@ -49,7 +58,7 @@ function ShashkaBoard({ state, me, myTurn, busy, onMove, hint }) {
           {cell.fileLabel && <em className="sh-file">{cell.fileLabel}</em>}
           {lastCaps.has(cell.name) && !cell.piece && <><span key={`g-${anim?.key}`} className={`sh-piece sh-taken is-${capturedSide}`} aria-hidden="true" /><span className="sh-ghost" aria-hidden="true" /></>}
           {cell.piece && <span key={anim && anim.to === cell.name ? `m-${anim.key}` : "p"} className={`sh-piece is-${cell.piece.side} ${cell.piece.king ? "is-king" : ""} ${anim && anim.to === cell.name ? "is-arriving" : ""}`}
-            style={anim && anim.to === cell.name ? { "--dx": anim.dx, "--dy": anim.dy } : undefined}>{cell.piece.king ? "👑" : ""}</span>}
+            style={anim && anim.to === cell.name ? { "--dx": anim.dx, "--dy": anim.dy } : undefined}>{cell.piece.king ? <Toj /> : null}</span>}
         </button>;
       })}
     </div>

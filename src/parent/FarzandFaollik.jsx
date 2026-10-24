@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { bahoInfo, kunXulosa, levelDots, maslahat, minutesText, presence, ratingText, usageRows, weekStack } from "./farzandVaqtRules.js";
-import { BAHO_MATN, KURS, QISMLAR, bahoRangi, fanKaliti, ozgarish } from "./bogchaReja.js";
+import { BAHO_MATN, KURS, QISMLAR, bahoRangi, fanKaliti, haftaKuni, ozgarish } from "./bogchaReja.js";
+import { KundalikJadval, YutuqKarta } from "../kid/KidKundalik.jsx";
+import { bugungiXulosa, ertangiFanlar } from "../kid/kundalikRules.js";
 import "./farzandFaollik.css";
 
 // REV145: matnning o'zgarmas qismi tarjima qilinadi, mavzu nomi va raqamlar — alohida (aks holda tarjima topilmasdi)
@@ -91,6 +93,50 @@ function BugungiBaho({ baho, yulduz }) {
         <span key={k} title={__kbUi(izoh)}>{emoji} {__kbUi(nom)} <b>{baho.qism[k]}%</b></span>)}</div>
     </div>
   </div>;
+}
+
+/** REV166: eng tepada — oddiy til bilan: bugun nimani o'rgandi, nimani takrorlash kerak, nima qoldi, ertaga nima. */
+function BugungiXulosa({ bugun, rj, fans, sana, onSinov }) {
+  const x = bugungiXulosa(bugun);
+  const doneKeys = new Set([...fans.filter(([, f]) => f.tugadi > 0).map(([fan]) => fanKaliti(fan)),
+    ...bugun.filter((r) => r.tugadi).map((r) => fanKaliti(r.fan))]);
+  const qoldi = rj && !rj.takror_kuni ? (rj.bugun_rejada || []).filter((k) => !doneKeys.has(k)) : [];
+  const ertaga = rj ? ertangiFanlar(rj.hafta, haftaKuni(sana)) : null;
+  const yaxshi = x.organdi.length > 0 && !x.takrorSoz.length && !x.takrorDars.length;
+  return <section className="ff-today" aria-label={__kbUi("Bugungi xulosa")}>
+    <div className="ff-today-row is-learned">
+      <span className="ff-today-ic" aria-hidden="true">✅</span>
+      <div><b>{__kbUi("Bugun o‘rgandi")}</b>
+        {x.organdi.length ? <p className="ff-today-list">{x.organdi.map((m) => <span key={m}>«{m}»</span>)}</p>
+          : <p className="ff-muted">{__kbUi(rj?.takror_kuni ? "Bugun yakshanba — yangi dars yo‘q, takrorlash kuni." : "Bugun hali dars tugatilmagan.")}</p>}
+        {x.sozlar.length > 0 && <p className="ff-today-words">{x.sozlar.slice(0, 14).map((w) => <span key={w.soz} className={w.aytdi === true ? "is-ok" : w.aytdi === false ? "is-try" : ""}>
+          {w.emoji ? <i aria-hidden="true">{w.emoji}</i> : null}{w.soz}</span>)}</p>}
+      </div>
+    </div>
+    {(x.takrorSoz.length > 0 || x.takrorDars.length > 0 || yaxshi) && <div className={`ff-today-row ${yaxshi ? "is-good" : "is-repeat"}`}>
+      <span className="ff-today-ic" aria-hidden="true">{yaxshi ? "👍" : "🔁"}</span>
+      <div><b>{__kbUi(yaxshi ? "Takrorlash shart emas — hammasi yaxshi!" : "Takrorlash kerak")}</b>
+        {x.takrorSoz.length > 0 && <p className="ff-today-words">{x.takrorSoz.map((w) => <span key={w.soz} className="is-try">{w.emoji ? <i aria-hidden="true">{w.emoji}</i> : null}{w.soz}</span>)}</p>}
+        {x.takrorDars.length > 0 && <p className="ff-today-list">{x.takrorDars.map((m) => <span key={m}>«{m}» — {__kbUi("darsni yana bir bor o‘tsin")}</span>)}</p>}
+        {!yaxshi && <p className="ff-muted">{__kbUi("Kechqurun 2 daqiqa: rasmni ko‘rsatib «Bu nima?» deb so‘rang.")}</p>}
+      </div>
+    </div>}
+    {(qoldi.length > 0 || x.chala.length > 0) && <div className="ff-today-row is-left">
+      <span className="ff-today-ic" aria-hidden="true">⏳</span>
+      <div><b>{__kbUi("Bugun hali qilinmagan")}</b>
+        <p className="ff-today-list">{qoldi.map((k) => <span key={k}>{KURS[k]?.emoji} {__kbUi(KURS[k]?.nom || k)}</span>)}
+          {x.chala.map((m) => <span key={m}>⏸ «{m}»</span>)}</p>
+      </div>
+    </div>}
+    {ertaga !== null && <div className="ff-today-row is-next">
+      <span className="ff-today-ic" aria-hidden="true">📅</span>
+      <div><b>{__kbUi("Ertaga")}</b>
+        <p className="ff-today-list">{ertaga.length ? ertaga.map((k) => <span key={k}>{KURS[k]?.emoji} {__kbUi(KURS[k]?.nom || k)}</span>)
+          : <span>🔁 {__kbUi("Takrorlash kuni")}</span>}</p>
+      </div>
+    </div>}
+    {onSinov && x.sozlar.length > 0 && <button type="button" className="ff-today-btn" onClick={onSinov}>🧪 {__kbUi("O‘zingiz sinab ko‘ring — 2 daqiqa")}</button>}
+  </section>;
 }
 
 /** REV162: shu hafta va o'tgan hafta — darslar, yulduzlar, so'zlar, o'rtacha baho; fanlar bo'yicha. */
@@ -225,10 +271,10 @@ function Tahlil({ data }) {
 /** REV91/103: ota-ona uchun — farzandning bugungi darslari jonli. REV145: aniq tuzilma — avval 4 ta asosiy raqam,
  *  har biri bosilsa tegishli bo'lim ochiladi; har bir dars ham ochiladi (natija, aytgan so'zlari, uyda nima qilish);
  *  haftada istalgan kunni bosib, o'sha kun darslarini ko'rish mumkin. */
-export default function FarzandFaollik({ apiBase, token, childId }) {
+export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const [ochiq, setOchiq] = useState(() => new Set(["darslar"]));
+  const [ochiq, setOchiq] = useState(() => new Set(["darslar", "kundalik"]));
   const [openKey, setOpenKey] = useState("");
   const [kun, setKun] = useState("");
   const rootRef = useRef(null);
@@ -278,7 +324,11 @@ export default function FarzandFaollik({ apiBase, token, childId }) {
         <span>{__kbUi(live.text)}{data.jonli?.mavzu && data.jonli?.holat !== "yoq" ? <> — «{data.jonli.mavzu}»</> : null}{liveExtra ? ` · ${liveExtra}` : ""}</span></p>
     </header>
 
+    {data.bola?.bogcha && <BugungiXulosa bugun={bugun} rj={rj} fans={fans} sana={data.reja?.sana} onSinov={onSinov} />}
+
     {data.bola?.bogcha && <BugungiBaho baho={data.baho_bugun} yulduz={bugun.reduce((n, r) => n + (r.tugadi ? Number(r.yulduz) || 0 : 0), 0)} />}
+
+    {data.kundalik?.daraja && <YutuqKarta data={data.kundalik} compact />}
 
     <div className="ff-kpis">
       {kpi.map((k, i) => <button key={i} type="button" className="ff-kpi" onClick={() => ochVaBor(k.id)}>
@@ -299,6 +349,12 @@ export default function FarzandFaollik({ apiBase, token, childId }) {
       <DarslarRoyxat list={bugun} openKey={openKey} setOpenKey={setOpenKey} bosh="Bugun hali dars qilinmagan. Darslar har kuni ochiladi — farzandingiz bilan birga boshlang." />
       {bugun.length > 0 && <p className="ff-muted">{__kbUi("Darsni bosing — natija, aytgan so‘zlari va uyda nima qilish kerakligi ochiladi.")}</p>}
     </Bolim>
+
+    {data.kundalik?.haftalar && <Bolim id="kundalik" open={ochiq.has("kundalik")} onToggle={toggle} emoji="📒" title="Haftalik kundalik"
+      summary={`⭐ ${data.kundalik.haftalar[0]?.yulduz || 0} · ${data.kundalik.haftalar[0]?.darslar || 0} ${__kbUi("dars")}`}>
+      <KundalikJadval haftalar={data.kundalik.haftalar} nomlar={rj?.nomlar} />
+      <p className="ff-muted">👆 {__kbUi("Belgini bosing yoki ustiga olib boring — qaysi dars, nechta yulduz va baho.")}</p>
+    </Bolim>}
 
     {data.haftalar?.shu && <Bolim id="haftalar" open={ochiq.has("haftalar")} onToggle={toggle} emoji="📈" title="Shu hafta va o‘tgan hafta"
       summary={data.haftalar.shu.baho ? `🤖 ${data.haftalar.shu.baho.baho} · ${data.haftalar.shu.tugadi} ${__kbUi("dars")}` : `${data.haftalar.shu.tugadi} ${__kbUi("dars")}`}>

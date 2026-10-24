@@ -1,0 +1,78 @@
+/* REV166: «Mening kundaligim» — bola va ota-ona uchun bitta ko'rinish (katta belgilar, kam matn) */
+.kk-root{display:grid;gap:12px;width:100%;max-width:760px;margin:0 auto;padding:0 4px 16px;box-sizing:border-box;color:#24323d}
+.kk-top{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px}
+.kk-top h2{margin:0;text-align:center;font:800 21px/1.2 system-ui,sans-serif}
+.kk-back,.kk-say{width:44px;height:44px;border-radius:14px;border:0;background:#fff;box-shadow:0 2px 8px #0002;font:800 20px/1 system-ui,sans-serif;cursor:pointer;color:#24323d}
+.kk-empty{text-align:center;font-size:28px;padding:30px}
+/* yutuq */
+.kk-hero{display:grid;gap:10px;border-radius:24px;padding:14px 16px;background:linear-gradient(135deg,#fff6d8,#ffe2b8);box-shadow:0 6px 18px #f0a7231f}
+.kk-hero-main{display:flex;align-items:center;gap:14px}
+.kk-level-emoji{font-size:64px;line-height:1;filter:drop-shadow(0 4px 6px #0002);animation:kk-bob 2.4s ease-in-out infinite}
+@keyframes kk-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){.kk-level-emoji{animation:none}}
+.kk-hero-text{display:grid;gap:2px;min-width:0}
+.kk-name{font:800 20px/1.15 system-ui,sans-serif}
+.kk-level-name{font:700 14px/1.2 system-ui,sans-serif;color:#7a4b00}
+.kk-total{font:900 34px/1.05 system-ui,sans-serif;color:#b86b00}
+.kk-next{display:grid;gap:4px}
+.kk-bar{display:block;height:14px;border-radius:999px;background:#ffffffb3;overflow:hidden;box-shadow:inset 0 1px 2px #0001}
+.kk-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#ffb703,#fb8500)}
+.kk-next small{font:700 13px/1.2 system-ui,sans-serif;color:#5a4a2a}
+.kk-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kk-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#fff;padding:6px 11px;font:800 14px/1 system-ui,sans-serif;color:#5a5648}
+.kk-chip.is-fire{background:#fff0e6;color:#c2410c}
+.kk-chip.is-rank{background:#eef6ff;color:#1b4b7a}.kk-chip small{font-weight:700;color:#8a8578}
+.kk-ladder{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.kk-ladder li{width:30px;height:30px;display:grid;place-items:center;border-radius:10px;background:#ffffff80;font-size:18px;filter:grayscale(1);opacity:.45}
+.kk-ladder li.is-done{filter:none;opacity:.9}
+.kk-ladder li.is-now{filter:none;opacity:1;background:#fff;box-shadow:0 0 0 3px #fb8500;transform:scale(1.12)}
+.kk-hero.is-compact{padding:12px 14px}.kk-hero.is-compact .kk-level-emoji{font-size:48px}.kk-hero.is-compact .kk-total{font-size:28px}
+/* hafta */
+.kk-week{display:grid;gap:8px;background:#fff;border-radius:22px;padding:12px;box-shadow:0 4px 14px #0000000f}
+.kk-week-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.kk-tabs{display:flex;gap:4px;padding:3px;border-radius:14px;background:#f1eee6}
+.kk-tabs button{border:0;background:transparent;border-radius:11px;padding:8px 12px;font:800 13.5px/1 system-ui,sans-serif;color:#5a5648;cursor:pointer}
+.kk-tabs button.is-on{background:#fff;color:#1b4b7a;box-shadow:0 2px 8px #1b4b7a24}
+.kk-week-sum{font:800 15px/1 system-ui,sans-serif;color:#5a5648}
+.kk-days{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.kk-day{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:8px;border-radius:16px;background:#faf9f6;padding:6px 8px;min-height:52px}
+.kk-day.is-bugun{background:#eef6ff;box-shadow:0 0 0 2px #9cc3ec}
+.kk-day.is-sun{background:#f6f1fb}
+.kk-day.is-keladi{opacity:.72}
+.kk-day-name{display:grid;justify-items:center;gap:1px}
+.kk-day-name b{font:900 15px/1 system-ui,sans-serif;color:#24323d}.kk-day-name small{font:700 11px/1 system-ui,sans-serif;color:#8a8578}
+.kk-day-cells{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.kk-cell{position:relative;display:inline-flex;align-items:center;gap:5px;border:1.5px solid #ece8de;background:#fff;border-radius:14px;padding:6px 9px;font:700 13px/1 system-ui,sans-serif;color:#3f3b32;cursor:pointer;min-height:38px}
+.kk-cell .kk-cell-fan{font-size:22px;line-height:1}
+.kk-cell.is-tugadi{border-color:#cdebd6;background:#f3fbf5}
+.kk-cell.is-bugun{border-color:#9cc3ec;border-style:dashed;animation:kk-pulse 1.6s ease-in-out infinite}
+@keyframes kk-pulse{0%,100%{box-shadow:0 0 0 0 #3b82f633}50%{box-shadow:0 0 0 5px #3b82f61f}}
+.kk-cell.is-otkazildi{border-style:dashed;background:#fff7e8;border-color:#f3e0b8}
+.kk-cell.is-keladi{border-style:dashed;background:transparent}
+.kk-cell.is-chala{background:#fffaf0}
+.kk-cell.is-extra{border-color:#e0d3f6}
+.kk-cell.is-review,.kk-cell.is-free{cursor:default;background:transparent;border-style:dashed;color:#7a6a9a}
+.kk-cell small{font-size:12px}
+.kk-stars{font-size:13px;letter-spacing:-1px}
+.kk-wait{font-size:16px}
+.kk-grade{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:999px;display:grid;place-items:center;font:900 12px/1 system-ui,sans-serif;font-style:normal;color:#fff;background:#8a8578;box-shadow:0 1px 3px #0003}
+.kk-legend .kk-grade{position:static;display:inline-grid;width:16px;height:16px;font-size:10px}
+.kk-grade.g5{background:#2f9a55}.kk-grade.g4{background:#3b82f6}.kk-grade.g3{background:#f59e0b}.kk-grade.g2{background:#e2483d}
+.kk-day-star{font:800 13px/1 system-ui,sans-serif;color:#b86b00;white-space:nowrap}
+.kk-legend{margin:0;display:flex;flex-wrap:wrap;gap:4px 12px;font:600 12px/1.4 system-ui,sans-serif;color:#8a8578}
+.kk-legend span{display:inline-flex;align-items:center;gap:4px}
+/* kuchlar */
+.kk-power{background:#fff;border-radius:22px;padding:12px;box-shadow:0 4px 14px #0000000f}
+.kk-power h3{margin:0 0 8px;font:800 17px/1.2 system-ui,sans-serif}
+.kk-power ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.kk-power li{display:grid;justify-items:center;gap:4px;border-radius:16px;background:#faf9f6;padding:10px 6px;text-align:center}
+.kk-power-emoji{font-size:30px;line-height:1}
+.kk-power li b{font:800 14px/1.1 system-ui,sans-serif}
+.kk-power-dots{font-size:15px;color:#f59e0b;letter-spacing:1px}.kk-power-dots i{font-style:normal;color:#e5e1d8}
+@media (max-width:420px){.kk-ladder li{width:25px;height:25px;font-size:15px;border-radius:8px}.kk-ladder{gap:3px}.kk-day{grid-template-columns:44px 1fr;}.kk-day-star{display:none}.kk-total{font-size:30px}.kk-level-emoji{font-size:54px}
+  .kk-power ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* BogchaOlami: kundalik tugmasi va fan kartasidagi kunlar */
+.ol-diary{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;border:0;border-radius:20px;padding:10px 16px;background:linear-gradient(135deg,#fff6d8,#ffe2b8);box-shadow:0 4px 12px #f0a72326;cursor:pointer;font:800 17px/1.1 system-ui,sans-serif;color:#7a4b00;justify-self:center}
+.ol-diary .ol-diary-lvl{font-size:30px;line-height:1}
+.ol-diary b{font-size:20px;color:#b86b00}
+.ol-diary small{font:800 13px/1 system-ui,sans-serif;color:#c2410c;background:#fff0e6;border-radius:999px;padding:4px 8px}

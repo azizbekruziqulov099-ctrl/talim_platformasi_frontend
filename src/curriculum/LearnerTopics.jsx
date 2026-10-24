@@ -111,7 +111,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  </div>;
 
  if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
-  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom),holat:fanHolati(plan,sub.nom)}))} apiBase={apiBase} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
+  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom),holat:fanHolati(plan,sub.nom)}))} apiBase={apiBase} token={preview?'':token} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
    onFan={key=>{chooseSubject(key);setOlam(false);}} say={t=>sayName(t,String(locale||'').startsWith('en'))}/>
  </div>;
 

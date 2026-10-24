@@ -134,3 +134,16 @@
 .ff-weeks-grid>b{text-align:right;font-variant-numeric:tabular-nums}.ff-weeks-grid>span:not([role=rowheader]){text-align:right;color:#8a8578;font-variant-numeric:tabular-nums}
 .ff-weeks-grid>b[role=columnheader]{font-size:11.5px;color:#6b6658;text-transform:uppercase;letter-spacing:.03em}
 .ff-weeks-grid .is-up i{color:#2f9a55;font-style:normal}.ff-weeks-grid .is-down i{color:#c0463d;font-style:normal}
+/* REV166: bugungi xulosa — oddiy til bilan */
+.ff-today{display:grid;gap:8px;background:#fff;border:1px solid #e5e1d8;border-radius:18px;padding:12px 14px}
+.ff-today-row{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start;border-radius:14px;padding:8px 10px;background:#faf9f6}
+.ff-today-row b{font-size:14.5px}
+.ff-today-row.is-learned{background:#f3fbf5}.ff-today-row.is-repeat{background:#fff8ec}.ff-today-row.is-good{background:#eef8f1}
+.ff-today-row.is-left{background:#f6f4ef}.ff-today-row.is-next{background:#eef6ff}
+.ff-today-ic{font-size:22px;line-height:1.2;text-align:center}
+.ff-today-list{margin:4px 0 0;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13.5px;color:#3f3b32}
+.ff-today-words{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:5px}
+.ff-today-words span{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#fff;border:1px solid #e5e1d8;padding:4px 9px;font-size:13px;font-weight:700}
+.ff-today-words span.is-ok{border-color:#cdebd6;background:#f3fbf5}.ff-today-words span.is-try{border-color:#f3d48a;background:#fff7e0}
+.ff-today-words i{font-style:normal;font-size:16px}
+.ff-today-btn{justify-self:start;border:0;border-radius:12px;background:#1b4b7a;color:#fff;font:800 14px/1.1 system-ui,sans-serif;padding:11px 16px;cursor:pointer}

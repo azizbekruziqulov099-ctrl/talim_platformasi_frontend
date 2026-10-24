@@ -5,6 +5,8 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { useKeepLight } from "./useKeepLight.js";
 import { fanTili } from "./izohTil.js";
 import { fanIzohi } from "../curriculum/izohTanlov.js";
+import { KUN_QISQA, KUNLAR } from "../parent/bogchaReja.js";
+import KidKundalik, { useKundalik } from "./KidKundalik.jsx";
 import "./olam.css";
 
 const TilXonalari = React.lazy(() => import("./xonalar/TilXonalari.jsx"));
@@ -18,10 +20,16 @@ const RANGLAR = ["#FFE9A8", "#CDEBFF", "#FFD6E0", "#D7F5D0", "#E8DBFF", "#FFE0C2
  * Til fanlarida alohida «🎮 O'yin xonalari» tugmasi bor.
  * fanlar: [{ kalit, nom, asl, emoji }] · onFan(kalit) · say(matn) — nomni ovoz bilan aytish.
  */
-export default function BogchaOlami({ fanlar = [], onFan, say, apiBase = "", grade = "" }) {
+export default function BogchaOlami({ fanlar = [], onFan, say, apiBase = "", grade = "", token = "" }) {
   const [oyin, setOyin] = useState(null);   // til fani: { til, izoh }
+  const [kundalik, setKundalik] = useState(false);   // REV166: «Mening kundaligim»
+  const [diary, reloadDiary] = useKundalik(apiBase, token, Boolean(token));
   useKeepLight(true);
   useInterface();   // til almashsa nomlar ham almashadi
+
+  if (kundalik && diary?.bogcha) {
+    return <div className="ol-root"><KidKundalik data={diary} say={say} onClose={() => { setKundalik(false); reloadDiary(); }} /></div>;
+  }
 
   if (oyin) {
     return <div className="ol-root">
@@ -35,10 +43,18 @@ export default function BogchaOlami({ fanlar = [], onFan, say, apiBase = "", gra
   const tartib = fanlar.some((f) => f.holat) ? [...fanlar].sort((a, b) => (a.holat?.turi === "bor" ? 0 : 1) - (b.holat?.turi === "bor" ? 0 : 1)) : fanlar;
   const bugungi = fanlar.filter((f) => f.holat?.turi === "bor");
   const takror = fanlar.some((f) => f.holat?.turi === "takror");
+  const rejali = fanlar.some((f) => f.holat && f.holat.turi !== "yoq" && f.holat.turi !== "obuna");
   return <div className="ol-root">
+    {diary?.bogcha && diary.daraja && <button type="button" className="ol-diary" onClick={() => { say?.(T("Mening kundaligim")); setKundalik(true); }}>
+      <span className="ol-diary-lvl" aria-hidden="true">{diary.daraja.emoji}</span>
+      <span>📒 {T("Mening kundaligim")}</span>
+      <b>⭐ {diary.jami_yulduz}</b>
+      {diary.ketma_ket > 1 ? <small>🔥 {diary.ketma_ket}</small> : null}
+    </button>}
     <h2 className="ol-head">🏫 {T("Qaysi fanni o‘rganamiz?")}</h2>
-    {(bugungi.length > 0 || takror) && <p className="ol-today" role="status">{takror ? <>🔁 {T("Bugun yakshanba — takrorlash kuni")}</>
-      : <>⭐ {T("Bugungi darslar")}: {bugungi.map((f) => <span key={f.kalit} className="ol-today-chip"><FanBelgi emoji={f.emoji} /> {f.nom}</span>)}</>}</p>}
+    {(bugungi.length > 0 || takror) ? <p className="ol-today" role="status">{takror ? <>🔁 {T("Bugun yakshanba — takrorlash kuni")}</>
+      : <>⭐ {T("Bugungi darslar")}: {bugungi.map((f) => <span key={f.kalit} className="ol-today-chip"><FanBelgi emoji={f.emoji} /> {f.nom}</span>)}</>}</p>
+      : rejali && <p className="ol-today is-rest" role="status">🎮 {T("Bugun yangi dars yo‘q — o‘tilgan darslarni takrorlash va o‘yinlar ochiq.")}</p>}
     <div className="ol-grid">
       {tartib.map((f, i) => {
         const til = fanTili(f.asl || f.nom);
@@ -51,6 +67,10 @@ export default function BogchaOlami({ fanlar = [], onFan, say, apiBase = "", gra
             <span className="ol-fan-emoji" aria-hidden="true"><FanBelgi emoji={f.emoji} /></span>
             <b>{f.nom}</b>
           </button>
+          {h?.kunlar?.length > 0 && <span className="ol-fan-days" title={h.kunlar.map((d) => T(KUNLAR[d])).join(", ")}
+            aria-label={`${T("Dars kunlari")}: ${h.kunlar.map((d) => T(KUNLAR[d])).join(", ")}`}>
+            {h.kunlar.map((d) => <i key={d} className={d === h.bugun ? "is-today" : ""}>{T(KUN_QISQA[d])}</i>)}
+          </span>}
           {til && <button type="button" className="ol-fan-play" onClick={() => { say?.(T("O‘yin xonalari")); setOyin({ til, izoh: fanIzohi(f.asl || f.nom) }); }}>
             🎮 {T("O‘yin xonalari")}
           </button>}

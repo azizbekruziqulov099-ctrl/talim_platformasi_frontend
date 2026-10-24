@@ -53,7 +53,17 @@ export function fanHolati(plan, fanNomi) {
   if (r.navbat?.includes(k)) return { turi: 'navbat', kvota: 0 };
   if (!r.faol?.includes(k)) return { turi: 'yoq', kvota: 0 };
   const kvota = Number(r.bugun?.[k] || 0);
-  return { turi: kvota > 0 ? 'bor' : 'keyin', kvota, keyingi: r.keyingi?.[k] || '' };
+  // REV166: shu fan haftaning qaysi kunlarida (0 — dushanba … 5 — shanba) — kartada «Du · Cho · Sha» bo'lib ko'rinadi
+  const kunlar = (r.hafta || []).map((list, i) => (Array.isArray(list) && list.includes(k) ? i : -1)).filter((i) => i >= 0);
+  return { turi: kvota > 0 ? 'bor' : 'keyin', kvota, keyingi: r.keyingi?.[k] || '', kunlar, bugun: haftaKuni(plan?.sana) };
+}
+
+/** ISO sana («2026-10-23») → hafta kuni: 0 — dushanba … 6 — yakshanba (sana bo'lmasa — -1). */
+export function haftaKuni(sana) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(sana || ''));
+  if (!m) return -1;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return (d.getUTCDay() + 6) % 7;
 }
 
 export function sum(n) {

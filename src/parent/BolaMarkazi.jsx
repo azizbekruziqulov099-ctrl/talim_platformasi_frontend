@@ -317,14 +317,20 @@ function KurslarBolim({ holat, apiBase, token, onHolat, reload }) {
 }
 
 // ── O'zingiz sinab ko'ring ─────────────────────────────────────
+// REV166: oson — 3 qadamli yo'riqnoma, «Bugun / Shu hafta / Hammasi», so'zlar ro'yxati (bosilsa to'g'ri aytilishi eshitiladi),
+// «Boshlash» dan keyin savollar; oxirida yordam kerak bo'lgan so'zlar alohida chiqadi.
+const DAVR = [["bugun", "Bugun"], ["hafta", "Shu hafta"], ["", "Hammasi"]];
 function SinovBolim({ apiBase, token, childId }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [fan, setFan] = useState("");
+  const [davr, setDavr] = useState(null);
   const [seed, setSeed] = useState(() => Date.now() % 1000);
+  const [boshlandi, setBoshlandi] = useState(false);
   const [i, setI] = useState(0);
   const [javob, setJavob] = useState(null);
   const [ball, setBall] = useState({ togri: 0, jami: 0 });
+  const [qiyin, setQiyin] = useState([]);
   const audio = useRef(null);
   useEffect(() => {
     let stop = false;
@@ -332,9 +338,13 @@ function SinovBolim({ apiBase, token, childId }) {
       .catch((e) => { if (!stop) setError(xatoMatni(e)); });
     return () => { stop = true; };
   }, [apiBase, token, childId]);
-  const words = useMemo(() => (data?.sozlar || []).filter((w) => !fan || w.kalit === fan), [data, fan]);
+  const all = useMemo(() => data?.sozlar || [], [data]);
+  // bugun so'z bo'lsa — bugungilar, bo'lmasa shu hafta, u ham bo'lmasa hammasi
+  const davrFaol = davr ?? (all.some((w) => w.kim === "bugun") ? "bugun" : all.some((w) => w.kim !== "oldin") ? "hafta" : "");
+  const words = useMemo(() => all.filter((w) => (!fan || w.kalit === fan)
+    && (!davrFaol || (davrFaol === "bugun" ? w.kim === "bugun" : w.kim !== "oldin"))), [all, fan, davrFaol]);
   const savollar = useMemo(() => sinovSavollari(words, { soni: 6, seed }), [words, seed]);
-  const fans = useMemo(() => [...new Set((data?.sozlar || []).map((w) => w.kalit).filter(Boolean))], [data]);
+  const fans = useMemo(() => [...new Set(all.map((w) => w.kalit).filter(Boolean))], [all]);
   const play = useCallback((w) => {
     try {
       audio.current?.pause();
@@ -342,42 +352,77 @@ function SinovBolim({ apiBase, token, childId }) {
       audio.current = a; a.play().catch(() => {});
     } catch { /* ovoz ixtiyoriy */ }
   }, [apiBase]);
-  const restart = () => { setSeed((n) => n + 17); setI(0); setJavob(null); setBall({ togri: 0, jami: 0 }); };
-  const mark = (ok) => { setJavob(ok ? "ok" : "no"); setBall((b) => ({ togri: b.togri + (ok ? 1 : 0), jami: b.jami + 1 })); };
+  const restart = (start = boshlandi) => { setSeed((n) => n + 17); setI(0); setJavob(null); setBall({ togri: 0, jami: 0 }); setQiyin([]); setBoshlandi(start); };
+  const mark = (ok, w) => { setJavob(ok ? "ok" : "no"); setBall((b) => ({ togri: b.togri + (ok ? 1 : 0), jami: b.jami + 1 }));
+    if (!ok && w) setQiyin((q) => (q.some((x) => x.soz === w.soz) ? q : [...q, w])); };
 
   if (error) return <p className="bm-error">{__kbUi(error)}</p>;
   if (!data) return <p className="bm-muted" role="status">{__kbUi("Yuklanmoqda…")}</p>;
-  if (savollar.length < 2) return <div className="bm-card"><h4>🧪 {__kbUi("O‘zingiz sinab ko‘ring")}</h4>
+  if (all.filter((w) => w.emoji).length < 2) return <div className="bm-card"><h4>🧪 {__kbUi("O‘zingiz sinab ko‘ring")}</h4>
     <p className="bm-muted">{__kbUi("Farzandingiz bir nechta dars o‘tgach, shu yerda u o‘rgangan so‘zlardan kichik o‘yin chiqadi: rasmni topish va so‘zni aytish.")}</p></div>;
   const s = savollar[i];
-  const tugadi = i >= savollar.length;
+  const tugadi = boshlandi && i >= savollar.length;
+  const filtrlar = <>
+    <div className="bm-chips" role="group" aria-label={__kbUi("Qaysi so‘zlar")}>
+      {DAVR.map(([k, t]) => <button key={k || "all"} type="button" className={`bm-pick ${davrFaol === k ? "is-on" : ""}`}
+        onClick={() => { setDavr(k); restart(false); }}>{__kbUi(t)}</button>)}
+    </div>
+    {fans.length > 1 && <div className="bm-chips">
+      <button type="button" className={`bm-pick ${!fan ? "is-on" : ""}`} onClick={() => { setFan(""); restart(false); }}>{__kbUi("Hamma fanlar")}</button>
+      {fans.map((k) => <button key={k} type="button" className={`bm-pick ${fan === k ? "is-on" : ""}`} onClick={() => { setFan(k); restart(false); }}>{KURS[k]?.emoji} {__kbUi(KURS[k]?.nom || k)}</button>)}
+    </div>}
+  </>;
+
+  if (!boshlandi) return <div className="bm-card bm-quiz">
+    <div className="bm-card-head"><h4>🧪 {__kbUi("O‘zingiz sinab ko‘ring")}</h4><small>{__kbUi("2 daqiqa")}</small></div>
+    <ol className="bm-steps">
+      <li><span aria-hidden="true">👧</span>{__kbUi("Farzandingizni yoningizga chaqiring.")}</li>
+      <li><span aria-hidden="true">🖼</span>{__kbUi("Rasmni ko‘rsatib «Bu nima?» deb so‘rang — yoki 🔊 ni bosing, u rasmni topsin.")}</li>
+      <li><span aria-hidden="true">✅</span>{__kbUi("Aytsa — «Aytdi», aytolmasa — «Yordam kerak». Telefon to‘g‘ri aytilishini o‘zi eshittiradi.")}</li>
+    </ol>
+    {filtrlar}
+    {words.length > 0 ? <>
+      <p className="bm-label">📝 {__kbUi(davrFaol === "bugun" ? "Bugun o‘rgangan so‘zlari" : "O‘rgangan so‘zlari")} · {words.length}</p>
+      <div className="bm-wordlist">{words.slice(0, 24).map((w) => <button key={`${w.kalit}-${w.soz}`} type="button" className={`bm-word ${w.aytdi === false ? "is-try" : ""}`}
+        onClick={() => play(w)} title={__kbUi("Bosing — to‘g‘ri aytilishini eshitasiz")}>
+        <span aria-hidden="true">{w.emoji || "🔤"}</span><b>{w.soz}</b><i aria-hidden="true">🔊</i></button>)}</div>
+      <p className="bm-muted">💡 {__kbUi("Sariq so‘zlarni farzandingiz darsda hali aytolmagan — avval shularni so‘rang.")}</p>
+    </> : <p className="bm-muted">{__kbUi("Bu davrda so‘z yo‘q — «Shu hafta» yoki «Hammasi» ni tanlang.")}</p>}
+    <button type="button" className="bm-primary bm-start" disabled={savollar.length < 2} onClick={() => restart(true)}>▶️ {__kbUi("Boshlash")} · {savollar.length} {__kbUi("savol")}</button>
+  </div>;
+
   return <div className="bm-card bm-quiz">
     <div className="bm-card-head"><h4>🧪 {__kbUi("O‘zingiz sinab ko‘ring")}</h4><small>{Math.min(i + 1, savollar.length)}/{savollar.length}</small></div>
-    <p className="bm-muted">{__kbUi("Telefonni farzandingizga bering yoki yonida o‘tiring. Savollar u oxirgi kunlarda o‘rgangan so‘zlardan.")}</p>
-    {fans.length > 1 && <div className="bm-chips">
-      <button type="button" className={`bm-pick ${!fan ? "is-on" : ""}`} onClick={() => { setFan(""); restart(); }}>{__kbUi("Hammasi")}</button>
-      {fans.map((k) => <button key={k} type="button" className={`bm-pick ${fan === k ? "is-on" : ""}`} onClick={() => { setFan(k); restart(); }}>{KURS[k]?.emoji} {__kbUi(KURS[k]?.nom || k)}</button>)}
-    </div>}
+    <div className="bm-progress" aria-hidden="true"><i style={{ width: `${Math.round((Math.min(i, savollar.length) / savollar.length) * 100)}%` }} /></div>
     {tugadi ? <div className="bm-quiz-end">
       <span aria-hidden="true">{ball.togri >= ball.jami * 0.8 ? "🏆" : ball.togri >= ball.jami / 2 ? "👍" : "💪"}</span>
       <b>{ball.togri} / {ball.jami}</b>
       <p className="bm-muted">{__kbUi(ball.togri >= ball.jami * 0.8 ? "Zo‘r! Farzandingiz so‘zlarni yaxshi eslab qolgan." : "Yaxshi urinish! Shu so‘zlarni bugun kechqurun yana bir bor takrorlang.")}</p>
-      <button type="button" className="bm-primary" onClick={restart}>🔁 {__kbUi("Yangi savollar")}</button>
+      {qiyin.length > 0 && <div className="bm-hard">
+        <p className="bm-label">🔁 {__kbUi("Takrorlash kerak")}</p>
+        <div className="bm-wordlist">{qiyin.map((w) => <button key={w.soz} type="button" className="bm-word is-try" onClick={() => play(w)}>
+          <span aria-hidden="true">{w.emoji}</span><b>{w.soz}</b><i aria-hidden="true">🔊</i></button>)}</div>
+      </div>}
+      <div className="bm-row">
+        <button type="button" className="bm-primary" onClick={() => restart(true)}>🔁 {__kbUi("Yangi savollar")}</button>
+        <button type="button" className="bm-secondary" onClick={() => restart(false)}>{__kbUi("So‘zlar ro‘yxati")}</button>
+      </div>
     </div> : <div className="bm-q">
       {s.turi === "top" ? <>
-        <p className="bm-q-title">{__kbUi("Eshittiring va so‘rang: qaysi rasm?")}</p>
+        <p className="bm-q-title">{__kbUi("🔊 ni bosing va so‘rang: qaysi rasm?")}</p>
         <button type="button" className="bm-say" onClick={() => play(s)}>🔊 {__kbUi("Eshittirish")}</button>
         <div className="bm-opts">{s.variantlar.map((v) => <button key={v.soz} type="button" disabled={javob !== null}
-          className={`bm-opt ${javob !== null && v.togri ? "is-right" : ""}`} onClick={() => mark(v.togri)} aria-label={v.soz}>{v.emoji}</button>)}</div>
+          className={`bm-opt ${javob !== null && v.togri ? "is-right" : ""}`} onClick={() => mark(v.togri, s)} aria-label={v.soz}>{v.emoji}</button>)}</div>
+        <p className="bm-muted">{__kbUi("Rasmni farzandingiz o‘zi bossin.")}</p>
       </> : <>
-        <p className="bm-q-title">{__kbUi("Rasmni ko‘rsating va so‘rang: bu nima?")}{s.til && KURS[s.kalit] ? ` (${__kbUi(KURS[s.kalit].nom)})` : ""}</p>
+        <p className="bm-q-title">{__kbUi("Rasmni ko‘rsating va so‘rang: «Bu nima?»")}{s.til && KURS[s.kalit] ? ` (${__kbUi(KURS[s.kalit].nom)})` : ""}</p>
         <div className="bm-big" aria-hidden="true">{s.emoji}</div>
         <div className="bm-row">
-          <button type="button" className="bm-secondary" onClick={() => play(s)}>🔊 {__kbUi("To‘g‘ri aytilishi")}</button>
           {javob === null && <>
-            <button type="button" className="bm-yes" onClick={() => mark(true)}>✅ {__kbUi("Aytdi")}</button>
-            <button type="button" className="bm-no" onClick={() => { mark(false); play(s); }}>🔁 {__kbUi("Yordam kerak")}</button>
+            <button type="button" className="bm-yes" onClick={() => mark(true, s)}>✅ {__kbUi("Aytdi")}</button>
+            <button type="button" className="bm-no" onClick={() => { mark(false, s); play(s); }}>🔁 {__kbUi("Yordam kerak")}</button>
           </>}
+          <button type="button" className="bm-secondary" onClick={() => play(s)}>🔊 {__kbUi("To‘g‘ri aytilishi")}</button>
         </div>
       </>}
       {javob !== null && <div className={`bm-feedback ${javob === "ok" ? "is-ok" : "is-no"}`}>
@@ -406,7 +451,7 @@ export default function BolaMarkazi({ apiBase, token, childId, initialTab = "kun
       {tabs.map(([id, emoji, title]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "is-on" : ""} onClick={() => setTab(id)}>
         <span aria-hidden="true">{emoji}</span>{__kbUi(title)}</button>)}
     </nav>}
-    {tab === "kundalik" || !bogcha ? <FarzandFaollik apiBase={apiBase} token={token} childId={childId} />
+    {tab === "kundalik" || !bogcha ? <FarzandFaollik apiBase={apiBase} token={token} childId={childId} onSinov={bogcha ? () => setTab("sinov") : undefined} />
       : tab === "reja" ? <RejaBolim holat={holat} apiBase={apiBase} token={token} onHolat={setHolat} goKurslar={() => setTab("kurslar")} />
       : tab === "kurslar" ? <KurslarBolim holat={holat} apiBase={apiBase} token={token} onHolat={setHolat} reload={load} />
       : <SinovBolim apiBase={apiBase} token={token} childId={childId} />}
