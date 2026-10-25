@@ -4,6 +4,8 @@ import Rasm from "./MaktabRasm.jsx";
 import Repetitor from "./Repetitor.jsx";
 import { lugatOl, muddatiKelgan } from "./repetitorRules.js";
 import { CEFR, darajaHisob, sinfMaqsadi, bahoOf, javobBali, javobYoz, natijaOl, tezlikOf, yilYoli, bolimQadamlari, rejimOchiq, keyingiQadam, QADAMLAR } from "./darajaRules.js";
+import Imtihon from "./Imtihon.jsx";
+import { hovuz, imtihonlar, imtihonYoz, buHaftaTopshirildi, joyBilanDaraja } from "./imtihonRules.js";
 import { natijaYubor, reytingOl, faollikYoz, topshiriqlarOl, topshiriqBajardi, TIL_NOMI } from "./maktabServer.js";
 import VaqtHalqa, { vaqtDarajasi } from "../kid/VaqtHalqa.jsx";
 import {
@@ -18,7 +20,7 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import "./maktab.css";
 
 const REJIM = {
-  kartalar: ["📇", "So‘z kartalari"], repetitor: ["👩‍🏫", "Repetitor"], rasm: ["🖼️", "Rasmini top"], mano: ["🔤", "Ma’nosini top"], harf: ["🔡", "Harflardan ter"],
+  kartalar: ["📇", "So‘z kartalari"], repetitor: ["🤖", "Repetitor"], rasm: ["🖼️", "Rasmini top"], mano: ["🔤", "Ma’nosini top"], harf: ["🔡", "Harflardan ter"],
   gap: ["🧱", "Gap tuz"], yoz: ["🎧", "Eshit va yoz"], ayt: ["🗣️", "Ayt"], bellashuv: ["🏆", "Bellashuv"],
 };
 const IZOH = {
@@ -49,7 +51,7 @@ function DarajaKarta({ dr, nat, reyting, sinf }) {
       <div className="mk-daraja-matn">
         <small>{T("Darajangiz")}</small>
         <b>{dr.daraja || T("Boshlang‘ich")}</b>
-        <small>{T("Sinfingiz uchun maqsad")}: <b>{maqsad}</b></small>
+        <small>{T("Sinfingiz uchun maqsad")}: <b>{maqsad}</b>{dr.joy ? ` · 🎯 ${T("test bo‘yicha")}` : ""}</small>
       </div>
     </div>
     {dr.keyingi && <div className="mk-daraja-keyingi">
@@ -93,6 +95,7 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   const korildi = useRef(new Set());   // shu bo'limda ochib ko'rilgan so'z kartalari
   const [topshiriqlar, setTopshiriqlar] = useState([]);   // REV174: ota-ona bergan mashqlar
   const [topshiriq, setTopshiriq] = useState(null);       // ochilgan topshiriq
+  const [imtihon, setImtihon] = useState(null);           // REV176: "haftalik" | "oylik" | "joylashtirish"
   const audio = useRef(null);
   const rec = useRef(null);
   const token = useRef(0);
@@ -145,13 +148,16 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   const yul = yulduzlar(til);
   // REV173: daraja (CEFR), ball, baho, tezlik va bo'lim yo'li
   const lugat = lugatOl(til);
-  const dr = darajaHisob(srs, lugat);
+  const drSoz = darajaHisob(srs, lugat);
+  // REV176: joylashtirish testi natijasi so'zlardan hisoblangan darajadan yuqori bo'lsa — o'sha ko'rsatiladi
+  const imt = imtihonlar(til);
+  const dr = joyBilanDaraja(drSoz, imt.joylashtirish?.daraja);
   const nat = natijaOl(til);
   const yol = sinfData ? yilYoli(sinfData, { yul, srs, lugat, ozSinf, erkin: cheklovsiz }) : [];
   const q = bolim ? bolimQadamlari(bolim, yul, srs, lugat) : null;
   const erkin = cheklovsiz || sinf < ozSinf;   // admin va o'tgan sinflar (takrorlash) — hammasi ochiq
   const sinxron = () => {
-    const n = natijaOl(til), y2 = yulduzlar(til), d2 = darajaHisob(srsOl(til), lugatOl(til));
+    const n = natijaOl(til), y2 = yulduzlar(til), d2 = joyBilanDaraja(darajaHisob(srsOl(til), lugatOl(til)), imtihonlar(til).joylashtirish?.daraja);
     return natijaYubor(apiBase, authToken, {
       til, sinf: ozSinf, bal: n.bal, togri: n.togri, jami: n.jami, daraja: d2.daraja || "", foiz: d2.foiz, keyingi: d2.keyingi || "",
       otildi: SINFLAR.reduce((k, x) => k + x.bolimlar.filter((b) => (y2[b.id]?.bellashuv || 0) >= 1).length, 0),
@@ -291,6 +297,20 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   </div>;
 
   // REV172: repetitor (bo'lim darsi yoki «Mening lug'atim») — o'z ekrani, ustoz bilan
+  if (!bloklangan && imtihon) {
+    const hv = hovuz({ srs, lugat, kun: imtihon === "oylik" ? 30 : 7, sinf: ozSinf });
+    return <div className="mk-root">
+      <Imtihon key={imtihon} apiBase={apiBase} til={til} izoh={iz} turi={imtihon} sozlar={hv.sozlar} gaplar={hv.gaplar}
+        onNatija={(r) => {
+          imtihonYoz(til, imtihon, r);
+          faollikYoz(apiBase, authToken, { turi: "imtihon", kod: `${til}:${imtihon}`, til, fan: TIL_NOMI[til],
+            mavzu: `${{ haftalik: "Haftalik imtihon", oylik: "Oylik imtihon", joylashtirish: "Darajani aniqlash" }[imtihon]}${r.daraja ? ` — ${r.daraja}` : ""} (${r.umumiy}%)`, togri: r.togri, jami: r.jami });
+          setYangi((n) => n + 1); setTimeout(sinxron, 0);
+        }}
+        onSinf={(n) => { setSinf(n); setImtihon(null); }}
+        onClose={() => { token.current++; setImtihon(null); }} />
+    </div>;
+  }
   if (!bloklangan && topshiriq) {
     return <div className="mk-root">
       <Repetitor key={`t${topshiriq.id}`} apiBase={apiBase} til={til} izoh={iz} sinf={ozSinf} topshiriq={topshiriq} rejim="dars"
@@ -343,6 +363,15 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
         <small>{takrorSoni ? `🔁 ${T("Bugungi takror")}: ${takrorSoni}` : `👩‍🏫 ${T("Repetitor")}`}</small>
       </button>
       <DarajaKarta dr={dr} nat={nat} reyting={reyting} sinf={ozSinf} />
+      {/* REV176: imtihonlar — haftalik (4 ko'nikma), oylik takror, darajani aniqlash (joylashtirish) */}
+      <div className="mk-imtihonlar">
+        {(() => { const h = imt.haftalik; const bu = buHaftaTopshirildi(h); return <button type="button" className={`mk-imt ${bu ? "" : "is-kerak"}`} disabled={bloklangan} onClick={() => setImtihon("haftalik")}>
+          <span aria-hidden="true">📝</span><b>{T("Haftalik imtihon")}</b><small>{bu ? `✅ ${h.umumiy}% · ${T("Baho")} ${h.baho}` : `⏳ ${T("Shu hafta topshiring")}`}</small></button>; })()}
+        <button type="button" className="mk-imt" disabled={bloklangan} onClick={() => setImtihon("oylik")}>
+          <span aria-hidden="true">🗓️</span><b>{T("Oylik takror imtihoni")}</b><small>{imt.oylik ? `${imt.oylik.umumiy}% · ${T("Baho")} ${imt.oylik.baho}` : T("Oxirgi 30 kun")}</small></button>
+        <button type="button" className={`mk-imt ${imt.joylashtirish ? "" : "is-kerak"}`} disabled={bloklangan} onClick={() => setImtihon("joylashtirish")}>
+          <span aria-hidden="true">🎯</span><b>{T("Darajani aniqlash testi")}</b><small>{imt.joylashtirish ? `${imt.joylashtirish.daraja || T("Boshlang‘ich")} · ${imt.joylashtirish.umumiy}%` : T("Pre-A1 → B1")}</small></button>
+      </div>
       {/* REV173: yil yo'li — bo'limlar ketma-ket ochiladi (oldingi bo'lim imtihonidan keyin); har bo'limda 4 qadam */}
       <ol className="mk-yol" aria-label={T("O‘quv yo‘li")}>
         {yol.map(({ bolim: b, ochiq: och, q: bq, keyingi: kel }, i) => {

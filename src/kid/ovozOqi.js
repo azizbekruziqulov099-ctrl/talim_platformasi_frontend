@@ -5,13 +5,16 @@ import { aralashKerak, aralashOqi } from "../speech/aralashOvoz.js";
 /** Ustoz jinsi bo'yicha server ovozi: erkak ustoz — «ogil», ayol ustoz — «qiz». */
 export const jinsOf = (ustoz, USTOZLAR = {}) => (USTOZLAR?.[ustoz]?.lab === "erkak" ? "ogil" : "qiz");
 
+/** REV177: robot Kabu — doim bitta ovozda (bolalar darsidagidek: ayol ovozi, biroz yuqoriroq ohang). */
+export const KABU_OVOZ = { jins: "qiz", ohang: "+8Hz" };
+
 /** Bir manba — bir vaqtda bitta ovoz. ovoz.oqi(matn, {jins, sekin, tezlik, done}); ovoz.stop() */
 export function ovozManbai(apiBase = "") {
   let joriy = null;
   let raqam = 0;
   const base = String(apiBase || "").replace(/\/+$/, "");
   const stop = () => { raqam++; try { joriy?.pause(); } catch { /* */ } joriy = null; };
-  const oqi = (matn, { jins = "qiz", sekin = false, tezlik = "-10%", done } = {}) => {
+  const oqi = (matn, { jins = "qiz", sekin = false, tezlik = "-10%", ohang = "", done } = {}) => {
     stop();
     const my = raqam;
     let fin = false;
@@ -19,7 +22,7 @@ export function ovozManbai(apiBase = "") {
     const t = String(matn || "").slice(0, 1500);
     if (!t.trim()) { setTimeout(end, 0); return; }
     const tz = sekin ? "-30%" : tezlik;
-    const url = (m) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m, jins, tezlik: tz })}`;
+    const url = (m) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m, jins, tezlik: tz, ...(ohang ? { ohang } : {}) })}`;
     if (aralashKerak(t)) {
       const ctl = aralashOqi(t, url, { rate: sekin ? 0.65 : 0.9, onEnd: end });
       joriy = { pause: () => ctl.stop() };

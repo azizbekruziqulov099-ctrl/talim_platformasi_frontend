@@ -458,3 +458,32 @@ body.kb-dars-yotiq{overflow:hidden}
 /* dars paytida «Bosh ekranga qo'shish» tugmasi doskani to'smasin */
 body:is(.kb-focus-dars,.kb-dars-yotiq) #samtm-install-app{display:none!important}
 body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.samtm-muassasa-strip,.samtm-yon-toggle,.samtm-top-switch,.samtm-top-spacer,.ka-panel,.kb-account-notice){display:none!important}
+/* REV176: sinfxona — deraza (ob-havo) chapda ochiq, doska o'rtada, ustoz o'ngda. Doskadagi hamma narsa sig'adi:
+   matn va rasmlar --dx-sig bo'yicha kichrayadi (JS doska balandligini o'lchaydi), rasmlar doskadan chiqmaydi. */
+.dx-root.dx-sinf.dx-ustoz-ong .dx-sinf-fon .us-teacher{left:auto;right:.5%}
+.dx-root.dx-sinf .dx-board{overflow:hidden}
+.dx-root.dx-sinf .dx-board>*{zoom:var(--dx-sig,1)}
+.dx-root.dx-sinf .dx-board img{max-width:100%;max-height:34cqh;height:auto;object-fit:contain}
+@media (min-width:1000px){.dx-root.dx-sinf:not(.dx-yotiq) .dx-ask{display:none}}
+/* REV177: sinfxona foni doim xona o'lchamida — focus/telefon qoidalari kenglikni kichraytirsa, rasm kesilib, devor soati va deraza qatlamlari surilib qolardi */
+.dx-root.dx-sinf .dx-sinf-fon .us-stage,.dx-root.dx-sinf.dx-focus .dx-sinf-fon .us-stage,.dx-root.dx-sinf.dx-yotiq .dx-sinf-fon .us-stage{width:100%;height:100%;min-width:0;max-width:none;margin:0;aspect-ratio:auto}
+/* REV177: test, ovozli tekshiruv va natijani robot Kabu o'tkazadi — ustoz o'rnida Kabu (bolalar darsidagidek) */
+.dx-root.dx-sinf .dx-sinf-fon .us-teacher{transition:opacity .45s ease,transform .45s ease}
+.dx-root.dx-sinf.dx-kabu-navbat .dx-sinf-fon .us-teacher{opacity:0!important;visibility:hidden;animation:none!important}
+.dx-sinf-kabu{position:absolute;z-index:3;bottom:4%;width:22%;pointer-events:none;animation:dx-kabu-kel .5s cubic-bezier(.2,.8,.3,1.2) both}
+.dx-root.dx-ustoz-chap .dx-sinf-kabu{left:3%}
+.dx-root.dx-ustoz-ong .dx-sinf-kabu{right:2%}
+.dx-root .dx-sinf-kabu .ks-stage{min-height:0;display:block;background:none;padding:0;box-shadow:none}
+.dx-root .dx-sinf-kabu .ks-stage .ks-robot{width:100%;max-width:none;padding-bottom:0}
+@keyframes dx-kabu-kel{from{opacity:0;transform:translateY(18%) scale(.85)}to{opacity:1;transform:none}}
+/* REV177: telefon yotqizilganda takror va mashqlar — Kabu chapda, topshiriq o'ngda (pastga surilib ketmaydi) */
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-root{display:grid;grid-template-columns:minmax(0,36%) minmax(0,1fr);grid-template-areas:"bar bar" "steps steps" "ustoz card";gap:8px 12px;max-width:none;align-items:start}
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-bar{grid-area:bar}
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-steps{grid-area:steps}
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-steps li{flex-direction:row;justify-content:center;gap:6px;padding:4px}
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-ustoz{grid-area:ustoz;width:100%;position:sticky;top:0}
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-card{grid-area:card;padding:10px;gap:8px}
+.dx-root.dx-yotiq .dx-repetitor-oyna .kx-root{flex-direction:column;min-height:0;padding:8px;gap:6px}
+.dx-root.dx-yotiq .dx-repetitor-oyna .kx-robot{flex-basis:auto;width:46%}
+.dx-root.dx-yotiq .dx-repetitor-oyna .kx-doska{font-size:18px;min-height:56px;width:100%;box-sizing:border-box}
+.dx-root.dx-yotiq .dx-repetitor-oyna .mm-matn{font-size:20px}

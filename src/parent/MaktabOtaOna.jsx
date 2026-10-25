@@ -4,7 +4,8 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { SINFLAR, BARCHA_SOZ } from "../maktab/index.js";
 import Rasm from "../maktab/MaktabRasm.jsx";
 import { CEFR } from "../maktab/darajaRules.js";
-import { TIL_NOMI } from "../maktab/maktabServer.js";
+import { TIL_NOMI, rejaSaqla } from "../maktab/maktabServer.js";
+import { kunRejasi, sinfDarslari, HAFTA_KUNLARI, HAFTA_QISQA, REJA_STANDART, vaqtMatni } from "../maktab/kunReja.js";
 import { ovozManbai } from "../kid/ovozOqi.js";
 import {
   TUR_BELGI, TUR_NOMI, YOZISH_TANLOV, MUDDAT_TANLOV, MAX_SOZ, bugunJami, haftaUstunlari, ozgarganSozlar, bolaTillari, sinovTuz, natijaFoiz,
@@ -30,7 +31,7 @@ async function api(apiBase, token, path, { method = "GET", body } = {}) {
 }
 const KUN_QISQA = { Dushanba: "Du", Seshanba: "Se", Chorshanba: "Ch", Payshanba: "Pa", Juma: "Ju", Shanba: "Sh", Yakshanba: "Ya" };
 const teg = (t, til) => `[${til}]${t}[/${til}]`;
-const TABS = [["bugun", "📅", "Bugun va hafta"], ["sinov", "🧪", "O‘zim sinayman"], ["mashq", "📝", "Mashq ber"]];
+const TABS = [["bugun", "📅", "Bugun va hafta"], ["sinov", "🧪", "O‘zim sinayman"], ["mashq", "📝", "Mashq ber"], ["reja", "🗓️", "Kun rejasi"]];
 
 export default function MaktabOtaOna({ apiBase, token, childId }) {
   const { locale } = useInterface();
@@ -62,6 +63,7 @@ export default function MaktabOtaOna({ apiBase, token, childId }) {
     {tab === "bugun" && <BugunHafta data={data} onTab={setTab} />}
     {tab === "sinov" && <OzimSinayman data={data} iz={iz} ayt={ayt} apiBase={apiBase} token={token} childId={childId}
       onMashq={(til, ids) => { setTayyorSozlar({ til, ids }); setTab("mashq"); }} onSaqlandi={load} />}
+    {tab === "reja" && <KunRejaSozla data={data} apiBase={apiBase} token={token} childId={childId} onSaqlandi={load} />}
     {tab === "mashq" && <MashqBer data={data} iz={iz} ayt={ayt} apiBase={apiBase} token={token} childId={childId} tayyor={tayyorSozlar} onYangi={load} />}
   </section>;
 }
@@ -303,5 +305,52 @@ function MashqBer({ data, iz, ayt, apiBase, token, childId, tayyor, onYangi }) {
           {t.holat === "yangi" && <button type="button" className="mo-link" onClick={() => bekor(t.id)}>{T("Bekor qilish")}</button>}
         </li>; })}</ul>
     </>}
+  </div>;
+}
+
+/** REV177: ota-ona farzandining kun rejasini belgilaydi — kuniga necha dars, dam olish kunlari, yakshanba. */
+function KunRejaSozla({ data, apiBase, token, childId, onSaqlandi }) {
+  const asl = data.reja || REJA_STANDART;
+  const [darsSoni, setDarsSoni] = useState(asl.dars_soni || 0);
+  const [dam, setDam] = useState(() => new Set(asl.dam_kunlari || [0]));
+  const [yakshanba, setYakshanba] = useState(asl.yakshanba || "takror");
+  const [holat, setHolat] = useState("");
+  const sd = sinfDarslari(data.bola.sinf);
+  const reja = { dars_soni: darsSoni, dam_kunlari: [...dam].sort(), yakshanba };
+  const almashtir = (k) => setDam((x) => { const y = new Set(x); if (y.has(k)) y.delete(k); else if (y.size < 3) y.add(k); return y; });
+  const saqla = () => {
+    setHolat("yuborilmoqda");
+    rejaSaqla(apiBase, token, childId, reja).then((r) => { setHolat(r ? "ok" : T("Saqlanmadi — internetni tekshiring")); if (r) onSaqlandi?.(); });
+  };
+  return <div className="mo-panel">
+    <p className="mo-muted">{T("Farzandingiz yoshiga mos")}: {data.bola.sinf}-{T("sinf")} — {sd.min === sd.max ? sd.min : `${sd.min}–${sd.max}`} {T("ta dars")}, {sd.daqiqa} {T("daqiqadan")}.
+      {" "}{T("Har darsdan oldin Kabu bilan takror, oxirida Repetitor.")}</p>
+    <h4>📘 {T("Kuniga nechta dars")}</h4>
+    <div className="mo-row mo-tanlov">
+      <button type="button" className={`mo-btn ${darsSoni === 0 ? "is-main" : ""}`} onClick={() => setDarsSoni(0)}>{T("Avto")} ({sd.min === sd.max ? sd.min : `${sd.min}–${sd.max}`})</button>
+      {[2, 3, 4, 5, 6, 7].map((n) => <button key={n} type="button" className={`mo-btn ${darsSoni === n ? "is-main" : ""}`} onClick={() => setDarsSoni(n)}>{n}</button>)}
+    </div>
+    <h4>🌴 {T("Dam olish kunlari")} <small className="mo-muted">({T("ko‘pi bilan 3 kun")})</small></h4>
+    <div className="mo-row mo-tanlov">
+      {[1, 2, 3, 4, 5, 6, 0].map((k) => <button key={k} type="button" aria-pressed={dam.has(k)} className={`mo-btn ${dam.has(k) ? "is-main" : ""}`}
+        disabled={k === 0 && yakshanba !== "dars"} onClick={() => almashtir(k)} title={T(HAFTA_KUNLARI[k])}>{T(HAFTA_QISQA[k])}</button>)}
+    </div>
+    <h4>☀️ {T("Yakshanba")}</h4>
+    <div className="mo-row mo-tanlov">
+      {[["takror", "🔁", "Haftalik takror (yangi dars yo‘q)"], ["dam", "🌴", "To‘liq dam olish"], ["dars", "📘", "Odatdagi dars kuni"]].map(([id, e, nom]) =>
+        <button key={id} type="button" className={`mo-btn ${yakshanba === id ? "is-main" : ""}`} onClick={() => { setYakshanba(id); if (id !== "dars") setDam((x) => new Set([...x].filter((k) => k !== 0))); }}>{e} {T(nom)}</button>)}
+    </div>
+    <h4>🗓️ {T("Hafta ko‘rinishi")}</h4>
+    <ul className="mo-list mo-reja-hafta">
+      {[1, 2, 3, 4, 5, 6, 0].map((k) => { const r = kunRejasi({ sinf: data.bola.sinf, reja, haftaKuni: k });
+        return <li key={k}><span className="mo-vaqt">{T(HAFTA_QISQA[k])}</span>
+          <span className="mo-matn"><b>{r.tur === "dam" ? `🌴 ${T("Dam olish")}` : r.tur === "takror" ? `🔁 ${T("Haftalik takror")}` : `📘 ${r.oraliq} ${T("ta dars")}`}</b>
+            <small>{r.tur === "dam" ? "" : `≈ ${vaqtMatni(r.jamiDaqiqa, T)}`}</small></span></li>; })}
+    </ul>
+    <div className="mo-row">
+      <button type="button" className="mo-btn is-main" disabled={holat === "yuborilmoqda"} onClick={saqla}>💾 {T("Saqlash")}</button>
+      {holat === "ok" && <span className="mo-ok" role="status">✅ {T("Saqlandi — farzandingiz rejasi yangilandi")}</span>}
+      {holat && holat !== "ok" && holat !== "yuborilmoqda" && <span className="mo-xato" role="alert">{holat}</span>}
+    </div>
   </div>;
 }

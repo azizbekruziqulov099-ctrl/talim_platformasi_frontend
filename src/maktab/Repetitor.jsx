@@ -1,11 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SINFLAR } from "./index.js";
 import Rasm from "./MaktabRasm.jsx";
-import UstozXonacha from "../kid/UstozXonacha.jsx";
-import { USTOZLAR } from "../kid/ustozlar.js";
-import { TIL_USTOZ } from "../kid/ustozRules.js";
-import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
-import { ovozManbai, jinsOf } from "../kid/ovozOqi.js";
+import KabuXonacha from "../kid/KabuXonacha.jsx";
+import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
 import { harfPlitkalar, harflar, harfTogri, terishMumkin } from "./maktabRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
@@ -76,7 +73,7 @@ const GAP = {
     bosh: "Hello! Today we will work on {n} words.",
   },
 };
-const BOSQICH = { tanish: ["👩‍🏫", "Tanishuv"], daftar: ["📓", "Daftarga yoz"], eshit: ["🎧", "Eshitib yoz"], uzdan: ["🔁", "Tarjima qil"], tildan: ["🔤", "Ma’nosini top"] };
+const BOSQICH = { tanish: ["🤖", "Tanishuv"], daftar: ["📓", "Daftarga yoz"], eshit: ["🎧", "Eshitib yoz"], uzdan: ["🔁", "Tarjima qil"], tildan: ["🔤", "Ma’nosini top"] };
 const teg = (t, til) => (til === "uz" ? String(t) : `[${til}]${t}[/${til}]`);
 
 /**
@@ -87,8 +84,7 @@ const teg = (t, til) => (til === "uz" ? String(t) : `[${til}]${t}[/${til}]`);
  */
 export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", topshiriq = null, darsSozlari = null, sarlavha = "", onNatija, onYakun, onClose }) {
   const iz = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
-  const ustoz = TIL_USTOZ[til] || "emily";
-  const jins = jinsOf(ustoz, USTOZLAR);
+  // REV177: so'z yodlatish, aytdirish, yozdirishni robot Kabu o'tkazadi — doim bitta Kabu ovozida
   const sozlam = sinfSozlamasi(sinf);
   // REV175: fan darsidan kelgan so'zlar — avval saqlanadi (lug'atda ko'rinsin), keyin umumiy xaritaga qo'shiladi
   const sozlar = useMemo(() => { if (darsSozlari?.length) qoshimchaSaqla(darsSozlari); return barchaSozlar(); }, [darsSozlari]);
@@ -127,7 +123,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
 
   const ayt = (matn, { sekin = false } = {}, done) => {
     setGapir(true);
-    ovoz.oqi(matn, { jins, sekin, tezlik: sinf <= 4 ? "-15%" : "-5%", done: () => { if (!alive.current) return; setGapir(false); done?.(); } });
+    ovoz.oqi(matn, { ...KABU_OVOZ, sekin, tezlik: sinf <= 4 ? "-15%" : "-5%", done: () => { if (!alive.current) return; setGapir(false); done?.(); } });
   };
   const mano = (w, l = iz) => w.w[l] || w.w.uz;
   const qur = (kalit, w, n = "") => {
@@ -239,7 +235,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
   </div>;
 
   const ustozBlok = (doska) => <div className="rp-ustoz">
-    <UstozXonacha ustoz={ustoz} doska={doska} gapir={gapir} onTap={() => dars && !dars.natija && dars.list?.length && bosqichniAyt(dars)} />
+    <KabuXonacha doska={doska} gapir={gapir} onTap={() => dars && !dars.natija && dars.list?.length && bosqichniAyt(dars)} />
   </div>;
 
   // ———— lug'at ————
@@ -273,8 +269,8 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
   // ———— dars ————
   const bar = <div className="mk-bar">
     <button type="button" className="mk-back" onClick={() => { ovoz.stop(); onClose?.(); }} aria-label={T("Orqaga")}>⬅️</button>
-    <div className="mk-head"><b className="mk-title">{darsSozlari?.length ? `👩‍🏫 ${T("Repetitor")}${sarlavha ? ` · ${sarlavha}` : ""}` : topshiriq ? `📬 ${T("Ota-onangizdan topshiriq")}` : <>👩‍🏫 {T("Repetitor")}{bolim && boshRejim === "dars" ? ` · ${bolim.emoji} ${bolim.nom[iz]}` : ""}</>}</b>
-      <small>{USTOZ_ISMI[ustoz]?.[iz] || ""}</small></div>
+    <div className="mk-head"><b className="mk-title">{darsSozlari?.length ? `🤖 ${T("Repetitor")}${sarlavha ? ` · ${sarlavha}` : ""}` : topshiriq ? `📬 ${T("Ota-onangizdan topshiriq")}` : <>🤖 {T("Repetitor")}{bolim && boshRejim === "dars" ? ` · ${bolim.emoji} ${bolim.nom[iz]}` : ""}</>}</b>
+      <small>🤖 Kabu</small></div>
     {/* dars davomida lug'atga o'tilsa dars yo'qolardi — faqat dars boshlanmaganda yoki tugaganda */}
     {(!dars || dars.natija || dars.bosh) && !topshiriq && <button type="button" className="mk-btn" onClick={() => { ovoz.stop(); setRejim("lugat"); setLugat(lugatOl(til)); }}>📒 {T("Lug‘atim")}</button>}
   </div>;
@@ -283,7 +279,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     return <div className="rp-root">{bar}
       {ustozBlok(darsSozlari[0].w[til])}
       <div className="rp-card rp-start">
-        <p>{T("Darsdagi yangi so‘zlarni ustoz bilan mustahkamlaymiz: harflab aytamiz, daftarga ko‘p marta yozamiz, eshitib yozamiz va tarjima qilamiz.")}</p>
+        <p>{T("Darsdagi yangi so‘zlarni Kabu bilan mustahkamlaymiz: harflab aytamiz, daftarga ko‘p marta yozamiz, eshitib yozamiz va tarjima qilamiz.")}</p>
         <div className="rp-sozlar" dir="auto">{darsSozlari.map((w) => <span key={w.id}>{w.emoji} {w.w[til]} — {mano(w)}</span>)}</div>
         <button type="button" className="mk-btn is-main rp-big" onClick={() => boshla(false)}>▶ {T("Repetitorni boshlash")}</button>
       </div>
@@ -312,7 +308,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     return <div className="rp-root">{bar}
       {ustozBlok(bolim ? bolim.sozlar[0]?.w[til] || "" : "📒")}
       <div className="rp-card rp-start">
-        <p>{T("Ustoz so‘zni aytadi, harflab aytadi va doskada ko‘rsatadi. Keyin daftaringizga ko‘p marta yozasiz, eshitib yozasiz va tarjima qilasiz.")}</p>
+        <p>{T("Kabu so‘zni aytadi, harflab aytadi va doskada ko‘rsatadi. Keyin daftaringizga ko‘p marta yozasiz, eshitib yozasiz va tarjima qilasiz.")}</p>
         <ul className="rp-plan">
           <li>📓 {T("Daftarga yozish")}: <b>{sozlam.yozish}</b> {T("marta (takrorlarda jami 100 tagacha)")}</li>
           <li>🆕 {T("Yangi so‘zlar")}: <b>{bolim ? Math.min(sozlam.yangi, bolim.sozlar.filter((w) => !lugat[w.id]).length) : 0}</b> · 🔁 {T("Takror")}: <b>{Math.min(kelgan, sozlam.takror)}</b></li>
@@ -417,7 +413,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
         <div className="mk-row">
           <button type="button" className="mk-btn" onClick={() => ayt(teg(soz, til))}>🔊 {T("Tinglash")}</button>
           {dars.yozdi < dars.maqsad && <button type="button" className={`mk-btn rp-big ${avto ? "" : "is-main"}`} onClick={() => setAvto((a) => !a)}>
-            {avto ? `⏸ ${T("To‘xtatish")}` : `▶ ${T("Ustoz bilan yozamiz")} (${yozishSoniyasi(soz)} ${T("soniyadan")})`}</button>}
+            {avto ? `⏸ ${T("To‘xtatish")}` : `▶ ${T("Kabu bilan yozamiz")} (${yozishSoniyasi(soz)} ${T("soniyadan")})`}</button>}
           {dars.yozdi < dars.maqsad
             ? !avto && <button type="button" className="mk-btn rp-big" onClick={() => {
               const d = darsRef.current; const yozdi = Math.min(d.maqsad, d.yozdi + sozlam.qadam);

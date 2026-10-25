@@ -83,3 +83,7 @@
 .mo-rasm.is-past { border-color: #E5484D; background: #FDECEC; }
 .mo-katta { font-size: 54px; }
 .mo-ball { font-size: 28px; color: #1F3B57; }
+/* REV177: kun rejasi */
+.mo-tanlov { flex-wrap: wrap; gap: 6px; }
+.mo-tanlov .mo-btn { min-width: 44px; }
+.mo-reja-hafta li { padding: 6px 10px; }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
@@ -16,16 +16,18 @@ import { screenTime } from "../kid/screenTime.js";
 import { LIP_STEP, loadEnvelope } from "../kid/lipSync.js";
 import { ustozNutqi } from "../kid/ustozNutqi.js";
 import KidStage from "../kid/KidStage.jsx";
-import { USTOZLAR } from "../kid/ustozlar.js";
+import { USTOZLAR, XONALAR } from "../kid/ustozlar.js";
 import UstozXonacha from "../kid/UstozXonacha.jsx";
 import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
-import { sanaQadami } from "./maktabMashqRules.js";
+import { sanaQadami, sinfJoyi } from "./maktabMashqRules.js";
+import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
 const MaktabMashqlar = React.lazy(() => import("./MaktabMashqlar.jsx"));
 const Repetitor = React.lazy(() => import("../maktab/Repetitor.jsx"));
+const DarsOldiTakror = React.lazy(() => import("./DarsOldiTakror.jsx"));   // REV177: yangi darsdan oldin Kabu bilan spiral takror
 import UstozSahna from "../kid/UstozSahna.jsx";
 import { useKeepLight } from "../kid/useKeepLight.js";
-import { havoTuri, quyoshVaqti, ustozFor } from "../kid/ustozRules.js";
+import { havoTuri, quyoshVaqti, ustozFor, xonaKaliti } from "../kid/ustozRules.js";
 import { darsSozlari, kirishniTozala, ochilish, qadamSozi } from "../kid/darsOchilishi.js";
 // REV156: qadamning o'z so'zi (mikrofon faqat shuni so'raydi)
 // REV157: bog'cha guruhi yoshi («4-5 yosh» → 4); topilmasa — 0 (izoh rejimi)
@@ -164,7 +166,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   ustozRef.current = ustozFor(fan || lesson?.topic?.fan);
   // REV175: maktabda ham haqiqiy sinfxona — ustoz o'z xonasida (deraza, ob-havo, soat), doska xona o'rtasida katta
   const sinfXona = !kid && Boolean(USTOZLAR[ustozRef.current]);
+  const doskaRef = useRef(null);
+  const joy = sinfXona ? sinfJoyi(XONALAR[xonaKaliti(ustozRef.current)] ? xonaKaliti(ustozRef.current) : "onatili") : null;   // REV176: doska — ustoz va deraza orasida
+  const foiz = (b) => (b ? { left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` } : undefined);
   const ustozGapiryapti = () => ["idle", "lesson", "bridge"].includes(modeRef.current);
+  // REV177: maktabda ham bolalar darsidagidek — yangi mavzuni jonli ustoz tushuntiradi, test va ovozli tekshiruvni robot Kabu o'tkazadi
+  const sinfXonaRef = useRef(false);
+  sinfXonaRef.current = sinfXona;
   useKeepLight(kid);   // REV121: tungi rejimda ham bolalar darsi yorqin
   gradeRef.current = grade || lesson?.topic?.sinf || "";
   const labels = audienceLabels(audience);
@@ -189,7 +197,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const maktabSozlar = useMemo(() => (kid || !darsTil ? [] : maktabDarsSozlari(lesson?.steps || [], darsTil, ["uz", "ru", "en"].includes(izoh) ? izoh : "uz", topicCode)),
     [kid, darsTil, lesson, izoh, topicCode]);
   const [repetitor, setRepetitor] = useState(false);
-  const [mashqlar, setMashqlar] = useState(false);   // REV175: o'qish, gapirish, diktant, yozganini o'qish
+  const [mashqlar, setMashqlar] = useState(false);
+  const [oldiTakror, setOldiTakror] = useState(null);   // REV177: oldingi darslar ro'yxati — takror oynasi ochiq   // REV175: o'qish, gapirish, diktant, yozganini o'qish
   const immersiya = Boolean(kid && darsTil && kidYoshi(grade || lesson?.topic?.sinf) >= 4);
   const tIzoh = immersiya ? darsTil : izoh;
   const opening = useMemo(() => (kid && lesson?.steps?.length ? ochilish({
@@ -294,11 +303,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV122: jonli ustoz o'z ovozida: Sardor aka — erkak, Nilufar opa va Malika opa — ayol ovozi
     // REV145: robot Kabu har doim bitta ovozda (har darsda boshqa-boshqa ovoz bolani chalg'itardi)
     // REV175: maktabda ham jonli ustoz — ovoz ustozning jinsiga mos (Lukas, Yusuf, Sardor — erkak ovozi)
-    const ovozJinsi = kidRef.current ? (ustozGapiryapti() && USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz")
+    const kabuGapiradi = !kidRef.current && sinfXonaRef.current && !ustozGapiryapti() && modeRef.current !== "end";
+    const ovozJinsi = kabuGapiradi ? "qiz" : kidRef.current ? (ustozGapiryapti() && USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz")
       : USTOZLAR[ustozRef.current] ? (USTOZLAR[ustozRef.current].lab === "erkak" ? "ogil" : "qiz") : jins;   // REV169: erkak ustozlar (Sardor, Yusuf, Lukas, Karlos, Kenji) — erkak ovozi
     const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins: ovozJinsi,
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
-      ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH }) : {}),
+      ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH }) : kabuGapiradi ? { ohang: KID_PITCH } : {}),
       ...(takror ? { takror: "1" } : {}), ...(attempt ? { q: String(attempt) } : {}) });
     return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`;
   }, [apiBase, jins]);
@@ -607,14 +617,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     answerTimes.current = [];
     setXatoTartib(null); xatolar.current = [];
     setMode("test"); setTestIndex(0); setScore(0); setPicked(null);
-    say(__kbUi("Savolni o‘qing va javobni tanlang."));
   };
   const xatoIshlash = () => {
     const list = [...xatolar.current];
     if (!list.length) return;
     xatolar.current = [];
     setXatoTartib(list); setMode("test"); setTestIndex(0); setScore(0); setPicked(null);
-    say(__kbUi("Xato qilgan savollaringizni qayta ishlaymiz. Izohni diqqat bilan o‘qing."));
   };
   const togglePlay = () => {
     if (mode === "result" || mode === "end") { setScore(0); gameRes.current = {}; setGameScore(0); setGameTotal(0); setPlaying(true); go(0, true); return; }
@@ -828,6 +836,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const q = savollar[testIndex];
     setPicked(k);
     if (k !== q.togri) { const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl); }
+    if (sinfXona) flashPhase(k === q.togri ? "happy" : "enc");   // REV177: Kabu quvonadi / dalda beradi
     if (k === q.togri) { setScore((x) => x + 1); say(__kbUi("To‘g‘ri!"), () => setTimeout(() => nextQuestion(), 700)); }
     else say(q.izoh || __kbUi("Javob noto‘g‘ri. To‘g‘ri variant yashil bilan belgilandi."));
   };
@@ -856,6 +865,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const t = setTimeout(() => readQuestion(questions[testIndex]), 300);
     return () => clearTimeout(t);
   }, [kid, mode, testIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV176: maktabda ham ustoz savolni va variantlarni ovoz chiqarib o'qiydi (bog'cha va repetitordagi kabi), o'quvchi o'qib-tinglab tanlaydi
+  useEffect(() => {
+    const qq = !kid && mode === "test" ? savollar[testIndex] : null;
+    if (!qq) return undefined;
+    const harf = ["A", "B", "C", "D"];
+    const kirish = testIndex === 0 ? `${__kbUi(xatoTartib ? "Xato qilgan savollaringizni qayta ishlaymiz. Izohni diqqat bilan o‘qing." : "Savolni tinglang va javobni tanlang.")} ` : "";
+    const matn = `${kirish}${qq.savol} ${(qq.variantlar || []).map((o, k) => `${harf[k]}) ${String(o?.text ?? o ?? "")}`).join(". ")}`;
+    const t = setTimeout(() => say(matn), 350);
+    return () => clearTimeout(t);
+  }, [kid, mode, testIndex, xatoTartib]); // eslint-disable-line react-hooks/exhaustive-deps
   // REV171: «Shu yerdamisan?» — test savolida bola javob bermasa: 1) so'raydi, 2) to'g'ri javobni yoritadi,
   // 3) tasalli berib keyingi savolga o'tadi (bog'chada). Maktabda faqat eslatadi. Ilova yashirin bo'lsa — soat yurmaydi.
   useEffect(() => {
@@ -965,6 +984,22 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     return () => { globalThis.removeEventListener?.("resize", yangila); globalThis.removeEventListener?.("orientationchange", yangila); };
   }, []);
   useEffect(() => { document.body.classList.toggle("kb-dars-yotiq", yotiq); return () => document.body.classList.remove("kb-dars-yotiq"); }, [yotiq]);
+  // REV176: sinfxonada doskaga hamma narsa sig'sin — matn va rasmlar doska o'lchamiga qarab o'zi kichrayadi (aylantirmasdan ko'rinadi)
+  useLayoutEffect(() => {
+    const el = doskaRef.current;
+    if (!sinfXona || !el) return undefined;
+    const sigdir = () => {
+      let z = 1;
+      el.style.setProperty("--dx-sig", "1");
+      for (let k = 0; k < 12 && el.scrollHeight > el.clientHeight + 2 && z > 0.5; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
+    };
+    sigdir();
+    const t = setTimeout(sigdir, 450);   // rasmlar yuklangach qayta o'lchanadi
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sigdir) : null;
+    ro?.observe(el);
+    el.querySelectorAll("img").forEach((im) => { if (!im.complete) im.addEventListener("load", sigdir, { once: true }); });
+    return () => { clearTimeout(t); ro?.disconnect(); };
+  }, [sinfXona, idx, mode, testIndex, picked, variant, yotiq]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     document.body.classList.toggle("kb-focus-dars", focus);
     return () => document.body.classList.remove("kb-focus-dars");
@@ -1002,6 +1037,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (kid || !topicCode) return;
     // maktab yo'li: dars oxirigacha o'qilsa — «o'tildi»; birinchi urinishdagi test natijasi — yulduz
     if (mode === "end") markLessonDone(topicCode, 0);
+    // REV177: dars so'zlari, test savollari va tushunchalari keyingi darslardagi spiral takror uchun saqlanadi
+    if (mode === "end" || (mode === "result" && !xatoTartib)) darsniSaqla(fan || lesson?.topic?.fan || "", darsYozuvi({ kod: topicCode, mavzu: lesson?.topic?.mavzu || "",
+      fan: fan || lesson?.topic?.fan || "", til: darsTil || "", iz: ["uz", "ru", "en"].includes(izoh) ? izoh : "uz", steps: lesson?.steps || [], sozlar: maktabSozlar, savollar: questions }));
     if (mode === "result" && !xatoTartib && questions.length) markLessonDone(topicCode, kidStars(score, questions.length));
     if (learnerRole !== "oquvchi" || !token) return;
     if (mode === "lesson" && !darsBosh.current) darsBosh.current = Date.now();
@@ -1174,7 +1212,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (name) say(darsTil ? `[${darsTil}]${name}[/${darsTil}]` : izohTeg(name, izoh));
   };
 
-  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? "dx-sinf" : ""}`} aria-label={__kbUi("Dars xonasi")}>
+  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz}` : ""} ${sinfXona && ["test", "ovoz", "result"].includes(mode) ? "dx-kabu-navbat" : ""}`} aria-label={__kbUi("Dars xonasi")}>
     <header className="dx-head">
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={focus ? exitLesson : () => { hush(); onClose?.(); }} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
@@ -1196,10 +1234,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
     <div className="dx-room">
       {sinfXona && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
       </div>}
-      <div className="dx-frame">
-        <div className="dx-board" aria-live="polite">
+      {sinfXona && ["test", "ovoz", "result"].includes(mode) && <div className="dx-sinf-kabu" aria-hidden="true"><KidStage compact mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}
+      <div className="dx-frame" style={sinfXona ? foiz(joy.doska) : undefined}>
+        <div className="dx-board" aria-live="polite" ref={doskaRef}>
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
             onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />
@@ -1283,7 +1322,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             <div className="dx-row">
               {darsTil && !kid && <button type="button" className="dx-btn dx-primary dx-mashqlar" onClick={() => { hush(); setMashqlar(true); }}>🏋️ {__kbUi("Dars mashqlari")}: {__kbUi("o‘qish, gapirish, diktant")}</button>}
               {questions.length > 0 && <button type="button" className={`dx-btn ${darsTil ? "" : "dx-primary"}`} onClick={startQuiz}>{__kbUi(`Shu yerda ${questions.length} ta savol`)}</button>}
-              {maktabSozlar.length > 0 && <button type="button" className="dx-btn dx-repetitor" onClick={() => { hush(); setRepetitor(true); }}>👩‍🏫 {__kbUi("Repetitor")}: {maktabSozlar.length} {__kbUi("ta yangi so‘z")}</button>}
+              {maktabSozlar.length > 0 && <button type="button" className="dx-btn dx-repetitor" onClick={() => { hush(); setRepetitor(true); }}>🤖 {__kbUi("Repetitor")}: {maktabSozlar.length} {__kbUi("ta yangi so‘z")}</button>}
               {onOpenTest && <button type="button" className="dx-btn" onClick={onOpenTest}>{__kbUi("Test bo‘limida to‘liq test")}</button>}
               {voiceReady && <button type="button" className="dx-btn" onClick={() => { hush(); setVoice(null); voiceRef.current = null; setMode("ovoz"); }}>🎤 {__kbUi("Ovozli tekshiruvni qayta o‘tish")}</button>}
               <button type="button" className="dx-btn" onClick={() => { setPlaying(false); go(0, false); }}>{__kbUi("Darsni qaytadan ko‘rish")}</button>
@@ -1325,7 +1364,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {voice?.jami > 0 && <p className="dx-voice-score">🎤 {__kbUi("Ovozli tekshiruv")}: {voice.togri} / {voice.jami}</p>}
             <p className="dx-why">{pass ? __kbUi("Zo‘r! Mavzu o‘zlashtirildi.") : __kbUi("Asosiy qismni yana bir bor ko‘rib chiqamiz.")}</p>
             <div className="dx-row">
-              {maktabSozlar.length > 0 && <button type="button" className="dx-btn dx-repetitor" onClick={() => { hush(); setRepetitor(true); }}>👩‍🏫 {__kbUi("Repetitor")}: {maktabSozlar.length} {__kbUi("ta yangi so‘z")}</button>}
+              {maktabSozlar.length > 0 && <button type="button" className="dx-btn dx-repetitor" onClick={() => { hush(); setRepetitor(true); }}>🤖 {__kbUi("Repetitor")}: {maktabSozlar.length} {__kbUi("ta yangi so‘z")}</button>}
               {xatolar.current.length > 0 && <button type="button" className="dx-btn dx-primary" onClick={xatoIshlash}>🔁 {__kbUi("Xatolar ustida ishlash")} ({xatolar.current.length})</button>}
               {!pass && <button type="button" className={`dx-btn ${xatolar.current.length ? "" : "dx-primary"}`} onClick={() => { setPlaying(false); go(Math.max(0, steps.findIndex((s) => s.turi === "qoida")), false); }}>{__kbUi("Qoidani qayta ko‘rish")}</button>}
               {onOpenTest && <button type="button" className="dx-btn" onClick={onOpenTest}>{__kbUi("To‘liq testni ishlash")}</button>}
@@ -1336,6 +1375,17 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         <div className="dx-ledge" aria-hidden="true" />
       </div>
 
+      {oldiTakror && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Darsdan oldin takror")}>
+        <React.Suspense fallback={<p className="dx-why">⏳</p>}>
+          <DarsOldiTakror apiBase={apiBase} iz={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} sinf={Number(/(\d{1,2})/.exec(String(grade || lesson?.topic?.sinf || ""))?.[1]) || 5} darslar={oldiTakror}
+            onTugadi={(r) => {
+              takrorBelgila(topicCode); setOldiTakror(null);
+              if (learnerRole === "oquvchi" && token && r?.jami) faollikYoz(apiBase, token, { turi: "takror", kod: `takror:${topicCode}`, fan: fan || lesson?.topic?.fan || "", mavzu: `Darsdan oldin takror: ${lesson?.topic?.mavzu || ""}`, togri: r.togri, jami: r.jami });
+              togglePlay();
+            }}
+            onOtkaz={() => { takrorBelgila(topicCode); setOldiTakror(null); togglePlay(); }} />
+        </React.Suspense>
+      </div>}
       {mashqlar && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Dars mashqlari")}>
         <React.Suspense fallback={<p className="dx-why">⏳</p>}>
           <MaktabMashqlar apiBase={apiBase} til={darsTil} iz={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} ustoz={ustozRef.current} steps={steps} sozlar={maktabSozlar} mavzu={lesson?.topic?.mavzu || ""}
@@ -1353,7 +1403,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             onClose={() => setRepetitor(false)} />
         </React.Suspense>
       </div>}
-      {!kid && <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")}>
+      {!kid && <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")} style={sinfXona ? foiz(joy.gap) : undefined}>
         {USTOZLAR[ustozRef.current] && !sinfXona && <div className="dx-jonli-ustoz">
           <UstozXonacha ustoz={ustozRef.current} doska={(step?.sarlavha || lesson?.topic?.mavzu || "").replace(/\[\/?[a-z]{2}\]/g, "").slice(0, 60)} gapir={speaking} />
         </div>}
@@ -1381,7 +1431,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     </div>}
 
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
-      <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={() => { if (yotiq && mode === "idle") kengaytir(); togglePlay(); }}>{kid
+      <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={() => {
+        if (yotiq && mode === "idle") kengaytir();
+        // REV177: yangi dars oldidan — oldingi darslardan spiral takror (bugun shu darsda qilinmagan bo'lsa)
+        if (!kid && mode === "idle" && !playing && topicCode && !takrorQilindi(topicCode)) {
+          const d = oldingiDarslar(fan || lesson?.topic?.fan || "", topicCode);
+          if (d.length) { setOldiTakror(d); return; }
+        }
+        togglePlay();
+      }}>{kid
         ? <KidIcon icon={playing ? "⏸️" : "▶️"} label={playing ? "Pauza" : "Davom"} />
         : playing ? __kbUi("❚❚ Pauza") : mode === "idle" ? __kbUi(labels.start) : mode === "result" || mode === "end" ? __kbUi("↺ Qaytadan") : __kbUi("▶ Davom etish")}</button>
       {!kid && <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi("‹ Oldingi")}</button>}

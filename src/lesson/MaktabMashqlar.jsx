@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import UstozXonacha from "../kid/UstozXonacha.jsx";
-import { USTOZLAR } from "../kid/ustozlar.js";
-import { ovozManbai, jinsOf } from "../kid/ovozOqi.js";
+import KabuXonacha from "../kid/KabuXonacha.jsx";
+import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
 import { tekshir } from "../maktab/repetitorRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
@@ -13,9 +12,9 @@ const BOSQICH = {
   oqish: ["📖", "O‘qish"], gapirish: ["🗣️", "Gapirish"], diktant: ["✍️", "Diktant"], oqibBer: ["🎤", "Yozganingni o‘qi"], yakun: ["🏁", "Natija"],
 };
 const IZOH = {
-  oqish: "Gapni o‘qing: avval ustozni tinglang, keyin mikrofonga ovoz chiqarib o‘qing.",
-  gapirish: "Ustozning savoliga o‘sha tilda javob bering (kamida 3–4 so‘z).",
-  diktant: "Ustoz aytadi — siz yozasiz. Kerak bo‘lsa, sekinroq tinglang.",
+  oqish: "Gapni o‘qing: avval Kabuni tinglang, keyin mikrofonga ovoz chiqarib o‘qing.",
+  gapirish: "Kabuning savoliga o‘sha tilda javob bering (kamida 3–4 so‘z).",
+  diktant: "Kabu aytadi — siz yozasiz. Kerak bo‘lsa, sekinroq tinglang.",
   oqibBer: "Endi diktantda yozganlaringizni ovoz chiqarib o‘qib bering.",
 };
 const teg = (t, til) => `[${til}]${t}[/${til}]`;
@@ -37,14 +36,14 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
   const [ball, setBall] = useState({});           // bosqich → {togri, jami}
   const [yozganlari, setYozganlari] = useState([]);
   const ovoz = useMemo(() => ovozManbai(apiBase), [apiBase]);
-  const jins = jinsOf(ustoz, USTOZLAR);
+  const [quvon, setQuvon] = useState(0);   // REV177: to'g'ri javobda Kabu sakraydi
   const alive = useRef(true);
   const rec = useRef(null);
   const mikBor = Boolean(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition);
   useEffect(() => { alive.current = true; return () => { alive.current = false; ovoz.stop(); try { rec.current?.abort(); } catch { /* */ } }; }, [ovoz]);
 
   const izt = (m) => (iz === "uz" ? m : teg(m, iz));   // izoh (maqtov, ko'rsatma) — interfeys tilida
-  const ayt = (m, sekin = false, done) => { setGapir(true); ovoz.oqi(m, { jins, sekin, tezlik: "-5%", done: () => { if (alive.current) { setGapir(false); done?.(); } } }); };
+  const ayt = (m, sekin = false, done) => { setGapir(true); ovoz.oqi(m, { ...KABU_OVOZ, sekin, tezlik: "-5%", done: () => { if (alive.current) { setGapir(false); done?.(); } } }); };
   const bosqich = bosqichlar[b] || "yakun";
   const royxat = bosqich === "oqish" ? mat.oqish : bosqich === "gapirish" ? mat.gapirish : bosqich === "diktant" ? mat.diktant : bosqich === "oqibBer" ? mat.diktant : [];
   const joriy = royxat[i];
@@ -57,7 +56,7 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
     else if (bosqich === "diktant") ayt(teg(matnOf(joriy), til), true);
   }, [b, i]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hisob = (togri) => setBall((x) => { const y = x[bosqich] || { togri: 0, jami: 0 }; return { ...x, [bosqich]: { togri: y.togri + (togri ? 1 : 0), jami: y.jami + 1 } }; });
+  const hisob = (togri) => { if (togri) setQuvon((q) => q + 1); return setBall((x) => { const y = x[bosqich] || { togri: 0, jami: 0 }; return { ...x, [bosqich]: { togri: y.togri + (togri ? 1 : 0), jami: y.jami + 1 } }; }); };
   const keyingi = () => {
     setJavob(null); setKiritish(""); setMik("");
     if (i + 1 < royxat.length) { setI(i + 1); return; }
@@ -116,7 +115,7 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
     </div>
     <ol className="mm-steps">{[...bosqichlar, "yakun"].map((x, k) => <li key={x} className={`${k < b ? "is-done" : ""} ${k === b ? "is-on" : ""}`}>
       <span aria-hidden="true">{k < b ? "✅" : BOSQICH[x][0]}</span><small>{T(BOSQICH[x][1])}</small></li>)}</ol>
-    <div className="mm-ustoz"><UstozXonacha ustoz={ustoz} doska={bosqich === "diktant" && !javob ? "✍️ …" : bosqich === "yakun" ? "🏁" : matnOf(joriy).slice(0, 60)} gapir={gapir} /></div>
+    <div className="mm-ustoz"><KabuXonacha celebrate={quvon} mood={javob?.holat === "togri" ? "happy" : javob ? "enc" : ""} doska={bosqich === "diktant" && !javob ? "✍️ …" : bosqich === "yakun" ? "🏁" : matnOf(joriy).slice(0, 60)} gapir={gapir} /></div>
 
     {bosqich === "yakun" ? <div className="mm-card mm-yakun" role="status">
       <span className="mm-katta" aria-hidden="true">{mashqYulduz(jamiBall.togri, jamiBall.jami) === 3 ? "🏆" : "💪"}</span>
@@ -124,7 +123,7 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
       <ul className="mm-natija">{bosqichlar.map((x) => <li key={x}><span>{BOSQICH[x][0]} {T(BOSQICH[x][1])}</span><b>{ball[x]?.togri || 0} / {ball[x]?.jami || 0}</b></li>)}</ul>
       <div className="mm-row">
         {onTest && <button type="button" className="mm-btn is-main" onClick={onTest}>📝 {T("Testni ishlash")}</button>}
-        {onRepetitor && <button type="button" className="mm-btn" onClick={onRepetitor}>👩‍🏫 {T("Repetitor: yangi so‘zlar")}</button>}
+        {onRepetitor && <button type="button" className="mm-btn" onClick={onRepetitor}>🤖 {T("Repetitor: yangi so‘zlar")}</button>}
         <button type="button" className="mm-btn" onClick={() => { setB(0); setI(0); setBall({}); setYozganlari([]); }}>🔁 {T("Qaytadan")}</button>
       </div>
     </div> : <div className="mm-card">

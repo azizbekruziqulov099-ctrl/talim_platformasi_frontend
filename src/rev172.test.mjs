@@ -93,13 +93,13 @@ test('yakshanba takrori: ikki haftaning so‘zlari, aytolmaganlari birinchi, fan
 
 test('integratsiya: maktabda Repetitor rejimi va lug‘at; bog‘chada yakshanba takrori; vaqt halqasi', () => {
   const m = src('./maktab/MaktabTil.jsx');
-  assert.match(m, /repetitor: \["👩‍🏫", "Repetitor"\]/);
+  assert.match(m, /repetitor: \["🤖", "Repetitor"\]/);
   assert.match(m, /<Repetitor /);
   assert.match(m, /<VaqtHalqa /);
   const r = src('./maktab/Repetitor.jsx');
   assert.match(r, /Daftaringizni oling/);
   assert.match(r, /Tarjimani eshit/);
-  assert.match(r, /TIL_USTOZ\[til\]/);
+  assert.match(r, /KabuXonacha/);   // REV177: repetitorni robot Kabu o‘tkazadi (oldin — tilning ustozi)
   const b = src('./kid/BogchaOlami.jsx');
   assert.match(b, /HaftalikTakror/);
   const v = src('./kid/VaqtHalqa.jsx');

@@ -23,6 +23,7 @@ import { ustozFor } from '../kid/ustozRules.js';
 import { bobBoyicha, fanEmblema, guruhla } from './fanGuruhlari.js';
 import { darsYoli } from './darsYoli.js';
 import MaktabYoli from './MaktabYoli.jsx';
+const MaktabKunReja=React.lazy(()=>import('../maktab/MaktabKunReja.jsx'));   // REV177
 import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
@@ -169,6 +170,8 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
      <span className="lt-fan-emb" aria-hidden="true"><FanBelgi emoji={fanEmblema(current.nom)}/></span>
      <b><TranslatedContent text={fanNomiTil(current.nom,locale)} showStatus={false}/></b>
     </div>}
+    {/* REV177: maktab o'quvchisining bugungi rejasi — yoshga mos dars soni, dam olish kuni, yakshanba takrori */}
+    {!kid&&!teacher&&!universityBrowse&&!fanIchida&&!preview&&type==='maktab'&&accountRole(user)==='oquvchi'&&<React.Suspense fallback={null}><MaktabKunReja apiBase={apiBase} token={token} sinf={user?.class||user?.learning_profile?.grade||''}/></React.Suspense>}
     {!kid&&!universityBrowse&&!fanIchida&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
      {guruhla(subjects).map(g=><div key={g.id} className="lt-guruh">

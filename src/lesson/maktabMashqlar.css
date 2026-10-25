@@ -45,3 +45,13 @@
 .mm-natija { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 6px; }
 .mm-natija li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 12px; background: #F8FAFC; font-weight: 700; }
 @media (max-width: 520px) { .mm-matn { font-size: 19px; } .mm-input { font-size: 19px; } }
+/* REV177: darsdan oldingi takror (Kabu) */
+.dot-root .mm-bar { justify-content: space-between; }
+.dot-root .mm-ustoz { width: min(100%, 520px); }
+.dot-variantlar { display: grid; gap: 8px; width: 100%; max-width: 560px; }
+.dot-variantlar .mm-btn { text-align: start; font-size: 17px; }
+.dot-variantlar .mm-btn.is-togri { background: #E7F6EE; border-color: #2F9E66; color: #145C38; opacity: 1; }
+.dot-variantlar .mm-btn.is-xato { background: #FDECEC; border-color: #E5484D; color: #8F1D21; opacity: 1; }
+.dot-erkin { font-size: 18px; text-align: start; line-height: 1.5; resize: vertical; }
+.dot-sozlar { display: block; font-size: 15px; font-weight: 700; color: #475569; line-height: 1.5; }
+.dot-sozlar.is-ok { color: #145C38; }

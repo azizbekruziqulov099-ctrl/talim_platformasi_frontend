@@ -1,4 +1,6 @@
 // REV173: maktab til natijalari serverga (ota-ona ko'radi, sinfdoshlar orasida o'rin). Ixtiyoriy: server javob bermasa — jim.
+import { kunBelgila } from "./kunReja.js";
+
 const base = (apiBase) => String(apiBase || "").replace(/\/+$/, "");
 
 export async function natijaYubor(apiBase, token, body) {
@@ -35,6 +37,7 @@ async function post(apiBase, token, path, body) {
 }
 /** turi: "dars" | "til" | "repetitor" | "topshiriq"; kod — shu faoliyatning kaliti (bir kunda bir xil kod — bitta yozuv yangilanadi). */
 export function faollikYoz(apiBase, token, { turi, kod, fan = "", til = "", mavzu = "", togri = 0, jami = 0, yozdi = 0, soniya = 0, sozlar = [] }) {
+  kunBelgila(turi, String(kod || ""));   // REV177: kun rejasi uchun (internet bo'lmasa ham)
   const n = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
   const j = n(jami, 500);
   return post(apiBase, token, "/api/maktab/faollik", {
@@ -51,3 +54,13 @@ export async function topshiriqlarOl(apiBase, token, til = "") {
   } catch { return []; }
 }
 export const topshiriqBajardi = (apiBase, token, id, { togri = 0, jami = 0, yozdi = 0 } = {}) => post(apiBase, token, "/api/maktab/topshiriq/bajardi", { id, togri, jami, yozdi });
+
+// REV177: kun rejasi — o'quvchi o'zinikini oladi, ota-ona o'zgartiradi
+export async function rejaOl(apiBase, token) {
+  if (!token) return null;
+  try {
+    const res = await fetch(`${base(apiBase)}/api/maktab/reja`, { headers: { Authorization: `Bearer ${token}` } });
+    return res.ok ? await res.json().catch(() => null) : null;
+  } catch { return null; }
+}
+export const rejaSaqla = (apiBase, token, bolaId, reja) => post(apiBase, token, "/api/ota/maktab/reja", { bola_id: bolaId, ...reja });

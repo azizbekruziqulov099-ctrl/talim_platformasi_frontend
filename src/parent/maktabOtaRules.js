@@ -1,7 +1,7 @@
 // REV174: Maktab o'quvchisining ota-onasi — sof qoidalar (brauzersiz sinaladi).
 
-export const TUR_BELGI = { dars: "📘", til: "🎮", repetitor: "👩‍🏫", topshiriq: "📬" };
-export const TUR_NOMI = { dars: "Dars", til: "Til o‘yini", repetitor: "Repetitor", topshiriq: "Ota-ona topshirig‘i" };
+export const TUR_BELGI = { dars: "📘", til: "🎮", repetitor: "🤖", topshiriq: "📬", imtihon: "📝", takror: "🌀" };
+export const TUR_NOMI = { dars: "Dars", til: "Til o‘yini", repetitor: "Repetitor", topshiriq: "Ota-ona topshirig‘i", imtihon: "Imtihon", takror: "Darsdan oldin takror" };
 export const YOZISH_TANLOV = [0, 10, 20, 40, 50, 100];
 export const MUDDAT_TANLOV = [1, 3, 7];
 export const MAX_SOZ = 30;
