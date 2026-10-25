@@ -52,7 +52,9 @@
 
 .xo-item { position: absolute; transform: translate(-50%, -50%); aspect-ratio: 1; border: 0; padding: 0; background: transparent; cursor: pointer;
   display: flex; align-items: center; justify-content: center; border-radius: 18%; transition: transform .18s; -webkit-tap-highlight-color: transparent; }
-.xo-item:hover, .xo-item:focus-visible { transform: translate(-50%, -50%) scale(1.12); outline: none; z-index: 3; }
+/* REV169: telefonda :hover «yopishib» qolib narsani kattalashtirardi — qo'shnisini bosganda ham shu ushlanardi. Faqat sichqonchada. */
+@media (hover: hover) and (pointer: fine) { .xo-item:hover { transform: translate(-50%, -50%) scale(1.12); z-index: 3; } }
+.xo-item:focus-visible { outline: none; z-index: 3; }
 .xo-pic { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 2px rgba(0,0,0,.22)); pointer-events: none; }
 .xo-pic.is-emoji { display: flex; align-items: center; justify-content: center; font-size: calc(var(--s, 8) * .78cqw); line-height: 1; }
 .xo-cmd .xo-pic.is-emoji { font-size: 12cqw; }
@@ -162,11 +164,13 @@
 .xo-kamera { position: absolute; left: 0; top: 0; width: 100%; height: auto; aspect-ratio: var(--nisbat, 1.3); transform-origin: 0 0; transition: transform .6s cubic-bezier(.3,.8,.3,1); will-change: transform; }
 .xo-sahna.is-zoom { min-width: 0; }
 .xo-sahna.is-zoom .xo-pic { filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
-.xo-qism-ot { all: unset; box-sizing: border-box; position: absolute; top: 50%; transform: translateY(-50%); z-index: 4; cursor: pointer;
+.xo-qism-ot { all: unset; box-sizing: border-box; position: relative; flex: none; cursor: pointer;
   width: clamp(44px, 9vw, 60px); height: clamp(44px, 9vw, 60px); border-radius: 50%; display: grid; place-items: center;
   background: rgba(255,255,255,.88); color: #2b2140; font-size: clamp(20px, 4.5vw, 28px); box-shadow: 0 4px 12px rgba(0,0,0,.18); }
-.xo-qism-ot.is-chap { left: 8px; } .xo-qism-ot.is-ong { right: 8px; }
-.xo-qism-ot:active { transform: translateY(-50%) scale(.92); }
+.xo-qism-ot { width: 46px; height: 46px; }
+.xo-qism-ot:active { transform: scale(.92); }
+.xo-qism-ot:disabled { opacity: .3; cursor: default; }
+.xo-qism-ot .xo-strelka { width: 30px; height: auto; }
 .xo-qism-qator { display: flex; justify-content: center; margin: 6px auto 0; }
 .xo-qism-nav { display: flex; align-items: center; gap: 6px;
   padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.85); box-shadow: 0 3px 10px rgba(0,0,0,.15); max-width: calc(100% - 20px); flex-wrap: wrap; justify-content: center; }
@@ -206,3 +210,15 @@
 /* REV168: olinmagan til — sinov bosqichlari */
 .xo-sinov{margin:8px auto;max-width:640px;background:#fff1d6;color:#7a4b00;border-radius:14px;padding:10px 14px;font:700 14px/1.4 system-ui,sans-serif;text-align:center}
 .hy-tugun.is-kurs{opacity:.6;filter:grayscale(.4)}
+
+/* REV169: qism — faqat shu qismning narsalari yorqin va bosiladi; qolgani xira, bosilmaydi (narsalar bir-biriga aralashmaydi) */
+.xo-fokus { position: absolute; border-radius: 18px; box-shadow: 0 0 0 200vmax rgba(24, 20, 48, .42); pointer-events: none; z-index: 1;
+  outline: 3px solid rgba(255,255,255,.9); transition: all .5s cubic-bezier(.3,.8,.3,1); }
+.xo-item.is-tashqi, .xo-hs.is-tashqi { pointer-events: none; }
+.xo-item.is-tashqi { opacity: .35; filter: grayscale(.5); }
+.xo-item.is-qismda { z-index: 2; }
+.xo-hs.is-qismda { z-index: 2; outline: 3px dashed rgba(255,255,255,.95); outline-offset: -3px; background: rgba(255,255,255,.14); }
+.xo-item, .xo-hs { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* REV169: qismlar ko'p bo'lsa ham bir qatorda (nuqtalar kichrayadi) */
+.xo-qism-nav { flex-wrap: nowrap; max-width: calc(100vw - 24px); box-sizing: border-box; }
+.xo-qism-n { flex: 0 1 13px; min-width: 7px; height: auto; aspect-ratio: 1; }

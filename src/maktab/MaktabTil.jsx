@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SINFLAR } from "./index.js";
 import { MAKTAB_RASM } from "./rasmlar.js";
-import { RASMLAR } from "../kid/xonalar/rasmlar.js";
+import { RASM_HAMMA } from "../kid/darsRasm.js";
+import { CHIZILGAN } from "./chizilgan.js";
 import {
   rejimlar, savollar, harfTogri, harflar, belgila, srsOl, yulduzYoz, yulduzlar, yulduzHisob, bolimPuxta,
 } from "./maktabRules.js";
@@ -35,7 +36,8 @@ const teg = (t, til) => `[${til}]${t}[/${til}]`;
 
 function Rasm({ w, className = "" }) {
   if (RANGLAR[w.id]) return <span className={`${className} mk-rang`} style={{ "--rang": RANGLAR[w.id] }} aria-hidden="true" />;
-  const src = (w.rasm && MAKTAB_RASM[w.rasm]) || (w.bogcha && RASMLAR[w.id]);
+  // REV169: avval rassom chizgan rasm, keyin 3D rasm (eski tekis va xira rasmlar ko'rinmasin)
+  const src = RASM_HAMMA[CHIZILGAN[w.id]] || (w.rasm && MAKTAB_RASM[w.rasm]) || (w.bogcha && RASM_HAMMA[w.id]);
   if (src) return <img className={className} src={src} alt="" draggable="false" loading="lazy" />;
   return <span className={`${className} is-emoji`} aria-hidden="true">{w.emoji || "⭐"}</span>;
 }

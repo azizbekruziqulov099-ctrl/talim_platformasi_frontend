@@ -53,8 +53,11 @@ function Chiroq({ a, tayyor, ochir }) {
     <rect width="400" height="300" fill="#ffd36a" opacity={0.14 * on} />
     <Sp n="nur" cx={288} by={235} h={235} op={on * 0.9} style={{ mixBlendMode: "screen" }} />
     <Sp n="chiroq" cx={292} by={294} h={150} />
-    <Sp n="tugma0" cx={115} by={205} h={112} op={1 - on} />
-    <Sp n="tugma1" cx={115} by={185} h={64} op={on} />
+    {/* REV169: bitta tugma — o'sha devor tugmasi bosilib o'zgaradi (avval ikki xil rasm almashardi, bolaga tushunarsiz edi).
+        Yoqilganda tugma pastga bosiladi (rasm vertikal aylanadi) va ustidagi chiroqcha yashil yonadi. */}
+    <Sp n="tugma0" cx={115} by={205} h={112} sy={on > 0.5 ? -1 : 1} />
+    <circle cx={115} cy={84} r={6} fill={on > 0.5 ? "#3ddc6a" : "#9aa3ad"} stroke="#5b3a1e" strokeWidth="1.5" />
+    {on > 0.5 && <circle cx={115} cy={84} r={11} fill="#3ddc6a" opacity="0.35" />}
     {tayyor && on > 0.5 && <Yulduzcha x={150} y={60} />}
   </g>;
 }
@@ -102,27 +105,41 @@ function Yugur({ a, tayyor }) {
 function Hayda({ a, tayyor }) {
   const pan = -lerp(0, 224, ease(a));
   const bob = Math.sin(a * Math.PI * 16) * 1.2;
+  const cx = lerp(140, 230, ease(a));
+  // REV169: mashina rasmidagi yo'l bo'lagi olib tashlandi — mashina fondagi yo'lda yuradi (ostida soyasi)
   return <g>
     <image href={HR.fon_hayda.src} x={pan} y="0" width="624" height="300" preserveAspectRatio="none" />
-    <Sp n="mashina" cx={lerp(140, 230, ease(a))} by={232 + bob} h={96} />
+    <Soya cx={cx} cy={229} rx={54} op={0.28} />
+    <Sp n="mashina" cx={cx} by={231 + bob} h={88} />
     {tayyor && <Yulduzcha x={330} y={60} />}
   </g>;
 }
 function Rul({ a, tayyor }) {
+  // REV169: burilish — ikki fon bir-birining ustiga tushib «arvoh» bo'lib ko'rinmaydi: oldingi yo'l chapga suriladi,
+  // burilgan yo'l o'ngdan kiradi (rul burilgandek), o'rtada qisqa oq yalt.
+  const t = ease(a);
   const k = Math.sin(Math.PI * a);
-  return <g transform={`translate(200 150) rotate(${-5 * k}) scale(${1 + 0.13 * k}) translate(-200 -150)`}>
-    <Fon n="fon_bura" />
-    <Fon n="fon_burilish" opacity={ease(a)} />
+  return <g>
+    <g transform={`translate(${-400 * t} 0) rotate(${-4 * k} 200 300)`}><Fon n="fon_bura" /></g>
+    <g transform={`translate(${400 * (1 - t)} 0) rotate(${4 * (1 - t) * k} 200 300)`}><Fon n="fon_burilish" /></g>
+    <rect width="400" height="300" fill="#fff" opacity={0.18 * k} />
     {tayyor && <Yulduzcha x={330} y={50} />}
   </g>;
 }
 function Toxta({ a, tayyor }) {
   const t = ease(a);
+  // REV169: mashina yo'l bo'ylab yaqinlashadi va piyodalar o'tish joyiga CHIQMASDAN, oldida to'xtaydi (avval zebra ustida turardi)
+  const by = lerp(164, 197, t), h = lerp(46, 74, t), cx = lerp(178, 150, t);
   return <g>
     <Fon n="fon_toxta" />
-    <Sp n="svetofor_y" cx={318} by={210} h={140} op={1 - t} />
-    <Sp n="svetofor_q" cx={282} by={262} h={150} op={t} />
-    <g className={a < 0.02 ? "hs-titra" : undefined}><Sp n="mashina2" cx={lerp(120, 150, t)} by={292} h={110} /></g>
+    {/* REV169: bitta svetofor — fondagi o'zi: yashil → sariq → qizil yonadi (avval ustiga yana ikkita svetofor chizilardi) */}
+    {[["#e53935", 37, t > 0.62], ["#fdd835", 58, t > 0.3 && t <= 0.62], ["#43a047", 78.7, t <= 0.3]].map(([c, y, on]) => <g key={y}>
+      <circle cx={349} cy={y} r={8.6} fill={on ? c : "#2c2f36"} opacity={on ? 1 : 0.82} />
+      {on && <circle cx={349} cy={y} r={14} fill={c} opacity="0.35" />}
+    </g>)}
+    <Soya cx={cx} cy={by - 2} rx={h * 0.62} op={0.25} />
+    <g className={a < 0.02 ? "hs-titra" : undefined}><Sp n="mashina2" cx={cx} by={by} h={h} /></g>
+    <Sp n="piyodalar" cx={lerp(368, 262, cl((t - 0.6) / 0.4))} by={lerp(232, 288, cl((t - 0.6) / 0.4))} h={lerp(70, 104, cl((t - 0.6) / 0.4))} op={cl((t - 0.45) * 4)} />
     {tayyor && <Yulduzcha x={200} y={50} />}
   </g>;
 }

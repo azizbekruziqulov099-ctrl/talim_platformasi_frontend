@@ -21,7 +21,6 @@ import r_mushuk from "./rasm/mushuk.webp";
 import r_chiroq from "./rasm/chiroq.webp";
 import r_nur from "./rasm/nur.webp";
 import r_tugma0 from "./rasm/tugma0.webp";
-import r_tugma1 from "./rasm/tugma1.webp";
 import r_top from "./rasm/top.webp";
 import r_top2 from "./rasm/top2.webp";
 import r_tor from "./rasm/tor.webp";
@@ -29,8 +28,6 @@ import r_quyon from "./rasm/quyon.webp";
 import r_bola1 from "./rasm/bola1.webp";
 import r_bola2 from "./rasm/bola2.webp";
 import r_rul from "./rasm/rul.webp";
-import r_svetofor_q from "./rasm/svetofor_q.webp";
-import r_svetofor_y from "./rasm/svetofor_y.webp";
 import r_velik1 from "./rasm/velik1.webp";
 import r_velik2 from "./rasm/velik2.webp";
 import r_portlash from "./rasm/portlash.webp";
@@ -50,6 +47,7 @@ import r_yuz_kut from "./rasm/yuz_kut.webp";
 import r_yuz_xursand from "./rasm/yuz_xursand.webp";
 import r_mashina from "./rasm/mashina.webp";
 import r_mashina2 from "./rasm/mashina2.webp";
+import r_piyodalar from "./rasm/piyodalar.webp";
 import r_non_ikki from "./rasm/non_ikki.webp";
 import r_shar from "./rasm/shar.webp";
 import r_nasos_bola from "./rasm/nasos_bola.webp";
@@ -94,7 +92,6 @@ export const HR = {
   chiroq: { src: r_chiroq, w: 490, h: 640 },
   nur: { src: r_nur, w: 640, h: 602 },
   tugma0: { src: r_tugma0, w: 405, h: 640 },
-  tugma1: { src: r_tugma1, w: 640, h: 278 },
   top: { src: r_top, w: 609, h: 613 },
   top2: { src: r_top2, w: 586, h: 586 },
   tor: { src: r_tor, w: 640, h: 462 },
@@ -102,8 +99,6 @@ export const HR = {
   bola1: { src: r_bola1, w: 419, h: 640 },
   bola2: { src: r_bola2, w: 640, h: 407 },
   rul: { src: r_rul, w: 302, h: 640 },
-  svetofor_q: { src: r_svetofor_q, w: 640, h: 484 },
-  svetofor_y: { src: r_svetofor_y, w: 277, h: 640 },
   velik1: { src: r_velik1, w: 531, h: 640 },
   velik2: { src: r_velik2, w: 618, h: 640 },
   portlash: { src: r_portlash, w: 640, h: 507 },
@@ -121,8 +116,9 @@ export const HR = {
   olma_tish: { src: r_olma_tish, w: 572, h: 640 },
   yuz_kut: { src: r_yuz_kut, w: 464, h: 640 },
   yuz_xursand: { src: r_yuz_xursand, w: 640, h: 504 },
-  mashina: { src: r_mashina, w: 640, h: 356 },
-  mashina2: { src: r_mashina2, w: 640, h: 412 },
+  mashina: { src: r_mashina, w: 640, h: 347 },
+  piyodalar: { src: r_piyodalar, w: 469, h: 398 },
+  mashina2: { src: r_mashina2, w: 640, h: 402 },
   non_ikki: { src: r_non_ikki, w: 640, h: 435 },
   shar: { src: r_shar, w: 558, h: 640 },
   nasos_bola: { src: r_nasos_bola, w: 640, h: 631 },

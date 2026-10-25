@@ -43,9 +43,9 @@
 .mk-hint { margin: 0; font-size: 14px; color: #475569; }
 
 /* rasmlar */
-.mk-pic { width: 72px; height: 72px; object-fit: contain; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; user-select: none; }
+.mk-pic { width: 96px; height: 96px; object-fit: contain; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; user-select: none; }
 .mk-pic.is-emoji { font-size: 52px; line-height: 1; }
-.mk-pic.is-small { width: 52px; height: 52px; }
+.mk-pic.is-small { width: 60px; height: 60px; }
 .mk-pic.is-small.is-emoji { font-size: 38px; }
 .mk-rang { border-radius: 50%; background: var(--rang); box-shadow: inset 0 0 0 3px rgba(0,0,0,.12); transform: scale(.8); }
 
@@ -82,7 +82,7 @@
   border: 2px solid #CBD5E1; background: #F8FAFC; cursor: pointer; color: #1F2937; transition: transform .12s, border-color .12s; }
 .mk-opt:hover:not(:disabled) { transform: translateY(-2px); border-color: #1B4B7A; }
 .mk-options.is-pics .mk-opt { min-height: 120px; }
-.mk-options.is-pics .mk-pic { width: 88px; height: 88px; }
+.mk-options.is-pics .mk-pic { width: 120px; height: 120px; }
 .mk-options.is-pics .mk-pic.is-emoji { font-size: 62px; }
 .mk-opt.is-text { font-size: 17px; font-weight: 700; text-align: center; }
 .mk-opt small { font-size: 13px; color: #475569; }

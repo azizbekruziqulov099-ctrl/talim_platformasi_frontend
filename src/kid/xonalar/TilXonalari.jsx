@@ -42,6 +42,16 @@ const Rasm = ({ id, className = "" }) => (RANGLAR[id]
 /** REV144: xona telefonda butun ekranni egallaydi (sahifa sarlavhasi ostida, body ichida chiziladi). */
 const ekranda = (el) => (globalThis.document?.body ? createPortal(el, globalThis.document.body) : el);
 const kut = (ms) => new Promise((r) => setTimeout(r, ms));
+/** REV169: qism narsalarini o'rab turuvchi yorug' maydon (foizda: x — sahna kengligi, y — balandligi); tashqarisi xiralashadi. */
+export function fokusQuti(list, nisbat = 1.3, chet = 2.5) {
+  if (!list.length) return null;
+  const n = Number(nisbat) || 1.3;
+  const b = list.map((p) => (p.hs ? [p.x - p.w / 2, p.y - p.h / 2, p.x + p.w / 2, p.y + p.h / 2]
+    : [p.x - (p.s * 0.65), p.y - (p.s * 0.65 * n) / (p.a || 1), p.x + (p.s * 0.65), p.y + (p.s * 0.65 * n) / (p.a || 1)]));
+  const cl = (v) => Math.max(0, Math.min(100, v));
+  return { x0: cl(Math.min(...b.map((q) => q[0])) - chet), y0: cl(Math.min(...b.map((q) => q[1])) - chet * n),
+    x1: cl(Math.max(...b.map((q) => q[2])) + chet), y1: cl(Math.max(...b.map((q) => q[3])) + chet * n) };
+}
 /** REV148: kamera — qism to'liq ko'rinadigan eng katta yaqinlashish (ko'pi bilan 3×). k — sahna bo'yi / xona rasmi bo'yi. */
 function kameraHisob(q, k = 1) {
   const z = Math.max(1, Math.min(3, 100 / q.w, (100 * k) / q.h));
@@ -490,6 +500,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
   const overlay = oyin && ["xotira", "ortiqcha", "yoqoldi", "buyruq"].includes(oyin.rejim);
   const qq = !overlay && qism >= 0 ? qs[qism] : null;
   const kamera = qq ? kameraHisob(qq, korinish) : null;
+  const fokus = qq && x ? fokusQuti(joylar.filter((p) => qq.ids.includes(p.id)), x.nisbat) : null;
   return ekranda(<div className={`xo-root xo-ekran ${overlay ? "xo-fit" : ""}`} role="dialog" aria-modal="true">
     <div className="xo-bar">
       <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}><B e="⬅️" /></button>
@@ -515,15 +526,18 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         onClickCapture={(e) => { if (Date.now() - surildi.current < 400) { e.stopPropagation(); e.preventDefault(); } }}>
         <div className="xo-kamera" style={kamera ? { transform: `scale(${kamera.z}) translate(${-kamera.x}%, ${-kamera.y}%)`, "--z": kamera.z } : undefined}>
         {x.fon && FONLAR[x.fon] ? <img className="xo-fon" src={FONLAR[x.fon]} alt="" draggable="false" /> : <Bezak id={xonaId} />}
+        {fokus && <div className="xo-fokus" aria-hidden="true" style={{ left: `${fokus.x0}%`, top: `${fokus.y0}%`, width: `${fokus.x1 - fokus.x0}%`, height: `${fokus.y1 - fokus.y0}%` }} />}
         {joylar.map((p) => {
+          // REV169: qismda faqat shu qismning narsalari yorqin va bosiladi; boshqalari xira va bosilmaydi (aralashib ketmasin)
+          const qd = !qq ? "" : qq.ids.includes(p.id) ? "is-qismda" : "is-tashqi";
           if (p.hs) {
-            const cls = ["xo-hs", faol === p.id ? "is-faol" : "", gapir === p.id ? "is-gapir" : "", xato?.id === p.id ? "is-xato" : ""].filter(Boolean).join(" ");
+            const cls = ["xo-hs", qd, faol === p.id ? "is-faol" : "", gapir === p.id ? "is-gapir" : "", xato?.id === p.id ? "is-xato" : ""].filter(Boolean).join(" ");
             return <button key={`hs-${p.id}-${xato?.id === p.id ? xato.n : 0}`} type="button" className={cls}
               style={{ left: `${p.x - p.w / 2}%`, top: `${p.y - p.h / 2}%`, width: `${p.w}%`, height: `${p.h}%` }}
               aria-label={soz(p.id, til)} onClick={() => bosildi(p.id)} />;
           }
           const odam = x.odamlar.includes(p.id);
-          const cls = ["xo-item", odam ? "is-odam" : "", faol === p.id ? "is-faol" : "", gapir === p.id ? "is-gapir" : "",
+          const cls = ["xo-item", qd, odam ? "is-odam" : "", faol === p.id ? "is-faol" : "", gapir === p.id ? "is-gapir" : "",
             xato?.id === p.id ? "is-xato" : "", !oyin && kashfQilingan.has(p.id) ? "is-bor" : "",
             oyin?.rejim === "tartib" && oyin.bosildi?.includes(p.id) ? "is-tanlandi" : ""].filter(Boolean).join(" ");
           return <button key={`${p.id}-${xato?.id === p.id ? xato.n : 0}`} type="button" className={cls}
@@ -535,10 +549,6 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
         })}
         </div>
         {/* REV148: qismlar orasida o'tish — katta o'qlar, nuqtalar, butun xona */}
-        {!overlay && qs.length > 1 && <>
-          {qism > 0 && <button type="button" className="xo-qism-ot is-chap" onClick={() => setQism(qism - 1)} aria-label={T("Oldingi qism")}><img className="xo-strelka is-chap" src={JR.strelka} alt="" draggable="false" /></button>}
-          {qism >= 0 && qism < qs.length - 1 && <button type="button" className="xo-qism-ot is-ong" onClick={() => setQism(qism + 1)} aria-label={T("Keyingi qism")}><img className="xo-strelka" src={JR.strelka} alt="" draggable="false" /></button>}
-        </>}
         {overlay && <div className={`xo-tray xo-tray--${oyin.rejim}`}>
           {oyin.rejim === "xotira" && <div className={`xo-memo n${oyin.kartalar.length}`}>
             {oyin.kartalar.map((c) => {
@@ -574,10 +584,12 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
     </div>
     {!overlay && qs.length > 1 && <div className="xo-qism-qator">
       <div className="xo-qism-nav">
+            <button type="button" className="xo-qism-ot is-chap" disabled={qism <= 0} onClick={() => setQism(Math.max(0, qism - 1))} aria-label={T("Oldingi qism")}><img className="xo-strelka is-chap" src={JR.strelka} alt="" draggable="false" /></button>
             <button type="button" className={`xo-qism-uy ${qism < 0 ? "is-on" : ""}`} onClick={() => setQism(qism < 0 ? 0 : -1)}
               aria-label={T(qism < 0 ? "Yaqinlashtirish" : "Butun xona")}><B e={qism < 0 ? "🔍" : "🏠"} /></button>
             {qs.map((q, i) => <button key={i} type="button" className={`xo-qism-n ${i === qism ? "is-on" : ""} ${q.ids.every((v) => kashfQilingan.has(v)) ? "is-bor" : ""}`}
               onClick={() => setQism(i)} aria-label={`${i + 1}`} />)}
+            <button type="button" className="xo-qism-ot is-ong" disabled={qism >= qs.length - 1} onClick={() => setQism(Math.min(qs.length - 1, qism + 1))} aria-label={T("Keyingi qism")}><img className="xo-strelka" src={JR.strelka} alt="" draggable="false" /></button>
           </div>
     </div>}
     <div className="xo-panel" aria-live="polite">
