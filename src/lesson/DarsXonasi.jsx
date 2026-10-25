@@ -15,6 +15,7 @@ import { screenTime } from "../kid/screenTime.js";
 import { LIP_STEP, loadEnvelope } from "../kid/lipSync.js";
 import { ustozNutqi } from "../kid/ustozNutqi.js";
 import KidStage from "../kid/KidStage.jsx";
+import { USTOZLAR } from "../kid/ustozlar.js";
 import UstozSahna from "../kid/UstozSahna.jsx";
 import { useKeepLight } from "../kid/useKeepLight.js";
 import { havoTuri, quyoshVaqti, ustozFor } from "../kid/ustozRules.js";
@@ -35,7 +36,7 @@ import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import VoiceCheck from "./VoiceCheck.jsx";
 import { voiceCheckItems } from "./voiceCheckRules.js";
 import { speechRecognitionAvailable } from "../speech/speakRules.js";
-import { aralashKerak, aralashOqi, qurilmadaOqi, reja as ovozReja } from "../speech/aralashOvoz.js";
+import { aralashKerak, aralashOqi, reja as ovozReja } from "../speech/aralashOvoz.js";
 import { aytdiMi, sozBolaklari, tingla } from "./sozAytish.js";
 import "./dars-xonasi.css";
 import { B, belgiSrc } from "../kid/Belgi.jsx";
@@ -269,7 +270,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const ovozUrl = useCallback((clean, takror = false, attempt = 0) => {
     // REV122: jonli ustoz o'z ovozida: Sardor aka — erkak, Nilufar opa va Malika opa — ayol ovozi
     // REV145: robot Kabu har doim bitta ovozda (har darsda boshqa-boshqa ovoz bolani chalg'itardi)
-    const ovozJinsi = kidRef.current ? (ustozGapiryapti() && ustozRef.current === "sardor" ? "ogil" : "qiz") : jins;
+    const ovozJinsi = kidRef.current ? (ustozGapiryapti() && USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz") : jins;   // REV169: erkak ustozlar (Sardor, Yusuf, Lukas, Karlos, Kenji) — erkak ovozi
     const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins: ovozJinsi,
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
       ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH }) : {}),
@@ -319,13 +320,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       });
       return;
     }
-    // REV145: server ovoz bera olmasa — gap qurilma ovozida (zaxira), so'zlar navbat bilan yonadi; dars to'xtamaydi
+    // REV145: server ovoz bera olmasa — so'zlar navbat bilan yonadi; dars to'xtamaydi.
+    // REV169: o'qituvchi gapi FAQAT server TTS'da (Azure → OpenAI → edge) — qurilmaning robot ovozi ishlatilmaydi.
     const fallback = () => {
       fallbackTalk.current = true;
-      let i = 0, ovozTugadi = false, sozTugadi = false;
+      let i = 0, ovozTugadi = true, sozTugadi = false;
       const tamom = () => { if (ovozTugadi && sozTugadi) finish(); };
-      aralashRef.current = qurilmadaOqi(clean.replace(/⏸/g, " "), { rate: (kidRef.current ? 0.85 : 0.95) * rateRef.current,
-        onEnd: () => { if (my !== tokenRef.current) return; ovozTugadi = true; tamom(); } });
       const tick = () => {
         if (my !== tokenRef.current) return;
         setWord(i);
@@ -346,7 +346,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         failed = true; clearTimeout(stall);
         if (started) { finish(); return; }   // yarmida uzildi — boshidan takrorlamaymiz, darsni davom ettiramiz
         try { audio.pause(); audio.src = ""; } catch { /* allaqachon yopilgan */ }
-        if (attempt < 1 && err?.name !== "NotAllowedError") play(attempt + 1); else fallback();
+        if (attempt < 2 && err?.name !== "NotAllowedError") setTimeout(() => { if (my === tokenRef.current) play(attempt + 1); }, 700 * (attempt + 1)); else fallback();
       };
       const stall = setTimeout(() => { if (!started) fail(); }, 15000);
       audio.onplaying = () => {

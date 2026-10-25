@@ -6,6 +6,8 @@ import { kidSubjectEmoji, kidTopicEmoji } from "../curriculum/kidTopics.js";
 import { KUN_QISQA, KUNLAR, KURS } from "../parent/bogchaReja.js";
 import { ustozFor } from "./ustozRules.js";
 import { USTOZLAR } from "./ustozlar.js";
+import { useInterface } from "../interface/InterfacePreferences.jsx";
+import { BAYRAMLAR, KALENDAR_LUGAT, oyVaBayramGapi } from "./kalendar.js";
 import { BAJARISH, bajarishDarajasi, haftaHisobi, kunKataklari, kuzatuvMatni, qisqaSana, rivojlanish, tavsiya, uydaBirga, yulduzSatr } from "./kundalikRules.js";
 import "./bolalarKundaligi.css";
 
@@ -188,7 +190,67 @@ function Rivojlanish({ haftalar, nomlar, children }) {
   </div>;
 }
 
-const TABLAR = [["kunlik", "🏠", "Kunlik"], ["jadval", "🗓️", "Jadval"], ["fanlar", "📚", "Fanlar"], ["rivojlanish", "🌱", "Rivojlanish"]];
+// ── Kalendar (REV169) ──
+// Oy jadvali: bugun belgilangan, dars bo'lgan kunlarda yulduzlar, bayramlar belgisi bilan. Kunni bossang — ustoz aytadi:
+// «Bugun — 25-oktabr, yakshanba», bayram bo'lsa nomi. Bola ham, ota-ona ham tushunadi.
+const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+export function oyKataklari(yil, oy) {
+  const birinchi = new Date(yil, oy, 1);
+  const bosh = (birinchi.getDay() + 6) % 7;   // dushanbadan
+  const soni = new Date(yil, oy + 1, 0).getDate();
+  const out = [];
+  for (let i = 0; i < bosh; i += 1) out.push(null);
+  for (let k = 1; k <= soni; k += 1) out.push(new Date(yil, oy, k));
+  while (out.length % 7) out.push(null);
+  return out;
+}
+function Kalendar({ haftalar, say }) {
+  const { locale } = useInterface();
+  const L = ["uz", "ru", "en"].includes(locale) ? locale : "uz";
+  const bugun = new Date();
+  const [oy, setOy] = useState({ y: bugun.getFullYear(), m: bugun.getMonth() });
+  const [tanlangan, setTanlangan] = useState(null);
+  const kunlar = new Map();
+  for (const h of haftalar || []) for (const k of h.kunlar || []) kunlar.set(k.sana, k);
+  const kataklar = oyKataklari(oy.y, oy.m);
+  const oyNomi = KALENDAR_LUGAT.OY[L]?.[oy.m] || KALENDAR_LUGAT.OY.uz[oy.m];
+  const kunNomi = (d) => KALENDAR_LUGAT.KUN[L]?.[(d.getDay() + 6) % 7] || "";
+  const bayramOf = (d) => BAYRAMLAR.find((b) => b.oy === d.getMonth() && b.kun === d.getDate());
+  const bos = (d) => {
+    setTanlangan(isoOf(d));
+    const b = bayramOf(d); const k = kunlar.get(isoOf(d));
+    const sana = L === "en" ? `${oyNomi} ${d.getDate()}` : L === "ru" ? `${d.getDate()} ${oyNomi}` : `${d.getDate()}-${oyNomi}`;
+    const bugunmi = isoOf(d) === isoOf(bugun);
+    const gap = [bugunmi ? { uz: "Bugun", ru: "Сегодня", en: "Today is" }[L] : "", `${sana}, ${kunNomi(d)}.`,
+      b ? `${b.emoji} ${b[L]}!` : "", k?.yulduz ? `${T("Yulduzlar")}: ${k.yulduz}.` : ""].filter(Boolean).join(" ");
+    say?.(gap);
+  };
+  const tushuntir = oyVaBayramGapi(L, new Date(oy.y, oy.m, oy.y === bugun.getFullYear() && oy.m === bugun.getMonth() ? bugun.getDate() : 1), 6).gap;
+  const ota = (d) => setOy((o) => { const x = new Date(o.y, o.m + d, 1); return { y: x.getFullYear(), m: x.getMonth() }; });
+  return <div className="bk-kalendar">
+    <div className="bk-kal-head">
+      <button type="button" className="bk-kal-nav" onClick={() => ota(-1)} aria-label={T("Oldingi oy")}>‹</button>
+      <button type="button" className="bk-kal-title" onClick={() => say?.(`${oyNomi}, ${oy.y}. ${tushuntir}`)}><b>{oyNomi}</b> <small>{oy.y}</small> <span aria-hidden="true">🔊</span></button>
+      <button type="button" className="bk-kal-nav" onClick={() => ota(1)} aria-label={T("Keyingi oy")}>›</button>
+    </div>
+    <p className="bk-kal-izoh">{tushuntir}</p>
+    <div className="bk-kal-grid" role="grid">
+      {KUN_QISQA.map((k) => <span key={k} className="bk-kal-hk" role="columnheader">{T(k)}</span>)}
+      {kataklar.map((d, i) => {
+        if (!d) return <span key={`b${i}`} className="bk-kal-bosh" aria-hidden="true" />;
+        const iso = isoOf(d); const k = kunlar.get(iso); const b = bayramOf(d);
+        const cls = ["bk-kal-kun", iso === isoOf(bugun) ? "is-bugun" : "", d.getDay() === 0 ? "is-ya" : "", b ? "is-bayram" : "", k?.darslar?.length ? "is-dars" : "", tanlangan === iso ? "is-on" : ""].filter(Boolean).join(" ");
+        return <button key={iso} type="button" className={cls} onClick={() => bos(d)} aria-label={`${d.getDate()} ${oyNomi}${b ? `, ${b[L]}` : ""}`}>
+          <b>{d.getDate()}</b>
+          {b ? <i aria-hidden="true">{b.emoji}</i> : k?.yulduz ? <i className="bk-kal-yul" aria-hidden="true">⭐{k.yulduz}</i> : k?.darslar?.length ? <i aria-hidden="true">📚</i> : null}
+        </button>;
+      })}
+    </div>
+    <p className="bk-legend"><span>⭐ {T("dars bo‘lgan kun")}</span><span>🎉 {T("bayram")}</span><span className="bk-kal-l-bugun">{T("bugun")}</span></p>
+  </div>;
+}
+
+const TABLAR = [["kunlik", "🏠", "Kunlik"], ["jadval", "🗓️", "Jadval"], ["kalendar", "📅", "Kalendar"], ["fanlar", "📚", "Fanlar"], ["rivojlanish", "🌱", "Rivojlanish"]];
 
 /** rejim — bola | ota. children — «Rivojlanish» ichiga qo'shimcha (masalan, bolaning kuchlari). */
 export default function BolalarKundaligi({ haftalar, nomlar, rejim = "ota", say, children, boshTab = "kunlik" }) {
@@ -201,6 +263,7 @@ export default function BolalarKundaligi({ haftalar, nomlar, rejim = "ota", say,
     </nav>
     {tab === "kunlik" ? <Kunlik haftalar={haftalar} nomlar={nomlar} rejim={rejim} say={say} />
       : tab === "jadval" ? <Jadval haftalar={haftalar} nomlar={nomlar} />
+      : tab === "kalendar" ? <Kalendar haftalar={haftalar} say={say} />
         : tab === "fanlar" ? <Fanlar haftalar={haftalar} nomlar={nomlar} />
           : <Rivojlanish haftalar={haftalar} nomlar={nomlar}>{children}</Rivojlanish>}
   </div>;

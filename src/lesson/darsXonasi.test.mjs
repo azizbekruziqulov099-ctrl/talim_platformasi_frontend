@@ -19,7 +19,7 @@ test('steps with the same scene stay on one board', () => {
 });
 
 test('formulas are shown on the board but not read aloud', () => {
-  assert.equal(speakableText('Javob: $\\frac{3}{8}$ bo‘ladi'), 'Javob: bo‘ladi');
+  assert.equal(speakableText('Javob: $\\frac{3}{8}$ bo‘ladi'), 'Javob: [lat]\\frac{3}{8}[/lat] bo‘ladi');   // REV169: formula serverda o‘qiladi
 });
 
 test('open lesson download link carries token, topic and format', async () => {

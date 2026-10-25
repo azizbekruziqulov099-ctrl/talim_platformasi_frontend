@@ -1,4 +1,5 @@
 // REV111: bog'cha darsi uch tilda tushuntiriladi — o'zbek, rus, ingliz (izoh tili). O'rganiladigan til o'zgarmaydi.
+import { ISMLAR, klonla } from "./tilUstozlari.js";
 // Miyadagi matnlar allaqachon izoh tilida keladi; bu yerda — ustozning o'zi aytadigan tayyor gaplari (salom, ob-havo,
 // maqtov, «yana bir bor ayt»). Izoh tili rus/ingliz bo'lsa, gap shu til tegiga olinadi — o'z ovozida o'qilsin.
 
@@ -257,4 +258,8 @@ export function birlashtir(text) {
 for (const [til, d] of Object.entries(IMMERSIYA)) {
   if (!GAPLAR[til]) GAPLAR[til] = d.GAPLAR;
   if (!FEL_IZOH[til]) FEL_IZOH[til] = d.FEL_IZOH;
+}
+// REV169: til ustozlari — har tilda Nilufar opaning gaplari, ustozning o'z ismi bilan
+for (const [til, fel] of Object.entries(FEL_IZOH)) {
+  for (const k of Object.keys(ISMLAR)) if (fel && fel.nilufar && !fel[k]) fel[k] = klonla(fel.nilufar, k, til);
 }

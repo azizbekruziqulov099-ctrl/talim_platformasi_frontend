@@ -25,12 +25,18 @@ export function sceneRange(steps, index) {
 
 // Ovoz uchun: formulalar va belgilar o'qilmaydi, faqat so'zlar.
 export function speakableText(text) {
-  return String(text ?? "")
+  // REV169: formula endi o'chirilmaydi — [lat]…[/lat] (va $…$) server TTS'ga butunligicha boradi va u formulani
+  // tabiiy o'qiydi («iksning kvadrati plyus uch…»). Teg tashqarisidagi oddiy ifodalar (x^2 + 3 = 7, 2/3) ham saqlanadi.
+  const parts = [];
+  const himoya = (f) => { parts.push(f); return ` \u0000${parts.length - 1}\u0000 `; };
+  const s = String(text ?? "")
+    .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, (_, f) => himoya(f))
+    .replace(/\$\$([^$]+)\$\$|\$([^$]+)\$/g, (_, a, b) => himoya(a || b))
     .replace(/\[\d{1,2}\]/g, " ")
-    .replace(/\$[^$]*\$/g, " ")
-    .replace(/[\\{}^_#*<>|]/g, " ")
+    .replace(/[*#<>|]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  return s.replace(/\s?\u0000(\d+)\u0000\s?/g, (_, i) => ` [lat]${parts[Number(i)].trim()}[/lat] `).replace(/\s+/g, " ").trim();
 }
 
 // Ochiq dars ishlanmasi (PDF yoki Word) — shu mavzuning nashr qilingan darsi.

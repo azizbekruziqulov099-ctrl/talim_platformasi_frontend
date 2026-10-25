@@ -1,14 +1,24 @@
 // REV110: jonli ustoz — qaysi ustoz, qaysi xona, qaysi poza (sof funksiyalar, brauzersiz sinaladi).
 
-/** Fan nomiga qarab ustoz: matematika va mantiq — Sardor aka, atrof-olam — Malika opa, tillar va ona tili — Nilufar opa. */
+/** Fan nomiga qarab ustoz: matematika va mantiq — Sardor aka, atrof-olam — Malika opa, ona tili — Nilufar opa.
+ *  REV169: har chet tilining o'z ustozi va o'z sinfxonasi (bayrog'i, madaniy bezaklari bilan). */
+export const TIL_USTOZ = { en: "emily", ru: "anna", tr: "elif", ar: "yusuf", de: "lukas", es: "carlos", ko: "jiwoo", fr: "camille", zh: "mei", ja: "kenji" };
+const TIL_NOMI = [
+  ["en", /ingliz|english|англ/], ["ru", /\brus\b|rus tili|русск|russian/], ["tr", /turk|türk|турец/], ["ar", /arab|араб/],
+  ["de", /nemis|german|deutsch|немец/], ["es", /ispan|spanish|español|испан/], ["ko", /koreys|korean|корей|한국/],
+  ["fr", /fransuz|french|français|француз/], ["zh", /xitoy|chinese|китай|中文/], ["ja", /yapon|japan|япон|日本/],
+];
 export function ustozFor(fan = "") {
   const f = String(fan).toLowerCase();
   if (/matem|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return "sardor";
   if (/atrof|tabiat|olam|science|nature|world around|окружа|природ/.test(f)) return "malika";
-  return "nilufar";
+  const asosiy = f.replace(/\(\s*izoh[^)]*\)/g, "");   // «Arab tili (izoh: rus)» — arab tili
+  const t = TIL_NOMI.find(([, re]) => re.test(asosiy));
+  return t ? TIL_USTOZ[t[0]] : "nilufar";
 }
 
-export const XONA = { sardor: "matematika", nilufar: "onatili", malika: "atrofolam" };
+export const XONA = { sardor: "matematika", nilufar: "onatili", malika: "atrofolam",
+  ...Object.fromEntries(Object.values(TIL_USTOZ).map((k) => [k, `til_${k}`])) };
 
 /** Poza raqami (rasmdagi tartib): 1 tik turish, 2 salom, 3 ko'rsatish, 4 o'ylash, 5 quvonish, 6 tinglash. */
 export function pozaFor(mood = "", { hasPics = false, listening = false } = {}) {

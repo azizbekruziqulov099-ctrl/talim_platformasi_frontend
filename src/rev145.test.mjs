@@ -49,7 +49,7 @@ test('REV145: ovozlar — hammasi serverdan (tabiiy), Kabu bitta ovozda, Sardor 
   assert.equal(QURILMA_OVOZI, false);
   assert.equal(aralashKerak('Bu [en]Red[/en]'), false);
   const src = fs.readFileSync(new URL('./lesson/DarsXonasi.jsx', import.meta.url), 'utf8');
-  assert.match(src, /ustozRef\.current === "sardor" \? "ogil" : "qiz"/);
+  assert.match(src, /USTOZLAR\[ustozRef\.current\]\?\.lab === "erkak" \? "ogil" : "qiz"/);   // REV169: barcha erkak ustozlar
   assert.match(src, /if \(kid && !darsTil\) return \[\];/);
 });
 

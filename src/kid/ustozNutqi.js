@@ -7,6 +7,17 @@ export const USTOZ_ISMI = {
   nilufar: { uz: "Nilufar opa", ru: "Нилуфар опа", en: "Miss Nilufar" },
   malika: { uz: "Malika opa", ru: "Малика опа", en: "Miss Malika" },
   sardor: { uz: "Sardor aka", ru: "Сардор ака", en: "Mr Sardor" },
+  // REV169: til ustozlari
+  emily: { uz: "Emili opa", ru: "Эмили опа", en: "Miss Emily" },
+  anna: { uz: "Anna opa", ru: "Анна опа", en: "Miss Anna" },
+  elif: { uz: "Elif opa", ru: "Элиф опа", en: "Miss Elif" },
+  yusuf: { uz: "Yusuf aka", ru: "Юсуф ака", en: "Mr Yusuf" },
+  lukas: { uz: "Lukas aka", ru: "Лукас ака", en: "Mr Lukas" },
+  carlos: { uz: "Karlos aka", ru: "Карлос ака", en: "Mr Carlos" },
+  jiwoo: { uz: "Jiu opa", ru: "Джиу опа", en: "Miss Ji-woo" },
+  camille: { uz: "Kamil opa", ru: "Камиль опа", en: "Miss Camille" },
+  mei: { uz: "Mey opa", ru: "Мэй опа", en: "Miss Mei" },
+  kenji: { uz: "Kenji aka", ru: "Кэндзи ака", en: "Mr Kenji" },
 };
 
 // REV140: ortiqcha tinish belgisi faqat gap boshida yoki OCHILUVCHI teg ([en]) dan keyin olinadi. Oldin yopiluvchi teg

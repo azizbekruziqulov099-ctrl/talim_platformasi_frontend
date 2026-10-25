@@ -5,6 +5,7 @@ import { OCHILISH_LUGAT } from "./ochilishLugat.js";
 import { kalendarQadami } from "./kalendar.js";
 import { FEL_IZOH, birlashtir, gap, izohTeg } from "./izohTil.js";
 import { iboraNorm, sinfIborasimi } from "./sinfIboralari.js";
+import { ISMLAR, klonla } from "./tilUstozlari.js";
 
 const FOREIGN = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
 const NOT_TARGET = /^(?:say it together|say it with me|repeat after me|look|listen|listen and repeat|again|one more time|your turn|now you|good job|well done|great job|hello everyone)$/i;
@@ -30,6 +31,9 @@ export const FEL = {
     havo: { quyosh: "Bugun quyoshli kun — sayohatga juda mos!", bulut: "Bugun bulutli. Bulutlar shaklini kuzatamiz!", yomgir: "Bugun yomg'ir. O'simliklar suv ichib, xursand bo'lyapti!", qor: "Bugun qor yog'yapti. Tabiat oppoq ko'ylak kiydi!" },
   },
 };
+
+// REV169: til ustozlari — Nilufar opaning gaplari, o'z ismi bilan
+for (const k of Object.keys(ISMLAR)) if (!FEL[k]) FEL[k] = klonla(FEL.nilufar, k, "uz");
 
 const HAVO_KEY = { quyosh: "sunny", bulut: "cloudy", yomgir: "rainy", qor: "snowy" };
 const HAVO_EMOJI = { quyosh: "☀️", bulut: "☁️", yomgir: "🌧️", qor: "❄️" };

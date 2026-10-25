@@ -66,6 +66,62 @@ const GAP = {
 const AYT = { uz: "Endi sen ayt:", ru: "Теперь ты скажи:", en: "Now you say it:", de: "Jetzt sagst du es:", fr: "Maintenant, à toi de le dire :",
   es: "Ahora dilo tú:", tr: "Şimdi sen söyle:", ar: "الآنَ قُلْهَا أَنْتَ:", zh: "现在你来说：", ja: "こんどは きみが いってね：", ko: "이제 네가 말해 봐:" };
 
+// REV169: bayramlar (O'zbekiston, sanasi o'zgarmaydiganlari) va oyni tushuntirish — ustoz «bugun nima kun, qaysi bayram
+// yaqinlashyapti» deb aytib, tushuntirib ketadi. Kundalikdagi kalendar ham shu ro'yxatdan foydalanadi.
+export const BAYRAMLAR = [
+  { oy: 0, kun: 1, emoji: "🎄", uz: "Yangi yil", ru: "Новый год", en: "New Year's Day" },
+  { oy: 0, kun: 14, emoji: "🎖️", uz: "Vatan himoyachilari kuni", ru: "День защитников Родины", en: "Defenders of the Motherland Day" },
+  { oy: 2, kun: 8, emoji: "🌷", uz: "Xalqaro xotin-qizlar kuni", ru: "Международный женский день", en: "International Women's Day" },
+  { oy: 2, kun: 21, emoji: "🌸", uz: "Navro‘z bayrami", ru: "Навруз", en: "Navruz" },
+  { oy: 4, kun: 9, emoji: "🕊️", uz: "Xotira va qadrlash kuni", ru: "День памяти и почестей", en: "Day of Remembrance and Honour" },
+  { oy: 5, kun: 1, emoji: "🧒", uz: "Bolalarni himoya qilish kuni", ru: "День защиты детей", en: "Children's Day" },
+  { oy: 8, kun: 1, emoji: "🇺🇿", uz: "Mustaqillik kuni", ru: "День независимости", en: "Independence Day" },
+  { oy: 9, kun: 1, emoji: "👩‍🏫", uz: "O‘qituvchi va murabbiylar kuni", ru: "День учителя", en: "Teachers' Day" },
+  { oy: 9, kun: 21, emoji: "📖", uz: "O‘zbek tili bayrami", ru: "День узбекского языка", en: "Uzbek Language Day" },
+  { oy: 11, kun: 8, emoji: "📜", uz: "Konstitutsiya kuni", ru: "День Конституции", en: "Constitution Day" },
+];
+const OY_TARTIB = { uz: ["birinchi", "ikkinchi", "uchinchi", "to‘rtinchi", "beshinchi", "oltinchi", "yettinchi", "sakkizinchi", "to‘qqizinchi", "o‘ninchi", "o‘n birinchi", "o‘n ikkinchi"],
+  ru: ["первый", "второй", "третий", "четвёртый", "пятый", "шестой", "седьмой", "восьмой", "девятый", "десятый", "одиннадцатый", "двенадцатый"],
+  en: ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth"] };
+const FASL_TARTIB = { uz: ["birinchi", "ikkinchi", "uchinchi"], ru: ["первый", "второй", "третий"], en: ["first", "second", "third"] };
+/** Bugun bayrammi yoki yaqin (30 kun ichida) bayram — { b, qoldi } yoki null. */
+export function yaqinBayram(sana = new Date(), ichida = 30) {
+  const bugun = new Date(sana.getFullYear(), sana.getMonth(), sana.getDate());
+  let eng = null;
+  for (const b of BAYRAMLAR) {
+    for (const y of [bugun.getFullYear(), bugun.getFullYear() + 1]) {
+      const d = new Date(y, b.oy, b.kun);
+      const qoldi = Math.round((d - bugun) / 86400000);
+      if (qoldi >= 0 && qoldi <= ichida && (!eng || qoldi < eng.qoldi)) eng = { b, qoldi };
+    }
+  }
+  return eng;
+}
+const kunSoz = { uz: (n) => `${n} kun`, ru: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "день" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "дня" : "дней"}`, en: (n) => `${n} ${n === 1 ? "day" : "days"}` };
+/** Oy va bayram haqida qisqa tushuntirish (izoh tilida: uz | ru | en). */
+export function oyVaBayramGapi(L = "uz", sana = new Date(), yosh = 6) {
+  const I = OY_TARTIB[L] ? L : "uz";
+  const oy = sana.getMonth();
+  const out = [];
+  if (yosh >= 5) {
+    const faslIchida = oy === 11 ? 0 : oy <= 1 ? oy + 1 : (oy - 2) % 3;
+    const nom = OY[I][oy].charAt(0).toUpperCase() + OY[I][oy].slice(1);
+    out.push({ uz: `${nom} — yilning ${OY_TARTIB.uz[oy]} oyi, ${FASL.uz[faslOf(oy)].toLowerCase()}ning ${FASL_TARTIB.uz[faslIchida]} oyi.`,
+      ru: `${nom} — ${OY_TARTIB.ru[oy]} месяц года и ${FASL_TARTIB.ru[faslIchida]} месяц сезона «${FASL.ru[faslOf(oy)].toLowerCase()}».`,
+      en: `${nom} is the ${OY_TARTIB.en[oy]} month of the year and the ${FASL_TARTIB.en[faslIchida]} month of ${FASL.en[faslOf(oy)].toLowerCase()}.` }[I]);
+  }
+  const yb = yaqinBayram(sana, yosh >= 5 ? 30 : 7);
+  if (yb) {
+    const nom = yb.b[I];
+    out.push(yb.qoldi === 0
+      ? { uz: `Bugun — ${nom}! Bayramingiz muborak!`, ru: `Сегодня — ${nom}! С праздником!`, en: `Today is ${nom}! Happy holiday!` }[I]
+      : yb.qoldi === 1 ? { uz: `Ertaga — ${nom}!`, ru: `Завтра — ${nom}!`, en: `Tomorrow is ${nom}!` }[I]
+        : { uz: `${kunSoz.uz(yb.qoldi)}dan keyin — ${nom}.`, ru: `Через ${kunSoz.ru(yb.qoldi)} — ${nom}.`, en: `In ${kunSoz.en(yb.qoldi)} it will be ${nom}.` }[I]);
+  }
+  return { gap: out.join(" "), bayram: yb };
+}
+const faslOf = (oy) => (oy === 11 || oy <= 1 ? 0 : oy <= 4 ? 1 : oy <= 7 ? 2 : 3);
+
 export function sanaQismlari(sana = new Date()) {
   const kun = (sana.getDay() + 6) % 7;
   const oy = sana.getMonth();
@@ -182,6 +238,11 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
       doska.push(`${belgi} ${lug ? lug[T][i] : k === "soat" ? soatYozuvi(q.soat, q.daqiqa) : i}`);
     }
   }
+  // REV169: oy tushuntirishi va yaqin bayram — izoh tilida (o'zbek, rus, ingliz)
+  // (4–7 yoshli til darsi butunlay o'rganilayotgan tilda — o'zbekcha tushuntirish qo'shilmaydi)
+  const ob = !T || yosh < 4 ? oyVaBayramGapi(I, sana, yosh) : { gap: "", bayram: null };
+  if (ob.gap) qismlar.push(tg(I, ob.gap));
+  if (ob.bayram) doska.push(`${ob.bayram.b.emoji} ${ob.bayram.b[I] || ob.bayram.b.uz}${ob.bayram.qoldi ? ` · ${ob.bayram.qoldi}` : ""}`);
   const sarlavha = `🗓️ ${bosh(lug1(T || I, q.kun))}`;
   return { turi: "kirish", _ochilish: "vaqt", sarlavha, ovoz: qismlar.join(" "), doska: doska.join("\n") };
 }

@@ -1,7 +1,7 @@
 /* REV168: «Bolalar kundaligi» — yumshoq krem fon, yashil urg'u, katta yumaloq kartalar (bog'cha va maktab uchun bir xil uslub) */
 .bk-root{--bk-g:#2f6b47;--bk-g2:#e3f1e6;--bk-ink:#1f2d27;--bk-mut:#6b7a72;--bk-line:#ece6da;--bk-paper:#fffdf8;--bk-cream:#faf6ee;
   display:grid;gap:12px;color:var(--bk-ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.bk-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:5px;border-radius:18px;background:var(--bk-cream);border:1px solid var(--bk-line)}
+.bk-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px;border-radius:18px;background:var(--bk-cream);border:1px solid var(--bk-line)}
 .bk-tabs button,.bk-tabs>span{display:flex;align-items:center;justify-content:center;gap:6px;border:0;background:transparent;border-radius:14px;padding:10px 6px;
   font-weight:800;font-size:14px;line-height:1.1;color:var(--bk-ink);cursor:pointer;min-width:0;white-space:nowrap}
 .bk-tabs button i,.bk-tabs>span i{font-style:normal;font-size:18px}
@@ -95,3 +95,24 @@
 
 /* REV168: tor ekranda gorizontal toshib ketmasin (grid bolalari min-content kengligini olmasin) */
 .bk-root,.bk-root>*,.bk-kunlik,.bk-kunlik>*{min-width:0}
+
+/* REV169: kalendar */
+.bk-kalendar{display:grid;gap:8px;padding:12px;border-radius:20px;background:var(--bk-paper);border:1px solid var(--bk-line)}
+.bk-kal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bk-kal-nav{all:unset;cursor:pointer;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:26px;background:var(--bk-cream);color:var(--bk-g)}
+.bk-kal-title{all:unset;cursor:pointer;font-size:20px;color:var(--bk-ink);text-transform:capitalize}
+.bk-kal-title small{font-size:14px;color:var(--bk-mut)}
+.bk-kal-izoh{margin:0;font-size:14px;color:var(--bk-mut);text-align:center}
+.bk-kal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.bk-kal-hk{text-align:center;font-size:12px;font-weight:800;color:var(--bk-mut);padding:2px 0}
+.bk-kal-kun{all:unset;box-sizing:border-box;cursor:pointer;min-height:48px;border-radius:12px;background:#fff;border:1px solid var(--bk-line);display:grid;place-items:center;align-content:center;gap:1px;padding:3px 0;-webkit-tap-highlight-color:transparent}
+.bk-kal-kun b{font-size:16px;color:var(--bk-ink)}
+.bk-kal-kun i{font-style:normal;font-size:12px;line-height:1}
+.bk-kal-yul{font-size:10px!important;color:#9a6a00}
+.bk-kal-kun.is-ya b{color:#c0392b}
+.bk-kal-kun.is-dars{background:var(--bk-g2)}
+.bk-kal-kun.is-bayram{background:#FFF1D6;border-color:#f3c46b}
+.bk-kal-kun.is-bugun{outline:3px solid var(--bk-g);outline-offset:-3px}
+.bk-kal-kun.is-on{box-shadow:0 0 0 3px #ffb703 inset}
+.bk-kal-l-bugun{border:2px solid var(--bk-g);border-radius:6px;padding:0 6px}
+@media (max-width:420px){.bk-tabs button{font-size:11px}.bk-kal-kun{min-height:42px}}
