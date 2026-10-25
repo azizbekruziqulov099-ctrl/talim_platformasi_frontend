@@ -447,13 +447,12 @@ body.kb-dars-yotiq{overflow:hidden}
 .dx-root.dx-sinf .dx-bubble{flex:1;min-width:0;margin:0;overflow:auto;background:#fffffff2;border-radius:1.6cqh;padding:1.4cqh 1.6cqw;font-size:max(12px,2.9cqh);line-height:1.35;box-shadow:0 .6cqh 2cqh #0003}
 .dx-root.dx-sinf .dx-ask{display:none;flex:0 0 36%;background:#fffffff2;border-radius:1.6cqh;padding:1cqh 1cqw;margin:0;box-shadow:0 .6cqh 2cqh #0003}
 .dx-root.dx-sinf .dx-ask label{font-size:max(11px,2.2cqh)}
-@media (min-width:1000px){.dx-root.dx-sinf:not(.dx-yotiq) .dx-ask{display:block}}
 /* yotiq (buralgan) telefonda — xona bo'yiga to'liq, doskadagi yozuvlar ixchamroq */
 .dx-root.dx-sinf.dx-yotiq>.dx-room{max-width:min(100%,calc((100vw - 64px) * 1586 / 992));height:auto;align-self:center}
-.dx-root.dx-sinf.dx-yotiq .dx-board{zoom:.72}
+.dx-root.dx-sinf.dx-yotiq .dx-board{zoom:1}   /* REV177: kichraytirish faqat sig‘magandagina (--dx-sig) — doska yozuvi katta */
 @media (orientation:landscape) and (max-height:600px){
   .dx-root.dx-sinf.dx-focus>.dx-room{max-width:min(100%,calc((100dvh - 64px) * 1586 / 992))}
-  .dx-root.dx-sinf .dx-board{zoom:.72}
+  .dx-root.dx-sinf .dx-board{zoom:1}
 }
 /* dars paytida «Bosh ekranga qo'shish» tugmasi doskani to'smasin */
 body:is(.kb-focus-dars,.kb-dars-yotiq) #samtm-install-app{display:none!important}
@@ -464,17 +463,24 @@ body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.sam
 .dx-root.dx-sinf .dx-board{overflow:hidden}
 .dx-root.dx-sinf .dx-board>*{zoom:var(--dx-sig,1)}
 .dx-root.dx-sinf .dx-board img{max-width:100%;max-height:34cqh;height:auto;object-fit:contain}
-@media (min-width:1000px){.dx-root.dx-sinf:not(.dx-yotiq) .dx-ask{display:none}}
 /* REV177: sinfxona foni doim xona o'lchamida — focus/telefon qoidalari kenglikni kichraytirsa, rasm kesilib, devor soati va deraza qatlamlari surilib qolardi */
 .dx-root.dx-sinf .dx-sinf-fon .us-stage,.dx-root.dx-sinf.dx-focus .dx-sinf-fon .us-stage,.dx-root.dx-sinf.dx-yotiq .dx-sinf-fon .us-stage{width:100%;height:100%;min-width:0;max-width:none;margin:0;aspect-ratio:auto}
 /* REV177: test, ovozli tekshiruv va natijani robot Kabu o'tkazadi — ustoz o'rnida Kabu (bolalar darsidagidek) */
 .dx-root.dx-sinf .dx-sinf-fon .us-teacher{transition:opacity .45s ease,transform .45s ease}
-.dx-root.dx-sinf.dx-kabu-navbat .dx-sinf-fon .us-teacher{opacity:0!important;visibility:hidden;animation:none!important}
-.dx-sinf-kabu{position:absolute;z-index:3;bottom:4%;width:22%;pointer-events:none;animation:dx-kabu-kel .5s cubic-bezier(.2,.8,.3,1.2) both}
-.dx-root.dx-ustoz-chap .dx-sinf-kabu{left:3%}
-.dx-root.dx-ustoz-ong .dx-sinf-kabu{right:2%}
-.dx-root .dx-sinf-kabu .ks-stage{min-height:0;display:block;background:none;padding:0;box-shadow:none}
-.dx-root .dx-sinf-kabu .ks-stage .ks-robot{width:100%;max-width:none;padding-bottom:0}
+/* REV177: test va tekshiruv — Kabuning o'z muhiti (sinfxona va ustoz yo'q): yorug' «robot laboratoriyasi» foni, chapda katta Kabu */
+.dx-kabu-fon{position:absolute;inset:0;z-index:0;border-radius:16px;overflow:hidden;
+  background:radial-gradient(60% 70% at 18% 70%,#ffffff 0%,#e3f4ff 40%,transparent 70%),radial-gradient(80% 80% at 90% 10%,#efe4ff 0%,transparent 60%),linear-gradient(160deg,#cfeeff 0%,#e6f0ff 45%,#f2e8ff 100%)}
+.dx-kabu-fon::after{content:"";position:absolute;left:0;right:0;bottom:0;height:16%;background:linear-gradient(#bfe3f5,#a7d6ee);border-top:3px solid #ffffffaa}
+.dx-kabu-fon i{position:absolute;display:block;pointer-events:none}
+.kf-yulduz{inset:0;background-image:radial-gradient(2px 2px at 12% 18%,#fff 50%,transparent 51%),radial-gradient(3px 3px at 26% 9%,#ffe38a 50%,transparent 51%),radial-gradient(2px 2px at 48% 14%,#fff 50%,transparent 51%),radial-gradient(3px 3px at 8% 40%,#ffe38a 50%,transparent 51%),radial-gradient(2px 2px at 22% 52%,#fff 50%,transparent 51%);animation:kf-milt 3s ease-in-out infinite alternate}
+.kf-sayyora{left:4%;top:6%;width:9%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd98a,#ffb04a 60%,#f08a24);box-shadow:0 0 0 .6cqw #ffffff55;animation:kf-suz 6s ease-in-out infinite alternate}
+.kf-bulut{left:14%;top:20%;width:13%;height:5%;border-radius:999px;background:#fff;opacity:.85;box-shadow:2cqw -1cqh 0 -.2cqh #fff,-1.5cqw .4cqh 0 -.4cqh #fff;animation:kf-suz 8s ease-in-out infinite alternate-reverse}
+.dx-kabu-robot{position:absolute;left:1%;bottom:6%;width:26%;z-index:1;animation:dx-kabu-kel .5s cubic-bezier(.2,.8,.3,1.2) both}
+.dx-root .dx-kabu-robot .ks-stage{min-height:0;display:block;background:none;padding:0;box-shadow:none}
+.dx-root .dx-kabu-robot .ks-stage .ks-robot{width:100%;max-width:none;padding-bottom:0}
+@keyframes kf-milt{from{opacity:.55}to{opacity:1}}
+@keyframes kf-suz{from{transform:translateY(0)}to{transform:translateY(-1.2cqh)}}
+@media (prefers-reduced-motion:reduce){.dx-kabu-fon i,.dx-kabu-robot{animation:none}}
 @keyframes dx-kabu-kel{from{opacity:0;transform:translateY(18%) scale(.85)}to{opacity:1;transform:none}}
 /* REV177: telefon yotqizilganda takror va mashqlar — Kabu chapda, topshiriq o'ngda (pastga surilib ketmaydi) */
 .dx-root.dx-yotiq .dx-repetitor-oyna .mm-root{display:grid;grid-template-columns:minmax(0,36%) minmax(0,1fr);grid-template-areas:"bar bar" "steps steps" "ustoz card";gap:8px 12px;max-width:none;align-items:start}
@@ -487,3 +493,37 @@ body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.sam
 .dx-root.dx-yotiq .dx-repetitor-oyna .kx-robot{flex-basis:auto;width:46%}
 .dx-root.dx-yotiq .dx-repetitor-oyna .kx-doska{font-size:18px;min-height:56px;width:100%;box-sizing:border-box}
 .dx-root.dx-yotiq .dx-repetitor-oyna .mm-matn{font-size:20px}
+/* REV177: «O'qituvchiga savol» doska tagida doim turmaydi — «❓ Savol berish» bosilganda ustoz gapi o'rnida ochiladi */
+.dx-root.dx-sinf .dx-ask{display:none}
+/* ochilganda — doska tagida emas: doska ustida suzuvchi oyna (ustoz gapi ko'rinib turadi), yopilsa yo'qoladi */
+.dx-root.dx-sinf.dx-savol-ochiq .dx-teacher .dx-ask{display:flex;flex-direction:column;gap:.8cqh;position:absolute;left:6%;right:6%;bottom:calc(100% + 3cqh);max-height:44cqh;overflow:auto;
+  z-index:8;font-size:max(12px,2.4cqh);background:#fff;border-radius:1.6cqh;padding:1.6cqh 1.6cqw;box-shadow:0 1.2cqh 4cqh #0005;animation:us-pop .25s ease-out both}
+.dx-root.dx-sinf .dx-ask label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dx-ask-yop{border:0;background:none;font-size:16px;cursor:pointer;color:inherit;padding:0 4px}
+.dx-root.dx-sinf .dx-ask .dx-reply{margin:0;font-size:max(12px,2.4cqh);line-height:1.35}
+.dx-savol-btn.is-on{background:#1B4B7A;border-color:#1B4B7A;color:#fff}
+/* REV177: kompyuterda dars ekranni to'liq egallaydi — sarlavha ixcham, xona butun balandlikda, tugmalar o'ng ustunda */
+@media (min-width:760px) and (min-height:420px){
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr);gap:6px 12px;
+    height:100dvh;box-sizing:border-box;overflow:hidden;padding:8px 12px 10px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-head{grid-column:1/-1;max-width:none;margin:0}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-head h2{font-size:17px;margin:0}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-head p{margin:0;font-size:12px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-exit{width:36px;height:36px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-steps{grid-column:1/-1;max-width:none;margin:0}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-step{height:5px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-room{grid-column:1;grid-row:3;width:100%;max-width:min(100%,calc((100dvh - 78px) * 1586 / 992));margin:0;align-self:center;justify-self:center}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq):not(:has(>.dx-controls))>.dx-room{grid-column:1/-1}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-controls{grid-column:2;grid-row:3;position:static;align-self:center;max-width:none;width:150px;margin:0;
+    flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:6px;padding:0;background:none;border:0;box-shadow:none}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-controls .dx-btn{width:100%;padding:8px 10px;font-size:13px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-controls :is(label,select){font-size:12px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-menu{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:10;max-width:min(90vw,720px);box-shadow:0 10px 30px #0003}
+}
+.dx-root.dx-sinf .dx-sinf-fon .us-bg{object-fit:fill}   /* REV177: rasm va soat/deraza qatlamlari doim bir xil cho‘ziladi — hech qachon ajralmaydi */
+/* REV177: ovozli tekshiruv doskaga ixcham joylashadi — mikrofon doska balandligiga mos, hamma narsa bir qarashda ko'rinadi */
+.dx-root.dx-sinf .dx-voice{gap:1.4cqh;padding:0}
+.dx-root.dx-sinf .dx-voice-mic>span{width:min(96px,15cqh);height:min(96px,15cqh);font-size:min(46px,7.5cqh)}
+.dx-root.dx-sinf .dx-voice-mic{font-size:max(12px,2.2cqh)}
+.dx-root.dx-sinf .dx-board{scrollbar-width:none}
+.dx-root.dx-sinf .dx-board::-webkit-scrollbar{display:none}

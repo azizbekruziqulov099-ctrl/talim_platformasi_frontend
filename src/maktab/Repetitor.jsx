@@ -10,6 +10,7 @@ import { kunRaqami } from "../kid/xonalar/xonaRules.js";
 import {
   sinfSozlamasi, yozishMaqsadi, harflab, tekshir, yozishSoniyasi, lugatOl, repBelgila, yozildiQosh, sessiya, bosqichlar,
   lugatRoyxati, repYulduz, manoVariantlari, muddatiKelgan, REP_ORALIQ, YOZISH_CHEGARA, qoshimchaOl, qoshimchaSaqla,
+  yordamMatni, YORDAM_MAX, javobSifati, xatoQaytar,
 } from "./repetitorRules.js";
 import { uiText as T } from "../interface/interfaceRuntime.js";
 import "./repetitor.css";
@@ -41,6 +42,8 @@ const GAP = {
     harf: "Harflab: {h}.",
     tugadi: "Bugungi repetitor darsi tugadi! {n} marta yozdingiz. Barakalla!",
     bosh: "Salom! Bugun {n} ta so‘z ustida ishlaymiz.",
+    qayta: "Endi xato qilgan so‘zlarimizni yana bir bor mashq qilamiz — bu safar albatta eslaysiz!",
+    yordam: "Ishora: {h}.",
   },
   ru: {
     tanish: "Новое слово: {w}. Значит — {m}. Повторяйте за мной: {w}. По буквам: {h}. Посмотрите на доску, вот как оно пишется.",
@@ -56,6 +59,8 @@ const GAP = {
     harf: "По буквам: {h}.",
     tugadi: "Занятие с репетитором окончено! Вы написали {n} раз. Молодец!",
     bosh: "Привет! Сегодня работаем над {n} словами.",
+    qayta: "Теперь ещё раз потренируем слова, в которых были ошибки — на этот раз точно вспомните!",
+    yordam: "Подсказка: {h}.",
   },
   en: {
     tanish: "New word: {w}. It means {m}. Say it with me: {w}. Letter by letter: {h}. Look at the board — this is how we write it.",
@@ -71,6 +76,8 @@ const GAP = {
     harf: "Letter by letter: {h}.",
     tugadi: "Today's tutor lesson is over! You wrote {n} times. Well done!",
     bosh: "Hello! Today we will work on {n} words.",
+    qayta: "Now let's practise the words we got wrong one more time — this time you'll remember!",
+    yordam: "Hint: {h}.",
   },
 };
 const BOSQICH = { tanish: ["🤖", "Tanishuv"], daftar: ["📓", "Daftarga yoz"], eshit: ["🎧", "Eshitib yoz"], uzdan: ["🔁", "Tarjima qil"], tildan: ["🔤", "Ma’nosini top"] };
@@ -82,7 +89,7 @@ const teg = (t, til) => (til === "uz" ? String(t) : `[${til}]${t}[/${til}]`);
  * o'zbekchadan chet tiliga (ovoz yoki yozuv) va chet tilidan o'zbekchaga tarjima qiladi. Har so'z shaxsiy lug'atga
  * tushadi va oraliqli takrorlash bilan qaytadi. rejim: "dars" (bo'lim + takror) | "takror" (faqat muddati kelganlar) | "lugat".
  */
-export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", topshiriq = null, darsSozlari = null, sarlavha = "", onNatija, onYakun, onClose }) {
+export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", topshiriq = null, darsSozlari = null, sarlavha = "", onNatija, onYakun, onClose, avtoBosh = false }) {
   const iz = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
   // REV177: so'z yodlatish, aytdirish, yozdirishni robot Kabu o'tkazadi — doim bitta Kabu ovozida
   const sozlam = sinfSozlamasi(sinf);
@@ -109,16 +116,21 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     if (!d0 || d0.bs?.[d0.b] !== "daftar" || d0.yozdi >= d0.maqsad) { setAvto(false); return undefined; }
     const soz0 = d0.list[d0.i].soz;
     const ms = yozishSoniyasi(soz0.w[til]) * 1000;
-    ayt(teg(soz0.w[til], til));
-    const id = setInterval(() => {
+    // REV177: keyingi aytish — Kabu so'zni AYTIB BO'LGANIDAN keyin, yozish uchun so'z uzunligiga mos vaqt o'tgach
+    // (ovoz sekin kelsa ham so'z kesilmaydi va hech biri o'tkazib yuborilmaydi)
+    let t = 0;
+    let tirik = true;
+    const navbat = () => { if (tirik) t = setTimeout(qadam, ms); };
+    function qadam() {
       const x = darsRef.current;
-      if (!alive.current || !x || x.bs?.[x.b] !== "daftar" || x.list[x.i].soz.id !== soz0.id) { clearInterval(id); setAvto(false); return; }
+      if (!tirik || !alive.current || !x || x.bs?.[x.b] !== "daftar" || x.list[x.i].soz.id !== soz0.id) { setAvto(false); return; }
       const yozdi = Math.min(x.maqsad, x.yozdi + 1);
       const y = { ...x, yozdi }; setDars(y); darsRef.current = y;
-      if (yozdi >= x.maqsad) { clearInterval(id); setAvto(false); ayt(qur("daftarOk", soz0)); }
-      else ayt(teg(soz0.w[til], til));
-    }, ms);
-    return () => clearInterval(id);
+      if (yozdi >= x.maqsad) { setAvto(false); ayt(qur("daftarOk", soz0)); }
+      else ayt(teg(soz0.w[til], til), {}, navbat);
+    }
+    ayt(teg(soz0.w[til], til), {}, navbat);
+    return () => { tirik = false; clearTimeout(t); };
   }, [avto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ayt = (matn, { sekin = false } = {}, done) => {
@@ -144,16 +156,19 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     setRejim("dars");
     sozgaOt({ list, i: 0, jamiYozdi: 0, xatoSoz: 0, boshVaqt: Date.now(), takror: faqatTakror }, 0, lg, true);
   };
+  // REV177: darsdan keyin avtomatik ochilganda — boshlash tugmasini kutmasdan Kabu darhol boshlaydi
+  useEffect(() => { if (avtoBosh && darsSozlari?.length) boshla(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const sozgaOt = (d, i, lg = lugat, birinchi = false) => {
     const item = d.list[i];
     const maqsad = topshiriq ? Math.max(0, Math.min(100, Number(topshiriq.yozish) || 0)) : yozishMaqsadi(sinf, lg[item.soz.id]);
-    const bs = bosqichlar(sinf, item.yangi).filter((b) => b !== "daftar" || maqsad > 0);
-    const yangi = { ...d, i, bs, b: 0, yozdi: 0, maqsad, kiritish: "", tanlangan: [], javob: null, urinish: 0, xatoBor: false,
+    // REV177: xato qilingan so'z dars oxirida yana keladi — faqat eshitib yozish va tarjima (daftar va tanishuvsiz)
+    const bs = item.qayta ? ["eshit", "uzdan"] : bosqichlar(sinf, item.yangi).filter((b) => b !== "daftar" || maqsad > 0);
+    const yangi = { ...d, i, bs, b: 0, yozdi: 0, maqsad: item.qayta ? 0 : maqsad, kiritish: "", tanlangan: [], javob: null, urinish: 0, xatoBor: false, yordam: 0, sozVaqt: Date.now(),
       plitka: sozlam.terish && terishMumkin(item.soz.w[til]) ? harfPlitkalar(item.soz.w[til], d.list.map((x) => x.soz.w[til]).filter((x) => x !== item.soz.w[til])) : null,
       variant: manoVariantlari(item.soz, d.list.map((x) => x.soz).concat(Object.values(sozlar).filter((x) => x.id.startsWith(`s${sinf}_`)).slice(0, 30)), Math.random, 3, (x) => mano(x)) };
     setDars(yangi);
     darsRef.current = yangi;
-    const kirish = birinchi ? `${qur("bosh", null, d.list.length)} ` : "";
+    const kirish = birinchi ? `${qur("bosh", null, d.list.length)} ` : item.qayta && !d.list[i - 1]?.qayta ? `${qur("qayta")} ` : "";
     bosqichniAyt(yangi, kirish);
   };
   const bosqichniAyt = (d, oldin = "") => {
@@ -168,21 +183,30 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     if (!d) return;
     if (d.bs[d.b] === "daftar" && d.yozdi > 0) setLugat(yozildiQosh(til, d.list[d.i].soz.id, d.yozdi, { bolim: bolim?.id || "", sinf }) && lugatOl(til));
     if (d.b + 1 < d.bs.length) {
-      const yangi = { ...d, b: d.b + 1, kiritish: "", tanlangan: [], javob: null, urinish: 0 };
+      const yangi = { ...d, b: d.b + 1, kiritish: "", tanlangan: [], javob: null, urinish: 0, yordamKorindi: 0,
+        sozVaqt: d.bs[d.b] === "daftar" || d.bs[d.b] === "tanish" ? Date.now() : d.sozVaqt };   // javob vaqti — tanishuv va daftardan keyin hisoblanadi
       setMik((m) => (m === "tugma" ? m : ""));
       setDars(yangi); darsRef.current = yangi; bosqichniAyt(yangi);
       return;
     }
     // so'z tugadi — lug'atga yozamiz
     const w = d.list[d.i].soz;
-    repBelgila(til, w.id, !d.xatoBor, { bolim: bolim?.id || "", sinf });
+    const item = d.list[d.i];
+    // REV177: javob sifati (FSRS kabi): ishora olgan — «qiyin» (ertaga yana), tez va yordamsiz — «oson» (oraliq kattaroq).
+    // Qayta (xatolar) aylanasida lug'at qayta o'zgartirilmaydi — xato allaqachon yozilgan, so'z ertaga yana keladi.
+    if (!item.qayta) repBelgila(til, w.id, !d.xatoBor, { bolim: bolim?.id || "", sinf,
+      sifat: javobSifati({ xato: d.xatoBor, yordam: d.yordam || 0, soniya: (Date.now() - (d.sozVaqt || Date.now())) / 1000, bosqich: d.bs.filter((x) => x !== "daftar" && x !== "tanish").length }) });
     const lg = lugatOl(til); setLugat(lg);
-    const jami = { ...d, jamiYozdi: d.jamiYozdi + d.yozdi, xatoSoz: d.xatoSoz + (d.xatoBor ? 1 : 0) };
+    const xatoIds = [...(d.xatoIds || []), ...(d.xatoBor && !item.qayta ? [w.id] : [])];
+    const jami = { ...d, jamiYozdi: d.jamiYozdi + d.yozdi, xatoSoz: d.xatoSoz + (d.xatoBor && !item.qayta ? 1 : 0), xatoIds };
     if (d.i + 1 < d.list.length) { sozgaOt(jami, d.i + 1, lg); return; }
-    const natija = { ...jami, natija: { yulduz: repYulduz(jami.xatoSoz, jami.list.length) } };
+    const qayta = xatoQaytar(jami.list, xatoIds);
+    if (qayta.length) { const kengroq = { ...jami, list: [...jami.list, ...qayta] }; sozgaOt(kengroq, d.i + 1, lg); return; }
+    const asosiy = jami.list.filter((x) => !x.qayta);
+    const natija = { ...jami, natija: { yulduz: repYulduz(jami.xatoSoz, asosiy.length) } };
     setDars(natija); darsRef.current = natija;
-    if (!topshiriq && !d.list.every((x) => !x.yangi)) onNatija?.(natija.natija.yulduz);
-    onYakun?.({ sozlar: d.list.map((x) => x.soz.id), jami: d.list.length, togri: d.list.length - jami.xatoSoz, yozdi: jami.jamiYozdi,
+    if (!topshiriq && !asosiy.every((x) => !x.yangi)) onNatija?.(natija.natija.yulduz);
+    onYakun?.({ sozlar: asosiy.map((x) => x.soz.id), jami: asosiy.length, togri: asosiy.length - jami.xatoSoz, yozdi: jami.jamiYozdi,
       soniya: Math.round((Date.now() - (d.boshVaqt || Date.now())) / 1000), yulduz: natija.natija.yulduz, takror: Boolean(d.takror) });
     ayt(qur("tugadi", null, natija.jamiYozdi));
   };
@@ -378,17 +402,33 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
       onKeyDown={(e) => { if (e.key === "Enter" && dars.kiritish.trim() && !j) tekshirYoz(dars.kiritish); }} />
     {!j && <button type="button" className="mk-btn is-main" disabled={!dars.kiritish.trim()} onClick={() => tekshirYoz(dars.kiritish)}>✔ {T("Tekshirish")}</button>}
   </>);
+  // REV177: ishora zinapoyasi (Cognitive Tutor / ASSISTments): 1 — birinchi harf va harflar soni, 2 — har ikkinchi harf, 3 — javob.
+  // Ishora olingan so'z «qiyin» hisoblanadi (ertaga yana so'raladi); oxirgi ishora — javobni ko'rsatish, so'z xato deb belgilanadi.
+  const yordamBer = () => {
+    const d = darsRef.current;
+    if (!d || d.javob) return;
+    const n = Math.min(YORDAM_MAX, (d.yordamKorindi || 0) + 1);
+    const w = d.list[d.i].soz;
+    const yangi = { ...d, yordamKorindi: n, yordam: (d.yordam || 0) + 1, xatoBor: d.xatoBor || n >= YORDAM_MAX };
+    setDars(yangi); darsRef.current = yangi;
+    ayt(n >= YORDAM_MAX ? `${teg(w.w[til], til)}. ${qur("harf", w)}` : qur("yordam", { ...w, w: { ...w.w, [til]: yordamMatni(w.w[til], n).replace(/_/g, "").replace(/\s+/g, " ") } }));
+  };
+  const yordamQator = () => !j && <div className="rp-yordam">
+    {dars.yordamKorindi > 0 && <b className="rp-ishora" dir="ltr" lang={til} aria-live="polite">{yordamMatni(soz, dars.yordamKorindi)}</b>}
+    {(dars.yordamKorindi || 0) < YORDAM_MAX && <button type="button" className="mk-btn rp-yordam-btn" onClick={yordamBer}>
+      💡 {T("Ishora")} ({(dars.yordamKorindi || 0) + 1}/{YORDAM_MAX})</button>}
+  </div>;
 
   return <div className="rp-root">{bar}
     <div className="rp-progress" aria-label={`${dars.i + 1}/${dars.list.length}`}>
-      {dars.list.map((x, k) => <i key={x.soz.id} className={`${k < dars.i ? "is-done" : ""} ${k === dars.i ? "is-on" : ""} ${x.yangi ? "" : "is-takror"}`} />)}
+      {dars.list.map((x, k) => <i key={`${x.soz.id}:${k}`} className={`${k < dars.i ? "is-done" : ""} ${k === dars.i ? "is-on" : ""} ${x.yangi ? "" : "is-takror"}`} />)}
     </div>
     <div className="rp-steps" role="list">{dars.bs.map((s, k) => <span key={s} role="listitem" className={`rp-step ${k < dars.b ? "is-done" : ""} ${k === dars.b ? "is-on" : ""}`}>
       <i aria-hidden="true">{BOSQICH[s][0]}</i><span>{T(BOSQICH[s][1])}</span></span>)}</div>
     {ustozBlok(b === "uzdan" || b === "eshit" ? "❓" : soz)}
 
     <div className="rp-card">
-      {!item.yangi && <span className="rp-tag">🔁 {T("Takror")}</span>}
+      {item.qayta ? <span className="rp-tag is-qayta">🎯 {T("Xatolar ustida ishlash")}</span> : !item.yangi && <span className="rp-tag">🔁 {T("Takror")}</span>}
 
       {b === "tanish" && <>
         <div className="rp-word"><Rasm w={w} className="mk-pic" /><b dir="auto" lang={til}>{soz}</b><small dir="auto">{mano(w)}</small></div>
@@ -432,6 +472,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
           <button type="button" className="mk-btn" onClick={() => ayt(teg(soz, til), { sekin: true })}>🐢 {T("Sekin")}</button>
         </div>
         {yozuvMaydoni()}
+        {yordamQator()}
       </>}
 
       {b === "uzdan" && <>
@@ -443,6 +484,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
         </div>
         {mik === "qayta" && !j && <small className="rp-mik-qayta" role="status">🎤 {T("Ovoz eshitilmadi — yana bosib, balandroq ayting yoki yozing.")}</small>}
         {yozuvMaydoni()}
+        {yordamQator()}
       </>}
 
       {b === "tildan" && <>

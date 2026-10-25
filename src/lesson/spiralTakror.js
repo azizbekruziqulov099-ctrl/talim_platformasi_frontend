@@ -57,8 +57,10 @@ export function darsniSaqla(fan, yozuv, st = store()) {
   if (!yozuv?.kod) return;
   const d = oqi(st, KEY);
   const k = fanKaliti(fan);
-  const eski = (d[k] || []).filter((x) => x.kod !== yozuv.kod);
-  d[k] = [...eski, yozuv].slice(-MAX_DARS);
+  // dars qayta o'tilsa — o'z o'rnida yangilanadi (eng yangi bo'lib qolmaydi: 1, 2, 3, 5, 8, 13 dars oralig'i buzilmasin)
+  const ro = d[k] || [];
+  const i = ro.findIndex((x) => x.kod === yozuv.kod);
+  d[k] = i >= 0 ? ro.map((x, j) => (j === i ? { ...yozuv, kun: x.kun } : x)) : [...ro, yozuv].slice(-MAX_DARS);
   yoz(st, KEY, d);
 }
 

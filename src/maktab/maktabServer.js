@@ -37,7 +37,7 @@ async function post(apiBase, token, path, body) {
 }
 /** turi: "dars" | "til" | "repetitor" | "topshiriq"; kod — shu faoliyatning kaliti (bir kunda bir xil kod — bitta yozuv yangilanadi). */
 export function faollikYoz(apiBase, token, { turi, kod, fan = "", til = "", mavzu = "", togri = 0, jami = 0, yozdi = 0, soniya = 0, sozlar = [] }) {
-  kunBelgila(turi, String(kod || ""));   // REV177: kun rejasi uchun (internet bo'lmasa ham)
+  kunBelgila(turi, String(kod || ""), undefined, undefined, String(fan || ""));   // REV177: kun rejasi uchun (internet bo'lmasa ham)
   const n = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
   const j = n(jami, 500);
   return post(apiBase, token, "/api/maktab/faollik", {

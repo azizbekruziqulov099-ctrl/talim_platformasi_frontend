@@ -60,7 +60,7 @@ test('ustoz bilan yozish sur‘ati so‘z uzunligiga mos; dars so‘zlari lug‘
 
 test('integratsiya: sinfxona, mashqlar, repetitor, yotiq telefon, fan ichiga kirish', () => {
   const d = src('./lesson/DarsXonasi.jsx');
-  assert.match(d, /sinfXona && <div className="dx-sinf-fon"/);
+  assert.match(d, /sinfXona && !kabuMuhit && <div className="dx-sinf-fon"/);
   assert.match(d, /<MaktabMashqlar /);
   assert.match(d, /darsSozlari=\{maktabSozlar\}/);
   assert.match(d, /sanaQadami\(/);

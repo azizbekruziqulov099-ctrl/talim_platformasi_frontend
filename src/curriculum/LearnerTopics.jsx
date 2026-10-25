@@ -171,7 +171,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
      <b><TranslatedContent text={fanNomiTil(current.nom,locale)} showStatus={false}/></b>
     </div>}
     {/* REV177: maktab o'quvchisining bugungi rejasi — yoshga mos dars soni, dam olish kuni, yakshanba takrori */}
-    {!kid&&!teacher&&!universityBrowse&&!fanIchida&&!preview&&type==='maktab'&&accountRole(user)==='oquvchi'&&<React.Suspense fallback={null}><MaktabKunReja apiBase={apiBase} token={token} sinf={user?.class||user?.learning_profile?.grade||''}/></React.Suspense>}
+    {!kid&&!teacher&&!universityBrowse&&!fanIchida&&!preview&&type==='maktab'&&accountRole(user)==='oquvchi'&&<React.Suspense fallback={null}><MaktabKunReja apiBase={apiBase} token={token} sinf={user?.class||user?.learning_profile?.grade||''} fanlar={subjects.filter(sub=>subjectStats(sub).lessons>0).map(sub=>({kalit:sub.kalit,nom:sub.nom}))} fanNomi={nom=>fanNomiTil(nom,locale)} onFan={key=>{chooseSubject(key);setFanIchida(true);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}}/></React.Suspense>}
     {!kid&&!universityBrowse&&!fanIchida&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
      {guruhla(subjects).map(g=><div key={g.id} className="lt-guruh">

@@ -55,3 +55,5 @@
 .dot-erkin { font-size: 18px; text-align: start; line-height: 1.5; resize: vertical; }
 .dot-sozlar { display: block; font-size: 15px; font-weight: 700; color: #475569; line-height: 1.5; }
 .dot-sozlar.is-ok { color: #145C38; }
+.dot-ishora { font: 700 22px/1.3 ui-monospace, Menlo, monospace; letter-spacing: .06em; color: #1F3B57; background: #FFF7E6; border: 2px dashed #E8C77A; border-radius: 12px; padding: 4px 12px; white-space: pre-wrap; }
+.mm-sanoq { margin: 0; font-size: 16px; font-weight: 800; color: #1B4B7A; }

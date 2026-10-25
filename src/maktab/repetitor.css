@@ -66,3 +66,8 @@
 /* REV174: arab yozuvi — so'z butunligicha (harflar ulanadi); daftar qatorlari yozuv yo'nalishi bo'yicha */
 .rp-letters.is-butun span { min-width: 0; padding: 4px 18px; font-size: 34px; height: auto; }
 .rp-namuna, .rp-qatorlar span { text-align: start; }
+/* REV177: ishora zinapoyasi (💡 1/3, 2/3, 3/3) va «Xatolar ustida ishlash» aylanasi */
+.rp-yordam{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:6px}
+.rp-ishora{font:700 24px/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#1F3B57;background:#FFF7E6;border:2px dashed #E8C77A;border-radius:12px;padding:6px 14px;white-space:pre-wrap;text-align:center}
+.rp-yordam-btn{background:#FFF7E6;border-color:#E8C77A}
+.rp-tag.is-qayta{background:#FDECEC;color:#8F1D21}

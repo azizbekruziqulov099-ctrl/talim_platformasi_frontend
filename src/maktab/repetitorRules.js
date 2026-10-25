@@ -73,18 +73,22 @@ function yozHammasi(d, st) { try { st?.setItem(KEY, JSON.stringify(d)); } catch 
 export const lugatOl = (til, st = store()) => oqiHammasi(st)[til] || {};
 
 /** Javob natijasi bilan so'z holatini yangilash (oraliqli takrorlash). yozdi — bugun daftarga necha marta yozdi. */
-export function repYangila(h, togri, { bugun = kunRaqami(), yozdi = 0, bolim = "", sinf = 0 } = {}) {
+export function repYangila(h, togri, { bugun = kunRaqami(), yozdi = 0, bolim = "", sinf = 0, sifat = "yaxshi" } = {}) {
   const eski = h || { quti: 0, keyingi: bugun, yozildi: 0, togri: 0, xato: 0, xatoKetma: 0, qoshildi: bugun };
   // REV174: bir kunda so'z faqat bir marta yuqori qutiga ko'tariladi (bir o'tirishda «yodlab» puxta qilib bo'lmaydi);
   // yangi so'z (0-quti) birinchi to'g'ri javobda 1-qutiga chiqadi. Xato — 2 quti pastga, ertaga qaytadi.
   const q0 = eski.quti || 0;
   const kotar = togri && (eski.kotarildi !== bugun || q0 === 0);
-  const quti = togri ? (kotar ? Math.min(REP_ORALIQ.length - 1, q0 + 1) : q0) : Math.max(0, q0 - 2);
+  // REV177 (FSRS / SuperMemo kabi javob sifati): «oson» — tez va yordamsiz → 2 quti yuqoriga (eski so'zda);
+  // «qiyin» — to'g'ri, lekin yordam (ishora) bilan → quti o'zgarmaydi, ertaga yana so'raladi.
+  const qiyin = togri && sifat === "qiyin";
+  const qadam = sifat === "oson" && q0 >= 1 ? 2 : 1;
+  const quti = togri ? (qiyin ? q0 : kotar ? Math.min(REP_ORALIQ.length - 1, q0 + qadam) : q0) : Math.max(0, q0 - 2);
   return {
     ...eski,
     quti,
-    keyingi: togri ? (kotar ? bugun + REP_ORALIQ[quti] : Math.max(eski.keyingi ?? bugun, bugun + REP_ORALIQ[quti])) : bugun + 1,
-    kotarildi: kotar ? bugun : eski.kotarildi,
+    keyingi: qiyin ? bugun + 1 : togri ? (kotar ? bugun + REP_ORALIQ[quti] : Math.max(eski.keyingi ?? bugun, bugun + REP_ORALIQ[quti])) : bugun + 1,
+    kotarildi: kotar && !qiyin ? bugun : eski.kotarildi,
     yozildi: Math.min(YOZISH_CHEGARA * 2, (eski.yozildi || 0) + Math.max(0, Number(yozdi) || 0)),
     togri: (eski.togri || 0) + (togri ? 1 : 0),
     xato: (eski.xato || 0) + (togri ? 0 : 1),
@@ -187,4 +191,34 @@ export function yozishSoniyasi(soz = "") {
   if (cjk) return Math.min(6, Math.max(1.5, cjk * 1.2));
   const n = h.length;
   return n <= 4 ? 1.5 : n <= 8 ? 2.5 : n <= 14 ? 3.5 : 4.5;
+}
+
+// ——— REV177: dunyodagi eng yaxshi repetitor tizimlaridan (Cognitive Tutor / ASSISTments ishora zinapoyasi, Anki / FSRS javob sifati,
+// «successive relearning» — xato so'z o'sha darsning oxirida yana so'raladi) ———
+
+/** Ishora zinapoyasi: 1 — birinchi harf va harflar soni («a _ _ _ e»), 2 — har ikkinchi harf, 3 — to'liq javob (oxirgi ishora). */
+export const YORDAM_MAX = 3;
+export function yordamMatni(soz = "", daraja = 1) {
+  const h = [...String(soz).normalize("NFC")];
+  if (daraja >= YORDAM_MAX) return h.join("");
+  let n = 0;
+  return h.map((c) => {
+    if (!/[\p{L}\p{N}]/u.test(c)) return c === " " ? "  " : c;
+    const k = n++;
+    return k === 0 || (daraja >= 2 && k % 2 === 0) ? c : "_";
+  }).join(" ").replace(/ {3,}/g, "   ");
+}
+
+/** Javob sifati: xato → «xato»; ishora olgan → «qiyin»; yordamsiz va tez (bir bosqichga o'rtacha ≤ 7 s) → «oson»; aks holda «yaxshi». */
+export function javobSifati({ xato = false, yordam = 0, soniya = 0, bosqich = 1 } = {}) {
+  if (xato) return "xato";
+  if (yordam > 0) return "qiyin";
+  return soniya > 0 && soniya / Math.max(1, bosqich) <= 7 ? "oson" : "yaxshi";
+}
+
+/** Dars oxirida xato qilingan so'zlar yana bir marta (faqat eshitib yozish va tarjima) — bir so'z bir marta qaytadi. */
+export function xatoQaytar(list = [], xatoIds = []) {
+  const bor = new Set(list.filter((x) => x.qayta).map((x) => x.soz.id));
+  const ids = [...new Set(xatoIds)].filter((id) => !bor.has(id));
+  return ids.map((id) => list.find((x) => x.soz.id === id)).filter(Boolean).map((x) => ({ soz: x.soz, yangi: false, qayta: true }));
 }

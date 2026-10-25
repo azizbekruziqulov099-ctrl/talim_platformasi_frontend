@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import KabuXonacha from "../kid/KabuXonacha.jsx";
 import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
-import { tekshir } from "../maktab/repetitorRules.js";
+import { tekshir, yordamMatni, YORDAM_MAX } from "../maktab/repetitorRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
 import { uiText as T } from "../interface/interfaceRuntime.js";
@@ -25,7 +25,7 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
   const bosqichlar = useMemo(() => [...(savollar.length ? ["spiral"] : []), ...(erkin ? ["erkin"] : []), "yakun"], [savollar, erkin]);
   const [b, setB] = useState(0);
   const [i, setI] = useState(0);
-  const [faza, setFaza] = useState("ayt");        // soz savolida: ayt → yoz
+  const [faza, setFaza] = useState(() => (globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition ? "ayt" : "yoz"));        // soz savolida: ayt → yoz
   const [javob, setJavob] = useState(null);
   const [kiritish, setKiritish] = useState("");
   const [mik, setMik] = useState("");
@@ -33,6 +33,7 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
   const [quvon, setQuvon] = useState(0);
   const [ball, setBall] = useState({ togri: 0, jami: 0 });
   const [erkinNatija, setErkinNatija] = useState(null);
+  const [ishora, setIshora] = useState(0);   // REV177: ishora zinapoyasi — ishora bilan topilgan so'z to'liq ball olmaydi
   const ovoz = useMemo(() => ovozManbai(apiBase), [apiBase]);
   const alive = useRef(true);
   const rec = useRef(null);
@@ -63,13 +64,12 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
   }, [b, i, faza]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const keyingi = () => {
-    setJavob(null); setKiritish(""); setMik("");
+    setJavob(null); setKiritish(""); setMik(""); setIshora(0);
     if (bosqich === "spiral" && q?.tur === "soz" && faza === "ayt") { setFaza("yoz"); return; }
     setFaza(mikBor ? "ayt" : "yoz");
     if (bosqich === "spiral" && i + 1 < savollar.length) { setI(i + 1); return; }
     setI(0); setB((x) => x + 1);
   };
-  useEffect(() => { if (!mikBor) setFaza("yoz"); }, [mikBor]);
 
   const tingla = () => {
     const R = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
@@ -95,9 +95,10 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
   };
   const yozTekshir = () => {
     const r = tekshir(kiritish, q.soz, q.til);
-    setJavob({ holat: r.holat, farq: r.oxshash >= 0.5 && q.til !== "ar" ? r.farq : null, matn: kiritish });
-    hisob(r.holat !== "xato");
-    ayt(r.holat === "togri" ? izt("To‘g‘ri yozdingiz!") : `${izt("To‘g‘risi")} ${teg(q.soz, q.til)}`);
+    const holat = ishora >= YORDAM_MAX ? "xato" : ishora && r.holat === "togri" ? "deyarli" : r.holat;
+    setJavob({ holat, farq: r.oxshash >= 0.5 && q.til !== "ar" ? r.farq : null, matn: kiritish });
+    hisob(holat === "togri");
+    ayt(holat === "togri" ? izt("To‘g‘ri yozdingiz!") : `${izt("To‘g‘risi")} ${teg(q.soz, q.til)}`);
   };
   const tanla = (k) => {
     if (javob) return;
@@ -140,6 +141,8 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
           <input className="mm-input" dir="auto" lang={q.til} value={kiritish} disabled={Boolean(javob)} autoCapitalize="off" autoComplete="off" spellCheck={false}
             placeholder={T("So‘zni yozing…")} onChange={(e) => setKiritish(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && kiritish.trim() && !javob) yozTekshir(); }} />
           {!javob && <button type="button" className="mm-btn is-main" disabled={!kiritish.trim()} onClick={yozTekshir}>✔ {T("Tekshirish")}</button>}
+          {!javob && ishora > 0 && <b className="dot-ishora" dir="ltr" lang={q.til}>{yordamMatni(q.soz, ishora)}</b>}
+          {!javob && ishora < YORDAM_MAX && <button type="button" className="mm-link" onClick={() => { const n = ishora + 1; setIshora(n); if (n >= YORDAM_MAX) ayt(teg(q.soz, q.til)); }}>💡 {T("Ishora")} ({ishora + 1}/{YORDAM_MAX})</button>}
         </>}
         <div className="mm-row">
           <button type="button" className="mm-btn" onClick={() => ayt(teg(q.mano, iz))}>🔊 {T("Yana ayt")}</button>

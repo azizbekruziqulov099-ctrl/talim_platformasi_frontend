@@ -21,3 +21,7 @@ html[data-kb-theme="dark"] .kr-root{background:#16263a;box-shadow:inset 0 0 0 1p
 html[data-kb-theme="dark"] .kr-matn b,html[data-kb-theme="dark"] .kr-slotlar li{color:#e6eef8}
 html[data-kb-theme="dark"] .kr-slotlar li{background:#1d3149}
 html[data-kb-theme="dark"] .kr-slotlar li.is-done{background:#173d2c}
+.kr-keyingi{align-self:stretch;border:0;border-radius:14px;padding:11px 14px;background:#1B4B7A;color:#fff;font-size:15px;font-weight:700;text-align:start;cursor:pointer}
+.kr-keyingi small{opacity:.8;font-weight:600}
+.kr-fan{border:0;background:none;padding:0;color:#1B4B7A;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer}
+html[data-kb-theme="dark"] .kr-fan{color:#9cc8f5}

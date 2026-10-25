@@ -24,7 +24,7 @@ const teg = (t, til) => `[${til}]${t}[/${til}]`;
  * 📖 o'qish (talaffuz tekshiriladi) → 🗣️ gapirish (savolga javob) → ✍️ diktant (harfma-harf tekshiruv) → 🎤 yozganini o'qib berish → 🏁 natija,
  * keyin test va repetitor. Jonli ustoz (o'sha tilning o'qituvchisi) aytadi va baholaydi.
  */
-export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", ustoz = "emily", steps = [], sozlar = [], mavzu = "", onTest, onRepetitor, onYakun, onClose }) {
+export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", ustoz = "emily", steps = [], sozlar = [], mavzu = "", onTest, onRepetitor, onYakun, onClose, avto = false }) {
   const mat = useMemo(() => mashqMateriali(steps, sozlar), [steps, sozlar]);
   const bosqichlar = useMemo(() => ["oqish", "gapirish", "diktant", "oqibBer"].filter((b) => (b === "oqibBer" ? mat.diktant.length : mat[b]?.length)), [mat]);
   const [b, setB] = useState(0);
@@ -106,6 +106,17 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
     ayt(r.holat === "togri" ? izt(T("To‘g‘ri yozdingiz!")) : r.holat === "deyarli" ? izt(T("Deyarli to‘g‘ri — belgilarga qarang.")) : `${izt(T("To‘g‘risi"))} ${teg(matnOf(joriy), til)}`);
   };
 
+  // REV177: avto — mashqlar tugagach test (yoki Repetitor) o'zi boshlanadi: Kabu aytadi, 6 soniya sanaydi
+  const [sanoq, setSanoq] = useState(0);
+  const keyingiIsh = onTest || onRepetitor;
+  useEffect(() => {
+    if (!avto || bosqich !== "yakun" || !keyingiIsh) return undefined;
+    setSanoq(6);
+    ayt(izt(onTest ? T("Endi test! Savollarni men o‘qib beraman.") : T("Endi Repetitor bilan yangi so‘zlarni yodlaymiz.")));
+    const id = setInterval(() => setSanoq((x) => (x <= 1 ? (clearInterval(id), -1) : x - 1)), 1000);
+    return () => clearInterval(id);
+  }, [bosqich, avto]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sanoq === -1) { setSanoq(0); ovoz.stop(); keyingiIsh?.(); } }, [sanoq]); // eslint-disable-line react-hooks/exhaustive-deps
   const jamiBall = Object.values(ball).reduce((s, x) => ({ togri: s.togri + x.togri, jami: s.jami + x.jami }), { togri: 0, jami: 0 });
 
   return <div className="mm-root">
@@ -120,6 +131,7 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
     {bosqich === "yakun" ? <div className="mm-card mm-yakun" role="status">
       <span className="mm-katta" aria-hidden="true">{mashqYulduz(jamiBall.togri, jamiBall.jami) === 3 ? "🏆" : "💪"}</span>
       <b>{"⭐".repeat(mashqYulduz(jamiBall.togri, jamiBall.jami)) || "☆"}</b>
+      {avto && sanoq > 0 && <p className="mm-sanoq" role="status">⏩ {onTest ? T("Test boshlanadi") : T("Repetitor boshlanadi")}: <b>{sanoq}</b></p>}
       <ul className="mm-natija">{bosqichlar.map((x) => <li key={x}><span>{BOSQICH[x][0]} {T(BOSQICH[x][1])}</span><b>{ball[x]?.togri || 0} / {ball[x]?.jami || 0}</b></li>)}</ul>
       <div className="mm-row">
         {onTest && <button type="button" className="mm-btn is-main" onClick={onTest}>📝 {T("Testni ishlash")}</button>}

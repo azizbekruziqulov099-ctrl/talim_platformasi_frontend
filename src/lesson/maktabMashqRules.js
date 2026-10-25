@@ -79,3 +79,20 @@ export function mashqMateriali(steps = [], sozlar = []) {
 
 /** Mashq natijasidan yulduz (0–3) — umumiy ulush bo'yicha. */
 export const mashqYulduz = (togri, jami) => { const p = jami ? togri / jami : 0; return p >= 0.9 ? 3 : p >= 0.7 ? 2 : p >= 0.4 ? 1 : 0; };
+
+/**
+ * REV176: maktab sinfxonasida doska, ustoz va deraza joylashuvi — har xona rasmiga qarab (deraza va devor soati ochiq qolsin):
+ * ustoz derazaga qarama-qarshi tomonda, doska ular orasida, ustozning gapi doska ostida. Qiymatlar — xona foizida.
+ * REV177: test va tekshiruvda sinfxona (va ustoz) ko'rsatilmaydi — Kabuning o'z muhiti (DarsXonasi: kabuMuhit).
+ */
+export const SINF_JOY = {
+  til: { ustoz: "ong", doska: { l: 33.5, t: 21.5, w: 41.5, h: 53 } },          // deraza chapda, soat tepada o'rtada
+  onatili: { ustoz: "chap", doska: { l: 26, t: 3, w: 42.5, h: 70 } },     // deraza o'ngda, soat chapda (ustoz tomonda)
+  atrofolam: { ustoz: "chap", doska: { l: 30.5, t: 3, w: 56.5, h: 70 } },   // deraza o'ng chekkada
+  matematika: { ustoz: "chap", doska: { l: 27, t: 3, w: 60, h: 70 } },    // soat o'ng tepada, deraza chap chekkada
+};
+export function sinfJoyi(xonaKey = "") {
+  const j = SINF_JOY[String(xonaKey).startsWith("til") ? "til" : xonaKey] || SINF_JOY.til;
+  const tepa = j.doska.t + j.doska.h + 2;
+  return { ...j, gap: { l: j.doska.l, t: tepa, w: j.doska.w, h: Math.max(14, Math.min(26, 98 - tepa)) } };
+}
