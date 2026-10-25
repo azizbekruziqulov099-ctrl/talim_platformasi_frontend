@@ -21,6 +21,7 @@ import FanBelgi from '../kid/FanBelgi.jsx';
 import { guruhMos } from '../admin/previewRules.js';
 import { ustozFor } from '../kid/ustozRules.js';
 import { bobBoyicha, fanEmblema, guruhla } from './fanGuruhlari.js';
+import { darsYoli, mashqBajarildi, mashqBelgila } from './darsYoli.js';
 import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
@@ -211,12 +212,31 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       const starsOf=(topic,target,i)=>topic.dars_bor?Math.max(lessonStars(target.lesson_code),unlock[i]?.tugadi?Number(unlock[i].yulduz??0):0):0;
       const doneOf=(topic,target,i)=>Boolean(topic.dars_bor&&(lessonDone(target.lesson_code)||unlock[i]?.tugadi));
       const next=group.mavzular.findIndex((t,i)=>t.dars_bor&&unlock[i]?.open&&!doneOf(t,topicTarget(current,group,t,type),i));
+      // REV173: darslar o'yin yo'li kabi — dars → dars → dars → 🎮 mashq → … → 🏆 katta imtihon
+      const yolData=darsYoli(group.mavzular,i=>({done:doneOf(group.mavzular[i],topicTarget(current,group,group.mavzular[i],type),i)}),t=>isReviewTopic(t.nomi));
+      const testOch=(list,kod)=>{const first=list[0];mashqBelgila(kod);onOpenTest({...topicTarget(current,group,first,type),topic_code:first.topic_codes[0],topic_codes:list.flatMap(t=>t.topic_codes),track:'review'});};
+      let tomon=0;
       return <div key={`kid-${group.sinf}`}>
       <p className="kt-age">🧸 {__kbUi(gradeLabel(type,group.sinf))}</p>
-      <ul className="kt-grid">{group.mavzular.map((topic,i)=>{const target=topicTarget(current,group,topic,type);
+      <div className="kt-yol-bosh" role="status">
+       <span className="kt-yol-xarita" aria-hidden="true">🗺️</span>
+       <span className="kt-yol-matn"><b>{yolData.bosqich}-{__kbUi("bosqich")} <small>/ {yolData.bosqichlar}</small></b>
+        <span className="kt-yol-chiziq" role="progressbar" aria-valuemin={0} aria-valuemax={yolData.jami} aria-valuenow={yolData.otildi}><i style={{width:`${yolData.jami?Math.max(4,Math.round(yolData.otildi/yolData.jami*100)):0}%`}}/></span>
+        <small>✅ {yolData.otildi} / {yolData.jami} {__kbUi("dars")}</small></span>
+       {onOpenTest&&group.mavzular.some(t=>t.savol_soni>0)&&<button type="button" className="kt-yol-aralash" onClick={()=>testOch(group.mavzular.filter(t=>t.savol_soni>0),`${current?.kalit}:${group.sinf}:aralash`)}>🎲 {__kbUi("Aralash takror")}</button>}
+      </div>
+      <ul className="kt-grid kt-yol">{yolData.tugunlar.map(n=>{
+       if(n.tur!=='dars'){const kod=`${current?.kalit}:${group.sinf}:${n.tur}:${n.bosqich}`;const och=n.ochiq||Boolean(preview||user?.is_admin);const bajarildi=mashqBajarildi(kod);
+        return <li key={kod} className={`kt-yol-tugun is-${n.tur} ${och?'':'is-locked'} ${bajarildi?'is-done':''}`}>
+         <button type="button" className="kt-yol-medal" disabled={!onOpenTest} onClick={()=>{if(!och){sayName(__kbUi(n.tur==='imtihon'?"Katta imtihon hamma darslardan keyin ochiladi":"Avval shu bosqich darslarini o‘tamiz"));return;}sayName(__kbUi(n.tur==='imtihon'?"Katta imtihon":"Mashq qilamiz"));testOch(n.mavzular,kod);}}>
+          <span aria-hidden="true">{och?(n.tur==='imtihon'?'🏆':'🎮'):'🔒'}</span>{bajarildi&&<i aria-hidden="true">✓</i>}</button>
+         <b>{n.tur==='imtihon'?__kbUi("Katta imtihon"):`${__kbUi("Mashq")} · ${n.bosqich}-${__kbUi("bosqich")}`}</b>
+         <small>{och?(n.tur==='imtihon'?__kbUi("Hamma o‘rganganlarimizdan!"):__kbUi("Shu bosqich mavzularidan o‘yin")):__kbUi(n.tur==='imtihon'?"Hamma darslardan keyin ochiladi":"Darslardan keyin ochiladi")}</small>
+        </li>;}
+       const topic=n.topic;const i=n.i;const target=topicTarget(current,group,topic,type);const yon=(tomon++)%2?'is-r':'is-l';
        const stars=starsOf(topic,target,i);const done=doneOf(topic,target,i);const isNext=i===next;/* REV122: admin uchun hamma mavzu ochiq */const locked=!preview&&!user?.is_admin&&topic.dars_bor&&!unlock[i]?.open;const review=isReviewTopic(topic.nomi);
        const open=()=>{if(locked){const h=todayProgress(plan,planFan)?.reja;sayName(h?.turi==='keyin'&&h.keyingi?`${__kbUi("Bu dars shu kuni ochiladi")}: ${__kbUi(h.keyingi)}`:__kbUi("Bu dars ertaga ochiladi"));return;}if(topic.dars_bor)openLesson(group,topic);};
-       return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${done?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''} ${review?'is-review':''}`} style={{'--kt-bg':review?'#EDE3FF':kidTopicColor(i)}}
+       return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${yon} ${done?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''} ${review?'is-review':''}`} style={{'--kt-bg':review?'#EDE3FF':kidTopicColor(i)}}
         onClick={e=>{if(e.target.closest('button'))return;open();}}>
         <span className="kt-no">{done?'✓':locked?'🔒':i+1}</span>
         {isNext&&<span className="kt-today">{__kbUi("Bugun shu!")}</span>}
@@ -230,13 +250,6 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
          <button type="button" className="kt-play" onClick={()=>onOpenTest({...target,topic_code:topic.topic_codes[0]})}>{__kbUi("🎮 O‘ynaymiz")}</button>
         </div>}
        </li>;})}
-       {onOpenTest&&group.mavzular.some(t=>t.savol_soni>0)&&<li className="kt-card kt-review" style={{'--kt-bg':'#FFF1C9'}}>
-        <span className="kt-emoji" aria-hidden="true">🎲</span>
-        <p className="kt-title">{__kbUi("Aralash takror")}</p>
-        <p className="kt-note">{__kbUi("Hamma o‘rganganlarimizdan savollar — har kuni o‘ynasa bo‘ladi!")}</p>
-        <div className="kt-actions"><button type="button" className="kt-play" onClick={()=>{const tested=group.mavzular.filter(t=>t.savol_soni>0);const first=tested[0];
-         onOpenTest({...topicTarget(current,group,first,type),topic_code:first.topic_codes[0],topic_codes:tested.flatMap(t=>t.topic_codes),track:'review'});}}>{__kbUi("🎮 Boshladik")}</button></div>
-       </li>}
       </ul>
      </div>;})}
      {!kid&&groups.map(group=><div key={group.sinf}>

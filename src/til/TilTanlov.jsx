@@ -30,7 +30,7 @@ export const izohTili = (loc = interfaceLocale()) => (String(loc).startsWith("ru
  * REV128: «O'yinlar» bo'limidan til tanlab kirish: bolalar — o'yin xonalari, kattalar — gapirish va yozish mashqi.
  * tur: "xonalar" | "mashq" | "maktab" (REV129: 1–11 sinf).
  */
-export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", sinf = "", cheklovsiz = false, onClose }) {
+export default function TilTanlov({ tur = "xonalar", apiBase = "", token = "", grade = "", sinf = "", cheklovsiz = false, onClose }) {
   useInterface();
   const loc = interfaceLocale();
   const mening = tur === "xonalar" && !cheklovsiz ? bolaTillari() : null;   // REV168
@@ -45,7 +45,7 @@ export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", s
       {tur === "mashq"
         ? <TilMashqi apiBase={apiBase} til={til} izoh={izoh} onClose={() => setOchiq(false)} />
         : tur === "maktab"
-        ? <MaktabTil apiBase={apiBase} til={til} izoh={izoh} sinf={sinfRaqami(sinf) || 1} cheklovsiz={cheklovsiz} sarlavha={sarlavha} onClose={() => setOchiq(false)} />
+        ? <MaktabTil apiBase={apiBase} token={token} til={til} izoh={izoh} sinf={sinfRaqami(sinf) || 1} cheklovsiz={cheklovsiz} sarlavha={sarlavha} onClose={() => setOchiq(false)} />
         : <TilXonalari apiBase={apiBase} til={til} izoh={izoh} grade={grade} cheklovsiz={cheklovsiz} sarlavha={sarlavha}
           sinov={mening && !mening.includes(til) ? SINOV_BOSQICH : 0} onClose={() => setOchiq(false)} />}
     </React.Suspense>;

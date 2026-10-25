@@ -3,6 +3,8 @@ import { SINFLAR } from "./index.js";
 import Rasm from "./MaktabRasm.jsx";
 import Repetitor from "./Repetitor.jsx";
 import { lugatOl, muddatiKelgan } from "./repetitorRules.js";
+import { CEFR, darajaHisob, sinfMaqsadi, bahoOf, javobBali, javobYoz, natijaOl, tezlikOf, yilYoli, bolimQadamlari, rejimOchiq, keyingiQadam, QADAMLAR } from "./darajaRules.js";
+import { natijaYubor, reytingOl } from "./maktabServer.js";
 import VaqtHalqa, { vaqtDarajasi } from "../kid/VaqtHalqa.jsx";
 import {
   rejimlar, savollar, harfTogri, harflar, belgila, srsOl, yulduzYoz, yulduzlar, yulduzHisob, bolimPuxta,
@@ -36,12 +38,42 @@ const BELLASHUV_SONIYA = 15;
 const teg = (t, til) => `[${til}]${t}[/${til}]`;
 
 
+/** REV173: daraja kartasi — CEFR zinapoyasi, keyingi darajagacha foiz, ball, baho, tezlik va sinfdoshlar orasida o'rin. */
+function DarajaKarta({ dr, nat, reyting, sinf }) {
+  const baho = bahoOf(nat.togri, nat.jami);
+  const tez = tezlikOf(nat);
+  const maqsad = sinfMaqsadi(sinf);
+  return <section className={`mk-daraja ${dr.yaqin ? "is-yaqin" : ""}`} aria-label={T("Daraja")}>
+    <div className="mk-daraja-bosh">
+      <span className="mk-daraja-belgi" aria-hidden="true">{dr.indeks >= 0 ? CEFR[dr.indeks].emoji : "🌰"}</span>
+      <div className="mk-daraja-matn">
+        <small>{T("Darajangiz")}</small>
+        <b>{dr.daraja || T("Boshlang‘ich")}</b>
+        <small>{T("Sinfingiz uchun maqsad")}: <b>{maqsad}</b></small>
+      </div>
+    </div>
+    {dr.keyingi && <div className="mk-daraja-keyingi">
+      <span className="mk-daraja-chiziq" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={dr.foiz}><i style={{ width: `${Math.max(3, dr.foiz)}%` }} /></span>
+      <small>{dr.yaqin ? T("🎯 Darajangiz {daraja} ga yaqinlashdi!").replace("{daraja}", dr.keyingi) : T("{daraja} darajasigacha: {foiz}%").replace("{daraja}", dr.keyingi).replace("{foiz}", String(dr.foiz))}</small>
+    </div>}
+    <ol className="mk-cefr" aria-hidden="true">
+      {CEFR.map((c, i) => <li key={c.kod} className={i <= dr.indeks ? "is-on" : c.kod === dr.keyingi ? "is-keyingi" : ""}><span>{c.emoji}</span>{c.kod}</li>)}
+    </ol>
+    <div className="mk-chips">
+      <span title={T("Ball")}>💎 {nat.bal} {T("ball")}</span>
+      {baho && <span title={T("O‘rtacha baho")}>📝 {T("Baho")}: {baho}</span>}
+      {tez !== null && <span title={T("Bellashuvda o‘rtacha javob vaqti")}>⚡ {tez} {T("soniya")}</span>}
+      {reyting && <span className="is-rank" title={T("Sinfdoshlar orasida (ismlar ko‘rsatilmaydi)")}>🏆 {reyting.orin}-{T("o‘rin")} / {reyting.jami}</span>}
+    </div>
+  </section>;
+}
+
 /**
  * REV129: Maktab (1–11 sinf) uchun yozuvli til o'yinlari. Har sinfga bir o'quv yili: 8 ta bo'lim (har chorakda 2 ta),
  * har bo'limda 10 ta so'z va 3–5 ta gap. 8 xil o'yin: so'z kartalari, rasmini top, ma'nosini top, harflardan ter,
  * gap tuz, eshit va yoz, ayt (mikrofon), bellashuv (vaqt bilan). So'zlar takrorlash tizimi bilan eslab qolinadi.
  */
-export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf: boshSinf = 1, cheklovsiz = false, onClose, sarlavha = "" }) {
+export default function MaktabTil({ apiBase = "", token: authToken = "", til = "en", izoh = "uz", sinf: boshSinf = 1, cheklovsiz = false, onClose, sarlavha = "" }) {
   useInterface();
   const iz = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
   const [sinf, setSinf] = useState(Math.min(11, Math.max(1, Number(boshSinf) || 1)));
@@ -54,6 +86,10 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
   const [soniya, setSoniya] = useState(BELLASHUV_SONIYA);
   const [, setYangi] = useState(0);
   const [lugatOchiq, setLugatOchiq] = useState(false);   // REV172: «Mening lug‘atim» (repetitor)
+  const [reyting, setReyting] = useState(null);           // REV173: sinfdoshlar orasida o'rin
+  const [eslatma, setEslatma] = useState("");             // REV173: qulflangan o'yin bosilganda
+  const ozSinf = Math.min(11, Math.max(1, Number(boshSinf) || 1));
+  const savolBosh = useRef(Date.now());
   const audio = useRef(null);
   const rec = useRef(null);
   const token = useRef(0);
@@ -104,6 +140,31 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
   const srs = srsOl(til);
   const takrorSoni = useMemo(() => muddatiKelgan(lugatOl(til)).length, [til, lugatOchiq, bolimId]); // eslint-disable-line react-hooks/exhaustive-deps
   const yul = yulduzlar(til);
+  // REV173: daraja (CEFR), ball, baho, tezlik va bo'lim yo'li
+  const lugat = lugatOl(til);
+  const dr = darajaHisob(srs, lugat);
+  const nat = natijaOl(til);
+  const yol = sinfData ? yilYoli(sinfData, { yul, srs, lugat, ozSinf, erkin: cheklovsiz }) : [];
+  const q = bolim ? bolimQadamlari(bolim, yul, srs, lugat) : null;
+  const erkin = cheklovsiz || sinf < ozSinf;   // admin va o'tgan sinflar (takrorlash) — hammasi ochiq
+  const sinxron = () => {
+    const n = natijaOl(til), y2 = yulduzlar(til), d2 = darajaHisob(srsOl(til), lugatOl(til));
+    return natijaYubor(apiBase, authToken, {
+      til, sinf: ozSinf, bal: n.bal, togri: n.togri, jami: n.jami, daraja: d2.daraja || "", foiz: d2.foiz, keyingi: d2.keyingi || "",
+      otildi: SINFLAR.reduce((k, x) => k + x.bolimlar.filter((b) => (y2[b.id]?.bellashuv || 0) >= 1).length, 0),
+    }).then(() => reytingOl(apiBase, authToken, til, ozSinf)).then((r) => { if (alive.current) setReyting(r); });
+  };
+  // yil xaritasi ochilganda: natija serverga, o'rin olinadi; keyingi darajaga yaqin bo'lsa — ustoz kuniga bir marta aytadi
+  useEffect(() => {
+    if (bolimId) return;
+    sinxron();
+    if (!dr.yaqin) return;
+    const k = `kabutar:maktab:yaqin:${til}:${dr.keyingi}`;
+    const bugun = new Date().toDateString();
+    try { if (globalThis.localStorage?.getItem(k) === bugun) return; globalThis.localStorage?.setItem(k, bugun); } catch { /* */ }
+    const m = { uz: `Barakalla! Darajangiz ${dr.keyingi} ga yaqinlashdi.`, ru: `Молодец! Твой уровень приближается к ${dr.keyingi}.`, en: `Well done! Your level is getting close to ${dr.keyingi}.` }[iz];
+    setTimeout(() => { if (alive.current) ayt(iz === "uz" ? m : teg(m, iz)); }, 700);
+  }, [til, bolimId]); // eslint-disable-line react-hooks/exhaustive-deps
   const savol = oyin?.list[oyin.i] || null;
   const oyinRef = useRef(oyin);
   oyinRef.current = oyin;
@@ -126,12 +187,19 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
   // har yangi savolda — eshittiramiz
   useEffect(() => {
     if (!savol || oyin?.javob) return;
+    savolBosh.current = Date.now();
     if (savol.tur === "rasm" || savol.tur === "yoz") aytTil(savol.soz ? savol.soz.w[til] : savol.gap.w[til]);
     if (savol.tur === "harf" && sinf <= 4) aytTil(savol.soz.w[til], true);
   }, [oyin?.i, oyin?.list]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const boshla = (r) => {
     if (bloklangan || !bolim) return;
+    if (!rejimOchiq(r, bolimQadamlari(bolim, yulduzlar(til), srsOl(til), lugatOl(til)), erkin)) {
+      const m = r === "bellashuv" ? T("Imtihon mashqlardan keyin ochiladi: avval biror o‘yinni o‘ynang.") : T("Avval darsni o‘ting: «So‘z kartalari» yoki «Repetitor».");
+      setEslatma(m); ayt(iz === "uz" ? m : teg(m, iz));
+      return;
+    }
+    setEslatma("");
     token.current++;
     setRejim(r); setOchiq({});
     if (r === "kartalar" || r === "repetitor") { setOyin(null); return; }
@@ -146,6 +214,9 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     const q = o.list[o.i];
     const id = q?.soz?.id || q?.gap?.id;
     if (id) belgila(til, id, Boolean(togriMi));
+    // REV173: ball va tezlik (bellashuvda tez javob — qo'shimcha ball)
+    const ms = Date.now() - savolBosh.current;
+    javobYoz(til, { togri: Boolean(togriMi), bal: javobBali(Boolean(togriMi), { bellashuv: Boolean(q?.vaqt), qoldi: BELLASHUV_SONIYA - ms / 1000 }), ms: q?.vaqt ? ms : null });
     const yangi = { ...o, javob: { togri: Boolean(togriMi), qiymat }, togri: o.togri + (togriMi ? 1 : 0) };
     oyinRef.current = yangi;
     setOyin(yangi);
@@ -158,12 +229,16 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
       if (o.i + 1 >= o.list.length) {
         const y = yulduzHisob(o.togri, o.list.length);
         yulduzYoz(til, bolim.id, rejim, y);
+        setTimeout(sinxron, 0);
         return { ...o, natija: { yulduz: y } };
       }
       return { ...o, i: o.i + 1, javob: null, tanlangan: [], yozuv: "" };
     });
     setMik("");
   };
+
+  // REV173: so'z kartalari ko'rildi (yarmi ochildi yoki hammasi tinglandi) — bo'limning «Dars» qadami bajarildi
+  const darsOtildi = () => { if (bolim && !(yulduzlar(til)[bolim.id]?.kartalar >= 1)) { yulduzYoz(til, bolim.id, "kartalar", 1); setYangi((n) => n + 1); } };
 
   const tingla = () => {
     const R = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
@@ -216,31 +291,40 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
         <span className="mk-grade-label">{T("sinf")}</span>
       </div>
       {vaqtTosiq}
+      {eslatma && <p className="mk-eslatma" role="status">🔒 {eslatma}</p>}
       <button type="button" className="mk-lugat" disabled={bloklangan} onClick={() => setLugatOchiq(true)}>
         <span aria-hidden="true">📒</span><b>{T("Mening lug‘atim")}</b>
         <small>{takrorSoni ? `🔁 ${T("Bugungi takror")}: ${takrorSoni}` : `👩‍🏫 ${T("Repetitor")}`}</small>
       </button>
-      <div className="mk-year">
-        {[0, 1, 2, 3].map((ch) => <section key={ch} className={`mk-quarter q${ch + 1}`}>
-          <h3>{CHORAK[iz](ch + 1)}</h3>
-          <div className="mk-units">
-            {sinfData.bolimlar.slice(ch * 2, ch * 2 + 2).map((b) => {
-              const p = Math.round(bolimPuxta(b, srs) * 100);
-              const yz = Object.values(yul[b.id] || {}).reduce((a, v) => a + v, 0);
-              return <button key={b.id} type="button" className="mk-unit" disabled={bloklangan}
-                onClick={() => { setBolimId(b.id); setRejim("kartalar"); setOyin(null); setOchiq({}); }}>
-                <span className="mk-unit-emoji" aria-hidden="true">{b.emoji}</span>
+      <DarajaKarta dr={dr} nat={nat} reyting={reyting} sinf={ozSinf} />
+      {/* REV173: yil yo'li — bo'limlar ketma-ket ochiladi (oldingi bo'lim imtihonidan keyin); har bo'limda 4 qadam */}
+      <ol className="mk-yol" aria-label={T("O‘quv yo‘li")}>
+        {yol.map(({ bolim: b, ochiq: och, q: bq, keyingi: kel }, i) => {
+          const p = Math.round(bolimPuxta(b, srs) * 100);
+          const yangiChorak = i % 2 === 0;
+          return <React.Fragment key={b.id}>
+            {yangiChorak && <li className={`mk-yol-chorak q${i / 2 + 1}`} aria-hidden="true"><span>{CHORAK[iz](i / 2 + 1)}</span></li>}
+            <li className={`mk-yol-qadam ${i % 4 === 1 || i % 4 === 2 ? "is-o" : "is-c"} ${bq.imtihon ? "is-otdi" : ""} ${kel ? "is-keyingi" : ""} ${och ? "" : "is-qulf"}`}>
+              <button type="button" className="mk-unit" disabled={bloklangan}
+                onClick={() => {
+                  if (!och) { const m = T("Bu bo‘lim oldingi bo‘lim imtihonidan keyin ochiladi."); setEslatma(m); ayt(iz === "uz" ? m : teg(m, iz)); return; }
+                  setEslatma(""); setBolimId(b.id); setRejim("kartalar"); setOyin(null); setOchiq({});
+                }}>
+                <span className="mk-yol-tugun" aria-hidden="true">{och ? b.emoji : "🔒"}<i>{bq.imtihon ? "✓" : i + 1}</i></span>
                 <span className="mk-unit-body">
+                  {kel && <span className="mk-yol-bayroq">📍 {T("Shu yerdan davom eting")}</span>}
                   <b>{b.nom[iz]}</b>
                   <small dir="auto">{b.sozlar.slice(0, 3).map((w) => w.w[til]).join(" · ")}…</small>
-                  <span className="mk-unit-meta">🏅 {p}% · ⭐ {yz}</span>
+                  <span className="mk-qadamlar" aria-label={QADAMLAR.map((x) => `${T(x.nom)}: ${bq[x.k] ? "✓" : "—"}`).join(", ")}>
+                    {QADAMLAR.map((x) => <i key={x.k} className={bq[x.k] ? "is-on" : ""} title={T(x.nom)}>{x.emoji}</i>)}
+                    <em>🏅 {p}%{bq.baho ? ` · ${T("Baho")}: ${bq.baho}` : ""}</em>
+                  </span>
                 </span>
-                <i className="mk-progress" style={{ "--p": `${p}%` }} aria-hidden="true" />
-              </button>;
-            })}
-          </div>
-        </section>)}
-      </div>
+              </button>
+            </li>
+          </React.Fragment>;
+        })}
+      </ol>
     </div>;
   }
 
@@ -249,10 +333,10 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     if (rejim === "kartalar") {
       return <div className="mk-cards">
         <button type="button" className="mk-btn is-main mk-all" onClick={() => {
-          const l = bolim.sozlar; const oyna = (k) => { if (k < l.length && alive.current) aytTil(l[k].w[til], false, () => setTimeout(() => oyna(k + 1), 300)); }; oyna(0);
+          const l = bolim.sozlar; const oyna = (k) => { if (k >= l.length) { darsOtildi(); return; } if (alive.current) aytTil(l[k].w[til], false, () => setTimeout(() => oyna(k + 1), 300)); }; oyna(0);
         }}>▶ {T("Hammasini tinglash")}</button>
         {bolim.sozlar.map((w) => <button key={w.id} type="button" className={`mk-card ${ochiq[w.id] ? "is-open" : ""}`}
-          onClick={() => { setOchiq((o) => ({ ...o, [w.id]: !o[w.id] })); aytTil(w.w[til]); }}>
+          onClick={() => { setOchiq((o) => { const n = { ...o, [w.id]: true }; if (Object.keys(n).length >= Math.ceil(bolim.sozlar.length / 2)) darsOtildi(); return n; }); aytTil(w.w[til]); }}>
           <Rasm w={w} className="mk-pic" />
           <b dir="auto">{w.w[til]}</b>
           {ochiq[w.id] && <small dir="auto">{w.w[iz]}</small>}
@@ -366,15 +450,32 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
 
   return <div className="mk-root">
     <div className="mk-bar">
-      <button type="button" className="mk-back" onClick={() => { token.current++; setBolimId(null); setOyin(null); }} aria-label={T("Orqaga")}>⬅️</button>
+      <button type="button" className="mk-back" onClick={() => { token.current++; setBolimId(null); setOyin(null); setEslatma(""); }} aria-label={T("Orqaga")}>⬅️</button>
       <div className="mk-head"><b className="mk-title">{bolim.emoji} {bolim.nom[iz]}</b><small>{SINF_NOMI[iz](sinf)}</small></div>
       {!cheklovsiz && vaqt.holat === "ok" && <VaqtHalqa qoldi={vaqt.qoldi} jami={60} ogoh={vaqt.ogoh} daraja={vaqtDarajasi({ sinf })} />}
     </div>
+    {/* REV173: bo'lim yo'li — dars → mashq → takror → imtihon */}
+    <div className="mk-bosqich" aria-label={T("Bo‘lim yo‘li")}>
+      {QADAMLAR.map((x, k) => <React.Fragment key={x.k}>
+        {k > 0 && <i className="mk-bosqich-chiziq" aria-hidden="true" />}
+        <span className={`mk-bosqich-q ${q[x.k] ? "is-on" : ""} ${keyingiQadam(q) === x.k ? "is-keyingi" : ""}`}>
+          <span aria-hidden="true">{q[x.k] ? "✅" : x.emoji}</span><small>{T(x.nom)}</small></span>
+      </React.Fragment>)}
+      {keyingiQadam(q) && !oyin && rejim === "kartalar" && <button type="button" className="mk-btn is-main mk-bosqich-btn" disabled={bloklangan} onClick={() => {
+        const k = keyingiQadam(q);
+        if (k === "dars") boshla("repetitor");
+        else if (k === "mashq") boshla(rejimlar(sinf)[1]);
+        else if (k === "imtihon") boshla("bellashuv");
+        else setLugatOchiq(true);
+      }}>▶ {T("Keyingi qadam")}: {T(QADAMLAR.find((x) => x.k === keyingiQadam(q)).nom)}</button>}
+    </div>
+    {eslatma && <p className="mk-eslatma" role="status">🔒 {eslatma}</p>}
     <div className="mk-modes" role="tablist">
-      {[rejimlar(sinf)[0], "repetitor", ...rejimlar(sinf).slice(1)].map((r) => <button key={r} type="button" role="tab" aria-selected={rejim === r} disabled={bloklangan}
-        className={`mk-mode ${rejim === r ? "is-on" : ""}`} onClick={() => boshla(r)}>
-        <span aria-hidden="true">{REJIM[r][0]}</span> {T(REJIM[r][1])}{yul[bolim.id]?.[r] ? ` ${"⭐".repeat(yul[bolim.id][r])}` : ""}
-      </button>)}
+      {[rejimlar(sinf)[0], "repetitor", ...rejimlar(sinf).slice(1)].map((r) => { const och = rejimOchiq(r, q, erkin);
+        return <button key={r} type="button" role="tab" aria-selected={rejim === r} disabled={bloklangan}
+        className={`mk-mode ${rejim === r ? "is-on" : ""} ${och ? "" : "is-qulf"}`} onClick={() => boshla(r)}>
+        <span aria-hidden="true">{och ? REJIM[r][0] : "🔒"}</span> {T(REJIM[r][1])}{r === "bellashuv" ? ` · ${T("Imtihon")}` : ""}{r !== "kartalar" && yul[bolim.id]?.[r] ? ` ${"⭐".repeat(yul[bolim.id][r])}` : ""}
+      </button>; })}
     </div>
     <p className="mk-hint">{IZOH[rejim][iz]}</p>
     {vaqtTosiq || sahifa()}

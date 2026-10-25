@@ -73,6 +73,13 @@ export default function BogchaOlami({ fanlar = [], bugun = [], onFan, say, apiBa
       <span>📒 {T("Mening kundaligim")}</span>
       <b>⭐ {diary.jami_yulduz}</b>
       {diary.ketma_ket > 1 ? <small>🔥 {diary.ketma_ket}</small> : null}
+      {/* REV173: bog'cha bosqichlari ko'rinib tursin — keyingi qushgacha yo'l */}
+      {diary.daraja.keyingi && <span className="ol-diary-yol" aria-label={`${T("Keyingi daraja")}: ${T(diary.daraja.keyingi.nom || "")} — ${T("yana")} ${diary.daraja.qoldi} ⭐`}>
+        <span aria-hidden="true">{diary.daraja.emoji}</span>
+        <span className="ol-diary-chiziq" aria-hidden="true"><i style={{ width: `${Math.max(5, diary.daraja.foiz || 0)}%` }} /></span>
+        <span aria-hidden="true">{diary.daraja.keyingi.emoji}</span>
+        <em>+{diary.daraja.qoldi} ⭐</em>
+      </span>}
     </button>}
     {bugun.length > 0 && <section className="ol-bugun" aria-label={T("Bugungi darslar")}>
       <h2 className="ol-head">⭐ {T("Bugungi darslar")}</h2>

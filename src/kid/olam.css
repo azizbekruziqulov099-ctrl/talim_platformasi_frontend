@@ -56,3 +56,8 @@
 .ol-takror > span:first-child { font-size: 36px; }
 .ol-takror b { font-size: 18px; display: block; }
 .ol-takror small { font-size: 13px; font-weight: 700; color: #9A6A1C; }
+/* REV173: bosh sahifada daraja yo'li — hozirgi qush → keyingi qush */
+.ol-diary-yol { flex-basis: 100%; display: flex; align-items: center; gap: 8px; font-size: 22px; }
+.ol-diary-chiziq { flex: 1; height: 12px; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 2px #f6c77d; overflow: hidden; }
+.ol-diary-chiziq i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffd166, #f0a93b); }
+.ol-diary-yol em { font: 800 13px/1 system-ui, sans-serif; font-style: normal; color: #b86b00; }

@@ -14975,7 +14975,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       )}
       {korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi" || tab === "til_maktab") && (
         <React.Suspense fallback={<p className="p-6 text-center text-slate-500">⏳</p>}>
-          <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : tab === "til_maktab" ? "maktab" : "xonalar"} apiBase={API_BASE}
+          <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : tab === "til_maktab" ? "maktab" : "xonalar"} apiBase={API_BASE} token={token}
             sinf={foydalanuvchi?.class || foydalanuvchi?.sinf || foydalanuvchi?.learning_profile?.class || ""}
             grade={foydalanuvchi?.yosh_guruhi || foydalanuvchi?.learning_profile?.age_group || foydalanuvchi?.class || ""}
             cheklovsiz={Boolean(foydalanuvchi?.is_admin)} onClose={() => setTab("oyinlar")} />
