@@ -171,6 +171,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const joy = sinfXona ? sinfJoyi(XONALAR[xonaKaliti(ustozRef.current)] ? xonaKaliti(ustozRef.current) : "onatili") : null;   // REV176: doska — ustoz va deraza orasida
   // REV177: test, ovozli tekshiruv va natija — sinfxonadan chiqib, robot Kabuning o'z muhitida (ustoz yo'q, faqat Kabu)
   const kabuMuhit = sinfXona && ["test", "ovoz", "result"].includes(mode);
+  useEffect(() => { if (kabuMuhit) setSavolOchiq(false); }, [kabuMuhit]);
   const KABU_JOY = { doska: { l: 29, t: 3, w: 69, h: 72 }, gap: { l: 29, t: 77, w: 69, h: 21 } };
   const foiz = (b) => (b ? { left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` } : undefined);
   const ustozGapiryapti = () => ["idle", "lesson", "bridge"].includes(modeRef.current);
@@ -466,12 +467,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
   // REV111 / REV140: kun vaqti (tong/kun/kech/tun) — quyoshning haqiqiy holatidan (shahar + mutlaq vaqt), har daqiqada
   useEffect(() => {
-    if (!kid) return undefined;
+    if (!kid && !sinfXona) return undefined;   // REV177: maktab sinfxonasida ham deraza tashqarisi kun vaqtiga mos
     const tick = () => setVaqt(quyoshVaqti(new Date()));
     tick();
     const t = setInterval(tick, 60000);
     return () => clearInterval(t);
-  }, [kid]);
+  }, [kid, sinfXona]);
 
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = rate; }, [rate]);
 
@@ -504,15 +505,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // til darsi — 🏋️ Kabu bilan mashqlar → 📝 test → 🤖 Repetitor; boshqa fan — 📝 test (savollar bo'lsa).
       const mat = darsTil ? mashqMateriali(steps, maktabSozlar) : null;
       const mashqBor = Boolean(mat && (mat.oqish.length || mat.gapirish.length || mat.diktant.length));
-      if (sinfXona && (mashqBor || questions.length)) {
-        setMode("end");
-        avtoRep.current = false;
+      if (sinfXona && (mashqBor || questions.length) && !zanjir.current) {
+        setMode("end"); modeRef.current = "end";   // ustoz o'z ovozida xayrlashadi (Kabu ovozida emas)
+        zanjir.current = true;   // avtomatik zanjir bir darsda bir marta (darsni qayta ko'rganda qaytadan ochilmaydi)
         say(__kbUi(mashqBor ? "Barakalla! Dars tugadi. Endi Kabu bilan mashq qilamiz." : "Barakalla! Dars tugadi. Endi Kabu bilan bilimingizni tekshiramiz."),
           () => setTimeout(() => { if (modeRef.current !== "end") return; if (mashqBor) setMashqlar(true); else startQuizRef.current(); }, 700));
         return;
       }
       // Dars tugadi: o'quvchi o'zi tanlaydi — shu yerda tezkor savollar yoki Test bo'limi.
-      setMode("end");
+      setMode("end"); modeRef.current = "end";
       say(questions.length || onOpenTest
         ? __kbUi("Barakalla! Dars tugadi. Endi bilimingizni tekshiring: pastdan test turini tanlang.")
         : __kbUi("Barakalla! Dars tugadi."));
@@ -637,8 +638,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   startQuizRef.current = startQuiz;
   // REV177: testdan keyin — 🤖 Repetitor o'zi ochiladi (yangi so'zlar bo'lsa, bir darsda bir marta)
   const avtoRep = useRef(false);
+  const zanjir = useRef(false);
+  useEffect(() => { zanjir.current = false; avtoRep.current = false; }, [topicCode]);
   useEffect(() => {
-    if (kid || !sinfXona || mode !== "result" || xatoTartib || avtoRep.current || !maktabSozlar.length) return undefined;
+    // xato javoblar bo'lsa — avval «Xatolar ustida ishlash» tavsiya etiladi, Repetitor o'zi ochilmaydi
+    if (kid || !sinfXona || mode !== "result" || xatoTartib || avtoRep.current || !maktabSozlar.length || xatolar.current.length) return undefined;
     const t = setTimeout(() => { if (modeRef.current === "result" && !avtoRep.current) { avtoRep.current = true; hush(); setRepetitor(true); } }, 5000);
     return () => clearTimeout(t);
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1035,7 +1039,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   }, [focus]);
   useEffect(() => {
     if (!focus) return undefined;
-    const key = (e) => { if (e.key === "Escape" && !kidRef.current) exitRef.current?.(); };
+    const key = (e) => { if (e.key === "Escape" && !kidRef.current && !document.querySelector(".dx-repetitor-oyna")) exitRef.current?.(); };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [focus]);
@@ -1056,6 +1060,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   useEffect(() => () => { try { globalThis.screen?.orientation?.unlock?.(); if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); } catch { /* */ } }, []);
   const exitLesson = () => {
     hush(); setPlaying(false); setMenu(false); setVariant(null);
+    // REV177: darsdan chiqilsa — ochiq mashq, Repetitor, takror oynalari ham yopiladi va avtomatik zanjir to'xtaydi
+    setMashqlar(false); setRepetitor(false); setOldiTakror(null); setSavolOchiq(false); avtoRep.current = true; zanjir.current = true;
     if (kid && onClose) { onClose(); return; }
     setMode("idle"); setIdx(-1);
     setBubble(__kbUi(kid ? "Yana o‘ynaymizmi? ▶ ni bos!" : "Dars to‘xtatildi. «Darsni boshlash» bilan qaytadan boshlang."));
@@ -1241,7 +1247,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (name) say(darsTil ? `[${darsTil}]${name}[/${darsTil}]` : izohTeg(name, izoh));
   };
 
-  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz}` : ""} ${kabuMuhit ? "dx-kabu-muhit" : ""} ${savolOchiq ? "dx-savol-ochiq" : ""}`} aria-label={__kbUi("Dars xonasi")}>
+  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz}` : ""} ${kabuMuhit ? "dx-kabu-muhit" : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""}`} aria-label={__kbUi("Dars xonasi")}>
     <header className="dx-head">
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={focus ? exitLesson : () => { hush(); onClose?.(); }} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
@@ -1405,35 +1411,6 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         <div className="dx-ledge" aria-hidden="true" />
       </div>
 
-      {oldiTakror && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Darsdan oldin takror")}>
-        <React.Suspense fallback={<p className="dx-why">⏳</p>}>
-          <DarsOldiTakror apiBase={apiBase} iz={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} sinf={Number(/(\d{1,2})/.exec(String(grade || lesson?.topic?.sinf || ""))?.[1]) || 5} darslar={oldiTakror}
-            onTugadi={(r) => {
-              takrorBelgila(topicCode); setOldiTakror(null);
-              if (learnerRole === "oquvchi" && token && r?.jami) faollikYoz(apiBase, token, { turi: "takror", kod: `takror:${topicCode}`, fan: fan || lesson?.topic?.fan || "", mavzu: `Darsdan oldin takror: ${lesson?.topic?.mavzu || ""}`, togri: r.togri, jami: r.jami });
-              togglePlay();
-            }}
-            onOtkaz={() => { takrorBelgila(topicCode); setOldiTakror(null); togglePlay(); }} />
-        </React.Suspense>
-      </div>}
-      {mashqlar && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Dars mashqlari")}>
-        <React.Suspense fallback={<p className="dx-why">⏳</p>}>
-          <MaktabMashqlar apiBase={apiBase} til={darsTil} iz={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} ustoz={ustozRef.current} steps={steps} sozlar={maktabSozlar} mavzu={lesson?.topic?.mavzu || ""}
-            avto
-            onTest={questions.length ? () => { setMashqlar(false); startQuiz(); } : onOpenTest ? () => { setMashqlar(false); onOpenTest(); } : null}
-            onRepetitor={maktabSozlar.length ? () => { setMashqlar(false); setRepetitor(true); } : null}
-            onYakun={(r) => { if (learnerRole === "oquvchi" && token) faollikYoz(apiBase, token, { turi: "til", kod: `${darsTil}:${topicCode}:mashq`, til: darsTil, fan: fan || lesson?.topic?.fan || "", mavzu: `Dars mashqlari: ${lesson?.topic?.mavzu || ""}`, ...r }); }}
-            onClose={() => setMashqlar(false)} />
-        </React.Suspense>
-      </div>}
-      {repetitor && maktabSozlar.length > 0 && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Repetitor")}>
-        <React.Suspense fallback={<p className="dx-why">⏳</p>}>
-          <Repetitor apiBase={apiBase} til={darsTil} izoh={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} sinf={Number(/(\d{1,2})/.exec(String(grade || lesson?.topic?.sinf || ""))?.[1]) || 5}
-            darsSozlari={maktabSozlar} sarlavha={lesson?.topic?.mavzu || ""}
-            onYakun={(r) => { if (learnerRole === "oquvchi" && token) faollikYoz(apiBase, token, { turi: "repetitor", kod: `${darsTil}:${topicCode}`, til: darsTil, fan: fan || lesson?.topic?.fan || "", mavzu: `Repetitor: ${lesson?.topic?.mavzu || ""}`, ...r }); }}
-            onClose={() => setRepetitor(false)} />
-        </React.Suspense>
-      </div>}
       {!kid && <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")} style={sinfXona ? foiz(kabuMuhit ? KABU_JOY.gap : joy.gap) : undefined}>
         {USTOZLAR[ustozRef.current] && !sinfXona && <div className="dx-jonli-ustoz">
           <UstozXonacha ustoz={ustozRef.current} doska={(step?.sarlavha || lesson?.topic?.mavzu || "").replace(/\[\/?[a-z]{2}\]/g, "").slice(0, 60)} gapir={speaking} />
@@ -1452,6 +1429,36 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
     </div>
+    {/* REV177: takror, mashqlar va Repetitor oynalari — xona ichida emas, butun dars ekranida (telefon buralganda ham to'liq) */}
+    {oldiTakror && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Darsdan oldin takror")}>
+      <React.Suspense fallback={<p className="dx-why">⏳</p>}>
+        <DarsOldiTakror apiBase={apiBase} iz={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} sinf={Number(/(\d{1,2})/.exec(String(grade || lesson?.topic?.sinf || ""))?.[1]) || 5} darslar={oldiTakror}
+          onTugadi={(r) => {
+            takrorBelgila(topicCode); setOldiTakror(null);
+            if (learnerRole === "oquvchi" && token && r?.jami) faollikYoz(apiBase, token, { turi: "takror", kod: `takror:${topicCode}`, fan: fan || lesson?.topic?.fan || "", mavzu: `Darsdan oldin takror: ${lesson?.topic?.mavzu || ""}`, togri: r.togri, jami: r.jami });
+            togglePlay();
+          }}
+          onOtkaz={() => { takrorBelgila(topicCode); setOldiTakror(null); togglePlay(); }} />
+      </React.Suspense>
+    </div>}
+    {mashqlar && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Dars mashqlari")}>
+      <React.Suspense fallback={<p className="dx-why">⏳</p>}>
+        <MaktabMashqlar apiBase={apiBase} til={darsTil} iz={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} ustoz={ustozRef.current} steps={steps} sozlar={maktabSozlar} mavzu={lesson?.topic?.mavzu || ""}
+          avto
+          onTest={questions.length ? () => { setMashqlar(false); startQuiz(); } : null}
+          onRepetitor={maktabSozlar.length ? () => { setMashqlar(false); setRepetitor(true); } : null}
+          onYakun={(r) => { if (learnerRole === "oquvchi" && token) faollikYoz(apiBase, token, { turi: "til", kod: `${darsTil}:${topicCode}:mashq`, til: darsTil, fan: fan || lesson?.topic?.fan || "", mavzu: `Dars mashqlari: ${lesson?.topic?.mavzu || ""}`, ...r }); }}
+          onClose={() => setMashqlar(false)} />
+      </React.Suspense>
+    </div>}
+    {repetitor && maktabSozlar.length > 0 && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Repetitor")}>
+      <React.Suspense fallback={<p className="dx-why">⏳</p>}>
+        <Repetitor apiBase={apiBase} til={darsTil} izoh={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} sinf={Number(/(\d{1,2})/.exec(String(grade || lesson?.topic?.sinf || ""))?.[1]) || 5}
+          darsSozlari={maktabSozlar} sarlavha={lesson?.topic?.mavzu || ""} avtoBosh
+          onYakun={(r) => { if (learnerRole === "oquvchi" && token) faollikYoz(apiBase, token, { turi: "repetitor", kod: `${darsTil}:${topicCode}`, til: darsTil, fan: fan || lesson?.topic?.fan || "", mavzu: `Repetitor: ${lesson?.topic?.mavzu || ""}`, ...r }); }}
+          onClose={() => setRepetitor(false)} />
+      </React.Suspense>
+    </div>}
 
     {kid && <p className="dx-kid-ver" aria-hidden="true">{APP_VERSION}</p>}
     {menu && <div className="dx-menu" role="group" aria-label={__kbUi("Qayta tushuntirish usuli")}>

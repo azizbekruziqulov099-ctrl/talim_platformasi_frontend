@@ -228,3 +228,14 @@
 .mk-topshiriq .mk-btn { flex-shrink: 0; }
 .mk-mik-qayta { flex-basis: 100%; text-align: center; font-size: 13px; font-weight: 700; color: #B54708; }
 .mk-bosqich-ertaga { margin-left: auto; font-size: 13px; font-weight: 800; color: #6B2FB3; background: #F6EEFF; border-radius: 12px; padding: 8px 10px; } @media (max-width: 520px) { .mk-bosqich-ertaga { width: 100%; margin-top: 4px; } }
+
+/* REV176: imtihonlar kartasi */
+.mk-imtihonlar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mk-imt { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border: 2px solid #E2E8F0; background: #fff; border-radius: 16px; padding: 10px 12px; cursor: pointer; text-align: left; min-width: 0; }
+.mk-imt > span { font-size: 24px; }
+.mk-imt b { font-size: 14px; color: #1F3B57; }
+.mk-imt small { font-size: 12px; font-weight: 700; color: #64748B; }
+.mk-imt.is-kerak { border-color: #F79009; background: #FFF7E6; }
+.mk-imt.is-kerak small { color: #B54708; }
+.mk-imt:disabled { opacity: .5; cursor: default; }
+@media (max-width: 520px) { .mk-imtihonlar { grid-template-columns: 1fr; } .mk-imt { flex-direction: row; align-items: center; gap: 8px; } .mk-imt small { margin-left: auto; } }

@@ -1,0 +1,57 @@
+/* REV176: imtihon — 4 ko'nikma */
+.im-root { display: flex; flex-direction: column; gap: 12px; max-width: 760px; margin: 0 auto; width: 100%; min-width: 0; }
+.im-bar { display: flex; align-items: center; gap: 10px; }
+.im-back { border: 0; background: #fff; border-radius: 14px; padding: 8px 14px; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; }
+.im-head { display: flex; flex-direction: column; min-width: 0; }
+.im-head b { font-size: 19px; color: #1F3B57; }
+.im-head small { font-size: 13px; color: #64748B; font-weight: 700; }
+.im-ustoz { width: min(100%, 420px); align-self: center; }
+.im-card { position: relative; background: #fff; border-radius: 20px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
+.im-card p { margin: 0; font-size: 15px; color: #334155; line-height: 1.45; }
+.im-konikma { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 420px; }
+.im-konikma li { background: #F1F5F9; border-radius: 12px; padding: 8px 10px; font-weight: 800; color: #1F3B57; display: flex; gap: 6px; align-items: center; }
+.im-konikma b { margin-left: auto; }
+.im-ogoh { font-size: 13px; font-weight: 700; color: #B54708; }
+.im-btn { border: 2px solid #CBD5E1; background: #fff; color: #1F3B57; border-radius: 12px; padding: 10px 16px; font-size: 15px; font-weight: 800; cursor: pointer; }
+.im-btn.is-main { background: #1B4B7A; border-color: #1B4B7A; color: #fff; }
+.im-btn.is-katta { width: 100%; max-width: 420px; font-size: 17px; padding: 12px; }
+.im-btn.is-mic { background: #FDE2E2; border-color: #F5B5B5; }
+.im-btn.is-mic.is-on { background: #E5484D; color: #fff; border-color: #E5484D; }
+.im-btn:disabled { opacity: .5; cursor: default; }
+.im-progress { display: flex; gap: 3px; }
+.im-progress i { flex: 1; height: 6px; border-radius: 999px; background: #E2E8F0; }
+.im-progress i.is-done { background: #22A06B; }
+.im-progress i.is-on { background: #1B4B7A; }
+.im-tag { font-size: 12px; font-weight: 900; color: #1B4B7A; background: #EAF4FF; border-radius: 999px; padding: 4px 10px; }
+.im-korsatma { font-weight: 700; }
+.im-matn { font-size: 24px !important; font-weight: 800; color: #1F2937 !important; }
+.im-variant { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.im-variant.is-rasm { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.im-variant button { border: 2px solid #E2E8F0; background: #fff; border-radius: 14px; padding: 10px 8px; font-size: 15px; font-weight: 700; color: #1F2937; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.im-variant button.is-ok { border-color: #22A06B; background: #E7F6EE; }
+.im-variant button.is-past { border-color: #E5484D; background: #FDECEC; }
+.im-variant small { font-size: 12.5px; color: #475569; }
+.im-root .mk-pic { width: 84px; height: 84px; object-fit: contain; display: inline-flex; align-items: center; justify-content: center; }
+.im-root .mk-pic.is-emoji { font-size: 52px; line-height: 1; }
+.im-root .mk-rang { border-radius: 50%; background: var(--rang); box-shadow: inset 0 0 0 3px rgba(0,0,0,.12); transform: scale(.8); }
+.im-soz { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.im-soz b { font-size: 20px; color: #1B4B7A; }
+.im-input { width: 100%; max-width: 420px; box-sizing: border-box; border: 2px solid #CBD5E1; border-radius: 12px; padding: 10px 12px; font-size: 22px; text-align: center; }
+.im-javob { width: 100%; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; align-items: center; background: #FDECEC; }
+.im-javob.is-ok { background: #E7F6EE; }
+.im-javob.is-yarim { background: #FFF7E6; }
+.im-javob span { font-size: 18px; font-weight: 800; overflow-wrap: anywhere; }
+.im-natija .im-katta { font-size: 56px; }
+.im-daraja { font-size: 34px; color: #1B4B7A; }
+.im-baho { font-size: 28px; color: #1F3B57; }
+.im-umumiy { font-size: 20px; font-weight: 900; color: #475569; }
+.im-bolimlar { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 8px; }
+.im-bolimlar li { display: grid; grid-template-columns: 130px 1fr 48px; gap: 8px; align-items: center; font-weight: 800; color: #1F3B57; text-align: left; }
+.im-chiziq { height: 10px; border-radius: 999px; background: #EEF2F7; overflow: hidden; }
+.im-chiziq i { display: block; height: 100%; background: #F79009; border-radius: 999px; }
+.im-chiziq i.is-ok { background: #22A06B; }
+.im-chiziq i.is-past { background: #E5484D; }
+.im-maslahat { font-weight: 700; color: #B54708 !important; }
+.im-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 520px) { .im-variant.is-rasm { grid-template-columns: repeat(2, minmax(0, 1fr)); } .im-bolimlar li { grid-template-columns: 104px 1fr 44px; font-size: 13px; } }
+.im-link { border: 0; background: none; color: #64748B; font-weight: 700; font-size: 13px; cursor: pointer; }

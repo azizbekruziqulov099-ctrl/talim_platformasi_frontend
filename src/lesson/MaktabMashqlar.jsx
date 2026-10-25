@@ -113,9 +113,10 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
     if (!avto || bosqich !== "yakun" || !keyingiIsh) return undefined;
     setSanoq(6);
     ayt(izt(onTest ? T("Endi test! Savollarni men o‘qib beraman.") : T("Endi Repetitor bilan yangi so‘zlarni yodlaymiz.")));
-    const id = setInterval(() => setSanoq((x) => { if (x <= 1) { clearInterval(id); ovoz.stop(); keyingiIsh(); return 0; } return x - 1; }), 1000);
+    const id = setInterval(() => setSanoq((x) => (x <= 1 ? (clearInterval(id), -1) : x - 1)), 1000);
     return () => clearInterval(id);
   }, [bosqich, avto]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sanoq === -1) { setSanoq(0); ovoz.stop(); keyingiIsh?.(); } }, [sanoq]); // eslint-disable-line react-hooks/exhaustive-deps
   const jamiBall = Object.values(ball).reduce((s, x) => ({ togri: s.togri + x.togri, jami: s.jami + x.jami }), { togri: 0, jami: 0 });
 
   return <div className="mm-root">

@@ -25,7 +25,7 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
   const bosqichlar = useMemo(() => [...(savollar.length ? ["spiral"] : []), ...(erkin ? ["erkin"] : []), "yakun"], [savollar, erkin]);
   const [b, setB] = useState(0);
   const [i, setI] = useState(0);
-  const [faza, setFaza] = useState("ayt");        // soz savolida: ayt → yoz
+  const [faza, setFaza] = useState(() => (globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition ? "ayt" : "yoz"));        // soz savolida: ayt → yoz
   const [javob, setJavob] = useState(null);
   const [kiritish, setKiritish] = useState("");
   const [mik, setMik] = useState("");
@@ -70,7 +70,6 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
     if (bosqich === "spiral" && i + 1 < savollar.length) { setI(i + 1); return; }
     setI(0); setB((x) => x + 1);
   };
-  useEffect(() => { if (!mikBor) setFaza("yoz"); }, [mikBor]);
 
   const tingla = () => {
     const R = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
@@ -99,7 +98,7 @@ export default function DarsOldiTakror({ apiBase = "", iz = "uz", sinf = 5, dars
     const holat = ishora >= YORDAM_MAX ? "xato" : ishora && r.holat === "togri" ? "deyarli" : r.holat;
     setJavob({ holat, farq: r.oxshash >= 0.5 && q.til !== "ar" ? r.farq : null, matn: kiritish });
     hisob(holat === "togri");
-    ayt(r.holat === "togri" ? izt("To‘g‘ri yozdingiz!") : `${izt("To‘g‘risi")} ${teg(q.soz, q.til)}`);
+    ayt(holat === "togri" ? izt("To‘g‘ri yozdingiz!") : `${izt("To‘g‘risi")} ${teg(q.soz, q.til)}`);
   };
   const tanla = (k) => {
     if (javob) return;
