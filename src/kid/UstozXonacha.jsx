@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { USTOZLAR, XONALAR } from "./ustozlar.js";
-import { GAPIR, PIRPIRAT, XONA, blinkDelay } from "./ustozRules.js";
+import { GAPIR, PIRPIRAT, blinkDelay, xonaKaliti } from "./ustozRules.js";
 import "./ustozXonacha.css";
 
 /** REV168: kichik sinfxona — fanning o'z xonasi va o'z ustozi (jonli: nafas oladi, ko'zini pirpiratadi, gapirganda labi qimirlaydi).
@@ -16,7 +16,7 @@ export default function UstozXonacha({ ustoz = "nilufar", doska = "", belgi = ""
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
   const poza = xonachaPozasi(ustoz);
   const p = t[poza];
-  const xona = XONALAR[XONA[ustoz]] || XONALAR.onatili;
+  const xona = XONALAR[xonaKaliti(ustoz)] || XONALAR.onatili;
   const [kadr, setKadr] = useState(1);
   // REV168: rasm yuklanguncha — tez chiqadigan oddiy xona (devor, pol) va ustoz belgisi; yuklangach chiroyli rasm
   const [bgOk, setBgOk] = useState(false);

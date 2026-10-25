@@ -57,13 +57,15 @@ export function sozlarPaketi(sozlar) {
     aytdi: w?.aytdi === true ? true : w?.aytdi === false ? false : null })).filter((w) => w.soz).slice(0, 12);
 }
 
-export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0, ovozTogri = 0, ovozJami = 0, sozlar = [] }) {
+export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 0, ortachaMs = 0, ovozTogri = 0, ovozJami = 0, sozlar = [], diqqat = null }) {
   const ortacha_ms = Math.max(0, Math.min(120000, Math.round(Number(ortachaMs) || 0)));
   // REV105: dars oxiridagi ovozli tekshiruv natijasi (ota-onaga ham boradi)
   const ovoz_jami = Math.max(0, Math.min(50, Math.round(Number(ovozJami) || 0)));
   const ovoz_togri = Math.max(0, Math.min(ovoz_jami, Math.round(Number(ovozTogri) || 0)));
   const paket = sozlarPaketi(sozlar);
-  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}), ...(paket.length ? { sozlar: paket } : {}) }); } catch { return null; }
+  // REV171: diqqat — darsdan necha marta chiqdi, qisqa «kirib-chiqish»lar, yo'q bo'lgan soniyalar (ota-onaga hisobot)
+  const d = diqqat ? { chiqish: Math.min(200, Math.max(0, diqqat.chiqish | 0)), qisqa: Math.min(200, Math.max(0, diqqat.qisqa | 0)), yoq_soniya: Math.min(86400, Math.max(0, Math.round((diqqat.yoqMs || 0) / 1000))) } : null;
+  try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}), ...(paket.length ? { sozlar: paket } : {}), ...(d && d.chiqish ? d : {}) }); } catch { return null; }
 }
 
 /** Kartalar tartibida qaysi darslar ochiq: o'tilgan/bugun ochilgan — ochiq; qolganidan kunlik qoldiq qadar yangi. */

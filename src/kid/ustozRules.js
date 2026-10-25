@@ -125,3 +125,11 @@ export function kunVaqti(soat = new Date().getHours(), kunduz = null) {
   if (kunduz === 1 && v === "tun") v = h < 12 ? "tong" : "kech";    // yozda kech yorug'
   return v;
 }
+
+/** REV171: qaysi xona — til ustozi ko'p kun o'z (bayroqli) xonasida, ba'zi kunlar eski chiroyli xonalarda (har kuni bir xil
+ *  bo'lmasin). Boshqa ustozlar — o'z xonasida. kun — kun raqami (sana bo'yicha), test uchun beriladi. */
+export function xonaKaliti(ustoz, kun = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000)) {
+  const own = XONA[ustoz] || "onatili";
+  if (!String(own).startsWith("til_")) return own;
+  return [own, own, "onatili", own, "atrofolam"][((kun % 5) + 5) % 5];
+}

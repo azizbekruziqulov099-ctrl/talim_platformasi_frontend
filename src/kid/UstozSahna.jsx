@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { OG_RASM, USTOZLAR, XONALAR } from "./ustozlar.js";
 import { BELGI } from "./Belgi.jsx";
-import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, pozaFor } from "./ustozRules.js";
+import { GAPIR, KULGI, PIRPIRAT, blinkDelay, pozaFor, xonaKaliti } from "./ustozRules.js";
+import { detallar } from "./madaniyat.js";
 import { cardSize } from "./kidStageRules.js";
 import { OGIZ, mouthFrame, ogizShakli, ritmShakli } from "./lipSync.js";
 import { keycapNumber } from "./sanKarta.js";
@@ -42,14 +43,18 @@ export function havoJoyi(dz, doska) {
   return { left: `${Math.min(84, Math.max(36, markaz - 9))}%`, top: `${Math.max(2, dz.t + dz.h / 2 - 12)}%` };
 }
 
-export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, celebrate = 0, children }) {
-  const xonaKey = XONALAR[XONA[ustoz]] ? XONA[ustoz] : "onatili";
+export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, children }) {
+  // REV171: til ustozi ko'p kun o'z xonasida, ba'zi kunlar eski xonalarda (almashib turadi)
+  const xonaKey = XONALAR[xonaKaliti(ustoz)] ? xonaKaliti(ustoz) : "onatili";
   const xona = XONALAR[xonaKey];
   const poza = pozaFor(mood, { hasPics: pictures.length > 0, listening });
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
   const p = t[poza];
   const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;
   const [kadr, setKadr] = useState(1);
+  const [detal, setDetal] = useState(null);   // REV171: ochilgan madaniy detal
+  const det = xonaKey.startsWith("til_") ? detallar(ustoz) : [];
+  useEffect(() => { if (!detal) return undefined; const t = setTimeout(() => setDetal(null), 6000); return () => clearTimeout(t); }, [detal]);
   // REV153: gapirganda og'iz — lab varag'idagi 10 shakldan (ovoz balandligi + aytilayotgan so'zning unlilari). -1 — chizilgan og'iz.
   const [og, setOg] = useState(-1);
   const sozRef = useRef(soz);
@@ -119,7 +124,8 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
     {xona.soat && <DevorSoat soat={xona.soat} />}
     <div className="us-light" aria-hidden="true" />
     {dz && xona.osmon && <div className={`us-tint ${holat}`} style={{ ...box(dz), ...niqob }} aria-hidden="true" />}
-    {dz && xona.osmon && <div className={`us-window ${holat}`} style={{ ...box(dz), ...niqob, "--oy-t": `${xona.oy?.t ?? 18}cqh`, "--oy-r": `${xona.oy?.r ?? 20}cqw` }} aria-hidden="true">
+    {dz && xona.osmon && <div className={`us-window ${holat} ${xona.bosh ? "is-bosh" : ""}`} style={{ ...box(dz), ...niqob, "--oy-t": `${xona.oy?.t ?? 18}cqh`, "--oy-r": `${xona.oy?.r ?? 20}cqw` }} aria-hidden="true">
+      {xona.bosh && <><span className="us-sun" /><span className="us-hills" /></>}
       <span className="us-stars" /><span className="us-moon" />
       <span className="us-cloud c1" /><span className="us-cloud c2" /><span className="us-cloud c3" />
       <span className="us-fall" /><span className="us-fall f2" /><span className="us-flash" />
@@ -146,6 +152,12 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
       </button>)}
       {children}
     </div>
+    {/* REV171: madaniy detallar — bayroq, devordagi rasm, javondagi buyum: bosilsa rasm kabi kattalashib ochiladi */}
+    {det.map((x) => <button key={x.k} type="button" className={`us-detal is-${x.k}`} style={{ left: `${x.l}%`, top: `${x.t}%`, width: `${x.w}%`, height: `${x.h}%` }}
+      onClick={() => { setDetal(x); onDetal?.(x); }} aria-label={x.matn?.uz || x.k} />)}
+    {detal && <button type="button" className="us-detal-pop" onClick={() => setDetal(null)} aria-label="yopish"
+      style={{ aspectRatio: `${(detal.w * 1.6) / detal.h}`, backgroundImage: `url(${xona.src2x || xona.src})`,
+        backgroundSize: `${10000 / detal.w}% ${10000 / detal.h}%`, backgroundPosition: `${(detal.l / (100 - detal.w)) * 100}% ${(detal.t / (100 - detal.h)) * 100}%` }} />}
     <div key={`${ustoz}-${poza}`} className={`us-teacher poza-${poza}`} style={{ aspectRatio: `${p.w} / ${p.h}` }}>
       <img className="us-body" src={p.src} alt="" draggable="false" decoding="async" />
       {p.yuz && kadr !== 1 && <img className="us-face" src={p.yuz.kadr[kadr - 1]} alt="" draggable="false"

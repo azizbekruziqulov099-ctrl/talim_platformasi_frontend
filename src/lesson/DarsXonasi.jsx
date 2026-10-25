@@ -25,6 +25,7 @@ import { darsSozlari, kirishniTozala, ochilish, qadamSozi } from "../kid/darsOch
 const kidYoshi = (g) => { const m = /(\d)\s*[-–]\s*\d/.exec(String(g || "")); return m ? Number(m[1]) : 0; };
 const qadamMaqsadi = (st) => { const q = qadamSozi(st); return q ? [q.say] : []; };
 import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
+import { K as DIQQAT, kutishVaqtlari } from "../kid/diqqatGaplari.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
 import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
@@ -131,8 +132,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const tokenRef = useRef(0);
   const playingRef = useRef(false);
   playingRef.current = playing;
+  const testIndexRef = useRef(0);
   const speakingRef = useRef(false);
   speakingRef.current = speaking;
+  testIndexRef.current = testIndex;
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const idxRef = useRef(idx);
@@ -714,8 +717,18 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       const t = g.targets[i];
       g.again += 1;
       if (g.again >= 2) g.hint = true;
+      // REV171: bola qotib qolmasin — 1) «Shu yerdamisan?», 2) to'g'ri rasm yonadi, 3) tasalli va keyingi so'zga o'tadi
+      // (topilmagan so'z yulduz bermaydi va keyingi takrorda yana so'raladi)
+      if (g.again >= 3) {
+        g.waiting = false;
+        g.otkazildi = [...(g.otkazildi || []), i];
+        flashPhase("enc");
+        gameApi.current.paint(g, { holat: gameApi.current.holat(g, { [i]: "hint" }), kutish: false });
+        say(gap(tIzoh, "Hechqisi yo'q, bu — {p}. Keyingisiga o'tamiz!", { p: soz(t) }), () => gameApi.current.wait(g, 700, () => { g.k += 1; gameApi.current.round(g); }));
+        return;
+      }
       gameApi.current.paint(g, { holat: gameApi.current.holat(g, g.hint ? { [i]: "hint" } : {}), kutish: true });
-      say(gap(tIzoh, "Barmog'ing bilan bos: {p}", { p: soz(t) }), () => {
+      say(gap(tIzoh, g.again === 1 ? "Shu yerdamisan? Barmog'ing bilan bos: {p}" : "Barmog'ing bilan bos: {p}", { p: soz(t) }), () => {
         if (!gameApi.current.alive(g) || !g.waiting) return;
         gameApi.current.wait(g, 12000, () => gameApi.current.timeout(g));
       });
@@ -812,6 +825,58 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const t = setTimeout(() => readQuestion(questions[testIndex]), 300);
     return () => clearTimeout(t);
   }, [kid, mode, testIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV171: «Shu yerdamisan?» — test savolida bola javob bermasa: 1) so'raydi, 2) to'g'ri javobni yoritadi,
+  // 3) tasalli berib keyingi savolga o'tadi (bog'chada). Maktabda faqat eslatadi. Ilova yashirin bo'lsa — soat yurmaydi.
+  useEffect(() => {
+    if (mode !== "test" || picked !== null || (kid && !waiting)) return undefined;
+    const q = questions[testIndex];
+    if (!q) return undefined;
+    const m = /(\d)/.exec(String(gradeRef.current || ""));
+    const [t1, t2, t3] = kutishVaqtlari(kid, m ? Number(m[1]) : 5);
+    let kutildi = 0, bosqich = 0;
+    const id = setInterval(() => {
+      if (globalThis.document?.visibilityState === "hidden" || speakingRef.current) return;
+      kutildi += 1000;
+      if (bosqich === 0 && kutildi >= t1) { bosqich = 1; say(gap(tIzoh, DIQQAT.bormi)); }
+      else if (bosqich === 1 && t2 && kutildi >= t2) { bosqich = 2; setHot(q.togri); say(gap(tIzoh, DIQQAT.yordam)); }
+      else if (bosqich === 2 && t3 && kutildi >= t3) {
+        bosqich = 3; clearInterval(id);
+        setWaiting(false); setPicked(-1);   // javob berilmadi: to'g'risi yashil ko'rinadi, ball berilmaydi
+        say(gap(tIzoh, DIQQAT.tasalli), () => setTimeout(() => { if (modeRef.current === "test") nextQuestion(); }, 700));
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [mode, testIndex, picked, waiting, kid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // REV171: bola ilovadan chiqib ketsa (boshqa ilova, telefon qulfi) — dars to'xtaydi; qaytsa ustoz «Qaytding!» deb
+  // to'xtagan joyidan davom ettiradi. Chiqishlar soni va qisqa «kirib-chiqish»lar ota-onaga hisobotda ko'rsatiladi.
+  const diqqat = useRef({ chiqish: 0, qisqa: 0, yoqMs: 0, chiqdi: 0, qaytdi: 0, davom: false });
+  useEffect(() => {
+    const onVis = () => {
+      const d = diqqat.current;
+      const now = Date.now();
+      const darsda = ["lesson", "test", "bridge"].includes(modeRef.current);
+      if (globalThis.document?.visibilityState === "hidden") {
+        if (!darsda) return;
+        d.chiqish += 1; d.chiqdi = now;
+        if (d.qaytdi && now - d.qaytdi < 20000) d.qisqa += 1;   // qaytib, darrov yana chiqib ketdi
+        if (playingRef.current || speakingRef.current) { d.davom = true; hush(); setPlaying(false); }
+        return;
+      }
+      if (!d.chiqdi) return;
+      d.yoqMs += now - d.chiqdi; const yoq = now - d.chiqdi; d.chiqdi = 0; d.qaytdi = now;
+      if (!d.davom) return;
+      d.davom = false;
+      const davomEt = () => {
+        if (modeRef.current === "lesson") { setPlaying(true); go(idxRef.current, true); }
+        else if (modeRef.current === "test" && kid) readQuestion(questions[testIndexRef.current]);
+      };
+      if (yoq >= 4000) say(gap(tIzoh, DIQQAT.qaytdi), () => setTimeout(davomEt, 300)); else davomEt();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [kid, questions, tIzoh]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // REV91: bog'cha — dars o'zi boshlanadi; kunlik reja tugagan bo'lsa aytiladi. Faollik ota-onaga boradi.
   useEffect(() => {
     if (!kid || !lesson || mode !== "idle") return undefined;
@@ -906,7 +971,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const wasTracked = kidTracker.active() === topicCode;
     if (wasTracked) kidTracker.finish();
     (async () => {
-      const res = wasTracked || kidPlan ? await finishLesson(apiBase, token, { darsKod: topicCode, togri, jami, ortachaMs: answerSpeed(answerTimes.current), ovozTogri: voiceRef.current?.togri || 0, ovozJami: voiceRef.current?.jami || 0, sozlar }) : null;
+      const res = wasTracked || kidPlan ? await finishLesson(apiBase, token, { darsKod: topicCode, togri, jami, ortachaMs: answerSpeed(answerTimes.current), ovozTogri: voiceRef.current?.togri || 0, ovozJami: voiceRef.current?.jami || 0, sozlar, diqqat: diqqat.current }) : null;
       const out = { yulduz: Number.isFinite(Number(res?.yulduz)) ? Number(res.yulduz) : local, bugunTugadi: Boolean(res?.bugun_tugadi), qoldi: res?.qoldi, sozlar };
       setKidResult(out);
       onKidFinished?.(out, res?.reja || null);
@@ -1076,7 +1141,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame">
         <div className="dx-board" aria-live="polite">
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid} />
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
+            onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />
             {mikSoz && mode === "lesson" && <div className={`dx-mic-soz is-${mikSoz.holat}`} role="status" aria-live="polite">
               <span className="dx-mic-ikon" aria-hidden="true"><B e={mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"} /></span>
               {/* REV156: bolaga yozuv yo'q — so'zni ustoz aytadi; ekranda faqat mikrofon holati */}
