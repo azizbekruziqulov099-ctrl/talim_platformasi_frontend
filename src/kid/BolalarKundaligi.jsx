@@ -35,7 +35,7 @@ function useRasmTop() {
 }
 
 /** Rasm: avval emoji (darhol), rassom rasmi yuklangach — rasm. Rasm topilmasa yoki yuklanmasa — emoji qoladi. */
-function Rasm({ soz = "", emoji = "", til = "", className = "" }) {
+export function Rasm({ soz = "", emoji = "", til = "", className = "" }) {
   const rasmTop = useRasmTop();
   const src = rasmTop ? rasmTop(soz, emoji, til) : null;
   const [ok, setOk] = useState(false);

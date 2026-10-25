@@ -18,6 +18,10 @@ const KidKundalik = React.lazy(() => import("./KidKundalik.jsx"));
 import "./olam.css";
 
 const TilXonalari = React.lazy(() => import("./xonalar/TilXonalari.jsx"));
+// REV172: yakshanba takrori — barcha fanlardan o'tgan va shu haftaning so'zlari (ovoz bilan)
+const HaftalikTakror = React.lazy(() => import("./HaftalikTakror.jsx"));
+import { takrorSozlari } from "./haftalikTakror.js";
+import { KURS } from "../parent/bogchaReja.js";
 
 // Har fan kartasining rangi (navbat bilan) — o'qiy olmaydigan bola fanni rang va belgidan taniydi
 const RANGLAR = ["#FFE9A8", "#CDEBFF", "#FFD6E0", "#D7F5D0", "#E8DBFF", "#FFE0C2", "#D2F4F0", "#F6E1C8"];
@@ -31,6 +35,7 @@ const RANGLAR = ["#FFE9A8", "#CDEBFF", "#FFD6E0", "#D7F5D0", "#E8DBFF", "#FFE0C2
 export default function BogchaOlami({ fanlar = [], bugun = [], onFan, say, apiBase = "", grade = "", token = "" }) {
   const [oyin, setOyin] = useState(null);   // til fani: { til, izoh }
   const [kundalik, setKundalik] = useState(false);   // REV166: «Mening kundaligim»
+  const [takrorOchiq, setTakrorOchiq] = useState(false);   // REV172
   const [diary, reloadDiary] = useKundalik(apiBase, token, Boolean(token));
   useKeepLight(true);
   useInterface();   // til almashsa nomlar ham almashadi
@@ -38,6 +43,11 @@ export default function BogchaOlami({ fanlar = [], bugun = [], onFan, say, apiBa
   if (kundalik && diary?.bogcha) {
     return <div className="ol-root"><React.Suspense fallback={<KundalikSkelet />}>
       <KidKundalik data={diary} say={say} onClose={() => { setKundalik(false); reloadDiary(); }} /></React.Suspense></div>;
+  }
+
+  if (takrorOchiq) {
+    return <div className="ol-root"><React.Suspense fallback={<p className="ol-loading">🔁 …</p>}>
+      <HaftalikTakror apiBase={apiBase} diary={diary} onClose={() => setTakrorOchiq(false)} /></React.Suspense></div>;
   }
 
   if (oyin) {
@@ -54,6 +64,8 @@ export default function BogchaOlami({ fanlar = [], bugun = [], onFan, say, apiBa
   const rejali = fanlar.some((f) => f.holat && f.holat.turi !== "yoq" && f.holat.turi !== "obuna");
   // REV168: bosh sahifada ASOSIY — kundalik va bugungi darslar (har biri o'z ustozi bilan xonachada); boshqa fanlar pastda kichikroq
   const bugungiKalit = new Set(bugun.map((b) => b.kalit));
+  // REV172: yakshanba (yoki darssiz kun) — kundalikdagi so'zlar bilan takror darsi
+  const takrorSoni = (takror || (!bugun.length && rejali)) && diary?.haftalar ? takrorSozlari(diary.haftalar, KURS, 10).length : 0;
   const boshqa = bugun.length ? tartib.filter((f) => !bugungiKalit.has(f.kalit)) : tartib;
   return <div className="ol-root">
     {diary?.bogcha && diary.daraja && <button type="button" className="ol-diary" onClick={() => { say?.(T("Mening kundaligim")); setKundalik(true); }}>
@@ -79,6 +91,10 @@ export default function BogchaOlami({ fanlar = [], bugun = [], onFan, say, apiBa
         </article>)}
       </div>
     </section>}
+    {takrorSoni > 0 && <button type="button" className="ol-takror" onClick={() => { say?.(T("Yakshanba takrori")); setTakrorOchiq(true); }}>
+      <span aria-hidden="true">🔁</span>
+      <span><b>{takror ? T("Yakshanba takrori") : T("Takrorlash darsi")}</b><small>{T("Bu haftaning so‘zlari — barcha fanlardan")} · {takrorSoni}</small></span>
+    </button>}
     {takror ? <p className="ol-today" role="status">🔁 {T("Bugun yakshanba — takrorlash kuni")}</p>
       : !bugun.length && rejali ? <p className="ol-today is-rest" role="status">🎮 {T("Bugun yangi dars yo‘q — o‘tilgan darslarni takrorlash va o‘yinlar ochiq.")}</p> : null}
     <h2 className={`ol-head ${bugun.length ? "is-small" : ""}`}>{bugun.length ? <>📚 {T("Boshqa fanlar")}</> : <>🏫 {T("Qaysi fanni o‘rganamiz?")}</>}</h2>

@@ -1,0 +1,13 @@
+/* REV172: yoshga mos vaqt halqasi */
+.vq-root { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; background: #EEF2F7; border-radius: 999px; padding: 3px 10px 3px 3px; font-weight: 800; font-size: 13px; color: #1F3B57; }
+.vq-root svg { width: 34px; height: 34px; display: block; }
+.vq-root.is-kichik { padding: 3px; }
+.vq-root.is-kichik svg { width: 42px; height: 42px; }
+.vq-root.is-katta { padding: 6px 12px; font-variant-numeric: tabular-nums; }
+.vq-fon { fill: #fff; stroke: #D7E0EA; stroke-width: 4; }
+.vq-qism { fill: none; stroke: #22A06B; stroke-width: 4; stroke-linecap: round; transition: stroke-dasharray .6s; }
+.vq-root.is-ogoh { background: #FFF1E6; color: #B54708; }
+.vq-root.is-ogoh .vq-qism { stroke: #F79009; }
+.vq-root.is-ogoh svg { animation: vq-tep 1.6s ease-in-out infinite; }
+@keyframes vq-tep { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .vq-root.is-ogoh svg { animation: none; } }

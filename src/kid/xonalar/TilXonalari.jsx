@@ -9,6 +9,7 @@ import {
   xotiraKartalar, yoqoldiSavol, ortiqchaSavol, tartibSavol, raundSoni, qismlar, qismIndeks,
 } from "./xonaRules.js";
 import { tik, oqi, holat as vaqtHolati, FAOL } from "./oyinVaqti.js";
+import VaqtHalqa, { vaqtDarajasi } from "../VaqtHalqa.jsx";
 import { CONTENT_LOCALES } from "../../speech/language.js";
 import { kidRate, ustozRate } from "../../lesson/kidLessonRules.js";
 import { eslab } from "../sozBoyligi.js";
@@ -471,7 +472,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
       <div className="xo-bar">
         <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}><B e="⬅️" /></button>
         <b className="xo-title">🎮 {sarlavha || T("O‘yin xonalari")}</b>
-        {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}><B e="⏳" /> {vaqt.qoldi}′</span>}
+        {!cheklovsiz && vaqt.holat === "ok" && <VaqtHalqa qoldi={vaqt.qoldi} jami={60} ogoh={vaqt.ogoh} daraja={vaqtDarajasi({ yosh })} />}
       </div>
       {vaqtTosiq}
       {/* REV141: asosiy — bosqichma-bosqich «Harakat o'yinlari» yo'li; so'z xonalari yo'lning bosqichlari sifatida ochiladi */}
@@ -505,7 +506,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
     <div className="xo-bar">
       <button type="button" className="xo-back" onClick={chiq} aria-label={T("Orqaga")}><B e="⬅️" /></button>
       <b className="xo-title"><B n={`xona_${x.id}`} e={x.emoji} /> {T(x.nom)}</b>
-      {!cheklovsiz && vaqt.holat === "ok" && <span className="xo-time" title={T("Bugun qolgan vaqt")}><B e="⏳" /> {vaqt.qoldi}′</span>}
+      {!cheklovsiz && vaqt.holat === "ok" && <VaqtHalqa qoldi={vaqt.qoldi} jami={60} ogoh={vaqt.ogoh} daraja={vaqtDarajasi({ yosh })} />}
       <span className="xo-stars" aria-label={T("Yulduzlar")}>⭐ {(saqlangan[xonaId]?.yulduz || 0) + (oyin?.yulduz || 0)}</span>
     </div>
     <div className="xo-modes" role="tablist">

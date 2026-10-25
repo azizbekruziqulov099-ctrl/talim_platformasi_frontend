@@ -51,3 +51,8 @@
 .ol-fan.is-sinov{opacity:1}
 .ol-guruh{display:grid;gap:8px}
 .ol-guruh-nom{margin:4px 0 0;font:800 15px/1.2 system-ui,sans-serif;color:#5a5648;display:flex;gap:6px;align-items:center}
+/* REV172: yakshanba takrori — kirish kartasi */
+.ol-takror { display: flex; align-items: center; gap: 12px; width: 100%; border: 3px solid #FCE3B0; background: linear-gradient(90deg, #FFF3D6, #fff); border-radius: 22px; padding: 12px 16px; cursor: pointer; text-align: left; color: #7A4B00; box-sizing: border-box; }
+.ol-takror > span:first-child { font-size: 36px; }
+.ol-takror b { font-size: 18px; display: block; }
+.ol-takror small { font-size: 13px; font-weight: 700; color: #9A6A1C; }

@@ -146,3 +146,9 @@
   .mk-unit, .mk-card, .mk-opt { transition: none; }
   .mk-btn.is-mic.is-on { animation: none; }
 }
+/* REV172: «Mening lug'atim» — repetitor kirish tugmasi */
+.mk-lugat { display: flex; align-items: center; gap: 10px; border: 2px solid #E9DDF9; background: linear-gradient(90deg, #F6EEFF, #fff); border-radius: 18px; padding: 10px 14px; cursor: pointer; text-align: left; color: #3B1F66; min-width: 0; }
+.mk-lugat > span { font-size: 28px; }
+.mk-lugat b { font-size: 16px; }
+.mk-lugat small { margin-left: auto; font-size: 13px; font-weight: 800; color: #6B2FB3; white-space: nowrap; }
+.mk-lugat:disabled { opacity: .5; cursor: default; }

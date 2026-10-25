@@ -6,7 +6,7 @@ import fs from 'node:fs';
 const src = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 
 test('maktab tillari: avval chizilgan rasm (CHIZILGAN), keyin 3D', () => {
-  const m = src('./maktab/MaktabTil.jsx');
+  const m = src('./maktab/MaktabRasm.jsx');   // REV172: Rasm umumiy faylga ko'chdi
   assert.match(m, /RASM_HAMMA\[CHIZILGAN\[w\.id\]\] \|\| \(w\.rasm && MAKTAB_RASM\[w\.rasm\]\)/);
   const c = src('./maktab/chizilgan.js');
   assert.ok((c.match(/": "/g) || []).length > 350);

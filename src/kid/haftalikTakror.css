@@ -1,0 +1,26 @@
+/* REV172: Yakshanba takrori (bog'cha) */
+.ht-root { display: flex; flex-direction: column; gap: 12px; max-width: 720px; margin: 0 auto; width: 100%; min-width: 0; }
+.ht-bar { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ht-bar > b { font-size: 20px; color: #1F3B57; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ht-back { border: 0; background: #fff; border-radius: 14px; padding: 8px 14px; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; }
+.ht-dots { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.ht-dots i { width: 10px; height: 10px; border-radius: 50%; background: #E2E8F0; }
+.ht-dots i.is-done { background: #22A06B; }
+.ht-dots i.is-on { background: #F79009; transform: scale(1.25); }
+.ht-ustoz { width: min(100%, 420px); align-self: center; }
+.ht-card { background: #fff; border-radius: 24px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.06); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.ht-card > b { font-size: 18px; color: #1F3B57; }
+.ht-big { font-size: 60px; }
+.ht-stars { font-size: 34px !important; }
+.ht-word { border: 0; background: #FFF7E6; border-radius: 24px; padding: 14px 24px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.ht-word b { font-size: 30px; color: #1F2937; }
+.ht-word .bk-rasm.is-big { width: 150px; height: 150px; }
+.ht-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.ht-btn { border: 2px solid #CBD5E1; background: #fff; color: #1F3B57; border-radius: 16px; padding: 12px 18px; font-size: 17px; font-weight: 800; cursor: pointer; }
+.ht-btn.is-main { background: #22A06B; border-color: #22A06B; color: #fff; }
+.ht-pics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.ht-pic { border: 3px solid #E2E8F0; background: #fff; border-radius: 20px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; min-width: 0; }
+.ht-pic .bk-rasm { width: 100%; max-width: 130px; aspect-ratio: 1; height: auto; }
+.ht-pic.is-right { border-color: #22A06B; background: #E7F6EE; }
+.ht-pic.is-wrong { border-color: #E5484D; background: #FDECEC; }
+.ht-pic small { font-size: 14px; font-weight: 800; }

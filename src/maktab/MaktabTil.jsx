@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SINFLAR } from "./index.js";
-import { MAKTAB_RASM } from "./rasmlar.js";
-import { RASM_HAMMA } from "../kid/darsRasm.js";
-import { CHIZILGAN } from "./chizilgan.js";
+import Rasm from "./MaktabRasm.jsx";
+import Repetitor from "./Repetitor.jsx";
+import { lugatOl, muddatiKelgan } from "./repetitorRules.js";
+import VaqtHalqa, { vaqtDarajasi } from "../kid/VaqtHalqa.jsx";
 import {
   rejimlar, savollar, harfTogri, harflar, belgila, srsOl, yulduzYoz, yulduzlar, yulduzHisob, bolimPuxta,
 } from "./maktabRules.js";
@@ -15,11 +16,12 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import "./maktab.css";
 
 const REJIM = {
-  kartalar: ["📇", "So‘z kartalari"], rasm: ["🖼️", "Rasmini top"], mano: ["🔤", "Ma’nosini top"], harf: ["🔡", "Harflardan ter"],
+  kartalar: ["📇", "So‘z kartalari"], repetitor: ["👩‍🏫", "Repetitor"], rasm: ["🖼️", "Rasmini top"], mano: ["🔤", "Ma’nosini top"], harf: ["🔡", "Harflardan ter"],
   gap: ["🧱", "Gap tuz"], yoz: ["🎧", "Eshit va yoz"], ayt: ["🗣️", "Ayt"], bellashuv: ["🏆", "Bellashuv"],
 };
 const IZOH = {
   kartalar: { uz: "Kartani bosing — so‘zni eshitasiz va ma’nosini ko‘rasiz.", ru: "Нажмите на карточку — услышите слово и увидите перевод.", en: "Tap a card to hear the word and see its meaning." },
+  repetitor: { uz: "Ustoz so‘zni aytadi va harflab ko‘rsatadi; siz daftarga yozasiz, eshitib yozasiz va tarjima qilasiz.", ru: "Учитель произносит слово и показывает по буквам; вы пишете в тетради, пишете на слух и переводите.", en: "The teacher says the word and spells it; you write it in your notebook, write from dictation and translate." },
   rasm: { uz: "Eshiting va mos rasmni tanlang.", ru: "Послушайте и выберите картинку.", en: "Listen and choose the right picture." },
   mano: { uz: "So‘zni o‘qing va ma’nosini toping.", ru: "Прочитайте слово и найдите перевод.", en: "Read the word and find its meaning." },
   harf: { uz: "Harflarni to‘g‘ri tartibda bosib, so‘zni yozing.", ru: "Нажимайте буквы по порядку и соберите слово.", en: "Tap the letters in order to spell the word." },
@@ -30,17 +32,9 @@ const IZOH = {
 };
 const SINF_NOMI = { uz: (n) => `${n}-sinf`, ru: (n) => `${n} класс`, en: (n) => `Grade ${n}` };
 const CHORAK = { uz: (n) => `${n}-chorak`, ru: (n) => `${n}-я четверть`, en: (n) => `Quarter ${n}` };
-const RANGLAR = { red: "#E53935", blue: "#1E63D6", green: "#2EA44F", yellow: "#FFD21F", pink: "#FF7EB6", purple: "#8E44C9", black: "#222", white: "#FFFFFF", orangec: "#FB8C00", brown: "#8D5A33" };
 const BELLASHUV_SONIYA = 15;
 const teg = (t, til) => `[${til}]${t}[/${til}]`;
 
-function Rasm({ w, className = "" }) {
-  if (RANGLAR[w.id]) return <span className={`${className} mk-rang`} style={{ "--rang": RANGLAR[w.id] }} aria-hidden="true" />;
-  // REV169: avval rassom chizgan rasm, keyin 3D rasm (eski tekis va xira rasmlar ko'rinmasin)
-  const src = RASM_HAMMA[CHIZILGAN[w.id]] || (w.rasm && MAKTAB_RASM[w.rasm]) || (w.bogcha && RASM_HAMMA[w.id]);
-  if (src) return <img className={className} src={src} alt="" draggable="false" loading="lazy" />;
-  return <span className={`${className} is-emoji`} aria-hidden="true">{w.emoji || "⭐"}</span>;
-}
 
 /**
  * REV129: Maktab (1–11 sinf) uchun yozuvli til o'yinlari. Har sinfga bir o'quv yili: 8 ta bo'lim (har chorakda 2 ta),
@@ -59,6 +53,7 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
   const [vaqt, setVaqt] = useState(() => (cheklovsiz ? { holat: "ok" } : vaqtHolati(vaqtOqi())));
   const [soniya, setSoniya] = useState(BELLASHUV_SONIYA);
   const [, setYangi] = useState(0);
+  const [lugatOchiq, setLugatOchiq] = useState(false);   // REV172: «Mening lug‘atim» (repetitor)
   const audio = useRef(null);
   const rec = useRef(null);
   const token = useRef(0);
@@ -107,6 +102,7 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
   const sinfData = SINFLAR[sinf - 1];
   const bolim = sinfData?.bolimlar.find((b) => b.id === bolimId) || null;
   const srs = srsOl(til);
+  const takrorSoni = useMemo(() => muddatiKelgan(lugatOl(til)).length, [til, lugatOchiq, bolimId]); // eslint-disable-line react-hooks/exhaustive-deps
   const yul = yulduzlar(til);
   const savol = oyin?.list[oyin.i] || null;
   const oyinRef = useRef(oyin);
@@ -138,7 +134,7 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     if (bloklangan || !bolim) return;
     token.current++;
     setRejim(r); setOchiq({});
-    if (r === "kartalar") { setOyin(null); return; }
+    if (r === "kartalar" || r === "repetitor") { setOyin(null); return; }
     const list = savollar(r, bolim, sinf, { srs, til });
     setOyin({ list, i: 0, togri: 0, javob: null, tanlangan: [], yozuv: "", natija: null });
   };
@@ -196,6 +192,15 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     {vaqt.holat === "tanaffus" && <small>⏳ {vaqt.qoldi} {T("daq.")}</small>}
   </div>;
 
+  // REV172: repetitor (bo'lim darsi yoki «Mening lug'atim») — o'z ekrani, ustoz bilan
+  if (!bloklangan && (lugatOchiq || (bolim && rejim === "repetitor"))) {
+    return <div className="mk-root">
+      <Repetitor apiBase={apiBase} til={til} izoh={iz} sinf={sinf} bolim={lugatOchiq ? null : bolim} rejim={lugatOchiq ? "lugat" : "dars"}
+        onNatija={(y) => { if (bolim && !lugatOchiq) { yulduzYoz(til, bolim.id, "repetitor", y); setYangi((n) => n + 1); } }}
+        onClose={() => { token.current++; if (lugatOchiq) setLugatOchiq(false); else setRejim("kartalar"); }} />
+    </div>;
+  }
+
   // ———— yil xaritasi ————
   if (!bolim) {
     return <div className="mk-root">
@@ -203,7 +208,7 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
         <button type="button" className="mk-back" onClick={() => { token.current++; onClose?.(); }} aria-label={T("Orqaga")}>⬅️</button>
         <div className="mk-head"><b className="mk-title">📚 {sarlavha || T("Maktab: til o‘yinlari")}</b>
           <small>{T("Bir yillik dastur: har chorakda 2 ta bo‘lim")}</small></div>
-        {!cheklovsiz && vaqt.holat === "ok" && <span className="mk-time">⏳ {vaqt.qoldi}′</span>}
+        {!cheklovsiz && vaqt.holat === "ok" && <VaqtHalqa qoldi={vaqt.qoldi} jami={60} ogoh={vaqt.ogoh} daraja={vaqtDarajasi({ sinf })} />}
       </div>
       <div className="mk-grades" role="tablist" aria-label={T("Sinf")}>
         {SINFLAR.map((s) => <button key={s.sinf} type="button" role="tab" aria-selected={sinf === s.sinf}
@@ -211,6 +216,10 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
         <span className="mk-grade-label">{T("sinf")}</span>
       </div>
       {vaqtTosiq}
+      <button type="button" className="mk-lugat" disabled={bloklangan} onClick={() => setLugatOchiq(true)}>
+        <span aria-hidden="true">📒</span><b>{T("Mening lug‘atim")}</b>
+        <small>{takrorSoni ? `🔁 ${T("Bugungi takror")}: ${takrorSoni}` : `👩‍🏫 ${T("Repetitor")}`}</small>
+      </button>
       <div className="mk-year">
         {[0, 1, 2, 3].map((ch) => <section key={ch} className={`mk-quarter q${ch + 1}`}>
           <h3>{CHORAK[iz](ch + 1)}</h3>
@@ -359,10 +368,10 @@ export default function MaktabTil({ apiBase = "", til = "en", izoh = "uz", sinf:
     <div className="mk-bar">
       <button type="button" className="mk-back" onClick={() => { token.current++; setBolimId(null); setOyin(null); }} aria-label={T("Orqaga")}>⬅️</button>
       <div className="mk-head"><b className="mk-title">{bolim.emoji} {bolim.nom[iz]}</b><small>{SINF_NOMI[iz](sinf)}</small></div>
-      {!cheklovsiz && vaqt.holat === "ok" && <span className="mk-time">⏳ {vaqt.qoldi}′</span>}
+      {!cheklovsiz && vaqt.holat === "ok" && <VaqtHalqa qoldi={vaqt.qoldi} jami={60} ogoh={vaqt.ogoh} daraja={vaqtDarajasi({ sinf })} />}
     </div>
     <div className="mk-modes" role="tablist">
-      {rejimlar(sinf).map((r) => <button key={r} type="button" role="tab" aria-selected={rejim === r} disabled={bloklangan}
+      {[rejimlar(sinf)[0], "repetitor", ...rejimlar(sinf).slice(1)].map((r) => <button key={r} type="button" role="tab" aria-selected={rejim === r} disabled={bloklangan}
         className={`mk-mode ${rejim === r ? "is-on" : ""}`} onClick={() => boshla(r)}>
         <span aria-hidden="true">{REJIM[r][0]}</span> {T(REJIM[r][1])}{yul[bolim.id]?.[r] ? ` ${"⭐".repeat(yul[bolim.id][r])}` : ""}
       </button>)}
