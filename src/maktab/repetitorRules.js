@@ -165,3 +165,26 @@ export function manoVariantlari(w, pool = [], rng = Math.random, n = 3, manoOf =
   for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return list;
 }
+
+// REV175: maktab fan darsidagi (AI miya) yangi so'zlar — dastur lug'atida yo'q, shuning uchun so'zning o'zi ham saqlanadi
+// (lug'at ekranida ko'rinsin va takrorga qaytsin). Ko'pi bilan 600 ta so'z.
+const QKEY = "kabutar:repetitor:sozlar:v1";
+export function qoshimchaOl(st = store()) { try { return JSON.parse(st?.getItem(QKEY) || "{}") || {}; } catch { return {}; } }
+export function qoshimchaSaqla(sozlar = [], st = store()) {
+  const d = qoshimchaOl(st);
+  for (const w of sozlar) if (w?.id && w?.w) d[w.id] = { id: w.id, emoji: w.emoji || "", w: w.w, dars: w.dars || "" };
+  const ids = Object.keys(d);
+  if (ids.length > 600) for (const id of ids.slice(0, ids.length - 600)) delete d[id];
+  try { st?.setItem(QKEY, JSON.stringify(d)); } catch { /* joy yo'q */ }
+  return d;
+}
+
+/** REV175: «Ustoz bilan yozamiz» — bitta yozish uchun vaqt (soniya) so'z uzunligiga qarab:
+ *  qisqa (≤4 harf) — 1.5 s, o'rta (≤8) — 2.5 s, uzun (≤14) — 3.5 s, juda uzun / ibora — 4.5 s; xitoy/yapon/koreys belgisi — 1.2 s dan. */
+export function yozishSoniyasi(soz = "") {
+  const h = [...String(soz)].filter((c) => /[\p{L}\p{N}]/u.test(c));
+  const cjk = h.filter((c) => /[぀-ヿ㐀-鿿가-힯]/u.test(c)).length;
+  if (cjk) return Math.min(6, Math.max(1.5, cjk * 1.2));
+  const n = h.length;
+  return n <= 4 ? 1.5 : n <= 8 ? 2.5 : n <= 14 ? 3.5 : 4.5;
+}

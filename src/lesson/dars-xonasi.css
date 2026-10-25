@@ -394,3 +394,67 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-loading p{margin:0;font:800 16px/1.3 system-ui,sans-serif;color:#4a5a52}
 @keyframes dx-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.dx-loading-teacher{animation:none}}
+/* REV175: maktabda jonli ustoz (o'z xonasida) va dars ichidagi Repetitor oynasi */
+.dx-jonli-ustoz{width:100%;margin-bottom:8px}
+.dx-jonli-ustoz .ux-room{border-radius:14px}
+.dx-btn.dx-repetitor{background:#F6EEFF;border-color:#DCC8F6;color:#4B1F8A}
+.dx-repetitor-oyna{position:fixed;inset:0;z-index:60;background:#F4F7FB;overflow-y:auto;padding:12px 12px 40px;box-sizing:border-box}
+/* REV175: tik telefon — dars o'zi yotiq (eniga) ko'rinishga buriladi: avtoburish o'chiq bo'lsa ham.
+   Ichki o'lchamlar: eni = ekran balandligi (100dvh), bo'yi = ekran eni (100vw). */
+body.kb-dars-yotiq{overflow:hidden}
+.dx-root.dx-yotiq{position:fixed;z-index:80;top:0;left:100vw;width:100dvh;height:100vw;transform:rotate(90deg);transform-origin:0 0;overflow:hidden;margin:0;max-width:none;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr);gap:4px 8px;padding:6px max(10px,env(safe-area-inset-top)) 6px max(10px,env(safe-area-inset-bottom));
+  box-sizing:border-box;background:var(--ui-bg,#F4F7FB)}
+.dx-root.dx-yotiq>.dx-head{grid-column:1/-1;max-width:none;gap:8px}
+.dx-root.dx-yotiq .dx-head h2{font-size:14px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.dx-root.dx-yotiq .dx-head p{font-size:11px;margin:0}
+.dx-root.dx-yotiq .dx-head-actions .dx-link{display:none}
+.dx-root.dx-yotiq .dx-exit{width:36px;height:36px;font-size:18px}
+.dx-root.dx-yotiq>.dx-steps{grid-column:1/-1;max-width:none}
+.dx-root.dx-yotiq .dx-step{height:5px}
+.dx-root.dx-yotiq>.dx-room{grid-column:1;grid-row:3;max-width:none;min-height:0;height:100%;grid-template-columns:minmax(0,1fr) minmax(140px,27%);gap:8px;align-items:stretch}
+.dx-root.dx-yotiq:not(:has(>.dx-controls))>.dx-room{grid-column:1/-1}
+.dx-root.dx-yotiq .dx-frame{padding:6px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-height:0}
+.dx-root.dx-yotiq .dx-board{min-height:0;flex:1;overflow:auto;padding:12px 14px}
+.dx-root.dx-yotiq .dx-teacher{padding:6px;gap:6px;overflow-y:auto;min-height:0;max-height:100%;align-content:start}
+.dx-root.dx-yotiq .dx-teacher .dx-ask,.dx-root.dx-yotiq .dx-teacher .dx-source{display:none}
+.dx-root.dx-yotiq .dx-teacher .dx-bubble{font-size:12px;line-height:1.35;max-height:9em;overflow:auto;padding:8px}
+.dx-root.dx-yotiq .dx-teacher strong{font-size:12px}
+.dx-root.dx-yotiq .dx-jonli-ustoz{margin-bottom:0}
+.dx-root.dx-yotiq>.dx-controls{grid-column:2;grid-row:3;position:static;align-self:stretch;max-width:none;width:auto;flex-direction:column;flex-wrap:nowrap;justify-content:center;
+  overflow-y:auto;padding:4px;gap:4px;background:none;border:0;box-shadow:none}
+.dx-root.dx-yotiq>.dx-controls .dx-btn{padding:6px 8px;font-size:12px;white-space:nowrap}
+.dx-root.dx-yotiq>.dx-controls select,.dx-root.dx-yotiq>.dx-controls label{font-size:11px}
+.dx-root.dx-yotiq .dx-rotate{display:none}
+/* bog'cha sahnasi — yotiq ekranga sig'adi */
+.dx-aud-bogcha.dx-yotiq>.dx-room{grid-template-columns:minmax(0,1fr)}
+.dx-aud-bogcha.dx-yotiq .us-stage{width:min(100%,calc((100vw - 78px) * 1586 / 992));min-width:0;margin:0 auto}
+.dx-aud-bogcha.dx-yotiq .dx-kid-controls{grid-template-columns:1fr;grid-auto-rows:minmax(46px,auto);gap:6px;width:84px}
+.dx-aud-bogcha.dx-yotiq .dx-kid-controls .dx-btn{min-height:46px;padding:4px}
+.dx-aud-bogcha.dx-yotiq .dx-kid-ico{font-size:22px}
+.dx-aud-bogcha.dx-yotiq .dx-kid-opts{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* dars ichidagi mashq / repetitor oynasi buralgan dars ichida — o'sha o'lchamda */
+.dx-root.dx-yotiq .dx-repetitor-oyna{position:absolute}
+/* REV175: maktab — haqiqiy sinfxona: ustoz o'z xonasida (deraza, ob-havo, soat, chiroq), doska xona o'rtasida katta,
+   ustozning gapi doska ostida. Telefon yotiq bo'lsa — xona butun ekranga sig'adi. */
+.dx-root.dx-sinf>.dx-room{position:relative;display:block;width:100%;max-width:min(100%,calc((100dvh - 200px) * 1586 / 992));aspect-ratio:1586/992;margin:0 auto;container-type:size}
+.dx-sinf-fon{position:absolute;inset:0;z-index:0}
+.dx-sinf-fon .us-stage{width:100%;height:100%;max-width:none;border-radius:16px}
+.dx-root.dx-sinf .dx-frame{position:absolute;z-index:2;left:31%;top:5%;width:54%;height:66%;padding:1.1cqh;box-sizing:border-box;display:flex;flex-direction:column;border-radius:1.4cqh}
+.dx-root.dx-sinf .dx-board{flex:1;min-height:0;overflow:auto;padding:2.4cqh 2.6cqw}
+.dx-root.dx-sinf .dx-teacher{position:absolute;z-index:3;left:31%;top:73.5%;width:54%;height:24%;padding:0;background:none;border:0;box-shadow:none;display:flex;gap:1cqw;align-items:stretch}
+.dx-root.dx-sinf .dx-teacher-head,.dx-root.dx-sinf .dx-source{display:none}
+.dx-root.dx-sinf .dx-bubble{flex:1;min-width:0;margin:0;overflow:auto;background:#fffffff2;border-radius:1.6cqh;padding:1.4cqh 1.6cqw;font-size:max(12px,2.9cqh);line-height:1.35;box-shadow:0 .6cqh 2cqh #0003}
+.dx-root.dx-sinf .dx-ask{display:none;flex:0 0 36%;background:#fffffff2;border-radius:1.6cqh;padding:1cqh 1cqw;margin:0;box-shadow:0 .6cqh 2cqh #0003}
+.dx-root.dx-sinf .dx-ask label{font-size:max(11px,2.2cqh)}
+@media (min-width:1000px){.dx-root.dx-sinf:not(.dx-yotiq) .dx-ask{display:block}}
+/* yotiq (buralgan) telefonda — xona bo'yiga to'liq, doskadagi yozuvlar ixchamroq */
+.dx-root.dx-sinf.dx-yotiq>.dx-room{max-width:min(100%,calc((100vw - 64px) * 1586 / 992));height:auto;align-self:center}
+.dx-root.dx-sinf.dx-yotiq .dx-board{zoom:.72}
+@media (orientation:landscape) and (max-height:600px){
+  .dx-root.dx-sinf.dx-focus>.dx-room{max-width:min(100%,calc((100dvh - 64px) * 1586 / 992))}
+  .dx-root.dx-sinf .dx-board{zoom:.72}
+}
+/* dars paytida «Bosh ekranga qo'shish» tugmasi doskani to'smasin */
+body:is(.kb-focus-dars,.kb-dars-yotiq) #samtm-install-app{display:none!important}
+body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.samtm-muassasa-strip,.samtm-yon-toggle,.samtm-top-switch,.samtm-top-spacer,.ka-panel,.kb-account-notice){display:none!important}

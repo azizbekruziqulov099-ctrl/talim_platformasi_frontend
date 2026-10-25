@@ -1,0 +1,47 @@
+/* REV175: maktab til darsidan keyingi mashqlar (o'qish, gapirish, diktant, yozganini o'qish) */
+.mm-root { display: flex; flex-direction: column; gap: 12px; max-width: 820px; margin: 0 auto; min-width: 0; }
+.mm-bar { display: flex; align-items: center; gap: 10px; }
+.mm-back { border: 0; background: #fff; border-radius: 14px; padding: 8px 14px; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; }
+.mm-head { display: flex; flex-direction: column; min-width: 0; }
+.mm-head b { font-size: 19px; color: #1F3B57; }
+.mm-head small { font-size: 13px; color: #64748B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mm-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.mm-steps li { flex: 1; min-width: 74px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; background: #F1F5F9; font-size: 18px; opacity: .65; }
+.mm-steps li small { font-size: 11px; font-weight: 800; color: #475569; text-align: center; }
+.mm-steps li.is-on { background: #1B4B7A; opacity: 1; }
+.mm-steps li.is-on small { color: #fff; }
+.mm-steps li.is-done { background: #E7F6EE; opacity: 1; }
+.mm-ustoz { width: min(100%, 420px); align-self: center; }
+.mm-card { background: #fff; border-radius: 20px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; }
+.mm-izoh { margin: 0; font-size: 14px; color: #475569; font-weight: 700; }
+.mm-qadam { font-size: 12px; font-weight: 800; color: #94A3B8; }
+.mm-matn { margin: 0; font-size: 24px; line-height: 1.45; color: #1F2937; font-weight: 700; display: flex; flex-direction: column; gap: 6px; }
+.mm-matn small { font-size: 14px; color: #B54708; font-weight: 700; }
+.mm-input { width: 100%; max-width: 560px; box-sizing: border-box; border: 2px solid #CBD5E1; border-radius: 12px; padding: 10px 12px; font-size: 22px; text-align: center; }
+.mm-input:focus { outline: none; border-color: #1B4B7A; }
+.mm-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.mm-btn { border: 2px solid #CBD5E1; background: #fff; color: #1F3B57; border-radius: 12px; padding: 10px 16px; font-size: 15px; font-weight: 800; cursor: pointer; }
+.mm-btn.is-main { background: #1B4B7A; border-color: #1B4B7A; color: #fff; }
+.mm-btn.is-mic { background: #FDE2E2; border-color: #F5B5B5; }
+.mm-btn.is-mic.is-on { background: #E5484D; color: #fff; border-color: #E5484D; }
+.mm-btn:disabled { opacity: .5; cursor: default; }
+.mm-keyingi { min-width: 180px; }
+.mm-link { border: 0; background: none; color: #64748B; font-weight: 700; font-size: 13px; cursor: pointer; }
+.mm-ogoh { font-size: 13px; font-weight: 700; color: #B54708; }
+.mm-javob { width: 100%; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; align-items: center; background: #FDECEC; }
+.mm-javob.is-togri { background: #E7F6EE; }
+.mm-javob.is-deyarli, .mm-javob.is-qisqa { background: #FFF7E6; }
+.mm-javob b { font-size: 17px; }
+.mm-javob small { font-size: 13px; color: #475569; overflow-wrap: anywhere; }
+.mm-togrisi { font-size: 20px; font-weight: 800; color: #1F2937; overflow-wrap: anywhere; }
+.mm-farq { display: inline-flex; flex-wrap: wrap; gap: 2px; font-size: 24px; font-weight: 800; }
+.mm-farq span { padding: 0 2px; border-radius: 5px; }
+.mm-farq .is-ok { color: #1E7A3E; }
+.mm-farq .is-xato { color: #fff; background: #E5484D; }
+.mm-farq .is-yoq { color: #7A4B00; background: #FFE08A; text-decoration: underline; }
+.mm-farq .is-ortiqcha { color: #B42318; text-decoration: line-through; opacity: .7; }
+.mm-yakun > b { font-size: 30px; }
+.mm-katta { font-size: 56px; }
+.mm-natija { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 6px; }
+.mm-natija li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 12px; background: #F8FAFC; font-weight: 700; }
+@media (max-width: 520px) { .mm-matn { font-size: 19px; } .mm-input { font-size: 19px; } }

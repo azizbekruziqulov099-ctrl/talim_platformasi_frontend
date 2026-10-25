@@ -42,6 +42,8 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const [query,setQuery]=useState('');
  const [filter,setFilter]=useState('all');
  const [subjectKey,setSubjectKey]=useState(readSaved);
+ // REV175: fan tanlansa — shu fanning ichiga kiriladi (fanlar ro'yxati yopiladi, mavzular pastda chiqib qolmaydi); «← Fanlar» bilan qaytiladi
+ const [fanIchida,setFanIchida]=useState(false);
  const [classroom,setClassroom]=useState(null);
  const chosen=useRef(Boolean(preview?.type));
  useEffect(()=>{
@@ -162,12 +164,17 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
      </button>
     </div>}
     {/* REV168: maktab (1–11) va markaz — fanlar guruhlarda («Maktab fanlari», «Tillar», «Ijod va sport»), har biri o'z belgisi bilan */}
-    {!kid&&!universityBrowse&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
+    {!kid&&!universityBrowse&&fanIchida&&current&&<div className="lt-fan-ichi">
+     <button type="button" className="lt-fan-orqaga" onClick={()=>{setFanIchida(false);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}}>← {__kbUi("Fanlar")}</button>
+     <span className="lt-fan-emb" aria-hidden="true"><FanBelgi emoji={fanEmblema(current.nom)}/></span>
+     <b><TranslatedContent text={fanNomiTil(current.nom,locale)} showStatus={false}/></b>
+    </div>}
+    {!kid&&!universityBrowse&&!fanIchida&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
      {guruhla(subjects).map(g=><div key={g.id} className="lt-guruh">
       <h3 className="lt-guruh-nom"><span aria-hidden="true">{g.emoji}</span> {__kbUi(g.nom)} <small>{g.fanlar.length}</small></h3>
       <div className="lt-fan-grid">{g.fanlar.map(subject=>{const stats=subjectStats(subject);const active=subject.kalit===current?.kalit;
-       return <button key={subject.kalit} type="button" aria-pressed={active} onClick={()=>chooseSubject(subject.kalit)} className={`lt-fan ${active?'is-on':''}`}>
+       return <button key={subject.kalit} type="button" aria-pressed={active} onClick={()=>{chooseSubject(subject.kalit);setFanIchida(true);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}} className={`lt-fan ${active?'is-on':''}`}>
         <span className="lt-fan-emb"><FanBelgi emoji={fanEmblema(subject.nom)}/></span>
         <b><TranslatedContent text={fanNomiTil(subject.nom,locale)} showStatus={false}/>{subject.dars_turi_nomi?` · ${__kbUi(subject.dars_turi_nomi)}`:''}</b>
         <small>{__kbUi(`${stats.topics} mavzu · ${stats.lessons} dars · ${stats.tested} testli`)}</small>
@@ -187,7 +194,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
        </button>;})}
      </div>
     </section>}
-    <section aria-label={__kbUi("Mavzular")} className="space-y-3">
+    {(kid||universityBrowse||fanIchida)&&<section aria-label={__kbUi("Mavzular")} className="space-y-3">
      {!kid&&<><p className="text-xs font-semibold text-slate-600">{__kbUi("2. Mavzuni toping")}</p>
      <div className="flex flex-wrap gap-2 lt-search-row">
       <input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder={__kbUi("Mavzu nomini yozing…")}
@@ -278,7 +285,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
         </div>
        </li>;})}</React.Fragment>)}</ul>
      </div>)}
-    </section>
+    </section>}
    </>}
  </div>;
 }
