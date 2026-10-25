@@ -216,3 +216,15 @@
 .mk-bosqich-btn { margin-left: auto; }
 @media (max-width: 520px) { .mk-bosqich-btn { width: 100%; margin-top: 4px; } }
 .mk-mode.is-qulf { opacity: .55; border-style: dashed; }
+/* REV174: ota-onadan topshiriq */
+.mk-topshiriqlar { display: flex; flex-direction: column; gap: 8px; }
+.mk-topshiriq { display: flex; align-items: center; gap: 10px; border: 2px solid #DCC8F6; background: linear-gradient(90deg, #F6EEFF, #fff); border-radius: 18px; padding: 10px 12px; min-width: 0; }
+.mk-topshiriq.is-done { border-color: #C4EBCF; background: #F3FBF6; }
+.mk-topshiriq-belgi { font-size: 30px; flex-shrink: 0; }
+.mk-topshiriq-matn { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.mk-topshiriq-matn b { font-size: 15px; color: #3B1F66; }
+.mk-topshiriq-matn small { font-size: 13px; color: #5B4A7A; font-weight: 700; overflow-wrap: anywhere; }
+.mk-topshiriq-izoh { font-weight: 600 !important; font-style: italic; }
+.mk-topshiriq .mk-btn { flex-shrink: 0; }
+.mk-mik-qayta { flex-basis: 100%; text-align: center; font-size: 13px; font-weight: 700; color: #B54708; }
+.mk-bosqich-ertaga { margin-left: auto; font-size: 13px; font-weight: 800; color: #6B2FB3; background: #F6EEFF; border-radius: 12px; padding: 8px 10px; } @media (max-width: 520px) { .mk-bosqich-ertaga { width: 100%; margin-top: 4px; } }

@@ -44,7 +44,7 @@ test('oraliqli takrorlash: 0, 1, 2, 4, 7, 15, 30 kun; xato — ertaga qaytadi', 
   const x = repYangila(h, false, { bugun });
   assert.equal(x.keyingi, bugun + 1);
   assert.equal(x.xatoKetma, 1);
-  assert.ok(x.quti <= 1);
+  assert.equal(x.quti, 4);   // REV174: xato — 2 quti pastga
 });
 
 test('sessiya: avval o‘tgan darslardan muddati kelganlar, keyin bo‘limning yangi so‘zlari', () => {

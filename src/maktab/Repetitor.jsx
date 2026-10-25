@@ -6,7 +6,7 @@ import { USTOZLAR } from "../kid/ustozlar.js";
 import { TIL_USTOZ } from "../kid/ustozRules.js";
 import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { ovozManbai, jinsOf } from "../kid/ovozOqi.js";
-import { harfPlitkalar, harflar } from "./maktabRules.js";
+import { harfPlitkalar, harflar, harfTogri, terishMumkin } from "./maktabRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
 import { kunRaqami } from "../kid/xonalar/xonaRules.js";
@@ -83,7 +83,7 @@ const teg = (t, til) => (til === "uz" ? String(t) : `[${til}]${t}[/${til}]`);
  * o'zbekchadan chet tiliga (ovoz yoki yozuv) va chet tilidan o'zbekchaga tarjima qiladi. Har so'z shaxsiy lug'atga
  * tushadi va oraliqli takrorlash bilan qaytadi. rejim: "dars" (bo'lim + takror) | "takror" (faqat muddati kelganlar) | "lugat".
  */
-export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", onNatija, onClose }) {
+export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", topshiriq = null, onNatija, onYakun, onClose }) {
   const iz = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
   const ustoz = TIL_USTOZ[til] || "emily";
   const jins = jinsOf(ustoz, USTOZLAR);
@@ -117,17 +117,20 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
   const boshla = (faqatTakror = false) => {
     const lg = lugatOl(til);
     setLugat(lg);
-    const list = sessiya({ bolim: faqatTakror ? null : bolim, sinf, lugat: lg, sozlar, faqatTakror });
+    // REV174: ota-ona bergan topshiriq — aynan o'sha so'zlar
+    const list = topshiriq ? (topshiriq.sozlar || []).map((id) => sozlar[id]).filter(Boolean).map((w) => ({ soz: w, yangi: !lg[w.id] }))
+      : sessiya({ bolim: faqatTakror ? null : bolim, sinf, lugat: lg, sozlar, faqatTakror });
     if (!list.length) { setDars({ list: [], i: 0, bosh: true }); setRejim("dars"); return; }
     setRejim("dars");
-    sozgaOt({ list, i: 0, jamiYozdi: 0, xatoSoz: 0 }, 0, lg, true);
+    sozgaOt({ list, i: 0, jamiYozdi: 0, xatoSoz: 0, boshVaqt: Date.now(), takror: faqatTakror }, 0, lg, true);
   };
   const sozgaOt = (d, i, lg = lugat, birinchi = false) => {
     const item = d.list[i];
-    const bs = bosqichlar(sinf, item.yangi);
-    const yangi = { ...d, i, bs, b: 0, yozdi: 0, maqsad: yozishMaqsadi(sinf, lg[item.soz.id]), kiritish: "", tanlangan: [], javob: null, urinish: 0, xatoBor: false,
-      plitka: sozlam.terish ? harfPlitkalar(item.soz.w[til], d.list.map((x) => x.soz.w[til]).filter((x) => x !== item.soz.w[til])) : null,
-      variant: manoVariantlari(item.soz, d.list.map((x) => x.soz).concat(Object.values(sozlar).filter((x) => x.id.startsWith(`s${sinf}_`)).slice(0, 30))) };
+    const maqsad = topshiriq ? Math.max(0, Math.min(100, Number(topshiriq.yozish) || 0)) : yozishMaqsadi(sinf, lg[item.soz.id]);
+    const bs = bosqichlar(sinf, item.yangi).filter((b) => b !== "daftar" || maqsad > 0);
+    const yangi = { ...d, i, bs, b: 0, yozdi: 0, maqsad, kiritish: "", tanlangan: [], javob: null, urinish: 0, xatoBor: false,
+      plitka: sozlam.terish && terishMumkin(item.soz.w[til]) ? harfPlitkalar(item.soz.w[til], d.list.map((x) => x.soz.w[til]).filter((x) => x !== item.soz.w[til])) : null,
+      variant: manoVariantlari(item.soz, d.list.map((x) => x.soz).concat(Object.values(sozlar).filter((x) => x.id.startsWith(`s${sinf}_`)).slice(0, 30)), Math.random, 3, (x) => mano(x)) };
     setDars(yangi);
     darsRef.current = yangi;
     const kirish = birinchi ? `${qur("bosh", null, d.list.length)} ` : "";
@@ -146,6 +149,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     if (d.bs[d.b] === "daftar" && d.yozdi > 0) setLugat(yozildiQosh(til, d.list[d.i].soz.id, d.yozdi, { bolim: bolim?.id || "", sinf }) && lugatOl(til));
     if (d.b + 1 < d.bs.length) {
       const yangi = { ...d, b: d.b + 1, kiritish: "", tanlangan: [], javob: null, urinish: 0 };
+      setMik((m) => (m === "tugma" ? m : ""));
       setDars(yangi); darsRef.current = yangi; bosqichniAyt(yangi);
       return;
     }
@@ -157,7 +161,9 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     if (d.i + 1 < d.list.length) { sozgaOt(jami, d.i + 1, lg); return; }
     const natija = { ...jami, natija: { yulduz: repYulduz(jami.xatoSoz, jami.list.length) } };
     setDars(natija); darsRef.current = natija;
-    if (!d.list.every((x) => !x.yangi)) onNatija?.(natija.natija.yulduz);
+    if (!topshiriq && !d.list.every((x) => !x.yangi)) onNatija?.(natija.natija.yulduz);
+    onYakun?.({ sozlar: d.list.map((x) => x.soz.id), jami: d.list.length, togri: d.list.length - jami.xatoSoz, yozdi: jami.jamiYozdi,
+      soniya: Math.round((Date.now() - (d.boshVaqt || Date.now())) / 1000), yulduz: natija.natija.yulduz, takror: Boolean(d.takror) });
     ayt(qur("tugadi", null, natija.jamiYozdi));
   };
   const javobBer = (holat, farq = null, qiymat = "") => {
@@ -193,6 +199,8 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
       if (!alive.current) return;
       setMik("");
       const b = gapBaho(alts, matn, til);
+      // REV174: hech narsa eshitilmasa (jim, mikrofon uzildi) — baholanmaydi, yana urinib ko'radi
+      if (!alts.length || !alts.some((a) => String(a || "").trim())) { setMik("qayta"); return; }
       javobBer(b.togri ? "togri" : "xato", null, alts[0] || "");
     };
     r.onresult = (e) => keldi(Array.from(e.results?.[0] || []).map((a) => a.transcript));
@@ -241,10 +249,28 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
   // ———— dars ————
   const bar = <div className="mk-bar">
     <button type="button" className="mk-back" onClick={() => { ovoz.stop(); onClose?.(); }} aria-label={T("Orqaga")}>⬅️</button>
-    <div className="mk-head"><b className="mk-title">👩‍🏫 {T("Repetitor")}{bolim && boshRejim === "dars" ? ` · ${bolim.emoji} ${bolim.nom[iz]}` : ""}</b>
+    <div className="mk-head"><b className="mk-title">{topshiriq ? `📬 ${T("Ota-onangizdan topshiriq")}` : <>👩‍🏫 {T("Repetitor")}{bolim && boshRejim === "dars" ? ` · ${bolim.emoji} ${bolim.nom[iz]}` : ""}</>}</b>
       <small>{USTOZ_ISMI[ustoz]?.[iz] || ""}</small></div>
-    <button type="button" className="mk-btn" onClick={() => { ovoz.stop(); setRejim("lugat"); setLugat(lugatOl(til)); }}>📒 {T("Lug‘atim")}</button>
+    {/* dars davomida lug'atga o'tilsa dars yo'qolardi — faqat dars boshlanmaganda yoki tugaganda */}
+    {(!dars || dars.natija || dars.bosh) && !topshiriq && <button type="button" className="mk-btn" onClick={() => { ovoz.stop(); setRejim("lugat"); setLugat(lugatOl(til)); }}>📒 {T("Lug‘atim")}</button>}
   </div>;
+
+  if (!dars && topshiriq) {
+    const ws = (topshiriq.sozlar || []).map((id) => sozlar[id]).filter(Boolean);
+    return <div className="rp-root">{bar}
+      {ustozBlok("📬")}
+      <div className="rp-card rp-start">
+        {topshiriq.izoh && <p className="rp-izoh">💬 «{topshiriq.izoh}»</p>}
+        <ul className="rp-plan">
+          <li>📚 {T("So‘zlar")}: <b>{ws.length}</b></li>
+          {topshiriq.yozish > 0 && <li>📓 {T("Har birini daftarga")} <b>{topshiriq.yozish}</b> {T("marta yozing")}</li>}
+          {topshiriq.muddat && <li>📅 {T("Muddat")}: <b>{topshiriq.muddat.split("-").reverse().join(".")}</b></li>}
+        </ul>
+        <div className="rp-sozlar" dir="auto">{ws.map((w) => <span key={w.id}>{w.w[til]}</span>)}</div>
+        <button type="button" className="mk-btn is-main rp-big" disabled={!ws.length} onClick={() => boshla(false)}>▶ {T("Topshiriqni boshlash")}</button>
+      </div>
+    </div>;
+  }
 
   if (!dars) {
     const kelgan = muddatiKelgan(lugat).filter((id) => sozlar[id]).length;
@@ -280,7 +306,8 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
         <small>{T("So‘zlar")}: {dars.list.length} · ✍ {T("Daftarga yozildi")}: {dars.jamiYozdi} · ❌ {dars.xatoSoz}</small>
         <div className="mk-row">
           <button type="button" className="mk-btn is-main" onClick={() => setRejim("lugat")}>📒 {T("Lug‘atim")}</button>
-          <button type="button" className="mk-btn" onClick={() => setDars(null)}>🔁 {T("Yana")}</button>
+          {topshiriq ? <button type="button" className="mk-btn" onClick={() => { ovoz.stop(); onClose?.(); }}>✅ {T("Tayyor")}</button>
+            : <button type="button" className="mk-btn" onClick={() => setDars(null)}>🔁 {T("Yana")}</button>}
         </div>
       </div>
     </div>;
@@ -292,14 +319,22 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
   const b = dars.bs[dars.b];
   const j = dars.javob;
   // juda boshqacha yozilgan bo'lsa — harfma-harf farq chalkashtiradi, faqat to'g'ri javob ko'rsatiladi
-  const tekshirYoz = (matn) => { const r = tekshir(matn, soz, til); javobBer(r.holat, r.oxshash >= 0.5 ? r.farq : null, matn); };
+  // arab yozuvida harflar bir-biriga ulanadi — harfma-harf farq ko'rsatilmaydi (alohida harflar noto'g'ri shaklda chiqadi)
+  const tekshirYoz = (matn) => { if (!alive.current) return; const r = tekshir(matn, soz, til); javobBer(r.holat, r.oxshash >= 0.5 && til !== "ar" ? r.farq : null, matn); };
+  // plitkalar faqat harflardan iborat (bo'shliq, chiziqcha yo'q) — to'g'ri terilgan so'z harflar bo'yicha tekshiriladi
+  const tekshirPlitka = (chars) => {
+    if (!alive.current) return;
+    if (harfTogri(chars, soz)) { javobBer("togri", null, chars.join("")); return; }
+    const r = tekshir(chars.join(""), harflar(soz).join(""), til);
+    javobBer(r.holat === "togri" ? "deyarli" : r.holat, r.oxshash >= 0.5 && til !== "ar" ? r.farq : null, chars.join(""));
+  };
   const plitkaBos = (t) => {
     const d = darsRef.current;
     if (!d || d.javob || d.tanlangan.some((x) => x.k === t.k)) return;
     const tanlangan = [...d.tanlangan, t];
     const yangi = { ...d, tanlangan };
     setDars(yangi); darsRef.current = yangi;
-    if (tanlangan.length >= harflar(soz).length) setTimeout(() => tekshirYoz(tanlangan.map((x) => x.c).join("")), 150);
+    if (tanlangan.length >= harflar(soz).length) setTimeout(() => tekshirPlitka(tanlangan.map((x) => x.c)), 150);
   };
   const yozuvMaydoni = () => (sozlam.terish && dars.plitka ? <>
     <div className="mk-slots" dir="auto">{dars.tanlangan.length ? dars.tanlangan.map((t, k) => <button key={k} type="button" className="mk-tile is-in" disabled={Boolean(j)}
@@ -326,7 +361,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
 
       {b === "tanish" && <>
         <div className="rp-word"><Rasm w={w} className="mk-pic" /><b dir="auto" lang={til}>{soz}</b><small dir="auto">{mano(w)}</small></div>
-        <div className="rp-letters" dir="auto" lang={til} aria-label={harflab(soz)}>{[...String(soz)].filter((c) => /[\p{L}\p{N}\s]/u.test(c)).map((c, k) => (/\s/.test(c) ? <i key={k} className="rp-gap" /> : <span key={k} style={{ animationDelay: `${0.2 * k}s` }}>{c}</span>))}</div>
+        <div className={`rp-letters ${til === "ar" ? "is-butun" : ""}`} dir="auto" lang={til} aria-label={harflab(soz)}>{til === "ar" ? <span>{soz}</span> : [...String(soz)].filter((c) => /[\p{L}\p{N}\s]/u.test(c)).map((c, k) => (/\s/.test(c) ? <i key={k} className="rp-gap" /> : <span key={k} style={{ animationDelay: `${0.2 * k}s` }}>{c}</span>))}</div>
         <div className="mk-row">
           <button type="button" className="mk-btn" onClick={() => ayt(teg(soz, til))}>🔊 {T("Tinglash")}</button>
           <button type="button" className="mk-btn" onClick={() => ayt(teg(soz, til), { sekin: true })}>🐢 {T("Sekin")}</button>
@@ -373,6 +408,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
           {!j && mikBor && mik !== "tugma" && <button type="button" className={`mk-btn is-mic ${mik === "tinglayapti" ? "is-on" : ""}`} onClick={tingla} disabled={mik === "tinglayapti"}>
             🎤 {mik === "tinglayapti" ? T("Gapiring…") : T("Aytaman")}</button>}
         </div>
+        {mik === "qayta" && !j && <small className="rp-mik-qayta" role="status">🎤 {T("Ovoz eshitilmadi — yana bosib, balandroq ayting yoki yozing.")}</small>}
         {yozuvMaydoni()}
       </>}
 

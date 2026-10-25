@@ -4,7 +4,7 @@ import Rasm from "./MaktabRasm.jsx";
 import Repetitor from "./Repetitor.jsx";
 import { lugatOl, muddatiKelgan } from "./repetitorRules.js";
 import { CEFR, darajaHisob, sinfMaqsadi, bahoOf, javobBali, javobYoz, natijaOl, tezlikOf, yilYoli, bolimQadamlari, rejimOchiq, keyingiQadam, QADAMLAR } from "./darajaRules.js";
-import { natijaYubor, reytingOl } from "./maktabServer.js";
+import { natijaYubor, reytingOl, faollikYoz, topshiriqlarOl, topshiriqBajardi, TIL_NOMI } from "./maktabServer.js";
 import VaqtHalqa, { vaqtDarajasi } from "../kid/VaqtHalqa.jsx";
 import {
   rejimlar, savollar, harfTogri, harflar, belgila, srsOl, yulduzYoz, yulduzlar, yulduzHisob, bolimPuxta,
@@ -90,6 +90,9 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   const [eslatma, setEslatma] = useState("");             // REV173: qulflangan o'yin bosilganda
   const ozSinf = Math.min(11, Math.max(1, Number(boshSinf) || 1));
   const savolBosh = useRef(Date.now());
+  const korildi = useRef(new Set());   // shu bo'limda ochib ko'rilgan so'z kartalari
+  const [topshiriqlar, setTopshiriqlar] = useState([]);   // REV174: ota-ona bergan mashqlar
+  const [topshiriq, setTopshiriq] = useState(null);       // ochilgan topshiriq
   const audio = useRef(null);
   const rec = useRef(null);
   const token = useRef(0);
@@ -158,6 +161,7 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   useEffect(() => {
     if (bolimId) return;
     sinxron();
+    topshiriqlarOl(apiBase, authToken, til).then((l) => { if (alive.current) setTopshiriqlar(l); });
     if (!dr.yaqin) return;
     const k = `kabutar:maktab:yaqin:${til}:${dr.keyingi}`;
     const bugun = new Date().toDateString();
@@ -195,7 +199,10 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   const boshla = (r) => {
     if (bloklangan || !bolim) return;
     if (!rejimOchiq(r, bolimQadamlari(bolim, yulduzlar(til), srsOl(til), lugatOl(til)), erkin)) {
-      const m = r === "bellashuv" ? T("Imtihon mashqlardan keyin ochiladi: avval biror o‘yinni o‘ynang.") : T("Avval darsni o‘ting: «So‘z kartalari» yoki «Repetitor».");
+      const bq = bolimQadamlari(bolim, yulduzlar(til), srsOl(til), lugatOl(til));
+      const m = r !== "bellashuv" ? T("Avval darsni o‘ting: «So‘z kartalari» yoki «Repetitor».")
+        : !bq.mashq ? T("Imtihon mashqlardan keyin ochiladi: avval biror o‘yinni o‘ynang.")
+        : T("Imtihon takrordan keyin ochiladi: so‘zlarni boshqa kuni yana bir bor takrorlang — xotirada mustahkam qoladi.");
       setEslatma(m); ayt(iz === "uz" ? m : teg(m, iz));
       return;
     }
@@ -204,13 +211,19 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
     setRejim(r); setOchiq({});
     if (r === "kartalar" || r === "repetitor") { setOyin(null); return; }
     const list = savollar(r, bolim, sinf, { srs, til });
-    setOyin({ list, i: 0, togri: 0, javob: null, tanlangan: [], yozuv: "", natija: null });
+    setOyin({ list, i: 0, togri: 0, javob: null, tanlangan: [], yozuv: "", natija: null, boshVaqt: Date.now() });
   };
 
   // Javob faqat bir marta qabul qilinadi (taymer, plitka va tugma bir vaqtda kelsa ham).
-  const javobBer = (togriMi, qiymat = null) => {
+  // oz — «Ovoz chiqarib aytdim» (o'zi aytdi, tekshirilmagan): ball, yulduz va takrorlash hisobiga kirmaydi
+  const javobBer = (togriMi, qiymat = null, { oz = false } = {}) => {
     const o = oyinRef.current;
     if (!o || o.javob || o.natija) return;
+    if (oz) {
+      const yangi = { ...o, javob: { togri: true, qiymat: "", oz: true }, oz: (o.oz || 0) + 1 };
+      oyinRef.current = yangi; setOyin(yangi);
+      return;
+    }
     const q = o.list[o.i];
     const id = q?.soz?.id || q?.gap?.id;
     if (id) belgila(til, id, Boolean(togriMi));
@@ -222,18 +235,26 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
     setOyin(yangi);
     if (togriMi && q && q.tur !== "yoz") aytTil(q.soz ? q.soz.w[til] : q.gap.w[til]);
   };
+  // Natija va serverga yozish — holat yangilovchisidan tashqarida (yon ta'sirlar ikki marta bajarilmasin)
   const keyingi = () => {
     token.current++;
-    setOyin((o) => {
-      if (!o) return o;
-      if (o.i + 1 >= o.list.length) {
-        const y = yulduzHisob(o.togri, o.list.length);
-        yulduzYoz(til, bolim.id, rejim, y);
-        setTimeout(sinxron, 0);
-        return { ...o, natija: { yulduz: y } };
-      }
-      return { ...o, i: o.i + 1, javob: null, tanlangan: [], yozuv: "" };
-    });
+    const o = oyinRef.current;
+    if (!o || o.natija) return;
+    let yangi;
+    if (o.i + 1 >= o.list.length) {
+      const y = yulduzHisob(o.togri, o.list.length);
+      yulduzYoz(til, bolim.id, rejim, y);
+      setTimeout(sinxron, 0);
+      // REV174: ota-ona «Bugun»da ko'radi
+      faollikYoz(apiBase, authToken, { turi: "til", kod: `${til}:${bolim.id}:${rejim}`, til, fan: TIL_NOMI[til], mavzu: `${bolim.nom.uz} — ${REJIM[rejim]?.[1] || rejim}`,
+        togri: o.togri, jami: o.list.length, soniya: (Date.now() - (o.boshVaqt || Date.now())) / 1000,
+        sozlar: o.list.map((x) => x.soz?.id).filter(Boolean) });
+      yangi = { ...o, natija: { yulduz: y } };
+    } else {
+      yangi = { ...o, i: o.i + 1, javob: null, tanlangan: [], yozuv: "" };
+    }
+    oyinRef.current = yangi;
+    setOyin(yangi);
     setMik("");
   };
 
@@ -253,6 +274,8 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
       if (!alive.current || my !== token.current) return;
       setMik("");
       const b = gapBaho(alts, matn, til);
+      // REV174: hech narsa eshitilmasa — baholanmaydi, yana urinib ko'radi
+      if (!alts.some((a) => String(a || "").trim())) { setMik("qayta"); return; }
       javobBer(b.togri, alts[0] || "");
     };
     r.onresult = (e) => keldi(Array.from(e.results?.[0] || []).map((a) => a.transcript));
@@ -268,10 +291,22 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
   </div>;
 
   // REV172: repetitor (bo'lim darsi yoki «Mening lug'atim») — o'z ekrani, ustoz bilan
+  if (!bloklangan && topshiriq) {
+    return <div className="mk-root">
+      <Repetitor key={`t${topshiriq.id}`} apiBase={apiBase} til={til} izoh={iz} sinf={ozSinf} topshiriq={topshiriq} rejim="dars"
+        onYakun={(r) => {
+          topshiriqBajardi(apiBase, authToken, topshiriq.id, r).then(() => topshiriqlarOl(apiBase, authToken, til)).then((l) => { if (alive.current) setTopshiriqlar(l); });
+          faollikYoz(apiBase, authToken, { turi: "topshiriq", kod: `t:${topshiriq.id}`, til, fan: TIL_NOMI[til], mavzu: "Ota-ona topshirig‘i", ...r });
+        }}
+        onClose={() => { token.current++; setTopshiriq(null); }} />
+    </div>;
+  }
   if (!bloklangan && (lugatOchiq || (bolim && rejim === "repetitor"))) {
     return <div className="mk-root">
       <Repetitor apiBase={apiBase} til={til} izoh={iz} sinf={sinf} bolim={lugatOchiq ? null : bolim} rejim={lugatOchiq ? "lugat" : "dars"}
         onNatija={(y) => { if (bolim && !lugatOchiq) { yulduzYoz(til, bolim.id, "repetitor", y); setYangi((n) => n + 1); } }}
+        onYakun={(r) => faollikYoz(apiBase, authToken, { turi: "repetitor", kod: `${til}:${r.takror || lugatOchiq || !bolim ? "takror" : bolim.id}`, til, fan: TIL_NOMI[til],
+          mavzu: r.takror || lugatOchiq || !bolim ? "Repetitor: takror" : `Repetitor: ${bolim.nom.uz}`, ...r })}
         onClose={() => { token.current++; if (lugatOchiq) setLugatOchiq(false); else setRejim("kartalar"); }} />
     </div>;
   }
@@ -292,6 +327,17 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
       </div>
       {vaqtTosiq}
       {eslatma && <p className="mk-eslatma" role="status">🔒 {eslatma}</p>}
+      {topshiriqlar.length > 0 && <section className="mk-topshiriqlar" aria-label={T("Ota-onangizdan topshiriq")}>
+        {topshiriqlar.map((t) => <div key={t.id} className={`mk-topshiriq ${t.holat === "bajarildi" ? "is-done" : ""}`}>
+          <span className="mk-topshiriq-belgi" aria-hidden="true">{t.holat === "bajarildi" ? "✅" : "📬"}</span>
+          <span className="mk-topshiriq-matn">
+            <b>{t.holat === "bajarildi" ? T("Topshiriq bajarildi") : T("Ota-onangizdan topshiriq")}</b>
+            <small>{t.sozlar.length} {T("ta so‘z")}{t.yozish ? ` · ✍ ${t.yozish} ${T("martadan")}` : ""}{t.muddat && t.holat !== "bajarildi" ? ` · 📅 ${t.muddat.split("-").reverse().slice(0, 2).join(".")}` : ""}</small>
+            {t.izoh && <small className="mk-topshiriq-izoh">💬 {t.izoh}</small>}
+          </span>
+          {t.holat !== "bajarildi" && <button type="button" className="mk-btn is-main" disabled={bloklangan} onClick={() => setTopshiriq(t)}>▶ {T("Bajarish")}</button>}
+        </div>)}
+      </section>}
       <button type="button" className="mk-lugat" disabled={bloklangan} onClick={() => setLugatOchiq(true)}>
         <span aria-hidden="true">📒</span><b>{T("Mening lug‘atim")}</b>
         <small>{takrorSoni ? `🔁 ${T("Bugungi takror")}: ${takrorSoni}` : `👩‍🏫 ${T("Repetitor")}`}</small>
@@ -308,7 +354,7 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
               <button type="button" className="mk-unit" disabled={bloklangan}
                 onClick={() => {
                   if (!och) { const m = T("Bu bo‘lim oldingi bo‘lim imtihonidan keyin ochiladi."); setEslatma(m); ayt(iz === "uz" ? m : teg(m, iz)); return; }
-                  setEslatma(""); setBolimId(b.id); setRejim("kartalar"); setOyin(null); setOchiq({});
+                  setEslatma(""); korildi.current = new Set(); setBolimId(b.id); setRejim("kartalar"); setOyin(null); setOchiq({});
                 }}>
                 <span className="mk-yol-tugun" aria-hidden="true">{och ? b.emoji : "🔒"}<i>{bq.imtihon ? "✓" : i + 1}</i></span>
                 <span className="mk-unit-body">
@@ -336,7 +382,7 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
           const l = bolim.sozlar; const oyna = (k) => { if (k >= l.length) { darsOtildi(); return; } if (alive.current) aytTil(l[k].w[til], false, () => setTimeout(() => oyna(k + 1), 300)); }; oyna(0);
         }}>▶ {T("Hammasini tinglash")}</button>
         {bolim.sozlar.map((w) => <button key={w.id} type="button" className={`mk-card ${ochiq[w.id] ? "is-open" : ""}`}
-          onClick={() => { setOchiq((o) => { const n = { ...o, [w.id]: true }; if (Object.keys(n).length >= Math.ceil(bolim.sozlar.length / 2)) darsOtildi(); return n; }); aytTil(w.w[til]); }}>
+          onClick={() => { setOchiq({ ...ochiq, [w.id]: !ochiq[w.id] }); korildi.current.add(w.id); if (korildi.current.size >= Math.ceil(bolim.sozlar.length / 2)) darsOtildi(); aytTil(w.w[til]); }}>
           <Rasm w={w} className="mk-pic" />
           <b dir="auto">{w.w[til]}</b>
           {ochiq[w.id] && <small dir="auto">{w.w[iz]}</small>}
@@ -354,6 +400,7 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
         <span aria-hidden="true">{oyin.natija.yulduz === 3 ? "🏆" : oyin.natija.yulduz ? "🎉" : "💪"}</span>
         <b>{"⭐".repeat(oyin.natija.yulduz) || "☆"}</b>
         <small>{T("To‘g‘ri javoblar")}: {oyin.togri} / {oyin.list.length}</small>
+        {oyin.oz > 0 && <small>🗣 {T("O‘zingiz aytdingiz (tekshirilmagan)")}: {oyin.oz}</small>}
         <div className="mk-row">
           <button type="button" className="mk-btn is-main" onClick={() => boshla(rejim)}>🔁 {T("Yana o‘ynash")}</button>
           <button type="button" className="mk-btn" onClick={() => boshla("kartalar")}>📇 {T("So‘z kartalari")}</button>
@@ -435,12 +482,13 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
           <button type="button" className="mk-btn" onClick={() => aytTil(matn, true)}>🐢 {T("Sekin")}</button>
           {!j && mikBor && mik !== "tugma" && <button type="button" className={`mk-btn is-mic ${mik === "tinglayapti" ? "is-on" : ""}`} onClick={tingla} disabled={mik === "tinglayapti"}>
             🎤 {mik === "tinglayapti" ? T("Gapiring…") : T("Gapirish")}</button>}
-          {!j && <button type="button" className="mk-btn" onClick={() => javobBer(true, "")}>✅ {T("Ovoz chiqarib aytdim")}</button>}
+          {mik === "qayta" && !j && <small className="mk-mik-qayta" role="status">🎤 {T("Ovoz eshitilmadi — yana bosib, balandroq ayting.")}</small>}
+          {!j && <button type="button" className="mk-btn" onClick={() => javobBer(true, "", { oz: true })}>✅ {T("Ovoz chiqarib aytdim")}</button>}
         </div>
       </>}
 
       {j && <div className={`mk-result ${j.togri ? "is-right" : "is-wrong"}`} role="status">
-        <b>{j.togri ? (j.qiymat === "deyarli" ? `🟡 ${T("Deyarli to‘g‘ri — belgilarni tekshiring")}` : `✅ ${T("To‘g‘ri!")}`) : `❌ ${T("To‘g‘ri javob")}:`}</b>
+        <b>{j.oz ? `🗣 ${T("Barakalla! Mikrofon bilan aytsangiz — ball va yulduz ham olasiz.")}` : j.togri ? (j.qiymat === "deyarli" ? `🟡 ${T("Deyarli to‘g‘ri — belgilarni tekshiring")}` : `✅ ${T("To‘g‘ri!")}`) : `❌ ${T("To‘g‘ri javob")}:`}</b>
         {(!j.togri || s.tur === "yoz" || s.tur === "ayt") && <span className="mk-answer" dir="auto">{matn}<small dir="auto">{mano}</small></span>}
         {s.tur === "ayt" && j.qiymat && <small>🎤 {j.qiymat}</small>}
         <button type="button" className="mk-btn is-main" onClick={keyingi}>➡ {T("Keyingisi")}</button>
@@ -461,13 +509,14 @@ export default function MaktabTil({ apiBase = "", token: authToken = "", til = "
         <span className={`mk-bosqich-q ${q[x.k] ? "is-on" : ""} ${keyingiQadam(q) === x.k ? "is-keyingi" : ""}`}>
           <span aria-hidden="true">{q[x.k] ? "✅" : x.emoji}</span><small>{T(x.nom)}</small></span>
       </React.Fragment>)}
-      {keyingiQadam(q) && !oyin && rejim === "kartalar" && <button type="button" className="mk-btn is-main mk-bosqich-btn" disabled={bloklangan} onClick={() => {
-        const k = keyingiQadam(q);
-        if (k === "dars") boshla("repetitor");
-        else if (k === "mashq") boshla(rejimlar(sinf)[1]);
-        else if (k === "imtihon") boshla("bellashuv");
-        else setLugatOchiq(true);
-      }}>▶ {T("Keyingi qadam")}: {T(QADAMLAR.find((x) => x.k === keyingiQadam(q)).nom)}</button>}
+      {keyingiQadam(q) && !oyin && rejim === "kartalar" && (keyingiQadam(q) === "takror" && !q.takrorBugun && !erkin
+        ? <span className="mk-bosqich-ertaga">🌙 {T("Takror — ertaga: so‘zlar xotirada bir kun «yotishi» kerak")}</span>
+        : <button type="button" className="mk-btn is-main mk-bosqich-btn" disabled={bloklangan} onClick={() => {
+          const k = keyingiQadam(q);
+          if (k === "dars") boshla("repetitor");
+          else if (k === "mashq" || k === "takror") boshla(rejimlar(sinf)[1]);
+          else boshla("bellashuv");
+        }}>▶ {T("Keyingi qadam")}: {T(QADAMLAR.find((x) => x.k === keyingiQadam(q)).nom)}</button>)}
     </div>
     {eslatma && <p className="mk-eslatma" role="status">🔒 {eslatma}</p>}
     <div className="mk-modes" role="tablist">

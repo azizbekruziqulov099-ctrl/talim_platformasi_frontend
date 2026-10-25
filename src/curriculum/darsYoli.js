@@ -37,10 +37,22 @@ export function darsYoli(mavzular = [], holat = () => ({}), isReview = () => fal
   return { tugunlar, bosqich: navbat ? navbat.bosqich : bosqichlar, bosqichlar, jami: darsIdx.length, otildi };
 }
 
-// mashq tugunlari bosilganini eslab qolamiz (✓ belgisi uchun)
-const KEY = "kabutar:kid:mashq:v1";
-const store = () => { try { return globalThis.localStorage; } catch { return null; } };
-export function mashqBajarildi(kod, st = store()) { try { return Boolean(JSON.parse(st?.getItem(KEY) || "{}")[kod]); } catch { return false; } }
-export function mashqBelgila(kod, st = store()) {
-  try { const d = JSON.parse(st?.getItem(KEY) || "{}") || {}; d[kod] = Date.now(); st?.setItem(KEY, JSON.stringify(d)); } catch { /* ixtiyoriy */ }
+/**
+ * REV174: maktab o'quv yo'li — darslar tartib bilan: dars faqat oldingi barcha darslar o'tilgach «ochiq» (tavsiya);
+ * darsi yo'q mavzu (AI ustoz bilan) yo'lni to'smaydi. → { ochiq: [bool], navbat: indeks | -1, otildi, jami }
+ */
+export function ketmaKet(mavzular = [], done = () => false) {
+  let hammasi = true;
+  let navbat = -1;
+  const ochiq = mavzular.map((t, i) => {
+    const och = hammasi;
+    if (t.dars_bor) {
+      const d = done(i);
+      if (!d && navbat < 0) navbat = i;
+      if (!d) hammasi = false;
+    }
+    return och || !t.dars_bor;
+  });
+  const darslar = mavzular.map((t, i) => i).filter((i) => mavzular[i].dars_bor);
+  return { ochiq, navbat, otildi: darslar.filter((i) => done(i)).length, jami: darslar.length };
 }

@@ -1,7 +1,8 @@
 // REV173: Maktab tillari — daraja (CEFR), bal, baho, tezlik va bo'lim yo'li (dars → mashq → takror → imtihon). Sof qoidalar.
 // Daraja O'zbekiston DTS bo'yicha: 4-sinf oxiri — A1, 9-sinf oxiri — A2, 11-sinf oxiri — B1. 1–2 sinf — Pre-A1.
 import { SINFLAR } from "./index.js";
-import { PUXTA } from "../kid/xonalar/xonaRules.js";
+import { PUXTA, kunRaqami } from "../kid/xonalar/xonaRules.js";
+import { REP_PUXTA } from "./repetitorRules.js";
 
 export const CEFR = [
   { kod: "Pre-A1", sinflar: [1, 2], emoji: "🌱" },
@@ -12,10 +13,13 @@ export const CEFR = [
 export const DARAJA_CHEGARA = 0.7;   // daraja olingan hisoblanadi — shu darajadagi so'zlarning 70% i o'zlashtirilgan
 export const YAQIN = 60;             // «… ga yaqinlashdingiz» — keyingi darajaning 60% i
 
-/** Bitta so'z qanchalik o'zlashtirilgan (0..1): o'yinlardagi takrorlash (srs) yoki repetitor lug'ati — qaysi biri yuqori. */
+/** Bitta so'z qanchalik o'zlashtirilgan (0..1): o'yinlardagi takrorlash (srs, puxta — 4-quti) yoki repetitor lug'ati
+ *  (puxta — 5-quti, lug'at ekranidagi bilan bir xil) — qaysi biri yuqori. */
 export function sozBilim(id, srs = {}, lugat = {}) {
-  const q = Math.max(srs?.[id]?.quti || 0, lugat?.[id]?.quti || 0);
-  return q >= PUXTA ? 1 : q >= 2 ? 0.5 : q >= 1 ? 0.25 : 0;
+  const s = srs?.[id]?.quti || 0, l = lugat?.[id]?.quti || 0;
+  if (s >= PUXTA || l >= REP_PUXTA) return 1;
+  const q = Math.max(s, l);
+  return q >= 2 ? 0.5 : q >= 1 ? 0.25 : 0;
 }
 const sinfSozlari = (sinflar) => sinflar.flatMap((n) => (SINFLAR[n - 1]?.bolimlar || []).flatMap((b) => b.sozlar.map((w) => w.id)));
 const ULUSH_KESH = new Map();
@@ -30,13 +34,14 @@ export function darajaUlushi(i, srs = {}, lugat = {}) {
 }
 
 /**
- * Hozirgi daraja: ketma-ket olingan oxirgi daraja (yo'q bo'lsa — null), keyingisi va unga necha foiz yaqin.
+ * Hozirgi daraja: so'zlarining 70% i o'zlashtirilgan eng yuqori daraja (yo'q bo'lsa — null), keyingisi va unga necha foiz yaqin.
+ * REV174: pastki darajalarni platformada o'tmagan kuchli o'quvchi ham o'z darajasini ko'radi (A2 so'zlarini bilsa — A2).
  * → { daraja: "A1" | null, keyingi: "A2" | null, foiz: 0..100, yaqin: bool, ulushlar: [..] }
  */
 export function darajaHisob(srs = {}, lugat = {}) {
   const ulushlar = CEFR.map((_, i) => darajaUlushi(i, srs, lugat));
   let olingan = -1;
-  for (let i = 0; i < CEFR.length; i++) { if (ulushlar[i] >= DARAJA_CHEGARA) olingan = i; else break; }
+  for (let i = 0; i < CEFR.length; i++) if (ulushlar[i] >= DARAJA_CHEGARA) olingan = i;
   const k = olingan + 1 < CEFR.length ? olingan + 1 : null;
   const foiz = k === null ? 100 : Math.min(100, Math.round((ulushlar[k] / DARAJA_CHEGARA) * 100));
   return {
@@ -70,7 +75,7 @@ export const QADAMLAR = [
  * Bo'lim yo'li: har qadam bajarildimi. dars — so'z kartalari ko'rildi yoki repetitor o'tildi; mashq — biror o'yinda yulduz;
  * takror — so'zlarning 60% i kamida 2 marta takrorlangan (oraliqli takror kunlar davomida bajariladi); imtihon — bellashuvda yulduz.
  */
-export function bolimQadamlari(bolim, yul = {}, srs = {}, lugat = {}) {
+export function bolimQadamlari(bolim, yul = {}, srs = {}, lugat = {}, bugun = kunRaqami()) {
   const y = yul?.[bolim.id] || {};
   const dars = (y.kartalar || 0) >= 1 || (y.repetitor || 0) >= 1;
   const mashq = MASHQLAR.some((r) => (y[r] || 0) >= 1);
@@ -78,12 +83,17 @@ export function bolimQadamlari(bolim, yul = {}, srs = {}, lugat = {}) {
   const takrorlangan = ids.filter((id) => Math.max(srs?.[id]?.quti || 0, lugat?.[id]?.quti || 0) >= 2).length;
   const takror = ids.length > 0 && takrorlangan / ids.length >= 0.6;
   const imtihon = (y.bellashuv || 0) >= 1;
-  return { dars, mashq, takror, imtihon, imtihonYulduz: y.bellashuv || 0, baho: bolimBahosi(y.bellashuv || 0) };
+  // takror bugun mumkinmi: takrorlanadigan vaqti kelgan so'z bormi (yo'q bo'lsa — ertaga; so'z xotirada bir kun «yotishi» kerak)
+  const takrorBugun = ids.some((id) => {
+    const a = srs?.[id], b = lugat?.[id];
+    return (a && (a.quti || 0) >= 1 && (a.keyin ?? 0) <= bugun) || (b && (b.quti || 0) >= 1 && (b.keyingi ?? 0) <= bugun);
+  });
+  return { dars, mashq, takror, imtihon, takrorBugun, imtihonYulduz: y.bellashuv || 0, baho: bolimBahosi(y.bellashuv || 0) };
 }
-/** Bo'lim ichida o'yin ochiqmi: mashqlar — darsdan keyin, imtihon — mashqdan keyin. Dars (kartalar, repetitor) doim ochiq. */
+/** Bo'lim ichida o'yin ochiqmi: mashqlar — darsdan keyin, imtihon — mashq va takrordan keyin. Dars (kartalar, repetitor) doim ochiq. */
 export function rejimOchiq(rejim, q, erkin = false) {
   if (erkin || rejim === "kartalar" || rejim === "repetitor") return true;
-  if (rejim === "bellashuv") return q.mashq;
+  if (rejim === "bellashuv") return q.mashq && q.takror;
   return q.dars;
 }
 /**
@@ -107,8 +117,8 @@ export function yilYoli(sinfData, { yul = {}, srs = {}, lugat = {}, ozSinf = 1, 
 export function keyingiQadam(q) {
   if (!q.dars) return "dars";
   if (!q.mashq) return "mashq";
-  if (!q.imtihon) return "imtihon";
   if (!q.takror) return "takror";
+  if (!q.imtihon) return "imtihon";
   return null;
 }
 

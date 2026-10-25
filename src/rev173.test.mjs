@@ -32,9 +32,12 @@ test('daraja so‘zlarni o‘zlashtirishdan hisoblanadi va «… ga yaqinlashdi�
   const r = darajaHisob({ ...puxta([1, 2, 3, 4]), ...yarim }, {});
   assert.ok(r.foiz >= 60, String(r.foiz));
   assert.equal(r.yaqin, true);
-  // repetitor lug'ati ham hisoblanadi; ketma-ketlik: A1 siz A2 berilmaydi
-  assert.equal(darajaHisob({}, puxta([1, 2])).daraja, 'Pre-A1');
-  assert.equal(darajaHisob(puxta([5, 6, 7, 8, 9]), {}).daraja, null);
+  // repetitor lug'ati ham hisoblanadi (puxta — 5-quti); REV174: pastki darajalar o'tilmagan bo'lsa ham A2 so'zlarini bilgan — A2
+  assert.equal(darajaHisob({}, puxta([1, 2], 5)).daraja, 'Pre-A1');
+  assert.equal(darajaHisob({}, puxta([1, 2], 4)).daraja, null);
+  const a2 = darajaHisob(puxta([5, 6, 7, 8, 9]), {});
+  assert.equal(a2.daraja, 'A2');
+  assert.equal(a2.keyingi, 'B1');
 });
 
 test('baho, ball va tezlik', () => {
@@ -70,6 +73,13 @@ test('bo‘lim yo‘li: dars → mashq → imtihon qulflari; bo‘limlar ketma-k
   assert.equal(rejimOchiq('bellashuv', q, true), true);   // admin
   assert.equal(keyingiQadam(q), 'dars');
   q = bolimQadamlari(b1, { [b1.id]: { kartalar: 1, rasm: 2 } }, {}, {});
+  assert.equal(rejimOchiq('bellashuv', q), false);          // REV174: imtihon — takrordan keyin
+  assert.equal(keyingiQadam(q), 'takror');
+  const ertaga = Object.fromEntries(b1.sozlar.map((w) => [w.id, { quti: 1, keyin: 101 }]));
+  assert.equal(bolimQadamlari(b1, {}, ertaga, {}, 100).takrorBugun, false);
+  assert.equal(bolimQadamlari(b1, {}, ertaga, {}, 101).takrorBugun, true);
+  const ikki = Object.fromEntries(b1.sozlar.map((w) => [w.id, { quti: 2 }]));
+  q = bolimQadamlari(b1, { [b1.id]: { kartalar: 1, rasm: 2 } }, ikki, {});
   assert.equal(rejimOchiq('bellashuv', q), true);
   assert.equal(keyingiQadam(q), 'imtihon');
   let yol = yilYoli(s, { yul: {}, ozSinf: 7 });

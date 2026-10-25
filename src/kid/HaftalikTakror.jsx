@@ -35,6 +35,7 @@ export default function HaftalikTakror({ apiBase = "", diary = null, onClose, on
   const [gapir, setGapir] = useState(false);
   const ovoz = useMemo(() => ovozManbai(apiBase), [apiBase]);
   const alive = useRef(true);
+  const otildi = useRef(-1);   // qaysi savoldan o'tildi (ikki marta o'tmasin)
   const jins = jinsOf(USTOZ, USTOZLAR);
   const izt = (s) => teg(s, iz === "uz" ? "" : iz);
   const qur = (k, w) => g[k].split(/(\{w\})/).map((p) => (p === "{w}" ? teg(w.soz, w.til) : p.trim() ? izt(p) : p)).join("");
@@ -53,17 +54,22 @@ export default function HaftalikTakror({ apiBase = "", diary = null, onClose, on
     if (savollar.length) { setFaza("top"); setI(0); setJavob(null); ayt(`${izt(g.oyin)} ${qur("top", savollar[0].w)}`); return; }
     setFaza("tugadi"); ayt(izt(g.tugadi)); onTugadi?.(3);
   };
+  // Keyingi savolga o'tish faqat bir marta (ovoz tugashi yoki zaxira taymer — qaysi biri oldin bo'lsa); ovoz to'xtatilsa ham o'yin qotmaydi
   const tanla = (v) => {
     if (javob) return;
     const q = savollar[i];
     const ok = v === q.w;
+    const jamiTogri = togri + (ok ? 1 : 0);
     setJavob({ v, ok });
-    if (ok) setTogri((t) => t + 1);
-    ayt(ok ? `${izt(g.togri)} ${teg(q.w.soz, q.w.til)}` : qur("xato", q.w), () => setTimeout(() => {
-      if (!alive.current) return;
+    if (ok) setTogri(jamiTogri);
+    const otish = () => {
+      if (!alive.current || otildi.current === i) return;
+      otildi.current = i;
       if (i + 1 < savollar.length) { const n = i + 1; setI(n); setJavob(null); ayt(qur("top", savollar[n].w)); }
-      else { const y = takrorYulduz(togri + (ok ? 1 : 0), savollar.length); setFaza("tugadi"); ayt(izt(g.tugadi)); onTugadi?.(y); }
-    }, 500));
+      else { const y = takrorYulduz(jamiTogri, savollar.length); setFaza("tugadi"); ayt(izt(g.tugadi)); onTugadi?.(y); }
+    };
+    ayt(ok ? `${izt(g.togri)} ${teg(q.w.soz, q.w.til)}` : qur("xato", q.w), () => setTimeout(otish, 500));
+    setTimeout(otish, 4500);
   };
 
   const ustoz = (doska, belgi = "") => <div className="ht-ustoz"><UstozXonacha ustoz={USTOZ} doska={doska} belgi={belgi} gapir={gapir} /></div>;
@@ -76,7 +82,7 @@ export default function HaftalikTakror({ apiBase = "", diary = null, onClose, on
   if (faza === "tugadi") {
     const y = takrorYulduz(togri, savollar.length || 1);
     return <div className="ht-root">{bar}{ustoz("⭐".repeat(y))}
-      <div className="ht-card" role="status"><span className="ht-big" aria-hidden="true">🏆</span><b className="ht-stars">{"⭐".repeat(savollar.length ? y : 3)}</b>
+      <div className="ht-card" role="status"><span className="ht-big" aria-hidden="true">🏆</span>{savollar.length > 0 ? <b className="ht-stars">{"⭐".repeat(y)}</b> : <b>{T("Barakalla!")}</b>}
         <small>{T("So‘zlar")}: {sozlar.length}{savollar.length ? ` · ✅ ${togri}/${savollar.length}` : ""}</small>
         <button type="button" className="ht-btn is-main" onClick={onClose}>✅ {T("Tayyor")}</button></div></div>;
   }
@@ -85,7 +91,7 @@ export default function HaftalikTakror({ apiBase = "", diary = null, onClose, on
     const q = savollar[i];
     return <div className="ht-root">{bar}{ustoz("❓")}
       <div className="ht-card">
-        <button type="button" className="ht-btn" onClick={() => ayt(qur("top", q.w))}>🔊 {T("Yana eshitish")}</button>
+        <button type="button" className="ht-btn" disabled={Boolean(javob)} onClick={() => ayt(qur("top", q.w))}>🔊 {T("Yana eshitish")}</button>
         <div className="ht-pics">{q.variantlar.map((v, k) => <button key={k} type="button" disabled={Boolean(javob)} onClick={() => tanla(v)}
           className={`ht-pic ${javob && v === q.w ? "is-right" : ""} ${javob && javob.v === v && !javob.ok ? "is-wrong" : ""}`} aria-label={javob ? v.soz : `${k + 1}`}>
           <Rasm soz={v.soz} emoji={v.emoji} til={v.til} />{javob && v === q.w && <small dir="auto">{v.soz}</small>}</button>)}</div>

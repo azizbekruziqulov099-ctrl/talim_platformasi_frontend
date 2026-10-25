@@ -75,11 +75,16 @@ export const lugatOl = (til, st = store()) => oqiHammasi(st)[til] || {};
 /** Javob natijasi bilan so'z holatini yangilash (oraliqli takrorlash). yozdi — bugun daftarga necha marta yozdi. */
 export function repYangila(h, togri, { bugun = kunRaqami(), yozdi = 0, bolim = "", sinf = 0 } = {}) {
   const eski = h || { quti: 0, keyingi: bugun, yozildi: 0, togri: 0, xato: 0, xatoKetma: 0, qoshildi: bugun };
-  const quti = togri ? Math.min(REP_ORALIQ.length - 1, (eski.quti || 0) + 1) : Math.max(0, Math.min(1, (eski.quti || 0) - 2));
+  // REV174: bir kunda so'z faqat bir marta yuqori qutiga ko'tariladi (bir o'tirishda «yodlab» puxta qilib bo'lmaydi);
+  // yangi so'z (0-quti) birinchi to'g'ri javobda 1-qutiga chiqadi. Xato — 2 quti pastga, ertaga qaytadi.
+  const q0 = eski.quti || 0;
+  const kotar = togri && (eski.kotarildi !== bugun || q0 === 0);
+  const quti = togri ? (kotar ? Math.min(REP_ORALIQ.length - 1, q0 + 1) : q0) : Math.max(0, q0 - 2);
   return {
     ...eski,
     quti,
-    keyingi: bugun + (togri ? REP_ORALIQ[quti] : 1),
+    keyingi: togri ? (kotar ? bugun + REP_ORALIQ[quti] : Math.max(eski.keyingi ?? bugun, bugun + REP_ORALIQ[quti])) : bugun + 1,
+    kotarildi: kotar ? bugun : eski.kotarildi,
     yozildi: Math.min(YOZISH_CHEGARA * 2, (eski.yozildi || 0) + Math.max(0, Number(yozdi) || 0)),
     togri: (eski.togri || 0) + (togri ? 1 : 0),
     xato: (eski.xato || 0) + (togri ? 0 : 1),
@@ -146,9 +151,15 @@ export function lugatRoyxati(lugat = {}, sozlar = {}, bugun = kunRaqami()) {
 /** Sessiya natijasidan yulduz: xatosiz — 3, 1–2 xato — 2, ko'proq — 1. */
 export const repYulduz = (xato, jami) => (!jami ? 0 : xato === 0 ? 3 : xato <= Math.max(2, Math.round(jami * 0.25)) ? 2 : 1);
 
-/** Uchta tanlov (ma'nosi bo'yicha): to'g'ri + 2 ta boshqa so'z. */
-export function manoVariantlari(w, pool = [], rng = Math.random, n = 3) {
-  const boshqa = pool.filter((x) => x.id !== w.id);
+/** Uchta tanlov (ma'nosi bo'yicha): to'g'ri + 2 ta boshqa so'z. REV174: ma'nosi bir xil so'zlar (ko'ylak — dress/shirt) aralashmaydi. */
+export function manoVariantlari(w, pool = [], rng = Math.random, n = 3, manoOf = (x) => x.w?.uz) {
+  const m0 = String(manoOf(w) || "").toLowerCase();
+  const korilgan = new Set([m0]);
+  const boshqa = pool.filter((x) => {
+    const m = String(manoOf(x) || "").toLowerCase();
+    if (x.id === w.id || korilgan.has(m)) return false;
+    korilgan.add(m); return true;
+  });
   for (let i = boshqa.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [boshqa[i], boshqa[j]] = [boshqa[j], boshqa[i]]; }
   const list = [w, ...boshqa.slice(0, n - 1)];
   for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import FarzandFaollik from "./FarzandFaollik.jsx";
+// REV174: maktab o'quvchisi (1–11 sinf) — bugun/hafta, «O'zim sinayman», «Mashq ber» (alohida yuklanadi)
+const MaktabOtaOna = React.lazy(() => import("./MaktabOtaOna.jsx"));
 import {
   KUN_QISQA, KUNLAR, KURS, KURSLAR, haftalikReja, tarifRuxsati, xatoMatni, ovozMatni, qoshsaBoladimi, sinovSavollari, sum, tanlovChegarasi, tanlovXatosi,
 } from "./bogchaReja.js";
@@ -462,6 +464,7 @@ export default function BolaMarkazi({ apiBase, token, childId, initialTab = "kun
       {tabs.map(([id, emoji, title]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "is-on" : ""} onClick={() => setTab(id)}>
         <span aria-hidden="true">{emoji}</span>{__kbUi(title)}</button>)}
     </nav>}
+    {!bogcha && <React.Suspense fallback={null}><MaktabOtaOna apiBase={apiBase} token={token} childId={childId} /></React.Suspense>}
     {tab === "kundalik" || !bogcha ? <FarzandFaollik apiBase={apiBase} token={token} childId={childId} onSinov={bogcha ? () => setTab("sinov") : undefined} />
       : tab === "reja" ? <RejaBolim holat={holat} apiBase={apiBase} token={token} onHolat={setHolat} goKurslar={() => setTab("kurslar")} />
       : tab === "kurslar" ? <KurslarBolim holat={holat} apiBase={apiBase} token={token} onHolat={setHolat} reload={load} />

@@ -58,3 +58,11 @@
 @media (max-width: 520px) { .rp-word b { font-size: 28px; } .rp-l-meta small { font-size: 10px; max-width: 96px; text-align: right; white-space: normal; } .rp-letters span { min-width: 32px; height: 40px; font-size: 22px; } }
 @media (prefers-reduced-motion: reduce) { .rp-letters span { animation: none; } }
 .rp-gap { width: 14px; }
+/* REV174: ota-ona topshirig'i */
+.rp-izoh { font-size: 16px !important; font-weight: 700; color: #6B2FB3 !important; background: #F6EEFF; border-radius: 12px; padding: 10px 12px; }
+.rp-sozlar { display: flex; flex-wrap: wrap; gap: 6px; }
+.rp-sozlar span { font-size: 15px; font-weight: 800; color: #1F3B57; background: #EAF4FF; border-radius: 999px; padding: 4px 12px; }
+.rp-mik-qayta { font-size: 13px; font-weight: 700; color: #B54708; }
+/* REV174: arab yozuvi — so'z butunligicha (harflar ulanadi); daftar qatorlari yozuv yo'nalishi bo'yicha */
+.rp-letters.is-butun span { min-width: 0; padding: 4px 18px; font-size: 34px; height: auto; }
+.rp-namuna, .rp-qatorlar span { text-align: start; }
