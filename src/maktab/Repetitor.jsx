@@ -89,7 +89,7 @@ const teg = (t, til) => (til === "uz" ? String(t) : `[${til}]${t}[/${til}]`);
  * o'zbekchadan chet tiliga (ovoz yoki yozuv) va chet tilidan o'zbekchaga tarjima qiladi. Har so'z shaxsiy lug'atga
  * tushadi va oraliqli takrorlash bilan qaytadi. rejim: "dars" (bo'lim + takror) | "takror" (faqat muddati kelganlar) | "lugat".
  */
-export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", topshiriq = null, darsSozlari = null, sarlavha = "", onNatija, onYakun, onClose, avtoBosh = false }) {
+export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf = 1, bolim = null, rejim: boshRejim = "dars", topshiriq = null, darsSozlari = null, sarlavha = "", onNatija, onYakun, onClose }) {
   const iz = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
   // REV177: so'z yodlatish, aytdirish, yozdirishni robot Kabu o'tkazadi — doim bitta Kabu ovozida
   const sozlam = sinfSozlamasi(sinf);
@@ -116,21 +116,16 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     if (!d0 || d0.bs?.[d0.b] !== "daftar" || d0.yozdi >= d0.maqsad) { setAvto(false); return undefined; }
     const soz0 = d0.list[d0.i].soz;
     const ms = yozishSoniyasi(soz0.w[til]) * 1000;
-    // REV177: keyingi aytish — Kabu so'zni AYTIB BO'LGANIDAN keyin, yozish uchun so'z uzunligiga mos vaqt o'tgach
-    // (ovoz sekin kelsa ham so'z kesilmaydi va hech biri o'tkazib yuborilmaydi)
-    let t = 0;
-    let tirik = true;
-    const navbat = () => { if (tirik) t = setTimeout(qadam, ms); };
-    function qadam() {
+    ayt(teg(soz0.w[til], til));
+    const id = setInterval(() => {
       const x = darsRef.current;
-      if (!tirik || !alive.current || !x || x.bs?.[x.b] !== "daftar" || x.list[x.i].soz.id !== soz0.id) { setAvto(false); return; }
+      if (!alive.current || !x || x.bs?.[x.b] !== "daftar" || x.list[x.i].soz.id !== soz0.id) { clearInterval(id); setAvto(false); return; }
       const yozdi = Math.min(x.maqsad, x.yozdi + 1);
       const y = { ...x, yozdi }; setDars(y); darsRef.current = y;
-      if (yozdi >= x.maqsad) { setAvto(false); ayt(qur("daftarOk", soz0)); }
-      else ayt(teg(soz0.w[til], til), {}, navbat);
-    }
-    ayt(teg(soz0.w[til], til), {}, navbat);
-    return () => { tirik = false; clearTimeout(t); };
+      if (yozdi >= x.maqsad) { clearInterval(id); setAvto(false); ayt(qur("daftarOk", soz0)); }
+      else ayt(teg(soz0.w[til], til));
+    }, ms);
+    return () => clearInterval(id);
   }, [avto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ayt = (matn, { sekin = false } = {}, done) => {
@@ -156,8 +151,6 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     setRejim("dars");
     sozgaOt({ list, i: 0, jamiYozdi: 0, xatoSoz: 0, boshVaqt: Date.now(), takror: faqatTakror }, 0, lg, true);
   };
-  // REV177: darsdan keyin avtomatik ochilganda — boshlash tugmasini kutmasdan Kabu darhol boshlaydi
-  useEffect(() => { if (avtoBosh && darsSozlari?.length) boshla(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const sozgaOt = (d, i, lg = lugat, birinchi = false) => {
     const item = d.list[i];
     const maqsad = topshiriq ? Math.max(0, Math.min(100, Number(topshiriq.yozish) || 0)) : yozishMaqsadi(sinf, lg[item.soz.id]);
@@ -183,8 +176,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     if (!d) return;
     if (d.bs[d.b] === "daftar" && d.yozdi > 0) setLugat(yozildiQosh(til, d.list[d.i].soz.id, d.yozdi, { bolim: bolim?.id || "", sinf }) && lugatOl(til));
     if (d.b + 1 < d.bs.length) {
-      const yangi = { ...d, b: d.b + 1, kiritish: "", tanlangan: [], javob: null, urinish: 0, yordamKorindi: 0,
-        sozVaqt: d.bs[d.b] === "daftar" || d.bs[d.b] === "tanish" ? Date.now() : d.sozVaqt };   // javob vaqti — tanishuv va daftardan keyin hisoblanadi
+      const yangi = { ...d, b: d.b + 1, kiritish: "", tanlangan: [], javob: null, urinish: 0, yordamKorindi: 0 };
       setMik((m) => (m === "tugma" ? m : ""));
       setDars(yangi); darsRef.current = yangi; bosqichniAyt(yangi);
       return;
@@ -195,7 +187,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     // REV177: javob sifati (FSRS kabi): ishora olgan — «qiyin» (ertaga yana), tez va yordamsiz — «oson» (oraliq kattaroq).
     // Qayta (xatolar) aylanasida lug'at qayta o'zgartirilmaydi — xato allaqachon yozilgan, so'z ertaga yana keladi.
     if (!item.qayta) repBelgila(til, w.id, !d.xatoBor, { bolim: bolim?.id || "", sinf,
-      sifat: javobSifati({ xato: d.xatoBor, yordam: d.yordam || 0, soniya: (Date.now() - (d.sozVaqt || Date.now())) / 1000, bosqich: d.bs.filter((x) => x !== "daftar" && x !== "tanish").length }) });
+      sifat: javobSifati({ xato: d.xatoBor, yordam: d.yordam || 0, soniya: (Date.now() - (d.sozVaqt || Date.now())) / 1000 - d.yozdi * 2, bosqich: d.bs.filter((x) => x !== "daftar" && x !== "tanish").length }) });
     const lg = lugatOl(til); setLugat(lg);
     const xatoIds = [...(d.xatoIds || []), ...(d.xatoBor && !item.qayta ? [w.id] : [])];
     const jami = { ...d, jamiYozdi: d.jamiYozdi + d.yozdi, xatoSoz: d.xatoSoz + (d.xatoBor && !item.qayta ? 1 : 0), xatoIds };
@@ -421,7 +413,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
 
   return <div className="rp-root">{bar}
     <div className="rp-progress" aria-label={`${dars.i + 1}/${dars.list.length}`}>
-      {dars.list.map((x, k) => <i key={`${x.soz.id}:${k}`} className={`${k < dars.i ? "is-done" : ""} ${k === dars.i ? "is-on" : ""} ${x.yangi ? "" : "is-takror"}`} />)}
+      {dars.list.map((x, k) => <i key={x.soz.id} className={`${k < dars.i ? "is-done" : ""} ${k === dars.i ? "is-on" : ""} ${x.yangi ? "" : "is-takror"}`} />)}
     </div>
     <div className="rp-steps" role="list">{dars.bs.map((s, k) => <span key={s} role="listitem" className={`rp-step ${k < dars.b ? "is-done" : ""} ${k === dars.b ? "is-on" : ""}`}>
       <i aria-hidden="true">{BOSQICH[s][0]}</i><span>{T(BOSQICH[s][1])}</span></span>)}</div>

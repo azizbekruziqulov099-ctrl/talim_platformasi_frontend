@@ -449,10 +449,10 @@ body.kb-dars-yotiq{overflow:hidden}
 .dx-root.dx-sinf .dx-ask label{font-size:max(11px,2.2cqh)}
 /* yotiq (buralgan) telefonda — xona bo'yiga to'liq, doskadagi yozuvlar ixchamroq */
 .dx-root.dx-sinf.dx-yotiq>.dx-room{max-width:min(100%,calc((100vw - 64px) * 1586 / 992));height:auto;align-self:center}
-.dx-root.dx-sinf.dx-yotiq .dx-board{zoom:1}   /* REV177: kichraytirish faqat sig‘magandagina (--dx-sig) — doska yozuvi katta */
+.dx-root.dx-sinf.dx-yotiq .dx-board{zoom:.72}
 @media (orientation:landscape) and (max-height:600px){
   .dx-root.dx-sinf.dx-focus>.dx-room{max-width:min(100%,calc((100dvh - 64px) * 1586 / 992))}
-  .dx-root.dx-sinf .dx-board{zoom:1}
+  .dx-root.dx-sinf .dx-board{zoom:.72}
 }
 /* dars paytida «Bosh ekranga qo'shish» tugmasi doskani to'smasin */
 body:is(.kb-focus-dars,.kb-dars-yotiq) #samtm-install-app{display:none!important}
@@ -495,13 +495,13 @@ body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.sam
 .dx-root.dx-yotiq .dx-repetitor-oyna .mm-matn{font-size:20px}
 /* REV177: «O'qituvchiga savol» doska tagida doim turmaydi — «❓ Savol berish» bosilganda ustoz gapi o'rnida ochiladi */
 .dx-root.dx-sinf .dx-ask{display:none}
-/* ochilganda — doska tagida emas: doska ustida suzuvchi oyna (ustoz gapi ko'rinib turadi), yopilsa yo'qoladi */
-.dx-root.dx-sinf.dx-savol-ochiq .dx-teacher .dx-ask{display:flex;flex-direction:column;gap:.8cqh;position:absolute;left:6%;right:6%;bottom:calc(100% + 3cqh);max-height:44cqh;overflow:auto;
-  z-index:8;font-size:max(12px,2.4cqh);background:#fff;border-radius:1.6cqh;padding:1.6cqh 1.6cqw;box-shadow:0 1.2cqh 4cqh #0005;animation:us-pop .25s ease-out both}
+.dx-root.dx-sinf.dx-savol-ochiq .dx-teacher .dx-bubble{display:none}
+.dx-root.dx-sinf.dx-savol-ochiq .dx-teacher .dx-ask{display:flex;flex-direction:column;gap:.8cqh;flex:1;overflow:auto;font-size:max(12px,2.4cqh)}
 .dx-root.dx-sinf .dx-ask label{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .dx-ask-yop{border:0;background:none;font-size:16px;cursor:pointer;color:inherit;padding:0 4px}
 .dx-root.dx-sinf .dx-ask .dx-reply{margin:0;font-size:max(12px,2.4cqh);line-height:1.35}
 .dx-savol-btn.is-on{background:#1B4B7A;border-color:#1B4B7A;color:#fff}
+.dx-root.dx-yotiq.dx-savol-ochiq .dx-teacher .dx-ask{display:flex}
 /* REV177: kompyuterda dars ekranni to'liq egallaydi — sarlavha ixcham, xona butun balandlikda, tugmalar o'ng ustunda */
 @media (min-width:760px) and (min-height:420px){
   .dx-root.dx-sinf.dx-focus:not(.dx-yotiq){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr);gap:6px 12px;

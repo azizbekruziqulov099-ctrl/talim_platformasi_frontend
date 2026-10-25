@@ -7,7 +7,7 @@
 
 export const HAFTA_KUNLARI = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
 export const HAFTA_QISQA = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"];
-export const REJA_STANDART = { dars_soni: 0, dam_kunlari: [], yakshanba: "takror" };   // dam_kunlari — Du–Sh; yakshanba alohida
+export const REJA_STANDART = { dars_soni: 0, dam_kunlari: [0], yakshanba: "takror" };
 export const TANAFFUS = 10;
 
 /** Sinfga mos dars soni va bitta dars davomiyligi. */

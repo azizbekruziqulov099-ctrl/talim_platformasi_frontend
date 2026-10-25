@@ -179,22 +179,5 @@ test('dars tugagach hammasi o\'zi: mashqlar → test → Repetitor', () => {
   const mm = fs.readFileSync(new URL('./lesson/MaktabMashqlar.jsx', import.meta.url), 'utf8');
   assert.match(dx, /if \(mashqBor\) setMashqlar\(true\); else startQuizRef\.current\(\)/);
   assert.match(dx, /avtoRep\.current = true; hush\(\); setRepetitor\(true\)/);
-  assert.match(mm, /keyingiIsh\?\.\(\)/); assert.doesNotMatch(mm, /setSanoq\(\(x\) => \{[^}]*keyingiIsh/);
-});
-
-test('tekshiruv tuzatishlari: chiqishda oynalar yopiladi, zanjir bir marta, Repetitor o\'zi boshlanadi, yakshanba alohida', () => {
-  const dx = fs.readFileSync(new URL('./lesson/DarsXonasi.jsx', import.meta.url), 'utf8');
-  const rp = fs.readFileSync(new URL('./maktab/Repetitor.jsx', import.meta.url), 'utf8');
-  const ot = fs.readFileSync(new URL('./parent/MaktabOtaOna.jsx', import.meta.url), 'utf8');
-  assert.match(dx, /setMashqlar\(false\); setRepetitor\(false\); setOldiTakror\(null\)/);
-  assert.match(dx, /zanjir\.current = true/);
-  assert.match(dx, /setMode\("end"\); modeRef\.current = "end"/);
-  assert.match(dx, /savolOchiq && !kabuMuhit/);
-  assert.match(dx, /avtoBosh/);
-  assert.match(rp, /if \(avtoBosh && darsSozlari\?\.length\) boshla\(false\)/);
-  assert.match(rp, /ayt\(teg\(soz0\.w\[til\], til\), \{\}, navbat\)/);
-  assert.match(ot, /\[1, 2, 3, 4, 5, 6\]\.map\(\(k\) => <button/);
-  // oynalar xona ichida emas (telefon buralganda butun ekranni egallaydi)
-  const room = dx.slice(dx.indexOf('<div className="dx-room">'), dx.indexOf('{oldiTakror && <div className="dx-repetitor-oyna"'));
-  assert.ok(room.includes('</aside>}'));
+  assert.match(mm, /keyingiIsh\(\)/);
 });

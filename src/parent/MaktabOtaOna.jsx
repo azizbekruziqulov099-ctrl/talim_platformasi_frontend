@@ -312,7 +312,7 @@ function MashqBer({ data, iz, ayt, apiBase, token, childId, tayyor, onYangi }) {
 function KunRejaSozla({ data, apiBase, token, childId, onSaqlandi }) {
   const asl = data.reja || REJA_STANDART;
   const [darsSoni, setDarsSoni] = useState(asl.dars_soni || 0);
-  const [dam, setDam] = useState(() => new Set((asl.dam_kunlari || []).filter((k) => k >= 1 && k <= 6)));   // yakshanba — pastdagi alohida tanlov
+  const [dam, setDam] = useState(() => new Set(asl.dam_kunlari || [0]));
   const [yakshanba, setYakshanba] = useState(asl.yakshanba || "takror");
   const [holat, setHolat] = useState("");
   const sd = sinfDarslari(data.bola.sinf);
@@ -332,13 +332,13 @@ function KunRejaSozla({ data, apiBase, token, childId, onSaqlandi }) {
     </div>
     <h4>🌴 {T("Dam olish kunlari")} <small className="mo-muted">({T("ko‘pi bilan 3 kun")})</small></h4>
     <div className="mo-row mo-tanlov">
-      {[1, 2, 3, 4, 5, 6].map((k) => <button key={k} type="button" aria-pressed={dam.has(k)} className={`mo-btn ${dam.has(k) ? "is-main" : ""}`}
-        onClick={() => almashtir(k)} title={T(HAFTA_KUNLARI[k])}>{T(HAFTA_QISQA[k])}</button>)}
+      {[1, 2, 3, 4, 5, 6, 0].map((k) => <button key={k} type="button" aria-pressed={dam.has(k)} className={`mo-btn ${dam.has(k) ? "is-main" : ""}`}
+        disabled={k === 0 && yakshanba !== "dars"} onClick={() => almashtir(k)} title={T(HAFTA_KUNLARI[k])}>{T(HAFTA_QISQA[k])}</button>)}
     </div>
     <h4>☀️ {T("Yakshanba")}</h4>
     <div className="mo-row mo-tanlov">
       {[["takror", "🔁", "Haftalik takror (yangi dars yo‘q)"], ["dam", "🌴", "To‘liq dam olish"], ["dars", "📘", "Odatdagi dars kuni"]].map(([id, e, nom]) =>
-        <button key={id} type="button" className={`mo-btn ${yakshanba === id ? "is-main" : ""}`} onClick={() => setYakshanba(id)}>{e} {T(nom)}</button>)}
+        <button key={id} type="button" className={`mo-btn ${yakshanba === id ? "is-main" : ""}`} onClick={() => { setYakshanba(id); if (id !== "dars") setDam((x) => new Set([...x].filter((k) => k !== 0))); }}>{e} {T(nom)}</button>)}
     </div>
     <h4>🗓️ {T("Hafta ko‘rinishi")}</h4>
     <ul className="mo-list mo-reja-hafta">
