@@ -1,5 +1,5 @@
 /* REV110 / REV121: jonli ustoz sahnasi — sinfxona, deraza (kun vaqti va ob-havo), chiroq, doska */
-.us-stage{position:relative;width:100%;aspect-ratio:1586/992;max-width:100%;overflow:hidden;border-radius:18px;background:#e9e1d3;contain:layout paint}
+.us-stage{position:relative;width:100%;aspect-ratio:1586/992;max-width:100%;overflow:hidden;border-radius:18px;background:linear-gradient(#f3ead9 0 66%,#d9b98f 66% 100%);contain:layout paint}
 .us-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* REV158: devor soati — haqiqiy vaqt */
 .us-soat{position:absolute;aspect-ratio:1;height:auto;transform:translate(-50%,-50%);pointer-events:none;overflow:visible}

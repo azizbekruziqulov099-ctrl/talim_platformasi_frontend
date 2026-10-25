@@ -1,0 +1,97 @@
+/* REV168: «Bolalar kundaligi» — yumshoq krem fon, yashil urg'u, katta yumaloq kartalar (bog'cha va maktab uchun bir xil uslub) */
+.bk-root{--bk-g:#2f6b47;--bk-g2:#e3f1e6;--bk-ink:#1f2d27;--bk-mut:#6b7a72;--bk-line:#ece6da;--bk-paper:#fffdf8;--bk-cream:#faf6ee;
+  display:grid;gap:12px;color:var(--bk-ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.bk-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:5px;border-radius:18px;background:var(--bk-cream);border:1px solid var(--bk-line)}
+.bk-tabs button,.bk-tabs>span{display:flex;align-items:center;justify-content:center;gap:6px;border:0;background:transparent;border-radius:14px;padding:10px 6px;
+  font-weight:800;font-size:14px;line-height:1.1;color:var(--bk-ink);cursor:pointer;min-width:0;white-space:nowrap}
+.bk-tabs button i,.bk-tabs>span i{font-style:normal;font-size:18px}
+.bk-tabs button.is-on{background:var(--bk-g2);color:var(--bk-g);box-shadow:inset 0 0 0 1px #cfe5d4}
+@media(max-width:480px){.bk-tabs button,.bk-tabs>span{flex-direction:column;gap:2px;font-size:11.5px;padding:7px 2px}.bk-tabs button i{font-size:20px}}
+/* kunlar */
+.bk-days{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.bk-day-btn,.bk-week-btn{flex:none;display:grid;justify-items:center;gap:1px;min-width:52px;border:1px solid var(--bk-line);background:var(--bk-paper);border-radius:14px;padding:6px 8px;cursor:pointer;color:var(--bk-ink);font:inherit}
+.bk-week-btn{font-weight:800;font-size:12px;line-height:1.2;color:var(--bk-g);align-content:center;max-width:84px;white-space:normal;text-align:center}
+.bk-day-btn b{font-size:14px}.bk-day-btn small{font-size:11px;color:var(--bk-mut)}.bk-day-btn i{font-style:normal;font-size:11px;font-weight:800;color:#b86b00}
+.bk-day-btn.is-today{border-color:#a9cdb4}
+.bk-day-btn.is-on{background:var(--bk-g);border-color:var(--bk-g);color:#fff}.bk-day-btn.is-on small,.bk-day-btn.is-on i{color:#e8f3ea}
+/* xulosa qatori */
+.bk-summary{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;background:var(--bk-cream);border-radius:18px;padding:10px 14px}
+.bk-summary>span{display:inline-flex;align-items:center;gap:6px;font-size:15px}
+.bk-summary i{font-style:normal;font-size:20px}.bk-summary b{font-size:17px}
+.bk-summary em{font-style:normal;font-size:11.5px;font-weight:800;background:var(--bk-g);color:#fff;border-radius:999px;padding:2px 8px}
+.bk-davomat{border-radius:999px;padding:6px 12px;font-weight:800}
+.bk-davomat.is-ok{background:var(--bk-g2);color:var(--bk-g)}.bk-davomat.is-wait{background:#fff;color:var(--bk-mut)}.bk-davomat.is-miss{background:#fff3e0;color:#9a5a00}.bk-davomat.is-review{background:#f1eafc;color:#5b3c99}
+/* kartalar */
+.bk-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.bk-card{display:grid;align-content:start;gap:8px;background:var(--bk-paper);border:1px solid var(--bk-line);border-radius:22px;padding:12px;box-shadow:0 4px 14px #0000000a}
+.bk-card header h4{margin:0;font-weight:900;font-size:18px;line-height:1.2;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bk-card header p{margin:2px 0 0;font-size:15px;color:#3b4a43}.bk-card header p.is-muted{color:var(--bk-mut);font-size:13px}
+.bk-media{display:grid;gap:6px;background:var(--bk,#f4efe4);border-radius:18px;overflow:hidden;min-height:120px;place-items:center}
+.bk-root.is-bola .bk-media{background:transparent;place-items:stretch}
+.bk-big-emoji{font-size:64px;line-height:1;padding:18px;filter:drop-shadow(0 4px 6px #0002)}
+.bk-strip{display:flex;gap:8px;justify-content:center;align-items:center;padding:10px;width:100%;box-sizing:border-box}
+.bk-strip.is-mini{padding:0 4px 2px;justify-content:flex-start}.bk-strip.is-mini .bk-rasm{width:46px;height:46px;border-radius:12px;background:var(--bk,#f4efe4)}
+.bk-rasm{position:relative;display:grid;place-items:center;width:clamp(64px,28%,110px);aspect-ratio:1;border-radius:16px;background:#ffffffb3;overflow:hidden}
+.bk-rasm img{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;opacity:0;transition:opacity .35s}
+.bk-rasm.is-ok img{opacity:1}
+.bk-rasm-ph{font-size:clamp(26px,9cqw,44px);line-height:1}
+.bk-strip.is-mini .bk-rasm-ph{font-size:24px}
+.bk-kuzatuv{margin:0;font-size:14.5px;line-height:1.4;color:#2d3a34}
+.bk-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bk-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-weight:800;font-size:13.5px;line-height:1.1;background:#f3f1ec;color:#4a554f}
+.bk-chip i{font-style:normal}
+.bk-chip.is-mustaqil{background:var(--bk-g2);color:var(--bk-g)}.bk-chip.is-eslatma{background:#fff3d6;color:#8a5a00}.bk-chip.is-birga{background:#e8eef9;color:#36507e}
+.bk-chip.is-bugun{background:#e3f1ff;color:#1b4b7a}.bk-chip.is-otkazildi{background:#fff3e0;color:#9a5a00}.bk-chip.is-keladi{background:#f6f4ef;color:var(--bk-mut)}.bk-chip.is-chala{background:#fffaf0;color:#8a5a00}
+.bk-stars{font-size:15px;letter-spacing:-1px}
+.bk-card.is-keladi,.bk-card.is-otkazildi{opacity:.92}
+.bk-home{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;background:#fff6e6;border:1px solid #f4e2bd;border-radius:22px;padding:12px 16px}
+.bk-home-ico{font-size:40px;line-height:1}
+.bk-home b{font-weight:900;font-size:18px;line-height:1.2}.bk-home p{margin:3px 0 0;font-size:14.5px;color:#4a3f2a;line-height:1.4}
+.bk-empty{margin:0;text-align:center;color:var(--bk-mut);font-size:14px;padding:14px}
+/* jadval */
+.bk-sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.bk-sec-head h3,.bk-riv h3{margin:0;font-weight:900;font-size:24px;line-height:1.1;color:var(--bk-ink)}
+.bk-sec-head p{margin:3px 0 0;color:var(--bk-mut);font-weight:700}
+.bk-seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--bk-cream)}
+.bk-seg button{border:0;background:transparent;border-radius:10px;padding:7px 12px;font-weight:800;font-size:13px;line-height:1;color:var(--bk-mut);cursor:pointer}
+.bk-seg button.is-on{background:#fff;color:var(--bk-g);box-shadow:0 1px 4px #0001}
+.bk-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.bk-col{display:grid;align-content:start;gap:6px;background:var(--bk-paper);border:1px solid var(--bk-line);border-radius:18px;padding:0 6px 8px;overflow:hidden}
+.bk-col h4{margin:0 -6px;padding:8px 6px;text-align:center;background:var(--bk-g2);font-weight:900;font-size:14px;line-height:1.1;color:var(--bk-g)}
+.bk-col h4 small{display:block;font-weight:700;font-size:10.5px;color:var(--bk-mut)}
+.bk-col.is-bugun h4{background:var(--bk-g);color:#fff}.bk-col.is-bugun h4 small{color:#e8f3ea}
+.bk-col.is-sun h4{background:#f1eafc;color:#5b3c99}
+.bk-tile{display:grid;justify-items:center;gap:3px;text-align:center;border-radius:14px;padding:10px 6px;background:var(--bk,#f4efe4)}
+.bk-tile-ico{font-size:34px;line-height:1}
+.bk-tile b{font-weight:800;font-size:13px;line-height:1.15}.bk-tile small{font-size:11.5px;color:var(--bk-mut)}
+.bk-tile.is-tugadi{box-shadow:inset 0 0 0 2px #bfe0c8}.bk-tile.is-otkazildi{box-shadow:inset 0 0 0 2px #f3d48a}
+.bk-tile.is-review,.bk-tile.is-free{background:transparent;border:1.5px dashed var(--bk-line);color:var(--bk-mut)}
+@media(max-width:560px){.bk-cols{grid-template-columns:1fr}.bk-col{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}.bk-col h4{grid-column:1/-1}}
+/* fanlar */
+.bk-fanlar{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.bk-fanlar li{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;background:var(--bk,#f4efe4);border-radius:18px;padding:10px 12px}
+.bk-fan-ico{font-size:40px;line-height:1;text-align:center}
+.bk-fanlar b{font-weight:900;font-size:16px;line-height:1.2}.bk-fanlar small{display:block;color:#4a554f;font-size:12.5px;margin-top:2px}.bk-fanlar p{margin:4px 0 0;font-size:13px;color:#3b4a43}
+/* rivojlanish */
+.bk-riv{display:grid;gap:12px}
+.bk-riv-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.bk-riv-cards li{display:grid;gap:8px;background:var(--bk-paper);border:1px solid var(--bk-line);border-radius:22px;padding:12px}
+.bk-riv-cards h4{margin:0;font-weight:900;font-size:17px;line-height:1.2;display:flex;gap:6px;align-items:center}
+.bk-riv-media{display:grid;place-items:center;background:var(--bk,#f4efe4);border-radius:16px;min-height:110px}
+.bk-riv-topic{margin:0;font-size:13.5px;color:#3b4a43}
+.bk-riv-row{margin:0;display:flex;align-items:center;gap:8px;border-radius:12px;padding:8px 10px;font-size:13.5px;background:#eef2f6;color:#3b4a5a}
+.bk-riv-row i{font-style:normal}
+.bk-riv-row.is-now.is-mustaqil{background:var(--bk-g2);color:var(--bk-g)}.bk-riv-row.is-now.is-eslatma{background:#fff3d6;color:#8a5a00}.bk-riv-row.is-now.is-birga{background:#e8eef9;color:#36507e}
+.bk-legend{margin:0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;font-size:13px;color:var(--bk-mut)}
+.bk-legend span{display:inline-flex;gap:5px;align-items:center}.bk-legend i{font-style:normal}
+.bk-tavsiya{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;background:#fff6e6;border:1px solid #f4e2bd;border-radius:22px;padding:10px 16px 10px 10px;overflow:hidden}
+.bk-tavsiya img{height:92px;width:auto;align-self:end;margin-bottom:-10px}
+.bk-tavsiya small{display:block;font-weight:800;color:#8a5a00;font-size:12.5px}.bk-tavsiya b{font-weight:800;font-size:16px;line-height:1.35}
+/* skelet */
+.bk-sk{display:block;height:14px;border-radius:8px;background:linear-gradient(90deg,#efe9dd 0%,#f8f4ec 50%,#efe9dd 100%);background-size:200% 100%;animation:bk-sk 1.2s linear infinite;min-width:80px}
+.bk-sk.is-title{height:20px;width:60%}.bk-sk.is-media{height:120px;border-radius:16px}
+@keyframes bk-sk{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.bk-sk{animation:none}}
+
+/* REV168: tor ekranda gorizontal toshib ketmasin (grid bolalari min-content kengligini olmasin) */
+.bk-root,.bk-root>*,.bk-kunlik,.bk-kunlik>*{min-width:0}

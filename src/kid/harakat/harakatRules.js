@@ -99,12 +99,14 @@ export function bugunBajarilgan(p = {}, xonaYulduz = () => 0, bugun = kunRaqami(
  * Bajarilgan tugunlar har doim qayta o'ynaladi. opts: {limit, bugun, cheklovsiz} — cheklovsiz (admin): kunlik limit yo'q va
  * hamma tugun ochiq.
  */
-export function yolHolati(p = {}, xonaYulduz = () => 0, { limit = Infinity, bugun = kunRaqami(), cheklovsiz = false } = {}) {
+export function yolHolati(p = {}, xonaYulduz = () => 0, { limit = Infinity, bugun = kunRaqami(), cheklovsiz = false, sinov = 0 } = {}) {
   const t = yolTugunlari();
   const tolgan = !cheklovsiz && bugunBajarilgan(p, xonaYulduz, bugun) >= limit;
   let ochiqTopildi = false;
-  return t.map((tg) => {
+  return t.map((tg, i) => {
     if (bajarildi(tg, p, xonaYulduz)) return { ...tg, holat: "tugadi" };
+    // REV168: kurs olinmagan til — faqat birinchi «sinov» bosqichlari (reklama); qolgani kurs olinganda ochiladi
+    if (!cheklovsiz && sinov > 0 && i >= sinov) return { ...tg, holat: "kurs" };
     if (!ochiqTopildi) { ochiqTopildi = true; return { ...tg, holat: tolgan ? "ertaga" : "ochiq" }; }
     return { ...tg, holat: cheklovsiz ? "ochiq" : "qulf" };
   });

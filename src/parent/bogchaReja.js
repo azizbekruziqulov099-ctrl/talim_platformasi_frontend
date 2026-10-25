@@ -39,8 +39,11 @@ export function fanKaliti(nom) {
 export function rejaKvotasi(plan, fanNomi) {
   const r = plan?.reja;
   if (!r || (!r.manba && !r.obuna_kerak) || !fanKaliti(fanNomi)) return null;   // rejadan tashqari fan — eski tartib
-  if (r.obuna_kerak) return 0;
-  return Number(r.bugun?.[fanKaliti(fanNomi)] || 0);
+  const k = fanKaliti(fanNomi);
+  const sinov = r.takror_kuni ? 0 : Number(r.sinov?.[k] || 0);   // REV168: olinmagan kurs — sinov (reklama) darslari
+  if (r.obuna_kerak) return sinov;
+  if (!r.faol?.includes(k) && sinov > 0) return sinov;
+  return Number(r.bugun?.[k] || 0);
 }
 
 /** Bola fan sahifasida ko'radigan qisqa holat: bugun bormi, bo'lmasa keyingi kuni. */
@@ -48,8 +51,11 @@ export function fanHolati(plan, fanNomi) {
   const r = plan?.reja;
   const k = fanKaliti(fanNomi);
   if (!r || (!r.manba && !r.obuna_kerak) || !k) return null;
-  if (r.obuna_kerak) return { turi: 'obuna', kvota: 0 };
   if (r.takror_kuni) return { turi: 'takror', kvota: 0 };
+  // REV168: olinmagan kurs — birinchi bir nechta dars bepul (sinov)
+  const sinov = Number(r.sinov?.[k] || 0);
+  if ((r.obuna_kerak || !r.faol?.includes(k)) && sinov > 0) return { turi: 'sinov', kvota: sinov, asl: r.obuna_kerak ? 'obuna' : r.navbat?.includes(k) ? 'navbat' : 'yoq' };
+  if (r.obuna_kerak) return { turi: 'obuna', kvota: 0 };
   if (r.navbat?.includes(k)) return { turi: 'navbat', kvota: 0 };
   if (!r.faol?.includes(k)) return { turi: 'yoq', kvota: 0 };
   const kvota = Number(r.bugun?.[k] || 0);

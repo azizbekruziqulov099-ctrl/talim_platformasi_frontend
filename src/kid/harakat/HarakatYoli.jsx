@@ -31,7 +31,7 @@ const TUGUN_NOM = { organ: "O‘rgan", oyna: "O‘yna", xona: "So‘zlar xonasi"
  * nomini o'rganadigan xona. Bo'limlar orasida aralash takror, oxirida hech qachon tugamaydigan, tobora tezlashadigan o'yin.
  * Tushuntirishlar — kursning izoh tilida (o'zbek, rus yoki ingliz).
  */
-export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, jim, gapiryapti = false, xonaYulduz = () => 0, onXona, ochiq = true, cheklovsiz = false }) {
+export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, jim, gapiryapti = false, xonaYulduz = () => 0, onXona, ochiq = true, cheklovsiz = false, sinov = 0 }) {
   const yosh = yoshGuruhi(grade);
   const toliq = yosh !== "kichik";
   const [p, setP] = useState(() => tilNatija(til));
@@ -49,7 +49,7 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
   useEffect(() => { const t = setInterval(() => setKun(kunRaqami()), 60000); return () => clearInterval(t); }, []);
   const limit = kunlikLimit(yosh);
   useEffect(() => { const yangi = kunBelgila(til, xonaYulduz, undefined, kun); if (yangi) setP(yangi); }, [p, til, xonaYulduz, kun]);
-  const tugunlar = useMemo(() => yolHolati(p, xonaYulduz, { limit, bugun: kun, cheklovsiz }), [p, xonaYulduz, limit, kun, cheklovsiz]);
+  const tugunlar = useMemo(() => yolHolati(p, xonaYulduz, { limit, bugun: kun, cheklovsiz, sinov }), [p, xonaYulduz, limit, kun, cheklovsiz, sinov]);
   const bugunN = useMemo(() => Math.min(limit, bugunBajarilgan(p, xonaYulduz, kun)), [p, xonaYulduz, kun, limit]);
   const ertaga = tugunlar.some((t) => t.holat === "ertaga");
   const navbatdagi = tugunlar.find((t) => t.holat === "ochiq");
@@ -209,6 +209,7 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
   const tugunBos = (t) => {
     if (!ochiq) return;
     if (t.holat === "qulf") { say(izohGap("qulf", izoh)); return; }
+    if (t.holat === "kurs") { jim?.(); say(T("Bu bosqichlar ota-onang shu tilni tanlaganda ochiladi. Hozircha sinov bosqichlarini o‘yna!")); return; }   // REV168
     if (t.holat === "ertaga") { jim?.(); say(izohGap("ertaga", izoh)); return; }
     if (t.tur === "organ") organBoshla(t.bolim, t.id);
     else if (t.tur === "oyna") oyinBoshla("oyna", t.id, bolimHarakatlari(t.bolim).map((h) => h.id));
@@ -315,12 +316,13 @@ function Tugun({ t, i, p, izoh, onBos, xonaYulduz }) {
   const y = (p.yulduz || {})[t.id] || 0;
   const xona = t.tur === "xona" ? XONALAR.find((x) => x.id === t.xona) : null;
   const nom = xona ? `${xona.emoji} ${T(xona.nom)}` : T(TUGUN_NOM[t.tur]);
-  const belgi = t.holat === "qulf" ? <Belgi k="qulf" emoji="🔒" /> : t.holat === "ertaga" ? <B e="🌙" /> : <Belgi k={t.tur} emoji={TUGUN_BELGI[t.tur]} />;
+  const belgi = t.holat === "qulf" ? <Belgi k="qulf" emoji="🔒" /> : t.holat === "kurs" ? <B e="🎁" /> : t.holat === "ertaga" ? <B e="🌙" /> : <Belgi k={t.tur} emoji={TUGUN_BELGI[t.tur]} />;
   return <button type="button" className={`hy-tugun is-${t.holat} hy-tugun--${t.tur}`} style={{ "--i": i }} onClick={onBos}
     aria-label={`${nom}${t.holat === "qulf" ? ` — ${T("yopiq")}` : t.holat === "ertaga" ? ` — ${izohMatn("ertagaQisqa", izoh)}` : ""}`}>
     <span className="hy-tugun-doira" aria-hidden="true">{belgi}</span>
     <b>{nom}</b>
-    {t.holat === "ertaga" ? <small>{izohMatn("ertagaQisqa", izoh)}</small>
+    {t.holat === "kurs" ? <small>{T("Kurs olinganda")}</small>
+      : t.holat === "ertaga" ? <small>{izohMatn("ertagaQisqa", izoh)}</small>
       : t.tur === "cheksiz" ? <small><B e="🏆" /> {p.cheksiz || 0}</small>
       : t.tur === "xona" ? <small>⭐ {Math.min(3, xonaYulduz(t.xona))}/3</small>
         : (t.tur === "oyna" || t.tur === "takror") ? <small aria-hidden="true">{[1, 2, 3].map((k) => (k <= y ? "⭐" : "☆")).join("")}</small>

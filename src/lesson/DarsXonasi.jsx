@@ -868,6 +868,21 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [focus]);
+  // REV168: «telefonni yotqizing» — to'liq ekran va gorizontal holat (Android'da ishlaydi; iPhone'da bola o'zi buradi)
+  const kengaytir = async () => {
+    try {
+      const el = document.documentElement;
+      if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" });
+      await globalThis.screen?.orientation?.lock?.("landscape");
+    } catch { /* qurilma ruxsat bermadi — bola telefonni o'zi buradi */ }
+  };
+  useEffect(() => {
+    if (focus) return undefined;
+    try { globalThis.screen?.orientation?.unlock?.(); } catch { /* */ }
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    return undefined;
+  }, [focus]);
+  useEffect(() => () => { try { globalThis.screen?.orientation?.unlock?.(); if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); } catch { /* */ } }, []);
   const exitLesson = () => {
     hush(); setPlaying(false); setMenu(false); setVariant(null);
     if (kid && onClose) { onClose(); return; }
@@ -908,7 +923,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     say(pass ? __kbUi("Barakalla! Siz mavzuni o‘zlashtirdingiz.") : __kbUi("Yaxshi harakat! Keling, asosiy qismni yana bir bor ko‘rib chiqamiz."));
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) return <div className="dx-status">{__kbUi("Dars yuklanmoqda…")}</div>;
+  // REV168: yuklanayotganda — tez chiqadigan tushunarli «sinfxona» (bo'sh oyna emas); dars kelgach chiroylisi
+  if (loading) return <div className={`dx-loading ${kid ? "is-kid" : ""}`} role="status">
+    <div className="dx-loading-stage" aria-hidden="true"><span className="dx-loading-board">{kid ? "✏️ 🍎 ⭐" : "📘"}</span><span className="dx-loading-teacher">{kid ? "👩‍🏫" : "🧑‍🏫"}</span></div>
+    <p>{__kbUi(kid ? "Ustoz darsni tayyorlayapti…" : "Dars yuklanmoqda…")}</p>
+  </div>;
   if (error) return <div className="dx-empty"><p>{__kbUi(error)}</p>{onChat && <button type="button" className="dx-btn dx-primary" onClick={onChat}>{__kbUi("AI ustoz bilan suhbatda o‘rganish")}</button>}</div>;
 
   const range = step ? sceneRange(steps, idx) : [];
@@ -1047,6 +1066,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
     </header>
+    {kid && focus && <button type="button" className="dx-rotate" onClick={kengaytir}><i aria-hidden="true">📱</i>{__kbUi("Telefonni yotqizing — dars kattaroq ko‘rinadi")}</button>}
     <div className="dx-steps" role="group" aria-label={__kbUi("Dars qadamlari")}>
       {steps.map((s, i) => <button key={s.id} type="button" aria-label={`${i + 1}`} onClick={() => { setPlaying(false); go(i, false); }}
         className={`dx-step ${i < idx || ["test", "result", "end", "ovoz"].includes(mode) ? "is-done" : i === idx ? "is-now" : ""} ${kid ? `k-${kinds[i]}` : ""}`} />)}

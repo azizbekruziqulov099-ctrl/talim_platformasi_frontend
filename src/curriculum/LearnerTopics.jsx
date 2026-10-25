@@ -14,11 +14,13 @@ import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopi
 import { lessonDone, lessonStars } from './kidProgress.js';
 import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
-import { SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
+import { KURS, SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
 import FanBelgi from '../kid/FanBelgi.jsx';
 import { guruhMos } from '../admin/previewRules.js';
+import { ustozFor } from '../kid/ustozRules.js';
+import { bobBoyicha, fanEmblema, guruhla } from './fanGuruhlari.js';
 import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
@@ -71,21 +73,37 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  // REV91: bog'cha — kunlik reja (har fandan kuniga 2 ta yangi dars, dam olish kunlari 3 ta). Server tekshiradi.
  const [plan,setPlan]=useState(null);
  const planFan=current?.nom||'';
- const loadPlan=React.useCallback(()=>{if(!kid||preview)return;fetchDayPlan(apiBase,token).then(setPlan).catch(()=>setPlan(null));},[kid,apiBase,token,preview]);
+ const loadPlan=React.useCallback(()=>{if(!kid||preview)return;fetchDayPlan(apiBase,token).then(p=>{setPlan(p);
+  // REV168: o'yinlar bo'limi bolaning o'z tillarini birinchi ochsin, olinmagan tilda — sinov bosqichlari
+  try{const r=p?.reja;const tillar=(r&&(r.manba||r.obuna_kerak))?(r.faol||[]).filter(k=>KURS[k]?.turi==='til'):null;
+   if(tillar)window.localStorage.setItem('kabutar:kid:tillar',JSON.stringify({tillar,at:Date.now()}));else window.localStorage.removeItem('kabutar:kid:tillar');}catch{/* ixtiyoriy */}
+ }).catch(()=>setPlan(null));},[kid,apiBase,token,preview]);
  useEffect(()=>{if(kid&&!classroom)loadPlan();},[kid,classroom,loadPlan]);
- const unlockOf=group=>unlockLessons(group.mavzular.map(t=>t.dars_bor?topicTarget(current,group,t,type).lesson_code:''),plan,planFan);
+ // REV168: fan ixtiyoriy — bosh sahifadagi «Bugungi darslar»dan boshqa fanning darsi ham shu yo'l bilan ochiladi
+ const unlockOf=(group,sub=current)=>unlockLessons(group.mavzular.map(t=>t.dars_bor?topicTarget(sub,group,t,type).lesson_code:''),plan,sub?.nom||'');
  // REV81: uzluksiz o'rganish — dars tugagach keyingi darsga o'tish (guruh ichidagi tartib bo'yicha).
- const openLesson=(group,topic)=>{
+ const openLesson=(group,topic,sub=current)=>{
+  const fanNom=sub?.nom||'';
   const list=group.mavzular.filter(t=>t.dars_bor);const i=list.indexOf(topic);let next=i>=0?list[i+1]:null;
   if(kid&&plan?.bogcha&&next){
-   const u=unlockOf(group);const self=u[group.mavzular.indexOf(topic)]||{};const nu=u[group.mavzular.indexOf(next)]||{};
-   const rk=rejaKvotasi(plan,planFan);const left=(rk!==null?rk:(plan.fanlar?.[planFan]?.qoldi??plan.limit))-(self.isNew?1:0);
+   const u=unlockOf(group,sub);const self=u[group.mavzular.indexOf(topic)]||{};const nu=u[group.mavzular.indexOf(next)]||{};
+   const rk=rejaKvotasi(plan,fanNom);const left=(rk!==null?rk:(plan.fanlar?.[fanNom]?.qoldi??plan.limit))-(self.isNew?1:0);
    if(!nu.known&&left<=0)next=null;   // keyingi yangi dars ertaga ochiladi
   }
   // REV130: dars boshida takrorlanadigan «o'tgan mavzu» — ro'yxatdagi oldingi oddiy dars (takror darslari hisoblanmaydi)
   const prevTopic=i>0?[...list.slice(0,i)].reverse().find(t=>!isReviewTopic(t.nomi)):null;
-  setClassroom({...topicTarget(current,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(current,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next)}:null});
+  setClassroom({...topicTarget(sub,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(sub,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next,sub)}:null});
  };
+ // REV168: bosh sahifa — bugungi rejadagi har fanning navbatdagi darsi (mavzusi, ustozi) bitta bosishda ochiladi
+ const bugungiDarslar=()=>!kid||!plan?[]:subjects.filter(sub=>fanHolati(plan,sub.nom)?.turi==='bor').map(sub=>{
+  const base={kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom),ustoz:ustozFor(sub.nom),kvota:fanHolati(plan,sub.nom)?.kvota||0};
+  for(const g of filterTopics(sub,'','all').filter(x=>guruhMos(x.sinf,preview?.sinf))){
+   const u=unlockOf(g,sub);
+   const i=g.mavzular.findIndex((t,k)=>t.dars_bor&&u[k]?.open&&!(lessonDone(topicTarget(sub,g,t,type).lesson_code)||u[k]?.tugadi));
+   if(i>=0){const t=g.mavzular[i];return {...base,mavzu:capitalizeTopic(t.nomi),mavzuEmoji:kidTopicEmoji(t.nomi,i),open:()=>{chooseSubject(sub.kalit);openLesson(g,t,sub);}};}
+  }
+  return {...base,mavzu:'',mavzuEmoji:'',open:()=>{chooseSubject(sub.kalit);setOlam(false);}};
+ });
  const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');};
  // REV90: o'qiy olmaydigan bola uchun — kartadagi nomni ovoz bilan aytadi.
  const voice=useRef(null);
@@ -111,7 +129,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  </div>;
 
  if(kid&&olam&&!loading&&!catalog?.profil_sozlanmagan&&subjects.length) return <div className="lt-root">
-  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom),holat:fanHolati(plan,sub.nom)}))} apiBase={apiBase} token={preview?'':token} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
+  <BogchaOlami fanlar={subjects.map(sub=>({kalit:sub.kalit,nom:fanNomiTil(sub.nom,locale),asl:sub.nom,emoji:kidSubjectEmoji(sub.nom),holat:fanHolati(plan,sub.nom),ustoz:ustozFor(sub.nom)}))} bugun={bugungiDarslar()} apiBase={apiBase} token={preview?'':token} grade={user?.yosh_guruhi||user?.learning_profile?.age_group||user?.class||''}
    onFan={key=>{chooseSubject(key);setOlam(false);}} say={t=>sayName(t,String(locale||'').startsWith('en'))}/>
  </div>;
 
@@ -123,7 +141,11 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
    onType={value=>{chosen.current=true;setType(value);setLesson('all');}}
    onLesson={setLesson} disabled={loading}/>}
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{__kbUi(error)}</p>}
-  {loading?<p role="status" className="p-6 text-center text-slate-500">{__kbUi("Mavzular yuklanmoqda…")}</p>
+  {loading?<div role="status" className={`lt-skelet ${kid?'is-kid':''}`} aria-label={__kbUi("Mavzular yuklanmoqda…")}>
+    {/* REV168: tez chiqadigan skelet — sekin internetda ham sahifa «qotgan»dek ko'rinmaydi */}
+    <div className="lt-sk-grid">{Array.from({length:kid?4:6},(_,i)=><span key={i} className="lt-sk"><i>{kid?['🔢','🇬🇧','🧩','🌳'][i%4]:'📘'}</i></span>)}</div>
+    <p className="text-center text-sm text-slate-500">{__kbUi("Mavzular yuklanmoqda…")}</p>
+   </div>
    : catalog?.profil_sozlanmagan ? <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{teacher?__kbUi('Profilingizda faol ish joyini tanlang.'):__kbUi('Ta’lim profilingizni to‘ldiring: muassasa, yo‘nalish, ta’lim shakli, til, kurs, semestr va guruh mos bo‘lishi kerak.')}</p>
    : error&&!subjects.length ? null
    : !subjects.length && !(universityBrowse&&matched.length) ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">{__kbUi("Bu bo‘limga mos mavzular hali kiritilmagan.")}</p>
@@ -136,7 +158,20 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       <span className="kt-subject-name"><TranslatedContent text={fanNomiTil(current.nom,locale)} showStatus={false}/></span>
      </button>
     </div>}
-    {!kid&&<section aria-label={__kbUi("Fanlar")}>
+    {/* REV168: maktab (1–11) va markaz — fanlar guruhlarda («Maktab fanlari», «Tillar», «Ijod va sport»), har biri o'z belgisi bilan */}
+    {!kid&&!universityBrowse&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
+     <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
+     {guruhla(subjects).map(g=><div key={g.id} className="lt-guruh">
+      <h3 className="lt-guruh-nom"><span aria-hidden="true">{g.emoji}</span> {__kbUi(g.nom)} <small>{g.fanlar.length}</small></h3>
+      <div className="lt-fan-grid">{g.fanlar.map(subject=>{const stats=subjectStats(subject);const active=subject.kalit===current?.kalit;
+       return <button key={subject.kalit} type="button" aria-pressed={active} onClick={()=>chooseSubject(subject.kalit)} className={`lt-fan ${active?'is-on':''}`}>
+        <span className="lt-fan-emb"><FanBelgi emoji={fanEmblema(subject.nom)}/></span>
+        <b><TranslatedContent text={fanNomiTil(subject.nom,locale)} showStatus={false}/>{subject.dars_turi_nomi?` · ${__kbUi(subject.dars_turi_nomi)}`:''}</b>
+        <small>{__kbUi(`${stats.topics} mavzu · ${stats.lessons} dars · ${stats.tested} testli`)}</small>
+       </button>;})}</div>
+     </div>)}
+    </section>}
+    {!kid&&universityBrowse&&<section aria-label={__kbUi("Fanlar")}>
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
      <div className="flex gap-2 overflow-x-auto pb-1">
       {subjects.map(subject=>{const stats=subjectStats(subject);const active=subject.kalit===current?.kalit;
@@ -205,10 +240,13 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       </ul>
      </div>;})}
      {!kid&&groups.map(group=><div key={group.sinf}>
-      <p className="mb-2 text-xs font-semibold text-slate-500">{__kbUi(gradeLabel(type,group.sinf))}</p>
-      <ul className="space-y-2">{group.mavzular.map(topic=>{const target=topicTarget(current,group,topic,type);
+      <p className="mb-2 text-xs font-semibold text-slate-500">{current&&<span className="lt-mini-emb" aria-hidden="true"><FanBelgi emoji={fanEmblema(current.nom)}/></span>}{__kbUi(gradeLabel(type,group.sinf))}</p>
+      {/* REV168: mavzular bob bo'yicha va raqamlangan — qaysi bo'limda nima borligi tushunarli */}
+      <ul className="space-y-2">{bobBoyicha(group.mavzular).map((b,bi)=><React.Fragment key={`bob-${bi}`}>
+       {b.bob&&<li className="lt-bob-nom">📂 <TranslatedContent text={capitalizeTopic(b.bob)} showStatus={false}/> <small>{b.mavzular.length} {__kbUi("mavzu")}</small></li>}
+       {b.mavzular.map(topic=>{const target=topicTarget(current,group,topic,type);
        return <li key={catalogTopicKey(topic)} className="rounded-xl border border-slate-200 bg-white p-3">
-        <p className="text-sm font-medium text-slate-800"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>{topic.semestr > 0 && <small className="block text-xs text-slate-500">{topic.semestr}{__kbUi("-semestr")}</small>}</p>
+        <p className="text-sm font-medium text-slate-800"><span className="lt-raqam">{topic.raqam}</span><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>{topic.semestr > 0 && <small className="block text-xs text-slate-500">{topic.semestr}{__kbUi("-semestr")}</small>}</p>
         <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
          {topic.dars_bor&&<span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800">{__kbUi("📘 Kitob darsi")}</span>}
          <span className={`rounded-full px-2 py-0.5 ${topic.savol_soni?'bg-sky-50 text-sky-800':'bg-slate-100 text-slate-500'}`}>{topic.savol_soni?__kbUi(`📝 ${topic.savol_soni} ta test savoli`):__kbUi('Test hali yo‘q')}</span>
@@ -220,7 +258,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
          {teacher&&topic.dars_bor&&[['pdf','⬇ Dars PDF'],['docx','⬇ Dars Word']].map(([format,label])=><a key={format} href={lessonDownloadUrl(apiBase,token,target.lesson_code,format)} download
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{__kbUi(label)}</a>)}
         </div>
-       </li>;})}</ul>
+       </li>;})}</React.Fragment>)}</ul>
      </div>)}
     </section>
    </>}

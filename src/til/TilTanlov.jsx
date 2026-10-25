@@ -17,6 +17,11 @@ export const OQITILADIGAN = [
 ];
 const KEY = "kabutar:til:tanlov";
 const eslab = () => { try { return globalThis.localStorage?.getItem(KEY) || ""; } catch { return ""; } };
+/** REV168: bog'cha bolasining rejasidagi tillar (null — reja yo'q, cheklov ham yo'q). */
+export function bolaTillari() {
+  try { const v = JSON.parse(globalThis.localStorage?.getItem("kabutar:kid:tillar") || "null"); return Array.isArray(v?.tillar) ? v.tillar : null; } catch { return null; }
+}
+export const SINOV_BOSQICH = 4;
 const saqla = (v) => { try { globalThis.localStorage?.setItem(KEY, v); } catch { /* ixtiyoriy */ } };
 /** Izoh tili — interfeys tili (uz, ru, en); boshqa interfeys tillarida — o'zbekcha. */
 export const izohTili = (loc = interfaceLocale()) => (String(loc).startsWith("ru") ? "ru" : String(loc).startsWith("en") ? "en" : "uz");
@@ -28,7 +33,8 @@ export const izohTili = (loc = interfaceLocale()) => (String(loc).startsWith("ru
 export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", sinf = "", cheklovsiz = false, onClose }) {
   useInterface();
   const loc = interfaceLocale();
-  const [til, setTil] = useState(() => eslab());
+  const mening = tur === "xonalar" && !cheklovsiz ? bolaTillari() : null;   // REV168
+  const [til, setTil] = useState(() => eslab() || mening?.[0] || "");
   const [ochiq, setOchiq] = useState(false);
   const izoh = izohTili(loc);
   const nomi = (n) => fanNomiTil(n, loc);
@@ -40,7 +46,8 @@ export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", s
         ? <TilMashqi apiBase={apiBase} til={til} izoh={izoh} onClose={() => setOchiq(false)} />
         : tur === "maktab"
         ? <MaktabTil apiBase={apiBase} til={til} izoh={izoh} sinf={sinfRaqami(sinf) || 1} cheklovsiz={cheklovsiz} sarlavha={sarlavha} onClose={() => setOchiq(false)} />
-        : <TilXonalari apiBase={apiBase} til={til} izoh={izoh} grade={grade} cheklovsiz={cheklovsiz} sarlavha={sarlavha} onClose={() => setOchiq(false)} />}
+        : <TilXonalari apiBase={apiBase} til={til} izoh={izoh} grade={grade} cheklovsiz={cheklovsiz} sarlavha={sarlavha}
+          sinov={mening && !mening.includes(til) ? SINOV_BOSQICH : 0} onClose={() => setOchiq(false)} />}
     </React.Suspense>;
   }
 
@@ -51,11 +58,13 @@ export default function TilTanlov({ tur = "xonalar", apiBase = "", grade = "", s
         <small className="tm-sub">{T("Qaysi tilni o‘rganamiz?")}</small></div>
     </div>
     <div className="tt-grid">
-      {OQITILADIGAN.map(([k, bayroq, n]) => <button key={k} type="button" className={`tt-til ${til === k ? "is-on" : ""}`}
-        onClick={() => { setTil(k); saqla(k); setOchiq(true); }}>
-        <span className="tt-flag"><FanBelgi emoji={bayroq} /></span>
-        <b>{nomi(n)}</b>
-      </button>)}
+      {(mening ? [...OQITILADIGAN].sort((a, b) => (mening.includes(a[0]) ? 0 : 1) - (mening.includes(b[0]) ? 0 : 1)) : OQITILADIGAN).map(([k, bayroq, n]) =>
+        <button key={k} type="button" className={`tt-til ${til === k ? "is-on" : ""} ${mening ? (mening.includes(k) ? "is-mine" : "is-sinov") : ""}`}
+          onClick={() => { setTil(k); saqla(k); setOchiq(true); }}>
+          <span className="tt-flag"><FanBelgi emoji={bayroq} /></span>
+          <b>{nomi(n)}</b>
+          {mening && <small className="tt-tag">{mening.includes(k) ? `⭐ ${T("Mening tilim")}` : `🎁 ${T("Sinov")}`}</small>}
+        </button>)}
     </div>
   </div>;
 }

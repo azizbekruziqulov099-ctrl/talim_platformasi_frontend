@@ -63,3 +63,7 @@
 .tt-til { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 16px; border: 2px solid #E2E8F0; background: #fff; cursor: pointer; color: #1F3B57; font-size: 16px; }
 .tt-til:hover, .tt-til:focus-visible, .tt-til.is-on { border-color: #1B4B7A; outline: none; }
 .tt-flag { font-size: 28px; line-height: 1; }
+/* REV168: bolaning o'z tillari birinchi; olinmagan til — sinov */
+.tt-til.is-mine{box-shadow:0 0 0 3px #2f9a55}
+.tt-tag{display:block;font:800 11.5px/1.2 system-ui,sans-serif;color:#2f6b47;margin-top:2px}
+.tt-til.is-sinov .tt-tag{color:#9a5a00}

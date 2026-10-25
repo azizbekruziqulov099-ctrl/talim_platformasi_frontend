@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v17-rev167";
+const CACHE = "samtm-shell-v17-rev168";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 

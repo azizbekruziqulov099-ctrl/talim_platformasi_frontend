@@ -1,0 +1,25 @@
+/* REV168: kichik sinfxona — fan xonasi va jonli ustoz */
+.ux-room{position:relative;width:100%;aspect-ratio:1586/992;overflow:hidden;border-radius:18px;background:linear-gradient(#f3ead9 0 68%,#d9b98f 68% 100%);contain:layout paint;container-type:inline-size}
+.ux-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ux-board{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqw;padding:2cqw;box-sizing:border-box;text-align:center;
+  font-family:"Caveat","Comic Sans MS",cursive;color:#f6f3e7;text-shadow:0 1px 0 #0003;overflow:hidden}
+.ux-board.is-panel{color:#2b3a33;text-shadow:none}
+.ux-board-ico{font-size:11cqw;line-height:1;filter:drop-shadow(0 2px 3px #0003);animation:ux-pop .5s cubic-bezier(.3,1.5,.5,1) both}
+.ux-board-ico img{width:11cqw;height:auto}
+.ux-board-txt{font-weight:700;font-size:5.4cqw;line-height:1.05;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ux-teacher{all:unset;position:absolute;left:2.5%;bottom:1.5%;height:88%;transform-origin:50% 100%;cursor:pointer;
+  animation:ux-enter .55s cubic-bezier(.2,.8,.3,1.15) both,ux-breathe 3.6s ease-in-out .55s infinite}
+.ux-room.is-speaking .ux-teacher{animation:ux-enter .55s both,ux-talk .9s ease-in-out infinite alternate}
+.ux-body{display:block;height:100%;width:auto;filter:drop-shadow(0 6px 8px #0003)}
+.ux-face{position:absolute;pointer-events:none}
+@keyframes ux-enter{from{transform:translateX(-30%) scale(.9);opacity:0}to{transform:none;opacity:1}}
+@keyframes ux-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.012,1.018)}}
+@keyframes ux-talk{from{transform:rotate(-.8deg)}to{transform:rotate(.8deg) translateY(-1px)}}
+@keyframes ux-pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.ux-teacher,.ux-board-ico{animation:none!important}}
+.ux-bg{opacity:0;transition:opacity .4s}.ux-room.is-bg .ux-bg{opacity:1}
+.ux-ph-teacher{position:absolute;left:6%;bottom:6%;font-size:26cqw;line-height:1;filter:drop-shadow(0 4px 6px #0002)}
+.ux-teacher{opacity:0}.ux-teacher.is-ok{opacity:1}
+.ux-room:not(.is-bg) .ux-board{background:#2f4a3c;border-radius:6px}
+/* onatili xonasida doska — devordagi qog'oz panel: matn rasm ustida o'qilsin */
+.ux-room .ux-board.is-panel{background:#fffdf6e6;border-radius:3cqw;box-shadow:0 1cqw 3cqw #0002;color:#2b3a33}

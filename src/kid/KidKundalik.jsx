@@ -5,6 +5,7 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { kidSubjectEmoji } from "../curriculum/kidTopics.js";
 import { KUN_QISQA, KUNLAR, KURS } from "../parent/bogchaReja.js";
 import { DARAJA_ZINA, haftaHisobi, kuchlarRoyxati, kunKataklari, qisqaSana, yulduzSatr } from "./kundalikRules.js";
+import BolalarKundaligi, { KundalikSkelet } from "./BolalarKundaligi.jsx";
 import "./kidKundalik.css";
 
 // REV166: «Mening kundaligim» — bola (o'qiy olmasa ham) belgilardan tushunadi: umumiy yulduzlar va daraja, ketma-ket kunlar,
@@ -122,7 +123,7 @@ export function useKundalik(apiBase, token, enabled = true) {
 /** Bolaning «Mening kundaligim» ekrani. */
 export default function KidKundalik({ data, onClose, say }) {
   useInterface();
-  if (!data?.bogcha) return <div className="kk-root"><p className="kk-empty">📒 …</p></div>;
+  if (!data?.bogcha) return <div className="kk-root"><KundalikSkelet /></div>;   // REV168: tez chiqadigan skelet
   const d = data.daraja;
   const gapir = () => say?.(`${data.bola?.ism ? `${data.bola.ism}! ` : ""}${T("Yulduzlaring")}: ${data.jami_yulduz}. `
     + `${T("Keyingi daraja")} — ${T(d.keyingi?.nom || "")}: ${T("yana")} ${d.qoldi} ${T("ta yulduz kerak")}. `
@@ -133,8 +134,8 @@ export default function KidKundalik({ data, onClose, say }) {
       <h2>📒 {T("Mening kundaligim")}</h2>
       {say ? <button type="button" className="kk-say" onClick={gapir} aria-label={T("Ovoz bilan aytib berish")}>🔊</button> : <span />}
     </header>
-    <YutuqKarta data={data} ism={data.bola?.ism || ""} />
-    <KundalikJadval haftalar={data.haftalar} nomlar={data.nomlar} onDars={(c) => say?.(T(fanNomi(c.kalit, c.fan, data.nomlar)) + (c.mavzu ? `. ${c.mavzu}` : ""))} />
-    <Kuchlar kuch={data.kuch} />
+    <YutuqKarta data={data} ism={data.bola?.ism || ""} compact />
+    {/* REV168: «Bolalar kundaligi» — Kunlik (fan ustozi xonachasida), Jadval, Fanlar, Rivojlanish */}
+    <BolalarKundaligi haftalar={data.haftalar} nomlar={data.nomlar} rejim="bola" say={say}><Kuchlar kuch={data.kuch} /></BolalarKundaligi>
   </div>;
 }

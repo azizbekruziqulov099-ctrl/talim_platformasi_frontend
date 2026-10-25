@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { bahoInfo, kunXulosa, levelDots, maslahat, minutesText, presence, ratingText, usageRows, weekStack } from "./farzandVaqtRules.js";
 import { BAHO_MATN, KURS, QISMLAR, bahoRangi, fanKaliti, haftaKuni, ozgarish } from "./bogchaReja.js";
-import OtaKundalik, { YutuqQator } from "./OtaKundalik.jsx";
+import { YutuqQator } from "./OtaKundalik.jsx";
+import BolalarKundaligi from "../kid/BolalarKundaligi.jsx";
 import { bugungiXulosa, ertangiFanlar } from "../kid/kundalikRules.js";
 import "./farzandFaollik.css";
 
@@ -357,7 +358,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
 
     {data.kundalik?.haftalar && <Bolim id="kundalik" open={ochiq.has("kundalik")} onToggle={toggle} emoji="📒" title="Haftalik kundalik"
       summary={`⭐ ${data.kundalik.haftalar[0]?.yulduz || 0} · ${data.kundalik.haftalar[0]?.darslar || 0} ${__kbUi("dars")}`}>
-      <OtaKundalik haftalar={data.kundalik.haftalar} nomlar={rj?.nomlar} />
+      <BolalarKundaligi haftalar={data.kundalik.haftalar} nomlar={rj?.nomlar} rejim="ota" />
     </Bolim>}
 
     {data.haftalar?.shu && <Bolim id="haftalar" open={ochiq.has("haftalar")} onToggle={toggle} emoji="📈" title="Shu hafta va o‘tgan hafta"

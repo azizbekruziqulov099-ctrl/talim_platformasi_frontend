@@ -76,3 +76,5 @@
 .ol-diary .ol-diary-lvl{font-size:30px;line-height:1}
 .ol-diary b{font-size:20px;color:#b86b00}
 .ol-diary small{font:800 13px/1 system-ui,sans-serif;color:#c2410c;background:#fff0e6;border-radius:999px;padding:4px 8px}
+
+.kk-root>*{min-width:0}

@@ -58,7 +58,7 @@ function kameraHisob(q, k = 1) {
  * haftalar davomida mustahkamlanadi. Vaqt: 1 soatdan keyin 15 daqiqa dam, kuniga ko'pi bilan 2 soat.
  * til — o'rganiladigan til (en, ru, de, fr, es, ar, tr, zh, ja, ko); izoh — tushuntirish tili (uz, ru, en).
  */
-export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", grade = "", onClose, cheklovsiz = false, sarlavha = "" }) {
+export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", grade = "", onClose, cheklovsiz = false, sarlavha = "", sinov = 0 }) {
   useInterface();
   const yosh = yoshGuruhi(grade);
   const [xonaId, setXonaId] = useState(null);
@@ -466,8 +466,9 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
       {vaqtTosiq}
       {/* REV141: asosiy — bosqichma-bosqich «Harakat o'yinlari» yo'li; so'z xonalari yo'lning bosqichlari sifatida ochiladi */}
       <HarakatYoli til={til} izoh={izoh} grade={grade} ayt={ayt} jim={jim} gapiryapti={Boolean(gapir)}
-        xonaYulduz={(id) => saqlangan[id]?.yulduz || 0} onXona={xonagaKir} ochiq={cheklovsiz || vaqt.holat === "ok"} cheklovsiz={cheklovsiz} />
-      <details className="xo-hamma"><summary><B e="🏠" /> {T("Barcha so‘z xonalari")}</summary>
+        xonaYulduz={(id) => saqlangan[id]?.yulduz || 0} onXona={xonagaKir} ochiq={cheklovsiz || vaqt.holat === "ok"} cheklovsiz={cheklovsiz} sinov={sinov} />
+      {sinov > 0 && !cheklovsiz && <p className="xo-sinov">🎁 {T("Sinov: birinchi bosqichlar bepul ochiq. Qolganlari ota-onang shu tilni tanlaganda ochiladi.")}</p>}
+      {!(sinov > 0 && !cheklovsiz) && <details className="xo-hamma"><summary><B e="🏠" /> {T("Barcha so‘z xonalari")}</summary>
       <div className="xo-list">
         {XONALAR.map((r) => {
           const s = saqlangan[r.id] || {};
@@ -480,7 +481,7 @@ export default function TilXonalari({ apiBase = "", til = "en", izoh = "uz", gra
           </button>;
         })}
       </div>
-      </details>
+      </details>}
     </div>;
   }
 

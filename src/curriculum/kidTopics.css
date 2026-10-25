@@ -61,3 +61,27 @@ button.kt-emoji{position:relative}
 /* REV123: fanga kirilganda faqat shu fan kartasi */
 .kt-subjects.is-one{justify-content:center;overflow:visible}
 .kt-subjects.is-one .kt-subject{min-width:160px;cursor:default}
+/* REV168: maktab fanlari guruhlarda, belgi bilan; mavzular bob bo'yicha va raqamlangan */
+.lt-fanlar{display:grid;gap:12px}
+.lt-guruh{display:grid;gap:8px}
+.lt-guruh-nom{margin:0;display:flex;align-items:center;gap:6px;font:800 15px/1.2 system-ui,sans-serif;color:#1f2d27}
+.lt-guruh-nom small{font-size:11.5px;font-weight:800;color:#2f6b47;background:#e3f1e6;border-radius:999px;padding:2px 8px}
+.lt-fan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.lt-fan{display:grid;justify-items:start;gap:4px;text-align:left;border:1.5px solid #e2e6ea;background:#fff;border-radius:16px;padding:10px 12px;cursor:pointer;color:#1e293b;font:inherit}
+.lt-fan:hover{border-color:#b9cbe0}
+.lt-fan.is-on{border-color:#1b4b7a;background:#eef4fa;box-shadow:0 0 0 3px #1b4b7a1f}
+.lt-fan-emb{font-size:32px;line-height:1}
+.lt-fan b{font-size:14px;line-height:1.25}
+.lt-fan small{font-size:11px;color:#64748b;line-height:1.3}
+@media(max-width:420px){.lt-fan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lt-mini-emb{margin-right:6px;font-size:16px}
+.lt-bob-nom{list-style:none;margin:10px 0 2px;padding:6px 10px;border-radius:10px;background:#f1f5f9;font:800 13.5px/1.3 system-ui,sans-serif;color:#1e3a5f}
+.lt-bob-nom small{font-weight:700;color:#64748b;margin-left:4px}
+.lt-raqam{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-right:8px;border-radius:999px;background:#e3f1e6;color:#2f6b47;font:800 11.5px/1 system-ui,sans-serif;vertical-align:1px}
+.lt-skelet{display:grid;gap:10px;padding:6px 0}
+.lt-sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.lt-sk{display:grid;place-items:center;height:96px;border-radius:16px;background:linear-gradient(90deg,#eef1f4 0%,#f8fafb 50%,#eef1f4 100%);background-size:200% 100%;animation:lt-sk 1.2s linear infinite}
+.lt-skelet.is-kid .lt-sk{height:140px;border-radius:22px}
+.lt-sk i{font-style:normal;font-size:34px;opacity:.55}
+@keyframes lt-sk{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.lt-sk{animation:none}}

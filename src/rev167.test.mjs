@@ -39,7 +39,7 @@ test('Sardor doskaga qaraganda: og‘iz kichikroq, yonoq chizig‘i o‘chmaydi 
 
 test('ota-ona kundaligi — so‘z bilan, bo‘sh oyna emas', () => {
   const f = src('./parent/FarzandFaollik.jsx');
-  assert.match(f, /<OtaKundalik /);
+  assert.match(f, /<BolalarKundaligi [^>]*rejim="ota"/);
   assert.ok(!/if \(error && !data\) return null/.test(f));
-  assert.match(src('./parent/OtaKundalik.jsx'), /O‘tkazib yuborildi — shu haftaning bo‘sh kunida o‘zi ochiladi/);
+  assert.match(src('./kid/kundalikRules.js'), /O‘tkazib yuborildi — keyingi bo‘sh kunda o‘zi ochiladi/);
 });

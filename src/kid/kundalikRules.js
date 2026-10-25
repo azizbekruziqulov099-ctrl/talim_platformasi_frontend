@@ -31,14 +31,14 @@ export function kunKataklari(kun) {
     if (any >= 0) {
       used.add(any);
       const d = darslar[any];
-      out.push({ kalit: k, fan: d.fan, mavzu: d.mavzu, holat: d.tugadi ? 'tugadi' : 'chala', yulduz: d.yulduz || 0, baho: d.baho || null });
+      out.push({ ...d, kalit: k, fan: d.fan, mavzu: d.mavzu, holat: d.tugadi ? 'tugadi' : 'chala', yulduz: d.yulduz || 0, baho: d.baho || null });
     } else {
       out.push({ kalit: k, fan: '', mavzu: '', holat: kun.holat === 'bugun' ? 'bugun' : kun.holat === 'otdi' ? 'otkazildi' : 'keladi', yulduz: 0, baho: null });
     }
   }
   darslar.forEach((d, i) => {
     if (used.has(i)) return;
-    out.push({ kalit: d.kalit, fan: d.fan, mavzu: d.mavzu, holat: d.tugadi ? 'tugadi' : 'chala', yulduz: d.yulduz || 0, baho: d.baho || null, qoshimcha: true });
+    out.push({ ...d, kalit: d.kalit, fan: d.fan, mavzu: d.mavzu, holat: d.tugadi ? 'tugadi' : 'chala', yulduz: d.yulduz || 0, baho: d.baho || null, qoshimcha: true });
   });
   if (!out.length) out.push({ holat: kun.kun === 6 ? 'takror' : 'bosh' });
   return out;
@@ -93,4 +93,86 @@ export function ertangiFanlar(hafta, bugun) {
   if (!Array.isArray(hafta) || bugun < 0) return null;
   const n = (bugun + 1) % 7;
   return n === 6 ? [] : [...(hafta[n] || [])];
+}
+
+// ── REV168: «Bolalar kundaligi» — kunlik kartalar, bajarish darajasi, kuzatuv, «Uyda birga», rivojlanish ──
+const I = (t) => t;
+const qoshtirnoq = (list) => list.map((w) => `«${w}»`).join(", ");
+
+/** Bajarish darajasi: mustaqil | eslatma | birga | yoq (hali kuzatilmadi). AI bahosi bo'lmasa — yulduzdan. */
+export function bajarishDarajasi(d) {
+  if (!d || !d.tugadi) return "yoq";
+  const b = Number(d.baho || 0);
+  if (b) return b >= 5 ? "mustaqil" : b >= 3 ? "eslatma" : "birga";
+  const y = Number(d.yulduz || 0);
+  return y >= 3 ? "mustaqil" : y === 2 ? "eslatma" : "birga";
+}
+export const BAJARISH = {
+  mustaqil: ["✅", "Mustaqil bajardi"], eslatma: ["💬", "Eslatma bilan bajardi"], birga: ["🤝", "Birga bajardi"], yoq: ["◌", "Hali kuzatilmadi"],
+};
+const DARAJA_SON = { birga: 1, eslatma: 2, mustaqil: 3 };
+const SON_DARAJA = ["yoq", "birga", "eslatma", "mustaqil"];
+
+/** Kartadagi «kuzatuv» — nima qildi (o'zi aytgan so'zlari, savollar natijasi) yoki nega o'tilmagan. */
+export function kuzatuvMatni(c, T = I) {
+  if (!c) return "";
+  if (c.holat === "bugun") return T("Bugungi dars — hali o‘tilmagan.");
+  if (c.holat === "otkazildi") return T("O‘tkazib yuborildi — keyingi bo‘sh kunda o‘zi ochiladi.");
+  if (c.holat === "keladi") return T("Shu kuni bo‘ladi.");
+  if (c.holat === "chala") return T("Dars boshlangan, oxirigacha o‘tilmagan.");
+  const parts = [];
+  const sozlar = c.sozlar || [];
+  const aytdi = sozlar.filter((w) => w.aytdi === true).map((w) => w.soz).slice(0, 3);
+  const qoldi = sozlar.filter((w) => w.aytdi === false).map((w) => w.soz).slice(0, 2);
+  if (aytdi.length) parts.push(`${qoshtirnoq(aytdi)} — ${T("o‘zi aytdi")}.`);
+  if (qoldi.length) parts.push(`${qoshtirnoq(qoldi)} — ${T("hali aytolmadi")}.`);
+  if (Number(c.jami) > 0) parts.push(`${T("Savollar")}: ${Number(c.togri) || 0}/${c.jami} ${T("to‘g‘ri")}.`);
+  if (!parts.length) {
+    const dj = bajarishDarajasi({ ...c, tugadi: true });
+    parts.push(T(dj === "mustaqil" ? "Darsni o‘zi oxirigacha o‘tdi." : dj === "eslatma" ? "Darsni eslatma bilan o‘tdi." : "Darsni yordam bilan o‘tdi."));
+  }
+  return parts.join(" ");
+}
+
+/** «Uyda birga» — shu kungi dars bo'yicha ota-ona bilan uyda qilinadigan oddiy ish. */
+export function uydaBirga(kataklar = [], tilOf = () => "", T = I) {
+  const darslar = kataklar.filter((c) => c.kalit && c.holat !== "takror" && c.holat !== "bosh");
+  const c = darslar.find((x) => x.holat === "tugadi") || darslar[0];
+  if (!c) return T("Bugungi ishini qanday bajarganini so‘rang.");
+  const sozlar = (c.sozlar || []).map((w) => w.soz).slice(0, 3);
+  if (tilOf(c.kalit) && sozlar.length) return `${T("Uyda shu so‘zlarni narsalarni ko‘rsatib birga ayting")}: ${qoshtirnoq(sozlar)}.`;
+  const m = c.mavzu ? `«${c.mavzu}» — ` : "";
+  if (c.kalit === "mat") return m + T("uydagi qoshiq, o‘yinchoq yoki mevalarni birga sanang.");
+  if (c.kalit === "man") return m + T("o‘yinchoqlardan juftini yoki ortiqchasini birga toping.");
+  if (c.kalit === "olam") return m + T("uyda yoki sayrda shunga oid narsani topib, nomini ayting.");
+  return m + T("bugungi ishini qanday bajarganini so‘rang.");
+}
+
+/** Rivojlanish: har fan bo'yicha o'tgan hafta (avval) va shu hafta (hozir) bajarish darajasi. */
+export function rivojlanish(haftalar = []) {
+  const shu = haftalar.find((h) => h.hafta === "shu"), otgan = haftalar.find((h) => h.hafta === "otgan");
+  const yig = (h) => {
+    const out = {};
+    for (const k of h?.kunlar || []) for (const d of k.darslar || []) {
+      if (!d.tugadi || !d.kalit) continue;
+      const o = out[d.kalit] || (out[d.kalit] = { son: [], fan: d.fan, mavzu: "", sozlar: [] });
+      o.son.push(DARAJA_SON[bajarishDarajasi(d)]); o.mavzu = d.mavzu || o.mavzu; o.fan = d.fan || o.fan;
+      if (d.sozlar?.length) o.sozlar = d.sozlar;
+    }
+    return out;
+  };
+  const a = yig(otgan), b = yig(shu);
+  const daraja = (x) => (x?.son.length ? SON_DARAJA[Math.round(x.son.reduce((s, v) => s + v, 0) / x.son.length)] : "yoq");
+  return [...new Set([...Object.keys(b), ...Object.keys(a)])].map((kalit) => ({
+    kalit, fan: b[kalit]?.fan || a[kalit]?.fan || "", mavzu: b[kalit]?.mavzu || a[kalit]?.mavzu || "", sozlar: b[kalit]?.sozlar || a[kalit]?.sozlar || [],
+    avval: daraja(a[kalit]), hozir: daraja(b[kalit]),
+  })).sort((x, y) => (DARAJA_SON[x.hozir] || 0) - (DARAJA_SON[y.hozir] || 0));
+}
+
+/** Tavsiya — eng qiyin fan bo'yicha (hammasi mustaqil bo'lsa — maqtov). */
+export function tavsiya(riv = [], nomOf = (k) => k, T = I) {
+  const q = riv.find((r) => r.hozir === "birga" || r.hozir === "eslatma") || riv.find((r) => r.hozir === "yoq" && r.avval !== "yoq");
+  if (!riv.length) return T("Bir necha dars o‘tgach, bu yerda farzandingiz qanday o‘sayotgani ko‘rinadi.");
+  if (!q) return T("Zo‘r! Hammasini o‘zi bajaryapti — har kuni oz-ozdan davom eting.");
+  return `${T(nomOf(q.kalit, q.fan))}: ${q.mavzu ? `«${q.mavzu}» — ` : ""}${T("uyda shu mavzuni birga takrorlang.")}`;
 }

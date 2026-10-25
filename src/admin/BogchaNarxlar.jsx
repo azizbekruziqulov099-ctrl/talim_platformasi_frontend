@@ -140,6 +140,11 @@ export default function BogchaNarxlar({ apiBase, token }) {
         </div>
         <button type="button" className="bn-save" disabled={busy} onClick={() => saveSettings({ tun })}>{__kbUi("Saqlash")}</button>
       </div>}
+      {/* REV168: olinmagan til/fan — reklama sifatida nechta dars bepul ochiladi (o'yinlarda esa birinchi bosqichlar) */}
+      <div className="bn-form">
+        <label>🎁 {__kbUi("Olinmagan kursdan bepul sinov darslari")}<select value={s.sinov_dars ?? 4} disabled={busy} onChange={(e) => saveSettings({ sinov_dars: Number(e.target.value) })}>
+          {[0, 1, 2, 3, 4, 5, 6, 8, 10].map((n) => <option key={n} value={n}>{n === 0 ? __kbUi("O‘chiq") : n}</option>)}</select></label>
+      </div>
       <h4>{__kbUi("Yoshga qarab qoidalar")}</h4>
       <div className="bn-table-wrap"><table className="bn-table bn-rules">
         <thead><tr><th>{__kbUi("Yosh")}</th><th>{__kbUi("Ish kuni darslari")}</th><th>{__kbUi("Shanba darslari")}</th><th>{__kbUi("Bir vaqtda kurs")}</th><th>{__kbUi("Shundan chet tili")}</th></tr></thead>
