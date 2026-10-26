@@ -398,7 +398,7 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .dx-jonli-ustoz{width:100%;margin-bottom:8px}
 .dx-jonli-ustoz .ux-room{border-radius:14px}
 .dx-btn.dx-repetitor{background:#F6EEFF;border-color:#DCC8F6;color:#4B1F8A}
-.dx-repetitor-oyna{position:fixed;inset:0;z-index:60;background:#F4F7FB;overflow-y:auto;padding:12px 12px 40px;box-sizing:border-box}
+.dx-repetitor-oyna{position:fixed;inset:0;z-index:2147483100;background:#F4F7FB;overflow-y:auto;padding:12px 12px 40px;box-sizing:border-box}
 /* REV175: tik telefon — dars o'zi yotiq (eniga) ko'rinishga buriladi: avtoburish o'chiq bo'lsa ham.
    Ichki o'lchamlar: eni = ekran balandligi (100dvh), bo'yi = ekran eni (100vw). */
 body.kb-dars-yotiq{overflow:hidden}
@@ -503,7 +503,7 @@ body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.sam
 .dx-root.dx-sinf .dx-ask .dx-reply{margin:0;font-size:max(12px,2.4cqh);line-height:1.35}
 .dx-savol-btn.is-on{background:#1B4B7A;border-color:#1B4B7A;color:#fff}
 /* REV177: kompyuterda dars ekranni to'liq egallaydi — sarlavha ixcham, xona butun balandlikda, tugmalar o'ng ustunda */
-@media (min-width:760px) and (min-height:420px){
+@media (min-width:760px) and (min-height:420px),(orientation:landscape) and (max-height:600px) and (min-width:560px){
   .dx-root.dx-sinf.dx-focus:not(.dx-yotiq){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr);gap:6px 12px;
     height:100dvh;box-sizing:border-box;overflow:hidden;padding:8px 12px 10px}
   .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-head{grid-column:1/-1;max-width:none;margin:0}
@@ -527,3 +527,40 @@ body.kb-dars-yotiq :is(.premium-sidebar,.premium-mobile-nav,.premium-topbar,.sam
 .dx-root.dx-sinf .dx-voice-mic{font-size:max(12px,2.2cqh)}
 .dx-root.dx-sinf .dx-board{scrollbar-width:none}
 .dx-root.dx-sinf .dx-board::-webkit-scrollbar{display:none}
+/* REV177: telefon haqiqatan yotqizilganda (avtoburish yoqiq) — xona butun balandlikda, tugmalar ixcham o'ng ustunda */
+@media (orientation:landscape) and (max-height:600px) and (min-width:560px){
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq){padding:4px 8px 6px;gap:3px 8px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-room{max-width:min(100%,calc((100dvh - 58px) * 1586 / 992))}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-head h2{font-size:14px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-head p,.dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-head-actions .dx-link{display:none}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-controls{width:118px;gap:4px}
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq)>.dx-controls .dx-btn{padding:5px 6px;font-size:11.5px}
+}
+/* REV177: ekran burilish animatsiyasi — telefon belgisi 90° aylanadi, dars sekin paydo bo'ladi (to'liq ekran so'rovisiz) */
+.dx-burish{position:absolute;inset:0;z-index:200;display:grid;place-content:center;justify-items:center;gap:10px;background:var(--ui-bg,#F4F7FB);
+  animation:dx-burish-ket .45s ease-in .85s forwards;pointer-events:none}
+.dx-burish-tel{font-size:64px;line-height:1;animation:dx-burish-tel .8s cubic-bezier(.5,0,.3,1.3) both}
+.dx-burish b{font:700 15px system-ui,sans-serif;color:#1F3B57}
+@keyframes dx-burish-tel{from{transform:rotate(-90deg) scale(.9)}to{transform:rotate(0) scale(1)}}
+@keyframes dx-burish-ket{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.dx-burish,.dx-burish-tel{animation-duration:.01s}}
+/* REV177: takror / mashq / repetitor oynasi — sahifaning yuqori va pastki menyulari ustida (to'liq ekran), ekranni pastga tortish shart emas.
+   Telefon haqiqatan yotqizilganda ham (past ekran) — Kabu chapda, topshiriq o'ngda, aylantirmasdan sig'adi */
+body:has(.dx-repetitor-oyna){overflow:hidden}
+@media (orientation:landscape) and (max-height:600px){
+  .dx-repetitor-oyna{padding:8px 12px 16px}
+  .dx-repetitor-oyna .mm-root{display:grid;grid-template-columns:minmax(0,36%) minmax(0,1fr);grid-template-areas:"bar bar" "steps steps" "ustoz card";gap:8px 12px;max-width:none;align-items:start}
+  .dx-repetitor-oyna .mm-bar{grid-area:bar}
+  .dx-repetitor-oyna .mm-steps{grid-area:steps}
+  .dx-repetitor-oyna .mm-steps li{flex-direction:row;justify-content:center;gap:6px;padding:4px}
+  .dx-repetitor-oyna .mm-ustoz{grid-area:ustoz;width:100%;position:sticky;top:0}
+  .dx-repetitor-oyna .mm-card{grid-area:card;padding:10px;gap:8px}
+  .dx-repetitor-oyna .kx-root{flex-direction:column;min-height:0;padding:8px;gap:6px}
+  .dx-repetitor-oyna .kx-robot{flex-basis:auto;width:46%}
+  .dx-repetitor-oyna .kx-doska{font-size:18px;min-height:56px;width:100%;box-sizing:border-box}
+  .dx-repetitor-oyna .mm-matn{font-size:20px}
+  .dx-repetitor-oyna .mm-head b{font-size:16px}
+  .dx-repetitor-oyna .mm-steps li small{font-size:10px}
+  .dx-repetitor-oyna .mm-card{gap:6px}
+  .dx-repetitor-oyna .mm-input{font-size:18px;padding:6px 10px}
+}

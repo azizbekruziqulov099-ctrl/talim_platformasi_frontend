@@ -9,30 +9,31 @@ const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? nu
 const dars = (i, til = 'de') => ({ kod: `D${i}`, mavzu: `Mavzu ${i}`, til, kun: 100 + i,
   sozlar: [{ soz: `wort${i}a`, mano: `soz${i}a` }, { soz: `wort${i}b`, mano: `soz${i}b` }], savollar: [{ savol: `S${i}?`, variantlar: ['a', 'b', 'c'], togri: 1 }], atamalar: [`Atama ${i}`] });
 
-test('spiral: oldingi darslardan 1, 2, 3, 5, 8, 13 dars oldin — bittadan, takrorlanmaydi', () => {
+test('takror: o\'tgan darsning HAMMA so\'zlari, keyin eski darslardan spiral (2, 3, 5, 8, 13 dars oldin)', () => {
   assert.deepEqual(SPIRAL_ORALIQ, [1, 2, 3, 5, 8, 13]);
   const darslar = Array.from({ length: 15 }, (_, i) => dars(15 - i));   // eng yangisi birinchi
-  const q = spiralTuz(darslar, { soni: 6, rng: () => 0.3 });
-  assert.equal(q.length, 6);
-  assert.deepEqual(q.map((x) => x.oldin), [1, 2, 3, 5, 8, 13]);
+  const q = spiralTuz(darslar, { soni: 4, oxirgi: 8, rng: () => 0.3 });
+  assert.equal(q.length, 6);   // o'tgan darsning 2 so'zi + 4 spiral
+  assert.deepEqual(q.map((x) => x.oldin), [1, 1, 2, 3, 5, 8]);
+  assert.deepEqual(q.slice(0, 2).map((x) => x.soz).sort(), ['wort15a', 'wort15b']);
   assert.ok(q.every((x) => x.tur === 'soz' && x.til === 'de' && x.mano));
   assert.equal(new Set(q.map((x) => x.soz)).size, 6);
 });
 
-test('spiral: darslar kam bo\'lsa bor darslardan to\'ldiriladi; boshqa fanda — test savoli', () => {
-  const q = spiralTuz([dars(2), dars(1)], { soni: 5, rng: () => 0.1 });
-  assert.equal(q.length, 5);   // 2 dars × 2 so'z, keyin test savoli
-  assert.equal(q.filter((x) => x.tur === 'soz').length, 4);
-  const mat = spiralTuz([{ ...dars(1, ''), sozlar: [] }], { soni: 5 });
+test('takror: eski darslar kam bo\'lsa to\'ldiriladi; boshqa fanda — test savoli', () => {
+  const q = spiralTuz([dars(3), dars(2), dars(1)], { soni: 4, oxirgi: 8, rng: () => 0.1 });
+  assert.equal(q.filter((x) => x.oldin === 1).length, 2);   // o'tgan darsning 2 ta so'zi (til darsida — faqat so'zlar)
+  assert.ok(q.length >= 5);
+  const mat = spiralTuz([{ ...dars(1, ''), sozlar: [] }], { soni: 4 });
   assert.equal(mat.length, 1);
   assert.equal(mat[0].tur, 'savol');
   assert.equal(spiralTuz([], {}).length, 0);
 });
 
-test('yoshga mos: 1–2 sinf 5 spiral + 4 erkin, kattalar 6 + 5', () => {
-  assert.deepEqual(takrorSoni(1), { spiral: 5, erkin: 4 });
-  assert.deepEqual(takrorSoni(2), { spiral: 5, erkin: 4 });
-  assert.deepEqual(takrorSoni(7), { spiral: 6, erkin: 5 });
+test('yoshga mos: 1–2 sinf — 6 tagacha so\'z + 3 spiral + 4 erkin; kattalar 8 + 4 + 5', () => {
+  assert.deepEqual(takrorSoni(1), { oxirgi: 6, spiral: 3, erkin: 4 });
+  assert.deepEqual(takrorSoni(2), { oxirgi: 6, spiral: 3, erkin: 4 });
+  assert.deepEqual(takrorSoni(7), { oxirgi: 8, spiral: 4, erkin: 5 });
 });
 
 test('erkin eslash: artiklsiz, bitta harf xatosi kechiriladi, tushunchada asosiy so\'z yetadi', () => {
@@ -52,7 +53,7 @@ test('dars yozuvi saqlanadi; izoh tili farq qilmaydi; joriy dars chiqmaydi; bugu
     steps: [{ turi: 'kirish', sarlavha: 'Salom' }, { turi: 'tushuntirish', sarlavha: '🏠 Das Haus — дом' }],
     sozlar: [{ w: { de: 'das Haus', ru: 'дом', uz: 'дом' }, emoji: '🏠' }], savollar: [{ savol: 'Was?', variantlar: ['a', 'b'], togri: 0 }, { savol: 'x' }] });
   assert.equal(y.mavzu, 'Wohnen');
-  assert.deepEqual(y.sozlar, [{ soz: 'das Haus', mano: 'дом', emoji: '🏠' }]);
+  assert.deepEqual(y.sozlar, [{ soz: 'das Haus', mano: 'дом', manoTil: 'ru', emoji: '🏠' }]);
   assert.equal(y.savollar.length, 1);
   assert.deepEqual(y.atamalar, ['Das Haus']);
   darsniSaqla('Nemis tili (izoh: rus)', y, st);
@@ -197,4 +198,55 @@ test('tekshiruv tuzatishlari: chiqishda oynalar yopiladi, zanjir bir marta, Repe
   // oynalar xona ichida emas (telefon buralganda butun ekranni egallaydi)
   const room = dx.slice(dx.indexOf('<div className="dx-room">'), dx.indexOf('{oldiTakror && <div className="dx-repetitor-oyna"'));
   assert.ok(room.includes('</aside>}'));
+});
+
+import { testOvozi, matnTili, tilLugati } from './lesson/maktabMashqRules.js';
+test('test o\'qilishi: har qism o\'z talaffuzida (nemischa — nemischa, A) B) — interfeys tilida)', () => {
+  const steps = [{ ovoz: 'Neues Wort: [de]hallo[/de]. [de]Guten Morgen[/de]!' }];
+  const lug = tilLugati(steps, 'de', [{ w: { de: 'tschüss', en: 'bye' } }]);
+  assert.ok(lug.has('hallo') && lug.has('guten morgen') && lug.has('tschüss'));
+  assert.equal(matnTili('hallo', { til: 'de', iz: 'en', lugat: lug }), 'de');
+  assert.equal(matnTili('What does it mean?', { til: 'de', iz: 'en', lugat: lug }), 'en');
+  assert.equal(matnTili('Was bedeutet Straße?', { til: 'de', iz: 'en', lugat: new Set() }), 'de');
+  assert.equal(matnTili('Привет', { til: 'de', iz: 'en', lugat: lug }), 'ru');
+  assert.equal(matnTili('salom', { til: 'de', iz: 'uz', lugat: lug }), 'uz');
+  const o = testOvozi({ kirish: 'Listen to the question.', savol: 'How do you say hello?', variantlar: ['hallo', 'tschüss'], til: 'de', iz: 'en', ui: 'en', lugat: lug });
+  assert.equal(o, '[en]Listen to the question.[/en] [en]How do you say hello?[/en] [en]A)[/en] [de]hallo[/de]. [en]B)[/en] [de]tschüss[/de].');
+  const u = testOvozi({ savol: 'Qaysi biri salom?', variantlar: ['hallo'], til: 'de', iz: 'uz', ui: 'uz', lugat: lug });
+  assert.equal(u, 'Qaysi biri salom? A) [de]hallo[/de].');
+});
+test('mikrofon: Androidda yozib olish o\'chiq, eshitilmasa urinish hisoblanmaydi, maktabda 3 yulduz kerak; to\'liq ekran so\'ralmaydi', () => {
+  const vc = fs.readFileSync(new URL('./lesson/VoiceCheck.jsx', import.meta.url), 'utf8');
+  const dx = fs.readFileSync(new URL('./lesson/DarsXonasi.jsx', import.meta.url), 'utf8');
+  assert.match(vc, /noClip \|\| android \? null/);
+  assert.match(vc, /setPhase\("tap"\);\n\s*return;/);
+  assert.match(vc, /kid \? voicePassed\(g\) : Number\(g\.stars\) >= 3/);
+  assert.doesNotMatch(dx, /requestFullscreen\(/);
+  assert.match(dx, /dx-burish/);
+});
+test('takror / mashq / repetitor oynasi menyular ustida va yotiq past ekranga sig\'adi', () => {
+  const css = fs.readFileSync(new URL('./lesson/dars-xonasi.css', import.meta.url), 'utf8');
+  const rp = fs.readFileSync(new URL('./maktab/repetitor.css', import.meta.url), 'utf8');
+  assert.match(css, /\.dx-repetitor-oyna\{position:fixed;inset:0;z-index:2147483100;/);
+  assert.match(css, /@media \(orientation:landscape\) and \(max-height:600px\)\{\n  \.dx-repetitor-oyna\{/);
+  assert.match(rp, /\.rp-root:has\(>\.rp-card\)>\.rp-card\{grid-column:2/);
+});
+
+import { manoTanla, buyruq } from './lesson/takrorMano.js';
+test('REV178: ma\'no hozirgi interfeys tilida; Kabu «nemischa yozing» deydi, keyin talaffuz', () => {
+  // inglizcha izohli darsda saqlangan so'z — o'zbek interfeysida o'zbekcha ma'no (umumiy lug'atdan)
+  assert.deepEqual(manoTanla({ til: 'de', soz: 'Hallo', mano: 'hello', manoTil: 'en' }, 'uz'), { mano: 'Salom', til: 'uz' });
+  assert.deepEqual(manoTanla({ til: 'de', soz: 'Hallo', mano: 'hello', manoTil: 'en' }, 'en'), { mano: 'hello', til: 'en' });
+  // lug'atda yo'q so'z — saqlangan ma'no o'z tili bilan (ovozda o'sha til talaffuzida)
+  assert.deepEqual(manoTanla({ til: 'de', soz: 'Rückblick', mano: 'review', manoTil: 'en' }, 'uz'), { mano: 'review', til: 'en' });
+  const y = buyruq('yoz', { L: 'uz', til: 'de', m: 'Salom', mTil: 'uz' });
+  assert.equal(y.matn, '«Salom» — shu so‘zni nemischa yozing.');
+  assert.equal(y.ovoz, '«Salom» — shu so‘zni nemischa yozing.');
+  const e = buyruq('yoz', { L: 'en', til: 'de', m: 'hello', mTil: 'en' });
+  assert.equal(e.ovoz, '[en]“[/en][en]hello[/en][en]” — write this word in German.[/en]');
+  const a = buyruq('ayt', { L: 'ru', til: 'de', w: 'Hallo' });
+  assert.match(a.ovoz, /\[de\]Hallo\[\/de\]$/);
+  const dx = fs.readFileSync(new URL('./lesson/DarsOldiTakror.jsx', import.meta.url), 'utf8');
+  assert.match(dx, /useState\("yoz"\)/);   // avval yozadi (javob ko'rinmaydi), keyin aytadi
+  assert.match(dx, /\[\.\.\.\(erkin \? \["erkin"\] : \[\]\), \.\.\.\(savollar\.length \? \["spiral"\]/);   // avval erkin eslash
 });

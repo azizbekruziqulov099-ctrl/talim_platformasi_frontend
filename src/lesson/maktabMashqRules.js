@@ -96,3 +96,54 @@ export function sinfJoyi(xonaKey = "") {
   const tepa = j.doska.t + j.doska.h + 2;
   return { ...j, gap: { l: j.doska.l, t: tepa, w: j.doska.w, h: Math.max(14, Math.min(26, 98 - tepa)) } };
 }
+
+/**
+ * REV177: test savolini ovozda to'g'ri talaffuz bilan o'qish uchun tillarga bo'lib teglash.
+ *  • kirish va «A) B) C)» harflari — interfeys tilida (uz | ru | en);
+ *  • savol va variant: darsda o'rganilayotgan tilning so'zi bo'lsa (darsdagi [de]…[/de] teglari yoki lug'at) — o'sha tilda,
+ *    kirill harfi bo'lsa — rus, aks holda izoh tilida. O'zbek qismi tegsiz qoladi (server o'zbekcha o'qiydi).
+ */
+const TEG_RE = /\[([a-z]{2})\]([\s\S]*?)\[\/\1\]/g;
+const soz = (s) => String(s || "").toLowerCase().normalize("NFC").replace(/[^\p{L}\p{N}\s'’-]/gu, " ").replace(/\s+/g, " ").trim();
+/** Darsdagi o'rganilayotgan til so'zlari: qadamlardagi teglar va lug'at. */
+export function tilLugati(steps = [], til = "", sozlar = []) {
+  const set = new Set();
+  if (!til) return set;
+  const qosh = (t) => { const s = soz(t); if (!s) return; set.add(s); for (const w of s.split(" ")) if (w.length >= 2) set.add(w); };
+  for (const s of steps) for (const k of ["ovoz", "doska", "sarlavha"]) {
+    for (const m of String(s?.[k] || "").matchAll(TEG_RE)) if (m[1] === til) qosh(m[2]);
+  }
+  for (const w of sozlar) qosh(w?.w?.[til]);
+  return set;
+}
+/** Bitta matn qaysi tilda o'qilsin. */
+export function matnTili(matn, { til = "", iz = "uz", lugat = new Set() } = {}) {
+  const t = String(matn || "");
+  const bor = TEG_RE.exec(t); TEG_RE.lastIndex = 0;
+  if (bor) return "teg";
+  if (/[Ѐ-ӿ]/.test(t)) return "ru";
+  const s = soz(t);
+  if (til && s) {
+    if (lugat.has(s)) return til;
+    const w = s.split(" ").filter(Boolean);
+    const ichida = w.filter((x) => lugat.has(x)).length;
+    if (w.length && ichida / w.length >= 0.6) return til;
+    if (til === "de" && /[äöüß]/i.test(t)) return "de";
+    if (til === "es" && /[ñ¿¡]/i.test(t)) return "es";
+    if (til === "fr" && /[çœàâêîôûëïÿ]/i.test(t)) return "fr";
+  }
+  return iz;
+}
+const tegla = (t, l) => (!t || l === "uz" || l === "teg" ? t : `[${l}]${t}[/${l}]`);
+export function testOvozi({ kirish = "", savol = "", variantlar = [], til = "", iz = "uz", ui = "uz", lugat = new Set() } = {}) {
+  const HARF = ["A", "B", "C", "D", "E"];
+  const uiL = ["uz", "ru", "en"].includes(ui) ? ui : "uz";
+  const qism = [];
+  if (kirish) qism.push(tegla(kirish, uiL));
+  qism.push(tegla(savol, matnTili(savol, { til, iz, lugat })));
+  variantlar.forEach((o, k) => {
+    const v = String(o?.text ?? o ?? "");
+    qism.push(`${tegla(`${HARF[k]})`, uiL)} ${tegla(v, matnTili(v, { til, iz, lugat }))}.`);
+  });
+  return qism.join(" ");
+}

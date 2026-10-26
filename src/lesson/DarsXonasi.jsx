@@ -20,7 +20,7 @@ import { USTOZLAR, XONALAR } from "../kid/ustozlar.js";
 import UstozXonacha from "../kid/UstozXonacha.jsx";
 import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
-import { sanaQadami, sinfJoyi, mashqMateriali } from "./maktabMashqRules.js";
+import { sanaQadami, sinfJoyi, mashqMateriali, tilLugati, testOvozi } from "./maktabMashqRules.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
 const MaktabMashqlar = React.lazy(() => import("./MaktabMashqlar.jsx"));
 const Repetitor = React.lazy(() => import("../maktab/Repetitor.jsx"));
@@ -71,7 +71,9 @@ function TeacherAvatar() {
 }
 
 export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false }) {
-  useKbInterfaceLocale();
+  const uiLocale = useKbInterfaceLocale()?.locale || "uz";
+  // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
+  const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
   const [lesson, setLesson] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -508,15 +510,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       if (sinfXona && (mashqBor || questions.length) && !zanjir.current) {
         setMode("end"); modeRef.current = "end";   // ustoz o'z ovozida xayrlashadi (Kabu ovozida emas)
         zanjir.current = true;   // avtomatik zanjir bir darsda bir marta (darsni qayta ko'rganda qaytadan ochilmaydi)
-        say(__kbUi(mashqBor ? "Barakalla! Dars tugadi. Endi Kabu bilan mashq qilamiz." : "Barakalla! Dars tugadi. Endi Kabu bilan bilimingizni tekshiramiz."),
+        say(uiT(__kbUi(mashqBor ? "Barakalla! Dars tugadi. Endi Kabu bilan mashq qilamiz." : "Barakalla! Dars tugadi. Endi Kabu bilan bilimingizni tekshiramiz.")),
           () => setTimeout(() => { if (modeRef.current !== "end") return; if (mashqBor) setMashqlar(true); else startQuizRef.current(); }, 700));
         return;
       }
       // Dars tugadi: o'quvchi o'zi tanlaydi — shu yerda tezkor savollar yoki Test bo'limi.
       setMode("end"); modeRef.current = "end";
-      say(questions.length || onOpenTest
+      say(uiT(questions.length || onOpenTest
         ? __kbUi("Barakalla! Dars tugadi. Endi bilimingizni tekshiring: pastdan test turini tanlang.")
-        : __kbUi("Barakalla! Dars tugadi."));
+        : __kbUi("Barakalla! Dars tugadi.")));
     }
   };
   const afterLessonRef = useRef(afterLesson);
@@ -684,10 +686,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!step) return;
     if (checkAnswer(answer, step.javob)) {
       setFeedback({ ok: true, text: step.javob_izohi || __kbUi("To‘g‘ri!") });
-      say(__kbUi("Barakalla, to‘g‘ri!") + " " + (step.javob_izohi || ""), () => { if (playingRef.current) setTimeout(() => go(idx + 1, true), 800); });
+      say(uiT(__kbUi("Barakalla, to‘g‘ri!")) + " " + (step.javob_izohi || ""), () => { if (playingRef.current) setTimeout(() => go(idx + 1, true), 800); });
     } else {
       setFeedback({ ok: false, text: __kbUi("Yana bir bor urinib ko‘ring.") });
-      say(__kbUi("Deyarli! Yana bir bor o‘ylab ko‘ring.") + (step.javob_izohi ? " " + __kbUi("Yordam: ") + step.javob_izohi : ""));
+      say(uiT(__kbUi("Deyarli! Yana bir bor o‘ylab ko‘ring.")) + (step.javob_izohi ? " " + uiT(__kbUi("Yordam: ")) + step.javob_izohi : ""));
     }
   };
 
@@ -865,8 +867,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setPicked(k);
     if (k !== q.togri) { const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl); }
     if (sinfXona) flashPhase(k === q.togri ? "happy" : "enc");   // REV177: Kabu quvonadi / dalda beradi
-    if (k === q.togri) { setScore((x) => x + 1); say(__kbUi("To‘g‘ri!"), () => setTimeout(() => nextQuestion(), 700)); }
-    else say(q.izoh || __kbUi("Javob noto‘g‘ri. To‘g‘ri variant yashil bilan belgilandi."));
+    const izL = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
+    if (k === q.togri) { setScore((x) => x + 1); say(uiT(__kbUi("To‘g‘ri!")), () => setTimeout(() => nextQuestion(), 700)); }
+    else say(q.izoh ? testOvozi({ savol: q.izoh, til: darsTil || "", iz: izL, lugat: tilLugati(lesson?.steps || [], darsTil || "", maktabSozlar) }) : uiT(__kbUi("Javob noto‘g‘ri. To‘g‘ri variant yashil bilan belgilandi.")));
   };
   const nextQuestion = () => {
     setPicked(null);
@@ -897,9 +900,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   useEffect(() => {
     const qq = !kid && mode === "test" ? savollar[testIndex] : null;
     if (!qq) return undefined;
-    const harf = ["A", "B", "C", "D"];
-    const kirish = testIndex === 0 ? `${__kbUi(xatoTartib ? "Xato qilgan savollaringizni qayta ishlaymiz. Izohni diqqat bilan o‘qing." : "Savolni tinglang va javobni tanlang.")} ` : "";
-    const matn = `${kirish}${qq.savol} ${(qq.variantlar || []).map((o, k) => `${harf[k]}) ${String(o?.text ?? o ?? "")}`).join(". ")}`;
+    // REV177: har qism o'z talaffuzida — kirish va A) B) interfeys tilida, nemischa so'z nemischa, izoh izoh tilida
+    const kirish = testIndex === 0 ? __kbUi(xatoTartib ? "Xato qilgan savollaringizni qayta ishlaymiz. Izohni diqqat bilan o‘qing." : "Savolni tinglang va javobni tanlang.") : "";
+    const matn = testOvozi({ kirish, savol: qq.savol, variantlar: qq.variantlar || [], til: darsTil || "", iz: ["uz", "ru", "en"].includes(izoh) ? izoh : "uz",
+      ui: uiLocale, lugat: tilLugati(lesson?.steps || [], darsTil || "", maktabSozlar) });
     const t = setTimeout(() => say(matn), 350);
     return () => clearTimeout(t);
   }, [kid, mode, testIndex, xatoTartib]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1012,6 +1016,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     return () => { globalThis.removeEventListener?.("resize", yangila); globalThis.removeEventListener?.("orientationchange", yangila); };
   }, []);
   useEffect(() => { document.body.classList.toggle("kb-dars-yotiq", yotiq); return () => document.body.classList.remove("kb-dars-yotiq"); }, [yotiq]);
+  // REV177: ekran burilganda — qisqa animatsiya (telefon belgisi aylanadi, dars sekin paydo bo'ladi)
+  const [burish, setBurish] = useState(false);
+  useEffect(() => {
+    if (!yotiq) return undefined;
+    setBurish(true);
+    const t = setTimeout(() => setBurish(false), 1300);
+    return () => clearTimeout(t);
+  }, [yotiq]);
   // REV176: sinfxonada doskaga hamma narsa sig'sin — matn va rasmlar doska o'lchamiga qarab o'zi kichrayadi (aylantirmasdan ko'rinadi)
   useLayoutEffect(() => {
     const el = doskaRef.current;
@@ -1044,13 +1056,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     return () => window.removeEventListener("keydown", key);
   }, [focus]);
   // REV168: «telefonni yotqizing» — to'liq ekran va gorizontal holat (Android'da ishlaydi; iPhone'da bola o'zi buradi)
-  const kengaytir = async () => {
-    try {
-      const el = document.documentElement;
-      if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen({ navigationUI: "hide" });
-      await globalThis.screen?.orientation?.lock?.("landscape");
-    } catch { /* qurilma ruxsat bermadi — bola telefonni o'zi buradi */ }
-  };
+  // REV177: brauzerning to'liq ekran rejimi ishlatilmaydi — u «chiqish uchun ekranni pastga torting» yozuvini chiqarib,
+  // darsni to'sardi. Dars sahifaning o'zida buriladi (CSS) va burilish animatsiyasi ko'rsatiladi.
+  const kengaytir = () => {};
   useEffect(() => {
     if (focus) return undefined;
     try { globalThis.screen?.orientation?.unlock?.(); } catch { /* */ }
@@ -1247,7 +1255,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (name) say(darsTil ? `[${darsTil}]${name}[/${darsTil}]` : izohTeg(name, izoh));
   };
 
-  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz}` : ""} ${kabuMuhit ? "dx-kabu-muhit" : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""}`} aria-label={__kbUi("Dars xonasi")}>
+  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz}` : ""} ${kabuMuhit ? "dx-kabu-muhit" : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")}>
+    {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className="dx-head">
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={focus ? exitLesson : () => { hush(); onClose?.(); }} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>

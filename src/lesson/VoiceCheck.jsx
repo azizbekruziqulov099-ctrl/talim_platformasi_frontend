@@ -52,7 +52,7 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
     say(kid
       ? (izoh !== "uz" ? gap(izoh, good ? "Barakalla! Hammasini aytding!" : "Yaxshi harakat! Keyingi safar yana aytamiz.")
         : good ? __kbUi("Barakalla! Hammasini aytding!") : __kbUi("Yaxshi harakat! Keyingi safar yana aytamiz."))
-      : __kbUi(`Ovozli tekshiruv tugadi: ${sum.togri} / ${sum.jami}.`),
+      : (izoh !== "uz" && ["ru", "en"].includes(izoh) ? `[${izoh}]${__kbUi(`Ovozli tekshiruv tugadi: ${sum.togri} / ${sum.jami}.`)}[/${izoh}]` : __kbUi(`Ovozli tekshiruv tugadi: ${sum.togri} / ${sum.jami}.`)),
       () => setTimeout(() => { if (alive.current) onDone?.(sum, list); }, 500));
   }, [kid, say, onDone]);
 
@@ -83,7 +83,10 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
     hush?.();
     stopRec();
     // REV110: bolaning ovozini ham yozib boramiz (xato bo'lsa o'ziga eshittirish uchun).
-    const clip = noClip ? null : await startClip().catch(() => null);
+    // REV177: Android telefonlarda mikrofonni bir vaqtda yozish va tanish to'qnashadi — tanuvchi hech narsa eshitmaydi
+    // («ovoz eshitilmadi»). Shuning uchun Androidda yozib olish o'chiq: faqat aniq tanish ishlaydi.
+    const android = /Android/i.test(globalThis.navigator?.userAgent || "");
+    const clip = noClip || android ? null : await startClip().catch(() => null);
     if (!alive.current) { clip?.cancel(); return; }
     clipRef.current = clip;
     const r = new Recognition();
@@ -109,11 +112,20 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
       clipRef.current = null;
       if (!alive.current) { dropClip(url); return; }
       keepClip(url);
+      // REV177: hech narsa eshitilmasa — urinish hisoblanmaydi. Yozib olish yoqilgan bo'lsa (u tanishga xalaqit bergan bo'lishi mumkin),
+      // shu qurilmada o'chirib, darhol qayta tinglaymiz; aks holda o'quvchi mikrofonni bosib qayta aytadi.
+      if (!alts.some((a) => String(a || "").trim())) {
+        setLast({ stars: 0, score: 0, heard: "" });
+        if (clip && !noClip) { disableRecorder(); setTimeout(() => { if (alive.current) listen(true); }, 200); return; }
+        setPhase("tap");
+        return;
+      }
       const g = item.turi === "suhbat" ? tahlil(alts, item, bilgan) : gradeVoice(alts, item);
       const heard = alts[0] || "";
       setLast({ ...g, heard });
       setPhase("graded");
-      if (voicePassed(g)) { record(true, heard, g.stars, g); return; }
+      // REV177: maktabda xato aytilgani o'tkazilmaydi — kamida 80% o'xshashlik (3 yulduz); bog'chada 2 yulduz yetadi
+      if (item.turi === "suhbat" ? voicePassed(g) : kid ? voicePassed(g) : Number(g.stars) >= 3) { record(true, heard, g.stars, g); return; }
       if (attempt + 1 < tries) {
         setAttempt(attempt + 1);
         coach(g, heard, url);

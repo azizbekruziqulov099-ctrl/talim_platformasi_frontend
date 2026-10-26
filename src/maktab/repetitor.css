@@ -71,3 +71,13 @@
 .rp-ishora{font:700 24px/1.3 ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#1F3B57;background:#FFF7E6;border:2px dashed #E8C77A;border-radius:12px;padding:6px 14px;white-space:pre-wrap;text-align:center}
 .rp-yordam-btn{background:#FFF7E6;border-color:#E8C77A}
 .rp-tag.is-qayta{background:#FDECEC;color:#8F1D21}
+/* REV177: past (yotiq) ekranda — Kabu chapda, mashq o'ngda: aylantirmasdan hammasi ko'rinadi */
+@media (orientation:landscape) and (max-height:600px){
+  .rp-root:has(>.rp-card){display:grid;grid-template-columns:minmax(0,34%) minmax(0,1fr);grid-auto-flow:row dense;gap:6px 12px;max-width:none;align-items:start}
+  .rp-root:has(>.rp-card)>*{grid-column:1/-1}
+  .rp-root:has(>.rp-card)>.rp-ustoz{grid-column:1;width:100%;position:sticky;top:0}
+  .rp-root:has(>.rp-card)>.rp-card{grid-column:2;padding:10px;gap:8px}
+  .rp-root .kx-root{flex-direction:column;min-height:0;padding:8px;gap:6px}
+  .rp-root .kx-robot{flex-basis:auto;width:46%}
+  .rp-root .kx-doska{font-size:18px;min-height:56px;width:100%;box-sizing:border-box}
+}

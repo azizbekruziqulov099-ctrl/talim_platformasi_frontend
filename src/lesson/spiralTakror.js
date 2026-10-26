@@ -18,10 +18,13 @@ const yoz = (st, k, v) => { try { st?.setItem(k, JSON.stringify(v)); } catch { /
 /** Fan kaliti: «Nemis tili (izoh: rus)» va «Nemis tili» — bitta fan (izoh tili farq qilmaydi). */
 export const fanKaliti = (fan = "") => String(fan).replace(/\s*\(izoh:[^)]*\)\s*/i, "").trim().toLowerCase();
 
-/** Yoshga mos miqdor: 1–2 sinf — 5 spiral + 4 erkin; 3-sinfdan — 6 spiral + 5 erkin. */
+/**
+ * Yoshga mos miqdor (REV178): o'tgan darsning HAMMA yangi so'zlari (1–2 sinf — 6 tagacha, kattalar — 8 tagacha),
+ * qo'shimcha spiral — eski darslardan (2, 3, 5, 8, 13 dars oldin) 3–4 ta; erkin eslash maqsadi 4–5.
+ */
 export function takrorSoni(sinf = 5) {
   const s = Number(sinf) || 5;
-  return s <= 2 ? { spiral: 5, erkin: 4 } : { spiral: 6, erkin: 5 };
+  return s <= 2 ? { oxirgi: 6, spiral: 3, erkin: 4 } : { oxirgi: 8, spiral: 4, erkin: 5 };
 }
 
 const TEG = /\[\/?[a-z]{2}\]/g;
@@ -44,7 +47,8 @@ export function atamalar(steps = []) {
 export function darsYozuvi({ kod, mavzu = "", fan = "", til = "", iz = "uz", steps = [], sozlar = [], savollar = [], kun = kunRaqami() }) {
   return {
     kod: String(kod || ""), mavzu: toza(mavzu), fan, til, kun,
-    sozlar: sozlar.map((w) => ({ soz: toza(w.w?.[til] || Object.values(w.w || {})[0]), mano: toza(w.w?.[iz] || w.w?.uz || ""), emoji: w.emoji || "" }))
+    // REV178: ma'no qaysi tilda yozilgani ham saqlanadi (keyin interfeys tili o'zgarsa — to'g'ri tilda ko'rsatish uchun)
+    sozlar: sozlar.map((w) => ({ soz: toza(w.w?.[til] || Object.values(w.w || {})[0]), mano: toza(w.w?.[iz] || w.w?.uz || ""), manoTil: w.w?.[iz] ? iz : "uz", emoji: w.emoji || "" }))
       .filter((w) => w.soz && w.mano).slice(0, 16),
     savollar: savollar.filter((q) => q && Array.isArray(q.variantlar) && q.variantlar.length >= 2 && Number.isInteger(q.togri))
       .map((q) => ({ savol: toza(q.savol), variantlar: q.variantlar.map(toza), togri: q.togri })).filter((q) => q.savol).slice(0, 8),
@@ -74,20 +78,27 @@ const aralash = (a, rng) => { const b = [...a]; for (let i = b.length - 1; i > 0
 /** Bitta darsdan bitta savol: til darsida — so'z (ayt + yoz), boshqa fanda — test savoli (yoki tushuncha). */
 function darsdanSavol(d, rng, olingan) {
   const sozlar = aralash(d.sozlar || [], rng).filter((w) => !olingan.has(`s:${w.soz.toLowerCase()}`));
-  if (d.til && sozlar.length) { const w = sozlar[0]; olingan.add(`s:${w.soz.toLowerCase()}`); return { tur: "soz", til: d.til, soz: w.soz, mano: w.mano, emoji: w.emoji, kod: d.kod, mavzu: d.mavzu }; }
+  if (d.til && sozlar.length) { const w = sozlar[0]; olingan.add(`s:${w.soz.toLowerCase()}`); return { tur: "soz", til: d.til, soz: w.soz, mano: w.mano, manoTil: w.manoTil || "", emoji: w.emoji, kod: d.kod, mavzu: d.mavzu }; }
   const sv = aralash(d.savollar || [], rng).filter((q) => !olingan.has(`q:${q.savol}`));
   if (sv.length) { const q = sv[0]; olingan.add(`q:${q.savol}`); return { tur: "savol", ...q, kod: d.kod, mavzu: d.mavzu }; }
   return null;
 }
 
 /**
- * Spiral takror savollari: oldingi darslardan SPIRAL_ORALIQ bo'yicha (1, 2, 3, 5, 8, 13 dars oldin) bittadan;
- * darslar kam bo'lsa — bor darslardan qo'shimcha savol bilan to'ldiriladi (jami `soni` gacha).
+ * Takror savollari (REV178): avval o'tgan darsning HAMMA yangi so'zlari (`oxirgi` tagacha; boshqa fanda — test savollari, 4 tagacha),
+ * keyin eski darslardan SPIRAL_ORALIQ bo'yicha (2, 3, 5, 8, 13 dars oldin) bittadan — `soni` tagacha; kam bo'lsa — eski darslardan to'ldiriladi.
  */
-export function spiralTuz(darslar = [], { soni = 6, rng = Math.random } = {}) {
-  const out = [];
+export function spiralTuz(darslar = [], { soni = 4, oxirgi = 8, rng = Math.random } = {}) {
+  const birinchi = [];
   const olingan = new Set();
-  for (const n of SPIRAL_ORALIQ) {
+  const d0 = darslar[0];
+  if (d0) {
+    const n0 = d0.til && d0.sozlar?.length ? oxirgi : Math.min(4, oxirgi);
+    const tilDarsi = Boolean(d0.til && d0.sozlar?.length);
+    for (let k = 0; k < n0; k++) { const q = darsdanSavol(d0, rng, olingan); if (!q || (tilDarsi && q.tur !== "soz")) break; birinchi.push({ ...q, oldin: 1 }); }
+  }
+  const out = [];
+  for (const n of SPIRAL_ORALIQ.slice(1)) {
     if (out.length >= soni) break;
     const d = darslar[n - 1];
     if (!d) continue;
@@ -96,14 +107,14 @@ export function spiralTuz(darslar = [], { soni = 6, rng = Math.random } = {}) {
   }
   for (let aylana = 0; out.length < soni && aylana < 4; aylana++) {
     let qoshildi = false;
-    for (const [i, d] of darslar.slice(0, 13).entries()) {
+    for (const [i, d] of darslar.slice(1, 13).entries()) {
       if (out.length >= soni) break;
       const q = darsdanSavol(d, rng, olingan);
-      if (q) { out.push({ ...q, oldin: i + 1 }); qoshildi = true; }
+      if (q) { out.push({ ...q, oldin: i + 2 }); qoshildi = true; }
     }
     if (!qoshildi) break;
   }
-  return out;
+  return [...birinchi, ...out];
 }
 
 /** Erkin eslash: o'tgan darsning so'zlari (til darsi) yoki asosiy tushunchalari. maqsad — yoshga mos (4–5), lekin bor narsadan oshmaydi. */

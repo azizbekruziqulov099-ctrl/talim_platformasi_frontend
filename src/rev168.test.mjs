@@ -82,7 +82,7 @@ test('bosh sahifa: kundalik va bugungi darslar xonachada (ustoz bilan), boshqala
 test('dars: telefon yotqizilganda kattaroq (landscape), CSS grid tashlanmaydi', () => {
   const c = src('./lesson/dars-xonasi.css');
   assert.match(c, /orientation:\s*landscape\)\s*and\s*\(max-height:\s*600px\)/);
-  assert.match(src('./lesson/DarsXonasi.jsx'), /orientation\?\.lock/);
+  assert.match(src('./lesson/DarsXonasi.jsx'), /dx-burish/);   // REV177: to'liq ekran/orientation.lock o'rniga CSS burilishi va animatsiya
   const k = src('./kid/bolalarKundaligi.css');
   assert.doesNotMatch(k, /font:\d{3} [\d.]+px\/[\d.]+ inherit/);   // noto'g'ri shorthand (butun qoida tashlanardi)
   assert.match(k, /min-width:0/);
