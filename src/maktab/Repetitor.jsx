@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SINFLAR } from "./index.js";
 import Rasm from "./MaktabRasm.jsx";
 import KabuXonacha from "../kid/KabuXonacha.jsx";
-import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
+import { ovozManbai, KABU_OVOZ, KABU_TIL_OVOZ } from "../kid/ovozOqi.js";
+import "./maktab.css";
+import TilKlaviatura, { klaviaturaBor, sensorli } from "./TilKlaviatura.jsx";   // REV180: harf plitkalari va tugmalar (dars ichida ochilganda ham uslub bilan)
 import { harfPlitkalar, harflar, harfTogri, terishMumkin } from "./maktabRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
@@ -133,9 +135,13 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
     return () => { tirik = false; clearTimeout(t); };
   }, [avto]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // REV180: ikki Kabu — tushuntiruvchi (izoh tilida) va o'rganilayotgan til egasi (so'zni o'z talaffuzida aytadi)
+  const [kim, setKim] = useState(null);
+  const [klav, setKlav] = useState(() => sensorli());   // REV180: o'z klaviaturamiz (o'rganilayotgan til harflari)
   const ayt = (matn, { sekin = false } = {}, done) => {
     setGapir(true);
-    ovoz.oqi(matn, { ...KABU_OVOZ, sekin, tezlik: sinf <= 4 ? "-15%" : "-5%", done: () => { if (!alive.current) return; setGapir(false); done?.(); } });
+    ovoz.oqiIkki(matn, { til, iz, izOvoz: KABU_OVOZ, tilOvoz: KABU_TIL_OVOZ, sekin, tezlik: sinf <= 4 ? "-15%" : "-5%", onKim: setKim,
+      done: () => { if (!alive.current) return; setGapir(false); setKim(null); done?.(); } });
   };
   const mano = (w, l = iz) => w.w[l] || w.w.uz;
   const qur = (kalit, w, n = "") => {
@@ -259,7 +265,7 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
   </div>;
 
   const ustozBlok = (doska) => <div className="rp-ustoz">
-    <KabuXonacha doska={doska} gapir={gapir} onTap={() => dars && !dars.natija && dars.list?.length && bosqichniAyt(dars)} />
+    <KabuXonacha juft={{ iz, til }} kim={kim} doska={doska} gapir={gapir} onTap={() => dars && !dars.natija && dars.list?.length && bosqichniAyt(dars)} />
   </div>;
 
   // ———— lug'at ————
@@ -398,8 +404,11 @@ export default function Repetitor({ apiBase = "", til = "en", izoh = "uz", sinf 
       <button type="button" className="mk-tile is-clear" onClick={() => setDars((o) => ({ ...o, tanlangan: [] }))} aria-label={T("Tozalash")}>⌫</button></div>}
   </> : <>
     <input className="mk-input rp-input" dir="auto" lang={til} value={dars.kiritish} disabled={Boolean(j)} autoCapitalize="off" autoComplete="off" spellCheck={false}
+      inputMode={klav && klaviaturaBor(til) ? "none" : undefined} onFocus={() => { if (sensorli() && klaviaturaBor(til)) setKlav(true); }}
       placeholder={T("Shu yerga yozing…")} onChange={(e) => setDars((o) => ({ ...o, kiritish: e.target.value }))}
       onKeyDown={(e) => { if (e.key === "Enter" && dars.kiritish.trim() && !j) tekshirYoz(dars.kiritish); }} />
+    {!j && klaviaturaBor(til) && <TilKlaviatura key={`${soz}:${dars.b}`} til={til} qiymat={dars.kiritish} onChange={(v) => setDars((o) => ({ ...o, kiritish: v }))}
+      onEnter={() => { const d = darsRef.current; if (d?.kiritish?.trim()) tekshirYoz(d.kiritish); }} javob={soz} boshqa={dars.list.map((x) => x.soz.w[til] || "").join("")} ochiq={klav} onOchiq={setKlav} />}
     {!j && <button type="button" className="mk-btn is-main" disabled={!dars.kiritish.trim()} onClick={() => tekshirYoz(dars.kiritish)}>✔ {T("Tekshirish")}</button>}
   </>);
   // REV177: ishora zinapoyasi (Cognitive Tutor / ASSISTments): 1 — birinchi harf va harflar soni, 2 — har ikkinchi harf, 3 — javob.

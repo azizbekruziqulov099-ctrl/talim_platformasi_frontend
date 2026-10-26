@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import KabuXonacha from "../kid/KabuXonacha.jsx";
-import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
+import { ovozManbai, KABU_OVOZ, KABU_TIL_OVOZ } from "../kid/ovozOqi.js";
 import { tekshir, yordamMatni, YORDAM_MAX } from "../maktab/repetitorRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
@@ -9,10 +9,13 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { spiralTuz, erkinTuz, erkinTekshir, takrorSoni } from "./spiralTakror.js";
 import { manoTanla, buyruq } from "./takrorMano.js";
 import { mashqYulduz } from "./maktabMashqRules.js";
+import TilKlaviatura, { klaviaturaBor, sensorli, PLITKALI } from "../maktab/TilKlaviatura.jsx";
 import "./maktabMashqlar.css";
 
 const teg = (t, l) => (t && l && l !== "uz" ? `[${l}]${t}[/${l}]` : t);
 const HARF = ["A", "B", "C", "D", "E"];
+// REV180: test savoli ovozda — asl teglari bilan (nemischa qism nemischa, inglizcha — inglizcha); teg yo'q eski yozuvlarda til taxmin qilinadi
+const savolOvozi = (q, L = "uz") => `${q.savolTeg || q.savol} ${(q.variantlarTeg || q.variantlar).map((v, k) => `${teg(`${HARF[k]})`, L)} ${v}.`).join(" ")}`;
 
 /**
  * Yangi darsdan oldin robot Kabu bilan takror (REV177, REV178 tartibi):
@@ -42,6 +45,7 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
   const [ball, setBall] = useState({ togri: 0, jami: 0 });
   const [erkinNatija, setErkinNatija] = useState(null);
   const [ishora, setIshora] = useState(0);
+  const [klav, setKlav] = useState(() => sensorli());   // REV180: o'z klaviaturamiz (telefon klaviaturasi chaqirilmaydi)
   const ovoz = useMemo(() => ovozManbai(apiBase), [apiBase]);
   const alive = useRef(true);
   const rec = useRef(null);
@@ -50,7 +54,10 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
   const bosqich = bosqichlar[b];
   const q = bosqich === "spiral" ? savollar[i] : null;
   const mn = q?.tur === "soz" ? manoTanla(q, L) : null;   // {mano, til}
-  const ayt = (m, sekin = false, done) => { setGapir(true); ovoz.oqi(m, { ...KABU_OVOZ, sekin, tezlik: sinf <= 4 ? "-15%" : "-5%", done: () => { if (alive.current) { setGapir(false); done?.(); } } }); };
+  // REV180: ikki Kabu — tushuntiruvchi (interfeys tilida) va o'rganilayotgan til egasi; har biri o'z ovozida, kim gapirsa o'sha kattalashadi
+  const tilJuft = darslar.find((d) => d.til)?.til || "";
+  const [kim, setKim] = useState(null);
+  const ayt = (m, sekin = false, done) => { setGapir(true); ovoz.oqiIkki(m, { til: tilJuft, iz: L, izOvoz: KABU_OVOZ, tilOvoz: KABU_TIL_OVOZ, sekin, tezlik: sinf <= 4 ? "-15%" : "-5%", onKim: setKim, done: () => { if (alive.current) { setGapir(false); setKim(null); done?.(); } } }); };
   const izt = (m) => teg(T(m), L);
   const hisob = (ok) => { if (ok) setQuvon((x) => x + 1); setBall((x) => ({ togri: x.togri + (ok ? 1 : 0), jami: x.jami + 1 })); };
   const yozBuyruq = q?.tur === "soz" ? buyruq("yoz", { L, til: q.til, m: mn.mano, mTil: mn.til }) : null;
@@ -62,7 +69,7 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
     const boshi = b === bosqichlar.indexOf("spiral") && i === 0 && faza === "yoz" ? `${buyruq("bosh", { L }).ovoz} ` : "";
     if (bosqich === "spiral" && q) {
       if (q.tur === "soz") ayt(`${boshi}${faza === "yoz" ? yozBuyruq.ovoz : aytBuyruq.ovoz}`);
-      else ayt(`${boshi}${teg(q.savol, L)} ${q.variantlar.map((v, k) => `${teg(`${HARF[k]})`, L)} ${v}`).join(". ")}`);
+      else ayt(`${boshi}${savolOvozi(q, L)}`);
     } else if (bosqich === "erkin" && erkin) {
       ayt(erkinBuyruq ? erkinBuyruq.ovoz : `${izt("Endi o‘tgan darsni o‘zingiz eslang.")} «${erkin.mavzu}». ${izt("Esingizda qolganlarini yozing:")} ${erkin.maqsad}`);
     } else if (bosqich === "yakun") {
@@ -115,7 +122,7 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
     const ok = k === q.togri;
     setJavob({ holat: ok ? "togri" : "xato", tanlov: k });
     hisob(ok);
-    ayt(ok ? izt("To‘g‘ri!") : `${izt("To‘g‘ri javob")}: ${q.variantlar[q.togri]}`);
+    ayt(ok ? izt("To‘g‘ri!") : `${izt("To‘g‘ri javob")}: ${(q.variantlarTeg || q.variantlar)[q.togri]}`);
   };
   const erkinTekshirish = () => {
     if (!kiritish.trim() || erkinNatija) return;
@@ -143,7 +150,7 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
     <ol className="mm-steps">{bosqichlar.map((x, k) => <li key={x} className={`${k < b ? "is-done" : ""} ${k === b ? "is-on" : ""}`}>
       <span aria-hidden="true">{k < b ? "✅" : x === "spiral" ? "🌀" : x === "erkin" ? "✍️" : "🏁"}</span>
       <small>{T(x === "spiral" ? "Spiral takror" : x === "erkin" ? "Erkin eslash" : "Natija")}</small></li>)}</ol>
-    <div className="mm-ustoz"><KabuXonacha doska={doska} gapir={gapir} celebrate={quvon} mood={javob?.holat === "togri" ? "happy" : javob ? "enc" : "wave"} /></div>
+    <div className="mm-ustoz"><KabuXonacha juft={tilJuft ? { iz: L, til: tilJuft } : null} kim={kim} doska={doska} gapir={gapir} celebrate={quvon} mood={javob?.holat === "togri" ? "happy" : javob ? "enc" : "wave"} /></div>
 
     {bosqich === "spiral" && q && <div className="mm-card">
       <span className="mm-qadam">{i + 1} / {savollar.length}{q.oldin ? ` · ${q.oldin} ${T("dars oldin")}` : ""}{q.mavzu ? ` · ${q.mavzu}` : ""}</span>
@@ -152,7 +159,10 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
           <p className="mm-izoh">{yozBuyruq.matn}</p>
           <p className="mm-matn" dir="auto">{q.emoji} {mn.mano}{manoBelgi && <small>{manoBelgi}</small>}</p>
           <input className="mm-input" dir="auto" lang={q.til} value={kiritish} disabled={Boolean(javob)} autoCapitalize="off" autoComplete="off" spellCheck={false} enterKeyHint="done"
+            inputMode={klav && klaviaturaBor(q.til) ? "none" : undefined} onFocus={() => { if (sensorli() && klaviaturaBor(q.til)) setKlav(true); }}
             placeholder={T("So‘zni yozing…")} onChange={(e) => setKiritish(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") yozTekshir(); }} />
+          {!javob && klaviaturaBor(q.til) && <TilKlaviatura key={q.soz} til={q.til} qiymat={kiritish} onChange={setKiritish} onEnter={yozTekshir} javob={q.soz}
+            boshqa={savollar.map((x) => x.soz || "").join("")} ochiq={klav} onOchiq={setKlav} />}
           {!javob && <button type="button" className="mm-btn is-main" disabled={!kiritish.trim()} onClick={yozTekshir}>✔ {T("Tekshirish")}</button>}
           {!javob && ishora > 0 && <b className="dot-ishora" dir="ltr" lang={q.til}>{yordamMatni(q.soz, ishora)}</b>}
           {!javob && ishora < YORDAM_MAX && <button type="button" className="mm-link" onClick={() => { const n = ishora + 1; setIshora(n); if (n >= YORDAM_MAX) ayt(teg(q.soz, q.til)); }}>💡 {T("Ishora")} ({ishora + 1}/{YORDAM_MAX})</button>}
@@ -173,7 +183,7 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
         <div className="dot-variantlar">{q.variantlar.map((v, k) => <button key={k} type="button" dir="auto"
           className={`mm-btn ${javob ? (k === q.togri ? "is-togri" : k === javob.tanlov ? "is-xato" : "") : ""}`} disabled={Boolean(javob)} onClick={() => tanla(k)}>
           <b>{HARF[k]})</b> {v}</button>)}</div>
-        <div className="mm-row"><button type="button" className="mm-btn" onClick={() => ayt(`${teg(q.savol, L)} ${q.variantlar.map((v, k) => `${teg(`${HARF[k]})`, L)} ${v}`).join(". ")}`)}>🔊 {T("Yana o‘qib ber")}</button></div>
+        <div className="mm-row"><button type="button" className="mm-btn" onClick={() => ayt(savolOvozi(q, L))}>🔊 {T("Yana o‘qib ber")}</button></div>
       </>}
       {javob && q.tur === "soz" && <div className={`mm-javob is-${javob.holat}`} role="status">
         <b>{javob.holat === "togri" ? `✅ ${T("To‘g‘ri!")}` : javob.holat === "deyarli" ? `🟡 ${T("Deyarli to‘g‘ri")}` : `❌ ${T("To‘g‘risi")}: `}</b>
@@ -188,7 +198,9 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
 
     {bosqich === "erkin" && erkin && <div className="mm-card">
       <p className="mm-izoh">{erkinBuyruq ? erkinBuyruq.matn : T("O‘tgan darsdan esingizda qolgan so‘z va tushunchalarni yozing — har birini yangi qatorga yoki vergul bilan.")} {T("Maqsad")}: <b>{erkin.maqsad}</b></p>
+      {!erkinNatija && erkin.til && klaviaturaBor(erkin.til) && !PLITKALI.has(erkin.til) && <TilKlaviatura til={erkin.til} qiymat={kiritish} onChange={setKiritish} matnli ochiq={klav} onOchiq={setKlav} />}
       <textarea className="mm-input dot-erkin" dir="auto" lang={erkin.til || undefined} rows={4} value={kiritish} disabled={Boolean(erkinNatija)} autoCapitalize="off" spellCheck={false}
+        inputMode={klav && erkin.til && klaviaturaBor(erkin.til) && !PLITKALI.has(erkin.til) ? "none" : undefined}
         placeholder={erkin.til ? "1) …\n2) …" : T("Esingizda qolganlarini yozing…")} onChange={(e) => setKiritish(e.target.value)} />
       {!erkinNatija && <button type="button" className="mm-btn is-main" disabled={!kiritish.trim()} onClick={erkinTekshirish}>✔ {T("Tekshirish")}</button>}
       {erkinNatija && <div className={`mm-javob ${erkinNatija.topildi.length >= erkin.maqsad ? "is-togri" : "is-deyarli"}`} role="status">

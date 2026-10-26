@@ -16,6 +16,9 @@ import { screenTime } from "../kid/screenTime.js";
 import { LIP_STEP, loadEnvelope } from "../kid/lipSync.js";
 import { ustozNutqi } from "../kid/ustozNutqi.js";
 import KidStage from "../kid/KidStage.jsx";
+import { flagSrc } from "../kid/flags.js";
+import { TIL_BAYROQ } from "../kid/KabuXonacha.jsx";
+import { ikkiOvozOqi } from "../speech/ikkiOvoz.js";
 import { USTOZLAR, XONALAR } from "../kid/ustozlar.js";
 import UstozXonacha from "../kid/UstozXonacha.jsx";
 import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
@@ -172,9 +175,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const doskaRef = useRef(null);
   const joy = sinfXona ? sinfJoyi(XONALAR[xonaKaliti(ustozRef.current)] ? xonaKaliti(ustozRef.current) : "onatili") : null;   // REV176: doska — ustoz va deraza orasida
   // REV177: test, ovozli tekshiruv va natija — sinfxonadan chiqib, robot Kabuning o'z muhitida (ustoz yo'q, faqat Kabu)
+  const darsTilRef = useRef("");   // REV180: o'rganilayotgan til (ikki Kabu va ovoz uchun)
   const kabuMuhit = sinfXona && ["test", "ovoz", "result"].includes(mode);
   useEffect(() => { if (kabuMuhit) setSavolOchiq(false); }, [kabuMuhit]);
-  const KABU_JOY = { doska: { l: 29, t: 3, w: 69, h: 72 }, gap: { l: 29, t: 77, w: 69, h: 21 } };
+  // REV180: til darsida — ikki Kabu (chapda tushuntiruvchi, o'ngda o'rganilayotgan til egasi), doska ular orasida
+  const kabuJuftMuhit = kabuMuhit && Boolean(darsTilRef.current);
+  const KABU_JOY = kabuJuftMuhit ? { doska: { l: 23, t: 3, w: 54, h: 72 }, gap: { l: 23, t: 77, w: 54, h: 21 } } : { doska: { l: 29, t: 3, w: 69, h: 72 }, gap: { l: 29, t: 77, w: 69, h: 21 } };
+  const kabuMuhitRef = useRef(false);
+  kabuMuhitRef.current = kabuMuhit;
+  const [kabuKim, setKabuKim] = useState(null);   // "iz" | "til" — qaysi Kabu gapiryapti
   const foiz = (b) => (b ? { left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` } : undefined);
   const ustozGapiryapti = () => ["idle", "lesson", "bridge"].includes(modeRef.current);
   // REV177: maktabda ham bolalar darsidagidek — yangi mavzuni jonli ustoz tushuntiradi, test va ovozli tekshiruvni robot Kabu o'tkazadi
@@ -198,6 +207,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   izohRef.current = izoh;
   // REV121: matematika / atrof-muhit / mantiq — til darsi emas (rus izohidagi teglar «o'rganiladigan til» emas)
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
+  darsTilRef.current = darsTil || "";
   // REV157: 4–7 yoshli til darsida ustoz o'zi ham faqat o'rganilayotgan tilda gapiradi («Now you say it», «Find…»).
   // 2–3 va 3–4 yosh — izoh tilida (o'zbek / rus / ingliz) tushuntiriladi.
   // REV175: maktab til darsi — yangi so'zlar Repetitor uchun (harflab, daftarga, eshitib yozish, tarjima)
@@ -346,6 +356,17 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     sayWords.current = words;
     setSpeaking(true);
     const finish = () => { if (my !== tokenRef.current) return; clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
+    // REV180: Kabu muhitida (test, ovozli tekshiruv) — ikki Kabu: izoh qismi birinchi Kabu ovozida, o'rganilayotgan til qismi —
+    // ikkinchi Kabu (o'sha til egasi) ovozida; kim gapirsa o'sha kattalashadi
+    if (!kidRef.current && kabuMuhitRef.current && darsTilRef.current) {
+      const base = String(apiBase).replace(/\/+$/, "");
+      const izL = ["uz", "ru", "en"].includes(izohRef.current) ? izohRef.current : "uz";
+      aralashRef.current = ikkiOvozOqi(clean, { til: darsTilRef.current, nomzodlar: [...new Set([izL, darsTilRef.current, "uz"])], playbackRate: rateRef.current,
+        url: (m, kim) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH })}`,
+        onKim: (k) => { if (my === tokenRef.current) setKabuKim(k); },
+        onEnd: () => { if (my === tokenRef.current) { setKabuKim(null); finish(); } } });
+      return;
+    }
     // REV139: gapda chet tildagi so'z bo'lsa — o'zbekcha bo'laklar serverdan, chet tildagilari qurilma ovozidan
     if (aralashKerak(clean)) {
       fallbackTalk.current = true;
@@ -1280,8 +1301,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
         <UstozSahna ustoz={ustozRef.current} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
       </div>}
-      {kabuMuhit && <div className="dx-kabu-fon" aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
-        <div className="dx-kabu-robot"><KidStage compact mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div></div>}
+      {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
+        {kabuJuftMuhit ? <>
+          {/* REV180: ikki Kabu — kim gapirsa o'sha kattalashadi, ikkinchisi xiralashadi */}
+          <div className={`dx-kabu-robot is-iz ${speaking && kabuKim === "iz" ? "is-faol" : speaking ? "is-jim" : ""}`}>
+            <img className="dx-kabu-bayroq" src={flagSrc(TIL_BAYROQ[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"])} alt="" />
+            <KidStage compact mood={speaking && kabuKim === "iz" ? "talk" : kidMood || "think"} celebrate={celebrate} speaking={speaking && kabuKim === "iz"} /></div>
+          <div className={`dx-kabu-robot is-til til-${darsTil} ${speaking && kabuKim === "til" ? "is-faol" : speaking ? "is-jim" : ""}`}>
+            <img className="dx-kabu-bayroq" src={flagSrc(TIL_BAYROQ[darsTil] || "")} alt="" />
+            <KidStage compact mood={speaking && kabuKim === "til" ? "talk" : kidMood || "think"} celebrate={celebrate} speaking={speaking && kabuKim === "til"} /></div>
+        </> : <div className="dx-kabu-robot"><KidStage compact mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? KABU_JOY.doska : joy.doska) : undefined}>
         <div className="dx-board" aria-live="polite" ref={doskaRef}>
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}

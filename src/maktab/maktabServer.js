@@ -1,5 +1,6 @@
 // REV173: maktab til natijalari serverga (ota-ona ko'radi, sinfdoshlar orasida o'rin). Ixtiyoriy: server javob bermasa — jim.
 import { kunBelgila } from "./kunReja.js";
+import { kundalikYoz } from "./kundalikRules.js";
 
 const base = (apiBase) => String(apiBase || "").replace(/\/+$/, "");
 
@@ -38,6 +39,7 @@ async function post(apiBase, token, path, body) {
 /** turi: "dars" | "til" | "repetitor" | "topshiriq"; kod — shu faoliyatning kaliti (bir kunda bir xil kod — bitta yozuv yangilanadi). */
 export function faollikYoz(apiBase, token, { turi, kod, fan = "", til = "", mavzu = "", togri = 0, jami = 0, yozdi = 0, soniya = 0, sozlar = [] }) {
   kunBelgila(turi, String(kod || ""), undefined, undefined, String(fan || ""));   // REV177: kun rejasi uchun (internet bo'lmasa ham)
+  kundalikYoz({ turi, kod: String(kod || ""), fan, til, mavzu, togri, jami, yozdi, soniya });   // REV180: fan kundaligi
   const n = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
   const j = n(jami, 500);
   return post(apiBase, token, "/api/maktab/faollik", {
@@ -64,3 +66,13 @@ export async function rejaOl(apiBase, token) {
   } catch { return null; }
 }
 export const rejaSaqla = (apiBase, token, bolaId, reja) => post(apiBase, token, "/api/ota/maktab/reja", { bola_id: bolaId, ...reja });
+
+// REV180: o'quvchining o'z kundaligi (serverdan — boshqa qurilmada qilinganlari ham)
+export async function kundalikOlServer(apiBase, token, fan = "") {
+  if (!token) return [];
+  try {
+    const res = await fetch(`${base(apiBase)}/api/maktab/kundalik?${new URLSearchParams({ fan, kun: "90" })}`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = res.ok ? await res.json().catch(() => null) : null;
+    return Array.isArray(d?.kundalik) ? d.kundalik : [];
+  } catch { return []; }
+}

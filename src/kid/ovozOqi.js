@@ -1,12 +1,15 @@
 // REV172: umumiy ovoz o'qituvchi — matn (tegli bo'laklari bilan: «Bu so'z — [en]apple[/en]») serverdagi /api/ovoz orqali
 // o'qiladi (Azure → OpenAI → edge). Repetitor va yakshanba takrori ishlatadi. Har yangi o'qish oldingisini to'xtatadi.
 import { aralashKerak, aralashOqi } from "../speech/aralashOvoz.js";
+import { ikkiOvozOqi } from "../speech/ikkiOvoz.js";
 
 /** Ustoz jinsi bo'yicha server ovozi: erkak ustoz — «ogil», ayol ustoz — «qiz». */
 export const jinsOf = (ustoz, USTOZLAR = {}) => (USTOZLAR?.[ustoz]?.lab === "erkak" ? "ogil" : "qiz");
 
 /** REV177: robot Kabu — doim bitta ovozda (bolalar darsidagidek: ayol ovozi, biroz yuqoriroq ohang). */
 export const KABU_OVOZ = { jins: "qiz", ohang: "+8Hz" };
+/** REV180: ikkinchi Kabu — o'rganilayotgan tilning «egasi» (o'sha til bayrog'i rangida): boshqa ovoz, ikki kishi gapirgani aniq bilinsin. */
+export const KABU_TIL_OVOZ = { jins: "ogil", ohang: "+4Hz" };
 
 /** Bir manba — bir vaqtda bitta ovoz. ovoz.oqi(matn, {jins, sekin, tezlik, done}); ovoz.stop() */
 export function ovozManbai(apiBase = "") {
@@ -36,5 +39,22 @@ export function ovozManbai(apiBase = "") {
       setTimeout(end, Math.min(25000, 5000 + t.length * 150));
     } catch { setTimeout(end, 800); }
   };
-  return { oqi, stop };
+  /**
+   * REV180: ikki so'zlovchi — tushuntiruvchi (izoh tili) va o'rganilayotgan til egasi; har biri o'z ovozida, navbat bilan.
+   * til — o'rganilayotgan til; izOvoz / tilOvoz — {jins, ohang}; onKim("iz" | "til" | null) — kim gapiryapti.
+   */
+  const oqiIkki = (matn, { til = "", iz = "uz", izOvoz = { jins: "qiz" }, tilOvoz = { jins: "ogil" }, sekin = false, tezlik = "-10%", onKim, done } = {}) => {
+    stop();
+    const my = raqam;
+    let fin = false;
+    const end = () => { if (fin) return; fin = true; if (my === raqam) done?.(); };
+    const t = String(matn || "").slice(0, 1500);
+    if (!t.trim() || !til) { if (!til) { oqi(t, { ...izOvoz, sekin, tezlik, done }); return; } setTimeout(end, 0); return; }
+    const tz = sekin ? "-30%" : tezlik;
+    const url = (m, kim) => { const o = kim === "til" ? tilOvoz : izOvoz;
+      return `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m, jins: o.jins || "qiz", tezlik: tz, ...(o.ohang ? { ohang: o.ohang } : {}) })}`; };
+    const ctl = ikkiOvozOqi(t, { til, nomzodlar: [...new Set([iz, til, "uz"])], url, onKim: (k) => { if (my === raqam) onKim?.(k); }, onEnd: end });
+    joriy = { pause: () => ctl.stop() };
+  };
+  return { oqi, oqiIkki, stop };
 }

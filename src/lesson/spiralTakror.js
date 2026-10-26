@@ -30,6 +30,7 @@ export function takrorSoni(sinf = 5) {
 const TEG = /\[\/?[a-z]{2}\]/g;
 const EMOJI = /(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[⃣️‍])+/gu;
 const toza = (s) => String(s || "").replace(TEG, "").replace(EMOJI, "").replace(/\s+/g, " ").trim();
+const tegli = (s) => String(s || "").replace(EMOJI, "").replace(/\s+/g, " ").trim();
 
 /** Darsning asosiy tushunchalari — qadam sarlavhalaridan (kirish, sana, test qadamlari tashlanadi). */
 export function atamalar(steps = []) {
@@ -51,7 +52,9 @@ export function darsYozuvi({ kod, mavzu = "", fan = "", til = "", iz = "uz", ste
     sozlar: sozlar.map((w) => ({ soz: toza(w.w?.[til] || Object.values(w.w || {})[0]), mano: toza(w.w?.[iz] || w.w?.uz || ""), manoTil: w.w?.[iz] ? iz : "uz", emoji: w.emoji || "" }))
       .filter((w) => w.soz && w.mano).slice(0, 16),
     savollar: savollar.filter((q) => q && Array.isArray(q.variantlar) && q.variantlar.length >= 2 && Number.isInteger(q.togri))
-      .map((q) => ({ savol: toza(q.savol), variantlar: q.variantlar.map(toza), togri: q.togri })).filter((q) => q.savol).slice(0, 8),
+      // REV180: ovoz uchun asl teglar ham saqlanadi ([de]Das ist …[/de] [en]Which one is «yes»?[/en]) — har qism o'z talaffuzida o'qilsin
+      .map((q) => ({ savol: toza(q.savol), savolTeg: tegli(q.savol), variantlar: q.variantlar.map(toza), variantlarTeg: q.variantlar.map(tegli), togri: q.togri }))
+      .filter((q) => q.savol).slice(0, 8),
     atamalar: atamalar(steps),
   };
 }

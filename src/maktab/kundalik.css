@@ -1,0 +1,25 @@
+/* REV180: fan kundaligi */
+.kd-root{display:flex;flex-direction:column;gap:8px;margin:0 0 14px;padding:12px 14px;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1px #1b4b7a1f}
+.kd-root.is-bosh{gap:4px}.kd-root.is-bosh small{color:#64748B}
+.kd-bosh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.kd-bosh>b{font-size:16px;color:#1F3B57}
+.kd-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kd-chips span{font-size:12.5px;font-weight:700;color:#334155;background:#F1F5F9;border-radius:999px;padding:4px 10px}
+.kd-qidir{width:100%;box-sizing:border-box;border:1px solid #CBD5E1;border-radius:10px;padding:8px 10px;font-size:14px}
+.kd-kun h4{margin:6px 0 4px;font-size:13px;color:#64748B}
+.kd-kun ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.kd-kun li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:#F8FAFC}
+.kd-ic{font-size:18px}
+.kd-matn{flex:1;min-width:0;display:flex;flex-direction:column}
+.kd-matn b{font-size:14px;color:#1F2937;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kd-matn small{font-size:12px;color:#64748B}
+.kd-natija{display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;white-space:nowrap}
+.kd-baho{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:8px;font-weight:800;color:#fff;background:#94A3B8}
+.kd-chips .kd-baho{display:inline;min-width:0;height:auto;color:#334155}
+.kd-baho.b5{background:#2F9E66}.kd-baho.b4{background:#3B82F6}.kd-baho.b3{background:#E9A23B}.kd-baho.b2{background:#E5484D}
+.kd-chips .kd-baho.b5,.kd-chips .kd-baho.b4,.kd-chips .kd-baho.b3,.kd-chips .kd-baho.b2{background:#F1F5F9}
+.kd-yana{align-self:center;border:0;background:none;color:#1B4B7A;font-weight:700;cursor:pointer}
+.kd-yoq{color:#B54708}
+html[data-kb-theme="dark"] .kd-root{background:#16263a}
+html[data-kb-theme="dark"] .kd-kun li{background:#1d3149}
+html[data-kb-theme="dark"] .kd-matn b,html[data-kb-theme="dark"] .kd-bosh>b{color:#e6eef8}

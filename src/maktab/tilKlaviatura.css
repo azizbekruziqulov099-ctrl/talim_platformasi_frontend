@@ -1,0 +1,21 @@
+/* REV180: o'z ekran klaviaturamiz — pastda, aniq va katta tugmalar; yopiladi va qayta ochiladi */
+.tk-root{position:fixed;left:0;right:0;bottom:0;z-index:2147483200;background:#E9EEF4;border-top:1px solid #CBD5E1;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:5px;box-shadow:0 -6px 18px #0002;user-select:none;-webkit-user-select:none}
+.tk-bosh{display:flex;justify-content:space-between;align-items:center;padding:0 4px}
+.tk-til{font:800 12px system-ui,sans-serif;color:#475569;background:#fff;border-radius:6px;padding:2px 8px}
+.tk-yop{border:0;background:#fff;border-radius:8px;font-size:18px;padding:0 14px;line-height:28px;cursor:pointer}
+.tk-qator{display:flex;justify-content:center;gap:4px}
+.tk-qator.is-plitka{flex-wrap:wrap;gap:6px;padding:4px 0}
+.tk-tugma{flex:1 1 0;max-width:46px;min-width:0;height:42px;border:0;border-radius:8px;background:#fff;color:#1F2937;font:600 19px system-ui,sans-serif;box-shadow:0 1px 0 #94A3B8;cursor:pointer;padding:0}
+.tk-qator.is-plitka .tk-tugma{flex:0 0 auto;width:48px;height:48px;font-size:24px;max-width:none}
+.tk-tugma:active{background:#DBEAFE}
+.tk-tugma:disabled{opacity:.35}
+.tk-tugma.is-keng{flex:1.4 1 0;max-width:70px;background:#D7DEE8}
+.tk-tugma.is-on{background:#1B4B7A;color:#fff}
+.tk-tugma.is-bosh{flex:5 1 0;max-width:260px}
+.tk-tugma.is-ok{flex:1.6 1 0;max-width:80px;background:#1B4B7A;color:#fff}
+.tk-och{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:2147483200;border:0;border-radius:999px;background:#1B4B7A;color:#fff;font:700 14px system-ui,sans-serif;padding:10px 16px;box-shadow:0 4px 14px #0004;cursor:pointer}
+@media (orientation:landscape) and (max-height:600px){.tk-tugma{height:32px;font-size:16px}.tk-root{gap:3px;padding-top:2px}.tk-bosh{position:absolute;right:4px;top:-30px}.tk-til{display:none}}
+/* klaviatura ochiq — oyna pastki qismi klaviatura ostida qolmasin */
+body:has(.tk-root) .dx-repetitor-oyna,body:has(.tk-root) .mk-root{padding-bottom:240px}
+.dx-root.dx-yotiq:has(.tk-root) .dx-repetitor-oyna{padding-bottom:170px}

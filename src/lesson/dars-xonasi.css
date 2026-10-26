@@ -564,3 +564,28 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-repetitor-oyna .mm-card{gap:6px}
   .dx-repetitor-oyna .mm-input{font-size:18px;padding:6px 10px}
 }
+/* REV180: Kabu muhitida ikki Kabu — chapda tushuntiruvchi, o'ngda o'rganilayotgan til egasi (bayroq rangida);
+   gapirayotgani kattalashadi va yorqin, ikkinchisi biroz xiralashadi */
+.dx-kabu-fon.is-juft .dx-kabu-robot{width:21%;transition:transform .25s ease,opacity .25s ease,filter .25s ease;transform-origin:50% 95%}
+.dx-kabu-fon.is-juft .dx-kabu-robot.is-iz{left:1%}
+.dx-kabu-fon.is-juft .dx-kabu-robot.is-til{left:auto;right:1%}
+.dx-kabu-fon.is-juft .dx-kabu-robot.is-faol{transform:scale(1.12);opacity:1;z-index:2}
+.dx-kabu-fon.is-juft .dx-kabu-robot.is-jim{transform:scale(.9);opacity:.5;filter:saturate(.6) blur(.6px)}
+.dx-kabu-bayroq{position:absolute;left:50%;top:-6%;transform:translateX(-50%);width:26%;aspect-ratio:3/2;border-radius:3px;box-shadow:0 1px 4px #0004;z-index:3}
+.dx-kabu-robot.is-til .ks-robot{filter:hue-rotate(-150deg) saturate(1.3)}
+.dx-kabu-robot.is-til.til-en .ks-robot{filter:hue-rotate(150deg) saturate(1.2)}
+.dx-kabu-robot.is-til.til-ru .ks-robot{filter:hue-rotate(40deg) saturate(1.2)}
+.dx-kabu-robot.is-til.til-fr .ks-robot{filter:hue-rotate(50deg)}
+.dx-kabu-robot.is-til.til-es .ks-robot,.dx-kabu-robot.is-til.til-tr .ks-robot,.dx-kabu-robot.is-til.til-zh .ks-robot{filter:hue-rotate(-160deg) saturate(1.6)}
+.dx-kabu-robot.is-til.til-ar .ks-robot{filter:hue-rotate(-40deg)}
+.dx-kabu-robot.is-til.til-ko .ks-robot{filter:hue-rotate(60deg)}
+@media (prefers-reduced-motion:reduce){.dx-kabu-fon.is-juft .dx-kabu-robot{transition:none}}
+/* REV180: past ekranda ikki Kabu yonma-yon, doska ostida; o'z klaviaturamiz ixcham */
+.dx-root.dx-yotiq .dx-repetitor-oyna .kx-root.is-juft,.dx-repetitor-oyna .kx-root.is-juft{flex-direction:row;flex-wrap:wrap;justify-content:space-around;align-items:flex-end}
+.dx-root.dx-yotiq .dx-repetitor-oyna .kx-root.is-juft .kx-robot,.dx-repetitor-oyna .kx-root.is-juft .kx-robot{width:38%;flex:0 0 38%}
+.dx-root.dx-yotiq .dx-repetitor-oyna .kx-root.is-juft .kx-doska,.dx-repetitor-oyna .kx-root.is-juft .kx-doska{order:3;flex:1 1 100%}
+.dx-root.dx-yotiq .tk-root{gap:3px;padding:3px 6px 4px}
+.dx-root.dx-yotiq .tk-tugma{height:30px;font-size:15px}
+.dx-root.dx-yotiq .tk-bosh{position:absolute;right:6px;top:-30px}
+.dx-root.dx-yotiq .tk-til{display:none}
+.dx-root.dx-yotiq .tk-qator.is-plitka .tk-tugma{width:40px;height:40px;font-size:20px}

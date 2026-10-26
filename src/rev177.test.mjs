@@ -140,7 +140,7 @@ test('test va tekshiruv — sinfxonadan chiqib Kabu muhitida: ustoz yo\'q', () =
   const dx = fs.readFileSync(new URL('./lesson/DarsXonasi.jsx', import.meta.url), 'utf8');
   assert.match(dx, /const kabuMuhit = sinfXona && \["test", "ovoz", "result"\]\.includes\(mode\)/);
   assert.match(dx, /sinfXona && !kabuMuhit && <div className="dx-sinf-fon"/);
-  assert.match(dx, /kabuMuhit && <div className="dx-kabu-fon"/);
+  assert.match(dx, /kabuMuhit && <div className={`dx-kabu-fon/);
   for (const k of Object.keys(XONALAR)) assert.equal(sinfJoyi(k).kabu, undefined);
 });
 

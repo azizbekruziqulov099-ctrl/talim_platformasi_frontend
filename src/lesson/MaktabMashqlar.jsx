@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import KabuXonacha from "../kid/KabuXonacha.jsx";
-import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
+import { ovozManbai, KABU_OVOZ, KABU_TIL_OVOZ } from "../kid/ovozOqi.js";
 import { tekshir } from "../maktab/repetitorRules.js";
 import { gapBaho } from "../til/mashqRules.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
 import { uiText as T } from "../interface/interfaceRuntime.js";
 import { mashqMateriali, mashqYulduz } from "./maktabMashqRules.js";
+import TilKlaviatura, { klaviaturaBor, sensorli, PLITKALI } from "../maktab/TilKlaviatura.jsx";
 import "./maktabMashqlar.css";
 
 const BOSQICH = {
@@ -31,6 +32,7 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
   const [i, setI] = useState(0);
   const [javob, setJavob] = useState(null);     // {holat, matn, farq}
   const [kiritish, setKiritish] = useState("");
+  const [klav, setKlav] = useState(() => sensorli());   // REV180: o'z klaviaturamiz
   const [mik, setMik] = useState("");
   const [gapir, setGapir] = useState(false);
   const [ball, setBall] = useState({});           // bosqich → {togri, jami}
@@ -43,7 +45,8 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
   useEffect(() => { alive.current = true; return () => { alive.current = false; ovoz.stop(); try { rec.current?.abort(); } catch { /* */ } }; }, [ovoz]);
 
   const izt = (m) => (iz === "uz" ? m : teg(m, iz));   // izoh (maqtov, ko'rsatma) — interfeys tilida
-  const ayt = (m, sekin = false, done) => { setGapir(true); ovoz.oqi(m, { ...KABU_OVOZ, sekin, tezlik: "-5%", done: () => { if (alive.current) { setGapir(false); done?.(); } } }); };
+  const [kim, setKim] = useState(null);   // REV180: ikki Kabu — kim gapiryapti
+  const ayt = (m, sekin = false, done) => { setGapir(true); ovoz.oqiIkki(m, { til, iz, izOvoz: KABU_OVOZ, tilOvoz: KABU_TIL_OVOZ, sekin, tezlik: "-5%", onKim: setKim, done: () => { if (alive.current) { setGapir(false); setKim(null); done?.(); } } }); };
   const bosqich = bosqichlar[b] || "yakun";
   const royxat = bosqich === "oqish" ? mat.oqish : bosqich === "gapirish" ? mat.gapirish : bosqich === "diktant" ? mat.diktant : bosqich === "oqibBer" ? mat.diktant : [];
   const joriy = royxat[i];
@@ -126,7 +129,7 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
     </div>
     <ol className="mm-steps">{[...bosqichlar, "yakun"].map((x, k) => <li key={x} className={`${k < b ? "is-done" : ""} ${k === b ? "is-on" : ""}`}>
       <span aria-hidden="true">{k < b ? "✅" : BOSQICH[x][0]}</span><small>{T(BOSQICH[x][1])}</small></li>)}</ol>
-    <div className="mm-ustoz"><KabuXonacha celebrate={quvon} mood={javob?.holat === "togri" ? "happy" : javob ? "enc" : ""} doska={bosqich === "diktant" && !javob ? "✍️ …" : bosqich === "yakun" ? "🏁" : matnOf(joriy).slice(0, 60)} gapir={gapir} /></div>
+    <div className="mm-ustoz"><KabuXonacha juft={til ? { iz, til } : null} kim={kim} celebrate={quvon} mood={javob?.holat === "togri" ? "happy" : javob ? "enc" : ""} doska={bosqich === "diktant" && !javob ? "✍️ …" : bosqich === "yakun" ? "🏁" : matnOf(joriy).slice(0, 60)} gapir={gapir} /></div>
 
     {bosqich === "yakun" ? <div className="mm-card mm-yakun" role="status">
       <span className="mm-katta" aria-hidden="true">{mashqYulduz(jamiBall.togri, jamiBall.jami) === 3 ? "🏆" : "💪"}</span>
@@ -146,7 +149,9 @@ export default function MaktabMashqlar({ apiBase = "", til = "en", iz = "uz", us
         {bosqich === "oqibBer" ? <>{matnOf(joriy)}{yozganlari[i] && yozganlari[i].yozgan !== matnOf(joriy) && <small>✍️ {T("Siz yozgansiz")}: {yozganlari[i].yozgan}</small>}</> : matnOf(joriy)}</p>}
       {bosqich === "diktant" && <>
         <input className="mm-input" dir="auto" lang={til} value={kiritish} disabled={Boolean(javob)} autoCapitalize="off" autoComplete="off" spellCheck={false}
+          inputMode={klav && klaviaturaBor(til) && !PLITKALI.has(til) ? "none" : undefined}
           placeholder={T("Eshitganingizni yozing…")} onChange={(e) => setKiritish(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && kiritish.trim() && !javob) diktantTekshir(); }} />
+        {!javob && klaviaturaBor(til) && !PLITKALI.has(til) && <TilKlaviatura til={til} qiymat={kiritish} onChange={setKiritish} onEnter={diktantTekshir} ochiq={klav} onOchiq={setKlav} />}
         {!javob && <button type="button" className="mm-btn is-main" disabled={!kiritish.trim()} onClick={diktantTekshir}>✔ {T("Tekshirish")}</button>}
       </>}
 
