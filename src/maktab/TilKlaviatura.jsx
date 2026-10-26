@@ -20,7 +20,8 @@ export default function TilKlaviatura({ til = "en", qiymat = "", onChange, onEnt
   // klaviatura ochilganda — yozilayotgan maydon ko'rinib tursin (klaviatura ostida qolmasin)
   useEffect(() => {
     if (!ochiq) return undefined;
-    const t = setTimeout(() => { try { document.querySelector(".mm-input:not([disabled]), .rp-input:not([disabled])")?.scrollIntoView({ block: "center", behavior: "smooth" }); } catch { /* */ } }, 60);
+    // REV181: yozuv maydoni tepaga ko'tariladi — ostidagi «Tekshirish» tugmasi klaviatura bilan yopilmaydi (burilgan telefonda ham)
+    const t = setTimeout(() => { try { const el = document.querySelector(".mm-input:not([disabled]), .rp-input:not([disabled]), .dot-root textarea:not([disabled])"); (el?.closest(".mm-card") || el)?.scrollIntoView({ block: "start", behavior: "smooth" }); } catch { /* */ } }, 60);
     return () => clearTimeout(t);
   }, [ochiq]);
   if (!ochiq) return <button type="button" className="tk-och" onClick={() => onOchiq?.(true)}>⌨️ {T("Klaviatura")}</button>;

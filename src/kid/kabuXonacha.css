@@ -13,7 +13,18 @@
 .kx-root.is-juft .kx-robot .kabu-box{filter:var(--kx-rang,none)}
 .kx-root.is-juft .kx-robot.is-faol{transform:scale(1.14);opacity:1;z-index:2}
 .kx-root.is-juft .kx-robot.is-jim{transform:scale(.9);opacity:.5;filter:saturate(.6) blur(.6px)}
-.kx-nom{position:absolute;left:50%;top:-16px;transform:translateX(-50%);z-index:3;display:flex;line-height:0}
-.kx-bayroq{width:30px;height:20px;border-radius:3px;box-shadow:0 1px 4px #0004}
-.kx-robot.is-faol .kx-bayroq{width:36px;height:24px}
+.kx-nom{position:absolute;left:50%;top:57%;width:20%;transform:translate(-50%,-50%);z-index:3;display:flex;line-height:0;pointer-events:none}
+.kx-bayroq{width:100%;aspect-ratio:3/2;height:auto;border-radius:2px;box-shadow:0 1px 3px #0006;outline:1px solid #fff9;object-fit:cover}
+/* REV181: ikki Kabu bir-biriga qarab gapiradi — chapdagi (izoh) o'ngga, o'ngdagi (o'rganilayotgan til) chapga buriladi, ko'zlari ham */
+.kx-root.is-juft .kx-robot.is-iz .kabu-box,.dx-kabu-robot.is-iz .kabu-box{transform:perspective(520px) rotateY(16deg)}
+.kx-root.is-juft .kx-robot.is-til .kabu-box,.dx-kabu-robot.is-til .kabu-box{transform:perspective(520px) rotateY(-16deg)}
+.kx-root.is-juft .kx-robot.is-iz .k-look,.dx-kabu-robot.is-iz .k-look{translate:4.5% 0}
+.kx-root.is-juft .kx-robot.is-til .k-look,.dx-kabu-robot.is-til .k-look{translate:-4.5% 0}
+/* harakatlari bir vaqtda emas — ikkinchisining suzishi, qanoti, qo'li va ko'z pirpiratishi boshqa paytda */
+.kx-root.is-juft .kx-robot.is-til :is(.kabu-float,.kabu-shadow,.k-armLi,.k-armRi),.dx-kabu-robot.is-til :is(.kabu-float,.kabu-shadow,.k-armLi,.k-armRi){animation-delay:-1.7s}
+.kx-root.is-juft .kx-robot.is-til :is(.k-wingL,.k-wingR),.dx-kabu-robot.is-til :is(.k-wingL,.k-wingR){animation-delay:-.45s}
+.kx-root.is-juft .kx-robot.is-til .k-eyes,.dx-kabu-robot.is-til .k-eyes{animation-delay:-2.9s}
+/* jim turgani qotib tinglaydi: suzish, qanot va qo'l harakati to'xtaydi */
+.kx-root.is-juft .kx-robot.is-jim :is(.kabu-float,.kabu-shadow,.k-wingL,.k-wingR,.k-armLi,.k-armRi,.k-antglow),
+.dx-kabu-robot.is-jim :is(.kabu-float,.kabu-shadow,.k-wingL,.k-wingR,.k-armLi,.k-armRi,.k-antglow){animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){.kx-root.is-juft .kx-robot{transition:none}}

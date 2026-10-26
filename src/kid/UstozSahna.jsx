@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { OG_RASM, USTOZLAR, XONALAR } from "./ustozlar.js";
 import { BELGI } from "./Belgi.jsx";
-import { GAPIR, KULGI, PIRPIRAT, blinkDelay, pozaFor, xonaKaliti } from "./ustozRules.js";
+import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, kokrak, pozaFor, xonaKaliti } from "./ustozRules.js";
 import { detallar } from "./madaniyat.js";
 import { cardSize } from "./kidStageRules.js";
 import { OGIZ, mouthFrame, ogizShakli, ritmShakli } from "./lipSync.js";
@@ -43,18 +43,17 @@ export function havoJoyi(dz, doska) {
   return { left: `${Math.min(84, Math.max(36, markaz - 9))}%`, top: `${Math.max(2, dz.t + dz.h / 2 - 12)}%` };
 }
 
-export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, children }) {
-  // REV171: til ustozi ko'p kun o'z xonasida, ba'zi kunlar eski xonalarda (almashib turadi)
-  const xonaKey = XONALAR[xonaKaliti(ustoz)] ? xonaKaliti(ustoz) : "onatili";
-  const xona = XONALAR[xonaKey];
-  const poza = pozaFor(mood, { hasPics: pictures.length > 0, listening });
+/**
+ * REV181: bitta ustoz qiyofasi — og'iz (ovozga mos), pirpiratish, poza. Ikki ustozli darsda har biri alohida:
+ * gapirayotganining og'zi ovozga mos qimirlaydi (avvalgidek), ikkinchisi jim turadi — boshqa qo'shimcha harakat yo'q.
+ * rol — "til" (o'rganilayotgan til ustozi) | "iz" (izoh tili ustozi); jim — boshqasi gapiryapti.
+ */
+function UstozFigura({ ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", onOchiq }) {
+  const poza = pozaFor(mood, { hasPics, listening });
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
   const p = t[poza];
   const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;
   const [kadr, setKadr] = useState(1);
-  const [detal, setDetal] = useState(null);   // REV171: ochilgan madaniy detal
-  const det = xonaKey.startsWith("til_") ? detallar(ustoz) : [];
-  useEffect(() => { if (!detal) return undefined; const t = setTimeout(() => setDetal(null), 6000); return () => clearTimeout(t); }, [detal]);
   // REV153: gapirganda og'iz — lab varag'idagi 10 shakldan (ovoz balandligi + aytilayotgan so'zning unlilari). -1 — chizilgan og'iz.
   const [og, setOg] = useState(-1);
   const sozRef = useRef(soz);
@@ -110,6 +109,49 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
   useEffect(() => { if (typeof Image !== "undefined" && p.yuz) p.yuz.kadr.forEach((s) => { const im = new Image(); im.src = s; }); }, [p]);
   useEffect(() => { if (typeof Image !== "undefined" && p.og) ogRasm.forEach((s) => { const im = new Image(); im.src = s; }); }, [p, ogRasm]);
 
+  useEffect(() => { onOchiq?.(ochiq); }, [ochiq, onOchiq]);
+  // juftda poza almashganda qiyofa qayta «kirib kelmaydi» (har gapda sakramasin) — faqat rasm almashadi
+  return <div key={rol ? `rol-${rol}` : `${ustoz}-${poza}`} className={`us-teacher poza-${poza} ${rol ? `is-rol-${rol}` : ""} ${speaking && ochiq ? "is-gapir" : ""} ${jim ? "is-jim" : ""}`} style={{ aspectRatio: `${p.w} / ${p.h}` }}>
+    <div className="us-ich">
+      {/* REV181: bayroq — ko'krakka taqilgan nishon (boshi ustida emas); joyi pozadagi og'iz/yuz joyidan hisoblanadi */}
+      {bayroq && <img className="us-bayroq" src={bayroq} alt="" draggable="false" style={kokrak(p)} />}
+      <img className="us-body" src={p.src} alt="" draggable="false" decoding="async" />
+      {p.yuz && kadr !== 1 && <img className="us-face" src={p.yuz.kadr[kadr - 1]} alt="" draggable="false"
+        style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
+      {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
+      {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
+        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
+          <i className="us-og-teri" style={p.og.tw ? { width: `${p.og.tw}%` } : undefined} />
+          <img src={ogRasm[ogYumshoq(og)]} alt="" draggable="false" style={{ width: `${OGIZ[ogYumshoq(og)][0] * 95}%`, top: `${50 + OGIZ[ogYumshoq(og)][2] * 100}%` }} />
+        </span>
+      </span>}
+    </div>
+  </div>;
+}
+
+/**
+ * REV181: ikkinchi — ikki ustozli til darsi: asosiy ustoz (o'rganilayotgan til egasi, masalan Lukas — nemis) va izoh tili
+ * ustozi (o'zbek — Nilufar, rus — Anna, ingliz — Emily). kim — hozir kim gapiryapti ("til" | "iz").
+ */
+export default function UstozSahna({ ustoz = "nilufar", ikkinchi = "", kim = null, bayroqlar = null, mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, children }) {
+  // REV171: til ustozi ko'p kun o'z xonasida, ba'zi kunlar eski xonalarda (almashib turadi)
+  // REV181: ikki ustozli darsda — doim til ustozining o'z xonasi (o'sha tilning madaniyati, doska atrofida keng joy)
+  const juft0 = Boolean(ikkinchi && USTOZLAR[ikkinchi] && ikkinchi !== ustoz);
+  const xonaKey = juft0 && XONALAR[XONA[ustoz]] ? XONA[ustoz] : XONALAR[xonaKaliti(ustoz)] ? xonaKaliti(ustoz) : "onatili";
+  const xona = XONALAR[xonaKey];
+  const [detal, setDetal] = useState(null);   // REV171: ochilgan madaniy detal
+  const det = xonaKey.startsWith("til_") ? detallar(ustoz) : [];
+  useEffect(() => { if (!detal) return undefined; const t = setTimeout(() => setDetal(null), 6000); return () => clearTimeout(t); }, [detal]);
+  const juft = juft0;
+  // gapirayotgan: juftda — kim; kim noma'lum bo'lsa asosiy ustoz
+  const gapAsosiy = speaking && (!juft || kim !== "iz");
+  const gapIkkinchi = speaking && juft && kim === "iz";
+  const [ochiq1, setOchiq1] = useState(false);
+  const [ochiq2, setOchiq2] = useState(false);
+  const ochiq = ochiq1 || (juft && ochiq2);
+  const hasPics = pictures.length > 0;
+  // REV181: ikki ustozda doska o'ngdagi ustozga joy qoldiradi (o'ng cheti 78% dan oshmaydi) — rasm va yozuv to'silmaydi
+  const torDoska = (r) => { const o = Math.min(r.l + r.w, 78); return { ...r, w: Math.max(20, o - r.l) }; };
   const d = xona.doska;
   const box = (r) => ({ left: `${r.l}%`, top: `${r.t}%`, width: `${r.w}%`, height: `${r.h}%` });
   // REV140: deraza shishasi — rasmdan aniq olingan niqob (osmon rom, bayroqcha, gul, parda ustiga chiqmaydi).
@@ -119,7 +161,7 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
   const niqob = xona.osmon ? { WebkitMaskImage: `url(${xona.osmon})`, maskImage: `url(${xona.osmon})`, WebkitMaskSize: "100% 100%", maskSize: "100% 100%", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" } : {};
   const chiroqYoniq = vaqt === "kech" || vaqt === "tun";
   const holat = `havo-${havo} vaqt-${vaqt} ${shamol ? "is-windy" : ""}`;
-  return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${chiroqYoniq ? "is-lamp" : ""} ${derazaga ? "is-deraza" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
+  return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${juft ? "is-juft" : ""} ${chiroqYoniq ? "is-lamp" : ""} ${derazaga ? "is-deraza" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
     <img className="us-bg" src={xona.src} srcSet={`${xona.src} 960w, ${xona.src2x} 1600w`} sizes="(max-width: 900px) 100vw, 900px" alt="" decoding="async" />
     {xona.soat && <DevorSoat soat={xona.soat} />}
     <div className="us-light" aria-hidden="true" />
@@ -141,7 +183,7 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
     {dz && derazaga && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={havoJoyi(dz, xona.doska)} />}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
-    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(d)}>
+    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(juft ? torDoska(d) : d)}>
       {pictures.map((pic, i) => <button key={`${pic.src || pic.emoji}-${pic.rev || 0}-${i}`} type="button"
         className={`us-pic ${pic.emoji && !pic.src ? `is-emoji sz-${cardSize(pic.emoji)}` : ""} ${pic.holat ? `is-${pic.holat}` : ""} ${pic.faol ? "is-faol" : ""}`} style={{ "--i": i }}
         onClick={() => onTap?.(i)} aria-label={pic.label || "rasm"}>
@@ -158,17 +200,10 @@ export default function UstozSahna({ ustoz = "nilufar", mood = "", speaking = fa
     {detal && <button type="button" className="us-detal-pop" onClick={() => setDetal(null)} aria-label="yopish"
       style={{ aspectRatio: `${(detal.w * 1.6) / detal.h}`, backgroundImage: `url(${xona.src2x || xona.src})`,
         backgroundSize: `${10000 / detal.w}% ${10000 / detal.h}%`, backgroundPosition: `${(detal.l / (100 - detal.w)) * 100}% ${(detal.t / (100 - detal.h)) * 100}%` }} />}
-    <div key={`${ustoz}-${poza}`} className={`us-teacher poza-${poza}`} style={{ aspectRatio: `${p.w} / ${p.h}` }}>
-      <img className="us-body" src={p.src} alt="" draggable="false" decoding="async" />
-      {p.yuz && kadr !== 1 && <img className="us-face" src={p.yuz.kadr[kadr - 1]} alt="" draggable="false"
-        style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
-      {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
-      {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
-        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
-          <i className="us-og-teri" style={p.og.tw ? { width: `${p.og.tw}%` } : undefined} />
-          <img src={ogRasm[ogYumshoq(og)]} alt="" draggable="false" style={{ width: `${OGIZ[ogYumshoq(og)][0] * 95}%`, top: `${50 + OGIZ[ogYumshoq(og)][2] * 100}%` }} />
-        </span>
-      </span>}
-    </div>
+    {/* juftda: gapirayotganining og'zi qimirlaydi (avvalgidek), ikkinchisi oddiy turadi — boshqa qo'shimcha harakat yo'q */}
+    <UstozFigura ustoz={ustoz} mood={gapIkkinchi ? "" : mood} speaking={gapAsosiy} mouth={mouth} soz={soz} listening={listening} hasPics={hasPics}
+      rol={juft ? "til" : ""} jim={gapIkkinchi} bayroq={juft ? bayroqlar?.til || "" : ""} onOchiq={setOchiq1} />
+    {juft && <UstozFigura key={`iz-${ikkinchi}`} ustoz={ikkinchi} mood={gapIkkinchi ? mood : ""} speaking={gapIkkinchi} mouth={mouth} soz={soz} listening={false} hasPics={false}
+      rol="iz" jim={gapAsosiy} bayroq={bayroqlar?.iz || ""} onOchiq={setOchiq2} />}
   </div>;
 }

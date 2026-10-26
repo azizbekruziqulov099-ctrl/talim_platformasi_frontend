@@ -63,7 +63,19 @@
 
 /* ── ustoz ── */
 .us-teacher{position:absolute;left:2.5%;bottom:1.5%;height:86%;pointer-events:none;transform-origin:50% 100%;animation:us-enter .55s cubic-bezier(.2,.8,.3,1.15) both,us-breathe 3.6s ease-in-out .55s infinite}
-.us-stage.is-speaking .us-teacher{animation:us-enter .55s cubic-bezier(.2,.8,.3,1.15) both,us-talk .9s ease-in-out .55s infinite alternate}
+.us-stage:not(.is-juft).is-speaking .us-teacher,.us-teacher.is-gapir{animation:us-enter .55s cubic-bezier(.2,.8,.3,1.15) both,us-talk .9s ease-in-out .55s infinite alternate}
+/* REV181: ustoz qiyofasi ichki qatlami — o'ng tomondagi ustoz ko'zgudek aylantiriladi (doskaga qarab turadi), og'iz va yuz bilan birga */
+.us-ich{position:absolute;inset:0}
+/* REV181: ustoz madaniy detallar (devordagi rasm, javon) ustida turadi — ularning yorug' chegarasi ustozning yuziga tushmaydi */
+.us-teacher{z-index:4}
+/* REV181: ikki ustoz — faqat gapirayotganining og'zi qimirlaydi; nafas olishi bir vaqtda emas (sinxron bo'lmasin) */
+.us-stage.is-juft .us-teacher.is-rol-iz{animation-delay:0s,1.9s}
+/* bog'chada: asosiy (til) ustoz chapda, izoh tili ustozi o'ngda — ko'zgudek aylantirilib, doskaga qarab turadi */
+.us-stage.is-juft .us-teacher.is-rol-iz{left:auto;right:1%}
+.us-stage.is-juft .us-teacher.is-rol-iz .us-ich{transform:scaleX(-1);--oyna:-1}
+.us-stage.is-juft .us-board.is-zoom{left:24%;width:54%}
+/* bayroq — ustoz qaysi tilda gapirishini bildiradi: ko'krakdagi nishon; qiyofa ko'zgudek aylansa ham bayroq to'g'ri ko'rinadi (--oyna) */
+.us-bayroq{position:absolute;width:13%;min-width:12px;aspect-ratio:3/2;transform:translate(-50%,-50%) scaleX(var(--oyna,1));border-radius:2px;box-shadow:0 1px 3px #0006;z-index:3;object-fit:cover;outline:1px solid #fff9}
 .us-body{width:100%;height:100%;display:block;filter:drop-shadow(0 6px 10px #0002)}
 .us-face{position:absolute;pointer-events:none;
   /* REV122: yuz bo'lagi chetlari silliq qo'shiladi — «qirqib yopishtirilgan» to'rtburchak ko'rinmaydi */

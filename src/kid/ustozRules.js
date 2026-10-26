@@ -17,6 +17,19 @@ export function ustozFor(fan = "") {
   return t ? TIL_USTOZ[t[0]] : "nilufar";
 }
 
+/**
+ * REV181: ikki ustozli til darsi — izoh tili ustozi: o'zbekcha — Nilufar opa, ruscha — Anna, inglizcha — Emily.
+ * O'rganilayotgan til izoh tili bilan bir xil bo'lsa (yoki ustoz bitta odam bo'lsa) — ikkinchi ustoz yo'q ("").
+ */
+export const IZOH_USTOZ = { uz: "nilufar", ru: "anna", en: "emily" };
+export function ikkinchiUstoz({ til = "", iz = "uz", ustoz = "" } = {}) {
+  if (!til) return "";
+  const izL = IZOH_USTOZ[iz] ? iz : "uz";
+  if (til === izL) return "";
+  const k = IZOH_USTOZ[izL];
+  return k && k !== ustoz ? k : "";
+}
+
 export const XONA = { sardor: "matematika", nilufar: "onatili", malika: "atrofolam",
   ...Object.fromEntries(Object.values(TIL_USTOZ).map((k) => [k, `til_${k}`])) };
 
@@ -132,4 +145,11 @@ export function xonaKaliti(ustoz, kun = Math.floor((Date.now() - new Date().getT
   const own = XONA[ustoz] || "onatili";
   if (!String(own).startsWith("til_")) return own;
   return [own, own, "onatili", own, "atrofolam"][((kun % 5) + 5) % 5];
+}
+
+/** REV181: bayroq nishoni — ustozning ko'kragida (poza rasmiga nisbatan %). */
+export function kokrak(p) {
+  const x = p?.og ? p.og.x : p?.yuz ? p.yuz.x + p.yuz.w / 2 : 50;
+  const y = p?.og ? p.og.y : p?.yuz ? p.yuz.y + p.yuz.h * 0.8 : 18;
+  return { left: `${Math.max(15, Math.min(85, x + 5))}%`, top: `${Math.min(45, y + 13)}%` };
 }

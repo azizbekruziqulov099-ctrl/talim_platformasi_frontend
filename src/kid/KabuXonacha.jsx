@@ -14,10 +14,13 @@ function Bayroq({ til }) {
   return src ? <img className="kx-bayroq" src={src} alt="" draggable="false" /> : null;
 }
 function Robot({ til, faol, gapir, mood, celebrate, onTap, nom }) {
-  return <button type="button" className={`kx-robot ${faol ? "is-faol" : ""} ${gapir && !faol ? "is-jim" : ""}`} onClick={onTap} aria-label={nom}
+  // REV181: jim turgani gapirmaydi va quvonmaydi ham — faqat tinglaydi (ikkalasi bir xil harakat qilmasin)
+  const jim = gapir && !faol;
+  const m = faol ? `talk ${mood === "wave" ? "wave" : ""}` : jim ? "" : mood;
+  return <button type="button" className={`kx-robot is-${nom} ${faol ? "is-faol" : ""} ${jim ? "is-jim" : ""}`} onClick={onTap} aria-label={nom}
     style={TIL_RANG[til] && nom !== "iz" ? { "--kx-rang": TIL_RANG[til] } : undefined}>
-    <span className="kx-nom"><Bayroq til={til} /></span>
-    <div className="kabu-float"><div className="kabu-hop"><RobotKabu mood={faol ? `talk ${mood === "wave" ? "wave" : ""}` : mood} celebrate={celebrate} /></div></div>
+    {/* REV181: bayroq — ko'krakdagi nishon (boshi ustida emas), Kabu bilan birga suzadi */}
+    <div className="kabu-float"><div className="kabu-hop"><RobotKabu mood={m} celebrate={celebrate} /></div><span className="kx-nom"><Bayroq til={til} /></span></div>
     <span className="kabu-shadow" aria-hidden="true" />
   </button>;
 }
@@ -26,6 +29,7 @@ function Robot({ til, faol, gapir, mood, celebrate, onTap, nom }) {
  * REV177: maktabda mashq, test, repetitor va darsdan oldingi takrorni robot Kabu o'tkazadi.
  * REV180: juft — ikki Kabu: chapda tushuntiruvchi (izoh tili bayrog'i), o'ngda o'rganilayotgan til egasi (o'sha til bayrog'i va rangi).
  *   kim — hozir kim gapiryapti ("iz" | "til" | null): gapirayotgani kattalashadi va yorqin, ikkinchisi biroz xiralashadi.
+ *   REV181: ikkalasi bir-biriga qarab turadi (chapdagi o'ngga, o'ngdagi chapga), harakatlari bir vaqtda emas; jim turgani qotib tinglaydi.
  * doska — kichik doskadagi matn; gapir — ovoz chiqyapti; mood — happy | enc | think | wave.
  */
 export default function KabuXonacha({ doska = "", gapir = false, mood = "", celebrate = 0, onTap, className = "", juft = null, kim = null }) {
@@ -39,7 +43,7 @@ export default function KabuXonacha({ doska = "", gapir = false, mood = "", cele
       {doska ? <div className="kx-doska" dir="auto">{doska}</div> : null}
     </div>;
   }
-  const faol = gapir ? kim : null;
+  const faol = gapir ? kim || "iz" : null;   // kim hali noma'lum bo'lsa — tushuntiruvchi gapiradi (ikkalasi birdan xira bo'lmasin)
   return <div className={`kx-root is-juft ${gapir ? "is-gapir" : ""} ${className}`}>
     <Robot nom="iz" til={juft.iz} faol={faol === "iz"} gapir={gapir} mood={mood} celebrate={celebrate} onTap={onTap} />
     {doska ? <div className="kx-doska" dir="auto">{doska}</div> : null}

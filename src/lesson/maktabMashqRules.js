@@ -91,9 +91,20 @@ export const SINF_JOY = {
   atrofolam: { ustoz: "chap", doska: { l: 30.5, t: 3, w: 56.5, h: 70 } },   // deraza o'ng chekkada
   matematika: { ustoz: "chap", doska: { l: 27, t: 3, w: 60, h: 70 } },    // soat o'ng tepada, deraza chap chekkada
 };
-export function sinfJoyi(xonaKey = "") {
-  const j = SINF_JOY[String(xonaKey).startsWith("til") ? "til" : xonaKey] || SINF_JOY.til;
+/** REV181: juft — ikki ustoz (doskaning ikki yonida): doska ular orasidagi butun joyni egallaydi (19%–81%). */
+export function sinfJoyi(xonaKey = "", { juft = false } = {}) {
+  const j0 = SINF_JOY[String(xonaKey).startsWith("til") ? "til" : xonaKey] || SINF_JOY.til;
+  let j = j0;
+  if (juft) {
+    // ikki ustoz chekkalarda (chapda ~0–18%, o'ngda ~82–100%), doska ular orasidagi butun joyni egallaydi;
+    // tepasi xonaning devor soatini ochiq qoldiradi, pastida ustoz gapi uchun joy qoladi
+    // REV181: ustoz gapi pastda alohida yozilmaydi (hammasi doskada) — doska pastgacha cho'ziladi
+    const t = j0.doska.t, h = Math.min(95 - t, 90);
+    j = { ...j0, doska: { l: 19, t, w: 62, h } };
+  }
   const tepa = j.doska.t + j.doska.h + 2;
+  // juftda ustoz gapi oynasi yo'q — joy faqat «Savol berish» oynasi uchun (doska ustida ochiladi)
+  if (juft) return { ...j, gap: { l: j.doska.l, t: Math.min(tepa, 97), w: j.doska.w, h: 1 } };
   return { ...j, gap: { l: j.doska.l, t: tepa, w: j.doska.w, h: Math.max(14, Math.min(26, 98 - tepa)) } };
 }
 

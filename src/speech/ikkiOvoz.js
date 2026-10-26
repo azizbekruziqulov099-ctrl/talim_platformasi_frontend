@@ -61,9 +61,10 @@ export function navbat(matn, til = "", nomzodlar = ["uz"]) {
 
 /**
  * Ikki ovozda o'qish. url(matn, kim) — /api/ovoz manzili (har so'zlovchi o'z ovozi bilan).
- * onKim(kim) — kim gapira boshladi (Kabu / ustoz kattalashadi); onEnd — hammasi tugadi. Qaytaradi: { stop() }.
+ * onKim(kim) — kim gapira boshladi (Kabu / ustoz kattalashadi); onEnd — hammasi tugadi; onAudio(a) — hozir yangrayotgan
+ * Audio, bo'lak tartibi va o'zi (REV181: ustozning og'zi shu ovozga mos qimirlaydi, aytilayotgan so'z yonadi). Qaytaradi: { stop() }.
  */
-export function ikkiOvozOqi(matn, { til = "", nomzodlar = ["uz"], url, onKim, onEnd, playbackRate = 1 } = {}) {
+export function ikkiOvozOqi(matn, { til = "", nomzodlar = ["uz"], url, onKim, onEnd, onAudio, playbackRate = 1 } = {}) {
   const qismlar = navbat(matn, til, nomzodlar);
   let i = -1, toxtadi = false, audio = null, timer = null;
   const tayyor = qismlar.map((q) => { try { const a = new Audio(); a.preload = "auto"; a.src = url(q.matn, q.kim); return a; } catch { return null; } });
@@ -79,7 +80,7 @@ export function ikkiOvozOqi(matn, { til = "", nomzodlar = ["uz"], url, onKim, on
     const tamom = () => { if (tugadi) return; tugadi = true; timer = setTimeout(keyingi, 180); };
     try {
       const a = tayyor[i] || new Audio(url(q.matn, q.kim));
-      audio = a; a.playbackRate = playbackRate; a.onended = tamom; a.onerror = () => setTimeout(tamom, 300);
+      audio = a; a.playbackRate = playbackRate; a.onended = tamom; onAudio?.(a, i, q); a.onerror = () => setTimeout(tamom, 300);
       a.play().catch(() => setTimeout(tamom, 600));
       timer = setTimeout(tamom, Math.min(30000, 5000 + q.matn.length * 150));
     } catch { tamom(); }

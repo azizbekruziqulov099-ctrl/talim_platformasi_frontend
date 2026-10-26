@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { CONTENT_LOCALES } from "../speech/language.js";
-import KidStage from "../kid/KidStage.jsx";
+import KidStage, { KabuJuft } from "../kid/KidStage.jsx";
 import { chime, soft } from "../kid/kidSounds.js";
 import { VOICE_LIMITS, gradeVoice, voiceCoach, voiceGiveUp, voicePassed, voicePrompt, voiceSummary } from "./voiceCheckRules.js";
 import { disableRecorder, dropClip, playClip, startClip } from "../speech/childRecorder.js";
@@ -19,7 +19,7 @@ const PRAISE = ["To‘g‘ri! Aniq aytdingiz.", "Barakalla, to‘g‘ri.", "Yaxs
  * yana urinishga undaydi. Yozuv faqat qurilma xotirasida, serverga yuborilmaydi. REV145: bog'chada ham 2 urinish;
  * natija ro'yxati (qaysi so'zni aytdi) onDone ning ikkinchi argumenti — ota-ona hisobotiga boradi.
  */
-export default function VoiceCheck({ items, audience = "oquvchi", say, hush, speaking = false, onDone, bilgan = [], izoh = "uz", rasm = null }) {
+export default function VoiceCheck({ items, audience = "oquvchi", say, hush, speaking = false, onDone, bilgan = [], izoh = "uz", rasm = null, juft = null }) {
   const kid = audience === "bogcha";
   const tries = (VOICE_LIMITS[audience] || VOICE_LIMITS.oquvchi).tries;
   const [i, setI] = useState(0);
@@ -172,7 +172,7 @@ export default function VoiceCheck({ items, audience = "oquvchi", say, hush, spe
 
   return <div className={`dx-voice ${kid ? "is-kid" : ""}`} aria-live="polite">
     {kid
-      ? <div className="dx-voice-kid"><KidStage compact mood={mood} celebrate={celebrate} speaking={speaking} /></div>
+      ? <div className={`dx-voice-kid ${juft ? "is-juft" : ""}`}>{juft ? <KabuJuft juft={juft} mood={mood === "talk" ? "" : mood} celebrate={celebrate} /> : <KidStage compact mood={mood} celebrate={celebrate} speaking={speaking} />}</div>
       : <h3 className="dx-title">{__kbUi("Ovozli tekshiruv")} · {Math.min(i + 1, items.length)} / {items.length}</h3>}
 
     {/* REV156: bola qaysi so'zni aytishini RASMDAN biladi (oldin faqat mikrofon turardi — nimani aytish noma'lum edi) */}

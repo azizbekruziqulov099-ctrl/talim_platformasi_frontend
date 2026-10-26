@@ -50,3 +50,30 @@
   .ks-stage.is-compact .ks-robot{width:min(72%,150px)}
 }
 @media (prefers-reduced-motion:reduce){.ks-stage *{animation:none!important}}
+
+/* REV181: Kabuning ko'kragidagi bayroq nishoni */
+.ks-bayroq{position:absolute;left:50%;top:57%;width:20%;aspect-ratio:3/2;transform:translate(-50%,-50%);border-radius:2px;box-shadow:0 1px 3px #0006;outline:1px solid #fff9;object-fit:cover;z-index:3;pointer-events:none}
+/* REV181: ikki Kabu (bog'cha) */
+.kj-root{display:flex;justify-content:center;align-items:flex-end;gap:2%;width:100%}
+.kj-robot{flex:0 0 48%;min-width:0;transition:scale .25s ease,filter .25s ease;transform-origin:50% 95%}
+.kj-robot .ks-stage{display:block;width:100%;min-height:0;padding:0;background:none;box-shadow:none}
+.kj-robot .ks-stage .ks-robot{width:100%;max-width:none;padding-bottom:0}
+.kj-robot.is-faol{scale:1.1;z-index:2}
+.kj-robot.is-jim{scale:.9;filter:saturate(.6) opacity(.55)}
+.kj-robot.is-iz .kabu-box{transform:perspective(520px) rotateY(16deg)}
+.kj-robot.is-til .kabu-box{transform:perspective(520px) rotateY(-16deg)}
+.kj-robot.is-iz .k-look{translate:4.5% 0}
+.kj-robot.is-til .k-look{translate:-4.5% 0}
+.kj-robot.is-til :is(.k-armLi,.k-armRi){animation-delay:-1.7s}
+.kj-robot.is-til :is(.k-wingL,.k-wingR){animation-delay:-.45s}
+.kj-robot.is-til .k-eyes{animation-delay:-2.9s}
+.kj-robot.is-jim :is(.k-wingL,.k-wingR,.k-armLi,.k-armRi,.k-antglow){animation-play-state:paused}
+.kj-robot.is-til .kabu-box{filter:hue-rotate(-150deg) saturate(1.3)}
+.kj-robot.is-til.til-en .kabu-box{filter:hue-rotate(150deg) saturate(1.2)}
+.kj-robot.is-til.til-ru .kabu-box{filter:hue-rotate(40deg) saturate(1.2)}
+.kj-robot.is-til.til-fr .kabu-box{filter:hue-rotate(50deg)}
+.kj-robot.is-til:is(.til-es,.til-tr,.til-zh) .kabu-box{filter:hue-rotate(-160deg) saturate(1.6)}
+.kj-robot.is-til.til-ar .kabu-box{filter:hue-rotate(-40deg)}
+.kj-robot.is-til.til-ko .kabu-box{filter:hue-rotate(60deg)}
+.kj-robot.is-til.til-ja .kabu-box{filter:hue-rotate(-180deg) saturate(1.3)}
+@media (prefers-reduced-motion:reduce){.kj-robot{transition:none}}

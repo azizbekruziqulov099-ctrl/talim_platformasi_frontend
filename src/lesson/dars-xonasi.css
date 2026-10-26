@@ -335,8 +335,9 @@ body:has(.dx-aud-bogcha) .kb-account-notice,body:has(.kq-root) .kb-account-notic
 .kb-qator.is-satr{flex-wrap:nowrap;aspect-ratio:auto;max-width:none;width:96%}.kb-qator.is-satr img{flex:1 1 0;min-width:0;width:auto;max-width:30%}.kb-qator.is-satr b{font-size:clamp(18px,4.5vw,30px)}
 
 /* REV156: ovozli takrorlash — aytiladigan so'zning rasmi */
-.dx-voice-rasm{display:grid;place-items:center;width:min(220px,46vw,24vh);aspect-ratio:1;margin:4px auto 0;background:#fff;border-radius:24px;box-shadow:0 8px 24px #0002;animation:us-pop .5s ease-out both}
-.dx-voice-rasm img{width:86%;height:86%;object-fit:contain}
+/* REV181: rasm kartasi doim kvadrat — bo'yi baland rasm (bola rasmi) kartani cho'zib, mikrofonni ekrandan pastga surib yubormaydi */
+.dx-voice-rasm{display:grid;place-items:center;width:min(220px,46vw,24vh);height:min(220px,46vw,24vh);min-height:0;overflow:hidden;margin:4px auto 0;background:#fff;border-radius:24px;box-shadow:0 8px 24px #0002;animation:us-pop .5s ease-out both}
+.dx-voice-rasm img{display:block;width:86%;height:86%;object-fit:contain}
 .dx-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* REV156: bolalar ekrani — yozuvsiz: rasmli maqsad kartasi va mikrofon belgisi kattaroq */
 .dx-goal ul{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
@@ -569,16 +570,18 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-kabu-fon.is-juft .dx-kabu-robot{width:21%;transition:transform .25s ease,opacity .25s ease,filter .25s ease;transform-origin:50% 95%}
 .dx-kabu-fon.is-juft .dx-kabu-robot.is-iz{left:1%}
 .dx-kabu-fon.is-juft .dx-kabu-robot.is-til{left:auto;right:1%}
-.dx-kabu-fon.is-juft .dx-kabu-robot.is-faol{transform:scale(1.12);opacity:1;z-index:2}
-.dx-kabu-fon.is-juft .dx-kabu-robot.is-jim{transform:scale(.9);opacity:.5;filter:saturate(.6) blur(.6px)}
+/* REV181: kirish animatsiyasi transform va opacity'ni egallab olardi — kattalashish «scale», xiralashish filter bilan */
+.dx-kabu-fon.is-juft .dx-kabu-robot{transition:scale .25s ease,filter .25s ease}
+.dx-kabu-fon.is-juft .dx-kabu-robot.is-faol{scale:1.12;z-index:2}
+.dx-kabu-fon.is-juft .dx-kabu-robot.is-jim{scale:.9;filter:saturate(.6) blur(.6px) opacity(.5)}
 .dx-kabu-bayroq{position:absolute;left:50%;top:-6%;transform:translateX(-50%);width:26%;aspect-ratio:3/2;border-radius:3px;box-shadow:0 1px 4px #0004;z-index:3}
-.dx-kabu-robot.is-til .ks-robot{filter:hue-rotate(-150deg) saturate(1.3)}
-.dx-kabu-robot.is-til.til-en .ks-robot{filter:hue-rotate(150deg) saturate(1.2)}
-.dx-kabu-robot.is-til.til-ru .ks-robot{filter:hue-rotate(40deg) saturate(1.2)}
-.dx-kabu-robot.is-til.til-fr .ks-robot{filter:hue-rotate(50deg)}
-.dx-kabu-robot.is-til.til-es .ks-robot,.dx-kabu-robot.is-til.til-tr .ks-robot,.dx-kabu-robot.is-til.til-zh .ks-robot{filter:hue-rotate(-160deg) saturate(1.6)}
-.dx-kabu-robot.is-til.til-ar .ks-robot{filter:hue-rotate(-40deg)}
-.dx-kabu-robot.is-til.til-ko .ks-robot{filter:hue-rotate(60deg)}
+.dx-kabu-robot.is-til .ks-robot .kabu-box{filter:hue-rotate(-150deg) saturate(1.3)}
+.dx-kabu-robot.is-til.til-en .ks-robot .kabu-box{filter:hue-rotate(150deg) saturate(1.2)}
+.dx-kabu-robot.is-til.til-ru .ks-robot .kabu-box{filter:hue-rotate(40deg) saturate(1.2)}
+.dx-kabu-robot.is-til.til-fr .ks-robot .kabu-box{filter:hue-rotate(50deg)}
+.dx-kabu-robot.is-til.til-es .ks-robot .kabu-box,.dx-kabu-robot.is-til.til-tr .ks-robot .kabu-box,.dx-kabu-robot.is-til.til-zh .ks-robot .kabu-box{filter:hue-rotate(-160deg) saturate(1.6)}
+.dx-kabu-robot.is-til.til-ar .ks-robot .kabu-box{filter:hue-rotate(-40deg)}
+.dx-kabu-robot.is-til.til-ko .ks-robot .kabu-box{filter:hue-rotate(60deg)}
 @media (prefers-reduced-motion:reduce){.dx-kabu-fon.is-juft .dx-kabu-robot{transition:none}}
 /* REV180: past ekranda ikki Kabu yonma-yon, doska ostida; o'z klaviaturamiz ixcham */
 .dx-root.dx-yotiq .dx-repetitor-oyna .kx-root.is-juft,.dx-repetitor-oyna .kx-root.is-juft{flex-direction:row;flex-wrap:wrap;justify-content:space-around;align-items:flex-end}
@@ -589,3 +592,145 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-yotiq .tk-bosh{position:absolute;right:6px;top:-30px}
 .dx-root.dx-yotiq .tk-til{display:none}
 .dx-root.dx-yotiq .tk-qator.is-plitka .tk-tugma{width:40px;height:40px;font-size:20px}
+
+/* REV181: sinfxonada ikki ustoz — o'rganilayotgan til ustozi o'z joyida, izoh tili ustozi doskaning narigi yonida.
+   O'ng tomondagisi ko'zgudek aylantiriladi — ikkalasi ham doskaga (bir-biriga) qarab turadi. */
+.dx-root.dx-sinf.dx-ikki-ustoz .dx-sinf-fon .us-teacher{height:80%}
+.dx-root.dx-sinf.dx-ustoz-ong .dx-sinf-fon .us-teacher.is-rol-iz{left:1.5%;right:auto}
+.dx-root.dx-sinf.dx-ustoz-chap .dx-sinf-fon .us-teacher.is-rol-iz{left:auto;right:1%}
+.dx-root.dx-sinf.dx-ustoz-ong .dx-sinf-fon .us-teacher:not(.is-rol-iz) .us-ich,
+.dx-root.dx-sinf.dx-ustoz-chap .dx-sinf-fon .us-teacher.is-rol-iz .us-ich{transform:scaleX(-1);--oyna:-1}
+.dx-root.dx-sinf.dx-ustoz-ong .dx-sinf-fon .us-teacher.is-rol-iz .us-ich{transform:none;--oyna:1}
+
+/* REV181: ikki Kabu bir-biriga qarab gapiradi — chapdagi (izoh) o'ngga, o'ngdagi (o'rganilayotgan til) chapga buriladi, ko'zlari ham */
+.kx-root.is-juft .kx-robot.is-iz .kabu-box,.dx-kabu-robot.is-iz .kabu-box{transform:perspective(520px) rotateY(16deg)}
+.kx-root.is-juft .kx-robot.is-til .kabu-box,.dx-kabu-robot.is-til .kabu-box{transform:perspective(520px) rotateY(-16deg)}
+.kx-root.is-juft .kx-robot.is-iz .k-look,.dx-kabu-robot.is-iz .k-look{translate:4.5% 0}
+.kx-root.is-juft .kx-robot.is-til .k-look,.dx-kabu-robot.is-til .k-look{translate:-4.5% 0}
+/* harakatlari bir vaqtda emas — ikkinchisining suzishi, qanoti, qo'li va ko'z pirpiratishi boshqa paytda */
+.kx-root.is-juft .kx-robot.is-til :is(.kabu-float,.kabu-shadow,.k-armLi,.k-armRi),.dx-kabu-robot.is-til :is(.kabu-float,.kabu-shadow,.k-armLi,.k-armRi){animation-delay:-1.7s}
+.kx-root.is-juft .kx-robot.is-til :is(.k-wingL,.k-wingR),.dx-kabu-robot.is-til :is(.k-wingL,.k-wingR){animation-delay:-.45s}
+.kx-root.is-juft .kx-robot.is-til .k-eyes,.dx-kabu-robot.is-til .k-eyes{animation-delay:-2.9s}
+/* jim turgani qotib tinglaydi: suzish, qanot va qo'l harakati to'xtaydi */
+.kx-root.is-juft .kx-robot.is-jim :is(.kabu-float,.kabu-shadow,.k-wingL,.k-wingR,.k-armLi,.k-armRi,.k-antglow),
+.dx-kabu-robot.is-jim :is(.kabu-float,.kabu-shadow,.k-wingL,.k-wingR,.k-armLi,.k-armRi,.k-antglow){animation-play-state:paused}
+
+/* REV181: bog'cha — telefon burilganda (yotiq) «Kabu aytdirish» va test ekranga sig'adi: chapda Kabu, o'rtada rasm,
+   o'ngda mikrofon / yulduzlar / tugmalar; testda — chapda Kabu va 🔊, o'ngda javob kartalari. Hech narsa ekrandan chiqmaydi. */
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid{display:grid;grid-template-columns:auto auto auto;grid-template-areas:"kid rasm dots" "kid rasm mic" "kid rasm stars" "kid rasm act";justify-content:center;align-content:center;align-items:center;justify-items:center;gap:4px 18px;padding:0}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-kid{grid-area:kid;width:28vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-rasm{grid-area:rasm;width:50vw;height:50vw;margin:0}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-emoji{grid-area:rasm;font-size:30vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-dots{grid-area:dots;font-size:16px;gap:6px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-dots span{width:28px;height:28px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-mic{grid-area:mic}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-mic>span{width:19vw;height:19vw;font-size:9vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-stars,.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-note{grid-area:stars;font-size:6.5vw;min-height:0}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-note{font-size:12px;padding:6px 8px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-actions{grid-area:act;flex-wrap:nowrap;gap:6px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-actions .dx-btn{font-size:20px;padding:4px 10px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 14px;height:100%;min-height:0}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test>.dx-kind{grid-column:1/-1}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-ask{flex-direction:column;flex-wrap:nowrap;gap:6px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-ask .ks-stage{flex:none;width:24vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-ask .dx-kid-qcard{font-size:9vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts{margin:0;gap:10px;align-content:center}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts.dx-n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts.dx-n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts.dx-n4{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts button{min-height:0;height:56vw;padding:6px;justify-content:center}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts.dx-n4 button{height:36vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts button img{max-height:86%;max-width:92%;object-fit:contain}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts .dx-kid-pic{font-size:22vw}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-opts.dx-n4 .dx-kid-pic{font-size:15vw}
+@media (orientation:landscape) and (max-height:600px){
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid{display:grid;grid-template-columns:auto auto auto;grid-template-areas:"kid rasm dots" "kid rasm mic" "kid rasm stars" "kid rasm act";justify-content:center;align-content:center;align-items:center;justify-items:center;gap:4px 18px;padding:0}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-kid{grid-area:kid;width:28vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-rasm{grid-area:rasm;width:50vh;height:50vh;margin:0}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-emoji{grid-area:rasm;font-size:30vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-dots{grid-area:dots;font-size:16px;gap:6px}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-dots span{width:28px;height:28px}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-mic{grid-area:mic}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-mic>span{width:19vh;height:19vh;font-size:9vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-stars,  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-note{grid-area:stars;font-size:6.5vh;min-height:0}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-note{font-size:12px;padding:6px 8px}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-actions{grid-area:act;flex-wrap:nowrap;gap:6px}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-actions .dx-btn{font-size:20px;padding:4px 10px}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-test:has(>.dx-kid-ask){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 14px;height:100%;min-height:0}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-test>.dx-kind{grid-column:1/-1}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-ask{flex-direction:column;flex-wrap:nowrap;gap:6px}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-ask .ks-stage{flex:none;width:24vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-ask .dx-kid-qcard{font-size:9vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts{margin:0;gap:10px;align-content:center}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts.dx-n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts.dx-n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts.dx-n4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts button{min-height:0;height:56vh;padding:6px;justify-content:center}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts.dx-n4 button{height:36vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts button img{max-height:86%;max-width:92%;object-fit:contain}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts .dx-kid-pic{font-size:22vh}
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-opts.dx-n4 .dx-kid-pic{font-size:15vh}
+}
+/* REV181: bog'cha darsi telefon burilganda — sinfxona (ustozlar va doska) ekran balandligiga sig'adi, pastdan kesilmaydi */
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kind-frame .us-stage{width:auto;height:calc(100vw - 150px);max-width:100%;margin:0 auto}
+@media (orientation:landscape) and (max-height:600px){
+  .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kind-frame .us-stage{width:auto;height:calc(100vh - 112px);max-width:100%;margin:0 auto}
+}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-kid{width:34vw}
+@media (orientation:landscape) and (max-height:600px){ .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-kid{width:34vh} }
+
+/* REV181: ikki ustozli dars — pastdagi alohida yozuv yo'q: doskadagi har qator oldida gapiruvchining bayrog'i, qator uning bo'r rangida
+   (izoh tili ustozi — oq bo'r, o'rganilayotgan til ustozi — havorang bo'r); hozir o'qilayotgan qator yonadi */
+.dx-root.dx-sinf.dx-ikki-ustoz:not(.dx-kabu-muhit) .dx-teacher .dx-bubble{display:none}
+.dx-root.dx-sinf.dx-ikki-ustoz:not(.dx-kabu-muhit) .dx-teacher{background:none;pointer-events:none}
+.dx-root.dx-sinf.dx-ikki-ustoz:not(.dx-kabu-muhit) .dx-teacher .dx-ask{pointer-events:auto}
+.dx-kim-bayroq,.dx-root.dx-sinf .dx-board img.dx-kim-bayroq{display:inline-block;height:.72em;max-height:none;max-width:none;width:auto;aspect-ratio:3/2;object-fit:cover;margin:0 .4em .08em 0;vertical-align:baseline;border-radius:2px;box-shadow:0 0 0 1px #fff6}
+.dx-line.is-kim-iz{color:#f6f2e4}
+.dx-line.is-kim-til{color:#a9dcff}
+.dx-line.dx-nutq{opacity:.93}
+.dx-line.is-hozir{text-decoration:underline;text-decoration-color:#ffe08a;text-decoration-thickness:.08em;text-underline-offset:.18em}
+.dx-root.dx-sinf.dx-kabu-juft .dx-teacher .dx-bubble{display:none}
+.dx-root.dx-sinf.dx-kabu-juft .dx-teacher{background:none;pointer-events:none}
+.dx-voice.is-kid .dx-voice-kid.is-juft{width:min(400px,88%,38vh)}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-voice.is-kid .dx-voice-kid.is-juft{width:40vw}
+@media (orientation:landscape) and (max-height:600px){ .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-voice.is-kid .dx-voice-kid.is-juft{width:40vh} }
+.dx-kid-ask .kj-root{width:min(300px,60vw)}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-kid-ask .kj-root{width:34vw}
+@media (orientation:landscape) and (max-height:600px){ .dx-root.dx-aud-bogcha:not(.dx-yotiq) .dx-kid-ask .kj-root{width:34vh} }
+
+/* REV181: telefonda (burilgan yoki yotiq) hamma yozuv va tugma katta, o'qiladigan: tugmalar 15px va kamida 40px balandlikda,
+   sarlavha osti yozuvi yashiriladi (joy doskaga), doskadagi yozuv 0.7 dan kichraymaydi (sig'masa doska o'zi suriladi) */
+.dx-root.dx-root.dx-root.dx-yotiq>.dx-head p{display:none}
+.dx-root.dx-root.dx-root.dx-yotiq>.dx-head h2{font-size:16px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-chip{font-size:14px;padding:4px 10px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-exit{width:40px;height:40px;font-size:20px}
+.dx-root.dx-root.dx-root.dx-yotiq>.dx-controls{width:auto;min-width:150px;gap:6px}
+.dx-root.dx-root.dx-root.dx-yotiq>.dx-controls .dx-btn{font-size:15px;min-height:40px;padding:6px 10px;width:100%;white-space:nowrap}
+.dx-root.dx-root.dx-root.dx-yotiq>.dx-controls .dx-speed,.dx-root.dx-root.dx-root.dx-yotiq>.dx-controls select,.dx-root.dx-root.dx-root.dx-yotiq>.dx-controls label{font-size:14px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-voice .dx-btn{font-size:15px;min-height:40px;padding:6px 12px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-voice-mic b{font-size:15px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-voice-phrase small{font-size:14px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-opts button{font-size:17px;min-height:44px}
+.dx-root.dx-root.dx-root.dx-yotiq .dx-why .dx-btn,.dx-root.dx-root.dx-root.dx-yotiq .dx-test .dx-btn{font-size:15px;min-height:40px}
+@media (orientation:landscape) and (max-height:600px){
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-head p{display:none}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-head h2{font-size:16px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-chip{font-size:14px;padding:4px 10px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-exit{width:40px;height:40px;font-size:20px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-controls{width:auto;min-width:150px;gap:6px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-controls .dx-btn{font-size:15px;min-height:40px;padding:6px 10px;width:100%;white-space:nowrap}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-controls .dx-speed,  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-controls select,  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-controls label{font-size:14px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-voice .dx-btn{font-size:15px;min-height:40px;padding:6px 12px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-voice-mic b{font-size:15px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-voice-phrase small{font-size:14px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-opts button{font-size:17px;min-height:44px}
+  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-why .dx-btn,  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-test .dx-btn{font-size:15px;min-height:40px}
+}
+.dx-root.dx-sinf .dx-board.is-sigmas{overflow-y:auto;scrollbar-width:thin}
+/* telefonda: ovozli tekshiruv sarlavhasi yashiriladi (yulduzchalar qatori bor), ikki Kabu doskaga joy beradi */
+.dx-root.dx-yotiq.dx-sinf .dx-voice .dx-title{display:none}
+.dx-root.dx-yotiq .dx-kabu-fon.is-juft .dx-kabu-robot{width:17%}
+@media (orientation:landscape) and (max-height:600px){
+  .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-voice .dx-title{display:none}
+  .dx-root.dx-focus:not(.dx-yotiq) .dx-kabu-fon.is-juft .dx-kabu-robot{width:17%}
+}

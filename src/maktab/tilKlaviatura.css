@@ -19,3 +19,7 @@
 /* klaviatura ochiq — oyna pastki qismi klaviatura ostida qolmasin */
 body:has(.tk-root) .dx-repetitor-oyna,body:has(.tk-root) .mk-root{padding-bottom:240px}
 .dx-root.dx-yotiq:has(.tk-root) .dx-repetitor-oyna{padding-bottom:170px}
+
+/* REV181: yozuv maydoni tepada bir oz joy bilan to'xtaydi */
+.mm-input,.rp-input,.mm-card{scroll-margin-top:56px}
+.dx-root.dx-yotiq .mm-input,.dx-root.dx-yotiq .rp-input,.dx-root.dx-yotiq .mm-card{scroll-margin-top:6px}
