@@ -113,7 +113,7 @@ function _latexMatniniAjrat(qism) {
 
 const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) {
   const translation=useTranslatedContent(matn);
-  matn=translation.text;
+  matn=stripSpeechTags(translation.text);   // REV182: [de]…[/de] kabi ovoz teglari ekranda ko'rinmaydi
   // $...$ , [lat]...[/lat] VA belgisiz xom LaTeX buyrug'i — uchalasi ham
   // xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
   const qismlar = useMemo(() => (matn || "").split(_LATEX_BOLISH_REGEX), [matn]);

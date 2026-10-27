@@ -1,3 +1,4 @@
+import { stripSpeechTags } from "../speech/language.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { aralashKerak, aralashOqi } from "../speech/aralashOvoz.js";
@@ -377,7 +378,7 @@ function Oyin({ call, kod, izoh, ovoz, T, onChiq }) {
     {!fb && <i key={`t${q.i}`} className="ch-vaqt" style={{ "--s": `${st.qolgan}s` }} onAnimationEnd={() => tanla("")} aria-hidden="true" />}
     <div className="ch-savol">
       {q.tur === "sana" && q.namuna && <span className="ch-namuna"><Rasm id={q.namuna} /></span>}
-      <b dir="auto">{q.matn}</b>
+      <b dir="auto">{stripSpeechTags(q.matn)}</b>
       <button type="button" className="ch-qayta" onClick={() => ovoz.ayt(q.ovoz)} aria-label={T("Yana eshitish")}>🔊</button>
     </div>
     <div className={`ch-variantlar n${q.variantlar.length}`}>

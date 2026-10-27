@@ -28,3 +28,15 @@ test('telefonda tugmalar 15px va kamida 40px; sarlavha osti yozuvi yashirin; 9px
 test('klaviatura ochilganda butun topshiriq kartasi tepaga chiqadi', () => {
   assert.match(o('./maktab/TilKlaviatura.jsx'), /closest\("\.mm-card"\)/);
 });
+
+test('miyadagi teglangan doska/sarlavha: ekranda tegsiz, gapiruvchi uchun teglangan nusxa saqlanadi; hamma test oynalari teglarni yashiradi', () => {
+  const dx = o('./lesson/DarsXonasi.jsx');
+  assert.match(dx, /export function teglarniAjrat/);
+  assert.match(dx, /doskaTeg: x\.doska, sarlavhaTeg: x\.sarlavha, doska: stripSpeechTags/);
+  assert.match(dx, /setLesson\(teglarniAjrat\(d\)\)/);
+  assert.match(o('./lesson/AmaliyDoska.jsx'), /splitCourseMath\(stripSpeechTags\(text\)\)/);
+  assert.match(o('./TestGameArena.jsx'), /\(\?:uz\|ru\|en\|de\|fr\|es\|ar\|tr\|zh\|ja\|ko\)/);
+  assert.match(o('./TestTab.jsx'), /matn=stripSpeechTags\(translation\.text\)/);
+  assert.match(o('./App.jsx'), /matn=stripSpeechTags\(translation\.text\)/);
+  assert.match(o('./chempionat/Chempionat.jsx'), /\{stripSpeechTags\(q\.matn\)\}/);
+});

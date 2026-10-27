@@ -73,6 +73,18 @@ function TeacherAvatar() {
   </svg>;
 }
 
+/**
+ * REV182: miyada doska va sarlavha ham teglangan bo'lishi mumkin («🚪 [de]tschüss[/de] — xayr»). Ekranda va boshqa qoidalarda
+ * (so'z ajratish, rasm, takror) ular tegsiz ishlatiladi; teglangan nusxa (doskaTeg, sarlavhaTeg) — ovoz va «kim gapiryapti» uchun.
+ */
+export function teglarniAjrat(d) {
+  if (!d || !Array.isArray(d.steps)) return d;
+  const bor = (t) => typeof t === "string" && /\[([a-z]{2})\][\s\S]*?\[\/\1\]/.test(t);
+  if (!d.steps.some((x) => bor(x?.doska) || bor(x?.sarlavha))) return d;
+  return { ...d, steps: d.steps.map((x) => (!x || (!bor(x.doska) && !bor(x.sarlavha)) ? x
+    : { ...x, doskaTeg: x.doska, sarlavhaTeg: x.sarlavha, doska: stripSpeechTags(x.doska || ""), sarlavha: stripSpeechTags(x.sarlavha || "") })) };
+}
+
 export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
@@ -523,7 +535,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(topicCode)}?${new URLSearchParams({ token })}`, { signal: controller.signal })
       .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || "Dars yuklanmadi"); return d; })
-      .then((d) => { setLesson(d); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
+      .then((d) => { setLesson(teglarniAjrat(d)); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
@@ -1435,7 +1447,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               {range.flatMap((i) => {
                 const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
                 const shown = i === idx ? visibleLines(cue.cues, word, stepFinished || !speaking) : cue.lines.length;
-                const qatorlar = cue.lines.slice(0, shown).map((line, n) => { const kim = qatorKimi(line);
+                const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
+                const qatorlar = cue.lines.slice(0, shown).map((line, n) => { const kim = qatorKimi(tegliQatorlar && tegliQatorlar.length === cue.lines.length ? tegliQatorlar[n] : line);
                   return <div key={`${steps[i].id}-${n}`}
                     className={`dx-line ${i === idx ? "is-new" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}<BoardText text={line} /></div>; });
                 if (!juftDoska || i !== idx) return qatorlar;

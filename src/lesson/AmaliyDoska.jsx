@@ -9,7 +9,8 @@ import { conditionLines, nextShown, optionState } from "./kitobKodRules.js";
 
 // Doskadagi matn: oddiy matn React orqali, formulalar faqat KaTeX (trust:false).
 export function BoardText({ text }) {
-  const parts = useMemo(() => splitCourseMath(text).map((part) => {
+  // REV182: miyadagi doska/sarlavha teglari ([de]…[/de]) ekranda ko'rinmaydi — ular faqat ovoz va «kim gapiryapti» uchun
+  const parts = useMemo(() => splitCourseMath(stripSpeechTags(text)).map((part) => {
     if (!part.math || part.math.length > 3000) return part;
     try {
       return { ...part, html: katex.renderToString(part.math, { displayMode: false, throwOnError: true, trust: false, strict: "ignore", maxExpand: 200, maxSize: 20, output: "html" }) };

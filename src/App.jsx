@@ -2,7 +2,7 @@ import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
 import __kbEmblema from "./brand/emblema.webp";
 import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
-import { splitSpeechText, selectBrowserVoice } from "./speech/language.js";
+import { splitSpeechText, selectBrowserVoice, stripSpeechTags } from "./speech/language.js";
 import {EducationHome} from './workspace/EducationSetup.jsx';
 import {educationRole, initialEducationTab, needsEducation, roleDetail} from './workspace/educationRules.js';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
@@ -828,7 +828,7 @@ function _latexMatniniAjrat(qism) {
 
 const AralashMatn = React.memo(function AralashMatn({ matn, className, style }) {
   const translation=useTranslatedContent(matn);
-  matn=translation.text;
+  matn=stripSpeechTags(translation.text);   // REV182: [de]…[/de] kabi ovoz teglari ekranda ko'rinmaydi
   // $...$ , [lat]...[/lat] VA belgisiz xom LaTeX buyrug'i — uchalasi ham
   // xuddi shu tarzda chiroyli (KaTeX) render qilinadi.
   const qismlar = useMemo(() => (matn || "").split(_LATEX_BOLISH_REGEX), [matn]);

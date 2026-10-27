@@ -122,7 +122,7 @@ const GameText = React.memo(function GameText({ value }) {
   useKbInterfaceLocale();
   const text = String(value || "")
     .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "\$$1\$")
-    .replace(/\[\/?(?:ru|en|uz)\]/gi, "");
+    .replace(/\[\/?(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\]/gi, "");   // REV182: hamma til teglari (nemis, fransuz, …) ham ko'rinmaydi
   const rawMathStart = text.search(/\\(?:lim|sum|prod|int|tfrac|dfrac|cfrac|frac|sqrt|begin|left|sin|cos|tan|log|ln)\b/);
   const normalized = !text.includes("$") && rawMathStart >= 0
     ? `${text.slice(0, rawMathStart)}$${text.slice(rawMathStart).trim()}$`

@@ -23,7 +23,7 @@ function tagRawMath(value){
  parts.push(source.slice(previous));return restore(parts.join(''));
 }
 function prose(value,lang){
- let text=value.replace(/<(?:\/?[A-Za-z][^>]*|!--[\s\S]*?--)>/g,' ').replace(/\[\/?(?:uz|ru|en)\]/gi,'').replace(/https?:\/\/\S+|www\.\S+/g,' ');
+ let text=value.replace(/<(?:\/?[A-Za-z][^>]*|!--[\s\S]*?--)>/g,' ').replace(/\[\/?(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\]/gi,'').replace(/https?:\/\/\S+|www\.\S+/g,' ');
  text=text.replace(/(?<![\p{L}\p{N}_])(?:[A-Za-z]|\d+)\s*\^\s*(?:\{[A-Za-z0-9+ -]+\}|[A-Za-z]|\d+)/gu,part=>speakFormula(part,lang));
  if(lang==='uz'){
   text=normalizeUzbek(text);
