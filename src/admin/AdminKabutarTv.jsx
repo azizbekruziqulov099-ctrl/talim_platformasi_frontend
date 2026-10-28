@@ -25,12 +25,15 @@ export default function AdminKabutarTv({ token }) {
   const [video, setVideo] = useState(null);
   const [ssen, setSsen] = useState(null);
   const url = (p, q = {}) => `${API_BASE}/api/kabutar_tv${p}?${new URLSearchParams({ token, ...q })}`;
+  const [tgNat, setTgNat] = useState(null);   // REV191: {ok, matn} — sinov natijasi tugma yonida
+  const [botNom, setBotNom] = useState("");
   const sorov = async (p, q, opt) => {
     const r = await fetch(url(p, q), opt);
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.detail || `Xato ${r.status}`);
     return j;
   };
+  useEffect(() => { (async () => { try { const r = await sorov("/bot", {}); if (r?.bot) setBotNom(r.bot); } catch { /* */ } })(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const yukla = useCallback(async () => {
     try {
@@ -163,11 +166,15 @@ export default function AdminKabutarTv({ token }) {
           <label className="flex items-center gap-2"><input type="checkbox" checked={soz.tg_yuborish !== false} onChange={(e) => setSoz({ ...soz, tg_yuborish: e.target.checked })} />{T("Yuborilsin")}</label>
           <label>{T("Chat ID")}<input value={soz.tg_chat || ""} onChange={(e) => setSoz({ ...soz, tg_chat: e.target.value })} placeholder="123456789" className="ml-2 w-40 rounded border px-2 py-1" /></label>
           <button type="button" className="rounded-lg bg-white px-3 py-1.5 font-semibold text-sky-900" onClick={async () => {
-            setXabar(""); setXato("");
+            setTgNat({ ok: null, matn: T("Yuborilmoqda…") });
             try { await sorov("/sozlama", {}, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(soz) });
-              await sorov("/tg_sinov", {}, { method: "POST" }); setXabar(T("Sinov xabari Telegramga yuborildi ✅")); } catch (e) { setXato(e.message); }
-          }}>🔔 {T("Sinab ko‘rish")}</button>
+              const r = await sorov("/tg_sinov", {}, { method: "POST" });
+              if (r?.bot) setBotNom(r.bot);
+              setTgNat({ ok: true, matn: T("✅ Saqlandi va sinov xabari yuborildi — Telegram’ni tekshiring") }); } catch (e) { setTgNat({ ok: false, matn: `⚠️ ${e.message}` }); }
+          }}>🔔 {T("Saqlash va sinab ko‘rish")}</button>
         </div>
+        {botNom && <p className="mt-2 text-xs text-sky-900">{T("Videolar shu botdan keladi:")} <b>@{botNom}</b> — {T("Telegram’da uni ochib /start bosing (bir marta).")}</p>}
+        {tgNat && <p role="status" className={`mt-2 rounded-lg p-2 text-sm ${tgNat.ok === false ? "bg-red-50 text-red-700" : tgNat.ok ? "bg-emerald-50 text-emerald-800" : "bg-white text-slate-700"}`}>{tgNat.matn}</p>}
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" checked={soz.haftalik !== false} onChange={(e) => setSoz({ ...soz, haftalik: e.target.checked })} />{T("Yakshanba — haftalik ko‘rsatuv (hafta yakuni, reyting, kelasi hafta)")}</label>
