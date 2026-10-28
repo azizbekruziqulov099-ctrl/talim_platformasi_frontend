@@ -4,7 +4,8 @@ import { uiText as T } from "../interface/interfaceRuntime.js";
 import { gradeLabel } from "./catalog.js";
 import { topicTarget } from "./learnerTopicsRules.js";
 import { capitalizeTopic, isReviewTopic } from "./kidTopics.js";
-import { lessonDone, lessonStars } from "./kidProgress.js";
+import { lessonDone, lessonStars, natija } from "./kidProgress.js";
+import { baho, band, daraja } from "./baholash.js";
 import { bobBoyicha } from "./fanGuruhlari.js";
 import { darsYoli, ketmaKet } from "./darsYoli.js";
 
@@ -29,7 +30,17 @@ export default function MaktabYoli({ groups, current, type, erkin = false, openL
       const first = list[0];
       onOpenTest({ ...topicTarget(current, group, first, type), topic_code: first.topic_codes[0], topic_codes: list.flatMap((t) => t.topic_codes), track: "review" });
     };
+    // REV186: fan bo'yicha natija — o'tilgan darslar o'rtacha foizi, yoshga mos baho va xalqaro darajaga taxminiy moslik
+    const natijalar = group.mavzular.map((t) => (t.dars_bor ? natija(topicTarget(current, group, t, type).lesson_code) : null)).filter(Boolean);
+    const ortacha = natijalar.length ? Math.round(natijalar.reduce((a, n) => a + (n.foiz || 0), 0) / natijalar.length) : null;
+    const umumiy = ortacha === null ? null : baho(group.sinf, ortacha);
+    const dar = ortacha === null ? null : daraja(group.sinf, ortacha, current?.nom);
     return <div key={group.sinf} className="my-root">
+      {umumiy && <div className={`my-daraja is-${band(group.sinf)}`} role="status">
+        <div className="my-daraja-baho" style={{ color: umumiy.rang }}><b>{umumiy.asosiy}</b><small>{T(umumiy.izoh)} · {natijalar.length} {T("dars natijasi")}</small></div>
+        <div className="my-daraja-xalqaro"><small>{T("Darajangiz (taxminan)")}</small>
+          <span>{dar.qator.map((q) => <i key={q}>{q}</i>)}</span></div>
+      </div>}
       <div className="kt-yol-bosh my-bosh" role="status">
         <span className="kt-yol-xarita" aria-hidden="true">🗺️</span>
         <span className="kt-yol-matn"><b>{T(gradeLabel(type, group.sinf))}</b>
@@ -60,6 +71,8 @@ export default function MaktabYoli({ groups, current, type, erkin = false, openL
             const target = topicTarget(current, group, topic, type);
             const ok = done(i);
             const stars = ok ? lessonStars(target.lesson_code) : 0;
+            const nat = ok ? natija(target.lesson_code) : null;
+            const bh = nat ? baho(group.sinf, nat.foiz) : null;
             const och = erkin || yol.ochiq[i];
             const keyingi = i === yol.navbat;
             const yon = (tomon++) % 2 ? "is-r" : "is-l";
@@ -69,7 +82,9 @@ export default function MaktabYoli({ groups, current, type, erkin = false, openL
               {keyingi && <span className="kt-today">{T("Navbatdagi")}</span>}
               <p className="kt-title my-title"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false} /></p>
               {isReviewTopic(topic.nomi) && <span className="kt-kind is-review">🔁 {T("Takrorlash")}</span>}
-              {ok && topic.savol_soni > 0 && <span className="kt-stars" aria-label={`${stars} ⭐`}>{"⭐".repeat(stars)}{"☆".repeat(3 - stars)}</span>}
+              {bh ? <span className="my-natija" style={{ color: bh.rang }} title={nat.taxminiy ? T("Taxminiy (eski natija)") : ""}>
+                  <b>{bh.asosiy}</b>{nat.jami ? <small>✔ {nat.togri}/{nat.jami} · {nat.urinish} {T("urinish")}{nat.sana ? ` · ${nat.sana}` : ""}</small> : <small>{T(bh.izoh)}</small>}</span>
+                : ok && topic.savol_soni > 0 && <span className="kt-stars" aria-label={`${stars} ⭐`}>{"⭐".repeat(stars)}{"☆".repeat(3 - stars)}</span>}
               <div className="kt-actions my-actions">
                 {topic.dars_bor ? <button type="button" className="kt-learn" onClick={() => ochish(topic, i)}>{ok ? `🔁 ${T("Qayta")}` : `▶ ${T("Dars")}`}</button>
                   : onOpenAi && <button type="button" className="kt-play" onClick={() => ochish(topic, i)}>💬 {T("AI ustoz")}</button>}

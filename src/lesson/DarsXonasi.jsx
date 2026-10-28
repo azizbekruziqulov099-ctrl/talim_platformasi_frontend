@@ -6,7 +6,7 @@ import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, v
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
-import { markLessonDone } from "../curriculum/kidProgress.js";
+import { markLessonDone, natijaYoz } from "../curriculum/kidProgress.js";
 import { faollikYoz } from "../maktab/maktabServer.js";
 import { KID_PITCH, kidRate, ustozRate, kidRepeatSpeech, kidTakrorStep, kidTaskModel, ismOldin } from "./kidLessonRules.js";
 import { APP_VERSION } from "../appVersion.js";
@@ -56,6 +56,8 @@ import "./dars-xonasi.css";
 import { bosqich, dialoglash, eshitdi, korishlar, kursJami, mavzuRaqami, ulush as immersiyaUlushi } from "../til/immersiya.js";
 import { darsGaplari, darsLugati, izohNutqi, sozTop } from "../til/lugatMiya.js";
 import { IkkiUstozTaglavha, SozIzohi } from "../til/IkkiUstozTaglavha.jsx";
+// REV185: Kabular ham ikki ustozdek (1–4-sinfda o'zbek Kabu ko'p, ~50 % gacha kamayadi) va gap tuzish mashqi
+import { GapTuzish, qisqaGaplar } from "../til/GapTuzish.jsx";
 const jwtProfil = (t) => { try { const p = JSON.parse(atob(String(t || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return String(p.sub || p.user_id || p.uid || p.id || "_"); } catch { return "_"; } };
 import { B, belgiSrc } from "../kid/Belgi.jsx";
 
@@ -251,6 +253,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [izohSoz, setIzohSoz] = useState(null);   // {e, yuk}
   const [izohGapir, setIzohGapir] = useState(false);
   const izohCtl = useRef(null);
+  const kabuUlush = (() => { const b = bosqich(grade || lesson?.topic?.sinf); return b.sinf && b.sinf <= 4 ? Math.min(tilUlush, 0.5) : tilUlush; })();
+  const kabuDialog = (m) => (darsTil && darsTil !== izTilU ? dialoglash(m, { til: darsTil, iz: izTilU, ulush: kabuUlush, kor: korSnap, gloss,
+    ism: "Kabu", erkak: true, yosh: bosqich(grade || lesson?.topic?.sinf).yosh || 0 }) : m);
+  const qisqa = useMemo(() => qisqaGaplar(lesson?.steps || [], darsTil || ""), [lesson, darsTil]);
+  const [gapTuz, setGapTuz] = useState(false);
   const dialog = (m) => (darsTil && ikkinchi ? dialoglash(m, { til: darsTil, iz: izTilU, ulush: tilUlush, kor: korSnap, gloss,
     ism: USTOZ_ISMI[ustozRef.current]?.[izTilU] || "", erkak: USTOZLAR[ustozRef.current]?.lab === "erkak", yosh: bosqich(grade || lesson?.topic?.sinf).yosh || 0 }) : m);
   const joy = sinfXona ? sinfJoyi(ikkinchi && XONALAR[XONA[ustozRef.current]] ? XONA[ustozRef.current] : XONALAR[xonaKaliti(ustozRef.current)] ? xonaKaliti(ustozRef.current) : "onatili", { juft: Boolean(ikkinchi) }) : null;   // REV176: doska — ustoz va deraza orasida
@@ -429,7 +436,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (kabuJuftGapiradi()) {
       const base = String(apiBase).replace(/\/+$/, "");
       const izL = ["uz", "ru", "en"].includes(izohRef.current) ? izohRef.current : "uz";
-      aralashRef.current = ikkiOvozOqi(clean, { til: darsTilRef.current, nomzodlar: [...new Set([izL, darsTilRef.current, "uz"])], playbackRate: rateRef.current,
+      aralashRef.current = ikkiOvozOqi(kabuDialog(clean), { til: darsTilRef.current, nomzodlar: [...new Set([izL, darsTilRef.current, "uz"])], playbackRate: rateRef.current,
         url: (m, kim) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH,
           ...(kidRef.current ? { tezlik: kidRate(gradeRef.current) } : {}), ...(opts.takror ? { takror: "1" } : {}) })}`,
         onAudio: (a) => { if (my === tokenRef.current) audioRef.current = a; },
@@ -1254,7 +1261,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV177: dars so'zlari, test savollari va tushunchalari keyingi darslardagi spiral takror uchun saqlanadi
     if (mode === "end" || (mode === "result" && !xatoTartib)) darsniSaqla(fan || lesson?.topic?.fan || "", darsYozuvi({ kod: topicCode, mavzu: lesson?.topic?.mavzu || "",
       fan: fan || lesson?.topic?.fan || "", til: darsTil || "", iz: ["uz", "ru", "en"].includes(izoh) ? izoh : "uz", steps: lesson?.steps || [], sozlar: maktabSozlar, savollar: questions }));
-    if (mode === "result" && !xatoTartib && questions.length) markLessonDone(topicCode, kidStars(score, questions.length));
+    if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); }
     if (learnerRole !== "oquvchi" || !token) return;
     if (mode === "lesson" && !darsBosh.current) darsBosh.current = Date.now();
     if ((mode !== "end" && mode !== "result") || (mode === "result" && xatoTartib)) return;
@@ -1688,7 +1695,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <button type="button" className="dx-btn" onClick={() => { setMenu(false); ask(`${__kbUi("Shu qismni tushunmadim, boshqacha tushuntiring")}: ${step?.doska || ""} ${step?.ovoz || ""}`.slice(0, 900)); }}>{__kbUi("AI ustozdan so‘rash")}</button>
     </div>}
 
+    {gapTuz && <GapTuzish gaplar={qisqa} til={darsTil} iz={izTilU} ulush={kabuUlush} onYop={() => { setGapTuz(false); try { izohCtl.current?.stop(); } catch { /* */ } }}
+      ayt={(m) => { try { izohCtl.current?.stop(); } catch { /* */ } izohCtl.current = ikkiOvozOqi(speakableText(m), { til: darsTil, nomzodlar: [...new Set([izTilU, darsTil, "uz"])],
+        url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH })}`,
+        onKim: (k) => setKabuKim(k), onEnd: () => setKabuKim(null) }); }} />}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
+      {darsTil && qisqa.length > 0 && ["lesson", "idle", "end"].includes(mode) && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
       <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={() => {
         if (yotiq && mode === "idle") kengaytir();
         // REV177: yangi dars oldidan — oldingi darslardan spiral takror (bugun shu darsda qilinmagan bo'lsa)

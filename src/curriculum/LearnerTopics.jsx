@@ -75,7 +75,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const groups=useMemo(()=>current?filterTopics(current,query,filter).filter(g=>guruhMos(g.sinf,preview?.sinf)):[],[current,query,filter,preview?.sinf]);
  const teacher=Boolean(catalog?.viewer?.teacher);
  const kid=!teacher&&accountRole(user)==='bogcha';
- const maktabYol=!kid&&!teacher&&!universityBrowse&&type==='maktab'&&!query&&filter==='all';   // REV174
+ const maktabYol=!kid&&!teacher&&!universityBrowse&&type==='maktab'&&!query&&(filter==='all'||filter==='dars');   // REV174, REV186
  useKeepLight(kid);   // REV121: bolalar ro'yxati tungi rejimda ham yorqin
  // REV91: bog'cha — kunlik reja (har fandan kuniga 2 ta yangi dars, dam olish kunlari 3 ta). Server tekshiradi.
  const [plan,setPlan]=useState(null);
@@ -111,7 +111,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   }
   return {...base,mavzu:'',mavzuEmoji:'',open:()=>{chooseSubject(sub.kalit);setOlam(false);}};
  });
- const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');};
+ const chooseSubject=key=>{setSubjectKey(key);save(key);setQuery('');
+  // REV186: darslari bor fanga kirilsa — avval dars yo'li (testli mavzular aralashib, dars topish qiyin bo'lmasin)
+  const sub=subjects.find(x=>x.kalit===key);setFilter(sub&&subjectStats(sub).lessons>0?'dars':'all');};
  // REV90: o'qiy olmaydigan bola uchun — kartadagi nomni ovoz bilan aytadi.
  const voice=useRef(null);
  const sayName=(text,inglizcha=false)=>{try{voice.current?.pause();const m=String(text||'').slice(0,200);/* REV122: ruscha (kirill) yoki inglizcha nom — o'z tilidagi ovozda */const tm=/[А-Яа-яЁё]/.test(m)?`[ru]${m}[/ru]`:inglizcha?`[en]${m}[/en]`:m;const a=new Audio(`${String(apiBase).replace(/\/+$/,'')}/api/ovoz?k=133&${new URLSearchParams({matn:tm,jins})}`);voice.current=a;a.play().catch(()=>{});}catch{/* ovoz ixtiyoriy */}};
@@ -177,15 +179,27 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
     {!kid&&!teacher&&!universityBrowse&&!fanIchida&&!preview&&type==='maktab'&&accountRole(user)==='oquvchi'&&<React.Suspense fallback={null}><MaktabKunReja apiBase={apiBase} token={token} sinf={user?.class||user?.learning_profile?.grade||''} fanlar={subjects.filter(sub=>subjectStats(sub).lessons>0).map(sub=>({kalit:sub.kalit,nom:sub.nom}))} fanNomi={nom=>fanNomiTil(nom,locale)} onFan={key=>{chooseSubject(key);setFanIchida(true);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}}/></React.Suspense>}
     {!kid&&!universityBrowse&&!fanIchida&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
-     {guruhla(subjects).map(g=><div key={g.id} className="lt-guruh">
-      <h3 className="lt-guruh-nom"><span aria-hidden="true">{g.emoji}</span> {__kbUi(g.nom)} <small>{g.fanlar.length}</small></h3>
-      <div className="lt-fan-grid">{g.fanlar.map(subject=>{const stats=subjectStats(subject);const active=subject.kalit===current?.kalit;
-       return <button key={subject.kalit} type="button" aria-pressed={active} onClick={()=>{chooseSubject(subject.kalit);setFanIchida(true);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}} className={`lt-fan ${active?'is-on':''}`}>
+     {(()=>{
+      // REV186: darslari (AI miyasi) bor fanlar alohida va birinchi — «📘 Darslar bor»; qolganlari — test va AI ustoz bilan
+      const fanTugma=subject=>{const stats=subjectStats(subject);const active=subject.kalit===current?.kalit;
+       return <button key={subject.kalit} type="button" aria-pressed={active} onClick={()=>{chooseSubject(subject.kalit);setFanIchida(true);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}} className={`lt-fan ${active?'is-on':''} ${stats.lessons?'is-darsli':''}`}>
         <span className="lt-fan-emb"><FanBelgi emoji={fanEmblema(subject.nom)}/></span>
         <b><TranslatedContent text={fanNomiTil(subject.nom,locale)} showStatus={false}/>{subject.dars_turi_nomi?` · ${__kbUi(subject.dars_turi_nomi)}`:''}</b>
-        <small>{__kbUi(`${stats.topics} mavzu · ${stats.lessons} dars · ${stats.tested} testli`)}</small>
-       </button>;})}</div>
-     </div>)}
+        <small>{stats.lessons?__kbUi(`📘 ${stats.lessons} dars · ${stats.tested} testli`):__kbUi(`${stats.topics} mavzu · ${stats.tested} testli`)}</small>
+       </button>;};
+      const darsli=subjects.filter(sub=>subjectStats(sub).lessons>0);
+      const qolgan=subjects.filter(sub=>!subjectStats(sub).lessons);
+      return <>
+       {darsli.length>0&&<div className="lt-guruh lt-darsli">
+        <h3 className="lt-guruh-nom"><span aria-hidden="true">📘</span> {__kbUi("Darslar bor")} <small>{darsli.length}</small></h3>
+        <p className="lt-darsli-izoh">{__kbUi("Ustoz bilan to‘liq dars: tushuntirish, mashq, test va natija")}</p>
+        <div className="lt-fan-grid">{darsli.map(fanTugma)}</div>
+       </div>}
+       {guruhla(qolgan).map(g=><div key={g.id} className="lt-guruh">
+        <h3 className="lt-guruh-nom"><span aria-hidden="true">{g.emoji}</span> {__kbUi(g.nom)} <small>{g.fanlar.length}</small></h3>
+        <div className="lt-fan-grid">{g.fanlar.map(fanTugma)}</div>
+       </div>)}
+      </>;})()}
     </section>}
     {!kid&&universityBrowse&&<section aria-label={__kbUi("Fanlar")}>
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
@@ -206,7 +220,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
       <input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder={__kbUi("Mavzu nomini yozing…")}
        aria-label={__kbUi("Mavzu qidirish")} className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"/>
       <div className="flex gap-1" role="group" aria-label={__kbUi("Saralash")}>
-       {[['all','Hammasi'],['dars','Darsi bor'],['test','Testi bor']].map(([key,label])=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)}
+       {[['dars','📘 Dars yo‘li'],['all','Hammasi'],['test','Testi bor']].map(([key,label])=><button key={key} type="button" aria-pressed={filter===key} onClick={()=>setFilter(key)}
         className="rounded-lg border px-3 py-2 text-xs font-semibold"
         style={filter===key?{background:'#1E3A32',borderColor:'#1E3A32',color:'#F2F0E6'}:{background:'#fff',borderColor:'#D5DCE3',color:'#334155'}}>{__kbUi(label)}</button>)}
       </div>

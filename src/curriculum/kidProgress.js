@@ -31,3 +31,27 @@ export function nextLessonIndex(codes, storage = store()) {
   const all = read(storage);
   return codes.findIndex((code) => code && !Object.prototype.hasOwnProperty.call(all, code));
 }
+
+// REV186: dars natijasi batafsil — foiz, to'g'ri/jami, urinishlar, oxirgi sana (yoshga mos baho va daraja shu bilan chiqadi).
+const NKEY = 'kabutar:dars:natija:v1';
+function nread(storage) { try { return JSON.parse(storage?.getItem(NKEY) || '{}') || {}; } catch { return {}; } }
+
+export function natijaYoz(code, togri, jami, storage = store()) {
+  if (!code || !(jami > 0)) return null;
+  const all = nread(storage);
+  const foiz = Math.round((Math.max(0, togri) / jami) * 100);
+  const old = all[code] || {};
+  all[code] = { foiz: Math.max(foiz, old.foiz || 0), oxirgi: foiz, togri, jami, urinish: (old.urinish || 0) + 1, sana: new Date().toISOString().slice(0, 10) };
+  try { storage?.setItem(NKEY, JSON.stringify(all)); } catch { /* optional */ }
+  return all[code];
+}
+
+/** Dars natijasi: {foiz, oxirgi, togri, jami, urinish, sana} yoki (eski — faqat yulduz) {foiz taxminiy}; o'tilmagan bo'lsa null. */
+export function natija(code, storage = store()) {
+  if (!code) return null;
+  const n = nread(storage)[code];
+  if (n) return n;
+  if (!lessonDone(code, storage)) return null;
+  const y = lessonStars(code, storage);
+  return { foiz: [20, 50, 75, 95][Math.max(0, Math.min(3, y))], taxminiy: true, urinish: 1 };
+}

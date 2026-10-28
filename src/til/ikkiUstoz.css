@@ -53,3 +53,18 @@ button.iu-soz:hover, button.iu-soz:focus-visible { background: color-mix(in srgb
 .iu-misollar li span { color: var(--iu-til); font-weight: 600; }
 .iu-misollar li small { display: block; color: var(--iu-iz); font-size: .88rem; }
 .iu-izoh-tugma { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+
+/* REV185: gap tuzish */
+.gt-karta h3 { margin: 0; color: var(--iu-til); }
+.gt-javob { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin: 1rem 0 .8rem; min-height: 3.2rem; }
+.gt-joy { min-width: 5rem; padding: .55rem .9rem; border-radius: 14px; border: 2px dashed color-mix(in srgb, var(--iu-til) 45%, transparent);
+  font-size: 1.3rem; font-weight: 700; text-align: center; color: var(--iu-til); }
+.gt-javob.is-togri .gt-joy { border-style: solid; border-color: var(--iu-iz); color: var(--iu-iz); background: color-mix(in srgb, var(--iu-iz) 12%, transparent); }
+.gt-javob.is-xato .gt-joy { border-color: #d9534f; color: #d9534f; animation: gt-silk .35s 2; }
+@keyframes gt-silk { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .gt-javob.is-xato .gt-joy { animation: none; } }
+.gt-kartalar { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; margin-bottom: .6rem; }
+.gt-chip { border: 0; border-radius: 14px; padding: .6rem 1.1rem; font-size: 1.25rem; font-weight: 800; cursor: pointer;
+  background: #7c4dff; color: #fff; box-shadow: 0 4px 0 #5a32c9; }
+.gt-chip:disabled { opacity: .3; cursor: default; box-shadow: none; }
+.iu-gaptuz { border: 0; border-radius: 999px; padding: .3rem .85rem; font-weight: 700; cursor: pointer; background: #7c4dff; color: #fff; }

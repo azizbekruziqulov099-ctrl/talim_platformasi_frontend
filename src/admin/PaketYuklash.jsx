@@ -14,7 +14,18 @@ const HOLAT = {
   xato: ["❌", "#A32D2D", "#FCEBEB"],
   otkazildi: ["➖", "#8A8578", "#F7F5EF"],
 };
-const TUR = { mavzu: "📋 Mavzular", miya: "🧠 Miya", royxat: "🖼️ Ro'yxat", nomalum: "❔ Noma'lum" };
+const TUR = { mavzu: "📋 Mavzular", miya: "🧠 Miya", lugat: "📖 Lug'at", royxat: "🖼️ Ro'yxat", nomalum: "❔ Noma'lum" };
+const kut = (ms) => new Promise((r) => setTimeout(r, ms));
+// REV186: server bir lahzaga qayta ishga tushsa («Failed to fetch», 502/503) — qolgan fayllar «xato» bo'lib ketmaydi:
+// server qaytguncha kutiladi (3 daqiqagacha) va o'sha fayl qayta yuboriladi (3 martagacha).
+const tarmoqXatomi = (e) => e instanceof TypeError || /fetch|network|502|503|504/i.test(String(e?.message || ""));
+async function serverniKut(stop) {
+  for (let i = 0; i < 36 && !stop.current; i += 1) {
+    try { const r = await fetch(`${API_BASE}/health/ready`, { cache: "no-store" }); if (r.ok) return true; } catch { /* hali qaytmadi */ }
+    await kut(5000);
+  }
+  return false;
+}
 
 /**
  * REV121: «Paketni birdan o'rnatish» — bitta ZIP (papkalari bilan) yoki ko'p Excel tanlanadi.
@@ -47,19 +58,29 @@ export default function PaketYuklash({ token, onDone }) {
       if (stop.current) break;
       if (!["kutmoqda", "xato"].includes(item.holat)) continue;
       yangila(item.key, { holat: "ishlanmoqda", xabar: "" });
-      try {
-        let natija;
-        if (item.id) {
-          const res = await scopedFetch(url(`/api/admin/paket/fayl/${item.id}`), { method: "POST" });
-          natija = await res.json();
-        } else {
-          natija = (await yuklaFayl(item.file)).fayllar?.[0] || {};
+      for (let urinish = 1; urinish <= 3; urinish += 1) {
+        try {
+          let natija;
+          if (item.id) {
+            const res = await scopedFetch(url(`/api/admin/paket/fayl/${item.id}`), { method: "POST" });
+            if ([502, 503, 504].includes(res.status)) throw new Error(String(res.status));
+            natija = await res.json();
+          } else {
+            natija = (await yuklaFayl(item.file)).fayllar?.[0] || {};
+          }
+          yangila(item.key, { holat: natija.holat || (natija.ok ? "tayyor" : "xato"), xabar: natija.xabar || "",
+            xatolar: natija.xatolar || [], turi: natija.turi || item.turi, belgi: natija.belgi || item.belgi });
+          break;
+        } catch (e) {
+          if (!tarmoqXatomi(e) || urinish === 3 || stop.current) {
+            yangila(item.key, { holat: "xato", xabar: tarmoqXatomi(e) ? __kbUi("Server javob bermadi — «Qayta urinish»ni bosing") : e.message });
+            break;
+          }
+          yangila(item.key, { holat: "ishlanmoqda", xabar: __kbUi(`Server qayta ishga tushmoqda — kutilyapti (${urinish}/3)…`) });
+          await serverniKut(stop);
         }
-        yangila(item.key, { holat: natija.holat || (natija.ok ? "tayyor" : "xato"), xabar: natija.xabar || "",
-          xatolar: natija.xatolar || [], turi: natija.turi || item.turi, belgi: natija.belgi || item.belgi });
-      } catch (e) {
-        yangila(item.key, { holat: "xato", xabar: e.message });
       }
+      await kut(300);   // server nafas olsin — ketma-ket og'ir fayllar xotirani to'ldirmasin
     }
     setIsh("");
     onDone?.();
