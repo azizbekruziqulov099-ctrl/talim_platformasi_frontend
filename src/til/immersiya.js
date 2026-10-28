@@ -88,23 +88,15 @@ const TIL_NOMI = {
   ru: { uz: "По-узбекски", ru: "По-русски", en: "По-английски" },
   en: { uz: "In Uzbek", ru: "In Russian", en: "In English" },
 };
-/** Ramka: uzun (yangi gap), qisqa, yoki hech narsa. ism — til ustozining ismi izoh tilida; erkak — ruscha fe'l uchun. */
-export function ramka(iz = "uz", { ism = "", erkak = false, turi = "uzun", n = 0 } = {}) {
-  const tn = TIL_NOMI[iz]?.[iz] || TIL_NOMI.uz.uz;
-  if (iz === "ru") {
-    const dedi = erkak ? "сказал" : "сказала";
-    const uzun = [`${ism} ${dedi}. ${tn} это значит:`, `${ism} ${dedi} так. Мы понимаем это так:`, `Послушай, что ${dedi} ${ism}. ${tn}:`];
-    const qisqa = ["То есть:", "Значит:", `${tn}:`];
-    return (turi === "uzun" ? uzun : qisqa)[n % 3];
-  }
-  if (iz === "en") {
-    const uzun = [`${ism} said this. ${tn} it means:`, `That's what ${ism} said. We understand it like this:`, `Listen to ${ism}. ${tn}:`];
-    const qisqa = ["That means:", "So:", `${tn}:`];
-    return (turi === "uzun" ? uzun : qisqa)[n % 3];
-  }
-  const uzun = [`${ism} shunday dedi. ${tn} bunday tushunamiz:`, `${ism} aytdi. Buni ${tn.toLowerCase()} bunday tushunamiz:`, `${ism} shunday deyapti. ${tn}:`];
-  const qisqa = ["Ya'ni:", "Demak:", `${tn}:`];
-  return (turi === "uzun" ? uzun : qisqa)[n % 3];
+/** Ramka — REV189: QISQA. Izoh ustozi «Karlos aka shunday dedi, o'zbekchada bunday tushunamiz» demaydi —
+ *  faqat «O'zbekchada:» yoki «O'zbekcha tarjimasi:» deydi (ism va erkak — eski chaqiruvlar uchun, ishlatilmaydi). */
+export function ramka(iz = "uz", { turi = "uzun", n = 0 } = {}) {
+  const R = {
+    uz: ["O'zbekchada:", "O'zbekcha tarjimasi:"],
+    ru: ["По-русски:", "Перевод:"],
+    en: ["In English:", "Translation:"],
+  }[iz] || ["O'zbekchada:", "O'zbekcha tarjimasi:"];
+  return turi === "uzun" ? R[n % 2] : R[0];
 }
 /** «worried — xavotirda» kabi qisqa izoh (faqat yangi so'z, yuqori sinflar). */
 export function sozIzohGapi(iz, til, soz, tarjima) {
