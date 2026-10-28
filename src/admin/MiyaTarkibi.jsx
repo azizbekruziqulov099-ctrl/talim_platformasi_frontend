@@ -12,6 +12,8 @@ export default function MiyaTarkibi({ apiBase, token }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState(false);
+  const [prog, setProg] = useState(null);   // REV190: {i, n, nom} — o'chirish jarayoni
+  const stopRef = React.useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,19 +42,37 @@ export default function MiyaTarkibi({ apiBase, token }) {
     const list = chosen.slice(0, 8).map((r) => `• ${r.sinf} — ${r.fan}`).join("\n") + (chosen.length > 8 ? `\n… va yana ${chosen.length - 8} ta` : "");
     const word = window.prompt(__kbUi(`Quyidagilar o‘chiriladi:\n${list}\n\n${sum.text}\n\nQaytarib bo‘lmaydi. Tasdiqlash uchun O'CHIRISH deb yozing:`));
     if (!word) return;
-    setBusy(true); setMsg("");
-    try {
-      const res = await fetch(`${base}/ochir?${new URLSearchParams({ token })}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tanlanganlar: chosen.map((r) => ({ sinf: r.sinf, fan: r.fan })), ...what, tasdiq: word }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "O‘chirilmadi");
-      const o = d.ochirildi || {};
-      setMsg(`✅ O‘chirildi: ${o.darslar || 0} ta miya darsi, ${o.kitoblar || 0} ta kitob, ${o.mavzular || 0} ta mavzu, ${o.testlar || 0} ta test`);
-      setPicked({});
-      await load();
-    } catch (e) { setMsg(`⚠️ ${e.message}`); } finally { setBusy(false); }
+    // REV190: bittalab o'chiriladi — har biri qisqa so'rov, jarayon ko'rinib turadi, server qotmaydi, to'xtatish mumkin
+    setBusy(true); setMsg(""); stopRef.current = false;
+    const jami = { darslar: 0, kitoblar: 0, mavzular: 0, testlar: 0 };
+    const xatolar = [];
+    for (let i = 0; i < chosen.length; i += 1) {
+      if (stopRef.current) break;
+      const r = chosen[i];
+      setProg({ i, n: chosen.length, nom: `${r.sinf} — ${r.fan}` });
+      let ok = false;
+      for (let urinish = 1; urinish <= 3 && !ok; urinish += 1) {
+        try {
+          const res = await fetch(`${base}/ochir?${new URLSearchParams({ token })}`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tanlanganlar: [{ sinf: r.sinf, fan: r.fan }], ...what, tasdiq: word }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (res.status === 400) { setMsg(`⚠️ ${d.detail || "Tasdiq noto‘g‘ri"}`); stopRef.current = true; break; }
+          if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : String(res.status));
+          for (const k of Object.keys(jami)) jami[k] += (d.ochirildi || {})[k] || 0;
+          ok = true;
+        } catch (e) {
+          if (urinish === 3) xatolar.push(`${r.sinf} — ${r.fan}: ${e.message}`);
+          else await new Promise((res) => setTimeout(res, 5000 * urinish));
+        }
+      }
+    }
+    setProg(null);
+    setMsg(`${stopRef.current ? "⏹ To‘xtatildi. " : "✅ Tugadi. "}O‘chirildi: ${jami.darslar} ta miya darsi, ${jami.kitoblar} ta kitob, ${jami.mavzular} ta mavzu, ${jami.testlar} ta test`
+      + (xatolar.length ? ` · ⚠️ ${xatolar.length} tasida xato (qayta bosing): ${xatolar.slice(0, 3).join("; ")}` : ""));
+    setPicked({}); setBusy(false);
+    await load();
   };
 
   return (
@@ -99,6 +119,12 @@ export default function MiyaTarkibi({ apiBase, token }) {
             <button type="button" disabled={busy || !chosen.length || !sum.any} onClick={remove} className="rounded-xl px-4 py-2 text-sm font-bold text-white disabled:opacity-40" style={{ background: "#B0553A" }}>
               {busy ? "…" : `🗑️ ${__kbUi("Tanlanganlarni o‘chirish")}`}</button>
           </div>
+          {prog && <div className="rounded-xl border p-3" role="status" style={{ borderColor: "#E5E1D8", background: "#FFF8F2" }}>
+            <div className="flex items-center justify-between gap-2 text-sm"><b>🗑️ {__kbUi("O‘chirilmoqda")}: {prog.i + 1} / {prog.n}</b>
+              <button type="button" className="rounded-lg border px-3 py-1 text-xs font-semibold" onClick={() => { stopRef.current = true; }}>⏹ {__kbUi("To‘xtatish")}</button></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full" style={{ width: `${Math.round(((prog.i) / prog.n) * 100)}%`, background: "#B0553A", transition: "width .3s" }} /></div>
+            <small className="mt-1 block text-xs text-slate-600">{prog.nom} · {__kbUi("sahifani yopmang")}</small>
+          </div>}
           {msg && <p className="text-sm font-semibold" role="status">{msg}</p>}
         </>}
       </div>}
