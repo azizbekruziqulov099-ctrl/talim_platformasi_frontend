@@ -52,6 +52,11 @@ import { speechRecognitionAvailable } from "../speech/speakRules.js";
 import { aralashKerak, aralashOqi, reja as ovozReja } from "../speech/aralashOvoz.js";
 import { aytdiMi, sozBolaklari, tingla } from "./sozAytish.js";
 import "./dars-xonasi.css";
+// REV184: ikki ustoz — immersiya, jonli yozuv (karaoke), pauza va tushunmagan so'zni bosish (lug'at miyasi)
+import { bosqich, dialoglash, eshitdi, korishlar, kursJami, mavzuRaqami, ulush as immersiyaUlushi } from "../til/immersiya.js";
+import { darsGaplari, darsLugati, izohNutqi, sozTop } from "../til/lugatMiya.js";
+import { IkkiUstozTaglavha, SozIzohi } from "../til/IkkiUstozTaglavha.jsx";
+const jwtProfil = (t) => { try { const p = JSON.parse(atob(String(t || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return String(p.sub || p.user_id || p.uid || p.id || "_"); } catch { return "_"; } };
 import { B, belgiSrc } from "../kid/Belgi.jsx";
 
 /** REV90: bog'cha boshqaruv tugmasi — katta belgi, ostida kichik yozuv (o'qiy olmaydigan bola belgidan taniydi). */
@@ -229,6 +234,25 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [ustozKim, setUstozKim] = useState(null);   // "til" | "iz" — qaysi ustoz gapiryapti
   const [nutqI, setNutqI] = useState(-1);   // REV181: hozir aytilayotgan bo'lak tartibi (doskada yonadi)
   const ustozBayroq = ikkinchi ? { til: flagSrc(TIL_BAYROQ[darsTil] || ""), iz: flagSrc(TIL_BAYROQ[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"]) } : null;
+  // REV184: ikki ustoz — immersiya ulushi (sinf/yosh va mavzu raqami bo'yicha), bola eshitgan so'zlar, dars lug'ati
+  const izTilU = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
+  const profil = useMemo(() => jwtProfil(token), [token]);
+  const tilUlush = useMemo(() => { const b = bosqich(grade || lesson?.topic?.sinf); return immersiyaUlushi({ ...b, raqam: mavzuRaqami(lesson?.topic?.mavzu), jami: kursJami(b) }); }, [grade, lesson]);
+  const lokalLugat = useMemo(() => darsLugati(lesson?.steps || [], darsTil || ""), [lesson, darsTil]);
+  const lokalGaplar = useMemo(() => darsGaplari(lesson?.steps || [], darsTil || ""), [lesson, darsTil]);
+  const gloss = useMemo(() => new Map([...lokalLugat].map(([k, v]) => [k, v.tarjima])), [lokalLugat]);
+  // dars ochilgandagi holat — dars davomida o'zgarmaydi (oldindan yuklangan ovoz bilan bir xil gap chiqsin)
+  const korSnap = useMemo(() => (lesson ? korishlar(profil) : {}), [lesson, profil]);
+  const eshitilgan = useRef(new Set());
+  useEffect(() => { eshitilgan.current = new Set(); }, [lesson]);
+  const [nutqQism, setNutqQism] = useState([]);   // hozirgi gap bo'laklari [{kim, matn}] — jonli yozuv uchun
+  const [qismSoz, setQismSoz] = useState(-1);
+  const [pauza, setPauza] = useState(false);
+  const [izohSoz, setIzohSoz] = useState(null);   // {e, yuk}
+  const [izohGapir, setIzohGapir] = useState(false);
+  const izohCtl = useRef(null);
+  const dialog = (m) => (darsTil && ikkinchi ? dialoglash(m, { til: darsTil, iz: izTilU, ulush: tilUlush, kor: korSnap, gloss,
+    ism: USTOZ_ISMI[ustozRef.current]?.[izTilU] || "", erkak: USTOZLAR[ustozRef.current]?.lab === "erkak", yosh: bosqich(grade || lesson?.topic?.sinf).yosh || 0 }) : m);
   const joy = sinfXona ? sinfJoyi(ikkinchi && XONALAR[XONA[ustozRef.current]] ? XONA[ustozRef.current] : XONALAR[xonaKaliti(ustozRef.current)] ? xonaKaliti(ustozRef.current) : "onatili", { juft: Boolean(ikkinchi) }) : null;   // REV176: doska — ustoz va deraza orasida
   // REV157: 4–7 yoshli til darsida ustoz o'zi ham faqat o'rganilayotgan tilda gapiradi («Now you say it», «Find…»).
   // 2–3 va 3–4 yosh — izoh tilida (o'zbek / rus / ingliz) tushuntiriladi.
@@ -325,6 +349,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     clearTimeout(sozTimer.current);
     setSpeaking(false); setWord(-1); lipRef.current = null; fallbackTalk.current = false;
     setKabuKim(null); setUstozKim(null);   // REV181: to'xtatilganda hech kim «gapirayotgan» bo'lib qolmasin
+    setPauza(false);
   }, []);
   // Og'iz holati: null — jim (yopiq), 0..1 — ovoz balandligi, -1 — ovoz ketyapti, lekin tahlil hali tayyor emas.
   const mouthLevel = useCallback(() => {
@@ -395,6 +420,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!clean.replace(/⏸/g, "").trim()) { done?.(); return; }
     const words = String(text || "").replace(/⏸/g, " ").split(/\s+/).filter(Boolean);
     sayWords.current = words;
+    setNutqQism([]); setQismSoz(-1);
     setSpeaking(true);
     const finish = () => { if (my !== tokenRef.current) return; clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
     // REV180: Kabu muhitida (test, ovozli tekshiruv) — ikki Kabu: izoh qismi birinchi Kabu ovozida, o'rganilayotgan til qismi —
@@ -416,6 +442,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (juftGapiradi()) {
       const izL = ["uz", "ru", "en"].includes(izohRef.current) ? izohRef.current : "uz";
       fallbackTalk.current = false; lipRef.current = null; setNutqI(-1);
+      setNutqQism(modeRef.current === "lesson" ? navbat(clean, darsTilRef.current, [...new Set([izL, darsTilRef.current, "uz"])]) : []);
       let ofs = 0, oxirgi = -1, soni = 0;
       const sozSoni = (m) => String(m).replace(/\[\/?[a-z]{2}\]/g, "").replace(/⏸/g, " ").split(/\s+/).filter(Boolean).length;
       aralashRef.current = ikkiOvozOqi(clean, { til: darsTilRef.current, nomzodlar: [...new Set([izL, darsTilRef.current, "uz"])], playbackRate: rateRef.current,
@@ -426,7 +453,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           if (i !== oxirgi) { ofs += soni; soni = sozSoni(q?.matn || ""); oxirgi = i; setNutqI(i); }
           const bosh = ofs, n = soni;
           // aytilayotgan so'z yonadi (bog'chada — doskadagi rasm ham), og'iz bog'chada ovoz to'lqiniga mos
-          a.ontimeupdate = () => { if (my === tokenRef.current && a.duration && Number.isFinite(a.duration)) setWord(Math.min(words.length - 1, bosh + Math.min(n - 1, Math.floor((a.currentTime / a.duration) * n)))); };
+          a.ontimeupdate = () => { if (my === tokenRef.current && a.duration && Number.isFinite(a.duration)) { const k = Math.min(n - 1, Math.floor((a.currentTime / a.duration) * n)); setQismSoz(k); setWord(Math.min(words.length - 1, bosh + k)); } };
           if (kidRef.current) loadEnvelope(a.src).then((lv) => { if (lv && my === tokenRef.current && audioRef.current === a) lipRef.current = { lv, audio: a }; });
         },
         onKim: (k) => { if (my === tokenRef.current) setUstozKim(k); },
@@ -497,14 +524,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // Qadamda aytiladigan gap (go() va oldindan yuklash uchun bir xil — server keshi mos tushadi).
   const stepSpeech = useCallback((s, i) => {
     const cue = boardCues(s.doska, s.ovoz || s.doska);
-    if (!kid) return cue.spoken || s.doska;
+    if (!kid) return dialog(cue.spoken || s.doska);
     // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
     const spoken = String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "");
     // REV102: takrordan yangiga o'tishda robot aytadi: «Avval o'tganlarni eslaymiz!» / «Endi — yangi so'z!»
     const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, tIzoh);
     // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan; REV140: «Endi sen ayt: X» — avval ustoz X ni ikki marta aytadi
-    return ismOldin(kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken, { doska: s.doska, izoh }));
-  }, [kid, kinds, lesson, izoh, tIzoh]);
+    return dialog(ismOldin(kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken, { doska: s.doska, izoh })));
+  }, [kid, kinds, lesson, izoh, tIzoh, darsTil, ikkinchi, tilUlush, korSnap, gloss, grade]); // eslint-disable-line react-hooks/exhaustive-deps
   // REV145: mikrofon bilan so'z aytish rejimi — faqat bog'cha til darsida, brauzer ovozni taniy olsa va ruxsat rad etilmagan bo'lsa.
   // Oddiy fanlarda (matematika, atrof-muhit…) mikrofon so'ralmaydi.
   const micRejim = () => Boolean(kid && darsTil && !mikYoq.current && speechRecognitionAvailable(globalThis));
@@ -747,6 +774,48 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setPlaying(true);
     if (mode !== "lesson") go(0, true); else if (!variant) go(idx, true);
   };
+
+  // REV184: bola eshitgan so'z va gaplar hisobi (bir darsda bir qadam — bir marta). Keyingi darslarda tarjima shunga qarab kamayadi.
+  useEffect(() => {
+    if (mode !== "lesson" || !darsTil || !step?.id || eshitilgan.current.has(step.id)) return;
+    eshitilgan.current.add(step.id);
+    eshitdi({ profil, til: darsTil, matn: `${step.ovoz || ""} ${step.sarlavha || ""}` });
+  }, [mode, step, darsTil, profil]);
+  // REV184: pauza — gap o'rtasida to'xtaydi; davom — aynan shu joydan
+  const pauzaQil = () => {
+    const c = aralashRef.current;
+    if (c?.pause) c.pause(); else { try { audioRef.current?.pause(); } catch { /* */ } }
+    setPauza(true);
+  };
+  const davomQil = () => {
+    const c = aralashRef.current;
+    if (c?.resume) c.resume(); else { try { audioRef.current?.play()?.catch?.(() => {}); } catch { /* */ } }
+    setPauza(false);
+  };
+  const izohTili = () => [...new Set([izTilU, darsTil, "uz"])];
+  const izohAyt = (e) => {
+    try { izohCtl.current?.stop(); } catch { /* */ }
+    const matn = speakableText(izohNutqi(e, { til: darsTil, iz: izTilU }));
+    if (!matn) return;
+    setIzohGapir(true);
+    izohCtl.current = ikkiOvozOqi(matn, { til: darsTil, nomzodlar: izohTili(), url: (m, kim) => juftUrl(m, kim), playbackRate: Math.min(1, rateRef.current),
+      onKim: (k) => setUstozKim(k), onEnd: () => { setIzohGapir(false); setUstozKim(null); } });
+  };
+  // bola tushunmagan so'zni bosdi: dars pauzada, izoh ustozi so'zni misollar bilan tushuntiradi
+  const sozBosildi = async (soz) => {
+    if (!soz || !darsTil) return;
+    if (!pauza) pauzaQil();
+    setIzohSoz({ e: { soz }, yuk: true });
+    const e = await sozTop(soz, { til: darsTil, iz: izTilU, apiBase, lokal: lokalLugat, gaplar: lokalGaplar });
+    setIzohSoz({ e, yuk: false });
+    if (e.topildi) izohAyt(e);
+  };
+  const izohYop = () => {
+    try { izohCtl.current?.stop(); } catch { /* */ }
+    izohCtl.current = null; setIzohSoz(null); setIzohGapir(false); setUstozKim(null);
+    davomQil();
+  };
+  useEffect(() => () => { try { izohCtl.current?.stop(); } catch { /* */ } }, []);
 
   const openVariant = (v) => {
     setMenu(false); setVariant(v); say(v.ovoz || v.doska);
@@ -1574,6 +1643,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
     </div>
+    {/* REV184: ikki ustozning jonli yozuvi — har ustoz o'z rangida, aytilayotgan so'z yonadi; so'zni bosib izoh so'raladi */}
+    {darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
+      ismlar={{ til: USTOZ_ISMI[ustozRef.current]?.[izTilU] || "", iz: USTOZ_ISMI[ikkinchi]?.[izTilU] || "" }} bayroqlar={ustozBayroq}
+      pauza={pauza} onPauza={() => (pauza ? davomQil() : pauzaQil())} onSoz={sozBosildi} />}
+    {izohSoz && <SozIzohi e={izohSoz.e} yuklanmoqda={izohSoz.yuk} iz={izTilU} til={darsTil} ism={USTOZ_ISMI[ikkinchi]?.[izTilU] || ""} gapiryapti={izohGapir}
+      onQayta={() => izohSoz?.e && izohAyt(izohSoz.e)} onDavom={izohYop} />}
     {/* REV177: takror, mashqlar va Repetitor oynalari — xona ichida emas, butun dars ekranida (telefon buralganda ham to'liq) */}
     {oldiTakror && <div className="dx-repetitor-oyna" role="dialog" aria-modal="true" aria-label={__kbUi("Darsdan oldin takror")}>
       <React.Suspense fallback={<p className="dx-why">⏳</p>}>

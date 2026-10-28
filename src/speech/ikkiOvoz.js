@@ -66,7 +66,7 @@ export function navbat(matn, til = "", nomzodlar = ["uz"]) {
  */
 export function ikkiOvozOqi(matn, { til = "", nomzodlar = ["uz"], url, onKim, onEnd, onAudio, playbackRate = 1 } = {}) {
   const qismlar = navbat(matn, til, nomzodlar);
-  let i = -1, toxtadi = false, audio = null, timer = null;
+  let i = -1, toxtadi = false, audio = null, timer = null, pauza = false, kutish = 0, tamomFn = null;
   const tayyor = qismlar.map((q) => { try { const a = new Audio(); a.preload = "auto"; a.src = url(q.matn, q.kim); return a; } catch { return null; } });
   const tozala = () => { clearTimeout(timer); if (audio) { try { audio.onended = audio.onerror = null; audio.pause(); } catch { /* */ } audio = null; } };
   const keyingi = () => {
@@ -81,13 +81,34 @@ export function ikkiOvozOqi(matn, { til = "", nomzodlar = ["uz"], url, onKim, on
     try {
       const a = tayyor[i] || new Audio(url(q.matn, q.kim));
       audio = a; a.playbackRate = playbackRate; a.onended = tamom; onAudio?.(a, i, q); a.onerror = () => setTimeout(tamom, 300);
-      a.play().catch(() => setTimeout(tamom, 600));
-      timer = setTimeout(tamom, Math.min(30000, 5000 + q.matn.length * 150));
+      tamomFn = tamom;
+      kutish = Math.min(30000, 5000 + q.matn.length * 150);
+      if (!pauza) {
+        a.play().catch(() => setTimeout(tamom, 600));
+        timer = setTimeout(tamom, kutish);
+      }
     } catch { tamom(); }
   };
   keyingi();
   return {
     qismlar,
+    // REV184: pauza — gap o'rtasida to'xtaydi (bola tushunmagan so'zni bosadi), davom — aynan shu joydan
+    get pauzada() { return pauza; },
+    get hozir() { return i; },
+    pause() {
+      if (toxtadi || pauza) return;
+      pauza = true; clearTimeout(timer);
+      try { audio?.pause(); } catch { /* */ }
+    },
+    resume() {
+      if (toxtadi || !pauza) return;
+      pauza = false;
+      if (!audio) { keyingi(); return; }
+      if (audio.ended) { keyingi(); return; }
+      const qoldi = audio.duration && Number.isFinite(audio.duration) ? (audio.duration - audio.currentTime) * 1000 + 4000 : kutish;
+      timer = setTimeout(() => tamomFn?.(), Math.min(30000, Math.max(3000, qoldi)));
+      audio.play().catch(() => setTimeout(() => tamomFn?.(), 600));
+    },
     stop() { if (toxtadi) return; toxtadi = true; tozala(); for (const a of tayyor) { try { if (a) a.src = ""; } catch { /* */ } } onKim?.(null); },
   };
 }
