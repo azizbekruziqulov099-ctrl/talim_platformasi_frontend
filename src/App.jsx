@@ -480,8 +480,9 @@ import {
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Swords, Gamepad2, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
   Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search, Baby,
-  UserRoundPlus, MessageCircle, Eye,
+  UserRoundPlus, MessageCircle, Eye, Tv,
 } from "lucide-react";
+const AdminKabutarTv = React.lazy(() => import("./admin/AdminKabutarTv.jsx"));   // REV187
 
 // Deploydan keyin brauzer eski chunk nomini eslab qolsa oq ekran bermaydi:
 // bir marta yangilanadi, qayta xato bo'lsa haqiqiy xato ko'rsatiladi.
@@ -13109,6 +13110,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_korinish", nom: "O‘quvchi ko‘zi bilan", ikon: Eye },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },   // REV129: admin ham barcha o'yinlarni ko'radi (cheklovsiz)
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
+      { kalit: "admin_tv", nom: "Kabutar TV", ikon: Tv },   // REV187
       { kalit: "admin_bogcha", nom: "Bog‘cha narxlari", ikon: Wallet },   // REV162
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
@@ -14599,6 +14601,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     admin_mavzular: ["Mavzular", "DTS va ta’lim mazmuni"],
     admin_korinish: ["O‘quvchi ko‘zi bilan", "Bog‘cha, maktab, markaz yoki institut o‘quvchisi ko‘rinishi"],
     admin_ovoz: ["Ovozli matn", "O‘zbekcha o‘qish va gapirib yozish"],
+    admin_tv: ["Kabutar TV", "Kunlik ko‘rsatuvlar, jadval va ishga tushirish"],
     admin_statistikalar: ["Statistikalar", "Tizimdan aniq o‘quvchigacha"],
     admin_moderatsiya: ["Moderatsiya", "Sifat va xavfsizlik nazorati"],
     oqituvchi: ["To‘garak va repetitorlik", "Guruhlar (50 tagacha o‘quvchi), darslar, to‘lov va davomat"],
@@ -14862,6 +14865,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
+      {korinishRoli === "admin" && tab === "admin_tv" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminKabutarTv token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode, scopeId) => { setShablonOldindanTanlangan({scopeId,codes:[topicCode]}); setTab("admin"); }} />

@@ -17,9 +17,10 @@ export default function MiyaTarkibi({ apiBase, token }) {
     try {
       const res = await fetch(`${base}?${new URLSearchParams({ token })}`, { cache: "no-store" });
       const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Yuklanmadi");
+      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail
+        : [502, 503, 504].includes(res.status) ? "Server band yoki qayta ishga tushmoqda — 1 daqiqadan keyin «Qayta» bosing" : `Yuklanmadi (${res.status})`);
       setData(d); setError("");
-    } catch (e) { setError(e.message); }
+    } catch (e) { setError(e instanceof TypeError ? "Serverga ulanib bo‘lmadi — internet yoki server qayta ishga tushmoqda. «Qayta» bosing." : e.message); }
   }, [base, token]);
   useEffect(() => { if (open && !data) load(); }, [open, data, load]);
 
@@ -62,7 +63,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
         <span className="text-slate-500">{open ? "▲" : "▼"}</span>
       </button>
       {open && <div className="mt-3 space-y-3">
-        {error && <p className="text-sm text-red-700">{error}</p>}
+        {error && <p className="text-sm text-red-700">{error} <button type="button" className="underline font-semibold" onClick={() => { setError(""); load(); }}>{__kbUi("Qayta")}</button></p>}
         {data?.bir_martalik && <p className="text-xs rounded-xl p-2" style={{ background: "#EEF7F5", color: "#246D6D" }}>
           {__kbUi(`Bog‘cha guruhlari endi: ${data.yosh_guruhlari.join(", ")}. Bir martalik tozalashda eski «3-4»/«5-6 yosh» miya ma’lumotlari o‘chirildi: ${data.bir_martalik.natija?.miya?.darslar || 0} ta dars, ${data.bir_martalik.natija?.miya?.kitoblar || 0} ta kitob; ${data.bir_martalik.natija?.bolalar_kochirildi || 0} ta bola yangi guruhga o‘tkazildi.`)}
         </p>}
@@ -87,7 +88,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
                     <input type="checkbox" checked={!!picked[rowKey(r)]} onChange={() => toggle(r)} />
                     <span className="flex-1 min-w-0"><b>{r.fan}</b>
                       <small className="block text-xs text-slate-500 truncate">{r.kitoblar.length ? r.kitoblar.map((k) => k.nomi).join(" · ") : __kbUi("kitob yo‘q")}</small></span>
-                    <span className="text-xs text-slate-600 whitespace-nowrap">🧠 {r.miya_darslar} · 📚 {r.mavzular} · ✍️ {r.testlar}</span>
+                    <span className="text-xs text-slate-600 whitespace-nowrap">🧠 {r.miya_darslar} · 📚 {r.mavzular} · ✍️ {r.testlar ?? "—"}</span>
                   </label>
                 </li>)}
               </ul>
