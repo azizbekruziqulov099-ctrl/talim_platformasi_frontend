@@ -60,7 +60,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
           const d = await res.json().catch(() => ({}));
           if (res.status === 400) { setMsg(`⚠️ ${d.detail || "Tasdiq noto‘g‘ri"}`); stopRef.current = true; break; }
           if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : String(res.status));
-          for (const k of Object.keys(jami)) jami[k] += (d.ochirildi || {})[k] || 0;
+          for (const k of Object.keys(d.ochirildi || {})) jami[k] = (jami[k] || 0) + ((d.ochirildi || {})[k] || 0);
           ok = true;
         } catch (e) {
           if (urinish === 3) xatolar.push(`${r.sinf} — ${r.fan}: ${e.message}`);
@@ -69,7 +69,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
       }
     }
     setProg(null);
-    setMsg(`${stopRef.current ? "⏹ To‘xtatildi. " : "✅ Tugadi. "}O‘chirildi: ${jami.darslar} ta miya darsi, ${jami.kitoblar} ta kitob, ${jami.mavzular} ta mavzu, ${jami.testlar} ta test`
+    setMsg(`${stopRef.current ? "⏹ To‘xtatildi. " : "✅ Tugadi. "}O‘chirildi: ${jami.darslar} ta miya darsi, ${jami.kitoblar} ta kitob, ${jami.mavzular} ta mavzu, ${jami.testlar} ta test${jami.saqlandi_darsli_mavzu ? ` · ${jami.saqlandi_darsli_mavzu} ta mavzu darsi borligi uchun saqlab qolindi (avval miyani o‘chiring)` : ""}`
       + (xatolar.length ? ` · ⚠️ ${xatolar.length} tasida xato (qayta bosing): ${xatolar.slice(0, 3).join("; ")}` : ""));
     setPicked({}); setBusy(false);
     await load();
