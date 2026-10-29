@@ -89,10 +89,19 @@ export default function MiyaTarkibi({ apiBase, token }) {
             onClick={async () => {
               setBusy(true); setMsg("");
               try {
-                const res = await fetch(`${base.replace(/miya_tarkibi$/, "miya_katalog_tuzat")}?${new URLSearchParams({ token })}`, { method: "POST" });
-                const d = await res.json().catch(() => ({}));
+                const yol = base.replace(/miya_tarkibi$/, "miya_katalog_tuzat");
+                const res = await fetch(`${yol}?${new URLSearchParams({ token })}`, { method: "POST" });
+                let d = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${res.status}`);
-                setMsg(`✅ ${d.jami} ta mavzu tekshirildi: ${d.ulandi} tasi katalogga ulandi, ${d.tiklandi} tasi tiklandi, ${d.yaratildi} tasi yaratildi${d.xato ? `, ${d.xato} tasida xato` : ""}. Endi o‘quvchilarga ko‘rinadi.`);
+                // REV214: fon rejimida ishlaydi — tugashini kutamiz (har 3 soniyada holat so'raladi)
+                for (let i = 0; i < 200 && d.ishlayapti; i += 1) {
+                  setMsg(`⏳ Tekshirilmoqda… ${i * 3} s (ko‘p darsda 1–3 daqiqa)`);
+                  await new Promise((r) => setTimeout(r, 3000));
+                  d = await (await fetch(`${yol}/holat?${new URLSearchParams({ token })}`)).json().catch(() => d);
+                }
+                if (d.xato) throw new Error(d.xato);
+                const n = d.natija || {};
+                setMsg(`✅ ${n.jami || 0} ta mavzu tekshirildi: ${n.kochirildi || 0} ta dars boshqa fan mavzusidan o‘z faniga ko‘chirildi, ${n.ulandi || 0} tasi katalogga ulandi, ${n.tiklandi || 0} tasi tiklandi, ${n.yaratildi || 0} tasi yaratildi${n.xato ? `, ${n.xato} tasida xato` : ""}. Endi o‘quvchilarga ko‘rinadi.${(n.misollar || []).length ? "\n" + n.misollar.join("\n") : ""}`);
                 await load();
               } catch (e) { setMsg(`⚠️ ${e.message}`); } finally { setBusy(false); }
             }}>🔧 {__kbUi("Ko‘rinmayotgan darslarni katalogga ulash")}</button>
@@ -140,7 +149,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full" style={{ width: `${Math.round(((prog.i) / prog.n) * 100)}%`, background: "#B0553A", transition: "width .3s" }} /></div>
             <small className="mt-1 block text-xs text-slate-600">{prog.nom} · {__kbUi("sahifani yopmang")}</small>
           </div>}
-          {msg && <p className="text-sm font-semibold" role="status">{msg}</p>}
+          {msg && <p className="text-sm font-semibold whitespace-pre-line" role="status">{msg}</p>}
         </>}
       </div>}
     </div>
