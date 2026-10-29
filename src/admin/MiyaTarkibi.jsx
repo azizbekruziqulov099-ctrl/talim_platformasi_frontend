@@ -5,6 +5,7 @@ import { groupRows, rowKey, selectionSummary } from "./miyaRules.js";
 /** REV97: admin — AI miyada nima borligini guruh/fan bo'yicha ko'rish va tanlab o'chirish. */
 export default function MiyaTarkibi({ apiBase, token }) {
   const base = `${String(apiBase).replace(/\/+$/, "")}/api/admin/miya_tarkibi`;
+  const [diag, setDiag] = React.useState(null);   // REV218
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [picked, setPicked] = useState({});
@@ -133,7 +134,18 @@ export default function MiyaTarkibi({ apiBase, token }) {
                     <span className="flex-1 min-w-0"><b>{r.fan}</b>
                       <small className="block text-xs text-slate-500 truncate">{r.kitoblar.length ? r.kitoblar.map((k) => k.nomi).join(" · ") : __kbUi("kitob yo‘q")}</small></span>
                     <span className="text-xs text-slate-600 whitespace-nowrap">🧠 {r.miya_darslar} · 📚 {r.mavzular} · ✍️ {r.testlar ?? "—"}</span>
+                    {/* REV218: nega o'quvchiga ko'rinmayapti — aniq sabab */}
+                    <button type="button" title={__kbUi("Nega o‘quvchida ko‘rinmayapti?")} className="rounded-lg border px-2 py-1 text-xs"
+                      onClick={async (e) => { e.preventDefault(); setDiag({ key: rowKey(r), loading: true });
+                        try { const res = await fetch(`${base.replace(/miya_tarkibi$/, "miya_diagnoz")}?${new URLSearchParams({ token, sinf: grade, fan: r.fan })}`);
+                          const d = await res.json(); setDiag({ key: rowKey(r), d: res.ok ? d : { sabablar: [d.detail || `Xato ${res.status}`] } });
+                        } catch (er) { setDiag({ key: rowKey(r), d: { sabablar: [er.message] } }); } }}>🔍</button>
                   </label>
+                  {diag?.key === rowKey(r) && <div className="mx-3 mb-2 rounded-lg p-2 text-xs" style={{ background: "#FFF8E6" }}>
+                    {diag.loading ? __kbUi("Tekshirilmoqda…") : <>
+                      <b>{__kbUi("Darsli mavzular")}: {diag.d.darsli_mavzular ?? 0} · {__kbUi("ko‘rinadigan")}: {diag.d.hisob?.korinadi ?? 0}</b>
+                      <ul className="list-disc pl-4 mt-1">{(diag.d.sabablar || []).map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+                  </div>}
                 </li>)}
               </ul>
             </div>;

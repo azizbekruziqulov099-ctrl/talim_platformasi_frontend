@@ -40,9 +40,12 @@ export function speakableText(text) {
 }
 
 // Ochiq dars ishlanmasi (PDF yoki Word) — shu mavzuning nashr qilingan darsi.
-export function lessonDownloadUrl(apiBase, token, topicCode, format = "pdf") {
+export function lessonDownloadUrl(apiBase, token, topicCode, format = "pdf", til = "uz") {
   const base = String(apiBase ?? "").replace(/\/+$/, "");
-  return `${base}/api/dars_xonasi/${encodeURIComponent(topicCode)}/yuklab?${new URLSearchParams({ token, format: format === "docx" ? "docx" : "pdf" })}`;
+  const q = { token, format: format === "docx" ? "docx" : "pdf" };
+  const t = String(til || "uz").slice(0, 2);
+  if (t !== "uz") q.til = t;   // REV217: ruscha/inglizcha interfeysda — o'sha tildagi izohli kitob
+  return `${base}/api/dars_xonasi/${encodeURIComponent(topicCode)}/yuklab?${new URLSearchParams(q)}`;
 }
 
 // Ovoz va doska mosligi. Doskadagi har satr — alohida qator. Ovoz matnidagi [1], [2]

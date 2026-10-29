@@ -27,6 +27,7 @@ test('open lesson download link carries token, topic and format', async () => {
   const url = lessonDownloadUrl('https://api.example/', 'tok', '5-01 x', 'docx');
   assert.equal(url, 'https://api.example/api/dars_xonasi/5-01%20x/yuklab?token=tok&format=docx');
   assert.ok(lessonDownloadUrl('', 't', 'a', 'exe').endsWith('format=pdf'));
+  assert.ok(lessonDownloadUrl('', 't', 'a', 'pdf', 'ru').endsWith('format=pdf&til=ru'));
 });
 
 test('board lines appear when the teacher reaches [1], [2] markers', async () => {
