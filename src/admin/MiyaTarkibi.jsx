@@ -83,6 +83,21 @@ export default function MiyaTarkibi({ apiBase, token }) {
         <span className="text-slate-500">{open ? "▲" : "▼"}</span>
       </button>
       {open && <div className="mt-3 space-y-3">
+        {/* REV207: nashr qilingan, lekin «Katalogga biriktirilmagan» darslarni bir bosishda o'quvchilarga ko'rinadigan qilish */}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl p-3" style={{ background: "#EEF6FF", border: "1px solid #CFE3F7" }}>
+          <button type="button" disabled={busy} className="rounded-lg px-3 py-1.5 text-sm font-semibold text-white" style={{ background: "#1D6FD8" }}
+            onClick={async () => {
+              setBusy(true); setMsg("");
+              try {
+                const res = await fetch(`${base.replace(/miya_tarkibi$/, "miya_katalog_tuzat")}?${new URLSearchParams({ token })}`, { method: "POST" });
+                const d = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${res.status}`);
+                setMsg(`✅ ${d.jami} ta mavzu tekshirildi: ${d.ulandi} tasi katalogga ulandi, ${d.tiklandi} tasi tiklandi, ${d.yaratildi} tasi yaratildi${d.xato ? `, ${d.xato} tasida xato` : ""}. Endi o‘quvchilarga ko‘rinadi.`);
+                await load();
+              } catch (e) { setMsg(`⚠️ ${e.message}`); } finally { setBusy(false); }
+            }}>🔧 {__kbUi("Ko‘rinmayotgan darslarni katalogga ulash")}</button>
+          <small className="text-xs text-slate-600">{__kbUi("Miya yuklangan, lekin o‘quvchiga chiqmayotgan bo‘lsa — shuni bosing")}</small>
+        </div>
         {error && <p className="text-sm text-red-700">{error} <button type="button" className="underline font-semibold" onClick={() => { setError(""); load(); }}>{__kbUi("Qayta")}</button></p>}
         {data?.bir_martalik && <p className="text-xs rounded-xl p-2" style={{ background: "#EEF7F5", color: "#246D6D" }}>
           {__kbUi(`Bog‘cha guruhlari endi: ${data.yosh_guruhlari.join(", ")}. Bir martalik tozalashda eski «3-4»/«5-6 yosh» miya ma’lumotlari o‘chirildi: ${data.bir_martalik.natija?.miya?.darslar || 0} ta dars, ${data.bir_martalik.natija?.miya?.kitoblar || 0} ta kitob; ${data.bir_martalik.natija?.bolalar_kochirildi || 0} ta bola yangi guruhga o‘tkazildi.`)}

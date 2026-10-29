@@ -494,6 +494,23 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
     if (!data) return;
     setForwarding(null); setMenuMessage(null); await loadDirectory();
   };
+  // REV206: Telegram/Instagram havolasi (?kabutar_tv=en_1-4-sinf) — kerakli TV kanalini o'zi ochadi
+  const tvHavola = React.useRef((() => { try { return window.sessionStorage.getItem("kabutar_tv_ochish") || ""; } catch { return ""; } })());
+  useEffect(() => {
+    const kod = tvHavola.current;
+    const guruhlar = (chatDirectory && chatDirectory.guruhlar) || [];
+    if (!kod || !guruhlar.length) return;
+    const [til, ...qolgan] = kod.split("_");
+    const aud = qolgan.join("_");
+    const TIL = { en: "Ingliz", de: "Nemis", fr: "Fransuz", es: "Ispan", ru: "Rus" }[til] || "";
+    const norm = (x) => String(x || "").toLowerCase().replace(/\s+/g, "");
+    const g = guruhlar.find((x) => x.manba_turi === "kabutar_tv" && norm(x.nomi).includes(norm(TIL)) && norm(x.nomi).endsWith(norm(aud)));
+    tvHavola.current = "";
+    try { window.sessionStorage.removeItem("kabutar_tv_ochish"); } catch { /* */ }
+    if (g) openPeer({ guruh_id: g.id, full_name: g.nomi, izoh: "Kabutar TV · har kuni yangi ko‘rsatuv", rol: "guruh", kanal: true });
+    else window.alert(__kbUi("Bu Kabutar TV kanali sizning obunangizda yo‘q. Shu til uchun obuna bo‘lsangiz, kanal o‘zi ochiladi."));
+  }, [chatDirectory]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const openPeer = (item, permissionDirectory = directory, direct = false) => {
     if (direct) setForwarding(null);
     if (forwarding && !direct) { forwardTo(item).catch(error => setSendError(error.message)); return; }
@@ -692,7 +709,7 @@ export default function KabutarPanel({ token, apiBase, maktabId = null, title = 
         </div></details>}
         {directory && visibleGroups.length > 0 && <div className="border-b" style={{ borderColor: palette.line }}>
           <div className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>{t("Avtomatik guruhlar")}</div>
-          {visibleGroups.slice(0, directoryLimit).map(group => <button key={`g-${group.id}`} onClick={() => openPeer({ guruh_id: group.id, full_name: group.nomi, izoh: group.manba_turi === "kabutar_tv" ? "Kabutar TV · har kuni yangi ko‘rsatuv" : `${group.turi} · rasmiy guruh`, rol: "guruh", kanal: group.manba_turi === "kabutar_tv" })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.guruh_id === group.id ? palette.sky : undefined }}>
+          {visibleGroups.slice(0, directoryLimit).map(group => <button key={`g-${group.id}`} onClick={() => openPeer({ guruh_id: group.id, full_name: group.nomi, izoh: String(group.manba_turi || "").startsWith("kabutar_tv") ? (group.manba_turi === "kabutar_tv_markaz" ? "Markaz TV · har kuni yangi ko‘rsatuv" : "Kabutar TV · har kuni yangi ko‘rsatuv") : `${group.turi} · rasmiy guruh`, rol: "guruh", kanal: String(group.manba_turi || "").startsWith("kabutar_tv") })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.guruh_id === group.id ? palette.sky : undefined }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg text-white shrink-0" style={{ background: accent }}>👥</div>
             <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{group.nomi}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{preferences.settings.showPreviews ? (group.oxirgi_matn || (group.oxirgi_fayl_turi ? t("Media xabar") : t("Hali xabar yo‘q"))) : t("Guruh xabarlari")}</div></div>
             {Number(group.okilmagan_soni || 0) > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center" style={{ background: "var(--ui-danger-action, #a23d45)" }}>{group.okilmagan_soni}</span>}

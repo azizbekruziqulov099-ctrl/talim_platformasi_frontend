@@ -35,7 +35,7 @@ export function chatDateLabel(value, now = new Date(), locale = "uz-UZ", transla
 
 export function institutionGroupVisible(group, scope = null) {
   if (!group || ["global", "tashqi"].includes(group.manba_turi)) return false;
-  if (group.manba_turi === "kabutar_tv") return true; // REV185: Kabutar TV kanali har qanday bo‘limda ko‘rinadi
+  if (String(group.manba_turi || "").startsWith("kabutar_tv")) return true; // REV185/206: Kabutar TV (va markaz TV) kanali har bo‘limda ko‘rinadi
   if (!scope) return true; // The server also authorizes every returned group.
   const normalize = value => value === "institut" ? "universitet" : String(value || "");
   return normalize(group.scope_turi || group.manba_turi) === normalize(scope.turi)

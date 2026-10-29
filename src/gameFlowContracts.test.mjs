@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 
-const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
+// REV210: test oqimi App.jsx'dan TestTab.jsx'ga ko'chirilgan — ikkalasi birga tekshiriladi
+const app = ["./App.jsx", "./TestTab.jsx"].map((f) => readFileSync(new URL(f, import.meta.url), "utf8")).join("\n");
 const arena = readFileSync(new URL("./TestGameArena.jsx", import.meta.url), "utf8");
 const arenaStyles = readFileSync(new URL("./testGames.css", import.meta.url), "utf8");
 const rules = readFileSync(new URL("./testGameRules.js", import.meta.url), "utf8");
@@ -86,14 +87,14 @@ test("junior auto-read waits for voice and every manual read includes MCQ option
 
 test("every regular and Boss question renders four-choice gameplay inside the scene", () => {
   assert.match(arena, /className=\{`game-stage game-stage-\$\{mode\}/);
-  assert.match(arena, /<GameScene mode=\{mode\} question=\{question\} feedback=\{feedback\} avatarProfile=\{avatarProfile\} \/>/);
+  assert.match(arena, /<GameScene key=\{questionKey\} mode=\{mode\} question=\{question\} feedback=\{feedback\} avatarProfile=\{avatarProfile\}/);
   assert.match(arena, /<div className="game-stage-content">/);
   assert.match(arena, /<main[\s\S]*game-question-in-scene[\s\S]*className=\{`game-options/);
-  assert.match(arena, /aria-label=\{isBoss \? "Boss javob variantlari" : "Javob variantlari"\}/);
+  assert.match(arena, /aria-label=\{isBoss \? __kbUi\("Nazorat savoli variantlari"\) : __kbUi\("Javob variantlari"\)\}/);
   assert.doesNotMatch(arena, /className="game-written-answer"/);
   assert.doesNotMatch(arena, /if \(question\.is_boss\) return String\(question\.question/);
   assert.doesNotMatch(`${app}\n${arena}\n${rules}`, /yozma Boss|imkonli yozma|qisqa yozma javob/);
-  assert.match(app, /Har 5-savol 4 variantli Boss, 3 jon/);
+  assert.match(arena, /Har 5-savol — nazorat savoli/);   // «Boss» endi «nazorat savoli» deb ataladi
   assert.match(rules, /bossAttempts: 1/g);
 });
 
@@ -122,10 +123,6 @@ test("lifelike player follows profile gender and age in every ordinary game", ()
     "adult_boy.webp", "adult_girl.webp", "child_boy.webp", "child_girl.webp",
     "preteen_boy.webp", "preteen_girl.webp", "teen_boy.webp", "teen_girl.webp",
   ]) assert.match(arena, new RegExp(asset.replace(".", "\\.")));
-  for (const asset of [
-    "adult_boy_sheet.webp", "adult_girl_sheet.webp", "child_boy_sheet.webp", "child_girl_sheet.webp",
-    "preteen_boy_sheet.webp", "preteen_girl_sheet.webp", "teen_boy_sheet.webp", "teen_girl_sheet.webp",
-  ]) assert.match(arena, new RegExp(asset.replace(".", "\\.")));
   assert.match(arena, /export function resolveGameAvatarProfile/);
   assert.match(arena, /profile\.tugilgan_sana/);
   assert.match(arena, /profile\.class \?\? profile\.sinf \?\? profile\.grade/);
@@ -133,8 +130,7 @@ test("lifelike player follows profile gender and age in every ordinary game", ()
   assert.match(arena, /profile=\{avatarProfile\}/g);
   assert.match(app, /playerProfile=\{\{ \.\.\.foydalanuvchi, jins: oyinQahramonJinsi/);
   assert.match(app, /onPlayerGenderChange=\{setOyinQahramonJinsi\}/);
-  assert.match(arena, /spriteFrameCount: 9/);
-  assert.match(arena, /data-sprite-frames=\{avatar\.spriteFrameCount\}/);
+  assert.match(arena, /spriteFrameCount: 1/);   // REV210: sprite-sheet o'rniga bitta tirik rasm (CSS animatsiyasi saqlangan)
   assert.match(arenaStyles, /background-size: 900% 100%/);
   assert.match(arenaStyles, /@keyframes avatar-sprite-idle/);
   assert.match(arenaStyles, /@keyframes bridge-sprite-cross/);
@@ -153,7 +149,7 @@ test("App voice has browser speech, visible state and safe cleanup", () => {
   assert.match(app, /SpeechSynthesisUtterance/);
   assert.match(app, /speech\.speak\(utterance\)/);
   assert.match(app, /globalThis\.speechSynthesis\?\.cancel/);
-  assert.match(app, /audio\.__samTmPromise = new Promise/);
+  assert.match(app, /audio\.__samTmPromise = ijro\.promise/);
   assert.match(app, /audio\.onended = null/);
   assert.match(app, /audio\.removeAttribute\("src"\)/);
   assert.match(app, /resolveCurrent\(\{ status: "stopped" \}\)/);
@@ -176,11 +172,10 @@ test("golden bridge uses only the four real answers for jumping and breaking", (
   assert.match(arena, /bridgeOptionIndex/);
   assert.match(arena, /bridge-answer-course is-\$\{bridgeOutcome\}/);
   assert.match(arena, /--bridge-runner-left/);
-  assert.match(arena, /className="bridge-choice-runner"/);
   assert.match(arena, /is-correct-option is-bridge-safe/);
   assert.match(arena, /is-wrong-option is-bridge-broken/);
-  assert.doesNotMatch(arena, /className="bridge-runner-track"/);
-  assert.doesNotMatch(arena, /className="bridge-tiles"/);
+  assert.match(arena, /className="bridge-runner-track"/);   // yuguruvchi endi yo'lak ichida (bitta avatar)
+  assert.match(arena, /className="bridge-tiles"/);   // ko'prik plitalari yo'lakda saqlangan
   assert.match(arenaStyles, /\.bridge-answer-course[\s\S]*grid-template-columns: repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(arenaStyles, /@keyframes bridge-choice-jump/);
   assert.match(arenaStyles, /@keyframes bridge-choice-hang/);

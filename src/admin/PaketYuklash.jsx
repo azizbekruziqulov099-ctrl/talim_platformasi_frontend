@@ -107,6 +107,8 @@ export default function PaketYuklash({ token, onDone }) {
       const list = paketNavbati(items);
       setNavbat(list);
       await ornat(list);
+      // REV207: yuklangan darslar o'quvchilarga ko'rinishi uchun — katalogga ulash (mavzusi o'chirilgan yoki yo'q bo'lsa ham)
+      try { await scopedFetch(url("/api/admin/miya_katalog_tuzat"), { method: "POST" }); } catch { /* keyin qo'lda bosish mumkin */ }
     } catch (err) {
       setXato(err.message);
       setIsh("");

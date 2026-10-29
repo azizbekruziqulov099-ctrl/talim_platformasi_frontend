@@ -34,6 +34,8 @@ test("topic rows have one ordinal and one real title", () => {
 
 test("repetitor is a first-class plan group type", () => {
   assert.equal(groupTypeLabel("repetitor"), "Repetitor guruhi");
-  assert.equal(freeClubAvailable({ admin: false, bepul_yarata_oladi: false }), false);
+  // To'lovlar o'chirilgan davrda (limit cheksiz) bepul to'garak hamma uchun ochiq
+  assert.equal(freeClubAvailable({ admin: false, bepul_yarata_oladi: false }), true);
   assert.equal(freeClubAvailable({ admin: true, bepul_yarata_oladi: false }), true);
+  assert.equal(freeClubAvailable(null), true);
 });

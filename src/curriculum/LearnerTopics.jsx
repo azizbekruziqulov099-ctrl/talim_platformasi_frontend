@@ -23,6 +23,7 @@ import { ustozFor } from '../kid/ustozRules.js';
 import { bobBoyicha, fanEmblema, guruhla } from './fanGuruhlari.js';
 import { darsYoli } from './darsYoli.js';
 import MaktabYoli from './MaktabYoli.jsx';
+import SertifikatOquvchi from '../sertifikat/SertifikatOquvchi.jsx';   // REV209
 const MaktabKunReja=React.lazy(()=>import('../maktab/MaktabKunReja.jsx'));   // REV177
 const MaktabKundalik=React.lazy(()=>import('../maktab/MaktabKundalik.jsx'));   // REV180
 import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
@@ -179,6 +180,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
     {!kid&&!teacher&&!universityBrowse&&!fanIchida&&!preview&&type==='maktab'&&accountRole(user)==='oquvchi'&&<React.Suspense fallback={null}><MaktabKunReja apiBase={apiBase} token={token} sinf={user?.class||user?.learning_profile?.grade||''} fanlar={subjects.filter(sub=>subjectStats(sub).lessons>0).map(sub=>({kalit:sub.kalit,nom:sub.nom}))} fanNomi={nom=>fanNomiTil(nom,locale)} onFan={key=>{chooseSubject(key);setFanIchida(true);try{window.scrollTo({top:0,behavior:'smooth'});}catch{/* */}}}/></React.Suspense>}
     {!kid&&!universityBrowse&&!fanIchida&&<section aria-label={__kbUi("Fanlar")} className="lt-fanlar">
      <p className="mb-2 text-xs font-semibold text-slate-600">{__kbUi("1. Fanni tanlang")}</p>
+     {!kid&&!teacher&&type==='maktab'&&token&&<div className="mb-3"><SertifikatOquvchi token={token} sinf={user?.class}/></div>}
      {(()=>{
       // REV186: darslari (AI miyasi) bor fanlar alohida va birinchi — «📘 Darslar bor»; qolganlari — test va AI ustoz bilan
       const fanTugma=subject=>{const stats=subjectStats(subject);const active=subject.kalit===current?.kalit;

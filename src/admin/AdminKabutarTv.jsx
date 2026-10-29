@@ -2,6 +2,7 @@
 // Videolar Kabutar'da yoshga mos kanallarga o'zi tushadi; admin «📺 Kabutar TV — barcha ko'rsatuvlar (admin)» kanalida hammasini ko'radi.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { uiText as T } from "../interface/interfaceRuntime.js";
+import AdminRig from "./AdminRig.jsx";   // REV197: skeletli personajlar
 
 const API_BASE = import.meta.env.VITE_API_BASE || "https://talimplatformasi-production.up.railway.app";
 const HOLAT = {
@@ -203,5 +204,6 @@ export default function AdminKabutarTv({ token }) {
         </>}
       </div>
     </div>}
+    <AdminRig token={token} />
   </div>;
 }

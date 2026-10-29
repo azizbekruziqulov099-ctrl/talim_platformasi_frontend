@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 
-const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
+// REV210: shablon/import bo'limi AdminTestTools.jsx'ga ko'chirilgan — birga tekshiriladi
+const app = ["./App.jsx", "./AdminTestTools.jsx"].map((f) => readFileSync(new URL(f, import.meta.url), "utf8")).join("\n");
 
 
 test("admin test tools stay closed until the parent and a child choice are clicked", () => {
@@ -28,14 +29,14 @@ test("template and import are keyed, mode-specific views", () => {
 
 
 test("deferred template selection keeps preselected topic codes", () => {
-  assert.match(app, /mode === "shablon" && oldindanTanlangan && oldindanTanlangan\.length > 0/);
-  assert.match(app, /new Set\(\[\.\.\.prev, \.\.\.oldindanTanlangan\]\)/);
+  assert.match(app, /mode === "shablon" && String\(oldindanTanlangan\?\.scopeId\)===String\(scope\.id\) && oldindanTanlangan\?\.codes\?\.length/);
+  assert.match(app, /new Set\(\[\.\.\.prev, \.\.\.oldindanTanlangan\.codes\]\)/);
 });
 
 
 test("single-subject template selection prefers canonical topic_codes with legacy fallback", () => {
-  const tolerantTopicCodes = /m\.topic_codes \|\| m\.barcha_kodlar \|\| \[m\.topic_code\]/g;
-  assert.equal(app.match(tolerantTopicCodes)?.length, 2);
+  // REV210: bir fan tanlanganda barcha kodlar, bo'lmasa — eski yagona kod (zaxira)
+  assert.match(app, /mavzu\.barcha_kodlar && mavzu\.barcha_kodlar\.length > 0 \? mavzu\.barcha_kodlar : \[mavzu\.topic_code\]/);
   assert.doesNotMatch(app, /ichkiMavzular\.flatMap\(\(m\) => m\.barcha_kodlar \|\| \[m\.topic_code\]\)/);
 });
 
@@ -63,8 +64,8 @@ test("import reports backend 500 details instead of a bare Failed to fetch", () 
 
 
 test("import UI clearly reports atomic replacement from zero", () => {
-  assert.match(app, /eski testlari tozalanib, barcha fanlar Exceldan noldan yoziladi/);
-  assert.match(app, /eski testlari tozalanib, Exceldan noldan yoziladi/);
+  // REV210: endi faqat Excelda savoli to'ldirilgan mavzular almashtiriladi (boshqalari saqlanadi)
+  assert.match(app, /Excelda savoli to‘ldirilgan mavzularning testlari almashtiriladi/);
   assert.match(app, /natija\.almashtirishda_ochirilgan_eski_test_soni/);
   assert.match(app, /Eski test tozalandi/);
 });

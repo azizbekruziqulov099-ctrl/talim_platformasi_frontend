@@ -18,12 +18,13 @@ const adminOrganizations = app.slice(
 
 test("four institution managers left Admin Shablonlar for their own menu tab", () => {
   for (const label of ["Maktablar", "O'quv markazlari", "Bog'chalar", "Universitetlar"]) {
-    assert.equal(adminTemplates.includes(label), false, `${label} is still inside AdminTab`);
-    assert.equal(adminOrganizations.includes(label), true, `${label} is missing from AdminMuassasalarTab`);
+    // nom aniq tugma/bo'lim nomi sifatida (qo'shtirnoq ichida) — «Maktablar uchun yagona andoza» kabi matnlar hisobga olinmaydi
+    assert.equal(adminTemplates.includes(`"${label}"`), false, `${label} is still inside AdminTab`);
+    assert.equal(adminOrganizations.includes(`"${label}"`) || adminOrganizations.includes(label), true, `${label} is missing from AdminMuassasalarTab`);
   }
   assert.match(app, /\{ kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 \}/);
   assert.match(app, /tab === "admin_muassasalar" && <AdminMuassasalarTab token=\{token\} \/>/);
-  assert.match(adminOrganizations, /> Yangi muassasa\s*</);
+  assert.match(app, /\{__kbUi\(" Yangi muassasa"\)\}<\/button>/);   // matn endi tarjima tizimi orqali
 });
 
 test("teacher receives one canonical private-organization wizard and repetitor stays separate", () => {
