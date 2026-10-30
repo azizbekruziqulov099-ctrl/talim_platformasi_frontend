@@ -115,7 +115,23 @@ function klaviaturaYordamchi() {
   }, 150));
 }
 
+// REV222: brauzer ovozi (speechSynthesis) ham yangi harflarni turkcha o'qimasin — o'zbekcha gap eski yozuvda o'qiladi.
+let ovozTuzatildi = false;
+function ovozniTuzat() {
+  if (ovozTuzatildi || typeof window === "undefined" || !window.speechSynthesis) return;
+  ovozTuzatildi = true;
+  const asl = window.speechSynthesis.speak.bind(window.speechSynthesis);
+  window.speechSynthesis.speak = (u) => {
+    try {
+      const til = String(u?.lang || document.documentElement.lang || "uz").toLowerCase();
+      if (u && til.startsWith("uz") && /[ÖöĞğŞşÇç]/.test(u.text || "")) u.text = eskiAlifbo(u.text).replace(/([oOgG])‘/g, "$1ʻ");
+    } catch { /* */ }
+    return asl(u);
+  };
+}
+
 export function startYangiAlifbo() {
+  try { ovozniTuzat(); } catch { /* */ }
   if (typeof document === "undefined" || alifboTanlov() === "eski" || kuzatuvchi) return;
   const ishga = () => {
     if (!(document.documentElement.lang || "").toLowerCase().startsWith("uz")) return;
