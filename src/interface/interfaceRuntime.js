@@ -1,3 +1,4 @@
+import {yangiAlifbo,alifboTanlov} from './yangiAlifbo.js';
 import SOURCES from './interfaceSources.json' with {type:'json'};
 import {INTERFACE_ENUMS} from './interfaceEnums.js';
 import {normalizeInterfaceKey,hasInterfaceTranslation,translateInterface,uzbekInterfaceCyrillic,registeredInterfaceLabels} from './interfaceRules.js';
@@ -138,7 +139,10 @@ export function translateUi(text,target='uz',values){
    if(result!==undefined)output=(text.match(/^\s*/)?.[0]||'')+fillInterfaceMessage(result,message.values)+(text.match(/\s*$/)?.[0]||'');else enqueue(target,message.source);
   }}
  }
- if(values&&typeof values==='object')output=output.replace(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m);return output;
+ if(values&&typeof values==='object')output=output.replace(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m);
+ // REV221: o'zbekcha (lotin) interfeys — yangi alifbo (Ö, Ğ, Ş, Ç), foydalanuvchi «eski»ni tanlamagan bo'lsa
+ if((target==='uz'||target==='uz-Latn')&&alifboTanlov()==='yangi')output=yangiAlifbo(output);
+ return output;
 }
 export const uiText=text=>translateUi(text,locale);
 // REV125: ovoz uchun — interfeys tiliga o'giriladi va o'sha til tegiga olinadi (rus/ingliz gap o'zbek ovozida o'qilmasin)

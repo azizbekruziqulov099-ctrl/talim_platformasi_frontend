@@ -1,8 +1,10 @@
 import data from './mathWords.json' with {type:'json'};
 import {mathSpans,speakMathTags,speakFormula,integerWords,numberWords} from './mathSpeech.js';
 import {protectSpeechMath} from './language.js';
-export const SPEECH_REVISION='64';
-export const normalizeUzbek=value=>String(value||'').replace(/([oOgG])['‘’ʻʼ`´′ʹ＇]+/g,'$1ʻ');
+export const SPEECH_REVISION='65';
+// REV221: yangi alifboda yozilgan matn (Ö, Ğ, Ş, Ç) ham to'g'ri o'qilsin — ovoz eski yozuvni yaxshi biladi
+const ESKI_YOZUV=value=>String(value||'').replace(/Ö/g,'Oʻ').replace(/ö/g,'oʻ').replace(/Ğ/g,'Gʻ').replace(/ğ/g,'gʻ').replace(/Ş/g,'Sh').replace(/ş/g,'sh').replace(/Ç/g,'Ch').replace(/ç/g,'ch');
+export const normalizeUzbek=value=>ESKI_YOZUV(value).replace(/([oOgG])['‘’ʻʼ`´′ʹ＇]+/g,'$1ʻ');
 export const ordinalUzbek=value=>{const word=integerWords(value,'uz');return word+(/[aiou]$/.test(word)?'nchi':'inchi');};
 function tagRawMath(value){
  const {text:source,restore}=protectSpeechMath(value),parts=[];let previous=0;
@@ -22,8 +24,23 @@ function tagRawMath(value){
  }
  parts.push(source.slice(previous));return restore(parts.join(''));
 }
+// REV220: formuladan tashqarida — hayotiy o'qish. Emoji o'qilmaydi; «29-oktyabr» — «yigirma to‘qqizinchi oktyabr»;
+// «2-3 yosh» — «ikki-uch yosh»; «3/3» — «uch tadan uch ta»; matematik belgilar faqat sonlar orasida (2 + 3 = 5) o'qiladi.
+export const EMOJI_RE=/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3]/gu;
+const OYLAR='yanvar|fevral|mart|aprel|may|iyun|iyul|avgust|sentabr|sentyabr|oktabr|oktyabr|noyabr|dekabr';
+function hayotiy(text,lang){
+ text=text.replace(EMOJI_RE,' ');
+ if(lang==='uz'){
+  text=text.replace(new RegExp(`(?<![\\p{L}\\p{N}_.,])(\\d{1,2})\\s*[-‑–]\\s*(${OYLAR})`,'giu'),(_,n,oy)=>ordinalUzbek(n)+' '+oy);
+  text=text.replace(/(?<![\p{L}\p{N}_.,])(\d{1,2})\s*[-‑–]\s*(\d{1,2})\s*[-‑–]?\s*(yosh|sinf)/giu,(_,a,b,w)=>w.toLowerCase()==='sinf'?`${ordinalUzbek(a)}–${ordinalUzbek(b)} sinf`:`${integerWords(a,'uz')}–${integerWords(b,'uz')} yosh`);
+  text=text.replace(/(?<![\p{L}\p{N}_.,\/])(\d{1,9})\s*[-‑]\s*(?=[\p{L}])(?!(?:yosh)\b)/gu,(_,n)=>ordinalUzbek(n)+' ');
+ }
+ text=text.replace(/(?<![\p{L}\p{N}_.,])(\d{1,4})\s*\/\s*(\d{1,4})(?![\p{N}.,])/gu,(_,a,b)=>lang==='ru'?`${a} из ${b}`:lang==='en'?`${a} out of ${b}`:`${integerWords(b,'uz')} tadan ${integerWords(a,'uz')} ta`);
+ return text;
+}
 function prose(value,lang){
  let text=value.replace(/<(?:\/?[A-Za-z][^>]*|!--[\s\S]*?--)>/g,' ').replace(/\[\/?(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\]/gi,'').replace(/https?:\/\/\S+|www\.\S+/g,' ');
+ text=hayotiy(text,lang);
  text=text.replace(/(?<![\p{L}\p{N}_])(?:[A-Za-z]|\d+)\s*\^\s*(?:\{[A-Za-z0-9+ -]+\}|[A-Za-z]|\d+)/gu,part=>speakFormula(part,lang));
  if(lang==='uz'){
   text=normalizeUzbek(text);
@@ -34,17 +51,22 @@ function prose(value,lang){
    'sm³':'kub santimetr','sm3':'kub santimetr','m³':'kub metr','m3':'kub metr','kg':'kilogramm','gr':'gramm','mm':'millimetr','sm':'santimetr','km':'kilometr','ml':'millilitr','l':'litr','m':'metr'};
   for(const [unit,word] of Object.entries(units))text=text.replace(new RegExp(`(?<![\\p{L}])${unit}(?![\\p{L}\\p{N}_])`,'gu'),' '+word+' ');
  }
- for(const [symbol,key] of Object.entries(data.SYMBOLS)){
-  if(symbol==='-')text=text.replace(/(?<!\p{L})-|-(?!\p{L})/gu,' '+data.WORDS[lang][key]+' ');
-  else text=text.split(symbol).join(' '+data.WORDS[lang][key]+' ');
+ for(const [symbol,key] of Object.entries(data.SYMBOLS).sort((a,b)=>(b[0]==='=')-(a[0]==='='))){
+  const esc=symbol.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&');
+  if(['+','-','*','/','=','<','>','×','÷','·'].includes(symbol)){
+   // faqat sonlar (yoki x, y) orasida: «5 - 2 = 3». So'z ichidagi chiziqcha, ro'yxat tiresi, «va/yoki» o'qilmaydi
+   text=text.replace(new RegExp(`(?<=[\\p{N}xyXY)]\\s*)${esc}(?=\\s*-?\\s*[\\p{N}xyXY(])`,'gu'),' '+data.WORDS[lang][key]+' ');
+   if(symbol==='-')text=text.replace(/(?<=^|[=(,;:\s])-(?=\s*\p{N})/gu,' '+data.WORDS[lang][key]+' ');   // manfiy son: «-0,5», «=-1»
+  } else text=text.split(symbol).join(' '+data.WORDS[lang][key]+' ');
  }
+ text=text.replace(/\s[-–—]\s/g,', ');
  text=text.replace(/(?<![\p{L}\p{N}_])(?<!\d[.,])\d+(?:[.,]\d+)?(?!\d|[.,]\d)/gu,n=>numberWords(n,lang));
  return text.replace(/_{2,}/g,{uz:' bo‘sh joy ',ru:' пропуск ',en:' blank '}[lang]);
 }
 const PLAIN_LANGUAGES=new Set(['ru','de','fr','es','ar','tr','zh','ja','ko']);
 export function prepareSpeech(value,lang='uz'){
  // REV88: chet tili bo'lagi o'z ovozida — o'zbekcha qoidalar qo'llanmaydi.
- if(PLAIN_LANGUAGES.has(lang)&&!data.WORDS[lang])return String(value||'').replace(/<[^>]*>/g,' ').replace(/\[\/?(?:uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi,'').replace(/\s+/g,' ').trim();
+ if(PLAIN_LANGUAGES.has(lang)&&!data.WORDS[lang])return String(value||'').replace(EMOJI_RE,' ').replace(/(?<![\p{L}\p{N}_.,])(\d{1,4})\s*\/\s*(\d{1,4})(?![\p{N}.,])/gu,(_,a,b)=>lang==='ru'?`${a} из ${b}`:`${a}/${b}`).replace(/<[^>]*>/g,' ').replace(/\[\/?(?:uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi,'').replace(/\s+/g,' ').trim();
  lang=data.WORDS[lang]?lang:'uz';value=tagRawMath(String(value||''));let previous=0;const parts=[];
  for(const match of value.matchAll(mathSpans())){parts.push(prose(value.slice(previous,match.index),lang),speakMathTags(match[0],lang));previous=match.index+match[0].length;}
  parts.push(prose(value.slice(previous),lang));let text=parts.join('');if(lang==='uz')text=normalizeUzbek(text);

@@ -2,6 +2,7 @@
 
 const norm = (value) => String(value ?? "")
   .toLowerCase()
+  .replace(/ö/g, "o'").replace(/ğ/g, "g'").replace(/ş/g, "sh").replace(/ç/g, "ch")   // REV221: yangi alifbo ham qabul
   .replace(/[‘’ʻʼ`]/g, "'")
   .replace(/\$|\\,|\\;|\s+/g, "")
   .replace(/,/g, ".")

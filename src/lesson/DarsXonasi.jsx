@@ -44,6 +44,7 @@ import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimch
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
+import { alifboTanlov, chuqurOgir } from "../interface/yangiAlifbo.js";   // REV221
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import VoiceCheck from "./VoiceCheck.jsx";
@@ -569,7 +570,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(topicCode)}?${new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2) })}`, { signal: controller.signal })
       .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || "Dars yuklanmadi"); return d; })
-      .then((d) => { setLesson(teglarniAjrat(d)); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
+      .then((d0) => { const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(d)); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
@@ -1451,7 +1452,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (name) say(darsTil ? `[${darsTil}]${name}[/${darsTil}]` : izohTeg(name, izoh));
   };
 
-  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")}>
+  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className="dx-head">
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={focus && !(mode === "idle" && onClose) ? exitLesson : () => { hush(); onClose?.(); }} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}

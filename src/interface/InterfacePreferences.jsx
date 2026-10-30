@@ -1,3 +1,4 @@
+import {alifboTanlov,alifboOrnat} from './yangiAlifbo.js';
 import {translateUi,subscribeTranslation,translationSnapshot,translationStatus,checkTranslationService,setInterfaceRuntimeLocale,ensureLocalePack,localePackReady} from './interfaceRuntime.js';
 import React, { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
@@ -74,6 +75,7 @@ export function InterfaceSettings({ compact = false }) {
     <fieldset><legend>{t('Ilova tili')}</legend><div className="kb-interface-languages">{INTERFACE_LOCALES.map(item => <label key={item.value} className={locale === item.value ? 'is-selected' : ''}>
       <input type="radio" name={`${id}-locale`} value={item.value} checked={locale === item.value} onChange={() => updateInterface({ locale: item.value })}/><span lang={item.lang}>{item.label}</span>{locale === item.value && <Check size={15} aria-hidden="true"/>}
     </label>)}</div></fieldset>
+    {locale==='uz'&&<fieldset data-eski-alifbo="1"><legend>Alifbo / Alifbo</legend><div className="kb-interface-languages">{[['yangi','Yangi alifbo: Ö Ğ Ş Ç'],['eski','Eski alifbo: O‘ G‘ Sh Ch']].map(([v,nom])=><label key={v} className={alifboTanlov()===v?'is-selected':''}><input type="radio" name="kb-alifbo" checked={alifboTanlov()===v} onChange={()=>alifboOrnat(v)}/><span>{nom}</span></label>)}</div></fieldset>}
     <p className="kb-translation-help">{t('Interfeys tili ta’lim profilingizdagi tilni o‘zgartirmaydi.')}</p>
     <fieldset><legend>{t('Bazadagi matnlar')}</legend>
       <label className="kb-interface-motion"><span><strong>{t('Avtomatik tarjima')}</strong><small>{t('Mavzu, savol va izohlarning tarjimasini tanlangan tilda ko‘rsatadi. Asl matn bazada o‘zgarmaydi.')}</small></span><input type="checkbox" role="switch" checked={translateContent} onChange={event=>updateInterface({translateContent:event.target.checked})}/></label>
