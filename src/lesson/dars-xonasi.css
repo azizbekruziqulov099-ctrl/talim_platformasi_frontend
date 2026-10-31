@@ -777,3 +777,32 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root .dx-controls .dx-kid-ico{font-size:30px!important}
 .dx-root.dx-root .dx-controls .dx-kid-cap{font-size:12.5px!important}
 @media (max-width:599px){.dx-root.dx-root .dx-controls .dx-btn{width:70px!important;min-height:62px!important;font-size:11px!important}.dx-root.dx-root .dx-controls .dx-kid-ico{font-size:24px!important}}
+
+/* REV234: 2–7 yosh (bog'cha) — pastda yozuv kerak emas: bola o'qiy olmaydi, gap doskada va ovozda */
+.dx-root.dx-aud-bogcha .dx-bubble,.dx-root.dx-aud-bogcha .dx-line.dx-nutq{display:none!important}
+/* REV235 (haqiqiy dars oynasida o'lchab tekshirilgan): sahna ekranni to'ldiradi; o'ngda ustun — tepada yulduz/qadam va
+   o'yin belgisi, ostida Pauza / Yana ayt / Tushuntir (o'ng TEPADA); qadamlar chizig'i chap chetda */
+.dx-root.dx-root.dx-focus:not(.dx-yotiq){padding:4px 112px 4px 22px!important}
+.dx-root.dx-root.dx-focus:not(.dx-yotiq) .us-stage{width:min(100%,calc((100dvh - 50px) * 1586 / 992))!important;max-width:100%!important;min-width:0!important;margin-inline:auto!important}
+.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-room{max-width:none!important;width:100%!important;margin:0!important}
+.dx-root.dx-root .dx-controls{top:calc(54px + env(safe-area-inset-top,0px))!important;bottom:auto!important}
+.dx-root.dx-root .dx-kind{position:fixed!important;right:10px!important;top:8px!important;left:auto!important;transform:none!important;margin:0!important;z-index:2147483011!important}
+.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-head .dx-head-actions{position:fixed!important;right:62px!important;top:10px!important;z-index:2147483011!important}
+/* telefon (yotqizilgan holat — dars 90° buriladi): o'lchamlar ekran eniga ko'ra */
+.dx-root.dx-root.dx-yotiq{padding:4px 104px 4px 18px!important}
+.dx-root.dx-root.dx-yotiq .us-stage{width:min(100%,calc((100vw - 44px) * 1586 / 992))!important;max-width:100%!important;min-width:0!important;margin-inline:auto!important}
+.dx-root.dx-root.dx-yotiq .dx-controls{position:absolute!important;right:8px!important;top:48px!important;bottom:auto!important;left:auto!important}
+.dx-root.dx-root.dx-yotiq .dx-steps{position:absolute!important;left:4px!important;top:50%!important;transform:translateY(-50%)!important}
+.dx-root.dx-root.dx-yotiq .dx-kind{position:absolute!important}
+/* REV235: sarlavha qatori joy olmasin — sahna ustida kichik yorliq (kompyuter va telefon) */
+.dx-root.dx-root.dx-focus>.dx-head{position:absolute!important;top:4px!important;left:22px!important;z-index:30!important;background:rgba(255,255,255,.9)!important;border-radius:12px!important;padding:2px 8px!important;max-width:55%!important;min-height:0!important;margin:0!important}
+.dx-root.dx-root.dx-focus>.dx-head h2{font-size:14px!important}
+.dx-root.dx-root.dx-focus:not(.dx-yotiq) .us-stage{width:min(100%,calc((100dvh - 10px) * 1586 / 992))!important}
+.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-controls{top:calc(48px + env(safe-area-inset-top,0px))!important}
+.dx-root.dx-root.dx-yotiq .us-stage{width:min(100%,calc((100vw - 10px) * 1586 / 992))!important}
+.dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-room{height:calc(100dvh - 8px)!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;grid-row:1/-1!important}
+.dx-root.dx-root.dx-yotiq>.dx-room{height:calc(100vw - 8px)!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;grid-row:1/-1!important;grid-column:1/-1!important}
+.dx-root.dx-root.dx-focus .us-stage{height:auto!important;aspect-ratio:1586/992!important;max-height:100%!important}
+.dx-root.dx-root.dx-focus>.dx-room>.dx-frame,.dx-root.dx-root.dx-focus>.dx-room>.dx-frame>.dx-board,.dx-root.dx-root.dx-focus>.dx-room>.dx-frame>.dx-board>.dx-kind-frame{width:100%!important;max-width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;min-height:0!important;box-sizing:border-box!important}
+.dx-root.dx-root.dx-focus .us-stage{width:min(100%,calc(100% * 1 / 1))!important;max-width:min(100%,calc((100dvh - 10px) * 1586 / 992))!important;height:auto!important;max-height:100%!important}
+.dx-root.dx-root.dx-yotiq .us-stage{max-width:min(100%,calc((100vw - 10px) * 1586 / 992))!important}

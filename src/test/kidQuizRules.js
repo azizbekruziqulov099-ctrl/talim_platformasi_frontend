@@ -4,7 +4,7 @@ import { stripSpeechTags } from '../speech/language.js';
 const PICTURE = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[#*0-9]️?⃣|️|‍|\p{Emoji_Modifier}|\s)+)/u;
 
 /** "🐱 cat" → { picture: "🐱", word: "cat" }. Faqat to'ldirilgan variantlar (2–4 ta). */
-export function kidOptions(savol, question = savol?.question ?? savol?.savol) {
+export function kidOptions(savol, question = savol?.question ?? savol?.savol, izoh = '') {
   if (!savol) return [];
   // REV90: savol o'zi chet so'zni aytmasa («Nima deysiz?») — rasmning o'zi yetmaydi, variantni eshitish kerak.
   const asksForeign = question == null || /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.test(String(question));
@@ -21,7 +21,10 @@ export function kidOptions(savol, question = savol?.question ?? savol?.savol) {
       // REV89: til kitobida variant teglanadi ([en]cat[/en]) — bola so'zni o'qimaydi, ESHITADI.
       const tag = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.exec(o.raw);
       const lang = tag ? tag[1].toLowerCase() : '';
-      return { ...o, picture, word, lang, speech: lang ? `[${lang}]${word}[/${lang}]` : word, listen: listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word)), asked.size > 0) };
+      // REV234: izoh tilidagi variant (ruscha/inglizcha izohli mantiq, matematika) — chet so'z emas: rasm va so'z ko'rinadi,
+      // lekin ovoz o'sha tilda o'qiladi (tegsiz bo'lsa o'zbek ovozi o'qirdi)
+      const izohTilida = Boolean(lang && izoh && lang === izoh);
+      return { ...o, picture, word, lang, speech: lang ? `[${lang}]${word}[/${lang}]` : word, listen: izohTilida ? '' : listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word)), asked.size > 0) };
     });
 }
 

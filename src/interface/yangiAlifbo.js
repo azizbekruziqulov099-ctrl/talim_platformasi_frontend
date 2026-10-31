@@ -174,9 +174,10 @@ export function chuqurOgir(v) {
 export function ozbekchaYorliqsiz(v) {
   if (typeof v === "string") {
     return v
-      .replace(/\(?\s*(?:[OÖ][‘'ʻ’`]?|Ö)z(?:bek|bek)ç?c?h?a(?:da)?\s*[:—–-]\s*/gi, (m) => (m.trim().startsWith("(") ? "(" : ""))
+      // REV234: «O'zbekcha tushuntiraman:», «O'zbek tilida:», «O'zbekchasi:» ham
+      .replace(/\(?\s*(?:[OoÖö][‘'ʻ’`]?zbek(?:ch|ç)a(?:da|si)?|[OoÖö][‘'ʻ’`]?zbek tilida)(?:\s+(?:tushuntiraman|aytsak|aytganda|aytamiz|bu))?\s*[:—–-]\s*/gi, (m) => (m.trim().startsWith("(") ? " (" : " "))
       .replace(/[,;]?\s*(?:o[‘'ʻ’`]?|ö)zbek(?:ch|ç)ada\b\s*/gi, " ")
-      .replace(/\s{2,}/g, " ");
+      .replace(/\s{2,}/g, " ").trim();
   }
   if (Array.isArray(v)) return v.map(ozbekchaYorliqsiz);
   if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, /^(rasm|src|url|id|topic_code|kod|audio|unit_code|til|lang)$/.test(k) ? x : ozbekchaYorliqsiz(x)]));
