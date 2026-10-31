@@ -161,6 +161,12 @@ export default function UstozSahna({ ustoz = "nilufar", ikkinchi = "", kim = nul
   const niqob = xona.osmon ? { WebkitMaskImage: `url(${xona.osmon})`, maskImage: `url(${xona.osmon})`, WebkitMaskSize: "100% 100%", maskSize: "100% 100%", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat" } : {};
   const chiroqYoniq = vaqt === "kech" || vaqt === "tun";
   const holat = `havo-${havo} vaqt-${vaqt} ${shamol ? "is-windy" : ""}`;
+  // REV229: sinf xonasi rasmi dars oynasining butun foniga (xira) — ekran chetlari bo'sh ko'rinmaydi
+  React.useEffect(() => {
+    const el = document.documentElement;
+    if (xona?.src) el.style.setProperty("--dx-fon", `url("${xona.src}")`);
+    return () => el.style.removeProperty("--dx-fon");
+  }, [xona?.src]);
   return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${juft ? "is-juft" : ""} ${chiroqYoniq ? "is-lamp" : ""} ${derazaga ? "is-deraza" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
     <img className="us-bg" src={xona.src} srcSet={`${xona.src} 960w, ${xona.src2x} 1600w`} sizes="(max-width: 900px) 100vw, 900px" alt="" decoding="async" />
     {xona.soat && <DevorSoat soat={xona.soat} />}

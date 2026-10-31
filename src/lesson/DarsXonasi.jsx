@@ -778,6 +778,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   };
   const togglePlay = () => {
     if (mode === "result" || mode === "end") { setScore(0); gameRes.current = {}; setGameScore(0); setGameTotal(0); setPlaying(true); go(0, true); return; }
+    // REV227: dars ketayotganda «Pauza» — gap shu so'zda to'xtaydi, «Davom» — aynan shu joydan (oldin gap butunlay
+    // o'chirilib, davomda qadam boshidan qayta boshlanardi)
+    if (mode === "lesson" && !variant && aralashRef.current && (aralashRef.current.pause || audioRef.current)) {
+      if (pauza) davomQil(); else pauzaQil();
+      return;
+    }
     if (playing) { setPlaying(false); hush(); setStepFinished(true); return; }
     setPlaying(true);
     if (mode !== "lesson") go(0, true); else if (!variant) go(idx, true);
@@ -1711,8 +1717,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         }
         togglePlay();
       }}>{kid
-        ? <KidIcon icon={playing ? "⏸️" : "▶️"} label={playing ? "Pauza" : "Davom"} />
-        : playing ? __kbUi("❚❚ Pauza") : mode === "idle" ? __kbUi(labels.start) : mode === "result" || mode === "end" ? __kbUi("↺ Qaytadan") : __kbUi("▶ Davom etish")}</button>
+        ? <KidIcon icon={playing && !pauza ? "⏸️" : "▶️"} label={playing && !pauza ? "Pauza" : "Davom"} />
+        : playing && !pauza ? __kbUi("❚❚ Pauza") : mode === "idle" ? __kbUi(labels.start) : mode === "result" || mode === "end" ? __kbUi("↺ Qaytadan") : __kbUi("▶ Davom etish")}</button>
       {!kid && <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi("‹ Oldingi")}</button>}
       {!kid && <button type="button" className="dx-btn" disabled={mode !== "lesson"} onClick={() => go(idx + 1)}>{__kbUi("Keyingi ›")}</button>}
       <button type="button" className="dx-btn" disabled={!step && !variant} onClick={() => { if (variant) { say(variant.ovoz); return; } if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => setStepFinished(true)); } }}>{kid ? <KidIcon icon="🔁" label="Yana ayt" /> : __kbUi("↻ Qayta ayt")}</button>
