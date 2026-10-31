@@ -44,7 +44,7 @@ import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimch
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
-import { alifboTanlov, chuqurOgir } from "../interface/yangiAlifbo.js";   // REV221
+import { alifboTanlov, chuqurOgir, ozbekchaYorliqsiz } from "../interface/yangiAlifbo.js";   // REV221
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
 import VoiceCheck from "./VoiceCheck.jsx";
@@ -570,7 +570,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(topicCode)}?${new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2) })}`, { signal: controller.signal })
       .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || "Dars yuklanmadi"); return d; })
-      .then((d0) => { const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(d)); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
+      .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(d)); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };

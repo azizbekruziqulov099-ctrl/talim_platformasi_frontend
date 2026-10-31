@@ -132,7 +132,7 @@ export function qurilmadaOqi(text, { rate = 0.9, onEnd } = {}) {
 export function aralashOqi(text, serverUrl, opts = {}) {
   const { rate = 0.9, playbackRate = 1, takror = false, onEnd, onBolak } = opts;
   const qadamlar = reja(text, { takror });
-  let i = -1, toxtadi = false, audio = null, timer = null;
+  let i = -1, toxtadi = false, audio = null, timer = null, pauza = false, tamomFn = null, kutish = 0;
   const synth = globalThis.speechSynthesis;
   // REV140: o'zbekcha bo'laklar BOSHIDAN birdaniga yuklana boshlaydi — chet so'zdan keyin o'zbekcha davom etganda
   // har safar serverni kutib, gap uzilib-uzilib chiqmasin (tabiiy, ravon nutq).
@@ -158,7 +158,8 @@ export function aralashOqi(text, serverUrl, opts = {}) {
     if (q.tur === "pauza") { timer = setTimeout(keyingi, q.ms); return; }
     if (q.tur === "brauzer" && synth) {
       let tugadi = false;
-      const tamom = () => { if (tugadi) return; tugadi = true; clearTimeout(timer); setTimeout(keyingi, takror ? 1500 : 250); };
+      const tamom = () => { if (tugadi || pauza) return; tugadi = true; clearTimeout(timer); setTimeout(keyingi, takror ? 1500 : 250); };
+      tamomFn = tamom; kutish = 3000 + q.matn.length * 160 / Math.max(0.5, rate);
       try {
         const u = new SpeechSynthesisUtterance(q.matn);
         u.voice = q.ovoz; u.lang = q.ovoz.lang; u.rate = rate;
@@ -171,24 +172,52 @@ export function aralashOqi(text, serverUrl, opts = {}) {
     }
     // server bo'lagi (o'zbekcha yoki qurilmada ovozi yo'q til)
     let tugadi = false;
-    const tamom = () => { if (tugadi) return; tugadi = true; keyingi(); };
+    const tamom = () => { if (tugadi || pauza) return; tugadi = true; keyingi(); };
+    tamomFn = tamom; kutish = Math.min(30000, 6000 + q.matn.length * 150);
     try {
       const a = tayyor.get(i) || new Audio(serverUrl(q.matn));
       tayyor.delete(i);
       audio = a;
       a.playbackRate = playbackRate;
-      a.onended = tamom;
+      a.onended = () => { pauza = false; tamom(); };
       a.onerror = () => setTimeout(tamom, 400);
-      a.play().catch(() => setTimeout(tamom, 600));
-      timer = setTimeout(tamom, Math.min(30000, 6000 + q.matn.length * 150));
+      if (!pauza) {
+        a.play().catch(() => setTimeout(tamom, 600));
+        timer = setTimeout(tamom, kutish);
+      }
     } catch { tamom(); }
   };
   try { synth?.cancel(); } catch { /* */ }
   keyingi();
   return {
+    // REV224: pauza — gap shu joyda to'xtaydi, davom — aynan shu joydan (oldin aralash o'qishda pauza yo'q edi:
+    // vaqt hisoblagich ishlab, dars keyingi gapga o'tib ketardi)
+    get pauzada() { return pauza; },
+    pause() {
+      if (toxtadi || pauza) return;
+      pauza = true; clearTimeout(timer); timer = null;
+      try { audio?.pause(); } catch { /* */ }
+      try { synth?.pause(); } catch { /* */ }
+    },
+    resume() {
+      if (toxtadi || !pauza) return;
+      pauza = false;
+      const q = qadamlar[i];
+      if (!q) { keyingi(); return; }
+      if (q.tur === "pauza") { timer = setTimeout(keyingi, 400); return; }
+      if (q.tur === "brauzer" && synth) {
+        try { synth.resume(); } catch { /* */ }
+        timer = setTimeout(() => tamomFn?.(), Math.max(2500, kutish));
+        return;
+      }
+      if (!audio || audio.ended) { keyingi(); return; }
+      const qoldi = audio.duration && Number.isFinite(audio.duration) ? (audio.duration - audio.currentTime) * 1000 + 4000 : kutish;
+      timer = setTimeout(() => tamomFn?.(), Math.min(30000, Math.max(3000, qoldi)));
+      audio.play().catch(() => setTimeout(() => tamomFn?.(), 600));
+    },
     stop() {
       if (toxtadi) return;
-      toxtadi = true; tozala();
+      toxtadi = true; pauza = false; tozala();
       for (const a of tayyor.values()) { try { a.src = ""; } catch { /* */ } }
       tayyor.clear();
       try { synth?.cancel(); } catch { /* */ }

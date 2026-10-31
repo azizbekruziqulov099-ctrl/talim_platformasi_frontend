@@ -168,3 +168,17 @@ export function chuqurOgir(v) {
   if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, /^(rasm|src|url|id|topic_code|kod|audio|unit_code|til|lang)$/.test(k) ? x : chuqurOgir(x)]));
   return v;
 }
+
+
+/** REV224: «O‘zbekchada: …», «o‘zbekcha — …» kabi ortiqcha yorliqlar olib tashlanadi — o'zbekcha aytilgani o'zi tushunarli. */
+export function ozbekchaYorliqsiz(v) {
+  if (typeof v === "string") {
+    return v
+      .replace(/\(?\s*(?:[OÖ][‘'ʻ’`]?|Ö)z(?:bek|bek)ç?c?h?a(?:da)?\s*[:—–-]\s*/gi, (m) => (m.trim().startsWith("(") ? "(" : ""))
+      .replace(/[,;]?\s*(?:o[‘'ʻ’`]?|ö)zbek(?:ch|ç)ada\b\s*/gi, " ")
+      .replace(/\s{2,}/g, " ");
+  }
+  if (Array.isArray(v)) return v.map(ozbekchaYorliqsiz);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, /^(rasm|src|url|id|topic_code|kod|audio|unit_code|til|lang)$/.test(k) ? x : ozbekchaYorliqsiz(x)]));
+  return v;
+}
