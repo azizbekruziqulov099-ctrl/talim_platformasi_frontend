@@ -84,3 +84,6 @@
 .kq-question .kq-listen{width:clamp(64px,16vw,84px);height:clamp(64px,16vw,84px);font-size:clamp(28px,7vw,40px)}
 .kq-robot{width:clamp(96px,26vw,140px)}
 .kq-mascot{justify-content:center}
+
+/* REV230: rasmsiz variant — so'z yoziladi */
+.kq-pic.is-soz{font-size:clamp(18px,4vw,34px)!important;line-height:1.2!important;font-weight:800;padding:6px 10px;text-align:center;word-break:break-word;white-space:normal}

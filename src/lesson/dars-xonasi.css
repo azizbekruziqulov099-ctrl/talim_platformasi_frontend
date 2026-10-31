@@ -754,9 +754,18 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root.dx-focus>.dx-head h2{font-size:15px!important}
 /* REV229: dars ekranni maksimal to'ldiradi — sarlavha sahna ustida (joy olmaydi), sahna to'liq balandlikda,
    chetlarda shu xonaning xira davomi (bo'sh oq joy qolmaydi) */
-.dx-root.dx-root.dx-focus.dx-sinf{background:#1d2a33!important;isolation:isolate}
-.dx-root.dx-root.dx-focus.dx-sinf::before{content:"";position:absolute;inset:-40px;background:var(--dx-fon,none) center/cover no-repeat;filter:blur(22px) brightness(.85) saturate(1.1);z-index:-1;pointer-events:none}
-.dx-root.dx-root.dx-focus.dx-sinf>.dx-head{position:fixed!important;top:8px!important;left:26px!important;z-index:2147483011!important;background:rgba(255,255,255,.88)!important;border-radius:14px!important;padding:4px 10px!important;max-width:min(60vw,520px)!important;box-shadow:0 4px 14px rgba(0,0,0,.15)}
-.dx-root.dx-root.dx-focus.dx-sinf>.dx-room{max-width:min(100%,calc((100dvh - 12px) * 1586 / 992))!important;margin:0 auto!important}
-.dx-root.dx-root.dx-focus.dx-sinf{padding-top:6px!important;padding-bottom:6px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
+.dx-root.dx-root.dx-sinf{background:#1d2a33!important;isolation:isolate}
+.dx-root.dx-root.dx-sinf::before{content:"";position:absolute;inset:-40px;background:var(--dx-fon,none) center/cover no-repeat;filter:blur(22px) brightness(.85) saturate(1.1);z-index:-1;pointer-events:none}
+.dx-root.dx-root.dx-sinf>.dx-head{position:fixed!important;top:8px!important;left:26px!important;z-index:2147483011!important;background:rgba(255,255,255,.88)!important;border-radius:14px!important;padding:4px 10px!important;max-width:min(60vw,520px)!important;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.dx-root.dx-root.dx-sinf>.dx-room{max-width:min(100%,calc((100dvh - 12px) * 1586 / 992))!important;margin:0 auto!important}
+.dx-root.dx-root.dx-sinf{padding-top:6px!important;padding-bottom:6px!important;display:flex!important;flex-direction:column!important;justify-content:center!important}
 .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-room{max-width:min(100%,calc((100vw - 12px) * 1586 / 992))!important}
+
+/* REV230: rasmsiz variant (faqat so'z) — kartada «A», «B» emas, so'zning o'zi yoziladi */
+.dx-kid-pic.is-soz,.kq-pic.is-soz{font-size:clamp(18px,3.2vw,34px)!important;line-height:1.2!important;font-weight:800;padding:6px 10px;text-align:center;word-break:break-word;white-space:normal}
+
+/* REV231: sinf xonali dars har doim butun ekranni egallaydi (oldin «fokus» rejimi bo'lmasa sahifa ichida kichik qolardi) */
+.dx-root.dx-root.dx-sinf:not(.dx-yotiq){position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;max-width:none!important;height:100dvh!important;margin:0!important;border-radius:0!important;overflow:hidden!important;box-sizing:border-box!important}
+.dx-root.dx-root.dx-sinf>.dx-room{max-width:min(calc(100vw - 130px),calc((100dvh - 12px) * 1586 / 992))!important}
+@media (max-width:599px){.dx-root.dx-root.dx-sinf>.dx-room{max-width:min(calc(100vw - 90px),calc((100dvh - 12px) * 1586 / 992))!important}}
+.dx-root.dx-root.dx-sinf .dx-test{max-width:min(calc(100vw - 130px),1400px)!important;margin:0 auto!important}
