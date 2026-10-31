@@ -381,6 +381,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const ovozJinsi = kabuGapiradi ? "qiz" : kidRef.current ? (ustozGapiryapti() && USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz")
       : USTOZLAR[ustozRef.current] ? (USTOZLAR[ustozRef.current].lab === "erkak" ? "ogil" : "qiz") : jins;   // REV169: erkak ustozlar (Sardor, Yusuf, Lukas, Karlos, Kenji) — erkak ovozi
     const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins: ovozJinsi,
+      ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),   // REV233: inglizcha/ruscha izohli dars — o'zbek talaffuzida o'qilmasin
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
       ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH }) : kabuGapiradi ? { ohang: KID_PITCH } : {}),
       ...(takror ? { takror: "1" } : {}), ...(attempt ? { q: String(attempt) } : {}) });
@@ -398,6 +399,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const juftUrl = useCallback((m, kim, takror = false) => {
     const k = kim === "til" ? ustozRef.current : ikkinchiRef.current;
     const params = new URLSearchParams({ matn: String(m).slice(0, 1500), jins: USTOZLAR[k]?.lab === "erkak" ? "ogil" : "qiz",
+      ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),
       ...(kidRef.current ? { tezlik: ustozRate(gradeRef.current) } : {}), ...(takror ? { takror: "1" } : {}) });
     return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`;
   }, [apiBase]);
@@ -440,6 +442,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       const izL = ["uz", "ru", "en"].includes(izohRef.current) ? izohRef.current : "uz";
       aralashRef.current = ikkiOvozOqi(kabuDialog(clean), { til: darsTilRef.current, nomzodlar: [...new Set([izL, darsTilRef.current, "uz"])], playbackRate: rateRef.current,
         url: (m, kim) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH,
+          ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),
           ...(kidRef.current ? { tezlik: kidRate(gradeRef.current) } : {}), ...(opts.takror ? { takror: "1" } : {}) })}`,
         onAudio: (a) => { if (my === tokenRef.current) audioRef.current = a; },
         onKim: (k) => { if (my === tokenRef.current) setKabuKim(k); },
@@ -781,7 +784,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (mode === "result" || mode === "end") { setScore(0); gameRes.current = {}; setGameScore(0); setGameTotal(0); setPlaying(true); go(0, true); return; }
     // REV227: dars ketayotganda «Pauza» — gap shu so'zda to'xtaydi, «Davom» — aynan shu joydan (oldin gap butunlay
     // o'chirilib, davomda qadam boshidan qayta boshlanardi)
-    if (mode === "lesson" && !variant && aralashRef.current && (aralashRef.current.pause || audioRef.current)) {
+    // REV233: oddiy (bitta audio) ovozda ham — oldin faqat aralash ovozda ishlardi, oddiy ovozda dars boshidan boshlanardi
+    if (mode === "lesson" && !variant && (aralashRef.current?.pause || (audioRef.current && !audioRef.current.ended) || pauza)) {
       if (pauza) davomQil(); else pauzaQil();
       return;
     }
@@ -1705,7 +1709,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
     {gapTuz && <GapTuzish gaplar={qisqa} til={darsTil} iz={izTilU} ulush={kabuUlush} onYop={() => { setGapTuz(false); try { izohCtl.current?.stop(); } catch { /* */ } }}
       ayt={(m) => { try { izohCtl.current?.stop(); } catch { /* */ } izohCtl.current = ikkiOvozOqi(speakableText(m), { til: darsTil, nomzodlar: [...new Set([izTilU, darsTil, "uz"])],
-        url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH })}`,
+        url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH, ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}) })}`,
         onKim: (k) => setKabuKim(k), onEnd: () => setKabuKim(null) }); }} />}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
       {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
