@@ -44,6 +44,8 @@ import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimch
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
+// REV236: Kabular — Kabutar TV dagi kabi robot ovoz (balandroq ohang, sal tezroq), ustozlar — tabiiy odam ovozi
+const KABU_TV = { iz: "+28Hz", til: "+22Hz", tezlik: "+4%" };
 import { alifboTanlov, chuqurOgir, ozbekchaYorliqsiz } from "../interface/yangiAlifbo.js";   // REV221
 import { RASMLAR } from "../kid/xonalar/rasmlar.js";
 import { beep, chime, pop, soft } from "../kid/kidSounds.js";
@@ -378,12 +380,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV145: robot Kabu har doim bitta ovozda (har darsda boshqa-boshqa ovoz bolani chalg'itardi)
     // REV175: maktabda ham jonli ustoz — ovoz ustozning jinsiga mos (Lukas, Yusuf, Sardor — erkak ovozi)
     const kabuGapiradi = !kidRef.current && sinfXonaRef.current && !ustozGapiryapti() && modeRef.current !== "end";
-    const ovozJinsi = kabuGapiradi ? "qiz" : kidRef.current ? (ustozGapiryapti() && USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz")
+    const ovozJinsi = kabuGapiradi ? "ogil" : kidRef.current ? (ustozGapiryapti() ? (USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz") : "ogil")
       : USTOZLAR[ustozRef.current] ? (USTOZLAR[ustozRef.current].lab === "erkak" ? "ogil" : "qiz") : jins;   // REV169: erkak ustozlar (Sardor, Yusuf, Lukas, Karlos, Kenji) — erkak ovozi
     const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins: ovozJinsi,
       ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),   // REV233: inglizcha/ruscha izohli dars — o'zbek talaffuzida o'qilmasin
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
-      ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: kidRate(gradeRef.current), ohang: KID_PITCH }) : kabuGapiradi ? { ohang: KID_PITCH } : {}),
+      ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz }) : kabuGapiradi ? { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz } : {}),
       ...(takror ? { takror: "1" } : {}), ...(attempt ? { q: String(attempt) } : {}) });
     return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`;
   }, [apiBase, jins]);
@@ -441,9 +443,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       const base = String(apiBase).replace(/\/+$/, "");
       const izL = ["uz", "ru", "en"].includes(izohRef.current) ? izohRef.current : "uz";
       aralashRef.current = ikkiOvozOqi(kabuDialog(clean), { til: darsTilRef.current, nomzodlar: [...new Set([izL, darsTilRef.current, "uz"])], playbackRate: rateRef.current,
-        url: (m, kim) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH,
+        url: (m, kim) => `${base}/api/ovoz?k=133&${new URLSearchParams({ matn: m.slice(0, 1500), jins: kim === "til" ? "qiz" : "ogil", ohang: kim === "til" ? KABU_TV.til : KABU_TV.iz,
           ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),
-          ...(kidRef.current ? { tezlik: kidRate(gradeRef.current) } : {}), ...(opts.takror ? { takror: "1" } : {}) })}`,
+          tezlik: KABU_TV.tezlik, ...(opts.takror ? { takror: "1" } : {}) })}`,
         onAudio: (a) => { if (my === tokenRef.current) audioRef.current = a; },
         onKim: (k) => { if (my === tokenRef.current) setKabuKim(k); },
         onEnd: () => { if (my === tokenRef.current) { setKabuKim(null); finish(); } } });
@@ -1709,7 +1711,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
     {gapTuz && <GapTuzish gaplar={qisqa} til={darsTil} iz={izTilU} ulush={kabuUlush} onYop={() => { setGapTuz(false); try { izohCtl.current?.stop(); } catch { /* */ } }}
       ayt={(m) => { try { izohCtl.current?.stop(); } catch { /* */ } izohCtl.current = ikkiOvozOqi(speakableText(m), { til: darsTil, nomzodlar: [...new Set([izTilU, darsTil, "uz"])],
-        url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH, ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}) })}`,
+        url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "qiz" : "ogil", ohang: kim === "til" ? KABU_TV.til : KABU_TV.iz, ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}) })}`,
         onKim: (k) => setKabuKim(k), onEnd: () => setKabuKim(null) }); }} />}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
       {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
