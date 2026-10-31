@@ -89,7 +89,8 @@
 .us-og img{position:absolute;left:50%;height:auto;transform:translate(-50%,-50%);display:block;image-rendering:auto}
 @keyframes us-breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.006,1.012)}}
 @keyframes us-talk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-.3%) rotate(-.3deg)}}
-@keyframes us-enter{from{transform:translateX(-30%);opacity:0}to{transform:none;opacity:1}}
+/* REV226: kirish faqat siljish bilan — shaffoflik yo'q (animatsiya to'xtab qolsa ustoz yarim shaffof qolardi) */
+@keyframes us-enter{from{transform:translateX(-30%)}to{transform:none}}
 @keyframes us-pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
 
 /* ── xona bezaklari ── */
@@ -292,3 +293,5 @@
   animation:us-detal-och .45s cubic-bezier(.2,.9,.3,1.25) both}
 @keyframes us-detal-och{from{transform:translate(-50%,-50%) scale(.3);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.us-detal,.us-detal-pop,.us-window.is-bosh .us-sun{animation:none}}
+
+.us-teacher{opacity:1!important}

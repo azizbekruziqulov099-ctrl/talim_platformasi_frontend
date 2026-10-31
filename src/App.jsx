@@ -14246,6 +14246,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   const { t: uiT } = useInterface();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [profilMenyu, setProfilMenyu] = useState(false);   // REV226
+  const [robotOchiq, setRobotOchiq] = useState(false);     // REV226
   // REV162: ota-ona paneli (kurs olish) «Gmail / Telegram ulash» tugmasi akkaunt oynasini ochadi
   const [accountTelegram, setAccountTelegram] = useState(false);
   useEffect(() => {
@@ -14771,24 +14773,73 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-muassasa-matn small{font-size:10px;font-weight:700;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .samtm-muassasa-card:not(.on) .samtm-muassasa-matn b{color:#21384C}.samtm-muassasa-card:not(.on) .samtm-muassasa-matn small{color:#7A8794}
 
+
+        /* REV226: ixcham burchak belgilari */
+        .samtm-top-switch.samtm-ixcham{display:flex!important;justify-content:space-between;align-items:center;padding:6px 10px!important;background:transparent!important;backdrop-filter:none!important;border-bottom:0!important;pointer-events:none}
+        .samtm-ixcham>*{pointer-events:auto}
+        .samtm-ixcham .samtm-ong{display:flex;align-items:center;gap:6px}
+        .samtm-ixcham .samtm-belgi{width:42px;height:42px;padding:0!important;border-radius:50%!important;position:relative;background:#fff;border:1px solid #E5E1D8;box-shadow:0 4px 14px rgba(23,50,75,.12)}
+        .samtm-ixcham .samtm-belgi.on{border:2px solid var(--space-color,#1B4B7A)}
+        .samtm-ixcham .samtm-avatar{background:#0D5C63!important;color:#fff!important;font-size:13px}
+        .samtm-nuqta{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#E24B4A;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+        .samtm-ixcham .kb-interface-button{display:none!important}
+        .samtm-profil{position:relative}
+        .samtm-profil-orqa{position:fixed;inset:0;z-index:1}
+        .samtm-profil-menyu{position:absolute;right:0;top:50px;z-index:2;min-width:230px;background:#fff;border:1px solid #E5E1D8;border-radius:14px;box-shadow:0 14px 40px rgba(23,50,75,.18);padding:6px;display:flex;flex-direction:column}
+        .samtm-profil-menyu button{justify-content:flex-start!important;border:0!important;background:transparent!important;padding:10px 12px!important;font-size:14px!important;font-weight:700!important;border-radius:10px!important;color:#21384C!important}
+        .samtm-profil-menyu button:hover{background:#F2F6F8!important}
+        .samtm-profil-rol{padding:10px 12px;font-weight:800;color:#21384C;border-bottom:1px solid #EEE;margin-bottom:4px;display:flex;flex-direction:column}
+        .samtm-profil-rol small{font-weight:600;color:#7A8794}
+        .samtm-robot{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2147483090;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+        @media(min-width:821px){.samtm-robot{bottom:18px}}
+        .samtm-robot-fab{width:54px;height:54px;border-radius:50%;border:0;background:#8B5FBF;color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(139,95,191,.35)}
+        .samtm-robot-oyna{width:min(340px,calc(100vw - 28px));background:#fff;border:1px solid #E5E1D8;border-radius:16px;box-shadow:0 14px 40px rgba(23,50,75,.18);padding:8px}
+        body:has([aria-label="Dars xonasi"]) .samtm-robot{display:none}
+        body:has([aria-label="Dars xonasi"]) .samtm-ixcham .samtm-belgi{opacity:.55;transform:scale(.85)}
+        .samtm-top-spacer{height:0!important}
+        .premium-page-stage{padding-top:56px}
       `}</style>
       {tab !== "test" && !testDavomida && <>
         <div className="samtm-top-spacer" aria-hidden="true" />
         {/* REV125: qayerda turganingiz aniq — «Ta'lim maydoni | Kabutar» bitta yorliqli tanlov, faoli rangli va ostidagi chiziq shu rangda.
             «Yordamchi» va «Kod» — bitta maydon: kitob kodi yozilsa yechim ochiladi, oddiy savol yozilsa — yordamchiga boradi. */}
-        <div className={`samtm-top-switch ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
+        {/* REV226: tepada faqat burchak belgilari — chapda Ta'lim, o'ngda Kabutar, til va profil.
+            Qolganlari (rol, profillar, bildirishnoma, sozlama, akkaunt) profil menyusida; yordamchi — o'ng pastda robot. */}
+        <div className={`samtm-top-switch samtm-ixcham ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
           <div className="samtm-chap">
-          <img className="samtm-emblema" src={__kbEmblema} alt={uiT("Kabutar")} title={uiT("Kabutar — suhbat va ta’lim")} width="38" height="38" />
-          <div className="samtm-space" role="tablist" aria-label={uiT("Bo‘lim")}>
-            <button type="button" role="tab" aria-selected={!kabutarOchiq} className={kabutarOchiq ? "" : "on"} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>🧭 <InterfaceText text={__kbUi("Ta’lim maydoni")}/></button>
-            <button type="button" role="tab" aria-selected={kabutarOchiq} className={kabutarOchiq ? "on" : ""} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}><MessageCircle size={16} />{__kbUi(" Kabutar")}{kabutarTezKunda ? <span className="samtm-tez-kunda">{uiT("tez kunda")}</span> : kabutarOqilmagan > 0 && <b>{kabutarOqilmagan}</b>}</button>
+            <button type="button" role="tab" aria-selected={!kabutarOchiq} className={`samtm-belgi ${kabutarOchiq ? "" : "on"}`} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")} aria-label={uiT("Ta’lim maydoni")}>
+              <img className="samtm-emblema" src={__kbEmblema} alt="" width="26" height="26" style={{ width: 28, height: 28, borderRadius: 8, boxShadow: "none" }} /></button>
           </div>
+          <div className="samtm-ong">
+            <button type="button" role="tab" aria-selected={kabutarOchiq} className={`samtm-belgi ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")} aria-label={uiT("Kabutar")}>
+              <MessageCircle size={20} />{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
+            <InterfaceSettingsButton/>
+            <div className="samtm-profil">
+              <button type="button" className="samtm-belgi samtm-avatar" onClick={() => setProfilMenyu((v) => !v)} aria-haspopup="menu" aria-expanded={profilMenyu}
+                aria-label={uiT("Profil va sozlamalar")} title={uiT("Profil va sozlamalar")}>
+                {__kbUi((foydalanuvchi?.full_name || "TA").trim().split(/\s+/).slice(0, 2).map((q) => q[0]).join("").toUpperCase())}</button>
+              {profilMenyu && <>
+                <div className="samtm-profil-orqa" onClick={() => setProfilMenyu(false)} aria-hidden="true" />
+                <div className="samtm-profil-menyu" role="menu" onClick={() => setProfilMenyu(false)}>
+                  <div className="samtm-profil-rol">👤 {foydalanuvchi?.full_name || ""}<small>{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : uiT("O‘quvchi")}</small></div>
+                  <button type="button" role="menuitem" onClick={() => tabTanlandi("profil")}><User size={16} /> {uiT("Profil va sozlamalar")}</button>
+                  {!readOnly && onProfiles && !bolaQurilmasi() && <button type="button" role="menuitem" onClick={() => onProfiles(foydalanuvchi)}><Users size={16} /> {uiT("Profilni almashtirish")}</button>}
+                  {oqituvchiMi && oqituvchiFanlari.length > 0 && <button type="button" role="menuitem" onClick={() => setFanTanlash(true)}><BookOpen size={16} /> {uiT("Fanlarim")}</button>}
+                  <button type="button" role="menuitem" onClick={() => tabTanlandi("xabar")}><Bell size={16} /> {uiT("Bildirishnomalar")}</button>
+                  <button type="button" role="menuitem" onClick={() => document.querySelector(".samtm-top-switch .kb-interface-button")?.click()}>⚙ {uiT("Til va ko‘rinish")}</button>
+                  {!readOnly && <button type="button" role="menuitem" onClick={() => setAccountOpen(true)}>🔐 {uiT("Akkaunt va kirish")}</button>}
+                </div></>}
+            </div>
           </div>
-          <YordamchiKod open={assistantOpen} onAssistant={(text) => { setAssistantSeed(text ? { text, n: Date.now() } : null); setAssistantOpen(text ? true : (v) => !v); }}
-            onCode={(code) => setKodTrigger({ code, n: Date.now() })} />
           <KitobKodQidiruv apiBase={API_BASE} token={token} hideBar trigger={kodTrigger} />
-          <InterfaceSettingsButton/>
-          {!readOnly && <button type="button" className="kb-account-top-button" aria-label={uiT("Akkaunt va kirish sozlamalari")} title={uiT("Akkaunt va kirish")} onClick={() => setAccountOpen(true)}><User size={18} /></button>}
+        </div>
+        {/* yordamchi robot — o'ng pastki burchak (dars ochiq bo'lsa yashirinadi) */}
+        <div className="samtm-robot">
+          {robotOchiq && <div className="samtm-robot-oyna">
+            <YordamchiKod open={assistantOpen} onAssistant={(text) => { setRobotOchiq(false); setAssistantSeed(text ? { text, n: Date.now() } : null); setAssistantOpen(text ? true : (v) => !v); }}
+              onCode={(code) => { setRobotOchiq(false); setKodTrigger({ code, n: Date.now() }); }} />
+          </div>}
+          <button type="button" className="samtm-robot-fab" onClick={() => setRobotOchiq((v) => !v)} aria-expanded={robotOchiq} aria-label={uiT("AI yordamchi")} title={uiT("AI yordamchi — savol yoki kitobdagi kod")}>🤖</button>
         </div>
       </>}
       <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} seed={assistantSeed} />
@@ -14842,24 +14893,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       <button type="button" className="samtm-yon-toggle" onClick={yonMenyuniAlmashtir} title={yonMenyuOchiq ? uiT("Yon menyuni yopish") : uiT("Yon menyuni ochish")}>{yonMenyuOchiq ? __kbUi("‹") : __kbUi("›")}</button>
       <div className={`premium-app-shell ${yonMenyuOchiq ? "" : "samtm-yon-yopiq"}`} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
         <main className="premium-app-main">
-          <header className="premium-topbar">
-            <div>
-              <p>{uiT(tabMalumoti[1])}</p>
-              <h1>{uiT(tabMalumoti[0])}</h1>
-            </div>
-            <div className="premium-top-actions">
-              <span className="premium-role-pill">{korinishRoli === "admin" ? uiT("Administrator") : korinishRoli === "oqituvchi" ? uiT("O‘qituvchi") : korinishRoli === "ota-ona" ? uiT("Ota-ona") : educationRole(foydalanuvchi) === "talaba" ? uiT("Talaba") : educationRole(foydalanuvchi) === "bogcha" ? uiT("Bog‘cha bolasi") : uiT("O‘quvchi")}</span>
-              {!readOnly && onProfiles && !bolaQurilmasi() && (isFamilyProfileUser(foydalanuvchi)
-                ? <button type="button" className="kb-family-switch" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profilni almashtirish")} title={uiT("Profilni almashtirish")}><Users size={16} /><span>{(foydalanuvchi?.full_name || "").split(/\s+/)[0]}</span></button>
-                : <button type="button" onClick={() => onProfiles(foydalanuvchi)} aria-label={uiT("Profillar")} title={uiT("Profillar: bitta akkauntda 10 tagacha")}><Users size={18} /></button>)}
-              {oqituvchiMi && oqituvchiFanlari.length > 0 && <button type="button" className="kb-family-switch" onClick={() => setFanTanlash(true)} title={oqituvchiFanlari.join(", ")} aria-label={uiT("Fanlarim")}><BookOpen size={16} /><span>{uiT("Fanlarim")}</span></button>}
-              <button onClick={() => tabTanlandi("xabar")} aria-label={uiT("Xabarlar")}><Bell size={18} /></button>
-              <button onClick={() => tabTanlandi("profil")} className="premium-top-avatar"
-                aria-label={uiT("Profil va sozlamalar")} title={uiT("Profil va sozlamalar")}>
-                {__kbUi((foydalanuvchi?.full_name || "TA").trim().split(/\s+/).slice(0, 2).map((q) => q[0]).join("").toUpperCase())}
-              </button>
-            </div>
-          </header>
+          {/* REV226: sahifa sarlavhasi va tugmalar profil menyusiga o'tdi — sahifa butun ekranni egallaydi */}
           <div className="premium-page-stage">
       <SectionErrorBoundary resetKey={`${korinishRoli}:${tab}`}>
       {tab === "home" && <EducationHome onOpen={tabTanlandi}/>}

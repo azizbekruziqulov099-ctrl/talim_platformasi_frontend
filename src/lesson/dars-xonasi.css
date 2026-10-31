@@ -734,3 +734,20 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-sinf.dx-focus:not(.dx-yotiq) .dx-voice .dx-title{display:none}
   .dx-root.dx-focus:not(.dx-yotiq) .dx-kabu-fon.is-juft .dx-kabu-robot{width:17%}
 }
+
+/* REV226: dars oynasi — qadamlar chap chetda tik, tugmalar o'ng pastki burchakda kichik; sahna ekranni to'ldiradi */
+@media (min-width:600px){
+  .dx-root .dx-steps{position:fixed;left:6px;top:50%;transform:translateY(-50%);flex-direction:column!important;width:10px;height:min(70vh,520px);gap:4px!important;z-index:30;margin:0!important}
+  .dx-root .dx-steps>*{width:8px!important;min-width:8px!important;height:auto!important;flex:1 1 0!important;border-radius:4px!important}
+  .dx-root .dx-controls{position:fixed;right:10px;bottom:calc(12px + env(safe-area-inset-bottom,0px));flex-direction:column!important;width:auto!important;max-width:96px;gap:6px!important;padding:6px!important;background:rgba(255,255,255,.88)!important;border-radius:16px!important;z-index:40;margin:0!important;box-shadow:0 8px 24px rgba(23,50,75,.15)}
+  .dx-root .dx-controls .dx-btn{min-width:0!important;width:84px!important;min-height:0!important;padding:6px 4px!important;font-size:11px!important;flex:none!important}
+  .dx-root .dx-controls .dx-btn img,.dx-root .dx-controls .dx-btn svg{max-width:26px;max-height:26px}
+  .dx-root{padding-left:22px!important;padding-right:110px!important}
+}
+@media (max-width:599px){
+  .dx-root .dx-controls{position:fixed;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));flex-direction:column!important;width:auto!important;gap:5px!important;padding:5px!important;background:rgba(255,255,255,.9)!important;border-radius:14px!important;z-index:40;margin:0!important}
+  .dx-root .dx-controls .dx-btn{width:64px!important;min-height:0!important;padding:5px 2px!important;font-size:10px!important;flex:none!important}
+  .dx-root .dx-steps{position:fixed;left:4px;top:50%;transform:translateY(-50%);flex-direction:column!important;width:8px;height:60vh;gap:3px!important;z-index:30;margin:0!important}
+  .dx-root .dx-steps>*{width:6px!important;min-width:6px!important;height:auto!important;flex:1 1 0!important}
+  .dx-root{padding-left:16px!important}
+}

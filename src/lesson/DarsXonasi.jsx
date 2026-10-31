@@ -1701,7 +1701,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "ogil" : "qiz", ohang: kim === "til" ? "+4Hz" : KID_PITCH })}`,
         onKim: (k) => setKabuKim(k), onEnd: () => setKabuKim(null) }); }} />}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
-      {darsTil && qisqa.length > 0 && ["lesson", "idle", "end"].includes(mode) && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
+      {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
       <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={() => {
         if (yotiq && mode === "idle") kengaytir();
         // REV177: yangi dars oldidan — oldingi darslardan spiral takror (bugun shu darsda qilinmagan bo'lsa)
