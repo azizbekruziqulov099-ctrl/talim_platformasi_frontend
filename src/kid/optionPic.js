@@ -1,5 +1,6 @@
 // REV123: test variantining rasmi — bog'cha darsi va «O'ynaymiz» testida bir xil qoida.
 import { belgilar, pictureFor, stickerKeys } from "./kidStageRules.js";
+import { matnIdTaxmin } from "./rasmHarakat.js";
 import { emojiRasm, matnId, sozId } from "./rasmHarakat.js";
 import { RASM_HAMMA } from "./darsRasm.js";
 import { RASMLAR } from "./xonalar/rasmlar.js";
@@ -18,7 +19,10 @@ export function kidOptionPic(o, rasmlar, mediaUrl, rasmSozlar = null) {
   // REV153: kod bilan chizilgan SVG stikerlar ishlatilmaydi — faqat rassom rasmlari (so'z orqali), aks holda belgi/son
   const CHIZILGAN = { hello: RASM_HAMMA.d_hello, red: RASM_HAMMA.d_red, big: RASM_HAMMA.d_big, small: RASM_HAMMA.d_small, cat: RASM_HAMMA.cat, apple: RASM_HAMMA.apple, jump: RASM_HAMMA["d_can-jump"] };
   const key = stickerKeys(o?.word || "", 1)[0];
-  return (key && CHIZILGAN[key]) || null;
+  if (key && CHIZILGAN[key]) return CHIZILGAN[key];
+  // REV238: rasmsiz variant — butun rasm kutubxonasidan so'z bo'yicha taxminiy rasm (bog'cha bolasi o'qimaydi)
+  const tx = matnIdTaxmin(o?.word || "");
+  return (tx && RASM_HAMMA[tx]) || null;
 }
 
 // REV153: belgilar qatori — har belgi o'rniga chizilgan rasm, strelka va «?» — oddiy belgi sifatida.

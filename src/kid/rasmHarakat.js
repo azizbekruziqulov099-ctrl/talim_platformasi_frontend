@@ -126,3 +126,34 @@ export function harakatTuri(asl) {
 
 export const HARAKAT_TURLARI = ["chiq", "sakra", "yugur", "suz", "kuyla", "raqs", "chiz", "uch", "kotaril", "lapang", "dumala", "nur",
   "tomchi", "qor", "shamol", "suzib", "kamalak", "aylan", "egil", "titra", "terla", "silkin", "salom", "yur", "sakrab_chiq", "tebran", "puls"];
+
+/** REV238: so'z bo'yicha TAXMINIY rasm — butun rasm kutubxonasidan (dars rasmlari va xona rasmlari, hamma tilda).
+ *  Javob varianti aniq so'z bo'lmasa ham («wash our hands», «qo‘l yuvamiz», «на кухне») — undagi asosiy so'zning
+ *  rasmini topadi: avval butun ibora, keyin har so'z (eng uzun so'zdan boshlab), so'z o'zagi (qo'shimchasiz) bo'yicha. */
+const KICHIK_SOZ = new Set(["the","a","an","and","or","to","in","on","at","of","for","is","it","we","our","with","va","yoki","bilan","uchun","ham","bu","и","в","на","с","для","это","не","no","yes","ha","yo'q","нет","да",
+  "bir","emas","bor","xil","marta","faqat","qarab","qarashda","kabi","yoqqa","birma-bir","tomon","sha","only","not","all"]);
+const OZAK = (w) => w.replace(/(lardan|larni|larga|larda|ning|dagi|ga|da|dan|ni|lar|ing|ed|es|s|ами|ах|ой|ой|ей|ом|ам|ы|и|а|у|е|ю|я)$/u, "");
+export function matnIdTaxmin(matn) {
+  // bitta so'zli aniq moslik yoki butun ibora — ishonchli; ko'p so'zli iborada faqat ma'noli so'zlar qidiriladi
+  const aniq = matnId(matn);
+  if (aniq && !/\s/.test(matnNorm(matn))) return aniq;
+  const m = matnXarita();
+  const sozlar = matnNorm(matn).split(/[\s,.;:!?«»"()/—–-]+/).filter((w) => w.length >= 3 && !KICHIK_SOZ.has(w)).sort((a, b) => b.length - a.length);
+  for (const w of sozlar) {
+    const id = m.get(w); if (id) return id;
+  }
+  for (const w of sozlar) {
+    const oz = OZAK(w);
+    if (oz.length < 3) continue;
+    let eng = null, engUz = 1e9;
+    for (const [k, id] of m) {
+      if (!id || k.includes(" ") || /siz$|sizlik$/.test(k) !== /siz$|sizlik$/.test(w)) continue;   // «tartib» ≠ «tartibsiz»
+      const kOz = OZAK(k);
+      if (kOz === oz || (oz.length >= 5 && kOz.startsWith(oz)) || (kOz.length >= 5 && oz.startsWith(kOz))) {
+        if (k.length < engUz) { eng = id; engUz = k.length; }
+      }
+    }
+    if (eng) return eng;
+  }
+  return null;
+}

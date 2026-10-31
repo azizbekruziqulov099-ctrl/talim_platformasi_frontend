@@ -24,7 +24,10 @@ export function kidOptions(savol, question = savol?.question ?? savol?.savol, iz
       // REV234: izoh tilidagi variant (ruscha/inglizcha izohli mantiq, matematika) — chet so'z emas: rasm va so'z ko'rinadi,
       // lekin ovoz o'sha tilda o'qiladi (tegsiz bo'lsa o'zbek ovozi o'qirdi)
       const izohTilida = Boolean(lang && izoh && lang === izoh);
-      return { ...o, picture, word, lang, speech: lang ? `[${lang}]${word}[/${lang}]` : word, listen: izohTilida ? '' : listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word)), asked.size > 0) };
+      // REV237: rasmsiz variant — bog'cha bolasi o'qiy olmaydi: Kabu variantni OVOZ CHIQARIB o'qiydi (kartada so'z ham turadi)
+      const oqiladi = !picture && Boolean(word) && (!lang || izohTilida);
+      return { ...o, picture, word, lang, oqiladi, speech: lang ? `[${lang}]${word}[/${lang}]` : word,
+        listen: oqiladi ? 'audio' : izohTilida ? '' : listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word)), asked.size > 0) };
     });
 }
 
