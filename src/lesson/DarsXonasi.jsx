@@ -287,7 +287,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const list = [...opening, ...kirishlar, ...boshi.takror, ...qolgan];
     // REV164: bosib topiladigan o'yin yo'q darsga (matematika/mantiq takrori, uy topshirig'i darsi) — xulosadan oldin «Top-chi»
     const dars = list.slice(opening.length);
-    const extra = qoshimchaOyin(dars, dars.map((x) => stepKind(x, lesson?.topic?.mavzu)),
+    // REV232: faqat TIL darsida — matematika/mantiqda rasm-so'z juftligi taxminiy chiqib, noto'g'ri «to'g'ri» belgilanardi
+    const extra = !darsTil ? null : qoshimchaOyin(dars, dars.map((x) => stepKind(x, lesson?.topic?.mavzu)),
       tIzoh && tIzoh !== "uz" ? gap(tIzoh, "Barakalla! Endi o'ynaymiz!") : "Barakalla! Endi o‘ynaymiz!");
     if (!extra) return list;
     let at = list.length;

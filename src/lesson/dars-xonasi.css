@@ -769,3 +769,11 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root.dx-sinf>.dx-room{max-width:min(calc(100vw - 130px),calc((100dvh - 12px) * 1586 / 992))!important}
 @media (max-width:599px){.dx-root.dx-root.dx-sinf>.dx-room{max-width:min(calc(100vw - 90px),calc((100dvh - 12px) * 1586 / 992))!important}}
 .dx-root.dx-root.dx-sinf .dx-test{max-width:min(calc(100vw - 130px),1400px)!important;margin:0 auto!important}
+
+/* REV232: sahna (doska rejimida ham) ekran balandligi bo'yicha to'liq; tugmalar bo'yiga kattaroq */
+.dx-root.dx-root.dx-sinf .us-stage{width:min(100%,calc((100dvh - 24px) * 1586 / 992))!important;max-width:100%!important;min-width:0!important;margin-inline:auto!important}
+.dx-root.dx-root .dx-controls{gap:10px!important;padding:8px!important}
+.dx-root.dx-root .dx-controls .dx-btn{width:96px!important;min-height:78px!important;padding:8px 6px!important;font-size:12.5px!important}
+.dx-root.dx-root .dx-controls .dx-kid-ico{font-size:30px!important}
+.dx-root.dx-root .dx-controls .dx-kid-cap{font-size:12.5px!important}
+@media (max-width:599px){.dx-root.dx-root .dx-controls .dx-btn{width:70px!important;min-height:62px!important;font-size:11px!important}.dx-root.dx-root .dx-controls .dx-kid-ico{font-size:24px!important}}

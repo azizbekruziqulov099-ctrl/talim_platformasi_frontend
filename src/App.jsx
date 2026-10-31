@@ -14794,8 +14794,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         @media(min-width:821px){.samtm-robot{bottom:18px}}
         .samtm-robot-fab{width:54px;height:54px;border-radius:50%;border:0;background:#8B5FBF;color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(139,95,191,.35)}
         .samtm-robot-oyna{width:min(340px,calc(100vw - 28px));background:#fff;border:1px solid #E5E1D8;border-radius:16px;box-shadow:0 14px 40px rgba(23,50,75,.18);padding:8px}
-        body:has([aria-label="Dars xonasi"]) .samtm-robot{display:none}
-        body:has([aria-label="Dars xonasi"]) .samtm-ixcham .samtm-belgi{opacity:.55;transform:scale(.85)}
+        body:has(.dx-root) .samtm-robot{display:none!important}
+        body:has(.dx-root) .samtm-ixcham{display:none!important}
         .samtm-top-spacer{height:0!important}
         .premium-page-stage{padding-top:56px}
       `}</style>
