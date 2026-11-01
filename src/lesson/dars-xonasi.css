@@ -816,3 +816,14 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root .dx-kid-opts{gap:16px!important;max-width:min(980px,100%)!important;margin-inline:auto!important}
 .dx-root.dx-root .dx-kid-opts button{min-height:min(32vh,260px)!important}
 .dx-root.dx-root .dx-kid-pic img,.dx-root.dx-root .dx-kid-pic .kid-chizilgan{max-height:min(26vh,210px)!important;width:auto!important}
+/* REV246: ikki Kabu (ovoz tekshiruvi, test, takrorlash) — KATTA, chap va o'ng chetda. REV241 dagi 26% konteynerning
+   o'zi tor (≈250px) bo'lgani uchun Kabular 60px ga tushib qolgan edi — endi o'lcham ekran balandligidan olinadi. */
+.dx-root.dx-root .dx-voice.is-kid .dx-voice-kid.is-juft,.dx-root.dx-root .dx-kid-ask .kj-root{width:min(980px,90vw)!important;max-width:none!important;margin-inline:auto!important;flex:none!important;grid-column:1/-1!important;justify-self:center!important}
+.dx-root.dx-root .dx-voice.is-kid,.dx-root.dx-root .dx-test:has(.kj-root),.dx-root.dx-root .dx-kid-ask:has(.kj-root){width:100%!important;max-width:none!important;display:flex!important;flex-direction:column!important;align-items:center!important}
+.dx-root.dx-root .kj-root{display:flex!important;justify-content:space-between!important;align-items:flex-end!important;width:100%!important;max-width:none!important}
+.dx-root.dx-root .kj-robot{flex:0 0 auto!important;width:clamp(150px,30vh,280px)!important;max-width:none!important}
+.dx-root.dx-root.dx-yotiq .kj-robot{width:clamp(110px,30vw,240px)!important}
+.dx-root.dx-root.dx-yotiq .dx-voice.is-kid .dx-voice-kid.is-juft,.dx-root.dx-root.dx-yotiq .dx-kid-ask .kj-root{width:min(980px,94vh)!important}
+
+/* REV246: Голу va Pidgi o'z ranglari bilan — eski rang aylantirish filtri ularga qo'llanmaydi */
+.dx-root .kj-robot.is-til:is(.til-en,.til-ru) .kabu-box,.kj-robot.is-til:is(.til-en,.til-ru) .kabu-box{filter:none!important}
