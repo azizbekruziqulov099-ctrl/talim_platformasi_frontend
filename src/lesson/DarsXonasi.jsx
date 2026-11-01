@@ -6,7 +6,7 @@ import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, v
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
-import { markLessonDone, natijaYoz } from "../curriculum/kidProgress.js";
+import { markLessonDone, natijaYoz, tilniBelgila } from "../curriculum/kidProgress.js";
 import { faollikYoz } from "../maktab/maktabServer.js";
 import { KID_PITCH, kidRate, ustozRate, kidRepeatSpeech, kidTakrorStep, kidTaskModel, ismOldin } from "./kidLessonRules.js";
 import { APP_VERSION } from "../appVersion.js";
@@ -51,6 +51,8 @@ function eskiYozuv(w = "") {
   return String(w).replace(/Ş/g, "Sh").replace(/ş/g, "sh").replace(/Ç/g, "Ch").replace(/ç/g, "ch")
     .replace(/Ö/g, "O‘").replace(/ö/g, "o‘").replace(/Ğ/g, "G‘").replace(/ğ/g, "g‘");
 }
+// REV255: dars qaysi tilda o'tildi — fan nomidagi «(izoh: rus / ingliz)» bo'yicha; izohsiz — o'zbekcha
+function darsIzohTili(fan = "") { const f = String(fan || "").toLowerCase(); return /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : "uz"; }
 function kabuIsmiQoy(d, loc = "uz") {
   const t = String(loc || "uz").slice(0, 2);
   if (!["ru", "en"].includes(t) || !d) return d;
@@ -1315,10 +1317,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (kid || !topicCode) return;
     // maktab yo'li: dars oxirigacha o'qilsa — «o'tildi»; birinchi urinishdagi test natijasi — yulduz
     if (mode === "end") markLessonDone(topicCode, 0);
+    tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan));   // REV255: qaysi tilda o'rganildi
     // REV177: dars so'zlari, test savollari va tushunchalari keyingi darslardagi spiral takror uchun saqlanadi
     if (mode === "end" || (mode === "result" && !xatoTartib)) darsniSaqla(fan || lesson?.topic?.fan || "", darsYozuvi({ kod: topicCode, mavzu: lesson?.topic?.mavzu || "",
       fan: fan || lesson?.topic?.fan || "", til: darsTil || "", iz: ["uz", "ru", "en"].includes(izoh) ? izoh : "uz", steps: lesson?.steps || [], sozlar: maktabSozlar, savollar: questions }));
-    if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); }
+    if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan)); }
     if (learnerRole !== "oquvchi" || !token) return;
     if (mode === "lesson" && !darsBosh.current) darsBosh.current = Date.now();
     if ((mode !== "end" && mode !== "result") || (mode === "result" && xatoTartib)) return;
@@ -1337,6 +1340,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const jami = questions.length + all.reduce((n, r) => n + r.total, 0);
     const local = kidStars(togri, jami);
     markLessonDone(topicCode, local);
+    tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan));   // REV255: qaysi tilda o'rganildi
     // REV110: o'rgangan so'zlarini eslab qolamiz — keyingi dars boshida ustoz shulardan so'raydi (faqat til darsida)
     eslab({ code: topicCode, mavzu: lesson?.topic?.mavzu || "", sozlar: darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [] });
     const sozlar = bugungiSozlar();

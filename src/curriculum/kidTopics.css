@@ -167,3 +167,6 @@ button.kt-emoji{position:relative}
 .my-natija b{font-size:.9rem}
 .my-natija small{font-size:.7rem;color:#5b6b7c}
 @media (prefers-color-scheme: dark){.my-daraja{background:#18202b;border-color:#2b3a4c}.my-daraja-xalqaro i{background:#22324a;color:#bcd6f5}.lt-darsli{background:#162231;border-color:#2b3a4c}.lt-darsli-izoh,.my-natija small{color:#9fb1c4}}
+/* REV255: o'rganilgan tillar bayroqchalari (karta burchagida) */
+.kt-tillar{position:absolute;bottom:10px;right:12px;display:flex;gap:2px;background:#fff;border-radius:999px;padding:2px 6px;box-shadow:0 1px 4px #0002;font-size:15px;line-height:1.2}
+.kt-tillar i{font-style:normal}

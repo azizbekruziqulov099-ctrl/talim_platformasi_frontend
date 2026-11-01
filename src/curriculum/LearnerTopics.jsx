@@ -11,7 +11,7 @@ import {catalogSubjectDetails} from './adminTestCatalog.js';
 import {filterUniversitySubjects, initialUniversityFilter, universityBrowseActive} from './universityFilters.js';
 import { accountRole } from '../auth/loginMemory.js';
 import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopicEmoji } from './kidTopics.js';
-import { lessonDone, lessonStars } from './kidProgress.js';
+import { lessonDone, lessonStars, kalitniEslab, organilganTillar, tilKalit, TIL_BELGI } from './kidProgress.js';
 import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import { KURS, SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
@@ -265,11 +265,13 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
          <small>{och?(n.tur==='imtihon'?__kbUi("Hamma o‘rganganlarimizdan!"):__kbUi("Shu bosqich mavzularidan o‘yin")):__kbUi(n.tur==='imtihon'?"Hamma darslardan keyin ochiladi":"Darslardan keyin ochiladi")}</small>
         </li>;}
        const topic=n.topic;const i=n.i;const target=topicTarget(current,group,topic,type);const yon=(tomon++)%2?'is-r':'is-l';
+       const tk=tilKalit(current?.nom,group.sinf,i);kalitniEslab(target.lesson_code,tk);const tillar=organilganTillar(tk);   /* REV255 */
        const stars=starsOf(topic,target,i);const done=doneOf(topic,target,i);const isNext=i===next;/* REV122: admin uchun hamma mavzu ochiq */const locked=!preview&&!user?.is_admin&&topic.dars_bor&&!unlock[i]?.open;const review=isReviewTopic(topic.nomi);
        const open=()=>{if(locked){const h=todayProgress(plan,planFan)?.reja;sayName(h?.turi==='keyin'&&h.keyingi?`${__kbUi("Bu dars shu kuni ochiladi")}: ${__kbUi(h.keyingi)}`:__kbUi("Bu dars ertaga ochiladi"));return;}if(topic.dars_bor)openLesson(group,topic);};
        return <li key={catalogTopicKey(topic)} ref={isNext?nextRef:undefined} className={`kt-card ${yon} ${done?'is-done':''} ${isNext?'is-next':''} ${locked?'is-locked':''} ${review?'is-review':''}`} style={{'--kt-bg':review?'#EDE3FF':kidTopicColor(i)}}
         onClick={e=>{if(e.target.closest('button'))return;open();}}>
         <span className="kt-no">{done?'✓':locked?'🔒':i+1}</span>
+        {tillar.length>0&&<span className="kt-tillar" title={__kbUi("O‘rganilgan tillar")} aria-label={`${__kbUi("O‘rganilgan tillar")}: ${tillar.join(', ')}`}>{tillar.map(t=><i key={t}>{TIL_BELGI[t]}</i>)}</span>}
         {isNext&&<span className="kt-today">{__kbUi("Bugun shu!")}</span>}
         <button type="button" className="kt-emoji" aria-label={__kbUi(locked?"Ertaga ochiladi":"O‘rganamiz")} disabled={!topic.dars_bor} onClick={open}>{kidTopicEmoji(topic.nomi,i)}{!locked&&topic.dars_bor&&<span className="kt-play-badge" aria-hidden="true">▶</span>}</button>
         <p className="kt-title"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>
