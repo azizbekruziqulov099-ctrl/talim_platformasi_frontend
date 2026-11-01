@@ -34,7 +34,36 @@ function emojiXarita() {
 }
 
 /** Rasm qaysi so'zniki: inglizcha so'z (kitobdagi «🍎|apple») yoki emoji orqali. */
+
+// REV243: 662 ta belgining rasmini ko'z bilan tekshirib chiqildi (2–7 yoshdagi barcha kitoblar). Noto'g'ri bog'langanlari:
+// qiymat — to'g'ri rasm; null — mos rasm yo'q (belgining o'zi ko'rinadi; rassom chizguncha).
+export const BELGI_TUZATISH = {
+  // REV243: noto'g'ri bog'langan rasmlar
+  "🤔": "d_y-thinking-face", "🐘": "d_elephant", "👏": "d_y-clapping-hands-sign", "👍": "d_y-thumbs-up-sign", "🤝": "d_y-handshake", "🏀": "d_y-basketball-and-hoop",   // so'zsiz belgi — oddiy rasm
+  "🧊": "d_ice-cube", "🐈": "cat", "🐱": "cat", "💧": "d_water-splash-puddle", "🍽": "d_fork-and-knife", "😀": "d_xursand", "🔢": "d_y-input-symbol-for-numbers",
+  // REV244: rassomning yangi rasmlari — sanash uchun BITTALIK narsalar, savol/javob belgilari, raqam kartochkalari
+  "🧱": "d_y-single-block",
+  "🧦": "d_y-single-sock",
+  "👟": "d_y-single-sneaker",
+  "🧤": "d_y-single-glove",
+  "🪙": "d_y-single-coin",
+  "🍒": "d_y-single-cherry",
+  "🍇": "d_y-single-grape",
+  "🖍": "d_y-single-colored-pencil",
+  "🪵": "d_y-single-stick",
+  "🦵": "d_y-whole-leg",
+  "🪑": "d_y-single-chair",
+  "❓": "d_y-question-mark",
+  "✅": "d_y-check-mark",
+  "❌": "d_y-cross-mark",
+  "👦": "d_y-single-boy",
+  "🦢": "d_y-number-2-swan",
+  "〰": "d_y-number-3-bird",
+};
+
 export function sozId({ soz = "", emoji = "" } = {}) {
+  const tz = tozala(emoji);
+  if (tz && Object.prototype.hasOwnProperty.call(BELGI_TUZATISH, tz) && !soz) return BELGI_TUZATISH[tz];
   const w = sozNorm(soz);
   if (w && SOZLAR[w]) return w;
   const ibora = iboraNorm(soz);
@@ -102,6 +131,7 @@ export function emojiRasm(emoji, rasmlar, soz = "") {
   if (salom && rasmlar?.[salom]) return { id: salom, src: rasmlar[salom] };
   const e0 = tozala(emoji);
   if (!e0 || /\s/.test(e0)) return null;
+  if (Object.prototype.hasOwnProperty.call(BELGI_TUZATISH, e0)) { const t = BELGI_TUZATISH[e0]; return t && rasmlar?.[t] ? { id: t, src: rasmlar[t] } : null; }
   const e = OXSHASH[e0] || e0;   // REV153: o'xshash belgi — bir xil rasm (🐇 → 🐰, 💚 → 🟢)
   // REV151: bir emoji bir nechta dars so'zida (👋 Hello / 👋 Goodbye) — yonidagi so'z bo'yicha aniqlanadi
   const ibora = iboraNorm(soz);

@@ -1192,7 +1192,288 @@ import d_m_yuvmoq from "./dars/rasm/m-yuvmoq.webp";
 import d_m_zamonaviy from "./dars/rasm/m-zamonaviy.webp";
 import d_m_zina from "./dars/rasm/m-zina.webp";
 import d_m_zinapoya from "./dars/rasm/m-zinapoya.webp";
+// REV244: rassomning 140 ta yangi rasmi (yetishmagan belgilar va sanash uchun bittalik narsalar)
+import d_y_clockwise_rightwards_and_leftwards_open_circle_arrows from "./dars/rasm/y-clockwise-rightwards-and-leftwards-open-circle-arrows.webp";
+import d_y_heavy_black_heart from "./dars/rasm/y-heavy-black-heart.webp";
+import d_y_clapping_hands_sign from "./dars/rasm/y-clapping-hands-sign.webp";
+import d_y_black_rightwards_arrow from "./dars/rasm/y-black-rightwards-arrow.webp";
+import d_y_thinking_face from "./dars/rasm/y-thinking-face.webp";
+import d_y_performing_arts from "./dars/rasm/y-performing-arts.webp";
+import d_y_thumbs_up_sign from "./dars/rasm/y-thumbs-up-sign.webp";
+import d_y_input_symbol_for_numbers from "./dars/rasm/y-input-symbol-for-numbers.webp";
+import d_y_handshake from "./dars/rasm/y-handshake.webp";
+import d_y_raised_hand from "./dars/rasm/y-raised-hand.webp";
+import d_y_elephant from "./dars/rasm/y-elephant.webp";
+import d_y_upwards_black_arrow from "./dars/rasm/y-upwards-black-arrow.webp";
+import d_y_leftwards_black_arrow from "./dars/rasm/y-leftwards-black-arrow.webp";
+import d_y_pilot from "./dars/rasm/y-pilot.webp";
+import d_y_basketball_and_hoop from "./dars/rasm/y-basketball-and-hoop.webp";
+import d_y_heavy_minus_sign from "./dars/rasm/y-heavy-minus-sign.webp";
+import d_y_farmer from "./dars/rasm/y-farmer.webp";
+import d_y_sun_with_face from "./dars/rasm/y-sun-with-face.webp";
+import d_y_open_hands_sign from "./dars/rasm/y-open-hands-sign.webp";
+import d_y_raised_hand_with_fingers_splayed from "./dars/rasm/y-raised-hand-with-fingers-splayed.webp";
+import d_y_no_entry_sign from "./dars/rasm/y-no-entry-sign.webp";
+import d_y_beach_with_umbrella from "./dars/rasm/y-beach-with-umbrella.webp";
+import d_y_train from "./dars/rasm/y-train.webp";
+import d_y_spider from "./dars/rasm/y-spider.webp";
+import d_y_multiple_musical_notes from "./dars/rasm/y-multiple-musical-notes.webp";
+import d_y_sparkles from "./dars/rasm/y-sparkles.webp";
+import d_y_cow from "./dars/rasm/y-cow.webp";
+import d_y_snowman_without_snow from "./dars/rasm/y-snowman-without-snow.webp";
+import d_y_heart_with_ribbon from "./dars/rasm/y-heart-with-ribbon.webp";
+import d_y_railway_car from "./dars/rasm/y-railway-car.webp";
+import d_y_left_pointing_magnifying_glass from "./dars/rasm/y-left-pointing-magnifying-glass.webp";
+import d_y_jigsaw_puzzle_piece from "./dars/rasm/y-jigsaw-puzzle-piece.webp";
+import d_y_downwards_black_arrow from "./dars/rasm/y-downwards-black-arrow.webp";
+import d_y_heavy_plus_sign from "./dars/rasm/y-heavy-plus-sign.webp";
+import d_y_anticlockwise_downwards_and_upwards_open_circle_arrows from "./dars/rasm/y-anticlockwise-downwards-and-upwards-open-circle-arrows.webp";
+import d_y_trophy from "./dars/rasm/y-trophy.webp";
+import d_y_goal_net from "./dars/rasm/y-goal-net.webp";
+import d_y_rabbit from "./dars/rasm/y-rabbit.webp";
+import d_y_raised_back_of_hand from "./dars/rasm/y-raised-back-of-hand.webp";
+import d_y_back_with_leftwards_arrow_above from "./dars/rasm/y-back-with-leftwards-arrow-above.webp";
+import d_y_heavy_equals_sign from "./dars/rasm/y-heavy-equals-sign.webp";
+import d_y_heavy_large_circle from "./dars/rasm/y-heavy-large-circle.webp";
+import d_y_juggling from "./dars/rasm/y-juggling.webp";
+import d_y_family from "./dars/rasm/y-family.webp";
+import d_y_horse from "./dars/rasm/y-horse.webp";
+import d_y_black_large_square from "./dars/rasm/y-black-large-square.webp";
+import d_y_white_left_pointing_backhand_index from "./dars/rasm/y-white-left-pointing-backhand-index.webp";
+import d_y_microscope from "./dars/rasm/y-microscope.webp";
+import d_y_black_square_button from "./dars/rasm/y-black-square-button.webp";
+import d_y_white_hexagon from "./dars/rasm/y-white-hexagon.webp";
+import d_y_sleuth_or_spy from "./dars/rasm/y-sleuth-or-spy.webp";
+import d_y_new_moon_symbol from "./dars/rasm/y-new-moon-symbol.webp";
+import d_y_chopsticks from "./dars/rasm/y-chopsticks.webp";
+import d_y_victory_hand from "./dars/rasm/y-victory-hand.webp";
+import d_y_black_pentagon from "./dars/rasm/y-black-pentagon.webp";
+import d_y_umbrella_with_rain_drops from "./dars/rasm/y-umbrella-with-rain-drops.webp";
+import d_y_shortcake from "./dars/rasm/y-shortcake.webp";
+import d_y_white_down_pointing_backhand_index from "./dars/rasm/y-white-down-pointing-backhand-index.webp";
+import d_y_shopping_bags from "./dars/rasm/y-shopping-bags.webp";
+import d_y_horse_racing from "./dars/rasm/y-horse-racing.webp";
+import d_y_face_with_stuck_out_tongue_and_tightly_closed_eyes from "./dars/rasm/y-face-with-stuck-out-tongue-and-tightly-closed-eyes.webp";
+import d_y_white_up_pointing_backhand_index from "./dars/rasm/y-white-up-pointing-backhand-index.webp";
+import d_y_speaking_head_in_silhouette from "./dars/rasm/y-speaking-head-in-silhouette.webp";
+import d_y_chains from "./dars/rasm/y-chains.webp";
+import d_y_mechanic from "./dars/rasm/y-mechanic.webp";
+import d_y_face_with_open_mouth from "./dars/rasm/y-face-with-open-mouth.webp";
+import d_y_white_chess_knight from "./dars/rasm/y-white-chess-knight.webp";
+import d_y_hammer_and_wrench from "./dars/rasm/y-hammer-and-wrench.webp";
+import d_y_white_chess_rook from "./dars/rasm/y-white-chess-rook.webp";
+import d_y_thong_sandal from "./dars/rasm/y-thong-sandal.webp";
+import d_y_face_without_mouth from "./dars/rasm/y-face-without-mouth.webp";
+import d_y_face_with_tears_of_joy from "./dars/rasm/y-face-with-tears-of-joy.webp";
+import d_y_chequered_flag from "./dars/rasm/y-chequered-flag.webp";
+import d_y_white_chess_bishop from "./dars/rasm/y-white-chess-bishop.webp";
+import d_y_large_blue_diamond from "./dars/rasm/y-large-blue-diamond.webp";
+import d_y_tennis_racquet_and_ball from "./dars/rasm/y-tennis-racquet-and-ball.webp";
+import d_y_bar_chart from "./dars/rasm/y-bar-chart.webp";
+import d_y_hair_pick from "./dars/rasm/y-hair-pick.webp";
+import d_y_top_hat from "./dars/rasm/y-top-hat.webp";
+import d_y_clipboard from "./dars/rasm/y-clipboard.webp";
+import d_y_black_chess_pawn from "./dars/rasm/y-black-chess-pawn.webp";
+import d_y_grinning_face_with_one_large_and_one_small_eye from "./dars/rasm/y-grinning-face-with-one-large-and-one-small-eye.webp";
+import d_y_raised_hand_with_part_between_middle_and_ring_fingers from "./dars/rasm/y-raised-hand-with-part-between-middle-and-ring-fingers.webp";
+import d_y_womans_clothes from "./dars/rasm/y-womans-clothes.webp";
+import d_y_battery from "./dars/rasm/y-battery.webp";
+import d_y_twisted_rightwards_arrows from "./dars/rasm/y-twisted-rightwards-arrows.webp";
+import d_y_polar_bear from "./dars/rasm/y-polar-bear.webp";
+import d_y_curly_loop from "./dars/rasm/y-curly-loop.webp";
+import d_y_persevering_face from "./dars/rasm/y-persevering-face.webp";
+import d_y_pirate_flag from "./dars/rasm/y-pirate-flag.webp";
+import d_y_christmas_tree from "./dars/rasm/y-christmas-tree.webp";
+import d_y_open_lock from "./dars/rasm/y-open-lock.webp";
+import d_y_white_chess_king from "./dars/rasm/y-white-chess-king.webp";
+import d_y_palm_down_hand from "./dars/rasm/y-palm-down-hand.webp";
+import d_y_candle from "./dars/rasm/y-candle.webp";
+import d_y_hot_dog from "./dars/rasm/y-hot-dog.webp";
+import d_y_woman_with_bunny_ears from "./dars/rasm/y-woman-with-bunny-ears.webp";
+import d_y_file_cabinet from "./dars/rasm/y-file-cabinet.webp";
+import d_y_lab_coat from "./dars/rasm/y-lab-coat.webp";
+import d_y_toolbox from "./dars/rasm/y-toolbox.webp";
+import d_y_no_mobile_phones from "./dars/rasm/y-no-mobile-phones.webp";
+import d_y_tired_face from "./dars/rasm/y-tired-face.webp";
+import d_y_disappointed_face from "./dars/rasm/y-disappointed-face.webp";
+import d_y_white_chess_queen from "./dars/rasm/y-white-chess-queen.webp";
+import d_y_white_chess_pawn from "./dars/rasm/y-white-chess-pawn.webp";
+import d_y_heavy_multiplication_x from "./dars/rasm/y-heavy-multiplication-x.webp";
+import d_y_shield from "./dars/rasm/y-shield.webp";
+import d_y_hammer from "./dars/rasm/y-hammer.webp";
+import d_y_carpentry_saw from "./dars/rasm/y-carpentry-saw.webp";
+import d_y_grinning_face_with_smiling_eyes from "./dars/rasm/y-grinning-face-with-smiling-eyes.webp";
+import d_y_upside_down_face from "./dars/rasm/y-upside-down-face.webp";
+import d_y_mans_shoe from "./dars/rasm/y-mans-shoe.webp";
+import d_y_radio_button from "./dars/rasm/y-radio-button.webp";
+import d_y_circus_tent from "./dars/rasm/y-circus-tent.webp";
+import d_y_end_with_leftwards_arrow_above from "./dars/rasm/y-end-with-leftwards-arrow-above.webp";
+import d_y_recreational_vehicle from "./dars/rasm/y-recreational-vehicle.webp";
+import d_y_heavy_exclamation_mark_symbol from "./dars/rasm/y-heavy-exclamation-mark-symbol.webp";
+import d_y_building_construction from "./dars/rasm/y-building-construction.webp";
+import d_y_amphora from "./dars/rasm/y-amphora.webp";
+import d_y_single_block from "./dars/rasm/y-single-block.webp";
+import d_y_single_sock from "./dars/rasm/y-single-sock.webp";
+import d_y_single_sneaker from "./dars/rasm/y-single-sneaker.webp";
+import d_y_single_glove from "./dars/rasm/y-single-glove.webp";
+import d_y_single_coin from "./dars/rasm/y-single-coin.webp";
+import d_y_single_cherry from "./dars/rasm/y-single-cherry.webp";
+import d_y_single_grape from "./dars/rasm/y-single-grape.webp";
+import d_y_grape_bunch from "./dars/rasm/y-grape-bunch.webp";
+import d_y_single_colored_pencil from "./dars/rasm/y-single-colored-pencil.webp";
+import d_y_single_stick from "./dars/rasm/y-single-stick.webp";
+import d_y_whole_leg from "./dars/rasm/y-whole-leg.webp";
+import d_y_single_chair from "./dars/rasm/y-single-chair.webp";
+import d_y_question_mark from "./dars/rasm/y-question-mark.webp";
+import d_y_check_mark from "./dars/rasm/y-check-mark.webp";
+import d_y_cross_mark from "./dars/rasm/y-cross-mark.webp";
+import d_y_number_2_swan from "./dars/rasm/y-number-2-swan.webp";
+import d_y_number_3_bird from "./dars/rasm/y-number-3-bird.webp";
+import d_y_number_1_card from "./dars/rasm/y-number-1-card.webp";
+import d_y_number_2_card from "./dars/rasm/y-number-2-card.webp";
+import d_y_number_3_card from "./dars/rasm/y-number-3-card.webp";
+import d_y_single_boy from "./dars/rasm/y-single-boy.webp";
 export const DARS_RASM = {
+  "d_y-clockwise-rightwards-and-leftwards-open-circle-arrows": d_y_clockwise_rightwards_and_leftwards_open_circle_arrows,
+  "d_y-heavy-black-heart": d_y_heavy_black_heart,
+  "d_y-clapping-hands-sign": d_y_clapping_hands_sign,
+  "d_y-black-rightwards-arrow": d_y_black_rightwards_arrow,
+  "d_y-thinking-face": d_y_thinking_face,
+  "d_y-performing-arts": d_y_performing_arts,
+  "d_y-thumbs-up-sign": d_y_thumbs_up_sign,
+  "d_y-input-symbol-for-numbers": d_y_input_symbol_for_numbers,
+  "d_y-handshake": d_y_handshake,
+  "d_y-raised-hand": d_y_raised_hand,
+  "d_y-elephant": d_y_elephant,
+  "d_y-upwards-black-arrow": d_y_upwards_black_arrow,
+  "d_y-leftwards-black-arrow": d_y_leftwards_black_arrow,
+  "d_y-pilot": d_y_pilot,
+  "d_y-basketball-and-hoop": d_y_basketball_and_hoop,
+  "d_y-heavy-minus-sign": d_y_heavy_minus_sign,
+  "d_y-farmer": d_y_farmer,
+  "d_y-sun-with-face": d_y_sun_with_face,
+  "d_y-open-hands-sign": d_y_open_hands_sign,
+  "d_y-raised-hand-with-fingers-splayed": d_y_raised_hand_with_fingers_splayed,
+  "d_y-no-entry-sign": d_y_no_entry_sign,
+  "d_y-beach-with-umbrella": d_y_beach_with_umbrella,
+  "d_y-train": d_y_train,
+  "d_y-spider": d_y_spider,
+  "d_y-multiple-musical-notes": d_y_multiple_musical_notes,
+  "d_y-sparkles": d_y_sparkles,
+  "d_y-cow": d_y_cow,
+  "d_y-snowman-without-snow": d_y_snowman_without_snow,
+  "d_y-heart-with-ribbon": d_y_heart_with_ribbon,
+  "d_y-railway-car": d_y_railway_car,
+  "d_y-left-pointing-magnifying-glass": d_y_left_pointing_magnifying_glass,
+  "d_y-jigsaw-puzzle-piece": d_y_jigsaw_puzzle_piece,
+  "d_y-downwards-black-arrow": d_y_downwards_black_arrow,
+  "d_y-heavy-plus-sign": d_y_heavy_plus_sign,
+  "d_y-anticlockwise-downwards-and-upwards-open-circle-arrows": d_y_anticlockwise_downwards_and_upwards_open_circle_arrows,
+  "d_y-trophy": d_y_trophy,
+  "d_y-goal-net": d_y_goal_net,
+  "d_y-rabbit": d_y_rabbit,
+  "d_y-raised-back-of-hand": d_y_raised_back_of_hand,
+  "d_y-back-with-leftwards-arrow-above": d_y_back_with_leftwards_arrow_above,
+  "d_y-heavy-equals-sign": d_y_heavy_equals_sign,
+  "d_y-heavy-large-circle": d_y_heavy_large_circle,
+  "d_y-juggling": d_y_juggling,
+  "d_y-family": d_y_family,
+  "d_y-horse": d_y_horse,
+  "d_y-black-large-square": d_y_black_large_square,
+  "d_y-white-left-pointing-backhand-index": d_y_white_left_pointing_backhand_index,
+  "d_y-microscope": d_y_microscope,
+  "d_y-black-square-button": d_y_black_square_button,
+  "d_y-white-hexagon": d_y_white_hexagon,
+  "d_y-sleuth-or-spy": d_y_sleuth_or_spy,
+  "d_y-new-moon-symbol": d_y_new_moon_symbol,
+  "d_y-chopsticks": d_y_chopsticks,
+  "d_y-victory-hand": d_y_victory_hand,
+  "d_y-black-pentagon": d_y_black_pentagon,
+  "d_y-umbrella-with-rain-drops": d_y_umbrella_with_rain_drops,
+  "d_y-shortcake": d_y_shortcake,
+  "d_y-white-down-pointing-backhand-index": d_y_white_down_pointing_backhand_index,
+  "d_y-shopping-bags": d_y_shopping_bags,
+  "d_y-horse-racing": d_y_horse_racing,
+  "d_y-face-with-stuck-out-tongue-and-tightly-closed-eyes": d_y_face_with_stuck_out_tongue_and_tightly_closed_eyes,
+  "d_y-white-up-pointing-backhand-index": d_y_white_up_pointing_backhand_index,
+  "d_y-speaking-head-in-silhouette": d_y_speaking_head_in_silhouette,
+  "d_y-chains": d_y_chains,
+  "d_y-mechanic": d_y_mechanic,
+  "d_y-face-with-open-mouth": d_y_face_with_open_mouth,
+  "d_y-white-chess-knight": d_y_white_chess_knight,
+  "d_y-hammer-and-wrench": d_y_hammer_and_wrench,
+  "d_y-white-chess-rook": d_y_white_chess_rook,
+  "d_y-thong-sandal": d_y_thong_sandal,
+  "d_y-face-without-mouth": d_y_face_without_mouth,
+  "d_y-face-with-tears-of-joy": d_y_face_with_tears_of_joy,
+  "d_y-chequered-flag": d_y_chequered_flag,
+  "d_y-white-chess-bishop": d_y_white_chess_bishop,
+  "d_y-large-blue-diamond": d_y_large_blue_diamond,
+  "d_y-tennis-racquet-and-ball": d_y_tennis_racquet_and_ball,
+  "d_y-bar-chart": d_y_bar_chart,
+  "d_y-hair-pick": d_y_hair_pick,
+  "d_y-top-hat": d_y_top_hat,
+  "d_y-clipboard": d_y_clipboard,
+  "d_y-black-chess-pawn": d_y_black_chess_pawn,
+  "d_y-grinning-face-with-one-large-and-one-small-eye": d_y_grinning_face_with_one_large_and_one_small_eye,
+  "d_y-raised-hand-with-part-between-middle-and-ring-fingers": d_y_raised_hand_with_part_between_middle_and_ring_fingers,
+  "d_y-womans-clothes": d_y_womans_clothes,
+  "d_y-battery": d_y_battery,
+  "d_y-twisted-rightwards-arrows": d_y_twisted_rightwards_arrows,
+  "d_y-polar-bear": d_y_polar_bear,
+  "d_y-curly-loop": d_y_curly_loop,
+  "d_y-persevering-face": d_y_persevering_face,
+  "d_y-pirate-flag": d_y_pirate_flag,
+  "d_y-christmas-tree": d_y_christmas_tree,
+  "d_y-open-lock": d_y_open_lock,
+  "d_y-white-chess-king": d_y_white_chess_king,
+  "d_y-palm-down-hand": d_y_palm_down_hand,
+  "d_y-candle": d_y_candle,
+  "d_y-hot-dog": d_y_hot_dog,
+  "d_y-woman-with-bunny-ears": d_y_woman_with_bunny_ears,
+  "d_y-file-cabinet": d_y_file_cabinet,
+  "d_y-lab-coat": d_y_lab_coat,
+  "d_y-toolbox": d_y_toolbox,
+  "d_y-no-mobile-phones": d_y_no_mobile_phones,
+  "d_y-tired-face": d_y_tired_face,
+  "d_y-disappointed-face": d_y_disappointed_face,
+  "d_y-white-chess-queen": d_y_white_chess_queen,
+  "d_y-white-chess-pawn": d_y_white_chess_pawn,
+  "d_y-heavy-multiplication-x": d_y_heavy_multiplication_x,
+  "d_y-shield": d_y_shield,
+  "d_y-hammer": d_y_hammer,
+  "d_y-carpentry-saw": d_y_carpentry_saw,
+  "d_y-grinning-face-with-smiling-eyes": d_y_grinning_face_with_smiling_eyes,
+  "d_y-upside-down-face": d_y_upside_down_face,
+  "d_y-mans-shoe": d_y_mans_shoe,
+  "d_y-radio-button": d_y_radio_button,
+  "d_y-circus-tent": d_y_circus_tent,
+  "d_y-end-with-leftwards-arrow-above": d_y_end_with_leftwards_arrow_above,
+  "d_y-recreational-vehicle": d_y_recreational_vehicle,
+  "d_y-heavy-exclamation-mark-symbol": d_y_heavy_exclamation_mark_symbol,
+  "d_y-building-construction": d_y_building_construction,
+  "d_y-amphora": d_y_amphora,
+  "d_y-single-block": d_y_single_block,
+  "d_y-single-sock": d_y_single_sock,
+  "d_y-single-sneaker": d_y_single_sneaker,
+  "d_y-single-glove": d_y_single_glove,
+  "d_y-single-coin": d_y_single_coin,
+  "d_y-single-cherry": d_y_single_cherry,
+  "d_y-single-grape": d_y_single_grape,
+  "d_y-grape-bunch": d_y_grape_bunch,
+  "d_y-single-colored-pencil": d_y_single_colored_pencil,
+  "d_y-single-stick": d_y_single_stick,
+  "d_y-whole-leg": d_y_whole_leg,
+  "d_y-single-chair": d_y_single_chair,
+  "d_y-question-mark": d_y_question_mark,
+  "d_y-check-mark": d_y_check_mark,
+  "d_y-cross-mark": d_y_cross_mark,
+  "d_y-number-2-swan": d_y_number_2_swan,
+  "d_y-number-3-bird": d_y_number_3_bird,
+  "d_y-number-1-card": d_y_number_1_card,
+  "d_y-number-2-card": d_y_number_2_card,
+  "d_y-number-3-card": d_y_number_3_card,
+  "d_y-single-boy": d_y_single_boy,
   "d_apple-please": d_apple_please,
   "d_basket": d_basket,
   "d_bathroom": d_bathroom,
