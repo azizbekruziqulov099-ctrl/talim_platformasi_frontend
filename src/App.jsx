@@ -533,6 +533,7 @@ const bolaQurilmasi = () => { try { return window.localStorage.getItem(BOLA_QURI
 // REV162: ota-ona markazi — kundalik (AI bahosi), haftalik reja, kurslar (narx, rozilik, to'lov), «O'zingiz sinab ko'ring».
 const BolaMarkazi = _samtmLazyRetry(() => import("./parent/BolaMarkazi.jsx"));
 const BogchaNarxlar = _samtmLazyRetry(() => import("./admin/BogchaNarxlar.jsx"));
+const BazaHolati = _samtmLazyRetry(() => import("./admin/BazaHolati.jsx"));   // REV248
 // REV103: bog'cha bolasining kunlik vaqti (dars + erkin o'yin) — vaqt tugasa ekran yopiladi, «Ertaga uchrashamiz».
 const KidTimeGuard = _samtmLazyRetry(() => import("./kid/KidTimeGuard.jsx"));
 const lazyAdminTestTool = (exportName) =>
@@ -13115,6 +13116,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_sertifikat", nom: "Sertifikat guruhlari", ikon: GraduationCap },   // REV209
       { kalit: "admin_bogcha", nom: "Bog‘cha narxlari", ikon: Wallet },   // REV162
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
+      { kalit: "admin_baza", nom: "Baza holati", ikon: BarChart3 },   // REV248
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
             { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
     ];
@@ -14917,6 +14919,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
       {korinishRoli === "admin" && tab === "admin_tv" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminKabutarTv token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_sertifikat" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminSertifikat token={token} /></React.Suspense>}
+      {korinishRoli === "admin" && tab === "admin_baza" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BazaHolati apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode, scopeId) => { setShablonOldindanTanlangan({scopeId,codes:[topicCode]}); setTab("admin"); }} />
