@@ -49,6 +49,7 @@ for (const row of [...TRANSLATION_ROWS, ...EXTRA_TRANSLATION_ROWS, ...LOGIN_TRAN
 export const INTERFACE_LABEL_COUNT = dictionaries.size;
 export function hasInterfaceTranslation(text) { return dictionaries.has(normalizeInterfaceKey(text)); }
 export function translateInterface(text, locale = 'uz', values) {
+  if (/^\s*(?:a\s+)?kabutar\s*$/i.test(String(text ?? ''))) return String(text);   // REV247: brend nomi tarjima qilinmaydi
   if (typeof text !== 'string') return text;
   const translated = dictionaries.get(normalizeInterfaceKey(text))?.[locale];
   let output = translated == null || locale === 'uz' ? text : `${text.match(/^\s*/)?.[0] || ''}${translated}${text.match(/\s*$/)?.[0] || ''}`;

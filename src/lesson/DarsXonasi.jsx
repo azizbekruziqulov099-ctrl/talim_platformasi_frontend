@@ -294,7 +294,26 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const qolgan = [...boshi.qolgan];
     const kirishlar = [];
     while (qolgan.length && qolgan[0]?.turi === "kirish") { const t = kirishniTozala(qolgan.shift()); if (t) kirishlar.push(t); }
-    const list = [...opening, ...kirishlar, ...boshi.takror, ...qolgan];
+    let list = [...opening, ...kirishlar, ...boshi.takror, ...qolgan];
+    // REV247: «Top-chi / Men aytaman — sen bos» qadami (eski kitoblarda 🧩 bilan qolgan) — o'yin BO'LMASA ham shunday deyilardi.
+    // Endi: doskadagi rasmlar shu darsning so'zlariga ANIQ mos bo'lsa — haqiqiy o'yin; 2 tadan kam bo'lsa — qadam olib tashlanadi.
+    if (!darsTil) {
+      const turlar = list.map((x) => stepKind(x, lesson?.topic?.mavzu));
+      const sozlar = lessonWords(list, turlar);
+      list = list.flatMap((x) => {
+        const matn = `${x?.sarlavha || ""} ${x?.ovoz || ""}`;
+        if (!/top-?chi|men aytaman|i say|я скажу|tap the picture|найди картинку/i.test(stripSpeechTags(matn)) || x?._nishon) return [x];
+        const nishon = [];
+        for (const g of String(x?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").split(/\s{2,}|\n+|\s+/).map((t) => t.trim()).filter(Boolean)) {
+          const key = g.replace(/\uFE0F/g, "");
+          const word = sozlar.get(key);
+          if (!word || nishon.some((n) => n.key === key)) continue;
+          const a = sozId({ emoji: key }); const b = matnId(stripSpeechTags(word));
+          if (a && b && a === b) nishon.push({ key, emoji: g, word });
+        }
+        return nishon.length >= 2 ? [{ ...x, turi: "amaliy", sarlavha: "🎲", _nishon: nishon.slice(0, 4) }] : [];
+      });
+    }
     // REV164: bosib topiladigan o'yin yo'q darsga (matematika/mantiq takrori, uy topshirig'i darsi) — xulosadan oldin «Top-chi»
     const dars = list.slice(opening.length);
     // REV232: faqat TIL darsida — matematika/mantiqda rasm-so'z juftligi taxminiy chiqib, noto'g'ri «to'g'ri» belgilanardi
@@ -1496,7 +1515,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     </header>
     {kid && focus && <button type="button" className="dx-rotate" onClick={kengaytir}><i aria-hidden="true">📱</i>{__kbUi("Telefonni yotqizing — dars kattaroq ko‘rinadi")}</button>}
     <div className="dx-steps" role="group" aria-label={__kbUi("Dars qadamlari")}>
-      {steps.map((s, i) => <button key={s.id} type="button" aria-label={`${i + 1}`} onClick={() => { setPlaying(false); go(i, false); }}
+      {steps.map((s, i) => <button key={s.id} type="button" aria-label={`${i + 1}`} onClick={() => { hush(); setPauza(false); setPlaying(true); go(i, true); }}   /* REV247: qadamga o'tilsa — o'sha joydan DARS DAVOM ETADI (pauza holatiga tushmaydi) */
         className={`dx-step ${i < idx || ["test", "result", "end", "ovoz"].includes(mode) ? "is-done" : i === idx ? "is-now" : ""} ${kid ? `k-${kinds[i]}` : ""}`} />)}
     </div>
 
@@ -1668,7 +1687,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           {!USTOZLAR[ustozRef.current] && <div className="dx-avatar">{kid ? <span className="dx-bird" aria-hidden="true"><B e="🕊️" /></span> : <TeacherAvatar />}</div>}
           <div><strong>{USTOZ_ISMI[ustozRef.current]?.[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"] || __kbUi(labels.teacher)}</strong><span className="dx-state"><i />{speaking ? __kbUi("Gapirmoqda…") : playing ? __kbUi("Tinglayapti") : __kbUi("Pauza")}</span></div>
         </div>
-        <div className="dx-bubble">{words.map((w, i) => <span key={i} className={i === word ? "is-on" : ""}>{w} </span>)}</div>
+        {/* REV247: doskada yozuv bo'lsa — pastda takrorlanmaydi (bola bir xil matnni ikki joyda ko'rib chalg'iydi) */}
+        {!String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() && <div className="dx-bubble">{words.map((w, i) => <span key={i} className={i === word ? "is-on" : ""}>{w} </span>)}</div>}
         {!kid && <form className="dx-ask" onSubmit={(e) => { e.preventDefault(); ask(); }}>
           <label htmlFor={`dx-ask-${topicCode}`}>{__kbUi("O‘qituvchiga savol")}{sinfXona && <button type="button" className="dx-ask-yop" onClick={() => setSavolOchiq(false)} aria-label={__kbUi("Yopish")}>✕</button>}</label>
           <div className="dx-row"><input id={`dx-ask-${topicCode}`} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={__kbUi("Masalan: nega maxraj o‘zgarmaydi?")} disabled={asking} />

@@ -131,6 +131,8 @@ async function flush(){
  finally{clearTimeout(timeout);active=false;if(pending.size)schedule();}
 }
 export function translateUi(text,target='uz',values){
+  // REV247: brend nomi hech qachon tarjima qilinmaydi («A pigeon», «Голубь» emas — Kabutar)
+  if(/^\s*(?:a\s+)?kabutar\s*$/i.test(String(text??''))) return String(text);
  if(typeof text!=='string')return text;text=INTERFACE_ENUMS[text]||text;let output=text;
  if(target!=='uz'){
   if(hasInterfaceTranslation(text))output=translateInterface(text,target);
