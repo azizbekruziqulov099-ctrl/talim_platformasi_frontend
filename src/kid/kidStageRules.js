@@ -242,8 +242,18 @@ export function qoshimchaOyin(steps = [], kinds = [], ovoz = "") {
     _nishon: words.map(([key, word]) => ({ key, emoji: key, word })) };
 }
 
+// REV254: o'yin doskasi o'zi «🥄 qoshiq» qatorlaridan iborat bo'lsa — nishonlar shu qatorlardan (so'z darsning boshqa qadamiga bog'liq emas)
+export function doskaJuftlari(doska = "") {
+  const out = [];
+  for (const q of String(doska || "").replace(TAGS_ALL, "").split(/\n+/)) {
+    const m = /^\s*(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s+(.+?)\s*$/u.exec(q);
+    if (m && !out.some((x) => x.key === m[1].replace(/\uFE0F/g, ""))) out.push({ key: m[1].replace(/\uFE0F/g, ""), emoji: m[1], word: m[2] });
+  }
+  return out;
+}
 export function gameTargets(step, steps = [], kinds = []) {
   if (Array.isArray(step?._nishon) && step._nishon.length >= 2) return step._nishon.map(tozaNishon);
+  if (/🎲/u.test(String(step?.sarlavha || ""))) { const j = doskaJuftlari(step?.doska); if (j.length >= 2) return j; }
   const words = lessonWords(steps, kinds);
   const out = [];
   for (const g of String(step?.doska || "").replace(TAGS_ALL, "").split(/\s{2,}|\n+/).map((x) => x.trim()).filter(Boolean)) {

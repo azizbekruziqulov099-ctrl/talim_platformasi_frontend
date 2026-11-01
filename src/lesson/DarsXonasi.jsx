@@ -40,12 +40,17 @@ import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { K as DIQQAT, kutishVaqtlari } from "../kid/diqqatGaplari.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
+import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { KABU_ISMI } from "../kid/robotKabuMarkup.js";
 // REV242: ruscha interfeysda Kabu — Голу, inglizchada — Pidgi (dars matnidagi ism ham, ovozda ham)
+// REV254: yangi alifbodagi so'z (tiş çötkasi) rasm lug'atida eski yozuvda (tish cho‘tkasi) — solishtirishdan oldin qaytariladi
+function eskiYozuv(w = "") {
+  return String(w).replace(/Ş/g, "Sh").replace(/ş/g, "sh").replace(/Ç/g, "Ch").replace(/ç/g, "ch")
+    .replace(/Ö/g, "O‘").replace(/ö/g, "o‘").replace(/Ğ/g, "G‘").replace(/ğ/g, "g‘");
+}
 function kabuIsmiQoy(d, loc = "uz") {
   const t = String(loc || "uz").slice(0, 2);
   if (!["ru", "en"].includes(t) || !d) return d;
@@ -304,11 +309,16 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         const matn = `${x?.sarlavha || ""} ${x?.ovoz || ""}`;
         if (!/top-?chi|men aytaman|i say|я скажу|tap the picture|найди картинку/i.test(stripSpeechTags(matn)) || x?._nishon) return [x];
         const nishon = [];
-        for (const g of String(x?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").split(/\s{2,}|\n+|\s+/).map((t) => t.trim()).filter(Boolean)) {
+        // REV254: «🥄 qoshiq» qatorlari — so'z doskaning o'zida
+        for (const j of doskaJuftlari(x?.doska)) {
+          const a = sozId({ emoji: j.key }); const b = matnId(eskiYozuv(stripSpeechTags(j.word)));
+          if (a && b && a === b && !nishon.some((n) => n.key === j.key)) nishon.push(j);
+        }
+        for (const g of (nishon.length >= 2 ? "" : String(x?.doska || "")).replace(/\[\/?[a-z]{2}\]/g, "").split(/\s{2,}|\n+|\s+/).map((t) => t.trim()).filter(Boolean)) {
           const key = g.replace(/\uFE0F/g, "");
           const word = sozlar.get(key);
           if (!word || nishon.some((n) => n.key === key)) continue;
-          const a = sozId({ emoji: key }); const b = matnId(stripSpeechTags(word));
+          const a = sozId({ emoji: key }); const b = matnId(eskiYozuv(stripSpeechTags(word)));
           if (a && b && a === b) nishon.push({ key, emoji: g, word });
         }
         return nishon.length >= 2 ? [{ ...x, turi: "amaliy", sarlavha: "🎲", _nishon: nishon.slice(0, 4) }] : [];
@@ -322,7 +332,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV245: «Men aytaman — sen bos» matematika, mantiq, tabiatda ham — faqat AYTILADIGAN SO'Z va RASM aniq mos juftlar
     // (so'zning o'zi ham aynan shu rasmga olib kelsa). Bitta ham shubhali juft o'tmaydi; 2 tadan kam qolsa — o'yin yo'q.
     if (extra && !darsTil) {
-      const mos = (extra._nishon || []).filter((n) => { const a = sozId({ emoji: n.key }); const b = matnId(stripSpeechTags(n.word)); return a && b && a === b; });
+      const mos = (extra._nishon || []).filter((n) => { const a = sozId({ emoji: n.key }); const b = matnId(eskiYozuv(stripSpeechTags(n.word))); return a && b && a === b; });
       extra = mos.length >= 2 ? { ...extra, _nishon: mos.slice(0, 4) } : null;
     }
     if (!extra) return list;
