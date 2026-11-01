@@ -37,6 +37,24 @@ function Yengillatish({ apiBase, token }) {
       </tr>)}</tbody></table>
       {!t.bajarildi ? <button type="button" onClick={tozala} disabled={!!ish || !jami} style={{ marginTop: 12, padding: "10px 16px", borderRadius: 10, border: 0, background: "#C0392B", color: "#fff", fontWeight: 800 }}>{ish === "toza" ? uiT("Tozalanmoqda…") : `🧹 ${uiT("Belgilanganlarni tozalash")} (${mb(jami)})`}</button>
         : <p style={{ color: "#1D9E75", fontWeight: 700 }}>{uiT("Tozalandi. Joy fonda bo‘shatilmoqda — 10–20 daqiqadan keyin «Yangilash» bosing.")}</p>}</>}
+    <Siqish apiBase={apiBase} token={token} />
+  </div>;
+}
+// REV251: fayl hajmini kichraytirish (VACUUM FULL) — jadvallarni bir necha daqiqa qulflaydi, faqat odam yo'q paytda
+function Siqish({ apiBase, token }) {
+  const [h, setH] = useState(null);
+  const url = (b) => `${String(apiBase).replace(/\/+$/, "")}/api/admin/baza_siqish?token=${encodeURIComponent(token)}&boshla=${b}`;
+  const ol = useCallback(async (b = 0) => { try { const r = await fetch(url(b)); setH(await r.json()); } catch { /* */ } }, [apiBase, token]);
+  useEffect(() => { ol(0); }, [ol]);
+  useEffect(() => { if (h?.holat !== "ishlamoqda") return undefined; const t = setInterval(() => ol(0), 5000); return () => clearInterval(t); }, [h?.holat, ol]);
+  const boshla = () => { if (window.confirm(uiT("Bazaning fayl hajmi kichraytiriladi. Bu paytda sayt bir necha daqiqa sekinlashishi yoki kutib qolishi mumkin — faqat foydalanuvchi yo‘q paytda bajaring. Boshlaymizmi?"))) ol(1); };
+  return <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px dashed #E5E1D8" }}>
+    <b>{uiT("Fayl hajmini kichraytirish")}</b>
+    <p style={{ color: "#5F6B76", fontSize: 13, margin: "4px 0 8px" }}>{uiT("Tozalashdan keyin joy bazaning ichida bo‘shaydi. Railway ko‘rsatadigan hajm kamayishi uchun shu tugma — faqat odam yo‘q paytda.")}</p>
+    <button type="button" onClick={boshla} disabled={h?.holat === "ishlamoqda"} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid #E8A33D", background: "#FFF7E8", fontWeight: 700 }}>
+      {h?.holat === "ishlamoqda" ? `⏳ ${uiT("Siqilmoqda")}: ${h.jadval}` : `📦 ${uiT("Kichraytirishni boshlash")}`}</button>
+    {h?.holat === "tugadi" && <span style={{ marginLeft: 10, color: "#1D9E75", fontWeight: 700 }}>✓ {uiT("Tugadi")} ({h.tugadi}) — {uiT("«Yangilash» bosing")}</span>}
+    {h?.xato && <div style={{ color: "#C0392B", fontSize: 12, marginTop: 6 }}>{h.xato}</div>}
   </div>;
 }
 export default function BazaHolati({ apiBase = "", token = "" }) {
