@@ -77,3 +77,6 @@
 .kj-robot.is-til.til-ko .kabu-box{filter:hue-rotate(60deg)}
 .kj-robot.is-til.til-ja .kabu-box{filter:hue-rotate(-180deg) saturate(1.3)}
 @media (prefers-reduced-motion:reduce){.kj-robot{transition:none}}
+
+/* REV255: har Kabu o'z ranglarida — eski rang aylantirish filtri kerak emas */
+.kj-robot.is-til .kabu-box,.kj-robot.is-til[class*="til-"] .kabu-box{filter:none!important}

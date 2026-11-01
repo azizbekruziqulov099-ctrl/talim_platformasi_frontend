@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { kabuMarkup, kabuTuri } from "./robotKabuMarkup.js";   // KABU_MARKUP — har til uchun rangi almashtirilgan nusxa
+import { kabuMarkup, kabuTuri } from "./kabuMillat.js";   // KABU_MARKUP — har til uchun rangi almashtirilgan nusxa
 import "./robotKabu.css";
 
 const MOODS = ["is-talk", "is-wave", "is-think", "is-happy", "is-enc"];

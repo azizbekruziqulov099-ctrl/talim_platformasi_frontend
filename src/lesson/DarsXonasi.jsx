@@ -44,7 +44,7 @@ import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, lesson
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
-import { KABU_ISMI } from "../kid/robotKabuMarkup.js";
+import { KABU_ISMI } from "../kid/kabuMillat.js";
 // REV242: ruscha interfeysda Kabu — Голу, inglizchada — Pidgi (dars matnidagi ism ham, ovozda ham)
 // REV254: yangi alifbodagi so'z (tiş çötkasi) rasm lug'atida eski yozuvda (tish cho‘tkasi) — solishtirishdan oldin qaytariladi
 function eskiYozuv(w = "") {
