@@ -9,8 +9,8 @@ test("mouth overlay rotates with the head tilt", () => {
   assert.match(src("./kid/ustozSahna.css"), /rotate\(var\(--og-r,0deg\)\)/);
   assert.match(src("./kid/UstozSahna.jsx"), /"--og-r": `\$\{p\.og\.r \|\| 0\}deg`/);
   // og'iz har pozada rasmdagi asl og'iz joyida; bosh egilsa — biroz (±12° gacha) buriladi
+  // REV240: yangi rasmlarda og'iz yuz kadrida — og'iz yamog'i (og) faqat eski rasmlar uchun qoldi; yamoq bo'lsa ±13° gacha
   const rs = [...src("./kid/ustozlar.js").matchAll(/og: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, r: (-?[\d.]+),/g)].map((m) => Number(m[1]));
-  assert.equal(rs.length, 18);
   assert.ok(rs.every((r) => Math.abs(r) <= 13));
   // eng katta («baqirgandek») ochilgan shakllar ishlatilmaydi — o'rtacha ochilgan og'iz
   assert.match(src("./kid/UstozSahna.jsx"), /OG_YUMSHOQ = \{ 3: 9, 6: 5, 8: 2 \}/);

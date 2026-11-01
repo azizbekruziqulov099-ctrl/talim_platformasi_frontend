@@ -63,7 +63,7 @@ test('REV153: SVG stiker darsda ishlatilmaydi (REV156: jonli SVG Kabu foydalanuv
   assert.match(src('./kid/RobotKabu.jsx'), /KABU_MARKUP/);
   assert.doesNotMatch(src('./kid/KidStage.jsx'), /<svg/);
   const u = src('./kid/ustozlar.js');
-  assert.match(u, /og: \{ x: /);
+  assert.match(u, /yuz: \{ x: /);   // REV240: har pozada yuz kadrlari
   assert.match(src('./kid/UstozSahna.jsx'), /us-og/);
 });
 

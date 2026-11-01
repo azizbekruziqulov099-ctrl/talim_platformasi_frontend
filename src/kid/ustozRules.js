@@ -8,20 +8,23 @@ const TIL_NOMI = [
   ["de", /nemis|german|deutsch|немец/], ["es", /ispan|spanish|español|испан/], ["ko", /koreys|korean|корей|한국/],
   ["fr", /fransuz|french|français|француз/], ["zh", /xitoy|chinese|китай|中文/], ["ja", /yapon|japan|япон|日本/],
 ];
-export function ustozFor(fan = "") {
+// REV240: izoh tili (interfeys) bo'yicha fan ustozi — ruscha: Dmitriy / Svetlana, inglizcha: Daniel / Oliver
+const FAN_USTOZ = { uz: { mat: "sardor", tab: "malika" }, ru: { mat: "dmitriy", tab: "svetlana" }, en: { mat: "daniel", tab: "oliver" } };
+export function ustozFor(fan = "", iz = "uz") {
   const f = String(fan).toLowerCase();
-  if (/matem|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return "sardor";
-  if (/atrof|tabiat|olam|science|nature|world around|окружа|природ/.test(f)) return "malika";
+  const izTil = /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : (FAN_USTOZ[String(iz || "uz").slice(0, 2)] ? String(iz).slice(0, 2) : "uz");
+  if (/matem|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return FAN_USTOZ[izTil].mat;
+  if (/atrof|tabiat|olam|science|nature|world around|окружа|природ/.test(f)) return FAN_USTOZ[izTil].tab;
   const asosiy = f.replace(/\(\s*izoh[^)]*\)/g, "");   // «Arab tili (izoh: rus)» — arab tili
   const t = TIL_NOMI.find(([, re]) => re.test(asosiy));
-  return t ? TIL_USTOZ[t[0]] : "nilufar";
+  return t ? TIL_USTOZ[t[0]] : IZOH_USTOZ[izTil] || "nilufar";
 }
 
 /**
  * REV181: ikki ustozli til darsi — izoh tili ustozi: o'zbekcha — Nilufar opa, ruscha — Anna, inglizcha — Emily.
  * O'rganilayotgan til izoh tili bilan bir xil bo'lsa (yoki ustoz bitta odam bo'lsa) — ikkinchi ustoz yo'q ("").
  */
-export const IZOH_USTOZ = { uz: "nilufar", ru: "anna", en: "emily" };
+export const IZOH_USTOZ = { uz: "nilufar", ru: "olga", en: "sarah" };   // REV240: izoh — alohida ustozlar (til ustozi bilan chalkashmasin)
 export function ikkinchiUstoz({ til = "", iz = "uz", ustoz = "" } = {}) {
   if (!til) return "";
   const izL = IZOH_USTOZ[iz] ? iz : "uz";
@@ -31,6 +34,7 @@ export function ikkinchiUstoz({ til = "", iz = "uz", ustoz = "" } = {}) {
 }
 
 export const XONA = { sardor: "matematika", nilufar: "onatili", malika: "atrofolam",
+  dmitriy: "matematika", daniel: "matematika", svetlana: "atrofolam", oliver: "atrofolam", olga: "onatili", sarah: "onatili",   // REV240
   ...Object.fromEntries(Object.values(TIL_USTOZ).map((k) => [k, `til_${k}`])) };
 
 /** Poza raqami (rasmdagi tartib): 1 tik turish, 2 salom, 3 ko'rsatish, 4 o'ylash, 5 quvonish, 6 tinglash. */

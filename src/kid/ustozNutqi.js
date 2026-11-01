@@ -7,6 +7,13 @@ export const USTOZ_ISMI = {
   nilufar: { uz: "Nilufar opa", ru: "Нилуфар опа", en: "Miss Nilufar" },
   malika: { uz: "Malika opa", ru: "Малика опа", en: "Miss Malika" },
   sardor: { uz: "Sardor aka", ru: "Сардор ака", en: "Mr Sardor" },
+  // REV240: ruscha va inglizcha interfeys ustozlari
+  olga: { uz: "Olga opa", ru: "Ольга Сергеевна", en: "Ms Olga" },
+  dmitriy: { uz: "Dmitriy aka", ru: "Дмитрий Иванович", en: "Mr Dmitry" },
+  svetlana: { uz: "Svetlana opa", ru: "Светлана", en: "Ms Svetlana" },
+  sarah: { uz: "Sara opa", ru: "Сара", en: "Ms Sarah" },
+  daniel: { uz: "Deniel aka", ru: "Дэниел", en: "Mr Daniel" },
+  oliver: { uz: "Oliver aka", ru: "Оливер", en: "Mr Oliver" },
   // REV169: til ustozlari
   emily: { uz: "Emili opa", ru: "Эмили опа", en: "Miss Emily" },
   anna: { uz: "Anna opa", ru: "Анна опа", en: "Miss Anna" },

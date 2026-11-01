@@ -191,7 +191,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   kidRef.current = kid;
   // REV122: kim gapiryapti — sinfxonada (kutish, dars, ko'prik) jonli ustoz, test/ovoz ekranida robot Kabu
   const ustozRef = useRef("nilufar");
-  ustozRef.current = ustozFor(fan || lesson?.topic?.fan);
+  ustozRef.current = ustozFor(fan || lesson?.topic?.fan, uiLocale);
   // REV175: maktabda ham haqiqiy sinfxona — ustoz o'z xonasida (deraza, ob-havo, soat), doska xona o'rtasida katta
   const sinfXona = !kid && Boolean(USTOZLAR[ustozRef.current]);
   const doskaRef = useRef(null);
@@ -275,7 +275,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const immersiya = Boolean(kid && darsTil && kidYoshi(grade || lesson?.topic?.sinf) >= 4);
   const tIzoh = immersiya ? darsTil : izoh;
   const opening = useMemo(() => (kid && lesson?.steps?.length ? ochilish({
-    ustoz: ustozFor(fan || lesson?.topic?.fan), til: darsTil, izoh: tIzoh, havo, harorat, oldingi, vaqt,
+    ustoz: ustozFor(fan || lesson?.topic?.fan, uiLocale), til: darsTil, izoh: tIzoh, havo, harorat, oldingi, vaqt,
     grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000), aslIzoh: izoh, sana: new Date(),
   }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, tIzoh, izoh, vaqt]);
   // REV156: ustoz ochilishda salomlashgan — darsning o'z «kirish» qadamidagi salom/«Men — …» gaplari olib tashlanadi
@@ -1501,7 +1501,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className="dx-board" aria-live="polite" ref={doskaRef}>
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
-          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
+          {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
             onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />
             {mikSoz && mode === "lesson" && <div className={`dx-mic-soz is-${mikSoz.holat}`} role="status" aria-live="polite">
               <span className="dx-mic-ikon" aria-hidden="true"><B e={mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"} /></span>

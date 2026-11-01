@@ -11,12 +11,13 @@ import { sozBolaklari } from "./lesson/sozAytish.js";
 const src = (p) => fs.readFileSync(new URL(p, import.meta.url), "utf8");
 
 test("every teacher pose has a mouth overlay (lips move in every pose)", () => {
+  // REV240: yangi rasmlarda har pozaning o'z yuz kadrlari bor (og'iz, ko'z) — alohida og'iz yamog'i kerak emas
   const s = src("./kid/ustozlar.js");
-  for (const t of ["sardor", "nilufar", "malika"]) {
+  for (const t of ["sardor", "nilufar", "malika", "olga", "dmitriy", "svetlana", "sarah", "daniel", "oliver"]) {
     const blok = s.slice(s.indexOf(`  ${t}: {`), s.indexOf("\n  },", s.indexOf(`  ${t}: {`)));
     for (let p = 1; p <= 6; p += 1) {
       const line = blok.split("\n").find((l) => l.trim().startsWith(`${p}: {`));
-      assert.ok(line && /og: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, (?:r: -?[\d.]+, )?(?:tw: [\d.]+, )?skin: "#[0-9a-f]{6}" \}/.test(line), `${t} ${p}`);
+      assert.ok(line && /yuz: \{ x: [\d.]+, y: [\d.]+, w: [\d.]+, h: [\d.]+, kadr: \[(?:u\("[^"]+"\)(?:, )?){6}\] \}/.test(line), `${t} ${p}`);
     }
   }
   assert.match(src("./kid/UstozSahna.jsx"), /us-og-qatlam/);

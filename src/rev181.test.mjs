@@ -6,10 +6,10 @@ import { ikkinchiUstoz, IZOH_USTOZ, kokrak, XONA } from './kid/ustozRules.js';
 import { sinfJoyi } from './lesson/maktabMashqRules.js';
 import { ikkiOvozOqi, navbat } from './speech/ikkiOvoz.js';
 
-test('ikkinchi ustoz: izoh tiliga qarab (uz — Nilufar, ru — Anna, en — Emily); til izoh bilan bir xil bo\'lsa — yo\'q', () => {
+test('ikkinchi ustoz: izoh tiliga qarab (uz — Nilufar, ru — Olga, en — Sarah); til izoh bilan bir xil bo\'lsa — yo\'q', () => {
   assert.equal(ikkinchiUstoz({ til: 'de', iz: 'uz', ustoz: 'lukas' }), 'nilufar');
-  assert.equal(ikkinchiUstoz({ til: 'ar', iz: 'ru', ustoz: 'yusuf' }), 'anna');
-  assert.equal(ikkinchiUstoz({ til: 'ko', iz: 'en', ustoz: 'jiwoo' }), 'emily');
+  assert.equal(ikkinchiUstoz({ til: 'ar', iz: 'ru', ustoz: 'yusuf' }), 'olga');
+  assert.equal(ikkinchiUstoz({ til: 'ko', iz: 'en', ustoz: 'jiwoo' }), 'sarah');
   assert.equal(ikkinchiUstoz({ til: 'en', iz: 'en', ustoz: 'emily' }), '');
   assert.equal(ikkinchiUstoz({ til: 'ru', iz: 'ru', ustoz: 'anna' }), '');
   assert.equal(ikkinchiUstoz({ til: '', iz: 'uz', ustoz: 'sardor' }), '');

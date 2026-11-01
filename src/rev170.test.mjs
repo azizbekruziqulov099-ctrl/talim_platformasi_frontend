@@ -13,7 +13,7 @@ const src = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 test('har tilning o‘z ustozi va xonasi', () => {
   assert.equal(ustozFor('Nemis tili'), 'lukas');
   assert.equal(ustozFor('Xitoy tili (izoh: ingliz)'), 'mei');
-  assert.equal(ustozFor('Mantiq (izoh: rus)'), 'sardor');
+  assert.equal(ustozFor('Mantiq (izoh: rus)'), 'dmitriy');
   for (const k of Object.values(TIL_USTOZ)) { assert.ok(ISMLAR[k], k); assert.equal(XONA[k], `til_${k}`); }
 });
 

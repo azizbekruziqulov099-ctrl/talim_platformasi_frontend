@@ -9,7 +9,9 @@ test('fanga qarab ustoz va xona', () => {
   assert.equal(ustozFor('Ona tili'), 'nilufar');
   assert.equal(ustozFor('Ingliz tili'), 'emily');   // REV169: har tilning o‘z ustozi
   assert.equal(ustozFor('Arab tili (izoh: rus)'), 'yusuf');
-  assert.equal(ustozFor('Matematika (izoh: ingliz)'), 'sardor');
+  assert.equal(ustozFor('Matematika (izoh: ingliz)'), 'daniel');
+  assert.equal(ustozFor('Matematika', 'ru'), 'dmitriy');
+  assert.equal(ustozFor('Atrof-olam', 'en'), 'oliver');
   for (const u of ['sardor', 'nilufar', 'malika', 'emily', 'anna', 'elif', 'yusuf', 'lukas', 'carlos', 'jiwoo', 'camille', 'mei', 'kenji']) assert.ok(XONALAR[XONA[u]].doska.w > 0, u);
 });
 

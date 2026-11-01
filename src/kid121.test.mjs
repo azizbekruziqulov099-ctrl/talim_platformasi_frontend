@@ -41,7 +41,7 @@ test('REV121: til darsi bo\'lmagan fanlar rus/ingliz izohida ham til o\'rgatmayd
   assert.equal(darsTiliIzoh(steps, 'ru', 'Rus tili (izoh: rus)'), 'ru');
   assert.equal(fanTili('Arab tili (izoh: ingliz)'), 'ar');
   assert.equal(fanTili('Mantiq'), null);
-  assert.equal(ustozFor('Mantiq (izoh: rus)'), 'sardor');
+  assert.equal(ustozFor('Mantiq (izoh: rus)'), 'dmitriy');   // REV240: ruscha izohda — ruscha fan ustozi
   assert.equal(kidSubjectEmoji('Arab tili (izoh: rus)'), '🇸🇦');
   assert.equal(kidSubjectEmoji('Mantiq (izoh: ingliz)'), '🧩');
   assert.match(kidTaskModel('[ru]Игра! Найди две ложки.[/ru]', 'ru'), /продолжаем/);
