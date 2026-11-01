@@ -12,6 +12,33 @@ function Jadval({ qatorlar, ustunlar }) {
     <tbody>{qatorlar.map((q, i) => <tr key={i}>{ustunlar.map(([k]) => <td key={k} style={{ padding: "6px 8px", borderBottom: "1px solid #EEE", fontFamily: k === "sorov" ? "monospace" : undefined }}>{String(q[k] ?? "")}</td>)}</tr>)}</tbody>
   </table></div>;
 }
+const mb = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.round((b || 0) / 1024)} KB`);
+// REV250: bazani yengillatish — avval hisoblaydi, keyin admin tasdiqlasa tozalaydi (faqat ishlatilmaydigan ma'lumot)
+function Yengillatish({ apiBase, token }) {
+  const [t, setT] = useState(null); const [ish, setIsh] = useState(""); const [tan, setTan] = useState({});
+  const url = (bajar, turlar = "") => `${String(apiBase).replace(/\/+$/, "")}/api/admin/baza_tozalash?token=${encodeURIComponent(token)}&bajar=${bajar}${turlar ? `&turlar=${turlar}` : ""}`;
+  const hisobla = async () => { setIsh("hisob"); try { const r = await fetch(url(0)); const d = await r.json(); setT(d); setTan(Object.fromEntries(Object.entries(d.turlar || {}).map(([k, v]) => [k, !v.xato && v.soni > 0]))); } finally { setIsh(""); } };
+  const tozala = async () => {
+    const turlar = Object.keys(tan).filter((k) => tan[k]).join(",");
+    if (!turlar || !window.confirm(uiT("Belgilangan ma’lumotlar o‘chiriladi. Darslar, mavzular va foydalanuvchilarga tegilmaydi. Davom etamizmi?"))) return;
+    setIsh("toza"); try { const r = await fetch(url(1, turlar)); setT(await r.json()); } finally { setIsh(""); }
+  };
+  const jami = t ? Object.entries(t.turlar || {}).filter(([k]) => tan[k]).reduce((a, [, v]) => a + (v.bayt || 0), 0) : 0;
+  return <div style={{ marginTop: 26, padding: 16, border: "1px solid #E5E1D8", borderRadius: 14, background: "#fff" }}>
+    <h2 style={{ fontSize: 18, fontWeight: 800, marginTop: 0 }}>{uiT("Bazani yengillatish")}</h2>
+    <p style={{ color: "#5F6B76", fontSize: 13 }}>{uiT("Faqat ishlatilmaydigan ma’lumot: xom fayllar, takror rasmlar, eski ovozlar. Avval «Hisoblash» — hech narsa o‘chmaydi.")}</p>
+    <button type="button" onClick={hisobla} disabled={!!ish} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid #D2DEEE", background: "#fff", fontWeight: 700 }}>{ish === "hisob" ? uiT("Hisoblanmoqda…") : `🔍 ${uiT("Hisoblash")}`}</button>
+    {t && <><table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13, marginTop: 12 }}><tbody>
+      {Object.entries(t.turlar || {}).map(([k, v]) => <tr key={k}>
+        <td style={{ padding: 6, width: 30 }}><input type="checkbox" checked={!!tan[k]} disabled={!!v.xato || !v.soni} onChange={(e) => setTan({ ...tan, [k]: e.target.checked })} /></td>
+        <td style={{ padding: 6 }}>{uiT(v.nomi)}<div style={{ color: "#8A95A0", fontSize: 12 }}>{v.jadval}</div></td>
+        <td style={{ padding: 6, textAlign: "right" }}>{v.xato ? <span style={{ color: "#C0392B" }}>{v.xato}</span> : `${v.soni} · ${mb(v.bayt)}`}</td>
+        <td style={{ padding: 6, textAlign: "right", color: "#1D9E75" }}>{t.bajarildi ? `✓ ${v.tozalandi}` : ""}</td>
+      </tr>)}</tbody></table>
+      {!t.bajarildi ? <button type="button" onClick={tozala} disabled={!!ish || !jami} style={{ marginTop: 12, padding: "10px 16px", borderRadius: 10, border: 0, background: "#C0392B", color: "#fff", fontWeight: 800 }}>{ish === "toza" ? uiT("Tozalanmoqda…") : `🧹 ${uiT("Belgilanganlarni tozalash")} (${mb(jami)})`}</button>
+        : <p style={{ color: "#1D9E75", fontWeight: 700 }}>{uiT("Tozalandi. Joy fonda bo‘shatilmoqda — 10–20 daqiqadan keyin «Yangilash» bosing.")}</p>}</>}
+  </div>;
+}
 export default function BazaHolati({ apiBase = "", token = "" }) {
   const [d, setD] = useState(null);
   const [xato, setXato] = useState("");
@@ -58,6 +85,7 @@ export default function BazaHolati({ apiBase = "", token = "" }) {
       <Jadval qatorlar={d.uzoq_sorovlar} ustunlar={[["soniya", "Soniya"], ["state", "Holat"], ["sorov", "So‘rov"]]} />
       <h2 style={{ fontSize: 18, fontWeight: 800, marginTop: 18 }}>{uiT("Ishlatilmayotgan indekslar")}</h2>
       <Jadval qatorlar={d.ishlatilmagan_indeks} ustunlar={[["jadval", "Jadval"], ["indeks", "Indeks"], ["hajm", "Hajm"]]} />
+      <Yengillatish apiBase={apiBase} token={token} />
     </>}
   </div>;
 }
