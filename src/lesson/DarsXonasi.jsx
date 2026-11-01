@@ -298,8 +298,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV164: bosib topiladigan o'yin yo'q darsga (matematika/mantiq takrori, uy topshirig'i darsi) — xulosadan oldin «Top-chi»
     const dars = list.slice(opening.length);
     // REV232: faqat TIL darsida — matematika/mantiqda rasm-so'z juftligi taxminiy chiqib, noto'g'ri «to'g'ri» belgilanardi
-    const extra = !darsTil ? null : qoshimchaOyin(dars, dars.map((x) => stepKind(x, lesson?.topic?.mavzu)),
+    let extra = qoshimchaOyin(dars, dars.map((x) => stepKind(x, lesson?.topic?.mavzu)),
       tIzoh && tIzoh !== "uz" ? gap(tIzoh, "Barakalla! Endi o'ynaymiz!") : "Barakalla! Endi o‘ynaymiz!");
+    // REV245: «Men aytaman — sen bos» matematika, mantiq, tabiatda ham — faqat AYTILADIGAN SO'Z va RASM aniq mos juftlar
+    // (so'zning o'zi ham aynan shu rasmga olib kelsa). Bitta ham shubhali juft o'tmaydi; 2 tadan kam qolsa — o'yin yo'q.
+    if (extra && !darsTil) {
+      const mos = (extra._nishon || []).filter((n) => { const a = sozId({ emoji: n.key }); const b = matnId(stripSpeechTags(n.word)); return a && b && a === b; });
+      extra = mos.length >= 2 ? { ...extra, _nishon: mos.slice(0, 4) } : null;
+    }
     if (!extra) return list;
     let at = list.length;
     while (at > opening.length && list[at - 1]?.turi === "xulosa") at -= 1;

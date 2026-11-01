@@ -10,7 +10,7 @@ import "./kidStage.css";
  * REV98: bog'cha darsi sahnasi — yozuvsiz. Robot Kabu gapiradi, rasmlar jonlanadi, harakat belgilari ko'rsatadi.
  * pictures: [{ src, key, svg }] — bosilsa onTap(i) (so'zni aytadi, robot quvonadi).
  */
-export default function KidStage({ mood = "", celebrate = 0, pictures = [], actions = [], onTap, speaking = false, compact = false, bayroq = "", tur = "uz" }) {
+export default function KidStage({ mood = "", celebrate = 0, pictures = [], actions = [], onTap, speaking = false, compact = false, bayroq = "", tur }) {
   const pointing = actions.includes("point") && pictures.length > 0;
   return <div className={`ks-stage ${pictures.length ? "has-pics" : "no-pics"} ${compact ? "is-compact" : ""}`}>
     <div className={`ks-robot ${speaking ? "is-speaking" : ""}`}>
