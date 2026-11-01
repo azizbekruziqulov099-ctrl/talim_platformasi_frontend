@@ -30,3 +30,9 @@
 @keyframes kr-talk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-1.5%) rotate(-1.2deg)}}
 @keyframes kr-star{0%{opacity:0;transform:translate(0,0) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1) rotate(40deg)}}
 @media (prefers-reduced-motion:reduce){.kabu-rasm *{animation:none!important}}
+
+/* REV242: Golu (ru) va Pidgi (en) — ranglar */
+.kabu-box.kabu-ru .k-bars i, .kabu-box.kabu-ru .k-ceq i{position:absolute;top:0;height:100%;border-radius:999px;background:#9CC9FF;opacity:0;transition:opacity .12s}
+.kabu-box.kabu-en .k-bars i, .kabu-box.kabu-en .k-ceq i{position:absolute;top:0;height:100%;border-radius:999px;background:#FFC266;opacity:0;transition:opacity .12s}
+.kabu-box.kabu-ru .kabu-flame{position:absolute;left:50%;top:85.2%;width:13%;height:13%;margin-left:-6.5%;z-index:0;transform-origin:50% 0;border-radius:50% 50% 50% 50%/30% 30% 70% 70%;background:radial-gradient(ellipse 50% 62% at 50% 22%,#FFF7D1 0%,#C9DAF5 34%,rgba(255,153,0,.55) 62%,rgba(255,140,0,0) 100%);animation:k-flick .14s ease-in-out infinite alternate}
+.kabu-box.kabu-en .kabu-flame{position:absolute;left:50%;top:85.2%;width:13%;height:13%;margin-left:-6.5%;z-index:0;transform-origin:50% 0;border-radius:50% 50% 50% 50%/30% 30% 70% 70%;background:radial-gradient(ellipse 50% 62% at 50% 22%,#FFF7D1 0%,#E05A4C 34%,rgba(255,153,0,.55) 62%,rgba(255,140,0,0) 100%);animation:k-flick .14s ease-in-out infinite alternate}

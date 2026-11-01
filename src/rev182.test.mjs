@@ -33,7 +33,7 @@ test('miyadagi teglangan doska/sarlavha: ekranda tegsiz, gapiruvchi uchun teglan
   const dx = o('./lesson/DarsXonasi.jsx');
   assert.match(dx, /export function teglarniAjrat/);
   assert.match(dx, /doskaTeg: x\.doska, sarlavhaTeg: x\.sarlavha, doska: stripSpeechTags/);
-  assert.match(dx, /setLesson\(teglarniAjrat\(d\)\)/);
+  assert.match(dx, /setLesson\(teglarniAjrat\((?:kabuIsmiQoy\(d, uiLocale\)|d)\)\)/);   // REV242: ru/en — Kabu ismi (Голу, Pidgi)
   assert.match(o('./lesson/AmaliyDoska.jsx'), /splitCourseMath\(stripSpeechTags\(text\)\)/);
   assert.match(o('./TestGameArena.jsx'), /\(\?:uz\|ru\|en\|de\|fr\|es\|ar\|tr\|zh\|ja\|ko\)/);
   assert.match(o('./TestTab.jsx'), /matn=stripSpeechTags\(translation\.text\)/);

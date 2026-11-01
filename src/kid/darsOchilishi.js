@@ -84,8 +84,29 @@ function yoshi(grade) {
  * Dars boshidagi qadamlar (dars qadamlari formatida): [salomlashish, ob-havo, o'tgan dars (bo'lsa)].
  * opts: { ustoz, til, havo: "quyosh"|"bulut"|"yomgir"|"qor", harorat, oldingi: {mavzu, sozlar:[{say, emoji}]}, grade, kun }
  */
+// REV242: ruscha/inglizcha interfeys ustozlari — o'z tilida, o'z ismi bilan gapiradi (oldin o'zbekcha «Men Nilufar opangman»
+// matni inglizcha ovozda o'qilardi). Gaplar shu fan ustozining ruscha/inglizcha gaplaridan, ism almashtirilib olinadi.
+const PERSONA = { dmitriy: "sardor", daniel: "sardor", svetlana: "malika", oliver: "malika", olga: "nilufar", sarah: "nilufar" };
+const ISM_ALMASH = {
+  sardor: { ru: [/Сардор-ака/g], en: [/\bSardor\b/g] }, nilufar: { ru: [/Нилуфар-опа/g], en: [/\bNilufar\b/g] }, malika: { ru: [/Малика-опа/g], en: [/\bMalika\b/g] },
+};
+const YANGI_ISM = { dmitriy: { ru: "Дмитрий Иванович", en: "Mr Dmitry" }, daniel: { ru: "Дэниел", en: "Mr Daniel" }, svetlana: { ru: "Светлана", en: "Svetlana" },
+  oliver: { ru: "Оливер", en: "Mr Oliver" }, olga: { ru: "Ольга Сергеевна", en: "Olga" }, sarah: { ru: "Сара", en: "Ms Sarah" } };
+export function felFor(ustoz, izoh = "uz") {
+  if (izoh !== "uz" && FEL_IZOH[izoh]?.[ustoz]) return FEL_IZOH[izoh][ustoz];
+  const asl = PERSONA[ustoz];
+  if (asl) {
+    const manba = (izoh !== "uz" && FEL_IZOH[izoh]?.[asl]) || FEL[asl];
+    const qolip = ISM_ALMASH[asl]?.[izoh] || [];
+    const ism = YANGI_ISM[ustoz]?.[izoh] || "";
+    const almash = (t) => qolip.reduce((a, re) => a.replace(re, ism), String(t));
+    return Object.fromEntries(Object.entries(manba).map(([k, v]) => [k, Array.isArray(v) ? v.map(almash) : typeof v === "string" ? almash(v) : v]));
+  }
+  return FEL[ustoz] || FEL.nilufar;
+}
+
 export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", harorat = null, oldingi = null, grade = "", kun = 0, izoh = "uz", vaqt = "kun", aslIzoh = null, sana = null } = {}) {
-  const fel = (izoh !== "uz" && FEL_IZOH[izoh]?.[ustoz]) || FEL[ustoz] || FEL.nilufar;
+  const fel = felFor(ustoz, izoh);
   const L = til && OCHILISH_LUGAT[til] ? OCHILISH_LUGAT[til] : null;
   const t = (k) => (L ? `[${til}]${L[k]}[/${til}]` : "");
   const z = (text) => izohTeg(text, izoh);                 // ustozning o'z gapi — izoh tilida

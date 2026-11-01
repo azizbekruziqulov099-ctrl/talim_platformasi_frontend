@@ -44,6 +44,14 @@ import { boardCards, cardSize, emojiPictures, gameTargets, lessonWords, qoshimch
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
+import { KABU_ISMI } from "../kid/robotKabuMarkup.js";
+// REV242: ruscha interfeysda Kabu — Голу, inglizchada — Pidgi (dars matnidagi ism ham, ovozda ham)
+function kabuIsmiQoy(d, loc = "uz") {
+  const t = String(loc || "uz").slice(0, 2);
+  if (!["ru", "en"].includes(t) || !d) return d;
+  const ism = KABU_ISMI[t];
+  try { return JSON.parse(JSON.stringify(d).replace(/Кабу/g, ism).replace(/\bKabu\b/g, ism)); } catch { return d; }
+}
 // REV236: Kabular — Kabutar TV dagi kabi robot ovoz (balandroq ohang, sal tezroq), ustozlar — tabiiy odam ovozi
 const KABU_TV = { iz: "+28Hz", til: "+22Hz", tezlik: "+4%" };
 import { alifboTanlov, chuqurOgir, ozbekchaYorliqsiz } from "../interface/yangiAlifbo.js";   // REV221
@@ -576,7 +584,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(topicCode)}?${new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2) })}`, { signal: controller.signal })
       .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || "Dars yuklanmadi"); return d; })
-      .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(d)); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
+      .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(kabuIsmiQoy(d, uiLocale))); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
@@ -1494,10 +1502,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         {kabuJuftMuhit ? <>
           {/* REV180: ikki Kabu — kim gapirsa o'sha kattalashadi, ikkinchisi xiralashadi */}
           <div className={`dx-kabu-robot is-iz ${speaking && (kabuKim || "iz") === "iz" ? "is-faol" : speaking ? "is-jim" : ""}`}>
-                        <KidStage compact bayroq={flagSrc(TIL_BAYROQ[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"])} mood={speaking && (kabuKim || "iz") === "iz" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "iz"} /></div>
+                        <KidStage compact tur={["uz", "ru", "en"].includes(izoh) ? izoh : "uz"} bayroq={flagSrc(TIL_BAYROQ[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"])} mood={speaking && (kabuKim || "iz") === "iz" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "iz"} /></div>
           <div className={`dx-kabu-robot is-til til-${darsTil} ${speaking && (kabuKim || "iz") === "til" ? "is-faol" : speaking ? "is-jim" : ""}`}>
-                        <KidStage compact bayroq={flagSrc(TIL_BAYROQ[darsTil] || "")} mood={speaking && (kabuKim || "iz") === "til" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "til"} /></div>
-        </> : <div className="dx-kabu-robot"><KidStage compact mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}</div>}
+                        <KidStage compact tur={darsTil} bayroq={flagSrc(TIL_BAYROQ[darsTil] || "")} mood={speaking && (kabuKim || "iz") === "til" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "til"} /></div>
+        </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className="dx-board" aria-live="polite" ref={doskaRef}>
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}

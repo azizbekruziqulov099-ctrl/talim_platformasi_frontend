@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { KABU_MARKUP } from "./robotKabuMarkup.js";
+import { kabuMarkup, kabuTuri } from "./robotKabuMarkup.js";   // KABU_MARKUP — har til uchun rangi almashtirilgan nusxa
 import "./robotKabu.css";
 
 const MOODS = ["is-talk", "is-wave", "is-think", "is-happy", "is-enc"];
 
 /** REV156: jonli (SVG, harakatlanadigan) Kabu qaytarildi — rasm pozalari qotib turardi. clap/point/listen — talk ga yaqin.
  *  REV98: Robot ustoz Kabu. mood: "talk", "wave talk", "think", "happy", "enc" …; celebrate — har oshganda sakraydi va yulduzlar sochiladi. */
-export default function RobotKabu({ mood = "", celebrate = 0, className = "" }) {
+export default function RobotKabu({ mood = "", celebrate = 0, className = "", tur = "uz" }) {
   const box = useRef(null);
   useEffect(() => {
     const bot = box.current?.querySelector(".kbot");
@@ -26,5 +26,5 @@ export default function RobotKabu({ mood = "", celebrate = 0, className = "" }) 
       el.classList.add(cls);
     }
   }, [celebrate]);
-  return <div ref={box} className={`kabu-box ${className}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: KABU_MARKUP }} />;
+  return <div ref={box} className={`kabu-box kabu-${kabuTuri(tur)} ${className}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: kabuMarkup(tur) }} />;
 }
