@@ -806,3 +806,13 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root.dx-focus>.dx-room>.dx-frame,.dx-root.dx-root.dx-focus>.dx-room>.dx-frame>.dx-board,.dx-root.dx-root.dx-focus>.dx-room>.dx-frame>.dx-board>.dx-kind-frame{width:100%!important;max-width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;min-height:0!important;box-sizing:border-box!important}
 .dx-root.dx-root.dx-focus .us-stage{width:min(100%,calc(100% * 1 / 1))!important;max-width:min(100%,calc((100dvh - 10px) * 1586 / 992))!important;height:auto!important;max-height:100%!important}
 .dx-root.dx-root.dx-yotiq .us-stage{max-width:min(100%,calc((100vw - 10px) * 1586 / 992))!important}
+
+/* REV241: ikki Kabu — chap va o'ng chetda, katta (test va takrorlashda ham); test kartalari yirikroq */
+.dx-root.dx-root .dx-kabu-fon.is-juft .dx-kabu-robot{width:clamp(150px,24%,340px)!important;bottom:4%!important}
+.dx-root.dx-root .dx-kabu-fon.is-juft .dx-kabu-robot.is-iz{left:1%!important;right:auto!important}
+.dx-root.dx-root .dx-kabu-fon.is-juft .dx-kabu-robot.is-til{right:1%!important;left:auto!important}
+.dx-root.dx-root .kj-root{justify-content:space-between!important;max-width:none!important;width:100%!important}
+.dx-root.dx-root .kj-robot{flex:0 0 26%!important;max-width:300px!important}
+.dx-root.dx-root .dx-kid-opts{gap:16px!important;max-width:min(980px,100%)!important;margin-inline:auto!important}
+.dx-root.dx-root .dx-kid-opts button{min-height:min(32vh,260px)!important}
+.dx-root.dx-root .dx-kid-pic img,.dx-root.dx-root .dx-kid-pic .kid-chizilgan{max-height:min(26vh,210px)!important;width:auto!important}

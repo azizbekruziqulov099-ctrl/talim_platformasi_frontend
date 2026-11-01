@@ -67,10 +67,24 @@ function matnXarita() {
   MATN_ID = m;
   return m;
 }
+
+// REV241: salom — RASMIY (kattaga, ustozga) va DO'STONA (tengdoshga) har xil rasm. Oldin Hello ham, Hi ham bir xil
+// qo'l silkitayotgan qiz edi — bola farqini ko'rmasdi.
+const RASMIY_SALOM = /^(hello|good (morning|afternoon|evening)|здравствуй(те)?|здравствуи(те)?|добр(ое утро|ый день|ый вечер|ыи день|ыи вечер)|bonjour|bonsoir|guten (tag|morgen|abend)|buen(os d[ií]as|as tardes|as noches)|assalomu alaykum|السلام عليكم|안녕하세요|こんにちは|您好|merhaba|iyi g[üu]nler|g[üu]nayd[ıi]n)$/i;   // NFKD: й → и, í → i
+const DOSTONA_SALOM = /^(hi|hey|привет|салют|salut|hallo|hola|ciao|selam|안녕|やあ|嗨|مرحبا|salom)$/i;
+export function salomRasm(matn) {
+  const a = matnNorm(matn).replace(/[!?.,]+$/g, "").trim();
+  if (!a || a.split(/\s+/).length > 4) return null;
+  if (RASMIY_SALOM.test(a)) return "d_m-assalomu-alaykum";
+  if (DOSTONA_SALOM.test(a)) return "d_m-qol-silkit-salomlash";
+  return null;
+}
+
 /** Matn (so'z, ibora yoki tarjima) → rasm id; topilmasa yoki noaniq bo'lsa — null. */
 export function matnId(...matnlar) {
   const m = matnXarita();
   for (const t of matnlar.flat()) {
+    const salom = salomRasm(t); if (salom) return salom;
     const a = matnNorm(t);
     if (!a) continue;
     const bosh = a.split(/\s+[—–-]\s+|[,!?.;:]\s*/)[0].trim();   // gapning birinchi bo'lagi («salom! isming nima?» → «salom»)
@@ -84,6 +98,8 @@ const OXSHASH = { "🐇": "🐰", "🐈": "🐱", "🐕": "🐶", "🐩": "🐶"
 
 /** Bitta emoji uchun chizilgan rasm (xonalar rasmi). rasmlar — {id: url}. Bir nechta emoji (sanoq) — null. */
 export function emojiRasm(emoji, rasmlar, soz = "") {
+  const salom = soz && salomRasm(String(soz).replace(/\[\/?[a-z]{2}\]/g, ""));
+  if (salom && rasmlar?.[salom]) return { id: salom, src: rasmlar[salom] };
   const e0 = tozala(emoji);
   if (!e0 || /\s/.test(e0)) return null;
   const e = OXSHASH[e0] || e0;   // REV153: o'xshash belgi — bir xil rasm (🐇 → 🐰, 💚 → 🟢)

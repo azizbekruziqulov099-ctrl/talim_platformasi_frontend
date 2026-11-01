@@ -17,8 +17,8 @@ test('REV151: har dars rasmining fayli bor va 300 KB dan kichik', () => {
 test('REV151: so‘z va emoji bo‘yicha rassom rasmi topiladi; umumiy emoji yonidagi so‘z bilan aniqlanadi', () => {
   assert.equal(sozId({ soz: 'Thank you!' }), 'd_thank-you');
   assert.equal(emojiRasm('🦁', R)?.id, 'd_lion');
-  assert.equal(emojiRasm('👋', R, 'Hello')?.id, 'd_hello');
+  assert.equal(emojiRasm('👋', R, 'Hello')?.id, 'd_m-assalomu-alaykum', 'REV241: rasmiy salom — kattaga salom berayotgan bola');
   assert.equal(emojiRasm('👋', R, 'Goodbye, see you')?.id, 'd_goodbye-see-you');
-  assert.equal(emojiRasm('🙋', R, 'Hi')?.id, 'd_hi', 'REV154: «Hi» rasmi chizildi');
+  assert.equal(emojiRasm('🙋', R, 'Hi')?.id, 'd_m-qol-silkit-salomlash', 'REV241: do‘stona salom — tengdoshlar qo‘l silkitadi');
   assert.equal(harakatTuri('d_hello'), 'salom');
 });

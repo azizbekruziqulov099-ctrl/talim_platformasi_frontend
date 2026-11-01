@@ -25,7 +25,7 @@ test('REV154: yangi rasmlar darsda o\'z belgisi va so\'zi bo\'yicha topiladi', (
   assert.equal(emojiRasm('🐈😴', R)?.id, 'd_the-cat-is-sleeping');
   assert.equal(matnId('I go to school'), 'd_i-go-to-school');
   assert.equal(matnId('qovun'), 'd_qovun');
-  assert.equal(matnId('Hi!'), 'd_hi');
+  assert.equal(matnId('Hi!'), 'd_m-qol-silkit-salomlash');   // REV241: Hello ≠ Hi rasmi
   assert.equal(matnId('yellow'), 'd_yellow');
 });
 
