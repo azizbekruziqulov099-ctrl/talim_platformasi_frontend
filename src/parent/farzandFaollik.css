@@ -176,3 +176,6 @@
 .ok-grade{font-style:normal;font-weight:800;font-size:12px;border-radius:999px;padding:3px 8px;color:#fff;background:#8a8578;white-space:nowrap}
 .ok-grade.is-5{background:#2f9a55}.ok-grade.is-4{background:#3b82f6}.ok-grade.is-3{background:#d97706}.ok-grade.is-2{background:#e2483d}
 @media(max-width:520px){.ok-line{grid-template-columns:1fr}.ok-result{justify-self:start}}
+
+/* REV257: dars tili */
+.ff-til{white-space:nowrap;font-weight:700;color:#21384C}

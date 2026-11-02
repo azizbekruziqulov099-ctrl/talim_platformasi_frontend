@@ -6,6 +6,10 @@ import { YutuqQator } from "./OtaKundalik.jsx";
 import BolalarKundaligi from "../kid/BolalarKundaligi.jsx";
 import { bugungiXulosa, ertangiFanlar } from "../kid/kundalikRules.js";
 import "./farzandFaollik.css";
+// REV257: ota-ona ko'rsin — dars qaysi tilda o'tildi (fan nomidagi «izoh: rus / ingliz» bo'yicha; izohsiz — o'zbekcha)
+const DARS_TILI = { uz: ["🇺🇿", "o‘zbekcha"], ru: ["🇷🇺", "ruscha"], en: ["🇬🇧", "inglizcha"] };
+function darsTili(fan = "") { const f = String(fan || "").toLowerCase(); return /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : "uz"; }
+const fanNomi = (fan = "") => String(fan || "").replace(/\s*\(\s*izoh\s*:[^)]*\)/i, "").trim();
 
 // REV145: matnning o'zgarmas qismi tarjima qilinadi, mavzu nomi va raqamlar — alohida (aks holda tarjima topilmasdi)
 const LIVE = {
@@ -40,7 +44,7 @@ function DarsQator({ r, open, onToggle }) {
   return <li className={`ff-lesson ${open ? "is-open" : ""} ${r.tugadi ? "is-done" : "is-open-lesson"}`}>
     <button type="button" className="ff-lesson-head" aria-expanded={open} onClick={onToggle}>
       <span className="ff-time">{r.boshlandi}</span>
-      <span className="ff-main"><b>{r.mavzu || __kbUi("Dars")}</b><small>{r.fan}</small></span>
+      <span className="ff-main"><b>{r.mavzu || __kbUi("Dars")}</b><small>{fanNomi(r.fan)} · <span className="ff-til" title={__kbUi("Dars tili")}>{DARS_TILI[darsTili(r.fan)][0]} {__kbUi(DARS_TILI[darsTili(r.fan)][1])}</span></small></span>
       {r.ai_baho ? <span className={`ff-ai ${bahoRangi(r.ai_baho.baho)}`} title={__kbUi("AI bahosi")}>{r.ai_baho.baho}</span>
         : <span className={`ff-badge ${b.cls}`}>{__kbUi(b.matn)}</span>}
       <i aria-hidden="true">{open ? "▾" : "▸"}</i>
