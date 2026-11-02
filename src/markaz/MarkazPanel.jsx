@@ -40,13 +40,14 @@ export default function MarkazPanel({ apiBase = "", token = "" }) {
       {!yangi && <button type="button" className="mk-btn" onClick={() => setYangi(true)}>＋ {__kbUi("Yangi kurs")}</button>}
     </header>
     {yangi && <Yozilish katalog={katalog} base={base} token={token} onBekor={kurslar.length ? () => setYangi(false) : null} onTayyor={() => { setYangi(false); yukla(); }} />}
-    {!yangi && kurslar.map((k) => <KursKarta key={k.id} k={k} katalog={katalog} />)}
+    {!yangi && kurslar.map((k) => <KursKarta key={k.id} k={k} katalog={katalog} base={base} token={token} onYangi={yukla} />)}
   </section>;
 }
 
-function KursKarta({ k, katalog }) {
+function KursKarta({ k, katalog, base, token, onYangi }) {
   const im = katalog.imtihonlar[k.imtihon];
   const h = k.holat || {};
+  const [test, setTest] = useState(false);
   return <article className={`mk-kurs ${RANG[h.daraja] || ""}`}>
     <div className="mk-kurs-bosh">
       <span className="mk-yol">{k.yol === "sertifikat" ? "🎓 " + __kbUi("Sertifikat") : "🌍 " + __kbUi("Erkin til")}</span>
@@ -63,9 +64,10 @@ function KursKarta({ k, katalog }) {
     </dl>
     <div className="mk-amal">
       <button type="button" className="mk-btn" disabled title={__kbUi("Kurs materiallari tayyorlanmoqda")}>▶ {__kbUi("Darsni boshlash")}</button>
-      <button type="button" className="mk-btn is-ikkinchi" disabled title={__kbUi("Tez kunda")}>🧭 {__kbUi("Daraja aniqlash testi")}</button>
+      <button type="button" className="mk-btn is-ikkinchi" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setTest(true)}>🧭 {k.daraja ? `${__kbUi("Daraja")}: ${k.daraja} · ${__kbUi("qayta topshirish")}` : __kbUi("Daraja aniqlash testi")}</button>
       <small>{__kbUi("Kurs materiallari tayyorlanmoqda — tez orada ochiladi.")}</small>
     </div>
+    {test && <DarajaTesti k={k} base={base} token={token} onYop={() => setTest(false)} onNatija={onYangi} />}
   </article>;
 }
 
@@ -130,6 +132,52 @@ function Yozilish({ katalog, base, token, onTayyor, onBekor }) {
     <div className="mk-amal">
       <button type="button" className="mk-btn" disabled={!tayyor || band} onClick={yubor}>{band ? __kbUi("Saqlanmoqda…") : __kbUi("Kursni boshlash")}</button>
       {onBekor && <button type="button" className="mk-btn is-ikkinchi" onClick={onBekor}>{__kbUi("Bekor qilish")}</button>}
+    </div>
+  </div>;
+}
+
+// REV271: daraja aniqlash testi — 40 savol (A1–C1), bittadan; oxirida daraja, har daraja foizi va tavsiya
+function DarajaTesti({ k, base, token, onYop, onNatija }) {
+  const [savollar, setSavollar] = useState(null);
+  const [i, setI] = useState(0);
+  const [javob, setJavob] = useState({});
+  const [natija, setNatija] = useState(null);
+  const [xato, setXato] = useState("");
+  useEffect(() => {
+    fetch(`${base}/api/markaz/daraja/savollar?${new URLSearchParams({ til: k.til })}`).then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setSavollar(d.savollar)).catch(() => setXato(__kbUi("Test yuklanmadi")));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const tugat = async (j) => {
+    try {
+      const r = await fetch(`${base}/api/markaz/daraja/natija`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yozilish_id: k.id, til: k.til, javoblar: j }) });
+      if (!r.ok) throw new Error(r.status);
+      setNatija(await r.json()); onNatija?.();
+    } catch { setXato(__kbUi("Natija saqlanmadi")); }
+  };
+  const tanla = (n) => {
+    const j = { ...javob, [savollar[i].id]: n }; setJavob(j);
+    if (i + 1 < savollar.length) setI(i + 1); else tugat(j);
+  };
+  return <div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Daraja aniqlash testi")}>
+    <div className="mk-test-ich">
+      <button type="button" className="mk-yop" onClick={onYop} aria-label={__kbUi("Yopish")}>✕</button>
+      {xato && <p className="mk-xato" role="alert">{xato}</p>}
+      {!savollar && !xato && <p role="status">{__kbUi("Yuklanmoqda…")}</p>}
+      {savollar && !natija && <>
+        <div className="mk-test-bar"><span style={{ width: `${(100 * i) / savollar.length}%` }} /></div>
+        <p className="mk-test-n">{i + 1} / {savollar.length}</p>
+        <p className="mk-test-savol" lang="en">{savollar[i].savol}</p>
+        <div className="mk-test-var">{savollar[i].variantlar.map((v, n) => <button key={n} type="button" className="mk-chip" lang="en" onClick={() => tanla(n)}>{v}</button>)}</div>
+        <button type="button" className="mk-btn is-ikkinchi" onClick={() => tanla(-1)}>{__kbUi("Bilmayman")}</button>
+        <p className="mk-izoh">{__kbUi("Taxmin qilmang: bilmasangiz «Bilmayman»ni bosing — shunda darajangiz aniq chiqadi.")}</p>
+      </>}
+      {natija && <div className="mk-natija">
+        <h3>{__kbUi("Darajangiz")}: <b>{natija.daraja}</b></h3>
+        <p>{natija.tavsiya}</p>
+        <ul>{Object.entries(natija.foiz).map(([d, f]) => <li key={d}><b>{d}</b> <span className="mk-foiz"><i style={{ width: `${f}%` }} /></span> {f}%</li>)}</ul>
+        <button type="button" className="mk-btn" onClick={onYop}>{__kbUi("Yopish")}</button>
+      </div>}
     </div>
   </div>;
 }
