@@ -32,7 +32,7 @@ export function IkkiUstozTaglavha({ qismlar = [], faol = -1, soz = -1, til = "",
     })}
     <div className="iu-boshqaruv">
       <button type="button" className={`iu-pauza ${pauza ? "is-on" : ""}`} onClick={onPauza}>{pauza ? __kbUi("▶ Davom etish") : __kbUi("⏸ Pauza")}</button>
-      {!matnsiz && <small>{pauza ? __kbUi("Tushunmagan so‘zingizni bosing") : __kbUi("Tushunmagan so‘zni bosing — ustoz tushuntiradi")}</small>}
+      <small>{matnsiz ? __kbUi("Doskadagi tushunmagan so‘zni bosing — ustoz tushuntiradi") : pauza ? __kbUi("Tushunmagan so‘zingizni bosing") : __kbUi("Tushunmagan so‘zni bosing — ustoz tushuntiradi")}</small>
     </div>
   </div>;
 }

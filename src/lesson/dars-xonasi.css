@@ -830,3 +830,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV263: doskadagi qator doskadan chiqib ketmasin (uzun nemischa gaplar) */
 .dx-root .dx-board .dx-line{max-width:100%;overflow-wrap:anywhere;word-break:normal;white-space:normal}
 .dx-root .dx-board{overflow:hidden}
+/* REV264: doskadagi so'zlar bosiladi — tushunmagan so'zni bossa, ustoz tushuntiradi */
+.dx-root .dx-bosiladi .dx-soz-btn{all:unset;cursor:pointer;border-radius:6px;padding:0 1px;transition:background .15s}
+.dx-root .dx-bosiladi .dx-soz-btn:hover,.dx-root .dx-bosiladi .dx-soz-btn:focus-visible{background:rgba(255,230,120,.28);outline:2px solid rgba(255,230,120,.6)}

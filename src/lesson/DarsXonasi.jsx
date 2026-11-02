@@ -53,6 +53,16 @@ function eskiYozuv(w = "") {
 }
 // REV255: dars qaysi tilda o'tildi — fan nomidagi «(izoh: rus / ingliz)» bo'yicha; izohsiz — o'zbekcha
 function darsIzohTili(fan = "") { const f = String(fan || "").toLowerCase(); return /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : "uz"; }
+// REV264: doskadagi o'rganilayotgan tildagi qator — har so'zini bosib tushuntirish olish mumkin (pastki yozuv o'rniga)
+function BosiladiganQator({ text = "", onSoz }) {
+  const qism = String(text || "").replace(/\[\/?[a-z]{2}\]/g, "").split(/(\s+)/);
+  return <span className="dx-bosiladi">{qism.map((w, k) => {
+    const soz = w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+    return soz && /\p{L}/u.test(soz)
+      ? <button key={k} type="button" className="dx-soz-btn" onClick={() => onSoz?.(soz)} title={__kbUi("Tushunmadim — bosing")}>{w}</button>
+      : <span key={k}>{w}</span>;
+  })}</span>;
+}
 function kabuIsmiQoy(d, loc = "uz") {
   const t = String(loc || "uz").slice(0, 2);
   if (!["ru", "en"].includes(t) || !d) return d;
@@ -1587,7 +1597,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                 const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
                 const qatorlar = cue.lines.slice(0, shown).map((line, n) => { const kim = qatorKimi(tegliQatorlar && tegliQatorlar.length === cue.lines.length ? tegliQatorlar[n] : line);
                   return <div key={`${steps[i].id}-${n}`}
-                    className={`dx-line ${i === idx ? "is-new" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}<BoardText text={line} /></div>; });
+                    className={`dx-line ${i === idx ? "is-new" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}{juftDoska && kim === "til" ? <BosiladiganQator text={line} onSoz={sozBosildi} /> : <BoardText text={line} />}</div>; });
                 if (!juftDoska || i !== idx) return qatorlar;
                 // doskada yozilmagan, lekin ustoz aytadigan gaplar — aytila boshlaganda doskaga yoziladi (pastda alohida yozuv yo'q)
                 const doskaMatni = solishtir(cue.lines.join(" "));
@@ -1595,7 +1605,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                 const qoshimcha = nutqQismlar.map((q, k) => ({ ...q, k, matn: tegsiz(q.matn).split(/(?<=[.!?…])\s+/).filter((g) => solishtir(g) && !doskaMatni.includes(solishtir(g))).join(" ") }))
                   .filter((q) => solishtir(q.matn) && (stepFinished || !speaking ? true : q.k <= nutqI));
                 return [...qatorlar, ...qoshimcha.map((q) => <div key={`${steps[i].id}-n${q.k}`}
-                  className={`dx-line dx-nutq is-kim-${q.kim} ${speaking && q.k === nutqI ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BoardText text={tegsiz(q.matn).replace(/\s+/g, " ").trim()} /></div>)];
+                  className={`dx-line dx-nutq is-kim-${q.kim} ${speaking && q.k === nutqI ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}{q.kim === "til" ? <BosiladiganQator text={tegsiz(q.matn).replace(/\s+/g, " ").trim()} onSoz={sozBosildi} /> : <BoardText text={tegsiz(q.matn).replace(/\s+/g, " ").trim()} />}</div>)];
               })}
             </div>
             {range.filter((i) => steps[i].rasm).map((i) => <img key={`img-${steps[i].id}`} className="dx-pic" src={mediaUrl(steps[i].rasm)} alt="" loading="lazy" />)}
