@@ -225,9 +225,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const kabuMuhit = sinfXona && ["test", "ovoz", "result"].includes(mode);
   useEffect(() => { if (kabuMuhit) setSavolOchiq(false); }, [kabuMuhit]);
   // REV180: til darsida — ikki Kabu (chapda tushuntiruvchi, o'ngda o'rganilayotgan til egasi), doska ular orasida
-  const kabuJuftMuhit = kabuMuhit && Boolean(darsTilRef.current);
   // REV181: ikki Kabuda ham pastda alohida yozuv yo'q — matn doskada, doska pastgacha
-  const KABU_JOY = kabuJuftMuhit ? { doska: { l: 23, t: 3, w: 54, h: 92 }, gap: { l: 23, t: 96, w: 54, h: 1 } } : { doska: { l: 29, t: 3, w: 69, h: 72 }, gap: { l: 29, t: 77, w: 69, h: 21 } };
   const kabuMuhitRef = useRef(false);
   kabuMuhitRef.current = kabuMuhit;
   const [kabuKim, setKabuKim] = useState(null);   // "iz" | "til" — qaysi Kabu gapiryapti
@@ -255,6 +253,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV121: matematika / atrof-muhit / mantiq — til darsi emas (rus izohidagi teglar «o'rganiladigan til» emas)
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
   darsTilRef.current = darsTil || "";
+  // REV267: test/ovoz sahnasida til darsi bo'lsa — doim ikki Kabu (izoh tili + o'rganilayotgan til: nemis — Taubi)
+  const kabuJuftMuhit = kabuMuhit && Boolean(darsTil);
+  const KABU_JOY = kabuJuftMuhit ? { doska: { l: 23, t: 3, w: 54, h: 92 }, gap: { l: 23, t: 96, w: 54, h: 1 } } : { doska: { l: 29, t: 3, w: 69, h: 72 }, gap: { l: 29, t: 77, w: 69, h: 21 } };
   // REV181: til darsida sinfxonada IKKI ustoz — o'rganilayotgan til egasi (masalan, Lukas — nemis) va izoh tili ustozi
   // (o'zbek — Nilufar, rus — Anna, ingliz — Emily). Har biri o'z tilida, o'z ovozida gapiradi; kim gapirsa o'sha yorqin.
   // bog'chada ham (REV181): jonli ustoz gapiradigan qismlarda (salom, dars, ko'prik) ikki ustoz

@@ -35,6 +35,9 @@ export function izohTanla(fanlar = [], locale = 'uz') {
     const eski = by(til).length ? by(til) : by('uz').length ? by('uz') : by(fanIzohi(list[0]?.nom));
     // o'zbek bolasi uchun ruscha izoh inglizchadan tushunarliroq: uz → ru → en
     const navbat = til === 'en' ? ['en', 'uz', 'ru'] : til === 'ru' ? ['ru', 'uz', 'en'] : ['uz', 'ru', 'en'];
+    // REV267: interfeys tilidagi variant bo'lsa — FAQAT o'sha (o'zbekcha tanlagan bola inglizcha izohli darsga tushib qolmasin).
+    // Bunday variant umuman yo'q bo'lsa — avvalgidek eng yaqin variant (fan yo'qolib qolmasin).
+    if (by(til).length) { by(til).forEach((f) => keep.add(f)); continue; }   // interfeys tilidagi variant bor — faqat o'sha (darsi bo'lmasa ham)
     const tartib = [eski, ...[...navbat, ...list.map((f) => fanIzohi(f?.nom))].map(by)].filter((x) => x.length);
     const tanlov = tartib.find(darsli) || eski;
     tanlov.forEach((f) => keep.add(f));

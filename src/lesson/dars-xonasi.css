@@ -803,7 +803,8 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root.dx-focus:not(.dx-yotiq)>.dx-room{height:calc(100dvh - 8px)!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;grid-row:1/-1!important}
 .dx-root.dx-root.dx-yotiq>.dx-room{height:calc(100vw - 8px)!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;grid-row:1/-1!important;grid-column:1/-1!important}
 .dx-root.dx-root.dx-focus .us-stage{height:auto!important;aspect-ratio:1586/992!important;max-height:100%!important}
-.dx-root.dx-root.dx-focus>.dx-room>.dx-frame,.dx-root.dx-root.dx-focus>.dx-room>.dx-frame>.dx-board,.dx-root.dx-root.dx-focus>.dx-room>.dx-frame>.dx-board>.dx-kind-frame{width:100%!important;max-width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;min-height:0!important;box-sizing:border-box!important}
+/* REV267: faqat bog'chada — maktab sinfxonasida doska o'z joyida (ustozni va Kabularni to'smaydi) */
+.dx-root.dx-root.dx-focus:not(.dx-sinf)>.dx-room>.dx-frame,.dx-root.dx-root.dx-focus:not(.dx-sinf)>.dx-room>.dx-frame>.dx-board,.dx-root.dx-root.dx-focus:not(.dx-sinf)>.dx-room>.dx-frame>.dx-board>.dx-kind-frame{width:100%!important;max-width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;min-height:0!important;box-sizing:border-box!important}
 .dx-root.dx-root.dx-focus .us-stage{width:min(100%,calc(100% * 1 / 1))!important;max-width:min(100%,calc((100dvh - 10px) * 1586 / 992))!important;height:auto!important;max-height:100%!important}
 .dx-root.dx-root.dx-yotiq .us-stage{max-width:min(100%,calc((100vw - 10px) * 1586 / 992))!important}
 
@@ -836,3 +837,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV266: test oynasidagi yakka Kabu ham katta (oldin ~40px edi) */
 .dx-root.dx-root .dx-kid-ask > .ks-stage,.dx-root.dx-root .dx-kid-ask .ks-stage.is-compact{flex:none!important;width:clamp(150px,26vh,250px)!important;max-width:none!important}
 .dx-root.dx-root .dx-kid-ask .ks-stage .ks-robot{width:100%!important;max-width:none!important}
+/* REV267: har Kabu o'z ranglarida (eski rang aylantirish filtri — kerak emas) */
+.dx-root .dx-kabu-robot,.dx-root .dx-kabu-robot .kabu-box,.dx-root .dx-kabu-robot[class*="til-"] .kabu-box{filter:none!important}
+/* REV267: ikki ustozli maktab darsi — doska ikki ustoz ORASIDA (o'ngdagi ustozni to'smaydi, chapdagi kirib kelganda ham joy bor) */
+.dx-root.dx-sinf.dx-ikki-ustoz:not(.dx-kabu-muhit):not(.dx-aud-bogcha) .dx-frame{left:23%!important;width:47%!important}

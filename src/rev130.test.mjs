@@ -86,10 +86,10 @@ test('REV138: izoh variant with lessons wins when the interface-language variant
   const { izohTanla } = await import('./curriculum/izohTanlov.js');
   const fan = (nom, dars) => ({ nom, dars_turi: '', institution_type: 'bogcha', sinflar: [{ sinf: '4-5 yosh', mavzular: [{ nomi: 'Salom', dars_bor: dars }] }] });
   const list = [fan('Ingliz tili', false), fan('Ingliz tili (izoh: rus)', true), fan('Ingliz tili (izoh: ingliz)', false), fan('Mantiq', true)];
-  assert.deepEqual(izohTanla(list, 'uz').map((f) => f.nom), ['Ingliz tili (izoh: rus)', 'Mantiq']);
+  assert.deepEqual(izohTanla(list, 'uz').map((f) => f.nom), ['Ingliz tili', 'Mantiq']);   // REV267: interfeys tilidagi variant bor — faqat o'sha
   // haqiqiy holat: o'zbekcha izohli kitob yo'q, ruscha va inglizchasi bor — o'zbek interfeysida ruscha izoh
   const arab = [fan('Arab tili', false), fan('Arab tili (izoh: ingliz)', true), fan('Arab tili (izoh: rus)', true)];
-  assert.deepEqual(izohTanla(arab, 'uz').map((f) => f.nom), ['Arab tili (izoh: rus)']);
+  assert.deepEqual(izohTanla(arab, 'uz').map((f) => f.nom), ['Arab tili']);   // REV267
   assert.deepEqual(izohTanla(arab, 'en').map((f) => f.nom), ['Arab tili (izoh: ingliz)']);
   const hamma = [fan('Arab tili', true), fan('Arab tili (izoh: rus)', true)];
   assert.deepEqual(izohTanla(hamma, 'ru').map((f) => f.nom), ['Arab tili (izoh: rus)']);   // mos variantda dars bor — o'sha
