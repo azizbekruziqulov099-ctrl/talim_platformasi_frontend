@@ -116,7 +116,8 @@ function UstozFigura({ ustoz, mood = "", speaking = false, mouth = null, soz = "
       {/* REV181: bayroq — ko'krakka taqilgan nishon (boshi ustida emas); joyi pozadagi og'iz/yuz joyidan hisoblanadi */}
       {bayroq && <img className="us-bayroq" src={bayroq} alt="" draggable="false" style={kokrak(p)} />}
       <img className="us-body" src={p.src} alt="" draggable="false" decoding="async" />
-      {p.yuz && kadr !== 1 && <img className="us-face" src={p.yuz.kadr[kadr - 1]} alt="" draggable="false"
+      {/* REV258: yuz kadri doim ustida (yopiq og'iz ham rassomning kadridan) — tanadagi og'iz bilan kadrdagi og'iz almashib «sakramaydi» */}
+      {p.yuz && <img className="us-face" src={p.yuz.kadr[Math.max(1, kadr) - 1]} alt="" draggable="false"
         style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
       {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
       {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
