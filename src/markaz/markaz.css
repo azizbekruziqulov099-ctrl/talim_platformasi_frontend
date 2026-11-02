@@ -1,0 +1,28 @@
+.mk-root{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:16px;color:#1B2733}
+.mk-bosh h2{margin:0 0 4px;font-size:1.6rem}.mk-bosh p{margin:0 0 10px;color:#4d5b68}
+.mk-btn{border:0;border-radius:12px;padding:10px 16px;background:#0D5C63;color:#fff;font-weight:700;cursor:pointer}
+.mk-btn.is-ikkinchi{background:#e7eef3;color:#1B2733}.mk-btn:disabled{opacity:.55;cursor:not-allowed}
+.mk-yozil,.mk-kurs{background:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 4px 18px #0001}
+.mk-yozil h3{margin:14px 0 8px;font-size:1.05rem}
+.mk-tanlov{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mk-karta{display:grid;gap:4px;text-align:left;border:2px solid #dbe4ea;border-radius:14px;padding:14px;background:#f8fbfc;cursor:pointer}
+.mk-karta.is-on{border-color:#0D5C63;background:#e6f4f1}.mk-karta .mk-e{font-size:1.8rem}.mk-karta small{color:#4d5b68}
+.mk-chiplar{display:flex;flex-wrap:wrap;gap:8px}
+.mk-chip{border:1.5px solid #cfdae2;border-radius:999px;padding:7px 12px;background:#fff;cursor:pointer}
+.mk-chip.is-on{border-color:#0D5C63;background:#0D5C63;color:#fff}
+.mk-imtihon{margin-top:10px;padding:12px;border-radius:12px;background:#f3f7f9;display:grid;gap:8px}
+.mk-imtihon ul{margin:0;padding-left:18px}.mk-imtihon label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mk-hafta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.mk-hafta label{border:1.5px solid #cfdae2;border-radius:10px;padding:6px 10px;cursor:pointer;display:flex;gap:4px;align-items:center}
+.mk-hafta label.is-on{border-color:#0D5C63;background:#e6f4f1}.mk-soni input{width:56px}
+.mk-izoh{color:#4d5b68;font-size:.9rem}.mk-xato{color:#b42318;font-weight:600}
+.mk-amal{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}.mk-amal small{color:#4d5b68}
+.mk-kurs{border-left:6px solid #9fb3c2}.mk-kurs.is-yaxshi{border-left-color:#2e9e5b}.mk-kurs.is-eslatma{border-left-color:#e8a33d}
+.mk-kurs.is-motiv{border-left-color:#e07b1f}.mk-kurs.is-tanbeh{border-left-color:#c62828}
+.mk-kurs-bosh{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}.mk-kurs-bosh h3{margin:0;font-size:1.15rem}
+.mk-yol{font-size:.85rem;font-weight:700;color:#0D5C63}.mk-maqsad{font-size:.9rem}
+.mk-holat{margin:10px 0;padding:10px 12px;border-radius:10px;background:#f3f7f9;font-weight:600}
+.mk-kurs.is-tanbeh .mk-holat{background:#fdecea;color:#8a1c1c}.mk-kurs.is-motiv .mk-holat{background:#fff2e3}
+.mk-raqam{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0}
+.mk-raqam div{background:#f8fbfc;border-radius:10px;padding:8px 10px}.mk-raqam dt{font-size:.78rem;color:#4d5b68}.mk-raqam dd{margin:2px 0 0;font-weight:700}
+.mk-raqam .mk-xavf{background:#fdecea}

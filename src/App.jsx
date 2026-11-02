@@ -534,6 +534,7 @@ const bolaQurilmasi = () => { try { return window.localStorage.getItem(BOLA_QURI
 const BolaMarkazi = _samtmLazyRetry(() => import("./parent/BolaMarkazi.jsx"));
 const BogchaNarxlar = _samtmLazyRetry(() => import("./admin/BogchaNarxlar.jsx"));
 const BazaHolati = _samtmLazyRetry(() => import("./admin/BazaHolati.jsx"));   // REV248
+const MarkazPanel = _samtmLazyRetry(() => import("./markaz/MarkazPanel.jsx"));   // REV270: o'quv markazi
 // REV103: bog'cha bolasining kunlik vaqti (dars + erkin o'yin) — vaqt tugasa ekran yopiladi, «Ertaga uchrashamiz».
 const KidTimeGuard = _samtmLazyRetry(() => import("./kid/KidTimeGuard.jsx"));
 const lazyAdminTestTool = (exportName) =>
@@ -13114,6 +13115,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
       { kalit: "admin_tv", nom: "Kabutar TV", ikon: Tv },   // REV187
       { kalit: "admin_sertifikat", nom: "Sertifikat guruhlari", ikon: GraduationCap },   // REV209
+      { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV270
       { kalit: "admin_bogcha", nom: "Bog‘cha narxlari", ikon: Wallet },   // REV162
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_baza", nom: "Baza holati", ikon: BarChart3 },   // REV248
@@ -13148,6 +13150,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   // O'quvchi / talaba / bog'cha / markaz: asosiy yo'l — O'rganish (fan → mavzu → dars → test).
   return [
     { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
+    { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV270: sertifikat va erkin til
     { kalit: "test", nom: "Testlar", ikon: PencilLine },
     { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
@@ -14919,6 +14922,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
       {korinishRoli === "admin" && tab === "admin_tv" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminKabutarTv token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_sertifikat" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminSertifikat token={token} /></React.Suspense>}
+      {tab === "oquv_markaz" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><MarkazPanel apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_baza" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BazaHolati apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
