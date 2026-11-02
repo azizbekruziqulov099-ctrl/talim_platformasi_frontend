@@ -88,10 +88,16 @@ function matnXarita() {
       if (!k || k.length < 2 && !/[\u3040-\u9fff\uac00-\ud7af]/u.test(k)) continue;
       const old = m.get(k);
       // dars rasmi (d_…) va xona rasmi bir xil so'z bo'lsa — dars rasmi; ikki xil narsaga to'g'ri kelsa — noaniq
+      // REV259: javob varianti uchun ATAYLAB chizilgan rasm (d_v-…) — shu so'zga ustun (ikkilanish yo'q)
+      if (old && old.startsWith("d_v-")) continue;
+      if (id.startsWith("d_v-")) { m.set(k, id); continue; }
       if (old === undefined) m.set(k, id); else if (old !== id && !(old && old.startsWith("d_") && !id.startsWith("d_"))) m.set(k, null);
     }
   };
-  for (const d of DARS_RASM_META) { for (const w of d.soz || []) qosh(w, `d_${d.id}`); for (const w of d.uz || []) qosh(w, `d_${d.id}`); }
+  // REV259: «past» — bog'cha darslari uchun chizilgan rasm: so'zi bo'sh bo'lsa oladi, bor so'zni noaniq qilmaydi
+  const pastQosh = (t, id) => { const a = matnNorm(t); if (a && !m.has(a)) m.set(a, id); };
+  for (const d of DARS_RASM_META) { if (d.past) continue; for (const w of d.soz || []) qosh(w, `d_${d.id}`); for (const w of d.uz || []) qosh(w, `d_${d.id}`); }
+  for (const d of DARS_RASM_META) { if (!d.past) continue; for (const w of [...(d.soz || []), ...(d.uz || [])]) pastQosh(w, `d_${d.id}`); }
   for (const [id, s] of Object.entries(SOZLAR)) for (const w of Object.values(s.w || {})) qosh(w, id);
   MATN_ID = m;
   return m;

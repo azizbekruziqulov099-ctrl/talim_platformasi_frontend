@@ -10,7 +10,7 @@ test('REV151: har dars rasmining fayli bor va 300 KB dan kichik', () => {
   assert.ok(DARS_RASM_META.length >= 120);
   for (const m of DARS_RASM_META) {
     const st = fs.statSync(new URL(`./kid/dars/rasm/${m.id}.webp`, import.meta.url));
-    assert.ok(st.size > 1000 && st.size < 300_000, `${m.id}: ${st.size}`);   // REV244: oddiy shakllar (kvadrat, minus) juda yengil siqiladi
+    assert.ok(st.size > 600 && st.size < 300_000, `${m.id}: ${st.size}`);   // REV244: oddiy shakllar (kvadrat, minus) juda yengil siqiladi
   }
 });
 

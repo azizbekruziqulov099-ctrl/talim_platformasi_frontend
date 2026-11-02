@@ -74,7 +74,7 @@ test('REV153: so\'z istalgan tilda yoki tarjimasi bo\'yicha chizilgan rasm topil
   assert.equal(matnId('der Apfel'), 'apple');
   assert.equal(matnId('кошка'), 'cat');
   assert.equal(matnId('salom! isming nima?'), 'd_hello');
-  assert.equal(matnId('to\'xtaymiz'), null);
+  assert.equal(matnId('to\'xtaymiz'), 'd_v-toxtaymiz');   // REV259: rassom shu javob uchun alohida rasm chizdi
   assert.deepEqual(doskaBandlari('🔴 أَحْمَر\nahmar\nqizil')[0].mano, ['ahmar', 'qizil']);
   assert.equal(emojiRasm('🔴', { d_red: 'r.webp' })?.id, 'd_red', 'xona rasmi yo\'q — dars rasmi');
   assert.equal(emojiRasm('⭐', { j_yulduz: 'y.webp' })?.id, 'j_yulduz');

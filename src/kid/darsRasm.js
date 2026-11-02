@@ -1333,7 +1333,1258 @@ import d_y_number_1_card from "./dars/rasm/y-number-1-card.webp";
 import d_y_number_2_card from "./dars/rasm/y-number-2-card.webp";
 import d_y_number_3_card from "./dars/rasm/y-number-3-card.webp";
 import d_y_single_boy from "./dars/rasm/y-single-boy.webp";
+// REV259: rassomning 625 ta yangi rasmi — 225 ta javob varianti (v-…) va 400 ta bog'cha rasmi
+import d_v_1_ta_doira from "./dars/rasm/v-1-ta-doira.webp";
+import d_v_1_ta from "./dars/rasm/v-1-ta.webp";
+import d_v_2_qadam from "./dars/rasm/v-2-qadam.webp";
+import d_v_2_ta from "./dars/rasm/v-2-ta.webp";
+import d_v_4_qadam from "./dars/rasm/v-4-qadam.webp";
+import d_v_4_ta_doira from "./dars/rasm/v-4-ta-doira.webp";
+import d_v_4_ta from "./dars/rasm/v-4-ta.webp";
+import d_v_a_comb from "./dars/rasm/v-a-comb.webp";
+import d_v_aniq_belgidan from "./dars/rasm/v-aniq-belgidan.webp";
+import d_v_aniq_bilganlarimizni from "./dars/rasm/v-aniq-bilganlarimizni.webp";
+import d_v_artinamiz from "./dars/rasm/v-artinamiz.webp";
+import d_v_artinishga from "./dars/rasm/v-artinishga.webp";
+import d_v_artish from "./dars/rasm/v-artish.webp";
+import d_v_aylanib from "./dars/rasm/v-aylanib.webp";
+import d_v_barmoq_bilan_kuzatib from "./dars/rasm/v-barmoq-bilan-kuzatib.webp";
+import d_v_bazi from "./dars/rasm/v-bazi.webp";
+import d_v_bir_qarab from "./dars/rasm/v-bir-qarab.webp";
+import d_v_bir_xil from "./dars/rasm/v-bir-xil.webp";
+import d_v_biri_ogir from "./dars/rasm/v-biri-ogir.webp";
+import d_v_boshida from "./dars/rasm/v-boshida.webp";
+import d_v_bright from "./dars/rasm/v-bright.webp";
+import d_v_bugdoydan from "./dars/rasm/v-bugdoydan.webp";
+import d_v_burchakli from "./dars/rasm/v-burchakli.webp";
+import d_v_can_be_seen from "./dars/rasm/v-can-be-seen.webp";
+import d_v_chap_kabi from "./dars/rasm/v-chap-kabi.webp";
+import d_v_chap_va_ongga_qaraymiz from "./dars/rasm/v-chap-va-ongga-qaraymiz.webp";
+import d_v_chiqarib_tashlaymiz from "./dars/rasm/v-chiqarib-tashlaymiz.webp";
+import d_v_chiroyli_shapka_uchun from "./dars/rasm/v-chiroyli-shapka-uchun.webp";
+import d_v_chtoby_est from "./dars/rasm/v-chtoby-est.webp";
+import d_v_dadam from "./dars/rasm/v-dadam.webp";
+import d_v_dadamniki from "./dars/rasm/v-dadamniki.webp";
+import d_v_devordan_sakraymiz from "./dars/rasm/v-devordan-sakraymiz.webp";
+import d_v_diqqat_bilan_qaraymiz from "./dars/rasm/v-diqqat-bilan-qaraymiz.webp";
+import d_v_disappears from "./dars/rasm/v-disappears.webp";
+import d_v_dlya_sveta from "./dars/rasm/v-dlya-sveta.webp";
+import d_v_dry from "./dars/rasm/v-dry.webp";
+import d_v_drying from "./dars/rasm/v-drying.webp";
+import d_v_dumaloq from "./dars/rasm/v-dumaloq.webp";
+import d_v_eng_tepada from "./dars/rasm/v-eng-tepada.webp";
+import d_v_eriydi from "./dars/rasm/v-eriydi.webp";
+import d_v_est from "./dars/rasm/v-est.webp";
+import d_v_flower_juice from "./dars/rasm/v-flower-juice.webp";
+import d_v_gul_shirasidan from "./dars/rasm/v-gul-shirasidan.webp";
+import d_v_hamma from "./dars/rasm/v-hamma.webp";
+import d_v_hammasi_teng from "./dars/rasm/v-hammasi-teng.webp";
+import d_v_har_xil from "./dars/rasm/v-har-xil.webp";
+import d_v_havo from "./dars/rasm/v-havo.webp";
+import d_v_hech_kim from "./dars/rasm/v-hech-kim.webp";
+import d_v_hech_kimniki from "./dars/rasm/v-hech-kimniki.webp";
+import d_v_hech_narsa from "./dars/rasm/v-hech-narsa.webp";
+import d_v_hech_narsani from "./dars/rasm/v-hech-narsani.webp";
+import d_v_hovlida from "./dars/rasm/v-hovlida.webp";
+import d_v_ikki_marta from "./dars/rasm/v-ikki-marta.webp";
+import d_v_in_a_barn from "./dars/rasm/v-in-a-barn.webp";
+import d_v_in_a_kennel from "./dars/rasm/v-in-a-kennel.webp";
+import d_v_in_the_dark from "./dars/rasm/v-in-the-dark.webp";
+import d_v_in_the_light from "./dars/rasm/v-in-the-light.webp";
+import d_v_in_water_and_on_the_shore from "./dars/rasm/v-in-water-and-on-the-shore.webp";
+import d_v_it_is_not_fruit from "./dars/rasm/v-it-is-not-fruit.webp";
+import d_v_iz_soka_tsvetov from "./dars/rasm/v-iz-soka-tsvetov.webp";
+import d_v_joyi from "./dars/rasm/v-joyi.webp";
+import d_v_juft from "./dars/rasm/v-juft.webp";
+import d_v_kam from "./dars/rasm/v-kam.webp";
+import d_v_kamayadi from "./dars/rasm/v-kamayadi.webp";
+import d_v_katta_qizil from "./dars/rasm/v-katta-qizil.webp";
+import d_v_katta_yashil from "./dars/rasm/v-katta-yashil.webp";
+import d_v_kattalashadi from "./dars/rasm/v-kattalashadi.webp";
+import d_v_kattaligida from "./dars/rasm/v-kattaligida.webp";
+import d_v_kecha from "./dars/rasm/v-kecha.webp";
+import d_v_kichik_kok from "./dars/rasm/v-kichik-kok.webp";
+import d_v_kichik_qizil from "./dars/rasm/v-kichik-qizil.webp";
+import d_v_kiyamiz from "./dars/rasm/v-kiyamiz.webp";
+import d_v_kopayadi from "./dars/rasm/v-kopayadi.webp";
+import d_v_korinadi from "./dars/rasm/v-korinadi.webp";
+import d_v_kotariladi from "./dars/rasm/v-kotariladi.webp";
+import d_v_koz_yumib from "./dars/rasm/v-koz-yumib.webp";
+import d_v_kozni_yumamiz from "./dars/rasm/v-kozni-yumamiz.webp";
+import d_v_krysha from "./dars/rasm/v-krysha.webp";
+import d_v_kunduzi_oyinda from "./dars/rasm/v-kunduzi-oyinda.webp";
+import d_v_kuzda from "./dars/rasm/v-kuzda.webp";
+import d_v_kvadrat_yoki_tortburchak from "./dars/rasm/v-kvadrat-yoki-tortburchak.webp";
+import d_v_look_carefully from "./dars/rasm/v-look-carefully.webp";
+import d_v_meniki from "./dars/rasm/v-meniki.webp";
+import d_v_mesto from "./dars/rasm/v-mesto.webp";
+import d_v_meva_emas from "./dars/rasm/v-meva-emas.webp";
+import d_v_meva_turi from "./dars/rasm/v-meva-turi.webp";
+import d_v_molxonada from "./dars/rasm/v-molxonada.webp";
+import d_v_muzlatgichda from "./dars/rasm/v-muzlatgichda.webp";
+import d_v_muzlaydi from "./dars/rasm/v-muzlaydi.webp";
+import d_v_na_nogu from "./dars/rasm/v-na-nogu.webp";
+import d_v_na_ruku from "./dars/rasm/v-na-ruku.webp";
+import d_v_na_svetu from "./dars/rasm/v-na-svetu.webp";
+import d_v_nadevaem from "./dars/rasm/v-nadevaem.webp";
+import d_v_narsaning_ishiga from "./dars/rasm/v-narsaning-ishiga.webp";
+import d_v_ne_frukt from "./dars/rasm/v-ne-frukt.webp";
+import d_v_net_smeshno from "./dars/rasm/v-net-smeshno.webp";
+import d_v_net_tolko_tyomnaya from "./dars/rasm/v-net-tolko-tyomnaya.webp";
+import d_v_nichego from "./dars/rasm/v-nichego.webp";
+import d_v_nothing from "./dars/rasm/v-nothing.webp";
+import d_v_notogri from "./dars/rasm/v-notogri.webp";
+import d_v_novvoy from "./dars/rasm/v-novvoy.webp";
+import d_v_ogirligi_teng from "./dars/rasm/v-ogirligi-teng.webp";
+import d_v_ogriydi from "./dars/rasm/v-ogriydi.webp";
+import d_v_olcham from "./dars/rasm/v-olcham.webp";
+import d_v_oldingda from "./dars/rasm/v-oldingda.webp";
+import d_v_olma_yoqoldi from "./dars/rasm/v-olma-yoqoldi.webp";
+import d_v_olmadan from "./dars/rasm/v-olmadan.webp";
+import d_v_on_the_foot from "./dars/rasm/v-on-the-foot.webp";
+import d_v_on_the_hand from "./dars/rasm/v-on-the-hand.webp";
+import d_v_oq_qora from "./dars/rasm/v-oq-qora.webp";
+import d_v_orqaga_qaytamiz from "./dars/rasm/v-orqaga-qaytamiz.webp";
+import d_v_orqaga_yotamiz from "./dars/rasm/v-orqaga-yotamiz.webp";
+import d_v_orqangda from "./dars/rasm/v-orqangda.webp";
+import d_v_ortada from "./dars/rasm/v-ortada.webp";
+import d_v_osadi from "./dars/rasm/v-osadi.webp";
+import d_v_osha_tomon_kop from "./dars/rasm/v-osha-tomon-kop.webp";
+import d_v_osib_ketadi from "./dars/rasm/v-osib-ketadi.webp";
+import d_v_oson_topamiz from "./dars/rasm/v-oson-topamiz.webp";
+import d_v_otamiz from "./dars/rasm/v-otamiz.webp";
+import d_v_ovoz from "./dars/rasm/v-ovoz.webp";
+import d_v_ovqat_va_suv from "./dars/rasm/v-ovqat-va-suv.webp";
+import d_v_ovqat_yeyishga from "./dars/rasm/v-ovqat-yeyishga.webp";
+import d_v_ovqat_yeymiz from "./dars/rasm/v-ovqat-yeymiz.webp";
+import d_v_oxirgi_meva from "./dars/rasm/v-oxirgi-meva.webp";
+import d_v_oxirida from "./dars/rasm/v-oxirida.webp";
+import d_v_oynashga from "./dars/rasm/v-oynashga.webp";
+import d_v_oyoqqa from "./dars/rasm/v-oyoqqa.webp";
+import d_v_ozgarmaydi from "./dars/rasm/v-ozgarmaydi.webp";
+import d_v_ozim from "./dars/rasm/v-ozim.webp";
+import d_v_pastga_tushadi from "./dars/rasm/v-pastga-tushadi.webp";
+import d_v_posmeyomsya from "./dars/rasm/v-posmeyomsya.webp";
+import d_v_propadaet from "./dars/rasm/v-propadaet.webp";
+import d_v_qadamini_sanab from "./dars/rasm/v-qadamini-sanab.webp";
+import d_v_qaynaydi from "./dars/rasm/v-qaynaydi.webp";
+import d_v_qismma_qism from "./dars/rasm/v-qismma-qism.webp";
+import d_v_qiyshayadi from "./dars/rasm/v-qiyshayadi.webp";
+import d_v_qoidani from "./dars/rasm/v-qoidani.webp";
+import d_v_qolga from "./dars/rasm/v-qolga.webp";
+import d_v_qolgan_odamniki from "./dars/rasm/v-qolgan-odamniki.webp";
+import d_v_qoqilishga from "./dars/rasm/v-qoqilishga.webp";
+import d_v_qorongida from "./dars/rasm/v-qorongida.webp";
+import d_v_qoshiqqa from "./dars/rasm/v-qoshiqqa.webp";
+import d_v_qumdan from "./dars/rasm/v-qumdan.webp";
+import d_v_quruq from "./dars/rasm/v-quruq.webp";
+import d_v_quyoshda from "./dars/rasm/v-quyoshda.webp";
+import d_v_rangida from "./dars/rasm/v-rangida.webp";
+import d_v_rangiga_qarab from "./dars/rasm/v-rangiga-qarab.webp";
+import d_v_rangiga from "./dars/rasm/v-rangiga.webp";
+import d_v_rangni from "./dars/rasm/v-rangni.webp";
+import d_v_raschyoskoy from "./dars/rasm/v-raschyoskoy.webp";
+import d_v_sababini from "./dars/rasm/v-sababini.webp";
+import d_v_sariq_qizil from "./dars/rasm/v-sariq-qizil.webp";
+import d_v_seshanba from "./dars/rasm/v-seshanba.webp";
+import d_v_shakl from "./dars/rasm/v-shakl.webp";
+import d_v_shanba from "./dars/rasm/v-shanba.webp";
+import d_v_shippak from "./dars/rasm/v-shippak.webp";
+import d_v_slippers from "./dars/rasm/v-slippers.webp";
+import d_v_soglom_bolsin from "./dars/rasm/v-soglom-bolsin.webp";
+import d_v_soliydi from "./dars/rasm/v-soliydi.webp";
+import d_v_stakan from "./dars/rasm/v-stakan.webp";
+import d_v_suhaya from "./dars/rasm/v-suhaya.webp";
+import d_v_suvda_va_qirgoqda from "./dars/rasm/v-suvda-va-qirgoqda.webp";
+import d_v_suvdan_tashqarida from "./dars/rasm/v-suvdan-tashqarida.webp";
+import d_v_svetlaya from "./dars/rasm/v-svetlaya.webp";
+import d_v_tanlaymiz from "./dars/rasm/v-tanlaymiz.webp";
+import d_v_tarog_bilan from "./dars/rasm/v-tarog-bilan.webp";
+import d_v_tashqarida from "./dars/rasm/v-tashqarida.webp";
+import d_v_tasodifiylarni from "./dars/rasm/v-tasodifiylarni.webp";
+import d_v_taxmindan from "./dars/rasm/v-taxmindan.webp";
+import d_v_teng_emas from "./dars/rasm/v-teng-emas.webp";
+import d_v_teng_turadi from "./dars/rasm/v-teng-turadi.webp";
+import d_v_teng from "./dars/rasm/v-teng.webp";
+import d_v_tepa from "./dars/rasm/v-tepa.webp";
+import d_v_tepada from "./dars/rasm/v-tepada.webp";
+import d_v_tepaga_chiqadi from "./dars/rasm/v-tepaga-chiqadi.webp";
+import d_v_the_apple_disappeared from "./dars/rasm/v-the-apple-disappeared.webp";
+import d_v_togri_tortburchak from "./dars/rasm/v-togri-tortburchak.webp";
+import d_v_togri from "./dars/rasm/v-togri.webp";
+import d_v_tola from "./dars/rasm/v-tola.webp";
+import d_v_tortburchak from "./dars/rasm/v-tortburchak.webp";
+import d_v_toxtab_oylaymiz from "./dars/rasm/v-toxtab-oylaymiz.webp";
+import d_v_toxtaymiz from "./dars/rasm/v-toxtaymiz.webp";
+import d_v_tuxumda from "./dars/rasm/v-tuxumda.webp";
+import d_v_uchib_ketadi from "./dars/rasm/v-uchib-ketadi.webp";
+import d_v_uchinchi from "./dars/rasm/v-uchinchi.webp";
+import d_v_undan from "./dars/rasm/v-undan.webp";
+import d_v_ustidan_sakrab_yiqilib from "./dars/rasm/v-ustidan-sakrab-yiqilib.webp";
+import d_v_uychada from "./dars/rasm/v-uychada.webp";
+import d_v_uyning_ichidasan from "./dars/rasm/v-uyning-ichidasan.webp";
+import d_v_uyning_tashqarisidasan from "./dars/rasm/v-uyning-tashqarisidasan.webp";
+import d_v_v_budke from "./dars/rasm/v-v-budke.webp";
+import d_v_v_korovnike from "./dars/rasm/v-v-korovnike.webp";
+import d_v_v_tapochkah from "./dars/rasm/v-v-tapochkah.webp";
+import d_v_v_temnote from "./dars/rasm/v-v-temnote.webp";
+import d_v_v_vode_i_na_beregu from "./dars/rasm/v-v-vode-i-na-beregu.webp";
+import d_v_vidno from "./dars/rasm/v-vidno.webp";
+import d_v_vnimatelno_smotret from "./dars/rasm/v-vnimatelno-smotret.webp";
+import d_v_vytiraemsya from "./dars/rasm/v-vytiraemsya.webp";
+import d_v_vytirat from "./dars/rasm/v-vytirat.webp";
+import d_v_vytiratsya from "./dars/rasm/v-vytiratsya.webp";
+import d_v_we_dry from "./dars/rasm/v-we-dry.webp";
+import d_v_wear_it from "./dars/rasm/v-wear-it.webp";
+import d_v_yabloko_propalo from "./dars/rasm/v-yabloko-propalo.webp";
+import d_v_yangi_barg_chiqadi from "./dars/rasm/v-yangi-barg-chiqadi.webp";
+import d_v_yashnaydi from "./dars/rasm/v-yashnaydi.webp";
+import d_v_yer_osti from "./dars/rasm/v-yer-osti.webp";
+import d_v_yer_ostida from "./dars/rasm/v-yer-ostida.webp";
+import d_v_yer from "./dars/rasm/v-yer.webp";
+import d_v_yeyish_uchun from "./dars/rasm/v-yeyish-uchun.webp";
+import d_v_yeyish from "./dars/rasm/v-yeyish.webp";
+import d_v_yomgirdan_keyin from "./dars/rasm/v-yomgirdan-keyin.webp";
+import d_v_yon_tomonga_buriliamiz from "./dars/rasm/v-yon-tomonga-buriliamiz.webp";
+import d_v_yoq_bitta from "./dars/rasm/v-yoq-bitta.webp";
+import d_v_yoq_faqat_qora from "./dars/rasm/v-yoq-faqat-qora.webp";
+import d_v_yoq_kulgili from "./dars/rasm/v-yoq-kulgili.webp";
+import d_v_yoq_olchash_kerak from "./dars/rasm/v-yoq-olchash-kerak.webp";
+import d_v_yoq_pingvin_uchmaydi from "./dars/rasm/v-yoq-pingvin-uchmaydi.webp";
+import d_v_yoqoladi from "./dars/rasm/v-yoqoladi.webp";
+import d_v_yoruglik_uchun from "./dars/rasm/v-yoruglik-uchun.webp";
+import d_v_yotqizsa_ha from "./dars/rasm/v-yotqizsa-ha.webp";
+import d_v_yovvoyi_hayvon from "./dars/rasm/v-yovvoyi-hayvon.webp";
+import d_v_yovvoyi from "./dars/rasm/v-yovvoyi.webp";
+import d_v_yuqori_va_past_orasida from "./dars/rasm/v-yuqori-va-past-orasida.webp";
+import d_v_yuqori from "./dars/rasm/v-yuqori.webp";
+import d_v_zakryto from "./dars/rasm/v-zakryto.webp";
+import d_mt67_u3_came_plus from "./dars/rasm/mt67-u3-came-plus.webp";
+import d_mt67_u3_check from "./dars/rasm/mt67-u3-check.webp";
+import d_mt67_u3_count_back_sub from "./dars/rasm/mt67-u3-count-back-sub.webp";
+import d_mt67_u3_from_ten from "./dars/rasm/mt67-u3-from-ten.webp";
+import d_mt67_u3_left_minus from "./dars/rasm/mt67-u3-left-minus.webp";
+import d_mt67_u3_minus_all from "./dars/rasm/mt67-u3-minus-all.webp";
+import d_mt67_u3_minus_one from "./dars/rasm/mt67-u3-minus-one.webp";
+import d_mt67_u3_minus from "./dars/rasm/mt67-u3-minus.webp";
+import d_mt67_u3_taking_away from "./dars/rasm/mt67-u3-taking-away.webp";
+import d_mt67_u4_altogether from "./dars/rasm/mt67-u4-altogether.webp";
+import d_mt67_u4_ate from "./dars/rasm/mt67-u4-ate.webp";
+import d_mt67_u4_check_answer from "./dars/rasm/mt67-u4-check-answer.webp";
+import d_mt67_u4_condition from "./dars/rasm/mt67-u4-condition.webp";
+import d_mt67_u4_how_many_left from "./dars/rasm/mt67-u4-how-many-left.webp";
+import d_mt67_u4_make_problem from "./dars/rasm/mt67-u4-make-problem.webp";
+import d_mt67_u4_more_came from "./dars/rasm/mt67-u4-more-came.webp";
+import d_mt67_u4_question from "./dars/rasm/mt67-u4-question.webp";
+import d_mt67_u4_story_from_sum from "./dars/rasm/mt67-u4-story-from-sum.webp";
+import d_mt67_u5_corner_side from "./dars/rasm/mt67-u5-corner-side.webp";
+import d_mt67_u5_equal_parts from "./dars/rasm/mt67-u5-equal-parts.webp";
+import d_mt67_u5_four_quarters from "./dars/rasm/mt67-u5-four-quarters.webp";
+import d_mt67_u5_hexagon from "./dars/rasm/mt67-u5-hexagon.webp";
+import d_mt67_u5_pentagon from "./dars/rasm/mt67-u5-pentagon.webp";
+import d_mt67_u5_rectangle from "./dars/rasm/mt67-u5-rectangle.webp";
+import d_mt67_u5_whole from "./dars/rasm/mt67-u5-whole.webp";
+import d_mt67_u6_autumn_months from "./dars/rasm/mt67-u6-autumn-months.webp";
+import d_mt67_u6_clock_face from "./dars/rasm/mt67-u6-clock-face.webp";
+import d_mt67_u6_eight_oclock from "./dars/rasm/mt67-u6-eight-oclock.webp";
+import d_mt67_u6_hour_hand from "./dars/rasm/mt67-u6-hour-hand.webp";
+import d_mt67_u6_minute_hand from "./dars/rasm/mt67-u6-minute-hand.webp";
+import d_mt67_u6_oclock from "./dars/rasm/mt67-u6-oclock.webp";
+import d_mt67_u6_spring_months from "./dars/rasm/mt67-u6-spring-months.webp";
+import d_mt67_u6_summer_months from "./dars/rasm/mt67-u6-summer-months.webp";
+import d_mt67_u6_three_oclock from "./dars/rasm/mt67-u6-three-oclock.webp";
+import d_mt67_u6_winter_months from "./dars/rasm/mt67-u6-winter-months.webp";
+import d_mt67_u7_cell from "./dars/rasm/mt67-u7-cell.webp";
+import d_mt67_u7_change from "./dars/rasm/mt67-u7-change.webp";
+import d_mt67_u7_coin_100 from "./dars/rasm/mt67-u7-coin-100.webp";
+import d_mt67_u7_coin_200_500 from "./dars/rasm/mt67-u7-coin-200-500.webp";
+import d_mt67_u7_graphic_dictation from "./dars/rasm/mt67-u7-graphic-dictation.webp";
+import d_mt67_u7_grid_direction from "./dars/rasm/mt67-u7-grid-direction.webp";
+import d_mt67_u7_grid_pattern from "./dars/rasm/mt67-u7-grid-pattern.webp";
+import d_mt67_u7_hands_side from "./dars/rasm/mt67-u7-hands-side.webp";
+import d_mt67_u7_pay from "./dars/rasm/mt67-u7-pay.webp";
+import d_mt67_u8_cause from "./dars/rasm/mt67-u8-cause.webp";
+import d_mt67_u8_count_by_two from "./dars/rasm/mt67-u8-count-by-two.webp";
+import d_mt67_u8_count_master from "./dars/rasm/mt67-u8-count-master.webp";
+import d_mt67_u8_effect from "./dars/rasm/mt67-u8-effect.webp";
+import d_mt67_u8_growing from "./dars/rasm/mt67-u8-growing.webp";
+import d_mt67_u8_last from "./dars/rasm/mt67-u8-last.webp";
+import d_mt67_u8_math_master from "./dars/rasm/mt67-u8-math-master.webp";
+import d_mt67_u8_rule from "./dars/rasm/mt67-u8-rule.webp";
+import d_mt67_u8_school_bag from "./dars/rasm/mt67-u8-school-bag.webp";
+import d_mt67_u8_second_third from "./dars/rasm/mt67-u8-second-third.webp";
+import d_mt67_u8_sequence from "./dars/rasm/mt67-u8-sequence.webp";
+import d_m_boshqotirma from "./dars/rasm/m-boshqotirma.webp";
+import d_m_dost from "./dars/rasm/m-dost.webp";
+import d_m_mazali from "./dars/rasm/m-mazali.webp";
+import d_m_non from "./dars/rasm/m-non.webp";
+import d_m_oqituvchi from "./dars/rasm/m-oqituvchi.webp";
+import d_m_osh from "./dars/rasm/m-osh.webp";
+import d_m_qollar from "./dars/rasm/m-qollar.webp";
+import d_m_salom from "./dars/rasm/m-salom.webp";
+import d_m_hammom from "./dars/rasm/m-hammom.webp";
+import d_m_mehmonxona from "./dars/rasm/m-mehmonxona.webp";
+import d_m_ostida from "./dars/rasm/m-ostida.webp";
+import d_m_ostida_tagida from "./dars/rasm/m-ostida-tagida.webp";
+import d_m_otish from "./dars/rasm/m-otish.webp";
+import d_m_payshanba from "./dars/rasm/m-payshanba.webp";
+import d_m_penal from "./dars/rasm/m-penal.webp";
+import d_m_pijama from "./dars/rasm/m-pijama.webp";
+import d_m_piyola from "./dars/rasm/m-piyola.webp";
+import d_m_qayerda from "./dars/rasm/m-qayerda.webp";
+import d_m_qila_olaman_bilaman from "./dars/rasm/m-qila-olaman-bilaman.webp";
+import d_m_qila_olasanmi_bilasanmi from "./dars/rasm/m-qila-olasanmi-bilasanmi.webp";
+import d_m_qila_olmaydi from "./dars/rasm/m-qila-olmaydi.webp";
+import d_m_qila_olmoq from "./dars/rasm/m-qila-olmoq.webp";
+import d_m_qongiz from "./dars/rasm/m-qongiz.webp";
+import d_m_qorqinchli from "./dars/rasm/m-qorqinchli.webp";
+import d_m_qorqqan from "./dars/rasm/m-qorqqan.webp";
+import d_m_qorqyapman from "./dars/rasm/m-qorqyapman.webp";
+import d_m_qoshiq from "./dars/rasm/m-qoshiq.webp";
+import d_m_qoshuv from "./dars/rasm/m-qoshuv.webp";
+import d_m_qoshuv_plyus from "./dars/rasm/m-qoshuv-plyus.webp";
+import d_m_qogoz from "./dars/rasm/m-qogoz.webp";
+import d_m_qor_yogyapti from "./dars/rasm/m-qor-yogyapti.webp";
+import d_m_qorni_och from "./dars/rasm/m-qorni-och.webp";
+import d_m_quchoq from "./dars/rasm/m-quchoq.webp";
+import d_m_quchoqla from "./dars/rasm/m-quchoqla.webp";
+import d_m_quchoqlash from "./dars/rasm/m-quchoqlash.webp";
+import d_m_quti from "./dars/rasm/m-quti.webp";
+import d_m_radio from "./dars/rasm/m-radio.webp";
+import d_m_sana from "./dars/rasm/m-sana.webp";
+import d_m_sanamoq from "./dars/rasm/m-sanamoq.webp";
+import d_m_sen_qila_olasanmi from "./dars/rasm/m-sen-qila-olasanmi.webp";
+import d_m_sen_olasan from "./dars/rasm/m-sen-olasan.webp";
+import d_m_sen_olasanmi from "./dars/rasm/m-sen-olasanmi.webp";
+import d_m_sening from "./dars/rasm/m-sening.webp";
+import d_m_seshanba from "./dars/rasm/m-seshanba.webp";
+import d_m_shamol_esyapti from "./dars/rasm/m-shamol-esyapti.webp";
+import d_en67_u16_it_was_fun from "./dars/rasm/en67-u16-it-was-fun.webp";
+import d_en67_u16_we_went_to_the_zoo from "./dars/rasm/en67-u16-we-went-to-the-zoo.webp";
+import d_en67_u16_what_did_you_do_yesterday from "./dars/rasm/en67-u16-what-did-you-do-yesterday.webp";
+import d_en67_u17_chest from "./dars/rasm/en67-u17-chest.webp";
+import d_en67_u17_diploma from "./dars/rasm/en67-u17-diploma.webp";
+import d_en67_u17_forest from "./dars/rasm/en67-u17-forest.webp";
+import d_en67_u17_graduation from "./dars/rasm/en67-u17-graduation.webp";
+import d_en67_u17_help_me from "./dars/rasm/en67-u17-help-me.webp";
+import d_en67_u17_hooray from "./dars/rasm/en67-u17-hooray.webp";
+import d_en67_u17_im_ready_for_school from "./dars/rasm/en67-u17-im-ready-for-school.webp";
+import d_en67_u17_mouse from "./dars/rasm/en67-u17-mouse.webp";
+import d_en67_u17_net from "./dars/rasm/en67-u17-net.webp";
+import d_en67_u17_pull_pull_pull from "./dars/rasm/en67-u17-pull-pull-pull.webp";
+import d_en67_u17_she_is_kind from "./dars/rasm/en67-u17-she-is-kind.webp";
+import d_en67_u17_she_is_lazy from "./dars/rasm/en67-u17-she-is-lazy.webp";
+import d_en67_u17_thank_you_little_mouse from "./dars/rasm/en67-u17-thank-you-little-mouse.webp";
+import d_en67_u17_turnip from "./dars/rasm/en67-u17-turnip.webp";
+import d_en67_u17_we_did_it from "./dars/rasm/en67-u17-we-did-it.webp";
+import d_en67_u2_evening from "./dars/rasm/en67-u2-evening.webp";
+import d_en67_u2_friday from "./dars/rasm/en67-u2-friday.webp";
+import d_en67_u2_monday from "./dars/rasm/en67-u2-monday.webp";
+import d_en67_u2_morning from "./dars/rasm/en67-u2-morning.webp";
+import d_en67_u2_night from "./dars/rasm/en67-u2-night.webp";
+import d_en67_u2_saturday from "./dars/rasm/en67-u2-saturday.webp";
+import d_en67_u2_sunday from "./dars/rasm/en67-u2-sunday.webp";
+import d_en67_u2_thursday from "./dars/rasm/en67-u2-thursday.webp";
+import d_en67_u2_today_is from "./dars/rasm/en67-u2-today-is.webp";
+import d_en67_u2_tomorrow from "./dars/rasm/en67-u2-tomorrow.webp";
+import d_en67_u2_tuesday from "./dars/rasm/en67-u2-tuesday.webp";
+import d_en67_u2_wednesday from "./dars/rasm/en67-u2-wednesday.webp";
+import d_en67_u2_week from "./dars/rasm/en67-u2-week.webp";
+import d_en67_u2_weekend from "./dars/rasm/en67-u2-weekend.webp";
+import d_en67_u2_what_day from "./dars/rasm/en67-u2-what-day.webp";
+import d_en67_u3_builder from "./dars/rasm/en67-u3-builder.webp";
+import d_en67_u3_cook from "./dars/rasm/en67-u3-cook.webp";
+import d_en67_u3_doctor from "./dars/rasm/en67-u3-doctor.webp";
+import d_en67_u3_farm from "./dars/rasm/en67-u3-farm.webp";
+import d_en67_u3_farmer from "./dars/rasm/en67-u3-farmer.webp";
+import d_en67_u3_firefighter from "./dars/rasm/en67-u3-firefighter.webp";
+import d_en67_u3_he_is_doctor from "./dars/rasm/en67-u3-he-is-doctor.webp";
+import d_en67_u3_hospital from "./dars/rasm/en67-u3-hospital.webp";
+import d_en67_u3_pilot from "./dars/rasm/en67-u3-pilot.webp";
+import d_en67_u3_police_officer from "./dars/rasm/en67-u3-police-officer.webp";
+import d_en67_u3_school from "./dars/rasm/en67-u3-school.webp";
+import d_en67_u3_she_is_teacher from "./dars/rasm/en67-u3-she-is-teacher.webp";
+import d_en67_u3_shop from "./dars/rasm/en67-u3-shop.webp";
+import d_en67_u3_teacher from "./dars/rasm/en67-u3-teacher.webp";
+import d_en67_u3_want_pilot from "./dars/rasm/en67-u3-want-pilot.webp";
+import d_en67_u3_want_to_be from "./dars/rasm/en67-u3-want-to-be.webp";
+import d_en67_u4_ambulance from "./dars/rasm/en67-u4-ambulance.webp";
+import d_en67_u4_bike from "./dars/rasm/en67-u4-bike.webp";
+import d_en67_u4_boat from "./dars/rasm/en67-u4-boat.webp";
+import d_en67_u4_bus from "./dars/rasm/en67-u4-bus.webp";
+import d_en67_u4_car from "./dars/rasm/en67-u4-car.webp";
+import d_en67_u4_fire_engine from "./dars/rasm/en67-u4-fire-engine.webp";
+import d_en67_u4_go_by_bus from "./dars/rasm/en67-u4-go-by-bus.webp";
+import d_en67_u4_helicopter from "./dars/rasm/en67-u4-helicopter.webp";
+import d_en67_u4_how_go_school from "./dars/rasm/en67-u4-how-go-school.webp";
+import d_en67_u4_i_walk from "./dars/rasm/en67-u4-i-walk.webp";
+import d_en67_u4_plane from "./dars/rasm/en67-u4-plane.webp";
+import d_en67_u4_police_car from "./dars/rasm/en67-u4-police-car.webp";
+import d_en67_u4_ship from "./dars/rasm/en67-u4-ship.webp";
+import d_en67_u4_stop from "./dars/rasm/en67-u4-stop.webp";
+import d_en67_u4_taxi from "./dars/rasm/en67-u4-taxi.webp";
+import d_en67_u4_train from "./dars/rasm/en67-u4-train.webp";
+import d_en67_u5_be_quiet from "./dars/rasm/en67-u5-be-quiet.webp";
+import d_en67_u5_book from "./dars/rasm/en67-u5-book.webp";
+import d_en67_u5_close_book from "./dars/rasm/en67-u5-close-book.webp";
+import d_en67_u5_crayons from "./dars/rasm/en67-u5-crayons.webp";
+import d_en67_u5_listen from "./dars/rasm/en67-u5-listen.webp";
+import d_en67_u5_look from "./dars/rasm/en67-u5-look.webp";
+import d_en67_u5_notebook from "./dars/rasm/en67-u5-notebook.webp";
+import d_en67_u5_open_book from "./dars/rasm/en67-u5-open-book.webp";
+import d_en67_u5_pen from "./dars/rasm/en67-u5-pen.webp";
+import d_en67_u5_pencil from "./dars/rasm/en67-u5-pencil.webp";
+import d_en67_u5_raise_hand from "./dars/rasm/en67-u5-raise-hand.webp";
+import d_en67_u5_ruler from "./dars/rasm/en67-u5-ruler.webp";
+import d_en67_u5_school_bag from "./dars/rasm/en67-u5-school-bag.webp";
+import d_en67_u5_scissors from "./dars/rasm/en67-u5-scissors.webp";
+import d_en67_u5_sit_down from "./dars/rasm/en67-u5-sit-down.webp";
+import d_en67_u5_stand_up from "./dars/rasm/en67-u5-stand-up.webp";
+import d_en67_u6_bird_fly from "./dars/rasm/en67-u6-bird-fly.webp";
+import d_en67_u6_can_you_swim from "./dars/rasm/en67-u6-can-you-swim.webp";
+import d_en67_u6_climb from "./dars/rasm/en67-u6-climb.webp";
+import d_en67_u6_fish_swim from "./dars/rasm/en67-u6-fish-swim.webp";
+import d_en67_u6_frog_jump from "./dars/rasm/en67-u6-frog-jump.webp";
+import d_en67_u6_help_me from "./dars/rasm/en67-u6-help-me.webp";
+import d_en67_u6_lets_play from "./dars/rasm/en67-u6-lets-play.webp";
+import d_en67_u6_no_i_cant from "./dars/rasm/en67-u6-no-i-cant.webp";
+import d_en67_u6_of_course from "./dars/rasm/en67-u6-of-course.webp";
+import d_en67_u6_play_football from "./dars/rasm/en67-u6-play-football.webp";
+import d_en67_u6_ride_bike from "./dars/rasm/en67-u6-ride-bike.webp";
+import d_en67_u6_skate from "./dars/rasm/en67-u6-skate.webp";
+import d_en67_u6_snake_cant_walk from "./dars/rasm/en67-u6-snake-cant-walk.webp";
+import d_en67_u6_well_done from "./dars/rasm/en67-u6-well-done.webp";
+import d_en67_u6_yes_i_can from "./dars/rasm/en67-u6-yes-i-can.webp";
+import d_en67_u7_apple_please from "./dars/rasm/en67-u7-apple-please.webp";
+import d_en67_u7_basket from "./dars/rasm/en67-u7-basket.webp";
+import d_en67_u7_can_i_help from "./dars/rasm/en67-u7-can-i-help.webp";
+import d_en67_u7_carrots from "./dars/rasm/en67-u7-carrots.webp";
+import d_en56_u8_have_ball from "./dars/rasm/en56-u8-have-ball.webp";
+import d_en56_u8_have_cat from "./dars/rasm/en56-u8-have-cat.webp";
+import d_en56_u8_have_dog from "./dars/rasm/en56-u8-have-dog.webp";
+import d_en56_u8_have_doll from "./dars/rasm/en56-u8-have-doll.webp";
+import d_en56_u8_i_am_big from "./dars/rasm/en56-u8-i-am-big.webp";
+import d_en56_u8_i_am_five from "./dars/rasm/en56-u8-i-am-five.webp";
+import d_en56_u8_see_you_soon from "./dars/rasm/en56-u8-see-you-soon.webp";
+import d_en67_s1_counting_eggs from "./dars/rasm/en67-s1-counting-eggs.webp";
+import d_en67_s18_time_for_school from "./dars/rasm/en67-s18-time-for-school.webp";
+import d_en67_s19_at_the_clinic from "./dars/rasm/en67-s19-at-the-clinic.webp";
+import d_en67_s2_planning_week from "./dars/rasm/en67-s2-planning-week.webp";
+import d_en67_s20_way_to_the_zoo from "./dars/rasm/en67-s20-way-to-the-zoo.webp";
+import d_en67_s21_grandmas_visit from "./dars/rasm/en67-s21-grandmas-visit.webp";
+import d_en67_s22_phone_call_now from "./dars/rasm/en67-s22-phone-call-now.webp";
+import d_en67_s23_monday_morning from "./dars/rasm/en67-s23-monday-morning.webp";
+import d_en67_s24_new_teacher from "./dars/rasm/en67-s24-new-teacher.webp";
+import d_en67_s3_at_the_doctor from "./dars/rasm/en67-s3-at-the-doctor.webp";
+import d_en67_s4_bus_ride from "./dars/rasm/en67-s4-bus-ride.webp";
+import d_en67_s5_first_day_school from "./dars/rasm/en67-s5-first-day-school.webp";
+import d_en67_s6_sports_day from "./dars/rasm/en67-s6-sports-day.webp";
+import d_en67_s7_shopping_list from "./dars/rasm/en67-s7-shopping-list.webp";
+import d_en67_s8_phone_call from "./dars/rasm/en67-s8-phone-call.webp";
+import d_en67_u1_eighteen from "./dars/rasm/en67-u1-eighteen.webp";
+import d_en67_u1_eleven from "./dars/rasm/en67-u1-eleven.webp";
+import d_en67_u1_fifteen_cats from "./dars/rasm/en67-u1-fifteen-cats.webp";
+import d_en67_u1_fifteen from "./dars/rasm/en67-u1-fifteen.webp";
+import d_en67_u1_fourteen from "./dars/rasm/en67-u1-fourteen.webp";
+import d_en67_u1_how_many from "./dars/rasm/en67-u1-how-many.webp";
+import d_en67_u1_lets_count from "./dars/rasm/en67-u1-lets-count.webp";
+import d_en67_u1_nineteen from "./dars/rasm/en67-u1-nineteen.webp";
+import d_en67_u1_seventeen from "./dars/rasm/en67-u1-seventeen.webp";
+import d_en67_u1_sixteen from "./dars/rasm/en67-u1-sixteen.webp";
+import d_en67_u1_thirteen from "./dars/rasm/en67-u1-thirteen.webp";
+import d_en67_u1_twelve from "./dars/rasm/en67-u1-twelve.webp";
+import d_en67_u1_twenty_stars from "./dars/rasm/en67-u1-twenty-stars.webp";
+import d_en67_u1_twenty from "./dars/rasm/en67-u1-twenty.webp";
+import d_en67_u11_i_do_my_homework from "./dars/rasm/en67-u11-i-do-my-homework.webp";
+import d_en67_u11_i_get_dressed from "./dars/rasm/en67-u11-i-get-dressed.webp";
+import d_en67_u11_i_get_up from "./dars/rasm/en67-u11-i-get-up.webp";
+import d_en67_u11_i_go_to_school from "./dars/rasm/en67-u11-i-go-to-school.webp";
+import d_en67_u11_i_have_breakfast from "./dars/rasm/en67-u11-i-have-breakfast.webp";
+import d_en67_u11_i_have_lunch from "./dars/rasm/en67-u11-i-have-lunch.webp";
+import d_en67_u11_i_play_with_friends from "./dars/rasm/en67-u11-i-play-with-friends.webp";
+import d_en67_u11_i_wash_my_face from "./dars/rasm/en67-u11-i-wash-my-face.webp";
+import d_en67_u11_i_watch_tv from "./dars/rasm/en67-u11-i-watch-tv.webp";
+import d_en67_u11_im_reading from "./dars/rasm/en67-u11-im-reading.webp";
+import d_en67_u11_its_half_past_seven from "./dars/rasm/en67-u11-its-half-past-seven.webp";
+import d_en67_u11_its_seven_oclock from "./dars/rasm/en67-u11-its-seven-oclock.webp";
+import d_en67_u11_shes_singing from "./dars/rasm/en67-u11-shes-singing.webp";
+import d_en67_u11_the_fish_is_swimming from "./dars/rasm/en67-u11-the-fish-is-swimming.webp";
+import d_en67_u11_traffic_light from "./dars/rasm/en67-u11-traffic-light.webp";
+import d_en67_u11_watch from "./dars/rasm/en67-u11-watch.webp";
+import d_en67_u11_what_time_is_it from "./dars/rasm/en67-u11-what-time-is-it.webp";
+import d_en67_u12_drink_water from "./dars/rasm/en67-u12-drink-water.webp";
+import d_en67_u12_eat_fruit from "./dars/rasm/en67-u12-eat-fruit.webp";
+import d_en67_u12_get_well_soon from "./dars/rasm/en67-u12-get-well-soon.webp";
+import d_en67_u12_i_have_a_headache from "./dars/rasm/en67-u12-i-have-a-headache.webp";
+import d_en67_u12_i_have_a_stomachache from "./dars/rasm/en67-u12-i-have-a-stomachache.webp";
+import d_en67_u12_im_sick from "./dars/rasm/en67-u12-im-sick.webp";
+import d_en67_u12_medicine from "./dars/rasm/en67-u12-medicine.webp";
+import d_en67_u12_nurse from "./dars/rasm/en67-u12-nurse.webp";
+import d_en67_u12_sleep_well from "./dars/rasm/en67-u12-sleep-well.webp";
+import d_en67_u12_thermometer from "./dars/rasm/en67-u12-thermometer.webp";
+import d_en67_u12_whats_the_matter from "./dars/rasm/en67-u12-whats-the-matter.webp";
+import d_en67_u13_bakery from "./dars/rasm/en67-u13-bakery.webp";
+import d_en67_u13_behind from "./dars/rasm/en67-u13-behind.webp";
+import d_en67_u13_bus_stop from "./dars/rasm/en67-u13-bus-stop.webp";
+import d_en67_u13_crossing from "./dars/rasm/en67-u13-crossing.webp";
+import d_en67_u13_go_straight from "./dars/rasm/en67-u13-go-straight.webp";
+import d_en67_u13_in_front_of from "./dars/rasm/en67-u13-in-front-of.webp";
+import d_en67_u13_library from "./dars/rasm/en67-u13-library.webp";
+import d_en67_u13_look_left_and_right from "./dars/rasm/en67-u13-look-left-and-right.webp";
+import d_en67_u13_next_to from "./dars/rasm/en67-u13-next-to.webp";
+import d_en67_u13_park from "./dars/rasm/en67-u13-park.webp";
+import d_en67_u13_turn_left from "./dars/rasm/en67-u13-turn-left.webp";
+import d_en67_u13_turn_right from "./dars/rasm/en67-u13-turn-right.webp";
+import d_en67_u13_wait from "./dars/rasm/en67-u13-wait.webp";
+import d_en67_u13_where_is_the_park from "./dars/rasm/en67-u13-where-is-the-park.webp";
+import d_en67_u13_zoo from "./dars/rasm/en67-u13-zoo.webp";
+import d_en67_u14_bowl from "./dars/rasm/en67-u14-bowl.webp";
+import d_en67_u14_cup from "./dars/rasm/en67-u14-cup.webp";
+import d_en67_u14_cut from "./dars/rasm/en67-u14-cut.webp";
+import d_en67_u14_fork from "./dars/rasm/en67-u14-fork.webp";
+import d_en67_u14_its_delicious from "./dars/rasm/en67-u14-its-delicious.webp";
+import d_en67_u14_lets_make_a_salad from "./dars/rasm/en67-u14-lets-make-a-salad.webp";
+import d_en67_u14_mix from "./dars/rasm/en67-u14-mix.webp";
+import d_en67_u14_plate from "./dars/rasm/en67-u14-plate.webp";
+import d_en67_u14_spoon from "./dars/rasm/en67-u14-spoon.webp";
+import d_en67_u14_would_you_like_some_tea from "./dars/rasm/en67-u14-would-you-like-some-tea.webp";
+import d_en67_u15_im_playing from "./dars/rasm/en67-u15-im-playing.webp";
+import d_en67_u15_the_birds_are_singing from "./dars/rasm/en67-u15-the-birds-are-singing.webp";
+import d_en67_u15_the_cat_is_sleeping from "./dars/rasm/en67-u15-the-cat-is-sleeping.webp";
+import d_en67_u15_the_dog_is_running from "./dars/rasm/en67-u15-the-dog-is-running.webp";
+import d_en67_u15_theyre_running from "./dars/rasm/en67-u15-theyre-running.webp";
+import d_en67_u15_what_are_you_doing from "./dars/rasm/en67-u15-what-are-you-doing.webp";
+import d_en67_u16_i_ate_ice_cream from "./dars/rasm/en67-u16-i-ate-ice-cream.webp";
+import d_en67_u16_i_saw_a_big_dog from "./dars/rasm/en67-u16-i-saw-a-big-dog.webp";
+import d_en67_u16_i_saw_a_rainbow from "./dars/rasm/en67-u16-i-saw-a-rainbow.webp";
+import d_en67_u16_i_visited_my_granny from "./dars/rasm/en67-u16-i-visited-my-granny.webp";
+import d_en67_u16_i_went_to_the_park from "./dars/rasm/en67-u16-i-went-to-the-park.webp";
+import d_en67_u7_eggs from "./dars/rasm/en67-u7-eggs.webp";
+import d_en67_u7_five_bananas from "./dars/rasm/en67-u7-five-bananas.webp";
+import d_en67_u7_goodbye_see_you from "./dars/rasm/en67-u7-goodbye-see-you.webp";
+import d_en67_u7_how_many_bananas from "./dars/rasm/en67-u7-how-many-bananas.webp";
+import d_en67_u7_money from "./dars/rasm/en67-u7-money.webp";
+import d_en67_u7_potatoes from "./dars/rasm/en67-u7-potatoes.webp";
+import d_en67_u7_thank_you from "./dars/rasm/en67-u7-thank-you.webp";
+import d_en67_u7_tomatoes from "./dars/rasm/en67-u7-tomatoes.webp";
+import d_en67_u8_favourite_green from "./dars/rasm/en67-u8-favourite-green.webp";
+import d_en67_u8_favourite_plov from "./dars/rasm/en67-u8-favourite-plov.webp";
+import d_en67_u8_from_uzbekistan from "./dars/rasm/en67-u8-from-uzbekistan.webp";
+import d_en67_u8_have_pet from "./dars/rasm/en67-u8-have-pet.webp";
+import d_en67_u8_have_sister from "./dars/rasm/en67-u8-have-sister.webp";
+import d_en67_u8_how_old from "./dars/rasm/en67-u8-how-old.webp";
+import d_en67_u8_i_am_seven from "./dars/rasm/en67-u8-i-am-seven.webp";
+import d_en67_u8_i_am_six from "./dars/rasm/en67-u8-i-am-six.webp";
+import d_en67_u8_like_football from "./dars/rasm/en67-u8-like-football.webp";
+import d_en67_u8_live_samarkand from "./dars/rasm/en67-u8-live-samarkand.webp";
+import d_en67_u8_my_name_is from "./dars/rasm/en67-u8-my-name-is.webp";
+import d_en67_u8_nice_to_meet from "./dars/rasm/en67-u8-nice-to-meet.webp";
+import d_en67_u8_this_is_me from "./dars/rasm/en67-u8-this-is-me.webp";
+import d_en67_u8_what_like from "./dars/rasm/en67-u8-what-like.webp";
+import d_en67_u8_where_live from "./dars/rasm/en67-u8-where-live.webp";
+import d_mt56_u1_count_rule from "./dars/rasm/mt56-u1-count-rule.webp";
+import d_mt56_u1_number_line from "./dars/rasm/mt56-u1-number-line.webp";
+import d_mt56_u1_zero from "./dars/rasm/mt56-u1-zero.webp";
+import d_mt56_u2_count_ten from "./dars/rasm/mt56-u2-count-ten.webp";
+import d_mt56_u2_equal from "./dars/rasm/mt56-u2-equal.webp";
+import d_mt56_u2_few from "./dars/rasm/mt56-u2-few.webp";
+import d_mt56_u3_before from "./dars/rasm/mt56-u3-before.webp";
+import d_mt56_u3_count_back from "./dars/rasm/mt56-u3-count-back.webp";
+import d_mt56_u3_gap from "./dars/rasm/mt56-u3-gap.webp";
+import d_mt56_u3_middle from "./dars/rasm/mt56-u3-middle.webp";
+import d_mt56_u3_neighbors from "./dars/rasm/mt56-u3-neighbors.webp";
+import d_mt56_u3_next from "./dars/rasm/mt56-u3-next.webp";
+import d_mt56_u3_one_less from "./dars/rasm/mt56-u3-one-less.webp";
+import d_mt56_u3_rocket from "./dars/rasm/mt56-u3-rocket.webp";
+import d_mt56_u3_ten_to_zero from "./dars/rasm/mt56-u3-ten-to-zero.webp";
+import d_mt56_u4_eight_parts from "./dars/rasm/mt56-u4-eight-parts.webp";
+import d_mt56_u4_five_five from "./dars/rasm/mt56-u4-five-five.webp";
+import d_mt56_u4_five_parts from "./dars/rasm/mt56-u4-five-parts.webp";
+import d_mt56_u4_four_parts from "./dars/rasm/mt56-u4-four-parts.webp";
+import d_mt56_u4_nine_parts from "./dars/rasm/mt56-u4-nine-parts.webp";
+import d_mt56_u4_seven_parts from "./dars/rasm/mt56-u4-seven-parts.webp";
+import d_mt56_u4_six_parts from "./dars/rasm/mt56-u4-six-parts.webp";
+import d_mt56_u4_ten_friends from "./dars/rasm/mt56-u4-ten-friends.webp";
+import d_mt56_u4_three_parts from "./dars/rasm/mt56-u4-three-parts.webp";
+import d_mt56_u5_build_shapes from "./dars/rasm/mt56-u5-build-shapes.webp";
+import d_mt56_u5_cone from "./dars/rasm/mt56-u5-cone.webp";
+import d_mt56_u5_cube from "./dars/rasm/mt56-u5-cube.webp";
+import d_mt56_u5_cylinder from "./dars/rasm/mt56-u5-cylinder.webp";
+import d_mt56_u5_home_shapes from "./dars/rasm/mt56-u5-home-shapes.webp";
+import d_mt56_u5_rolling from "./dars/rasm/mt56-u5-rolling.webp";
+import d_mt56_u5_standing from "./dars/rasm/mt56-u5-standing.webp";
+import d_mt56_u6_season_circle from "./dars/rasm/mt56-u6-season-circle.webp";
+import d_mt56_u6_seven_days from "./dars/rasm/mt56-u6-seven-days.webp";
+import d_mt56_u6_thu_fri from "./dars/rasm/mt56-u6-thu-fri.webp";
+import d_mt56_u6_tue_wed from "./dars/rasm/mt56-u6-tue-wed.webp";
+import d_mt56_u6_weekend from "./dars/rasm/mt56-u6-weekend.webp";
+import d_mt56_u6_yesterday_tomorrow from "./dars/rasm/mt56-u6-yesterday-tomorrow.webp";
+import d_mt56_u7_align from "./dars/rasm/mt56-u7-align.webp";
+import d_mt56_u7_far from "./dars/rasm/mt56-u7-far.webp";
+import d_mt56_u7_heavy from "./dars/rasm/mt56-u7-heavy.webp";
+import d_mt56_u7_light from "./dars/rasm/mt56-u7-light.webp";
+import d_mt56_u7_lines from "./dars/rasm/mt56-u7-lines.webp";
+import d_mt56_u7_short from "./dars/rasm/mt56-u7-short.webp";
+import d_mt56_u7_span from "./dars/rasm/mt56-u7-span.webp";
+import d_mt56_u7_step_size from "./dars/rasm/mt56-u7-step-size.webp";
+import d_mt56_u7_step from "./dars/rasm/mt56-u7-step.webp";
+import d_mt56_u7_string from "./dars/rasm/mt56-u7-string.webp";
+import d_mt56_u8_arrow from "./dars/rasm/mt56-u8-arrow.webp";
+import d_mt56_u8_group from "./dars/rasm/mt56-u8-group.webp";
+import d_mt56_u8_maze from "./dars/rasm/mt56-u8-maze.webp";
+import d_mt56_u8_number_pattern from "./dars/rasm/mt56-u8-number-pattern.webp";
+import d_mt56_u8_odd_one from "./dars/rasm/mt56-u8-odd-one.webp";
+import d_mt56_u8_path from "./dars/rasm/mt56-u8-path.webp";
+import d_mt56_u8_pattern from "./dars/rasm/mt56-u8-pattern.webp";
+import d_mt56_u8_up_down from "./dars/rasm/mt56-u8-up-down.webp";
+import d_mt56_u8_whats_next from "./dars/rasm/mt56-u8-whats-next.webp";
+import d_mt67_u1_count_twenty from "./dars/rasm/mt67-u1-count-twenty.webp";
+import d_mt67_u1_eighteen from "./dars/rasm/mt67-u1-eighteen.webp";
+import d_mt67_u1_eleven from "./dars/rasm/mt67-u1-eleven.webp";
+import d_mt67_u1_fifteen from "./dars/rasm/mt67-u1-fifteen.webp";
+import d_mt67_u1_fourteen from "./dars/rasm/mt67-u1-fourteen.webp";
+import d_mt67_u1_nineteen from "./dars/rasm/mt67-u1-nineteen.webp";
+import d_mt67_u1_seventeen from "./dars/rasm/mt67-u1-seventeen.webp";
+import d_mt67_u1_sixteen from "./dars/rasm/mt67-u1-sixteen.webp";
+import d_mt67_u1_ten_bundle from "./dars/rasm/mt67-u1-ten-bundle.webp";
+import d_mt67_u1_thirteen from "./dars/rasm/mt67-u1-thirteen.webp";
+import d_mt67_u1_twelve from "./dars/rasm/mt67-u1-twelve.webp";
+import d_mt67_u2_adding from "./dars/rasm/mt67-u2-adding.webp";
+import d_mt67_u2_count_on from "./dars/rasm/mt67-u2-count-on.webp";
+import d_mt67_u2_equals from "./dars/rasm/mt67-u2-equals.webp";
+import d_mt67_u2_fingers from "./dars/rasm/mt67-u2-fingers.webp";
+import d_mt67_u2_make_ten from "./dars/rasm/mt67-u2-make-ten.webp";
+import d_mt67_u2_picture_sum from "./dars/rasm/mt67-u2-picture-sum.webp";
+import d_mt67_u2_plus_one from "./dars/rasm/mt67-u2-plus-one.webp";
+import d_mt67_u2_plus_zero from "./dars/rasm/mt67-u2-plus-zero.webp";
+import d_mt67_u2_plus from "./dars/rasm/mt67-u2-plus.webp";
+import d_mt67_u2_swap from "./dars/rasm/mt67-u2-swap.webp";
 export const DARS_RASM = {
+  "d_v-1-ta-doira": d_v_1_ta_doira,
+  "d_v-1-ta": d_v_1_ta,
+  "d_v-2-qadam": d_v_2_qadam,
+  "d_v-2-ta": d_v_2_ta,
+  "d_v-4-qadam": d_v_4_qadam,
+  "d_v-4-ta-doira": d_v_4_ta_doira,
+  "d_v-4-ta": d_v_4_ta,
+  "d_v-a-comb": d_v_a_comb,
+  "d_v-aniq-belgidan": d_v_aniq_belgidan,
+  "d_v-aniq-bilganlarimizni": d_v_aniq_bilganlarimizni,
+  "d_v-artinamiz": d_v_artinamiz,
+  "d_v-artinishga": d_v_artinishga,
+  "d_v-artish": d_v_artish,
+  "d_v-aylanib": d_v_aylanib,
+  "d_v-barmoq-bilan-kuzatib": d_v_barmoq_bilan_kuzatib,
+  "d_v-bazi": d_v_bazi,
+  "d_v-bir-qarab": d_v_bir_qarab,
+  "d_v-bir-xil": d_v_bir_xil,
+  "d_v-biri-ogir": d_v_biri_ogir,
+  "d_v-boshida": d_v_boshida,
+  "d_v-bright": d_v_bright,
+  "d_v-bugdoydan": d_v_bugdoydan,
+  "d_v-burchakli": d_v_burchakli,
+  "d_v-can-be-seen": d_v_can_be_seen,
+  "d_v-chap-kabi": d_v_chap_kabi,
+  "d_v-chap-va-ongga-qaraymiz": d_v_chap_va_ongga_qaraymiz,
+  "d_v-chiqarib-tashlaymiz": d_v_chiqarib_tashlaymiz,
+  "d_v-chiroyli-shapka-uchun": d_v_chiroyli_shapka_uchun,
+  "d_v-chtoby-est": d_v_chtoby_est,
+  "d_v-dadam": d_v_dadam,
+  "d_v-dadamniki": d_v_dadamniki,
+  "d_v-devordan-sakraymiz": d_v_devordan_sakraymiz,
+  "d_v-diqqat-bilan-qaraymiz": d_v_diqqat_bilan_qaraymiz,
+  "d_v-disappears": d_v_disappears,
+  "d_v-dlya-sveta": d_v_dlya_sveta,
+  "d_v-dry": d_v_dry,
+  "d_v-drying": d_v_drying,
+  "d_v-dumaloq": d_v_dumaloq,
+  "d_v-eng-tepada": d_v_eng_tepada,
+  "d_v-eriydi": d_v_eriydi,
+  "d_v-est": d_v_est,
+  "d_v-flower-juice": d_v_flower_juice,
+  "d_v-gul-shirasidan": d_v_gul_shirasidan,
+  "d_v-hamma": d_v_hamma,
+  "d_v-hammasi-teng": d_v_hammasi_teng,
+  "d_v-har-xil": d_v_har_xil,
+  "d_v-havo": d_v_havo,
+  "d_v-hech-kim": d_v_hech_kim,
+  "d_v-hech-kimniki": d_v_hech_kimniki,
+  "d_v-hech-narsa": d_v_hech_narsa,
+  "d_v-hech-narsani": d_v_hech_narsani,
+  "d_v-hovlida": d_v_hovlida,
+  "d_v-ikki-marta": d_v_ikki_marta,
+  "d_v-in-a-barn": d_v_in_a_barn,
+  "d_v-in-a-kennel": d_v_in_a_kennel,
+  "d_v-in-the-dark": d_v_in_the_dark,
+  "d_v-in-the-light": d_v_in_the_light,
+  "d_v-in-water-and-on-the-shore": d_v_in_water_and_on_the_shore,
+  "d_v-it-is-not-fruit": d_v_it_is_not_fruit,
+  "d_v-iz-soka-tsvetov": d_v_iz_soka_tsvetov,
+  "d_v-joyi": d_v_joyi,
+  "d_v-juft": d_v_juft,
+  "d_v-kam": d_v_kam,
+  "d_v-kamayadi": d_v_kamayadi,
+  "d_v-katta-qizil": d_v_katta_qizil,
+  "d_v-katta-yashil": d_v_katta_yashil,
+  "d_v-kattalashadi": d_v_kattalashadi,
+  "d_v-kattaligida": d_v_kattaligida,
+  "d_v-kecha": d_v_kecha,
+  "d_v-kichik-kok": d_v_kichik_kok,
+  "d_v-kichik-qizil": d_v_kichik_qizil,
+  "d_v-kiyamiz": d_v_kiyamiz,
+  "d_v-kopayadi": d_v_kopayadi,
+  "d_v-korinadi": d_v_korinadi,
+  "d_v-kotariladi": d_v_kotariladi,
+  "d_v-koz-yumib": d_v_koz_yumib,
+  "d_v-kozni-yumamiz": d_v_kozni_yumamiz,
+  "d_v-krysha": d_v_krysha,
+  "d_v-kunduzi-oyinda": d_v_kunduzi_oyinda,
+  "d_v-kuzda": d_v_kuzda,
+  "d_v-kvadrat-yoki-tortburchak": d_v_kvadrat_yoki_tortburchak,
+  "d_v-look-carefully": d_v_look_carefully,
+  "d_v-meniki": d_v_meniki,
+  "d_v-mesto": d_v_mesto,
+  "d_v-meva-emas": d_v_meva_emas,
+  "d_v-meva-turi": d_v_meva_turi,
+  "d_v-molxonada": d_v_molxonada,
+  "d_v-muzlatgichda": d_v_muzlatgichda,
+  "d_v-muzlaydi": d_v_muzlaydi,
+  "d_v-na-nogu": d_v_na_nogu,
+  "d_v-na-ruku": d_v_na_ruku,
+  "d_v-na-svetu": d_v_na_svetu,
+  "d_v-nadevaem": d_v_nadevaem,
+  "d_v-narsaning-ishiga": d_v_narsaning_ishiga,
+  "d_v-ne-frukt": d_v_ne_frukt,
+  "d_v-net-smeshno": d_v_net_smeshno,
+  "d_v-net-tolko-tyomnaya": d_v_net_tolko_tyomnaya,
+  "d_v-nichego": d_v_nichego,
+  "d_v-nothing": d_v_nothing,
+  "d_v-notogri": d_v_notogri,
+  "d_v-novvoy": d_v_novvoy,
+  "d_v-ogirligi-teng": d_v_ogirligi_teng,
+  "d_v-ogriydi": d_v_ogriydi,
+  "d_v-olcham": d_v_olcham,
+  "d_v-oldingda": d_v_oldingda,
+  "d_v-olma-yoqoldi": d_v_olma_yoqoldi,
+  "d_v-olmadan": d_v_olmadan,
+  "d_v-on-the-foot": d_v_on_the_foot,
+  "d_v-on-the-hand": d_v_on_the_hand,
+  "d_v-oq-qora": d_v_oq_qora,
+  "d_v-orqaga-qaytamiz": d_v_orqaga_qaytamiz,
+  "d_v-orqaga-yotamiz": d_v_orqaga_yotamiz,
+  "d_v-orqangda": d_v_orqangda,
+  "d_v-ortada": d_v_ortada,
+  "d_v-osadi": d_v_osadi,
+  "d_v-osha-tomon-kop": d_v_osha_tomon_kop,
+  "d_v-osib-ketadi": d_v_osib_ketadi,
+  "d_v-oson-topamiz": d_v_oson_topamiz,
+  "d_v-otamiz": d_v_otamiz,
+  "d_v-ovoz": d_v_ovoz,
+  "d_v-ovqat-va-suv": d_v_ovqat_va_suv,
+  "d_v-ovqat-yeyishga": d_v_ovqat_yeyishga,
+  "d_v-ovqat-yeymiz": d_v_ovqat_yeymiz,
+  "d_v-oxirgi-meva": d_v_oxirgi_meva,
+  "d_v-oxirida": d_v_oxirida,
+  "d_v-oynashga": d_v_oynashga,
+  "d_v-oyoqqa": d_v_oyoqqa,
+  "d_v-ozgarmaydi": d_v_ozgarmaydi,
+  "d_v-ozim": d_v_ozim,
+  "d_v-pastga-tushadi": d_v_pastga_tushadi,
+  "d_v-posmeyomsya": d_v_posmeyomsya,
+  "d_v-propadaet": d_v_propadaet,
+  "d_v-qadamini-sanab": d_v_qadamini_sanab,
+  "d_v-qaynaydi": d_v_qaynaydi,
+  "d_v-qismma-qism": d_v_qismma_qism,
+  "d_v-qiyshayadi": d_v_qiyshayadi,
+  "d_v-qoidani": d_v_qoidani,
+  "d_v-qolga": d_v_qolga,
+  "d_v-qolgan-odamniki": d_v_qolgan_odamniki,
+  "d_v-qoqilishga": d_v_qoqilishga,
+  "d_v-qorongida": d_v_qorongida,
+  "d_v-qoshiqqa": d_v_qoshiqqa,
+  "d_v-qumdan": d_v_qumdan,
+  "d_v-quruq": d_v_quruq,
+  "d_v-quyoshda": d_v_quyoshda,
+  "d_v-rangida": d_v_rangida,
+  "d_v-rangiga-qarab": d_v_rangiga_qarab,
+  "d_v-rangiga": d_v_rangiga,
+  "d_v-rangni": d_v_rangni,
+  "d_v-raschyoskoy": d_v_raschyoskoy,
+  "d_v-sababini": d_v_sababini,
+  "d_v-sariq-qizil": d_v_sariq_qizil,
+  "d_v-seshanba": d_v_seshanba,
+  "d_v-shakl": d_v_shakl,
+  "d_v-shanba": d_v_shanba,
+  "d_v-shippak": d_v_shippak,
+  "d_v-slippers": d_v_slippers,
+  "d_v-soglom-bolsin": d_v_soglom_bolsin,
+  "d_v-soliydi": d_v_soliydi,
+  "d_v-stakan": d_v_stakan,
+  "d_v-suhaya": d_v_suhaya,
+  "d_v-suvda-va-qirgoqda": d_v_suvda_va_qirgoqda,
+  "d_v-suvdan-tashqarida": d_v_suvdan_tashqarida,
+  "d_v-svetlaya": d_v_svetlaya,
+  "d_v-tanlaymiz": d_v_tanlaymiz,
+  "d_v-tarog-bilan": d_v_tarog_bilan,
+  "d_v-tashqarida": d_v_tashqarida,
+  "d_v-tasodifiylarni": d_v_tasodifiylarni,
+  "d_v-taxmindan": d_v_taxmindan,
+  "d_v-teng-emas": d_v_teng_emas,
+  "d_v-teng-turadi": d_v_teng_turadi,
+  "d_v-teng": d_v_teng,
+  "d_v-tepa": d_v_tepa,
+  "d_v-tepada": d_v_tepada,
+  "d_v-tepaga-chiqadi": d_v_tepaga_chiqadi,
+  "d_v-the-apple-disappeared": d_v_the_apple_disappeared,
+  "d_v-togri-tortburchak": d_v_togri_tortburchak,
+  "d_v-togri": d_v_togri,
+  "d_v-tola": d_v_tola,
+  "d_v-tortburchak": d_v_tortburchak,
+  "d_v-toxtab-oylaymiz": d_v_toxtab_oylaymiz,
+  "d_v-toxtaymiz": d_v_toxtaymiz,
+  "d_v-tuxumda": d_v_tuxumda,
+  "d_v-uchib-ketadi": d_v_uchib_ketadi,
+  "d_v-uchinchi": d_v_uchinchi,
+  "d_v-undan": d_v_undan,
+  "d_v-ustidan-sakrab-yiqilib": d_v_ustidan_sakrab_yiqilib,
+  "d_v-uychada": d_v_uychada,
+  "d_v-uyning-ichidasan": d_v_uyning_ichidasan,
+  "d_v-uyning-tashqarisidasan": d_v_uyning_tashqarisidasan,
+  "d_v-v-budke": d_v_v_budke,
+  "d_v-v-korovnike": d_v_v_korovnike,
+  "d_v-v-tapochkah": d_v_v_tapochkah,
+  "d_v-v-temnote": d_v_v_temnote,
+  "d_v-v-vode-i-na-beregu": d_v_v_vode_i_na_beregu,
+  "d_v-vidno": d_v_vidno,
+  "d_v-vnimatelno-smotret": d_v_vnimatelno_smotret,
+  "d_v-vytiraemsya": d_v_vytiraemsya,
+  "d_v-vytirat": d_v_vytirat,
+  "d_v-vytiratsya": d_v_vytiratsya,
+  "d_v-we-dry": d_v_we_dry,
+  "d_v-wear-it": d_v_wear_it,
+  "d_v-yabloko-propalo": d_v_yabloko_propalo,
+  "d_v-yangi-barg-chiqadi": d_v_yangi_barg_chiqadi,
+  "d_v-yashnaydi": d_v_yashnaydi,
+  "d_v-yer-osti": d_v_yer_osti,
+  "d_v-yer-ostida": d_v_yer_ostida,
+  "d_v-yer": d_v_yer,
+  "d_v-yeyish-uchun": d_v_yeyish_uchun,
+  "d_v-yeyish": d_v_yeyish,
+  "d_v-yomgirdan-keyin": d_v_yomgirdan_keyin,
+  "d_v-yon-tomonga-buriliamiz": d_v_yon_tomonga_buriliamiz,
+  "d_v-yoq-bitta": d_v_yoq_bitta,
+  "d_v-yoq-faqat-qora": d_v_yoq_faqat_qora,
+  "d_v-yoq-kulgili": d_v_yoq_kulgili,
+  "d_v-yoq-olchash-kerak": d_v_yoq_olchash_kerak,
+  "d_v-yoq-pingvin-uchmaydi": d_v_yoq_pingvin_uchmaydi,
+  "d_v-yoqoladi": d_v_yoqoladi,
+  "d_v-yoruglik-uchun": d_v_yoruglik_uchun,
+  "d_v-yotqizsa-ha": d_v_yotqizsa_ha,
+  "d_v-yovvoyi-hayvon": d_v_yovvoyi_hayvon,
+  "d_v-yovvoyi": d_v_yovvoyi,
+  "d_v-yuqori-va-past-orasida": d_v_yuqori_va_past_orasida,
+  "d_v-yuqori": d_v_yuqori,
+  "d_v-zakryto": d_v_zakryto,
+  "d_mt67-u3-came-plus": d_mt67_u3_came_plus,
+  "d_mt67-u3-check": d_mt67_u3_check,
+  "d_mt67-u3-count-back-sub": d_mt67_u3_count_back_sub,
+  "d_mt67-u3-from-ten": d_mt67_u3_from_ten,
+  "d_mt67-u3-left-minus": d_mt67_u3_left_minus,
+  "d_mt67-u3-minus-all": d_mt67_u3_minus_all,
+  "d_mt67-u3-minus-one": d_mt67_u3_minus_one,
+  "d_mt67-u3-minus": d_mt67_u3_minus,
+  "d_mt67-u3-taking-away": d_mt67_u3_taking_away,
+  "d_mt67-u4-altogether": d_mt67_u4_altogether,
+  "d_mt67-u4-ate": d_mt67_u4_ate,
+  "d_mt67-u4-check-answer": d_mt67_u4_check_answer,
+  "d_mt67-u4-condition": d_mt67_u4_condition,
+  "d_mt67-u4-how-many-left": d_mt67_u4_how_many_left,
+  "d_mt67-u4-make-problem": d_mt67_u4_make_problem,
+  "d_mt67-u4-more-came": d_mt67_u4_more_came,
+  "d_mt67-u4-question": d_mt67_u4_question,
+  "d_mt67-u4-story-from-sum": d_mt67_u4_story_from_sum,
+  "d_mt67-u5-corner-side": d_mt67_u5_corner_side,
+  "d_mt67-u5-equal-parts": d_mt67_u5_equal_parts,
+  "d_mt67-u5-four-quarters": d_mt67_u5_four_quarters,
+  "d_mt67-u5-hexagon": d_mt67_u5_hexagon,
+  "d_mt67-u5-pentagon": d_mt67_u5_pentagon,
+  "d_mt67-u5-rectangle": d_mt67_u5_rectangle,
+  "d_mt67-u5-whole": d_mt67_u5_whole,
+  "d_mt67-u6-autumn-months": d_mt67_u6_autumn_months,
+  "d_mt67-u6-clock-face": d_mt67_u6_clock_face,
+  "d_mt67-u6-eight-oclock": d_mt67_u6_eight_oclock,
+  "d_mt67-u6-hour-hand": d_mt67_u6_hour_hand,
+  "d_mt67-u6-minute-hand": d_mt67_u6_minute_hand,
+  "d_mt67-u6-oclock": d_mt67_u6_oclock,
+  "d_mt67-u6-spring-months": d_mt67_u6_spring_months,
+  "d_mt67-u6-summer-months": d_mt67_u6_summer_months,
+  "d_mt67-u6-three-oclock": d_mt67_u6_three_oclock,
+  "d_mt67-u6-winter-months": d_mt67_u6_winter_months,
+  "d_mt67-u7-cell": d_mt67_u7_cell,
+  "d_mt67-u7-change": d_mt67_u7_change,
+  "d_mt67-u7-coin-100": d_mt67_u7_coin_100,
+  "d_mt67-u7-coin-200-500": d_mt67_u7_coin_200_500,
+  "d_mt67-u7-graphic-dictation": d_mt67_u7_graphic_dictation,
+  "d_mt67-u7-grid-direction": d_mt67_u7_grid_direction,
+  "d_mt67-u7-grid-pattern": d_mt67_u7_grid_pattern,
+  "d_mt67-u7-hands-side": d_mt67_u7_hands_side,
+  "d_mt67-u7-pay": d_mt67_u7_pay,
+  "d_mt67-u8-cause": d_mt67_u8_cause,
+  "d_mt67-u8-count-by-two": d_mt67_u8_count_by_two,
+  "d_mt67-u8-count-master": d_mt67_u8_count_master,
+  "d_mt67-u8-effect": d_mt67_u8_effect,
+  "d_mt67-u8-growing": d_mt67_u8_growing,
+  "d_mt67-u8-last": d_mt67_u8_last,
+  "d_mt67-u8-math-master": d_mt67_u8_math_master,
+  "d_mt67-u8-rule": d_mt67_u8_rule,
+  "d_mt67-u8-school-bag": d_mt67_u8_school_bag,
+  "d_mt67-u8-second-third": d_mt67_u8_second_third,
+  "d_mt67-u8-sequence": d_mt67_u8_sequence,
+  "d_m-boshqotirma": d_m_boshqotirma,
+  "d_m-dost": d_m_dost,
+  "d_m-mazali": d_m_mazali,
+  "d_m-non": d_m_non,
+  "d_m-oqituvchi": d_m_oqituvchi,
+  "d_m-osh": d_m_osh,
+  "d_m-qollar": d_m_qollar,
+  "d_m-salom": d_m_salom,
+  "d_m-hammom": d_m_hammom,
+  "d_m-mehmonxona": d_m_mehmonxona,
+  "d_m-ostida": d_m_ostida,
+  "d_m-ostida-tagida": d_m_ostida_tagida,
+  "d_m-otish": d_m_otish,
+  "d_m-payshanba": d_m_payshanba,
+  "d_m-penal": d_m_penal,
+  "d_m-pijama": d_m_pijama,
+  "d_m-piyola": d_m_piyola,
+  "d_m-qayerda": d_m_qayerda,
+  "d_m-qila-olaman-bilaman": d_m_qila_olaman_bilaman,
+  "d_m-qila-olasanmi-bilasanmi": d_m_qila_olasanmi_bilasanmi,
+  "d_m-qila-olmaydi": d_m_qila_olmaydi,
+  "d_m-qila-olmoq": d_m_qila_olmoq,
+  "d_m-qongiz": d_m_qongiz,
+  "d_m-qorqinchli": d_m_qorqinchli,
+  "d_m-qorqqan": d_m_qorqqan,
+  "d_m-qorqyapman": d_m_qorqyapman,
+  "d_m-qoshiq": d_m_qoshiq,
+  "d_m-qoshuv": d_m_qoshuv,
+  "d_m-qoshuv-plyus": d_m_qoshuv_plyus,
+  "d_m-qogoz": d_m_qogoz,
+  "d_m-qor-yogyapti": d_m_qor_yogyapti,
+  "d_m-qorni-och": d_m_qorni_och,
+  "d_m-quchoq": d_m_quchoq,
+  "d_m-quchoqla": d_m_quchoqla,
+  "d_m-quchoqlash": d_m_quchoqlash,
+  "d_m-quti": d_m_quti,
+  "d_m-radio": d_m_radio,
+  "d_m-sana": d_m_sana,
+  "d_m-sanamoq": d_m_sanamoq,
+  "d_m-sen-qila-olasanmi": d_m_sen_qila_olasanmi,
+  "d_m-sen-olasan": d_m_sen_olasan,
+  "d_m-sen-olasanmi": d_m_sen_olasanmi,
+  "d_m-sening": d_m_sening,
+  "d_m-seshanba": d_m_seshanba,
+  "d_m-shamol-esyapti": d_m_shamol_esyapti,
+  "d_en67-u16-it-was-fun": d_en67_u16_it_was_fun,
+  "d_en67-u16-we-went-to-the-zoo": d_en67_u16_we_went_to_the_zoo,
+  "d_en67-u16-what-did-you-do-yesterday": d_en67_u16_what_did_you_do_yesterday,
+  "d_en67-u17-chest": d_en67_u17_chest,
+  "d_en67-u17-diploma": d_en67_u17_diploma,
+  "d_en67-u17-forest": d_en67_u17_forest,
+  "d_en67-u17-graduation": d_en67_u17_graduation,
+  "d_en67-u17-help-me": d_en67_u17_help_me,
+  "d_en67-u17-hooray": d_en67_u17_hooray,
+  "d_en67-u17-im-ready-for-school": d_en67_u17_im_ready_for_school,
+  "d_en67-u17-mouse": d_en67_u17_mouse,
+  "d_en67-u17-net": d_en67_u17_net,
+  "d_en67-u17-pull-pull-pull": d_en67_u17_pull_pull_pull,
+  "d_en67-u17-she-is-kind": d_en67_u17_she_is_kind,
+  "d_en67-u17-she-is-lazy": d_en67_u17_she_is_lazy,
+  "d_en67-u17-thank-you-little-mouse": d_en67_u17_thank_you_little_mouse,
+  "d_en67-u17-turnip": d_en67_u17_turnip,
+  "d_en67-u17-we-did-it": d_en67_u17_we_did_it,
+  "d_en67-u2-evening": d_en67_u2_evening,
+  "d_en67-u2-friday": d_en67_u2_friday,
+  "d_en67-u2-monday": d_en67_u2_monday,
+  "d_en67-u2-morning": d_en67_u2_morning,
+  "d_en67-u2-night": d_en67_u2_night,
+  "d_en67-u2-saturday": d_en67_u2_saturday,
+  "d_en67-u2-sunday": d_en67_u2_sunday,
+  "d_en67-u2-thursday": d_en67_u2_thursday,
+  "d_en67-u2-today-is": d_en67_u2_today_is,
+  "d_en67-u2-tomorrow": d_en67_u2_tomorrow,
+  "d_en67-u2-tuesday": d_en67_u2_tuesday,
+  "d_en67-u2-wednesday": d_en67_u2_wednesday,
+  "d_en67-u2-week": d_en67_u2_week,
+  "d_en67-u2-weekend": d_en67_u2_weekend,
+  "d_en67-u2-what-day": d_en67_u2_what_day,
+  "d_en67-u3-builder": d_en67_u3_builder,
+  "d_en67-u3-cook": d_en67_u3_cook,
+  "d_en67-u3-doctor": d_en67_u3_doctor,
+  "d_en67-u3-farm": d_en67_u3_farm,
+  "d_en67-u3-farmer": d_en67_u3_farmer,
+  "d_en67-u3-firefighter": d_en67_u3_firefighter,
+  "d_en67-u3-he-is-doctor": d_en67_u3_he_is_doctor,
+  "d_en67-u3-hospital": d_en67_u3_hospital,
+  "d_en67-u3-pilot": d_en67_u3_pilot,
+  "d_en67-u3-police-officer": d_en67_u3_police_officer,
+  "d_en67-u3-school": d_en67_u3_school,
+  "d_en67-u3-she-is-teacher": d_en67_u3_she_is_teacher,
+  "d_en67-u3-shop": d_en67_u3_shop,
+  "d_en67-u3-teacher": d_en67_u3_teacher,
+  "d_en67-u3-want-pilot": d_en67_u3_want_pilot,
+  "d_en67-u3-want-to-be": d_en67_u3_want_to_be,
+  "d_en67-u4-ambulance": d_en67_u4_ambulance,
+  "d_en67-u4-bike": d_en67_u4_bike,
+  "d_en67-u4-boat": d_en67_u4_boat,
+  "d_en67-u4-bus": d_en67_u4_bus,
+  "d_en67-u4-car": d_en67_u4_car,
+  "d_en67-u4-fire-engine": d_en67_u4_fire_engine,
+  "d_en67-u4-go-by-bus": d_en67_u4_go_by_bus,
+  "d_en67-u4-helicopter": d_en67_u4_helicopter,
+  "d_en67-u4-how-go-school": d_en67_u4_how_go_school,
+  "d_en67-u4-i-walk": d_en67_u4_i_walk,
+  "d_en67-u4-plane": d_en67_u4_plane,
+  "d_en67-u4-police-car": d_en67_u4_police_car,
+  "d_en67-u4-ship": d_en67_u4_ship,
+  "d_en67-u4-stop": d_en67_u4_stop,
+  "d_en67-u4-taxi": d_en67_u4_taxi,
+  "d_en67-u4-train": d_en67_u4_train,
+  "d_en67-u5-be-quiet": d_en67_u5_be_quiet,
+  "d_en67-u5-book": d_en67_u5_book,
+  "d_en67-u5-close-book": d_en67_u5_close_book,
+  "d_en67-u5-crayons": d_en67_u5_crayons,
+  "d_en67-u5-listen": d_en67_u5_listen,
+  "d_en67-u5-look": d_en67_u5_look,
+  "d_en67-u5-notebook": d_en67_u5_notebook,
+  "d_en67-u5-open-book": d_en67_u5_open_book,
+  "d_en67-u5-pen": d_en67_u5_pen,
+  "d_en67-u5-pencil": d_en67_u5_pencil,
+  "d_en67-u5-raise-hand": d_en67_u5_raise_hand,
+  "d_en67-u5-ruler": d_en67_u5_ruler,
+  "d_en67-u5-school-bag": d_en67_u5_school_bag,
+  "d_en67-u5-scissors": d_en67_u5_scissors,
+  "d_en67-u5-sit-down": d_en67_u5_sit_down,
+  "d_en67-u5-stand-up": d_en67_u5_stand_up,
+  "d_en67-u6-bird-fly": d_en67_u6_bird_fly,
+  "d_en67-u6-can-you-swim": d_en67_u6_can_you_swim,
+  "d_en67-u6-climb": d_en67_u6_climb,
+  "d_en67-u6-fish-swim": d_en67_u6_fish_swim,
+  "d_en67-u6-frog-jump": d_en67_u6_frog_jump,
+  "d_en67-u6-help-me": d_en67_u6_help_me,
+  "d_en67-u6-lets-play": d_en67_u6_lets_play,
+  "d_en67-u6-no-i-cant": d_en67_u6_no_i_cant,
+  "d_en67-u6-of-course": d_en67_u6_of_course,
+  "d_en67-u6-play-football": d_en67_u6_play_football,
+  "d_en67-u6-ride-bike": d_en67_u6_ride_bike,
+  "d_en67-u6-skate": d_en67_u6_skate,
+  "d_en67-u6-snake-cant-walk": d_en67_u6_snake_cant_walk,
+  "d_en67-u6-well-done": d_en67_u6_well_done,
+  "d_en67-u6-yes-i-can": d_en67_u6_yes_i_can,
+  "d_en67-u7-apple-please": d_en67_u7_apple_please,
+  "d_en67-u7-basket": d_en67_u7_basket,
+  "d_en67-u7-can-i-help": d_en67_u7_can_i_help,
+  "d_en67-u7-carrots": d_en67_u7_carrots,
+  "d_en56-u8-have-ball": d_en56_u8_have_ball,
+  "d_en56-u8-have-cat": d_en56_u8_have_cat,
+  "d_en56-u8-have-dog": d_en56_u8_have_dog,
+  "d_en56-u8-have-doll": d_en56_u8_have_doll,
+  "d_en56-u8-i-am-big": d_en56_u8_i_am_big,
+  "d_en56-u8-i-am-five": d_en56_u8_i_am_five,
+  "d_en56-u8-see-you-soon": d_en56_u8_see_you_soon,
+  "d_en67-s1-counting-eggs": d_en67_s1_counting_eggs,
+  "d_en67-s18-time-for-school": d_en67_s18_time_for_school,
+  "d_en67-s19-at-the-clinic": d_en67_s19_at_the_clinic,
+  "d_en67-s2-planning-week": d_en67_s2_planning_week,
+  "d_en67-s20-way-to-the-zoo": d_en67_s20_way_to_the_zoo,
+  "d_en67-s21-grandmas-visit": d_en67_s21_grandmas_visit,
+  "d_en67-s22-phone-call-now": d_en67_s22_phone_call_now,
+  "d_en67-s23-monday-morning": d_en67_s23_monday_morning,
+  "d_en67-s24-new-teacher": d_en67_s24_new_teacher,
+  "d_en67-s3-at-the-doctor": d_en67_s3_at_the_doctor,
+  "d_en67-s4-bus-ride": d_en67_s4_bus_ride,
+  "d_en67-s5-first-day-school": d_en67_s5_first_day_school,
+  "d_en67-s6-sports-day": d_en67_s6_sports_day,
+  "d_en67-s7-shopping-list": d_en67_s7_shopping_list,
+  "d_en67-s8-phone-call": d_en67_s8_phone_call,
+  "d_en67-u1-eighteen": d_en67_u1_eighteen,
+  "d_en67-u1-eleven": d_en67_u1_eleven,
+  "d_en67-u1-fifteen-cats": d_en67_u1_fifteen_cats,
+  "d_en67-u1-fifteen": d_en67_u1_fifteen,
+  "d_en67-u1-fourteen": d_en67_u1_fourteen,
+  "d_en67-u1-how-many": d_en67_u1_how_many,
+  "d_en67-u1-lets-count": d_en67_u1_lets_count,
+  "d_en67-u1-nineteen": d_en67_u1_nineteen,
+  "d_en67-u1-seventeen": d_en67_u1_seventeen,
+  "d_en67-u1-sixteen": d_en67_u1_sixteen,
+  "d_en67-u1-thirteen": d_en67_u1_thirteen,
+  "d_en67-u1-twelve": d_en67_u1_twelve,
+  "d_en67-u1-twenty-stars": d_en67_u1_twenty_stars,
+  "d_en67-u1-twenty": d_en67_u1_twenty,
+  "d_en67-u11-i-do-my-homework": d_en67_u11_i_do_my_homework,
+  "d_en67-u11-i-get-dressed": d_en67_u11_i_get_dressed,
+  "d_en67-u11-i-get-up": d_en67_u11_i_get_up,
+  "d_en67-u11-i-go-to-school": d_en67_u11_i_go_to_school,
+  "d_en67-u11-i-have-breakfast": d_en67_u11_i_have_breakfast,
+  "d_en67-u11-i-have-lunch": d_en67_u11_i_have_lunch,
+  "d_en67-u11-i-play-with-friends": d_en67_u11_i_play_with_friends,
+  "d_en67-u11-i-wash-my-face": d_en67_u11_i_wash_my_face,
+  "d_en67-u11-i-watch-tv": d_en67_u11_i_watch_tv,
+  "d_en67-u11-im-reading": d_en67_u11_im_reading,
+  "d_en67-u11-its-half-past-seven": d_en67_u11_its_half_past_seven,
+  "d_en67-u11-its-seven-oclock": d_en67_u11_its_seven_oclock,
+  "d_en67-u11-shes-singing": d_en67_u11_shes_singing,
+  "d_en67-u11-the-fish-is-swimming": d_en67_u11_the_fish_is_swimming,
+  "d_en67-u11-traffic-light": d_en67_u11_traffic_light,
+  "d_en67-u11-watch": d_en67_u11_watch,
+  "d_en67-u11-what-time-is-it": d_en67_u11_what_time_is_it,
+  "d_en67-u12-drink-water": d_en67_u12_drink_water,
+  "d_en67-u12-eat-fruit": d_en67_u12_eat_fruit,
+  "d_en67-u12-get-well-soon": d_en67_u12_get_well_soon,
+  "d_en67-u12-i-have-a-headache": d_en67_u12_i_have_a_headache,
+  "d_en67-u12-i-have-a-stomachache": d_en67_u12_i_have_a_stomachache,
+  "d_en67-u12-im-sick": d_en67_u12_im_sick,
+  "d_en67-u12-medicine": d_en67_u12_medicine,
+  "d_en67-u12-nurse": d_en67_u12_nurse,
+  "d_en67-u12-sleep-well": d_en67_u12_sleep_well,
+  "d_en67-u12-thermometer": d_en67_u12_thermometer,
+  "d_en67-u12-whats-the-matter": d_en67_u12_whats_the_matter,
+  "d_en67-u13-bakery": d_en67_u13_bakery,
+  "d_en67-u13-behind": d_en67_u13_behind,
+  "d_en67-u13-bus-stop": d_en67_u13_bus_stop,
+  "d_en67-u13-crossing": d_en67_u13_crossing,
+  "d_en67-u13-go-straight": d_en67_u13_go_straight,
+  "d_en67-u13-in-front-of": d_en67_u13_in_front_of,
+  "d_en67-u13-library": d_en67_u13_library,
+  "d_en67-u13-look-left-and-right": d_en67_u13_look_left_and_right,
+  "d_en67-u13-next-to": d_en67_u13_next_to,
+  "d_en67-u13-park": d_en67_u13_park,
+  "d_en67-u13-turn-left": d_en67_u13_turn_left,
+  "d_en67-u13-turn-right": d_en67_u13_turn_right,
+  "d_en67-u13-wait": d_en67_u13_wait,
+  "d_en67-u13-where-is-the-park": d_en67_u13_where_is_the_park,
+  "d_en67-u13-zoo": d_en67_u13_zoo,
+  "d_en67-u14-bowl": d_en67_u14_bowl,
+  "d_en67-u14-cup": d_en67_u14_cup,
+  "d_en67-u14-cut": d_en67_u14_cut,
+  "d_en67-u14-fork": d_en67_u14_fork,
+  "d_en67-u14-its-delicious": d_en67_u14_its_delicious,
+  "d_en67-u14-lets-make-a-salad": d_en67_u14_lets_make_a_salad,
+  "d_en67-u14-mix": d_en67_u14_mix,
+  "d_en67-u14-plate": d_en67_u14_plate,
+  "d_en67-u14-spoon": d_en67_u14_spoon,
+  "d_en67-u14-would-you-like-some-tea": d_en67_u14_would_you_like_some_tea,
+  "d_en67-u15-im-playing": d_en67_u15_im_playing,
+  "d_en67-u15-the-birds-are-singing": d_en67_u15_the_birds_are_singing,
+  "d_en67-u15-the-cat-is-sleeping": d_en67_u15_the_cat_is_sleeping,
+  "d_en67-u15-the-dog-is-running": d_en67_u15_the_dog_is_running,
+  "d_en67-u15-theyre-running": d_en67_u15_theyre_running,
+  "d_en67-u15-what-are-you-doing": d_en67_u15_what_are_you_doing,
+  "d_en67-u16-i-ate-ice-cream": d_en67_u16_i_ate_ice_cream,
+  "d_en67-u16-i-saw-a-big-dog": d_en67_u16_i_saw_a_big_dog,
+  "d_en67-u16-i-saw-a-rainbow": d_en67_u16_i_saw_a_rainbow,
+  "d_en67-u16-i-visited-my-granny": d_en67_u16_i_visited_my_granny,
+  "d_en67-u16-i-went-to-the-park": d_en67_u16_i_went_to_the_park,
+  "d_en67-u7-eggs": d_en67_u7_eggs,
+  "d_en67-u7-five-bananas": d_en67_u7_five_bananas,
+  "d_en67-u7-goodbye-see-you": d_en67_u7_goodbye_see_you,
+  "d_en67-u7-how-many-bananas": d_en67_u7_how_many_bananas,
+  "d_en67-u7-money": d_en67_u7_money,
+  "d_en67-u7-potatoes": d_en67_u7_potatoes,
+  "d_en67-u7-thank-you": d_en67_u7_thank_you,
+  "d_en67-u7-tomatoes": d_en67_u7_tomatoes,
+  "d_en67-u8-favourite-green": d_en67_u8_favourite_green,
+  "d_en67-u8-favourite-plov": d_en67_u8_favourite_plov,
+  "d_en67-u8-from-uzbekistan": d_en67_u8_from_uzbekistan,
+  "d_en67-u8-have-pet": d_en67_u8_have_pet,
+  "d_en67-u8-have-sister": d_en67_u8_have_sister,
+  "d_en67-u8-how-old": d_en67_u8_how_old,
+  "d_en67-u8-i-am-seven": d_en67_u8_i_am_seven,
+  "d_en67-u8-i-am-six": d_en67_u8_i_am_six,
+  "d_en67-u8-like-football": d_en67_u8_like_football,
+  "d_en67-u8-live-samarkand": d_en67_u8_live_samarkand,
+  "d_en67-u8-my-name-is": d_en67_u8_my_name_is,
+  "d_en67-u8-nice-to-meet": d_en67_u8_nice_to_meet,
+  "d_en67-u8-this-is-me": d_en67_u8_this_is_me,
+  "d_en67-u8-what-like": d_en67_u8_what_like,
+  "d_en67-u8-where-live": d_en67_u8_where_live,
+  "d_mt56-u1-count-rule": d_mt56_u1_count_rule,
+  "d_mt56-u1-number-line": d_mt56_u1_number_line,
+  "d_mt56-u1-zero": d_mt56_u1_zero,
+  "d_mt56-u2-count-ten": d_mt56_u2_count_ten,
+  "d_mt56-u2-equal": d_mt56_u2_equal,
+  "d_mt56-u2-few": d_mt56_u2_few,
+  "d_mt56-u3-before": d_mt56_u3_before,
+  "d_mt56-u3-count-back": d_mt56_u3_count_back,
+  "d_mt56-u3-gap": d_mt56_u3_gap,
+  "d_mt56-u3-middle": d_mt56_u3_middle,
+  "d_mt56-u3-neighbors": d_mt56_u3_neighbors,
+  "d_mt56-u3-next": d_mt56_u3_next,
+  "d_mt56-u3-one-less": d_mt56_u3_one_less,
+  "d_mt56-u3-rocket": d_mt56_u3_rocket,
+  "d_mt56-u3-ten-to-zero": d_mt56_u3_ten_to_zero,
+  "d_mt56-u4-eight-parts": d_mt56_u4_eight_parts,
+  "d_mt56-u4-five-five": d_mt56_u4_five_five,
+  "d_mt56-u4-five-parts": d_mt56_u4_five_parts,
+  "d_mt56-u4-four-parts": d_mt56_u4_four_parts,
+  "d_mt56-u4-nine-parts": d_mt56_u4_nine_parts,
+  "d_mt56-u4-seven-parts": d_mt56_u4_seven_parts,
+  "d_mt56-u4-six-parts": d_mt56_u4_six_parts,
+  "d_mt56-u4-ten-friends": d_mt56_u4_ten_friends,
+  "d_mt56-u4-three-parts": d_mt56_u4_three_parts,
+  "d_mt56-u5-build-shapes": d_mt56_u5_build_shapes,
+  "d_mt56-u5-cone": d_mt56_u5_cone,
+  "d_mt56-u5-cube": d_mt56_u5_cube,
+  "d_mt56-u5-cylinder": d_mt56_u5_cylinder,
+  "d_mt56-u5-home-shapes": d_mt56_u5_home_shapes,
+  "d_mt56-u5-rolling": d_mt56_u5_rolling,
+  "d_mt56-u5-standing": d_mt56_u5_standing,
+  "d_mt56-u6-season-circle": d_mt56_u6_season_circle,
+  "d_mt56-u6-seven-days": d_mt56_u6_seven_days,
+  "d_mt56-u6-thu-fri": d_mt56_u6_thu_fri,
+  "d_mt56-u6-tue-wed": d_mt56_u6_tue_wed,
+  "d_mt56-u6-weekend": d_mt56_u6_weekend,
+  "d_mt56-u6-yesterday-tomorrow": d_mt56_u6_yesterday_tomorrow,
+  "d_mt56-u7-align": d_mt56_u7_align,
+  "d_mt56-u7-far": d_mt56_u7_far,
+  "d_mt56-u7-heavy": d_mt56_u7_heavy,
+  "d_mt56-u7-light": d_mt56_u7_light,
+  "d_mt56-u7-lines": d_mt56_u7_lines,
+  "d_mt56-u7-short": d_mt56_u7_short,
+  "d_mt56-u7-span": d_mt56_u7_span,
+  "d_mt56-u7-step-size": d_mt56_u7_step_size,
+  "d_mt56-u7-step": d_mt56_u7_step,
+  "d_mt56-u7-string": d_mt56_u7_string,
+  "d_mt56-u8-arrow": d_mt56_u8_arrow,
+  "d_mt56-u8-group": d_mt56_u8_group,
+  "d_mt56-u8-maze": d_mt56_u8_maze,
+  "d_mt56-u8-number-pattern": d_mt56_u8_number_pattern,
+  "d_mt56-u8-odd-one": d_mt56_u8_odd_one,
+  "d_mt56-u8-path": d_mt56_u8_path,
+  "d_mt56-u8-pattern": d_mt56_u8_pattern,
+  "d_mt56-u8-up-down": d_mt56_u8_up_down,
+  "d_mt56-u8-whats-next": d_mt56_u8_whats_next,
+  "d_mt67-u1-count-twenty": d_mt67_u1_count_twenty,
+  "d_mt67-u1-eighteen": d_mt67_u1_eighteen,
+  "d_mt67-u1-eleven": d_mt67_u1_eleven,
+  "d_mt67-u1-fifteen": d_mt67_u1_fifteen,
+  "d_mt67-u1-fourteen": d_mt67_u1_fourteen,
+  "d_mt67-u1-nineteen": d_mt67_u1_nineteen,
+  "d_mt67-u1-seventeen": d_mt67_u1_seventeen,
+  "d_mt67-u1-sixteen": d_mt67_u1_sixteen,
+  "d_mt67-u1-ten-bundle": d_mt67_u1_ten_bundle,
+  "d_mt67-u1-thirteen": d_mt67_u1_thirteen,
+  "d_mt67-u1-twelve": d_mt67_u1_twelve,
+  "d_mt67-u2-adding": d_mt67_u2_adding,
+  "d_mt67-u2-count-on": d_mt67_u2_count_on,
+  "d_mt67-u2-equals": d_mt67_u2_equals,
+  "d_mt67-u2-fingers": d_mt67_u2_fingers,
+  "d_mt67-u2-make-ten": d_mt67_u2_make_ten,
+  "d_mt67-u2-picture-sum": d_mt67_u2_picture_sum,
+  "d_mt67-u2-plus-one": d_mt67_u2_plus_one,
+  "d_mt67-u2-plus-zero": d_mt67_u2_plus_zero,
+  "d_mt67-u2-plus": d_mt67_u2_plus,
+  "d_mt67-u2-swap": d_mt67_u2_swap,
   "d_y-clockwise-rightwards-and-leftwards-open-circle-arrows": d_y_clockwise_rightwards_and_leftwards_open_circle_arrows,
   "d_y-heavy-black-heart": d_y_heavy_black_heart,
   "d_y-clapping-hands-sign": d_y_clapping_hands_sign,
