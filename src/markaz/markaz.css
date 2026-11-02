@@ -36,3 +36,13 @@
 .mk-test-var{display:grid;gap:8px;margin-bottom:12px}.mk-test-var .mk-chip{text-align:left;border-radius:12px;padding:12px 14px;font-size:1.02rem}
 .mk-natija ul{list-style:none;padding:0;display:grid;gap:6px}.mk-natija li{display:flex;align-items:center;gap:8px}
 .mk-foiz{flex:1;height:10px;border-radius:99px;background:#e7eef3;overflow:hidden}.mk-foiz i{display:block;height:100%;background:#2e9e5b}
+
+/* REV275: ko'nikma mashqlari */
+.mk-konikma h3{margin:0 40px 10px 0}.mk-turlar{margin:10px 0}
+.mk-mashq{display:grid;gap:10px;margin-top:6px}
+.mk-chip.is-togri{background:#e3f6ea;border-color:#2e9e5b}.mk-chip.is-xato{background:#fdecea;border-color:#c62828}
+.mk-javob{background:#f3f7f9;border-radius:10px;padding:8px 12px}
+.mk-input{font-size:1.15rem;padding:10px 12px;border:2px solid #cfdae2;border-radius:12px}
+.mk-tahlil{font-size:1.2rem;line-height:1.6}.mk-tahlil .is-togri{color:#1f7a45}.mk-tahlil .is-xato{color:#c62828;text-decoration:underline wavy}
+.mk-btn.is-eshit{background:#c62828;animation:mk-puls 1s ease-in-out infinite}
+@keyframes mk-puls{50%{opacity:.6}}

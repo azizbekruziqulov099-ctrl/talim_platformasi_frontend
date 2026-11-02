@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./markaz.css";
+const KonikmaMashq = React.lazy(() => import("./KonikmaMashq.jsx"));
 
 const TILLAR = { en: "🇬🇧 Ingliz tili", ru: "🇷🇺 Rus tili", de: "🇩🇪 Nemis tili", fr: "🇫🇷 Fransuz tili", es: "🇪🇸 Ispan tili", ar: "🇸🇦 Arab tili",
   tr: "🇹🇷 Turk tili", ko: "🇰🇷 Koreys tili", ja: "🇯🇵 Yapon tili", zh: "🇨🇳 Xitoy tili" };
@@ -48,6 +49,7 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
   const im = katalog.imtihonlar[k.imtihon];
   const h = k.holat || {};
   const [test, setTest] = useState(false);
+  const [konikma, setKonikma] = useState(false);
   return <article className={`mk-kurs ${RANG[h.daraja] || ""}`}>
     <div className="mk-kurs-bosh">
       <span className="mk-yol">{k.yol === "sertifikat" ? "🎓 " + __kbUi("Sertifikat") : "🌍 " + __kbUi("Erkin til")}</span>
@@ -65,8 +67,9 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
     <div className="mk-amal">
       <button type="button" className="mk-btn" disabled title={__kbUi("Kurs materiallari tayyorlanmoqda")}>▶ {__kbUi("Darsni boshlash")}</button>
       <button type="button" className="mk-btn is-ikkinchi" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setTest(true)}>🧭 {k.daraja ? `${__kbUi("Daraja")}: ${k.daraja} · ${__kbUi("qayta topshirish")}` : __kbUi("Daraja aniqlash testi")}</button>
-      <small>{__kbUi("Kurs materiallari tayyorlanmoqda — tez orada ochiladi.")}</small>
+      <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setKonikma(true)}>🎧🗣✍️ {__kbUi("Tinglash, gapirish, yozish")}</button>
     </div>
+    {konikma && <React.Suspense fallback={null}><KonikmaMashq k={k} base={base} token={token} onYop={() => { setKonikma(false); onYangi?.(); }} /></React.Suspense>}
     {test && <DarajaTesti k={k} base={base} token={token} onYop={() => setTest(false)} onNatija={onYangi} />}
   </article>;
 }
