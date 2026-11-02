@@ -9264,7 +9264,7 @@ function AiOquvchiUstozBolimi({ token, initialTarget = null, foydalanuvchi = nul
           <DarsXonasi apiBase={API_BASE} token={token} topicCode={topicCode} fan={joriyFan?.fan || ""}
             grade={joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade || ""}
             jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")}
-            learnerGender={foydalanuvchi?.jins || ""} learnerRole={loginAccountRole(foydalanuvchi)}
+            learnerGender={foydalanuvchi?.jins || ""} learnerRole={loginAccountRole(foydalanuvchi)} adminMi={Boolean(foydalanuvchi?.is_admin) || foydalanuvchi?.role === "admin"}
             onChat={() => setDarsXonasi(false)}
             onOpenTest={onOpenTest ? () => onOpenTest({ topic_code: topicCode, grade: joriyMavzu?.grade || sozlama?.sinf || initialTarget?.grade, subject: joriyFan?.fan }) : undefined}
             onOpenTopic={(code) => { const f = visibleSubjects.find((x) => x.mavzular.some((m) => m.topic_code === code)); if (f) { setFan(f.kalit); setTopicCode(code); } }} />

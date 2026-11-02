@@ -120,7 +120,7 @@ export function teglarniAjrat(d) {
     : { ...x, doskaTeg: x.doska, sarlavhaTeg: x.sarlavha, doska: stripSpeechTags(x.doska || ""), sarlavha: stripSpeechTags(x.sarlavha || "") })) };
 }
 
-export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false }) {
+export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false, adminMi = false }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
   const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
@@ -405,6 +405,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   }, [lesson, audience, kid, steps, kinds, opening, bilgan, grade, darsTil, izoh, tIzoh, oldingi, boshi, maktabSozlar]);
   const voiceReady = voiceItems.length > 0 && speechRecognitionAvailable(globalThis);
   const downloadUrl = (format) => lessonDownloadUrl(apiBase, token, topicCode, format);
+  // REV268: ochiq dars ishlanmasini (PDF/Word) yuklab olish — faqat admin; o'quvchida tugma yo'q
+  const adminmi = Boolean(adminMi);
   const mediaUrl = useCallback((url) => (!url ? null : url.startsWith("/") ? `${String(apiBase).replace(/\/+$/, "")}${url}` : url), [apiBase]);
 
   const hush = useCallback(() => {
@@ -1532,8 +1534,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         {!kid && <p>{[lesson.topic?.fan, lesson.topic?.sinf && (/^\d+$/.test(String(lesson.topic.sinf)) ? `${lesson.topic.sinf}-sinf` : String(lesson.topic.sinf)), lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>}
       </div>
       <div className="dx-head-actions">
-        {!kid && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
-        {!kid && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
+        {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
+        {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
         {kid && (questions.length > 0 || gameTotal > 0) && <span className="dx-chip dx-stars" aria-label={`${score + gameScore} ⭐`}>⭐ {score + gameScore}</span>}
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
