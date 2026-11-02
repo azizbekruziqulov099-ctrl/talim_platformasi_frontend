@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { gapSolishtir, sozlarNorm } from "./konikmaRules.js";
 
-const TURLAR = [["tinglash", "🎧", "Tinglab tushunish"], ["diktant", "✍️", "Diktant"], ["gapirish", "🗣", "Gapirish"]];
+const TURLAR = [["tinglash", "🎧", "Tinglab tushunish"], ["diktant", "✍️", "Diktant"], ["gapirish", "🗣", "Gapirish"], ["suhbat", "💬", "Jonli suhbat"], ["yozish", "📝", "Yozish"]];
 
 export default function KonikmaMashq({ k, base, token, onYop }) {
   const [dars, setDars] = useState(1);
@@ -30,6 +30,8 @@ export default function KonikmaMashq({ k, base, token, onYop }) {
         {tur === "tinglash" && <Tinglash key={`t${dars}`} m={m} base={base} onNatija={(f) => yoz("tinglash", f)} />}
         {tur === "diktant" && <Diktant key={`d${dars}`} m={m} base={base} onNatija={(f) => yoz("diktant", f)} />}
         {tur === "gapirish" && <Gapirish key={`g${dars}`} m={m} base={base} onNatija={(f) => yoz("gapirish", f)} />}
+        {tur === "suhbat" && <Suhbat key={`s${dars}`} m={m} k={k} dars={dars} iz={iz} base={base} token={token} onNatija={(f) => yoz("suhbat", f)} />}
+        {tur === "yozish" && <Yozish key={`y${dars}`} m={m} k={k} dars={dars} iz={iz} base={base} token={token} />}
       </>}
     </div>
   </div>;
@@ -120,5 +122,70 @@ function Gapirish({ m, base, onNatija }) {
     {tahlil && <><p className="mk-tahlil" lang="en">{tahlil.sozlar.map((s, n) => <span key={n} className={s.ok ? "is-togri" : "is-xato"}>{s.kerak} </span>)}</p>
       <p className="mk-izoh">{tahlil.foiz}% · {__kbUi("Eshitildi")}: «{tahlil.eshitildi}» {tahlil.foiz < 80 && "— " + __kbUi("qizil so‘zlarni namunaga quloq solib, qaytadan ayting.")}</p>
       <div className="mk-amal"><button type="button" className="mk-btn is-ikkinchi" onClick={boshla}>🔁 {__kbUi("Qaytadan")}</button><button type="button" className="mk-btn" onClick={keyingi}>{__kbUi("Keyingi")} →</button></div></>}
+  </div>;
+}
+
+// REV276: jonli suhbat — AI vaziyatdagi odam (ofitsiant, sotuvchi…) rolida; o'quvchi yozadi yoki 🎤 aytadi;
+// har xabariga tuzatish (izoh tilida), AI javobi ovozda o'qiladi
+function Suhbat({ m, k, dars, iz, base, token, onNatija }) {
+  const ovoz = useOvoz(base);
+  const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+  const [xab, setXab] = useState([]); const [matn, setMatn] = useState(""); const [band, setBand] = useState(false); const [xato, setXato] = useState(""); const [tugadi, setTugadi] = useState(false); const [eshit, setEshit] = useState(false);
+  const pastga = useRef(null);
+  const yubor = async (royxat) => {
+    setBand(true); setXato("");
+    try {
+      const r = await fetch(`${base}/api/markaz/suhbat`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, yozilish_id: k.id, dars, iz, xabarlar: royxat.map((x) => ({ rol: x.rol, matn: x.matn })) }) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status);
+      const yangi = royxat.map((x, n) => (n === royxat.length - 1 && x.rol === "user" ? { ...x, tuzatish: d.tuzatish, izoh: d.izoh } : x));
+      setXab([...yangi, { rol: "ai", kim: d.rol, matn: d.javob }]); ovoz(d.javob);
+      if (d.tugadi) { setTugadi(true); const u = yangi.filter((x) => x.rol === "user"); onNatija(u.length ? Math.round((100 * u.filter((x) => !x.tuzatish).length) / u.length) : 0); }
+    } catch (e) { setXato(String(e.message || e)); } finally { setBand(false); setTimeout(() => pastga.current?.scrollIntoView({ block: "end" }), 50); }
+  };
+  useEffect(() => { yubor([]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const jonat = () => { const t = matn.trim(); if (!t || band) return; setMatn(""); yubor([...xab, { rol: "user", matn: t }]); };
+  const ayt = () => { if (!SR) return; const r = new SR(); r.lang = "en-US"; r.onresult = (e) => setMatn(e.results[0][0].transcript); r.onend = () => setEshit(false); setEshit(true); r.start(); };
+  return <div className="mk-mashq">
+    <p className="mk-izoh">{m.rol.izoh}</p>
+    <div className="mk-chat" aria-live="polite">
+      {xab.map((x, n) => <div key={n} className={`mk-xab is-${x.rol}`}>
+        <p lang="en"><b>{x.rol === "ai" ? x.kim : __kbUi("Siz")}:</b> {x.matn} {x.rol === "ai" && <button type="button" className="mk-mini" onClick={() => ovoz(x.matn)} aria-label={__kbUi("Tinglash")}>🔊</button>}</p>
+        {x.tuzatish && <p className="mk-tuzat">✏️ <span lang="en">{x.tuzatish}</span>{x.izoh ? ` — ${x.izoh}` : ""}</p>}
+      </div>)}
+      {band && <p className="mk-izoh">…</p>}
+      <div ref={pastga} />
+    </div>
+    {xato && <p className="mk-xato" role="alert">{xato}</p>}
+    {!tugadi ? <div className="mk-amal">
+      <input className="mk-input" lang="en" value={matn} onChange={(e) => setMatn(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") jonat(); }} placeholder={__kbUi("Inglizcha yozing yoki 🎤 bosib ayting…")} disabled={band} />
+      {SR && <button type="button" className={`mk-btn is-ikkinchi ${eshit ? "is-eshit" : ""}`} onClick={ayt} disabled={band || eshit}>🎤</button>}
+      <button type="button" className="mk-btn" onClick={jonat} disabled={band || !matn.trim()}>{__kbUi("Yuborish")}</button>
+    </div> : <div className="mk-natija"><p>🌟 {__kbUi("Suhbat tugadi! Tuzatishlarni yana bir o‘qib chiqing.")}</p><button type="button" className="mk-btn" onClick={() => { setXab([]); setTugadi(false); yubor([]); }}>{__kbUi("Qaytadan")}</button></div>}
+  </div>;
+}
+
+// REV276: yozish — topshiriq bo'yicha 3–5 gap; AI imtihonchi kabi baholaydi: ball, daraja, har xato (asl → to'g'ri, izoh), namuna
+function Yozish({ m, k, dars, iz, base, token }) {
+  const [matn, setMatn] = useState(""); const [natija, setNatija] = useState(null); const [band, setBand] = useState(false); const [xato, setXato] = useState("");
+  const tekshir = async () => {
+    setBand(true); setXato("");
+    try {
+      const r = await fetch(`${base}/api/markaz/yozish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, dars, iz, matn }) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); setNatija(d);
+    } catch (e) { setXato(String(e.message || e)); } finally { setBand(false); }
+  };
+  return <div className="mk-mashq">
+    <p className="mk-izoh"><b lang="en">{m.rol.topshiriq}</b><br />{m.rol.izoh} {__kbUi("3–5 ta gap yozing.")}</p>
+    <textarea className="mk-input mk-matn" lang="en" rows={5} value={matn} onChange={(e) => setMatn(e.target.value)} disabled={band} placeholder={m.rol.namuna} spellCheck={false} />
+    <button type="button" className="mk-btn" onClick={tekshir} disabled={band || matn.trim().split(/\s+/).length < 3}>{band ? __kbUi("Tekshirilmoqda…") : __kbUi("Tekshirish")}</button>
+    {xato && <p className="mk-xato" role="alert">{xato}</p>}
+    {natija && <div className="mk-natija">
+      <h3>{natija.ball}/100 · {natija.daraja}</h3>
+      {natija.yaxshi && <p>👍 {natija.yaxshi}</p>}
+      {natija.xatolar.length > 0 ? <ul className="mk-xatolar">{natija.xatolar.map((x, n) => <li key={n}><s lang="en">{x.asl}</s> → <b lang="en">{x.togri}</b>{x.izoh ? ` — ${x.izoh}` : ""}</li>)}</ul> : <p>✅ {__kbUi("Xato topilmadi!")}</p>}
+      {natija.maslahat && <p>💡 {natija.maslahat}</p>}
+      {natija.namuna && <details><summary>{__kbUi("Namunaviy to‘g‘ri variant")}</summary><p lang="en">{natija.namuna}</p></details>}
+    </div>}
   </div>;
 }

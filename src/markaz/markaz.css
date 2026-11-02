@@ -46,3 +46,11 @@
 .mk-tahlil{font-size:1.2rem;line-height:1.6}.mk-tahlil .is-togri{color:#1f7a45}.mk-tahlil .is-xato{color:#c62828;text-decoration:underline wavy}
 .mk-btn.is-eshit{background:#c62828;animation:mk-puls 1s ease-in-out infinite}
 @keyframes mk-puls{50%{opacity:.6}}
+
+/* REV276: jonli suhbat va yozish */
+.mk-chat{max-height:46vh;overflow:auto;display:grid;gap:8px;padding:8px;background:#f3f7f9;border-radius:12px}
+.mk-xab{max-width:85%;padding:8px 12px;border-radius:12px;background:#fff}.mk-xab p{margin:0}
+.mk-xab.is-user{justify-self:end;background:#e6f4f1}.mk-tuzat{margin-top:4px!important;font-size:.9rem;color:#8a4b00}
+.mk-mini{border:0;background:none;cursor:pointer;font-size:1rem}
+.mk-amal .mk-input{flex:1;min-width:200px}.mk-matn{width:100%;box-sizing:border-box;font-family:inherit}
+.mk-xatolar{padding-left:18px}.mk-xatolar s{color:#c62828}.mk-xatolar b{color:#1f7a45}
