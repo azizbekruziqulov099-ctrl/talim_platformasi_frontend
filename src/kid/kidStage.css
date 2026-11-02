@@ -83,6 +83,7 @@
 
 /* REV263: ikkinchi (izoh tili) ustozi — faqat gapirganda kiradi, gapi tugagach chiqib ketadi */
 .us-teacher.is-rol-iz{transition:opacity .45s ease,transform .45s ease}
-.us-teacher.is-rol-iz.is-jim{opacity:0!important;transform:translateX(-28%)!important;pointer-events:none}
+/* REV265: butun qadam davomida turadi (gapi bor qadamda), bo'shliqlarda kirib-chiqib yurmaydi */
+.us-teacher.is-rol-iz.is-yashirin{opacity:0!important;transform:translateX(-28%)!important;pointer-events:none}
 /* REV263: Kabuning bayrog'i endi ko'kragida — alohida bayroqcha belgisi takrorlanmaydi */
 .ks-bayroq{display:none!important}

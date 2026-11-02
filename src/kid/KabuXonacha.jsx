@@ -20,7 +20,7 @@ function Robot({ til, faol, gapir, mood, celebrate, onTap, nom }) {
   return <button type="button" className={`kx-robot is-${nom} ${faol ? "is-faol" : ""} ${jim ? "is-jim" : ""}`} onClick={onTap} aria-label={nom}
     style={TIL_RANG[til] && nom !== "iz" ? { "--kx-rang": TIL_RANG[til] } : undefined}>
     {/* REV181: bayroq — ko'krakdagi nishon (boshi ustida emas), Kabu bilan birga suzadi */}
-    <div className="kabu-float"><div className="kabu-hop"><RobotKabu mood={m} celebrate={celebrate} /></div><span className="kx-nom"><Bayroq til={til} /></span></div>
+    <div className="kabu-float"><div className="kabu-hop"><RobotKabu tur={til} mood={m} celebrate={celebrate} /></div></div>{/* REV265: har Kabu o'z tilida (nemis — Taubi…); bayroq ko'kragida */}
     <span className="kabu-shadow" aria-hidden="true" />
   </button>;
 }
