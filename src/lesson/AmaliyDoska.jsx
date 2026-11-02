@@ -6,6 +6,8 @@ import { splitCourseMath } from "../courses/CourseText.jsx";
 import { checkAnswer, speakableText } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
 import { conditionLines, nextShown, optionState } from "./kitobKodRules.js";
+import { MatQator } from "./MatDoska.jsx";   // REV269: matematika — yechim qatorlari jonli yoziladi
+import { buyruq, ovozMatni } from "./matDoska.js";
 
 // Doskadagi matn: oddiy matn React orqali, formulalar faqat KaTeX (trust:false).
 export function BoardText({ text }) {
@@ -55,7 +57,7 @@ export function useBoardVoice(apiBase, jins = "qiz") {
 
 /** Amaliy topshiriq doskasi: sharti ko'rinadi, yechimi «Yechimni ko'rsatish» bosilganda
  *  o'qituvchi ovozi bilan qadamma-qadam yoziladi. Dars xonasi va kitob kodi oynasi bir xil ishlatadi. */
-export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false }) {
+export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0 }) {
   useKbInterfaceLocale();
   const steps = item?.yechim || [];
   const options = item?.variantlar || [];
@@ -64,12 +66,13 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const [picked, setPicked] = useState(null);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState(null);
+  const [maslahatN, setMaslahatN] = useState(0);   // REV269: nechta maslahat ochilgan
   const runRef = useRef(0);
 
   const stop = useCallback(() => { runRef.current += 1; setRunning(false); hush?.(); }, [hush]);
   // REV93: yangi topshiriq ochilganda o'qituvchi ovozini O'CHIRMAYMIZ (dars xonasi shu payt shartni o'qiyapti) —
   // faqat o'zimizning yechim ko'rsatishni to'xtatamiz. Oldin bu ovozni kesib, dars shu qadamda to'xtab qolardi.
-  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { runRef.current += 1; }, []);
 
   const reveal = useCallback((from = 0) => {
@@ -81,12 +84,13 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       if (i >= steps.length) { setRunning(false); onSolved?.(); return; }
       setShown(nextShown(i, steps.length));
       const s = steps[i];
-      say(i === 0 && from === 0 ? `${__kbUi("Yechimni ko‘ramiz.")} ${s.ovoz || s.doska}` : (s.ovoz || s.doska), () => {
+      const gap = s.ovoz || (jonli ? ovozMatni(s.doska) : s.doska);
+      say(i === 0 && from === 0 && !jonli ? `${__kbUi("Yechimni ko‘ramiz.")} ${gap}` : gap, () => {
         setTimeout(() => step(i + 1), 450);
       });
     };
     step(from);
-  }, [steps, say, onSolved]);
+  }, [steps, say, onSolved, jonli]);
 
   useEffect(() => {
     if (!autoStart || !steps.length) return undefined;
@@ -99,6 +103,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
     setPicked(k);
     if (item.togri === null || item.togri === undefined) return;
     if (k === item.togri) say(__kbUi("To‘g‘ri! Barakalla."));
+    else if (item.xatolar?.[String(k)]) say(item.xatolar[String(k)], () => reveal(0));   // REV269: aynan shu xatoning izohi
     else say(__kbUi("Javob noto‘g‘ri. Yechimni ko‘rib chiqamiz."), () => reveal(0));
   };
   const submit = (event) => {
@@ -115,7 +120,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       {item.kod && !kid && <span className="dx-code" title={__kbUi("Kitobdagi kod")}>{item.kod}</span>}
     </div>
     <div className="dx-task" tabIndex={0} aria-label={__kbUi("Topshiriq sharti")}>
-      {lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}
+      {lines.map((line, i) => <p key={i}>{jonli ? <MatQator qator={buyruq(line)} /> : <BoardText text={line} />}</p>)}
     </div>
     {item.rasm && <img className="dx-pic" src={mediaUrl(item.rasm)} alt="" loading="lazy" />}
     {options.length > 0 && <div className="dx-opts">{options.map((o, k) => {
@@ -128,12 +133,20 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       <button type="submit" className="dx-btn dx-primary">{__kbUi("Tekshirish")}</button>
       {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
     </form>}
+    {picked !== null && picked !== item.togri && item.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(item.xatolar[String(picked)])} /></p>}
+    {maslahatN > 0 && <div className="mdx-maslahatlar">{(item.maslahat || []).slice(0, maslahatN).map((m, i) => <p key={i}>💡 <BoardText text={m} /></p>)}</div>}
     {shown > 0 && <div className="dx-solution" aria-live="polite">
       <h4>{__kbUi("Yechim")}</h4>
-      {steps.slice(0, shown).map((s, i) => <div key={i} className={`dx-line ${i === shown - 1 && running ? "is-new" : ""}`}><BoardText text={s.doska} /></div>)}
+      {steps.slice(0, shown).map((s, i) => {
+        // REV269: jonli doska — oxirgi qadam ovoz bilan birga yoziladi (soz — aytilayotgan so'z tartibi)
+        const p = i === shown - 1 && running && sozSoni > 0 ? Math.min(1, Math.max(0.02, (soz + 1) / sozSoni)) : 1;
+        return <div key={i} className={`dx-line ${jonli ? "mdx-line" : i === shown - 1 && running ? "is-new" : ""}`}>{jonli ? <MatQator qator={buyruq(s.doska)} progress={p} /> : <BoardText text={s.doska} />}</div>;
+      })}
     </div>}
     {/* REV93: bog'chada tugmalar yo'q — dars o'zi o'qiydi, kutadi, maqtaydi va davom etadi */}
     {!kid && <div className="dx-row dx-amaliy-actions">
+      {(item.maslahat || []).length > maslahatN && shown === 0 && !running && <button type="button" className="dx-btn mdx-maslahat-btn" onClick={() => { const m = item.maslahat[maslahatN]; setMaslahatN(maslahatN + 1); say(m); }}>
+        💡 {__kbUi("Maslahat")} {maslahatN + 1}/{item.maslahat.length}</button>}
       {steps.length > 0 && !running && shown < steps.length && <button type="button" className="dx-btn dx-primary" onClick={() => reveal(shown)}>{shown ? __kbUi("▶ Davom ettirish") : __kbUi("▶ Yechimni ko‘rsatish")}</button>}
       {running && <button type="button" className="dx-btn" onClick={stop}>{__kbUi("❚❚ To‘xtatish")}</button>}
       {steps.length > 1 && shown < steps.length && <button type="button" className="dx-btn" onClick={() => { stop(); setShown(steps.length); }}>{__kbUi("Hammasini ko‘rsatish")}</button>}

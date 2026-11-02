@@ -105,6 +105,8 @@ import { IkkiUstozTaglavha, SozIzohi } from "../til/IkkiUstozTaglavha.jsx";
 import { GapTuzish, qisqaGaplar } from "../til/GapTuzish.jsx";
 const jwtProfil = (t) => { try { const p = JSON.parse(atob(String(t || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return String(p.sub || p.user_id || p.uid || p.id || "_"); } catch { return "_"; } };
 import { B, belgiSrc } from "../kid/Belgi.jsx";
+import { EsdaTut, Latta, MatQator } from "./MatDoska.jsx";   // REV269: matematika jonli doskasi
+import { doskaQatorlari, esdaTut, matRejim, qatorProgress, yozishSozlari } from "./matDoska.js";
 
 /** REV90: bog'cha boshqaruv tugmasi — katta belgi, ostida kichik yozuv (o'qiy olmaydigan bola belgidan taniydi). */
 function KidIcon({ icon, label }) {
@@ -269,6 +271,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   izohRef.current = izoh;
   // REV121: matematika / atrof-muhit / mantiq — til darsi emas (rus izohidagi teglar «o'rganiladigan til» emas)
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
+  // REV269: matematika darsi — doska ovoz bilan birga qo'lda yozilayotgandek ochiladi, buyruqli qatorlar chizmaga aylanadi
+  const matem = !kid && matRejim(fan || lesson?.topic?.fan);
   darsTilRef.current = darsTil || "";
   // REV267: test/ovoz sahnasida til darsi bo'lsa — doim ikki Kabu (izoh tili + o'rganilayotgan til: nemis — Taubi)
   const kabuJuftMuhit = kabuMuhit && Boolean(darsTil);
@@ -1121,6 +1125,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (sinfXona) flashPhase(k === q.togri ? "happy" : "enc");   // REV177: Kabu quvonadi / dalda beradi
     const izL = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
     if (k === q.togri) { setScore((x) => x + 1); say(uiT(__kbUi("To‘g‘ri!")), () => setTimeout(() => nextQuestion(), 700)); }
+    else if (q.xatolar?.[String(k)]) say(`${q.xatolar[String(k)]} ${q.izoh || ""}`.trim());   // REV269: aynan shu xatoning izohi
     else say(q.izoh ? testOvozi({ savol: q.izoh, til: darsTil || "", iz: izL, lugat: tilLugati(lesson?.steps || [], darsTil || "", maktabSozlar) }) : uiT(__kbUi("Javob noto‘g‘ri. To‘g‘ri variant yashil bilan belgilandi.")));
   };
   const nextQuestion = () => {
@@ -1542,6 +1547,28 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (name) say(darsTil ? `[${darsTil}]${name}[/${darsTil}]` : izohTeg(name, izoh));
   };
 
+  // REV269: matematika doskasi qatorlari — har qator o'z gapi aytilayotganda yoziladi (progress 0..1), OCHIR — doska tozalanadi
+  const matQatorlar = () => {
+    const qatorlar = [];
+    for (const i of range) {
+      const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
+      const jami = cue.spoken.split(/\s+/).filter(Boolean).length;
+      const tugadi = i !== idx || stepFinished || !speaking;
+      for (const q of doskaQatorlari(cue.lines)) {
+        const uz = yozishSozlari(q) / q.qismlar.length;
+        const qismProgress = q.qismlar.map((b) => qatorProgress(cue.cues, b.n, word, jami, tugadi, uz));
+        const p = qismProgress[0];
+        if (p <= 0) continue;
+        qatorlar.push({ key: `${steps[i].id}-${q.n}`, q: { ...q, qismProgress }, p, qoida: ["qoida", "xulosa"].includes(steps[i].turi) });
+      }
+    }
+    const och = qatorlar.map((x) => x.q.tur).lastIndexOf("ochir");
+    const korinadi = och < 0 ? qatorlar : qatorlar[och].p >= 1 ? qatorlar.slice(och + 1) : qatorlar;
+    const lattaP = och >= 0 && qatorlar[och].p < 1 ? qatorlar[och].p : 0;
+    return [lattaP > 0 && <Latta key="latta" progress={lattaP} />, ...korinadi.filter((x) => x.q.tur !== "ochir").map((x, k) =>
+      <div key={x.key} className={`dx-line mdx-line ${x.qoida ? "dx-rule" : ""} ${x.p < 1 ? "is-yozilmoqda" : ""}`}
+        style={lattaP > 0 && k < och ? { opacity: 1 - lattaP } : undefined}><MatQator qator={x.q} progress={x.p} /></div>)];
+  };
   return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className="dx-head">
@@ -1576,7 +1603,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                         <KidStage compact tur={darsTil} bayroq={flagSrc(TIL_BAYROQ[darsTil] || "")} mood={speaking && (kabuKim || "iz") === "til" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "til"} /></div>
         </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
-        <div className="dx-board" aria-live="polite" ref={doskaRef}>
+        <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
+          {matem && mode === "lesson" && <EsdaTut qoidalar={esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
             onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />
@@ -1606,12 +1634,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           </>}
           {!kid && mode === "lesson" && step && step.turi === "amaliy" && <>
             {step.sarlavha && <h3 className="dx-title"><BoardText text={step.sarlavha} /></h3>}
-            <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} kid={kid} />
+            <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} kid={kid}
+              jonli={matem} soz={word} sozSoni={sayWords.current.length} />
           </>}
           {!kid && mode === "lesson" && step && step.turi !== "amaliy" && <>
             {steps[range[0]]?.sarlavha && <h3 className="dx-title"><BoardText text={steps[range[0]].sarlavha} /></h3>}
             <div className="dx-lines">
-              {range.flatMap((i) => {
+              {matem && !juftDoska ? matQatorlar() : range.flatMap((i) => {
                 const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
                 const shown = i === idx ? visibleLines(cue.cues, word, stepFinished || !speaking) : cue.lines.length;
                 const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
@@ -1661,7 +1690,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
               className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
-            {picked !== null && !kid && picked !== q.togri && <div className="dx-why">{!kid && <p>{q.izoh}</p>}<button type="button" className="dx-btn dx-primary" onClick={nextQuestion}>{__kbUi(testIndex + 1 >= questions.length ? (kid ? "Yulduzlarni ko‘rish ⭐" : "Natija") : (kid ? "Keyingisi ➜" : "Keyingi savol"))}</button></div>}
+            {picked !== null && !kid && picked !== q.togri && <div className="dx-why">{q.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(q.xatolar[String(picked)])} /></p>}{!kid && <p><BoardText text={stripSpeechTags(q.izoh || "")} /></p>}<button type="button" className="dx-btn dx-primary" onClick={nextQuestion}>{__kbUi(testIndex + 1 >= questions.length ? (kid ? "Yulduzlarni ko‘rish ⭐" : "Natija") : (kid ? "Keyingisi ➜" : "Keyingi savol"))}</button></div>}
           </div>}
           {mode === "end" && <div className="dx-test">
             <h3 className="dx-title">{__kbUi("Dars tugadi")}</h3>

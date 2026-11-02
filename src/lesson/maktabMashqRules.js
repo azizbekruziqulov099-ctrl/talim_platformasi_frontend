@@ -35,7 +35,7 @@ export function sanaQadami({ til = "", iz = "uz", sana = new Date() } = {}) {
   const tilGap = tilda ? BUGUN[til].replace("{d}", tilda) : "";
   const teg = (t, l) => (l === "uz" ? t : `[${l}]${t}[/${l}]`);
   return {
-    id: "maktab-sana", turi: "kirish", sahna: "maktab-sana", sarlavha: `📅 ${tilGap || izohMatn}`,
+    id: "maktab-sana", turi: "kirish", sahna: "maktab-sana", sarlavha: `🗓️ ${tilGap || izohMatn}`,
     doska: tilGap ? `${tilGap}\n${izohMatn}` : izohMatn,
     ovoz: `${tilGap ? `${teg(tilGap, til)} ` : ""}${teg(izohMatn, iz)} ${teg(BOSHLAYMIZ[iz] || BOSHLAYMIZ.uz, iz)}`,
     rasm: null, _maktabSana: true,
