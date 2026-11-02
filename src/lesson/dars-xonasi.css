@@ -833,3 +833,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV264: doskadagi so'zlar bosiladi — tushunmagan so'zni bossa, ustoz tushuntiradi */
 .dx-root .dx-bosiladi .dx-soz-btn{all:unset;cursor:pointer;border-radius:6px;padding:0 1px;transition:background .15s}
 .dx-root .dx-bosiladi .dx-soz-btn:hover,.dx-root .dx-bosiladi .dx-soz-btn:focus-visible{background:rgba(255,230,120,.28);outline:2px solid rgba(255,230,120,.6)}
+/* REV266: test oynasidagi yakka Kabu ham katta (oldin ~40px edi) */
+.dx-root.dx-root .dx-kid-ask > .ks-stage,.dx-root.dx-root .dx-kid-ask .ks-stage.is-compact{flex:none!important;width:clamp(150px,26vh,250px)!important;max-width:none!important}
+.dx-root.dx-root .dx-kid-ask .ks-stage .ks-robot{width:100%!important;max-width:none!important}

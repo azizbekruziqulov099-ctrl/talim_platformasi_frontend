@@ -82,7 +82,7 @@
 .kq-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .kq-question{justify-content:center}
 .kq-question .kq-listen{width:clamp(64px,16vw,84px);height:clamp(64px,16vw,84px);font-size:clamp(28px,7vw,40px)}
-.kq-robot{width:clamp(96px,26vw,140px)}
+.kq-robot{width:clamp(150px,30vw,230px)}   /* REV266: kattaroq */
 .kq-mascot{justify-content:center}
 
 /* REV230: rasmsiz variant — so'z yoziladi */

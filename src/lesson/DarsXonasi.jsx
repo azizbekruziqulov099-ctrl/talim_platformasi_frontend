@@ -1723,7 +1723,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       </aside>}
     </div>
     {/* REV184: ikki ustozning jonli yozuvi — har ustoz o'z rangida, aytilayotgan so'z yonadi; so'zni bosib izoh so'raladi */}
-    {darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
+    {/* REV266: bog'chada pastda hech qanday yozuv yo'q (bola o'qimaydi) — faqat maktabda */}
+    {!kid && darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
       ismlar={{ til: USTOZ_ISMI[ustozRef.current]?.[izTilU] || "", iz: USTOZ_ISMI[ikkinchi]?.[izTilU] || "" }} bayroqlar={ustozBayroq}
       pauza={pauza} onPauza={() => (pauza ? davomQil() : pauzaQil())} onSoz={sozBosildi} matnsiz={juftDoska} />}
     {izohSoz && <SozIzohi e={izohSoz.e} yuklanmoqda={izohSoz.yuk} iz={izTilU} til={darsTil} ism={USTOZ_ISMI[ikkinchi]?.[izTilU] || ""} gapiryapti={izohGapir}
