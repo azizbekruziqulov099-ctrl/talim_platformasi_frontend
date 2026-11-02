@@ -80,3 +80,9 @@
 
 /* REV255: har Kabu o'z ranglarida — eski rang aylantirish filtri kerak emas */
 .kj-robot.is-til .kabu-box,.kj-robot.is-til[class*="til-"] .kabu-box{filter:none!important}
+
+/* REV263: ikkinchi (izoh tili) ustozi — faqat gapirganda kiradi, gapi tugagach chiqib ketadi */
+.us-teacher.is-rol-iz{transition:opacity .45s ease,transform .45s ease}
+.us-teacher.is-rol-iz.is-jim{opacity:0!important;transform:translateX(-28%)!important;pointer-events:none}
+/* REV263: Kabuning bayrog'i endi ko'kragida — alohida bayroqcha belgisi takrorlanmaydi */
+.ks-bayroq{display:none!important}

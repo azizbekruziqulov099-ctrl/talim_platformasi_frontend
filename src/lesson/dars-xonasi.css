@@ -827,3 +827,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 
 /* REV246: Голу va Pidgi o'z ranglari bilan — eski rang aylantirish filtri ularga qo'llanmaydi */
 .dx-root .kj-robot.is-til:is(.til-en,.til-ru) .kabu-box,.kj-robot.is-til:is(.til-en,.til-ru) .kabu-box{filter:none!important}
+/* REV263: doskadagi qator doskadan chiqib ketmasin (uzun nemischa gaplar) */
+.dx-root .dx-board .dx-line{max-width:100%;overflow-wrap:anywhere;word-break:normal;white-space:normal}
+.dx-root .dx-board{overflow:hidden}

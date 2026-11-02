@@ -1715,7 +1715,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     {/* REV184: ikki ustozning jonli yozuvi — har ustoz o'z rangida, aytilayotgan so'z yonadi; so'zni bosib izoh so'raladi */}
     {darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
       ismlar={{ til: USTOZ_ISMI[ustozRef.current]?.[izTilU] || "", iz: USTOZ_ISMI[ikkinchi]?.[izTilU] || "" }} bayroqlar={ustozBayroq}
-      pauza={pauza} onPauza={() => (pauza ? davomQil() : pauzaQil())} onSoz={sozBosildi} />}
+      pauza={pauza} onPauza={() => (pauza ? davomQil() : pauzaQil())} onSoz={sozBosildi} matnsiz={juftDoska} />}
     {izohSoz && <SozIzohi e={izohSoz.e} yuklanmoqda={izohSoz.yuk} iz={izTilU} til={darsTil} ism={USTOZ_ISMI[ikkinchi]?.[izTilU] || ""} gapiryapti={izohGapir}
       onQayta={() => izohSoz?.e && izohAyt(izohSoz.e)} onDavom={izohYop} />}
     {/* REV177: takror, mashqlar va Repetitor oynalari — xona ichida emas, butun dars ekranida (telefon buralganda ham to'liq) */}

@@ -54,6 +54,10 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
   const bosqich = bosqichlar[b];
   const q = bosqich === "spiral" ? savollar[i] : null;
   const mn = q?.tur === "soz" ? manoTanla(q, L) : null;   // {mano, til}
+  // REV263: so'zning ma'nosi interfeys tilida yo'q (masalan, dars o'zbekcha o'tilgan, sayt inglizcha) — o'zbekcha ma'no bilan
+  // «yozing» deb so'ralmaydi: to'g'ridan-to'g'ri so'zni ko'rib aytish bosqichi (rasm/belgi bilan), boshqa til aralashmaydi
+  const manoYoq = Boolean(mn && (!mn.mano || mn.til !== L));
+  useEffect(() => { if (bosqich === "spiral" && q?.tur === "soz" && faza === "yoz" && manoYoq) setFaza("ayt"); }, [bosqich, i, faza, manoYoq]); // eslint-disable-line react-hooks/exhaustive-deps
   // REV180: ikki Kabu — tushuntiruvchi (interfeys tilida) va o'rganilayotgan til egasi; har biri o'z ovozida, kim gapirsa o'sha kattalashadi
   const tilJuft = darslar.find((d) => d.til)?.til || "";
   const [kim, setKim] = useState(null);
@@ -168,7 +172,7 @@ export default function DarsOldiTakror({ apiBase = "", sinf = 5, darslar = [], o
           {!javob && ishora < YORDAM_MAX && <button type="button" className="mm-link" onClick={() => { const n = ishora + 1; setIshora(n); if (n >= YORDAM_MAX) ayt(teg(q.soz, q.til)); }}>💡 {T("Ishora")} ({ishora + 1}/{YORDAM_MAX})</button>}
         </> : <>
           <p className="mm-izoh">{aytBuyruq.matn}</p>
-          <p className="mm-matn" dir="auto" lang={q.til}>{q.soz}<small>{q.emoji} {mn.mano}</small></p>
+          <p className="mm-matn" dir="auto" lang={q.til}>{q.soz}<small>{q.emoji} {manoYoq ? "" : mn.mano}</small></p>
         </>}
         <div className="mm-row">
           <button type="button" className="mm-btn" onClick={() => ayt(faza === "yoz" && !javob ? yozBuyruq.ovoz : teg(q.soz, q.til))}>🔊 {T("Yana ayt")}</button>
