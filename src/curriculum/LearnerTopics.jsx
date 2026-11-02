@@ -30,6 +30,7 @@ import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
 const XbMavzuOldi = React.lazy(() => import('../xalqaro/XbMavzuOldi.jsx'));   // REV260
+const XB_OLDI_YOQ = false;   // REV274: maktab mavzusi oldidan xalqaro blok o'chirilgan
 const XB_FAN = /matem|algebra|geometr|fizika|kimyo|biolog|geograf|tabiiy|tabiat|atrof/i;
 const SUBJECT_KEY = 'kabutar:learn:subject';
 const readSaved = () => { try { return window.localStorage.getItem(SUBJECT_KEY) || ''; } catch { return ''; } };
@@ -105,7 +106,8 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   const prevTopic=i>0?[...list.slice(0,i)].reverse().find(t=>!isReviewTopic(t.nomi)):null;
   const target={...topicTarget(sub,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(sub,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next,sub)}:null};
   // REV260: maktab fan darsidan oldin — «Mavzu oldidan: xalqaro baholashda» (TIMSS statistikasi, daraja, reyting, namuna savollar)
-  if(!kid&&!teacher&&!preview&&type==='maktab'&&XB_FAN.test(fanNom)){setOldi({target,fan:fanNom,sinf:String(group.sinf||''),nomi:topic.nomi});return;}
+  // REV274: xalqaro baholash maktab darslariga aralashmaydi — u menyuda alohida bo'lim (Azizjon talabi). Blok kodi saqlangan.
+  if(XB_OLDI_YOQ&&!kid&&!teacher&&!preview&&type==='maktab'&&XB_FAN.test(fanNom)){setOldi({target,fan:fanNom,sinf:String(group.sinf||''),nomi:topic.nomi});return;}
   setClassroom(target);
  };
  // REV168: bosh sahifa — bugungi rejadagi har fanning navbatdagi darsi (mavzusi, ustozi) bitta bosishda ochiladi

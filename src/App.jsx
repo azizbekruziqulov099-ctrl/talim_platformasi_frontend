@@ -13112,6 +13112,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "admin_korinish", nom: "O‘quvchi ko‘zi bilan", ikon: Eye },
+      { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV274: admin ham to'g'ridan-to'g'ri ko'radi
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },   // REV129: admin ham barcha o'yinlarni ko'radi (cheklovsiz)
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
       { kalit: "admin_tv", nom: "Kabutar TV", ikon: Tv },   // REV187
@@ -15057,7 +15058,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
           initialCode={shashka.kod} onClose={() => { setShashka({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
       )}
-      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "xalqaro" && (
+      {korinishRoli !== "ota-ona" && tab === "xalqaro" && (   /* REV274: admin ham */
         <React.Suspense fallback={<OgirBolimYuklanmoqda />}>
           <LazyXalqaroBaholash apiBase={API_BASE} token={token} user={{ ...foydalanuvchi, role: korinishRoli === "oqituvchi" ? "oqituvchi" : foydalanuvchi?.role }}
             jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")} cheklovsiz={Boolean(foydalanuvchi?.is_admin)} />

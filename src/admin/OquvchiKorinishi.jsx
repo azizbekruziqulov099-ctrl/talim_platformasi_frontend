@@ -4,6 +4,8 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import LearnerTopics from "../curriculum/LearnerTopics.jsx";
 import { KORINISH_TURLARI, korinishTuri, previewUser } from "./previewRules.js";
 import "./oquvchiKorinishi.css";
+// REV274: o'quvchi ko'rinishida «Xalqaro baholash» (maktab o'quvchisi ko'radigan alohida bo'lim) ham ko'rinadi
+const XalqaroBaholash = React.lazy(() => import("../xalqaro/XalqaroBaholash.jsx"));
 
 const SAQLASH = "kabutar:admin:korinish:v1";
 const oqi = () => { try { return JSON.parse(window.localStorage.getItem(SAQLASH) || "null") || {}; } catch { return {}; } };
@@ -58,6 +60,8 @@ export default function OquvchiKorinishi({ apiBase, token, admin, Tests, jins = 
             className={`ok-chip ${t.kalit === tur.kalit ? "is-on" : ""}`} onClick={() => tanla(t.kalit)}>
             <span aria-hidden="true">{t.ikon}</span> {__kbUi(t.nom)}</button>)}
         </div>
+        {tur.kalit === "maktab" && <button type="button" className={`ok-chip ${oyna === "xalqaro" ? "is-on" : ""}`} aria-pressed={oyna === "xalqaro"}
+          onClick={() => setOyna(oyna === "xalqaro" ? "mavzular" : "xalqaro")}>🌍 {__kbUi("Xalqaro baholash")}</button>}
         <button type="button" className="ok-chiq" onClick={() => tanla("")}>{__kbUi("✕ Chiqish")}</button>
       </div>
       {tur.guruhlar.length > 0 && <div className="ok-bar-row ok-guruhlar" role="tablist" aria-label={__kbUi(tur.kalit === "bogcha" ? "Yosh" : "Sinf")}>
@@ -67,7 +71,12 @@ export default function OquvchiKorinishi({ apiBase, token, admin, Tests, jins = 
       <p className="ok-bar-izoh">{__kbUi("Siz o‘quvchi ko‘rinishidasiz: hamma darslar ochiq, kunlik cheklov yo‘q, bola kuzatuviga yozilmaydi.")}</p>
     </div>
 
-    {oyna === "test" && Tests ? <div className="px-3 sm:px-5 pt-3 pb-6">
+    {oyna === "xalqaro" ? <div className="px-3 sm:px-5 pt-3 pb-6">
+      <button type="button" className="ok-orqaga" onClick={() => setOyna("mavzular")}>{__kbUi("← Mavzularga qaytish")}</button>
+      <React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}>
+        <XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={jins} cheklovsiz />
+      </React.Suspense>
+    </div> : oyna === "test" && Tests ? <div className="px-3 sm:px-5 pt-3 pb-6">
       <button type="button" className="ok-orqaga" onClick={() => { setOyna("mavzular"); setTestNishoni(null); }}>{__kbUi("← Mavzularga qaytish")}</button>
       <Tests key={`${tur.kalit}-${guruh}-${testNishoni?.nonce || 0}`} token={token} foydalanuvchi={user}
         sinf={tur.kalit === "maktab" && guruh ? guruh : null} initialTarget={testNishoni} rang={tur.rang} />
