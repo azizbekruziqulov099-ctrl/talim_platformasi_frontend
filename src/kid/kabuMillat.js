@@ -1,5 +1,4 @@
 // REV255: 11 tilning Kabusi — saytdagi Kabu (SVG) asosida: rang, quloq, antenna, qanot, ko'krakda bayroq, naqsh tasmasi
-import fs from 'fs';
 import { KIYIM, BOSH } from './kabuKiyim.js';
 import { KABU_MARKUP } from './robotKabuMarkup.js';
 const BASE = { teal1: '#45E1D1', teal2: '#159C8F', teal3: '#2EC4B6', teal4: '#11897D', y1: '#FFB703', y2: '#E39A00', y3: '#FFD166', y4: '#F59E0B', eye: '#6FF7EA', wing2: '#C6E4FF', wingS: '#B3CFEA' };

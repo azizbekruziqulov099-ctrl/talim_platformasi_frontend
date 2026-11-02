@@ -76,7 +76,7 @@ function Diktant({ m, base, onNatija }) {
   const q = m.diktant[i];
   useEffect(() => { if (q && !tugadi) ovoz(q.gap); }, [i, tugadi]); // eslint-disable-line react-hooks/exhaustive-deps
   if (tugadi) return <Natija ball={ball} jami={m.diktant.length} onQayta={() => { setI(0); setBall(0); setTugadi(false); }} />;
-  const tekshir = () => { const t = gapSolishtir(q.gap, matn, true);   // diktantda imlo aniq setTahlil(t); if (t.foiz >= 80) setBall((b) => b + 1); };
+  const tekshir = () => { const t = gapSolishtir(q.gap, matn, true); /* diktantda imlo aniq */ setTahlil(t); if (t.foiz >= 80) setBall((b) => b + 1); };
   const keyingi = () => { setTahlil(null); setMatn(""); if (i + 1 < m.diktant.length) setI(i + 1); else { setTugadi(true); onNatija(Math.round((100 * ball) / m.diktant.length)); } };
   return <div className="mk-mashq">
     <p className="mk-izoh">{__kbUi("Eshitgan gapingizni yozing.")} {q.emoji} ({i + 1}/{m.diktant.length})</p>
