@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
+import ChalkText from "./ChalkText.jsx";   // REV260: doskaga harfma-harf, ovoz bilan bir xil
+import { lineProgress } from "./chalkRules.js";
 import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, visibleLines } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
@@ -1646,7 +1648,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                 const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
                 const qatorlar = cue.lines.slice(0, shown).map((line, n) => { const kim = qatorKimi(tegliQatorlar && tegliQatorlar.length === cue.lines.length ? tegliQatorlar[n] : line);
                   return <div key={`${steps[i].id}-${n}`}
-                    className={`dx-line ${i === idx ? "is-new" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}<BordaYozish faol={i === idx && n === shown - 1} text={line}>{(t) => (juftDoska && kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div>; });
+                    className={`dx-line ${i === idx ? "is-new" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}{juftDoska && kim === "til" ? <BosiladiganQator text={line} onSoz={sozBosildi} /> : (i === idx && n === shown - 1 && speaking && !stepFinished
+                      ? <ChalkText text={line} progress={lineProgress(cue.cues, n, word, cue.spoken.split(/\s+/).filter(Boolean).length)} />
+                      : <BoardText text={line} />)}</div>; });
                 if (!juftDoska || i !== idx) return qatorlar;
                 // doskada yozilmagan, lekin ustoz aytadigan gaplar — aytila boshlaganda doskaga yoziladi (pastda alohida yozuv yo'q)
                 const doskaMatni = solishtir(cue.lines.join(" "));

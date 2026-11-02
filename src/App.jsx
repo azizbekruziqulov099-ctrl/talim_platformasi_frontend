@@ -480,7 +480,7 @@ import {
   Loader2, WifiOff, KeyRound, UserPlus, PencilLine, Users, FileSpreadsheet, Heart, BookOpen,
   Flame, Star, CalendarCheck, Trophy, Swords, Gamepad2, Building2, Settings, Video, X, RotateCcw, Send, Mic, Trash2,
   Wallet, Folder, Calendar, Brain, GraduationCap, ClipboardList, Bot, AlertTriangle, Search, Baby,
-  UserRoundPlus, MessageCircle, Eye, Tv,
+  UserRoundPlus, MessageCircle, Eye, Tv, Globe,
 } from "lucide-react";
 const AdminKabutarTv = React.lazy(() => import("./admin/AdminKabutarTv.jsx"));   // REV187
 const AdminSertifikat = React.lazy(() => import("./admin/AdminSertifikat.jsx"));   // REV209
@@ -574,6 +574,7 @@ function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
 function Chempionat(props) { return lazyPanel(LazyChempionat, props); }
 const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
+const LazyXalqaroBaholash = _samtmLazyRetry(() => import("./xalqaro/XalqaroBaholash.jsx"));   // REV260: xalqaro baholash
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
   const { fetch: scopedFetch, scope } = useCurriculum();
@@ -13135,6 +13136,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "ovoz", nom: "Ovoz ⇄ Matn", ikon: Mic },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
+      { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: sinf natijalari
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
             { kalit: "profil", nom: "Profil", ikon: User },
@@ -13151,6 +13153,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   return [
     { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
     { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV270: sertifikat va erkin til
+    { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: TIMSS/PISA darajasida kurs, imtihonlar, reyting
     { kalit: "test", nom: "Testlar", ikon: PencilLine },
     { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
@@ -13177,6 +13180,7 @@ function PastkiMenyu({
   // REV79: talabaga «Mening institutim» (guruhim, kursim, muhim sanalar).
   const talabaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && (_kbAccountRole(foydalanuvchi) === "talaba" || /kurs/i.test(String(foydalanuvchi?.class || "")));
   if (talabaMi) bandlar.splice(1, 0, { kalit: "institutim", nom: "Mening institutim", ikon: GraduationCap });
+  if (talabaMi) { const xi = bandlar.findIndex((b) => b.kalit === "xalqaro"); if (xi >= 0) bandlar.splice(xi, 1); }   // REV260: talabaga emas
   // REV80: bog'cha bolasi — sodda menyu: o'rganamiz, o'yin-testlar, to'garaklar, profil.
   const bogchaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && _kbAccountRole(foydalanuvchi) === "bogcha";
   if (bogchaMi) {
@@ -15052,6 +15056,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <Shashka key={shashka.nonce} apiBase={API_BASE} token={token}
           kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"}
           initialCode={shashka.kod} onClose={() => { setShashka({ kod: "", nonce: Date.now() }); setTab("oyinlar"); }} />
+      )}
+      {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "xalqaro" && (
+        <React.Suspense fallback={<OgirBolimYuklanmoqda />}>
+          <LazyXalqaroBaholash apiBase={API_BASE} token={token} user={{ ...foydalanuvchi, role: korinishRoli === "oqituvchi" ? "oqituvchi" : foydalanuvchi?.role }}
+            jins={_ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz")} cheklovsiz={Boolean(foydalanuvchi?.is_admin)} />
+        </React.Suspense>
       )}
       {korinishRoli !== "ota-ona" && tab === "chempionat" && (
         <Chempionat apiBase={API_BASE} token={token} onClose={() => setTab("oyinlar")} />

@@ -13,8 +13,8 @@ const FAN_USTOZ = { uz: { mat: "sardor", tab: "malika" }, ru: { mat: "dmitriy", 
 export function ustozFor(fan = "", iz = "uz") {
   const f = String(fan).toLowerCase();
   const izTil = /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : (FAN_USTOZ[String(iz || "uz").slice(0, 2)] ? String(iz).slice(0, 2) : "uz");
-  if (/matem|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return FAN_USTOZ[izTil].mat;
-  if (/atrof|tabiat|olam|science|nature|world around|окружа|природ/.test(f)) return FAN_USTOZ[izTil].tab;
+  if (/matem|algebra|geometr|алгебр|геометр|sanoq|hisob|math|mantiq|logic|aql|логик|матем/.test(f)) return FAN_USTOZ[izTil].mat;
+  if (/atrof|tabiat|tabiiy|olam|science|nature|world around|окружа|природ|fizika|kimyo|biolog|geograf|физик|хими|биолог|географ/.test(f)) return FAN_USTOZ[izTil].tab;   // REV260: tabiiy fanlar ham
   const asosiy = f.replace(/\(\s*izoh[^)]*\)/g, "");   // «Arab tili (izoh: rus)» — arab tili
   const t = TIL_NOMI.find(([, re]) => re.test(asosiy));
   return t ? TIL_USTOZ[t[0]] : IZOH_USTOZ[izTil] || "nilufar";

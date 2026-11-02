@@ -29,6 +29,8 @@ const MaktabKundalik=React.lazy(()=>import('../maktab/MaktabKundalik.jsx'));   /
 import { fanIzohi, fanNomiTil, izohTanla } from './izohTanlov.js';
 
 const DarsXonasi = React.lazy(() => import('../lesson/DarsXonasi.jsx'));
+const XbMavzuOldi = React.lazy(() => import('../xalqaro/XbMavzuOldi.jsx'));   // REV260
+const XB_FAN = /matem|algebra|geometr|fizika|kimyo|biolog|geograf|tabiiy|tabiat|atrof/i;
 const SUBJECT_KEY = 'kabutar:learn:subject';
 const readSaved = () => { try { return window.localStorage.getItem(SUBJECT_KEY) || ''; } catch { return ''; } };
 const save = value => { try { window.localStorage.setItem(SUBJECT_KEY, value); } catch { /* storage optional */ } };
@@ -48,6 +50,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  // REV175: fan tanlansa — shu fanning ichiga kiriladi (fanlar ro'yxati yopiladi, mavzular pastda chiqib qolmaydi); «← Fanlar» bilan qaytiladi
  const [fanIchida,setFanIchida]=useState(false);
  const [classroom,setClassroom]=useState(null);
+ const [oldi,setOldi]=useState(null);   // REV260: xalqaro baholash — mavzu oldi bloki
  const chosen=useRef(Boolean(preview?.type));
  useEffect(()=>{
   const controller=new AbortController();
@@ -100,7 +103,10 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   }
   // REV130: dars boshida takrorlanadigan «o'tgan mavzu» — ro'yxatdagi oldingi oddiy dars (takror darslari hisoblanmaydi)
   const prevTopic=i>0?[...list.slice(0,i)].reverse().find(t=>!isReviewTopic(t.nomi)):null;
-  setClassroom({...topicTarget(sub,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(sub,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next,sub)}:null});
+  const target={...topicTarget(sub,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(sub,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next,sub)}:null};
+  // REV260: maktab fan darsidan oldin — «Mavzu oldidan: xalqaro baholashda» (TIMSS statistikasi, daraja, reyting, namuna savollar)
+  if(!kid&&!teacher&&!preview&&type==='maktab'&&XB_FAN.test(fanNom)){setOldi({target,fan:fanNom,sinf:String(group.sinf||''),nomi:topic.nomi});return;}
+  setClassroom(target);
  };
  // REV168: bosh sahifa — bugungi rejadagi har fanning navbatdagi darsi (mavzusi, ustozi) bitta bosishda ochiladi
  const bugungiDarslar=()=>!kid||!plan?[]:subjects.filter(sub=>fanHolati(plan,sub.nom)?.turi==='bor').map(sub=>{
@@ -123,6 +129,14 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const [olam,setOlam]=useState(true);
  useEffect(()=>{if(kid&&!classroom&&nextRef.current)try{nextRef.current.scrollIntoView({block:'center',behavior:'smooth'});}catch{/* eski brauzer */}},[kid,classroom,current?.kalit,loading]);
 
+ if(oldi&&!classroom) return <div className="space-y-3 lt-root">
+  <React.Suspense fallback={<p className="p-6 text-center text-slate-500">{__kbUi("Dars yuklanmoqda…")}</p>}>
+   <XbMavzuOldi apiBase={apiBase} token={token} jins={jins} fan={oldi.fan} sinf={oldi.sinf} mavzuNomi={oldi.nomi}
+    onDavom={()=>{setClassroom(oldi.target);setOldi(null);}}
+    onDars={(kod,fan)=>{setClassroom({...oldi.target,lesson_code:kod,fan,savol_soni:0,_prev:'',_next:{title:oldi.nomi,open:()=>setClassroom(oldi.target)}});setOldi(null);}}
+    onYopish={()=>setOldi(null)}/>
+  </React.Suspense>
+ </div>;
  if(classroom) return <div className="space-y-3 lt-root">
   <button type="button" onClick={()=>setClassroom(null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">{__kbUi("← Mavzularga qaytish")}</button>
   <React.Suspense fallback={<p className="p-6 text-center text-slate-500">{__kbUi("Dars yuklanmoqda…")}</p>}>

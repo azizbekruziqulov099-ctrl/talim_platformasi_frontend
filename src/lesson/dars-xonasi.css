@@ -910,3 +910,13 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-line .katex,.mdx-esda .katex{font-size:1.18em}
 .dx-solution .mdx-line{font-size:28px}
 .mdx-f{display:inline-block;transition:clip-path .38s linear}
+
+/* REV260: harfma-harf (bo'r bilan) yozish — ovoz bilan bir xil */
+.dx-line:has(.dx-chalk.is-writing){animation:none}
+.dx-chalk{position:relative}
+.dx-chalk-math{display:inline-block;transition:clip-path .12s linear}
+.dx-chalk-bor{display:inline-block;width:.42em;height:.16em;margin-left:.06em;vertical-align:-.05em;border-radius:2px;background:#f4f1e6;
+  box-shadow:0 0 4px rgba(255,255,255,.55);animation:dx-bor .5s ease-in-out infinite alternate}
+@keyframes dx-bor{from{transform:translateY(0) rotate(-12deg)}to{transform:translateY(-.12em) rotate(8deg)}}
+.dx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.dx-chalk-bor{animation:none}}
