@@ -1959,7 +1959,1208 @@ import d_mt67_u2_plus_one from "./dars/rasm/mt67-u2-plus-one.webp";
 import d_mt67_u2_plus_zero from "./dars/rasm/mt67-u2-plus-zero.webp";
 import d_mt67_u2_plus from "./dars/rasm/mt67-u2-plus.webp";
 import d_mt67_u2_swap from "./dars/rasm/mt67-u2-swap.webp";
+// REV260: bog'cha rasmlari 001–600 (rassom)
+import d_mt34_u6_kechki_ovqat from "./dars/rasm/mt34-u6-kechki-ovqat.webp";
+import d_mt34_u6_tunda from "./dars/rasm/mt34-u6-tunda.webp";
+import d_mt34_u6_uxlash from "./dars/rasm/mt34-u6-uxlash.webp";
+import d_mt34_u7_chap_qol from "./dars/rasm/mt34-u7-chap-qol.webp";
+import d_mt34_u7_ong_qol from "./dars/rasm/mt34-u7-ong-qol.webp";
+import d_mt34_u8_doira_kvadrat from "./dars/rasm/mt34-u8-doira-kvadrat.webp";
+import d_mt34_u8_keyingisi from "./dars/rasm/mt34-u8-keyingisi.webp";
+import d_mt34_u8_naqsh_xato from "./dars/rasm/mt34-u8-naqsh-xato.webp";
+import d_mt34_u8_naqsh from "./dars/rasm/mt34-u8-naqsh.webp";
+import d_mt34_u8_qizil_sariq from "./dars/rasm/mt34-u8-qizil-sariq.webp";
+import d_mt34_u8_yashil_kok from "./dars/rasm/mt34-u8-yashil-kok.webp";
+import d_mt45_u1_birdan_beshgacha from "./dars/rasm/mt45-u1-birdan-beshgacha.webp";
+import d_mt45_u1_bitta_tegamiz from "./dars/rasm/mt45-u1-bitta-tegamiz.webp";
+import d_mt45_u1_keyingi from "./dars/rasm/mt45-u1-keyingi.webp";
+import d_mt45_u1_oldingi from "./dars/rasm/mt45-u1-oldingi.webp";
+import d_mt45_u1_oxirgi_son from "./dars/rasm/mt45-u1-oxirgi-son.webp";
+import d_mt45_u1_raqam from "./dars/rasm/mt45-u1-raqam.webp";
+import d_mt45_u1_songa_mos from "./dars/rasm/mt45-u1-songa-mos.webp";
+import d_mt45_u2_birdan_ongacha from "./dars/rasm/mt45-u2-birdan-ongacha.webp";
+import d_mt45_u2_chumoli from "./dars/rasm/mt45-u2-chumoli.webp";
+import d_mt45_u2_oltita from "./dars/rasm/mt45-u2-oltita.webp";
+import d_mt45_u2_on_barmoq from "./dars/rasm/mt45-u2-on-barmoq.webp";
+import d_mt45_u2_teskari from "./dars/rasm/mt45-u2-teskari.webp";
+import d_mt45_u3_juftlab from "./dars/rasm/mt45-u3-juftlab.webp";
+import d_mt45_u3_kamroq from "./dars/rasm/mt45-u3-kamroq.webp";
+import d_mt45_u3_katta_son from "./dars/rasm/mt45-u3-katta-son.webp";
+import d_mt45_u3_kichik_son from "./dars/rasm/mt45-u3-kichik-son.webp";
+import d_mt45_u3_koproq from "./dars/rasm/mt45-u3-koproq.webp";
+import d_mt45_u3_olib_tenglash from "./dars/rasm/mt45-u3-olib-tenglash.webp";
+import d_mt45_u3_qoshib_tenglash from "./dars/rasm/mt45-u3-qoshib-tenglash.webp";
+import d_mt45_u3_teng from "./dars/rasm/mt45-u3-teng.webp";
+import d_mt45_u4_beshinchi from "./dars/rasm/mt45-u4-beshinchi.webp";
+import d_mt45_u4_chap_qol from "./dars/rasm/mt45-u4-chap-qol.webp";
+import d_mt45_u4_chapdan_ongga from "./dars/rasm/mt45-u4-chapdan-ongga.webp";
+import d_mt45_u4_nechanchi from "./dars/rasm/mt45-u4-nechanchi.webp";
+import d_mt45_u4_ong_qol from "./dars/rasm/mt45-u4-ong-qol.webp";
+import d_mt45_u4_ongda_chapda from "./dars/rasm/mt45-u4-ongda-chapda.webp";
+import d_mt45_u4_oxirgi from "./dars/rasm/mt45-u4-oxirgi.webp";
+import d_mt45_u4_tortinchi from "./dars/rasm/mt45-u4-tortinchi.webp";
+import d_mt45_u4_uchinchi from "./dars/rasm/mt45-u4-uchinchi.webp";
+import d_mt45_u5_doira_oval from "./dars/rasm/mt45-u5-doira-oval.webp";
+import d_mt45_u5_kvadrat_tortburchak from "./dars/rasm/mt45-u5-kvadrat-tortburchak.webp";
+import d_mt45_u5_naqsh_bolagi from "./dars/rasm/mt45-u5-naqsh-bolagi.webp";
+import d_mt45_u5_oval_narsalar from "./dars/rasm/mt45-u5-oval-narsalar.webp";
+import d_mt45_u5_oval from "./dars/rasm/mt45-u5-oval.webp";
+import d_mt45_u5_tortburchak_narsalar from "./dars/rasm/mt45-u5-tortburchak-narsalar.webp";
+import d_mt45_u5_tortburchak from "./dars/rasm/mt45-u5-tortburchak.webp";
+import d_mt45_u5_uch_naqsh from "./dars/rasm/mt45-u5-uch-naqsh.webp";
+import d_mt45_u6_eng_katta from "./dars/rasm/mt45-u6-eng-katta.webp";
+import d_mt45_u6_eng_kichik from "./dars/rasm/mt45-u6-eng-kichik.webp";
+import d_mt45_u6_eng_qisqa from "./dars/rasm/mt45-u6-eng-qisqa.webp";
+import d_mt45_u6_eng_uzun from "./dars/rasm/mt45-u6-eng-uzun.webp";
+import d_mt45_u6_kattadan_kichikka from "./dars/rasm/mt45-u6-kattadan-kichikka.webp";
+import d_mt45_u6_ortadagisi from "./dars/rasm/mt45-u6-ortadagisi.webp";
+import d_mt45_u6_pastdan_balandga from "./dars/rasm/mt45-u6-pastdan-balandga.webp";
+import d_mt45_u6_zinapoya from "./dars/rasm/mt45-u6-zinapoya.webp";
+import d_mt45_u7_avval_keyin from "./dars/rasm/mt45-u7-avval-keyin.webp";
+import d_mt45_u7_kun_tartibi from "./dars/rasm/mt45-u7-kun-tartibi.webp";
+import d_mt45_u7_tunda from "./dars/rasm/mt45-u7-tunda.webp";
+import d_mt45_u8_barmoqda_hisob from "./dars/rasm/mt45-u8-barmoqda-hisob.webp";
+import d_mt45_u8_birga_nechta from "./dars/rasm/mt45-u8-birga-nechta.webp";
+import d_mt45_u8_hammasi_ketdi from "./dars/rasm/mt45-u8-hammasi-ketdi.webp";
+import d_mt45_u8_hikoya from "./dars/rasm/mt45-u8-hikoya.webp";
+import d_mt45_u8_ketdi from "./dars/rasm/mt45-u8-ketdi.webp";
+import d_mt45_u8_nechta_qoldi from "./dars/rasm/mt45-u8-nechta-qoldi.webp";
+import d_mt45_u8_qoshildi from "./dars/rasm/mt45-u8-qoshildi.webp";
+import d_am56_u1_havo from "./dars/rasm/am56-u1-havo.webp";
+import d_am56_u1_jonsiz from "./dars/rasm/am56-u1-jonsiz.webp";
+import d_am56_u1_odam from "./dars/rasm/am56-u1-odam.webp";
+import d_am56_u1_osish from "./dars/rasm/am56-u1-osish.webp";
+import d_am56_u1_tirik from "./dars/rasm/am56-u1-tirik.webp";
+import d_am56_u2_erish from "./dars/rasm/am56-u2-erish.webp";
+import d_am56_u2_idish from "./dars/rasm/am56-u2-idish.webp";
+import d_am56_u2_issiqlik from "./dars/rasm/am56-u2-issiqlik.webp";
+import d_am56_u2_muzlash from "./dars/rasm/am56-u2-muzlash.webp";
+import d_am56_u2_muzlatgich from "./dars/rasm/am56-u2-muzlatgich.webp";
+import d_am56_u2_qaynash from "./dars/rasm/am56-u2-qaynash.webp";
+import d_am56_u2_qurish from "./dars/rasm/am56-u2-qurish.webp";
+import d_am56_u2_suyuq from "./dars/rasm/am56-u2-suyuq.webp";
+import d_am56_u2_tomchi from "./dars/rasm/am56-u2-tomchi.webp";
+import d_am56_u3_deraza from "./dars/rasm/am56-u3-deraza.webp";
+import d_am56_u3_havo2 from "./dars/rasm/am56-u3-havo2.webp";
+import d_am56_u3_nafas from "./dars/rasm/am56-u3-nafas.webp";
+import d_am56_u3_nasos from "./dars/rasm/am56-u3-nasos.webp";
+import d_am56_u3_pufak from "./dars/rasm/am56-u3-pufak.webp";
+import d_am56_u3_stakan from "./dars/rasm/am56-u3-stakan.webp";
+import d_am56_u3_tutun from "./dars/rasm/am56-u3-tutun.webp";
+import d_am56_u3_yelkan from "./dars/rasm/am56-u3-yelkan.webp";
+import d_am56_u4_hilol from "./dars/rasm/am56-u4-hilol.webp";
+import d_am56_u4_kunduz from "./dars/rasm/am56-u4-kunduz.webp";
+import d_am56_u4_shapka from "./dars/rasm/am56-u4-shapka.webp";
+import d_am56_u4_uyqu from "./dars/rasm/am56-u4-uyqu.webp";
+import d_am56_u5_ayiq from "./dars/rasm/am56-u5-ayiq.webp";
+import d_am56_u5_chumchuq from "./dars/rasm/am56-u5-chumchuq.webp";
+import d_am56_u5_otxor from "./dars/rasm/am56-u5-otxor.webp";
+import d_am56_u5_yirtqich from "./dars/rasm/am56-u5-yirtqich.webp";
+import d_am56_u5_zanjir from "./dars/rasm/am56-u5-zanjir.webp";
+import d_am56_u6_boyqush from "./dars/rasm/am56-u6-boyqush.webp";
+import d_am56_u6_echki from "./dars/rasm/am56-u6-echki.webp";
+import d_am56_u7_banka from "./dars/rasm/am56-u7-banka.webp";
+import d_mt23_u1_kopdan_bitta from "./dars/rasm/mt23-u1-kopdan-bitta.webp";
+import d_mt23_u1_tola from "./dars/rasm/mt23-u1-tola.webp";
+import d_mt23_u2_daraxt_nihol from "./dars/rasm/mt23-u2-daraxt-nihol.webp";
+import d_mt23_u2_katta_ayiq from "./dars/rasm/mt23-u2-katta-ayiq.webp";
+import d_mt23_u2_katta_ordak from "./dars/rasm/mt23-u2-katta-ordak.webp";
+import d_mt23_u2_kichik_ayiqcha from "./dars/rasm/mt23-u2-kichik-ayiqcha.webp";
+import d_mt23_u2_kichik_ordakcha from "./dars/rasm/mt23-u2-kichik-ordakcha.webp";
+import d_mt23_u2_tarvuz_olcha from "./dars/rasm/mt23-u2-tarvuz-olcha.webp";
+import d_mt23_u3_bir_xil from "./dars/rasm/mt23-u3-bir-xil.webp";
+import d_mt23_u3_juft from "./dars/rasm/mt23-u3-juft.webp";
+import d_mt23_u3_mushuk_mushukcha from "./dars/rasm/mt23-u3-mushuk-mushukcha.webp";
+import d_mt23_u3_poyabzal_jufti from "./dars/rasm/mt23-u3-poyabzal-jufti.webp";
+import d_mt23_u3_qolqop_jufti from "./dars/rasm/mt23-u3-qolqop-jufti.webp";
+import d_mt23_u3_tovuq_joja from "./dars/rasm/mt23-u3-tovuq-joja.webp";
+import d_mt23_u4_bir_xil_rang from "./dars/rasm/mt23-u4-bir-xil-rang.webp";
+import d_mt23_u4_terish from "./dars/rasm/mt23-u4-terish.webp";
+import d_mt23_u5_doira_dumalaydi from "./dars/rasm/mt23-u5-doira-dumalaydi.webp";
+import d_mt23_u5_doira from "./dars/rasm/mt23-u5-doira.webp";
+import d_mt23_u5_dumaloq from "./dars/rasm/mt23-u5-dumaloq.webp";
+import d_mt23_u5_kvadrat_dumalamaydi from "./dars/rasm/mt23-u5-kvadrat-dumalamaydi.webp";
+import d_mt23_u5_kvadrat_narsalar from "./dars/rasm/mt23-u5-kvadrat-narsalar.webp";
+import d_mt23_u6_qisqa_dum from "./dars/rasm/mt23-u6-qisqa-dum.webp";
+import d_mt23_u6_qisqa_poyezd from "./dars/rasm/mt23-u6-qisqa-poyezd.webp";
+import d_mt23_u6_qisqa from "./dars/rasm/mt23-u6-qisqa.webp";
+import d_mt23_u6_uzun_boyin from "./dars/rasm/mt23-u6-uzun-boyin.webp";
+import d_mt23_u6_uzun_poyezd from "./dars/rasm/mt23-u6-uzun-poyezd.webp";
+import d_mt23_u7_daraxt_tagida from "./dars/rasm/mt23-u7-daraxt-tagida.webp";
+import d_mt23_u7_daraxt_tepasida from "./dars/rasm/mt23-u7-daraxt-tepasida.webp";
+import d_mt23_u7_pastga from "./dars/rasm/mt23-u7-pastga.webp";
+import d_mt23_u7_tepada from "./dars/rasm/mt23-u7-tepada.webp";
+import d_mt23_u7_tepaga from "./dars/rasm/mt23-u7-tepaga.webp";
+import d_mt23_u8_savat_ichida from "./dars/rasm/mt23-u8-savat-ichida.webp";
+import d_mt23_u8_savatdan_tashqarida from "./dars/rasm/mt23-u8-savatdan-tashqarida.webp";
+import d_mt23_u8_tashqarida from "./dars/rasm/mt23-u8-tashqarida.webp";
+import d_mt23_u8_uy_ichida from "./dars/rasm/mt23-u8-uy-ichida.webp";
+import d_mt23_u8_uydan_tashqarida from "./dars/rasm/mt23-u8-uydan-tashqarida.webp";
+import d_mt34_u1_barmoq_sanash from "./dars/rasm/mt34-u1-barmoq-sanash.webp";
+import d_mt34_u1_bitta from "./dars/rasm/mt34-u1-bitta.webp";
+import d_mt34_u1_ikkita from "./dars/rasm/mt34-u1-ikkita.webp";
+import d_mt34_u1_ikkitadan from "./dars/rasm/mt34-u1-ikkitadan.webp";
+import d_mt34_u1_oxirgi_son from "./dars/rasm/mt34-u1-oxirgi-son.webp";
+import d_mt34_u1_uchta_ayiq from "./dars/rasm/mt34-u1-uchta-ayiq.webp";
+import d_mt34_u1_uchta from "./dars/rasm/mt34-u1-uchta.webp";
+import d_mt34_u2_barmoqda from "./dars/rasm/mt34-u2-barmoqda.webp";
+import d_mt34_u2_beshta_barmoq from "./dars/rasm/mt34-u2-beshta-barmoq.webp";
+import d_mt34_u2_beshta from "./dars/rasm/mt34-u2-beshta.webp";
+import d_mt34_u2_keyingi_son from "./dars/rasm/mt34-u2-keyingi-son.webp";
+import d_mt34_u2_sanoq_qatori from "./dars/rasm/mt34-u2-sanoq-qatori.webp";
+import d_mt34_u2_songa_mos from "./dars/rasm/mt34-u2-songa-mos.webp";
+import d_mt34_u2_tort_oyoq from "./dars/rasm/mt34-u2-tort-oyoq.webp";
+import d_mt34_u2_tortta from "./dars/rasm/mt34-u2-tortta.webp";
+import d_mt34_u3_bitta_qoshamiz from "./dars/rasm/mt34-u3-bitta-qoshamiz.webp";
+import d_mt34_u3_bittasini_olamiz from "./dars/rasm/mt34-u3-bittasini-olamiz.webp";
+import d_mt34_u3_juftlash from "./dars/rasm/mt34-u3-juftlash.webp";
+import d_mt34_u3_ortib_qoldi from "./dars/rasm/mt34-u3-ortib-qoldi.webp";
+import d_mt34_u3_teng_emas from "./dars/rasm/mt34-u3-teng-emas.webp";
+import d_mt34_u3_teng from "./dars/rasm/mt34-u3-teng.webp";
+import d_mt34_u4_burchak_yoq from "./dars/rasm/mt34-u4-burchak-yoq.webp";
+import d_mt34_u4_doira from "./dars/rasm/mt34-u4-doira.webp";
+import d_mt34_u4_shakldan_uy from "./dars/rasm/mt34-u4-shakldan-uy.webp";
+import d_mt34_u4_shakliga_terish from "./dars/rasm/mt34-u4-shakliga-terish.webp";
+import d_mt34_u4_tortta_burchak from "./dars/rasm/mt34-u4-tortta-burchak.webp";
+import d_mt34_u4_uchburchak_narsalar from "./dars/rasm/mt34-u4-uchburchak-narsalar.webp";
+import d_mt34_u4_uchta_burchak from "./dars/rasm/mt34-u4-uchta-burchak.webp";
+import d_am34_u5_barg_tokilishi from "./dars/rasm/am34-u5-barg-tokilishi.webp";
+import d_am34_u5_hosil from "./dars/rasm/am34-u5-hosil.webp";
+import d_am34_u6_romashka from "./dars/rasm/am34-u6-romashka.webp";
+import d_am34_u6_sugorish from "./dars/rasm/am34-u6-sugorish.webp";
+import d_am34_u7_rels from "./dars/rasm/am34-u7-rels.webp";
+import d_am34_u8_qozon from "./dars/rasm/am34-u8-qozon.webp";
+import d_am34_u8_yolovchi from "./dars/rasm/am34-u8-yolovchi.webp";
+import d_am45_u1_aylana from "./dars/rasm/am45-u1-aylana.webp";
+import d_am45_u1_barglar_tokiladi from "./dars/rasm/am45-u1-barglar-tokiladi.webp";
+import d_am45_u1_fasl_kiyimi from "./dars/rasm/am45-u1-fasl-kiyimi.webp";
+import d_am45_u1_kun_qisqaradi from "./dars/rasm/am45-u1-kun-qisqaradi.webp";
+import d_am45_u1_kurtaklar from "./dars/rasm/am45-u1-kurtaklar.webp";
+import d_am45_u1_mevalar_pishadi from "./dars/rasm/am45-u1-mevalar-pishadi.webp";
+import d_am45_u1_qor_yogadi from "./dars/rasm/am45-u1-qor-yogadi.webp";
+import d_am45_u1_qushlar_ketadi from "./dars/rasm/am45-u1-qushlar-ketadi.webp";
+import d_am45_u1_qushlar_qaytadi from "./dars/rasm/am45-u1-qushlar-qaytadi.webp";
+import d_am45_u1_uzun_kun from "./dars/rasm/am45-u1-uzun-kun.webp";
+import d_am45_u2_havo from "./dars/rasm/am45-u2-havo.webp";
+import d_am45_u2_ildiz from "./dars/rasm/am45-u2-ildiz.webp";
+import d_am45_u2_kundalik from "./dars/rasm/am45-u2-kundalik.webp";
+import d_am45_u2_kuzatish from "./dars/rasm/am45-u2-kuzatish.webp";
+import d_am45_u2_meva_urugi from "./dars/rasm/am45-u2-meva-urugi.webp";
+import d_am45_u3_gul_shirasi from "./dars/rasm/am45-u3-gul-shirasi.webp";
+import d_am45_u3_olti_oyoq from "./dars/rasm/am45-u3-olti-oyoq.webp";
+import d_am45_u4_eshitish from "./dars/rasm/am45-u4-eshitish.webp";
+import d_am45_u4_foydali_ovqat from "./dars/rasm/am45-u4-foydali-ovqat.webp";
+import d_am45_u4_hid_bilish from "./dars/rasm/am45-u4-hid-bilish.webp";
+import d_am45_u4_korish from "./dars/rasm/am45-u4-korish.webp";
+import d_am45_u4_nafas from "./dars/rasm/am45-u4-nafas.webp";
+import d_am45_u4_qol_yuvish from "./dars/rasm/am45-u4-qol-yuvish.webp";
+import d_am45_u4_tam_bilish from "./dars/rasm/am45-u4-tam-bilish.webp";
+import d_am45_u4_teri from "./dars/rasm/am45-u4-teri.webp";
+import d_am45_u4_uyqu from "./dars/rasm/am45-u4-uyqu.webp";
+import d_am45_u4_yurak from "./dars/rasm/am45-u4-yurak.webp";
+import d_am45_u5_tarbiyachi from "./dars/rasm/am45-u5-tarbiyachi.webp";
+import d_am45_u5_yelkanli_qayiq from "./dars/rasm/am45-u5-yelkanli-qayiq.webp";
+import d_en45_u5_sister from "./dars/rasm/en45-u5-sister.webp";
+import d_en45_u5_this_is_my from "./dars/rasm/en45-u5-this-is-my.webp";
+import d_en45_u6_clap_your_hands from "./dars/rasm/en45-u6-clap-your-hands.webp";
+import d_en45_u6_ears from "./dars/rasm/en45-u6-ears.webp";
+import d_en45_u6_eyes from "./dars/rasm/en45-u6-eyes.webp";
+import d_en45_u6_fingers from "./dars/rasm/en45-u6-fingers.webp";
+import d_en45_u6_hands from "./dars/rasm/en45-u6-hands.webp";
+import d_en45_u6_head from "./dars/rasm/en45-u6-head.webp";
+import d_en45_u6_knees from "./dars/rasm/en45-u6-knees.webp";
+import d_en45_u6_legs from "./dars/rasm/en45-u6-legs.webp";
+import d_en45_u6_mouth from "./dars/rasm/en45-u6-mouth.webp";
+import d_en45_u6_nose from "./dars/rasm/en45-u6-nose.webp";
+import d_en45_u6_shoulders from "./dars/rasm/en45-u6-shoulders.webp";
+import d_en45_u6_stamp_your_feet from "./dars/rasm/en45-u6-stamp-your-feet.webp";
+import d_en45_u6_toes from "./dars/rasm/en45-u6-toes.webp";
+import d_en45_u6_touch_your_nose from "./dars/rasm/en45-u6-touch-your-nose.webp";
+import d_en45_u7_apple from "./dars/rasm/en45-u7-apple.webp";
+import d_en45_u7_banana from "./dars/rasm/en45-u7-banana.webp";
+import d_en45_u7_carrot from "./dars/rasm/en45-u7-carrot.webp";
+import d_en45_u7_cucumber from "./dars/rasm/en45-u7-cucumber.webp";
+import d_en45_u7_grapes from "./dars/rasm/en45-u7-grapes.webp";
+import d_en45_u7_i_like from "./dars/rasm/en45-u7-i-like.webp";
+import d_en45_u7_lemon from "./dars/rasm/en45-u7-lemon.webp";
+import d_en45_u7_orange_fruit from "./dars/rasm/en45-u7-orange-fruit.webp";
+import d_en45_u7_potato from "./dars/rasm/en45-u7-potato.webp";
+import d_en45_u7_strawberry from "./dars/rasm/en45-u7-strawberry.webp";
+import d_en45_u7_tomato from "./dars/rasm/en45-u7-tomato.webp";
+import d_en45_u7_yummy from "./dars/rasm/en45-u7-yummy.webp";
+import d_en45_u8_ball from "./dars/rasm/en45-u8-ball.webp";
+import d_en45_u8_doll from "./dars/rasm/en45-u8-doll.webp";
+import d_en45_u8_dress from "./dars/rasm/en45-u8-dress.webp";
+import d_en45_u8_hat from "./dars/rasm/en45-u8-hat.webp";
+import d_en45_u8_i_like_my_teddy from "./dars/rasm/en45-u8-i-like-my-teddy.webp";
+import d_en45_u8_its_a_ball from "./dars/rasm/en45-u8-its-a-ball.webp";
+import d_en45_u8_kite from "./dars/rasm/en45-u8-kite.webp";
+import d_en45_u8_robot from "./dars/rasm/en45-u8-robot.webp";
+import d_en45_u8_shoes from "./dars/rasm/en45-u8-shoes.webp";
+import d_en45_u8_socks from "./dars/rasm/en45-u8-socks.webp";
+import d_en45_u8_t_shirt from "./dars/rasm/en45-u8-t-shirt.webp";
+import d_en45_u8_trousers from "./dars/rasm/en45-u8-trousers.webp";
+import d_en45_u8_what_is_it from "./dars/rasm/en45-u8-what-is-it.webp";
+import d_en56_s4_breakfast from "./dars/rasm/en56-s4-breakfast.webp";
+import d_en56_s5_find_the_kitten from "./dars/rasm/en56-s5-find-the-kitten.webp";
+import d_en56_s6_park_weather from "./dars/rasm/en56-s6-park-weather.webp";
+import d_en56_u4_bread from "./dars/rasm/en56-u4-bread.webp";
+import d_en56_u4_cake from "./dars/rasm/en56-u4-cake.webp";
+import d_en56_u4_cheese from "./dars/rasm/en56-u4-cheese.webp";
+import d_en56_u4_chicken from "./dars/rasm/en56-u4-chicken.webp";
+import d_en56_u4_egg from "./dars/rasm/en56-u4-egg.webp";
+import d_en56_u4_ice_cream from "./dars/rasm/en56-u4-ice-cream.webp";
+import d_en56_u4_im_hungry from "./dars/rasm/en56-u4-im-hungry.webp";
+import d_en56_u4_im_thirsty from "./dars/rasm/en56-u4-im-thirsty.webp";
+import d_en56_u4_juice from "./dars/rasm/en56-u4-juice.webp";
+import d_en56_u4_milk from "./dars/rasm/en56-u4-milk.webp";
+import d_en56_u4_rice from "./dars/rasm/en56-u4-rice.webp";
+import d_en56_u4_soup from "./dars/rasm/en56-u4-soup.webp";
+import d_en56_u4_sweets from "./dars/rasm/en56-u4-sweets.webp";
+import d_en56_u4_tea from "./dars/rasm/en56-u4-tea.webp";
+import d_en56_u4_water from "./dars/rasm/en56-u4-water.webp";
+import d_en56_u4_yummy from "./dars/rasm/en56-u4-yummy.webp";
+import d_en56_u5_bathroom from "./dars/rasm/en56-u5-bathroom.webp";
+import d_en56_u5_bedroom from "./dars/rasm/en56-u5-bedroom.webp";
+import d_en56_u5_chair from "./dars/rasm/en56-u5-chair.webp";
+import d_en56_u5_clock from "./dars/rasm/en56-u5-clock.webp";
+import d_en56_u5_door from "./dars/rasm/en56-u5-door.webp";
+import d_en56_u5_garden from "./dars/rasm/en56-u5-garden.webp";
+import d_en56_u5_house from "./dars/rasm/en56-u5-house.webp";
+import d_en56_u5_in_box from "./dars/rasm/en56-u5-in-box.webp";
+import d_en56_u5_kitchen from "./dars/rasm/en56-u5-kitchen.webp";
+import d_en56_u5_lamp from "./dars/rasm/en56-u5-lamp.webp";
+import d_en56_u5_living_room from "./dars/rasm/en56-u5-living-room.webp";
+import d_en56_u5_on_table from "./dars/rasm/en56-u5-on-table.webp";
+import d_en56_u5_tv from "./dars/rasm/en56-u5-tv.webp";
+import d_en56_u5_under_bed from "./dars/rasm/en56-u5-under-bed.webp";
+import d_en56_u5_where_cat from "./dars/rasm/en56-u5-where-cat.webp";
+import d_en56_u5_window from "./dars/rasm/en56-u5-window.webp";
+import d_en56_u6_autumn from "./dars/rasm/en56-u6-autumn.webp";
+import d_en56_u6_cloudy from "./dars/rasm/en56-u6-cloudy.webp";
+import d_en56_u6_cold from "./dars/rasm/en56-u6-cold.webp";
+import d_en56_u6_hot from "./dars/rasm/en56-u6-hot.webp";
+import d_en56_u6_rainbow from "./dars/rasm/en56-u6-rainbow.webp";
+import d_en56_u6_rainy from "./dars/rasm/en56-u6-rainy.webp";
+import d_en56_u6_snowman from "./dars/rasm/en56-u6-snowman.webp";
+import d_en56_u6_snowy from "./dars/rasm/en56-u6-snowy.webp";
+import d_en56_u6_spring from "./dars/rasm/en56-u6-spring.webp";
+import d_en56_u6_summer from "./dars/rasm/en56-u6-summer.webp";
+import d_en56_u6_sunny from "./dars/rasm/en56-u6-sunny.webp";
+import d_en56_u6_umbrella from "./dars/rasm/en56-u6-umbrella.webp";
+import d_en56_u6_weather from "./dars/rasm/en56-u6-weather.webp";
+import d_en56_u6_windy from "./dars/rasm/en56-u6-windy.webp";
+import d_en56_u6_winter from "./dars/rasm/en56-u6-winter.webp";
+import d_en56_u8_i_am_happy from "./dars/rasm/en56-u8-i-am-happy.webp";
+import d_en67_u7_here_you_are from "./dars/rasm/en67-u7-here-you-are.webp";
+import d_en67_u7_youre_welcome from "./dars/rasm/en67-u7-youre-welcome.webp";
+import d_mt34_u5_balandroq from "./dars/rasm/mt34-u5-balandroq.webp";
+import d_mt34_u5_pastroq from "./dars/rasm/mt34-u5-pastroq.webp";
+import d_mt34_u5_qisqa from "./dars/rasm/mt34-u5-qisqa.webp";
+import d_mt34_u5_qisqaroq from "./dars/rasm/mt34-u5-qisqaroq.webp";
+import d_mt34_u5_uzunroq from "./dars/rasm/mt34-u5-uzunroq.webp";
+import d_mt34_u6_bogchaga from "./dars/rasm/mt34-u6-bogchaga.webp";
+import d_am45_u6_kirpi from "./dars/rasm/am45-u6-kirpi.webp";
+import d_am45_u6_oq_quyon from "./dars/rasm/am45-u6-oq-quyon.webp";
+import d_am45_u6_qush_uychasi from "./dars/rasm/am45-u6-qush-uychasi.webp";
+import d_am45_u6_yem from "./dars/rasm/am45-u6-yem.webp";
+import d_am45_u6_zaxira from "./dars/rasm/am45-u6-zaxira.webp";
+import d_am45_u7_dush from "./dars/rasm/am45-u7-dush.webp";
+import d_am45_u7_gulga_suv from "./dars/rasm/am45-u7-gulga-suv.webp";
+import d_am45_u7_jomrak from "./dars/rasm/am45-u7-jomrak.webp";
+import d_am45_u7_tomchi from "./dars/rasm/am45-u7-tomchi.webp";
+import d_am45_u8_101 from "./dars/rasm/am45-u8-101.webp";
+import d_am45_u8_begona from "./dars/rasm/am45-u8-begona.webp";
+import d_am45_u8_maydoncha from "./dars/rasm/am45-u8-maydoncha.webp";
+import d_am45_u8_ota_onaga from "./dars/rasm/am45-u8-ota-onaga.webp";
+import d_am45_u8_qizil from "./dars/rasm/am45-u8-qizil.webp";
+import d_am45_u8_qol_ushlab from "./dars/rasm/am45-u8-qol-ushlab.webp";
+import d_am45_u8_sariq from "./dars/rasm/am45-u8-sariq.webp";
+import d_am45_u8_yashil from "./dars/rasm/am45-u8-yashil.webp";
+import d_am45_u8_yoq_deymiz from "./dars/rasm/am45-u8-yoq-deymiz.webp";
+import d_am45_u8_zebra from "./dars/rasm/am45-u8-zebra.webp";
+import d_en45_s1_new_friend from "./dars/rasm/en45-s1-new-friend.webp";
+import d_en45_s15_kindergarten_lunch from "./dars/rasm/en45-s15-kindergarten-lunch.webp";
+import d_en45_s16_morning_ready from "./dars/rasm/en45-s16-morning-ready.webp";
+import d_en45_s17_slide_turns from "./dars/rasm/en45-s17-slide-turns.webp";
+import d_en45_s2_painting_rainbow from "./dars/rasm/en45-s2-painting-rainbow.webp";
+import d_en45_s3_park_ducks from "./dars/rasm/en45-s3-park-ducks.webp";
+import d_en45_s4_zoo_granny from "./dars/rasm/en45-s4-zoo-granny.webp";
+import d_en45_s5_visiting_grandma from "./dars/rasm/en45-s5-visiting-grandma.webp";
+import d_en45_s6_morning_exercises from "./dars/rasm/en45-s6-morning-exercises.webp";
+import d_en45_s7_fruit_market from "./dars/rasm/en45-s7-fruit-market.webp";
+import d_en45_s8_dressing_for_park from "./dars/rasm/en45-s8-dressing-for-park.webp";
+import d_en45_u1_blue from "./dars/rasm/en45-u1-blue.webp";
+import d_en45_u1_good_morning from "./dars/rasm/en45-u1-good-morning.webp";
+import d_en45_u1_goodbye from "./dars/rasm/en45-u1-goodbye.webp";
+import d_en45_u1_green from "./dars/rasm/en45-u1-green.webp";
+import d_en45_u1_hello from "./dars/rasm/en45-u1-hello.webp";
+import d_en45_u1_how_are_you from "./dars/rasm/en45-u1-how-are-you.webp";
+import d_en45_u1_im_fine from "./dars/rasm/en45-u1-im-fine.webp";
+import d_en45_u1_my_name_is from "./dars/rasm/en45-u1-my-name-is.webp";
+import d_en45_u1_red from "./dars/rasm/en45-u1-red.webp";
+import d_en45_u1_thank_you from "./dars/rasm/en45-u1-thank-you.webp";
+import d_en45_u1_whats_your_name from "./dars/rasm/en45-u1-whats-your-name.webp";
+import d_en45_u1_yellow from "./dars/rasm/en45-u1-yellow.webp";
+import d_en45_u12_can_i_have_a_ball_please from "./dars/rasm/en45-u12-can-i-have-a-ball-please.webp";
+import d_en45_u12_excuse_me from "./dars/rasm/en45-u12-excuse-me.webp";
+import d_en45_u12_no_thank_you from "./dars/rasm/en45-u12-no-thank-you.webp";
+import d_en45_u12_thats_ok from "./dars/rasm/en45-u12-thats-ok.webp";
+import d_en45_u12_yes_please from "./dars/rasm/en45-u12-yes-please.webp";
+import d_en45_u13_bag from "./dars/rasm/en45-u13-bag.webp";
+import d_en45_u13_bath from "./dars/rasm/en45-u13-bath.webp";
+import d_en45_u13_breakfast from "./dars/rasm/en45-u13-breakfast.webp";
+import d_en45_u13_dinner from "./dars/rasm/en45-u13-dinner.webp";
+import d_en45_u13_go_to_bed from "./dars/rasm/en45-u13-go-to-bed.webp";
+import d_en45_u13_i_go_to_kindergarten from "./dars/rasm/en45-u13-i-go-to-kindergarten.webp";
+import d_en45_u13_lets_go from "./dars/rasm/en45-u13-lets-go.webp";
+import d_en45_u13_wake_up from "./dars/rasm/en45-u13-wake-up.webp";
+import d_en45_u14_angry from "./dars/rasm/en45-u14-angry.webp";
+import d_en45_u14_be_my_friend from "./dars/rasm/en45-u14-be-my-friend.webp";
+import d_en45_u14_how_do_you_feel from "./dars/rasm/en45-u14-how-do-you-feel.webp";
+import d_en45_u14_lets_play_together from "./dars/rasm/en45-u14-lets-play-together.webp";
+import d_en45_u14_my_turn from "./dars/rasm/en45-u14-my-turn.webp";
+import d_en45_u14_your_turn from "./dars/rasm/en45-u14-your-turn.webp";
+import d_en45_u2_black from "./dars/rasm/en45-u2-black.webp";
+import d_en45_u2_brown from "./dars/rasm/en45-u2-brown.webp";
+import d_en45_u2_grey from "./dars/rasm/en45-u2-grey.webp";
+import d_en45_u2_orange_color from "./dars/rasm/en45-u2-orange-color.webp";
+import d_en45_u2_pink from "./dars/rasm/en45-u2-pink.webp";
+import d_en45_u2_purple from "./dars/rasm/en45-u2-purple.webp";
+import d_en45_u2_rainbow from "./dars/rasm/en45-u2-rainbow.webp";
+import d_en45_u2_what_colour from "./dars/rasm/en45-u2-what-colour.webp";
+import d_en45_u2_white from "./dars/rasm/en45-u2-white.webp";
+import d_en45_u3_eight from "./dars/rasm/en45-u3-eight.webp";
+import d_en45_u3_five from "./dars/rasm/en45-u3-five.webp";
+import d_en45_u3_four from "./dars/rasm/en45-u3-four.webp";
+import d_en45_u3_how_many from "./dars/rasm/en45-u3-how-many.webp";
+import d_en45_u3_nine from "./dars/rasm/en45-u3-nine.webp";
+import d_en45_u3_one from "./dars/rasm/en45-u3-one.webp";
+import d_en45_u3_seven from "./dars/rasm/en45-u3-seven.webp";
+import d_en45_u3_six from "./dars/rasm/en45-u3-six.webp";
+import d_en45_u3_ten from "./dars/rasm/en45-u3-ten.webp";
+import d_en45_u3_three from "./dars/rasm/en45-u3-three.webp";
+import d_en45_u3_two from "./dars/rasm/en45-u3-two.webp";
+import d_en45_u4_bear from "./dars/rasm/en45-u4-bear.webp";
+import d_en45_u4_crocodile from "./dars/rasm/en45-u4-crocodile.webp";
+import d_en45_u4_elephant from "./dars/rasm/en45-u4-elephant.webp";
+import d_en45_u4_fox from "./dars/rasm/en45-u4-fox.webp";
+import d_en45_u4_giraffe from "./dars/rasm/en45-u4-giraffe.webp";
+import d_en45_u4_lion from "./dars/rasm/en45-u4-lion.webp";
+import d_en45_u4_monkey from "./dars/rasm/en45-u4-monkey.webp";
+import d_en45_u4_owl from "./dars/rasm/en45-u4-owl.webp";
+import d_en45_u4_snake from "./dars/rasm/en45-u4-snake.webp";
+import d_en45_u4_tiger from "./dars/rasm/en45-u4-tiger.webp";
+import d_en45_u4_wolf from "./dars/rasm/en45-u4-wolf.webp";
+import d_en45_u4_zebra from "./dars/rasm/en45-u4-zebra.webp";
+import d_en45_u5_baby from "./dars/rasm/en45-u5-baby.webp";
+import d_en45_u5_brother from "./dars/rasm/en45-u5-brother.webp";
+import d_en45_u5_family from "./dars/rasm/en45-u5-family.webp";
+import d_en45_u5_father from "./dars/rasm/en45-u5-father.webp";
+import d_en45_u5_grandma from "./dars/rasm/en45-u5-grandma.webp";
+import d_en45_u5_grandpa from "./dars/rasm/en45-u5-grandpa.webp";
+import d_en45_u5_mother from "./dars/rasm/en45-u5-mother.webp";
+import d_am23_u1_baliqcha from "./dars/rasm/am23-u1-baliqcha.webp";
+import d_am23_u1_it from "./dars/rasm/am23-u1-it.webp";
+import d_am23_u6_qordan_odam from "./dars/rasm/am23-u6-qordan-odam.webp";
+import d_am23_u7_piyola from "./dars/rasm/am23-u7-piyola.webp";
+import d_am23_u8_qol from "./dars/rasm/am23-u8-qol.webp";
+import d_am23_u8_quloq from "./dars/rasm/am23-u8-quloq.webp";
+import d_am23_u8_toza_qollar from "./dars/rasm/am23-u8-toza-qollar.webp";
+import d_am23_u8_vanna from "./dars/rasm/am23-u8-vanna.webp";
+import d_am34_u1_buzoq from "./dars/rasm/am34-u1-buzoq.webp";
+import d_am34_u1_kuchukcha from "./dars/rasm/am34-u1-kuchukcha.webp";
+import d_am34_u1_qozichoq from "./dars/rasm/am34-u1-qozichoq.webp";
+import d_am34_u1_toychoq from "./dars/rasm/am34-u1-toychoq.webp";
+import d_am34_u1_yovvoyi_hayvon from "./dars/rasm/am34-u1-yovvoyi-hayvon.webp";
+import d_am34_u2_boyqush from "./dars/rasm/am34-u2-boyqush.webp";
+import d_am34_u2_chumchuq from "./dars/rasm/am34-u2-chumchuq.webp";
+import d_am34_u2_kabutar from "./dars/rasm/am34-u2-kabutar.webp";
+import d_am34_u4_bulutli from "./dars/rasm/am34-u4-bulutli.webp";
+import d_am34_u4_issiq from "./dars/rasm/am34-u4-issiq.webp";
+import d_am34_u4_kurtka from "./dars/rasm/am34-u4-kurtka.webp";
+import d_am34_u4_quyoshli from "./dars/rasm/am34-u4-quyoshli.webp";
+import d_am34_u4_sovuq from "./dars/rasm/am34-u4-sovuq.webp";
+import d_en23_u10_clap from "./dars/rasm/en23-u10-clap.webp";
+import d_en23_u10_dance from "./dars/rasm/en23-u10-dance.webp";
+import d_en23_u10_jump from "./dars/rasm/en23-u10-jump.webp";
+import d_en23_u10_run from "./dars/rasm/en23-u10-run.webp";
+import d_en23_u11_happy from "./dars/rasm/en23-u11-happy.webp";
+import d_en23_u11_please from "./dars/rasm/en23-u11-please.webp";
+import d_en23_u11_sad from "./dars/rasm/en23-u11-sad.webp";
+import d_en23_u11_sorry from "./dars/rasm/en23-u11-sorry.webp";
+import d_en23_u9_bed from "./dars/rasm/en23-u9-bed.webp";
+import d_en23_u9_brush_your_teeth from "./dars/rasm/en23-u9-brush-your-teeth.webp";
+import d_en23_u9_drink from "./dars/rasm/en23-u9-drink.webp";
+import d_en23_u9_eat from "./dars/rasm/en23-u9-eat.webp";
+import d_en23_u9_sleep from "./dars/rasm/en23-u9-sleep.webp";
+import d_en23_u9_wash_your_hands from "./dars/rasm/en23-u9-wash-your-hands.webp";
+import d_en34_u1_bye from "./dars/rasm/en34-u1-bye.webp";
+import d_en34_u1_good_morning from "./dars/rasm/en34-u1-good-morning.webp";
+import d_en34_u1_good_night from "./dars/rasm/en34-u1-good-night.webp";
+import d_en34_u1_hello from "./dars/rasm/en34-u1-hello.webp";
+import d_en34_u1_hi from "./dars/rasm/en34-u1-hi.webp";
+import d_en34_u1_no from "./dars/rasm/en34-u1-no.webp";
+import d_en34_u1_thank_you from "./dars/rasm/en34-u1-thank-you.webp";
+import d_en34_u1_yes from "./dars/rasm/en34-u1-yes.webp";
+import d_en34_u2_baby from "./dars/rasm/en34-u2-baby.webp";
+import d_en34_u2_boy from "./dars/rasm/en34-u2-boy.webp";
+import d_en34_u2_dad from "./dars/rasm/en34-u2-dad.webp";
+import d_en34_u2_family from "./dars/rasm/en34-u2-family.webp";
+import d_en34_u2_girl from "./dars/rasm/en34-u2-girl.webp";
+import d_en34_u2_grandpa from "./dars/rasm/en34-u2-grandpa.webp";
+import d_en34_u2_granny from "./dars/rasm/en34-u2-granny.webp";
+import d_en34_u2_mum from "./dars/rasm/en34-u2-mum.webp";
+import d_en34_u3_black from "./dars/rasm/en34-u3-black.webp";
+import d_en34_u3_blue from "./dars/rasm/en34-u3-blue.webp";
+import d_en34_u3_green from "./dars/rasm/en34-u3-green.webp";
+import d_en34_u3_orange from "./dars/rasm/en34-u3-orange.webp";
+import d_en34_u3_pink from "./dars/rasm/en34-u3-pink.webp";
+import d_en34_u3_red from "./dars/rasm/en34-u3-red.webp";
+import d_en34_u3_white from "./dars/rasm/en34-u3-white.webp";
+import d_en34_u3_yellow from "./dars/rasm/en34-u3-yellow.webp";
+import d_en34_u4_cat from "./dars/rasm/en34-u4-cat.webp";
+import d_en34_u4_cow from "./dars/rasm/en34-u4-cow.webp";
+import d_en34_u4_dog from "./dars/rasm/en34-u4-dog.webp";
+import d_en34_u4_duck from "./dars/rasm/en34-u4-duck.webp";
+import d_en34_u4_hen from "./dars/rasm/en34-u4-hen.webp";
+import d_en34_u4_horse from "./dars/rasm/en34-u4-horse.webp";
+import d_en34_u4_rabbit from "./dars/rasm/en34-u4-rabbit.webp";
+import d_en34_u4_sheep from "./dars/rasm/en34-u4-sheep.webp";
+import d_en34_u5_big from "./dars/rasm/en34-u5-big.webp";
+import d_en34_u5_five from "./dars/rasm/en34-u5-five.webp";
+import d_en34_u5_four from "./dars/rasm/en34-u5-four.webp";
+import d_en34_u5_one from "./dars/rasm/en34-u5-one.webp";
+import d_en34_u5_small from "./dars/rasm/en34-u5-small.webp";
+import d_en34_u5_three from "./dars/rasm/en34-u5-three.webp";
+import d_en34_u5_two from "./dars/rasm/en34-u5-two.webp";
+import d_en34_u6_ball from "./dars/rasm/en34-u6-ball.webp";
+import d_en34_u6_balloon from "./dars/rasm/en34-u6-balloon.webp";
+import d_en34_u6_blocks from "./dars/rasm/en34-u6-blocks.webp";
+import d_en34_u6_car from "./dars/rasm/en34-u6-car.webp";
+import d_en34_u6_doll from "./dars/rasm/en34-u6-doll.webp";
+import d_en34_u6_drum from "./dars/rasm/en34-u6-drum.webp";
+import d_en34_u6_teddy from "./dars/rasm/en34-u6-teddy.webp";
+import d_en34_u6_train from "./dars/rasm/en34-u6-train.webp";
+import d_en34_u7_ears from "./dars/rasm/en34-u7-ears.webp";
+import d_en34_u7_eyes from "./dars/rasm/en34-u7-eyes.webp";
+import d_en34_u7_feet from "./dars/rasm/en34-u7-feet.webp";
+import d_en34_u7_hands from "./dars/rasm/en34-u7-hands.webp";
+import d_en34_u7_head from "./dars/rasm/en34-u7-head.webp";
+import d_en34_u7_legs from "./dars/rasm/en34-u7-legs.webp";
+import d_en34_u7_mouth from "./dars/rasm/en34-u7-mouth.webp";
+import d_en34_u7_nose from "./dars/rasm/en34-u7-nose.webp";
+import d_en34_u8_apple from "./dars/rasm/en34-u8-apple.webp";
+import d_en34_u8_banana from "./dars/rasm/en34-u8-banana.webp";
+import d_en34_u8_bread from "./dars/rasm/en34-u8-bread.webp";
+import d_en34_u8_cake from "./dars/rasm/en34-u8-cake.webp";
+import d_en34_u8_juice from "./dars/rasm/en34-u8-juice.webp";
+import d_en34_u8_milk from "./dars/rasm/en34-u8-milk.webp";
+import d_en34_u8_water from "./dars/rasm/en34-u8-water.webp";
+import d_en34_u8_yummy from "./dars/rasm/en34-u8-yummy.webp";
+import d_mt23_u1_bitta from "./dars/rasm/mt23-u1-bitta.webp";
+import d_mt23_u1_bittadan from "./dars/rasm/mt23-u1-bittadan.webp";
+import d_am56_u7_gul from "./dars/rasm/am56-u7-gul.webp";
+import d_am56_u7_kochat from "./dars/rasm/am56-u7-kochat.webp";
+import d_am56_u7_kompost from "./dars/rasm/am56-u7-kompost.webp";
+import d_am56_u7_plastik2 from "./dars/rasm/am56-u7-plastik2.webp";
+import d_am56_u7_qayta from "./dars/rasm/am56-u7-qayta.webp";
+import d_am56_u7_qogoz from "./dars/rasm/am56-u7-qogoz.webp";
+import d_am56_u7_qushlar from "./dars/rasm/am56-u7-qushlar.webp";
+import d_am56_u7_shisha from "./dars/rasm/am56-u7-shisha.webp";
+import d_am56_u7_tozalik from "./dars/rasm/am56-u7-tozalik.webp";
+import d_am56_u8_bog from "./dars/rasm/am56-u8-bog.webp";
+import d_am56_u8_manzil from "./dars/rasm/am56-u8-manzil.webp";
+import d_am56_u8_qoshni from "./dars/rasm/am56-u8-qoshni.webp";
+import d_am56_u8_sotuvchi from "./dars/rasm/am56-u8-sotuvchi.webp";
+import d_am67_u1_aylanish from "./dars/rasm/am67-u1-aylanish.webp";
+import d_am67_u1_bug from "./dars/rasm/am67-u1-bug.webp";
+import d_am67_u1_buglanish from "./dars/rasm/am67-u1-buglanish.webp";
+import d_am67_u1_dengiz from "./dars/rasm/am67-u1-dengiz.webp";
+import d_am67_u1_sovish from "./dars/rasm/am67-u1-sovish.webp";
+import d_am67_u2_kunduz from "./dars/rasm/am67-u2-kunduz.webp";
+import d_am67_u2_nur from "./dars/rasm/am67-u2-nur.webp";
+import d_am67_u2_oq from "./dars/rasm/am67-u2-oq.webp";
+import d_am67_u2_orbita from "./dars/rasm/am67-u2-orbita.webp";
+import d_am67_u2_qiyalik from "./dars/rasm/am67-u2-qiyalik.webp";
+import d_am67_u2_yer from "./dars/rasm/am67-u2-yer.webp";
+import d_am67_u3_asalari from "./dars/rasm/am67-u3-asalari.webp";
+import d_am67_u3_ildiz from "./dars/rasm/am67-u3-ildiz.webp";
+import d_am67_u3_intilish from "./dars/rasm/am67-u3-intilish.webp";
+import d_am67_u3_poya from "./dars/rasm/am67-u3-poya.webp";
+import d_am67_u3_shimish from "./dars/rasm/am67-u3-shimish.webp";
+import d_am67_u3_solish from "./dars/rasm/am67-u3-solish.webp";
+import d_am67_u3_sugorish from "./dars/rasm/am67-u3-sugorish.webp";
+import d_am67_u3_unish from "./dars/rasm/am67-u3-unish.webp";
+import d_am67_u3_yashil from "./dars/rasm/am67-u3-yashil.webp";
+import d_am67_u3_yoruglik from "./dars/rasm/am67-u3-yoruglik.webp";
+import d_am67_u4_ayiq from "./dars/rasm/am67-u4-ayiq.webp";
+import d_am67_u4_bugu from "./dars/rasm/am67-u4-bugu.webp";
+import d_am67_u4_echkemar from "./dars/rasm/am67-u4-echkemar.webp";
+import d_am67_u4_jayron from "./dars/rasm/am67-u4-jayron.webp";
+import d_am67_u4_kamyob from "./dars/rasm/am67-u4-kamyob.webp";
+import d_am67_u4_laylak from "./dars/rasm/am67-u4-laylak.webp";
+import d_am67_u4_morxor from "./dars/rasm/am67-u4-morxor.webp";
+import d_am67_u4_qizilkitob from "./dars/rasm/am67-u4-qizilkitob.webp";
+import d_am67_u4_qoriqxona from "./dars/rasm/am67-u4-qoriqxona.webp";
+import d_am67_u4_toqay from "./dars/rasm/am67-u4-toqay.webp";
+import d_am67_u4_yordam from "./dars/rasm/am67-u4-yordam.webp";
+import d_am67_u5_chelak from "./dars/rasm/am67-u5-chelak.webp";
+import d_am67_u5_chiroq from "./dars/rasm/am67-u5-chiroq.webp";
+import d_am67_u5_dush from "./dars/rasm/am67-u5-dush.webp";
+import d_am67_u5_ichimlik from "./dars/rasm/am67-u5-ichimlik.webp";
+import d_am67_u5_panel from "./dars/rasm/am67-u5-panel.webp";
+import d_am67_u5_rozetka from "./dars/rasm/am67-u5-rozetka.webp";
+import d_am67_u5_stansiya from "./dars/rasm/am67-u5-stansiya.webp";
+import d_am67_u5_televizor from "./dars/rasm/am67-u5-televizor.webp";
+import d_am67_u5_tish from "./dars/rasm/am67-u5-tish.webp";
+import d_am67_u5_tomchi from "./dars/rasm/am67-u5-tomchi.webp";
+import d_am67_u5_tozalash from "./dars/rasm/am67-u5-tozalash.webp";
+import d_am67_u6_daryolar from "./dars/rasm/am67-u6-daryolar.webp";
+import d_am67_u6_ipakyoli from "./dars/rasm/am67-u6-ipakyoli.webp";
+import d_am67_u6_qizilqum from "./dars/rasm/am67-u6-qizilqum.webp";
+import d_am67_u6_toglar from "./dars/rasm/am67-u6-toglar.webp";
+import d_am67_u6_toshkent from "./dars/rasm/am67-u6-toshkent.webp";
+import d_am67_u6_xiva from "./dars/rasm/am67-u6-xiva.webp";
+import d_am67_u7_foydali from "./dars/rasm/am67-u7-foydali.webp";
+import d_am67_u7_nafas from "./dars/rasm/am67-u7-nafas.webp";
+import d_am67_u7_oshqozon from "./dars/rasm/am67-u7-oshqozon.webp";
+import d_am67_u7_puls from "./dars/rasm/am67-u7-puls.webp";
+import d_am67_u7_qon from "./dars/rasm/am67-u7-qon.webp";
+import d_am67_u7_quloq from "./dars/rasm/am67-u7-quloq.webp";
+import d_am67_u7_tish from "./dars/rasm/am67-u7-tish.webp";
+import d_am67_u7_tozahavo from "./dars/rasm/am67-u7-tozahavo.webp";
+import d_am67_u7_yurak from "./dars/rasm/am67-u7-yurak.webp";
+import d_am67_u8_aks from "./dars/rasm/am67-u8-aks.webp";
+import d_am67_u8_fonar from "./dars/rasm/am67-u8-fonar.webp";
+import d_am67_u8_qisqich from "./dars/rasm/am67-u8-qisqich.webp";
+import d_am67_u8_ranglar from "./dars/rasm/am67-u8-ranglar.webp";
+import d_am67_u8_teatr from "./dars/rasm/am67-u8-teatr.webp";
+import d_am67_u8_tomchinur from "./dars/rasm/am67-u8-tomchinur.webp";
+import d_am67_u8_zaychik from "./dars/rasm/am67-u8-zaychik.webp";
+import d_en56_s7_market from "./dars/rasm/en56-s7-market.webp";
+import d_en56_s8_birthday_party from "./dars/rasm/en56-s8-birthday-party.webp";
+import d_en56_u7_dislike_onions from "./dars/rasm/en56-u7-dislike-onions.webp";
+import d_en56_u7_dislike_rain from "./dars/rasm/en56-u7-dislike-rain.webp";
+import d_en56_u7_dislike_spiders from "./dars/rasm/en56-u7-dislike-spiders.webp";
+import d_en56_u7_do_you_like from "./dars/rasm/en56-u7-do-you-like.webp";
+import d_en56_u7_favourite_colour from "./dars/rasm/en56-u7-favourite-colour.webp";
+import d_en56_u7_favourite_toy from "./dars/rasm/en56-u7-favourite-toy.webp";
+import d_en56_u7_like_apples from "./dars/rasm/en56-u7-like-apples.webp";
+import d_en56_u7_like_cats from "./dars/rasm/en56-u7-like-cats.webp";
+import d_en56_u7_like_ice_cream from "./dars/rasm/en56-u7-like-ice-cream.webp";
+import d_en56_u7_love_mum from "./dars/rasm/en56-u7-love-mum.webp";
+import d_en56_u7_no_i_dont from "./dars/rasm/en56-u7-no-i-dont.webp";
+import d_en56_u7_yes_i_do from "./dars/rasm/en56-u7-yes-i-do.webp";
+import d_en56_u8_can_clap from "./dars/rasm/en56-u8-can-clap.webp";
+import d_en56_u8_can_dance from "./dars/rasm/en56-u8-can-dance.webp";
+import d_en56_u8_can_draw from "./dars/rasm/en56-u8-can-draw.webp";
+import d_en56_u8_can_jump from "./dars/rasm/en56-u8-can-jump.webp";
+import d_en56_u8_can_run from "./dars/rasm/en56-u8-can-run.webp";
+import d_en56_u8_can_sing from "./dars/rasm/en56-u8-can-sing.webp";
+import d_en56_u8_can_swim from "./dars/rasm/en56-u8-can-swim.webp";
+import d_en56_u8_cant_fly from "./dars/rasm/en56-u8-cant-fly.webp";
 export const DARS_RASM = {
+  "d_mt34-u6-kechki-ovqat": d_mt34_u6_kechki_ovqat,
+  "d_mt34-u6-tunda": d_mt34_u6_tunda,
+  "d_mt34-u6-uxlash": d_mt34_u6_uxlash,
+  "d_mt34-u7-chap-qol": d_mt34_u7_chap_qol,
+  "d_mt34-u7-ong-qol": d_mt34_u7_ong_qol,
+  "d_mt34-u8-doira-kvadrat": d_mt34_u8_doira_kvadrat,
+  "d_mt34-u8-keyingisi": d_mt34_u8_keyingisi,
+  "d_mt34-u8-naqsh-xato": d_mt34_u8_naqsh_xato,
+  "d_mt34-u8-naqsh": d_mt34_u8_naqsh,
+  "d_mt34-u8-qizil-sariq": d_mt34_u8_qizil_sariq,
+  "d_mt34-u8-yashil-kok": d_mt34_u8_yashil_kok,
+  "d_mt45-u1-birdan-beshgacha": d_mt45_u1_birdan_beshgacha,
+  "d_mt45-u1-bitta-tegamiz": d_mt45_u1_bitta_tegamiz,
+  "d_mt45-u1-keyingi": d_mt45_u1_keyingi,
+  "d_mt45-u1-oldingi": d_mt45_u1_oldingi,
+  "d_mt45-u1-oxirgi-son": d_mt45_u1_oxirgi_son,
+  "d_mt45-u1-raqam": d_mt45_u1_raqam,
+  "d_mt45-u1-songa-mos": d_mt45_u1_songa_mos,
+  "d_mt45-u2-birdan-ongacha": d_mt45_u2_birdan_ongacha,
+  "d_mt45-u2-chumoli": d_mt45_u2_chumoli,
+  "d_mt45-u2-oltita": d_mt45_u2_oltita,
+  "d_mt45-u2-on-barmoq": d_mt45_u2_on_barmoq,
+  "d_mt45-u2-teskari": d_mt45_u2_teskari,
+  "d_mt45-u3-juftlab": d_mt45_u3_juftlab,
+  "d_mt45-u3-kamroq": d_mt45_u3_kamroq,
+  "d_mt45-u3-katta-son": d_mt45_u3_katta_son,
+  "d_mt45-u3-kichik-son": d_mt45_u3_kichik_son,
+  "d_mt45-u3-koproq": d_mt45_u3_koproq,
+  "d_mt45-u3-olib-tenglash": d_mt45_u3_olib_tenglash,
+  "d_mt45-u3-qoshib-tenglash": d_mt45_u3_qoshib_tenglash,
+  "d_mt45-u3-teng": d_mt45_u3_teng,
+  "d_mt45-u4-beshinchi": d_mt45_u4_beshinchi,
+  "d_mt45-u4-chap-qol": d_mt45_u4_chap_qol,
+  "d_mt45-u4-chapdan-ongga": d_mt45_u4_chapdan_ongga,
+  "d_mt45-u4-nechanchi": d_mt45_u4_nechanchi,
+  "d_mt45-u4-ong-qol": d_mt45_u4_ong_qol,
+  "d_mt45-u4-ongda-chapda": d_mt45_u4_ongda_chapda,
+  "d_mt45-u4-oxirgi": d_mt45_u4_oxirgi,
+  "d_mt45-u4-tortinchi": d_mt45_u4_tortinchi,
+  "d_mt45-u4-uchinchi": d_mt45_u4_uchinchi,
+  "d_mt45-u5-doira-oval": d_mt45_u5_doira_oval,
+  "d_mt45-u5-kvadrat-tortburchak": d_mt45_u5_kvadrat_tortburchak,
+  "d_mt45-u5-naqsh-bolagi": d_mt45_u5_naqsh_bolagi,
+  "d_mt45-u5-oval-narsalar": d_mt45_u5_oval_narsalar,
+  "d_mt45-u5-oval": d_mt45_u5_oval,
+  "d_mt45-u5-tortburchak-narsalar": d_mt45_u5_tortburchak_narsalar,
+  "d_mt45-u5-tortburchak": d_mt45_u5_tortburchak,
+  "d_mt45-u5-uch-naqsh": d_mt45_u5_uch_naqsh,
+  "d_mt45-u6-eng-katta": d_mt45_u6_eng_katta,
+  "d_mt45-u6-eng-kichik": d_mt45_u6_eng_kichik,
+  "d_mt45-u6-eng-qisqa": d_mt45_u6_eng_qisqa,
+  "d_mt45-u6-eng-uzun": d_mt45_u6_eng_uzun,
+  "d_mt45-u6-kattadan-kichikka": d_mt45_u6_kattadan_kichikka,
+  "d_mt45-u6-ortadagisi": d_mt45_u6_ortadagisi,
+  "d_mt45-u6-pastdan-balandga": d_mt45_u6_pastdan_balandga,
+  "d_mt45-u6-zinapoya": d_mt45_u6_zinapoya,
+  "d_mt45-u7-avval-keyin": d_mt45_u7_avval_keyin,
+  "d_mt45-u7-kun-tartibi": d_mt45_u7_kun_tartibi,
+  "d_mt45-u7-tunda": d_mt45_u7_tunda,
+  "d_mt45-u8-barmoqda-hisob": d_mt45_u8_barmoqda_hisob,
+  "d_mt45-u8-birga-nechta": d_mt45_u8_birga_nechta,
+  "d_mt45-u8-hammasi-ketdi": d_mt45_u8_hammasi_ketdi,
+  "d_mt45-u8-hikoya": d_mt45_u8_hikoya,
+  "d_mt45-u8-ketdi": d_mt45_u8_ketdi,
+  "d_mt45-u8-nechta-qoldi": d_mt45_u8_nechta_qoldi,
+  "d_mt45-u8-qoshildi": d_mt45_u8_qoshildi,
+  "d_am56-u1-havo": d_am56_u1_havo,
+  "d_am56-u1-jonsiz": d_am56_u1_jonsiz,
+  "d_am56-u1-odam": d_am56_u1_odam,
+  "d_am56-u1-osish": d_am56_u1_osish,
+  "d_am56-u1-tirik": d_am56_u1_tirik,
+  "d_am56-u2-erish": d_am56_u2_erish,
+  "d_am56-u2-idish": d_am56_u2_idish,
+  "d_am56-u2-issiqlik": d_am56_u2_issiqlik,
+  "d_am56-u2-muzlash": d_am56_u2_muzlash,
+  "d_am56-u2-muzlatgich": d_am56_u2_muzlatgich,
+  "d_am56-u2-qaynash": d_am56_u2_qaynash,
+  "d_am56-u2-qurish": d_am56_u2_qurish,
+  "d_am56-u2-suyuq": d_am56_u2_suyuq,
+  "d_am56-u2-tomchi": d_am56_u2_tomchi,
+  "d_am56-u3-deraza": d_am56_u3_deraza,
+  "d_am56-u3-havo2": d_am56_u3_havo2,
+  "d_am56-u3-nafas": d_am56_u3_nafas,
+  "d_am56-u3-nasos": d_am56_u3_nasos,
+  "d_am56-u3-pufak": d_am56_u3_pufak,
+  "d_am56-u3-stakan": d_am56_u3_stakan,
+  "d_am56-u3-tutun": d_am56_u3_tutun,
+  "d_am56-u3-yelkan": d_am56_u3_yelkan,
+  "d_am56-u4-hilol": d_am56_u4_hilol,
+  "d_am56-u4-kunduz": d_am56_u4_kunduz,
+  "d_am56-u4-shapka": d_am56_u4_shapka,
+  "d_am56-u4-uyqu": d_am56_u4_uyqu,
+  "d_am56-u5-ayiq": d_am56_u5_ayiq,
+  "d_am56-u5-chumchuq": d_am56_u5_chumchuq,
+  "d_am56-u5-otxor": d_am56_u5_otxor,
+  "d_am56-u5-yirtqich": d_am56_u5_yirtqich,
+  "d_am56-u5-zanjir": d_am56_u5_zanjir,
+  "d_am56-u6-boyqush": d_am56_u6_boyqush,
+  "d_am56-u6-echki": d_am56_u6_echki,
+  "d_am56-u7-banka": d_am56_u7_banka,
+  "d_mt23-u1-kopdan-bitta": d_mt23_u1_kopdan_bitta,
+  "d_mt23-u1-tola": d_mt23_u1_tola,
+  "d_mt23-u2-daraxt-nihol": d_mt23_u2_daraxt_nihol,
+  "d_mt23-u2-katta-ayiq": d_mt23_u2_katta_ayiq,
+  "d_mt23-u2-katta-ordak": d_mt23_u2_katta_ordak,
+  "d_mt23-u2-kichik-ayiqcha": d_mt23_u2_kichik_ayiqcha,
+  "d_mt23-u2-kichik-ordakcha": d_mt23_u2_kichik_ordakcha,
+  "d_mt23-u2-tarvuz-olcha": d_mt23_u2_tarvuz_olcha,
+  "d_mt23-u3-bir-xil": d_mt23_u3_bir_xil,
+  "d_mt23-u3-juft": d_mt23_u3_juft,
+  "d_mt23-u3-mushuk-mushukcha": d_mt23_u3_mushuk_mushukcha,
+  "d_mt23-u3-poyabzal-jufti": d_mt23_u3_poyabzal_jufti,
+  "d_mt23-u3-qolqop-jufti": d_mt23_u3_qolqop_jufti,
+  "d_mt23-u3-tovuq-joja": d_mt23_u3_tovuq_joja,
+  "d_mt23-u4-bir-xil-rang": d_mt23_u4_bir_xil_rang,
+  "d_mt23-u4-terish": d_mt23_u4_terish,
+  "d_mt23-u5-doira-dumalaydi": d_mt23_u5_doira_dumalaydi,
+  "d_mt23-u5-doira": d_mt23_u5_doira,
+  "d_mt23-u5-dumaloq": d_mt23_u5_dumaloq,
+  "d_mt23-u5-kvadrat-dumalamaydi": d_mt23_u5_kvadrat_dumalamaydi,
+  "d_mt23-u5-kvadrat-narsalar": d_mt23_u5_kvadrat_narsalar,
+  "d_mt23-u6-qisqa-dum": d_mt23_u6_qisqa_dum,
+  "d_mt23-u6-qisqa-poyezd": d_mt23_u6_qisqa_poyezd,
+  "d_mt23-u6-qisqa": d_mt23_u6_qisqa,
+  "d_mt23-u6-uzun-boyin": d_mt23_u6_uzun_boyin,
+  "d_mt23-u6-uzun-poyezd": d_mt23_u6_uzun_poyezd,
+  "d_mt23-u7-daraxt-tagida": d_mt23_u7_daraxt_tagida,
+  "d_mt23-u7-daraxt-tepasida": d_mt23_u7_daraxt_tepasida,
+  "d_mt23-u7-pastga": d_mt23_u7_pastga,
+  "d_mt23-u7-tepada": d_mt23_u7_tepada,
+  "d_mt23-u7-tepaga": d_mt23_u7_tepaga,
+  "d_mt23-u8-savat-ichida": d_mt23_u8_savat_ichida,
+  "d_mt23-u8-savatdan-tashqarida": d_mt23_u8_savatdan_tashqarida,
+  "d_mt23-u8-tashqarida": d_mt23_u8_tashqarida,
+  "d_mt23-u8-uy-ichida": d_mt23_u8_uy_ichida,
+  "d_mt23-u8-uydan-tashqarida": d_mt23_u8_uydan_tashqarida,
+  "d_mt34-u1-barmoq-sanash": d_mt34_u1_barmoq_sanash,
+  "d_mt34-u1-bitta": d_mt34_u1_bitta,
+  "d_mt34-u1-ikkita": d_mt34_u1_ikkita,
+  "d_mt34-u1-ikkitadan": d_mt34_u1_ikkitadan,
+  "d_mt34-u1-oxirgi-son": d_mt34_u1_oxirgi_son,
+  "d_mt34-u1-uchta-ayiq": d_mt34_u1_uchta_ayiq,
+  "d_mt34-u1-uchta": d_mt34_u1_uchta,
+  "d_mt34-u2-barmoqda": d_mt34_u2_barmoqda,
+  "d_mt34-u2-beshta-barmoq": d_mt34_u2_beshta_barmoq,
+  "d_mt34-u2-beshta": d_mt34_u2_beshta,
+  "d_mt34-u2-keyingi-son": d_mt34_u2_keyingi_son,
+  "d_mt34-u2-sanoq-qatori": d_mt34_u2_sanoq_qatori,
+  "d_mt34-u2-songa-mos": d_mt34_u2_songa_mos,
+  "d_mt34-u2-tort-oyoq": d_mt34_u2_tort_oyoq,
+  "d_mt34-u2-tortta": d_mt34_u2_tortta,
+  "d_mt34-u3-bitta-qoshamiz": d_mt34_u3_bitta_qoshamiz,
+  "d_mt34-u3-bittasini-olamiz": d_mt34_u3_bittasini_olamiz,
+  "d_mt34-u3-juftlash": d_mt34_u3_juftlash,
+  "d_mt34-u3-ortib-qoldi": d_mt34_u3_ortib_qoldi,
+  "d_mt34-u3-teng-emas": d_mt34_u3_teng_emas,
+  "d_mt34-u3-teng": d_mt34_u3_teng,
+  "d_mt34-u4-burchak-yoq": d_mt34_u4_burchak_yoq,
+  "d_mt34-u4-doira": d_mt34_u4_doira,
+  "d_mt34-u4-shakldan-uy": d_mt34_u4_shakldan_uy,
+  "d_mt34-u4-shakliga-terish": d_mt34_u4_shakliga_terish,
+  "d_mt34-u4-tortta-burchak": d_mt34_u4_tortta_burchak,
+  "d_mt34-u4-uchburchak-narsalar": d_mt34_u4_uchburchak_narsalar,
+  "d_mt34-u4-uchta-burchak": d_mt34_u4_uchta_burchak,
+  "d_am34-u5-barg-tokilishi": d_am34_u5_barg_tokilishi,
+  "d_am34-u5-hosil": d_am34_u5_hosil,
+  "d_am34-u6-romashka": d_am34_u6_romashka,
+  "d_am34-u6-sugorish": d_am34_u6_sugorish,
+  "d_am34-u7-rels": d_am34_u7_rels,
+  "d_am34-u8-qozon": d_am34_u8_qozon,
+  "d_am34-u8-yolovchi": d_am34_u8_yolovchi,
+  "d_am45-u1-aylana": d_am45_u1_aylana,
+  "d_am45-u1-barglar-tokiladi": d_am45_u1_barglar_tokiladi,
+  "d_am45-u1-fasl-kiyimi": d_am45_u1_fasl_kiyimi,
+  "d_am45-u1-kun-qisqaradi": d_am45_u1_kun_qisqaradi,
+  "d_am45-u1-kurtaklar": d_am45_u1_kurtaklar,
+  "d_am45-u1-mevalar-pishadi": d_am45_u1_mevalar_pishadi,
+  "d_am45-u1-qor-yogadi": d_am45_u1_qor_yogadi,
+  "d_am45-u1-qushlar-ketadi": d_am45_u1_qushlar_ketadi,
+  "d_am45-u1-qushlar-qaytadi": d_am45_u1_qushlar_qaytadi,
+  "d_am45-u1-uzun-kun": d_am45_u1_uzun_kun,
+  "d_am45-u2-havo": d_am45_u2_havo,
+  "d_am45-u2-ildiz": d_am45_u2_ildiz,
+  "d_am45-u2-kundalik": d_am45_u2_kundalik,
+  "d_am45-u2-kuzatish": d_am45_u2_kuzatish,
+  "d_am45-u2-meva-urugi": d_am45_u2_meva_urugi,
+  "d_am45-u3-gul-shirasi": d_am45_u3_gul_shirasi,
+  "d_am45-u3-olti-oyoq": d_am45_u3_olti_oyoq,
+  "d_am45-u4-eshitish": d_am45_u4_eshitish,
+  "d_am45-u4-foydali-ovqat": d_am45_u4_foydali_ovqat,
+  "d_am45-u4-hid-bilish": d_am45_u4_hid_bilish,
+  "d_am45-u4-korish": d_am45_u4_korish,
+  "d_am45-u4-nafas": d_am45_u4_nafas,
+  "d_am45-u4-qol-yuvish": d_am45_u4_qol_yuvish,
+  "d_am45-u4-tam-bilish": d_am45_u4_tam_bilish,
+  "d_am45-u4-teri": d_am45_u4_teri,
+  "d_am45-u4-uyqu": d_am45_u4_uyqu,
+  "d_am45-u4-yurak": d_am45_u4_yurak,
+  "d_am45-u5-tarbiyachi": d_am45_u5_tarbiyachi,
+  "d_am45-u5-yelkanli-qayiq": d_am45_u5_yelkanli_qayiq,
+  "d_en45-u5-sister": d_en45_u5_sister,
+  "d_en45-u5-this-is-my": d_en45_u5_this_is_my,
+  "d_en45-u6-clap-your-hands": d_en45_u6_clap_your_hands,
+  "d_en45-u6-ears": d_en45_u6_ears,
+  "d_en45-u6-eyes": d_en45_u6_eyes,
+  "d_en45-u6-fingers": d_en45_u6_fingers,
+  "d_en45-u6-hands": d_en45_u6_hands,
+  "d_en45-u6-head": d_en45_u6_head,
+  "d_en45-u6-knees": d_en45_u6_knees,
+  "d_en45-u6-legs": d_en45_u6_legs,
+  "d_en45-u6-mouth": d_en45_u6_mouth,
+  "d_en45-u6-nose": d_en45_u6_nose,
+  "d_en45-u6-shoulders": d_en45_u6_shoulders,
+  "d_en45-u6-stamp-your-feet": d_en45_u6_stamp_your_feet,
+  "d_en45-u6-toes": d_en45_u6_toes,
+  "d_en45-u6-touch-your-nose": d_en45_u6_touch_your_nose,
+  "d_en45-u7-apple": d_en45_u7_apple,
+  "d_en45-u7-banana": d_en45_u7_banana,
+  "d_en45-u7-carrot": d_en45_u7_carrot,
+  "d_en45-u7-cucumber": d_en45_u7_cucumber,
+  "d_en45-u7-grapes": d_en45_u7_grapes,
+  "d_en45-u7-i-like": d_en45_u7_i_like,
+  "d_en45-u7-lemon": d_en45_u7_lemon,
+  "d_en45-u7-orange-fruit": d_en45_u7_orange_fruit,
+  "d_en45-u7-potato": d_en45_u7_potato,
+  "d_en45-u7-strawberry": d_en45_u7_strawberry,
+  "d_en45-u7-tomato": d_en45_u7_tomato,
+  "d_en45-u7-yummy": d_en45_u7_yummy,
+  "d_en45-u8-ball": d_en45_u8_ball,
+  "d_en45-u8-doll": d_en45_u8_doll,
+  "d_en45-u8-dress": d_en45_u8_dress,
+  "d_en45-u8-hat": d_en45_u8_hat,
+  "d_en45-u8-i-like-my-teddy": d_en45_u8_i_like_my_teddy,
+  "d_en45-u8-its-a-ball": d_en45_u8_its_a_ball,
+  "d_en45-u8-kite": d_en45_u8_kite,
+  "d_en45-u8-robot": d_en45_u8_robot,
+  "d_en45-u8-shoes": d_en45_u8_shoes,
+  "d_en45-u8-socks": d_en45_u8_socks,
+  "d_en45-u8-t-shirt": d_en45_u8_t_shirt,
+  "d_en45-u8-trousers": d_en45_u8_trousers,
+  "d_en45-u8-what-is-it": d_en45_u8_what_is_it,
+  "d_en56-s4-breakfast": d_en56_s4_breakfast,
+  "d_en56-s5-find-the-kitten": d_en56_s5_find_the_kitten,
+  "d_en56-s6-park-weather": d_en56_s6_park_weather,
+  "d_en56-u4-bread": d_en56_u4_bread,
+  "d_en56-u4-cake": d_en56_u4_cake,
+  "d_en56-u4-cheese": d_en56_u4_cheese,
+  "d_en56-u4-chicken": d_en56_u4_chicken,
+  "d_en56-u4-egg": d_en56_u4_egg,
+  "d_en56-u4-ice-cream": d_en56_u4_ice_cream,
+  "d_en56-u4-im-hungry": d_en56_u4_im_hungry,
+  "d_en56-u4-im-thirsty": d_en56_u4_im_thirsty,
+  "d_en56-u4-juice": d_en56_u4_juice,
+  "d_en56-u4-milk": d_en56_u4_milk,
+  "d_en56-u4-rice": d_en56_u4_rice,
+  "d_en56-u4-soup": d_en56_u4_soup,
+  "d_en56-u4-sweets": d_en56_u4_sweets,
+  "d_en56-u4-tea": d_en56_u4_tea,
+  "d_en56-u4-water": d_en56_u4_water,
+  "d_en56-u4-yummy": d_en56_u4_yummy,
+  "d_en56-u5-bathroom": d_en56_u5_bathroom,
+  "d_en56-u5-bedroom": d_en56_u5_bedroom,
+  "d_en56-u5-chair": d_en56_u5_chair,
+  "d_en56-u5-clock": d_en56_u5_clock,
+  "d_en56-u5-door": d_en56_u5_door,
+  "d_en56-u5-garden": d_en56_u5_garden,
+  "d_en56-u5-house": d_en56_u5_house,
+  "d_en56-u5-in-box": d_en56_u5_in_box,
+  "d_en56-u5-kitchen": d_en56_u5_kitchen,
+  "d_en56-u5-lamp": d_en56_u5_lamp,
+  "d_en56-u5-living-room": d_en56_u5_living_room,
+  "d_en56-u5-on-table": d_en56_u5_on_table,
+  "d_en56-u5-tv": d_en56_u5_tv,
+  "d_en56-u5-under-bed": d_en56_u5_under_bed,
+  "d_en56-u5-where-cat": d_en56_u5_where_cat,
+  "d_en56-u5-window": d_en56_u5_window,
+  "d_en56-u6-autumn": d_en56_u6_autumn,
+  "d_en56-u6-cloudy": d_en56_u6_cloudy,
+  "d_en56-u6-cold": d_en56_u6_cold,
+  "d_en56-u6-hot": d_en56_u6_hot,
+  "d_en56-u6-rainbow": d_en56_u6_rainbow,
+  "d_en56-u6-rainy": d_en56_u6_rainy,
+  "d_en56-u6-snowman": d_en56_u6_snowman,
+  "d_en56-u6-snowy": d_en56_u6_snowy,
+  "d_en56-u6-spring": d_en56_u6_spring,
+  "d_en56-u6-summer": d_en56_u6_summer,
+  "d_en56-u6-sunny": d_en56_u6_sunny,
+  "d_en56-u6-umbrella": d_en56_u6_umbrella,
+  "d_en56-u6-weather": d_en56_u6_weather,
+  "d_en56-u6-windy": d_en56_u6_windy,
+  "d_en56-u6-winter": d_en56_u6_winter,
+  "d_en56-u8-i-am-happy": d_en56_u8_i_am_happy,
+  "d_en67-u7-here-you-are": d_en67_u7_here_you_are,
+  "d_en67-u7-youre-welcome": d_en67_u7_youre_welcome,
+  "d_mt34-u5-balandroq": d_mt34_u5_balandroq,
+  "d_mt34-u5-pastroq": d_mt34_u5_pastroq,
+  "d_mt34-u5-qisqa": d_mt34_u5_qisqa,
+  "d_mt34-u5-qisqaroq": d_mt34_u5_qisqaroq,
+  "d_mt34-u5-uzunroq": d_mt34_u5_uzunroq,
+  "d_mt34-u6-bogchaga": d_mt34_u6_bogchaga,
+  "d_am45-u6-kirpi": d_am45_u6_kirpi,
+  "d_am45-u6-oq-quyon": d_am45_u6_oq_quyon,
+  "d_am45-u6-qush-uychasi": d_am45_u6_qush_uychasi,
+  "d_am45-u6-yem": d_am45_u6_yem,
+  "d_am45-u6-zaxira": d_am45_u6_zaxira,
+  "d_am45-u7-dush": d_am45_u7_dush,
+  "d_am45-u7-gulga-suv": d_am45_u7_gulga_suv,
+  "d_am45-u7-jomrak": d_am45_u7_jomrak,
+  "d_am45-u7-tomchi": d_am45_u7_tomchi,
+  "d_am45-u8-101": d_am45_u8_101,
+  "d_am45-u8-begona": d_am45_u8_begona,
+  "d_am45-u8-maydoncha": d_am45_u8_maydoncha,
+  "d_am45-u8-ota-onaga": d_am45_u8_ota_onaga,
+  "d_am45-u8-qizil": d_am45_u8_qizil,
+  "d_am45-u8-qol-ushlab": d_am45_u8_qol_ushlab,
+  "d_am45-u8-sariq": d_am45_u8_sariq,
+  "d_am45-u8-yashil": d_am45_u8_yashil,
+  "d_am45-u8-yoq-deymiz": d_am45_u8_yoq_deymiz,
+  "d_am45-u8-zebra": d_am45_u8_zebra,
+  "d_en45-s1-new-friend": d_en45_s1_new_friend,
+  "d_en45-s15-kindergarten-lunch": d_en45_s15_kindergarten_lunch,
+  "d_en45-s16-morning-ready": d_en45_s16_morning_ready,
+  "d_en45-s17-slide-turns": d_en45_s17_slide_turns,
+  "d_en45-s2-painting-rainbow": d_en45_s2_painting_rainbow,
+  "d_en45-s3-park-ducks": d_en45_s3_park_ducks,
+  "d_en45-s4-zoo-granny": d_en45_s4_zoo_granny,
+  "d_en45-s5-visiting-grandma": d_en45_s5_visiting_grandma,
+  "d_en45-s6-morning-exercises": d_en45_s6_morning_exercises,
+  "d_en45-s7-fruit-market": d_en45_s7_fruit_market,
+  "d_en45-s8-dressing-for-park": d_en45_s8_dressing_for_park,
+  "d_en45-u1-blue": d_en45_u1_blue,
+  "d_en45-u1-good-morning": d_en45_u1_good_morning,
+  "d_en45-u1-goodbye": d_en45_u1_goodbye,
+  "d_en45-u1-green": d_en45_u1_green,
+  "d_en45-u1-hello": d_en45_u1_hello,
+  "d_en45-u1-how-are-you": d_en45_u1_how_are_you,
+  "d_en45-u1-im-fine": d_en45_u1_im_fine,
+  "d_en45-u1-my-name-is": d_en45_u1_my_name_is,
+  "d_en45-u1-red": d_en45_u1_red,
+  "d_en45-u1-thank-you": d_en45_u1_thank_you,
+  "d_en45-u1-whats-your-name": d_en45_u1_whats_your_name,
+  "d_en45-u1-yellow": d_en45_u1_yellow,
+  "d_en45-u12-can-i-have-a-ball-please": d_en45_u12_can_i_have_a_ball_please,
+  "d_en45-u12-excuse-me": d_en45_u12_excuse_me,
+  "d_en45-u12-no-thank-you": d_en45_u12_no_thank_you,
+  "d_en45-u12-thats-ok": d_en45_u12_thats_ok,
+  "d_en45-u12-yes-please": d_en45_u12_yes_please,
+  "d_en45-u13-bag": d_en45_u13_bag,
+  "d_en45-u13-bath": d_en45_u13_bath,
+  "d_en45-u13-breakfast": d_en45_u13_breakfast,
+  "d_en45-u13-dinner": d_en45_u13_dinner,
+  "d_en45-u13-go-to-bed": d_en45_u13_go_to_bed,
+  "d_en45-u13-i-go-to-kindergarten": d_en45_u13_i_go_to_kindergarten,
+  "d_en45-u13-lets-go": d_en45_u13_lets_go,
+  "d_en45-u13-wake-up": d_en45_u13_wake_up,
+  "d_en45-u14-angry": d_en45_u14_angry,
+  "d_en45-u14-be-my-friend": d_en45_u14_be_my_friend,
+  "d_en45-u14-how-do-you-feel": d_en45_u14_how_do_you_feel,
+  "d_en45-u14-lets-play-together": d_en45_u14_lets_play_together,
+  "d_en45-u14-my-turn": d_en45_u14_my_turn,
+  "d_en45-u14-your-turn": d_en45_u14_your_turn,
+  "d_en45-u2-black": d_en45_u2_black,
+  "d_en45-u2-brown": d_en45_u2_brown,
+  "d_en45-u2-grey": d_en45_u2_grey,
+  "d_en45-u2-orange-color": d_en45_u2_orange_color,
+  "d_en45-u2-pink": d_en45_u2_pink,
+  "d_en45-u2-purple": d_en45_u2_purple,
+  "d_en45-u2-rainbow": d_en45_u2_rainbow,
+  "d_en45-u2-what-colour": d_en45_u2_what_colour,
+  "d_en45-u2-white": d_en45_u2_white,
+  "d_en45-u3-eight": d_en45_u3_eight,
+  "d_en45-u3-five": d_en45_u3_five,
+  "d_en45-u3-four": d_en45_u3_four,
+  "d_en45-u3-how-many": d_en45_u3_how_many,
+  "d_en45-u3-nine": d_en45_u3_nine,
+  "d_en45-u3-one": d_en45_u3_one,
+  "d_en45-u3-seven": d_en45_u3_seven,
+  "d_en45-u3-six": d_en45_u3_six,
+  "d_en45-u3-ten": d_en45_u3_ten,
+  "d_en45-u3-three": d_en45_u3_three,
+  "d_en45-u3-two": d_en45_u3_two,
+  "d_en45-u4-bear": d_en45_u4_bear,
+  "d_en45-u4-crocodile": d_en45_u4_crocodile,
+  "d_en45-u4-elephant": d_en45_u4_elephant,
+  "d_en45-u4-fox": d_en45_u4_fox,
+  "d_en45-u4-giraffe": d_en45_u4_giraffe,
+  "d_en45-u4-lion": d_en45_u4_lion,
+  "d_en45-u4-monkey": d_en45_u4_monkey,
+  "d_en45-u4-owl": d_en45_u4_owl,
+  "d_en45-u4-snake": d_en45_u4_snake,
+  "d_en45-u4-tiger": d_en45_u4_tiger,
+  "d_en45-u4-wolf": d_en45_u4_wolf,
+  "d_en45-u4-zebra": d_en45_u4_zebra,
+  "d_en45-u5-baby": d_en45_u5_baby,
+  "d_en45-u5-brother": d_en45_u5_brother,
+  "d_en45-u5-family": d_en45_u5_family,
+  "d_en45-u5-father": d_en45_u5_father,
+  "d_en45-u5-grandma": d_en45_u5_grandma,
+  "d_en45-u5-grandpa": d_en45_u5_grandpa,
+  "d_en45-u5-mother": d_en45_u5_mother,
+  "d_am23-u1-baliqcha": d_am23_u1_baliqcha,
+  "d_am23-u1-it": d_am23_u1_it,
+  "d_am23-u6-qordan-odam": d_am23_u6_qordan_odam,
+  "d_am23-u7-piyola": d_am23_u7_piyola,
+  "d_am23-u8-qol": d_am23_u8_qol,
+  "d_am23-u8-quloq": d_am23_u8_quloq,
+  "d_am23-u8-toza-qollar": d_am23_u8_toza_qollar,
+  "d_am23-u8-vanna": d_am23_u8_vanna,
+  "d_am34-u1-buzoq": d_am34_u1_buzoq,
+  "d_am34-u1-kuchukcha": d_am34_u1_kuchukcha,
+  "d_am34-u1-qozichoq": d_am34_u1_qozichoq,
+  "d_am34-u1-toychoq": d_am34_u1_toychoq,
+  "d_am34-u1-yovvoyi-hayvon": d_am34_u1_yovvoyi_hayvon,
+  "d_am34-u2-boyqush": d_am34_u2_boyqush,
+  "d_am34-u2-chumchuq": d_am34_u2_chumchuq,
+  "d_am34-u2-kabutar": d_am34_u2_kabutar,
+  "d_am34-u4-bulutli": d_am34_u4_bulutli,
+  "d_am34-u4-issiq": d_am34_u4_issiq,
+  "d_am34-u4-kurtka": d_am34_u4_kurtka,
+  "d_am34-u4-quyoshli": d_am34_u4_quyoshli,
+  "d_am34-u4-sovuq": d_am34_u4_sovuq,
+  "d_en23-u10-clap": d_en23_u10_clap,
+  "d_en23-u10-dance": d_en23_u10_dance,
+  "d_en23-u10-jump": d_en23_u10_jump,
+  "d_en23-u10-run": d_en23_u10_run,
+  "d_en23-u11-happy": d_en23_u11_happy,
+  "d_en23-u11-please": d_en23_u11_please,
+  "d_en23-u11-sad": d_en23_u11_sad,
+  "d_en23-u11-sorry": d_en23_u11_sorry,
+  "d_en23-u9-bed": d_en23_u9_bed,
+  "d_en23-u9-brush-your-teeth": d_en23_u9_brush_your_teeth,
+  "d_en23-u9-drink": d_en23_u9_drink,
+  "d_en23-u9-eat": d_en23_u9_eat,
+  "d_en23-u9-sleep": d_en23_u9_sleep,
+  "d_en23-u9-wash-your-hands": d_en23_u9_wash_your_hands,
+  "d_en34-u1-bye": d_en34_u1_bye,
+  "d_en34-u1-good-morning": d_en34_u1_good_morning,
+  "d_en34-u1-good-night": d_en34_u1_good_night,
+  "d_en34-u1-hello": d_en34_u1_hello,
+  "d_en34-u1-hi": d_en34_u1_hi,
+  "d_en34-u1-no": d_en34_u1_no,
+  "d_en34-u1-thank-you": d_en34_u1_thank_you,
+  "d_en34-u1-yes": d_en34_u1_yes,
+  "d_en34-u2-baby": d_en34_u2_baby,
+  "d_en34-u2-boy": d_en34_u2_boy,
+  "d_en34-u2-dad": d_en34_u2_dad,
+  "d_en34-u2-family": d_en34_u2_family,
+  "d_en34-u2-girl": d_en34_u2_girl,
+  "d_en34-u2-grandpa": d_en34_u2_grandpa,
+  "d_en34-u2-granny": d_en34_u2_granny,
+  "d_en34-u2-mum": d_en34_u2_mum,
+  "d_en34-u3-black": d_en34_u3_black,
+  "d_en34-u3-blue": d_en34_u3_blue,
+  "d_en34-u3-green": d_en34_u3_green,
+  "d_en34-u3-orange": d_en34_u3_orange,
+  "d_en34-u3-pink": d_en34_u3_pink,
+  "d_en34-u3-red": d_en34_u3_red,
+  "d_en34-u3-white": d_en34_u3_white,
+  "d_en34-u3-yellow": d_en34_u3_yellow,
+  "d_en34-u4-cat": d_en34_u4_cat,
+  "d_en34-u4-cow": d_en34_u4_cow,
+  "d_en34-u4-dog": d_en34_u4_dog,
+  "d_en34-u4-duck": d_en34_u4_duck,
+  "d_en34-u4-hen": d_en34_u4_hen,
+  "d_en34-u4-horse": d_en34_u4_horse,
+  "d_en34-u4-rabbit": d_en34_u4_rabbit,
+  "d_en34-u4-sheep": d_en34_u4_sheep,
+  "d_en34-u5-big": d_en34_u5_big,
+  "d_en34-u5-five": d_en34_u5_five,
+  "d_en34-u5-four": d_en34_u5_four,
+  "d_en34-u5-one": d_en34_u5_one,
+  "d_en34-u5-small": d_en34_u5_small,
+  "d_en34-u5-three": d_en34_u5_three,
+  "d_en34-u5-two": d_en34_u5_two,
+  "d_en34-u6-ball": d_en34_u6_ball,
+  "d_en34-u6-balloon": d_en34_u6_balloon,
+  "d_en34-u6-blocks": d_en34_u6_blocks,
+  "d_en34-u6-car": d_en34_u6_car,
+  "d_en34-u6-doll": d_en34_u6_doll,
+  "d_en34-u6-drum": d_en34_u6_drum,
+  "d_en34-u6-teddy": d_en34_u6_teddy,
+  "d_en34-u6-train": d_en34_u6_train,
+  "d_en34-u7-ears": d_en34_u7_ears,
+  "d_en34-u7-eyes": d_en34_u7_eyes,
+  "d_en34-u7-feet": d_en34_u7_feet,
+  "d_en34-u7-hands": d_en34_u7_hands,
+  "d_en34-u7-head": d_en34_u7_head,
+  "d_en34-u7-legs": d_en34_u7_legs,
+  "d_en34-u7-mouth": d_en34_u7_mouth,
+  "d_en34-u7-nose": d_en34_u7_nose,
+  "d_en34-u8-apple": d_en34_u8_apple,
+  "d_en34-u8-banana": d_en34_u8_banana,
+  "d_en34-u8-bread": d_en34_u8_bread,
+  "d_en34-u8-cake": d_en34_u8_cake,
+  "d_en34-u8-juice": d_en34_u8_juice,
+  "d_en34-u8-milk": d_en34_u8_milk,
+  "d_en34-u8-water": d_en34_u8_water,
+  "d_en34-u8-yummy": d_en34_u8_yummy,
+  "d_mt23-u1-bitta": d_mt23_u1_bitta,
+  "d_mt23-u1-bittadan": d_mt23_u1_bittadan,
+  "d_am56-u7-gul": d_am56_u7_gul,
+  "d_am56-u7-kochat": d_am56_u7_kochat,
+  "d_am56-u7-kompost": d_am56_u7_kompost,
+  "d_am56-u7-plastik2": d_am56_u7_plastik2,
+  "d_am56-u7-qayta": d_am56_u7_qayta,
+  "d_am56-u7-qogoz": d_am56_u7_qogoz,
+  "d_am56-u7-qushlar": d_am56_u7_qushlar,
+  "d_am56-u7-shisha": d_am56_u7_shisha,
+  "d_am56-u7-tozalik": d_am56_u7_tozalik,
+  "d_am56-u8-bog": d_am56_u8_bog,
+  "d_am56-u8-manzil": d_am56_u8_manzil,
+  "d_am56-u8-qoshni": d_am56_u8_qoshni,
+  "d_am56-u8-sotuvchi": d_am56_u8_sotuvchi,
+  "d_am67-u1-aylanish": d_am67_u1_aylanish,
+  "d_am67-u1-bug": d_am67_u1_bug,
+  "d_am67-u1-buglanish": d_am67_u1_buglanish,
+  "d_am67-u1-dengiz": d_am67_u1_dengiz,
+  "d_am67-u1-sovish": d_am67_u1_sovish,
+  "d_am67-u2-kunduz": d_am67_u2_kunduz,
+  "d_am67-u2-nur": d_am67_u2_nur,
+  "d_am67-u2-oq": d_am67_u2_oq,
+  "d_am67-u2-orbita": d_am67_u2_orbita,
+  "d_am67-u2-qiyalik": d_am67_u2_qiyalik,
+  "d_am67-u2-yer": d_am67_u2_yer,
+  "d_am67-u3-asalari": d_am67_u3_asalari,
+  "d_am67-u3-ildiz": d_am67_u3_ildiz,
+  "d_am67-u3-intilish": d_am67_u3_intilish,
+  "d_am67-u3-poya": d_am67_u3_poya,
+  "d_am67-u3-shimish": d_am67_u3_shimish,
+  "d_am67-u3-solish": d_am67_u3_solish,
+  "d_am67-u3-sugorish": d_am67_u3_sugorish,
+  "d_am67-u3-unish": d_am67_u3_unish,
+  "d_am67-u3-yashil": d_am67_u3_yashil,
+  "d_am67-u3-yoruglik": d_am67_u3_yoruglik,
+  "d_am67-u4-ayiq": d_am67_u4_ayiq,
+  "d_am67-u4-bugu": d_am67_u4_bugu,
+  "d_am67-u4-echkemar": d_am67_u4_echkemar,
+  "d_am67-u4-jayron": d_am67_u4_jayron,
+  "d_am67-u4-kamyob": d_am67_u4_kamyob,
+  "d_am67-u4-laylak": d_am67_u4_laylak,
+  "d_am67-u4-morxor": d_am67_u4_morxor,
+  "d_am67-u4-qizilkitob": d_am67_u4_qizilkitob,
+  "d_am67-u4-qoriqxona": d_am67_u4_qoriqxona,
+  "d_am67-u4-toqay": d_am67_u4_toqay,
+  "d_am67-u4-yordam": d_am67_u4_yordam,
+  "d_am67-u5-chelak": d_am67_u5_chelak,
+  "d_am67-u5-chiroq": d_am67_u5_chiroq,
+  "d_am67-u5-dush": d_am67_u5_dush,
+  "d_am67-u5-ichimlik": d_am67_u5_ichimlik,
+  "d_am67-u5-panel": d_am67_u5_panel,
+  "d_am67-u5-rozetka": d_am67_u5_rozetka,
+  "d_am67-u5-stansiya": d_am67_u5_stansiya,
+  "d_am67-u5-televizor": d_am67_u5_televizor,
+  "d_am67-u5-tish": d_am67_u5_tish,
+  "d_am67-u5-tomchi": d_am67_u5_tomchi,
+  "d_am67-u5-tozalash": d_am67_u5_tozalash,
+  "d_am67-u6-daryolar": d_am67_u6_daryolar,
+  "d_am67-u6-ipakyoli": d_am67_u6_ipakyoli,
+  "d_am67-u6-qizilqum": d_am67_u6_qizilqum,
+  "d_am67-u6-toglar": d_am67_u6_toglar,
+  "d_am67-u6-toshkent": d_am67_u6_toshkent,
+  "d_am67-u6-xiva": d_am67_u6_xiva,
+  "d_am67-u7-foydali": d_am67_u7_foydali,
+  "d_am67-u7-nafas": d_am67_u7_nafas,
+  "d_am67-u7-oshqozon": d_am67_u7_oshqozon,
+  "d_am67-u7-puls": d_am67_u7_puls,
+  "d_am67-u7-qon": d_am67_u7_qon,
+  "d_am67-u7-quloq": d_am67_u7_quloq,
+  "d_am67-u7-tish": d_am67_u7_tish,
+  "d_am67-u7-tozahavo": d_am67_u7_tozahavo,
+  "d_am67-u7-yurak": d_am67_u7_yurak,
+  "d_am67-u8-aks": d_am67_u8_aks,
+  "d_am67-u8-fonar": d_am67_u8_fonar,
+  "d_am67-u8-qisqich": d_am67_u8_qisqich,
+  "d_am67-u8-ranglar": d_am67_u8_ranglar,
+  "d_am67-u8-teatr": d_am67_u8_teatr,
+  "d_am67-u8-tomchinur": d_am67_u8_tomchinur,
+  "d_am67-u8-zaychik": d_am67_u8_zaychik,
+  "d_en56-s7-market": d_en56_s7_market,
+  "d_en56-s8-birthday-party": d_en56_s8_birthday_party,
+  "d_en56-u7-dislike-onions": d_en56_u7_dislike_onions,
+  "d_en56-u7-dislike-rain": d_en56_u7_dislike_rain,
+  "d_en56-u7-dislike-spiders": d_en56_u7_dislike_spiders,
+  "d_en56-u7-do-you-like": d_en56_u7_do_you_like,
+  "d_en56-u7-favourite-colour": d_en56_u7_favourite_colour,
+  "d_en56-u7-favourite-toy": d_en56_u7_favourite_toy,
+  "d_en56-u7-like-apples": d_en56_u7_like_apples,
+  "d_en56-u7-like-cats": d_en56_u7_like_cats,
+  "d_en56-u7-like-ice-cream": d_en56_u7_like_ice_cream,
+  "d_en56-u7-love-mum": d_en56_u7_love_mum,
+  "d_en56-u7-no-i-dont": d_en56_u7_no_i_dont,
+  "d_en56-u7-yes-i-do": d_en56_u7_yes_i_do,
+  "d_en56-u8-can-clap": d_en56_u8_can_clap,
+  "d_en56-u8-can-dance": d_en56_u8_can_dance,
+  "d_en56-u8-can-draw": d_en56_u8_can_draw,
+  "d_en56-u8-can-jump": d_en56_u8_can_jump,
+  "d_en56-u8-can-run": d_en56_u8_can_run,
+  "d_en56-u8-can-sing": d_en56_u8_can_sing,
+  "d_en56-u8-can-swim": d_en56_u8_can_swim,
+  "d_en56-u8-cant-fly": d_en56_u8_cant_fly,
   "d_v-1-ta-doira": d_v_1_ta_doira,
   "d_v-1-ta": d_v_1_ta,
   "d_v-2-qadam": d_v_2_qadam,

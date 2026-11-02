@@ -97,8 +97,9 @@ function matnXarita() {
   // REV259: «past» — bog'cha darslari uchun chizilgan rasm: so'zi bo'sh bo'lsa oladi, bor so'zni noaniq qilmaydi
   const pastQosh = (t, id) => { const a = matnNorm(t); if (a && !m.has(a)) m.set(a, id); };
   for (const d of DARS_RASM_META) { if (d.past) continue; for (const w of d.soz || []) qosh(w, `d_${d.id}`); for (const w of d.uz || []) qosh(w, `d_${d.id}`); }
-  for (const d of DARS_RASM_META) { if (!d.past) continue; for (const w of [...(d.soz || []), ...(d.uz || [])]) pastQosh(w, `d_${d.id}`); }
   for (const [id, s] of Object.entries(SOZLAR)) for (const w of Object.values(s.w || {})) qosh(w, id);
+  // bog'cha rasmlari eng oxirida — faqat hech kim egallamagan so'zlarga
+  for (const d of DARS_RASM_META) { if (!d.past) continue; for (const w of [...(d.soz || []), ...(d.uz || [])]) pastQosh(w, `d_${d.id}`); }
   MATN_ID = m;
   return m;
 }
