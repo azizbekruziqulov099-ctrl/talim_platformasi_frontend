@@ -121,6 +121,8 @@ export function matnId(...matnlar) {
   const m = matnXarita();
   for (const t of matnlar.flat()) {
     const salom = salomRasm(t); if (salom) return salom;
+    // REV293: faqat son («1», «2», «3:00») — so'z emas, rasm qidirilmaydi (oldin «1» va «2» ikkalasiga ham pitsa bo'lagi chiqardi)
+    if (/^[\d\s:.,/\\-]+$/.test(String(t ?? "").trim())) continue;
     const a = matnNorm(t);
     if (!a) continue;
     const bosh = a.split(/\s+[—–-]\s+|[,!?.;:]\s*/)[0].trim();   // gapning birinchi bo'lagi («salom! isming nima?» → «salom»)

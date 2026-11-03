@@ -7,6 +7,14 @@ import { RASMLAR } from "./xonalar/rasmlar.js";
 /** Variant so'zi/emojisiga mos rassom rasmi, bo'lmasa kitob rasmi (emoji+so'z → emoji), bo'lmasa null. */
 export function kidOptionPic(o, rasmlar, mediaUrl, rasmSozlar = null) {
   // REV153: avval rassom chizgan rasm, keyin kitobdagi rasm (kitob paketlaridagi eski rasmlar o'yinchoqqa o'xshaydi)
+  // REV293: variantda BELGI bo'lsa — rasm belgidan («🕊 — bitta» → kaptar, «🍐🍐🍐 — uchta» → uchta nok). Oldin so'z ustun edi:
+  // «bitta» so'zi bo'yicha har doim OLMA rasmi chiqib, qush/nok savoliga noto'g'ri rasm ko'rinardi. So'z bo'yicha rasm — faqat belgisiz variantga.
+  const belgi = String(o?.picture || "").trim();
+  if (belgi) {
+    const ichi = [...belgi.matchAll(/\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu)].map((m) => m[0]);
+    if (ichi.length === 1) { const r = emojiRasm(ichi[0], RASM_HAMMA); if (r?.src) return r.src; }
+    return null;   // bir nechta belgi (sanoq) yoki chizilgani yo'q — belgi/rasmlar qatori ko'rsatiladi
+  }
   const mt = matnId(o?.word);   // REV153: so'z istalgan tilda (arab, nemis, rus…) — chizilgan rasm
   const chizilgan = (mt && RASM_HAMMA[mt] ? { id: mt, src: RASM_HAMMA[mt] } : null) || emojiRasm(o?.picture, RASM_HAMMA) || (() => { const id = sozId({ soz: o?.word, emoji: o?.picture }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })();   // REV144: emoji o'rniga rassom chizgan rasm
   if (chizilgan) return chizilgan.src;

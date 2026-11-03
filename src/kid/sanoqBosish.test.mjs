@@ -8,3 +8,4 @@ test('REV291: «Bitta bananni bos!» — o\'yin', () => {
   assert.equal(sanoqBosish({ ovoz: 'Qo‘lingga ol', doska: '✋🍐' }), null);   // bosish yo'q — o'yin emas
   assert.equal(sanoqBosish({ ovoz: 'Bos!', doska: '🍐' }), null);           // bitta narsa — o'yin emas
 });
+
