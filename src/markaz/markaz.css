@@ -71,3 +71,7 @@
 
 /* REV280: to'liq sinov — qisqa javob maydoni */
 .mk-qisqa{width:min(220px,100%);padding:6px 10px;font-size:1rem}
+
+/* REV283: diktantda so'z rasmi */
+.mk-diktant-bosh{display:flex;align-items:center;gap:12px}.mk-rasm{width:84px;height:84px;object-fit:contain;border-radius:12px;background:#f3f7f9}
+.mk-rasm-e{font-size:3rem;line-height:1}

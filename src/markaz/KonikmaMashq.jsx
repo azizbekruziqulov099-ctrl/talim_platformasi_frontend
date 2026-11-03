@@ -3,6 +3,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { gapSolishtir, sozlarNorm } from "./konikmaRules.js";
+import { RASM_HAMMA } from "../kid/darsRasm.js";
+import { emojiRasm, matnId } from "../kid/rasmHarakat.js";
+
+// REV283: so'z rasmi — sayt kutubxonasidan (avval so'z, keyin belgi bo'yicha); topilmasa belgi o'zi
+function sozRasm(soz, emoji) {
+  const mt = matnId(soz); if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
+  return emojiRasm(emoji, RASM_HAMMA, soz)?.src || "";
+}
 
 const TURLAR = [["tinglash", "🎧", "Tinglab tushunish"], ["diktant", "✍️", "Diktant"], ["gapirish", "🗣", "Gapirish"], ["suhbat", "💬", "Jonli suhbat"], ["yozish", "📝", "Yozish"]];
 
@@ -64,10 +72,10 @@ function Tinglash({ m, base, onNatija }) {
   const tanla = (n) => { if (tanlov != null) return; setTanlov(n); if (n === q.javob) setBall((b) => b + 1); };
   const keyingi = () => { setTanlov(null); if (i + 1 < m.tinglash.length) setI(i + 1); else { setTugadi(true); onNatija(Math.round((100 * ball) / m.tinglash.length)); } };
   return <div className="mk-mashq">
-    <p className="mk-izoh">{__kbUi("Tinglang va ma’nosini tanlang. Yozuvga qaramang — faqat quloq bilan!")} ({i + 1}/{m.tinglash.length})</p>
+    <p className="mk-izoh">{__kbUi("Tinglang va qaysi gap aytilganini tanlang. Avval faqat quloq bilan — keyin matn ko‘rsatiladi.")} ({i + 1}/{m.tinglash.length})</p>
     <div className="mk-amal"><button type="button" className="mk-btn" onClick={() => ovoz(q.gap)}>🔊 {__kbUi("Tinglash")}</button>
       <button type="button" className="mk-btn is-ikkinchi" onClick={() => ovoz(q.gap, true)}>🐢 {__kbUi("Sekin")}</button></div>
-    <div className="mk-test-var">{q.variantlar.map((v, n) => <button key={n} type="button" className={`mk-chip ${tanlov == null ? "" : n === q.javob ? "is-togri" : n === tanlov ? "is-xato" : ""}`} onClick={() => tanla(n)}>{v}</button>)}</div>
+    <div className="mk-test-var">{q.variantlar.map((v, n) => <button key={n} type="button" lang="en" className={`mk-chip ${tanlov == null ? "" : n === q.javob ? "is-togri" : n === tanlov ? "is-xato" : ""}`} onClick={() => tanla(n)}>{v}</button>)}</div>
     {tanlov != null && <><p className="mk-javob" lang="en"><b>{q.kim}:</b> {q.gap}</p><button type="button" className="mk-btn" onClick={keyingi}>{__kbUi("Keyingi")} →</button></>}
   </div>;
 }
@@ -81,7 +89,8 @@ function Diktant({ m, base, onNatija }) {
   const tekshir = () => { const t = gapSolishtir(q.gap, matn, true); /* diktantda imlo aniq */ setTahlil(t); if (t.foiz >= 80) setBall((b) => b + 1); };
   const keyingi = () => { setTahlil(null); setMatn(""); if (i + 1 < m.diktant.length) setI(i + 1); else { setTugadi(true); onNatija(Math.round((100 * ball) / m.diktant.length)); } };
   return <div className="mk-mashq">
-    <p className="mk-izoh">{__kbUi("Eshitgan gapingizni yozing.")} {q.emoji} ({i + 1}/{m.diktant.length})</p>
+    <div className="mk-diktant-bosh">{sozRasm(q.soz, q.emoji) ? <img className="mk-rasm" src={sozRasm(q.soz, q.emoji)} alt="" /> : <span className="mk-rasm-e" aria-hidden="true">{q.emoji}</span>}
+      <p className="mk-izoh">{__kbUi("Eshitgan gapingizni yozing.")} ({i + 1}/{m.diktant.length})</p></div>
     <div className="mk-amal"><button type="button" className="mk-btn" onClick={() => ovoz(q.gap)}>🔊 {__kbUi("Tinglash")}</button>
       <button type="button" className="mk-btn is-ikkinchi" onClick={() => ovoz(q.gap, true)}>🐢 {__kbUi("Sekin")}</button></div>
     <input className="mk-input" lang="en" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={matn} onChange={(e) => setMatn(e.target.value)} disabled={Boolean(tahlil)}
