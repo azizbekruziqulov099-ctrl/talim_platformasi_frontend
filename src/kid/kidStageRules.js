@@ -434,3 +434,20 @@ export function faolRasm(pics = [], sozlar = [], at = -1, mik = "") {
   return best;
 }
 
+
+// REV291: «Bitta bananni bos!» — bola doskadagi narsalardan aytilgan sonini BOSADI (oldin rasm chiqmay, faqat vaqt o'tardi).
+// Ovoz/doskada bosish fe'li bo'lsa va doskada kamida 2 ta narsa bo'lsa: { belgilar: [...], kerak: N }.
+const BOS_FEL = /(?:^|[^\p{L}])(bos|bosing|bosgin|nuqi|tegin|нажми|нажмите|коснись|tap|touch|press)(?=$|[^\p{L}])/iu;
+const SON_SOZ = { bitta: 1, bir: 1, ikkita: 2, ikki: 2, uchta: 3, uch: 3, "to‘rtta": 4, "to'rtta": 4, "to‘rt": 4, beshta: 5, besh: 5,
+  "один": 1, "одну": 1, "одно": 1, "два": 2, "две": 2, "три": 3, "четыре": 4, "пять": 5, one: 1, two: 2, three: 3, four: 4, five: 5 };
+export function sanoqBosish(step) {
+  const matn = String(step?.ovoz || step?.doska || "").replace(TAGS_ALL, " ");
+  if (!BOS_FEL.test(matn)) return null;
+  const belgilar = [...String(step?.doska || "").replace(TAGS_ALL, " ").matchAll(/\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu)].map((m) => m[0])
+    .filter((e) => !/^(?:✋|👆|👉|❓|➡|⬅|🔁|🌟|⭐|🧩|🎲)/u.test(e));
+  if (belgilar.length < 2) return null;
+  let kerak = 1;
+  const sozlar = matn.toLowerCase().split(/[^\p{L}\p{N}‘']+/u);
+  for (const w of sozlar) { if (SON_SOZ[w]) { kerak = SON_SOZ[w]; break; } if (/^\d+$/.test(w)) { kerak = Number(w); break; } }
+  return { belgilar: belgilar.slice(0, 8), kerak: Math.max(1, Math.min(kerak, belgilar.length)) };
+}

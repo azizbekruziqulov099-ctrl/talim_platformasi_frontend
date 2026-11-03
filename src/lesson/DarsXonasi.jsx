@@ -42,7 +42,7 @@ import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { K as DIQQAT, kutishVaqtlari } from "../kid/diqqatGaplari.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
+import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, sanoqBosish, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
@@ -176,6 +176,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV121: «Top-chi» o'yini — ustoz so'zni aytadi va bola bosishini KUTADI; to'g'ri (birinchi urinishda) — yulduz,
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
+  const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
   const gameRef = useRef(null);
   const gameTimer = useRef(0);
   const gameRes = useRef({});
@@ -797,6 +798,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
   const runStep = (next, autoplay) => {
     const s = steps[next];
+    setSanoq((x) => (x && x.stepIdx !== next ? null : x));
     const spoken = stepSpeech(s, next);
     [next + 1, next + 2].forEach((j) => prefetchQadam(j));
     if (kid && next > 0 && kinds[next] !== kinds[next - 1]) { if (kinds[next] === "new") chime(); else if (kinds[next] === "review") soft(); }
@@ -807,6 +809,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // REV121: «Top-chi» o'yini — so'zlar bilan bog'langan rasmlar bo'lsa, bola bosishini kutadigan haqiqiy o'yin
       const targets = autoplay && kid && s.turi === "amaliy" && next >= opening.length ? gameTargets(s, steps, kinds) : [];
       if (targets.length) { gameApi.current.start(next, targets); return; }
+      // REV291: «Bitta bananni bos!» — bola aytilgan sonidagi narsani bosadi, bosmaguncha kutiladi
+      const sb = autoplay && kid && s.turi === "amaliy" && next >= opening.length ? sanoqBosish(s) : null;
+      if (sb) { setSanoq({ stepIdx: next, ...sb, tanlangan: [] }); return; }
       if (autoplay && kid && s.turi === "amaliy") {
         // REV93: bog'chada topshiriq (qo'shiq, harakat, o'yin) — bolaga bajarishga vaqt, keyin maqtov va davom. Tugma kerak emas.
         // Bajarganini tekshirib bo'lmaydi — shuning uchun «Barakalla» demaymiz, to'g'ri javobni birga aytamiz.
@@ -1459,6 +1464,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV140: salomlashish va ob-havo qadamida doskaga belgi-stikerlar (👋 🙂 😊) chiqmaydi — ustoz qo'l silkitadi,
     // ob-havoda bola derazaga qaraydi (deraza nurlanadi)
     if (step._ochilish === "salom" || step._ochilish === "havo") return [];
+    // REV291: «N tasini bos» — har narsa alohida rasm (bosilgani ✓)
+    if (sanoq && sanoq.stepIdx === idx) {
+      return sanoq.belgilar.map((e, i) => { const r = emojiRasm(e, RASM_HAMMA); return { emoji: r?.src ? "" : e, src: r?.src || "", rev: picRev, label: `rasm ${i + 1}`,
+        anim: harakatTuri(r?.id || sozId({ emoji: e })), holat: sanoq.tanlangan.includes(i) ? "done" : "wait" }; });
+    }
     // REV121: o'yin — nishonlar (rasm yoki emoji karta), holati bilan: kutilmoqda / to'g'ri / xato / mana u
     if (game && game.stepIdx === idx) {
       return game.targets.map((t, i) => {
@@ -1540,6 +1550,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!p) return;
     // REV121: o'yinda — javob sifatida tekshiriladi (to'g'ri — yulduz, xato — yulduz yo'q)
     if (game && game.stepIdx === idx) { if (!gameApi.current.tap(i)) pop(); return; }
+    if (sanoq && sanoq.stepIdx === idx) {
+      if (sanoq.tanlangan.includes(i) || sanoq.tanlangan.length >= sanoq.kerak) return;
+      const tanlangan = [...sanoq.tanlangan, i]; pop(); setSanoq({ ...sanoq, tanlangan });
+      if (tanlangan.length >= sanoq.kerak) {
+        const my = idx;
+        say(gap(tIzoh, "Zo‘r! Ana shunday!"), () => setTimeout(() => { setSanoq(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }, 700));
+      }
+      return;
+    }
     // O'yindan tashqarida bosish — maqtov emas: rasm silkinadi va (bilsa) nomi aytiladi
     setPicRev((r) => r + 1); pop();
     if (speakingRef.current) return;   // ustoz gapirayotgan bo'lsa — darsni bo'lmaydi
