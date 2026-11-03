@@ -50,6 +50,7 @@ export default function MarkazPanel({ apiBase = "", token = "", adminMi = false 
         {adminMi && <button type="button" className="mk-btn is-ikkinchi" aria-pressed={adminKor} onClick={() => { setAdminKor(!adminKor); setYangi(false); }}>{adminKor ? __kbUi("← Mening kurslarim") : "👥 " + __kbUi("Barcha o‘quvchilar (admin)")}</button>}
       </div>
     </header>
+    {adminKor && <AdminKontent base={base} token={token} />}
     {adminKor && <AdminRoyxat base={base} token={token} katalog={katalog} />}
     {!adminKor && yangi && <Yozilish katalog={katalog} base={base} token={token} onBekor={kurslar.length ? () => setYangi(false) : null} onTayyor={() => { setYangi(false); yukla(); }} />}
     {!adminKor && !yangi && kurslar.map((k) => <KursKarta key={k.id} k={k} katalog={katalog} base={base} token={token} onYangi={yukla} />)}
@@ -272,5 +273,35 @@ function AdminRoyxat({ base, token, katalog }) {
         <td>{x.tanaffus_kun === 0 ? __kbUi("bugun") : `${x.tanaffus_kun} ${__kbUi("kun oldin")}`}</td>
         <td>{Object.entries(x.konikmalar || {}).map(([t, f]) => `${t}: ${Math.round(f)}%`).join(" · ") || "—"}</td>
       </tr>)}</tbody></table></div>}
+  </div>;
+}
+
+// REV285: admin — markaz kontentini Excel bilan yuklash (sinov variantlari, strategiyalar); shablon yuklab olish; yuklanganlar ro'yxati
+function AdminKontent({ base, token }) {
+  const [turi, setTuri] = useState("sinov"); const [variant, setVariant] = useState(2); const [fayl, setFayl] = useState(null);
+  const [natija, setNatija] = useState(null); const [band, setBand] = useState(false); const [royxat, setRoyxat] = useState([]);
+  const yangila = () => fetch(`${base}/api/markaz/admin/kontentlar?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : { kontentlar: [] })).then((d) => setRoyxat(d.kontentlar || [])).catch(() => {});
+  useEffect(() => { yangila(); }, []); // eslint-disable-line
+  const yukla = async () => {
+    if (!fayl) return; setBand(true); setNatija(null);
+    try {
+      const f = new FormData(); f.append("token", token); f.append("turi", turi); f.append("variant", String(variant)); f.append("fayl", fayl);
+      const r = await fetch(`${base}/api/markaz/admin/kontent`, { method: "POST", body: f }); const d = await r.json();
+      setNatija(r.ok ? d : { saqlandi: false, xatolar: [{ varaq: "-", qator: 0, xabar: d.detail || String(r.status) }] }); if (d.saqlandi) yangila();
+    } catch (e) { setNatija({ saqlandi: false, xatolar: [{ varaq: "-", qator: 0, xabar: String(e.message || e) }] }); } finally { setBand(false); }
+  };
+  return <div className="mk-yozil">
+    <h3>📥 {__kbUi("Markaz kontenti (Excel)")}</h3>
+    <p className="mk-izoh">{__kbUi("Sinov imtihoni variantlari va strategiyalar Excel orqali qo‘shiladi — kod kerak emas. Avval shablonni yuklab oling, to‘ldiring va shu yerga yuklang. Xato bo‘lsa, hech narsa saqlanmaydi va qaysi qatorda ekanini ko‘rsatamiz.")}</p>
+    <div className="mk-chiplar">{[["sinov", "📋 " + __kbUi("Sinov varianti")], ["strategiya", "🧭 " + __kbUi("Strategiyalar")]].map(([t, n]) => <button key={t} type="button" className={`mk-chip ${turi === t ? "is-on" : ""}`} onClick={() => setTuri(t)}>{n}</button>)}</div>
+    <div className="mk-amal">
+      <a className="mk-btn is-ikkinchi" href={`${base}/api/markaz/admin/shablon?${new URLSearchParams({ token, turi })}`}>⬇ {__kbUi("Shablon (namuna)")}</a>
+      {turi === "sinov" && <label>{__kbUi("Variant")} № <input type="number" min="1" max="50" value={variant} onChange={(e) => setVariant(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} className="mk-input mk-qisqa" /></label>}
+      <input type="file" accept=".xlsx" onChange={(e) => setFayl(e.target.files?.[0] || null)} />
+      <button type="button" className="mk-btn" disabled={!fayl || band} onClick={yukla}>{band ? __kbUi("Tekshirilmoqda…") : __kbUi("Yuklash")}</button>
+    </div>
+    {natija && (natija.saqlandi ? <p className="mk-holat">✅ {__kbUi("Saqlandi")}: {Object.entries(natija.soni || {}).map(([k, v]) => `${k} ${v}`).join(", ")}{natija.variant ? ` · ${__kbUi("Variant")} ${natija.variant}` : ""}</p>
+      : <div className="mk-xato" role="alert"><p>❌ {__kbUi("Saqlanmadi — xatolarni tuzatib, qayta yuklang:")}</p><ul>{natija.xatolar.map((x, i) => <li key={i}>{x.varaq}{x.qator ? `, ${x.qator}-${__kbUi("qator")}` : ""}: {x.xabar}</li>)}</ul></div>)}
+    {royxat.length > 0 && <p className="mk-izoh">{__kbUi("Yuklanganlar")}: {royxat.map((r) => `${r.turi}${r.turi === "sinov" ? " v" + r.variant : ""}`).join(" · ")}</p>}
   </div>;
 }

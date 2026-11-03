@@ -13,9 +13,9 @@ export default function SinovImtihon({ k, base, token, onYop }) {
   const [natija, setNatija] = useState({}); const [band, setBand] = useState(""); const [xato, setXato] = useState("");
   const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
   useEffect(() => { if (!turi) return; setS(null); setJavob({}); setNatija({});
-    fetch(`${base}/api/markaz/sinov?${new URLSearchParams({ token, turi })}`).then((r) => (r.ok ? r.json() : Promise.reject())).then(setS).catch(() => setXato(__kbUi("Sinov yuklanmadi"))); }, [turi]); // eslint-disable-line
+    fetch(`${base}/api/markaz/sinov?${new URLSearchParams({ token, turi, yozilish_id: String(k.id) })}`).then((r) => (r.ok ? r.json() : Promise.reject())).then(setS).catch(() => setXato(__kbUi("Sinov yuklanmadi"))); }, [turi]); // eslint-disable-line
   const post = async (url, body) => { const r = await fetch(`${base}${url}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, ...body }) }); const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); return d; };
-  const obyektiv = async () => { setBand("lr"); setXato(""); try { const d = await post("/api/markaz/sinov/obyektiv", { javoblar: javob, turi }); setNatija((n) => ({ ...n, listening: d.listening, reading: d.reading })); } catch (e) { setXato(e.message); } finally { setBand(""); } };
+  const obyektiv = async () => { setBand("lr"); setXato(""); try { const d = await post("/api/markaz/sinov/obyektiv", { javoblar: javob, turi, variant: s?.variant || 0 }); setNatija((n) => ({ ...n, listening: d.listening, reading: d.reading })); } catch (e) { setXato(e.message); } finally { setBand(""); } };
   const matnli = async (b) => { setBand(b); setXato(""); try { const d = await post("/api/markaz/sinov/matn", { bolim: b, javoblar: matn, iz }); setNatija((n) => ({ ...n, [b]: d })); } catch (e) { setXato(e.message); } finally { setBand(""); } };
   return <div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Sinov imtihoni")}>
     <div className="mk-test-ich mk-sinov">
@@ -25,7 +25,7 @@ export default function SinovImtihon({ k, base, token, onYop }) {
         <button type="button" className="mk-karta" onClick={() => setTuri("mini")}><span className="mk-e">⚡</span><b>{__kbUi("Qisqa sinov")}</b><small>{__kbUi("10 + 10 savol, yozish va gapirish — taxminan 1,5 soat")}</small></button>
         <button type="button" className="mk-karta" onClick={() => setTuri("toliq")}><span className="mk-e">🏁</span><b>{__kbUi("To‘liq sinov")}</b><small>{__kbUi("Imtihondagi kabi: Listening 35, Reading 35, Writing 2, Speaking 3 — taxminan 3 soat")}</small></button>
       </div>}
-      <p className="mk-izoh">{s?.shkala} · {__kbUi("Bu rasmiy imtihon emas — tayyorgarlik darajangizni ko‘rsatadi.")}</p>
+      <p className="mk-izoh">{s?.shkala}{s?.variant ? ` · ${__kbUi("Variant")} ${s.variant}` : ""} · {__kbUi("Bu rasmiy imtihon emas — tayyorgarlik darajangizni ko‘rsatadi.")}</p>
       {turi && <div className="mk-chiplar">{BOLIMLAR.map(([b, n, daq]) => <button key={b} type="button" className={`mk-chip ${bolim === b ? "is-on" : ""}`} onClick={() => setBolim(b)}>{n} · {daq} {__kbUi("daq")}{natija[b] ? ` ✓ ${natija[b].ball}/75` : ""}</button>)}</div>}
       {xato && <p className="mk-xato" role="alert">{xato}</p>}
       {turi && !s && !xato && <p role="status">{__kbUi("Yuklanmoqda…")}</p>}
