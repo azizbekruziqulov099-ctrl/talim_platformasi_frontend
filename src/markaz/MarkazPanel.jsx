@@ -5,7 +5,8 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./markaz.css";
 import { natija as darsNatijasi } from "../curriculum/kidProgress.js";
 const KonikmaMashq = React.lazy(() => import("./KonikmaMashq.jsx"));
-const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));   // REV277: kurs darsi — saytning dars xonasida
+const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));
+const SinovImtihon = React.lazy(() => import("./SinovImtihon.jsx"));   // REV278   // REV277: kurs darsi — saytning dars xonasida
 
 const TILLAR = { en: "🇬🇧 Ingliz tili", ru: "🇷🇺 Rus tili", de: "🇩🇪 Nemis tili", fr: "🇫🇷 Fransuz tili", es: "🇪🇸 Ispan tili", ar: "🇸🇦 Arab tili",
   tr: "🇹🇷 Turk tili", ko: "🇰🇷 Koreys tili", ja: "🇯🇵 Yapon tili", zh: "🇨🇳 Xitoy tili" };
@@ -53,6 +54,7 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
   const [test, setTest] = useState(false);
   const [konikma, setKonikma] = useState(false);
   const [darslar, setDarslar] = useState(false);
+  const [sinov, setSinov] = useState(false);
   return <article className={`mk-kurs ${RANG[h.daraja] || ""}`}>
     <div className="mk-kurs-bosh">
       <span className="mk-yol">{k.yol === "sertifikat" ? "🎓 " + __kbUi("Sertifikat") : "🌍 " + __kbUi("Erkin til")}</span>
@@ -70,8 +72,10 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
     <div className="mk-amal">
       <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setDarslar(true)}>▶ {__kbUi("Darslar")}</button>
       <button type="button" className="mk-btn is-ikkinchi" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setTest(true)}>🧭 {k.daraja ? `${__kbUi("Daraja")}: ${k.daraja} · ${__kbUi("qayta topshirish")}` : __kbUi("Daraja aniqlash testi")}</button>
+      {k.yol === "sertifikat" && k.imtihon === "milliy_cefr" && k.til === "en" && <button type="button" className="mk-btn" onClick={() => setSinov(true)}>📋 {__kbUi("Sinov imtihoni")}</button>}
       <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setKonikma(true)}>🎧🗣✍️ {__kbUi("Tinglash, gapirish, yozish")}</button>
     </div>
+    {sinov && <React.Suspense fallback={null}><SinovImtihon k={k} base={base} token={token} onYop={() => { setSinov(false); onYangi?.(); }} /></React.Suspense>}
     {darslar && <KursDarslari k={k} base={base} token={token} onYop={() => { setDarslar(false); onYangi?.(); }} />}
     {konikma && <React.Suspense fallback={null}><KonikmaMashq k={k} base={base} token={token} onYop={() => { setKonikma(false); onYangi?.(); }} /></React.Suspense>}
     {test && <DarajaTesti k={k} base={base} token={token} onYop={() => setTest(false)} onNatija={onYangi} />}
