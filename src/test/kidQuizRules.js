@@ -10,7 +10,7 @@ export function kidOptions(savol, question = savol?.question ?? savol?.savol, iz
   const asksForeign = question == null || /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/i.test(String(question));
   // REV102: savoldagi ibora variantlardan birida bor bo'lsa — variantlarni ovoz bilan o'qimaymiz (javobni aytib qo'yardi)
   const asked = new Set([...String(question ?? '').matchAll(/\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi)].map((m) => answerKey(m[2])));
-  return ['A', 'B', 'C', 'D']
+  const list = ['A', 'B', 'C', 'D']
     .map((letter) => ({ letter, raw: String(savol[`option_${letter.toLowerCase()}`] ?? '').trim() }))
     .filter((o) => o.raw)
     .map((o) => {
@@ -29,6 +29,11 @@ export function kidOptions(savol, question = savol?.question ?? savol?.savol, iz
       return { ...o, picture, word, lang, oqiladi, speech: lang ? `[${lang}]${word}[/${lang}]` : word,
         listen: oqiladi ? 'audio' : izohTilida ? '' : listenMode(lang, picture, word, asksForeign, asked.has(answerKey(word)), asked.size > 0) };
     });
+  // REV296: ikki variantda rasm BIR XIL bo'lsa (🍎 chapda / 🍎 o'ngda, 🚃 oldinda / 🚃 orqada) — rasm farqni ko'rsatmaydi:
+  // bunday variantlarda rasm o'rniga so'z chiqadi va Kabu variantlarni ovoz chiqarib o'qiydi
+  const sanoq = new Map();
+  for (const o of list) if (o.picture) sanoq.set(o.picture, (sanoq.get(o.picture) || 0) + 1);
+  return list.map((o) => (o.picture && sanoq.get(o.picture) > 1 && o.word ? { ...o, picture: '', oqiladi: true, listen: 'audio', birXil: true } : o));
 }
 
 const PRAISE = ['Barakalla!', 'Zo‘r! Juda to‘g‘ri!', 'Ofarin, aqlli bola!', 'Ajoyib! Yana bitta yulduzcha!', 'Qoyil! To‘ppa-to‘g‘ri!'];
