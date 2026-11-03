@@ -87,3 +87,32 @@
 
 /* REV230: rasmsiz variant — so'z yoziladi */
 .kq-pic.is-soz{font-size:clamp(18px,4vw,34px)!important;line-height:1.2!important;font-weight:800;padding:6px 10px;text-align:center;word-break:break-word;white-space:normal}
+
+/* REV292: ovoz tugamasa — keyingi savolga o'tish tugmasi */
+.kq-keyingi{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:30;width:72px;height:72px;border-radius:50%;
+  border:0;background:#2e9e5b;color:#fff;font-size:2rem;box-shadow:0 8px 22px #0003;animation:kq-keyingi 1s ease-in-out infinite alternate}
+@keyframes kq-keyingi{to{transform:scale(1.08)}}
+
+/* REV292: telefon yotiq holatda (past ekran) — hammasi bir ekranga sig'adi: Kabu kichikroq, savol va javoblar ixcham,
+   bola pastga aylantirmasdan javobni ko'radi («ekran kattalashib ketgandek» ko'rinmasin) */
+@media (max-height:520px){
+  .kq-root{padding:6px 14px 8px;max-width:min(760px,100%)}
+  .kq-top{margin:0}
+  .kq-mascot{margin:2px 0;justify-content:center}
+  .kq-bird.kq-robot,.kq-robot{width:clamp(64px,19vh,100px)!important}
+  .kq-question{padding:4px 10px!important;margin-bottom:6px!important;border-radius:16px;min-height:0!important}
+  .kq-listen{width:40px!important;height:40px!important;font-size:18px!important}
+  .kq-options{gap:10px}
+  .kq-option{min-height:0!important;height:min(48vh,210px);padding:4px;border-radius:18px}
+  .kq-pic{font-size:clamp(30px,10vh,58px)}
+  .kq-img{width:auto;height:70%;max-height:26vh}
+  .kb-qator{width:auto;height:78%;max-height:30vh;max-width:none;aspect-ratio:auto}
+  .kb-qator img{width:auto;height:44%}
+  .kq-word{font-size:16px}
+  .kq-keyingi{width:58px;height:58px;font-size:1.6rem}
+}
+/* REV292: tik turgan telefonda ham Kabu va javoblar bir ekranda */
+@media (max-width:520px) and (max-height:760px){
+  .kq-bird.kq-robot,.kq-robot{width:clamp(90px,24vw,120px)!important}
+  .kq-mascot{margin:6px 0}
+}

@@ -32,6 +32,14 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
   const doneRef = useRef(false);
   doneRef.current = Boolean(natija);
   const theme = kidTheme(jins);
+  // REV292: ovoz telefonda tugaganini bildirmay qolsa ham (avtoplay bloki, tarmoq) test TO'XTAB QOLMASIN:
+  // har gap uchun uzunligiga qarab eng ko'p kutish vaqti; undan keyin o'zi davom etadi.
+  const speakSafe = useCallback((t) => {
+    const len = String(t || "").replace(/\[\/?[a-z]{2}\]/g, "").length;
+    const limit = Math.max(2500, Math.min(15000, 1500 + len * 85));
+    return Promise.race([Promise.resolve(speak?.(t)).catch(() => {}), new Promise((r) => setTimeout(r, limit))]);
+  }, [speak]);
+  const [tiqilib, setTiqilib] = useState(false);   // javobdan keyin uzoq turib qolsa — «Keyingisi» tugmasi
   const current = viewing === null ? { savol, tanlangan: chosen, natija } : history[viewing];
   const options = useMemo(() => kidOptions(current.savol), [current.savol]);
   // REV102: til darsida maqtov o'sha tilda («Well done!»), o'zbekcha emas.
@@ -42,17 +50,17 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
   const readAll = useCallback(async (s) => {
     const my = ++seq.current;
     setHot(""); setWaiting(false);
-    await speak?.(s.question);
+    await speakSafe(s.question);
     const audio = kidOptions(s).filter((o) => o.listen === "audio");
     for (const o of audio) {
       if (seq.current !== my) return;
       setHot(o.letter);
       await new Promise((r) => setTimeout(r, 200));
       if (seq.current !== my) return;
-      await speak?.(o.speech);
+      await speakSafe(o.speech);
     }
     if (seq.current === my) { setHot(""); setWaiting(true); }
-  }, [speak]);
+  }, [speakSafe]);
   useEffect(() => {
     if (!savol || viewing !== null) return;
     const key = `q:${savol.id}`;
@@ -76,7 +84,10 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
     const my = ++seq.current;
     setHot(""); setWaiting(false);
     // Maqtov/dalda aytib bo'lingach keyingi savol o'zi keladi (to'xtatish oynasi ochiq bo'lsa — kutadi).
-    Promise.resolve(speak?.(text)).then(() => {
+    setTiqilib(false);
+    const zaxira = setTimeout(() => { if (seq.current === my) setTiqilib(true); }, 9000);
+    speakSafe(text).then(() => {
+      clearTimeout(zaxira);
       if (seq.current !== my) return;
       setTimeout(() => {
         if (seq.current !== my) return;
@@ -84,7 +95,8 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
         nextRef.current?.();
       }, 900);
     });
-  }, [natija, savol, viewing, chosen, options, index, speak, lang, izoh]);
+  }, [natija, savol, viewing, chosen, options, index, speakSafe, lang, izoh]);
+  useEffect(() => { setTiqilib(false); }, [savol?.id]);
   useEffect(() => {
     if (paused) {
       seq.current += 1; setHot(""); setWaiting(false);
@@ -145,6 +157,7 @@ export default function KidQuiz({ savol, index, total, natija, tekshirilmoqda, c
         </button>
       </div>)}
     </div>
-
+    {/* REV292: ovoz tugamay qolsa — katta «▶» tugma (bola o'zi bosib keyingisiga o'tadi) */}
+    {done && tiqilib && <button type="button" className="kq-keyingi" onClick={() => { seq.current += 1; setTiqilib(false); nextRef.current?.(); }} aria-label={__kbUi("Keyingisi")}>▶</button>}
   </section>;
 }

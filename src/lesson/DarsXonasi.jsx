@@ -517,7 +517,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     sayWords.current = words;
     setNutqQism([]); setQismSoz(-1);
     setSpeaking(true);
-    const finish = () => { if (my !== tokenRef.current) return; clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
+    // REV292: qorovul — telefon ovoz tugaganini bildirmay qolsa ham (avtoplay bloki, uzilgan tarmoq) dars TO'XTAB QOLMAYDI
+    let bitdi = false;
+    const qorovul = setTimeout(() => { if (!bitdi && my === tokenRef.current && playingRef.current) finish(); },
+      Math.min(60000, 6000 + clean.length * 110 / Math.max(0.5, rateRef.current || 1)));
+    const finish = () => { if (my !== tokenRef.current || bitdi) return; bitdi = true; clearTimeout(qorovul); clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
     // REV180: Kabu muhitida (test, ovozli tekshiruv) — ikki Kabu: izoh qismi birinchi Kabu ovozida, o'rganilayotgan til qismi —
     // ikkinchi Kabu (o'sha til egasi) ovozida; kim gapirsa o'sha kattalashadi
     // REV181: bog'chada ham — «Kabu aytdirish» va testda ikki Kabu (izoh tilida va o'rganilayotgan tilda), har biri o'z ovozida
