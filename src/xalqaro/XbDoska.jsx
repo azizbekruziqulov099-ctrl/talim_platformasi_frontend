@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { T } from "./xbTil.js";   // REV270: uch til
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import ChalkText from "../lesson/ChalkText.jsx";
 import { lineProgress } from "../lesson/chalkRules.js";

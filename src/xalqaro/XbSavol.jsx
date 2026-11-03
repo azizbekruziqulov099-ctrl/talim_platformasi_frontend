@@ -1,21 +1,36 @@
 import React from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import CourseText from "../courses/CourseText.jsx";
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import { FIKRLASH, ovozdanJavob, ovozdanVariant, svgUrl } from "./xbRules.js";
 import { useMikrofon } from "./xbOvoz.js";
+import { MIK_TIL } from "./xbTil.js";
+
+/** PISA birligining umumiy matni / jadvali / grafigi: savol yonida doim ochiq, uzun bo'lsa o'ralib turadi. */
+function Stimul({ stimul, imtihon }) {
+  const [ochiq, setOchiq] = React.useState(true);
+  return <div className={`xb-stimul ${imtihon ? "is-imtihon" : ""}`}>
+    <button type="button" className="xb-stimul-bosh" onClick={() => setOchiq(!ochiq)} aria-expanded={ochiq}>
+      📄 <b>{stimul.nom}</b> <small>{ochiq ? T("(yashirish)") : T("(matnni ochish)")}</small></button>
+    {ochiq && <div className="xb-stimul-ich">
+      {stimul.matn && <CourseText text={stimul.matn} className="xb-stimul-matn" />}
+      {stimul.rasm_svg && <img className="xb-savol-rasm" src={svgUrl(stimul.rasm_svg)} alt={T("Ma’lumot rasmi")} />}
+    </div>}
+  </div>;
+}
 
 /**
  * Bitta savol: shart (formula KaTeX), rasm (SVG — xavfsiz <img>), 4 variant yoki qisqa javob.
  * 🔊 — ustoz savolni o'qib beradi; 🎤 — o'quvchi javobni aytadi (variant harfi yoki son), u yozilib, tasdiqlanadi.
  */
 export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raqam = null, imtihon = false, korsatkich = true }) {
-  const mik = useMikrofon("uz-UZ");
+  const til = xbTil();
+  const mik = useMikrofon(MIK_TIL[til]);   // REV270: mikrofon o'quvchi tilida tinglaydi
   if (!savol) return null;
   const tanlov = savol.turi === "tanlov";
   const oqib = () => {
     const variantlar = tanlov ? savol.javoblar.map((v, i) => `${"ABCD"[i]}: ${v}`).join(". ") : "";
-    ovoz?.say(`${savol.savol} ${variantlar}`);
+    ovoz?.say(`${savol.stimul && !imtihon ? "" : ""}${savol.savol} ${variantlar}`);
   };
   const ayt = () => mik.tingla((alts) => {
     for (const a of alts) {
@@ -23,7 +38,7 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
         const i = ovozdanVariant(a);
         if (i !== null && i < savol.javoblar.length) { onJavob?.("ABCD"[i], "aytib"); return; }
       } else {
-        const j = ovozdanJavob(a);
+        const j = ovozdanJavob(a, til);
         if (j) { onJavob?.(j, "aytib"); return; }
       }
     }
@@ -33,6 +48,7 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
     <div className="xb-savol-bosh">
       {raqam !== null && <span className="xb-savol-raqam">{raqam}</span>}
       {korsatkich && !imtihon && <span className="xb-chip">{T(FIKRLASH[savol.fikrlash] || "")}</span>}
+      {korsatkich && !imtihon && savol.qiyinlik_ball && <span className="xb-chip xb-chip-pisa" title={T(savol.qiyinlik_taxminiy ? "PISA shkalasida taxminiy qiyinlik" : "Asl PISA savolining qiyinligi (OECD)")}>📏 {savol.qiyinlik_ball}{savol.qiyinlik_taxminiy ? "≈" : ""}</span>}
       {korsatkich && !imtihon && savol.xalqaro_foiz !== null && savol.xalqaro_foiz !== undefined &&
         <span className="xb-chip xb-chip-dunyo" title={T("Shunga o‘xshash TIMSS savolini dunyo bo‘yicha to‘g‘ri yechganlar ulushi")}>🌍 {savol.xalqaro_foiz}%</span>}
       <span className="xb-savol-tug">
@@ -41,6 +57,7 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
           aria-label={T("Javobni ayting")} title={T("Javobni ovoz bilan ayting")}>🎤</button>}
       </span>
     </div>
+    {savol.stimul && <Stimul stimul={savol.stimul} imtihon={imtihon} />}
     <CourseText text={savol.savol} className="xb-savol-matn" />
     {savol.rasm_svg && <img className="xb-savol-rasm" src={svgUrl(savol.rasm_svg)} alt={T("Savol rasmi")} />}
     {mik.tinglash && <p className="xb-mik">🎙️ {T("Tinglayapman… javobni ayting (masalan: «be» yoki «o‘n ikki»)")}</p>}

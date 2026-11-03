@@ -74,7 +74,7 @@ export default function OquvchiKorinishi({ apiBase, token, admin, Tests, jins = 
     {oyna === "xalqaro" ? <div className="px-3 sm:px-5 pt-3 pb-6">
       <button type="button" className="ok-orqaga" onClick={() => setOyna("mavzular")}>{__kbUi("← Mavzularga qaytish")}</button>
       <React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}>
-        <XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={jins} cheklovsiz />
+        <XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={jins} cheklovsiz rejim="oquvchi" />
       </React.Suspense>
     </div> : oyna === "test" && Tests ? <div className="px-3 sm:px-5 pt-3 pb-6">
       <button type="button" className="ok-orqaga" onClick={() => { setOyna("mavzular"); setTestNishoni(null); }}>{__kbUi("← Mavzularga qaytish")}</button>

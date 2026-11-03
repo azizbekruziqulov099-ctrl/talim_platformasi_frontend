@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import XbSavol from "./XbSavol.jsx";
 import XbDoska, { XbUstoz } from "./XbDoska.jsx";
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -9,15 +9,15 @@ const saqla = (id, j) => { try { localStorage.setItem(`xb:imt:${id}`, JSON.strin
 const ol = (id) => { try { return JSON.parse(localStorage.getItem(`xb:imt:${id}`) || "{}"); } catch { return {}; } };
 
 /** Davlatlar bilan solishtirish diagrammasi (gorizontal ustunlar, 300–650 shkala). */
-export function DavlatDiagramma({ qatorlar }) {
+export function DavlatDiagramma({ qatorlar, chegaralar = [400, 475, 550, 625] }) {
   const min = 300, max = 650;
   return <div className="xb-diag" role="img" aria-label={T("Davlatlar bilan solishtirish")}>
     {qatorlar.map((q) => <div key={q.nom} className={`xb-diag-q ${q.siz ? "is-siz" : ""} ${q.uz ? "is-uz" : ""} ${q.markaz ? "is-markaz" : ""}`}>
-      <span className="xb-diag-nom">{q.siz ? `⭐ ${T("Siz")}` : q.uz ? `🇺🇿 ${q.nom}` : T(q.nom)}</span>
+      <span className="xb-diag-nom">{q.siz ? `⭐ ${q.nom}` : q.uz ? `🇺🇿 ${q.nom}` : q.nom}</span>
       <span className="xb-diag-bar"><i style={{ width: `${Math.max(2, Math.min(100, ((q.ball - min) / (max - min)) * 100))}%` }} /></span>
       <b>{q.ball}</b>
     </div>)}
-    <div className="xb-diag-chegara">{[400, 475, 550, 625].map((c) => <span key={c} style={{ left: `${((c - min) / (max - min)) * 100}%` }}>{c}</span>)}</div>
+    <div className="xb-diag-chegara">{chegaralar.filter((c) => c > min && c < max).map((c) => <span key={c} style={{ left: `${((c - min) / (max - min)) * 100}%` }}>{c}</span>)}</div>
   </div>;
 }
 
@@ -43,8 +43,12 @@ export function XbNatija({ apiBase, token, id, jins, ustoz, onYopish }) {
       if (!tirik) return;
       setD(r);
       if (r.tayyor && r.ball) {
-        const t = Object.values(r.davlatlar || {})[0]?.timss2023;
-        ovoz.say(`Imtihon tugadi. Siz ${r.jami} ta savoldan ${r.togri} tasiga to‘g‘ri javob berdingiz. Taxminiy TIMSS balingiz ${r.ball}, bu ${r.daraja?.nom} daraja. ${t ? `TIMSS 2023 natijalari orasida bu ${t.jami} ta davlat ichida ${t.orin}-o‘ringa to‘g‘ri keladi.` : ""} ${r.ball >= 550 ? "Barakalla!" : "Xatolaringiz ustida ishlaymiz — ular takrorlash navbatiga qo‘shildi."}`);
+        const t = Object.values(r.davlatlar || {})[0]?.solishtirish?.[0];
+        const g = [tf("Imtihon tugadi. Siz {jami} ta savoldan {togri} tasiga to‘g‘ri javob berdingiz.", { jami: r.jami, togri: r.togri }),
+          tf(r.daraja?.pisa ? "Taxminiy {dastur} balingiz {ball}, bu {daraja}." : "Taxminiy {dastur} balingiz {ball}, bu {daraja} daraja.", { dastur: r.dastur || "TIMSS", ball: r.ball, daraja: r.daraja?.nom || "" }),
+          t ? tf("{nom} natijalari orasida bu {jami} ta davlat ichida {orin}-o‘ringa to‘g‘ri keladi.", { nom: t.nom, jami: t.jami, orin: t.orin }) : "",
+          r.ball >= 550 ? tf("Barakalla!") : tf("Xatolaringiz ustida ishlaymiz — ular takrorlash navbatiga qo‘shildi.")];
+        ovoz.say(g.join(" "));
       }
     }).catch((e) => tirik && setXato(e.message));
     return () => { tirik = false; ovoz.hush(); };
@@ -53,26 +57,30 @@ export function XbNatija({ apiBase, token, id, jins, ustoz, onYopish }) {
   if (!d) return <div className="xb-panel"><p className="xb-muted">⏳ {T("Natija hisoblanmoqda…")}</p></div>;
   const rang = DARAJA_RANG[d.daraja?.kalit] || "#1b6fd8";
   const sohalar = Object.values(d.sohalar || {}).map((s) => ({ nom: `${s.nom}${Object.keys(d.davlatlar || {}).length > 1 ? ` (${s.fan})` : ""}`, togri: s.togri, jami: s.jami }));
-  const fik = Object.entries(d.fikrlash || {}).map(([k, [t, j]]) => ({ nom: FIKRLASH[k] || k, togri: t, jami: j }));
+  const fik = Object.entries(d.fikrlash || {}).map(([k, [t, j]]) => ({ nom: T(FIKRLASH[k] || k), togri: t, jami: j }));
   const korinadi = (d.savollar || []).filter((s) => !faqatXato || !s.togri_mi);
   return <div className="xb-panel xb-natija">
     <div className="xb-mashq-bosh"><button type="button" className="xb-btn xb-btn-yengil" onClick={() => { ovoz.hush(); onYopish?.(); }}>← {T("Orqaga")}</button>
-      <b>{IMTIHON_BELGI[d.tur]} {T(d.nom)}</b><small>{d.davr}{d.rasmiy ? "" : ` · ${T("mashq urinishi")}`}</small></div>
+      <b>{IMTIHON_BELGI[d.tur]} {d.nom}</b><small>{d.davr}{d.rasmiy ? "" : ` · ${T("mashq urinishi")}`}</small></div>
     <div className="xb-natija-bosh">
       <XbUstoz ustoz={ustoz} speaking={ovoz.speaking} mood={d.ball >= 550 ? "happy" : ""} />
       <div className="xb-ball" style={{ borderColor: rang }}>
-        <small>{T("Taxminiy TIMSS bali")}</small>
+        <small>{tf("Taxminiy {dastur} bali", { dastur: d.dastur || "TIMSS" })}</small>
         <b style={{ color: rang }}>{d.ball ?? "—"}</b>
-        <span>{T(d.daraja?.nom || "")} {T("daraja")}{d.xato_ball ? ` · ±${d.xato_ball}` : ""}</span>
+        <span>{d.daraja?.nom || ""}{d.daraja?.pisa ? "" : ` ${T("daraja")}`}{d.xato_ball ? ` · ±${d.xato_ball}` : ""}</span>
       </div>
       <div className="xb-natija-son"><b>{d.togri}/{d.jami}</b><small>{d.foiz}% {T("to‘g‘ri")}</small>
         {d.chiqishlar > 0 && <small className="xb-ogoh">⚠️ {T("Imtihon oynasidan")} {d.chiqishlar} {T("marta chiqilgan")}</small>}</div>
     </div>
-    {Object.entries(d.davlatlar || {}).map(([k, v]) => v.timss2023 && <section key={k} className="xb-blok">
-      <h4>🌍 {v.fan}: {T("dunyo bilan solishtirish (TIMSS 2023)")}</h4>
-      <p className="xb-muted">{T("Sizning balingiz")} <b>{v.ball}</b> — {v.timss2023.jami - 1} {T("davlat ichida")} <b>{v.timss2023.orin}-{T("o‘rin")}</b>
-        {v.timss2023.ozbekiston ? <> · {T("O‘zbekiston o‘rtachasi")}: <b>{v.timss2023.ozbekiston}</b></> : null}</p>
-      <DavlatDiagramma qatorlar={solishtirishQatorlari(v.timss2023.jadval || [], v.ball, 3)} />
+    {Object.entries(d.davlatlar || {}).map(([k, v]) => <section key={k} className="xb-blok">
+      <h4>🌍 {v.fan}: {T("natija")} <b>{v.ball}</b> · {v.daraja?.nom || ""}</h4>
+      {v.daraja?.pisa && <p className="xb-muted">{v.daraja.tayanch ? `✅ ${T("Siz PISA tayanch darajasiga (2-daraja) yetgansiz — kundalik hayotdagi masalalarni mustaqil hal qila olasiz.")}` : `⚠️ ${T("Hali tayanch darajaga (2-daraja) yetmagansiz. Maqsad — shu daraja: u zamonaviy hayot uchun zarur minimal ko‘nikma deb hisoblanadi.")}`}</p>}
+      {(v.solishtirish || []).slice(0, 1).map((t) => <div key={t.nom}>
+        <p className="xb-muted">{t.nom}: {t.jami - 1} {T("davlat ichida")} <b>{tf("{n}-o‘rin", { n: t.orin })}</b>
+          {t.ozbekiston ? <> · {T("O‘zbekiston o‘rtachasi")}: <b>{t.ozbekiston}</b></> : null}</p>
+        <DavlatDiagramma qatorlar={solishtirishQatorlari(t.jadval || [], v.ball, 3, xbTil())} chegaralar={v.daraja?.pisa ? [420, 482, 545, 607] : undefined} />
+      </div>)}
+      {!(v.solishtirish || []).length && <p className="xb-muted">{T("Bu yo‘nalish bo‘yicha davlatlar jadvali yo‘q — natija PISA darajalarida ko‘rsatilgan.")}</p>}
     </section>)}
     {d.reyting && <section className="xb-blok"><h4>🏅 {T("Reyting (shu davr)")}</h4>
       <div className="xb-reyting-kart">{[["sinf", "Sinfda"], ["maktab", "Maktabda"], ["platforma", "Platformada"]].map(([k, n]) => d.reyting[k] && <div key={k}>
@@ -89,7 +97,7 @@ export function XbNatija({ apiBase, token, id, jins, ustoz, onYopish }) {
           : <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setOchiq(s.n); }}>🧑‍🏫 {T("Yechimni ko‘rish")}</button>}
       </div>)}
       {!korinadi.length && <p>🌟 {T("Xato yo‘q!")}</p>}</section>
-    <p className="xb-muted xb-kichik">{T(d.izoh || "")}</p>
+    <p className="xb-muted xb-kichik">{d.izoh || ""}</p>
   </div>;
 }
 
@@ -134,7 +142,8 @@ export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardo
       setSes(r);
       setJavoblar({ ...(r.javoblar || {}), ...ol(r.sessiya) });
       setBosqich("ish");
-      ovoz.say(`${r.rasmiy ? "Rasmiy" : "Mashq"} imtihon boshlandi. ${r.qism_fani ? `${r.qism}-qism: ${r.qism_fani}.` : ""} Shoshilmang, har bir savolni diqqat bilan o‘qing. Omad!`);
+      ovoz.say([tf(r.rasmiy ? "Rasmiy imtihon boshlandi." : "Mashq imtihoni boshlandi."), r.qism_fani && r.qismlar > 1 ? `${tf("{n}-qism", { n: r.qism })}: ${r.qism_fani}.` : "",
+        tf("Shoshilmang, har bir savolni diqqat bilan o‘qing. Omad!")].join(" "));
     } catch (e) { setXato(e.message); }
     finally { setYuklanmoqda(false); }
   };
@@ -163,11 +172,11 @@ export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardo
   if (bosqich === "natija" && natijaId) return <XbNatija apiBase={apiBase} token={token} id={natijaId} jins={jins} ustoz={ustoz} onYopish={onYopish} />;
 
   if (bosqich === "qoida") return <div className="xb-panel xb-qoida">
-    <div className="xb-mashq-bosh"><button type="button" className="xb-btn xb-btn-yengil" onClick={onYopish}>← {T("Orqaga")}</button><b>{IMTIHON_BELGI[tur]} {T(info?.nom || "Imtihon")}</b></div>
+    <div className="xb-mashq-bosh"><button type="button" className="xb-btn xb-btn-yengil" onClick={onYopish}>← {T("Orqaga")}</button><b>{IMTIHON_BELGI[tur]} {info?.nom || T("Imtihon")}</b></div>
     <XbUstoz ustoz={ustoz} />
     <ul className="xb-qoida-list">
       <li>📝 {info?.savollar} {T("ta savol")}{info?.qismlar > 1 ? ` · ${info.qismlar} ${T("qism (matematika va tabiiy fanlar), orasida 10 daqiqa tanaffus")}` : ""}</li>
-      <li>⏱️ {info?.daqiqa} {T("daqiqa — TIMSS dagi kabi. Vaqt tugasa javoblar avtomatik topshiriladi.")}</li>
+      <li>⏱️ {info?.daqiqa} {T("daqiqa — haqiqiy xalqaro imtihondagi kabi. Vaqt tugasa javoblar avtomatik topshiriladi.")}</li>
       <li>🚫 {T("Imtihon paytida ishora, yechim va ustoz yordami yo‘q. Oynadan chiqib ketish qayd etiladi.")}</li>
       <li>🔊 {T("Savolni ustoz o‘qib berishi mumkin, javobni ovoz bilan aytish ham mumkin.")}</li>
       <li>🏅 {info?.topshirildi ? T("Bu davr uchun rasmiy natijangiz bor — bu urinish mashq sifatida hisoblanadi (reytingga kirmaydi).") : T("Bu davrdagi birinchi urinish rasmiy hisoblanadi va reytingga kiradi.")}</li>
@@ -181,7 +190,7 @@ export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardo
     <h3>☕ {T("Tanaffus")}</h3>
     <p>{T("1-qism topshirildi. Keyingi qism")}: <b>{ses?.qism_fani}</b>. {T("Biroz dam oling, suv iching.")}</p>
     <p className="xb-taymer">{vaqtMatn(Math.max(0, qolgan - (ses?.daqiqa || 0) * 60000))}</p>
-    <button type="button" className="xb-btn xb-btn-asosiy xb-katta" onClick={() => { setJavoblar((j) => j); setBosqich("ish"); ovoz.say(`${ses.qism}-qism: ${ses.qism_fani}. Omad!`); }}>▶ {T("2-qismni boshlash")}</button>
+    <button type="button" className="xb-btn xb-btn-asosiy xb-katta" onClick={() => { setJavoblar((j) => j); setBosqich("ish"); ovoz.say(`${tf("{n}-qism", { n: ses.qism })}: ${ses.qism_fani}. ${tf("Omad!")}`); }}>▶ {T("2-qismni boshlash")}</button>
   </div>;
 
   const savollar = ses?.savollar || [];
@@ -189,13 +198,13 @@ export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardo
   const kam = qolgan < 5 * 60000;
   return <div className="xb-imtihon">
     <header className="xb-imt-bosh">
-      <b>{IMTIHON_BELGI[tur]} {T(ses?.nom || "")}{ses?.qismlar > 1 ? ` · ${ses.qism}-${T("qism")}: ${ses.qism_fani}` : ""}</b>
+      <b>{IMTIHON_BELGI[tur]} {ses?.nom || ""}{ses?.qismlar > 1 ? ` · ${tf("{n}-qism", { n: ses.qism })}: ${ses.qism_fani}` : ""}</b>
       <span className={`xb-taymer ${kam ? "is-kam" : ""}`} role="timer" aria-live={kam ? "polite" : "off"}>⏱ {vaqtMatn(qolgan)}</span>
       <span className="xb-muted">{javoblarSoni(Object.fromEntries(savollar.map((x) => [x.n, javoblar[x.n]])))}/{savollar.length} {T("javob")}</span>
     </header>
     <nav className="xb-nav" aria-label={T("Savollar")}>{savollar.map((x, k) => <button key={x.n} type="button"
       className={`${k === i ? "is-joriy" : ""} ${String(javoblar[x.n] ?? "").trim() ? "is-javob" : ""} ${belgi[x.n] ? "is-belgi" : ""}`}
-      onClick={() => setI(k)} aria-label={`${k + 1}-${T("savol")}`}>{k + 1}</button>)}</nav>
+      onClick={() => setI(k)} aria-label={tf("{n}-savol", { n: k + 1 })}>{k + 1}</button>)}</nav>
     {s && <XbSavol key={s.n} savol={s} javob={javoblar[s.n] || ""} imtihon raqam={i + 1} ovoz={ovoz}
       onJavob={(j) => setJavoblar((old) => ({ ...old, [s.n]: j }))} />}
     <div className="xb-imt-tug">

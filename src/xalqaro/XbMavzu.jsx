@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import XbSavol from "./XbSavol.jsx";
 import XbDoska, { XbUstoz } from "./XbDoska.jsx";
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -26,7 +26,12 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
     const h = d.holat || {};
     const r = d.reyting;
     const gap = d.ustoz?.matn ? `${d.ustoz.matn} ` : "";
-    const matn = `${gap}${oldi ? "Darsdan oldin bilib oling: " : ""}xalqaro TIMSS tadqiqotida «${d.nom}» mavzusidagi savollarni dunyo bo‘yicha o‘quvchilarning o‘rtacha ${d.xalqaro_foiz} foizi to‘g‘ri yechgan. ${d.davlatlar?.[0] ? `Eng yaxshisi — ${d.davlatlar[0][0]}, ${d.davlatlar[0][1]} foiz.` : ""} ${h.urinilgan ? `Siz bu mavzuning ${h.jami} ta savolidan ${h.ozlashtirgan} tasini o‘zlashtirgansiz.` : "Siz bu mavzuni hali boshlamagansiz."} ${r?.orin ? `Sinfdoshlaringiz orasida ${r.jami} kishidan ${r.orin}-o‘rindasiz.` : ""}`;
+    const matn = [gap, oldi ? tf("Darsdan oldin bilib oling:") : "",
+      tf(d.dastur === "PISA" ? "Xalqaro {dastur} tadqiqotida «{nom}» mavzusidagi savollarni OECD mamlakatlarida o‘quvchilarning o‘rtacha {foiz} foizi to‘g‘ri yechgan."
+        : "Xalqaro {dastur} tadqiqotida «{nom}» mavzusidagi savollarni dunyo bo‘yicha o‘quvchilarning o‘rtacha {foiz} foizi to‘g‘ri yechgan.", { dastur: d.dastur || "TIMSS", nom: d.nom, foiz: d.xalqaro_foiz ?? "—" }),
+      d.davlatlar?.[0] ? tf("Eng yaxshisi — {nom}, {foiz} foiz.", { nom: d.davlatlar[0][0], foiz: d.davlatlar[0][1] }) : "",
+      h.urinilgan ? tf("Siz bu mavzuning {jami} ta savolidan {oz} tasini o‘zlashtirgansiz.", { jami: h.jami, oz: h.ozlashtirgan }) : tf("Siz bu mavzuni hali boshlamagansiz."),
+      r?.orin ? tf("Sinfdoshlaringiz orasida {jami} kishidan {orin}-o‘rindasiz.", { jami: r.jami, orin: r.orin }) : ""].filter(Boolean).join(" ");
     const t = setTimeout(() => ovoz.say(matn), 400);
     return () => { clearTimeout(t); ovoz.hush(); };
   }, [d]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -39,7 +44,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
     <div className="xb-mashq-bosh">
       {onYopish && <button type="button" className="xb-btn xb-btn-yengil" onClick={() => { ovoz.hush(); onYopish(); }}>{oldi ? "✕" : `← ${T("Orqaga")}`}</button>}
       <b>{oldi ? `🌍 ${T("Mavzu oldidan: xalqaro baholashda")}` : `🌍 ${d.nom}`}</b>
-      <small>{d.toplam_nomi?.dastur} · {d.toplam_nomi?.sinf}-{T("sinf")} · {d.soha_nomi}</small>
+      <small>{d.toplam_nomi?.dastur} · {tf("{n}-sinf", { n: d.toplam_nomi?.sinf })} · {d.soha_nomi}</small>
     </div>
     <div className="xb-mavzu-bosh">
       <XbUstoz ustoz={ustoz} speaking={ovoz.speaking} />
@@ -54,8 +59,11 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
       <div className="xb-karta"><small>{T("Fikrlash darajalari")}</small>
         {Object.entries(d.fikrlash || {}).map(([k, v]) => <small key={k}>{T(FIKRLASH[k] || k)}: <b>{v.ozlashtirgan}/{v.jami}</b></small>)}</div>
     </div>
+    {d.pisa_qiyinlik && <section className="xb-blok"><h4>📏 {T("PISA qiyinligi")}</h4>
+      <p>{T("Bu mavzu savollari PISA shkalasida")} <b>{d.pisa_qiyinlik.min}–{d.pisa_qiyinlik.max}</b> {T("ball oralig‘ida, o‘rtacha")} <b>{d.pisa_qiyinlik.ortacha}</b> ({d.pisa_qiyinlik.daraja}).
+        {" "}{T("O‘zbekiston o‘quvchilarining PISA 2022 dagi o‘rtacha natijasi: matematika 364, o‘qish 336; tayanch daraja — taxminan 410–420 ball.")}</p></section>}
     {d.davlatlar?.length > 0 && <section className="xb-blok"><h4>🏆 {T("Davlatlar: shu mavzu savollarini to‘g‘ri yechganlar (%) — TIMSS 2011")}</h4>
-      <div className="xb-ustunlar">{[...d.davlatlar, [T("Dunyo o‘rtachasi"), d.xalqaro_foiz]].map(([n, f]) => <div key={n} className="xb-ustun-q"><span>{T(n)}</span>
+      <div className="xb-ustunlar">{[...d.davlatlar, [T("Dunyo o‘rtachasi"), d.xalqaro_foiz]].map(([n, f]) => <div key={n} className="xb-ustun-q"><span>{n}</span>
         <span className="xb-progress"><i style={{ width: `${f}%` }} /></span><b>{f}%</b></div>)}</div></section>}
     {!oldi && d.strategiyalar?.length > 0 && <section className="xb-blok"><h4>🧭 {T("Xalqaro savollarni yechish yo‘llari")}</h4><ul>{d.strategiyalar.map((s) => <li key={s}>{s}</li>)}</ul></section>}
     {d.tipik_xatolar?.length > 0 && <section className="xb-blok"><h4>⚠️ {T("Ko‘p uchraydigan xatolar")}</h4><ul>{d.tipik_xatolar.slice(0, oldi ? 3 : 8).map((s) => <li key={s}>{s}</li>)}</ul></section>}
@@ -80,7 +88,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
       </div>)}</section>}
     {!oldi && d.maktab_darslari?.length > 0 && <section className="xb-blok"><h4>📚 {T("Kerakli maktab darslari (1–11 sinf) — takrorlash uchun")}</h4>
       <div className="xb-maktab">{d.maktab_darslari.map((m) => <button key={m.topic_code} type="button" className="xb-btn xb-btn-yengil" onClick={() => onMaktabDarsi?.(m)}>
-        <small>{m.sinf}-{T("sinf")} · {m.fan}</small> {m.nom}</button>)}</div></section>}
+        <small>{tf("{n}-sinf", { n: m.sinf })} · {m.fan}</small> {m.nom}</button>)}</div></section>}
     <div className="xb-tug-qator">
       {oldi && onDavom && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDavom(); }}>▶ {T("Maktab darsini boshlash")}</button>}
       {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}

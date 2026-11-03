@@ -1,16 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { useInterface } from "../interface/InterfacePreferences.jsx";
+import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { ustozFor } from "../kid/ustozRules.js";
 import XbMavzu from "./XbMavzu.jsx";
 import XbMashq from "./XbMashq.jsx";
 import XbImtihon, { DavlatDiagramma, XbNatija } from "./XbImtihon.jsx";
 import { XbUstoz } from "./XbDoska.jsx";
+import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
+import XbQollanma from "./XbQollanma.jsx";   // REV262
+import { XB_TILLAR, XB_TIL_BAYROQ, XB_TIL_NOMI } from "./xbTil.js";
 import "./xalqaro.css";
 
 const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));
-const TABLAR = [["kurs", "📚 Kurs"], ["imtihon", "📝 Imtihonlar"], ["takror", "🔁 Takrorlash"], ["reyting", "🏅 Reyting"], ["dunyo", "🌍 Dunyo natijalari"]];
+const TABLAR = [["qollanma", "📖 Qo‘llanma"], ["kurs", "📚 Kurs"], ["imtihon", "📝 Imtihonlar"], ["xato", "❌ Xatolarim"], ["takror", "🔁 Takrorlash"], ["reyting", "🏅 Reyting"], ["dunyo", "🌍 Dunyo natijalari"]];
 const ESLA = "kabutar:xb:toplam";
 
 /**
@@ -18,16 +22,32 @@ const ESLA = "kabutar:xb:toplam";
  *   Kurs (mavzu → Kabu darsi → mashq), haftalik/oylik/choraklik/yillik haqiqiy imtihonlar, takrorlash navbati,
  *   reyting (sinf/maktab/platforma + davlatlar), dunyo natijalari (TIMSS 2019/2023, PISA 2022/2025, PIRLS 2021), o'qituvchiga sinf natijasi.
  */
-export default function XalqaroBaholash({ apiBase, token, user, jins = "qiz", cheklovsiz = false }) {
+export default function XalqaroBaholash(props) {
+  // REV270: interfeys tili o'zgarsa — bo'lim boshqa til bilan qaytadan ochiladi (holat, kontent va natijalar shu tilniki)
+  useInterface();
+  const til = xbTil();
+  return <XalqaroBolim key={til} til={til} {...props} />;
+}
+
+function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, rejim = "", til = "uz" }) {
   const ovoz = useUstozOvoz(apiBase, jins);
-  const [tab, setTab] = useState("kurs");
+  const [tab, setTab] = useState(() => { try { return localStorage.getItem("kabutar:xb:qollanma") ? "kurs" : "qollanma"; } catch { return "kurs"; } });   // REV262: birinchi kirishda — Qo'llanma
+  useEffect(() => { try { localStorage.setItem("kabutar:xb:qollanma", "1"); } catch { /* */ } }, []);
   const [kat, setKat] = useState(null);
   const [xato, setXato] = useState("");
   const [toplam, setToplam] = useState(() => { try { return localStorage.getItem(ESLA) || ""; } catch { return ""; } });
   const [ekran, setEkran] = useState(null);   // {tur: mavzu|dars|mashq|imtihon|natija|maktab, ...}
   const [yangila, setYangila] = useState(0);
   const sinf = sinfRaqami(user?.class);
-  const oqituvchi = ["oqituvchi", "direktor"].includes(String(user?.role || ""));
+  // REV261: kim ko'ryapti — o'qituvchi (o'z maktabi) / admin (istalgan maktab) panelni ko'radi; rejim="oquvchi" — admin «O'quvchi ko'zi bilan»
+  const [kuzatuv, setKuzatuv] = useState(null);
+  useEffect(() => {
+    if (rejim === "oquvchi") { setKuzatuv({ rol: "oquvchi" }); return undefined; }
+    let tirik = true;
+    xbFetch(apiBase, "/api/xalqaro/kuzatuv", token).then((r) => { if (!tirik) return; setKuzatuv(r); if (r.rol !== "oquvchi") setTab("panel"); }).catch(() => tirik && setKuzatuv({ rol: "oquvchi" }));
+    return () => { tirik = false; };
+  }, [rejim]); // eslint-disable-line react-hooks/exhaustive-deps
+  const panel = kuzatuv && kuzatuv.rol !== "oquvchi";
 
   useEffect(() => {
     let tirik = true;
@@ -45,8 +65,8 @@ export default function XalqaroBaholash({ apiBase, token, user, jins = "qiz", ch
   const tp = useMemo(() => kat?.toplamlar?.find((t) => t.kalit === toplam), [kat, toplam]);
   const ustoz = ustozFor(tp?.ustoz_fan || "Matematika");
   const orqaga = useCallback(() => { setEkran(null); setYangila((n) => n + 1); }, []);
-  const ochDars = (m) => { ovoz.hush(); setEkran({ tur: "dars", kod: m.dars_kodi, fan: m.fan || tp?.ustoz_fan, mavzu: m.kalit, sinf: tp?.sinf }); };
-  const ochMashq = (m, extra = {}) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { mavzu: m?.kalit || "", toplam, ...extra }, sarlavha: m?.nom ? `Mashq: ${m.nom}` : "Aralash mashq" }); };
+  const ochDars = (m) => { ovoz.hush(); setEkran({ tur: "dars", kod: m.dars_kodi, fan: m.fan || tp?.ustoz_fan, mavzu: m.kalit, sinf: m.sinf || tp?.sinf }); };
+  const ochMashq = (m, extra = {}) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { mavzu: m?.kalit || "", toplam, ...extra }, sarlavha: m?.nom ? `${T("Mashq")}: ${m.nom}` : T("Aralash mashq") }); };
 
   if (xato) return <div className="xb-root"><p className="xb-xato">{T(xato)}</p></div>;
   if (!kat) return <div className="xb-root"><p className="xb-muted">⏳ {T("Xalqaro baholash yuklanmoqda…")}</p></div>;
@@ -78,24 +98,38 @@ export default function XalqaroBaholash({ apiBase, token, user, jins = "qiz", ch
       <div>
         <h2>🌍 {T("Xalqaro baholash")}</h2>
         <p className="xb-pufak" style={{ borderColor: gap[0] }}><span style={{ color: gap[0] }}>{gap[1]}</span> {kat.ustoz?.matn}</p>
+        <TilBelgisi til={til} tillar={kat.tillar} />
       </div>
     </header>
-    <div className="xb-toplamlar" role="tablist" aria-label={T("To‘plam")}>{kat.toplamlar.map((t) => <button key={t.kalit} type="button" role="tab" aria-selected={t.kalit === toplam}
-      className={t.kalit === toplam ? "is-on" : ""} onClick={() => { ovoz.hush(); setToplam(t.kalit); }}>
-      <b>{t.dastur} · {t.sinf}-{T("sinf")}</b><small>{T(t.fan_nomi)}{t.tavsiya ? ` · ${T("sizga mos")}` : ""}</small></button>)}</div>
-    <nav className="xb-tablar">{TABLAR.map(([k, n]) => <button key={k} type="button" className={tab === k ? "is-on" : ""} onClick={() => setTab(k)}>
-      {T(n)}{k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}
-      {oqituvchi && <button type="button" className={tab === "sinf" ? "is-on" : ""} onClick={() => setTab("sinf")}>👩‍🏫 {T("Sinfim")}</button>}</nav>
+    {kat.tayyor_emas && <div className="xb-panel xb-ogoh-panel"><p>🌐 {kat.tayyor_emas}</p></div>}
+    {["TIMSS", "PISA"].map((dastur) => <div key={dastur} className="xb-toplam-guruh">
+      <h4>{dastur === "TIMSS" ? T("TIMSS — 4- va 8-sinf: matematika va tabiiy fanlar") : T("PISA — 15 yosh (9–10-sinf): bilimni hayotda qo‘llash")}</h4>
+      <div className="xb-toplamlar" role="tablist" aria-label={dastur}>{kat.toplamlar.filter((t) => t.dastur === dastur).map((t) => <button key={t.kalit} type="button" role="tab" aria-selected={t.kalit === toplam}
+        className={t.kalit === toplam ? "is-on" : ""} onClick={() => { ovoz.hush(); setToplam(t.kalit); }}>
+        <b>{t.dastur === "PISA" ? `PISA · ${t.fan_nomi}` : `TIMSS · ${tf("{n}-sinf", { n: t.sinf })}`}</b>
+        <small>{t.dastur === "PISA" ? T("15 yosh") : t.fan_nomi}{t.tavsiya ? ` · ⭐ ${T("sizga mos")}` : ""}</small></button>)}</div>
+    </div>)}
+    <nav className="xb-tablar">
+      {panel && <button type="button" className={`xb-tab-panel ${tab === "panel" ? "is-on" : ""}`} onClick={() => setTab("panel")}>👩‍🏫 {kuzatuv.rol === "admin" ? T("Admin nazorati") : T("Sinfim (o‘qituvchi)")}</button>}
+      {panel && <button type="button" className={tab === "metod" ? "is-on" : ""} onClick={() => setTab("metod")}>🎓 {T("O‘qitish metodlari")}</button>}
+      {panel && <span className="xb-tab-ajrat">{T("O‘quvchi ko‘rinishi")}:</span>}
+      {TABLAR.map(([k, n]) => <button key={k} type="button" className={tab === k ? "is-on" : ""} onClick={() => setTab(k)}>
+      {T(n)}{k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</nav>
+    {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq} />}
     {tab === "imtihon" && <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />}
     {tab === "takror" && <div className="xb-panel"><p>🔁 {T("Takrorlash navbati: xato qilgan savollaringiz 1, 2, 4, 8, 16 kundan keyin boshqa variantda qayta so‘raladi. 5 marta ketma-ket to‘g‘ri yechsangiz, savol navbatdan chiqadi.")}</p>
       <p><b>{kat.takror}</b> {T("ta savol bugun takrorlanishi kerak.")}</p>
-      <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: "Takrorlash" })}>▶ {T("Takrorlashni boshlash")}</button>
+      <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Takrorlash") })}>▶ {T("Takrorlashni boshlash")}</button>
       <button type="button" className="xb-btn" onClick={() => ochMashq(null, { soni: 12 })}>🎲 {T("Aralash mashq (12 savol)")}</button>
       <button type="button" className="xb-btn" onClick={() => ochMashq(null, { soni: 10, fikrlash: "mulohaza" })}>🧠 {T("Faqat mulohaza savollari")}</button></div>}
     {tab === "reyting" && <Reyting apiBase={apiBase} token={token} toplam={toplam} />}
     {tab === "dunyo" && <Dunyo apiBase={apiBase} token={token} uz={kat.ozbekiston} />}
-    {tab === "sinf" && oqituvchi && <SinfNatija apiBase={apiBase} token={token} />}
+    {tab === "metod" && panel && <XbQollanma rol={kuzatuv?.rol} ovoz={ovoz} faqatMetod onTab={setTab} />}
+    {tab === "panel" && panel && <XbOqituvchi apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} kuzatuv={kuzatuv}
+      onDars={(m) => ochDars({ dars_kodi: m.dars_kodi, kalit: m.kalit, fan: kat.toplamlar.find((t) => t.kalit === m.toplam)?.ustoz_fan, sinf: kat.toplamlar.find((t) => t.kalit === m.toplam)?.sinf })} />}
+    {tab === "xato" && <Xatolarim apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} toplam={toplam}
+      onMashq={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Xatolar ustida ishlash") })} />}
     <p className="xb-muted xb-kichik">ℹ️ {T(kat.manba)}</p>
   </div>;
 }
@@ -113,13 +147,13 @@ function Kurs({ tp, onMavzu, onDars, onMashq }) {
     <div className="xb-karta xb-kurs-bosh"><small>{T("Kurs bo‘yicha o‘zlashtirish")}</small><b>{oz}/{jami} {T("savol")}</b>
       <span className="xb-progress"><i style={{ width: `${jami ? Math.round((100 * oz) / jami) : 0}%` }} /></span>
       <small>{T("Har mavzu: avval dars (Kabu doskada tushuntiradi), keyin mashq. 80% dan keyin mavzu ★ bo‘ladi.")}</small></div>
-    {sohalar.map((s) => <section key={s.soha} className="xb-soha"><h3>{T(s.nom)}</h3>
+    {sohalar.map((s) => <section key={s.soha} className="xb-soha"><h3>{s.nom}</h3>
       <ul className="xb-mavzular">{s.mavzular.map((m) => {
         const b = mavzuBelgi(m.holat);
         return <li key={m.kalit} className={`xb-mavzu-q is-${b.kalit}`}>
           <button type="button" className="xb-mavzu-nom" onClick={() => onMavzu(m)}>
             <span className="xb-belgi" title={T(b.nom)}>{b.belgi}</span>
-            <span><b>{T(m.nom)}</b><small>{m.savollar} {T("savol")} · 🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}%</small></span>
+            <span><b>{m.nom}</b><small>{m.savollar} {T("savol")} · 🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}%</small></span>
           </button>
           <span className="xb-mavzu-tug">
             {m.dars_kodi && <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
@@ -140,7 +174,7 @@ function Imtihonlar({ apiBase, token, toplam, onBoshla, onNatija }) {
     <h4>{IMTIHON_BELGI[e.tur]} {T(e.nom)}</h4>
     <p className="xb-muted">{e.savollar} {T("savol")} · {e.daqiqa} {T("daqiqa")}{e.qismlar > 1 ? ` · ${e.qismlar} ${T("qism")}` : ""}</p>
     <p className="xb-muted">{T("Davr")}: {e.davr} · {T("tugaydi")}: {e.davr_oxiri}</p>
-    {e.natija ? <p>✅ {T("Rasmiy natija")}: <b>{e.natija.ball}</b> ({darajaNomi(e.natija.ball)}) · {e.natija.foiz}%</p> : <p className="xb-ogoh">⏳ {T("Bu davrda hali topshirilmagan")}</p>}
+    {e.natija ? <p>✅ {T("Rasmiy natija")}: <b>{e.natija.ball}</b> ({toplam?.startsWith("P_") ? "PISA" : T(darajaNomi(e.natija.ball))}) · {e.natija.foiz}%</p> : <p className="xb-ogoh">⏳ {T("Bu davrda hali topshirilmagan")}</p>}
     {e.tarix?.length > 1 && <div className="xb-tarix" aria-label={T("Oldingi natijalar")}>{e.tarix.map((t) => <i key={t.id} title={`${t.davr}: ${t.ball}`} style={{ height: `${Math.max(8, ((t.ball || 300) - 300) / 4)}px` }} />)}</div>}
     <div className="xb-tug-qator">
       <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => onBoshla(e)}>{e.davom ? T("▶ Davom ettirish") : e.topshirildi ? T("Mashq sifatida qayta") : T("▶ Boshlash")}</button>
@@ -154,7 +188,7 @@ function Reyting({ apiBase, token, toplam }) {
   useEffect(() => { let t = true; xbFetch(apiBase, "/api/xalqaro/reyting", token, { params: { toplam } }).then((r) => t && setD(r)).catch(() => t && setD({})); return () => { t = false; }; }, [toplam]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <p className="xb-muted">⏳</p>;
   if (!d.oxirgi?.ball) return <div className="xb-panel"><p>🏅 {T("Reyting rasmiy imtihon natijasidan tuziladi. Avval haftalik nazoratni topshiring.")}</p></div>;
-  const t23 = d.davlatlar?.timss2023;
+  const t23 = d.solishtirish?.[0];
   return <div className="xb-panel">
     <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("Oxirgi rasmiy ball")}</small><b>{d.oxirgi.ball}</b><small>{T(d.oxirgi.daraja?.nom || "")}</small></div>
@@ -163,7 +197,7 @@ function Reyting({ apiBase, token, toplam }) {
     </div>
     {d.sinfdoshlar?.length > 0 && <section className="xb-blok"><h4>👥 {T("Sinfdoshlar (ismlar yashirin)")}</h4>
       <ol className="xb-sinfdosh">{d.sinfdoshlar.map((r) => <li key={r.orin} className={r.men ? "is-men" : ""}>{r.orin}. {r.men ? `⭐ ${T("Siz")}` : T("Sinfdosh")} — <b>{r.ball}</b></li>)}</ol></section>}
-    {t23 && <section className="xb-blok"><h4>🌍 {T("Davlatlar orasida (TIMSS 2023)")}: {t23.orin}-{T("o‘rin")}</h4><DavlatDiagramma qatorlar={solishtirishQatorlari(t23.jadval, d.oxirgi.ball, 5)} /></section>}
+    {t23 && <section className="xb-blok"><h4>🌍 {T("Davlatlar orasida")} ({t23.nom}): {tf("{n}-o‘rin", { n: t23.orin })}</h4><DavlatDiagramma qatorlar={solishtirishQatorlari(t23.jadval, d.oxirgi.ball, 5, xbTil())} /></section>}
     {d.tarix?.length > 1 && <section className="xb-blok"><h4>📈 {T("O‘sish tarixi")}</h4>
       <div className="xb-tarix xb-tarix-katta">{d.tarix.map((t, k) => <i key={k} title={`${t.tur} ${t.davr}: ${t.ball}`} style={{ height: `${Math.max(8, ((t.ball || 300) - 300) / 3)}px` }} />)}</div></section>}
   </div>;
@@ -179,33 +213,27 @@ function Dunyo({ apiBase, token, uz }) {
     "TIMSS 2019 M8": "TIMSS 2019 · 8-sinf matematika", "TIMSS 2019 S8": "TIMSS 2019 · 8-sinf tabiiy fanlar", "PISA 2022 M": "PISA 2022 · matematika (15 yosh)",
     "PISA 2022 R": "PISA 2022 · o‘qish (15 yosh)", "PISA 2022 S": "PISA 2022 · tabiiy fanlar (15 yosh)", "PISA 2025 S": "PISA 2025 · tabiiy fanlar", "PIRLS 2021 R4": "PIRLS 2021 · o‘qish (4-sinf)" };
   const rows = d.jadvallar?.[jad] || [];
-  const uzOrin = rows.findIndex((r) => r[0] === "O‘zbekiston");
+  const uzNomi = d.uz_nomi || "O‘zbekiston";   // REV270: davlat nomlari shu tilda
+  const uzOrin = rows.findIndex((r) => r[0] === uzNomi);
   return <div className="xb-panel">
     <section className="xb-blok xb-uz"><h4>🇺🇿 {T("O‘zbekiston xalqaro tadqiqotlarda")}</h4>
       <ul><li>TIMSS 2023: {T("4-sinf matematika")} <b>{uz?.TIMSS?.M4?.["2023"]}</b>, {T("tabiiy fanlar")} <b>{uz?.TIMSS?.S4?.["2023"]}</b>; {T("8-sinf matematika")} <b>{uz?.TIMSS?.M8?.["2023"]}</b>, {T("tabiiy fanlar")} <b>{uz?.TIMSS?.S8?.["2023"]}</b></li>
         <li>PISA: {T("tabiiy fanlar")} 2022 — <b>{uz?.PISA?.S?.["2022"]}</b> → 2025 — <b>{uz?.PISA?.S?.["2025"]}</b> (+{(uz?.PISA?.S?.["2025"] || 0) - (uz?.PISA?.S?.["2022"] || 0)}); {T("matematika")} 2022 — <b>{uz?.PISA?.M?.["2022"]}</b>, {T("o‘qish")} 2022 — <b>{uz?.PISA?.R?.["2022"]}</b></li>
         <li>PIRLS 2021 ({T("o‘qish, 4-sinf")}): <b>{uz?.PIRLS?.R4?.["2021"]}</b></li></ul>
-      <p className="xb-muted">{T(uz?.izoh || "")}</p></section>
-    <label className="xb-tanla">{T("Jadval")}: <select value={jad} onChange={(e) => setJad(e.target.value)}>{Object.keys(d.jadvallar || {}).map((k) => <option key={k} value={k}>{nomlar[k] || k}</option>)}</select></label>
-    {uzOrin >= 0 && <p>🇺🇿 {T("O‘zbekiston")}: <b>{uzOrin + 1}-{T("o‘rin")}</b> / {rows.length}</p>}
-    <ol className="xb-dunyo">{rows.map(([n, b], k) => <li key={n} className={n === "O‘zbekiston" ? "is-uz" : ""}><span>{k + 1}. {T(n)}</span>
+      <p className="xb-muted">{uz?.izoh || ""}</p></section>
+    <label className="xb-tanla">{T("Jadval")}: <select value={jad} onChange={(e) => setJad(e.target.value)}>{Object.keys(d.jadvallar || {}).map((k) => <option key={k} value={k}>{T(nomlar[k] || k)}</option>)}</select></label>
+    {uzOrin >= 0 && <p>🇺🇿 {uzNomi}: <b>{tf("{n}-o‘rin", { n: uzOrin + 1 })}</b> / {rows.length}</p>}
+    <ol className="xb-dunyo">{rows.map(([n, b], k) => <li key={n} className={n === uzNomi ? "is-uz" : ""}><span>{k + 1}. {n}</span>
       <span className="xb-progress"><i style={{ width: `${Math.max(2, ((b - 250) / 400) * 100)}%` }} /></span><b>{b}</b></li>)}</ol>
     <p className="xb-muted xb-kichik">{T("Manbalar")}: {Object.values(d.manbalar || {}).join("; ")}</p>
   </div>;
 }
 
-function SinfNatija({ apiBase, token }) {
-  const [sinf, setSinf] = useState("");
-  const [d, setD] = useState(null);
-  const [xato, setXato] = useState("");
-  useEffect(() => { let t = true; setD(null); xbFetch(apiBase, "/api/xalqaro/sinf_natija", token, { params: { sinf } }).then((r) => t && setD(r)).catch((e) => t && setXato(e.message)); return () => { t = false; }; }, [sinf]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (xato) return <p className="xb-xato">{T(xato)}</p>;
-  return <div className="xb-panel">
-    <label className="xb-tanla">{T("Sinf")}: <select value={sinf} onChange={(e) => setSinf(e.target.value)}><option value="">{T("Hammasi")}</option>
-      {Array.from({ length: 11 }, (_, k) => <option key={k} value={String(k + 1)}>{k + 1}-{T("sinf")}</option>)}</select></label>
-    {!d ? <p className="xb-muted">⏳</p> : <table className="xb-jadval"><thead><tr><th>{T("O‘quvchi")}</th><th>{T("Sinf")}</th><th>{T("Yechgan")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Oxirgi ball")}</th><th>{T("Faollik")}</th></tr></thead>
-      <tbody>{d.oquvchilar.map((o) => <tr key={o.user_id} className={o.kun_oldin === null || o.kun_oldin > 7 ? "is-sust" : ""}>
-        <td>{o.full_name}</td><td>{o.class}{o.harf}</td><td>{o.urinish}</td><td>{o.ozlashtirgan}</td><td>{o.ball ? `${o.ball} (${T(o.daraja)})` : "—"}</td>
-        <td>{o.kun_oldin === null ? `⚠️ ${T("boshlamagan")}` : o.kun_oldin > 7 ? `⚠️ ${o.kun_oldin} ${T("kun oldin")}` : o.kun_oldin === 0 ? T("bugun") : `${o.kun_oldin} ${T("kun oldin")}`}</td></tr>)}</tbody></table>}
-  </div>;
+/** REV270: qaysi tilda o'qilayotgani va natijalar shu tilda alohida ekani — o'quvchi ham, o'qituvchi ham aniq ko'radi. */
+function TilBelgisi({ til, tillar }) {
+  const boshqa = XB_TILLAR.filter((t) => t !== til && tillar?.[t]?.javoblar);
+  return <p className="xb-til" role="note">
+    <b>{XB_TIL_BAYROQ[til]} {XB_TIL_NOMI[til]}</b> · {T("bu tilda o‘qiyapsiz: savollar, darslar, natijalar va reyting shu tilda alohida hisoblanadi.")}
+    {boshqa.length > 0 && <small> {T("Boshqa tillardagi natijalaringiz o‘sha tilda saqlanadi")}: {boshqa.map((t) => `${XB_TIL_BAYROQ[t]} ${XB_TIL_NOMI[t]} — ${tillar[t].javoblar} ${T("javob")}`).join(", ")}.</small>}
+  </p>;
 }

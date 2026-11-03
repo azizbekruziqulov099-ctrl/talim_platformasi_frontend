@@ -147,3 +147,43 @@
   .xb-ustun-q,.xb-diag-q,.xb-dunyo li{grid-template-columns:minmax(90px,1fr) 2fr 40px}
 }
 @media (prefers-reduced-motion:reduce){.xb-ustoz.is-gap img,.xb-ikon.is-on,.xb-taymer.is-kam{animation:none}}
+
+/* REV261: o'qituvchi/admin paneli va xatolar */
+.xb-filtr{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.xb-tablar .xb-tab-panel{background:#fff4dd;color:#7a4b00;border:1px solid #f0d49a}
+.xb-tablar .xb-tab-panel.is-on{background:#c77d00;color:#fff}
+.xb-tab-ajrat{flex:0 0 auto;align-self:center;font-size:12px;color:#5d6678;padding:0 4px 0 8px;border-left:1px solid var(--xb-chiziq)}
+.xb-jadval-wrap{overflow-x:auto}
+.xb-bosiladi{cursor:pointer}.xb-bosiladi:hover td,.xb-bosiladi:focus td{background:#eef4ff}
+.xb-ustun-tug{grid-template-columns:minmax(140px,1.4fr) 2fr auto auto}
+
+/* REV262: PISA stimul (umumiy matn/jadval) */
+.xb-stimul{border:1px solid #d9e2f0;background:#f8fbff;border-radius:14px;overflow:hidden}
+.xb-stimul-bosh{width:100%;text-align:left;background:#eef4ff;border:0;padding:8px 12px;font-size:14px;cursor:pointer}
+.xb-stimul-bosh small{color:#5d6678;margin-left:6px}
+.xb-stimul-ich{padding:10px 12px;display:grid;gap:8px;max-height:420px;overflow:auto}
+.xb-stimul-matn{font-size:15px}
+.xb-stimul.is-imtihon .xb-stimul-matn{font-family:Georgia,"Times New Roman",serif;font-size:16px}
+.xb-chip-pisa{background:#f3ecff;color:#6b3fc4}
+.xb-toplam-guruh{display:grid;gap:6px}
+.xb-toplam-guruh h4{margin:0;font-size:13px;color:#5d6678;text-transform:uppercase;letter-spacing:.04em}
+@media (min-width:1000px){.xb-imtihon .xb-savol:has(.xb-stimul){grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}
+  .xb-imtihon .xb-savol:has(.xb-stimul) .xb-savol-bosh{grid-column:1 / -1}
+  .xb-imtihon .xb-savol:has(.xb-stimul) .xb-stimul{grid-row:2 / span 6;position:sticky;top:70px}
+  .xb-imtihon .xb-savol:has(.xb-stimul) .xb-stimul-ich{max-height:70vh}}
+
+/* REV262: Qo'llanma */
+.xb-qol{border:1px solid var(--xb-chiziq);border-radius:14px;overflow:hidden;background:#fff}
+.xb-qol.is-ochiq{border-color:#b9cdea}
+.xb-qol-bosh{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:#f6f8fb;border:0;padding:12px 14px;font-size:15px;cursor:pointer}
+.xb-qol.is-ochiq .xb-qol-bosh{background:#eef4ff}
+.xb-qol-ich{padding:10px 14px 14px;display:grid;gap:8px;font-size:15px;line-height:1.55}
+.xb-qol-ich p{margin:0}
+
+/* REV270: til belgisi va metodlar */
+.xb-root .xb-til{margin:6px 0 0;font-size:13px;line-height:1.4;color:var(--xb-muted,#5b6575)}
+.xb-root .xb-til b{color:inherit;font-weight:700;margin-right:2px}
+.xb-root .xb-til small{display:block;opacity:.85}
+.xb-root .xb-ogoh-panel{border-left:4px solid #c77d00}
+.xb-root .xb-metodlar ol{margin:4px 0 8px 18px;padding:0}
+.xb-root .xb-metodlar a{color:#1b6fd8;text-decoration:underline}

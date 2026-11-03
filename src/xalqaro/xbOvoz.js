@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { speakableText } from "../lesson/darsXonasiRules.js";
+import { MIK_TIL, ovozMatni, xbTil } from "./xbTil.js";
 
 /**
  * REV260: ustoz ovozi (/api/ovoz) — ovoz qancha aytilganini (0–1) ham beradi: doskadagi yozuv shunga qarab harfma-harf yuradi.
@@ -39,7 +40,8 @@ export function useUstozOvoz(apiBase, jins = "qiz") {
       }, 60);
     };
     try {
-      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: clean.slice(0, 1500), jins })}`);
+      // REV270: ruscha/inglizcha matn — til tegi bilan (server shu tilning ovozini tanlaydi)
+      const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: ovozMatni(clean.slice(0, 1480)), jins })}`);
       audioRef.current = a;
       let failed = false;
       a.ontimeupdate = () => { if (my === runRef.current && a.duration && Number.isFinite(a.duration)) setProgress(Math.min(1, a.currentTime / a.duration)); };
@@ -54,7 +56,7 @@ export function useUstozOvoz(apiBase, jins = "qiz") {
 }
 
 /** Mikrofon: bir marta tinglab, eng ishonchli variantlarni qaytaradi. Brauzer qo'llamasa — mavjud=false. */
-export function useMikrofon(lang = "uz-UZ") {
+export function useMikrofon(lang = MIK_TIL[xbTil()] || "uz-UZ") {
   const recRef = useRef(null);
   const [tinglash, setTinglash] = useState(false);
   const [xato, setXato] = useState("");
@@ -85,11 +87,13 @@ export function useMikrofon(lang = "uz-UZ") {
 /** API so'rovi: xato bo'lsa server xabari bilan Error. */
 export async function xbFetch(apiBase, path, token, { method = "GET", body, params } = {}) {
   const base = String(apiBase || "").replace(/\/+$/, "");
-  const q = new URLSearchParams({ ...(params || {}), ...(method === "GET" ? { token } : {}) });
-  const res = await fetch(`${base}${path}${method === "GET" ? `?${q}` : ""}`, {
+  // REV270: har so'rov o'quvchi tilida (uz/ru/en) — server shu tildagi kontent va shu tildagi natijalarni beradi
+  const til = (params && params.til) || xbTil();
+  const q = new URLSearchParams({ ...(params || {}), til, ...(method === "GET" ? { token } : {}) });
+  const res = await fetch(`${base}${path}?${q}`, {
     method,
     headers: method === "GET" ? undefined : { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: method === "GET" ? undefined : JSON.stringify({ token, ...(body || {}) }),
+    body: method === "GET" ? undefined : JSON.stringify({ token, til, ...(body || {}) }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Server xatosi");

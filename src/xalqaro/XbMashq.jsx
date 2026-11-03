@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import XbSavol from "./XbSavol.jsx";
 import XbDoska, { XbUstoz } from "./XbDoska.jsx";
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -11,7 +11,7 @@ const MAQTOV = ["Barakalla! To‘g‘ri.", "Zo‘r! Aynan shunday.", "To‘g‘r
  * Noto‘g‘ri bo‘lsa: nega xato (tanlangan variant bo‘yicha), ishora, keyin doskada yechim harfma-harf.
  * Ovoz bilan javob berilsa — ustoz uni yozdirib tasdiqlatadi (aytib + yozib).
  */
-export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor", manba, sarlavha = "Mashq", onYopish, onTugadi }) {
+export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor", manba, sarlavha = T("Mashq"), onYopish, onTugadi }) {
   const ovoz = useUstozOvoz(apiBase, jins);
   const [savollar, setSavollar] = useState(null);
   const [xato, setXato] = useState("");
@@ -42,11 +42,11 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
       const togriIdx = s.turi === "tanlov" ? s.togri : null;
       setHolat({ ok: r.togri, togri: togriIdx });
       setHisob((h) => ({ togri: h.togri + (r.togri ? 1 : 0), jami: h.jami + 1 }));
-      if (r.togri) ovoz.say(`${MAQTOV[(i + hisob.jami) % MAQTOV.length]} ${u === "aytib" ? "Endi shu javobni yozib qo‘ying." : ""}`);
+      if (r.togri) ovoz.say(`${tf(MAQTOV[(i + hisob.jami) % MAQTOV.length])} ${u === "aytib" ? tf("Endi shu javobni yozib qo‘ying.") : ""}`);
       else {
         const idx = s.turi === "tanlov" ? "ABCD".indexOf(String(j).toUpperCase()) : -1;
         const sabab = idx >= 0 ? s.xatolar?.[String(idx)] : s.xatolar?.umumiy;
-        ovoz.say(`Afsus, bu xato. ${sabab || ""} ${s.maslahat ? `Ishora: ${s.maslahat}` : ""}`);
+        ovoz.say(`${tf("Afsus, bu xato.")} ${sabab || ""} ${s.maslahat ? `${tf("Ishora")}: ${s.maslahat}` : ""}`);
       }
     } catch (e) { setXato(e.message); }
   };
@@ -88,7 +88,7 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
       <span className="xb-progress"><i style={{ width: `${Math.round((100 * i) / savollar.length)}%` }} /></span>
       <small>{i + 1}/{savollar.length} · ✅ {hisob.togri}</small>
     </div>
-    {takror && s.quti && <p className="xb-muted">🔁 {T("Takrorlash")} · {s.quti}-{T("bosqich")} {T("(5-bosqichdan keyin savol navbatdan chiqadi)")}</p>}
+    {takror && s.quti && <p className="xb-muted">🔁 {T("Takrorlash")} · {tf("{n}-bosqich", { n: s.quti })} {T("(5-bosqichdan keyin savol navbatdan chiqadi)")}</p>}
     <XbSavol savol={s} javob={javob} onJavob={holat === null ? javobBerildi : null} holat={holat} ovoz={ovoz} raqam={i + 1} />
     {holat === null && s.turi !== "tanlov" && <button type="button" className="xb-btn xb-btn-asosiy" disabled={!javob.trim()} onClick={() => tekshir()}>{T("Tekshirish")}</button>}
     {holat && <div className={`xb-javob-izoh ${holat.ok ? "is-ok" : "is-no"}`} role="status">

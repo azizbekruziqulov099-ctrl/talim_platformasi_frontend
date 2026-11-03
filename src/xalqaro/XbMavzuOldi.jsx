@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { uiText as T } from "../interface/interfaceRuntime.js";
+import { T } from "./xbTil.js";   // REV270: uch til
 import { ustozFor } from "../kid/ustozRules.js";
 import XbMavzu from "./XbMavzu.jsx";
 import XbMashq from "./XbMashq.jsx";
@@ -7,7 +7,7 @@ import { xbFetch } from "./xbOvoz.js";
 import "./xalqaro.css";
 
 /** Maktab fanlaridan qaysilari xalqaro baholashga bog'lanadi. */
-export const XB_FAN = /matem|algebra|geometr|fizika|kimyo|biolog|geograf|tabiiy|tabiat|atrof/i;
+export const XB_FAN = /matem|algebra|geometr|fizika|kimyo|biolog|geograf|tabiiy|tabiat|atrof|ona tili|adabiyot|huquq|iqtisod/i;
 
 /**
  * REV260: maktab mavzusi ochilishidan oldin — shu mavzu xalqaro baholashda (TIMSS) qanday so'ralishi, dunyo natijalari,
