@@ -3,7 +3,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./markaz.css";
+import { natija as darsNatijasi } from "../curriculum/kidProgress.js";
 const KonikmaMashq = React.lazy(() => import("./KonikmaMashq.jsx"));
+const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));   // REV277: kurs darsi — saytning dars xonasida
 
 const TILLAR = { en: "🇬🇧 Ingliz tili", ru: "🇷🇺 Rus tili", de: "🇩🇪 Nemis tili", fr: "🇫🇷 Fransuz tili", es: "🇪🇸 Ispan tili", ar: "🇸🇦 Arab tili",
   tr: "🇹🇷 Turk tili", ko: "🇰🇷 Koreys tili", ja: "🇯🇵 Yapon tili", zh: "🇨🇳 Xitoy tili" };
@@ -50,6 +52,7 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
   const h = k.holat || {};
   const [test, setTest] = useState(false);
   const [konikma, setKonikma] = useState(false);
+  const [darslar, setDarslar] = useState(false);
   return <article className={`mk-kurs ${RANG[h.daraja] || ""}`}>
     <div className="mk-kurs-bosh">
       <span className="mk-yol">{k.yol === "sertifikat" ? "🎓 " + __kbUi("Sertifikat") : "🌍 " + __kbUi("Erkin til")}</span>
@@ -65,10 +68,11 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
       {h.yoqolayotgan_soz > 0 && <div className="mk-xavf"><dt>{__kbUi("Esdan chiqayotgan so‘zlar")}</dt><dd>{h.yoqolayotgan_soz}</dd></div>}
     </dl>
     <div className="mk-amal">
-      <button type="button" className="mk-btn" disabled title={__kbUi("Kurs materiallari tayyorlanmoqda")}>▶ {__kbUi("Darsni boshlash")}</button>
+      <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setDarslar(true)}>▶ {__kbUi("Darslar")}</button>
       <button type="button" className="mk-btn is-ikkinchi" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setTest(true)}>🧭 {k.daraja ? `${__kbUi("Daraja")}: ${k.daraja} · ${__kbUi("qayta topshirish")}` : __kbUi("Daraja aniqlash testi")}</button>
       <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setKonikma(true)}>🎧🗣✍️ {__kbUi("Tinglash, gapirish, yozish")}</button>
     </div>
+    {darslar && <KursDarslari k={k} base={base} token={token} onYop={() => { setDarslar(false); onYangi?.(); }} />}
     {konikma && <React.Suspense fallback={null}><KonikmaMashq k={k} base={base} token={token} onYop={() => { setKonikma(false); onYangi?.(); }} /></React.Suspense>}
     {test && <DarajaTesti k={k} base={base} token={token} onYop={() => setTest(false)} onNatija={onYangi} />}
   </article>;
@@ -181,6 +185,50 @@ function DarajaTesti({ k, base, token, onYop, onNatija }) {
         <ul>{Object.entries(natija.foiz).map(([d, f]) => <li key={d}><b>{d}</b> <span className="mk-foiz"><i style={{ width: `${f}%` }} /></span> {f}%</li>)}</ul>
         <button type="button" className="mk-btn" onClick={onYop}>{__kbUi("Yopish")}</button>
       </div>}
+    </div>
+  </div>;
+}
+
+// REV277: kurs darslari ro'yxati (Miya'dagi «… — Erkin til» kitobi) — dars saytning dars xonasida ochiladi, yopilganda faollik yoziladi
+function KursDarslari({ k, base, token, onYop }) {
+  const [d, setD] = useState(null); const [ochiq, setOchiq] = useState(null); const [xato, setXato] = useState("");
+  const iz = String(document.documentElement.lang || "uz").slice(0, 2) === "ru" ? "ru" : "uz";
+  useEffect(() => {
+    fetch(`${base}/api/markaz/darslar?${new URLSearchParams({ token, til: k.til, daraja: "A1", iz })}`).then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setD).catch(() => setXato(__kbUi("Darslar yuklanmadi")));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [darvozaGap, setDarvozaGap] = useState("");
+  const yopDars = async () => {
+    if (!ochiq) return;
+    const post = (b) => fetch(`${base}/api/markaz/faollik`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, ...b }) });
+    const n = darsNatijasi(ochiq.topic_code);
+    post({ turi: "dars", dars_kodi: ochiq.topic_code, daqiqa: 10, foiz: n && !n.taxminiy ? n.foiz : null }).catch(() => {});
+    // REV277: takrorlash va darvoza darsi (10-, 20-…) — test natijasi darvozaga yuboriladi: 80% bo'lsa keyingi bo'lim ochiladi
+    const i = (d?.darslar || []).findIndex((x) => x.topic_code === ochiq.topic_code);
+    if (i >= 0 && (i + 1) % 10 === 0 && n && !n.taxminiy) {
+      try {
+        const r = await post({ turi: "darvoza", dars_kodi: ochiq.topic_code, foiz: n.foiz, bolim: (i + 1) / 10, bolim_nomi: ochiq.nomi });
+        const j = await r.json(); if (j.darvoza) { setDarvozaGap(j.darvoza.gap); if (j.darvoza.ochildi) k.ochiq_bolim = Math.max(k.ochiq_bolim || 1, (i + 1) / 10 + 1); }
+      } catch { /* tarmoq */ }
+    }
+    setOchiq(null);
+  };
+  if (ochiq) return <div className="mk-dars-oyna"><React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}>
+    <DarsXonasi apiBase={base} token={token} topicCode={ochiq.topic_code} fan={d?.fan || ""} grade="A1" onClose={yopDars} /></React.Suspense></div>;
+  return <div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Kurs darslari")}>
+    <div className="mk-test-ich">
+      <button type="button" className="mk-yop" onClick={onYop} aria-label={__kbUi("Yopish")}>✕</button>
+      <h3>{__kbUi("Kurs darslari")} — A1</h3>
+      {xato && <p className="mk-xato" role="alert">{xato}</p>}
+      {!d && !xato && <p role="status">{__kbUi("Yuklanmoqda…")}</p>}
+      {d && !d.darslar.length && <p className="mk-izoh">{__kbUi("Kurs darslari hali yuklanmagan. Admin «Erkin til A1» kitobini Miya tarkibiga yuklagach, darslar shu yerda chiqadi.")}</p>}
+      {d && d.darslar.length > 0 && <ol className="mk-darslar">{d.darslar.map((x, n) => {
+        const bolim = n < 10 ? 1 : 2; const yopiq = bolim > (k.ochiq_bolim || 1);
+        return <li key={x.topic_code}><button type="button" className="mk-chip" disabled={yopiq} onClick={() => setOchiq(x)}>
+          {yopiq ? "🔒 " : ""}{x.nomi}</button></li>;
+      })}</ol>}
+      {darvozaGap && <p className="mk-holat" role="status">{darvozaGap}</p>}
+      <p className="mk-izoh">{__kbUi("Har bo‘lim oxirida takrorlash va darvoza: 80% to‘g‘ri javob — keyingi bo‘lim ochiladi.")}</p>
     </div>
   </div>;
 }
