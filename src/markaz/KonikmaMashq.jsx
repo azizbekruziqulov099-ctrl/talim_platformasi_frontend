@@ -5,6 +5,7 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { gapSolishtir, sozlarNorm } from "./konikmaRules.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { emojiRasm, matnId } from "../kid/rasmHarakat.js";
+import { KURS_DARAJALAR, boshDaraja } from "./MarkazPanel.jsx";
 
 // REV283: so'z rasmi — sayt kutubxonasidan (avval so'z, keyin belgi bo'yicha); topilmasa belgi o'zi
 function sozRasm(soz, emoji) {
@@ -16,30 +17,32 @@ const TURLAR = [["tinglash", "🎧", "Tinglab tushunish"], ["diktant", "✍️",
 
 export default function KonikmaMashq({ k, base, token, onYop }) {
   const [dars, setDars] = useState(1);
+  const [daraja, setDaraja] = useState(boshDaraja(k.daraja));
   const [m, setM] = useState(null);
   const [tur, setTur] = useState("tinglash");
   const [xato, setXato] = useState("");
   const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
   useEffect(() => {
     setM(null);
-    fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja: "A1", dars: String(dars), iz })}`)
+    fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja, dars: String(dars), iz })}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(setM).catch(() => setXato(__kbUi("Mashqlar yuklanmadi")));
-  }, [dars]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dars, daraja]); // eslint-disable-line react-hooks/exhaustive-deps
   const yoz = (turi, foiz) => fetch(`${base}/api/markaz/faollik`, { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, yozilish_id: k.id, turi, dars_kodi: `A1-${dars}`, daqiqa: 3, foiz }) }).catch(() => {});
+    body: JSON.stringify({ token, yozilish_id: k.id, turi, dars_kodi: `${daraja}-${dars}`, daqiqa: 3, foiz }) }).catch(() => {});
   return <div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Ko‘nikma mashqlari")}>
     <div className="mk-test-ich mk-konikma">
       <button type="button" className="mk-yop" onClick={onYop} aria-label={__kbUi("Yopish")}>✕</button>
       <h3>{__kbUi("Ko‘nikma mashqlari")}{m ? ` — ${dars}. ${m.nom}` : ""}</h3>
       {xato && <p className="mk-xato" role="alert">{xato}</p>}
       {m && <>
+        <div className="mk-chiplar">{KURS_DARAJALAR.map((x) => <button key={x} type="button" className={`mk-chip ${daraja === x ? "is-on" : ""}`} onClick={() => { setDaraja(x); setDars(1); }}>{x}</button>)}</div>
         <div className="mk-chiplar">{Array.from({ length: m.darslar_soni }, (_, i) => <button key={i} type="button" className={`mk-chip ${dars === i + 1 ? "is-on" : ""}`} onClick={() => setDars(i + 1)}>{i + 1}</button>)}</div>
         <div className="mk-chiplar mk-turlar">{TURLAR.map(([t, e, n]) => <button key={t} type="button" className={`mk-chip ${tur === t ? "is-on" : ""}`} aria-pressed={tur === t} onClick={() => setTur(t)}>{e} {__kbUi(n)}</button>)}</div>
-        {tur === "tinglash" && <Tinglash key={`t${dars}`} m={m} base={base} onNatija={(f) => yoz("tinglash", f)} />}
-        {tur === "diktant" && <Diktant key={`d${dars}`} m={m} base={base} onNatija={(f) => yoz("diktant", f)} />}
-        {tur === "gapirish" && <Gapirish key={`g${dars}`} m={m} base={base} onNatija={(f) => yoz("gapirish", f)} />}
-        {tur === "suhbat" && <Suhbat key={`s${dars}`} m={m} k={k} dars={dars} iz={iz} base={base} token={token} onNatija={(f) => yoz("suhbat", f)} />}
-        {tur === "yozish" && <Yozish key={`y${dars}`} m={m} k={k} dars={dars} iz={iz} base={base} token={token} />}
+        {tur === "tinglash" && <Tinglash key={`t${daraja}${dars}`} m={m} base={base} onNatija={(f) => yoz("tinglash", f)} />}
+        {tur === "diktant" && <Diktant key={`d${daraja}${dars}`} m={m} base={base} onNatija={(f) => yoz("diktant", f)} />}
+        {tur === "gapirish" && <Gapirish key={`g${daraja}${dars}`} m={m} base={base} onNatija={(f) => yoz("gapirish", f)} />}
+        {tur === "suhbat" && <Suhbat key={`s${daraja}${dars}`} m={m} k={k} dars={dars} daraja={daraja} iz={iz} base={base} token={token} onNatija={(f) => yoz("suhbat", f)} />}
+        {tur === "yozish" && <Yozish key={`y${daraja}${dars}`} m={m} k={k} dars={dars} daraja={daraja} iz={iz} base={base} token={token} />}
       </>}
     </div>
   </div>;
@@ -136,7 +139,7 @@ function Gapirish({ m, base, onNatija }) {
 
 // REV276: jonli suhbat — AI vaziyatdagi odam (ofitsiant, sotuvchi…) rolida; o'quvchi yozadi yoki 🎤 aytadi;
 // har xabariga tuzatish (izoh tilida), AI javobi ovozda o'qiladi
-function Suhbat({ m, k, dars, iz, base, token, onNatija }) {
+function Suhbat({ m, k, dars, daraja = "A1", iz, base, token, onNatija }) {
   const ovoz = useOvoz(base);
   const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
   const [xab, setXab] = useState([]); const [matn, setMatn] = useState(""); const [band, setBand] = useState(false); const [xato, setXato] = useState(""); const [tugadi, setTugadi] = useState(false); const [eshit, setEshit] = useState(false);
@@ -145,7 +148,7 @@ function Suhbat({ m, k, dars, iz, base, token, onNatija }) {
     setBand(true); setXato("");
     try {
       const r = await fetch(`${base}/api/markaz/suhbat`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, yozilish_id: k.id, dars, iz, xabarlar: royxat.map((x) => ({ rol: x.rol, matn: x.matn })) }) });
+        body: JSON.stringify({ token, yozilish_id: k.id, dars, daraja, iz, xabarlar: royxat.map((x) => ({ rol: x.rol, matn: x.matn })) }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status);
       const yangi = royxat.map((x, n) => (n === royxat.length - 1 && x.rol === "user" ? { ...x, tuzatish: d.tuzatish, izoh: d.izoh } : x));
       setXab([...yangi, { rol: "ai", kim: d.rol, matn: d.javob }]); ovoz(d.javob);
@@ -175,12 +178,12 @@ function Suhbat({ m, k, dars, iz, base, token, onNatija }) {
 }
 
 // REV276: yozish — topshiriq bo'yicha 3–5 gap; AI imtihonchi kabi baholaydi: ball, daraja, har xato (asl → to'g'ri, izoh), namuna
-function Yozish({ m, k, dars, iz, base, token }) {
+function Yozish({ m, k, dars, daraja = "A1", iz, base, token }) {
   const [matn, setMatn] = useState(""); const [natija, setNatija] = useState(null); const [band, setBand] = useState(false); const [xato, setXato] = useState("");
   const tekshir = async () => {
     setBand(true); setXato("");
     try {
-      const r = await fetch(`${base}/api/markaz/yozish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, dars, iz, matn }) });
+      const r = await fetch(`${base}/api/markaz/yozish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, dars, daraja, iz, matn }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); setNatija(d);
     } catch (e) { setXato(__kbUi(String(e.message || e))); } finally { setBand(false); }
   };

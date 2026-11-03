@@ -20,6 +20,9 @@ export function jadvalMatni(j = {}) {
   return __kbUi("Istalgan vaqtda");
 }
 
+// REV287: kurs darajalari (har biri 2 bo'lim: 1–10, 11–20); o'quvchining daraja testi natijasiga qarab boshlang'ich daraja
+export const KURS_DARAJALAR = ["A1", "A2"];
+export const boshDaraja = (d = "") => (["A2", "B1", "B2", "C1", "C2"].includes(String(d).toUpperCase()) ? "A2" : "A1");
 const uiTil = () => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; };
 
 export default function MarkazPanel({ apiBase = "", token = "", adminMi = false }) {
@@ -208,11 +211,13 @@ function DarajaTesti({ k, base, token, onYop, onNatija }) {
 // REV277: kurs darslari ro'yxati (Miya'dagi «… — Erkin til» kitobi) — dars saytning dars xonasida ochiladi, yopilganda faollik yoziladi
 function KursDarslari({ k, base, token, onYop }) {
   const [d, setD] = useState(null); const [ochiq, setOchiq] = useState(null); const [xato, setXato] = useState("");
+  const [daraja, setDaraja] = useState(boshDaraja(k.daraja));
   const iz = uiTil();
-  useEffect(() => {
-    fetch(`${base}/api/markaz/darslar?${new URLSearchParams({ token, til: k.til, daraja: "A1", iz })}`).then((r) => (r.ok ? r.json() : Promise.reject()))
+  const dOff = KURS_DARAJALAR.indexOf(daraja) * 2;   // A1 → bo'limlar 1–2, A2 → 3–4
+  useEffect(() => { setD(null); setXato("");
+    fetch(`${base}/api/markaz/darslar?${new URLSearchParams({ token, til: k.til, daraja, iz })}`).then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setD).catch(() => setXato(__kbUi("Darslar yuklanmadi")));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [daraja]); // eslint-disable-line react-hooks/exhaustive-deps
   const [darvozaGap, setDarvozaGap] = useState("");
   const yopDars = async () => {
     if (!ochiq) return;
@@ -223,23 +228,24 @@ function KursDarslari({ k, base, token, onYop }) {
     const i = (d?.darslar || []).findIndex((x) => x.topic_code === ochiq.topic_code);
     if (i >= 0 && (i + 1) % 10 === 0 && n && !n.taxminiy) {
       try {
-        const r = await post({ turi: "darvoza", dars_kodi: ochiq.topic_code, foiz: n.foiz, bolim: (i + 1) / 10, bolim_nomi: ochiq.nomi, til: uiTil() });
-        const j = await r.json(); if (j.darvoza) { setDarvozaGap(j.darvoza.gap); if (j.darvoza.ochildi) k.ochiq_bolim = Math.max(k.ochiq_bolim || 1, (i + 1) / 10 + 1); }
+        const r = await post({ turi: "darvoza", dars_kodi: ochiq.topic_code, foiz: n.foiz, bolim: dOff + (i + 1) / 10, bolim_nomi: ochiq.nomi, til: uiTil() });
+        const j = await r.json(); if (j.darvoza) { setDarvozaGap(j.darvoza.gap); if (j.darvoza.ochildi) k.ochiq_bolim = Math.max(k.ochiq_bolim || 1, dOff + (i + 1) / 10 + 1); }
       } catch { /* tarmoq */ }
     }
     setOchiq(null);
   };
   if (ochiq) return <div className="mk-dars-oyna"><React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}>
-    <DarsXonasi apiBase={base} token={token} topicCode={ochiq.topic_code} fan={d?.fan || ""} grade="A1" onClose={yopDars} /></React.Suspense></div>;
+    <DarsXonasi apiBase={base} token={token} topicCode={ochiq.topic_code} fan={d?.fan || ""} grade={daraja} onClose={yopDars} /></React.Suspense></div>;
   return <div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Kurs darslari")}>
     <div className="mk-test-ich">
       <button type="button" className="mk-yop" onClick={onYop} aria-label={__kbUi("Yopish")}>✕</button>
-      <h3>{__kbUi("Kurs darslari")} — A1</h3>
+      <h3>{__kbUi("Kurs darslari")} — {daraja}</h3>
+      <div className="mk-chiplar">{KURS_DARAJALAR.map((x) => <button key={x} type="button" className={`mk-chip ${daraja === x ? "is-on" : ""}`} aria-pressed={daraja === x} onClick={() => setDaraja(x)}>{x}</button>)}</div>
       {xato && <p className="mk-xato" role="alert">{xato}</p>}
       {!d && !xato && <p role="status">{__kbUi("Yuklanmoqda…")}</p>}
       {d && !d.darslar.length && <p className="mk-izoh">{__kbUi("Kurs darslari hali yuklanmagan. Admin «Erkin til A1» kitobini Miya tarkibiga yuklagach, darslar shu yerda chiqadi.")}</p>}
       {d && d.darslar.length > 0 && <ol className="mk-darslar">{d.darslar.map((x, n) => {
-        const bolim = n < 10 ? 1 : 2; const yopiq = bolim > (k.ochiq_bolim || 1);
+        const bolim = dOff + (n < 10 ? 1 : 2); const yopiq = bolim > Math.max(k.ochiq_bolim || 1, boshDaraja(k.daraja) === daraja ? dOff + 1 : 1);
         return <li key={x.topic_code}><button type="button" className="mk-chip" disabled={yopiq} onClick={() => setOchiq(x)}>
           {yopiq ? "🔒 " : ""}{x.nomi}</button></li>;
       })}</ol>}
