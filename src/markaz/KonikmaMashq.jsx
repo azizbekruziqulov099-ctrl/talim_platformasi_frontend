@@ -11,10 +11,10 @@ export default function KonikmaMashq({ k, base, token, onYop }) {
   const [m, setM] = useState(null);
   const [tur, setTur] = useState("tinglash");
   const [xato, setXato] = useState("");
-  const iz = String(document.documentElement.lang || "uz").slice(0, 2) === "ru" ? "ru" : "uz";
+  const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
   useEffect(() => {
     setM(null);
-    fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja: "A1", dars: String(dars), iz })}`)
+    fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja: "A1", dars: String(dars), iz: iz === "ru" ? "ru" : "uz" })}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(setM).catch(() => setXato(__kbUi("Mashqlar yuklanmadi")));
   }, [dars]); // eslint-disable-line react-hooks/exhaustive-deps
   const yoz = (turi, foiz) => fetch(`${base}/api/markaz/faollik`, { method: "POST", headers: { "Content-Type": "application/json" },

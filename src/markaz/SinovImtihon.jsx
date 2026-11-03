@@ -8,7 +8,7 @@ const BOLIMLAR = [["listening", "🎧 Listening", 15], ["reading", "📖 Reading
 export default function SinovImtihon({ k, base, token, onYop }) {
   const [s, setS] = useState(null); const [bolim, setBolim] = useState("listening"); const [javob, setJavob] = useState({}); const [matn, setMatn] = useState({});
   const [natija, setNatija] = useState({}); const [band, setBand] = useState(""); const [xato, setXato] = useState("");
-  const iz = String(document.documentElement.lang || "uz").slice(0, 2) === "ru" ? "ru" : "uz";
+  const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
   useEffect(() => { fetch(`${base}/api/markaz/sinov?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : Promise.reject())).then(setS).catch(() => setXato(__kbUi("Sinov yuklanmadi"))); }, []); // eslint-disable-line
   const post = async (url, body) => { const r = await fetch(`${base}${url}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, ...body }) }); const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); return d; };
   const obyektiv = async () => { setBand("lr"); setXato(""); try { const d = await post("/api/markaz/sinov/obyektiv", { javoblar: javob }); setNatija((n) => ({ ...n, listening: d.listening, reading: d.reading })); } catch (e) { setXato(e.message); } finally { setBand(""); } };

@@ -14927,7 +14927,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
       {korinishRoli === "admin" && tab === "admin_tv" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminKabutarTv token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_sertifikat" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminSertifikat token={token} /></React.Suspense>}
-      {tab === "oquv_markaz" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><MarkazPanel apiBase={API_BASE} token={token} /></React.Suspense>}
+      {tab === "oquv_markaz" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><MarkazPanel apiBase={API_BASE} token={token} adminMi={korinishRoli === "admin"} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_baza" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BazaHolati apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (

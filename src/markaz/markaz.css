@@ -64,3 +64,7 @@
 .mk-blok h4{margin:0}.mk-oqish{line-height:1.6;background:#f8fbfc;padding:10px;border-radius:10px}
 .mk-savol p{margin:4px 0}.mk-taymer{font-weight:800;color:#0D5C63}.mk-taymer.is-oz{color:#c62828}
 .mk-umumiy{border:2px solid #0D5C63;border-radius:12px;padding:10px}
+
+/* REV279: admin ro'yxati */
+.mk-jadval-oyna{overflow-x:auto}.mk-jadval{width:100%;border-collapse:collapse;font-size:.92rem}
+.mk-jadval th,.mk-jadval td{border-bottom:1px solid #e1e8ee;padding:8px 6px;text-align:left;vertical-align:top}.mk-jadval th{color:#4d5b68;font-weight:700}

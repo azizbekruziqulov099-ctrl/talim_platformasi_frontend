@@ -19,14 +19,17 @@ export function jadvalMatni(j = {}) {
   return __kbUi("Istalgan vaqtda");
 }
 
-export default function MarkazPanel({ apiBase = "", token = "" }) {
+const uiTil = () => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; };
+
+export default function MarkazPanel({ apiBase = "", token = "", adminMi = false }) {
   const base = String(apiBase).replace(/\/+$/, "");
   const [katalog, setKatalog] = useState(null);
   const [kurslar, setKurslar] = useState(null);
   const [xato, setXato] = useState("");
   const [yangi, setYangi] = useState(false);
+  const [adminKor, setAdminKor] = useState(false);
   const yukla = () => {
-    fetch(`${base}/api/markaz/men?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    fetch(`${base}/api/markaz/men?${new URLSearchParams({ token, til: uiTil() })}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((d) => { setKurslar(d.kurslar || []); if (!(d.kurslar || []).length) setYangi(true); })
       .catch(() => setXato(__kbUi("Ma’lumotni yuklab bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.")));
   };
@@ -41,10 +44,14 @@ export default function MarkazPanel({ apiBase = "", token = "" }) {
     <header className="mk-bosh">
       <h2>{__kbUi("O‘quv markazi")}</h2>
       <p>{__kbUi("Sertifikatga tayyorlanish yoki tilni hayot uchun erkin o‘rganish — cheklovsiz: qancha o‘rgansangiz, shuncha ochiladi.")}</p>
-      {!yangi && <button type="button" className="mk-btn" onClick={() => setYangi(true)}>＋ {__kbUi("Yangi kurs")}</button>}
+      <div className="mk-amal">
+        {!yangi && !adminKor && <button type="button" className="mk-btn" onClick={() => setYangi(true)}>＋ {__kbUi("Yangi kurs")}</button>}
+        {adminMi && <button type="button" className="mk-btn is-ikkinchi" aria-pressed={adminKor} onClick={() => { setAdminKor(!adminKor); setYangi(false); }}>{adminKor ? __kbUi("← Mening kurslarim") : "👥 " + __kbUi("Barcha o‘quvchilar (admin)")}</button>}
+      </div>
     </header>
-    {yangi && <Yozilish katalog={katalog} base={base} token={token} onBekor={kurslar.length ? () => setYangi(false) : null} onTayyor={() => { setYangi(false); yukla(); }} />}
-    {!yangi && kurslar.map((k) => <KursKarta key={k.id} k={k} katalog={katalog} base={base} token={token} onYangi={yukla} />)}
+    {adminKor && <AdminRoyxat base={base} token={token} katalog={katalog} />}
+    {!adminKor && yangi && <Yozilish katalog={katalog} base={base} token={token} onBekor={kurslar.length ? () => setYangi(false) : null} onTayyor={() => { setYangi(false); yukla(); }} />}
+    {!adminKor && !yangi && kurslar.map((k) => <KursKarta key={k.id} k={k} katalog={katalog} base={base} token={token} onYangi={yukla} />)}
   </section>;
 }
 
@@ -161,7 +168,7 @@ function DarajaTesti({ k, base, token, onYop, onNatija }) {
   const tugat = async (j) => {
     try {
       const r = await fetch(`${base}/api/markaz/daraja/natija`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, yozilish_id: k.id, til: k.til, javoblar: j }) });
+        body: JSON.stringify({ token, yozilish_id: k.id, til: k.til, javoblar: j, ui: uiTil() }) });
       if (!r.ok) throw new Error(r.status);
       setNatija(await r.json()); onNatija?.();
     } catch { setXato(__kbUi("Natija saqlanmadi")); }
@@ -211,7 +218,7 @@ function KursDarslari({ k, base, token, onYop }) {
     const i = (d?.darslar || []).findIndex((x) => x.topic_code === ochiq.topic_code);
     if (i >= 0 && (i + 1) % 10 === 0 && n && !n.taxminiy) {
       try {
-        const r = await post({ turi: "darvoza", dars_kodi: ochiq.topic_code, foiz: n.foiz, bolim: (i + 1) / 10, bolim_nomi: ochiq.nomi });
+        const r = await post({ turi: "darvoza", dars_kodi: ochiq.topic_code, foiz: n.foiz, bolim: (i + 1) / 10, bolim_nomi: ochiq.nomi, til: uiTil() });
         const j = await r.json(); if (j.darvoza) { setDarvozaGap(j.darvoza.gap); if (j.darvoza.ochildi) k.ochiq_bolim = Math.max(k.ochiq_bolim || 1, (i + 1) / 10 + 1); }
       } catch { /* tarmoq */ }
     }
@@ -234,5 +241,32 @@ function KursDarslari({ k, base, token, onYop }) {
       {darvozaGap && <p className="mk-holat" role="status">{darvozaGap}</p>}
       <p className="mk-izoh">{__kbUi("Har bo‘lim oxirida takrorlash va darvoza: 80% to‘g‘ri javob — keyingi bo‘lim ochiladi.")}</p>
     </div>
+  </div>;
+}
+
+// REV279: admin — markazdagi barcha o'quvchilar: kurs, daraja, holat rangi, oxirgi dars, ko'nikma ballari
+const HOLAT_RANG = { yaxshi: "🟢", eslatma: "🟡", motivatsiya: "🟠", tanbeh: "🔴" };
+function AdminRoyxat({ base, token, katalog }) {
+  const [d, setD] = useState(null); const [xato, setXato] = useState(""); const [filtr, setFiltr] = useState("");
+  useEffect(() => { fetch(`${base}/api/markaz/admin/royxat?${new URLSearchParams({ token, til: uiTil() })}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((x) => setD(x.oquvchilar || [])).catch((e) => setXato(e === 403 ? __kbUi("Faqat admin uchun") : __kbUi("Ma’lumotni yuklab bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring."))); }, []); // eslint-disable-line
+  if (xato) return <p className="mk-xato" role="alert">{xato}</p>;
+  if (!d) return <p role="status">{__kbUi("Yuklanmoqda…")}</p>;
+  const royxat = d.filter((x) => !filtr || x.holat === filtr);
+  const son = (h) => d.filter((x) => x.holat === h).length;
+  return <div className="mk-yozil">
+    <h3>👥 {__kbUi("Barcha o‘quvchilar (admin)")} — {d.length}</h3>
+    <div className="mk-chiplar"><button type="button" className={`mk-chip ${!filtr ? "is-on" : ""}`} onClick={() => setFiltr("")}>{__kbUi("Hammasi")}</button>
+      {Object.entries(HOLAT_RANG).map(([h, e]) => <button key={h} type="button" className={`mk-chip ${filtr === h ? "is-on" : ""}`} onClick={() => setFiltr(h)}>{e} {son(h)}</button>)}</div>
+    {!royxat.length ? <p className="mk-izoh">{__kbUi("Hozircha o‘quvchi yo‘q.")}</p> : <div className="mk-jadval-oyna"><table className="mk-jadval">
+      <thead><tr><th>{__kbUi("O‘quvchi")}</th><th>{__kbUi("Kurs")}</th><th>{__kbUi("Daraja")}</th><th>{__kbUi("Holat")}</th><th>{__kbUi("Oxirgi dars")}</th><th>{__kbUi("Ko‘nikmalar")}</th></tr></thead>
+      <tbody>{royxat.map((x) => <tr key={x.id} title={x.gap}>
+        <td>{x.oquvchi}</td>
+        <td>{x.yol === "sertifikat" ? "🎓" : "🌍"} {String(x.til).toUpperCase()}{x.imtihon ? ` · ${katalog.imtihonlar[x.imtihon]?.nom || x.imtihon}` : ""}{x.maqsad ? ` → ${x.maqsad}` : ""}</td>
+        <td>{x.daraja || "—"} · {__kbUi("bo‘lim")} {x.ochiq_bolim}</td>
+        <td>{HOLAT_RANG[x.holat] || ""}</td>
+        <td>{x.tanaffus_kun === 0 ? __kbUi("bugun") : `${x.tanaffus_kun} ${__kbUi("kun oldin")}`}</td>
+        <td>{Object.entries(x.konikmalar || {}).map(([t, f]) => `${t}: ${Math.round(f)}%`).join(" · ") || "—"}</td>
+      </tr>)}</tbody></table></div>}
   </div>;
 }
