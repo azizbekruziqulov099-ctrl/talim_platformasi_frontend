@@ -13138,6 +13138,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: sinf natijalari
+      { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV280: o'qituvchi ham sertifikat/til kursiga yozila oladi
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
             { kalit: "profil", nom: "Profil", ikon: User },
@@ -13147,6 +13148,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     return [
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
+      { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV280: ota-ona ham o'zi til o'rganishi mumkin
             { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }

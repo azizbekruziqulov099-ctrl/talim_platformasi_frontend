@@ -68,3 +68,6 @@
 /* REV279: admin ro'yxati */
 .mk-jadval-oyna{overflow-x:auto}.mk-jadval{width:100%;border-collapse:collapse;font-size:.92rem}
 .mk-jadval th,.mk-jadval td{border-bottom:1px solid #e1e8ee;padding:8px 6px;text-align:left;vertical-align:top}.mk-jadval th{color:#4d5b68;font-weight:700}
+
+/* REV280: to'liq sinov — qisqa javob maydoni */
+.mk-qisqa{width:min(220px,100%);padding:6px 10px;font-size:1rem}
