@@ -22,7 +22,7 @@ export default function KonikmaMashq({ k, base, token, onYop }) {
   const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
   useEffect(() => {
     setM(null);
-    fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja: "A1", dars: String(dars), iz: iz === "ru" ? "ru" : "uz" })}`)
+    fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja: "A1", dars: String(dars), iz })}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then(setM).catch(() => setXato(__kbUi("Mashqlar yuklanmadi")));
   }, [dars]); // eslint-disable-line react-hooks/exhaustive-deps
   const yoz = (turi, foiz) => fetch(`${base}/api/markaz/faollik`, { method: "POST", headers: { "Content-Type": "application/json" },
@@ -150,7 +150,7 @@ function Suhbat({ m, k, dars, iz, base, token, onNatija }) {
       const yangi = royxat.map((x, n) => (n === royxat.length - 1 && x.rol === "user" ? { ...x, tuzatish: d.tuzatish, izoh: d.izoh } : x));
       setXab([...yangi, { rol: "ai", kim: d.rol, matn: d.javob }]); ovoz(d.javob);
       if (d.tugadi) { setTugadi(true); const u = yangi.filter((x) => x.rol === "user"); onNatija(u.length ? Math.round((100 * u.filter((x) => !x.tuzatish).length) / u.length) : 0); }
-    } catch (e) { setXato(String(e.message || e)); } finally { setBand(false); setTimeout(() => pastga.current?.scrollIntoView({ block: "end" }), 50); }
+    } catch (e) { setXato(__kbUi(String(e.message || e))); } finally { setBand(false); setTimeout(() => pastga.current?.scrollIntoView({ block: "end" }), 50); }
   };
   useEffect(() => { yubor([]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const jonat = () => { const t = matn.trim(); if (!t || band) return; setMatn(""); yubor([...xab, { rol: "user", matn: t }]); };
@@ -182,7 +182,7 @@ function Yozish({ m, k, dars, iz, base, token }) {
     try {
       const r = await fetch(`${base}/api/markaz/yozish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, dars, iz, matn }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); setNatija(d);
-    } catch (e) { setXato(String(e.message || e)); } finally { setBand(false); }
+    } catch (e) { setXato(__kbUi(String(e.message || e))); } finally { setBand(false); }
   };
   return <div className="mk-mashq">
     <p className="mk-izoh"><b lang="en">{m.rol.topshiriq}</b><br />{m.rol.izoh} {__kbUi("3–5 ta gap yozing.")}</p>

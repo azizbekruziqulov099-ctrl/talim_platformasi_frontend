@@ -116,7 +116,7 @@ function Yozilish({ katalog, base, token, onTayyor, onBekor }) {
         body: JSON.stringify({ token, yol, til, imtihon: yol === "sertifikat" ? imtihon : null, maqsad: yol === "sertifikat" ? maqsad : null, imtihon_sana: sana || null, jadval }) });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
       onTayyor?.();
-    } catch (e) { setXato(`${__kbUi("Saqlanmadi")}: ${e.message}`); } finally { setBand(false); }
+    } catch (e) { setXato(`${__kbUi("Saqlanmadi")}: ${__kbUi(String(e.message || e))}`); } finally { setBand(false); }
   };
   return <div className="mk-yozil">
     <h3>1. {__kbUi("Yo‘lni tanlang")}</h3>
@@ -208,7 +208,7 @@ function DarajaTesti({ k, base, token, onYop, onNatija }) {
 // REV277: kurs darslari ro'yxati (Miya'dagi «… — Erkin til» kitobi) — dars saytning dars xonasida ochiladi, yopilganda faollik yoziladi
 function KursDarslari({ k, base, token, onYop }) {
   const [d, setD] = useState(null); const [ochiq, setOchiq] = useState(null); const [xato, setXato] = useState("");
-  const iz = String(document.documentElement.lang || "uz").slice(0, 2) === "ru" ? "ru" : "uz";
+  const iz = uiTil();
   useEffect(() => {
     fetch(`${base}/api/markaz/darslar?${new URLSearchParams({ token, til: k.til, daraja: "A1", iz })}`).then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setD).catch(() => setXato(__kbUi("Darslar yuklanmadi")));
