@@ -141,7 +141,7 @@ export function teglarniAjrat(d) {
     : { ...x, doskaTeg: x.doska, sarlavhaTeg: x.sarlavha, doska: stripSpeechTags(x.doska || ""), sarlavha: stripSpeechTags(x.sarlavha || "") })) };
 }
 
-export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false, adminMi = false }) {
+export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
   const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
@@ -660,13 +660,24 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const controller = new AbortController();
     hush(); setLoading(true); setError(""); setLesson(null); setIdx(-1); setMode("idle"); setPlaying(false);
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
-    fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(topicCode)}?${new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2) })}`, { signal: controller.signal })
-      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || "Dars yuklanmadi"); return d; })
+    // REV297: «Testlar» bo'limidan — faqat test: Miya'dagi savollar (shu va oldingi mavzular), yoshiga qarab 20–80 ta
+    const yol = faqatTest ? `${encodeURIComponent(topicCode)}/test` : encodeURIComponent(topicCode);
+    const qs = new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2), ...(faqatTest ? { soni: String(faqatTest) } : {}) });
+    fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${yol}?${qs}`, { signal: controller.signal })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) { if (faqatTest && r.status === 404) onTestYoq?.(); throw new Error(d.detail || "Dars yuklanmadi"); } return d; })
       .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(kabuIsmiQoy(d, uiLocale))); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
-  }, [apiBase, token, topicCode, hush, uiLocale]);
+  }, [apiBase, token, topicCode, hush, uiLocale, faqatTest]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // REV297: faqat test rejimi — dars yuklangach darhol test (Kabular muhitida) boshlanadi, dars qadamlari o'tkazib yuboriladi
+  const faqatTestBoshlandi = useRef(false);
+  useEffect(() => {
+    if (!faqatTest || !lesson || faqatTestBoshlandi.current || !(lesson.savollar || []).length) return;
+    faqatTestBoshlandi.current = true;
+    startQuizRef.current?.();
+  }, [faqatTest, lesson]);
 
   // REV110: bugungi ob-havo (server soatiga bir marta oladi va keshlaydi)
   useEffect(() => {

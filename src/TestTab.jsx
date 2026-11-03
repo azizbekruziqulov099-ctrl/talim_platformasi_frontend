@@ -31,6 +31,16 @@ import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
 const TestGameArena = React.lazy(() => import("./TestGameArena.jsx"));
+// REV297: Miya'dagi darsi bor mavzuning testi — dars xonasining Kabular muhitida (faqat test)
+const DarsXonasiTest = React.lazy(() => import("./lesson/DarsXonasi.jsx"));
+// Savollar soni yoshi va sinfiga qarab: bog'cha 2–3 yosh 20, 4–5 yosh 30, 6–7 yosh 40; 1–4-sinf 40, 5–9-sinf 60, 10–11-sinf 80
+export function testSoniYosh(sinf = "") {
+  const t = String(sinf || "").toLowerCase();
+  if (/yosh|лет|year|bog/.test(t)) { const n = Number((t.match(/\d+/g) || [])[0] || 4); return n <= 3 ? 20 : n <= 5 ? 30 : 40; }
+  const g = Number((t.match(/\d+/) || [])[0] || 0);
+  if (!g) return 40;
+  return g <= 4 ? 40 : g <= 9 ? 60 : 80;
+}
 const GameModePicker = React.lazy(() =>
   import("./TestGameArena.jsx").then((module) => ({ default: module.GameModePicker })),
 );
@@ -630,7 +640,14 @@ export default function TestTab({
   // MUHIM: har mavzu ostida bir nechta KICHIK mavzu (topic_code) bo'lishi
   // mumkin — shu sabab yagona mavzu tanlansa ham, "aralash" mexanizmi
   // ishlatiladi, shunda barcha kichik mavzulardan random savol chiqadi.
+  const [miyaTest, setMiyaTest] = useState(null);   // REV297: { kod, fan, sinf, soni, zaxira }
   const mavzuBoslandi = (fan, mavzu) => {
+    const darsli = (mavzu.darsli_kodlar || []).filter(Boolean);
+    const sinfi = joriySinfMalumoti?.sinf || sinf || tanlanganSinf;
+    if (darsli.length) {
+      setMiyaTest({ kod: darsli[0], fan: fan.nom, sinf: sinfi, soni: testSoniYosh(sinfi), zaxira: { fan, mavzu } });
+      return;
+    }
     setTanlanganMavzu({
       aralash: true,
       kodlar: mavzu.topic_codes,
@@ -1579,6 +1596,16 @@ export default function TestTab({
     );
   }
 
+  if (miyaTest) {
+    return <div className="fixed inset-0 z-50 overflow-auto" style={{ background: "#fff" }}>
+      <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}>
+        <DarsXonasiTest apiBase={API_BASE} token={token} topicCode={miyaTest.kod} fan={miyaTest.fan} grade={String(miyaTest.sinf || "")}
+          jins={foydalanuvchi?.jins} learnerRole={foydalanuvchi?.role || ""} faqatTest={miyaTest.soni}
+          onClose={() => setMiyaTest(null)}
+          onTestYoq={() => { const z = miyaTest.zaxira; setMiyaTest(null); if (z && (z.mavzu.savol_soni || 0) > 0) { setTanlanganMavzu({ aralash: true, kodlar: z.mavzu.topic_codes, nomi: z.mavzu.nomi, fanNomi: z.fan.nom, savol_soni: z.mavzu.savol_soni, sinf: miyaTest.sinf }); setHolat("songi"); } else setXato("Bu mavzuda test savollari hali yo'q"); }} />
+      </React.Suspense>
+    </div>;
+  }
   if (holat === "savollar" && testRejimi === "bir_bir" && bogchaRejim && savollar[joriySavol]) {
     return <><KidQuiz savol={savollar[joriySavol]} index={joriySavol} total={savollar.length}
       natija={joriyNatija} tekshirilmoqda={javobTekshirilmoqdaId === savollar[joriySavol].id}
