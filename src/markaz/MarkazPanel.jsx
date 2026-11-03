@@ -83,11 +83,11 @@ function KursKarta({ k, katalog, base, token, onYangi }) {
       {h.yoqolayotgan_soz > 0 && <div className="mk-xavf"><dt>{__kbUi("Esdan chiqayotgan so‘zlar")}</dt><dd>{h.yoqolayotgan_soz}</dd></div>}
     </dl>
     <div className="mk-amal">
-      <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setDarslar(true)}>▶ {__kbUi("Darslar")}</button>
-      <button type="button" className="mk-btn is-ikkinchi" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setTest(true)}>🧭 {k.daraja ? `${__kbUi("Daraja")}: ${k.daraja} · ${__kbUi("qayta topshirish")}` : __kbUi("Daraja aniqlash testi")}</button>
+      <button type="button" className="mk-btn" disabled={!["en", "ru"].includes(k.til)} title={!["en", "ru"].includes(k.til) ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setDarslar(true)}>▶ {__kbUi("Darslar")}</button>
+      <button type="button" className="mk-btn is-ikkinchi" disabled={!["en", "ru"].includes(k.til)} title={!["en", "ru"].includes(k.til) ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setTest(true)}>🧭 {k.daraja ? `${__kbUi("Daraja")}: ${k.daraja} · ${__kbUi("qayta topshirish")}` : __kbUi("Daraja aniqlash testi")}</button>
       {k.yol === "sertifikat" && k.imtihon === "milliy_cefr" && k.til === "en" && <button type="button" className="mk-btn" onClick={() => setSinov(true)}>📋 {__kbUi("Sinov imtihoni")}</button>}
       {k.yol === "sertifikat" && k.til === "en" && <button type="button" className="mk-btn is-ikkinchi" onClick={() => setStrat(true)}>🧭 {__kbUi("Imtihon strategiyalari")}</button>}
-      <button type="button" className="mk-btn" disabled={k.til !== "en"} title={k.til !== "en" ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setKonikma(true)}>🎧🗣✍️ {__kbUi("Tinglash, gapirish, yozish")}</button>
+      <button type="button" className="mk-btn" disabled={!["en", "ru"].includes(k.til)} title={!["en", "ru"].includes(k.til) ? __kbUi("Bu til uchun tez kunda") : ""} onClick={() => setKonikma(true)}>🎧🗣✍️ {__kbUi("Tinglash, gapirish, yozish")}</button>
     </div>
     {strat && <React.Suspense fallback={null}><Strategiyalar base={base} onYop={() => setStrat(false)} /></React.Suspense>}
     {sinov && <React.Suspense fallback={null}><SinovImtihon k={k} base={base} token={token} onYop={() => { setSinov(false); onYangi?.(); }} /></React.Suspense>}
@@ -193,8 +193,8 @@ function DarajaTesti({ k, base, token, onYop, onNatija }) {
       {savollar && !natija && <>
         <div className="mk-test-bar"><span style={{ width: `${(100 * i) / savollar.length}%` }} /></div>
         <p className="mk-test-n">{i + 1} / {savollar.length}</p>
-        <p className="mk-test-savol" lang="en">{savollar[i].savol}</p>
-        <div className="mk-test-var">{savollar[i].variantlar.map((v, n) => <button key={n} type="button" className="mk-chip" lang="en" onClick={() => tanla(n)}>{v}</button>)}</div>
+        <p className="mk-test-savol" lang={k.til}>{savollar[i].savol}</p>
+        <div className="mk-test-var">{savollar[i].variantlar.map((v, n) => <button key={n} type="button" className="mk-chip" lang={k.til} onClick={() => tanla(n)}>{v}</button>)}</div>
         <button type="button" className="mk-btn is-ikkinchi" onClick={() => tanla(-1)}>{__kbUi("Bilmayman")}</button>
         <p className="mk-izoh">{__kbUi("Taxmin qilmang: bilmasangiz «Bilmayman»ni bosing — shunda darajangiz aniq chiqadi.")}</p>
       </>}

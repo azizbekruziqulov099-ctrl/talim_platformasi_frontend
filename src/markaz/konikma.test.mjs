@@ -9,4 +9,6 @@ test('REV275: diktant/gapirish solishtirish', () => {
   assert.equal(gapSolishtir("It's fifteen dollars.", "its fiftee dollars").foiz >= 60, true);
   assert.equal(gapSolishtir("Hello", "").foiz, 0);
   assert.ok(gapSolishtir("A coffee, please.", "A coffee plese", true).foiz < 100);   // diktant — qatiy imlo
+  assert.equal(gapSolishtir('Меня зовут Анна.', 'меня зовут анна').foiz, 100);   // kirill
+  assert.ok(gapSolishtir('Я живу в Ташкенте.', 'я живу в ташкент', true).foiz < 100);
 });

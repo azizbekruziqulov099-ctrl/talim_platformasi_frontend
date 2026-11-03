@@ -29,7 +29,7 @@ export default function KonikmaMashq({ k, base, token, onYop }) {
   }, [dars, daraja]); // eslint-disable-line react-hooks/exhaustive-deps
   const yoz = (turi, foiz) => fetch(`${base}/api/markaz/faollik`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, yozilish_id: k.id, turi, dars_kodi: `${daraja}-${dars}`, daqiqa: 3, foiz }) }).catch(() => {});
-  return <div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Ko‘nikma mashqlari")}>
+  return <KursTil.Provider value={k.til || "en"}><div className="mk-test" role="dialog" aria-modal="true" aria-label={__kbUi("Ko‘nikma mashqlari")}>
     <div className="mk-test-ich mk-konikma">
       <button type="button" className="mk-yop" onClick={onYop} aria-label={__kbUi("Yopish")}>✕</button>
       <h3>{__kbUi("Ko‘nikma mashqlari")}{m ? ` — ${dars}. ${m.nom}` : ""}</h3>
@@ -45,15 +45,19 @@ export default function KonikmaMashq({ k, base, token, onYop }) {
         {tur === "yozish" && <Yozish key={`y${daraja}${dars}`} m={m} k={k} dars={dars} daraja={daraja} iz={iz} base={base} token={token} />}
       </>}
     </div>
-  </div>;
+  </div></KursTil.Provider>;
 }
 
+// REV289: kurs tili — ovoz tegi va nutqni aniqlash tili shu bo'yicha (ingliz, rus…)
+export const SR_TIL = { en: "en-US", ru: "ru-RU", de: "de-DE", fr: "fr-FR", es: "es-ES", tr: "tr-TR", ko: "ko-KR", ja: "ja-JP", zh: "zh-CN", ar: "ar-SA" };
+const KursTil = React.createContext("en");
 function useOvoz(base) {
+  const til = React.useContext(KursTil);
   const a = useRef(null);
   useEffect(() => () => a.current?.pause(), []);
   return (gap, sekin = false) => {
     a.current?.pause();
-    const p = new URLSearchParams({ matn: `[en]${gap}[/en]`, jins: "qiz", ...(sekin ? { tezlik: "-30%" } : {}) });
+    const p = new URLSearchParams({ matn: `[${til}]${gap}[/${til}]`, jins: "qiz", ...(sekin ? { tezlik: "-30%" } : {}) });
     a.current = new Audio(`${base}/api/ovoz?k=133&${p}`);
     a.current.play().catch(() => {});
   };
@@ -106,7 +110,7 @@ function Diktant({ m, base, onNatija }) {
 }
 
 function Gapirish({ m, base, onNatija }) {
-  const ovoz = useOvoz(base);
+  const ovoz = useOvoz(base); const til = React.useContext(KursTil);
   const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
   const [i, setI] = useState(0); const [eshit, setEshit] = useState(false); const [tahlil, setTahlil] = useState(null); const [ball, setBall] = useState(0); const [tugadi, setTugadi] = useState(false);
   const q = m.gapirish[i];
@@ -116,7 +120,7 @@ function Gapirish({ m, base, onNatija }) {
   if (tugadi) return <Natija ball={ball} jami={m.gapirish.length} onQayta={() => { setI(0); setBall(0); setTugadi(false); }} />;
   const boshla = () => {
     setTahlil(null);
-    const r = new SR(); rec.current = r; r.lang = "en-US"; r.interimResults = false; r.maxAlternatives = 3;
+    const r = new SR(); rec.current = r; r.lang = SR_TIL[til] || "en-US"; r.interimResults = false; r.maxAlternatives = 3;
     r.onresult = (e) => {
       const alt = Array.from(e.results[0] || []).map((x) => x.transcript);
       const eng = alt.map((x) => gapSolishtir(q.gap, x)).sort((a, b) => b.foiz - a.foiz)[0];
@@ -148,7 +152,7 @@ function Suhbat({ m, k, dars, daraja = "A1", iz, base, token, onNatija }) {
     setBand(true); setXato("");
     try {
       const r = await fetch(`${base}/api/markaz/suhbat`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, yozilish_id: k.id, dars, daraja, iz, xabarlar: royxat.map((x) => ({ rol: x.rol, matn: x.matn })) }) });
+        body: JSON.stringify({ token, yozilish_id: k.id, dars, daraja, iz, til: k.til, xabarlar: royxat.map((x) => ({ rol: x.rol, matn: x.matn })) }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status);
       const yangi = royxat.map((x, n) => (n === royxat.length - 1 && x.rol === "user" ? { ...x, tuzatish: d.tuzatish, izoh: d.izoh } : x));
       setXab([...yangi, { rol: "ai", kim: d.rol, matn: d.javob }]); ovoz(d.javob);
@@ -157,7 +161,7 @@ function Suhbat({ m, k, dars, daraja = "A1", iz, base, token, onNatija }) {
   };
   useEffect(() => { yubor([]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const jonat = () => { const t = matn.trim(); if (!t || band) return; setMatn(""); yubor([...xab, { rol: "user", matn: t }]); };
-  const ayt = () => { if (!SR) return; const r = new SR(); r.lang = "en-US"; r.onresult = (e) => setMatn(e.results[0][0].transcript); r.onend = () => setEshit(false); setEshit(true); r.start(); };
+  const ayt = () => { if (!SR) return; const r = new SR(); r.lang = SR_TIL[k.til] || "en-US"; r.onresult = (e) => setMatn(e.results[0][0].transcript); r.onend = () => setEshit(false); setEshit(true); r.start(); };
   return <div className="mk-mashq">
     <p className="mk-izoh">{m.rol.izoh}</p>
     <div className="mk-chat" aria-live="polite">
@@ -183,7 +187,7 @@ function Yozish({ m, k, dars, daraja = "A1", iz, base, token }) {
   const tekshir = async () => {
     setBand(true); setXato("");
     try {
-      const r = await fetch(`${base}/api/markaz/yozish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, dars, daraja, iz, matn }) });
+      const r = await fetch(`${base}/api/markaz/yozish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, dars, daraja, iz, til: k.til, matn }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); setNatija(d);
     } catch (e) { setXato(__kbUi(String(e.message || e))); } finally { setBand(false); }
   };

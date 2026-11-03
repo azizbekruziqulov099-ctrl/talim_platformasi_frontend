@@ -1,6 +1,7 @@
 // REV275: gapni so'zma-so'z solishtirish (diktant va gapirish uchun) — katta-kichik harf, tinish belgilari, apostrof farqi hisobga olinmaydi
 export function sozlarNorm(t = "") {
-  return String(t).toLowerCase().replace(/[’‘`]/g, "'").replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter(Boolean);
+  // REV289: har qanday alifbo (lotin, kirill…) — harf va raqamlar qoladi; «ё» → «е»
+  return String(t).toLowerCase().replace(/ё/g, "е").replace(/[’‘`]/g, "'").replace(/[^\p{L}\p{N}' ]+/gu, " ").split(/\s+/).filter(Boolean);
 }
 function yaqin(a, b) {
   if (a === b) return true;
