@@ -59,10 +59,12 @@ test("harfma-harf yozish: birliklar va ulush", () => {
 });
 
 import { readFileSync } from "node:fs";
-test("REV261: menyuda alohida «Xalqaro baholash» — o'quvchi, o'qituvchi, admin; admin ko'rish rejimida ham", () => {
+test("REV261/REV301: «Xalqaro baholash» — o'qituvchi va admin menyusida; o'quvchiga «Kurslar» ichida", () => {
   const app = readFileSync(new URL("./App.jsx", import.meta.url), "utf8");
   const bandlar = app.match(/kalit: "xalqaro", nom: "Xalqaro baholash"/g) || [];
-  assert.equal(bandlar.length, 3);
+  assert.equal(bandlar.length, 2);
+  const kurs = readFileSync(new URL("./courses/KabutarKurslar.jsx", import.meta.url), "utf8");
+  assert.match(kurs, /kat === "xalqaro"/);
   assert.match(app, /korinishRoli !== "ota-ona" && tab === "xalqaro"/);
   const ok = readFileSync(new URL("./admin/OquvchiKorinishi.jsx", import.meta.url), "utf8");
   assert.match(ok, /rejim="oquvchi"/);
