@@ -14,6 +14,7 @@ import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopi
 import { lessonDone, lessonStars, kalitniEslab, organilganTillar, tilKalit, TIL_BELGI } from './kidProgress.js';
 import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
+import { davomOl, davomFoiz } from '../lesson/darsDavomi.js';   // REV326: yarim qolgan dars foizi
 import { KURS, SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
@@ -289,6 +290,8 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
         <span className="kt-no">{done?'✓':locked?'🔒':i+1}</span>
         {tillar.length>0&&<span className="kt-tillar" title={__kbUi("O‘rganilgan tillar")} aria-label={`${__kbUi("O‘rganilgan tillar")}: ${tillar.join(', ')}`}>{tillar.map(t=><i key={t}>{TIL_BELGI[t]}</i>)}</span>}
         {isNext&&<span className="kt-today">{__kbUi("Bugun shu!")}</span>}
+        {(()=>{/* REV326: boshlangan, lekin tugamagan dars — necha foizi o'tilgani */if(done||locked)return null;const u=unlock[i]||{};const f=(u.known&&!u.tugadi&&u.foiz)||davomFoiz(davomOl(target.lesson_code));
+          return f>0?<span className="kt-yarim" aria-label={`${f}% ${__kbUi("o‘tildi")}`}><i style={{'--f':`${f}%`}}/>▶ {f}% {__kbUi("o‘tildi")}</span>:null;})()}
         <button type="button" className="kt-emoji" aria-label={__kbUi(locked?"Ertaga ochiladi":"O‘rganamiz")} disabled={!topic.dars_bor} onClick={open}>{kidTopicEmoji(topic.nomi,i)}{!locked&&topic.dars_bor&&<span className="kt-play-badge" aria-hidden="true">▶</span>}</button>
         <p className="kt-title"><TranslatedContent text={capitalizeTopic(topic.nomi)} showStatus={false}/>
          <button type="button" className="kt-say" aria-label={__kbUi("Nomini eshitish")} onClick={()=>sayName(capitalizeTopic(topic.nomi),fanIzohi(current?.nom)==='en')}>🔊</button></p>
