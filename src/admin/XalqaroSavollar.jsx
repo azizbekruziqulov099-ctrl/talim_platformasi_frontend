@@ -3,7 +3,8 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 
 const BAYROQ = { uz: "🇺🇿", ru: "🇷🇺", en: "🇬🇧", de: "🇩🇪", es: "🇪🇸" };
 
-/** REV319: Xalqaro baholash savollar banki — 5 til, Excel: yuklab olish → to'ldirish → tekshirish → nashr. */
+/** REV319/REV320: Xalqaro baholash kontenti — TO'LIQ (savollar, darslar, PISA matnlari, to'plam/mavzular; o'zbekchada — davlatlar
+ *  natijalari) 5 tilda Excel orqali: yuklab olish → to'ldirish → tekshirish → nashr. Sayt kontentni faqat bazadan oladi. */
 export default function XalqaroSavollar({ apiBase, token }) {
   const base = String(apiBase || "").replace(/\/+$/, "");
   const [h, setH] = useState(null);
@@ -34,13 +35,13 @@ export default function XalqaroSavollar({ apiBase, token }) {
     setTek((x) => ({ ...x, [til]: { ...t, busy: false } })); yukla();
   };
   const qaytar = async (til) => {
-    if (!window.confirm(__kbUi("Bazadagi savollar o‘chiriladi va saytning asl savollariga qaytiladi. Davom etasizmi?"))) return;
+    if (!window.confirm(__kbUi("Shu tildagi xalqaro kontent (savollar, darslar) saytdan o‘chiriladi. Davom etasizmi?"))) return;
     await fetch(`${base}/api/admin/xalqaro/qaytar?${new URLSearchParams({ token, til })}`, { method: "POST" }); yukla();
   };
   const shablon = (til) => { window.open(`${base}/api/admin/xalqaro/shablon?${new URLSearchParams({ token, til })}`, "_blank"); };
   return <div className="space-y-3">
     <div className="rounded-2xl bg-white border p-4 text-sm" style={{ borderColor: "#E5E1D8" }}>
-      <b>{__kbUi("Tartib")}:</b> {__kbUi("1) Excel'ni yuklab oling → 2) to‘ldiring yoki tuzating → 3) «Tekshirish» → 4) xato bo‘lmasa «Nashr». Savol ID lari, to‘g‘ri javoblar va statistika barcha tillarda bir xil bo‘lishi shart — tizim o‘zbekchasi bilan solishtiradi. Reyting tillar bo‘yicha umumiy.")}
+      <b>{__kbUi("Tartib")}:</b> {__kbUi("Har til — bitta Excel: savollar, darslar, PISA matnlari, to‘plam va mavzular. Avval O‘zbekcha (unda davlatlar natijalari ham bor), keyin boshqa tillar. 1) Excel'ni yuklab oling → 2) to‘ldiring yoki tuzating → 3) «Tekshirish» → 4) xato bo‘lmasa «Nashr». Savol ID lari, to‘g‘ri javoblar, darslar va mavzular ro‘yxati barcha tillarda bir xil bo‘lishi shart — tizim o‘zbekchasi bilan solishtiradi. Reyting tillar bo‘yicha umumiy.")}
     </div>
     {xabar && <p className="text-sm font-semibold" role="status">{xabar}</p>}
     {!h ? <p className="text-sm text-slate-500">{__kbUi("Yuklanmoqda…")}</p> : <div className="overflow-auto rounded-2xl bg-white border" style={{ borderColor: "#E5E1D8" }}>
@@ -48,17 +49,17 @@ export default function XalqaroSavollar({ apiBase, token }) {
         <th className="p-2">{__kbUi("Til")}</th><th className="p-2">{__kbUi("Manba")}</th><th className="p-2">{__kbUi("Savollar")}</th><th className="p-2">{__kbUi("Excel")}</th><th className="p-2">{__kbUi("Yangi fayl")}</th></tr></thead>
         <tbody>{h.tillar.map((t) => { const s = tek[t.til]; const n = s?.natija; return <tr key={t.til} className="border-t align-top">
           <td className="p-2 font-semibold whitespace-nowrap">{BAYROQ[t.til]} {t.nom}</td>
-          <td className="p-2 text-xs">{t.manba === "baza" ? <span className="rounded px-1.5 py-0.5" style={{ background: "#E7F4EC", color: "#25683B" }}>{__kbUi("Excel (baza)")}</span> : t.manba === "fayl" ? __kbUi("asl (kod ichida)") : <span className="text-amber-700">{__kbUi("hali yo‘q")}</span>}
+          <td className="p-2 text-xs">{t.manba === "baza" ? <span className="rounded px-1.5 py-0.5" style={{ background: "#E7F4EC", color: "#25683B" }}>{__kbUi("yuklangan")}</span> : <span className="text-amber-700">{__kbUi("yuklanmagan")}</span>}
             {t.yangilandi && <small className="block text-slate-500">{String(t.yangilandi).slice(0, 16).replace("T", " ")}</small>}</td>
-          <td className="p-2 tabular-nums">{t.soni || "—"}</td>
-          <td className="p-2"><button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={() => shablon(t.til)}>⬇ {t.manba === "yo'q" ? __kbUi("Shablon") : __kbUi("Joriy")}</button>
-            {t.manba === "baza" && <button type="button" className="ml-1 rounded-lg border px-2 py-1 text-xs" onClick={() => qaytar(t.til)}>↩ {__kbUi("Asliga")}</button>}</td>
+          <td className="p-2 tabular-nums">{t.soni || "—"}{t.qismlar?.darslar ? <small className="block text-slate-500">{__kbUi("darslar")}: {t.qismlar.darslar}{t.qismlar.birliklar ? ` · PISA: ${t.qismlar.birliklar}` : ""}</small> : null}</td>
+          <td className="p-2"><button type="button" className="rounded-lg border px-2 py-1 text-xs" onClick={() => shablon(t.til)}>⬇ {t.manba === "baza" ? __kbUi("Joriy") : __kbUi("Shablon")}</button>
+            {t.manba === "baza" && <button type="button" className="ml-1 rounded-lg border px-2 py-1 text-xs text-red-700" onClick={() => qaytar(t.til)}>🗑 {__kbUi("O‘chirish")}</button>}</td>
           <td className="p-2 min-w-[260px]">
             <label className="inline-block rounded-lg border px-2 py-1 text-xs cursor-pointer">⬆ {__kbUi("Tanlash va tekshirish")}
               <input type="file" accept=".xlsx" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) tekshir(t.til, f); e.target.value = ""; }} /></label>
             {s?.busy && <span className="ml-2 text-xs">⏳</span>}
             {n && <div className="mt-1 text-xs">
-              {n.tayyor ? <span style={{ color: "#25683B" }}>✅ {n.savollar} {__kbUi("savol")}, {n.variantlar} {__kbUi("variant — xato yo‘q")}</span>
+              {n.tayyor ? <span style={{ color: "#25683B" }}>✅ {n.savollar} {__kbUi("savol")}, {n.variantlar} {__kbUi("variant")}, {n.darslar || 0} {__kbUi("dars")}, {n.birliklar || 0} {__kbUi("PISA matni — xato yo‘q")}</span>
                 : <span className="text-red-700">❌ {n.xato_soni || n.xatolar?.length} {__kbUi("ta xato")}</span>}
               {!n.tayyor && <ul className="list-disc pl-4 text-red-700 max-h-32 overflow-auto">{(n.xatolar || []).slice(0, 30).map((x, i) => <li key={i}>{x}</li>)}</ul>}
               {n.ogohlantirishlar?.length > 0 && <details><summary className="text-amber-700">⚠ {n.ogohlantirishlar.length} {__kbUi("ta ogohlantirish")}</summary>
