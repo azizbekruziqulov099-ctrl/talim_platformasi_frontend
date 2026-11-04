@@ -177,8 +177,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV121: «Top-chi» o'yini — ustoz so'zni aytadi va bola bosishini KUTADI; to'g'ri (birinchi urinishda) — yulduz,
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
-  const [sanoq, setSanoq] = useState(null);
-  const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
+  const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
+  const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi
+  // REV305: dars ketayotganda sarlavha (mavzu nomi, qadam) 3 soniyadan keyin yig'iladi — faqat ✕ qoladi, doskani to'smaydi;
+  // pauza, boshlanish yoki natija bo'lsa — yana ochiladi
+  const [boshYigiq, setBoshYigiq] = useState(false);
   const gameRef = useRef(null);
   const gameTimer = useRef(0);
   const gameRes = useRef({});
@@ -869,6 +872,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setXatoTartib(null); xatolar.current = [];
     setMode("test"); setTestIndex(0); setScore(0); setPicked(null);
   };
+  useEffect(() => {
+    if (!(playing && !pauza && mode === "lesson")) { setBoshYigiq(false); return undefined; }
+    const t = setTimeout(() => setBoshYigiq(true), 3000);
+    return () => clearTimeout(t);
+  }, [playing, pauza, mode]);
   const startQuizRef = useRef(startQuiz);
   startQuizRef.current = startQuiz;
   // REV177: testdan keyin — 🤖 Repetitor o'zi ochiladi (yangi so'zlar bo'lsa, bir darsda bir marta)
@@ -1612,7 +1620,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   };
   return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
-    <header className="dx-head">
+    <header className={`dx-head ${boshYigiq ? "is-yigiq" : ""}`}>
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={focus && !(mode === "idle" && onClose) ? exitLesson : () => { hush(); onClose?.(); }} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>

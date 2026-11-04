@@ -9,7 +9,14 @@ export default class AppErrorBoundary extends React.Component {
     if(props.resetKey !== state.resetKey)return {failed:false,resetKey:props.resetKey};
     return null;
   }
-  static getDerivedStateFromError() { return { failed: true }; }
+  static getDerivedStateFromError(error) { return { failed: true, xato: String(error?.message || error || "").slice(0, 160) }; }
+  componentDidCatch(error) {
+    // REV305: yangi versiya chiqqanda eski sahifa bo'lak (chunk) topa olmasa — sahifa bir marta o'zi yangilanadi
+    const m = String(error?.message || error || "");
+    if (/dynamically imported module|Importing a module script failed|Loading chunk|preload CSS|Failed to fetch/i.test(m)) {
+      try { if (!sessionStorage.getItem("kb_bolim_qayta")) { sessionStorage.setItem("kb_bolim_qayta", "1"); setTimeout(() => location.reload(), 300); } } catch { /* */ }
+    }
+  }
   render() {
     if (!this.state.failed) return this.props.children;
     return <div style={{ display: 'grid', placeItems: 'center', padding: 24, color: '#16353e', fontFamily: 'system-ui, sans-serif' }}>
@@ -17,7 +24,8 @@ export default class AppErrorBoundary extends React.Component {
         <small style={{ color: '#087f79', fontWeight: 800, letterSpacing: 2 }}>{__kbUi("KABUTAR")}</small>
         <h1 style={{ fontSize: 26 }}>{__kbUi("Bu bo‘limni ochib bo‘lmadi")}</h1>
         <p style={{ lineHeight: 1.6 }}>{__kbUi("Bu bo‘limni qayta oching yoki menyudan boshqa bo‘limni tanlang.")}</p>
-        <button type="button" onClick={() => this.setState({failed:false})} style={{ border: 0, borderRadius: 12, background: '#087f79', color: 'white', padding: '14px 20px', fontWeight: 700, cursor: 'pointer' }}>{__kbUi("Bo‘limni qayta ochish")}</button>
+        {this.state.xato && <p style={{ fontSize: 12, color: '#7a8a8e', wordBreak: 'break-word' }}>{this.state.xato}</p>}
+        <button type="button" onClick={() => { try { sessionStorage.removeItem("kb_bolim_qayta"); } catch { /* */ } this.setState({failed:false}); }} style={{ border: 0, borderRadius: 12, background: '#087f79', color: 'white', padding: '14px 20px', fontWeight: 700, cursor: 'pointer' }}>{__kbUi("Bo‘limni qayta ochish")}</button>
       </section>
     </div>;
   }

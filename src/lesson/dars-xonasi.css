@@ -920,3 +920,16 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 @keyframes dx-bor{from{transform:translateY(0) rotate(-12deg)}to{transform:translateY(-.12em) rotate(8deg)}}
 .dx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.dx-chalk-bor{animation:none}}
+
+/* REV305: dars ketayotganda sarlavha yig'iladi — faqat ✕ (doska ochiq qoladi) */
+.dx-root.dx-root>.dx-head.is-yigiq{background:transparent!important;box-shadow:none!important;padding:0!important;max-width:none!important;pointer-events:none}
+.dx-root.dx-root>.dx-head.is-yigiq>div,.dx-root.dx-root>.dx-head.is-yigiq .dx-head-actions{display:none!important}
+.dx-root.dx-root>.dx-head.is-yigiq .dx-exit{pointer-events:auto;opacity:.85;background:rgba(255,255,255,.9)!important}
+.dx-root.dx-root>.dx-head{transition:background .3s,box-shadow .3s}
+/* REV305: telefon (dars yotqizilgan) — tugmalar ustuni ekranga sig'adi va doskani to'smaydi: ixcham, o'ng chetda, pastga qadar */
+.dx-root.dx-root.dx-yotiq{padding-right:78px!important}
+.dx-root.dx-root.dx-yotiq .dx-controls{top:6px!important;bottom:6px!important;right:4px!important;max-height:calc(100% - 12px)!important;overflow-y:auto!important;justify-content:flex-start!important;gap:4px!important;padding:4px!important;width:70px!important;max-width:70px!important}
+.dx-root.dx-root.dx-yotiq .dx-controls .dx-btn{width:62px!important;min-height:44px!important;padding:4px 2px!important;font-size:10px!important;line-height:1.15!important;white-space:normal!important}
+.dx-root.dx-root.dx-yotiq .dx-controls select,.dx-root.dx-root.dx-yotiq .dx-controls label{font-size:10px!important;max-width:62px!important}
+.dx-root.dx-root.dx-yotiq>.dx-head{left:22px!important;top:4px!important;max-width:calc(100% - 110px)!important}
+.dx-root.dx-root.dx-yotiq>.dx-head.is-yigiq{left:auto!important;right:80px!important}
