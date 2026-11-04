@@ -105,7 +105,7 @@ test("REV270: til bo'yicha so'rov va ovoz (manba kodi)", () => {
   assert.match(ovozJs, /til = \(params && params\.til\) \|\| xbTil\(\)/);
   assert.match(ovozJs, /ovozMatni\(/);
   const tilJs = readFileSync(new URL("./xalqaro/xbTil.js", import.meta.url), "utf8");
-  assert.match(tilJs, /startsWith\("ru"\) \? "ru" : s\.startsWith\("en"\) \? "en" : "uz"/);
+  assert.match(tilJs, /startsWith\("ru"\) \? "ru" : s\.startsWith\("en"\) \? "en" : s\.startsWith\("de"\) \? "de" : s\.startsWith\("es"\) \? "es" : "uz"/);   // REV315: 5 til
   const hub = readFileSync(new URL("./xalqaro/XalqaroBaholash.jsx", import.meta.url), "utf8");
   assert.match(hub, /key=\{til\}/);   // til almashsa — bo'lim qaytadan (aralashmaydi)
   const panel = readFileSync(new URL("./xalqaro/XbOqituvchi.jsx", import.meta.url), "utf8");

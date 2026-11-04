@@ -7,12 +7,15 @@ import "katex/dist/katex.min.css";
 import "./index.css";
 import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
 import { startYangiAlifbo } from "./interface/yangiAlifbo.js";
+import { startIzohBayroq } from "./interface/izohBayroq.js";
 import App from "./App.jsx";
 import { InterfaceProvider } from "./interface/InterfacePreferences.jsx";
 
 rasmTiklashniYoq();   // REV154: yuklanmagan rasm o'zi qayta yuklanadi
 // REV221: yangi o'zbek alifbosi (Ö, Ğ, Ş, Ç) — o'zbekcha interfeysdagi barcha matn
 try { if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startYangiAlifbo); else startYangiAlifbo(); } catch { /* eski brauzer */ }
+// REV315: fan nomidagi «(izoh: rus)» — hamma joyda til bayrog'i (dars qaysi tilda o'tilgani ko'rinadi)
+try { if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startIzohBayroq); else startIzohBayroq(); } catch { /* eski brauzer */ }
 
 // REV133: yangi deploydan keyin ochiq turgan sahifa eski (o'chirilgan) bo'lak faylini so'rasa — sahifa bir marta
 // o'zi yangilanadi (aks holda darsni bosganda hech narsa bo'lmay qolardi). Qayta xato bo'lsa — odatdagi xato ekrani.

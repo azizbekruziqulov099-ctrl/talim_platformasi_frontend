@@ -4,17 +4,18 @@
 import { interfaceLocale, uiText } from "../interface/interfaceRuntime.js";
 import MATNLAR from "./xbMatnlar.js";
 
-export const XB_TILLAR = ["uz", "ru", "en"];
-export const XB_TIL_NOMI = { uz: "O‘zbekcha", ru: "Русский", en: "English" };
-export const XB_TIL_BAYROQ = { uz: "🇺🇿", ru: "🇷🇺", en: "🇬🇧" };
-export const MIK_TIL = { uz: "uz-UZ", ru: "ru-RU", en: "en-US" };
+// REV315: 5 til — nemis va ispan kontenti bazaga yuklangach shu ro'yxat bo'yicha ishlaydi
+export const XB_TILLAR = ["uz", "ru", "en", "de", "es"];
+export const XB_TIL_NOMI = { uz: "O‘zbekcha", ru: "Русский", en: "English", de: "Deutsch", es: "Español" };
+export const XB_TIL_BAYROQ = { uz: "🇺🇿", ru: "🇷🇺", en: "🇬🇧", de: "🇩🇪", es: "🇪🇸" };
+export const MIK_TIL = { uz: "uz-UZ", ru: "ru-RU", en: "en-US", de: "de-DE", es: "es-ES" };
 
 /** Interfeys tili → bo'lim tili (uz | ru | en). */
 export function xbTil(loc) {
   let l = loc;
   if (l === undefined) { try { l = interfaceLocale(); } catch { l = "uz"; } }
   const s = String(l || "uz");
-  return s.startsWith("ru") ? "ru" : s.startsWith("en") ? "en" : "uz";
+  return s.startsWith("ru") ? "ru" : s.startsWith("en") ? "en" : s.startsWith("de") ? "de" : s.startsWith("es") ? "es" : "uz";
 }
 
 /** Bo'lim matni shu tilda. O'zbekchada — platformaning odatiy interfeys qoidasi (yangi alifbo va h.k.). */
