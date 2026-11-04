@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O'yin rasmlari — ko'rinish (REV324)</title>
+<style>
+  :root { --fon: #ffffff; --karta: #f4f7fc; --matn: #2b3452; --chiziq: #d2d9e6; --olcham: 128px; }
+  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; color: var(--matn); background: var(--fon); }
+  header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+           padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--chiziq); }
+  h1 { font-size: 18px; margin: 0 12px 0 0; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  h2 { font-size: 15px; margin: 24px 16px 8px; }
+  .setka { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--olcham) + 24px), 1fr)); gap: 10px; padding: 0 16px; }
+  figure { margin: 0; padding: 10px 6px 8px; border-radius: 14px; background: var(--karta); text-align: center; }
+  figure img { width: var(--olcham); height: var(--olcham); display: block; margin: 0 auto; }
+  figcaption { margin-top: 6px; font: 12px ui-monospace, monospace; word-break: break-all; }
+  body.shaxmat figure { background: repeating-conic-gradient(#e3eaf5 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  body.qora { --fon: #1b2033; --karta: #2b3452; --matn: #f4f7fc; --chiziq: #4a5578; }
+  body.qora header { background: #1b2033; }
+</style>
+</head>
+<body>
+<header>
+  <h1>O'yin rasmlari (<span id="soni">0</span> ta)</h1>
+  <label>Fon:
+    <select id="fon">
+      <option value="">oq</option>
+      <option value="shaxmat">shaxmat (shaffoflikni ko'rish)</option>
+      <option value="qora">to'q</option>
+    </select>
+  </label>
+  <label>O'lcham: <input id="olcham" type="range" min="48" max="256" step="8" value="128"></label>
+</header>
+<main id="joy"></main>
+<script>
+  // REV324: src/kid/oyin/rasm/ dagi barcha SVG — tekshirish uchun. Ochish: vite dev → /src/kid/oyin/rasm/korinish.html
+  const GURUHLAR = [
+    ["Sandiq, quti, kalit, savat, karta, eshik, belgilar", ["sandiq_yopiq", "sandiq_ochiq", "quti_sehrli", "kalit_oltin", "qulf", "savat_bosh", "savat_tola", "likopcha", "karta_orqa", "karta_old", "eshik_yopiq", "eshik_ochiq", "yulduz_tugma", "pufak_gap", "mikrofon_katta", "qolcha_belgi", "belgi_tanlov_ha", "belgi_tanlov_yoq", "shar", "kubik_tosh"]],
+    ["Poyezd, taqvim, fasllar, daraxt, vaqt, osmon, tort", ["poyezd_lokomotiv", "poyezd_vagon", "taqvim_varaq", "oy_kartasi_qish", "oy_kartasi_bahor", "oy_kartasi_yoz", "oy_kartasi_kuz", "daraxt_qish", "daraxt_bahor", "daraxt_yoz", "daraxt_kuz", "fasl_gildirak", "termometr", "soat_bosh", "kun_quyosh", "tun_oy", "kamalak", "bulut_hayvon", "tort_sham", "sham_ochgan"]],
+    ["Tarozi, hayvonlar, svetofor, do'kon, raketa, robot, sanoq, gul, orkestr", ["tarozi_teng", "tarozi_chap", "zina", "qurbaqa", "kuchuk_qidir", "suyak", "svetofor_qizil", "svetofor_yashil", "domino", "tanga", "dokon_peshtaxta", "raketa", "raketa_uchgan", "robot_yol", "bayroqcha_marra", "tayoqcha_10", "tayoqcha", "chiqindi_qutilar", "gul_urug", "gul_osib", "gul_ochilgan", "orkestr_set"]],
+    ["Stikerlar va mukofotlar", ["stiker_quyon", "stiker_fil", "stiker_dinozavr", "stiker_kaptar", "stiker_raketa", "stiker_gul", "medal_oltin", "kubok", "diplom", "albom", "toj", "konfetti_parcha"]]
+  ];
+  const joy = document.getElementById("joy");
+  let soni = 0;
+  for (const [nom, rasmlar] of GURUHLAR) {
+    const h = document.createElement("h2");
+    h.textContent = nom;
+    const setka = document.createElement("div");
+    setka.className = "setka";
+    for (const r of rasmlar) {
+      const f = document.createElement("figure");
+      const img = document.createElement("img");
+      img.src = "./" + r + ".svg";
+      img.alt = r;
+      img.loading = "lazy";
+      const c = document.createElement("figcaption");
+      c.textContent = r;
+      f.append(img, c);
+      setka.append(f);
+      soni++;
+    }
+    joy.append(h, setka);
+  }
+  document.getElementById("soni").textContent = soni;
+  document.getElementById("fon").addEventListener("change", (e) => { document.body.className = e.target.value; });
+  document.getElementById("olcham").addEventListener("input", (e) => {
+    document.documentElement.style.setProperty("--olcham", e.target.value + "px");
+  });
+</script>
+</body>
+</html>
